@@ -1,23 +1,30 @@
 # Ferrari Labs
 
-Personal advisory site focused on financial crime, AI, and risk.
+Personal site for Eduardo Ferrari.
 
-## Overview
+## What this site is
 
-This site reflects my work across:
+A static website focused on:
 
-- AML and financial crime transformation  
-- Model validation and explainability  
-- AI in compliance environments  
-- Digital assets and crypto risk  
+- financial crime transformation
+- AML, fraud, and sanctions strategy
+- model validation and explainability
+- AI in compliance environments
+- digital asset risk
 
-The goal is to share perspectives from real-world engagements and highlight practical approaches to complex problems.
+## Contact form setup
+
+The site includes a contact form designed for static hosting.
+
+To activate it:
+
+1. Create a form in Formspree.
+2. Replace `REPLACE_WITH_YOUR_FORM_ID` in `index.html` with your Formspree form endpoint.
+3. Create a Cloudflare Turnstile widget for your domain.
+4. Replace `REPLACE_WITH_TURNSTILE_SITE_KEY` in `index.html` with your Turnstile site key.
+5. In Formspree, enable Cloudflare Turnstile and add your Turnstile secret key.
+6. In Formspree, restrict submissions to your domain.
 
 ## Deployment
 
-This site is hosted using GitHub Pages.
-
-## Contact
-
-For inquiries, connect via LinkedIn:
-https://linkedin.com/in/emferrari
+This site is intended for GitHub Pages.
