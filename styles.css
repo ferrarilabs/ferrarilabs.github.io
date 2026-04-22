@@ -1,0 +1,29 @@
+body {
+  background-color: #0b0f14;
+  color: #e6e6e6;
+  font-family: Arial, sans-serif;
+  margin: 0;
+}
+
+.container {
+  max-width: 800px;
+  margin: auto;
+  padding: 40px;
+}
+
+h1 {
+  font-size: 36px;
+}
+
+h2 {
+  margin-top: 30px;
+}
+
+.section {
+  margin-top: 30px;
+}
+
+a {
+  color: #4da3ff;
+  text-decoration: none;
+}
