@@ -1,4 +1,3 @@
-# ferrarilabs.github.io
 # Ferrari Labs
 
 Personal advisory site focused on financial crime, AI, and risk.
