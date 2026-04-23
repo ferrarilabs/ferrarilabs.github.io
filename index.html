@@ -24,6 +24,12 @@
         <a href="insights.html">Insights</a>
         <a href="#contact">Contact</a>
       </nav>
+      <div class="lang-switcher">
+        <a href="index.html" class="lang-active">EN</a>
+        <a href="index.pt.html">PT</a>
+        <a href="index.es.html">ES</a>
+        <a href="index.jp.html">JP</a>
+      </div>
     </header>
 
     <main>
@@ -97,7 +103,7 @@
           <article class="focus-card">
             <div class="focus-number">01</div>
             <h3>AML &amp; Transaction Monitoring</h3>
-            <p>Program assessment, alert logic and tuning, case management workflows, SAR quality, escalation path design. Includes hands-on work with monitoring pipeline architecture and the data integration that determines whether alert generation is reliable or just noisy.</p>
+            <p>Program assessment, alert logic and tuning, case management workflows, SAR quality, escalation path design. Includes work with monitoring pipeline architecture and the data integration that determines whether alert generation is reliable or just noisy.</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">02</div>
@@ -112,12 +118,12 @@
           <article class="focus-card">
             <div class="focus-number">04</div>
             <h3>Model Validation &amp; AI</h3>
-            <p>Independent challenge of detection models, scoring logic, and threshold-setting. Model infrastructure, explainability, backtesting, and validation traceability documentation. Includes AI governance design for institutions deploying machine learning in financial crime detection where auditability is non-negotiable.</p>
+            <p>Independent challenge of detection models, scoring logic, and threshold setting. Model infrastructure, explainability, backtesting, and validation traceability documentation. Includes AI governance design for institutions deploying machine learning in financial crime detection where auditability is non-negotiable.</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">05</div>
             <h3>Digital Asset Risk</h3>
-            <p>Compliance architecture for crypto-native institutions and banks with indirect exposure. Blockchain analytics integration, Travel Rule and TRISA implementation, VASP counterparty risk, and sanctions screening for on-chain activity. Built around what examiners are actually asking for now.</p>
+            <p>Compliance architecture for institutions that are crypto-native and for banks with indirect exposure. Blockchain analytics integration, Travel Rule and TRISA implementation, VASP counterparty risk, and sanctions screening for on-chain activity. Built around what examiners are actually asking for now.</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">06</div>
@@ -131,6 +137,13 @@
         <div class="section-label">From the field</div>
         <h2 class="section-title">Things I keep writing about because they keep coming up.</h2>
         <div class="perspectives-list">
+          <article class="perspective-item">
+            <div class="perspective-content">
+              <h3>AI has a data problem. Most people are diagnosing it wrong.</h3>
+              <p>The failure is not the model. It is the data going into it — and the institutional decisions that shaped that data long before anyone ran a training job.</p>
+            </div>
+            <a class="perspective-link" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">LinkedIn →</a>
+          </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>Your bank does not touch crypto. That does not mean crypto is not touching your bank.</h3>
@@ -171,7 +184,6 @@
           <form class="contact-form" action="https://formspree.io/f/xvzdwenk" method="POST">
             <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <input type="hidden" name="_subject" value="Ferrari Labs — inquiry" />
-
             <div class="form-field">
               <label for="f-name">Name</label>
               <input id="f-name" type="text" name="name" autocomplete="name" required />
@@ -184,9 +196,7 @@
               <label for="f-message">Message</label>
               <textarea id="f-message" name="message" rows="6" required></textarea>
             </div>
-
             <div class="cf-turnstile" data-sitekey="0x4AAAAAADBOZDvkES97y2fW"></div>
-
             <button class="button button-primary button-submit" type="submit">Send</button>
           </form>
         </div>
