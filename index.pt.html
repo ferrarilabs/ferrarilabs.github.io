@@ -17,22 +17,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KF98YDJNK7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KF98YDJNK7');
+  </script>
 </head>
 <body>
   <div class="shell">
     <header class="site-header">
       <a class="brand" href="index.pt.html">Eduardo Ferrari</a>
       <nav>
-        <a href="#about">Sobre</a>
-        <a href="#focus">Trabalho</a>
-        <a href="insights.html">Insights</a>
-        <a href="#contact">Contato</a>
+        <a href="#about" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Sobre</a>
+        <a href="#focus" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Trabalho</a>
+        <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Insights</a>
+        <a href="#contact" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Contato</a>
       </nav>
       <div class="lang-switcher">
-        <a href="index.html">EN</a>
-        <a href="index.pt.html" class="lang-active">PT</a>
-        <a href="index.es.html">ES</a>
-        <a href="index.jp.html">JP</a>
+        <a href="index.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">EN</a>
+        <a href="index.pt.html" class="lang-active" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">PT</a>
+        <a href="index.es.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">ES</a>
+        <a href="index.jp.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">JP</a>
       </div>
     </header>
 
@@ -44,8 +52,8 @@
           <h1>Trabalho com os problemas de compliance que são mais difíceis do que parecem no papel.</h1>
           <p class="lead">Atendo bancos, fintechs e empresas reguladas em AML, fraude, sanções, validação de modelos e ativos digitais. Minha experiência está tanto no compliance quanto na tecnologia que o sustenta — pipelines de monitoramento de transações, arquitetura de screening de sanções, gestão de risco de clientes e a integração de dados que determina se tudo isso realmente funciona quando é examinado de perto.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#contact">Entre em contato</a>
-            <a class="button button-ghost" href="insights.html">Ver insights</a>
+            <a class="button button-primary" href="#contact" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">Entre em contato</a>
+            <a class="button button-ghost" href="insights.html" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">Ver insights</a>
           </div>
         </div>
         <div class="hero-aside">
@@ -146,39 +154,39 @@
               <h3>As stablecoins não vão esperar o seu programa de compliance se atualizar.</h3>
               <p>As stablecoins já estão circulando em fluxos de pagamento e na atividade de clientes em instituições reguladas — independentemente de essas instituições terem ou não uma política sobre o assunto.</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>IA tem um problema de dados. A maioria das pessoas está diagnosticando errado.</h3>
               <p>O problema não é o modelo. São os dados que entram nele — e as decisões institucionais que moldaram esses dados muito antes de qualquer treinamento ser executado.</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>Seu banco não opera com cripto. Isso não significa que cripto não está afetando seu banco.</h3>
               <p>A exposição a cripto chega por meio da atividade dos clientes, do comportamento de pagamentos e de relacionamentos com correspondentes — muitas vezes bem antes de qualquer decisão deliberada de entrar nesse mercado.</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>Validação de modelos é onde os programas de compliance costumam estar mais vulneráveis.</h3>
               <p>Não porque os modelos estejam errados. Porque as instituições não conseguem explicar as decisões, reproduzir os resultados ou mostrar o que mudou entre versões quando um examinador pergunta.</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>Adotar IA em crime financeiro não é, antes de tudo, uma decisão tecnológica.</h3>
               <p>As perguntas mais difíceis são de governança: quem aprova uma mudança de limiar, como isso é documentado, e o que acontece quando um investigador discorda da pontuação do modelo.</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
         </div>
         <div class="section-footer-link">
-          <a href="insights.html">Todos os insights →</a>
+          <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Todos os insights →</a>
         </div>
       </section>
 
@@ -192,7 +200,7 @@
               <p>Chega direto pra mim. Nenhum e-mail exposto nesta página.</p>
             </div>
           </div>
-          <form class="contact-form" action="https://formspree.io/f/xvzdwenk" method="POST">
+          <form class="contact-form" action="https://formspree.io/f/xvzdwenk" method="POST" onsubmit="gtag('event','contact_form_submit',{event_category:'lead',event_label:document.documentElement.lang});">
             <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <input type="hidden" name="_subject" value="Ferrari Labs — contato" />
             <div class="form-field">
@@ -222,5 +230,27 @@
   </div>
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script>
+(function () {
+  var marks = [25, 50, 75, 100];
+  var sent = {};
+  function trackScrollDepth() {
+    var scrollTop = window.scrollY || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight <= 0) return;
+    var percent = Math.round((scrollTop / docHeight) * 100);
+    marks.forEach(function(mark) {
+      if (percent >= mark && !sent[mark]) {
+        sent[mark] = true;
+        gtag('event', 'scroll_depth', {
+          event_category: 'engagement',
+          event_label: mark + '%'
+        });
+      }
+    });
+  }
+  window.addEventListener('scroll', trackScrollDepth, { passive: true });
+})();
+  </script>
 </body>
 </html>
