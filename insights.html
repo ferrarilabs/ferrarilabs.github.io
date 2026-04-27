@@ -14,22 +14,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KF98YDJNK7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KF98YDJNK7');
+  </script>
 </head>
 <body>
   <div class="shell">
     <header class="site-header">
       <a class="brand" href="index.html">Eduardo Ferrari</a>
       <nav>
-        <a href="index.html#about">About</a>
-        <a href="index.html#focus">Work</a>
-        <a href="insights.html" class="nav-active">Insights</a>
-        <a href="index.html#contact">Contact</a>
+        <a href="index.html#about" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">About</a>
+        <a href="index.html#focus" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Work</a>
+        <a href="insights.html" class="nav-active" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Insights</a>
+        <a href="index.html#contact" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Contact</a>
       </nav>
       <div class="lang-switcher">
-        <a href="index.html" class="lang-active">EN</a>
-        <a href="index.pt.html">PT</a>
-        <a href="index.es.html">ES</a>
-        <a href="index.jp.html">JP</a>
+        <a href="index.html" class="lang-active" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">EN</a>
+        <a href="index.pt.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">PT</a>
+        <a href="index.es.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">ES</a>
+        <a href="index.jp.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">JP</a>
       </div>
     </header>
 
@@ -48,7 +56,7 @@
             <div class="insight-body">
               <h2 class="insight-title">Stablecoins Won't Wait for Your Compliance Program to Catch Up</h2>
               <p class="insight-summary">Stablecoins are already moving through payment flows, treasury operations, and customer activity at regulated institutions — whether those institutions have a stablecoin policy or not. This piece looks at where compliance programs are currently underprepared and what needs to change before the gap becomes a regulatory problem.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -59,7 +67,7 @@
             <div class="insight-body">
               <h2 class="insight-title">AI Has a Data Problem. Everyone Is Diagnosing It Wrong.</h2>
               <p class="insight-summary">The failure mode in most AI deployments is not the model — it is the data going into it, and the institutional decisions that shaped that data long before anyone ran a training job. Garbage labeling, survivorship bias in historical cases, and alert data that reflects prior tuning errors all compound silently. This piece examines where the real problem sits and why the standard diagnostics miss it.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -70,7 +78,7 @@
             <div class="insight-body">
               <h2 class="insight-title">Your Bank Doesn't Touch Crypto. That Doesn't Mean Crypto Isn't Touching You.</h2>
               <p class="insight-summary">Institutions that have made no decision to enter digital asset markets are often already exposed through customer activity, payment rails, and counterparty networks. This piece examines how that indirect exposure accumulates and why existing controls frequently miss it.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -81,7 +89,7 @@
             <div class="insight-body">
               <h2 class="insight-title">Designing Financial Crime Architecture for an OCC-Chartered Digital Asset Bank</h2>
               <p class="insight-summary">Traditional AML assumptions do not translate cleanly into real-time, blockchain-linked environments. This covers the architecture decisions that matter when building a compliance program from the ground up inside a digitally native institution under federal charter.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -92,7 +100,7 @@
             <div class="insight-body">
               <h2 class="insight-title">Seeing Is No Longer Believing: How Deepfakes Are Reshaping Risk</h2>
               <p class="insight-summary">Synthetic identity and deepfake technology have moved from theoretical threat to operational reality. The implications for onboarding controls, liveness verification, and trust assumptions across customer-facing channels are significant and largely underaddressed.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -103,7 +111,7 @@
             <div class="insight-body">
               <h2 class="insight-title">The AML Act of 2020 Was a Structural Shift, Not an Upgrade</h2>
               <p class="insight-summary">The AML Act did not simply increase compliance obligations. It moved the emphasis from alert volume toward decision quality — requiring institutions to produce more defensible outputs with less tolerance for explainability gaps in model logic and case documentation.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/aml-act-2020-fundamental-reform-regime-united-states-eduardo/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/aml-act-2020-fundamental-reform-regime-united-states-eduardo/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -114,7 +122,7 @@
             <div class="insight-body">
               <h2 class="insight-title">Delincuencia y Conformidad Financiera en una Economía Digital</h2>
               <p class="insight-summary">An examination of how financial crime controls need to evolve in digitally integrated economies — covering the operational, regulatory, and technological dimensions that compliance frameworks must account for as payment behavior and customer risk profiles shift.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/delincuencia-y-conformidad-financiera-en-una-econom%C3%ADa-eduardo/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/delincuencia-y-conformidad-financiera-en-una-econom%C3%ADa-eduardo/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -125,7 +133,7 @@
             <div class="insight-body">
               <h2 class="insight-title">Financial Crime Risks in the Post-COVID-19 Economy</h2>
               <p class="insight-summary">The pandemic accelerated a set of structural vulnerabilities in financial crime controls — fraud scheme adaptation, digital onboarding gaps, and reduced transaction monitoring effectiveness under abnormal behavioral baselines. This piece covers the lasting implications for risk programs.</p>
-              <a class="insight-link" href="https://www.linkedin.com/pulse/financial-crime-risks-post-covid-19-eduardo-de-morais-ferrari/" target="_blank" rel="noopener">Read on LinkedIn →</a>
+              <a class="insight-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/financial-crime-risks-post-covid-19-eduardo-de-morais-ferrari/" target="_blank" rel="noopener">Read on LinkedIn →</a>
             </div>
           </article>
 
@@ -138,5 +146,27 @@
       <span class="footer-note">Financial Crime Advisory</span>
     </footer>
   </div>
+  <script>
+(function () {
+  var marks = [25, 50, 75, 100];
+  var sent = {};
+  function trackScrollDepth() {
+    var scrollTop = window.scrollY || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight <= 0) return;
+    var percent = Math.round((scrollTop / docHeight) * 100);
+    marks.forEach(function(mark) {
+      if (percent >= mark && !sent[mark]) {
+        sent[mark] = true;
+        gtag('event', 'scroll_depth', {
+          event_category: 'engagement',
+          event_label: mark + '%'
+        });
+      }
+    });
+  }
+  window.addEventListener('scroll', trackScrollDepth, { passive: true });
+})();
+  </script>
 </body>
 </html>

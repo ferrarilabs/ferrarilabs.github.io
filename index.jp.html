@@ -17,22 +17,30 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KF98YDJNK7"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-KF98YDJNK7');
+  </script>
 </head>
 <body>
   <div class="shell">
     <header class="site-header">
       <a class="brand" href="index.jp.html">Eduardo Ferrari</a>
       <nav>
-        <a href="#about">プロフィール</a>
-        <a href="#focus">専門領域</a>
-        <a href="insights.html">インサイト</a>
-        <a href="#contact">お問い合わせ</a>
+        <a href="#about" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">プロフィール</a>
+        <a href="#focus" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">専門領域</a>
+        <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">インサイト</a>
+        <a href="#contact" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">お問い合わせ</a>
       </nav>
       <div class="lang-switcher">
-        <a href="index.html">EN</a>
-        <a href="index.pt.html">PT</a>
-        <a href="index.es.html">ES</a>
-        <a href="index.jp.html" class="lang-active">JP</a>
+        <a href="index.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">EN</a>
+        <a href="index.pt.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">PT</a>
+        <a href="index.es.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">ES</a>
+        <a href="index.jp.html" class="lang-active" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">JP</a>
       </div>
     </header>
 
@@ -44,8 +52,8 @@
           <h1>見た目よりも複雑なコンプライアンス課題に取り組んでいます。</h1>
           <p class="lead">銀行、フィンテック、規制対象企業に対して、AML、不正検知、制裁、モデル検証、デジタル資産リスクの領域で支援しています。コンプライアンスの知見だけでなく、その基盤となるシステムにも精通しています。トランザクション監視パイプライン、制裁スクリーニングの設計、顧客リスク管理のワークフロー、そして審査の場で実際に機能するかを左右するデータ統合まで、幅広く対応しています。</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#contact">お問い合わせ</a>
-            <a class="button button-ghost" href="insights.html">インサイトを見る</a>
+            <a class="button button-primary" href="#contact" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">お問い合わせ</a>
+            <a class="button button-ghost" href="insights.html" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">インサイトを見る</a>
           </div>
         </div>
         <div class="hero-aside">
@@ -146,39 +154,39 @@
               <h3>ステーブルコインは、コンプライアンスプログラムが追いつくのを待ってくれません。</h3>
               <p>ステーブルコインはすでに、規制対象機関の決済フローや顧客取引の中を動いています。その機関がステーブルコインに関するポリシーを持っているかどうかに関係なく。</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>AIにはデータの問題がある。そしてほとんどの人は問題の場所を間違えている。</h3>
               <p>問題はモデルではありません。そこに投入されるデータにあります。そのデータを形作った組織的な意思決定は、学習が走るずっと前に行われています。</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>あなたの銀行は暗号資産を扱っていない。それでも、暗号資産はあなたの銀行に影響を与えているかもしれない。</h3>
               <p>暗号資産へのエクスポージャーは、顧客の取引行動、送金パターン、コルレス関係を通じて生じます。多くの場合、参入を意識する前から始まっています。</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>モデル検証こそ、コンプライアンスプログラムが最もリスクにさらされやすい領域です。</h3>
               <p>モデルが誤っているからではありません。審査の場で、意思決定の根拠を説明できず、出力を再現できず、バージョン間の変更を示せないことが問題になります。</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>金融犯罪へのAI導入は、テクノロジーの問題より前に、ガバナンスの問題です。</h3>
               <p>本当に難しいのはここです。閾値の変更を誰が承認するのか、どう記録に残すのか、担当者がモデルのスコアに納得しない場合どう対処するのか。</p>
             </div>
-            <a class="perspective-link" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">LinkedIn →</a>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">LinkedIn →</a>
           </article>
         </div>
         <div class="section-footer-link">
-          <a href="insights.html">すべてのインサイト →</a>
+          <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">すべてのインサイト →</a>
         </div>
       </section>
 
@@ -192,7 +200,7 @@
               <p>メッセージは直接私に届きます。このページにメールアドレスは掲載していません。</p>
             </div>
           </div>
-          <form class="contact-form" action="https://formspree.io/f/xvzdwenk" method="POST">
+          <form class="contact-form" action="https://formspree.io/f/xvzdwenk" method="POST" onsubmit="gtag('event','contact_form_submit',{event_category:'lead',event_label:document.documentElement.lang});">
             <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
             <input type="hidden" name="_subject" value="Ferrari Labs — お問い合わせ" />
             <div class="form-field">
@@ -222,5 +230,27 @@
   </div>
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+  <script>
+(function () {
+  var marks = [25, 50, 75, 100];
+  var sent = {};
+  function trackScrollDepth() {
+    var scrollTop = window.scrollY || document.documentElement.scrollTop;
+    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    if (docHeight <= 0) return;
+    var percent = Math.round((scrollTop / docHeight) * 100);
+    marks.forEach(function(mark) {
+      if (percent >= mark && !sent[mark]) {
+        sent[mark] = true;
+        gtag('event', 'scroll_depth', {
+          event_category: 'engagement',
+          event_label: mark + '%'
+        });
+      }
+    });
+  }
+  window.addEventListener('scroll', trackScrollDepth, { passive: true });
+})();
+  </script>
 </body>
 </html>
