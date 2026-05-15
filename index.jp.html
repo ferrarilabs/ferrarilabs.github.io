@@ -25,23 +25,38 @@
     gtag('js', new Date());
     gtag('config', 'G-KF98YDJNK7');
   </script>
+  <script>
+    (function(){
+      var t=localStorage.getItem('theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      document.addEventListener('DOMContentLoaded',function(){
+        var btn=document.getElementById('theme-toggle');
+        if(btn)btn.addEventListener('click',function(){
+          t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+          document.documentElement.setAttribute('data-theme',t);
+          localStorage.setItem('theme',t);
+        });
+      });
+    })();
+  </script>
 </head>
 <body>
   <div class="shell">
     <header class="site-header">
       <a class="brand" href="index.jp.html">Eduardo Ferrari</a>
       <nav>
-        <a href="#about" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">プロフィール</a>
-        <a href="#focus" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">専門領域</a>
-        <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">インサイト</a>
-        <a href="#contact" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">お問い合わせ</a>
+        <a href="#about">プロフィール</a>
+        <a href="#focus">専門領域</a>
+        <a href="insights.html">インサイト</a>
+        <a href="#contact">お問い合わせ</a>
       </nav>
       <div class="lang-switcher">
-        <a href="index.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">EN</a>
-        <a href="index.pt.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">PT</a>
-        <a href="index.es.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">ES</a>
-        <a href="index.jp.html" class="lang-active" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">JP</a>
+        <a href="index.html">🇺🇸 EN</a>
+        <a href="index.pt.html">🇧🇷 PT</a>
+        <a href="index.es.html">🇪🇸 ES</a>
+        <a href="index.jp.html" class="lang-active">🇯🇵 JP</a>
       </div>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
     </header>
 
     <main>
@@ -49,11 +64,11 @@
       <section class="hero">
         <div class="hero-inner">
           <p class="eyebrow">金融犯罪アドバイザリー</p>
-          <h1>見た目よりも複雑なコンプライアンス課題に取り組んでいます。</h1>
-          <p class="lead">銀行、フィンテック、規制対象企業に対して、AML、不正検知、制裁、モデル検証、デジタル資産リスクの領域で支援しています。コンプライアンスの知見だけでなく、その基盤となるシステムにも精通しています。トランザクション監視パイプライン、制裁スクリーニングの設計、顧客リスク管理のワークフロー、そして審査の場で実際に機能するかを左右するデータ統合まで、幅広く対応しています。</p>
+          <h1>金融犯罪テクノロジープラットフォームの設計と運用を担っています。コンプライアンスの課題は、その仕事の一部です。</h1>
+          <p class="lead">金融機関のトランザクション監視、制裁スクリーニング、ケース管理、そしてそれらを結ぶデータ基盤 — こうした金融犯罪テクノロジープラットフォームの設計とガバナンスを担っています。マルチベンダーエコシステムの設計、プラットフォームの統合・整理、検知モデルのガバナンス、そして規制当局や内部監査が実際に求めるトレーサビリティの構築が主な仕事です。</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#contact" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">お問い合わせ</a>
-            <a class="button button-ghost" href="insights.html" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">インサイトを見る</a>
+            <a class="button button-primary" href="#contact">お問い合わせ</a>
+            <a class="button button-ghost" href="insights.html">インサイトを見る</a>
           </div>
         </div>
         <div class="hero-aside">
@@ -84,11 +99,11 @@
       <section class="twin-strip">
         <article class="twin-item">
           <span class="kicker">具体的な支援内容</span>
-          <p>プログラム評価、統制上の課題分析、モデルの独立レビュー、当局審査への対応準備 — それだけでなく、アーキテクチャレビュー、パイプライン設計、アラートのチューニング、そして規制当局に説明できるシステムの構築支援も行います。ベンダー選定のデモで終わらないシステムづくりを目指しています。</p>
+          <p>プラットフォームアーキテクチャ、システム統合、検知モデルのガバナンス、審査対応の組み合わせが多いです。技術的には、Actimize、Oracle FCCMなどのシステムを含む、コンプライアンスプログラムが実際に動くフレームワークとデータアーキテクチャを整えること。規制対応の面では、すべてが順調なときだけでなく、監査や当局の精査を受けたときにも統制が機能するようにすることです。</p>
         </article>
         <article class="twin-item">
           <span class="kicker">技術的な視点が重要な理由</span>
-          <p>金融犯罪の分野に入る前は、開発者とDBAとして働いていました。その経験があるからこそ、監視プログラムの問題を別の角度で見ることができます。誤検知が多い、モデルが検証を通らない、スクリーニングシステムが見落としを起こしている — こうした問題の原因はたいていポリシーではなく、データやシステム設計にあります。自分でそうしたシステムを構築してきたからこそ、根本原因を特定できます。</p>
+          <p>金融犯罪の分野に入る前は、開発者とDBAとして働いていました。その経歴が、テーブルでできることを変えます。誤検知が多い、モデルが検証を通らない、スクリーニングシステムが見落としを起こしている — こうした問題の原因はたいていポリシーではなく、データやシステム設計にあります。こうしたシステムを実際に構築・運用してきたからこそ、問題の根本に到達できます。内側がどうなっているか、知っています。</p>
         </article>
       </section>
 
@@ -102,7 +117,7 @@
             <p>ブラジル南部のカシアス・ド・スル出身です。キャリアは開発者からスタートし、Oracle Forms、Reports、Designer、DBA業務、VB開発を経て、チームリーダーを担いました。その後、金融犯罪の世界に入り、それ以来ずっとこの領域で働いています。最近では、資金調達・財務システムを含む幅広いコンプライアンステクノロジーにも携わっています。</p>
             <p>開発者としての経歴は、単なる前職ではありません。法務や監査出身の専門家とは異なる視点でAMLや不正の問題にアプローチできる理由がそこにあります。データエンジニアとセグメンテーションロジックを見直し、アラート生成の仕組みを再設計し、クオンツチームとモデル検証のトレーサビリティの欠如に向き合い、コンプライアンス担当者とシステムアーキテクトがシステムの挙動について意見が合わない場面に何度も立ち会ってきました。その両側の議論を理解しています。</p>
             <p>これまで、米国、カナダ、欧州、中東、アジア太平洋、ラテンアメリカの各地域で業務に携わってきました。それぞれ規制当局も、リスクの特性も、プログラムの成熟度も大きく異なります。その幅広い経験が、実際に防御可能なプログラムと、内部レビューを通過するだけのプログラムの違いを見極める力になっています。</p>
-            <p>現在はHuron Consulting Groupに所属しています。このサイトは私自身の考えと経験をもとにしています。英語、ポルトガル語、スペイン語を話します。</p>
+            <p>現在の中心はプラットフォームアーキテクチャ — 金融犯罪システムがスタック全体でどのように設計・接続・統治されるか、という問いです。後から修正しにくい部分に取り組むことが多いです。検知システムと財務システム間のデータ統合、技術的負債を蓄積するベンダー選定の判断、そしてモデル検証と審査対応を場当たり的でなく実務的に機能させるガバナンス層です。このサイトは私自身の考えをもとにしています。英語、ポルトガル語、スペイン語を話します。</p>
             <p>仕事以外では、子供2人、猫4匹、犬2匹、そして同じくカシアス・ド・スル出身の妻とともに、ノースカロライナ州シャーロット近郊のコンコードに暮らしています。</p>
           </div>
         </div>
@@ -110,12 +125,12 @@
 
       <section id="focus" class="content-section">
         <div class="section-label">専門領域</div>
-        <h2 class="section-title">主に取り組んでいる領域。</h2>
+        <h2 class="section-title">最も貢献できる領域。</h2>
         <div class="focus-grid">
           <article class="focus-card">
             <div class="focus-number">01</div>
             <h3>AML &amp; トランザクション監視</h3>
-            <p>プログラム評価、アラートロジックとチューニング、ケース管理、SAR品質管理、エスカレーション経路の設計。監視パイプラインのアーキテクチャと、アラートの精度を左右するデータ統合への実務的な対応を含みます。</p>
+            <p>トランザクション監視とケース管理プラットフォームの設計と安定化。アラートロジック、セグメンテーション、チューニング。SAR品質とエスカレーション経路の設計。重複するシステムの統合や、スケールでのアラート生成を不安定にするデータ統合の問題修正が多くを占めます。チューニングの問題に見えて、実はアーキテクチャの問題であるケースです。</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">02</div>
@@ -130,7 +145,7 @@
           <article class="focus-card">
             <div class="focus-number">04</div>
             <h3>モデル検証 &amp; AI</h3>
-            <p>検知モデル、スコアリングロジック、閾値設定の独立したレビュー。モデルの基盤整備、説明可能性、バックテスト、検証トレーサビリティの文書化。金融犯罪検知に機械学習を導入する機関向けのAIガバナンス設計も含みます。監査対応は最初から組み込む必要があります。</p>
+            <p>モデルリスクガバナンスフレームワークの設計、検知モデル・スコアリングロジック・閾値設定の独立したレビュー。検証を追跡可能・再現可能・防御可能にするインフラと文書の構築 — 形式的なコンプライアンスにとどまらない実質的な対応。説明可能性と監査対応が審査要件であるAI環境向けのガバナンス設計を含みます。</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">05</div>
@@ -149,6 +164,13 @@
         <div class="section-label">現場から</div>
         <h2 class="section-title">繰り返し書いているテーマは、現場でも繰り返し出てくるからです。</h2>
         <div class="perspectives-list">
+          <article class="perspective-item">
+            <div class="perspective-content">
+              <h3>規制対象企業でファイナンス変革が失敗する理由は、ある程度決まっています。</h3>
+              <p>問題はテクノロジーでも志の高さでもありません。変革プログラムが、コンプライアンス・リスク・規制上の制約と、置き換えようとしているシステムとの相互作用を考慮せずに設計されていることにあります。</p>
+            </div>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/why-finance-transformation-fails-regulated-firms-what-eduardo-jlake/" target="_blank" rel="noopener">LinkedIn →</a>
+          </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>ステーブルコインは、コンプライアンスプログラムが追いつくのを待ってくれません。</h3>
@@ -186,7 +208,7 @@
           </article>
         </div>
         <div class="section-footer-link">
-          <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">すべてのインサイト →</a>
+          <a href="insights.html">すべてのインサイト →</a>
         </div>
       </section>
 
@@ -230,27 +252,5 @@
   </div>
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <script>
-(function () {
-  var marks = [25, 50, 75, 100];
-  var sent = {};
-  function trackScrollDepth() {
-    var scrollTop = window.scrollY || document.documentElement.scrollTop;
-    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    if (docHeight <= 0) return;
-    var percent = Math.round((scrollTop / docHeight) * 100);
-    marks.forEach(function(mark) {
-      if (percent >= mark && !sent[mark]) {
-        sent[mark] = true;
-        gtag('event', 'scroll_depth', {
-          event_category: 'engagement',
-          event_label: mark + '%'
-        });
-      }
-    });
-  }
-  window.addEventListener('scroll', trackScrollDepth, { passive: true });
-})();
-  </script>
 </body>
 </html>

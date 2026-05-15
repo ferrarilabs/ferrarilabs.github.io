@@ -19,6 +19,53 @@
   --sans:      'DM Sans', system-ui, sans-serif;
 }
 
+/* ---- Light mode ---- */
+[data-theme="light"] {
+  --bg:        #f5f6f8;
+  --surface:   #ffffff;
+  --surface-2: #eef0f4;
+  --border:    rgba(0,0,0,0.08);
+  --border-2:  rgba(0,0,0,0.13);
+  --text:      #1e2330;
+  --muted:     #5a6175;
+  --muted-2:   #8b94a8;
+  --accent:    #2c6fad;
+  --white:     #1a2030;
+}
+[data-theme="light"] .site-header {
+  background: rgba(245,246,248,0.88);
+}
+[data-theme="light"] .button-primary {
+  background: #1a2030;
+  color: #f5f6f8;
+}
+[data-theme="light"] .button-primary:hover { background: #2c3550; color: #f5f6f8; }
+[data-theme="light"] .form-field input,
+[data-theme="light"] .form-field textarea {
+  background: #ffffff;
+  color: #1e2330;
+}
+
+/* ---- Theme toggle ---- */
+.theme-toggle {
+  background: none;
+  border: 1px solid var(--border-2);
+  color: var(--muted);
+  border-radius: 4px;
+  padding: 4px 9px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  line-height: 1.6;
+  flex-shrink: 0;
+  transition: color 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+.theme-toggle:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+[data-theme="light"] .theme-toggle:hover { border-color: rgba(0,0,0,0.25); }
+/* Icon via CSS — no JS flash */
+.theme-toggle::before { content: '☀'; }
+[data-theme="light"] .theme-toggle::before { content: '☾'; }
+
 *, *::before, *::after { box-sizing: border-box; }
 html { scroll-behavior: smooth; -webkit-font-smoothing: antialiased; }
 
@@ -80,7 +127,7 @@ nav a:hover, .nav-active { color: var(--text); }
   flex-shrink: 0;
 }
 .lang-switcher a {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--muted-2);

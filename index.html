@@ -25,23 +25,38 @@
     gtag('js', new Date());
     gtag('config', 'G-KF98YDJNK7');
   </script>
+  <script>
+    (function(){
+      var t=localStorage.getItem('theme')||'dark';
+      document.documentElement.setAttribute('data-theme',t);
+      document.addEventListener('DOMContentLoaded',function(){
+        var btn=document.getElementById('theme-toggle');
+        if(btn)btn.addEventListener('click',function(){
+          t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
+          document.documentElement.setAttribute('data-theme',t);
+          localStorage.setItem('theme',t);
+        });
+      });
+    })();
+  </script>
 </head>
 <body>
   <div class="shell">
     <header class="site-header">
       <a class="brand" href="index.html">Eduardo Ferrari</a>
       <nav>
-        <a href="#about" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">About</a>
-        <a href="#focus" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Work</a>
-        <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Insights</a>
-        <a href="#contact" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">Contact</a>
+        <a href="#about">About</a>
+        <a href="#focus">Work</a>
+        <a href="insights.html">Insights</a>
+        <a href="#contact">Contact</a>
       </nav>
       <div class="lang-switcher">
-        <a href="index.html" class="lang-active" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">EN</a>
-        <a href="index.pt.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">PT</a>
-        <a href="index.es.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">ES</a>
-        <a href="index.jp.html" onclick="gtag('event','language_switch',{event_category:'navigation',event_label:this.textContent.trim()});">JP</a>
+        <a href="index.html" class="lang-active">🇺🇸 EN</a>
+        <a href="index.pt.html">🇧🇷 PT</a>
+        <a href="index.es.html">🇪🇸 ES</a>
+        <a href="index.jp.html">🇯🇵 JP</a>
       </div>
+      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
     </header>
 
     <main>
@@ -49,11 +64,11 @@
       <section class="hero">
         <div class="hero-inner">
           <p class="eyebrow">Financial Crime Advisory</p>
-          <h1>I work on compliance problems that are harder than they look on paper.</h1>
-          <p class="lead">I work with banks, fintechs, and regulated businesses on AML, fraud, sanctions, model validation, and digital asset risk. My background is in both the compliance side and the technology underneath it — transaction monitoring pipelines, sanctions screening architecture, customer risk workflows, and the data integration that determines whether any of it actually works under examination.</p>
+          <h1>I design and run financial crime technology platforms. The compliance problems come with the territory.</h1>
+          <p class="lead">I work with financial institutions on the architecture of financial crime technology programs — how transaction monitoring, sanctions screening, case management, and financial data infrastructure fit together, and whether they hold up when regulators and internal audit take a close look. I came up through development and DBA work before moving into compliance, which means I can own the systems layer, not just advise on it.</p>
           <div class="hero-actions">
-            <a class="button button-primary" href="#contact" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">Get in touch</a>
-            <a class="button button-ghost" href="insights.html" onclick="gtag('event','cta_click',{event_category:'engagement',event_label:this.textContent.trim()});">Read insights</a>
+            <a class="button button-primary" href="#contact">Get in touch</a>
+            <a class="button button-ghost" href="insights.html">Read insights</a>
           </div>
         </div>
         <div class="hero-aside">
@@ -84,11 +99,11 @@
       <section class="twin-strip">
         <article class="twin-item">
           <span class="kicker">What this looks like</span>
-          <p>Program assessments, control gap analysis, model challenge, exam preparation — but also architecture reviews, pipeline design, alert tuning, and helping teams build systems that can be explained clearly to a regulator, not just demonstrated to a vendor selection committee.</p>
+          <p>The work is usually some combination of platform architecture, system consolidation, detection model governance, and exam preparation. On the technical side, that means the framework and data architecture a compliance program actually runs on — across systems like Actimize, Oracle FCCM, and adjacent enterprise infrastructure. On the regulatory side, it means making sure the controls hold up when auditors and examiners look closely, not just when things are running smoothly.</p>
         </article>
         <article class="twin-item">
           <span class="kicker">Why the technology side matters</span>
-          <p>I started as a developer and DBA before moving into financial crime. That background changes how I read a monitoring program. When something is producing too many false positives, or a model cannot be validated, or a screening system is missing matches, the problem is usually in the data or the architecture — not the policy. I can find it because I have built these kinds of systems.</p>
+          <p>I started as a developer and DBA before moving into financial crime. That history changes what I can do at the table. When a monitoring program is producing too many false positives, or a model cannot be validated, or a screening system is missing matches, the problem is usually in the data or the architecture — not the policy. I can get to it because I have built and run these kinds of systems. I know what the inside looks like.</p>
         </article>
       </section>
 
@@ -102,7 +117,7 @@
             <p>I grew up in Caxias do Sul, in southern Brazil, and started my career as a developer — Oracle Forms, Reports, Designer, then DBA work, then VB. Eventually team lead roles. Financial crime came later, and it stuck. I have been working in FRAML ever since, and more recently across broader compliance technology including treasury and finance systems.</p>
             <p>That developer background is not incidental. It is why I approach AML and fraud problems differently from most people who come at them from the legal or audit side. I have reviewed segmentation logic with data engineers, rebuilt alert generation workflows, worked through model validation traceability gaps with quant teams, and sat in rooms where a compliance officer and a technology architect cannot agree on what the system is actually doing. I know both sides of that conversation.</p>
             <p>Over the years I have worked across US, Canadian, European, Middle Eastern, Asia-Pacific, and Latin American operating environments — different regulators, different risk profiles, different levels of maturity in how institutions build and govern these programs. That range shapes how I think about what a defensible program actually looks like versus what just passes an internal review.</p>
-            <p>I currently work for Huron Consulting Group. This site reflects my own thinking and experience. I speak English, Portuguese, and Spanish.</p>
+            <p>My current focus is platform architecture — how financial crime systems are designed, connected, and governed across the full stack. That tends to mean working on the parts that are hardest to fix later: data integration between detection and financial systems, vendor ecosystem decisions that accumulate technical debt, and the governance layer that makes model validation and exam response actually workable rather than scrambled. This site reflects my own thinking. I speak English, Portuguese, and Spanish.</p>
             <p>Outside of work: two kids, four cats, two dogs, and my wife — also from Caxias do Sul. We live in the Charlotte area, in North Carolina.</p>
           </div>
         </div>
@@ -110,12 +125,12 @@
 
       <section id="focus" class="content-section">
         <div class="section-label">Work</div>
-        <h2 class="section-title">Where I spend most of my time.</h2>
+        <h2 class="section-title">Where I tend to be most useful.</h2>
         <div class="focus-grid">
           <article class="focus-card">
             <div class="focus-number">01</div>
             <h3>AML &amp; Transaction Monitoring</h3>
-            <p>Program assessment, alert logic and tuning, case management workflows, SAR quality, escalation path design. Includes work with monitoring pipeline architecture and the data integration that determines whether alert generation is reliable or just noisy.</p>
+            <p>Designing and stabilizing transaction monitoring and case management platforms. Alert logic, segmentation, and tuning. SAR quality and escalation path design. A lot of this work involves consolidating overlapping systems and fixing the data integration problems that cause alert generation to be unreliable at scale — the kind of issues that look like tuning problems but are actually architecture problems.</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">02</div>
@@ -130,7 +145,7 @@
           <article class="focus-card">
             <div class="focus-number">04</div>
             <h3>Model Validation &amp; AI</h3>
-            <p>Independent challenge of detection models, scoring logic, and threshold setting. Model infrastructure, explainability, backtesting, and validation traceability documentation. Includes AI governance design for institutions deploying machine learning in financial crime detection where auditability is non-negotiable.</p>
+            <p>Model risk governance framework design, independent challenge of detection models, scoring logic, and threshold setting. Building the infrastructure and documentation that makes validation traceable, reproducible, and defensible — not just compliant on paper. Includes AI governance design for institutions where explainability and auditability are exam requirements, not aspirations.</p>
           </article>
           <article class="focus-card">
             <div class="focus-number">05</div>
@@ -149,6 +164,13 @@
         <div class="section-label">From the field</div>
         <h2 class="section-title">Things I keep writing about because they keep coming up.</h2>
         <div class="perspectives-list">
+          <article class="perspective-item">
+            <div class="perspective-content">
+              <h3>Finance transformation fails at regulated firms for a specific reason.</h3>
+              <p>The issue is not the technology or the ambition. It is that transformation programs are designed without accounting for how compliance, risk, and regulatory constraints interact with the systems being replaced.</p>
+            </div>
+            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/why-finance-transformation-fails-regulated-firms-what-eduardo-jlake/" target="_blank" rel="noopener">LinkedIn →</a>
+          </article>
           <article class="perspective-item">
             <div class="perspective-content">
               <h3>Stablecoins will not wait for your compliance program to catch up.</h3>
@@ -186,7 +208,7 @@
           </article>
         </div>
         <div class="section-footer-link">
-          <a href="insights.html" onclick="gtag('event','nav_click',{event_category:'navigation',event_label:this.textContent.trim()});">All insights →</a>
+          <a href="insights.html">All insights →</a>
         </div>
       </section>
 
@@ -230,27 +252,5 @@
   </div>
 
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
-  <script>
-(function () {
-  var marks = [25, 50, 75, 100];
-  var sent = {};
-  function trackScrollDepth() {
-    var scrollTop = window.scrollY || document.documentElement.scrollTop;
-    var docHeight = document.documentElement.scrollHeight - window.innerHeight;
-    if (docHeight <= 0) return;
-    var percent = Math.round((scrollTop / docHeight) * 100);
-    marks.forEach(function(mark) {
-      if (percent >= mark && !sent[mark]) {
-        sent[mark] = true;
-        gtag('event', 'scroll_depth', {
-          event_category: 'engagement',
-          event_label: mark + '%'
-        });
-      }
-    });
-  }
-  window.addEventListener('scroll', trackScrollDepth, { passive: true });
-})();
-  </script>
 </body>
 </html>
