@@ -185,3 +185,13 @@ Se não permitir, use `{{receipt_text}}` ou `{{receipt_text_pretty}}` com quebra
 - Melhora contador de fim das apostas.
 - Ajusta tradução dinâmica para mais elementos.
 - Melhora layout responsivo e esconde sidebar mais cedo.
+
+
+## v1.8 i18n/delete/schedule fixes
+
+- Language switch now re-renders dynamic sections immediately.
+- Added more translation keys for ranking, admin, receipts, buttons and form fields.
+- Games show friendly date/time/venue pills.
+- Admin can delete an entry.
+- When deleting, the site attempts to send a removal notification email to the participant via EmailJS.
+- Deletion is localStorage-based in this test version; production still needs Firebase/Supabase for real auditability.

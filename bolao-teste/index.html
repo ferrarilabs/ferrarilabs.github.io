@@ -80,34 +80,34 @@
               <p data-i18n="heroText">Palpites, diversão e rivalidade. Mostre que você entende de futebol.</p>
             </div>
             <div class="stats-row">
-              <div class="stat"><span>Participantes</span><b id="statParticipants">0</b></div>
-              <div class="stat"><span>Entrada</span><b>US$ 5</b></div>
-              <div class="stat"><span>1º lugar</span><b>70%</b></div>
+              <div class="stat"><span><span data-i18n="participantsStat">Participantes</span><b id="statParticipants">0</b></div>
+              <div class="stat"><span data-i18n="entryStat">Entrada</span><b>US$ 5</b></div>
+              <div class="stat"><span data-i18n="firstPlaceStat">1º lugar</span><b>70%</b></div>
             </div>
           </div>
 
           <div class="card">
             <h2 data-i18n="entryTitle">Nova entrada</h2>
-            <p class="muted"><span data-i18n="entryHelp">Os dados desta versão ficam salvos no navegador. Faça backup CSV/JSON no Admin.</span></p>
+            <p class="muted"><span data-i18n="entryHelp"><span data-i18n="entryHelp">Os dados desta versão ficam salvos no navegador. Faça backup CSV/JSON no Admin.</span></span></p>
 
             <div class="grid2">
-              <label><span data-i18n="entryName">Nome da entrada</span>
-                <input id="entryName" placeholder="Ex: Eduardo #1, Gabriel, Nicole" />
+              <label><span data-i18n="entryName"><span data-i18n="entryName">Nome da entrada</span></span>
+                <input id="entryName" placeholder="Ex: Eduardo #1, Gabriel, Nicole" data-i18n-placeholder="entryNamePlaceholder" />
               </label>
-              <label><span data-i18n="payerName">Responsável pelo pagamento</span>
-                <input id="payerName" placeholder="Nome de quem paga os US$ 5" />
+              <label><span data-i18n="payerName"><span data-i18n="payerName">Responsável pelo pagamento</span></span>
+                <input id="payerName" placeholder="Nome de quem paga os US$ 5" data-i18n-placeholder="payerNamePlaceholder" />
               </label>
             </div>
             <div style="margin-top:12px">
-              <label><span data-i18n="emailLabel">E-mail para comprovante</span> <span class="muted">(opcional nesta versão)</span>
-                <input id="participantEmail" type="email" placeholder="nome@email.com" />
+              <label><span data-i18n="emailLabel"><span data-i18n="emailLabel">E-mail para comprovante</span></span> <span class="muted">(opcional nesta versão)</span>
+                <input id="participantEmail" type="email" placeholder="nome@email.com" data-i18n-placeholder="emailPlaceholder" />
               </label>
             </div>
 
             <div class="grid2" style="margin-top:12px">
-              <label><span data-i18n="paymentMethod">Método de pagamento</span>
+              <label><span data-i18n="paymentMethod"><span data-i18n="paymentMethod">Método de pagamento</span></span>
                 <select id="paymentMethod">
-                  <option value="">Selecione</option>
+                  <option value="" data-i18n="selectOption">Selecione</option>
                   <option value="CashApp">CashApp</option>
                   <option value="Zelle">Zelle</option>
                   <option value="PayPal">PayPal</option>
@@ -115,7 +115,7 @@
                 </select>
               </label>
               <label><span data-i18n="valueLabel">Valor</span>
-                <input value="US$ 5 por entrada" disabled />
+                <input value="US$ 5 por entrada" data-i18n-value="amountValue" disabled />
               </label>
             </div>
 
@@ -138,19 +138,19 @@
             </div>
 
             <div id="diagnosticsNotice" class="diagnostics-notice">
-              <b>Diagnóstico técnico:</b> para ajudar em suporte e auditoria, esta versão registra metadados como IP público, dispositivo, navegador, timezone e horário de envio junto com a entrada.
+              <b data-i18n="diagnosticsTitle">Diagnóstico técnico:</b> <span data-i18n="diagnosticsText">para ajudar em suporte e auditoria, esta versão registra metadados como IP público, dispositivo, navegador, timezone e horário de envio junto com a entrada.</span>
             </div>
 
             <div class="button-row">
               <button id="smartPick" class="secondary" type="button"><span data-i18n="simulateSmart">⚡ Simular palpites automaticamente</span></button>
               <button id="randomPick" class="secondary" type="button"><span data-i18n="simulateRandom">🎲 Simular maluco</span></button>
             </div>
-            <p class="muted small">A simulação é só para preencher rápido. Revise antes de salvar.</p>
+            <p class="muted small"><span data-i18n="autoFillReview">A simulação é só para preencher rápido. Revise antes de salvar.</span></p>
             <div class="simulation-disclaimer" id="simulationDisclaimer"></div>
           </div>
 
           <div class="card info-card">
-            <h3>Como preencher os jogos futuros</h3>
+            <h3 data-i18n="futureGamesTitle">Como preencher os jogos futuros</h3>
             <p><b>Exemplo:</b> se no Match 73 você colocou Brasil para passar, uma fase futura pode aparecer como “Vencedor Match 73”. Se na vida real outro time passar no lugar, esse time herda a vaga. Seu palpite futuro continua valendo para aquela posição do bracket.</p>
             <p><b>Placar válido:</b> 90 minutos + prorrogação. Pênaltis não entram no placar.</p>
           </div>
@@ -193,7 +193,7 @@
 
           <div class="card">
             <h2 data-i18n="paymentOptions">Escolha como pagar</h2>
-            <p class="muted">Após realizar o pagamento, marque como pago na sua entrada. O admin confirmará depois.</p>
+            <p class="muted"><span data-i18n="paymentHelp">Após realizar o pagamento, marque como pago na sua entrada. O admin confirmará depois.</span></p>
             <div class="payment-grid">
               <div class="payment-card cash">
                 <img class="pay-logo" src="assets/cashapp.svg" alt="Cash App">
@@ -240,8 +240,8 @@
         <section id="ranking" class="panel">
           <div class="card row-between">
             <div>
-              <h2>Ranking</h2>
-              <p class="muted">Calculado com base nos resultados lançados no Admin.</p>
+              <h2 data-i18n="rankingTitle">Ranking</h2>
+              <p class="muted"><span data-i18n="rankingSubtitle">Calculado com base nos resultados lançados no Admin.</span></p>
             </div>
             <div class="pot"><span>Pot</span><strong id="potValue">$0</strong></div>
           </div>
@@ -259,7 +259,7 @@
 
         <section id="games" class="panel">
           <div class="card">
-            <h2>Jogos e resultados atuais</h2>
+            <h2 data-i18n="gamesTitle">Jogos e resultados atuais</h2>
             <p class="muted" id="updatedLabel"></p>
           </div>
           <div id="gamesList"></div>
@@ -267,7 +267,7 @@
 
         <section id="rules" class="panel">
           <div class="card">
-            <h2>Regras simples</h2>
+            <h2 data-i18n="rulesTitle">Regras simples</h2>
             <ul class="rules">
               <li>US$ 5 por entrada.</li>
               <li>Pode fazer várias entradas.</li>
@@ -305,12 +305,12 @@
 
         <section id="admin" class="panel">
           <div id="adminLogin" class="card">
-            <h2>Admin</h2>
-            <p class="muted">Área protegida para lançar resultados e confirmar pagamentos.</p>
-            <label>Senha do admin
+            <h2 data-i18n="adminTitle">Admin</h2>
+            <p class="muted"><span data-i18n="adminHelp">Área protegida para lançar resultados e confirmar pagamentos.</span></p>
+            <label><span data-i18n="adminPassword">Senha do admin</span>
               <input id="adminPassword" type="password" placeholder="Digite a senha" />
             </label>
-            <button id="adminLoginBtn" class="primary full" style="margin-top:12px">Entrar no admin</button>
+            <button id="adminLoginBtn" class="primary full" style="margin-top:12px"><span data-i18n="adminEnter">Entrar no admin</span></button>
             <p class="muted small">Senha de teste definida via hash SHA-256. Ainda assim, por ser GitHub Pages estático, isto é apenas proteção visual. Para segurança real, usar Firebase/Supabase Auth.</p>
           </div>
           <div id="adminArea" style="display:none">

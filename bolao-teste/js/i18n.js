@@ -208,3 +208,97 @@ Object.assign(window.BOLAO_I18N["en-US"], {
   };
   for (const lang of Object.keys(extra)) Object.assign(window.BOLAO_I18N[lang], extra[lang]);
 })();
+
+
+(function(){
+  const extra = {
+    "pt-BR": {
+      participantsStat:"Participantes", entryStat:"Entrada", firstPlaceStat:"1º lugar",
+      newEntry:"Nova entrada", entryHelp:"Os dados desta versão ficam salvos no navegador. Faça backup CSV/JSON no Admin.",
+      entryName:"Nome da entrada", entryNamePlaceholder:"Ex: Eduardo #1, Gabriel, Nicole",
+      payerName:"Responsável pelo pagamento", payerNamePlaceholder:"Nome de quem paga os US$ 5",
+      emailLabel:"E-mail para comprovante", emailPlaceholder:"nome@email.com",
+      paymentMethod:"Método de pagamento", selectOption:"Selecione", amount:"Valor",
+      amountValue:"US$ 5 por entrada", autoFillReview:"A simulação é só para preencher rápido. Revise antes de salvar.",
+      futureGamesTitle:"Como preencher os jogos futuros",
+      futureGamesText1:"Exemplo: se no Match 73 você colocou Brasil para passar, uma fase futura pode aparecer como “Vencedor Match 73”. Se na vida real outro time passar no lugar, esse time herda a vaga. Seu palpite futuro continua valendo para aquela posição do bracket.",
+      futureGamesText2:"Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.",
+      diagnosticsTitle:"Diagnóstico técnico:",
+      diagnosticsText:"para ajudar em suporte e auditoria, esta versão registra metadados como IP público, dispositivo, navegador, timezone e horário de envio junto com a entrada.",
+      savedTitle:"✅ Entrada salva", savedText:"Guarde seu comprovante. Ele contém o código da entrada e os palpites enviados.",
+      openReceipt:"Abrir comprovante", downloadPdf:"Baixar PDF", downloadHtml:"Baixar HTML", sendEmail:"Enviar por e-mail",
+      rankingTitle:"Ranking", rankingSubtitle:"Calculado com base nos resultados lançados no Admin.", noEntries:"Nenhuma entrada registrada ainda.",
+      publicRankingNote:"Ranking público. Clique em uma entrada para ver os palpites enviados. Ações administrativas ficam apenas na área Admin.",
+      viewPicks:"Ver palpites", picksFor:"Palpites de", points:"pontos", bonusFinal:"bônus finais",
+      paymentPending:"Pendente", paid:"Pago", paymentTitle:"Pagamento da aposta", paymentSubtitle:"Valor da aposta: US$ 5,00 por entrada",
+      paymentOptions:"Escolha como pagar", paymentHelp:"Após realizar o pagamento, marque como pago na sua entrada. O admin confirmará depois.",
+      tipsTitle:"Dicas importantes", gamesTitle:"Jogos e resultados atuais", rulesTitle:"Regras simples",
+      adminTitle:"Admin", adminHelp:"Área protegida para lançar resultados e confirmar pagamentos.",
+      adminPassword:"Senha do admin", adminEnter:"Entrar no admin", adminReceipts:"Comprovantes, e-mails e exclusão",
+      deleteEntry:"Deletar entrada", deleteConfirm:"Tem certeza que deseja deletar esta entrada? Esta ação remove a entrada deste navegador e tenta enviar e-mail de aviso.",
+      deleteReasonPrompt:"Motivo da remoção (opcional):", deleteEmailSent:"Entrada removida. O site tentou enviar e-mail de aviso.",
+      participantEmailBtn:"E-mail participante", adminEmailBtn:"E-mail Eduardo", dateTimeVenue:"Data, hora e local", venueTbd:"A confirmar",
+      matchDateLabel:"Data", matchTimeLabel:"Horário ET", matchVenueLabel:"Local"
+    },
+    "es": {
+      participantsStat:"Participantes", entryStat:"Entrada", firstPlaceStat:"1º lugar",
+      newEntry:"Nueva entrada", entryHelp:"Los datos de esta versión se guardan en el navegador. Haz backup CSV/JSON en Admin.",
+      entryName:"Nombre de la entrada", entryNamePlaceholder:"Ej: Eduardo #1, Gabriel, Nicole",
+      payerName:"Responsable del pago", payerNamePlaceholder:"Nombre de quien paga los US$ 5",
+      emailLabel:"E-mail para comprobante", emailPlaceholder:"nombre@email.com",
+      paymentMethod:"Método de pago", selectOption:"Seleccionar", amount:"Valor",
+      amountValue:"US$ 5 por entrada", autoFillReview:"La simulación solo ayuda a completar rápido. Revisa antes de guardar.",
+      futureGamesTitle:"Cómo completar los partidos futuros",
+      futureGamesText1:"Ejemplo: si en Match 73 elegiste Brasil, una fase futura puede aparecer como “Ganador Match 73”. Si otro equipo avanza, ese equipo hereda la posición. Tu pronóstico futuro sigue válido para esa posición.",
+      futureGamesText2:"Marcador válido: 90 minutos + prórroga. Penales no cuentan en el marcador.",
+      diagnosticsTitle:"Diagnóstico técnico:",
+      diagnosticsText:"para soporte y auditoría, esta versión registra metadatos como IP público, dispositivo, navegador, zona horaria y hora de envío.",
+      savedTitle:"✅ Entrada guardada", savedText:"Guarda tu comprobante. Contiene el código de la entrada y los pronósticos enviados.",
+      openReceipt:"Abrir comprobante", downloadPdf:"Descargar PDF", downloadHtml:"Descargar HTML", sendEmail:"Enviar por e-mail",
+      rankingTitle:"Clasificación", rankingSubtitle:"Calculada con base en los resultados cargados por Admin.", noEntries:"Todavía no hay entradas.",
+      publicRankingNote:"Clasificación pública. Haz clic en una entrada para ver los pronósticos enviados. Las acciones administrativas quedan solo en Admin.",
+      viewPicks:"Ver pronósticos", picksFor:"Pronósticos de", points:"puntos", bonusFinal:"bono final",
+      paymentPending:"Pendiente", paid:"Pagado", paymentTitle:"Pago de la entrada", paymentSubtitle:"Valor: US$ 5,00 por entrada",
+      paymentOptions:"Elige cómo pagar", paymentHelp:"Después de pagar, marca la entrada como pagada. Admin confirmará después.",
+      tipsTitle:"Consejos importantes", gamesTitle:"Partidos y resultados actuales", rulesTitle:"Reglas simples",
+      adminTitle:"Admin", adminHelp:"Área protegida para resultados y pagos.",
+      adminPassword:"Contraseña admin", adminEnter:"Entrar en admin", adminReceipts:"Comprobantes, e-mails y eliminación",
+      deleteEntry:"Eliminar entrada", deleteConfirm:"¿Seguro que quieres eliminar esta entrada? Se removerá de este navegador y se intentará enviar un e-mail de aviso.",
+      deleteReasonPrompt:"Motivo de la eliminación (opcional):", deleteEmailSent:"Entrada eliminada. El sitio intentó enviar el e-mail de aviso.",
+      participantEmailBtn:"E-mail participante", adminEmailBtn:"E-mail Eduardo", dateTimeVenue:"Fecha, hora y lugar", venueTbd:"Por confirmar",
+      matchDateLabel:"Fecha", matchTimeLabel:"Horario ET", matchVenueLabel:"Lugar"
+    },
+    "en-US": {
+      participantsStat:"Participants", entryStat:"Entry", firstPlaceStat:"1st place",
+      newEntry:"New entry", entryHelp:"This version stores data in the browser. Export CSV/JSON backups from Admin.",
+      entryName:"Entry name", entryNamePlaceholder:"Ex: Eduardo #1, Gabriel, Nicole",
+      payerName:"Payment responsible person", payerNamePlaceholder:"Name of the person paying the US$ 5",
+      emailLabel:"Email for receipt", emailPlaceholder:"name@email.com",
+      paymentMethod:"Payment method", selectOption:"Select", amount:"Amount",
+      amountValue:"US$ 5 per entry", autoFillReview:"The simulator only fills fast. Review before saving.",
+      futureGamesTitle:"How to fill future matches",
+      futureGamesText1:"Example: if in Match 73 you picked Brazil, a future round may show “Winner Match 73”. If another team advances in real life, that team inherits the bracket slot. Your future pick remains valid for that bracket position.",
+      futureGamesText2:"Valid score: 90 minutes + extra time. Penalties do not count in the score.",
+      diagnosticsTitle:"Technical diagnostics:",
+      diagnosticsText:"for support and audit, this version records metadata such as public IP, device, browser, timezone, and submission time.",
+      savedTitle:"✅ Entry saved", savedText:"Keep your receipt. It contains your entry code and submitted picks.",
+      openReceipt:"Open receipt", downloadPdf:"Download PDF", downloadHtml:"Download HTML", sendEmail:"Send by email",
+      rankingTitle:"Ranking", rankingSubtitle:"Calculated based on results entered by Admin.", noEntries:"No entries registered yet.",
+      publicRankingNote:"Public ranking. Click an entry to view submitted picks. Admin actions stay inside Admin.",
+      viewPicks:"View picks", picksFor:"Picks for", points:"points", bonusFinal:"final bonus",
+      paymentPending:"Pending", paid:"Paid", paymentTitle:"Entry payment", paymentSubtitle:"Entry fee: US$ 5.00 per entry",
+      paymentOptions:"Choose how to pay", paymentHelp:"After paying, mark the entry as paid. Admin will confirm later.",
+      tipsTitle:"Important tips", gamesTitle:"Games and current results", rulesTitle:"Simple rules",
+      adminTitle:"Admin", adminHelp:"Protected area to enter results and confirm payments.",
+      adminPassword:"Admin password", adminEnter:"Enter Admin", adminReceipts:"Receipts, emails, and deletion",
+      deleteEntry:"Delete entry", deleteConfirm:"Are you sure you want to delete this entry? It will be removed from this browser and the site will try to email the participant.",
+      deleteReasonPrompt:"Removal reason (optional):", deleteEmailSent:"Entry removed. The site tried to send the notification email.",
+      participantEmailBtn:"Participant email", adminEmailBtn:"Eduardo email", dateTimeVenue:"Date, time, and venue", venueTbd:"TBD",
+      matchDateLabel:"Date", matchTimeLabel:"ET time", matchVenueLabel:"Venue"
+    }
+  };
+  for (const lang of Object.keys(extra)) {
+    window.BOLAO_I18N[lang] = window.BOLAO_I18N[lang] || {};
+    Object.assign(window.BOLAO_I18N[lang], extra[lang]);
+  }
+})();

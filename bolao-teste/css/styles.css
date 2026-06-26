@@ -404,3 +404,43 @@ footer{padding:18px 24px;color:var(--muted);border-top:1px solid var(--line);dis
   .top-link{font-size:12px;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,.05)}
   .sim-grid{grid-template-columns:1fr}
 }
+
+.match-meta {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin:8px 0 12px;
+}
+.schedule-pill {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  padding:6px 9px;
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+  border:1px solid rgba(255,255,255,.11);
+  color:var(--muted);
+  font-size:12px;
+}
+.schedule-pill b {
+  color:var(--text);
+}
+.admin-entry-item {
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  margin-bottom:10px;
+  background:rgba(255,255,255,.035);
+}
+.admin-entry-item .receipt-actions {
+  margin-top:10px;
+}
+button.danger,
+.small-btn.danger {
+  background:rgba(255,77,104,.16);
+  border:1px solid rgba(255,77,104,.45);
+  color:#ffd7dd;
+}
+@media(max-width:900px){
+  .schedule-pill{width:100%;justify-content:flex-start}
+}

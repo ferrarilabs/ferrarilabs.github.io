@@ -60,18 +60,30 @@ function t(key) {
 function applyLanguage() {
   document.title = `${CONFIG.appName || "Bolão do Ferrari"} - Copa 2026`;
   document.documentElement.lang = currentLang;
+
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
     el.textContent = t(key);
   });
+
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
     const key = el.dataset.i18nPlaceholder;
     el.setAttribute("placeholder", t(key));
   });
+
+  document.querySelectorAll("[data-i18n-value]").forEach(el => {
+    const key = el.dataset.i18nValue;
+    el.value = t(key);
+  });
+
   const sel = $("#languageSelect");
   if (sel) sel.value = currentLang;
+
   const support = $("#supportWhatsappBtn span");
   if (support) support.textContent = t("supportWhatsApp");
+
+  // Re-render dynamic content so ranking, games, admin, buttons and generated text switch immediately.
+  renderAll();
   renderSimulatorHelp();
 }
 
@@ -470,14 +482,14 @@ function renderLatestReceipt(entry) {
   if (!box) return;
   box.style.display = "block";
   box.innerHTML = `
-    <h2>✅ Entrada salva</h2>
-    <p class="muted">Guarde seu comprovante. Ele contém o código da entrada e os palpites enviados.</p>
+    <h2>${t("savedTitle")}</h2>
+    <p class="muted">${t("savedText")}</p>
     <div class="receipt-code">${receiptCode(entry)}</div>
     <div class="receipt-actions">
-      <button class="secondary" onclick="openReceipt('${entry.id}')">Abrir comprovante</button>
-      <button class="secondary" onclick="downloadReceiptPdf('${entry.id}')">Baixar PDF</button>
-      <button class="secondary" onclick="downloadReceipt('${entry.id}')">Baixar HTML</button>
-      <button class="secondary" onclick="mailReceipt('${entry.id}', 'participant')">Enviar por e-mail</button>
+      <button class="secondary" onclick="openReceipt('${entry.id}')">${t("openReceipt")}</button>
+      <button class="secondary" onclick="downloadReceiptPdf('${entry.id}')">${t("downloadPdf")}</button>
+      <button class="secondary" onclick="downloadReceipt('${entry.id}')">${t("downloadHtml")}</button>
+      <button class="secondary" onclick="mailReceipt('${entry.id}', 'participant')">${t("sendEmail")}</button>
     </div>
   `;
   box.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1482,6 +1494,67 @@ function openMasterList() {
   w.document.close();
 }
 
+
+async function sendRemovalEmail(entry, reason) {
+  if (!entry || !entry.participantEmail) return { ok: false, reason: "missing participant email" };
+
+  if (CONFIG.emailMode !== "emailjs" || !CONFIG.emailjs || !CONFIG.emailjs.enabled || !window.emailjs) {
+    return { ok: false, fallback: "mailto", reason: "EmailJS not available" };
+  }
+
+  const text = [
+    "Aviso de remoção de entrada do Bolão Copa 2026",
+    "=============================================",
+    "",
+    `Entrada removida: ${entry.entryName}`,
+    `Responsável: ${entry.payerName}`,
+    `Código do comprovante original: ${receiptCode(entry)}`,
+    reason ? `Motivo informado: ${reason}` : "Motivo informado: correção administrativa ou erro de preenchimento.",
+    "",
+    "Se você acredita que isso foi um erro, entre em contato no grupo do WhatsApp do bolão.",
+    "",
+    "Este aviso foi gerado automaticamente pelo site do bolão."
+  ].join("\n");
+
+  try {
+    await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId, {
+      to_email: entry.participantEmail,
+      entry_name: `REMOVIDA - ${entry.entryName}`,
+      payer_name: entry.payerName,
+      payment_method: entry.paymentMethod || "",
+      payment_to: entry.paymentTo || "",
+      receipt_code: receiptCode(entry),
+      receipt_text: text,
+      receipt_text_pretty: text.replaceAll("\n", "<br>"),
+      html_message: `<h2>Entrada removida do Bolão Copa 2026</h2><p><b>Entrada:</b> ${escapeHtml(entry.entryName)}</p><p><b>Código:</b> ${receiptCode(entry)}</p><p><b>Motivo:</b> ${escapeHtml(reason || "Correção administrativa ou erro de preenchimento.")}</p><p>Se você acredita que isso foi um erro, entre em contato no grupo do WhatsApp.</p>`
+    }, { publicKey: CONFIG.emailjs.publicKey });
+
+    return { ok: true };
+  } catch (err) {
+    console.error("Removal email failed", err);
+    return { ok: false, reason: String(err) };
+  }
+}
+
+async function deleteEntry(entryId) {
+  const s = state();
+  const entry = s.entries.find(e => e.id === entryId);
+  if (!entry) return alert("Entrada não encontrada.");
+
+  if (!confirm(t("deleteConfirm"))) return;
+  const reason = prompt(t("deleteReasonPrompt"), "") || "";
+
+  const emailResult = await sendRemovalEmail(entry, reason);
+
+  const next = state();
+  next.entries = next.entries.filter(e => e.id !== entryId);
+  if (next.paid) delete next.paid[entryId];
+  saveState(next);
+
+  renderAll();
+  alert(t("deleteEmailSent") + (emailResult.ok ? "" : "\n\nObs: e-mail automático pode não ter sido enviado. Verifique o EmailJS."));
+}
+
 function renderRanking() {
   const s = state();
   const box = $("#rankingList");
@@ -1598,14 +1671,26 @@ function renderAdmin() {
 }
 
 
+function formatFriendlyDate(dateStr) {
+  if (!dateStr) return "";
+  // Keep date in a stable friendly format without timezone conversion surprises.
+  const parts = String(dateStr).split("-");
+  if (parts.length === 3) {
+    const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+    return d.toLocaleDateString(currentLang || "pt-BR", { weekday: "short", month: "short", day: "numeric", year: "numeric" });
+  }
+  return dateStr;
+}
+
 function matchScheduleMeta(m) {
-  const date = m.date || "";
+  const date = formatFriendlyDate(m.date || "");
   const time = m.timeET || m.kickoffET || m.time || "";
   const venue = m.venue || t("venueTbd");
-  const parts = [];
-  if (date || time) parts.push(`${date}${date && time ? " • " : ""}${time}`);
-  if (venue) parts.push(`Local: ${venue}`);
-  return parts.join(" • ");
+  const items = [];
+  if (date) items.push(`<span class="schedule-pill">📅 <b>${t("matchDateLabel")}:</b> ${escapeHtml(date)}</span>`);
+  if (time) items.push(`<span class="schedule-pill">🕒 <b>${t("matchTimeLabel")}:</b> ${escapeHtml(time)}</span>`);
+  if (venue) items.push(`<span class="schedule-pill">📍 <b>${t("matchVenueLabel")}:</b> ${escapeHtml(venue)}</span>`);
+  return items.join("");
 }
 
 function picksSummaryHtml(entry) {
@@ -1615,7 +1700,7 @@ function picksSummaryHtml(entry) {
     if (!p) return "";
     const r = resolved[m.match] || { displayA: p.displayA, displayB: p.displayB };
     const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
-    return `<tr><td>Match ${m.match}<br><span class="muted">${escapeHtml(matchScheduleMeta(m))}</span></td><td>${escapeHtml(r.displayA)}</td><td><b>${p.goalsA} x ${p.goalsB}</b></td><td>${escapeHtml(r.displayB)}</td><td>${escapeHtml(winner)}</td></tr>`;
+    return `<tr><td>Match ${m.match}<br><span class="muted">${matchScheduleMeta(m)}</span></td><td>${escapeHtml(r.displayA)}</td><td><b>${p.goalsA} x ${p.goalsB}</b></td><td>${escapeHtml(r.displayB)}</td><td>${escapeHtml(winner)}</td></tr>`;
   }).join("");
   return `<div class="picks-detail"><table><thead><tr><th>Jogo</th><th>Time A</th><th>Placar</th><th>Time B</th><th>Ganha/avança</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
@@ -1734,10 +1819,10 @@ function initTabs() {
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   setupLanguageSwitcher();
-  applyLanguage();
   setupAdminLogin();
   renderBracketForm();
   renderAll();
+  applyLanguage();
   renderSimulationDisclaimer();
   updateCountdown();
   setInterval(updateCountdown, 30000);
