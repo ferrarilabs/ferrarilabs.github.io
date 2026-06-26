@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Bolão Copa 2026 - Teste</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="pill">⚽ Teste do Bolão</div>
+      <h1>Bolão Copa 2026</h1>
+      <p>Preencha o bracket do mata-mata, acompanhe ranking e teste a regra de placar + quem avança.</p>
+      <div class="hero-actions">
+        <button class="primary" data-tab="entry">Preencher teste</button>
+        <button class="secondary" data-tab="ranking">Ver ranking</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="entry">Entrada</button>
+    <button class="tab" data-tab="ranking">Ranking</button>
+    <button class="tab" data-tab="admin">Admin</button>
+    <button class="tab" data-tab="games">Jogos</button>
+    <button class="tab" data-tab="rules">Regras</button>
+  </nav>
+
+  <main>
+    <section id="entry" class="panel active">
+      <div class="card">
+        <h2>Nova entrada</h2>
+        <p class="muted">Teste local: os dados ficam salvos neste navegador. No site final, vamos conectar a Firebase/Supabase para salvar em tempo real.</p>
+        <div class="grid2">
+          <label>Nome da entrada
+            <input id="entryName" placeholder="Ex: Eduardo #1, Gabriel, Nicole" />
+          </label>
+          <label>Responsável pelo pagamento
+            <input id="payerName" placeholder="Nome de quem paga os US$ 5" />
+          </label>
+        </div>
+
+        <div class="grid2" style="margin-top:12px">
+          <label>Método de pagamento
+            <select id="paymentMethod">
+              <option value="">Selecione</option>
+              <option value="CashApp">CashApp</option>
+              <option value="Zelle">Zelle</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Venmo">Venmo</option>
+            </select>
+          </label>
+          <label>Valor
+            <input id="entryFeeDisplay" value="US$ 5 por entrada" disabled />
+          </label>
+        </div>
+
+        <div id="paymentBox" class="payment-box">
+          <b>Pagamento</b>
+          <p>Selecione o método de pagamento para ver os dados.</p>
+        </div>
+
+        <div class="admin-actions" style="margin-top:12px">
+          <button id="smartPick" class="secondary" type="button">⚡ Simular palpites automaticamente</button>
+          <button id="randomPick" class="secondary" type="button">🎲 Simular maluco</button>
+        </div>
+        <p class="muted" style="font-size:13px">A simulação é só para preencher rápido. Revise antes de salvar.</p>
+      </div>
+
+      <div class="explain card">
+        <h3>Como preencher os jogos futuros</h3>
+        <p><b>Exemplo:</b> se no Match 73 você colocou Brasil para passar, o Match 90 pode aparecer para você como “Vencedor Match 73”. Se na vida real a Holanda passar no lugar do Brasil, a Holanda herda aquela vaga. Seu placar do Match 90 continua valendo.</p>
+        <p><b>Placar válido:</b> considere o placar ao final dos 90 minutos + prorrogação, se houver. Pênaltis não entram no placar. Se terminar 1x1 e o Brasil passar nos pênaltis, o placar do bolão é 1x1 e quem avança é Brasil.</p>
+      </div>
+
+      <form id="bracketForm"></form>
+
+      <div class="sticky-submit">
+        <button id="saveEntry" class="primary full">Salvar entrada de teste</button>
+      </div>
+    </section>
+
+    <section id="ranking" class="panel">
+      <div class="card row-between">
+        <div>
+          <h2>Ranking</h2>
+          <p class="muted">Calculado com base nos resultados lançados no Admin.</p>
+        </div>
+        <div class="pot">
+          <span>Pot</span>
+          <strong id="potValue">$0</strong>
+        </div>
+      </div>
+      <div id="rankingList"></div>
+      <div id="receiptsList" class="card"></div>
+    </section>
+
+    <section id="admin" class="panel">
+      <div id="adminLogin" class="card">
+        <h2>Admin</h2>
+        <p class="muted">Área protegida para lançar resultados, pagamentos e administrar o teste.</p>
+        <label>Senha do admin
+          <input id="adminPassword" type="password" placeholder="Digite a senha" />
+        </label>
+        <button id="adminLoginBtn" class="primary full" style="margin-top:12px">Entrar no admin</button>
+        <p class="muted" style="font-size:13px">Senha de teste: <b>bolao2026</b>. No site real, isso deve ir para autenticação de verdade.</p>
+      </div>
+      <div id="adminArea" style="display:none">
+      <div class="card">
+        <h2>Admin do teste</h2>
+        <p class="muted">Aqui você simula resultados reais e pagamentos. No site final, esta área deve ter senha.</p>
+        <div class="admin-actions">
+          <button id="loadDemo" class="secondary">Criar 3 entradas demo</button>
+          <button id="clearAll" class="danger">Limpar teste</button>
+        </div>
+      </div>
+      <div id="paymentsAdmin" class="card"></div>
+      <div id="resultsAdmin" class="card"></div>
+      </div>
+    </section>
+
+    <section id="games" class="panel">
+      <div class="card">
+        <h2>Jogos e resultados atuais</h2>
+        <p class="muted" id="updatedLabel"></p>
+      </div>
+      <div id="gamesList"></div>
+    </section>
+
+    <section id="rules" class="panel">
+      <div class="card">
+        <h2>Regras simples</h2>
+        <ul class="rules">
+          <li>US$ 5 por entrada.</li>
+          <li>Pode fazer várias entradas.</li>
+          <li>Crianças podem participar.</li>
+          <li>Preencha o placar de todos os jogos do mata-mata considerando 90 minutos + prorrogação.</li>
+          <li>Quem avança só precisa ser escolhido se o jogo terminar empatado no seu palpite.</li>
+          <li>Depois do cutoff, não altera.</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h2>Pontuação por jogo</h2>
+        <table>
+          <tr><th>Situação</th><th>Pontos</th></tr>
+          <tr><td>Placar exato</td><td>+10</td></tr>
+          <tr><td>Quem avança</td><td>+5</td></tr><tr><td>Observação</td><td>Se o placar não empatar, quem avança é definido automaticamente pelo placar.</td></tr>
+          <tr><td>Acertou gols de um time, sem placar exato</td><td>+1 por time</td></tr>
+          <tr><td>Máximo por jogo</td><td>15</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Bônus finais</h2>
+        <p>Além dos pontos por jogo, existem pontos extras para quem acertar exatamente a posição final:</p>
+        <table>
+          <tr><th>Acerto</th><th>Pontos extras</th></tr>
+          <tr><td>Campeão exato</td><td>+25</td></tr>
+          <tr><td>Vice-campeão exato</td><td>+15</td></tr>
+          <tr><td>3º lugar exato</td><td>+10</td></tr>
+          <tr><td>4º lugar exato</td><td>+5</td></tr>
+        </table>
+        <p class="muted">Esses bônus são calculados automaticamente pela Final e pela disputa de 3º lugar.</p>
+      </div>
+
+      <div class="card">
+        <h2>Premiação</h2>
+        <p>🥇 1º lugar: 70% &nbsp; 🥈 2º lugar: 20% &nbsp; 🥉 3º lugar: 10%</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Bolão Copa 2026 — versão de teste</span>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
