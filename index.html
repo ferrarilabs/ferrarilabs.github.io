@@ -1,256 +1,183 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Eduardo Ferrari — FRAML Advisory &amp; Financial Crime Technology</title>
-  <meta name="description" content="Eduardo Ferrari works with financial institutions on AML, fraud, sanctions, model validation, and digital asset risk — combining financial crime advisory with hands-on experience in transaction monitoring, sanctions screening, and compliance technology architecture." />
-  <meta property="og:title" content="Eduardo Ferrari — FRAML Advisory &amp; Financial Crime Technology" />
-  <meta property="og:description" content="Financial crime advisory and compliance technology. AML, fraud, sanctions, model validation, digital assets. Banks, fintechs, and regulated businesses." />
-  <meta property="og:type" content="website" />
-  <link rel="canonical" href="https://www.ferrarilabs.com/" />
-  <link rel="alternate" hreflang="en" href="https://www.ferrarilabs.com/" />
-  <link rel="alternate" hreflang="pt-BR" href="https://www.ferrarilabs.com/index.pt.html" />
-  <link rel="alternate" hreflang="es" href="https://www.ferrarilabs.com/index.es.html" />
-  <link rel="alternate" hreflang="ja" href="https://www.ferrarilabs.com/index.jp.html" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Bolão Copa 2026 - Teste</title>
   <link rel="stylesheet" href="styles.css" />
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-KF98YDJNK7"></script>
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
-    gtag('config', 'G-KF98YDJNK7');
-  </script>
-  <script>
-    (function(){
-      var t=localStorage.getItem('theme')||'dark';
-      document.documentElement.setAttribute('data-theme',t);
-      document.addEventListener('DOMContentLoaded',function(){
-        var btn=document.getElementById('theme-toggle');
-        if(btn)btn.addEventListener('click',function(){
-          t=document.documentElement.getAttribute('data-theme')==='dark'?'light':'dark';
-          document.documentElement.setAttribute('data-theme',t);
-          localStorage.setItem('theme',t);
-        });
-      });
-    })();
-  </script>
 </head>
 <body>
-  <div class="shell">
-    <header class="site-header">
-      <a class="brand" href="index.html">Eduardo Ferrari</a>
-      <nav>
-        <a href="#about">About</a>
-        <a href="#focus">Work</a>
-        <a href="insights.html">Insights</a>
-        <a href="#contact">Contact</a>
-      </nav>
-      <div class="lang-switcher">
-        <a href="index.html" class="lang-active">🇺🇸 EN</a>
-        <a href="index.pt.html">🇧🇷 PT</a>
-        <a href="index.es.html">🇪🇸 ES</a>
-        <a href="index.jp.html">🇯🇵 JP</a>
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="pill">⚽ Teste do Bolão</div>
+      <h1>Bolão Copa 2026</h1>
+      <p>Preencha o bracket do mata-mata, acompanhe ranking e teste a regra de placar + quem avança.</p>
+      <div class="hero-actions">
+        <button class="primary" data-tab="entry">Preencher teste</button>
+        <button class="secondary" data-tab="ranking">Ver ranking</button>
       </div>
-      <button id="theme-toggle" class="theme-toggle" aria-label="Toggle theme"></button>
-    </header>
+    </div>
+  </header>
 
-    <main>
+  <nav class="tabs">
+    <button class="tab active" data-tab="entry">Entrada</button>
+    <button class="tab" data-tab="ranking">Ranking</button>
+    <button class="tab" data-tab="admin">Admin</button>
+    <button class="tab" data-tab="games">Jogos</button>
+    <button class="tab" data-tab="rules">Regras</button>
+  </nav>
 
-      <section class="hero">
-        <div class="hero-inner">
-          <p class="eyebrow">Financial Crime Advisory</p>
-          <h1>I design and run financial crime technology platforms. The compliance problems come with the territory.</h1>
-          <p class="lead">I work with financial institutions on the architecture of financial crime technology programs — how transaction monitoring, sanctions screening, case management, and financial data infrastructure fit together, and whether they hold up when regulators and internal audit take a close look. I came up through development and DBA work before moving into compliance, which means I can own the systems layer, not just advise on it.</p>
-          <div class="hero-actions">
-            <a class="button button-primary" href="#contact">Get in touch</a>
-            <a class="button button-ghost" href="insights.html">Read insights</a>
-          </div>
+  <main>
+    <section id="entry" class="panel active">
+      <div class="card">
+        <h2>Nova entrada</h2>
+        <p class="muted">Teste local: os dados ficam salvos neste navegador. No site final, vamos conectar a Firebase/Supabase para salvar em tempo real.</p>
+        <div class="grid2">
+          <label>Nome da entrada
+            <input id="entryName" placeholder="Ex: Eduardo #1, Gabriel, Nicole" />
+          </label>
+          <label>Responsável pelo pagamento
+            <input id="payerName" placeholder="Nome de quem paga os US$ 5" />
+          </label>
         </div>
-        <div class="hero-aside">
-          <div class="aside-block">
-            <span class="aside-label">Work covers</span>
-            <ul class="aside-list">
-              <li>AML &amp; Transaction Monitoring</li>
-              <li>Fraud &amp; FRAML</li>
-              <li>Sanctions &amp; Screening</li>
-              <li>Model Validation</li>
-              <li>Digital Asset Compliance</li>
-              <li>AI in Financial Crime</li>
-            </ul>
-          </div>
-          <div class="aside-block">
-            <span class="aside-label">Regulatory frameworks</span>
-            <ul class="aside-list">
-              <li>OCC / BSA / FinCEN</li>
-              <li>NYDFS Part 504</li>
-              <li>OFAC / SDN</li>
-              <li>FATF Travel Rule</li>
-              <li>OCC 2011-12 (Model Risk)</li>
-            </ul>
-          </div>
+
+        <div class="grid2" style="margin-top:12px">
+          <label>Método de pagamento
+            <select id="paymentMethod">
+              <option value="">Selecione</option>
+              <option value="CashApp">CashApp</option>
+              <option value="Zelle">Zelle</option>
+              <option value="PayPal">PayPal</option>
+              <option value="Venmo">Venmo</option>
+            </select>
+          </label>
+          <label>Valor
+            <input id="entryFeeDisplay" value="US$ 5 por entrada" disabled />
+          </label>
         </div>
-      </section>
 
-      <section class="twin-strip">
-        <article class="twin-item">
-          <span class="kicker">What this looks like</span>
-          <p>The work is usually some combination of platform architecture, system consolidation, detection model governance, and exam preparation. On the technical side, that means the framework and data architecture a compliance program actually runs on — across systems like Actimize, Oracle FCCM, and adjacent enterprise infrastructure. On the regulatory side, it means making sure the controls hold up when auditors and examiners look closely, not just when things are running smoothly.</p>
-        </article>
-        <article class="twin-item">
-          <span class="kicker">Why the technology side matters</span>
-          <p>I started as a developer and DBA before moving into financial crime. That history changes what I can do at the table. When a monitoring program is producing too many false positives, or a model cannot be validated, or a screening system is missing matches, the problem is usually in the data or the architecture — not the policy. I can get to it because I have built and run these kinds of systems. I know what the inside looks like.</p>
-        </article>
-      </section>
-
-      <section id="about" class="content-section">
-        <div class="section-label">About</div>
-        <div class="about-layout">
-          <div class="about-head">
-            <h2>How I ended up here.</h2>
-          </div>
-          <div class="about-body prose">
-            <p>I grew up in Caxias do Sul, in southern Brazil, and started my career as a developer — Oracle Forms, Reports, Designer, then DBA work, then VB. Eventually team lead roles. Financial crime came later, and it stuck. I have been working in FRAML ever since, and more recently across broader compliance technology including treasury and finance systems.</p>
-            <p>That developer background is not incidental. It is why I approach AML and fraud problems differently from most people who come at them from the legal or audit side. I have reviewed segmentation logic with data engineers, rebuilt alert generation workflows, worked through model validation traceability gaps with quant teams, and sat in rooms where a compliance officer and a technology architect cannot agree on what the system is actually doing. I know both sides of that conversation.</p>
-            <p>Over the years I have worked across US, Canadian, European, Middle Eastern, Asia-Pacific, and Latin American operating environments — different regulators, different risk profiles, different levels of maturity in how institutions build and govern these programs. That range shapes how I think about what a defensible program actually looks like versus what just passes an internal review.</p>
-            <p>My current focus is platform architecture — how financial crime systems are designed, connected, and governed across the full stack. That tends to mean working on the parts that are hardest to fix later: data integration between detection and financial systems, vendor ecosystem decisions that accumulate technical debt, and the governance layer that makes model validation and exam response actually workable rather than scrambled. This site reflects my own thinking. I speak English, Portuguese, and Spanish.</p>
-            <p>Outside of work: two kids, four cats, two dogs, and my wife — also from Caxias do Sul. We live in the Charlotte area, in North Carolina.</p>
-          </div>
+        <div id="paymentBox" class="payment-box">
+          <b>Pagamento</b>
+          <p>Selecione o método de pagamento para ver os dados.</p>
         </div>
-      </section>
 
-      <section id="focus" class="content-section">
-        <div class="section-label">Work</div>
-        <h2 class="section-title">Where I tend to be most useful.</h2>
-        <div class="focus-grid">
-          <article class="focus-card">
-            <div class="focus-number">01</div>
-            <h3>AML &amp; Transaction Monitoring</h3>
-            <p>Designing and stabilizing transaction monitoring and case management platforms. Alert logic, segmentation, and tuning. SAR quality and escalation path design. A lot of this work involves consolidating overlapping systems and fixing the data integration problems that cause alert generation to be unreliable at scale — the kind of issues that look like tuning problems but are actually architecture problems.</p>
-          </article>
-          <article class="focus-card">
-            <div class="focus-number">02</div>
-            <h3>Fraud &amp; FRAML Convergence</h3>
-            <p>Fraud risk program design, typology coverage, and the structural question of whether AML and fraud detection should share data, workflows, and investigation infrastructure. Most institutions have them separated in ways that create coverage gaps and operational overhead.</p>
-          </article>
-          <article class="focus-card">
-            <div class="focus-number">03</div>
-            <h3>Sanctions &amp; Screening</h3>
-            <p>Screening architecture, watch list coverage and ingestion, name matching configuration, false positive management, and controls for correspondent banking and digital asset payment flows. OFAC SDN, UN, EU, OFSI, and jurisdiction-specific list management.</p>
-          </article>
-          <article class="focus-card">
-            <div class="focus-number">04</div>
-            <h3>Model Validation &amp; AI</h3>
-            <p>Model risk governance framework design, independent challenge of detection models, scoring logic, and threshold setting. Building the infrastructure and documentation that makes validation traceable, reproducible, and defensible — not just compliant on paper. Includes AI governance design for institutions where explainability and auditability are exam requirements, not aspirations.</p>
-          </article>
-          <article class="focus-card">
-            <div class="focus-number">05</div>
-            <h3>Digital Asset Risk</h3>
-            <p>Compliance architecture for institutions that are crypto-native and for banks with indirect exposure. Blockchain analytics integration, Travel Rule and TRISA implementation, VASP counterparty risk, and sanctions screening for on-chain activity. Built around what examiners are actually asking for now.</p>
-          </article>
-          <article class="focus-card">
-            <div class="focus-number">06</div>
-            <h3>KYC / CDD / EDD</h3>
-            <p>Onboarding controls, customer risk scoring methodology, beneficial ownership, enhanced due diligence workflows, and the underlying data architecture. A risk rating model that cannot be maintained or explained is a liability. Most of the problems here are data and workflow problems, not policy problems.</p>
-          </article>
+        <div class="admin-actions" style="margin-top:12px">
+          <button id="smartPick" class="secondary" type="button">⚡ Simular palpites automaticamente</button>
+          <button id="randomPick" class="secondary" type="button">🎲 Simular maluco</button>
         </div>
-      </section>
+        <p class="muted" style="font-size:13px">A simulação é só para preencher rápido. Revise antes de salvar.</p>
+      </div>
 
-      <section class="content-section perspectives-section">
-        <div class="section-label">From the field</div>
-        <h2 class="section-title">Things I keep writing about because they keep coming up.</h2>
-        <div class="perspectives-list">
-          <article class="perspective-item">
-            <div class="perspective-content">
-              <h3>Finance transformation fails at regulated firms for a specific reason.</h3>
-              <p>The issue is not the technology or the ambition. It is that transformation programs are designed without accounting for how compliance, risk, and regulatory constraints interact with the systems being replaced.</p>
-            </div>
-            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/why-finance-transformation-fails-regulated-firms-what-eduardo-jlake/" target="_blank" rel="noopener">LinkedIn →</a>
-          </article>
-          <article class="perspective-item">
-            <div class="perspective-content">
-              <h3>Stablecoins will not wait for your compliance program to catch up.</h3>
-              <p>Stablecoins are already moving through payment flows and customer activity at regulated institutions — whether those institutions have a policy on them or not.</p>
-            </div>
-            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/stablecoins-wont-wait-your-compliance-program-catch-eduardo-q9nae/" target="_blank" rel="noopener">LinkedIn →</a>
-          </article>
-          <article class="perspective-item">
-            <div class="perspective-content">
-              <h3>AI has a data problem. Most people are diagnosing it wrong.</h3>
-              <p>The failure is not the model. It is the data going into it — and the institutional decisions that shaped that data long before anyone ran a training job.</p>
-            </div>
-            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/ai-data-problem-real-everyone-diagnosing-wrong-de-morais-ferrari-v7see/" target="_blank" rel="noopener">LinkedIn →</a>
-          </article>
-          <article class="perspective-item">
-            <div class="perspective-content">
-              <h3>Your bank does not touch crypto. That does not mean crypto is not touching your bank.</h3>
-              <p>Crypto exposure arrives through customer activity, payment behavior, and correspondent relationships — often well before any deliberate decision to enter the space.</p>
-            </div>
-            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/your-bank-doesnt-touch-crypto-mean-isnt-touching-you-eduardo-vziue/" target="_blank" rel="noopener">LinkedIn →</a>
-          </article>
-          <article class="perspective-item">
-            <div class="perspective-content">
-              <h3>Model validation is where compliance programs tend to be most exposed.</h3>
-              <p>Not because the models are wrong. Because institutions cannot explain the decisions, reproduce the outputs, or show what changed between versions when an examiner asks.</p>
-            </div>
-            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/designing-technical-architecture-occ-chartered-asset-eduardo-ne8be/" target="_blank" rel="noopener">LinkedIn →</a>
-          </article>
-          <article class="perspective-item">
-            <div class="perspective-content">
-              <h3>Deploying AI in financial crime is not primarily a technology decision.</h3>
-              <p>The harder questions are governance: who signs off on a threshold change, how do you document it, and what happens when an investigator disagrees with a model score.</p>
-            </div>
-            <a class="perspective-link" onclick="gtag('event','linkedin_article_click',{event_category:'outbound',event_label:this.href});" href="https://www.linkedin.com/pulse/seeing-longer-believing-how-deepfakes-reshaping-risk-eduardo-r2cge/" target="_blank" rel="noopener">LinkedIn →</a>
-          </article>
+      <div class="explain card">
+        <h3>Como preencher os jogos futuros</h3>
+        <p><b>Exemplo:</b> se no Match 73 você colocou Brasil para passar, o Match 90 pode aparecer para você como “Vencedor Match 73”. Se na vida real a Holanda passar no lugar do Brasil, a Holanda herda aquela vaga. Seu placar do Match 90 continua valendo.</p>
+        <p><b>Placar válido:</b> considere o placar ao final dos 90 minutos + prorrogação, se houver. Pênaltis não entram no placar. Se terminar 1x1 e o Brasil passar nos pênaltis, o placar do bolão é 1x1 e quem avança é Brasil.</p>
+      </div>
+
+      <form id="bracketForm"></form>
+
+      <div class="sticky-submit">
+        <button id="saveEntry" class="primary full">Salvar entrada de teste</button>
+      </div>
+    </section>
+
+    <section id="ranking" class="panel">
+      <div class="card row-between">
+        <div>
+          <h2>Ranking</h2>
+          <p class="muted">Calculado com base nos resultados lançados no Admin.</p>
         </div>
-        <div class="section-footer-link">
-          <a href="insights.html">All insights →</a>
+        <div class="pot">
+          <span>Pot</span>
+          <strong id="potValue">$0</strong>
         </div>
-      </section>
+      </div>
+      <div id="rankingList"></div>
+      <div id="receiptsList" class="card"></div>
+    </section>
 
-      <section id="contact" class="content-section contact-section">
-        <div class="section-label">Contact</div>
-        <div class="contact-layout">
-          <div class="contact-head">
-            <h2>Send a short message.</h2>
-            <div class="prose contact-note">
-              <p>If you are dealing with an AML, sanctions, model risk, fraud, or digital asset problem and want a second opinion or some help figuring out what to do — a few lines on the situation is enough to get started.</p>
-              <p>This goes directly to me. No email address on this page.</p>
-            </div>
-          </div>
-          <form class="contact-form" action="https://formspree.io/f/xvzdwenk" method="POST" onsubmit="gtag('event','contact_form_submit',{event_category:'lead',event_label:document.documentElement.lang});">
-            <input type="text" name="_gotcha" class="hp" tabindex="-1" autocomplete="off" aria-hidden="true" />
-            <input type="hidden" name="_subject" value="Ferrari Labs — inquiry" />
-            <div class="form-field">
-              <label for="f-name">Name</label>
-              <input id="f-name" type="text" name="name" autocomplete="name" required />
-            </div>
-            <div class="form-field">
-              <label for="f-email">Email</label>
-              <input id="f-email" type="email" name="email" autocomplete="email" required />
-            </div>
-            <div class="form-field">
-              <label for="f-message">Message</label>
-              <textarea id="f-message" name="message" rows="6" required></textarea>
-            </div>
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAADBOZDvkES97y2fW"></div>
-            <button class="button button-primary button-submit" type="submit">Send</button>
-          </form>
+    <section id="admin" class="panel">
+      <div id="adminLogin" class="card">
+        <h2>Admin</h2>
+        <p class="muted">Área protegida para lançar resultados, pagamentos e administrar o teste.</p>
+        <label>Senha do admin
+          <input id="adminPassword" type="password" placeholder="Digite a senha" />
+        </label>
+        <button id="adminLoginBtn" class="primary full" style="margin-top:12px">Entrar no admin</button>
+        <p class="muted" style="font-size:13px">Senha de teste: <b>bolao2026</b>. No site real, isso deve ir para autenticação de verdade.</p>
+      </div>
+      <div id="adminArea" style="display:none">
+      <div class="card">
+        <h2>Admin do teste</h2>
+        <p class="muted">Aqui você simula resultados reais e pagamentos. No site final, esta área deve ter senha.</p>
+        <div class="admin-actions">
+          <button id="loadDemo" class="secondary">Criar 3 entradas demo</button>
+          <button id="clearAll" class="danger">Limpar teste</button>
         </div>
-      </section>
+      </div>
+      <div id="paymentsAdmin" class="card"></div>
+      <div id="resultsAdmin" class="card"></div>
+      </div>
+    </section>
 
-    </main>
+    <section id="games" class="panel">
+      <div class="card">
+        <h2>Jogos e resultados atuais</h2>
+        <p class="muted" id="updatedLabel"></p>
+      </div>
+      <div id="gamesList"></div>
+    </section>
 
-    <footer class="site-footer">
-      <span class="footer-name">Eduardo Ferrari</span>
-      <span class="footer-note">Financial Crime Advisory</span>
-    </footer>
-  </div>
+    <section id="rules" class="panel">
+      <div class="card">
+        <h2>Regras simples</h2>
+        <ul class="rules">
+          <li>US$ 5 por entrada.</li>
+          <li>Pode fazer várias entradas.</li>
+          <li>Crianças podem participar.</li>
+          <li>Preencha o placar de todos os jogos do mata-mata considerando 90 minutos + prorrogação.</li>
+          <li>Quem avança só precisa ser escolhido se o jogo terminar empatado no seu palpite.</li>
+          <li>Depois do cutoff, não altera.</li>
+        </ul>
+      </div>
 
-  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+      <div class="card">
+        <h2>Pontuação por jogo</h2>
+        <table>
+          <tr><th>Situação</th><th>Pontos</th></tr>
+          <tr><td>Placar exato</td><td>+10</td></tr>
+          <tr><td>Quem avança</td><td>+5</td></tr><tr><td>Observação</td><td>Se o placar não empatar, quem avança é definido automaticamente pelo placar.</td></tr>
+          <tr><td>Acertou gols de um time, sem placar exato</td><td>+1 por time</td></tr>
+          <tr><td>Máximo por jogo</td><td>15</td></tr>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Bônus finais</h2>
+        <p>Além dos pontos por jogo, existem pontos extras para quem acertar exatamente a posição final:</p>
+        <table>
+          <tr><th>Acerto</th><th>Pontos extras</th></tr>
+          <tr><td>Campeão exato</td><td>+25</td></tr>
+          <tr><td>Vice-campeão exato</td><td>+15</td></tr>
+          <tr><td>3º lugar exato</td><td>+10</td></tr>
+          <tr><td>4º lugar exato</td><td>+5</td></tr>
+        </table>
+        <p class="muted">Esses bônus são calculados automaticamente pela Final e pela disputa de 3º lugar.</p>
+      </div>
+
+      <div class="card">
+        <h2>Premiação</h2>
+        <p>🥇 1º lugar: 70% &nbsp; 🥈 2º lugar: 20% &nbsp; 🥉 3º lugar: 10%</p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Bolão Copa 2026 — versão de teste</span>
+  </footer>
+
+  <script src="data.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
