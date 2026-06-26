@@ -62,7 +62,7 @@
             <option value="en-US">English</option>
           </select>
         </div>
-        <a id="supportWhatsappBtn" class="support-whatsapp" href="https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t" target="_blank" rel="noopener" title="Suporte no WhatsApp">🟢 WhatsApp</a>
+        <a id="supportWhatsappBtn" class="support-whatsapp" href="https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t" target="_blank" rel="noopener" title="Suporte no WhatsApp"><img src="assets/whatsapp.svg" alt=""> <span data-i18n="supportWhatsApp">WhatsApp</span></a>
         <nav class="top-nav">
           <button class="top-link active" data-tab="entry">Palpites</button>
           <button class="top-link" data-tab="ranking">Ranking</button>
@@ -144,7 +144,6 @@
             <div class="button-row">
               <button id="smartPick" class="secondary" type="button"><span data-i18n="simulateSmart">⚡ Simular palpites automaticamente</span></button>
               <button id="randomPick" class="secondary" type="button"><span data-i18n="simulateRandom">🎲 Simular maluco</span></button>
-              <button id="explainSimulatorBtn" class="secondary" type="button">ℹ️ Como funciona?</button>
             </div>
             <p class="muted small">A simulação é só para preencher rápido. Revise antes de salvar.</p>
             <div class="simulation-disclaimer" id="simulationDisclaimer"></div>
@@ -197,28 +196,28 @@
             <p class="muted">Após realizar o pagamento, marque como pago na sua entrada. O admin confirmará depois.</p>
             <div class="payment-grid">
               <div class="payment-card cash">
-                <div class="pay-icon">$</div>
+                <img class="pay-logo" src="assets/cashapp.svg" alt="Cash App">
                 <h3>Cash App</h3>
                 <p>$EduardoFerrari</p>
                 <a class="pay-button" href="https://cash.app/$EduardoFerrari" target="_blank" rel="noopener">Abrir Cash App</a>
                 <button class="secondary" onclick="copyText('$EduardoFerrari')">Copiar $EduardoFerrari</button>
               </div>
               <div class="payment-card zelle">
-                <div class="pay-icon">Z</div>
+                <img class="pay-logo" src="assets/zelle.svg" alt="Zelle">
                 <h3>Zelle</h3>
                 <p>914-406-5027</p>
                 <button class="pay-button purple" onclick="copyText('914-406-5027')">Copiar telefone</button>
                 <p class="small"><b>Importante:</b> use Zelle pelo app do banco.</p>
               </div>
               <div class="payment-card paypal">
-                <div class="pay-icon">P</div>
+                <img class="pay-logo" src="assets/paypal.svg" alt="PayPal">
                 <h3>PayPal</h3>
                 <p>emferrari@gmail.com</p>
                 <button class="pay-button blue" onclick="copyText('emferrari@gmail.com')">Copiar e-mail</button>
                 <p class="small"><b>Importante:</b> escolha Friends & Family.</p>
               </div>
               <div class="payment-card venmo">
-                <div class="pay-icon">V</div>
+                <img class="pay-logo" src="assets/venmo.svg" alt="Venmo">
                 <h3>Venmo</h3>
                 <p>Eduardo-Ferrari</p>
                 <a class="pay-button blue" href="https://venmo.com/u/Eduardo-Ferrari" target="_blank" rel="noopener">Abrir Venmo</a>

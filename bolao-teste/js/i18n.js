@@ -168,3 +168,43 @@ Object.assign(window.BOLAO_I18N["en-US"], {
   participantEmailBtn: "Participant email",
   adminEmailBtn: "Eduardo email"
 });
+
+
+(function(){
+  const extra = {
+    "pt-BR": {
+      supportWhatsApp:"Suporte WhatsApp", viewPicks:"Ver palpites", hidePicks:"Ocultar palpites",
+      publicRankingNote:"Ranking público. Clique em uma entrada para ver os palpites enviados. Ações administrativas ficam apenas na área Admin.",
+      adminReceipts:"Comprovantes e e-mails", downloadPdf:"Baixar PDF", openReceipt:"Abrir comprovante",
+      participantEmailBtn:"E-mail participante", adminEmailBtn:"E-mail Eduardo",
+      simulatorTitle:"Como funcionam os simuladores?", autoSimulatorTitle:"⚡ Simulador automático", randomSimulatorTitle:"🎲 Simulador maluco",
+      autoSimulatorText:"Tenta usar probabilidades por jogo do Polymarket quando encontra mercado compatível. Se não encontrar, usa um modelo local simples de força estimada. O vencedor é sorteado respeitando a probabilidade.",
+      randomSimulatorText:"Preenche palpites de forma quase aleatória, para brincar ou preencher rápido. Não usa estatística séria.",
+      simulatorWarning:"Simulação é entretenimento, não recomendação de aposta. Probabilidades podem estar incompletas, desatualizadas ou indisponíveis.",
+      dateTimeVenue:"Data, hora e local", venueTbd:"A confirmar", saveEntry:"Salvar entrada"
+    },
+    "es": {
+      supportWhatsApp:"Soporte WhatsApp", viewPicks:"Ver pronósticos", hidePicks:"Ocultar pronósticos",
+      publicRankingNote:"Clasificación pública. Haz clic en una entrada para ver los pronósticos enviados. Las acciones administrativas están solo en Admin.",
+      adminReceipts:"Comprobantes y e-mails", downloadPdf:"Descargar PDF", openReceipt:"Abrir comprobante",
+      participantEmailBtn:"E-mail participante", adminEmailBtn:"E-mail Eduardo",
+      simulatorTitle:"¿Cómo funcionan los simuladores?", autoSimulatorTitle:"⚡ Simulador automático", randomSimulatorTitle:"🎲 Simulador loco",
+      autoSimulatorText:"Intenta usar probabilidades por partido de Polymarket cuando encuentra un mercado compatible. Si no encuentra, usa un modelo local simple de fuerza estimada.",
+      randomSimulatorText:"Completa pronósticos casi al azar para jugar o llenar rápido. No usa estadística seria.",
+      simulatorWarning:"La simulación es entretenimiento, no recomendación de apuesta. Las probabilidades pueden estar incompletas o desactualizadas.",
+      dateTimeVenue:"Fecha, hora y lugar", venueTbd:"Por confirmar", saveEntry:"Guardar entrada"
+    },
+    "en-US": {
+      supportWhatsApp:"WhatsApp Support", viewPicks:"View picks", hidePicks:"Hide picks",
+      publicRankingNote:"Public ranking. Click an entry to view submitted picks. Admin actions stay inside Admin.",
+      adminReceipts:"Receipts and emails", downloadPdf:"Download PDF", openReceipt:"Open receipt",
+      participantEmailBtn:"Participant email", adminEmailBtn:"Eduardo email",
+      simulatorTitle:"How do the simulators work?", autoSimulatorTitle:"⚡ Automatic simulator", randomSimulatorTitle:"🎲 Wild simulator",
+      autoSimulatorText:"Tries to use per-game probabilities from Polymarket when a matching market is found. Otherwise it falls back to a simple local team-strength model.",
+      randomSimulatorText:"Fills picks almost randomly for fun or quick completion. It does not use serious statistics.",
+      simulatorWarning:"Simulation is entertainment, not betting advice. Probabilities may be incomplete, stale, or unavailable.",
+      dateTimeVenue:"Date, time, and venue", venueTbd:"TBD", saveEntry:"Save entry"
+    }
+  };
+  for (const lang of Object.keys(extra)) Object.assign(window.BOLAO_I18N[lang], extra[lang]);
+})();

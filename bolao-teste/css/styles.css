@@ -303,3 +303,104 @@ footer{padding:18px 24px;color:var(--muted);border-top:1px solid var(--line);dis
     width:100%;
   }
 }
+
+/* v1.7 polish */
+.topbar {
+  gap:10px;
+}
+.support-whatsapp {
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  color:#03130b;
+  background:linear-gradient(135deg,#25D366,#128C7E);
+  text-decoration:none;
+  font-weight:900;
+  border-radius:999px;
+  padding:8px 12px;
+  white-space:nowrap;
+}
+.support-whatsapp img {
+  width:20px;
+  height:20px;
+}
+.pay-logo {
+  width:70px;
+  height:70px;
+  border-radius:16px;
+  box-shadow:0 10px 24px rgba(0,0,0,.25);
+  background:white;
+}
+.pay-mini-head {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:8px;
+}
+.pay-mini-head img {
+  width:32px;
+  height:32px;
+  border-radius:8px;
+}
+.countdown {
+  display:block !important;
+}
+.countdown-clean {
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:8px;
+  margin-top:10px;
+}
+.countdown-clean div {
+  background:rgba(47,229,110,.10);
+  border:1px solid rgba(47,229,110,.25);
+  border-radius:14px;
+  padding:10px 4px;
+  text-align:center;
+}
+.countdown-clean b {
+  display:block;
+  font-size:30px;
+  line-height:1;
+  color:var(--green);
+}
+.countdown-clean span {
+  display:block;
+  margin-top:5px;
+  color:var(--muted);
+  font-size:11px;
+  text-transform:uppercase;
+  font-weight:800;
+}
+.simulator-help {
+  margin-top:12px;
+  padding:14px;
+  border-radius:14px;
+  background:rgba(47,229,110,.07);
+  border:1px solid rgba(47,229,110,.22);
+}
+.simulator-help summary {
+  cursor:pointer;
+  font-weight:900;
+  color:var(--green);
+}
+.sim-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:12px;
+}
+.sim-grid h4 { margin:0 0 6px; }
+.sim-grid p { margin:0; color:var(--muted); font-size:13px; line-height:1.45; }
+@media(max-width:1100px){
+  .app-shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .mobile-brand{display:block}
+}
+@media(max-width:900px){
+  .topbar{display:block}
+  .support-whatsapp{display:flex;justify-content:center;width:100%;margin:8px 0}
+  .top-nav{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+  .top-link{font-size:12px;padding:10px 6px;border-radius:10px;background:rgba(255,255,255,.05)}
+  .sim-grid{grid-template-columns:1fr}
+}

@@ -64,10 +64,15 @@ function applyLanguage() {
     const key = el.dataset.i18n;
     el.textContent = t(key);
   });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    const key = el.dataset.i18nPlaceholder;
+    el.setAttribute("placeholder", t(key));
+  });
   const sel = $("#languageSelect");
   if (sel) sel.value = currentLang;
-  const support = $("#supportWhatsappBtn");
-  if (support) support.textContent = `🟢 ${t("supportWhatsApp")}`;
+  const support = $("#supportWhatsappBtn span");
+  if (support) support.textContent = t("supportWhatsApp");
+  renderSimulatorHelp();
 }
 
 function setupLanguageSwitcher() {
@@ -445,26 +450,19 @@ async function downloadReceiptPdf(entryId) {
   const entry = s.entries.find(e => e.id === entryId);
   if (!entry) return alert("Entrada não encontrada.");
 
-  const wrapper = document.createElement("div");
-  wrapper.innerHTML = buildReceiptHtml(entry);
-  const receiptNode = wrapper.querySelector(".receipt-document") || wrapper.body || wrapper;
+  const w = window.open("", "_blank");
+  w.document.open();
+  w.document.write(buildReceiptHtml(entry));
+  w.document.close();
 
-  if (!window.html2pdf) {
-    alert("Gerador de PDF não carregou. Vou abrir o comprovante para você salvar/imprimir como PDF.");
-    openReceipt(entryId);
-    return;
-  }
-
-  const opt = {
-    margin: 0.35,
-    filename: receiptFileName(entry, "pdf"),
-    image: { type: "jpeg", quality: 0.98 },
-    html2canvas: { scale: 2, useCORS: true },
-    jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-    pagebreak: { mode: ["avoid-all", "css", "legacy"] }
-  };
-
-  await html2pdf().set(opt).from(receiptNode).save();
+  setTimeout(() => {
+    try {
+      w.focus();
+      w.print();
+    } catch (err) {
+      console.warn("Print dialog blocked", err);
+    }
+  }, 500);
 }
 
 function renderLatestReceipt(entry) {
@@ -784,7 +782,7 @@ function updatePaymentBox() {
     : "";
 
   box.innerHTML = `
-    <b>Pagamento via ${method}</b>
+    <div class="pay-mini-head">${paymentLogoFor(method) ? `<img src="${paymentLogoFor(method)}" alt="">` : ""}<b>Pagamento via ${method}</b></div>
     <p>Envie <b>US$ 5 por entrada</b> para:</p>
     <div class="copy-line">
       <span class="copy-value">${value}</span>
@@ -810,6 +808,11 @@ function copyPaymentInfo(method) {
   copyText(value);
 }
 
+function paymentLogoFor(method) {
+  const map = { CashApp:"cashapp.svg", Zelle:"zelle.svg", PayPal:"paypal.svg", Venmo:"venmo.svg" };
+  return map[method] ? `assets/${map[method]}` : "";
+}
+
 function paymentLink(method) {
   return (CONFIG.paymentLinks && CONFIG.paymentLinks[method]) ? CONFIG.paymentLinks[method] : "";
 }
@@ -830,7 +833,6 @@ function updateCountdown() {
   const box = document.querySelector(".countdown");
   const label = $("#cutoffLabel");
   if (label) label.textContent = `Cutoff oficial: ${CONFIG.cutoffLabel || "1 hora antes do primeiro jogo do mata-mata"}`;
-
   if (!box) return;
 
   let days = 0, hours = 0, minutes = 0;
@@ -842,9 +844,11 @@ function updateCountdown() {
   }
 
   box.innerHTML = `
-    <div class="count-item"><b>${days}</b><small>dias</small></div>
-    <div class="count-item"><b>${hours}</b><small>hrs</small></div>
-    <div class="count-item"><b>${minutes}</b><small>min</small></div>
+    <div class="countdown-clean">
+      <div><b>${days}</b><span>Dias</span></div>
+      <div><b>${hours}</b><span>Hrs</span></div>
+      <div><b>${minutes}</b><span>Min</span></div>
+    </div>
   `;
 }
 
@@ -864,6 +868,28 @@ function lockFormIfCutoff() {
     if (el.id === "adminPassword") return;
     el.disabled = true;
   });
+}
+
+
+function renderSimulatorHelp() {
+  const box = $("#simulatorHelpCard");
+  if (!box) return;
+  box.innerHTML = `
+    <details open>
+      <summary>${t("simulatorTitle")}</summary>
+      <div class="sim-grid">
+        <div>
+          <h4>${t("autoSimulatorTitle")}</h4>
+          <p>${t("autoSimulatorText")}</p>
+        </div>
+        <div>
+          <h4>${t("randomSimulatorTitle")}</h4>
+          <p>${t("randomSimulatorText")}</p>
+        </div>
+      </div>
+      <p class="muted small"><b>Aviso:</b> ${t("simulatorWarning")}</p>
+    </details>
+  `;
 }
 
 function renderSimulationDisclaimer() {
@@ -1764,6 +1790,4 @@ document.addEventListener("DOMContentLoaded", () => {
   const random = $("#randomPick");
   if (smart) smart.addEventListener("click", () => autoFillPicks("smart"));
   if (random) random.addEventListener("click", () => autoFillPicks("random"));
-  const explainSim = $("#explainSimulatorBtn");
-  if (explainSim) explainSim.addEventListener("click", explainSimulator);
 });

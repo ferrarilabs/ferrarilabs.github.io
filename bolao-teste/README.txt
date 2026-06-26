@@ -175,3 +175,13 @@ Se não permitir, use `{{receipt_text}}` ou `{{receipt_text_pretty}}` com quebra
 - Jogos exibem data/hora/local quando disponível.
 - Horário exibido em ET (Eastern Time). Locais não confirmados aparecem como "A confirmar".
 - Mais chaves adicionadas ao i18n, mas o conteúdo dinâmico de jogos/times permanece como nomes oficiais.
+
+## v1.7 polish/fixes
+
+- Remove botão "Como funciona"; mantém a caixa explicativa fixa.
+- Corrige CashApp para `$EduardoFerrari`.
+- Adiciona SVGs locais simples para WhatsApp, CashApp, Zelle, PayPal e Venmo.
+- PDF não baixa mais branco: agora abre a página do comprovante e chama imprimir/salvar PDF.
+- Melhora contador de fim das apostas.
+- Ajusta tradução dinâmica para mais elementos.
+- Melhora layout responsivo e esconde sidebar mais cedo.
