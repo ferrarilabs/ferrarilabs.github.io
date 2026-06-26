@@ -1,1 +1,0 @@
-Assets do site.
