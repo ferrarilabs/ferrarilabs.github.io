@@ -1,6 +1,7 @@
 window.BOLAO_CONFIG = {
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
+  siteVersion: "v1.3-test",
   entryFee: 5,
 
   // Admin: static-site protection only.
@@ -10,14 +11,14 @@ window.BOLAO_CONFIG = {
   adminLockMinutes: 15,
 
   paymentMethods: {
-    CashApp: "$emferrari",
+    CashApp: "$EduardoFerrari",
     Zelle: "914-406-5027",
     PayPal: "emferrari@gmail.com",
     Venmo: "Eduardo-Ferrari"
   },
 
   paymentLinks: {
-    CashApp: "https://cash.app/$emferrari",
+    CashApp: "https://cash.app/$EduardoFerrari",
     Venmo: "https://venmo.com/u/Eduardo-Ferrari",
     PayPal: "",
     Zelle: ""
@@ -71,6 +72,14 @@ window.BOLAO_CONFIG = {
   simulationSource: "Modelo local com pesos estimados inspirado em força histórica/mercado. Integração Polymarket preparada para versão futura.",
   simulationDisclaimer: "Simulação automática é apenas entretenimento. Não é recomendação de aposta, não garante resultado e pode usar dados incompletos, desatualizados ou incorretos. O organizador não se responsabiliza por palpites gerados automaticamente.",
 
+  predictionMarkets: {
+    enabled: true,
+    preferPolymarket: true,
+    minConfidenceToUseMarket: 0.05,
+    cacheMinutes: 10,
+    note: "O simulador tenta usar probabilidades por jogo quando encontra mercado compatível no Polymarket. Se não encontrar, usa força estimada local."
+  },
+
   polymarket: {
     enabled: false,
     gammaApiBase: "https://gamma-api.polymarket.com",
@@ -97,7 +106,15 @@ window.BOLAO_CONFIG = {
   },
 
   externalData: {
-    polymarket: {
+    predictionMarkets: {
+    enabled: true,
+    preferPolymarket: true,
+    minConfidenceToUseMarket: 0.05,
+    cacheMinutes: 10,
+    note: "O simulador tenta usar probabilidades por jogo quando encontra mercado compatível no Polymarket. Se não encontrar, usa força estimada local."
+  },
+
+  polymarket: {
       enabled: true,
       eventsUrl: "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100",
       note: "Conexão pública sem autenticação. O mapeamento de mercados da Copa precisa ser validado antes de usar odds como fonte oficial."

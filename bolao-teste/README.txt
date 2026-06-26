@@ -121,3 +121,47 @@ Recommended production approach:
 - Firebase Function or Cloudflare Worker
 - Pull from API-FOOTBALL, Sportmonks, BallDontLie, or another provider
 - Do not expose API keys in GitHub Pages JavaScript
+
+
+## v1.3 final fixes
+
+- Corrigido título da aba do browser.
+- Corrigido CashApp para `$EduardoFerrari`.
+- Melhorado layout do contador.
+- Atualizados resultados:
+  - France 4 x 1 Norway
+  - Senegal 5 x 0 Iraq
+- Admin deixa claro que:
+  - Polymarket é teste de conexão e ainda não alimenta automaticamente os palpites.
+  - API de resultados ainda está manual nesta versão estática.
+
+
+## v1.4 PDF receipt + email formatting
+
+- Após salvar uma entrada, aparece um card de comprovante imediatamente.
+- Botões:
+  - Abrir comprovante
+  - Baixar PDF
+  - Baixar HTML
+  - Enviar por e-mail
+- PDF gerado no navegador usando html2pdf.js.
+- E-mail recebe `html_message`, `receipt_html` e `receipt_text_pretty` para templates mais bem formatados.
+
+### Sugestão para o template EmailJS
+
+Use `{{{html_message}}}` no corpo se o EmailJS permitir HTML sem escapar.
+Se não permitir, use `{{receipt_text}}` ou `{{receipt_text_pretty}}` com quebras.
+
+
+## v1.5 Polymarket simulator adjustment
+
+- Simulador automático:
+  - tenta carregar mercados do Polymarket Gamma API;
+  - tenta encontrar mercado compatível por time A x time B;
+  - usa outcomePrices/outcomes quando consegue mapear;
+  - sorteia o vencedor de acordo com a probabilidade normalizada;
+  - usa modelo local como fallback quando não encontra mercado.
+- Simulador maluco:
+  - continua quase aleatório.
+- Adicionado bloco/tooltip "Como funciona?".
+- Importante: o mapeamento de mercados por texto ainda é heurístico e precisa validação antes de uso oficial.

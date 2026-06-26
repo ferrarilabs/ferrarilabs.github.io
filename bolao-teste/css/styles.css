@@ -160,3 +160,98 @@ footer{padding:18px 24px;color:var(--muted);border-top:1px solid var(--line);dis
   overflow:auto;
   color:#b9ffd8;
 }
+
+.countdown {
+  display:grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap:8px !important;
+  align-items:stretch;
+}
+.count-item {
+  background:rgba(47,229,110,.08);
+  border:1px solid rgba(47,229,110,.22);
+  border-radius:12px;
+  padding:8px 4px;
+  text-align:center;
+}
+.count-item b {
+  display:block;
+  color:var(--green);
+  font-size:24px;
+  line-height:1;
+}
+.count-item small {
+  display:block;
+  color:var(--muted);
+  font-size:10px;
+  text-transform:uppercase;
+  margin-top:5px;
+}
+.payment-card .pay-icon {
+  font-family: Inter, system-ui, sans-serif;
+  color:#fff;
+}
+.payment-card.cash .pay-icon {
+  background:linear-gradient(135deg,#00d632,#00a82d);
+}
+.payment-card.zelle .pay-icon {
+  background:linear-gradient(135deg,#6d1ed4,#8b40ff);
+}
+.payment-card.paypal .pay-icon {
+  background:linear-gradient(135deg,#003087,#009cde);
+}
+.payment-card.venmo .pay-icon {
+  background:linear-gradient(135deg,#008cff,#0066cc);
+}
+.payment-card.cash .pay-icon::before { content:"$"; }
+.payment-card.zelle .pay-icon::before { content:"Z"; }
+.payment-card.paypal .pay-icon::before { content:"P"; }
+.payment-card.venmo .pay-icon::before { content:"V"; }
+.payment-card .pay-icon { font-size:0; }
+.payment-card .pay-icon::before { font-size:34px; font-weight:900; }
+
+.receipt-ready {
+  border-color:rgba(47,229,110,.45);
+  background:linear-gradient(135deg,rgba(47,229,110,.13),rgba(255,255,255,.04));
+}
+.receipt-ready .receipt-actions {
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top:12px;
+}
+.receipt-ready .receipt-actions button {
+  flex:1;
+  min-width:150px;
+}
+
+.simulator-help {
+  margin-top:12px;
+  padding:14px;
+  border-radius:14px;
+  background:rgba(47,229,110,.07);
+  border:1px solid rgba(47,229,110,.22);
+}
+.simulator-help summary {
+  cursor:pointer;
+  font-weight:900;
+  color:var(--green);
+}
+.sim-grid {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:14px;
+  margin-top:12px;
+}
+.sim-grid h4 {
+  margin:0 0 6px;
+}
+.sim-grid p {
+  margin:0;
+  color:var(--muted);
+  font-size:13px;
+  line-height:1.45;
+}
+@media(max-width:900px){
+  .sim-grid { grid-template-columns:1fr; }
+}

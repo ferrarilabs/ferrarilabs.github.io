@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex,nofollow" />
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.emailjs.com https://gamma-api.polymarket.com https://api.ipify.org; form-action 'self'; base-uri 'self'; frame-ancestors 'none';" />
-  <title><span data-i18n="appTitle">Bolão do Ferrari</span> - Copa 2026</title>
+  <title>Bolão do Ferrari - Copa 2026</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -119,6 +119,23 @@
             </div>
 
             <div id="paymentBox" class="payment-box"></div>
+            <div id="simulatorHelpCard" class="simulator-help">
+              <details>
+                <summary>Como funcionam os simuladores?</summary>
+                <div class="sim-grid">
+                  <div>
+                    <h4>⚡ Simulador automático</h4>
+                    <p>Tenta usar probabilidades por jogo do Polymarket quando encontra um mercado compatível para aquela partida. Se não encontrar, usa um modelo local simples de força estimada dos times. Ele sorteia o vencedor respeitando a probabilidade, então duas simulações podem sair diferentes.</p>
+                  </div>
+                  <div>
+                    <h4>🎲 Simulador maluco</h4>
+                    <p>Preenche palpites de forma quase aleatória, para quem quer brincar ou não quer pensar muito. Não usa estatística séria e pode gerar resultados improváveis.</p>
+                  </div>
+                </div>
+                <p class="muted small"><b>Aviso:</b> simulação é entretenimento, não recomendação de aposta. Probabilidades podem estar incompletas, desatualizadas, mal mapeadas ou indisponíveis.</p>
+              </details>
+            </div>
+
             <div id="diagnosticsNotice" class="diagnostics-notice">
               <b>Diagnóstico técnico:</b> para ajudar em suporte e auditoria, esta versão registra metadados como IP público, dispositivo, navegador, timezone e horário de envio junto com a entrada.
             </div>
@@ -126,6 +143,7 @@
             <div class="button-row">
               <button id="smartPick" class="secondary" type="button"><span data-i18n="simulateSmart">⚡ Simular palpites automaticamente</span></button>
               <button id="randomPick" class="secondary" type="button"><span data-i18n="simulateRandom">🎲 Simular maluco</span></button>
+              <button id="explainSimulatorBtn" class="secondary" type="button">ℹ️ Como funciona?</button>
             </div>
             <p class="muted small">A simulação é só para preencher rápido. Revise antes de salvar.</p>
             <div class="simulation-disclaimer" id="simulationDisclaimer"></div>
@@ -139,6 +157,7 @@
 
           <form id="bracketForm"></form>
 
+          <div id="latestReceiptBox" class="card receipt-ready" style="display:none"></div>
           <div class="sticky-submit">
             <button id="saveEntry" class="primary full"><span data-i18n="saveEntry">Salvar entrada de teste</span></button>
           </div>
@@ -179,9 +198,9 @@
               <div class="payment-card cash">
                 <div class="pay-icon">$</div>
                 <h3>Cash App</h3>
-                <p>$emferrari</p>
-                <a class="pay-button" href="https://cash.app/$emferrari" target="_blank" rel="noopener">Abrir Cash App</a>
-                <button class="secondary" onclick="copyText('$emferrari')">Copiar $emferrari</button>
+                <p>$EduardoFerrari</p>
+                <a class="pay-button" href="https://cash.app/$EduardoFerrari" target="_blank" rel="noopener">Abrir Cash App</a>
+                <button class="secondary" onclick="copyText('$EduardoFerrari')">Copiar $EduardoFerrari</button>
               </div>
               <div class="payment-card zelle">
                 <div class="pay-icon">Z</div>
@@ -337,6 +356,7 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>

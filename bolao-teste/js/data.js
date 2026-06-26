@@ -1,5 +1,5 @@
 window.BOLAO_DATA = {
-  "updatedLabel": "Teste com dados correntes da planilha até 25/jun/2026 + mata-mata Match 73–104",
+  "updatedLabel": "Atualizado manualmente com resultados conhecidos até Jun 26: França 4 x 1 Noruega; Senegal 5 x 0 Iraque.",
   "entryFee": 5,
   "prizes": {
     "first": 0.7,
@@ -784,10 +784,10 @@ window.BOLAO_DATA = {
       "group": "I",
       "teamA": "Norway",
       "teamB": "France",
-      "goalsA": null,
-      "goalsB": null,
+      "goalsA": 1,
+      "goalsB": 4,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Final"
     },
     {
       "match": "GS-62",
@@ -796,10 +796,10 @@ window.BOLAO_DATA = {
       "group": "I",
       "teamA": "Senegal",
       "teamB": "Iraq",
-      "goalsA": null,
-      "goalsB": null,
+      "goalsA": 5,
+      "goalsB": 0,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Final"
     },
     {
       "match": "GS-63",

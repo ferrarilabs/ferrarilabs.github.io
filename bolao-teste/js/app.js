@@ -58,6 +58,7 @@ function t(key) {
 }
 
 function applyLanguage() {
+  document.title = `${CONFIG.appName || "Bolão do Ferrari"} - Copa 2026`;
   document.documentElement.lang = currentLang;
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
@@ -352,7 +353,13 @@ function buildReceiptHtml(entry) {
     if (!p) return "";
     const r = resolved[m.match] || { displayA: p.displayA, displayB: p.displayB };
     const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
-    return `<tr><td>Match ${m.match}</td><td>${escapeHtml(r.displayA)}</td><td>${p.goalsA} x ${p.goalsB}</td><td>${escapeHtml(r.displayB)}</td><td>${escapeHtml(winner)}</td></tr>`;
+    return `<tr>
+      <td><b>Match ${m.match}</b><br><span>${escapeHtml(phaseLabel(m.phase))}</span></td>
+      <td>${escapeHtml(r.displayA)}</td>
+      <td class="score">${p.goalsA} x ${p.goalsB}</td>
+      <td>${escapeHtml(r.displayB)}</td>
+      <td>${escapeHtml(winner)}</td>
+    </tr>`;
   }).join("");
 
   return `<!doctype html>
@@ -362,35 +369,120 @@ function buildReceiptHtml(entry) {
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Comprovante - ${escapeHtml(entry.entryName)}</title>
 <style>
-body{font-family:Arial,sans-serif;margin:24px;color:#111}
-h1{margin-bottom:4px}
-.meta{background:#f2f4f7;padding:14px;border-radius:12px;margin:14px 0}
-.code{font-family:monospace;font-weight:bold}
-table{width:100%;border-collapse:collapse;font-size:13px}
-td,th{border-bottom:1px solid #ddd;padding:8px;text-align:left}
-@media print{button{display:none}}
+body{font-family:Arial,sans-serif;margin:0;color:#111;background:#f5f7fb}
+.receipt-document{max-width:900px;margin:24px auto;background:white;border-radius:18px;padding:28px;box-shadow:0 12px 40px rgba(0,0,0,.12)}
+.header{display:flex;justify-content:space-between;gap:20px;align-items:flex-start;border-bottom:3px solid #20bf55;padding-bottom:16px;margin-bottom:18px}
+h1{margin:0;font-size:28px}
+.subtitle{color:#52606d;margin-top:6px}
+.badge{background:#e9fff1;color:#0c7a33;border:1px solid #86efac;border-radius:999px;padding:8px 12px;font-weight:bold;text-align:center}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f2f4f7;padding:16px;border-radius:14px;margin:16px 0}
+.meta p{margin:4px 0}
+.code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-weight:bold;color:#0c7a33;word-break:break-all}
+table{width:100%;border-collapse:collapse;font-size:13px;margin-top:16px}
+td,th{border-bottom:1px solid #dde3ea;padding:10px;text-align:left;vertical-align:top}
+th{background:#0b1b23;color:white}
+td span{color:#6b7280;font-size:11px}
+.score{font-size:16px;font-weight:bold;text-align:center;white-space:nowrap}
+.notice{margin-top:18px;background:#fff8e1;border:1px solid #ffd166;border-radius:12px;padding:12px;font-size:12px;color:#5f4300}
+.footer{margin-top:18px;color:#6b7280;font-size:12px}
+.actions{margin:16px auto;max-width:900px;text-align:center}
+button{background:#20bf55;color:#03130b;border:0;border-radius:10px;padding:10px 14px;font-weight:bold;cursor:pointer}
+@media print{body{background:white}.actions{display:none}.receipt-document{box-shadow:none;margin:0;border-radius:0}.meta{break-inside:avoid}tr{break-inside:avoid}}
 </style>
 </head>
 <body>
-<button onclick="window.print()">Imprimir / salvar PDF</button>
-<h1>Comprovante do Bolão Copa 2026</h1>
-<p>Este comprovante registra os palpites enviados nesta entrada.</p>
-<div class="meta">
-<p><b>Entrada:</b> ${escapeHtml(entry.entryName)}</p>
-<p><b>Responsável:</b> ${escapeHtml(entry.payerName)}</p>
-${entry.participantEmail ? `<p><b>E-mail:</b> ${escapeHtml(entry.participantEmail)}</p>` : ""}
-<p><b>Pagamento:</b> ${escapeHtml(entry.paymentMethod || "Não informado")} ${escapeHtml(entry.paymentTo ? "— " + entry.paymentTo : "")}</p>
-<p><b>Enviado em:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}</p>
-<p><b>Código de autenticação:</b> <span class="code">${code}</span></p>
+<div class="actions"><button onclick="window.print()">Imprimir / salvar PDF</button></div>
+<div class="receipt-document">
+  <div class="header">
+    <div>
+      <h1>Comprovante do Bolão Copa 2026</h1>
+      <div class="subtitle">Este comprovante registra exatamente os palpites enviados nesta entrada.</div>
+    </div>
+    <div class="badge">US$ 5 por entrada</div>
+  </div>
+
+  <div class="meta">
+    <div>
+      <p><b>Entrada:</b> ${escapeHtml(entry.entryName)}</p>
+      <p><b>Responsável:</b> ${escapeHtml(entry.payerName)}</p>
+      ${entry.participantEmail ? `<p><b>E-mail:</b> ${escapeHtml(entry.participantEmail)}</p>` : ""}
+    </div>
+    <div>
+      <p><b>Pagamento:</b> ${escapeHtml(entry.paymentMethod || "Não informado")} ${escapeHtml(entry.paymentTo ? "— " + entry.paymentTo : "")}</p>
+      <p><b>Enviado em:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}</p>
+      <p><b>Código:</b> <span class="code">${code}</span></p>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Jogo</th><th>Time A</th><th>Placar</th><th>Time B</th><th>Ganha/avança</th></tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
+
+  <div class="notice">
+    <b>Regras importantes:</b> placar válido é 90 minutos + prorrogação. Pênaltis não entram no placar. Este é um bolão informal entre amigos. Em caso de falha técnica, comprovantes individuais, backups e master list serão usados como referência.
+  </div>
+
+  <div class="footer">
+    Código de autenticação: <span class="code">${code}</span><br>
+    Gerado por Bolão do Ferrari — Copa do Mundo 2026.
+  </div>
 </div>
-<table>
-<thead><tr><th>Jogo</th><th>Time escolhido A</th><th>Placar</th><th>Time escolhido B</th><th>Ganha/avança</th></tr></thead>
-<tbody>${rows}</tbody>
-</table>
-<p style="margin-top:20px;font-size:12px;color:#666">Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.</p>
 </body>
 </html>`;
 }
+
+
+function receiptFileName(entry, ext = "pdf") {
+  const safeName = String(entry.entryName || "entrada").replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "").toLowerCase();
+  return `comprovante-${safeName}-${receiptCode(entry)}.${ext}`;
+}
+
+async function downloadReceiptPdf(entryId) {
+  const s = state();
+  const entry = s.entries.find(e => e.id === entryId);
+  if (!entry) return alert("Entrada não encontrada.");
+
+  const wrapper = document.createElement("div");
+  wrapper.innerHTML = buildReceiptHtml(entry);
+  const receiptNode = wrapper.querySelector(".receipt-document") || wrapper.body || wrapper;
+
+  if (!window.html2pdf) {
+    alert("Gerador de PDF não carregou. Vou abrir o comprovante para você salvar/imprimir como PDF.");
+    openReceipt(entryId);
+    return;
+  }
+
+  const opt = {
+    margin: 0.35,
+    filename: receiptFileName(entry, "pdf"),
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: { scale: 2, useCORS: true },
+    jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
+    pagebreak: { mode: ["avoid-all", "css", "legacy"] }
+  };
+
+  await html2pdf().set(opt).from(receiptNode).save();
+}
+
+function renderLatestReceipt(entry) {
+  const box = $("#latestReceiptBox");
+  if (!box) return;
+  box.style.display = "block";
+  box.innerHTML = `
+    <h2>✅ Entrada salva</h2>
+    <p class="muted">Guarde seu comprovante. Ele contém o código da entrada e os palpites enviados.</p>
+    <div class="receipt-code">${receiptCode(entry)}</div>
+    <div class="receipt-actions">
+      <button class="secondary" onclick="openReceipt('${entry.id}')">Abrir comprovante</button>
+      <button class="secondary" onclick="downloadReceiptPdf('${entry.id}')">Baixar PDF</button>
+      <button class="secondary" onclick="downloadReceipt('${entry.id}')">Baixar HTML</button>
+      <button class="secondary" onclick="mailReceipt('${entry.id}', 'participant')">Enviar por e-mail</button>
+    </div>
+  `;
+  box.scrollIntoView({ behavior: "smooth", block: "center" });
+}
+
 
 function downloadReceipt(entryId) {
   const s = state();
@@ -425,29 +517,225 @@ function teamStrength(name) {
   return 65;
 }
 
+
+let polymarketCache = {
+  fetchedAt: 0,
+  events: [],
+  markets: []
+};
+
+function normalizeNameForMarket(name) {
+  return String(name || "")
+    .toLowerCase()
+    .replaceAll("united states", "usa")
+    .replaceAll("côte d'ivoire", "ivory coast")
+    .replaceAll("bosnia and herzegovina", "bosnia")
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function safeJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function fetchPolymarketEventsForSimulator(force = false) {
+  const cfg = CONFIG.externalData?.polymarket || CONFIG.polymarket || {};
+  const predCfg = CONFIG.predictionMarkets || {};
+  if (!predCfg.enabled || !predCfg.preferPolymarket) return [];
+
+  const maxAgeMs = (predCfg.cacheMinutes || 10) * 60 * 1000;
+  if (!force && polymarketCache.events.length && Date.now() - polymarketCache.fetchedAt < maxAgeMs) {
+    return polymarketCache.events;
+  }
+
+  try {
+    const url = cfg.eventsUrl || "https://gamma-api.polymarket.com/events?active=true&closed=false&limit=100";
+    const res = await fetch(url, { cache: "no-store" });
+    if (!res.ok) throw new Error(`Polymarket HTTP ${res.status}`);
+    const data = await res.json();
+    const events = Array.isArray(data) ? data : (data.events || data.data || []);
+    polymarketCache = { fetchedAt: Date.now(), events, markets: flattenPolymarketMarkets(events) };
+    return events;
+  } catch (err) {
+    console.warn("Polymarket fetch failed. Falling back to local model.", err);
+    return [];
+  }
+}
+
+function flattenPolymarketMarkets(events) {
+  const markets = [];
+  for (const ev of events || []) {
+    if (Array.isArray(ev.markets)) {
+      for (const m of ev.markets) markets.push({ event: ev, market: m });
+    } else if (ev.market) {
+      markets.push({ event: ev, market: ev.market });
+    }
+  }
+  return markets;
+}
+
+function extractMarketTitle(event, market) {
+  return [
+    event?.title, event?.slug, event?.ticker, event?.question,
+    market?.question, market?.title, market?.slug, market?.description
+  ].filter(Boolean).join(" | ");
+}
+
+function getOutcomeProbabilities(market) {
+  const outcomes = safeJsonArray(market.outcomes);
+  const pricesRaw = safeJsonArray(market.outcomePrices);
+  const prices = pricesRaw.map(x => Number(x)).filter(x => !Number.isNaN(x));
+  if (!outcomes.length || outcomes.length !== prices.length) return [];
+  return outcomes.map((name, i) => ({ name: String(name), probability: prices[i] }));
+}
+
+function findPolymarketMatchProbability(teamA, teamB) {
+  const a = normalizeNameForMarket(teamA);
+  const b = normalizeNameForMarket(teamB);
+  if (!a || !b) return null;
+
+  let best = null;
+
+  for (const item of polymarketCache.markets || []) {
+    const title = normalizeNameForMarket(extractMarketTitle(item.event, item.market));
+    if (!title.includes(a) || !title.includes(b)) continue;
+
+    const probs = getOutcomeProbabilities(item.market);
+    if (!probs.length) continue;
+
+    let pA = null;
+    let pB = null;
+
+    for (const out of probs) {
+      const outName = normalizeNameForMarket(out.name);
+      if (outName === a || outName.includes(a) || a.includes(outName)) pA = out.probability;
+      if (outName === b || outName.includes(b) || b.includes(outName)) pB = out.probability;
+    }
+
+    // Binary markets may be phrased as "Will Team A beat Team B?"
+    if ((pA === null || pB === null) && probs.length === 2) {
+      const yes = probs.find(x => normalizeNameForMarket(x.name).includes("yes"));
+      const no = probs.find(x => normalizeNameForMarket(x.name).includes("no"));
+      if (yes && no) {
+        const titleMentionsAFirst = title.indexOf(a) >= 0 && (title.indexOf(b) < 0 || title.indexOf(a) < title.indexOf(b));
+        if (titleMentionsAFirst) {
+          pA = yes.probability;
+          pB = no.probability;
+        }
+      }
+    }
+
+    if (pA !== null && pB !== null) {
+      const sum = pA + pB;
+      if (sum > 0) {
+        pA = pA / sum;
+        pB = pB / sum;
+      }
+      best = {
+        teamA,
+        teamB,
+        pA,
+        pB,
+        source: "Polymarket",
+        marketTitle: extractMarketTitle(item.event, item.market),
+        marketId: item.market?.id || item.market?.conditionId || item.event?.id || "",
+        updatedAt: new Date().toISOString()
+      };
+      break;
+    }
+  }
+
+  return best;
+}
+
+function localMatchProbability(teamA, teamB) {
+  const sa = teamStrength(teamA);
+  const sb = teamStrength(teamB);
+  // logistic-ish conversion, intentionally conservative
+  const pA = 1 / (1 + Math.exp(-(sa - sb) / 8));
+  return {
+    teamA,
+    teamB,
+    pA,
+    pB: 1 - pA,
+    source: "Modelo local",
+    marketTitle: "Sem mercado Polymarket compatível encontrado",
+    updatedAt: new Date().toISOString()
+  };
+}
+
+function probabilityForMatch(teamA, teamB) {
+  const pm = findPolymarketMatchProbability(teamA, teamB);
+  return pm || localMatchProbability(teamA, teamB);
+}
+
+function scoreFromProbability(pWinner) {
+  // creates plausible scores, not exact science
+  const r = Math.random();
+  if (pWinner >= 0.72) {
+    if (r < 0.35) return [3, 0];
+    if (r < 0.70) return [2, 0];
+    return [3, 1];
+  }
+  if (pWinner >= 0.58) {
+    if (r < 0.40) return [2, 1];
+    if (r < 0.70) return [1, 0];
+    return [2, 0];
+  }
+  if (r < 0.45) return [1, 1];
+  if (r < 0.70) return [2, 1];
+  return [1, 0];
+}
+
+async function explainSimulator() {
+  await fetchPolymarketEventsForSimulator(false);
+  const available = polymarketCache.markets?.length || 0;
+  alert(`Simulador automático:
+- Tenta usar probabilidades por jogo do Polymarket.
+- Se não encontrar mercado compatível, usa modelo local de força estimada.
+- Sorteia o vencedor com base na probabilidade encontrada.
+- Depois gera um placar plausível.
+
+Mercados Polymarket carregados nesta sessão: ${available}
+
+Simulador maluco:
+- Preenche quase aleatoriamente.
+- Serve para brincar ou preencher rápido.
+- Não usa fonte estatística séria.
+
+Nada disso é recomendação de aposta.`);
+}
+
+
 function predictedScoreFor(currentA, currentB, mode) {
   if (mode === "random") {
     const ga = Math.floor(Math.random() * 4);
     const gb = Math.floor(Math.random() * 4);
-    return [ga, gb];
+    return [ga, gb, { source: "Simulador maluco", pA: 0.5, pB: 0.5 }];
   }
-  const sa = teamStrength(currentA);
-  const sb = teamStrength(currentB);
-  const diff = sa - sb;
-  let ga = 1, gb = 1;
-  if (diff >= 12) [ga, gb] = [3, 0];
-  else if (diff >= 6) [ga, gb] = [2, 0];
-  else if (diff >= 2) [ga, gb] = [2, 1];
-  else if (diff <= -12) [ga, gb] = [0, 3];
-  else if (diff <= -6) [ga, gb] = [0, 2];
-  else if (diff <= -2) [ga, gb] = [1, 2];
-  else [ga, gb] = Math.random() > 0.5 ? [1, 1] : [2, 2];
-  return [ga, gb];
+
+  const prob = probabilityForMatch(currentA, currentB);
+  const aWins = Math.random() < prob.pA;
+  const winnerProb = aWins ? prob.pA : prob.pB;
+  const [wg, lg] = scoreFromProbability(winnerProb);
+
+  if (aWins) return [wg, lg, prob];
+  return [lg, wg, prob];
 }
 
-function autoFillPicks(mode = "smart") {
+async function autoFillPicks(mode = "smart") {
   const disclaimer = CONFIG.simulationDisclaimer || "Simulação é apenas entretenimento e pode estar errada.";
-  if (!confirm((mode === "smart" ? "Preencher automaticamente baseado em força estimada dos times? " : "Preencher aleatoriamente? ") + "\n\n" + disclaimer + "\n\nVocê ainda pode revisar antes de salvar.")) return;
+  if (!confirm((mode === "smart" ? "Preencher automaticamente usando Polymarket quando disponível e modelo local como fallback? " : "Preencher aleatoriamente? ") + "\n\n" + disclaimer + "\n\nVocê ainda pode revisar antes de salvar.")) return;
+
+  if (mode === "smart") await fetchPolymarketEventsForSimulator(true);
 
   DATA.knockoutMatches.forEach(m => {
     updateDynamicBracketLabels();
@@ -475,7 +763,7 @@ function autoFillPicks(mode = "smart") {
 }
 
 
-const PAYMENT_INFO = CONFIG.paymentMethods || { CashApp: "$emferrari", Zelle: "914-406-5027", PayPal: "emferrari@gmail.com", Venmo: "Eduardo-Ferrari" };
+const PAYMENT_INFO = CONFIG.paymentMethods || { CashApp: "$EduardoFerrari", Zelle: "914-406-5027", PayPal: "emferrari@gmail.com", Venmo: "Eduardo-Ferrari" };
 
 function updatePaymentBox() {
   const method = $("#paymentMethod")?.value || "";
@@ -542,17 +830,20 @@ function updateCountdown() {
   if (label) label.textContent = `Cutoff oficial: ${CONFIG.cutoffLabel || "1 hora antes do primeiro jogo do mata-mata"}`;
 
   if (!box) return;
-  if (diff <= 0) {
-    box.innerHTML = `<b>0</b><small>dias</small><b>0</b><small>hrs</small><b>0</b><small>min</small>`;
-    return;
+
+  let days = 0, hours = 0, minutes = 0;
+  if (diff > 0) {
+    const totalMinutes = Math.floor(diff / 60000);
+    days = Math.floor(totalMinutes / 1440);
+    hours = Math.floor((totalMinutes % 1440) / 60);
+    minutes = totalMinutes % 60;
   }
 
-  const totalMinutes = Math.floor(diff / 60000);
-  const days = Math.floor(totalMinutes / 1440);
-  const hours = Math.floor((totalMinutes % 1440) / 60);
-  const minutes = totalMinutes % 60;
-
-  box.innerHTML = `<b>${days}</b><small>dias</small><b>${hours}</b><small>hrs</small><b>${minutes}</b><small>min</small>`;
+  box.innerHTML = `
+    <div class="count-item"><b>${days}</b><small>dias</small></div>
+    <div class="count-item"><b>${hours}</b><small>hrs</small></div>
+    <div class="count-item"><b>${minutes}</b><small>min</small></div>
+  `;
 }
 
 function lockFormIfCutoff() {
@@ -609,6 +900,7 @@ function receiptPlainText(entry) {
   const code = receiptCode(entry);
   const lines = [];
   lines.push(`Comprovante do Bolão Copa 2026`);
+  lines.push(`============================`);
   lines.push(`Entrada: ${escapeHtml(entry.entryName)}`);
   lines.push(`Responsável: ${escapeHtml(entry.payerName)}`);
   if (entry.participantEmail) lines.push(`E-mail: ${escapeHtml(entry.participantEmail)}`);
@@ -621,6 +913,8 @@ function receiptPlainText(entry) {
   }
   lines.push(`Código: ${code}`);
   lines.push("");
+  lines.push("PALPITES");
+  lines.push("----------------------------");
   DATA.knockoutMatches.forEach(m => {
     const p = entry.picks[m.match];
     if (!p) return;
@@ -658,7 +952,9 @@ async function sendReceiptEmail(entry, target) {
     payment_to: entry.paymentTo || "",
     receipt_code: receiptCode(entry),
     receipt_text: receiptPlainText(entry),
-    html_message: buildReceiptHtml(entry)
+    html_message: buildReceiptHtml(entry),
+      receipt_html: buildReceiptHtml(entry),
+      receipt_text_pretty: receiptPlainText(entry).replaceAll("\n", "<br>")
   };
 
   try {
@@ -834,7 +1130,12 @@ async function checkPolymarketConnection() {
         title: e.title || e.slug || e.ticker || e.question || "untitled",
         slug: e.slug
       })),
-      note: CONFIG.externalData?.polymarket?.note || "Mapeamento ainda precisa ser validado."
+      sampleMarketsWithPrices: (polymarketCache.markets || []).slice(0, 5).map(x => ({
+        title: extractMarketTitle(x.event, x.market),
+        outcomes: safeJsonArray(x.market.outcomes),
+        outcomePrices: safeJsonArray(x.market.outcomePrices)
+      })),
+      note: (CONFIG.externalData?.polymarket?.note || "Mapeamento ainda precisa ser validado.") + " Polymarket ainda NÃO alimenta a simulação automaticamente nesta versão."
     });
   } catch (err) {
     setStatusConsole({ ok: false, error: String(err), note: "Pode ser CORS, rede, endpoint indisponível ou bloqueio do navegador." });
@@ -848,7 +1149,7 @@ async function checkResultsApiConnection() {
       ok: false,
       provider: cfg.provider || "manual",
       mode: cfg.mode || "manual",
-      note: cfg.note || "Nenhuma API de resultados configurada. Resultados continuam manuais."
+      note: cfg.note || "Nenhuma API de resultados configurada. Resultados continuam manuais nesta versão estática. Para automático, usar backend/proxy com API key protegida."
     });
     return;
   }
@@ -1187,7 +1488,7 @@ function renderRanking() {
     ranked.forEach(r => {
       const div = document.createElement("div");
       div.className = "match-card";
-      div.innerHTML = `<b>${escapeHtml(r.entryName)}</b><br><span class="receipt-code">${receiptCode(r)}</span><div class="receipt-actions"><button class="small-btn secondary" onclick="openReceipt('${r.id}')">Abrir comprovante</button><button class="small-btn secondary" onclick="downloadReceipt('${r.id}')">Baixar HTML</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'participant')">E-mail para participante</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'admin')">E-mail para Eduardo</button></div>`;
+      div.innerHTML = `<b>${escapeHtml(r.entryName)}</b><br><span class="receipt-code">${receiptCode(r)}</span><div class="receipt-actions"><button class="small-btn secondary" onclick="openReceipt('${r.id}')">Abrir comprovante</button><button class="small-btn secondary" onclick="downloadReceiptPdf('${r.id}')">Baixar PDF</button><button class="small-btn secondary" onclick="downloadReceipt('${r.id}')">Baixar HTML</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'participant')">E-mail para participante</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'admin')">E-mail para Eduardo</button></div>`;
       receipts.appendChild(div);
     });
   }
@@ -1405,6 +1706,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     alert("Entrada salva. Guarde o comprovante. Se o e-mail automático estiver configurado, o site tentará enviar o comprovante agora.");
 
+    renderLatestReceipt(entry);
+
     if (CONFIG.emailMode === "emailjs" && CONFIG.emailjs?.enabled) {
       try {
         await sendReceiptEmail(entry, "participant");
@@ -1432,4 +1735,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const random = $("#randomPick");
   if (smart) smart.addEventListener("click", () => autoFillPicks("smart"));
   if (random) random.addEventListener("click", () => autoFillPicks("random"));
+  const explainSim = $("#explainSimulatorBtn");
+  if (explainSim) explainSim.addEventListener("click", explainSimulator);
 });
