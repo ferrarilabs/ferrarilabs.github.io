@@ -66,6 +66,8 @@ function applyLanguage() {
   });
   const sel = $("#languageSelect");
   if (sel) sel.value = currentLang;
+  const support = $("#supportWhatsappBtn");
+  if (support) support.textContent = `🟢 ${t("supportWhatsApp")}`;
 }
 
 function setupLanguageSwitcher() {
@@ -1456,42 +1458,40 @@ function openMasterList() {
 
 function renderRanking() {
   const s = state();
-  const ranked = s.entries
-    .map(e => {
-      const scored = scoreEntry(e, s);
-      return { ...e, paid: !!s.paid[e.id], score: scored.total, bonus: scored.bonus };
-    })
+  const box = $("#rankingList");
+  const pot = $("#potValue");
+  if (pot) pot.textContent = `$${s.entries.length * (CONFIG.entryFee || DATA.entryFee || 5)}`;
+
+  if (!box) return;
+  const rows = s.entries
+    .map(e => ({ ...e, score: scoreEntry(e, s).total, bonus: scoreEntry(e, s).bonus }))
     .sort((a, b) => b.score - a.score);
 
-  const paidCount = ranked.filter(r => r.paid).length;
-  $("#potValue").textContent = `$${paidCount * (CONFIG.entryFee || DATA.entryFee)}`;
-
-  const list = $("#rankingList");
-  list.innerHTML = ranked.length ? "" : `<div class="card"><p class="muted">Nenhuma entrada ainda. Use “Criar 3 entradas demo” no Admin para testar.</p></div>`;
-
-  ranked.forEach((r, i) => {
-    const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1;
-    const div = document.createElement("div");
-    div.className = "rank-row";
-    div.innerHTML = `
-      <div class="medal">${medal}</div>
-      <div><b>${escapeHtml(r.entryName)}</b><br><span class="muted">${escapeHtml(r.payerName)}${r.paymentMethod ? " • " + r.paymentMethod : ""}${r.bonus?.total ? " • bônus finais +" + r.bonus.total : ""}</span><br><span class="receipt-code">${receiptCode(r)}</span></div>
-      <div class="points">${r.score}</div>
-      <div class="status">${r.paid ? "Pago" : "Pendente"}</div>
-    `;
-    list.appendChild(div);
-  });
-
-  const receipts = $("#receiptsList");
-  if (receipts) {
-    receipts.innerHTML = `<h2>Comprovantes</h2><p class="muted">Abra ou baixe o comprovante HTML da entrada. No navegador, dá para imprimir ou salvar como PDF.</p>`;
-    ranked.forEach(r => {
-      const div = document.createElement("div");
-      div.className = "match-card";
-      div.innerHTML = `<b>${escapeHtml(r.entryName)}</b><br><span class="receipt-code">${receiptCode(r)}</span><div class="receipt-actions"><button class="small-btn secondary" onclick="openReceipt('${r.id}')">Abrir comprovante</button><button class="small-btn secondary" onclick="downloadReceiptPdf('${r.id}')">Baixar PDF</button><button class="small-btn secondary" onclick="downloadReceipt('${r.id}')">Baixar HTML</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'participant')">E-mail para participante</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'admin')">E-mail para Eduardo</button></div>`;
-      receipts.appendChild(div);
-    });
+  if (!rows.length) {
+    box.innerHTML = `<div class="card"><p class="muted">Nenhuma entrada registrada ainda.</p></div>`;
+    return;
   }
+
+  box.innerHTML = `<div class="card"><p class="muted">${t("publicRankingNote")}</p></div>`;
+
+  rows.forEach((r, idx) => {
+    const div = document.createElement("div");
+    div.className = "rank-row public-rank-row";
+    div.innerHTML = `
+      <div class="medal">${idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : idx + 1}</div>
+      <div><b>${escapeHtml(r.entryName)}</b><br><span class="muted">${escapeHtml(r.payerName)}${r.bonus?.total ? " • bônus finais +" + r.bonus.total : ""}</span><br><span class="receipt-code">${receiptCode(r)}</span></div>
+      <div class="points">${r.score}</div>
+      <button class="small-btn secondary" onclick="togglePublicPicks('${r.id}')">${t("viewPicks")}</button>
+    `;
+    box.appendChild(div);
+
+    const detail = document.createElement("div");
+    detail.className = "card public-picks-card";
+    detail.dataset.publicPicks = r.id;
+    detail.style.display = "none";
+    detail.innerHTML = `<h3>${escapeHtml(r.entryName)} — ${t("viewPicks")}</h3>${picksSummaryHtml(r)}`;
+    box.appendChild(detail);
+  });
 }
 
 function renderAdmin() {
@@ -1569,6 +1569,35 @@ function renderAdmin() {
     saveState(st);
     renderAll();
   }));
+}
+
+
+function matchScheduleMeta(m) {
+  const date = m.date || "";
+  const time = m.timeET || m.kickoffET || m.time || "";
+  const venue = m.venue || t("venueTbd");
+  const parts = [];
+  if (date || time) parts.push(`${date}${date && time ? " • " : ""}${time}`);
+  if (venue) parts.push(`Local: ${venue}`);
+  return parts.join(" • ");
+}
+
+function picksSummaryHtml(entry) {
+  const resolved = resolvedTeamsForEntry(entry);
+  const rows = DATA.knockoutMatches.map(m => {
+    const p = entry.picks[m.match];
+    if (!p) return "";
+    const r = resolved[m.match] || { displayA: p.displayA, displayB: p.displayB };
+    const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
+    return `<tr><td>Match ${m.match}<br><span class="muted">${escapeHtml(matchScheduleMeta(m))}</span></td><td>${escapeHtml(r.displayA)}</td><td><b>${p.goalsA} x ${p.goalsB}</b></td><td>${escapeHtml(r.displayB)}</td><td>${escapeHtml(winner)}</td></tr>`;
+  }).join("");
+  return `<div class="picks-detail"><table><thead><tr><th>Jogo</th><th>Time A</th><th>Placar</th><th>Time B</th><th>Ganha/avança</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+function togglePublicPicks(entryId) {
+  const row = document.querySelector(`[data-public-picks="${entryId}"]`);
+  if (!row) return;
+  row.style.display = row.style.display === "none" ? "block" : "none";
 }
 
 function renderGames() {

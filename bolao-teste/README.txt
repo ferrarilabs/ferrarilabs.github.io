@@ -165,3 +165,13 @@ Se não permitir, use `{{receipt_text}}` ou `{{receipt_text_pretty}}` com quebra
   - continua quase aleatório.
 - Adicionado bloco/tooltip "Como funciona?".
 - Importante: o mapeamento de mercados por texto ainda é heurístico e precisa validação antes de uso oficial.
+
+
+## v1.6 Public ranking/admin separation
+
+- Ranking público mostra apenas ranking e botão para ver palpites.
+- Botões administrativos de comprovante/e-mail/PDF foram movidos para Admin.
+- Adicionado botão WhatsApp no topo para suporte/grupo.
+- Jogos exibem data/hora/local quando disponível.
+- Horário exibido em ET (Eastern Time). Locais não confirmados aparecem como "A confirmar".
+- Mais chaves adicionadas ao i18n, mas o conteúdo dinâmico de jogos/times permanece como nomes oficiais.

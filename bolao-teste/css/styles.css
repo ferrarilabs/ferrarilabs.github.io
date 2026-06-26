@@ -255,3 +255,51 @@ footer{padding:18px 24px;color:var(--muted);border-top:1px solid var(--line);dis
 @media(max-width:900px){
   .sim-grid { grid-template-columns:1fr; }
 }
+
+.support-whatsapp {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:#03130b;
+  background:linear-gradient(135deg,#25D366,#128C7E);
+  text-decoration:none;
+  font-weight:900;
+  border-radius:999px;
+  padding:9px 12px;
+  margin-right:10px;
+  white-space:nowrap;
+}
+.public-rank-row {
+  cursor:default;
+}
+.public-rank-row .small-btn {
+  width:auto;
+}
+.public-picks-card {
+  margin-top:-10px;
+  border-color:rgba(47,229,110,.25);
+}
+.picks-detail {
+  overflow:auto;
+}
+.match-meta {
+  color:var(--muted);
+  font-size:12px;
+  margin:-4px 0 10px;
+}
+@media(max-width:900px){
+  .support-whatsapp{
+    display:flex;
+    justify-content:center;
+    margin:8px 0;
+    width:100%;
+  }
+  .public-rank-row{
+    grid-template-columns:36px 1fr;
+  }
+  .public-rank-row .points,
+  .public-rank-row button{
+    grid-column:2;
+    width:100%;
+  }
+}

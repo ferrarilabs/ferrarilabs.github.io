@@ -124,3 +124,47 @@ window.BOLAO_I18N = {
     closed: "Entries closed."
   }
 };
+
+
+Object.assign(window.BOLAO_I18N["pt-BR"], {
+  supportWhatsApp: "WhatsApp",
+  viewPicks: "Ver palpites",
+  hidePicks: "Ocultar palpites",
+  publicRankingNote: "Ranking público. Clique em uma entrada para ver os palpites enviados. Ações administrativas ficam apenas na área Admin.",
+  dateTimeVenue: "Data, hora e local",
+  venueTbd: "A confirmar",
+  adminReceipts: "Comprovantes e e-mails",
+  downloadPdf: "Baixar PDF",
+  openReceipt: "Abrir comprovante",
+  sendEmail: "Enviar e-mail",
+  participantEmailBtn: "E-mail participante",
+  adminEmailBtn: "E-mail Eduardo"
+});
+Object.assign(window.BOLAO_I18N["es"], {
+  supportWhatsApp: "WhatsApp",
+  viewPicks: "Ver pronósticos",
+  hidePicks: "Ocultar pronósticos",
+  publicRankingNote: "Clasificación pública. Haz clic en una entrada para ver los pronósticos enviados. Las acciones administrativas están solo en Admin.",
+  dateTimeVenue: "Fecha, hora y lugar",
+  venueTbd: "Por confirmar",
+  adminReceipts: "Comprobantes y e-mails",
+  downloadPdf: "Descargar PDF",
+  openReceipt: "Abrir comprobante",
+  sendEmail: "Enviar e-mail",
+  participantEmailBtn: "E-mail participante",
+  adminEmailBtn: "E-mail Eduardo"
+});
+Object.assign(window.BOLAO_I18N["en-US"], {
+  supportWhatsApp: "WhatsApp",
+  viewPicks: "View picks",
+  hidePicks: "Hide picks",
+  publicRankingNote: "Public ranking. Click an entry to view submitted picks. Admin actions remain only in Admin.",
+  dateTimeVenue: "Date, time, and venue",
+  venueTbd: "TBD",
+  adminReceipts: "Receipts and emails",
+  downloadPdf: "Download PDF",
+  openReceipt: "Open receipt",
+  sendEmail: "Send email",
+  participantEmailBtn: "Participant email",
+  adminEmailBtn: "Eduardo email"
+});

@@ -1,5 +1,5 @@
 window.BOLAO_DATA = {
-  "updatedLabel": "Atualizado manualmente com resultados conhecidos até Jun 26: França 4 x 1 Noruega; Senegal 5 x 0 Iraque.",
+  "updatedLabel": "Atualizado até Jun 26. Horários exibidos em ET (Eastern Time). Locais sem confirmação aparecem como “A confirmar”.",
   "entryFee": 5,
   "prizes": {
     "first": 0.7,
@@ -67,7 +67,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 0,
       "winner": "Mexico",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-02",
@@ -79,7 +81,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 1,
       "winner": "South Korea",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-03",
@@ -91,7 +95,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-04",
@@ -103,7 +109,9 @@ window.BOLAO_DATA = {
       "goalsA": 4,
       "goalsB": 1,
       "winner": "United States",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-05",
@@ -115,7 +123,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-06",
@@ -127,7 +137,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-07",
@@ -139,7 +151,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 1,
       "winner": "Scotland",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-08",
@@ -151,7 +165,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 0,
       "winner": "Australia",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-09",
@@ -163,7 +179,9 @@ window.BOLAO_DATA = {
       "goalsA": 7,
       "goalsB": 1,
       "winner": "Germany",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-10",
@@ -175,7 +193,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 2,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-11",
@@ -187,7 +207,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 0,
       "winner": "Ivory Coast",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-12",
@@ -199,7 +221,9 @@ window.BOLAO_DATA = {
       "goalsA": 5,
       "goalsB": 1,
       "winner": "Sweden",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-13",
@@ -211,7 +235,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 0,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-14",
@@ -223,7 +249,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-15",
@@ -235,7 +263,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-16",
@@ -247,7 +277,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 2,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-17",
@@ -259,7 +291,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 1,
       "winner": "France",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-18",
@@ -271,7 +305,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 4,
       "winner": "Norway",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-19",
@@ -283,7 +319,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 0,
       "winner": "Argentina",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-20",
@@ -295,7 +333,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 1,
       "winner": "Austria",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-21",
@@ -307,7 +347,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-22",
@@ -319,7 +361,9 @@ window.BOLAO_DATA = {
       "goalsA": 4,
       "goalsB": 2,
       "winner": "England",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-23",
@@ -331,7 +375,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 0,
       "winner": "Ghana",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-24",
@@ -343,7 +389,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 3,
       "winner": "Colombia",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-25",
@@ -355,7 +403,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-26",
@@ -367,7 +417,9 @@ window.BOLAO_DATA = {
       "goalsA": 4,
       "goalsB": 1,
       "winner": "Switzerland",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-27",
@@ -379,7 +431,9 @@ window.BOLAO_DATA = {
       "goalsA": 6,
       "goalsB": 0,
       "winner": "Canada",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-28",
@@ -391,7 +445,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 0,
       "winner": "Mexico",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-29",
@@ -403,7 +459,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 0,
       "winner": "United States",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-30",
@@ -415,7 +473,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 1,
       "winner": "Morocco",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-31",
@@ -427,7 +487,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 0,
       "winner": "Brazil",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-32",
@@ -439,7 +501,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 1,
       "winner": "Paraguay",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-33",
@@ -451,7 +515,9 @@ window.BOLAO_DATA = {
       "goalsA": 5,
       "goalsB": 1,
       "winner": "Netherlands",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-34",
@@ -463,7 +529,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 1,
       "winner": "Germany",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-35",
@@ -475,7 +543,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 0,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-36",
@@ -487,7 +557,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 4,
       "winner": "Japan",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-37",
@@ -499,7 +571,9 @@ window.BOLAO_DATA = {
       "goalsA": 4,
       "goalsB": 0,
       "winner": "Spain",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-38",
@@ -511,7 +585,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 0,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-39",
@@ -523,7 +599,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 2,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-40",
@@ -535,7 +613,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 3,
       "winner": "Egypt",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-41",
@@ -547,7 +627,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 0,
       "winner": "Argentina",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-42",
@@ -559,7 +641,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 0,
       "winner": "France",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-43",
@@ -571,7 +655,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 2,
       "winner": "Norway",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-44",
@@ -583,7 +669,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 2,
       "winner": "Algeria",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-45",
@@ -595,7 +683,9 @@ window.BOLAO_DATA = {
       "goalsA": 5,
       "goalsB": 0,
       "winner": "Portugal",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-46",
@@ -607,7 +697,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 0,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-47",
@@ -619,7 +711,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 1,
       "winner": "Croatia",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-48",
@@ -631,7 +725,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 0,
       "winner": "Colombia",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-49",
@@ -643,7 +739,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 1,
       "winner": "Switzerland",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-50",
@@ -655,7 +753,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 1,
       "winner": "Bosnia and Herzegovina",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-51",
@@ -667,7 +767,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 3,
       "winner": "Brazil",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-52",
@@ -679,7 +781,9 @@ window.BOLAO_DATA = {
       "goalsA": 4,
       "goalsB": 2,
       "winner": "Morocco",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-53",
@@ -691,7 +795,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 3,
       "winner": "Mexico",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-54",
@@ -703,7 +809,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 0,
       "winner": "South Africa",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-55",
@@ -715,7 +823,9 @@ window.BOLAO_DATA = {
       "goalsA": 2,
       "goalsB": 1,
       "winner": "Ecuador",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-56",
@@ -727,7 +837,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 2,
       "winner": "Ivory Coast",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-57",
@@ -739,7 +851,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 1,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-58",
@@ -751,7 +865,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 3,
       "winner": "Netherlands",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-59",
@@ -763,7 +879,9 @@ window.BOLAO_DATA = {
       "goalsA": 3,
       "goalsB": 2,
       "winner": "Türkiye",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-60",
@@ -775,7 +893,9 @@ window.BOLAO_DATA = {
       "goalsA": 0,
       "goalsB": 0,
       "winner": "Empate",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-61",
@@ -787,7 +907,9 @@ window.BOLAO_DATA = {
       "goalsA": 1,
       "goalsB": 4,
       "winner": "",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-62",
@@ -799,7 +921,9 @@ window.BOLAO_DATA = {
       "goalsA": 5,
       "goalsB": 0,
       "winner": "",
-      "status": "Final"
+      "status": "Final",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-63",
@@ -811,7 +935,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-64",
@@ -823,7 +949,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-65",
@@ -835,7 +963,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-66",
@@ -847,7 +977,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-67",
@@ -859,7 +991,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-68",
@@ -871,7 +1005,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-69",
@@ -883,7 +1019,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-70",
@@ -895,7 +1033,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-71",
@@ -907,7 +1047,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "GS-72",
@@ -919,7 +1061,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     }
   ],
   "knockoutMatches": [
@@ -933,7 +1077,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "74",
@@ -945,7 +1091,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "75",
@@ -957,7 +1105,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "76",
@@ -969,7 +1119,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "77",
@@ -981,7 +1133,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "78",
@@ -993,7 +1147,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "79",
@@ -1005,7 +1161,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "80",
@@ -1017,7 +1175,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "81",
@@ -1029,7 +1189,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "82",
@@ -1041,7 +1203,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "83",
@@ -1053,7 +1217,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "84",
@@ -1065,7 +1231,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "85",
@@ -1077,7 +1245,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "86",
@@ -1089,7 +1259,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "87",
@@ -1101,7 +1273,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "88",
@@ -1113,7 +1287,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "89",
@@ -1125,7 +1301,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "90",
@@ -1137,7 +1315,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "91",
@@ -1149,7 +1329,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "92",
@@ -1161,7 +1343,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "93",
@@ -1173,7 +1357,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "94",
@@ -1185,7 +1371,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "95",
@@ -1197,7 +1385,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "96",
@@ -1209,7 +1399,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "97",
@@ -1221,7 +1413,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "98",
@@ -1233,7 +1427,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "99",
@@ -1245,7 +1441,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "100",
@@ -1257,7 +1455,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "101",
@@ -1269,7 +1469,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "102",
@@ -1281,7 +1483,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "103",
@@ -1293,7 +1497,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     },
     {
       "match": "104",
@@ -1305,7 +1511,9 @@ window.BOLAO_DATA = {
       "goalsA": null,
       "goalsB": null,
       "winner": "",
-      "status": "Scheduled"
+      "status": "Scheduled",
+      "timeET": "",
+      "venue": "A confirmar"
     }
   ],
   "rules": {
