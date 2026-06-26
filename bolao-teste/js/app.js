@@ -6,6 +6,37 @@ const storeKey = "bolao2026_test_v6";
 const CONFIG = window.BOLAO_CONFIG || {};
 const ADMIN_PASS = CONFIG.adminPassword || "bolao2026";
 
+let currentLang = localStorage.getItem("bolaoLang") || "pt-BR";
+
+function t(key) {
+  return (window.BOLAO_I18N && window.BOLAO_I18N[currentLang] && window.BOLAO_I18N[currentLang][key]) ||
+         (window.BOLAO_I18N && window.BOLAO_I18N["pt-BR"] && window.BOLAO_I18N["pt-BR"][key]) ||
+         key;
+}
+
+function applyLanguage() {
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    const key = el.dataset.i18n;
+    el.textContent = t(key);
+  });
+  const sel = $("#languageSelect");
+  if (sel) sel.value = currentLang;
+}
+
+function setupLanguageSwitcher() {
+  const sel = $("#languageSelect");
+  if (!sel) return;
+  sel.value = currentLang;
+  sel.addEventListener("change", () => {
+    currentLang = sel.value;
+    localStorage.setItem("bolaoLang", currentLang);
+    applyLanguage();
+  });
+}
+
+
+
 function flag(name) {
   const text = String(name || "");
   return DATA.flags[text] || (text.includes("Winner") || text.includes("Loser") || text.includes("Group") || text.includes("3rd") || text.includes("TBD") ? "🔁" : "🏳️");
@@ -262,11 +293,13 @@ function receiptCode(entry) {
 
 function buildReceiptHtml(entry) {
   const code = receiptCode(entry);
+  const resolved = resolvedTeamsForEntry(entry);
   const rows = DATA.knockoutMatches.map(m => {
     const p = entry.picks[m.match];
     if (!p) return "";
-    const winner = p.advanceSide === "A" ? p.displayA : p.displayB;
-    return `<tr><td>Match ${m.match}</td><td>${p.displayA}</td><td>${p.goalsA} x ${p.goalsB}</td><td>${p.displayB}</td><td>${winner}</td></tr>`;
+    const r = resolved[m.match] || { displayA: p.displayA, displayB: p.displayB };
+    const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
+    return `<tr><td>Match ${m.match}</td><td>${r.displayA}</td><td>${p.goalsA} x ${p.goalsB}</td><td>${r.displayB}</td><td>${winner}</td></tr>`;
   }).join("");
 
   return `<!doctype html>
@@ -292,12 +325,13 @@ td,th{border-bottom:1px solid #ddd;padding:8px;text-align:left}
 <div class="meta">
 <p><b>Entrada:</b> ${entry.entryName}</p>
 <p><b>Responsável:</b> ${entry.payerName}</p>
+${entry.participantEmail ? `<p><b>E-mail:</b> ${entry.participantEmail}</p>` : ""}
 <p><b>Pagamento:</b> ${entry.paymentMethod || "Não informado"} ${entry.paymentTo ? "— " + entry.paymentTo : ""}</p>
 <p><b>Enviado em:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}</p>
 <p><b>Código de autenticação:</b> <span class="code">${code}</span></p>
 </div>
 <table>
-<thead><tr><th>Jogo</th><th>Time/posição A</th><th>Placar</th><th>Time/posição B</th><th>Ganha/avança</th></tr></thead>
+<thead><tr><th>Jogo</th><th>Time escolhido A</th><th>Placar</th><th>Time escolhido B</th><th>Ganha/avança</th></tr></thead>
 <tbody>${rows}</tbody>
 </table>
 <p style="margin-top:20px;font-size:12px;color:#666">Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.</p>
@@ -359,7 +393,8 @@ function predictedScoreFor(currentA, currentB, mode) {
 }
 
 function autoFillPicks(mode = "smart") {
-  if (!confirm(mode === "smart" ? "Preencher automaticamente baseado em força estimada dos times? Você ainda pode revisar." : "Preencher aleatoriamente? Você ainda pode revisar.")) return;
+  const disclaimer = CONFIG.simulationDisclaimer || "Simulação é apenas entretenimento e pode estar errada.";
+  if (!confirm((mode === "smart" ? "Preencher automaticamente baseado em força estimada dos times? " : "Preencher aleatoriamente? ") + "\n\n" + disclaimer + "\n\nVocê ainda pode revisar antes de salvar.")) return;
 
   DATA.knockoutMatches.forEach(m => {
     updateDynamicBracketLabels();
@@ -436,6 +471,174 @@ function paymentLink(method) {
   return (CONFIG.paymentLinks && CONFIG.paymentLinks[method]) ? CONFIG.paymentLinks[method] : "";
 }
 
+
+function getCutoffDate() {
+  return new Date(CONFIG.cutoffIso || "2026-06-28T14:00:00-04:00");
+}
+
+function isPastCutoff() {
+  return new Date() >= getCutoffDate();
+}
+
+function updateCountdown() {
+  const cutoff = getCutoffDate();
+  const now = new Date();
+  const diff = cutoff - now;
+  const box = document.querySelector(".countdown");
+  const label = $("#cutoffLabel");
+  if (label) label.textContent = `Cutoff oficial: ${CONFIG.cutoffLabel || "1 hora antes do primeiro jogo do mata-mata"}`;
+
+  if (!box) return;
+  if (diff <= 0) {
+    box.innerHTML = `<b>0</b><small>dias</small><b>0</b><small>hrs</small><b>0</b><small>min</small>`;
+    return;
+  }
+
+  const totalMinutes = Math.floor(diff / 60000);
+  const days = Math.floor(totalMinutes / 1440);
+  const hours = Math.floor((totalMinutes % 1440) / 60);
+  const minutes = totalMinutes % 60;
+
+  box.innerHTML = `<b>${days}</b><small>dias</small><b>${hours}</b><small>hrs</small><b>${minutes}</b><small>min</small>`;
+}
+
+function lockFormIfCutoff() {
+  if (!isPastCutoff()) return;
+  const entryPanel = $("#entry");
+  if (!entryPanel || entryPanel.querySelector(".locked-banner")) return;
+
+  const banner = document.createElement("div");
+  banner.className = "locked-banner";
+  banner.innerHTML = `<b>Inscrições encerradas.</b><br>O prazo terminou ${CONFIG.cutoffLabel || "1 hora antes do primeiro jogo do mata-mata"}.`;
+  const form = $("#bracketForm");
+  entryPanel.insertBefore(banner, form);
+
+  entryPanel.querySelectorAll("input, select, button").forEach(el => {
+    if (el.closest(".topbar")) return;
+    if (el.id === "adminPassword") return;
+    el.disabled = true;
+  });
+}
+
+function renderSimulationDisclaimer() {
+  const box = $("#simulationDisclaimer");
+  if (!box) return;
+  box.innerHTML = `<b>Aviso sobre simulação:</b> ${CONFIG.simulationDisclaimer || "A simulação é apenas entretenimento e pode estar errada."}<br><span class="muted">Fonte/configuração: ${CONFIG.simulationSource || "modelo local"}</span>`;
+}
+
+function resolvedTeamsForEntry(entry) {
+  const winners = {};
+  const losers = {};
+  const byMatch = {};
+
+  DATA.knockoutMatches.forEach(m => {
+    const pick = entry.picks[m.match];
+    const a = resolveSlotName(m.teamA, winners, losers);
+    const b = resolveSlotName(m.teamB, winners, losers);
+    byMatch[m.match] = { displayA: a, displayB: b };
+
+    if (!pick) return;
+    const side = pick.advanceSide;
+    if (side === "A") {
+      winners[m.match] = a;
+      losers[m.match] = b;
+    } else if (side === "B") {
+      winners[m.match] = b;
+      losers[m.match] = a;
+    }
+  });
+
+  return byMatch;
+}
+
+function receiptPlainText(entry) {
+  const resolved = resolvedTeamsForEntry(entry);
+  const code = receiptCode(entry);
+  const lines = [];
+  lines.push(`Comprovante do Bolão Copa 2026`);
+  lines.push(`Entrada: ${entry.entryName}`);
+  lines.push(`Responsável: ${entry.payerName}`);
+  if (entry.participantEmail) lines.push(`E-mail: ${entry.participantEmail}`);
+  lines.push(`Pagamento: ${entry.paymentMethod || "Não informado"} ${entry.paymentTo ? "- " + entry.paymentTo : ""}`);
+  lines.push(`Enviado em: ${new Date(entry.createdAt).toLocaleString("pt-BR")}`);
+  lines.push(`Código: ${code}`);
+  lines.push("");
+  DATA.knockoutMatches.forEach(m => {
+    const p = entry.picks[m.match];
+    if (!p) return;
+    const r = resolved[m.match] || { displayA: p.displayA, displayB: p.displayB };
+    const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
+    lines.push(`Match ${m.match}: ${r.displayA} ${p.goalsA} x ${p.goalsB} ${r.displayB} | Ganha/avança: ${winner}`);
+  });
+  lines.push("");
+  lines.push("Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.");
+  return lines.join("\\n");
+}
+
+
+async function sendReceiptEmail(entry, target) {
+  if (CONFIG.emailMode !== "emailjs" || !CONFIG.emailjs || !CONFIG.emailjs.enabled) {
+    return { ok: false, fallback: "mailto", reason: t("emailNotConfigured") };
+  }
+  if (!window.emailjs) {
+    return { ok: false, fallback: "mailto", reason: "EmailJS library not loaded." };
+  }
+
+  const recipient = target === "admin" ? (CONFIG.adminEmail || "emferrari@gmail.com") : (entry.participantEmail || "");
+  if (!recipient) return { ok: false, reason: "Missing recipient email." };
+
+  const templateId = target === "admin" ? CONFIG.emailjs.adminTemplateId : CONFIG.emailjs.participantTemplateId;
+  if (!CONFIG.emailjs.publicKey || !CONFIG.emailjs.serviceId || !templateId) {
+    return { ok: false, fallback: "mailto", reason: "EmailJS config incomplete." };
+  }
+
+  const params = {
+    to_email: recipient,
+    entry_name: entry.entryName,
+    payer_name: entry.payerName,
+    payment_method: entry.paymentMethod || "",
+    payment_to: entry.paymentTo || "",
+    receipt_code: receiptCode(entry),
+    receipt_text: receiptPlainText(entry),
+    html_message: buildReceiptHtml(entry)
+  };
+
+  try {
+    await emailjs.send(CONFIG.emailjs.serviceId, templateId, params, { publicKey: CONFIG.emailjs.publicKey });
+    return { ok: true };
+  } catch (err) {
+    console.error("EmailJS failed", err);
+    return { ok: false, fallback: "mailto", reason: "EmailJS failed." };
+  }
+}
+
+async function mailReceipt(entryId, target) {
+  const s = state();
+  const entry = s.entries.find(e => e.id === entryId);
+  if (!entry) return alert("Entrada não encontrada.");
+
+  const recipient = target === "admin" ? (CONFIG.adminEmail || "emferrari@gmail.com") : (entry.participantEmail || "");
+  if (!recipient) {
+    alert("Esta entrada não tem e-mail informado.");
+    return;
+  }
+
+  const sent = await sendReceiptEmail(entry, target);
+  if (sent.ok) {
+    alert("E-mail enviado.");
+    return;
+  }
+
+  if (sent.fallback === "mailto") {
+    alert((sent.reason || t("emailNotConfigured")) + "\n\nVou abrir seu app de e-mail como fallback.");
+    const subject = encodeURIComponent(`Comprovante Bolão Copa 2026 - ${entry.entryName}`);
+    const body = encodeURIComponent(receiptPlainText(entry));
+    window.location.href = `mailto:${recipient}?subject=${subject}&body=${body}`;
+  } else {
+    alert(sent.reason || "Não foi possível enviar e-mail.");
+  }
+}
+
 function renderBracketForm() {
   const form = $("#bracketForm");
   form.innerHTML = "";
@@ -496,6 +699,7 @@ function readEntryFromForm() {
 
   const entryName = $("#entryName").value.trim();
   const payerName = $("#payerName").value.trim();
+  const participantEmail = $("#participantEmail")?.value.trim() || "";
   const paymentMethod = $("#paymentMethod")?.value || "";
 
   if (!entryName || !payerName) {
@@ -544,6 +748,7 @@ function readEntryFromForm() {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
     entryName,
     payerName,
+    participantEmail,
     paymentMethod,
     paymentTo: PAYMENT_INFO[paymentMethod],
     createdAt: new Date().toISOString(),
@@ -668,6 +873,106 @@ function scoreEntry(entry, s) {
   return { total, detail, bonus };
 }
 
+
+function csvEscape(value) {
+  const s = String(value ?? "");
+  return `"${s.replaceAll('"', '""')}"`;
+}
+
+function flattenEntriesForExport(includePicks = true) {
+  const s = state();
+  return s.entries.map(entry => {
+    const base = {
+      id: entry.id,
+      receiptCode: receiptCode(entry),
+      entryName: entry.entryName,
+      payerName: entry.payerName,
+      participantEmail: entry.participantEmail || "",
+      paymentMethod: entry.paymentMethod || "",
+      paymentTo: entry.paymentTo || "",
+      paid: !!s.paid[entry.id],
+      createdAt: entry.createdAt,
+      score: scoreEntry(entry, s).total
+    };
+    if (includePicks) {
+      DATA.knockoutMatches.forEach(m => {
+        const p = entry.picks[m.match];
+        if (p) {
+          base[`match_${m.match}_A`] = p.displayA || "";
+          base[`match_${m.match}_score`] = `${p.goalsA}x${p.goalsB}`;
+          base[`match_${m.match}_B`] = p.displayB || "";
+          base[`match_${m.match}_advanceSide`] = p.advanceSide || "";
+        }
+      });
+    }
+    return base;
+  });
+}
+
+function objectsToCsv(rows) {
+  if (!rows.length) return "";
+  const headers = Array.from(rows.reduce((set, row) => {
+    Object.keys(row).forEach(k => set.add(k));
+    return set;
+  }, new Set()));
+  return [headers.map(csvEscape).join(",")]
+    .concat(rows.map(row => headers.map(h => csvEscape(row[h])).join(",")))
+    .join("\\n");
+}
+
+function downloadText(filename, content, mime = "text/plain") {
+  const blob = new Blob([content], { type: mime + ";charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function downloadBackupJson() {
+  const payload = {
+    exportedAt: new Date().toISOString(),
+    app: CONFIG.appName || "Bolão",
+    storageKey: storeKey,
+    data: state(),
+    matches: DATA.knockoutMatches,
+    config: {
+      entryFee: CONFIG.entryFee,
+      prizes: CONFIG.prizes,
+      bonus: CONFIG.bonus,
+      scoring: CONFIG.scoring
+    },
+    disclaimer: CONFIG.transparency?.legalDisclaimer || ""
+  };
+  downloadText(`bolao-backup-${new Date().toISOString().slice(0,10)}.json`, JSON.stringify(payload, null, 2), "application/json");
+}
+
+function downloadBackupCsv() {
+  const rows = flattenEntriesForExport(true);
+  downloadText(`bolao-backup-${new Date().toISOString().slice(0,10)}.csv`, objectsToCsv(rows), "text/csv");
+}
+
+function downloadMasterCsv() {
+  const rows = flattenEntriesForExport(false);
+  downloadText(`bolao-master-list-${new Date().toISOString().slice(0,10)}.csv`, objectsToCsv(rows), "text/csv");
+}
+
+function openMasterList() {
+  const s = state();
+  const rows = s.entries.map(e => {
+    const scored = scoreEntry(e, s);
+    return `<tr><td>${e.entryName}</td><td>${e.payerName}</td><td>${e.paymentMethod || ""}</td><td>${s.paid[e.id] ? "Pago" : "Pendente"}</td><td>${scored.total}</td><td><code>${receiptCode(e)}</code></td><td>${new Date(e.createdAt).toLocaleString("pt-BR")}</td></tr>`;
+  }).join("");
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Master List Bolão</title><style>body{font-family:Arial;margin:24px}table{width:100%;border-collapse:collapse}td,th{border:1px solid #ddd;padding:8px;text-align:left}code{font-size:12px}</style></head><body><h1>Master List - Bolão Copa 2026</h1><p>Gerado em ${new Date().toLocaleString("pt-BR")}</p><p>${CONFIG.transparency?.legalDisclaimer || ""}</p><table><thead><tr><th>Entrada</th><th>Responsável</th><th>Pagamento</th><th>Status</th><th>Pontos</th><th>Código</th><th>Enviado em</th></tr></thead><tbody>${rows}</tbody></table></body></html>`;
+  const w = window.open("", "_blank");
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
+}
+
 function renderRanking() {
   const s = state();
   const ranked = s.entries
@@ -702,7 +1007,7 @@ function renderRanking() {
     ranked.forEach(r => {
       const div = document.createElement("div");
       div.className = "match-card";
-      div.innerHTML = `<b>${r.entryName}</b><br><span class="receipt-code">${receiptCode(r)}</span><div class="receipt-actions"><button class="small-btn secondary" onclick="openReceipt('${r.id}')">Abrir comprovante</button><button class="small-btn secondary" onclick="downloadReceipt('${r.id}')">Baixar HTML</button></div>`;
+      div.innerHTML = `<b>${r.entryName}</b><br><span class="receipt-code">${receiptCode(r)}</span><div class="receipt-actions"><button class="small-btn secondary" onclick="openReceipt('${r.id}')">Abrir comprovante</button><button class="small-btn secondary" onclick="downloadReceipt('${r.id}')">Baixar HTML</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'participant')">E-mail para participante</button><button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'admin')">E-mail para Eduardo</button></div>`;
       receipts.appendChild(div);
     });
   }
@@ -892,12 +1197,23 @@ function initTabs() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initTabs();
+  setupLanguageSwitcher();
+  applyLanguage();
   setupAdminLogin();
   renderBracketForm();
   renderAll();
+  renderSimulationDisclaimer();
+  updateCountdown();
+  setInterval(updateCountdown, 30000);
+  lockFormIfCutoff();
 
   $("#saveEntry").addEventListener("click", e => {
     e.preventDefault();
+
+    if (isPastCutoff()) {
+      alert("As inscrições já foram encerradas pelo cutoff.");
+      return;
+    }
 
     const entry = readEntryFromForm();
     if (!entry) return;
@@ -910,6 +1226,7 @@ document.addEventListener("DOMContentLoaded", () => {
     alert("Entrada de teste salva. Vá em Ranking ou Admin para ver.");
     $("#entryName").value = "";
     $("#payerName").value = "";
+    if ($("#participantEmail")) $("#participantEmail").value = "";
     if ($("#paymentMethod")) $("#paymentMethod").value = "";
     updatePaymentBox();
     $("#bracketForm").reset();

@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <meta name="robots" content="noindex,nofollow" />
-  <title>Bolão do Ferrari - Copa 2026</title>
+  <title><span data-i18n="appTitle">Bolão do Ferrari</span> - Copa 2026</title>
   <link rel="stylesheet" href="css/styles.css" />
 </head>
 <body>
@@ -14,7 +14,7 @@
         <div class="trophy">🏆</div>
         <div>
           <h1>Bolão do Ferrari</h1>
-          <p>Copa do Mundo 2026</p>
+          <p><span data-i18n="appSubtitle">Copa do Mundo 2026</span></p>
         </div>
       </div>
 
@@ -27,13 +27,13 @@
       </div>
 
       <nav class="side-nav">
-        <button class="nav-link active" data-tab="entry">⚽ Palpites</button>
-        <button class="nav-link" data-tab="ranking">🏆 Ranking</button>
-        <button class="nav-link" data-tab="participants">👥 Participantes</button>
-        <button class="nav-link" data-tab="payment">💵 Pagamento</button>
-        <button class="nav-link" data-tab="games">📅 Jogos</button>
-        <button class="nav-link" data-tab="rules">📋 Regras</button>
-        <button class="nav-link" data-tab="admin">🔒 Admin</button>
+        <button class="nav-link active" data-tab="entry">⚽ <span data-i18n="navPicks">Palpites</span></button>
+        <button class="nav-link" data-tab="ranking">🏆 <span data-i18n="navRanking">Ranking</span></button>
+        <button class="nav-link" data-tab="participants">👥 <span data-i18n="navParticipants">Participantes</span></button>
+        <button class="nav-link" data-tab="payment">💵 <span data-i18n="navPayment">Pagamento</span></button>
+        <button class="nav-link" data-tab="games">📅 <span data-i18n="navGames">Jogos</span></button>
+        <button class="nav-link" data-tab="rules">📋 <span data-i18n="navRules">Regras</span></button>
+        <button class="nav-link" data-tab="admin">🔒 <span data-i18n="navAdmin">Admin</span></button>
       </nav>
 
       <div class="countdown-card">
@@ -43,7 +43,7 @@
           <b>--</b><small>hrs</small>
           <b>--</b><small>min</small>
         </div>
-        <p>Cutoff oficial: 1 hora antes do primeiro jogo do mata-mata.</p>
+        <p id="cutoffLabel">Cutoff oficial: 1 hora antes do primeiro jogo do mata-mata.</p>
       </div>
     </aside>
 
@@ -52,6 +52,14 @@
         <div class="mobile-brand">
           <b>🏆 Bolão do Ferrari</b>
           <span>Copa 2026</span>
+        </div>
+        <div class="lang-switch">
+          <label for="languageSelect">🌐</label>
+          <select id="languageSelect" aria-label="Language">
+            <option value="pt-BR">Português BR</option>
+            <option value="es">Español</option>
+            <option value="en-US">English</option>
+          </select>
         </div>
         <nav class="top-nav">
           <button class="top-link active" data-tab="entry">Palpites</button>
@@ -65,9 +73,9 @@
         <section id="entry" class="panel active">
           <div class="hero-card">
             <div>
-              <p class="eyebrow">Faça sua aposta</p>
-              <h2>Preencha seu bracket e participe do bolão!</h2>
-              <p>Palpites, diversão e rivalidade. Mostre que você entende de futebol.</p>
+              <p class="eyebrow" data-i18n="heroEyebrow">Faça sua aposta</p>
+              <h2 data-i18n="heroTitle">Preencha seu bracket e participe do bolão!</h2>
+              <p data-i18n="heroText">Palpites, diversão e rivalidade. Mostre que você entende de futebol.</p>
             </div>
             <div class="stats-row">
               <div class="stat"><span>Participantes</span><b id="statParticipants">0</b></div>
@@ -77,20 +85,25 @@
           </div>
 
           <div class="card">
-            <h2>Nova entrada</h2>
-            <p class="muted">Teste local: os dados ficam salvos neste navegador. Para produção, conectaremos Firebase/Supabase.</p>
+            <h2 data-i18n="entryTitle">Nova entrada</h2>
+            <p class="muted"><span data-i18n="entryHelp">Os dados desta versão ficam salvos no navegador. Faça backup CSV/JSON no Admin.</span></p>
 
             <div class="grid2">
-              <label>Nome da entrada
+              <label><span data-i18n="entryName">Nome da entrada</span>
                 <input id="entryName" placeholder="Ex: Eduardo #1, Gabriel, Nicole" />
               </label>
-              <label>Responsável pelo pagamento
+              <label><span data-i18n="payerName">Responsável pelo pagamento</span>
                 <input id="payerName" placeholder="Nome de quem paga os US$ 5" />
+              </label>
+            </div>
+            <div style="margin-top:12px">
+              <label><span data-i18n="emailLabel">E-mail para comprovante</span> <span class="muted">(opcional nesta versão)</span>
+                <input id="participantEmail" type="email" placeholder="nome@email.com" />
               </label>
             </div>
 
             <div class="grid2" style="margin-top:12px">
-              <label>Método de pagamento
+              <label><span data-i18n="paymentMethod">Método de pagamento</span>
                 <select id="paymentMethod">
                   <option value="">Selecione</option>
                   <option value="CashApp">CashApp</option>
@@ -99,7 +112,7 @@
                   <option value="Venmo">Venmo</option>
                 </select>
               </label>
-              <label>Valor
+              <label><span data-i18n="valueLabel">Valor</span>
                 <input value="US$ 5 por entrada" disabled />
               </label>
             </div>
@@ -107,10 +120,11 @@
             <div id="paymentBox" class="payment-box"></div>
 
             <div class="button-row">
-              <button id="smartPick" class="secondary" type="button">⚡ Simular palpites automaticamente</button>
-              <button id="randomPick" class="secondary" type="button">🎲 Simular maluco</button>
+              <button id="smartPick" class="secondary" type="button"><span data-i18n="simulateSmart">⚡ Simular palpites automaticamente</span></button>
+              <button id="randomPick" class="secondary" type="button"><span data-i18n="simulateRandom">🎲 Simular maluco</span></button>
             </div>
             <p class="muted small">A simulação é só para preencher rápido. Revise antes de salvar.</p>
+            <div class="simulation-disclaimer" id="simulationDisclaimer"></div>
           </div>
 
           <div class="card info-card">
@@ -122,20 +136,20 @@
           <form id="bracketForm"></form>
 
           <div class="sticky-submit">
-            <button id="saveEntry" class="primary full">Salvar entrada de teste</button>
+            <button id="saveEntry" class="primary full"><span data-i18n="saveEntry">Salvar entrada de teste</span></button>
           </div>
         </section>
 
         <section id="payment" class="panel">
           <div class="page-title">
-            <h2>Pagamento da aposta</h2>
-            <p>Valor da aposta: <b>US$ 5,00 por entrada</b></p>
+            <h2 data-i18n="paymentTitle">Pagamento da aposta</h2>
+            <p><span data-i18n="paymentSubtitle">Valor da aposta: US$ 5,00 por entrada</span></p>
           </div>
 
           <div class="card whatsapp-card">
             <div class="section-icon">💬</div>
-            <h2>Entre no grupo do WhatsApp</h2>
-            <p class="muted">Fique por dentro de avisos, atualizações e resultados.</p>
+            <h2 data-i18n="whatsappTitle">Entre no grupo do WhatsApp</h2>
+            <p class="muted"><span data-i18n="whatsappText">Fique por dentro de avisos, atualizações e resultados.</span></p>
 
             <div class="whatsapp-grid">
               <img class="qr-image large" src="assets/whatsapp-group-qr.png" alt="QR Code do grupo de WhatsApp" />
@@ -155,7 +169,7 @@
           </div>
 
           <div class="card">
-            <h2>Escolha como pagar</h2>
+            <h2 data-i18n="paymentOptions">Escolha como pagar</h2>
             <p class="muted">Após realizar o pagamento, marque como pago na sua entrada. O admin confirmará depois.</p>
             <div class="payment-grid">
               <div class="payment-card cash">
@@ -190,7 +204,7 @@
           </div>
 
           <div class="card tips-card">
-            <h2>Dicas importantes</h2>
+            <h2 data-i18n="tipsTitle">Dicas importantes</h2>
             <ul class="check-list">
               <li>Valor da aposta: US$ 5,00 por entrada</li>
               <li>Cada pessoa pode criar múltiplas entradas</li>
@@ -285,6 +299,20 @@
                 <button id="clearAll" class="danger">Limpar teste</button>
               </div>
             </div>
+            <div class="card data-card">
+              <h2 data-i18n="dataTitle">Dados e transparência</h2>
+              <p class="muted" data-i18n="dataText">Esta versão usa localStorage. Para operação oficial, exporte backups e publique uma master list após o cutoff.</p>
+              <div class="button-row">
+                <button class="secondary" onclick="downloadBackupCsv()" data-i18n="backupCsv">Baixar backup CSV</button>
+                <button class="secondary" onclick="downloadBackupJson()" data-i18n="backupJson">Baixar backup JSON</button>
+                <button class="secondary" onclick="downloadMasterCsv()" data-i18n="masterCsv">Baixar master list CSV</button>
+                <button class="secondary" onclick="openMasterList()" data-i18n="masterHtml">Abrir master list</button>
+              </div>
+              <div class="simulation-disclaimer">
+                <b data-i18n="legalTitle">Disclaimer legal e operacional</b><br>
+                <span data-i18n="legalText">Este é um bolão informal entre amigos. O comprovante e a master list ajudam a prevenir dúvidas, erros e manipulação. Em caso de problema técnico, o backup exportado pelo administrador e os comprovantes individuais serão usados como referência.</span>
+              </div>
+            </div>
             <div id="paymentsAdmin" class="card"></div>
             <div id="resultsAdmin" class="card"></div>
           </div>
@@ -295,7 +323,9 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="js/config.js"></script>
+  <script src="js/i18n.js"></script>
   <script src="js/data.js"></script>
   <script src="js/app.js"></script>
 </body>
