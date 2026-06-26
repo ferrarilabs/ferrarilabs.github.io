@@ -1,0 +1,14 @@
+DEPLOY CHECKLIST
+
+1. Descompactar este ZIP.
+2. Copiar somente a pasta bolao-teste para o repositório ferrarilabs.github.io.
+3. GitHub Desktop deve mostrar somente bolao-teste/...
+4. NÃO subir .DS_Store.
+5. Commit: Final test package for bolao
+6. Push origin.
+7. Pull Request para main.
+8. Antes do merge, conferir Files changed: somente bolao-teste/...
+9. Merge.
+10. Aguardar 2-5 minutos.
+11. Abrir https://ferrarilabs.github.io/bolao-teste/
+12. Testar em celular.
