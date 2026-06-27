@@ -1,112 +1,80 @@
-# Supabase Database Setup — v3.3-db-ready
+# Supabase Database Setup — v4.0-clean
 
-This version is **local-first with remote mirror**.
-
-That means:
-- the site still works if Supabase is not configured;
-- once Supabase is configured, the full state is loaded from Supabase on page load;
-- every save/delete/payment/result update is mirrored to Supabase;
-- if Supabase fails, the browser keeps local data and logs the error.
+Local-first with optional remote mirror. The site works without Supabase configured.
 
 ## 1. Create Supabase project
 
-Create a free Supabase project.
+Create a free Supabase project at supabase.com.
 
 ## 2. Create table
 
-Run this SQL in Supabase SQL Editor:
+Run in the Supabase SQL Editor:
 
 ```sql
 create table if not exists public.bolao_state (
-  id text primary key,
-  state jsonb not null default '{}'::jsonb,
+  id text primary key check (char_length(id) <= 50),
+  state jsonb not null default '{}'::jsonb check (pg_column_size(state) < 1048576),
   updated_at timestamptz not null default now()
 );
 ```
 
-## 3. Enable RLS
+The `check` constraints limit the state to 1 MB and the id to 50 chars.
 
-For a private family/friends site, the simplest testing policy is below.
+## 3. Enable RLS
 
 ```sql
 alter table public.bolao_state enable row level security;
 
-create policy "allow anon read bolao state"
-on public.bolao_state
-for select
-to anon
-using (id = 'main');
+create policy "allow anon read"
+  on public.bolao_state for select to anon
+  using (id = 'main');
 
-create policy "allow anon upsert bolao state"
-on public.bolao_state
-for insert
-to anon
-with check (id = 'main');
+create policy "allow anon insert"
+  on public.bolao_state for insert to anon
+  with check (id = 'main');
 
-create policy "allow anon update bolao state"
-on public.bolao_state
-for update
-to anon
-using (id = 'main')
-with check (id = 'main');
+create policy "allow anon update"
+  on public.bolao_state for update to anon
+  using (id = 'main')
+  with check (id = 'main');
 ```
 
-Important: this is not bank-grade security. Anyone with the site code can see the anon key. This is acceptable for a small informal bolão test, but a production-grade system should use real auth or a serverless API.
+Note: anyone with the site's anon key can read/write the bolão state. This is acceptable for an informal friends/family app. Never use the service role key in the frontend.
 
 ## 4. Copy keys
 
-In Supabase:
-Project Settings → API
+In Supabase → Project Settings → API:
 
-Copy:
-- Project URL
-- anon public key
+- Project URL → `database.url`
+- anon public key → `database.anonKey`
+
+Never use the service_role key. It bypasses RLS and should never be in browser code.
 
 ## 5. Edit `js/config.js`
-
-Change:
-
-```js
-database: {
-  enabled: false,
-  provider: "supabase",
-  url: "",
-  anonKey: "",
-  table: "bolao_state",
-  stateId: "main",
-  localFallback: true
-}
-```
-
-to:
 
 ```js
 database: {
   enabled: true,
   provider: "supabase",
-  url: "YOUR_SUPABASE_PROJECT_URL",
-  anonKey: "YOUR_SUPABASE_ANON_KEY",
+  url: "https://YOUR-PROJECT.supabase.co",
+  anonKey: "YOUR_ANON_PUBLIC_KEY",
   table: "bolao_state",
   stateId: "main",
   localFallback: true
 }
 ```
 
-## 6. Deploy and test
+## 6. Test
 
-Open the site in:
-- your phone
-- another browser
-- another computer
+Open the site in two different browsers simultaneously. Create an entry in one — refresh the other. Both should show the same data within a few seconds.
 
-Create one test entry. It should appear across devices after refresh.
+## Rollback to localStorage-only
 
-## Rollback
+Set `enabled: false` in `config.js` and redeploy. Local data is unaffected.
 
-Set:
+## Merge behavior
 
-```js
-enabled: false
-```
-
-and redeploy. The app will go back to localStorage-only behavior.
+`app.js` uses merge-before-save:
+- Entries: union by `id`, newest `createdAt` wins on conflict.
+- `paid` and `results`: `Object.assign({}, remote, local)` — local always wins per key.
+- Before every remote save: fetch current remote `updated_at`; if remote is newer, merge first.

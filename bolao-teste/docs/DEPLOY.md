@@ -1,9 +1,47 @@
-# Deploy v3.0
+# Deploy — v4.0-clean
 
-1. Switch to `main` in GitHub Desktop.
-2. Delete the old `bolao-teste` folder.
-3. Copy this new `bolao-teste` folder.
-4. Confirm all changed files are under `bolao-teste/...`.
-5. Commit: `Release bolao v3 clean`
-6. Push.
-7. Test: https://ferrarilabs.github.io/bolao-teste/
+## Prerequisites
+
+- GitHub repo `ferrarilabs.github.io` with GitHub Pages enabled on `main` branch.
+- No build step. Just push HTML/CSS/JS files.
+
+## Steps
+
+1. Make sure only files under `bolao-teste/` changed — never touch the repo root site.
+2. Commit:
+   ```
+   git add bolao-teste/
+   git commit -m "Release bolao v4.0-clean"
+   git push
+   ```
+3. GitHub Pages deploys automatically (usually < 2 min).
+4. Open https://ferrarilabs.github.io/bolao-teste/ and run the QA checklist.
+
+## Rollback
+
+```
+git revert HEAD
+git push
+```
+
+Or revert to a specific commit:
+
+```
+git checkout <previous-commit> -- bolao-teste/
+git commit -m "Revert bolao to previous version"
+git push
+```
+
+## Local preview
+
+```
+python3 -m http.server 8080
+```
+
+Open http://localhost:8080/bolao-teste/
+
+## What NOT to deploy
+
+- Never push `.env` files, API keys, or service role keys.
+- Never push the admin password in plain text.
+- The `adminPasswordHash` in `config.js` is safe to push (it's a public one-way hash).
