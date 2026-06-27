@@ -1,5 +1,5 @@
 window.BOLAO_DATA = {
-  "updatedLabel": "Atualizado até Jun 26. Horários exibidos em ET (Eastern Time). Locais sem confirmação aparecem como “A confirmar”.",
+  "updatedLabel": "Atualizado até Jun 26. Horários exibidos em ET (Eastern Time). Locais atualizados conforme dados disponíveis para os jogos confirmados.",
   "entryFee": 5,
   "prizes": {
     "first": 0.7,
@@ -1078,8 +1078,8 @@ window.BOLAO_DATA = {
       "goalsB": null,
       "winner": "",
       "status": "Scheduled",
-      "timeET": "",
-      "venue": "A confirmar"
+      "timeET": "15:00 (EDT)",
+      "venue": "SoFi Stadium, Inglewood / Los Angeles, USA"
     },
     {
       "match": "74",
@@ -1092,8 +1092,8 @@ window.BOLAO_DATA = {
       "goalsB": null,
       "winner": "",
       "status": "Scheduled",
-      "timeET": "",
-      "venue": "A confirmar"
+      "timeET": "12:00 (EDT)",
+      "venue": "NRG Stadium, Houston, USA"
     },
     {
       "match": "75",
