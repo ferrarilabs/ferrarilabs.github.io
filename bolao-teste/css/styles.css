@@ -444,3 +444,37 @@ button.danger,
 @media(max-width:900px){
   .schedule-pill{width:100%;justify-content:flex-start}
 }
+
+.admin-toolbar {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:12px;
+  border-radius:14px;
+  background:rgba(255,255,255,.05);
+  border:1px solid var(--line);
+  margin-bottom:14px;
+}
+.admin-entry-item {
+  padding:14px;
+  border:1px solid var(--line);
+  border-radius:14px;
+  margin-bottom:10px;
+  background:rgba(255,255,255,.035);
+}
+.admin-entry-item .receipt-actions {
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+button.danger,
+.small-btn.danger {
+  background:rgba(255,77,104,.16);
+  border:1px solid rgba(255,77,104,.45);
+  color:#ffd7dd;
+}
+@media(max-width:900px){
+  .admin-entry-item .receipt-actions button{width:100%}
+}

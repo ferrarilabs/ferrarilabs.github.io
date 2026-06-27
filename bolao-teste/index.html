@@ -314,6 +314,10 @@
             <p class="muted small">Senha de teste definida via hash SHA-256. Ainda assim, por ser GitHub Pages estático, isto é apenas proteção visual. Para segurança real, usar Firebase/Supabase Auth.</p>
           </div>
           <div id="adminArea" style="display:none">
+            <div class="admin-toolbar">
+              <span data-i18n="adminActive">🔒 Admin ativo</span>
+              <button id="adminLogoutBtn" class="secondary" type="button" data-i18n="logout">Logout</button>
+            </div>
             <div class="card">
               <h2>Admin do teste</h2>
               <p class="muted">Aqui você simula resultados reais e pagamentos.</p>
@@ -356,8 +360,6 @@
       <footer>Bolão do Ferrari - Copa do Mundo 2026 <span>Que vença o melhor! ⚽🏆</span></footer>
     </div>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="js/config.js"></script>
   <script src="js/i18n.js"></script>

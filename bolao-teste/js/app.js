@@ -60,31 +60,22 @@ function t(key) {
 function applyLanguage() {
   document.title = `${CONFIG.appName || "Bolão do Ferrari"} - Copa 2026`;
   document.documentElement.lang = currentLang;
-
   document.querySelectorAll("[data-i18n]").forEach(el => {
     const key = el.dataset.i18n;
     el.textContent = t(key);
   });
-
   document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
     const key = el.dataset.i18nPlaceholder;
     el.setAttribute("placeholder", t(key));
   });
-
   document.querySelectorAll("[data-i18n-value]").forEach(el => {
     const key = el.dataset.i18nValue;
     el.value = t(key);
   });
-
   const sel = $("#languageSelect");
   if (sel) sel.value = currentLang;
-
   const support = $("#supportWhatsappBtn span");
   if (support) support.textContent = t("supportWhatsApp");
-
-  // Re-render dynamic content so ranking, games, admin, buttons and generated text switch immediately.
-  renderAll();
-  renderSimulatorHelp();
 }
 
 function setupLanguageSwitcher() {
@@ -94,6 +85,7 @@ function setupLanguageSwitcher() {
   sel.addEventListener("change", () => {
     currentLang = sel.value;
     localStorage.setItem("bolaoLang", currentLang);
+    renderAll();
     applyLanguage();
   });
 }
@@ -303,6 +295,22 @@ function updateDynamicBracketLabels() {
   });
 
   updateAllAdvanceControls();
+}
+
+
+function adminLogout() {
+  if (!confirm("Sair do modo administrador?")) return;
+  sessionStorage.removeItem("bolaoAdminOk");
+  const area = $("#adminArea");
+  const login = $("#adminLogin");
+  if (area) area.style.display = "none";
+  if (login) login.style.display = "block";
+  alert("Logout realizado.");
+}
+
+function setupAdminLogout() {
+  const btn = $("#adminLogoutBtn");
+  if (btn) btn.addEventListener("click", adminLogout);
 }
 
 function setupAdminLogin() {
@@ -551,23 +559,8 @@ function receiptFileName(entry, ext = "pdf") {
 }
 
 async function downloadReceiptPdf(entryId) {
-  const s = state();
-  const entry = s.entries.find(e => e.id === entryId);
-  if (!entry) return alert("Entrada não encontrada.");
-
-  const w = window.open("", "_blank");
-  w.document.open();
-  w.document.write(buildReceiptHtml(entry));
-  w.document.close();
-
-  setTimeout(() => {
-    try {
-      w.focus();
-      w.print();
-    } catch (err) {
-      console.warn("Print dialog blocked", err);
-    }
-  }, 500);
+  openReceipt(entryId);
+  alert("O comprovante abriu em uma nova aba. Para salvar como PDF, use Compartilhar/Imprimir/Salvar como PDF no navegador.");
 }
 
 function renderLatestReceipt(entry) {
@@ -1304,6 +1297,77 @@ async function checkResultsApiConnection() {
   }
 }
 
+
+function isValidEmail(email) {
+  const e = String(email || "").trim();
+  if (!e) return true;
+  if (/\s/.test(e)) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+}
+
+function scoreWarningLevel(a, b) {
+  const max = Math.max(a, b);
+  const diff = Math.abs(a - b);
+  const total = a + b;
+  if (max >= 10 || diff >= 8 || total >= 12) return "extreme";
+  if (max >= 6 || diff >= 5 || total >= 9) return "unusual";
+  return "normal";
+}
+
+function validateScorePair(a, b) {
+  return Number.isInteger(a) && Number.isInteger(b) && a >= 0 && b >= 0 && a <= 20 && b <= 20;
+}
+
+function pickWinnerSide(goalsA, goalsB) {
+  if (goalsA > goalsB) return "A";
+  if (goalsB > goalsA) return "B";
+  return "";
+}
+
+function confirmUnusualScores(picks) {
+  const repeated = {};
+  let hasCrazy = false;
+  Object.values(picks).forEach(p => {
+    const key = `${p.goalsA}x${p.goalsB}`;
+    repeated[key] = (repeated[key] || 0) + 1;
+    if (scoreWarningLevel(p.goalsA, p.goalsB) !== "normal") hasCrazy = true;
+  });
+  const manyRepeated = Object.values(repeated).some(n => n >= 8);
+  if (hasCrazy && !confirm(t("crazyScoreWarning") + "\n\n" + t("keepScore") + "?")) return false;
+  if (manyRepeated && !confirm(t("repetitiveWarning") + "\n\n" + t("keepScore") + "?")) return false;
+  return true;
+}
+
+function validateEntryObject(entry) {
+  if (!entry.entryName) return t("requiredEntryName");
+  if (!entry.payerName) return t("requiredPayerName");
+  if (!entry.paymentMethod) return t("requiredPaymentMethod");
+  if (!isValidEmail(entry.participantEmail)) return t("invalidEmail");
+  for (const m of DATA.knockoutMatches) {
+    const p = entry.picks[m.match];
+    if (!p) continue;
+    if (!validateScorePair(p.goalsA, p.goalsB)) return `${t("invalidScore")} Match ${m.match}`;
+    const winnerSide = pickWinnerSide(p.goalsA, p.goalsB);
+    if (winnerSide && p.advanceSide !== winnerSide) return `${t("inconsistentAdvance")} Match ${m.match}`;
+    if (!winnerSide && !p.advanceSide) return `${t("tieNeedsAdvance")} Match ${m.match}`;
+  }
+  return "";
+}
+
+function validateRealResultsState(s) {
+  if (!s.results) return "";
+  for (const [matchId, r] of Object.entries(s.results)) {
+    if (r.goalsA === undefined || r.goalsB === undefined || r.goalsA === "" || r.goalsB === "") continue;
+    const a = Number(r.goalsA);
+    const b = Number(r.goalsB);
+    if (!validateScorePair(a, b)) return `${t("invalidScore")} Match ${matchId}`;
+    const winnerSide = pickWinnerSide(a, b);
+    if (winnerSide && r.advanceSide && r.advanceSide !== winnerSide) return `${t("inconsistentAdvance")} Match ${matchId}`;
+    if (!winnerSide && !r.advanceSide) return `${t("tieNeedsAdvance")} Match ${matchId}`;
+  }
+  return "";
+}
+
 async function readEntryFromForm() {
   updateDynamicBracketLabels();
 
@@ -1857,8 +1921,41 @@ function renderParticipants() {
   });
 }
 
+
+function renderReceipts() {
+  const publicBox = $("#receiptsList");
+  if (publicBox) publicBox.innerHTML = "";
+
+  const adminBox = $("#adminReceipts");
+  if (!adminBox) return;
+
+  const s = state();
+  adminBox.innerHTML = `<h2>${t("adminReceipts")}</h2><p class="muted">Ações administrativas: comprovantes, e-mails e exclusão de entradas.</p>`;
+
+  if (!s.entries.length) {
+    adminBox.innerHTML += `<p class="muted">${t("noEntries")}</p>`;
+    return;
+  }
+
+  s.entries.forEach(r => {
+    const div = document.createElement("div");
+    div.className = "receipt-item admin-entry-item";
+    div.innerHTML = `<div><b>${escapeHtml(r.entryName)}</b><br><span class="muted">${escapeHtml(r.payerName)}${r.participantEmail ? " • " + escapeHtml(r.participantEmail) : ""}</span><br><span class="receipt-code">${receiptCode(r)}</span></div>
+      <div class="receipt-actions">
+        <button class="small-btn secondary" onclick="openReceipt('${r.id}')">${t("openReceipt")}</button>
+        <button class="small-btn secondary" onclick="downloadReceiptPdf('${r.id}')">${t("receiptOpenPdf")}</button>
+        <button class="small-btn secondary" onclick="downloadReceipt('${r.id}')">${t("downloadHtml")}</button>
+        <button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'participant')">${t("participantEmailBtn")}</button>
+        <button class="small-btn secondary" onclick="mailReceipt('${r.id}', 'admin')">${t("adminEmailBtn")}</button>
+        <button class="small-btn danger" onclick="deleteEntry('${r.id}')">${t("deleteEntry")}</button>
+      </div>`;
+    adminBox.appendChild(div);
+  });
+}
+
 function renderAll() {
   renderRanking();
+  renderReceipts();
   renderAdmin();
   renderGames();
   renderParticipants();
@@ -1921,6 +2018,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initTabs();
   setupLanguageSwitcher();
   setupAdminLogin();
+  setupAdminLogout();
   renderBracketForm();
   renderAll();
   applyLanguage();

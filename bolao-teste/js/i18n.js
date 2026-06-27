@@ -302,3 +302,97 @@ Object.assign(window.BOLAO_I18N["en-US"], {
     Object.assign(window.BOLAO_I18N[lang], extra[lang]);
   }
 })();
+
+
+(function(){
+  const extra = {
+    "pt-BR": {
+      supportWhatsApp:"Suporte WhatsApp", logout:"Logout", adminActive:"🔒 Admin ativo",
+      invalidEmail:"Digite um e-mail válido. Exemplo: nome@email.com",
+      requiredEntryName:"Digite o nome da entrada.",
+      requiredPayerName:"Digite o responsável pelo pagamento.",
+      requiredPaymentMethod:"Selecione o método de pagamento.",
+      invalidScore:"Os placares precisam ser números entre 0 e 20.",
+      inconsistentAdvance:"Quando o placar tem vencedor, quem avança precisa ser o time vencedor.",
+      tieNeedsAdvance:"Quando o placar está empatado, selecione quem avança.",
+      crazyScoreWarning:"⚠️ Esse placar é muito incomum. Verifique se não foi erro de digitação.",
+      repetitiveWarning:"⚠️ Muitos jogos estão com o mesmo placar. Confira se não foi preenchimento por engano.",
+      keepScore:"Sim, manter este placar",
+      receiptOpenPdf:"Abrir comprovante / salvar PDF",
+      adminReceipts:"Comprovantes, e-mails e exclusão",
+      deleteEntry:"Deletar entrada",
+      deleteConfirm:"Tem certeza que deseja deletar esta entrada?",
+      deleteReasonPrompt:"Motivo da remoção (opcional):",
+      deleteEmailSent:"Entrada removida. O site tentou enviar e-mail de aviso.",
+      noEntries:"Nenhuma entrada registrada ainda.",
+      openReceipt:"Abrir comprovante",
+      downloadHtml:"Baixar HTML",
+      participantEmailBtn:"E-mail participante",
+      adminEmailBtn:"E-mail Eduardo",
+      publicRankingNote:"Ranking público. Clique em uma entrada para ver os palpites enviados. Ações administrativas ficam apenas na área Admin.",
+      viewPicks:"Ver palpites",
+      venueTbd:"A confirmar",
+      matchDateLabel:"Data", matchTimeLabel:"Horário ET", matchVenueLabel:"Local"
+    },
+    "es": {
+      supportWhatsApp:"Soporte WhatsApp", logout:"Salir", adminActive:"🔒 Admin activo",
+      invalidEmail:"Escribe un e-mail válido. Ejemplo: nombre@email.com",
+      requiredEntryName:"Escribe el nombre de la entrada.",
+      requiredPayerName:"Escribe el responsable del pago.",
+      requiredPaymentMethod:"Selecciona el método de pago.",
+      invalidScore:"Los marcadores deben ser números entre 0 y 20.",
+      inconsistentAdvance:"Cuando hay ganador, el equipo que avanza debe ser el ganador.",
+      tieNeedsAdvance:"Cuando hay empate, selecciona quién avanza.",
+      crazyScoreWarning:"⚠️ Este marcador es muy inusual. Revisa si no fue un error.",
+      repetitiveWarning:"⚠️ Muchos partidos tienen el mismo marcador. Revisa antes de enviar.",
+      keepScore:"Sí, mantener marcador",
+      receiptOpenPdf:"Abrir comprobante / guardar PDF",
+      adminReceipts:"Comprobantes, e-mails y eliminación",
+      deleteEntry:"Eliminar entrada",
+      deleteConfirm:"¿Seguro que quieres eliminar esta entrada?",
+      deleteReasonPrompt:"Motivo de eliminación (opcional):",
+      deleteEmailSent:"Entrada eliminada. El sitio intentó enviar el e-mail de aviso.",
+      noEntries:"No hay entradas todavía.",
+      openReceipt:"Abrir comprobante",
+      downloadHtml:"Descargar HTML",
+      participantEmailBtn:"E-mail participante",
+      adminEmailBtn:"E-mail Eduardo",
+      publicRankingNote:"Clasificación pública. Haz clic para ver pronósticos. Acciones admin solo en Admin.",
+      viewPicks:"Ver pronósticos",
+      venueTbd:"Por confirmar",
+      matchDateLabel:"Fecha", matchTimeLabel:"Horario ET", matchVenueLabel:"Lugar"
+    },
+    "en-US": {
+      supportWhatsApp:"WhatsApp Support", logout:"Logout", adminActive:"🔒 Admin active",
+      invalidEmail:"Enter a valid email. Example: name@email.com",
+      requiredEntryName:"Enter the entry name.",
+      requiredPayerName:"Enter the payment responsible person.",
+      requiredPaymentMethod:"Select the payment method.",
+      invalidScore:"Scores must be numbers from 0 to 20.",
+      inconsistentAdvance:"When the score has a winner, the advancing team must be the winner.",
+      tieNeedsAdvance:"When the score is tied, select who advances.",
+      crazyScoreWarning:"⚠️ This score is very unusual. Check if this was a typo.",
+      repetitiveWarning:"⚠️ Many matches have the same score. Please review before submitting.",
+      keepScore:"Yes, keep this score",
+      receiptOpenPdf:"Open receipt / save PDF",
+      adminReceipts:"Receipts, emails, and deletion",
+      deleteEntry:"Delete entry",
+      deleteConfirm:"Are you sure you want to delete this entry?",
+      deleteReasonPrompt:"Removal reason (optional):",
+      deleteEmailSent:"Entry removed. The site tried to send the notification email.",
+      noEntries:"No entries registered yet.",
+      openReceipt:"Open receipt",
+      downloadHtml:"Download HTML",
+      participantEmailBtn:"Participant email",
+      adminEmailBtn:"Eduardo email",
+      publicRankingNote:"Public ranking. Click an entry to view submitted picks. Admin actions stay in Admin.",
+      viewPicks:"View picks",
+      venueTbd:"TBD",
+      matchDateLabel:"Date", matchTimeLabel:"ET time", matchVenueLabel:"Venue"
+    }
+  };
+  for (const lang of Object.keys(extra)) {
+    window.BOLAO_I18N[lang] = window.BOLAO_I18N[lang] || {};
+    Object.assign(window.BOLAO_I18N[lang], extra[lang]);
+  }
+})();
