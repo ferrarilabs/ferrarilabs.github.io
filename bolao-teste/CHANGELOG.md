@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## v4.1-patch — 2026-06-27
+
+Surgical patch on v4.0-clean. No architecture changes.
+
+### Fixed
+- `mergeStates()`: `paid` now uses "any true wins" (payment confirmed on one device is never overwritten by another). `results` now uses remote-wins (admin is sole source of truth).
+- `adminLogin()`: wrapped `sha256Hex()` in try/catch; alerts `adminLoginError` if `crypto.subtle` is unavailable (e.g. HTTP).
+- `updateDynamic()`: `saveDraft()` now runs debounced at 400 ms instead of on every keystroke.
+- CSP: removed unused `https://api.ipify.org` from `connect-src`.
+- Supabase CDN: pinned to `@2.45.4`, added `integrity` (SRI) and `crossorigin="anonymous"`.
+- Deleted `js/i18n-repair.js` (not loaded anywhere; legacy artifact).
+
+### Added (optional improvements)
+- Duplicate entry name check in `saveEntry()` — prompts confirmation before saving.
+- `demo-badge` visual label on demo entries in ranking.
+- CSS `:focus-visible` outline on buttons/inputs/selects for keyboard accessibility.
+- `<link rel="canonical">` in `index.html`.
+- i18n keys: `adminLoginError`, `duplicateEntryConfirm` (pt-BR, es, en-US).
+
+---
+
 ## v4.0-clean — 2026-06-27
 
 Full clean rebuild from scratch. No code carried over from v3.x.

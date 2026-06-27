@@ -416,3 +416,24 @@ input[disabled] { opacity: .5; }
   .topbar { display: flex !important; align-items: center !important; }
   .brand { margin-right: auto !important; }
 }
+
+/* Accessibility: visible focus ring for keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #2fe56e;
+  outline-offset: 3px;
+}
+
+/* Demo entry badge in ranking */
+.demo-badge {
+  font-size: 10px;
+  background: #3d1520;
+  color: #ffdbe1;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  vertical-align: middle;
+  margin-left: 6px;
+}

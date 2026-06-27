@@ -186,10 +186,18 @@ function mergeStates(local, remote) {
   for (const e of (remote.entries || [])) {
     if (!byId[e.id] || (e.createdAt > (byId[e.id].createdAt || ""))) byId[e.id] = e;
   }
+  const allPaidKeys = new Set([
+    ...Object.keys(local.paid || {}),
+    ...Object.keys(remote.paid || {})
+  ]);
+  const mergedPaid = {};
+  for (const k of allPaidKeys) {
+    mergedPaid[k] = !!(local.paid?.[k] || remote.paid?.[k]);
+  }
   return {
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
-    paid: Object.assign({}, remote.paid || {}, local.paid || {}),
-    results: Object.assign({}, remote.results || {}, local.results || {}),
+    paid: mergedPaid,
+    results: Object.assign({}, local.results || {}, remote.results || {}),
     meta: { updatedAt: new Date().toISOString(), version: CONFIG.siteVersion }
   };
 }
@@ -426,10 +434,16 @@ function updateProgress() {
   if (pb) { pb.style.width = `${total ? (done / total) * 100 : 0}%`; pb.parentElement?.setAttribute("aria-valuenow", String(Math.round(done / total * 100))); }
 }
 
+let _draftTimer = null;
+function saveDraftDebounced() {
+  clearTimeout(_draftTimer);
+  _draftTimer = setTimeout(saveDraft, 400);
+}
+
 function updateDynamic() {
   $$(".match-card[data-card-match]").forEach(updateCard);
   updateProgress();
-  saveDraft();
+  saveDraftDebounced();
 }
 
 function renderBracket() {
@@ -824,11 +838,12 @@ function renderRanking() {
   ranked.forEach((e, i) => {
     const medal = ["🥇","🥈","🥉"][i] || `${i + 1}`;
     const bonusLine = e._bonus?.total ? ` · ${t("bonusLabel")} +${e._bonus.total}` : "";
+    const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
 <div class="rank-pos">${medal}</div>
-<div><b>${escapeHtml(e.entryName)}</b><br>
+<div><b>${escapeHtml(e.entryName)}</b>${demoBadge}<br>
 <span class="muted">${escapeHtml(e.payerName)}${escapeHtml(bonusLine)}</span><br>
 <span class="receipt-code">${escapeHtml(receiptCode(e))}</span></div>
 <div class="points">${e._score}</div>
@@ -1162,6 +1177,10 @@ async function saveEntry() {
     const entry = await readEntryFromForm();
     if (!entry) return;
     const s = state();
+    const duplicate = s.entries.find(e =>
+      e.entryName.trim().toLowerCase() === entry.entryName.trim().toLowerCase()
+    );
+    if (duplicate && !confirm(t("duplicateEntryConfirm"))) return;
     s.entries.push(entry);
     saveState(s);
     sessionStorage.removeItem(DRAFT_KEY);
@@ -1183,7 +1202,14 @@ async function adminLogin() {
   if (!CONFIG.adminPasswordHash) { alert(t("adminWrongPassword")); return; }
   const pwd = ($("#adminPassword")?.value || "").trim();
   if (!pwd) return;
-  const hash = await sha256Hex(pwd);
+  let hash;
+  try {
+    hash = await sha256Hex(pwd);
+  } catch (err) {
+    console.warn("SHA-256 unavailable", err);
+    alert(t("adminLoginError"));
+    return;
+  }
   if (hash === CONFIG.adminPasswordHash) {
     sessionStorage.setItem("adminOk", "true");
     sessionStorage.setItem("adminUntil", String(Date.now() + CONFIG.adminSessionMinutes * 60000));
