@@ -5,10 +5,11 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="robots" content="noindex,nofollow" />
   <meta name="description" content="Bolão Copa 2026 entre amigos com palpites, ranking, comprovantes e administração." />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://api.emailjs.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.emailjs.com https://gamma-api.polymarket.com; base-uri 'self'; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://api.emailjs.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.emailjs.com https://gamma-api.polymarket.com https://*.supabase.co https://v3.football.api-sports.io; base-uri 'self'; frame-ancestors 'none';" />
   <title>Bolão do Ferrari - Copa 2026</title>
   <link rel="stylesheet" href="css/styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="js/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/i18n.js"></script>
@@ -18,7 +19,12 @@
   <header class="topbar">
     <div class="brand">🏆 <strong>Bolão do Ferrari</strong><span>Copa 2026</span></div>
     <a id="supportWhatsappBtn" class="whatsapp" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span></a>
-    <select id="languageSelect" aria-label="Language">
+    <div id="languageLinks" class="lang-links" aria-label="Language">
+      <button type="button" data-lang="pt-BR">🇧🇷 PT-BR</button>
+      <button type="button" data-lang="es">🇲🇽 ES-MX</button>
+      <button type="button" data-lang="en-US">🇺🇸 EN-US</button>
+    </div>
+    <select id="languageSelect" class="hidden-lang-select" aria-label="Language">
       <option value="pt-BR">Português BR</option><option value="es">Español</option><option value="en-US">English</option>
     </select>
     <nav class="nav">
@@ -76,7 +82,28 @@
     <section id="participants" class="page"><div class="section-head"><h2 data-i18n="navParticipants">Participantes</h2></div><div id="participantsList"></div></section>
     <section id="payment" class="page"><div class="section-head"><h2 data-i18n="paymentTitle">Pagamento</h2><p data-i18n="paymentSubtitle">US$ 5 por entrada.</p></div><div id="paymentMethods" class="pay-grid"></div></section>
     <section id="games" class="page"><div class="section-head"><h2 data-i18n="gamesTitle">Jogos e resultados</h2></div><div id="gamesList"></div></section>
-    <section id="rules" class="page"><div class="card"><h2 data-i18n="rulesTitle">Regras simples</h2><ul><li>Placar válido: 90 minutos + prorrogação.</li><li>Pênaltis não entram no placar. Em empate, selecione quem ganha/avança.</li><li>Se o time real que avançar for diferente do seu bracket, ele herda a posição futura daquele jogo.</li><li>Bônus finais: campeão, vice, 3º e 4º lugar.</li></ul></div></section>
+    <section id="rules" class="page">
+      <div class="card">
+        <h2 data-i18n="rulesTitle">Regras simples</h2>
+        <h3 data-i18n="rulesMainTitle">Regras principais</h3>
+        <ul>
+          <li data-i18n="rulesValidScore">Placar válido: 90 minutos + prorrogação.</li>
+          <li data-i18n="rulesTie">Se empatar, selecione quem ganha/avança nos pênaltis.</li>
+          <li data-i18n="rulesBracket">Se o time real que avançar for diferente do seu bracket, ele herda a posição futura daquele jogo.</li>
+          <li data-i18n="rulesBonus">Bônus finais: campeão, vice, 3º e 4º lugar.</li>
+        </ul>
+        <h3 data-i18n="rulesScoringTitle">Pontuação</h3>
+        <div class="score-grid">
+          <div><b>10</b><span data-i18n="scoreExact">Placar exato</span></div>
+          <div><b>5</b><span data-i18n="scoreAdvance">Acertar quem avança</span></div>
+          <div><b>1</b><span data-i18n="scoreOneTeamGoals">Acertar gols de um time</span></div>
+          <div><b>25</b><span data-i18n="scoreChampion">Campeão</span></div>
+          <div><b>15</b><span data-i18n="scoreRunnerUp">Vice</span></div>
+          <div><b>10</b><span data-i18n="scoreThird">3º lugar</span></div>
+          <div><b>5</b><span data-i18n="scoreFourth">4º lugar</span></div>
+        </div>
+      </div>
+    </section>
     <section id="admin" class="page">
       <div id="adminLogin" class="card"><h2 data-i18n="adminTitle">Admin</h2><label><span data-i18n="adminPassword">Senha</span><input id="adminPassword" type="password"></label><button id="adminLoginBtn" type="button" data-i18n="adminEnter">Entrar</button></div>
       <div id="adminArea" class="hidden">
@@ -84,7 +111,7 @@
         <div id="adminReceipts" class="card"></div>
         <div id="paymentsAdmin" class="card"></div>
         <div id="resultsAdmin" class="card"></div>
-        <div class="card"><h2>Backups</h2><div class="button-row"><button id="backupCsv" type="button">CSV</button><button id="backupJson" type="button">JSON</button><button id="masterCsv" type="button">Master CSV</button><button id="masterHtml" type="button">Master HTML</button><button id="clearData" type="button" class="danger">Limpar dados</button></div></div>
+        <div class="card"><h2>Backups</h2><div class="button-row"><button id="loadDemoData" type="button" data-i18n="adminDemoData">Popular dados de teste</button><button id="refreshFootballApi" type="button" class="secondary" data-i18n="adminRefreshFootball">Atualizar jogos/API</button><button id="backupCsv" type="button">CSV</button><button id="backupJson" type="button">JSON</button><button id="masterCsv" type="button">Master CSV</button><button id="masterHtml" type="button">Master HTML</button><button id="clearData" type="button" class="danger">Limpar dados</button></div></div>
       </div>
     </section>
   </main>

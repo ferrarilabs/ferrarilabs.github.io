@@ -17,3 +17,12 @@ v3.2: Surgical fixes only. See docs/FIX_LOG_v3_2.md.
 
 
 v3.2.1-rc1: Release lock. See CHANGELOG.md and docs/RELEASE_LOCK.md.
+
+
+v3.3-db-ready: optional Supabase remote database support. See docs/DATABASE_SETUP_SUPABASE.md.
+
+
+v3.3.1-db-ui-fixes: UI fixes and optional API-Football cache. See docs/FIX_LOG_v3_3_1.md.
+
+
+v3.3.2: DB blockers fixed and timer seconds added. See docs/FIX_LOG_v3_3_2.md.

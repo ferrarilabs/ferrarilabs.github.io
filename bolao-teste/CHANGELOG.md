@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## v3.3.2-db-blockers-timer
+- Countdown seconds added.
+- Supabase multi-tab mitigation added.
+- Clear data now clears remote state.
+- Spanish phaseThird fix.
+- Demo email changed to demo@noreply.invalid.
+- API-Football timeout added.
+
+## v3.3.1-db-ui-fixes
+- Desktop/mobile header fix.
+- Language selector changed to flag buttons.
+- Games view redesigned.
+- Rules scoring table restored.
+- Admin demo data restored.
+- Optional API-Football refresh added as cached data only.
+
+## v3.3-db-ready
+- Optional Supabase remote state adapter.
+- Local-first remote mirror.
+- Phase labels polished.
+- Supabase setup docs added.
+
 ## v3.2.1-rc1
 - Final release-lock patch.
 - Corrected UK nation flag emojis.

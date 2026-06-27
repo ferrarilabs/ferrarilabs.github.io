@@ -1,7 +1,7 @@
 window.BOLAO_CONFIG = {
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
-  siteVersion: "v3.2.1-rc1-lock",
+  siteVersion: "v3.3.2-db-blockers-timer",
   storeKey: "bolao2026_v3_clean",
   entryFee: 5,
   adminPasswordHash: "a6b9c87326e39cd10daad4de218019396d46e3ab2d89822b926274613138dee6",
@@ -53,10 +53,27 @@ window.BOLAO_CONFIG = {
     adminTemplateId: "template_4sgp5r9",
     limitRateMs: 30000
   },
+  database: {
+    enabled: true,
+    provider: "supabase",
+    url: "https://cmhqkkfczotdnssupkni.supabase.co",
+    anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
+    table: "bolao_state",
+    stateId: "main",
+    localFallback: true
+  },
   diagnostics: {
     captureDeviceInfo: true,
     capturePublicIp: false,
     ipLookupUrl: "https://api.ipify.org?format=json"
+  },
+  apiFootball: {
+    enabled: false,
+    apiKey: "",
+    baseUrl: "https://v3.football.api-sports.io",
+    league: 1,
+    season: 2026,
+    cacheMinutes: 60
   },
   externalData: {
     polymarket: {

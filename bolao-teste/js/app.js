@@ -1,6 +1,80 @@
 (() => {
 "use strict";
 
+let remoteDb = null;
+let remoteReady = false;
+let remoteSyncInFlight = false;
+
+function dbConfigured(){
+  return !!(CONFIG.database && CONFIG.database.enabled && CONFIG.database.provider==="supabase" && CONFIG.database.url && CONFIG.database.anonKey && window.supabase);
+}
+
+function initRemoteDb(){
+  if(!dbConfigured()) return false;
+  if(remoteDb) return true;
+  try{
+    remoteDb = window.supabase.createClient(CONFIG.database.url, CONFIG.database.anonKey);
+    return true;
+  }catch(err){
+    console.warn("Remote DB init failed", err);
+    return false;
+  }
+}
+
+async function loadRemoteState(){
+  if(!initRemoteDb()) return false;
+  const cfg=CONFIG.database;
+  try{
+    const { data, error } = await remoteDb.from(cfg.table).select("state").eq("id", cfg.stateId || "main").maybeSingle();
+    if(error) throw error;
+    if(data && data.state){
+      localStorage.setItem(CONFIG.storeKey, JSON.stringify(Object.assign({entries:[],paid:{},results:{}}, data.state)));
+      remoteReady = true;
+      return true;
+    }
+    const current = state();
+    await saveRemoteState(current);
+    remoteReady = true;
+    return true;
+  }catch(err){
+    console.warn("Remote DB load failed", err);
+    return false;
+  }
+}
+
+async function saveRemoteState(s){
+  if(!initRemoteDb()) return false;
+  if(remoteSyncInFlight) return false;
+  remoteSyncInFlight = true;
+  const cfg=CONFIG.database;
+  try{
+    const payload = { id: cfg.stateId || "main", state: s, updated_at: new Date().toISOString() };
+    const { error } = await remoteDb.from(cfg.table).upsert(payload, { onConflict: "id" });
+    if(error) throw error;
+    remoteReady = true;
+    return true;
+  }catch(err){
+    console.warn("Remote DB save failed", err);
+    return false;
+  }finally{
+    remoteSyncInFlight = false;
+  }
+}
+
+
+async function reloadRemoteIfVisible(){
+  if(document.hidden || !dbConfigured()) return;
+  await loadRemoteState();
+  renderAll();
+}
+
+function syncRemoteSoon(){
+  if(!dbConfigured()) return;
+  const snapshot = state();
+  setTimeout(()=>saveRemoteState(snapshot), 0);
+}
+
+
 const CONFIG = window.BOLAO_CONFIG;
 const DATA = window.BOLAO_DATA;
 const I18N = window.BOLAO_I18N;
@@ -12,7 +86,7 @@ let polymarketCache = { ts: 0, markets: [] };
 function t(k){ return I18N?.[currentLang]?.[k] || I18N?.["pt-BR"]?.[k] || k; }
 function escapeHtml(v){ return String(v ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;").replaceAll('"',"&quot;").replaceAll("'","&#039;"); }
 function state(){ try { return Object.assign({entries:[], paid:{}, results:{}}, JSON.parse(localStorage.getItem(CONFIG.storeKey) || "{}")); } catch { return {entries:[], paid:{}, results:{}}; } }
-function saveState(s){ localStorage.setItem(CONFIG.storeKey, JSON.stringify(s)); }
+function saveState(s){ localStorage.setItem(CONFIG.storeKey, JSON.stringify(s)); syncRemoteSoon(); }
 function phaseLabel(p){ return ({"Round of 32":t("phaseR32"),"Round of 16":t("phaseR16"),"Quarterfinal":t("phaseQF"),"Semifinal":t("phaseSF"),"3rd Place":t("phaseThird"),"Final":t("phaseFinal")})[p] || p; }
 function flag(name){ const n=String(name||"").toLowerCase(); const map={"south africa":"🇿🇦","canada":"🇨🇦","brazil":"🇧🇷","brasil":"🇧🇷","japan":"🇯🇵","argentina":"🇦🇷","france":"🇫🇷","germany":"🇩🇪","spain":"🇪🇸","portugal":"🇵🇹","england":"🏴󠁧󠁢󠁥󠁮󠁧󠁿","italy":"🇮🇹","netherlands":"🇳🇱","holanda":"🇳🇱","mexico":"🇲🇽","usa":"🇺🇸","united states":"🇺🇸","united states of america":"🇺🇸","uruguay":"🇺🇾","colombia":"🇨🇴","senegal":"🇸🇳","iraq":"🇮🇶","norway":"🇳🇴","morocco":"🇲🇦","ivory coast":"🇨🇮","c\u00f4te d\u2019ivoire":"🇨🇮","cote d'ivoire":"🇨🇮","australia":"🇦🇺","saudi arabia":"🇸🇦","qatar":"🇶🇦","ghana":"🇬🇭","nigeria":"🇳🇬","egypt":"🇪🇬","tunisia":"🇹🇳","algeria":"🇩🇿","croatia":"🇭🇷","switzerland":"🇨🇭","belgium":"🇧🇪","denmark":"🇩🇰","sweden":"🇸🇪","poland":"🇵🇱","austria":"🇦🇹","serbia":"🇷🇸","ukraine":"🇺🇦","turkey":"🇹🇷","t\u00fcrkiye":"🇹🇷","south korea":"🇰🇷","korea republic":"🇰🇷","iran":"🇮🇷","uzbekistan":"🇺🇿","jordan":"🇯🇴","new zealand":"🇳🇿","panama":"🇵🇦","costa rica":"🇨🇷","jamaica":"🇯🇲","haiti":"🇭🇹","curacao":"🇨🇼","cura\u00e7ao":"🇨🇼","paraguay":"🇵🇾","ecuador":"🇪🇨","chile":"🇨🇱","peru":"🇵🇪","venezuela":"🇻🇪","bolivia":"🇧🇴","bosnia and herzegovina":"🇧🇦","scotland":"🏴󠁧󠁢󠁳󠁣󠁴󠁿","wales":"🏴󠁧󠁢󠁷󠁬󠁳󠁿","czechia":"🇨🇿","czech republic":"🇨🇿","slovakia":"🇸🇰","hungary":"🇭🇺","romania":"🇷🇴","greece":"🇬🇷","albania":"🇦🇱","georgia":"🇬🇪","slovenia":"🇸🇮","cape verde":"🇨🇻","cabo verde":"🇨🇻"}; return map[n] || "🏳️"; }
 function cutoffDate(){ return new Date(CONFIG.cutoffIso); }
@@ -39,10 +113,10 @@ function applyLanguage(){
   document.documentElement.lang=currentLang;
   document.title=`${CONFIG.appName} - Copa 2026`;
   $$("[data-i18n]").forEach(el=>{ el.textContent=t(el.dataset.i18n); });
-  $("#languageSelect").value=currentLang;
+  if($("#languageSelect")) $("#languageSelect").value=currentLang; $$("#languageLinks [data-lang]").forEach(b=>b.classList.toggle("active", b.dataset.lang===currentLang));
 }
 function showSection(id){ $$(".page").forEach(p=>p.classList.toggle("active",p.id===id)); $$(".nav button").forEach(b=>b.classList.toggle("active",b.dataset.section===id)); renderAll(); }
-function updateCountdown(){ const diff=cutoffDate()-new Date(); const box=$("#countdown"); if(!box) return; if(diff<=0){ box.innerHTML=`<strong>${t("closed")}</strong>`; return; } const mins=Math.floor(diff/60000), d=Math.floor(mins/1440), h=Math.floor((mins%1440)/60), m=mins%60; box.innerHTML=`<div class="count-grid"><div><b>${d}</b><span>dias</span></div><div><b>${h}</b><span>hrs</span></div><div><b>${m}</b><span>min</span></div></div>`; $("#cutoffLabel").textContent=CONFIG.cutoffLabel; }
+function updateCountdown(){ const diff=cutoffDate()-new Date(); const box=$("#countdown"); if(!box) return; if(diff<=0){ box.innerHTML=`<strong>${t("closed")}</strong>`; return; } const totalSec=Math.floor(diff/1000), d=Math.floor(totalSec/86400), h=Math.floor((totalSec%86400)/3600), m=Math.floor((totalSec%3600)/60), sec=totalSec%60; box.innerHTML=`<div class="count-grid count-grid-4"><div><b>${d}</b><span>dias</span></div><div><b>${h}</b><span>hrs</span></div><div><b>${m}</b><span>min</span></div><div><b>${String(sec).padStart(2,"0")}</b><span>seg</span></div></div>`; $("#cutoffLabel").textContent=CONFIG.cutoffLabel; }
 function lockIfCutoff(){ const closed=isPastCutoff(); $("#saveEntry").disabled=closed; if(closed) $$("#bracketForm input,#bracketForm select,#smartPick,#randomPick").forEach(el=>el.disabled=true); }
 
 function setupPaymentBox(){ const method=$("#paymentMethod").value; const box=$("#paymentBox"); if(!method){ box.innerHTML=""; return;} const to=CONFIG.paymentMethods[method]||""; const link=CONFIG.paymentLinks[method]||""; box.innerHTML=`<div class="pay-card"><img src="assets/${method.toLowerCase()==="cashapp"?"cashapp":method.toLowerCase()}.svg" alt="${method}"><div><b>${escapeHtml(method)}</b><br><span class="muted">${escapeHtml(to)}</span>${link?`<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener">Abrir pagamento</a>`:""}</div></div>`; }
@@ -200,10 +274,63 @@ function restoreAdmin(){ if(adminActive()){ $("#adminLogin").classList.add("hidd
 
 async function deleteEntry(id){ const s=state(); const e=s.entries.find(x=>x.id===id); if(!e) return; if(!confirm(t("deleteConfirm"))) return; const reason=prompt(t("deleteReasonPrompt"),"")||""; await sendRemovalEmail(e,reason).catch(()=>{}); s.entries=s.entries.filter(x=>x.id!==id); delete s.paid[id]; saveState(s); renderAll(); alert(t("deleteEmailSent")); }
 
+
+
+async function refreshApiFootballData(){
+  if(!CONFIG.apiFootball || !CONFIG.apiFootball.enabled || !CONFIG.apiFootball.apiKey){
+    alert(t("apiFootballNotConfigured"));
+    return;
+  }
+  try{
+    const url=`${CONFIG.apiFootball.baseUrl}/fixtures?league=${CONFIG.apiFootball.league}&season=${CONFIG.apiFootball.season}`;
+    const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),10000); const res=await fetch(url,{headers:{"x-apisports-key":CONFIG.apiFootball.apiKey},signal:controller.signal}); clearTimeout(timer);
+    if(!res.ok) throw new Error(`API-Football HTTP ${res.status}`);
+    const payload=await res.json();
+    localStorage.setItem("bolao_api_football_fixtures", JSON.stringify({ts:Date.now(),payload}));
+    alert(t("apiFootballUpdated"));
+  }catch(err){
+    console.warn("API-Football refresh failed",err);
+    alert(t("dbSyncError"));
+  }
+}
+
+function loadDemoData(){
+  const s=state();
+  const names=["Eduardo Teste","Gabriel Teste","Nicole Teste"];
+  names.forEach((name,idx)=>{
+    const picks={};
+    const winners={}, losers={};
+    DATA.knockoutMatches.forEach((m,i)=>{
+      const a=resolveSlotName(m.teamA,winners,losers);
+      const b=resolveSlotName(m.teamB,winners,losers);
+      const goalsA=(i+idx)%4;
+      const goalsB=(i+idx+1)%3;
+      const side=goalsA>goalsB?"A":goalsB>goalsA?"B":((i+idx)%2?"A":"B");
+      picks[m.match]={goalsA,goalsB,advanceSide:side,displayA:a,displayB:b};
+      if(side==="A"){winners[m.match]=a; losers[m.match]=b;} else {winners[m.match]=b; losers[m.match]=a;}
+    });
+    const id=crypto.randomUUID?crypto.randomUUID():String(Date.now())+Math.random();
+    s.entries.push({
+      id,
+      entryName:name,
+      payerName:name,
+      participantEmail:"demo@noreply.invalid",
+      paymentMethod:"CashApp",
+      paymentTo:CONFIG.paymentMethods.CashApp,
+      createdAt:new Date().toISOString(),
+      diagnostics:{demo:true},
+      picks
+    });
+  });
+  saveState(s);
+  renderAll();
+  alert(t("demoCreated"));
+}
+
 function renderAll(){ applyLanguage(); updateCountdown(); lockIfCutoff(); setupPaymentBox(); renderRanking(); renderParticipants(); renderPayments(); renderGames(); if(!$("#adminArea").classList.contains("hidden")) renderAdmin(); updateDynamic(); }
 
-function bind(){ $$(".nav button").forEach(b=>b.addEventListener("click",()=>showSection(b.dataset.section))); $("#rankingList").addEventListener("click",e=>{ const id=e.target.dataset.rankToggle; if(!id) return; const detail=document.querySelector(`[data-rank-detail="${id}"]`); if(detail) detail.classList.toggle("hidden"); }); $("#languageSelect").addEventListener("change",e=>{currentLang=e.target.value; localStorage.setItem("bolao_lang",currentLang); renderAll();}); $("#paymentMethod").addEventListener("change",setupPaymentBox); $("#bracketForm").addEventListener("input",e=>{ if(e.target.matches('input[type="number"]') && Number(e.target.value)>20){ e.target.value=""; } if(e.target.matches("input,select")) updateDynamic(); }); $("#bracketForm").addEventListener("change",e=>{ if(e.target.matches("input,select")) updateDynamic(); }); $("#smartPick").addEventListener("click",()=>autoFill("smart")); $("#randomPick").addEventListener("click",()=>autoFill("random")); $("#saveEntry").addEventListener("click",saveEntry); $("#adminLoginBtn").addEventListener("click",adminLogin); $("#adminLogoutBtn").addEventListener("click",adminLogout); $("#backupCsv").addEventListener("click",backupCsv); $("#backupJson").addEventListener("click",backupJson); $("#masterCsv").addEventListener("click",masterCsv); $("#masterHtml").addEventListener("click",masterHtml); $("#clearData").addEventListener("click",()=>{ if(confirm(t("clearDataConfirm"))){ localStorage.removeItem(CONFIG.storeKey); renderAll(); }}); $("#adminReceipts").addEventListener("click",e=>{ if(!guardAdmin()) return; const id=e.target.dataset.id, act=e.target.dataset.act; if(!id) return; if(act==="open") openReceipt(id); if(act==="html") downloadReceipt(id); if(act==="emailp") mailReceipt(id,"participant"); if(act==="emaila") mailReceipt(id,"admin"); if(act==="delete") deleteEntry(id); }); $("#paymentsAdmin").addEventListener("change",e=>{ if(!guardAdmin()) return; const id=e.target.dataset.paid; if(!id) return; const s=state(); s.paid[id]=e.target.checked; saveState(s); renderAll(); }); $("#resultsAdmin").addEventListener("input",e=>{ if(!adminActive()) return; const card=e.target.closest("[data-real-match]"); if(card){ updateRealCard(card); const ga=parseScoreValue(card.querySelector('[data-real-field="goalsA"]').value), gb=parseScoreValue(card.querySelector('[data-real-field="goalsB"]').value); if(ga!==null && gb!==null && pickWinnerSide(ga,gb)) commitRealCard(card,true); } }); $("#resultsAdmin").addEventListener("change",e=>{ if(!guardAdmin()) return; const card=e.target.closest("[data-real-match]"); if(!card) return; const match=card.dataset.realMatch; const ga=parseScoreValue(card.querySelector('[data-real-field="goalsA"]').value), gb=parseScoreValue(card.querySelector('[data-real-field="goalsB"]').value), side=card.querySelector('[data-real-field="advanceSide"]').value; if((ga===null)!==(card.querySelector('[data-real-field="goalsA"]').value==="") || (gb===null)!==(card.querySelector('[data-real-field="goalsB"]').value==="")) { alert(`${t("invalidScore")} Match ${match}`); return;} if(ga!==null&&gb!==null){ const win=pickWinnerSide(ga,gb); if(win && side && side!==win){ alert(`${t("inconsistentAdvance")} Match ${match}`); return;} if(!win && !side){ alert(`${t("tieNeedsAdvance")} Match ${match}`); return;} const s=state(); s.results[match]={goalsA:ga,goalsB:gb,advanceSide:win||side}; saveState(s); renderAll(); } }); }
-function init(){ $("#supportWhatsappBtn").href=CONFIG.whatsappGroup.link; setupEmailJs(); renderBracket(); bind(); restoreAdmin(); renderAll(); setInterval(updateCountdown,60000); showSection("entry"); }
-document.addEventListener("DOMContentLoaded",init);
+function bind(){ $$(".nav button").forEach(b=>b.addEventListener("click",()=>showSection(b.dataset.section))); $("#rankingList").addEventListener("click",e=>{ const id=e.target.dataset.rankToggle; if(!id) return; const detail=document.querySelector(`[data-rank-detail="${id}"]`); if(detail) detail.classList.toggle("hidden"); }); if($("#languageSelect")) $("#languageSelect").addEventListener("change",e=>{currentLang=e.target.value; localStorage.setItem("bolao_lang",currentLang); renderAll();}); $("#languageLinks").addEventListener("click",e=>{ const btn=e.target.closest("[data-lang]"); if(!btn) return; currentLang=btn.dataset.lang; localStorage.setItem("bolao_lang",currentLang); renderAll(); }); $("#paymentMethod").addEventListener("change",setupPaymentBox); $("#bracketForm").addEventListener("input",e=>{ if(e.target.matches('input[type="number"]') && Number(e.target.value)>20){ e.target.value=""; } if(e.target.matches("input,select")) updateDynamic(); }); $("#bracketForm").addEventListener("change",e=>{ if(e.target.matches("input,select")) updateDynamic(); }); $("#smartPick").addEventListener("click",()=>autoFill("smart")); $("#randomPick").addEventListener("click",()=>autoFill("random")); $("#saveEntry").addEventListener("click",saveEntry); $("#adminLoginBtn").addEventListener("click",adminLogin); $("#adminLogoutBtn").addEventListener("click",adminLogout); if($("#loadDemoData")) $("#loadDemoData").addEventListener("click",()=>{ if(guardAdmin()) loadDemoData(); }); if($("#refreshFootballApi")) $("#refreshFootballApi").addEventListener("click",()=>{ if(guardAdmin()) refreshApiFootballData(); }); $("#backupCsv").addEventListener("click",backupCsv); $("#backupJson").addEventListener("click",backupJson); $("#masterCsv").addEventListener("click",masterCsv); $("#masterHtml").addEventListener("click",masterHtml); $("#clearData").addEventListener("click",async()=>{ if(confirm(t("clearDataConfirm"))){ const empty={entries:[],paid:{},results:{}}; localStorage.setItem(CONFIG.storeKey, JSON.stringify(empty)); await saveRemoteState(empty).catch(err=>console.warn("Remote clear failed",err)); renderAll(); }}); $("#adminReceipts").addEventListener("click",e=>{ if(!guardAdmin()) return; const id=e.target.dataset.id, act=e.target.dataset.act; if(!id) return; if(act==="open") openReceipt(id); if(act==="html") downloadReceipt(id); if(act==="emailp") mailReceipt(id,"participant"); if(act==="emaila") mailReceipt(id,"admin"); if(act==="delete") deleteEntry(id); }); $("#paymentsAdmin").addEventListener("change",e=>{ if(!guardAdmin()) return; const id=e.target.dataset.paid; if(!id) return; const s=state(); s.paid[id]=e.target.checked; saveState(s); renderAll(); }); $("#resultsAdmin").addEventListener("input",e=>{ if(!adminActive()) return; const card=e.target.closest("[data-real-match]"); if(card){ updateRealCard(card); const ga=parseScoreValue(card.querySelector('[data-real-field="goalsA"]').value), gb=parseScoreValue(card.querySelector('[data-real-field="goalsB"]').value); if(ga!==null && gb!==null && pickWinnerSide(ga,gb)) commitRealCard(card,true); } }); $("#resultsAdmin").addEventListener("change",e=>{ if(!guardAdmin()) return; const card=e.target.closest("[data-real-match]"); if(!card) return; const match=card.dataset.realMatch; const ga=parseScoreValue(card.querySelector('[data-real-field="goalsA"]').value), gb=parseScoreValue(card.querySelector('[data-real-field="goalsB"]').value), side=card.querySelector('[data-real-field="advanceSide"]').value; if((ga===null)!==(card.querySelector('[data-real-field="goalsA"]').value==="") || (gb===null)!==(card.querySelector('[data-real-field="goalsB"]').value==="")) { alert(`${t("invalidScore")} Match ${match}`); return;} if(ga!==null&&gb!==null){ const win=pickWinnerSide(ga,gb); if(win && side && side!==win){ alert(`${t("inconsistentAdvance")} Match ${match}`); return;} if(!win && !side){ alert(`${t("tieNeedsAdvance")} Match ${match}`); return;} const s=state(); s.results[match]={goalsA:ga,goalsB:gb,advanceSide:win||side}; saveState(s); renderAll(); } }); }
+async function init(){ $("#supportWhatsappBtn").href=CONFIG.whatsappGroup.link; setupEmailJs(); await loadRemoteState(); renderBracket(); bind(); restoreAdmin(); renderAll(); document.addEventListener("visibilitychange",()=>reloadRemoteIfVisible().catch(err=>console.warn("Remote visibility reload failed",err))); window.addEventListener("focus",()=>reloadRemoteIfVisible().catch(err=>console.warn("Remote focus reload failed",err))); setInterval(updateCountdown,1000); showSection("entry"); }
+document.addEventListener("DOMContentLoaded",()=>init().catch(err=>console.error("Init failed",err)));
 window.Bolao={openReceipt,downloadReceipt,mailReceipt,deleteEntry};
 })();
