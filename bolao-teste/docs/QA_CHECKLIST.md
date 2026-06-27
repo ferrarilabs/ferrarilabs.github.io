@@ -1,29 +1,20 @@
-# QA Checklist — Bolão v2
+# QA Checklist v3.0
 
-## Public flow
-- [ ] Invalid email blocks save
-- [ ] Valid email saves
-- [ ] Receipt opens in new tab
-- [ ] Returning to site allows scroll and navigation
-- [ ] Ranking opens
-- [ ] Participants opens
-- [ ] Language switch updates static and dynamic content
-
-## Score validation
-- [ ] 1x2 cannot advance Team A
-- [ ] 2x1 cannot advance Team B
-- [ ] 1x1 requires explicit advancement
-- [ ] 10x0 triggers unusual score warning
-- [ ] Many identical scores trigger repetitive warning
-
-## Admin
-- [ ] Admin login works
-- [ ] Admin logout works without clearing cache
-- [ ] Delete entry appears in Admin
-- [ ] Delete entry removes from ranking
-- [ ] Delete entry attempts notification email
-
-## Email/receipt
-- [ ] New entry email has readable formatting
-- [ ] No visible raw literal `\n` blob in main email template
-- [ ] Podium appears in receipt/email
+## Required
+- [ ] `abc` email blocks
+- [ ] `abc@` blocks
+- [ ] `REDACTED_EMAIL` saves
+- [ ] `22 x 2` blocks
+- [ ] `21 x 0` blocks
+- [ ] `10 x 0` warns
+- [ ] `2 x 1` cannot advance loser
+- [ ] `1 x 1` requires advance/winner
+- [ ] Save creates receipt
+- [ ] Receipt opens
+- [ ] Email template uses only `{{{html_message}}}`
+- [ ] CSV backup opens as multiple rows
+- [ ] Admin login/logout
+- [ ] Admin delete entry
+- [ ] Admin real result validation
+- [ ] Language switch updates pages
+- [ ] Mobile scroll works after receipt

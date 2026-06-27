@@ -2,369 +2,91 @@
 <html lang="pt-BR">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="robots" content="noindex,nofollow" />
   <meta name="description" content="Bolão Copa 2026 entre amigos com palpites, ranking, comprovantes e administração." />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.emailjs.com https://gamma-api.polymarket.com https://api.ipify.org; form-action 'self'; base-uri 'self'; frame-ancestors 'none';" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://api.emailjs.com 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' https://api.emailjs.com https://gamma-api.polymarket.com; base-uri 'self'; frame-ancestors 'none';" />
   <title>Bolão do Ferrari - Copa 2026</title>
   <link rel="stylesheet" href="css/styles.css" />
-</head>
-<body>
-  <div class="app-shell">
-    <aside class="sidebar">
-      <div class="brand">
-        <div class="trophy">🏆</div>
-        <div>
-          <h1>Bolão do Ferrari</h1>
-          <p><span data-i18n="appSubtitle">Copa do Mundo 2026</span></p>
-        </div>
-      </div>
-
-      <div class="welcome-card">
-        <div class="avatar">👤</div>
-        <div>
-          <b>Bem-vindo!</b>
-          <span>Faça sua entrada e acompanhe o ranking.</span>
-        </div>
-      </div>
-
-      <nav class="side-nav">
-        <button class="nav-link active" data-tab="entry">⚽ <span data-i18n="navPicks">Palpites</span></button>
-        <button class="nav-link" data-tab="ranking">🏆 <span data-i18n="navRanking">Ranking</span></button>
-        <button class="nav-link" data-tab="participants">👥 <span data-i18n="navParticipants">Participantes</span></button>
-        <button class="nav-link" data-tab="payment">💵 <span data-i18n="navPayment">Pagamento</span></button>
-        <button class="nav-link" data-tab="games">📅 <span data-i18n="navGames">Jogos</span></button>
-        <button class="nav-link" data-tab="rules">📋 <span data-i18n="navRules">Regras</span></button>
-        <button class="nav-link" data-tab="admin">🔒 <span data-i18n="navAdmin">Admin</span></button>
-      </nav>
-
-      <div class="countdown-card">
-        <span>Fim das apostas</span>
-        <div class="countdown">
-          <b>--</b><small>dias</small>
-          <b>--</b><small>hrs</small>
-          <b>--</b><small>min</small>
-        </div>
-        <p id="cutoffLabel">Cutoff oficial: 1 hora antes do primeiro jogo do mata-mata.</p>
-      </div>
-    </aside>
-
-    <div class="main-area">
-      <header class="topbar">
-        <div class="mobile-brand">
-          <b>🏆 Bolão do Ferrari</b>
-          <span>Copa 2026</span>
-        </div>
-        <div class="lang-switch">
-          <label for="languageSelect">🌐</label>
-          <select id="languageSelect" aria-label="Language">
-            <option value="pt-BR">Português BR</option>
-            <option value="es">Español</option>
-            <option value="en-US">English</option>
-          </select>
-        </div>
-        <a id="supportWhatsappBtn" class="support-whatsapp" href="https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t" target="_blank" rel="noopener" title="Suporte no WhatsApp"><img src="assets/whatsapp.svg" alt=""> <span data-i18n="supportWhatsApp">WhatsApp</span></a>
-        <nav class="top-nav">
-          <button class="top-link active" data-tab="entry">Palpites</button>
-          <button class="top-link" data-tab="ranking">Ranking</button>
-          <button class="top-link" data-tab="payment">Pagamento</button>
-          <button class="top-link" data-tab="rules">Regras</button>
-        </nav>
-      </header>
-
-      <main>
-        <section id="entry" class="panel active">
-          <div class="hero-card">
-            <div>
-              <p class="eyebrow" data-i18n="heroEyebrow">Faça sua aposta</p>
-              <h2 data-i18n="heroTitle">Preencha seu bracket e participe do bolão!</h2>
-              <p data-i18n="heroText">Palpites, diversão e rivalidade. Mostre que você entende de futebol.</p>
-            </div>
-            <div class="stats-row">
-              <div class="stat"><span><span data-i18n="participantsStat">Participantes</span><b id="statParticipants">0</b></div>
-              <div class="stat"><span data-i18n="entryStat">Entrada</span><b>US$ 5</b></div>
-              <div class="stat"><span data-i18n="firstPlaceStat">1º lugar</span><b>70%</b></div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h2 data-i18n="entryTitle">Nova entrada</h2>
-            <p class="muted"><span data-i18n="entryHelp">Os dados desta versão ficam salvos no navegador. Faça backup CSV/JSON no Admin.</span></p>
-
-            <div class="grid2">
-              <label><span data-i18n="entryName">Nome da entrada</span>
-                <input id="entryName" placeholder="Ex: Eduardo #1, Gabriel, Nicole" data-i18n-placeholder="entryNamePlaceholder" />
-              </label>
-              <label><span data-i18n="payerName">Responsável pelo pagamento</span>
-                <input id="payerName" placeholder="Nome de quem paga os US$ 5" data-i18n-placeholder="payerNamePlaceholder" />
-              </label>
-            </div>
-            <div style="margin-top:12px">
-              <label><span data-i18n="emailLabel">E-mail para comprovante</span> <span class="muted">(opcional nesta versão)</span>
-                <input id="participantEmail" type="email" placeholder="nome@email.com" data-i18n-placeholder="emailPlaceholder" />
-              </label>
-            </div>
-
-            <div class="grid2" style="margin-top:12px">
-              <label><span data-i18n="paymentMethod">Método de pagamento</span>
-                <select id="paymentMethod">
-                  <option value="" data-i18n="selectOption">Selecione</option>
-                  <option value="CashApp">CashApp</option>
-                  <option value="Zelle">Zelle</option>
-                  <option value="PayPal">PayPal</option>
-                  <option value="Venmo">Venmo</option>
-                </select>
-              </label>
-              <label><span data-i18n="valueLabel">Valor</span>
-                <input value="US$ 5 por entrada" data-i18n-value="amountValue" disabled />
-              </label>
-            </div>
-
-            <div id="paymentBox" class="payment-box"></div>
-            <div id="simulatorHelpCard" class="simulator-help">
-              <details>
-                <summary>Como funcionam os simuladores?</summary>
-                <div class="sim-grid">
-                  <div>
-                    <h4>⚡ Simulador automático</h4>
-                    <p>Tenta usar probabilidades por jogo do Polymarket quando encontra um mercado compatível para aquela partida. Se não encontrar, usa um modelo local simples de força estimada dos times. Ele sorteia o vencedor respeitando a probabilidade, então duas simulações podem sair diferentes.</p>
-                  </div>
-                  <div>
-                    <h4>🎲 Simulador maluco</h4>
-                    <p>Preenche palpites de forma quase aleatória, para quem quer brincar ou não quer pensar muito. Não usa estatística séria e pode gerar resultados improváveis.</p>
-                  </div>
-                </div>
-                <p class="muted small"><b>Aviso:</b> simulação é entretenimento, não recomendação de aposta. Probabilidades podem estar incompletas, desatualizadas, mal mapeadas ou indisponíveis.</p>
-              </details>
-            </div>
-
-            <div id="diagnosticsNotice" class="diagnostics-notice">
-              <b data-i18n="diagnosticsTitle">Diagnóstico técnico:</b> <span data-i18n="diagnosticsText">para ajudar em suporte e auditoria, esta versão registra metadados como IP público, dispositivo, navegador, timezone e horário de envio junto com a entrada.</span>
-            </div>
-
-            <div class="button-row">
-              <button id="smartPick" class="secondary" type="button"><span data-i18n="simulateSmart">⚡ Simular palpites automaticamente</span></button>
-              <button id="randomPick" class="secondary" type="button"><span data-i18n="simulateRandom">🎲 Simular maluco</span></button>
-            </div>
-            <p class="muted small"><span data-i18n="autoFillReview">A simulação é só para preencher rápido. Revise antes de salvar.</span></p>
-            <div class="simulation-disclaimer" id="simulationDisclaimer"></div>
-          </div>
-
-          <div class="card info-card">
-            <h3 data-i18n="futureGamesTitle">Como preencher os jogos futuros</h3>
-            <p><b>Exemplo:</b> se no Match 73 você colocou Brasil para passar, uma fase futura pode aparecer como “Vencedor Match 73”. Se na vida real outro time passar no lugar, esse time herda a vaga. Seu palpite futuro continua valendo para aquela posição do bracket.</p>
-            <p><b>Placar válido:</b> 90 minutos + prorrogação. Pênaltis não entram no placar.</p>
-          </div>
-
-          <form id="bracketForm"></form>
-
-          <div id="latestReceiptBox" class="card receipt-ready" style="display:none"></div>
-          <div class="sticky-submit">
-            <button id="saveEntry" class="primary full"><span data-i18n="saveEntry">Salvar entrada de teste</span></button>
-          </div>
-        </section>
-
-        <section id="payment" class="panel">
-          <div class="page-title">
-            <h2 data-i18n="paymentTitle">Pagamento da aposta</h2>
-            <p><span data-i18n="paymentSubtitle">Valor da aposta: US$ 5,00 por entrada</span></p>
-          </div>
-
-          <div class="card whatsapp-card">
-            <div class="section-icon">💬</div>
-            <h2 data-i18n="whatsappTitle">Entre no grupo do WhatsApp</h2>
-            <p class="muted"><span data-i18n="whatsappText">Fique por dentro de avisos, atualizações e resultados.</span></p>
-
-            <div class="whatsapp-grid">
-              <img class="qr-image large" src="assets/whatsapp-group-qr.png" alt="QR Code do grupo de WhatsApp" />
-              <div>
-                <h3>Escaneie o QR Code com a câmera do WhatsApp</h3>
-                <ul class="check-list">
-                  <li>Abra o WhatsApp no celular</li>
-                  <li>Vá em Câmera</li>
-                  <li>Aponte para o QR Code</li>
-                  <li>Clique em “Entrar no grupo”</li>
-                </ul>
-                <a class="pay-button whatsapp-button" href="https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t" target="_blank" rel="noopener">Entrar no grupo</a>
-                <button class="secondary" type="button" onclick="copyText('https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t')">Copiar link do grupo</button>
-                <p class="link-line">https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t</p>
-              </div>
-            </div>
-          </div>
-
-          <div class="card">
-            <h2 data-i18n="paymentOptions">Escolha como pagar</h2>
-            <p class="muted"><span data-i18n="paymentHelp">Após realizar o pagamento, marque como pago na sua entrada. O admin confirmará depois.</span></p>
-            <div class="payment-grid">
-              <div class="payment-card cash">
-                <img class="pay-logo" src="assets/cashapp.svg" alt="Cash App">
-                <h3>Cash App</h3>
-                <p>$EduardoFerrari</p>
-                <a class="pay-button" href="https://cash.app/$EduardoFerrari" target="_blank" rel="noopener">Abrir Cash App</a>
-                <button class="secondary" onclick="copyText('$EduardoFerrari')">Copiar $EduardoFerrari</button>
-              </div>
-              <div class="payment-card zelle">
-                <img class="pay-logo" src="assets/zelle.svg" alt="Zelle">
-                <h3>Zelle</h3>
-                <p>914-406-5027</p>
-                <button class="pay-button purple" onclick="copyText('914-406-5027')">Copiar telefone</button>
-                <p class="small"><b>Importante:</b> use Zelle pelo app do banco.</p>
-              </div>
-              <div class="payment-card paypal">
-                <img class="pay-logo" src="assets/paypal.svg" alt="PayPal">
-                <h3>PayPal</h3>
-                <p>emferrari@gmail.com</p>
-                <button class="pay-button blue" onclick="copyText('emferrari@gmail.com')">Copiar e-mail</button>
-                <p class="small"><b>Importante:</b> escolha Friends & Family.</p>
-              </div>
-              <div class="payment-card venmo">
-                <img class="pay-logo" src="assets/venmo.svg" alt="Venmo">
-                <h3>Venmo</h3>
-                <p>Eduardo-Ferrari</p>
-                <a class="pay-button blue" href="https://venmo.com/u/Eduardo-Ferrari" target="_blank" rel="noopener">Abrir Venmo</a>
-                <button class="secondary" onclick="copyText('Eduardo-Ferrari')">Copiar @Eduardo-Ferrari</button>
-              </div>
-            </div>
-          </div>
-
-          <div class="card tips-card">
-            <h2 data-i18n="tipsTitle">Dicas importantes</h2>
-            <ul class="check-list">
-              <li>Valor da aposta: US$ 5,00 por entrada</li>
-              <li>Cada pessoa pode criar múltiplas entradas</li>
-              <li>Guarde seu comprovante de pagamento</li>
-              <li>Dúvidas? Fale no grupo do WhatsApp</li>
-            </ul>
-          </div>
-        </section>
-
-        <section id="ranking" class="panel">
-          <div class="card row-between">
-            <div>
-              <h2 data-i18n="rankingTitle">Ranking</h2>
-              <p class="muted"><span data-i18n="rankingSubtitle">Calculado com base nos resultados lançados no Admin.</span></p>
-            </div>
-            <div class="pot"><span>Pot</span><strong id="potValue">$0</strong></div>
-          </div>
-          <div id="rankingList"></div>
-          <div id="receiptsList" class="card"></div>
-        </section>
-
-        <section id="participants" class="panel">
-          <div class="card">
-            <h2>Participantes</h2>
-            <p class="muted">Lista das entradas registradas neste navegador.</p>
-            <div id="participantsList"></div>
-          </div>
-        </section>
-
-        <section id="games" class="panel">
-          <div class="card">
-            <h2 data-i18n="gamesTitle">Jogos e resultados atuais</h2>
-            <p class="muted" id="updatedLabel"></p>
-          </div>
-          <div id="gamesList"></div>
-        </section>
-
-        <section id="rules" class="panel">
-          <div class="card">
-            <h2 data-i18n="rulesTitle">Regras simples</h2>
-            <ul class="rules">
-              <li>US$ 5 por entrada.</li>
-              <li>Pode fazer várias entradas.</li>
-              <li>Crianças podem participar.</li>
-              <li>Preencha o placar de todos os jogos considerando 90 minutos + prorrogação.</li>
-              <li>Quem avança só precisa ser escolhido se o jogo terminar empatado.</li>
-              <li>Depois do cutoff, não altera.</li>
-            </ul>
-          </div>
-          <div class="card">
-            <h2>Pontuação por jogo</h2>
-            <table>
-              <tr><th>Situação</th><th>Pontos</th></tr>
-              <tr><td>Placar exato</td><td>+10</td></tr>
-              <tr><td>Quem avança/ganha</td><td>+5</td></tr>
-              <tr><td>Acertou gols de um time, sem placar exato</td><td>+1 por time</td></tr>
-              <tr><td>Máximo por jogo</td><td>15</td></tr>
-            </table>
-          </div>
-          <div class="card">
-            <h2>Bônus finais</h2>
-            <table>
-              <tr><th>Acerto</th><th>Pontos extras</th></tr>
-              <tr><td>Campeão exato</td><td>+25</td></tr>
-              <tr><td>Vice exato</td><td>+15</td></tr>
-              <tr><td>3º lugar exato</td><td>+10</td></tr>
-              <tr><td>4º lugar exato</td><td>+5</td></tr>
-            </table>
-          </div>
-          <div class="card">
-            <h2>Premiação</h2>
-            <p>🥇 1º lugar: 70% &nbsp; 🥈 2º lugar: 20% &nbsp; 🥉 3º lugar: 10%</p>
-          </div>
-        </section>
-
-        <section id="admin" class="panel">
-          <div id="adminLogin" class="card">
-            <h2 data-i18n="adminTitle">Admin</h2>
-            <p class="muted"><span data-i18n="adminHelp">Área protegida para lançar resultados e confirmar pagamentos.</span></p>
-            <label><span data-i18n="adminPassword">Senha do admin</span>
-              <input id="adminPassword" type="password" placeholder="Digite a senha" />
-            </label>
-            <button id="adminLoginBtn" class="primary full" style="margin-top:12px"><span data-i18n="adminEnter">Entrar no admin</span></button>
-            <p class="muted small">Senha de teste definida via hash SHA-256. Ainda assim, por ser GitHub Pages estático, isto é apenas proteção visual. Para segurança real, usar Firebase/Supabase Auth.</p>
-          </div>
-          <div id="adminArea" style="display:none">
-            <div class="admin-toolbar">
-              <span data-i18n="adminActive">🔒 Admin ativo</span>
-              <button id="adminLogoutBtn" class="secondary" type="button" data-i18n="logout">Logout</button>
-            </div>
-            <div class="card">
-              <h2>Admin do teste</h2>
-              <p class="muted">Aqui você simula resultados reais e pagamentos.</p>
-              <div class="button-row">
-                <button id="loadDemo" class="secondary">Criar 3 entradas demo</button>
-                <button id="clearAll" class="danger">Limpar teste</button>
-              </div>
-            </div>
-            <div class="card data-card">
-              <h2 data-i18n="dataTitle">Dados e transparência</h2>
-              <p class="muted" data-i18n="dataText">Esta versão usa localStorage. Para operação oficial, exporte backups e publique uma master list após o cutoff.</p>
-              <div class="button-row">
-                <button class="secondary" onclick="downloadBackupCsv()" data-i18n="backupCsv">Baixar backup CSV</button>
-                <button class="secondary" onclick="downloadBackupJson()" data-i18n="backupJson">Baixar backup JSON</button>
-                <button class="secondary" onclick="downloadMasterCsv()" data-i18n="masterCsv">Baixar master list CSV</button>
-                <button class="secondary" onclick="openMasterList()" data-i18n="masterHtml">Abrir master list</button>
-              </div>
-              <div class="simulation-disclaimer">
-                <b data-i18n="legalTitle">Disclaimer legal e operacional</b><br>
-                <span data-i18n="legalText">Este é um bolão informal entre amigos. O comprovante e a master list ajudam a prevenir dúvidas, erros e manipulação. Em caso de problema técnico, o backup exportado pelo administrador e os comprovantes individuais serão usados como referência.</span>
-              </div>
-            </div>
-            <div class="card data-card">
-              <h2>Fontes externas e diagnóstico</h2>
-              <p class="muted">Use isto para testar se o navegador consegue consultar IP público, Polymarket e futura API de resultados.</p>
-              <div class="button-row">
-                <button class="secondary" onclick="checkDiagnosticsConnection()">Testar IP/diagnóstico</button>
-                <button class="secondary" onclick="checkPolymarketConnection()">Testar Polymarket</button>
-                <button class="secondary" onclick="checkResultsApiConnection()">Testar API de resultados</button>
-              </div>
-              <pre id="externalDataStatus" class="status-console">Nenhum teste executado ainda.</pre>
-            </div>
-            <div id="adminReceipts" class="card"></div>
-            <div id="paymentsAdmin" class="card"></div>
-            <div id="resultsAdmin" class="card"></div>
-          </div>
-        </section>
-      </main>
-
-      <footer>Bolão do Ferrari - Copa do Mundo 2026 <span>Que vença o melhor! ⚽🏆</span></footer>
-    </div>
-  </div>
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <script src="js/config.js"></script>
-  <script src="js/i18n.js"></script>
   <script src="js/data.js"></script>
-  <script src="js/app.js"></script>
+  <script src="js/i18n.js"></script>
+  <script defer src="js/app.js"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">🏆 <strong>Bolão do Ferrari</strong><span>Copa 2026</span></div>
+    <a id="supportWhatsappBtn" class="whatsapp" target="_blank" rel="noopener"><img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span></a>
+    <select id="languageSelect" aria-label="Language">
+      <option value="pt-BR">Português BR</option><option value="es">Español</option><option value="en-US">English</option>
+    </select>
+    <nav class="nav">
+      <button data-section="entry" data-i18n="navPicks">Palpites</button>
+      <button data-section="ranking" data-i18n="navRanking">Ranking</button>
+      <button data-section="participants" data-i18n="navParticipants">Participantes</button>
+      <button data-section="payment" data-i18n="navPayment">Pagamento</button>
+      <button data-section="games" data-i18n="navGames">Jogos</button>
+      <button data-section="rules" data-i18n="navRules">Regras</button>
+      <button data-section="admin" data-i18n="navAdmin">Admin</button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero card">
+      <div>
+        <div class="eyebrow" data-i18n="heroEyebrow">Bolão Copa 2026</div>
+        <h1 data-i18n="heroTitle">Preencha seu bracket e participe.</h1>
+        <p data-i18n="heroText">Valor: US$ 5 por entrada.</p>
+        <p class="warning" data-i18n="browserWarning">Atenção: dados ficam neste navegador.</p>
+      </div>
+      <div class="count-card"><div id="countdown"></div><small id="cutoffLabel"></small></div>
+    </section>
+
+    <section id="entry" class="page active">
+      <div class="card">
+        <h2 data-i18n="entryTitle">Nova entrada</h2>
+        <div class="form-grid">
+          <label><span data-i18n="entryName">Nome da entrada</span><input id="entryName" autocomplete="name" placeholder="Eduardo #1"></label>
+          <label><span data-i18n="payerName">Responsável pelo pagamento</span><input id="payerName" autocomplete="name" placeholder="Eduardo"></label>
+          <label><span data-i18n="emailLabel">E-mail para comprovante</span><input id="participantEmail" type="email" autocomplete="email" placeholder="nome@email.com" required></label>
+          <label><span data-i18n="paymentMethod">Método de pagamento</span><select id="paymentMethod"><option value="" data-i18n="selectOption">Selecione</option><option>CashApp</option><option>Zelle</option><option>PayPal</option><option>Venmo</option></select></label>
+          <label><span data-i18n="amount">Valor</span><input value="US$ 5 por entrada" disabled></label>
+        </div>
+        <div id="paymentBox" class="payment-box"></div>
+      </div>
+
+      <div class="card simulator">
+        <h3 data-i18n="simulatorTitle">Como funcionam os simuladores?</h3>
+        <p><b data-i18n="simulateSmart">⚡ Simular automático</b>: <span data-i18n="autoSimulatorText"></span></p>
+        <p><b data-i18n="simulateRandom">🎲 Simular maluco</b>: <span data-i18n="randomSimulatorText"></span></p>
+        <div class="button-row">
+          <button id="smartPick" type="button" data-i18n="simulateSmart">⚡ Simular automático</button>
+          <button id="randomPick" type="button" class="secondary" data-i18n="simulateRandom">🎲 Simular maluco</button>
+        </div>
+      </div>
+
+      <div class="progress card"><div><strong id="progressText">0/0</strong></div><div class="bar"><span id="progressBar"></span></div></div>
+      <form id="bracketForm" class="bracket"></form>
+      <div class="sticky-submit"><button id="saveEntry" type="button" data-i18n="saveEntry">Salvar entrada</button></div>
+      <div id="latestReceiptBox" class="card receipt-ready hidden"></div>
+    </section>
+
+    <section id="ranking" class="page"><div class="section-head"><h2 data-i18n="rankingTitle">Ranking</h2><p data-i18n="rankingSubtitle">Clique em uma entrada para ver os palpites.</p></div><div id="rankingList"></div></section>
+    <section id="participants" class="page"><div class="section-head"><h2 data-i18n="navParticipants">Participantes</h2></div><div id="participantsList"></div></section>
+    <section id="payment" class="page"><div class="section-head"><h2 data-i18n="paymentTitle">Pagamento</h2><p data-i18n="paymentSubtitle">US$ 5 por entrada.</p></div><div id="paymentMethods" class="pay-grid"></div></section>
+    <section id="games" class="page"><div class="section-head"><h2 data-i18n="gamesTitle">Jogos e resultados</h2></div><div id="gamesList"></div></section>
+    <section id="rules" class="page"><div class="card"><h2 data-i18n="rulesTitle">Regras simples</h2><ul><li>Placar válido: 90 minutos + prorrogação.</li><li>Pênaltis não entram no placar. Em empate, selecione quem ganha/avança.</li><li>Se o time real que avançar for diferente do seu bracket, ele herda a posição futura daquele jogo.</li><li>Bônus finais: campeão, vice, 3º e 4º lugar.</li></ul></div></section>
+    <section id="admin" class="page">
+      <div id="adminLogin" class="card"><h2 data-i18n="adminTitle">Admin</h2><label><span data-i18n="adminPassword">Senha</span><input id="adminPassword" type="password"></label><button id="adminLoginBtn" type="button" data-i18n="adminEnter">Entrar</button></div>
+      <div id="adminArea" class="hidden">
+        <div class="admin-toolbar card"><span data-i18n="adminActive">🔒 Admin ativo</span><button id="adminLogoutBtn" class="secondary" type="button" data-i18n="logout">Logout</button></div>
+        <div id="adminReceipts" class="card"></div>
+        <div id="paymentsAdmin" class="card"></div>
+        <div id="resultsAdmin" class="card"></div>
+        <div class="card"><h2>Backups</h2><div class="button-row"><button id="backupCsv" type="button">CSV</button><button id="backupJson" type="button">JSON</button><button id="masterCsv" type="button">Master CSV</button><button id="masterHtml" type="button">Master HTML</button><button id="clearData" type="button" class="danger">Limpar dados</button></div></div>
+      </div>
+    </section>
+  </main>
 </body>
 </html>

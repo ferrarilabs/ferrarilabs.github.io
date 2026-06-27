@@ -1,15 +1,9 @@
-# Deploy Instructions
+# Deploy v3.0
 
-Use `main` directly.
-
-1. Download and unzip this package.
-2. In GitHub Desktop, switch to `main`.
-3. Fetch/Pull origin.
-4. In Finder, delete old `bolao-teste`.
-5. Copy the new `bolao-teste` into the repo.
-6. Confirm GitHub Desktop shows only `bolao-teste/...`.
-7. Discard `.DS_Store` if it appears.
-8. Commit: `Stabilize bolao v2`.
-9. Push origin.
-10. Wait 2–5 minutes.
-11. Test: https://ferrarilabs.github.io/bolao-teste/
+1. Switch to `main` in GitHub Desktop.
+2. Delete the old `bolao-teste` folder.
+3. Copy this new `bolao-teste` folder.
+4. Confirm all changed files are under `bolao-teste/...`.
+5. Commit: `Release bolao v3 clean`
+6. Push.
+7. Test: https://ferrarilabs.github.io/bolao-teste/

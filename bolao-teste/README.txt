@@ -1,24 +1,10 @@
-# Bolão do Ferrari — v2.0 Stabilization
+Bolão do Ferrari — v3.0 Clean
 
-## Fixes
-- Email validation before saving.
-- Admin logout.
-- Admin delete entry.
-- Delete entry attempts participant notification email.
-- Removed broken PDF download flow; now opens receipt for browser save/print.
-- Score validation for impossible winner/advance combinations.
-- Alerts unusual scores and repetitive score patterns.
-- CashApp fixed to `$EduardoFerrari`.
-- Podium highlight remains in receipt/email.
-- QA checklist and deploy docs included.
+Use docs/DEPLOY.md and docs/QA_CHECKLIST.md.
 
-## Deploy
-Use `docs/DEPLOY.md`.
+Admin test password: not written in source comments. Ask Eduardo.
+EmailJS template body should contain only:
 
-## Important
-This is still static GitHub Pages + localStorage. Good for friend testing. For production use, migrate to Firebase/Supabase.
+{{{html_message}}}
 
-
-## v2.1 Audit Fixes
-
-See `docs/FIX_LOG_v2_1.md` and `docs/QA_CHECKLIST_v2_1.md`.
+This version is a clean rebuild, not a patch of unstable v2.2.
