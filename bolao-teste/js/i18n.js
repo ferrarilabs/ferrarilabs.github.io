@@ -396,3 +396,103 @@ Object.assign(window.BOLAO_I18N["en-US"], {
     Object.assign(window.BOLAO_I18N[lang], extra[lang]);
   }
 })();
+
+
+(function(){
+  const extra = {
+    "pt-BR": {
+      configMissing:"Configuração do sistema não carregou. Recarregue a página.",
+      invalidEmail:"Digite um e-mail válido. Exemplo: nome@email.com",
+      requiredEntryName:"Digite o nome da entrada.",
+      requiredPayerName:"Digite o responsável pelo pagamento.",
+      requiredPaymentMethod:"Selecione o método de pagamento.",
+      missingScore:"Faltou preencher o placar.",
+      invalidScore:"Os placares precisam ser números inteiros entre 0 e 20.",
+      inconsistentAdvance:"Quando o placar tem vencedor, quem avança precisa ser o time vencedor.",
+      tieNeedsAdvance:"Quando o placar está empatado, selecione quem avança.",
+      crazyScoreWarning:"⚠️ Esse placar é muito incomum. Verifique se não foi erro de digitação.",
+      repetitiveWarning:"⚠️ Muitos jogos estão com o mesmo placar. Confira se não foi preenchimento por engano.",
+      keepScore:"Sim, manter este placar",
+      saveInProgress:"Salvando...",
+      savedOk:"Entrada salva. Guarde seu comprovante.",
+      logoutConfirm:"Sair do modo administrador?",
+      logoutDone:"Logout realizado.",
+      adminWrongPassword:"Senha incorreta.",
+      adminLocked:"Admin bloqueado temporariamente. Tente novamente mais tarde.",
+      receiptPopupBlocked:"O navegador bloqueou a nova aba. Permita pop-ups ou use Baixar HTML.",
+      receiptOpenPdf:"Abrir comprovante / salvar PDF",
+      paymentPaid:"Pago",
+      paymentPending:"Pendente",
+      phaseR32:"Round of 32 / 16 avos",
+      phaseR16:"Oitavas",
+      phaseQF:"Quartas",
+      phaseSF:"Semifinais",
+      phaseThird:"3º lugar",
+      phaseFinal:"Final"
+    },
+    "es": {
+      configMissing:"La configuración del sistema no cargó. Recarga la página.",
+      invalidEmail:"Escribe un e-mail válido. Ejemplo: nombre@email.com",
+      requiredEntryName:"Escribe el nombre de la entrada.",
+      requiredPayerName:"Escribe el responsable del pago.",
+      requiredPaymentMethod:"Selecciona el método de pago.",
+      missingScore:"Falta completar el marcador.",
+      invalidScore:"Los marcadores deben ser números enteros entre 0 y 20.",
+      inconsistentAdvance:"Cuando hay ganador, el equipo que avanza debe ser el ganador.",
+      tieNeedsAdvance:"Cuando hay empate, selecciona quién avanza.",
+      crazyScoreWarning:"⚠️ Este marcador es muy inusual. Revisa si no fue un error.",
+      repetitiveWarning:"⚠️ Muchos partidos tienen el mismo marcador. Revisa antes de enviar.",
+      keepScore:"Sí, mantener marcador",
+      saveInProgress:"Guardando...",
+      savedOk:"Entrada guardada. Guarda tu comprobante.",
+      logoutConfirm:"¿Salir del modo administrador?",
+      logoutDone:"Sesión admin cerrada.",
+      adminWrongPassword:"Contraseña incorrecta.",
+      adminLocked:"Admin bloqueado temporalmente. Intenta más tarde.",
+      receiptPopupBlocked:"El navegador bloqueó la nueva pestaña. Permite pop-ups o usa Descargar HTML.",
+      receiptOpenPdf:"Abrir comprobante / guardar PDF",
+      paymentPaid:"Pagado",
+      paymentPending:"Pendiente",
+      phaseR32:"Dieciseisavos",
+      phaseR16:"Octavos",
+      phaseQF:"Cuartos",
+      phaseSF:"Semifinales",
+      phaseThird:"3º lugar",
+      phaseFinal:"Final"
+    },
+    "en-US": {
+      configMissing:"System configuration did not load. Refresh the page.",
+      invalidEmail:"Enter a valid email. Example: name@email.com",
+      requiredEntryName:"Enter the entry name.",
+      requiredPayerName:"Enter the payment responsible person.",
+      requiredPaymentMethod:"Select the payment method.",
+      missingScore:"A match score is missing.",
+      invalidScore:"Scores must be whole numbers from 0 to 20.",
+      inconsistentAdvance:"When the score has a winner, the advancing team must be the winner.",
+      tieNeedsAdvance:"When the score is tied, select who advances.",
+      crazyScoreWarning:"⚠️ This score is very unusual. Check if this was a typo.",
+      repetitiveWarning:"⚠️ Many matches have the same score. Please review before submitting.",
+      keepScore:"Yes, keep this score",
+      saveInProgress:"Saving...",
+      savedOk:"Entry saved. Keep your receipt.",
+      logoutConfirm:"Leave administrator mode?",
+      logoutDone:"Admin logged out.",
+      adminWrongPassword:"Incorrect password.",
+      adminLocked:"Admin temporarily locked. Try again later.",
+      receiptPopupBlocked:"The browser blocked the new tab. Allow pop-ups or use Download HTML.",
+      receiptOpenPdf:"Open receipt / save PDF",
+      paymentPaid:"Paid",
+      paymentPending:"Pending",
+      phaseR32:"Round of 32",
+      phaseR16:"Round of 16",
+      phaseQF:"Quarterfinals",
+      phaseSF:"Semifinals",
+      phaseThird:"3rd place",
+      phaseFinal:"Final"
+    }
+  };
+  for (const lang of Object.keys(extra)) {
+    window.BOLAO_I18N[lang] = window.BOLAO_I18N[lang] || {};
+    Object.assign(window.BOLAO_I18N[lang], extra[lang]);
+  }
+})();

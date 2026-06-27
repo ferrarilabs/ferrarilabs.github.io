@@ -1,11 +1,10 @@
 window.BOLAO_CONFIG = {
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
-  siteVersion: "v1.3-test",
+  siteVersion: "v2.1-audit-fixes",
   entryFee: 5,
 
   // Admin: static-site protection only.
-  // Password for the test: bolao2026
   adminPasswordHash: "a6b9c87326e39cd10daad4de218019396d46e3ab2d89822b926274613138dee6",
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
@@ -66,7 +65,8 @@ window.BOLAO_CONFIG = {
     publicKey: "GBZFujsJBET6modve",
     serviceId: "service_o4hyzxr",
     participantTemplateId: "template_xq7yzzb",
-    adminTemplateId: "template_4sgp5r9"
+    adminTemplateId: "template_4sgp5r9",
+    limitRateMs: 30000
   },
 
   simulationSource: "Modelo local com pesos estimados inspirado em força histórica/mercado. Integração Polymarket preparada para versão futura.",

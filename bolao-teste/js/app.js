@@ -4,9 +4,10 @@ const $ = sel => document.querySelector(sel);
 const $$ = sel => Array.from(document.querySelectorAll(sel));
 const storeKey = "bolao2026_test_v6";
 const CONFIG = window.BOLAO_CONFIG || {};
-const ADMIN_PASS_HASH = CONFIG.adminPasswordHash || "b4d9fbb1663d6f71b81a50734bb768558944bf7d2139e4eef5715c3971d25505";
+const ADMIN_PASS_HASH = CONFIG && CONFIG.adminPasswordHash;
 const ADMIN_LOCK_KEY = "bolaoAdminLockUntil";
 const ADMIN_ATTEMPTS_KEY = "bolaoAdminAttempts";
+if (!ADMIN_PASS_HASH) console.error("Admin password hash missing. CONFIG did not load correctly.");
 
 
 function escapeHtml(value) {
@@ -107,12 +108,12 @@ function saveState(s) {
 
 function phaseLabel(p) {
   const map = {
-    "Round of 32": "Round of 32 / 16 avos",
-    "Round of 16": "Oitavas",
-    "Quarterfinal": "Quartas",
-    "Semifinal": "Semifinais",
-    "3rd Place": "3º lugar",
-    "Final": "Final"
+    "Round of 32": t("phaseR32"),
+    "Round of 16": t("phaseR16"),
+    "Quarterfinal": t("phaseQF"),
+    "Semifinal": t("phaseSF"),
+    "3rd Place": t("phaseThird"),
+    "Final": t("phaseFinal")
   };
   return map[p] || p;
 }
@@ -178,7 +179,7 @@ function updateAdvanceControlForCard(card) {
     select.disabled = true;
     select.value = autoSide;
     const team = autoSide === "A" ? currentA : currentB;
-    if (help) help.innerHTML = `<span class="auto-advance">Avanço automático:</span> ${flag(team)} ${team} avança porque venceu no placar informado.`;
+    if (help) help.innerHTML = `<span class="auto-advance">Avanço automático:</span> ${flag(team)} ${escapeHtml(team)} avança porque venceu no placar informado.`;
   } else {
     select.disabled = false;
     if (select.value !== "A" && select.value !== "B") select.value = "";
@@ -288,7 +289,7 @@ function updateDynamicBracketLabels() {
     if (select) setSelectOptions(select, currentA, currentB, "Selecione");
 
     if (note && (currentA !== m.teamA || currentB !== m.teamB)) {
-      note.innerHTML = `Sua previsão atual para este jogo: <span class="team-chip">${flag(currentA)} ${currentA}</span> x <span class="team-chip">${flag(currentB)} ${currentB}</span>. O palpite vale para a <b>posição do bracket</b>. Se outro time avançar na vida real, ele herda esta vaga.`;
+      note.innerHTML = `Sua previsão atual para este jogo: <span class="team-chip">${flag(currentA)} ${escapeHtml(currentA)}</span> x <span class="team-chip">${flag(currentB)} ${escapeHtml(currentB)}</span>. O palpite vale para a <b>posição do bracket</b>. Se outro time avançar na vida real, ele herda esta vaga.`;
     } else if (note) {
       note.innerHTML = "Placar válido: <b>90 minutos + prorrogação</b>. Pênaltis não contam no placar.";
     }
@@ -298,14 +299,30 @@ function updateDynamicBracketLabels() {
 }
 
 
+
+function setupEmailJs() {
+  if (!window.emailjs || !CONFIG.emailjs || !CONFIG.emailjs.enabled) return;
+  if (CONFIG.emailjs.publicKey && emailjs.init) {
+    try {
+      emailjs.init({
+        publicKey: CONFIG.emailjs.publicKey,
+        limitRate: { throttle: CONFIG.emailjs.limitRateMs || 30000 }
+      });
+    } catch (err) {
+      console.warn("EmailJS init failed", err);
+    }
+  }
+}
+
 function adminLogout() {
-  if (!confirm("Sair do modo administrador?")) return;
+  if (!confirm(t("logoutConfirm"))) return;
   sessionStorage.removeItem("bolaoAdminOk");
+  sessionStorage.removeItem("bolaoAdminUntil");
   const area = $("#adminArea");
   const login = $("#adminLogin");
   if (area) area.style.display = "none";
   if (login) login.style.display = "block";
-  alert("Logout realizado.");
+  alert(t("logoutDone"));
 }
 
 function setupAdminLogout() {
@@ -317,7 +334,7 @@ function setupAdminLogin() {
   const btn = document.getElementById("adminLoginBtn");
   if (!btn) return;
 
-  if (sessionStorage.getItem("bolaoAdminOk") === "true") {
+  if (sessionStorage.getItem("bolaoAdminOk") === "true" && Number(sessionStorage.getItem("bolaoAdminUntil") || "0") > Date.now()) {
     document.getElementById("adminLogin").style.display = "none";
     document.getElementById("adminArea").style.display = "block";
   }
@@ -325,7 +342,7 @@ function setupAdminLogin() {
   btn.addEventListener("click", async () => {
     if (isAdminLocked()) {
       const waitMin = Math.ceil((getAdminLockUntil() - Date.now()) / 60000);
-      alert(`Admin bloqueado temporariamente. Tente novamente em ${waitMin} minuto(s).`);
+      alert(t("adminLocked"));
       return;
     }
 
@@ -335,11 +352,12 @@ function setupAdminLogin() {
     if (hash === ADMIN_PASS_HASH) {
       clearAdminAttempts();
       sessionStorage.setItem("bolaoAdminOk", "true");
+      sessionStorage.setItem("bolaoAdminUntil", String(Date.now() + 30 * 60 * 1000));
       document.getElementById("adminLogin").style.display = "none";
       document.getElementById("adminArea").style.display = "block";
     } else {
       recordFailedAdminAttempt();
-      alert("Senha incorreta.");
+      alert(t("adminWrongPassword"));
     }
   });
 }
@@ -560,7 +578,6 @@ function receiptFileName(entry, ext = "pdf") {
 
 async function downloadReceiptPdf(entryId) {
   openReceipt(entryId);
-  alert("O comprovante abriu em uma nova aba. Para salvar como PDF, use Compartilhar/Imprimir/Salvar como PDF no navegador.");
 }
 
 function renderLatestReceipt(entry) {
@@ -603,6 +620,10 @@ function openReceipt(entryId) {
   const entry = s.entries.find(e => e.id === entryId);
   if (!entry) return alert("Entrada não encontrada.");
   const w = window.open("", "_blank");
+  if (!w) {
+    alert(t("receiptPopupBlocked"));
+    return;
+  }
   w.document.open();
   w.document.write(buildReceiptHtml(entry));
   w.document.close();
@@ -1025,12 +1046,12 @@ function receiptPlainText(entry) {
   const resolved = resolvedTeamsForEntry(entry);
   const code = receiptCode(entry);
   const lines = [];
-  lines.push(`Comprovante do Bolão Copa 2026`);
-  lines.push(`============================`);
-  lines.push(`Entrada: ${escapeHtml(entry.entryName)}`);
-  lines.push(`Responsável: ${escapeHtml(entry.payerName)}`);
-  if (entry.participantEmail) lines.push(`E-mail: ${escapeHtml(entry.participantEmail)}`);
-  lines.push(`Pagamento: ${escapeHtml(entry.paymentMethod || "Não informado")} ${entry.paymentTo ? "- " + entry.paymentTo : ""}`);
+  lines.push("Comprovante do Bolão Copa 2026");
+  lines.push("============================");
+  lines.push(`Entrada: ${entry.entryName || ""}`);
+  lines.push(`Responsável: ${entry.payerName || ""}`);
+  if (entry.participantEmail) lines.push(`E-mail: ${entry.participantEmail}`);
+  lines.push(`Pagamento: ${entry.paymentMethod || "Não informado"} ${entry.paymentTo ? "- " + entry.paymentTo : ""}`);
   lines.push(`Enviado em: ${new Date(entry.createdAt).toLocaleString("pt-BR")}`);
   if (entry.diagnostics) {
     lines.push(`IP público: ${entry.diagnostics.publicIp || "não capturado"}`);
@@ -1046,7 +1067,7 @@ function receiptPlainText(entry) {
     if (!p) return;
     const r = resolved[m.match] || { displayA: p.displayA, displayB: p.displayB };
     const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
-    lines.push(`Match ${m.match}: ${escapeHtml(r.displayA)} ${p.goalsA} x ${p.goalsB} ${escapeHtml(r.displayB)} | Ganha/avança: ${escapeHtml(winner)}`);
+    lines.push(`Match ${m.match}: ${r.displayA} ${p.goalsA} x ${p.goalsB} ${r.displayB} | Ganha/avança: ${winner}`);
   });
   const podium = finalPodiumForEntry(entry);
   lines.push("");
@@ -1058,7 +1079,7 @@ function receiptPlainText(entry) {
   lines.push(`4º lugar: ${podium.fourth}`);
   lines.push("");
   lines.push("Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.");
-  return lines.join("\\n");
+  return lines.join("\n");
 }
 
 
@@ -1078,17 +1099,12 @@ async function sendReceiptEmail(entry, target) {
     return { ok: false, fallback: "mailto", reason: "EmailJS config incomplete." };
   }
 
+  const htmlMessage = buildReceiptHtml(entry);
   const params = {
     to_email: recipient,
     entry_name: entry.entryName,
-    payer_name: entry.payerName,
-    payment_method: entry.paymentMethod || "",
-    payment_to: entry.paymentTo || "",
     receipt_code: receiptCode(entry),
-    receipt_text: receiptPlainText(entry),
-    html_message: buildReceiptHtml(entry),
-      receipt_html: buildReceiptHtml(entry),
-      receipt_text_pretty: receiptPlainText(entry).replaceAll("\n", "<br>")
+    html_message: htmlMessage
   };
 
   try {
@@ -1159,8 +1175,8 @@ function renderBracketForm() {
       </div>
       <p class="dynamic-note" data-dynamic-note>Placar válido: <b>90 minutos + prorrogação</b>. Pênaltis não contam no placar.</p>
       <div class="score-inputs">
-        <label><span data-goals-a-label>Gols — ${m.teamA}</span><input type="number" min="0" step="1" data-match="${m.match}" data-field="goalsA" placeholder="0"></label>
-        <label><span data-goals-b-label>Gols — ${m.teamB}</span><input type="number" min="0" step="1" data-match="${m.match}" data-field="goalsB" placeholder="0"></label>
+        <label><span data-goals-a-label>Gols — ${m.teamA}</span><input type="number" min="0" max="20" step="1" inputmode="numeric" enterkeyhint="next" data-match="${m.match}" data-field="goalsA" placeholder="0"></label>
+        <label><span data-goals-b-label>Gols — ${m.teamB}</span><input type="number" min="0" max="20" step="1" inputmode="numeric" enterkeyhint="next" data-match="${m.match}" data-field="goalsB" placeholder="0"></label>
       </div>
       <label style="margin-top:10px">${getActionLabelForPhase(m.phase)} <span class="muted">(só se empatar)</span>
         <select data-match="${m.match}" data-field="advanceSide" disabled>
@@ -1298,7 +1314,87 @@ async function checkResultsApiConnection() {
 }
 
 
+
 function isValidEmail(email) {
+  const e = String(email || "").trim();
+  if (!e) return false;
+  if (/\s/.test(e)) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e);
+}
+
+function parseScoreValue(value) {
+  const text = String(value ?? "").trim();
+  if (!/^\d+$/.test(text)) return null;
+  const n = Number(text);
+  if (!Number.isInteger(n) || n < 0 || n > 20) return null;
+  return n;
+}
+
+function scoreWarningLevel(a, b) {
+  const max = Math.max(a, b);
+  const diff = Math.abs(a - b);
+  const total = a + b;
+  if (max >= 10 || diff >= 8 || total >= 12) return "extreme";
+  if (max >= 6 || diff >= 5 || total >= 9) return "unusual";
+  return "normal";
+}
+
+function pickWinnerSide(goalsA, goalsB) {
+  if (goalsA > goalsB) return "A";
+  if (goalsB > goalsA) return "B";
+  return "";
+}
+
+function validateScorePair(a, b) {
+  return Number.isInteger(a) && Number.isInteger(b) && a >= 0 && b >= 0 && a <= 20 && b <= 20;
+}
+
+function confirmUnusualScores(picks) {
+  const repeated = {};
+  let hasCrazy = false;
+  Object.values(picks).forEach(p => {
+    const key = `${p.goalsA}x${p.goalsB}`;
+    repeated[key] = (repeated[key] || 0) + 1;
+    if (scoreWarningLevel(p.goalsA, p.goalsB) !== "normal") hasCrazy = true;
+  });
+  const manyRepeated = Object.values(repeated).some(n => n >= 8);
+  if (hasCrazy && !confirm(`${t("crazyScoreWarning")}\n\n${t("keepScore")}?`)) return false;
+  if (manyRepeated && !confirm(`${t("repetitiveWarning")}\n\n${t("keepScore")}?`)) return false;
+  return true;
+}
+
+function validateEntryObject(entry) {
+  if (!entry) return "Entrada inválida.";
+  if (!entry.entryName) return t("requiredEntryName");
+  if (!entry.payerName) return t("requiredPayerName");
+  if (!entry.paymentMethod) return t("requiredPaymentMethod");
+  if (!isValidEmail(entry.participantEmail)) return t("invalidEmail");
+  for (const m of DATA.knockoutMatches) {
+    const p = entry.picks[m.match];
+    if (!p) return `${t("missingScore")} Match ${m.match}`;
+    if (!validateScorePair(p.goalsA, p.goalsB)) return `${t("invalidScore")} Match ${m.match}`;
+    const winnerSide = pickWinnerSide(p.goalsA, p.goalsB);
+    if (winnerSide && p.advanceSide !== winnerSide) return `${t("inconsistentAdvance")} Match ${m.match}`;
+    if (!winnerSide && !p.advanceSide) return `${t("tieNeedsAdvance")} Match ${m.match}`;
+  }
+  return "";
+}
+
+function validateRealResultsState(s) {
+  if (!s.results) return "";
+  for (const [matchId, r] of Object.entries(s.results)) {
+    if (r.goalsA === undefined || r.goalsB === undefined || r.goalsA === "" || r.goalsB === "") continue;
+    const a = Number(r.goalsA);
+    const b = Number(r.goalsB);
+    if (!validateScorePair(a, b)) return `${t("invalidScore")} Match ${matchId}`;
+    const winnerSide = pickWinnerSide(a, b);
+    if (winnerSide && r.advanceSide && r.advanceSide !== winnerSide) return `${t("inconsistentAdvance")} Match ${matchId}`;
+    if (!winnerSide && !r.advanceSide) return `${t("tieNeedsAdvance")} Match ${matchId}`;
+  }
+  return "";
+}
+
+function isValidEmail_OLD(email) {
   const e = String(email || "").trim();
   if (!e) return true;
   if (/\s/.test(e)) return false;
@@ -1371,52 +1467,59 @@ function validateRealResultsState(s) {
 async function readEntryFromForm() {
   updateDynamicBracketLabels();
 
-  const entryName = $("#entryName").value.trim();
-  const payerName = $("#payerName").value.trim();
-  const participantEmail = $("#participantEmail")?.value.trim() || "";
+  const entryName = ($("#entryName")?.value || "").trim();
+  const payerName = ($("#payerName")?.value || "").trim();
+  const participantEmail = ($("#participantEmail")?.value || "").trim();
   const paymentMethod = $("#paymentMethod")?.value || "";
 
-  if (!entryName || !payerName) {
-    alert("Preencha Nome da Entrada e Responsável pelo Pagamento.");
-    return null;
-  }
-
-  if (!paymentMethod) {
-    alert("Selecione o método de pagamento.");
-    return null;
-  }
+  if (!entryName) { alert(t("requiredEntryName")); return null; }
+  if (!payerName) { alert(t("requiredPayerName")); return null; }
+  if (!paymentMethod) { alert(t("requiredPaymentMethod")); return null; }
+  if (!isValidEmail(participantEmail)) { alert(t("invalidEmail")); $("#participantEmail")?.focus(); return null; }
 
   const picks = {};
 
   for (const m of DATA.knockoutMatches) {
     const card = document.querySelector(`[data-card-match="${m.match}"]`);
-    const ga = card.querySelector(`[data-field="goalsA"]`).value;
-    const gb = card.querySelector(`[data-field="goalsB"]`).value;
-    const selectSide = card.querySelector(`[data-field="advanceSide"]`).value;
+    if (!card) { alert(`Erro interno no Match ${m.match}.`); return null; }
 
-    if (ga === "" || gb === "") {
-      alert(`Faltou preencher o placar do Match ${m.match}.`);
+    const gaRaw = card.querySelector(`[data-field="goalsA"]`)?.value;
+    const gbRaw = card.querySelector(`[data-field="goalsB"]`)?.value;
+    if (gaRaw === "" || gbRaw === "") {
+      alert(`${t("missingScore")} Match ${m.match}`);
       return null;
     }
 
-    let finalAdvanceSide = "";
-    if (Number(ga) > Number(gb)) finalAdvanceSide = "A";
-    else if (Number(gb) > Number(ga)) finalAdvanceSide = "B";
-    else finalAdvanceSide = selectSide;
+    const goalsA = parseScoreValue(gaRaw);
+    const goalsB = parseScoreValue(gbRaw);
+    if (goalsA === null || goalsB === null) {
+      alert(`${t("invalidScore")} Match ${m.match}`);
+      return null;
+    }
 
-    if (!finalAdvanceSide) {
-      alert(`O Match ${m.match} está empatado. Escolha quem avança.`);
+    const selectSide = card.querySelector(`[data-field="advanceSide"]`)?.value || "";
+    const winnerSide = pickWinnerSide(goalsA, goalsB);
+    const finalAdvanceSide = winnerSide || selectSide;
+
+    if (winnerSide && finalAdvanceSide !== winnerSide) {
+      alert(`${t("inconsistentAdvance")} Match ${m.match}`);
+      return null;
+    }
+    if (!winnerSide && !finalAdvanceSide) {
+      alert(`${t("tieNeedsAdvance")} Match ${m.match}`);
       return null;
     }
 
     picks[m.match] = {
-      goalsA: Number(ga),
-      goalsB: Number(gb),
+      goalsA,
+      goalsB,
       advanceSide: finalAdvanceSide,
       displayA: card.dataset.currentA,
       displayB: card.dataset.currentB
     };
   }
+
+  if (!confirmUnusualScores(picks)) return null;
 
   const diagnostics = CONFIG.diagnostics?.captureDeviceInfo ? await collectDiagnostics() : {};
 
@@ -1602,7 +1705,7 @@ function objectsToCsv(rows) {
   }, new Set()));
   return [headers.map(csvEscape).join(",")]
     .concat(rows.map(row => headers.map(h => csvEscape(row[h])).join(",")))
-    .join("\\n");
+    .join("\n");
 }
 
 function downloadText(filename, content, mime = "text/plain") {
@@ -1728,7 +1831,7 @@ function renderRanking() {
 
   if (!box) return;
   const rows = s.entries
-    .map(e => ({ ...e, score: scoreEntry(e, s).total, bonus: scoreEntry(e, s).bonus }))
+    .map(e => { const scored = scoreEntry(e, s); return { ...e, score: scored.total, bonus: scored.bonus }; })
     .sort((a, b) => b.score - a.score);
 
   if (!rows.length) {
@@ -1808,8 +1911,8 @@ function renderAdmin() {
         <div class="team right">${currentB} ${flag(currentB)}</div>
       </div>
       <div class="score-inputs">
-        <label>Real ${currentA}<input type="number" min="0" data-real-match="${m.match}" data-real-field="goalsA" value="${real.goalsA ?? ""}"></label>
-        <label>Real ${currentB}<input type="number" min="0" data-real-match="${m.match}" data-real-field="goalsB" value="${real.goalsB ?? ""}"></label>
+        <label>Real ${currentA}<input type="number" min="0" max="20" inputmode="numeric" data-real-match="${m.match}" data-real-field="goalsA" value="${real.goalsA ?? ""}"></label>
+        <label>Real ${currentB}<input type="number" min="0" max="20" inputmode="numeric" data-real-match="${m.match}" data-real-field="goalsB" value="${real.goalsB ?? ""}"></label>
       </div>
       <label style="margin-top:10px">${getActionLabelForPhase(m.phase).replace("?", " real?")} <span class="muted">(necessário se empatar)</span>
         <select data-real-match="${m.match}" data-real-field="advanceSide">
@@ -1916,7 +2019,7 @@ function renderParticipants() {
   s.entries.forEach(e => {
     const div = document.createElement("div");
     div.className = "rank-row";
-    div.innerHTML = `<div class="medal">👤</div><div><b>${escapeHtml(e.entryName)}</b><br><span class="muted">${escapeHtml(e.payerName)}${e.paymentMethod ? " • " + e.paymentMethod : ""}</span></div><div class="status">${state().paid[e.id] ? "Pago" : "Pendente"}</div>`;
+    div.innerHTML = `<div class="medal">👤</div><div><b>${escapeHtml(e.entryName)}</b><br><span class="muted">${escapeHtml(e.payerName)}${e.paymentMethod ? " • " + e.paymentMethod : ""}</span></div><div class="status">${state().paid[e.id] ? t("paymentPaid") : t("paymentPending")}</div>`;
     box.appendChild(div);
   });
 }
@@ -2019,6 +2122,8 @@ document.addEventListener("DOMContentLoaded", () => {
   setupLanguageSwitcher();
   setupAdminLogin();
   setupAdminLogout();
+  setupEmailJs();
+  setupAdminDelegatedEvents();
   renderBracketForm();
   renderAll();
   applyLanguage();
@@ -2029,14 +2134,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   $("#saveEntry").addEventListener("click", async e => {
     e.preventDefault();
+    const saveBtn = $("#saveEntry");
+    const oldText = saveBtn ? saveBtn.textContent : "";
+    if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = t("saveInProgress"); }
 
     if (isPastCutoff()) {
       alert("As inscrições já foram encerradas pelo cutoff.");
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = oldText; }
       return;
     }
 
     const entry = await readEntryFromForm();
-    if (!entry) return;
+    if (!entry) {
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = oldText; }
+      return;
+    }
 
     const s = state();
     s.entries.push(entry);
@@ -2063,6 +2175,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("#bracketForm").reset();
     updateDynamicBracketLabels();
     renderAll();
+    if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = oldText; }
   });
 
   $("#loadDemo").addEventListener("click", loadDemo);

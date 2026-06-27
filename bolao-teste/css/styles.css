@@ -478,3 +478,8 @@ button.danger,
 @media(max-width:900px){
   .admin-entry-item .receipt-actions button{width:100%}
 }
+
+button[disabled], .secondary[disabled] {
+  opacity:.55;
+  cursor:not-allowed;
+}

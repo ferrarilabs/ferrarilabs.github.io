@@ -17,3 +17,8 @@ Use `docs/DEPLOY.md`.
 
 ## Important
 This is still static GitHub Pages + localStorage. Good for friend testing. For production use, migrate to Firebase/Supabase.
+
+
+## v2.1 Audit Fixes
+
+See `docs/FIX_LOG_v2_1.md` and `docs/QA_CHECKLIST_v2_1.md`.
