@@ -20,8 +20,7 @@ Run this SQL in Supabase SQL Editor:
 create table if not exists public.bolao_state (
   id text primary key,
   state jsonb not null default '{}'::jsonb,
-  updated_at timestamptz not null default now(),
-  constraint state_size_limit check (octet_length(state::text) < 1048576)
+  updated_at timestamptz not null default now()
 );
 ```
 

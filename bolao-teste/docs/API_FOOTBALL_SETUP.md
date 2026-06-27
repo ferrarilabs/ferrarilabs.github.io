@@ -6,7 +6,7 @@ API-SPORTS documents the World Cup as `league=1` and `season=2026`; their `/fixt
 
 ## Important security note
 
-Putting an API-Football key in a browser-visible static site exposes that key to visitors. Anyone can view this key in `js/config.js` and may consume your quota. For a real production setup, use a small backend or Supabase Edge Function as a proxy.
+Putting an API-Football key in a browser-visible static site exposes that key to visitors. For a real production setup, use a small backend or Supabase Edge Function as a proxy.
 
 For testing only, edit `js/config.js`:
 

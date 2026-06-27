@@ -1,12 +1,11 @@
 # CHANGELOG
 
-## v3.3.2-db-blockers-timer
-- Countdown seconds added.
-- Supabase multi-tab mitigation added.
-- Clear data now clears remote state.
-- Spanish phaseThird fix.
-- Demo email changed to demo@noreply.invalid.
-- API-Football timeout added.
+## v3.3.4-stable-repair
+- Removed visible language dropdown.
+- Added timer seconds.
+- Removed A/B score labels.
+- Repaired rules i18n.
+- Added Supabase focus/visibility reload and remote clear.
 
 ## v3.3.1-db-ui-fixes
 - Desktop/mobile header fix.

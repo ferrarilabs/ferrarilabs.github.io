@@ -13,6 +13,7 @@
   <script src="js/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/i18n.js"></script>
+  <script src="js/i18n-repair.js"></script>
   <script defer src="js/app.js"></script>
 </head>
 <body>
@@ -24,9 +25,7 @@
       <button type="button" data-lang="es">🇲🇽 ES-MX</button>
       <button type="button" data-lang="en-US">🇺🇸 EN-US</button>
     </div>
-    <select id="languageSelect" class="hidden-lang-select" aria-label="Language">
-      <option value="pt-BR">Português BR</option><option value="es">Español</option><option value="en-US">English</option>
-    </select>
+    <select id="languageSelect" class="hidden-lang-select" aria-label="Language"><option value="pt-BR">Português BR</option><option value="es">🇲🇽 ES-MX</option><option value="en-US">English</option></select>
     <nav class="nav">
       <button data-section="entry" data-i18n="navPicks">Palpites</button>
       <button data-section="ranking" data-i18n="navRanking">Ranking</button>
@@ -87,7 +86,7 @@
         <h2 data-i18n="rulesTitle">Regras simples</h2>
         <h3 data-i18n="rulesMainTitle">Regras principais</h3>
         <ul>
-          <li data-i18n="rulesValidScore">Placar válido: 90 minutos + prorrogação.</li>
+          <li data-i18n="rulesValidScore">Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.</li>
           <li data-i18n="rulesTie">Se empatar, selecione quem ganha/avança nos pênaltis.</li>
           <li data-i18n="rulesBracket">Se o time real que avançar for diferente do seu bracket, ele herda a posição futura daquele jogo.</li>
           <li data-i18n="rulesBonus">Bônus finais: campeão, vice, 3º e 4º lugar.</li>

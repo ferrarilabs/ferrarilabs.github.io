@@ -25,4 +25,4 @@ v3.3-db-ready: optional Supabase remote database support. See docs/DATABASE_SETU
 v3.3.1-db-ui-fixes: UI fixes and optional API-Football cache. See docs/FIX_LOG_v3_3_1.md.
 
 
-v3.3.2: DB blockers fixed and timer seconds added. See docs/FIX_LOG_v3_3_2.md.
+v3.3.4: Stable repair. See docs/FIX_LOG_v3_3_4.md.
