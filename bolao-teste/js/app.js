@@ -364,6 +364,85 @@ function receiptCode(entry) {
   return `BOLAO-${hashString(raw)}-${entry.createdAt.slice(0,10).replaceAll("-","")}`;
 }
 
+
+function finalPodiumForEntry(entry) {
+  const winners = {};
+  const losers = {};
+
+  DATA.knockoutMatches.forEach(m => {
+    const pick = entry.picks[m.match];
+    const a = resolveSlotName(m.teamA, winners, losers);
+    const b = resolveSlotName(m.teamB, winners, losers);
+
+    if (!pick) return;
+
+    if (pick.advanceSide === "A") {
+      winners[m.match] = a;
+      losers[m.match] = b;
+    } else if (pick.advanceSide === "B") {
+      winners[m.match] = b;
+      losers[m.match] = a;
+    }
+  });
+
+  const finalMatch = DATA.knockoutMatches.find(m => /final/i.test(m.phase || "") || String(m.match) === "104");
+  const thirdMatch = DATA.knockoutMatches.find(m => /third|3/i.test(m.phase || "") || String(m.match) === "103");
+
+  let champion = "Não definido";
+  let runnerUp = "Não definido";
+  let third = "Não definido";
+  let fourth = "Não definido";
+
+  if (finalMatch && entry.picks[finalMatch.match]) {
+    const p = entry.picks[finalMatch.match];
+    const a = resolveSlotName(finalMatch.teamA, winners, losers);
+    const b = resolveSlotName(finalMatch.teamB, winners, losers);
+    champion = p.advanceSide === "A" ? a : b;
+    runnerUp = p.advanceSide === "A" ? b : a;
+  }
+
+  if (thirdMatch && entry.picks[thirdMatch.match]) {
+    const p = entry.picks[thirdMatch.match];
+    const a = resolveSlotName(thirdMatch.teamA, winners, losers);
+    const b = resolveSlotName(thirdMatch.teamB, winners, losers);
+    third = p.advanceSide === "A" ? a : b;
+    fourth = p.advanceSide === "A" ? b : a;
+  }
+
+  return { champion, runnerUp, third, fourth };
+}
+
+function finalPodiumHtml(entry) {
+  const p = finalPodiumForEntry(entry);
+  return `
+  <div class="podium-section">
+    <div class="podium-title">🏆 Palpite final do participante</div>
+    <div class="podium-subtitle">Destaque dos bônus finais: campeão, vice, 3º e 4º lugar</div>
+    <div class="podium-grid">
+      <div class="podium-card champion">
+        <div class="podium-medal">🥇</div>
+        <div class="podium-label">Campeão</div>
+        <div class="podium-team">${escapeHtml(p.champion)}</div>
+      </div>
+      <div class="podium-card runner">
+        <div class="podium-medal">🥈</div>
+        <div class="podium-label">Vice-campeão</div>
+        <div class="podium-team">${escapeHtml(p.runnerUp)}</div>
+      </div>
+      <div class="podium-card third">
+        <div class="podium-medal">🥉</div>
+        <div class="podium-label">3º lugar</div>
+        <div class="podium-team">${escapeHtml(p.third)}</div>
+      </div>
+      <div class="podium-card fourth">
+        <div class="podium-medal">4º</div>
+        <div class="podium-label">4º lugar</div>
+        <div class="podium-team">${escapeHtml(p.fourth)}</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function buildReceiptHtml(entry) {
   const code = receiptCode(entry);
   const resolved = resolvedTeamsForEntry(entry);
@@ -402,6 +481,18 @@ td,th{border-bottom:1px solid #dde3ea;padding:10px;text-align:left;vertical-alig
 th{background:#0b1b23;color:white}
 td span{color:#6b7280;font-size:11px}
 .score{font-size:16px;font-weight:bold;text-align:center;white-space:nowrap}
+.podium-section{margin-top:24px;border-radius:18px;padding:20px;background:linear-gradient(135deg,#07151c,#0f3b22);color:white;border:2px solid #20bf55;break-inside:avoid}
+.podium-title{font-size:24px;font-weight:900;text-align:center;margin-bottom:4px;text-transform:uppercase}
+.podium-subtitle{text-align:center;color:#c7f9d4;font-size:12px;margin-bottom:16px}
+.podium-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.podium-card{border-radius:16px;padding:16px;text-align:center;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16)}
+.podium-card.champion{grid-column:1/3;background:linear-gradient(135deg,#ffe08a,#f5b301);color:#111;border-color:#f5b301}
+.podium-card.runner{background:linear-gradient(135deg,#e5e7eb,#9ca3af);color:#111}
+.podium-card.third{background:linear-gradient(135deg,#f4b183,#b45309);color:#111}
+.podium-card.fourth{background:rgba(255,255,255,.10)}
+.podium-medal{font-size:34px;font-weight:900;margin-bottom:4px}
+.podium-label{text-transform:uppercase;font-size:11px;font-weight:900;letter-spacing:.8px;opacity:.82}
+.podium-team{font-size:22px;font-weight:900;margin-top:4px}
 .notice{margin-top:18px;background:#fff8e1;border:1px solid #ffd166;border-radius:12px;padding:12px;font-size:12px;color:#5f4300}
 .footer{margin-top:18px;color:#6b7280;font-size:12px}
 .actions{margin:16px auto;max-width:900px;text-align:center}
@@ -437,6 +528,8 @@ button{background:#20bf55;color:#03130b;border:0;border-radius:10px;padding:10px
     <thead><tr><th>Jogo</th><th>Time A</th><th>Placar</th><th>Time B</th><th>Ganha/avança</th></tr></thead>
     <tbody>${rows}</tbody>
   </table>
+
+  ${finalPodiumHtml(entry)}
 
   <div class="notice">
     <b>Regras importantes:</b> placar válido é 90 minutos + prorrogação. Pênaltis não entram no placar. Este é um bolão informal entre amigos. Em caso de falha técnica, comprovantes individuais, backups e master list serão usados como referência.
@@ -962,6 +1055,14 @@ function receiptPlainText(entry) {
     const winner = p.advanceSide === "A" ? r.displayA : r.displayB;
     lines.push(`Match ${m.match}: ${escapeHtml(r.displayA)} ${p.goalsA} x ${p.goalsB} ${escapeHtml(r.displayB)} | Ganha/avança: ${escapeHtml(winner)}`);
   });
+  const podium = finalPodiumForEntry(entry);
+  lines.push("");
+  lines.push("PALPITE FINAL / BÔNUS");
+  lines.push("----------------------------");
+  lines.push(`Campeão: ${podium.champion}`);
+  lines.push(`Vice-campeão: ${podium.runnerUp}`);
+  lines.push(`3º lugar: ${podium.third}`);
+  lines.push(`4º lugar: ${podium.fourth}`);
   lines.push("");
   lines.push("Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.");
   return lines.join("\\n");

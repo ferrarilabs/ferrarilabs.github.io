@@ -195,3 +195,14 @@ Se não permitir, use `{{receipt_text}}` ou `{{receipt_text_pretty}}` com quebra
 - Admin can delete an entry.
 - When deleting, the site attempts to send a removal notification email to the participant via EmailJS.
 - Deletion is localStorage-based in this test version; production still needs Firebase/Supabase for real auditability.
+
+
+## v1.9 Podium highlight
+
+- Comprovante/PDF/e-mail agora trazem um destaque visual grande com:
+  - Campeão
+  - Vice-campeão
+  - 3º lugar
+  - 4º lugar
+- O destaque aparece além da tabela normal de palpites.
+- O texto do e-mail também inclui a seção PALPITE FINAL / BÔNUS.
