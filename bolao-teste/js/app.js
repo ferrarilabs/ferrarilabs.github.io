@@ -143,8 +143,14 @@ function applyLanguage() {
 /* ============================================================
    State (localStorage + Supabase mirror)
    ============================================================ */
+function isToday(isoString) {
+  if (!isoString) return false;
+  const d = new Date(isoString), now = new Date();
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
 function emptyState() {
-  return { entries: [], paid: {}, results: {}, meta: { updatedAt: null, version: CONFIG.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, results: {}, meta: { updatedAt: null, version: CONFIG.siteVersion } };
 }
 
 function state() {
@@ -188,10 +194,11 @@ function initDb() {
 }
 
 function mergeStates(local, remote) {
+  const tombstones = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   const byId = {};
-  for (const e of (local.entries || [])) byId[e.id] = e;
+  for (const e of (local.entries || [])) if (!tombstones.has(e.id)) byId[e.id] = e;
   for (const e of (remote.entries || [])) {
-    if (!byId[e.id] || (e.createdAt > (byId[e.id].createdAt || ""))) byId[e.id] = e;
+    if (!tombstones.has(e.id) && (!byId[e.id] || (e.createdAt > (byId[e.id].createdAt || "")))) byId[e.id] = e;
   }
   const allPaidKeys = new Set([
     ...Object.keys(local.paid || {}),
@@ -203,6 +210,7 @@ function mergeStates(local, remote) {
   }
   return {
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
+    deletedIds: [...tombstones],
     paid: mergedPaid,
     results: Object.assign({}, local.results || {}, remote.results || {}),
     meta: { updatedAt: new Date().toISOString(), version: CONFIG.siteVersion }
@@ -1312,11 +1320,14 @@ async function deleteEntry(id) {
   const s = state();
   const e = s.entries.find(x => x.id === id);
   if (!e) return;
+  if (isToday(e.createdAt)) { alert(t("deleteTodayBlocked")); return; }
   if (!confirm(t("deleteConfirm"))) return;
   const reason = prompt(t("deleteReasonPrompt"), "") || "";
   s.entries = s.entries.filter(x => x.id !== id);
   delete s.paid[id];
-  saveState(s);
+  if (!s.deletedIds) s.deletedIds = [];
+  s.deletedIds.push(id);
+  saveState(s, { forceResults: true });
   await sendRemovalEmail(e, reason).catch(() => {});
   renderAll();
   alert(t("deleteEmailSent"));
@@ -1325,10 +1336,17 @@ async function deleteEntry(id) {
 async function clearAllData() {
   if (!guardAdmin()) return;
   if (!confirm(t("clearDataConfirm"))) return;
+  const s = state();
+  const todayEntries = s.entries.filter(e => isToday(e.createdAt));
   const empty = emptyState();
+  if (todayEntries.length > 0) {
+    empty.entries = todayEntries;
+    for (const e of todayEntries) { if (s.paid[e.id]) empty.paid[e.id] = true; }
+  }
   saveLocalState(empty);
   await saveRemoteState(empty, { forceResults: true }).catch(err => console.warn("Remote clear failed", err));
   renderAll();
+  if (todayEntries.length > 0) alert(t("clearDataTodayKept").replace("{n}", todayEntries.length));
 }
 
 function loadDemoData() {

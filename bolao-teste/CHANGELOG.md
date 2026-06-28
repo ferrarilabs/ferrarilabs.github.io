@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.9 — 2026-06-28
+
+### Fixed
+- **Deletadas voltando do Supabase**: `mergeStates` era uma união aditiva — nunca removia entradas, só adicionava. Se o Supabase ainda tinha uma entrada deletada, qualquer sync posterior (focus/visibilitychange) trazia ela de volta. Correção: tombstones (`deletedIds[]` no estado). IDs deletados são propagados no merge e filtram entradas tanto no local quanto no remoto. `deleteEntry` agora também salva imediatamente (`forceResults: true`) em vez de usar debounce 400ms, eliminando a janela de corrida.
+
+---
+
 ## v4.8 — 2026-06-28
 
 ### Fixed
