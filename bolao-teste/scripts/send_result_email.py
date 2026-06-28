@@ -80,10 +80,11 @@ def sb_fetch():
         return json.loads(r.read())[0]["state"]
 
 # ── Scoring ───────────────────────────────────────────────────────────────────
-def score_match(pick, result):
+def score_match(pick, result, teamA="Time A", teamB="Time B"):
     """Returns (pts, detail_pt, detail_en) for one match."""
     pA, pB, pS = int(pick.get("goalsA", -1)), int(pick.get("goalsB", -1)), pick.get("advanceSide", "")
     rA, rB, rS = int(result["goalsA"]), int(result["goalsB"]), result["advanceSide"]
+    winner = teamB if rS == "B" else teamA
     pts = 0
     notes_pt, notes_en = [], []
 
@@ -94,19 +95,19 @@ def score_match(pick, result):
     else:
         if pA == rA:
             pts += SCORING["oneTeamGoals"]
-            notes_pt.append(f"+{SCORING['oneTeamGoals']} gol A")
-            notes_en.append(f"+{SCORING['oneTeamGoals']} goal A")
+            notes_pt.append(f"+{SCORING['oneTeamGoals']} gol {teamA}")
+            notes_en.append(f"+{SCORING['oneTeamGoals']} {teamA} goal")
         if pB == rB:
             pts += SCORING["oneTeamGoals"]
-            notes_pt.append(f"+{SCORING['oneTeamGoals']} gol B")
-            notes_en.append(f"+{SCORING['oneTeamGoals']} goal B")
+            notes_pt.append(f"+{SCORING['oneTeamGoals']} gol {teamB}")
+            notes_en.append(f"+{SCORING['oneTeamGoals']} {teamB} goal")
 
     if pS == rS:
         pts += SCORING["advance"]
-        notes_pt.append(f"+{SCORING['advance']} avanço")
-        notes_en.append(f"+{SCORING['advance']} advance")
+        notes_pt.append(f"+{SCORING['advance']} {winner} avança")
+        notes_en.append(f"+{SCORING['advance']} {winner} advances")
 
-    return pts, (", ".join(notes_pt) or "0"), (", ".join(notes_en) or "0")
+    return pts, (", ".join(notes_pt) or "—"), (", ".join(notes_en) or "—")
 
 
 def score_entry_total(entry, results):
@@ -176,7 +177,9 @@ def build_html(state, test_mode=False):
                     "pick": (item["e"].get("picks") or {}).get(last_mid),
                     "pts_match": score_match(
                         (item["e"].get("picks") or {}).get(last_mid) or {},
-                        last_result
+                        last_result,
+                        teamA=last_teamA,
+                        teamB=last_teamB,
                     ) if (item["e"].get("picks") or {}).get(last_mid) else (0, "sem palpite", "no pick"),
                 }
                 for item in scored
