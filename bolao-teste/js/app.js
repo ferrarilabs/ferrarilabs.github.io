@@ -1327,7 +1327,7 @@ async function deleteEntry(id) {
   const s = state();
   const e = s.entries.find(x => x.id === id);
   if (!e) return;
-  if (isToday(e.createdAt)) { alert(t("deleteTodayBlocked")); return; }
+  if (isToday(e.createdAt) && !e.diagnostics?.demo) { alert(t("deleteTodayBlocked")); return; }
   if (!confirm(t("deleteConfirm"))) return;
   const reason = prompt(t("deleteReasonPrompt"), "") || "";
   s.entries = s.entries.filter(x => x.id !== id);
@@ -1338,6 +1338,14 @@ async function deleteEntry(id) {
   await sendRemovalEmail(e, reason).catch(() => {});
   renderAll();
   alert(t("deleteEmailSent"));
+}
+
+async function forceSyncFromRemote() {
+  if (!guardAdmin()) return;
+  if (!confirm(t("forceSyncConfirm"))) return;
+  localStorage.removeItem(CONFIG.storeKey);
+  await loadRemoteState().catch(err => console.warn("Force sync failed", err));
+  renderAll();
 }
 
 async function clearAllData() {
@@ -1702,6 +1710,7 @@ function initEvents() {
     await runApiResultsUpdate().catch(err => console.warn("Manual refresh failed", err));
   });
   $("#espnSync")?.addEventListener("click", () => runEspnUpdate().catch(err => { console.warn("ESPN update failed", err); alert("Erro ESPN. Verifique o console."); }));
+  $("#forceSync")?.addEventListener("click", forceSyncFromRemote);
   $("#clearData")?.addEventListener("click", clearAllData);
   $("#backupCsv")?.addEventListener("click", () => { if (guardAdmin()) backupCsv(); });
   $("#masterCsv")?.addEventListener("click", () => { if (guardAdmin()) masterCsv(); });
