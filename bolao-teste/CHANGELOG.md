@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v4.4 — 2026-06-28
+
+### Added
+- **ESPN free results sync** (botão "⚽ ESPN" no admin toolbar): busca todos os jogos encerrados da Copa 2026 via `site.api.espn.com` — sem API key, sem limite de requisições.
+  - Cobre **grupo + mata-mata**: resultados de grupos são armazenados em `state().results` e aparecem imediatamente no tab Jogos; mata-mata atualiza o ranking.
+  - Não sobrescreve resultados já inseridos manualmente pelo admin.
+  - Empates no mata-mata são ignorados automaticamente — admin escolhe o avançado no painel de resultados.
+  - Conversão UTC→ET para evitar mismatch de data em jogos noturnos.
+- CSP `connect-src` atualizado para incluir `https://site.api.espn.com`.
+
+### Fixed
+- `renderGames()`: status badge agora usa `r?.goalsA !== undefined` (antes `r?.advanceSide`) — jogos de grupo sem `advanceSide` agora marcam "Final" corretamente.
+
+---
+
 ## v4.3.1 — 2026-06-27
 
 ### Fixed

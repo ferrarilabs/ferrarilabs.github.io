@@ -941,7 +941,7 @@ function renderGames() {
     const r = (s.results || {})[m.match];
     const goalsA = r?.goalsA !== undefined ? r.goalsA : m.goalsA;
     const goalsB = r?.goalsB !== undefined ? r.goalsB : m.goalsB;
-    const status = r?.advanceSide ? "Final" : m.status;
+    const status = r?.goalsA !== undefined ? "Final" : m.status;
     const hasScore = goalsA !== null && goalsA !== undefined && goalsB !== null && goalsB !== undefined;
     const venue = m.venue && m.venue !== "A confirmar" ? m.venue : "";
     const a = m.teamA || "", b = m.teamB || "";
@@ -1478,6 +1478,83 @@ function stopResultsPolling() {
   updateApiStatusBar();
 }
 
+/* ── ESPN free results ── */
+async function fetchEspnFixtures() {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const res = await fetch(
+      "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=300&dates=20260611-20260719",
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    return json.events || [];
+  } catch (err) {
+    clearTimeout(timer);
+    console.warn("ESPN fetch failed", err);
+    return null;
+  }
+}
+
+function mapEspnToMatches(events) {
+  if (!Array.isArray(events) || !events.length) return [];
+  const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
+  const s = state();
+  const mapped = [];
+  for (const m of all) {
+    if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamB)) continue;
+    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    for (const ev of events) {
+      const comp = ev.competitions?.[0];
+      if (!comp || comp.status?.type?.state !== "post") continue;
+      // Convert ESPN UTC date to ET (UTC-4 during Copa 2026) to match m.date
+      const evDateET = new Date(new Date(comp.date || ev.date || "") - 4 * 3600000)
+        .toISOString().slice(0, 10);
+      if (evDateET !== m.date) continue;
+      const [c0, c1] = comp.competitors || [];
+      if (!c0 || !c1) continue;
+      const n0 = normalizeTeamName(c0.team?.displayName);
+      const n1 = normalizeTeamName(c1.team?.displayName);
+      const s0 = parseInt(c0.score || "0", 10), s1 = parseInt(c1.score || "0", 10);
+      if (n0 === normA && n1 === normB) { mapped.push({ matchId: m.match, goalsA: s0, goalsB: s1 }); break; }
+      if (n1 === normA && n0 === normB) { mapped.push({ matchId: m.match, goalsA: s1, goalsB: s0 }); break; }
+    }
+  }
+  return mapped;
+}
+
+async function runEspnUpdate() {
+  if (!guardAdmin()) return;
+  const events = await fetchEspnFixtures();
+  if (!events) { alert("Erro ao buscar ESPN. Verifique o console."); return; }
+  const mapped = mapEspnToMatches(events);
+  if (!mapped.length) { alert("Nenhum resultado novo encontrado via ESPN."); return; }
+  const knockoutIds = new Set(DATA.knockoutMatches.map(m => String(m.match)));
+  const s = state();
+  let applied = 0;
+  for (const { matchId, goalsA, goalsB } of mapped) {
+    if (knockoutIds.has(String(matchId))) {
+      const auto = pickWinner(goalsA, goalsB);
+      if (!auto) continue; // empate no mata-mata: admin escolhe o vencedor
+      s.results[matchId] = { goalsA, goalsB, advanceSide: auto };
+    } else {
+      s.results[matchId] = { goalsA, goalsB };
+    }
+    applied++;
+  }
+  _lastApiUpdate = new Date();
+  if (applied > 0) {
+    saveState(s); renderRanking(); renderGames(); renderAdmin();
+    alert(`${applied} resultado(s) atualizado(s) via ESPN.`);
+  } else {
+    alert("Nenhum resultado novo para aplicar.");
+  }
+}
+
 /* ============================================================
    Main render
    ============================================================ */
@@ -1577,6 +1654,7 @@ function initEvents() {
     if (!guardAdmin()) return;
     await runApiResultsUpdate().catch(err => console.warn("Manual refresh failed", err));
   });
+  $("#espnSync")?.addEventListener("click", () => runEspnUpdate().catch(err => { console.warn("ESPN update failed", err); alert("Erro ESPN. Verifique o console."); }));
   $("#clearData")?.addEventListener("click", clearAllData);
   $("#backupCsv")?.addEventListener("click", () => { if (guardAdmin()) backupCsv(); });
   $("#masterCsv")?.addEventListener("click", () => { if (guardAdmin()) masterCsv(); });
