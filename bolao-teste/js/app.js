@@ -160,12 +160,12 @@ function saveLocalState(s) {
 }
 
 let syncTimer = null;
-function saveState(s) {
+function saveState(s, opts = {}) {
   saveLocalState(s);
   if (!dbEnabled()) return;
   clearTimeout(syncTimer);
   const snap = JSON.parse(JSON.stringify(s));
-  syncTimer = setTimeout(() => saveRemoteState(snap).catch(err => console.warn("Sync failed", err)), 400);
+  syncTimer = setTimeout(() => saveRemoteState(snap, opts).catch(err => console.warn("Sync failed", err)), 400);
 }
 
 /* ── Supabase ── */
@@ -225,7 +225,7 @@ async function loadRemoteState() {
   } catch (err) { console.warn("Remote load failed", err); return false; }
 }
 
-async function saveRemoteState(s) {
+async function saveRemoteState(s, opts = {}) {
   if (!initDb()) return false;
   const cfg = CONFIG.database;
   try {
@@ -239,6 +239,13 @@ async function saveRemoteState(s) {
         const merged = mergeStates(s, cur.state || {});
         saveLocalState(merged);
         s = merged;
+      } else if (!opts.forceResults) {
+        // Non-admin save: preserve any remote results not present locally
+        // so participant entry saves never overwrite admin's real results.
+        const remoteResults = (cur.state || {}).results || {};
+        if (Object.keys(remoteResults).length > 0) {
+          s = { ...s, results: Object.assign({}, s.results || {}, remoteResults) };
+        }
       }
     }
     const { error } = await remoteDb.from(cfg.table).upsert(
@@ -1124,7 +1131,7 @@ function commitRealResult(card) {
   if (!side) return;
   const s = state();
   s.results[mid] = { goalsA: ga, goalsB: gb, advanceSide: side };
-  saveState(s);
+  saveState(s, { forceResults: true });
   renderRanking();
   renderGames();
 }
@@ -1305,7 +1312,7 @@ async function clearAllData() {
   if (!confirm(t("clearDataConfirm"))) return;
   const empty = emptyState();
   saveLocalState(empty);
-  await saveRemoteState(empty).catch(err => console.warn("Remote clear failed", err));
+  await saveRemoteState(empty, { forceResults: true }).catch(err => console.warn("Remote clear failed", err));
   renderAll();
 }
 
@@ -1441,7 +1448,7 @@ async function applyApiResultsToState(fixtures) {
     s.results[matchId] = { goalsA, goalsB, advanceSide: auto };
     applied++;
   }
-  if (applied > 0) { saveState(s); renderRanking(); renderGames(); renderAdmin(); }
+  if (applied > 0) { saveState(s, { forceResults: true }); renderRanking(); renderGames(); renderAdmin(); }
   updateApiStatusBar();
   return applied;
 }
@@ -1548,7 +1555,7 @@ async function runEspnUpdate() {
   }
   _lastApiUpdate = new Date();
   if (applied > 0) {
-    saveState(s); renderRanking(); renderGames(); renderAdmin();
+    saveState(s, { forceResults: true }); renderRanking(); renderGames(); renderAdmin();
     alert(`${applied} resultado(s) atualizado(s) via ESPN.`);
   } else {
     alert("Nenhum resultado novo para aplicar.");
