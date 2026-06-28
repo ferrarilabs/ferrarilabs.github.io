@@ -212,7 +212,7 @@ function mergeStates(local, remote) {
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
     deletedIds: [...tombstones],
     paid: mergedPaid,
-    results: Object.assign({}, local.results || {}, remote.results || {}),
+    results: { ...(remote.results || {}) },
     meta: { updatedAt: new Date().toISOString(), version: CONFIG.siteVersion }
   };
 }
@@ -258,7 +258,7 @@ async function saveRemoteState(s, opts = {}) {
         const cur_state = cur.state || {};
         const remoteResults = cur_state.results || {};
         if (Object.keys(remoteResults).length > 0) {
-          s = { ...s, results: Object.assign({}, s.results || {}, remoteResults) };
+          s = { ...s, results: { ...remoteResults } };
         }
         const remotePaid = cur_state.paid || {};
         if (Object.keys(remotePaid).length > 0) {

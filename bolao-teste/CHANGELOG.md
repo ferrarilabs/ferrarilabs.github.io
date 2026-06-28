@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.13 — 2026-06-28
+
+### Fixed (arquitetural)
+- **Resultados somente do banco de dados**: `mergeStates` e `saveRemoteState` agora usam exclusivamente `remote.results` — o localStorage nunca mais contribui com resultados. Se o Supabase não tem um resultado, o app mostra zero. Elimina o bug onde outro dispositivo com localStorage antigo/de-teste populava resultados incorretos no ranking.
+
+---
+
 ## v4.12 — 2026-06-28
 
 ### Fixed
