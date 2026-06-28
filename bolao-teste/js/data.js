@@ -93,16 +93,16 @@ window.BOLAO_DATA = {
     {match:"GS-60",phase:"Fase de grupos",date:"2026-06-25",group:"D",teamA:"Paraguay",teamB:"Australia",goalsA:0,goalsB:0,winner:"Empate",status:"Final",timeET:"",venue:"A confirmar"},
     {match:"GS-61",phase:"Fase de grupos",date:"2026-06-26",group:"I",teamA:"Norway",teamB:"France",goalsA:1,goalsB:4,winner:"France",status:"Final",timeET:"",venue:"A confirmar"},
     {match:"GS-62",phase:"Fase de grupos",date:"2026-06-26",group:"I",teamA:"Senegal",teamB:"Iraq",goalsA:5,goalsB:0,winner:"Senegal",status:"Final",timeET:"",venue:"A confirmar"},
-    {match:"GS-63",phase:"Fase de grupos",date:"2026-06-26",group:"H",teamA:"Cape Verde",teamB:"Saudi Arabia",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-64",phase:"Fase de grupos",date:"2026-06-26",group:"H",teamA:"Uruguay",teamB:"Spain",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-65",phase:"Fase de grupos",date:"2026-06-26",group:"G",teamA:"Egypt",teamB:"Iran",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-66",phase:"Fase de grupos",date:"2026-06-26",group:"G",teamA:"New Zealand",teamB:"Belgium",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-67",phase:"Fase de grupos",date:"2026-06-27",group:"L",teamA:"Panama",teamB:"England",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-68",phase:"Fase de grupos",date:"2026-06-27",group:"L",teamA:"Croatia",teamB:"Ghana",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-69",phase:"Fase de grupos",date:"2026-06-27",group:"K",teamA:"Colombia",teamB:"Portugal",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-70",phase:"Fase de grupos",date:"2026-06-27",group:"K",teamA:"DR Congo",teamB:"Uzbekistan",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-71",phase:"Fase de grupos",date:"2026-06-27",group:"J",teamA:"Algeria",teamB:"Austria",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"},
-    {match:"GS-72",phase:"Fase de grupos",date:"2026-06-27",group:"J",teamA:"Jordan",teamB:"Argentina",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"",venue:"A confirmar"}
+    {match:"GS-63",phase:"Fase de grupos",date:"2026-06-26",group:"H",teamA:"Cape Verde",teamB:"Saudi Arabia",goalsA:0,goalsB:0,winner:"Empate",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-64",phase:"Fase de grupos",date:"2026-06-26",group:"H",teamA:"Uruguay",teamB:"Spain",goalsA:0,goalsB:1,winner:"Spain",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-65",phase:"Fase de grupos",date:"2026-06-26",group:"G",teamA:"Egypt",teamB:"Iran",goalsA:1,goalsB:1,winner:"Empate",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-66",phase:"Fase de grupos",date:"2026-06-26",group:"G",teamA:"New Zealand",teamB:"Belgium",goalsA:1,goalsB:5,winner:"Belgium",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-67",phase:"Fase de grupos",date:"2026-06-27",group:"L",teamA:"Panama",teamB:"England",goalsA:0,goalsB:2,winner:"England",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-68",phase:"Fase de grupos",date:"2026-06-27",group:"L",teamA:"Croatia",teamB:"Ghana",goalsA:2,goalsB:1,winner:"Croatia",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-69",phase:"Fase de grupos",date:"2026-06-27",group:"K",teamA:"Colombia",teamB:"Portugal",goalsA:0,goalsB:0,winner:"Empate",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-70",phase:"Fase de grupos",date:"2026-06-27",group:"K",teamA:"DR Congo",teamB:"Uzbekistan",goalsA:3,goalsB:1,winner:"DR Congo",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-71",phase:"Fase de grupos",date:"2026-06-27",group:"J",teamA:"Algeria",teamB:"Austria",goalsA:3,goalsB:3,winner:"Empate",status:"Final",timeET:"",venue:"A confirmar"},
+    {match:"GS-72",phase:"Fase de grupos",date:"2026-06-27",group:"J",teamA:"Jordan",teamB:"Argentina",goalsA:1,goalsB:3,winner:"Argentina",status:"Final",timeET:"",venue:"A confirmar"}
   ],
 
   knockoutMatches: [
