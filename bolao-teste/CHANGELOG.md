@@ -1,5 +1,28 @@
 # CHANGELOG
 
+## v4.3-patch — 2026-06-27
+
+Optional API-Football live results polling added to admin panel.
+
+### Added
+- `fetchApiFootballFixtures()`: fetches + caches fixtures from API-Football (10s AbortController timeout).
+- `mapApiFootballToMatches()`: matches API fixtures to bracket match IDs by team name normalization + date. Skips unresolved placeholder slots ("Winner Match X", "1st Group H", etc.).
+- `applyApiResultsToState()`: applies matched finished results to local+remote state. Never overwrites manual admin results. Skips draws (admin must choose winner).
+- `startResultsPolling()` / `stopResultsPolling()`: 5-minute polling interval. Only runs while admin is active.
+- `updateApiStatusBar()`: shows last update time, source, and auto-update status in admin panel.
+- Admin button: "Atualizar resultados agora" (`#apiFetchResults`) — manual trigger.
+- Status bar (`#apiStatusBar`) below admin toolbar: source · last update · auto on/off.
+- `visibilitychange` handler: stops polling when tab hidden, resumes when visible + admin active.
+- `window.focus` handler: resumes polling when admin active.
+- Polling auto-starts on login and on session restore (page reload while admin active).
+- 5 new i18n keys per language: `apiFootballRefreshResults`, `apiFootballLastUpdate`, `apiFootballSource`, `apiFootballAutoOn`, `apiFootballAutoOff` (pt-BR, es, en-US).
+
+### Not changed
+- Scoring, ranking, receipt, email, Supabase adapter, layout — untouched.
+- `apiFootball.enabled=false` or empty `apiKey` → polling never starts, button does nothing.
+
+---
+
 ## v4.2-patch — 2026-06-27
 
 Surgical patch on v4.1-patch. Data updates and receipt improvements.

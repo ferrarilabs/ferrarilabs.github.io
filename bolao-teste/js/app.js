@@ -1233,6 +1233,7 @@ async function adminLogin() {
     $("#adminLogin")?.classList.add("hidden");
     $("#adminArea")?.classList.remove("hidden");
     renderAdmin();
+    startResultsPolling();
   } else {
     const n = Number(localStorage.getItem("adminAttempts") || "0") + 1;
     localStorage.setItem("adminAttempts", String(n));
@@ -1248,6 +1249,7 @@ async function adminLogin() {
 
 function adminLogout() {
   if (!confirm(t("logoutConfirm"))) return;
+  stopResultsPolling();
   sessionStorage.removeItem("adminOk"); sessionStorage.removeItem("adminUntil");
   $("#adminArea")?.classList.add("hidden");
   $("#adminLogin")?.classList.remove("hidden");
@@ -1312,6 +1314,139 @@ async function refreshApiFootball() {
     localStorage.setItem("bolao_api_football_cache", JSON.stringify({ ts: Date.now(), payload: await res.json() }));
     alert(t("apiFootballUpdated"));
   } catch (err) { console.warn("API-Football failed", err); alert(t("apiFootballNotConfigured")); }
+}
+
+/* ============================================================
+   API-Football live results polling
+   NOTE: API key is browser-visible in a static site.
+   TODO: for production, proxy requests through a Supabase Edge Function.
+   ============================================================ */
+let _pollTimer     = null;
+let _lastApiUpdate = null;
+
+function apiFootballConfigured() {
+  return !!(CONFIG.apiFootball?.enabled && CONFIG.apiFootball?.apiKey);
+}
+
+function normalizeTeamName(name) {
+  return String(name || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9 ]/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/\bcote d ivoire\b|\bivory coast\b/g, "ivory coast")
+    .replace(/\bunited states(?: of america)?\b|\busa\b/g, "united states")
+    .replace(/\bbih\b/g, "bosnia and herzegovina");
+}
+
+async function fetchApiFootballFixtures() {
+  if (!apiFootballConfigured()) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const res = await fetch(
+      `${CONFIG.apiFootball.baseUrl}/fixtures?league=${CONFIG.apiFootball.league}&season=${CONFIG.apiFootball.season}`,
+      { headers: { "x-apisports-key": CONFIG.apiFootball.apiKey }, signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    localStorage.setItem("bolao_api_football_cache", JSON.stringify({ ts: Date.now(), payload: json }));
+    return json.response || [];
+  } catch (err) {
+    clearTimeout(timer);
+    console.warn("API-Football fetch failed", err);
+    return null;
+  }
+}
+
+function mapApiFootballToMatches(fixtures) {
+  if (!Array.isArray(fixtures) || !fixtures.length) return [];
+  const FINISHED = new Set(["FT", "AET", "PEN"]);
+  const s = state();
+  const winners = {}, losers = {};
+  const mapped = [];
+
+  for (const m of DATA.knockoutMatches) {
+    const r = (s.results || {})[m.match];
+    const a = resolveSlot(m.teamA, winners, losers);
+    const b = resolveSlot(m.teamB, winners, losers);
+    if (r?.advanceSide === "A") { winners[m.match] = a; losers[m.match] = b; }
+    else if (r?.advanceSide === "B") { winners[m.match] = b; losers[m.match] = a; }
+
+    // Skip unresolved placeholder slots — cannot reliably match to API fixture
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(a) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(b)) continue;
+
+    const normA = normalizeTeamName(a), normB = normalizeTeamName(b);
+    for (const fix of fixtures) {
+      if (!FINISHED.has(fix.fixture?.status?.short)) continue;
+      if (fix.goals?.home === null || fix.goals?.away === null) continue;
+      if ((fix.fixture?.date || "").slice(0, 10) !== m.date) continue;
+      const hN = normalizeTeamName(fix.teams?.home?.name);
+      const aN = normalizeTeamName(fix.teams?.away?.name);
+      if (hN === normA && aN === normB) {
+        mapped.push({ matchId: m.match, goalsA: fix.goals.home, goalsB: fix.goals.away }); break;
+      }
+      if (hN === normB && aN === normA) {
+        mapped.push({ matchId: m.match, goalsA: fix.goals.away, goalsB: fix.goals.home }); break;
+      }
+    }
+  }
+  return mapped;
+}
+
+async function applyApiResultsToState(fixtures) {
+  const mapped = mapApiFootballToMatches(fixtures || []);
+  _lastApiUpdate = new Date();
+  if (!mapped.length) { updateApiStatusBar(); return 0; }
+  const s = state();
+  let applied = 0;
+  for (const { matchId, goalsA, goalsB } of mapped) {
+    const ex = (s.results || {})[matchId];
+    if (ex && ex.goalsA !== null && ex.goalsA !== undefined) continue; // never overwrite manual
+    const auto = pickWinner(goalsA, goalsB);
+    if (!auto) continue; // draw: admin must choose winner
+    s.results[matchId] = { goalsA, goalsB, advanceSide: auto };
+    applied++;
+  }
+  if (applied > 0) { saveState(s); renderRanking(); renderGames(); renderAdmin(); }
+  updateApiStatusBar();
+  return applied;
+}
+
+function updateApiStatusBar() {
+  const bar = $("#apiStatusBar");
+  if (!bar) return;
+  if (!apiFootballConfigured()) { bar.classList.add("hidden"); return; }
+  bar.classList.remove("hidden");
+  const tStr = _lastApiUpdate
+    ? _lastApiUpdate.toLocaleTimeString(currentLang, { hour: "2-digit", minute: "2-digit" })
+    : "—";
+  const autoStr = _pollTimer ? t("apiFootballAutoOn") : t("apiFootballAutoOff");
+  bar.innerHTML = `<span class="muted" style="font-size:12px">${escapeHtml(t("apiFootballSource"))} &nbsp;&middot;&nbsp; ${escapeHtml(t("apiFootballLastUpdate"))}: ${escapeHtml(tStr)} &nbsp;&middot;&nbsp; ${escapeHtml(autoStr)}</span>`;
+}
+
+async function runApiResultsUpdate() {
+  if (!apiFootballConfigured()) return;
+  const fixtures = await fetchApiFootballFixtures();
+  await applyApiResultsToState(fixtures);
+}
+
+function startResultsPolling() {
+  if (!apiFootballConfigured() || _pollTimer) return;
+  _pollTimer = setInterval(
+    () => runApiResultsUpdate().catch(err => console.warn("Results poll failed", err)),
+    5 * 60 * 1000
+  );
+  updateApiStatusBar();
+}
+
+function stopResultsPolling() {
+  if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  updateApiStatusBar();
 }
 
 /* ============================================================
@@ -1408,6 +1543,10 @@ function initEvents() {
   // Admin toolbar
   $("#loadDemoData")?.addEventListener("click", loadDemoData);
   $("#refreshFootballApi")?.addEventListener("click", refreshApiFootball);
+  $("#apiFetchResults")?.addEventListener("click", async () => {
+    if (!guardAdmin()) return;
+    await runApiResultsUpdate().catch(err => console.warn("Manual refresh failed", err));
+  });
   $("#clearData")?.addEventListener("click", clearAllData);
   $("#backupCsv")?.addEventListener("click", () => { if (guardAdmin()) backupCsv(); });
   $("#masterCsv")?.addEventListener("click", () => { if (guardAdmin()) masterCsv(); });
@@ -1453,13 +1592,24 @@ async function init() {
     $("#adminLogin")?.classList.add("hidden");
     $("#adminArea")?.classList.remove("hidden");
     renderAdmin();
+    startResultsPolling();
   }
 
   restoreDraft();
   setInterval(updateCountdown, 1000);
 
-  document.addEventListener("visibilitychange", () => reloadRemoteIfVisible().catch(err => console.warn("Visibility reload failed", err)));
-  window.addEventListener("focus", () => reloadRemoteIfVisible().catch(err => console.warn("Focus reload failed", err)));
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden) {
+      stopResultsPolling();
+    } else {
+      reloadRemoteIfVisible().catch(err => console.warn("Visibility reload failed", err));
+      if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
+    }
+  });
+  window.addEventListener("focus", () => {
+    reloadRemoteIfVisible().catch(err => console.warn("Focus reload failed", err));
+    if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
+  });
 
   showSection("entry");
 }
