@@ -163,8 +163,13 @@ let syncTimer = null;
 function saveState(s, opts = {}) {
   saveLocalState(s);
   if (!dbEnabled()) return;
-  clearTimeout(syncTimer);
   const snap = JSON.parse(JSON.stringify(s));
+  if (opts.forceResults) {
+    // Admin saves: fire immediately — no debounce so the fetch starts before any tab switch
+    saveRemoteState(snap, opts).catch(err => console.warn("Sync failed", err));
+    return;
+  }
+  clearTimeout(syncTimer);
   syncTimer = setTimeout(() => saveRemoteState(snap, opts).catch(err => console.warn("Sync failed", err)), 400);
 }
 
@@ -1059,9 +1064,10 @@ function renderAdminPayments(s) {
     const id = escapeHtml(e.id);
     const div = document.createElement("div");
     div.className = "rank-row";
+    const paid = !!s.paid[e.id];
     div.innerHTML = `<div>💵</div>
 <div><b>${escapeHtml(e.entryName)}</b><br>${escapeHtml(e.paymentMethod)} → ${escapeHtml(e.paymentTo || "")}</div>
-<label><input type="checkbox" data-paid="${id}" ${s.paid[e.id] ? "checked" : ""}> ${escapeHtml(t("paymentPaid"))}</label>`;
+<button type="button" class="small-btn${paid ? "" : " secondary"}" data-paid="${id}">${paid ? "✓ " + escapeHtml(t("paymentPaid")) : escapeHtml(t("markAsPaid"))}</button>`;
     box.appendChild(div);
   }
 }
@@ -1616,6 +1622,18 @@ function initEvents() {
       return;
     }
 
+    // Admin payments buttons
+    const paidBtn = e.target.closest("[data-paid]");
+    if (paidBtn) {
+      if (!guardAdmin()) return;
+      const s = state();
+      s.paid[paidBtn.dataset.paid] = !s.paid[paidBtn.dataset.paid];
+      saveState(s, { forceResults: true });
+      renderParticipants();
+      renderAdminPayments(state());
+      return;
+    }
+
     // Admin entry actions
     const actBtn = e.target.closest("[data-act][data-id]");
     if (actBtn) {
@@ -1628,22 +1646,6 @@ function initEvents() {
       else if (act === "delete") deleteEntry(id);
       return;
     }
-  });
-
-  // Admin payments checkboxes
-  document.addEventListener("change", e => {
-    const paidEl = e.target.closest("[data-paid]");
-    if (!paidEl) return;
-    const newChecked = paidEl.checked;
-    if (!guardAdmin()) {
-      paidEl.checked = !newChecked; // revert visual if session expired
-      return;
-    }
-    const s = state();
-    s.paid[paidEl.dataset.paid] = newChecked;
-    saveState(s, { forceResults: true });
-    renderParticipants();
-    renderAdminPayments(state());
   });
 
   // Bracket form
