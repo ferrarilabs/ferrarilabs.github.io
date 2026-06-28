@@ -227,9 +227,9 @@ async function loadRemoteState() {
     if (error) throw error;
     if (data?.state) {
       const local = state();
-      const localAt = local.meta?.updatedAt || "";
-      const remoteAt = data.updated_at || data.state.meta?.updatedAt || "";
-      const merged = remoteAt > localAt ? mergeStates(local, data.state) : local;
+      // Always merge entries (union + tombstones) so participant submissions
+      // from other sessions are never silently dropped due to timestamp skew.
+      const merged = mergeStates(local, data.state);
       saveLocalState(merged);
       return true;
     }
@@ -865,6 +865,12 @@ ${reason ? `<p><b>${escapeHtml(t("deleteReasonPrompt"))}</b> ${escapeHtml(reason
 /* ============================================================
    Render sections
    ============================================================ */
+const PAY_ICON_SVG = { CashApp: "assets/cashapp.svg", Zelle: "assets/zelle.svg", Venmo: "assets/venmo.svg" };
+function payIcon(method) {
+  const src = PAY_ICON_SVG[method];
+  return src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(method)}" class="pay-method-icon">` : "💳";
+}
+
 function renderPaymentBox() {
   const method = $("#paymentMethod")?.value;
   const box = $("#paymentBox");
@@ -872,9 +878,8 @@ function renderPaymentBox() {
   if (!method) { box.innerHTML = ""; return; }
   const to = escapeHtml(CONFIG.paymentMethods[method] || "");
   const link = CONFIG.paymentLinks[method] || "";
-  const icon = { CashApp: "💚", Zelle: "💜", Venmo: "🔵" }[method] || "💳";
   box.innerHTML = `<div class="pay-card">
-<div class="pay-icon">${icon}</div>
+<div class="pay-icon">${payIcon(method)}</div>
 <div><b>${escapeHtml(method)}</b><br><span class="muted">${to}</span>
 ${link ? `<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("paymentOpenLink"))}</a>` : ""}</div></div>`;
 }
@@ -889,6 +894,9 @@ function lockIfCutoff() {
 function renderRanking() {
   const s = state(), box = $("#rankingList");
   if (!box) return;
+  const paidCount = s.entries.filter(e => s.paid[e.id]).length;
+  const potEl = $("#potValue");
+  if (potEl) potEl.textContent = `$${paidCount * (CONFIG.entryFee || 5)}`;
   if (!s.entries.length) { box.innerHTML = `<div class="card"><p>${escapeHtml(t("noEntries"))}</p></div>`; return; }
   const ranked = s.entries
     .map(e => { const sc = scoreEntry(e, s); return { ...e, _score: sc.total, _bonus: sc.bonus }; })
@@ -949,10 +957,9 @@ function renderPayment() {
   box.innerHTML = "";
   for (const [method, value] of Object.entries(CONFIG.paymentMethods)) {
     const link = CONFIG.paymentLinks[method] || "";
-    const icon = { CashApp: "💚", Zelle: "💜", Venmo: "🔵" }[method] || "💳";
     const div = document.createElement("div");
     div.className = "card pay-card";
-    div.innerHTML = `<div class="pay-icon">${icon}</div>
+    div.innerHTML = `<div class="pay-icon">${payIcon(method)}</div>
 <div><b>${escapeHtml(method)}</b><br><span class="muted">${escapeHtml(value)}</span>
 ${link ? `<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener noreferrer">${escapeHtml(t("paymentOpenLink"))}</a>` : ""}
 ${method === "Zelle" && CONFIG.zelle?.qrImage ? `<br><img src="${escapeHtml(CONFIG.zelle.qrImage)}" alt="Zelle QR" style="max-width:120px;margin-top:8px;border-radius:8px">` : ""}</div>`;
