@@ -1103,6 +1103,14 @@ function inferRealWinners(s) {
 function renderAdminResults(s) {
   const box = $("#resultsAdmin");
   if (!box) return;
+  // Manual entry disabled — results come from ⚽ ESPN sync only.
+  // Call renderAdminResultsManual(s) here to re-enable in an emergency.
+  box.innerHTML = "";
+}
+
+function renderAdminResultsManual(s) {
+  const box = $("#resultsAdmin");
+  if (!box) return;
   const { winners, losers } = inferRealWinners(s);
   box.innerHTML = `<h3>${escapeHtml(t("adminResults"))}</h3>`;
   for (const m of DATA.knockoutMatches) {
