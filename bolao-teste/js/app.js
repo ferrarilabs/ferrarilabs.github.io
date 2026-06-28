@@ -1783,7 +1783,10 @@ async function init() {
     if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
   });
 
-  showSection("entry");
+  // Cutoff passed — disable entry nav button and default to ranking
+  const navEntryBtn = document.querySelector('.nav button[data-section="entry"]');
+  if (navEntryBtn) navEntryBtn.disabled = true;
+  showSection(isPastCutoff() ? "ranking" : "entry");
 }
 
 document.addEventListener("DOMContentLoaded", () => init().catch(err => console.error("Init failed", err)));

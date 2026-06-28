@@ -46,7 +46,7 @@ button:hover { opacity: .88; }
 button:disabled { opacity: .45; cursor: not-allowed; }
 button.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
 button.danger { background: var(--danger-bg); color: var(--danger-tx); border: 1px solid var(--danger-br); }
-button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; }
+button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white-space: nowrap; }
 
 /* ── Topbar ── */
 .topbar {
@@ -294,7 +294,7 @@ input[disabled] { opacity: .5; }
 /* ── Ranking / Participants ── */
 .rank-row {
   display: grid;
-  grid-template-columns: 48px 1fr auto;
+  grid-template-columns: 48px 1fr auto auto;
   gap: 10px;
   align-items: center;
   background: var(--bg2);
