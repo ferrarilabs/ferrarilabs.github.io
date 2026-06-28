@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v4.5 — 2026-06-28
+
+### Data
+- `data.js`: GS-63 to GS-72 (June 26–27 group stage matches) updated with final scores.
+- `data.js`: All Round of 32 team placeholders resolved with actual qualified teams (Paraguay, Norway, France, Sweden, Ecuador, England, DR Congo, Belgium, Senegal, Spain, Austria, Portugal, Croatia, Algeria, Egypt, Cape Verde, Colombia, Ghana).
+
+---
+
 ## v4.4 — 2026-06-28
 
 ### Added
