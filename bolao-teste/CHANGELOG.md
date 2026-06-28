@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v4.3.1 — 2026-06-27
+
+### Fixed
+- `renderGames()`: Jogos tab now overlays `state().results` scores on knockout matches — admin-entered results are immediately visible to all participants without refreshing.
+- `commitRealResult()`: calls `renderGames()` after saving so the Jogos tab updates instantly when admin enters a knockout score.
+- Admin payments checkbox: now calls `renderAdminPayments(state())` after save so the admin panel explicitly re-renders from the saved state, preventing a visual race with the Supabase debounce reload.
+
+---
+
 ## v4.3-patch — 2026-06-27
 
 Optional API-Football live results polling added to admin panel.

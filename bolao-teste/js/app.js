@@ -935,9 +935,14 @@ function renderGames() {
   const box = $("#gamesList");
   if (!box) return;
   box.innerHTML = "";
+  const s = state();
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   for (const m of all) {
-    const hasScore = m.goalsA !== null && m.goalsA !== undefined && m.goalsB !== null && m.goalsB !== undefined;
+    const r = (s.results || {})[m.match];
+    const goalsA = r?.goalsA !== undefined ? r.goalsA : m.goalsA;
+    const goalsB = r?.goalsB !== undefined ? r.goalsB : m.goalsB;
+    const status = r?.advanceSide ? "Final" : m.status;
+    const hasScore = goalsA !== null && goalsA !== undefined && goalsB !== null && goalsB !== undefined;
     const venue = m.venue && m.venue !== "A confirmar" ? m.venue : "";
     const a = m.teamA || "", b = m.teamB || "";
     const div = document.createElement("div");
@@ -946,7 +951,7 @@ function renderGames() {
 <div class="game-top">
   <span class="match-badge">${escapeHtml(String(m.match))}</span>
   <span class="muted">${escapeHtml(phaseLabel(m.phase || "Fase de grupos"))}${m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : ""}</span>
-  <span class="status-chip ${m.status === "Final" ? "done" : "pending"}">${escapeHtml(m.status === "Final" ? t("gameFinal") : t("gamePending"))}</span>
+  <span class="status-chip ${status === "Final" ? "done" : "pending"}">${escapeHtml(status === "Final" ? t("gameFinal") : t("gamePending"))}</span>
 </div>
 <div class="game-meta">
   ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
@@ -955,7 +960,7 @@ function renderGames() {
 </div>
 <div class="game-teams">
   <div class="game-team">${flag(a)} ${escapeHtml(a)}</div>
-  ${hasScore ? `<div class="game-score">${m.goalsA} — ${m.goalsB}</div>` : `<div class="game-score muted">×</div>`}
+  ${hasScore ? `<div class="game-score">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
   <div class="game-team right">${escapeHtml(b)} ${flag(b)}</div>
 </div>`;
     box.appendChild(div);
@@ -1121,6 +1126,7 @@ function commitRealResult(card) {
   s.results[mid] = { goalsA: ga, goalsB: gb, advanceSide: side };
   saveState(s);
   renderRanking();
+  renderGames();
 }
 
 /* ============================================================
@@ -1540,6 +1546,7 @@ function initEvents() {
     s.paid[paidEl.dataset.paid] = paidEl.checked;
     saveState(s);
     renderParticipants();
+    renderAdminPayments(state());
   });
 
   // Bracket form
