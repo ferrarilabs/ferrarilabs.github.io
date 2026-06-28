@@ -6,7 +6,6 @@ window.BOLAO_I18N = {
     heroEyebrow: "Bolão Copa 2026",
     heroTitle: "Preencha seu bracket e participe.",
     heroText: "Valor: US$ 5 por entrada. Faça seus palpites antes do prazo, guarde o comprovante e acompanhe o ranking.",
-    browserWarning: "Atenção: os dados ficam neste navegador e em nuvem via Supabase. Se os dados locais forem apagados e o banco remoto estiver configurado, eles serão restaurados no próximo carregamento.",
     entryTitle: "Nova entrada",
     entryName: "Nome da entrada",
     payerName: "Responsável pelo pagamento",
@@ -162,7 +161,13 @@ window.BOLAO_I18N = {
     receiptCheckTitle: "Conferência manual de pontos",
     receiptCheckBy: "Conferido por",
     receiptCheckDate: "Data",
-    receiptCheckTotal: "Total"
+    receiptCheckTotal: "Total",
+    countdownDays: "dias", countdownHours: "hrs", countdownMin: "min", countdownSec: "seg",
+    adminCsvFull: "📊 CSV completo", adminMasterCsv: "📋 Master CSV",
+    adminMasterHtml: "📄 Master HTML", adminJsonBackup: "💾 JSON backup",
+    goalsTeamA: "Gols time A", goalsTeamB: "Gols time B",
+    removalEmailTitle: "Entrada removida — Bolão Copa 2026",
+    removalEmailContact: "Em caso de dúvidas, entre em contato com o administrador."
   },
 
   "es": {
@@ -172,7 +177,6 @@ window.BOLAO_I18N = {
     heroEyebrow: "Porra Copa 2026",
     heroTitle: "Completa tu bracket y participa.",
     heroText: "Valor: US$ 5 por entrada. Haz tus pronósticos antes del plazo, guarda el comprobante y sigue la clasificación.",
-    browserWarning: "Atención: los datos se guardan en este navegador y en la nube vía Supabase. Si los datos locales se borran y el banco remoto está configurado, se restaurarán en la próxima carga.",
     entryTitle: "Nueva entrada",
     entryName: "Nombre de la entrada",
     payerName: "Responsable del pago",
@@ -328,7 +332,13 @@ window.BOLAO_I18N = {
     receiptCheckTitle: "Verificación manual de puntos",
     receiptCheckBy: "Verificado por",
     receiptCheckDate: "Fecha",
-    receiptCheckTotal: "Total"
+    receiptCheckTotal: "Total",
+    countdownDays: "días", countdownHours: "hrs", countdownMin: "min", countdownSec: "seg",
+    adminCsvFull: "📊 CSV completo", adminMasterCsv: "📋 Master CSV",
+    adminMasterHtml: "📄 Master HTML", adminJsonBackup: "💾 JSON backup",
+    goalsTeamA: "Goles equipo A", goalsTeamB: "Goles equipo B",
+    removalEmailTitle: "Entrada eliminada — Porra Copa 2026",
+    removalEmailContact: "Para dudas, contacta al administrador."
   },
 
   "en-US": {
@@ -338,7 +348,6 @@ window.BOLAO_I18N = {
     heroEyebrow: "World Cup 2026 Pool",
     heroTitle: "Fill in your bracket and join.",
     heroText: "Entry fee: US$ 5. Submit your picks before the deadline, save your receipt, and track the rankings.",
-    browserWarning: "Note: data is stored in this browser and in the cloud via Supabase. If local data is cleared and remote DB is configured, it will be restored on next load.",
     entryTitle: "New entry",
     entryName: "Entry name",
     payerName: "Payer name",
@@ -494,6 +503,12 @@ window.BOLAO_I18N = {
     receiptCheckTitle: "Manual point verification",
     receiptCheckBy: "Verified by",
     receiptCheckDate: "Date",
-    receiptCheckTotal: "Total"
+    receiptCheckTotal: "Total",
+    countdownDays: "days", countdownHours: "hrs", countdownMin: "min", countdownSec: "sec",
+    adminCsvFull: "📊 Full CSV", adminMasterCsv: "📋 Master CSV",
+    adminMasterHtml: "📄 Master HTML", adminJsonBackup: "💾 JSON backup",
+    goalsTeamA: "Team A goals", goalsTeamB: "Team B goals",
+    removalEmailTitle: "Entry removed — World Cup 2026 Pool",
+    removalEmailContact: "For questions, contact the administrator."
   }
 };

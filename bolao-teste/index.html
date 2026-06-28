@@ -56,7 +56,6 @@
       <div class="eyebrow" data-i18n="heroEyebrow">Bolão Copa 2026</div>
       <h1 data-i18n="heroTitle">Preencha seu bracket e participe.</h1>
       <p data-i18n="heroText">Valor: US$ 5 por entrada.</p>
-      <p class="warning" data-i18n="browserWarning">Atenção: dados ficam neste navegador.</p>
     </div>
     <div class="count-card">
       <div id="countdown" aria-live="polite"></div>
@@ -71,11 +70,11 @@
       <div class="form-grid">
         <label>
           <span data-i18n="entryName">Nome da entrada</span>
-          <input id="entryName" type="text" autocomplete="name" placeholder="Eduardo #1">
+          <input id="entryName" type="text" autocomplete="name" placeholder="Eduardo #1" maxlength="80">
         </label>
         <label>
           <span data-i18n="payerName">Responsável pelo pagamento</span>
-          <input id="payerName" type="text" autocomplete="name" placeholder="Eduardo">
+          <input id="payerName" type="text" autocomplete="name" placeholder="Eduardo" maxlength="80">
         </label>
         <label>
           <span data-i18n="emailLabel">E-mail para comprovante</span>
@@ -92,7 +91,7 @@
         </label>
         <label>
           <span data-i18n="amount">Valor</span>
-          <input type="text" value="US$ 5 por entrada" disabled aria-hidden="true">
+          <input id="amountField" type="text" value="US$ 5 por entrada" disabled aria-hidden="true">
         </label>
       </div>
       <div id="paymentBox"></div>
@@ -187,10 +186,10 @@
       <div class="card">
         <div class="admin-toolbar">
           <button id="adminLogoutBtn" type="button" class="secondary" data-i18n="logout">Sair</button>
-          <button id="backupCsv" type="button" class="secondary small-btn">📊 CSV completo</button>
-          <button id="masterCsv" type="button" class="secondary small-btn">📋 Master CSV</button>
-          <button id="masterHtml" type="button" class="secondary small-btn">📄 Master HTML</button>
-          <button id="backupJson" type="button" class="secondary small-btn">💾 JSON backup</button>
+          <button id="backupCsv" type="button" class="secondary small-btn" data-i18n="adminCsvFull">📊 CSV completo</button>
+          <button id="masterCsv" type="button" class="secondary small-btn" data-i18n="adminMasterCsv">📋 Master CSV</button>
+          <button id="masterHtml" type="button" class="secondary small-btn" data-i18n="adminMasterHtml">📄 Master HTML</button>
+          <button id="backupJson" type="button" class="secondary small-btn" data-i18n="adminJsonBackup">💾 JSON backup</button>
           <button id="loadDemoData" type="button" class="secondary small-btn" data-i18n="adminDemoData">Demo</button>
           <button id="refreshFootballApi" type="button" class="secondary small-btn" data-i18n="adminRefreshFootball">API-Football</button>
           <button id="apiFetchResults" type="button" class="secondary small-btn" data-i18n="apiFootballRefreshResults">Atualizar resultados</button>

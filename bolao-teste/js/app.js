@@ -50,7 +50,7 @@ function pickWinner(a, b) { return a > b ? "A" : b > a ? "B" : ""; }
 
 function hashString(str) {
   let h = 2166136261;
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  for (const cp of str) { h ^= cp.codePointAt(0); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(16).padStart(8, "0").toUpperCase();
 }
 
@@ -134,8 +134,10 @@ function applyLanguage() {
     if (txt !== el.dataset.i18n) el.textContent = txt;
   });
   $$("[data-lang]").forEach(b => b.classList.toggle("active", b.dataset.lang === currentLang));
-  const gl = $("#gamesUpdatedLabel");
-  if (gl) gl.textContent = DATA.updatedLabel || "";
+  $$("[data-phase]").forEach(el => { el.textContent = phaseLabel(el.dataset.phase); });
+  $$("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
+  const gl = $("#gamesUpdatedLabel"); if (gl) gl.textContent = DATA.updatedLabel || "";
+  const af = $("#amountField"); if (af) af.value = t("amountValue");
 }
 
 /* ============================================================
@@ -254,6 +256,12 @@ async function reloadRemoteIfVisible() {
   renderAll();
 }
 
+let _reloadTimer = null;
+function debouncedReload() {
+  clearTimeout(_reloadTimer);
+  _reloadTimer = setTimeout(() => reloadRemoteIfVisible().catch(err => console.warn("Reload failed", err)), 60);
+}
+
 /* ============================================================
    Cutoff
    ============================================================ */
@@ -269,10 +277,10 @@ function updateCountdown() {
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
         m = Math.floor((s % 3600) / 60), sec = s % 60;
   box.innerHTML = `<div class="count-grid">
-    <div><b>${d}</b><span>dias</span></div>
-    <div><b>${h}</b><span>hrs</span></div>
-    <div><b>${m}</b><span>min</span></div>
-    <div><b>${String(sec).padStart(2,"0")}</b><span>seg</span></div>
+    <div><b>${d}</b><span>${t("countdownDays")}</span></div>
+    <div><b>${h}</b><span>${t("countdownHours")}</span></div>
+    <div><b>${m}</b><span>${t("countdownMin")}</span></div>
+    <div><b>${String(sec).padStart(2,"0")}</b><span>${t("countdownSec")}</span></div>
   </div>`;
   const lbl = $("#cutoffLabel");
   if (lbl) lbl.textContent = CONFIG.cutoffLabel;
@@ -378,11 +386,11 @@ function inferFromForm() {
   return { winners, losers };
 }
 
-function updateCard(card) {
+function updateCard(card, preW, preL) {
   const mid = card.dataset.cardMatch;
   const m = DATA.knockoutMatches.find(x => x.match === mid);
   if (!m) return;
-  const { winners, losers } = inferFromForm();
+  const { winners, losers } = preW ? { winners: preW, losers: preL } : inferFromForm();
   const a = resolveSlot(m.teamA, winners, losers);
   const b = resolveSlot(m.teamB, winners, losers);
   card.dataset.currentA = a; card.dataset.currentB = b;
@@ -441,7 +449,8 @@ function saveDraftDebounced() {
 }
 
 function updateDynamic() {
-  $$(".match-card[data-card-match]").forEach(updateCard);
+  const { winners, losers } = inferFromForm();
+  $$(".match-card[data-card-match]").forEach(card => updateCard(card, winners, losers));
   updateProgress();
   saveDraftDebounced();
 }
@@ -460,7 +469,7 @@ function renderBracket() {
     card.innerHTML = `
       <div class="match-head">
         <span class="match-badge">Match ${escapeHtml(String(m.match))}</span>
-        <span class="phase">${escapeHtml(phaseLabel(m.phase))}</span>
+        <span class="phase" data-phase="${escapeHtml(m.phase)}">${escapeHtml(phaseLabel(m.phase))}</span>
       </div>
       <div class="match-meta">
         ${m.date ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
@@ -475,11 +484,11 @@ function renderBracket() {
       <div class="score-inputs">
         <label>
           <span data-score-label="A">${escapeHtml(m.teamA)}</span>
-          <input type="number" min="0" max="20" step="1" inputmode="numeric" enterkeyhint="next" data-field="goalsA" autocomplete="off" aria-label="Gols time A">
+          <input type="number" min="0" max="20" step="1" inputmode="numeric" enterkeyhint="next" data-field="goalsA" autocomplete="off" data-i18n-aria="goalsTeamA" aria-label="${escapeHtml(t("goalsTeamA"))}">
         </label>
         <label>
           <span data-score-label="B">${escapeHtml(m.teamB)}</span>
-          <input type="number" min="0" max="20" step="1" inputmode="numeric" enterkeyhint="next" data-field="goalsB" autocomplete="off" aria-label="Gols time B">
+          <input type="number" min="0" max="20" step="1" inputmode="numeric" enterkeyhint="next" data-field="goalsB" autocomplete="off" data-i18n-aria="goalsTeamB" aria-label="${escapeHtml(t("goalsTeamB"))}">
         </label>
       </div>
       <label aria-label="${escapeHtml(winnerLabel(m))}">${escapeHtml(winnerLabel(m))}
@@ -584,10 +593,16 @@ async function readEntryFromForm() {
     const gaRaw = c?.querySelector('[data-field="goalsA"]')?.value;
     const gbRaw = c?.querySelector('[data-field="goalsB"]')?.value;
     if (gaRaw === "" || gaRaw === undefined || gbRaw === "" || gbRaw === undefined) {
-      alert(`${t("missingScore")} Match ${m.match}`); return null;
+      alert(`${t("missingScore")} Match ${m.match}`);
+      $(`[data-card-match="${m.match}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return null;
     }
     const ga = parseScore(gaRaw), gb = parseScore(gbRaw);
-    if (ga === null || gb === null) { alert(`${t("invalidScore")} Match ${m.match}`); return null; }
+    if (ga === null || gb === null) {
+      alert(`${t("invalidScore")} Match ${m.match}`);
+      $(`[data-card-match="${m.match}"]`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return null;
+    }
     const autoSide = pickWinner(ga, gb);
     const sel = c?.querySelector('[data-field="advanceSide"]');
     const side = autoSide || (sel?.value || "");
@@ -692,7 +707,7 @@ function receiptHtml(entry) {
     return `<tr><td>M${escapeHtml(String(m.match))}<br><small>${escapeHtml(phaseLabel(m.phase))}</small></td><td>${escapeHtml(rr.displayA||"")}</td><td><b>${p.goalsA} × ${p.goalsB}</b></td><td>${escapeHtml(rr.displayB||"")}</td><td><b>${escapeHtml(w||"")}</b></td></tr>`;
   }).join("");
 
-  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+  return `<!doctype html><html lang="${currentLang}"><head><meta charset="utf-8">
 <title>${escapeHtml(t("receiptTitle"))}</title>
 <style>body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}
 .doc{max-width:900px;margin:24px auto;background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 40px #0002}
@@ -713,7 +728,7 @@ th{background:#07151c;color:#fff;text-align:left}
 <b>${escapeHtml(t("receiptResponsible"))}:</b> ${escapeHtml(entry.payerName)}<br>
 <b>${escapeHtml(t("receiptEmail"))}:</b> ${escapeHtml(entry.participantEmail)}</div>
 <div><b>${escapeHtml(t("receiptPayment"))}:</b> ${escapeHtml(entry.paymentMethod)} — ${escapeHtml(entry.paymentTo||"")}<br>
-<b>${escapeHtml(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}<br>
+<b>${escapeHtml(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString(currentLang)}<br>
 <b>${escapeHtml(t("receiptCode"))}:</b> <span class="code">${escapeHtml(receiptCode(entry))}</span></div></div>
 <div class="pod"><h2>${escapeHtml(t("receiptFinalPick"))}</h2><div class="podgrid">
 <div class="podcard champ"><div>${escapeHtml(t("receiptChampion"))}</div><div class="team-name">${escapeHtml(pod.champion||"—")}</div></div>
@@ -805,11 +820,11 @@ async function mailReceipt(id, target) {
 async function sendRemovalEmail(e, reason) {
   if (!isValidEmail(e.participantEmail) || !window.emailjs) return;
   const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
-<h2>Entrada removida — Bolão Copa 2026</h2>
-<p><b>Entrada:</b> ${escapeHtml(e.entryName)}</p>
-<p><b>Código:</b> ${escapeHtml(receiptCode(e))}</p>
-${reason ? `<p><b>Motivo:</b> ${escapeHtml(reason)}</p>` : ""}
-<p>Em caso de dúvidas, entre em contato com o administrador.</p></div>`;
+<h2>${escapeHtml(t("removalEmailTitle"))}</h2>
+<p><b>${escapeHtml(t("receiptEntry"))}:</b> ${escapeHtml(e.entryName)}</p>
+<p><b>${escapeHtml(t("receiptCode"))}:</b> ${escapeHtml(receiptCode(e))}</p>
+${reason ? `<p><b>${escapeHtml(t("deleteReasonPrompt"))}</b> ${escapeHtml(reason)}</p>` : ""}
+<p>${escapeHtml(t("removalEmailContact"))}</p></div>`;
   try {
     await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId, {
       to_email: e.participantEmail, entry_name: `REMOVIDA — ${e.entryName}`,
@@ -880,7 +895,7 @@ function picksTable(entry) {
     const w = p.advanceSide === "A" ? rr.displayA : rr.displayB;
     return `<tr><td>M${escapeHtml(String(m.match))}</td><td>${escapeHtml(rr.displayA||"")}</td><td><b>${p.goalsA}×${p.goalsB}</b></td><td>${escapeHtml(rr.displayB||"")}</td><td>${escapeHtml(w||"")}</td></tr>`;
   }).join("");
-  return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>A</th><th>${escapeHtml(t("receiptScore"))}</th><th>B</th><th>${escapeHtml(t("receiptWinner"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function renderParticipants() {
@@ -1142,7 +1157,7 @@ function backupCsv()   { downloadBlob(`bolao-backup-${new Date().toISOString().s
 function masterCsv()   { downloadBlob(`bolao-master-${new Date().toISOString().slice(0,10)}.csv`, toCsv(exportRows(false)), "text/csv"); }
 function masterHtml()  {
   const trs = exportRows(false).map(r => `<tr><td>${escapeHtml(r.entryName)}</td><td>${escapeHtml(r.payerName)}</td><td>${r.score}</td><td>${r.paid}</td><td>${escapeHtml(r.receiptCode)}</td></tr>`).join("\n");
-  downloadBlob("master-list.html", `<!doctype html><html><head><meta charset="utf-8"><title>Master List</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}td,th{padding:8px;border:1px solid #ddd}th{background:#07151c;color:#fff}</style></head><body><h1>Master List — Bolão Copa 2026</h1><p>Gerado: ${new Date().toLocaleString("pt-BR")}</p><table><thead><tr><th>Entrada</th><th>Responsável</th><th>Pontos</th><th>Pago</th><th>Código</th></tr></thead><tbody>${trs}</tbody></table></body></html>`, "text/html");
+  downloadBlob("master-list.html", `<!doctype html><html><head><meta charset="utf-8"><title>Master List</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}td,th{padding:8px;border:1px solid #ddd}th{background:#07151c;color:#fff}</style></head><body><h1>Master List — Bolão Copa 2026</h1><p>${new Date().toLocaleString(currentLang)}</p><table><thead><tr><th>${t("receiptEntry")}</th><th>${t("payerName")}</th><th>${t("points")}</th><th>${t("paymentPaid")}</th><th>${t("receiptCode")}</th></tr></thead><tbody>${trs}</tbody></table></body></html>`, "text/html");
 }
 
 /* ============================================================
@@ -1167,16 +1182,24 @@ async function autoFill(mode) {
   if (isPastCutoff()) { alert(t("closed")); return; }
   const filled = $$('[data-field="goalsA"],[data-field="goalsB"]').some(el => el.value !== "");
   if (filled && !confirm(t("overwritePicks"))) return;
+  const winners = {}, losers = {};
   for (const m of DATA.knockoutMatches) {
-    updateDynamic();
     const c = $(`[data-card-match="${m.match}"]`);
     if (!c) continue;
-    const a = c.dataset.currentA || m.teamA, b = c.dataset.currentB || m.teamB;
+    const a = resolveSlot(m.teamA, winners, losers);
+    const b = resolveSlot(m.teamB, winners, losers);
     const [ga, gb] = predictScore(a, b, mode);
-    const gaEl = c.querySelector('[data-field="goalsA"]'), gbEl = c.querySelector('[data-field="goalsB"]');
+    const gaEl = c.querySelector('[data-field="goalsA"]');
+    const gbEl = c.querySelector('[data-field="goalsB"]');
     if (gaEl) gaEl.value = ga;
     if (gbEl) gbEl.value = gb;
-    updateCard(c);
+    const auto = pickWinner(ga, gb);
+    const side = auto || (Math.random() < 0.5 ? "A" : "B");
+    const selEl = c.querySelector('[data-field="advanceSide"]');
+    if (selEl) { selEl.value = side; selEl.disabled = !!auto; }
+    if (side === "A") { winners[m.match] = a; losers[m.match] = b; }
+    else { winners[m.match] = b; losers[m.match] = a; }
+    c.dataset.currentA = a; c.dataset.currentB = b;
   }
   updateDynamic();
 }
@@ -1212,7 +1235,7 @@ async function saveEntry() {
    Admin actions
    ============================================================ */
 async function adminLogin() {
-  const lock = Number(localStorage.getItem("adminLockUntil") || "0");
+  const lock = Number(sessionStorage.getItem("adminLockUntil") || "0");
   if (Date.now() < lock) { alert(t("adminLocked")); return; }
   if (!CONFIG.adminPasswordHash) { alert(t("adminWrongPassword")); return; }
   const pwd = ($("#adminPassword")?.value || "").trim();
@@ -1228,18 +1251,18 @@ async function adminLogin() {
   if (hash === CONFIG.adminPasswordHash) {
     sessionStorage.setItem("adminOk", "true");
     sessionStorage.setItem("adminUntil", String(Date.now() + CONFIG.adminSessionMinutes * 60000));
-    localStorage.removeItem("adminAttempts");
+    sessionStorage.removeItem("adminAttempts");
     if ($("#adminPassword")) $("#adminPassword").value = "";
     $("#adminLogin")?.classList.add("hidden");
     $("#adminArea")?.classList.remove("hidden");
     renderAdmin();
     startResultsPolling();
   } else {
-    const n = Number(localStorage.getItem("adminAttempts") || "0") + 1;
-    localStorage.setItem("adminAttempts", String(n));
+    const n = Number(sessionStorage.getItem("adminAttempts") || "0") + 1;
+    sessionStorage.setItem("adminAttempts", String(n));
     if (n >= (CONFIG.adminMaxAttempts || 5)) {
-      localStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
-      localStorage.setItem("adminAttempts", "0");
+      sessionStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
+      sessionStorage.setItem("adminAttempts", "0");
       alert(t("adminLocked"));
     } else {
       alert(t("adminWrongPassword"));
@@ -1602,12 +1625,12 @@ async function init() {
     if (document.hidden) {
       stopResultsPolling();
     } else {
-      reloadRemoteIfVisible().catch(err => console.warn("Visibility reload failed", err));
+      debouncedReload();
       if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
     }
   });
   window.addEventListener("focus", () => {
-    reloadRemoteIfVisible().catch(err => console.warn("Focus reload failed", err));
+    debouncedReload();
     if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
   });
 
