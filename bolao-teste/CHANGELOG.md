@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## v4.2-patch — 2026-06-27
+
+Surgical patch on v4.1-patch. Data updates and receipt improvements.
+
+### Fixed / Updated
+- `data.js`: All 32 knockout match venues now filled in (was "A confirmar"). Times added in EDT format for matches 74–104.
+- `data.js`: Fixed M74 (Brazil vs Japan) kickoff time: 12:00 → 13:00 EDT.
+- Sources: NBC Sports schedule + Wikipedia Copa 2026 knockout bracket.
+
+### Added
+- Receipt HTML: scoring legend section showing all point values.
+- Receipt HTML: manual point verification table (fill-in area for double-checking scores).
+- i18n: 12 new keys (`receiptLegendTitle`, `receiptLegendExact`, `receiptLegendAdvance`, `receiptLegendOneTeam`, `receiptLegendChampion`, `receiptLegendRunnerUp`, `receiptLegendThird`, `receiptLegendFourth`, `receiptCheckTitle`, `receiptCheckBy`, `receiptCheckDate`, `receiptCheckTotal`) added to all 3 languages (pt-BR, es, en-US).
+
+### Confirmed (no change needed)
+- Supabase already `enabled: true` in `config.js` with correct credentials.
+
+---
+
 ## v4.1-patch — 2026-06-27
 
 Surgical patch on v4.0-clean. No architecture changes.

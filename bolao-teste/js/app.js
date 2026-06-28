@@ -724,6 +724,21 @@ th{background:#07151c;color:#fff;text-align:left}
 <table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th></tr></thead>
 <tbody>${rows}</tbody></table>
 <div class="notice"><b>${escapeHtml(t("receiptRuleLabel"))}:</b> ${escapeHtml(t("receiptRuleText"))}</div>
+<div class="notice" style="margin-top:12px"><b>${escapeHtml(t("receiptLegendTitle"))}:</b> ${escapeHtml(t("receiptLegendExact"))} &middot; ${escapeHtml(t("receiptLegendAdvance"))} &middot; ${escapeHtml(t("receiptLegendOneTeam"))} &middot; ${escapeHtml(t("receiptLegendChampion"))} &middot; ${escapeHtml(t("receiptLegendRunnerUp"))} &middot; ${escapeHtml(t("receiptLegendThird"))} &middot; ${escapeHtml(t("receiptLegendFourth"))}</div>
+<div style="margin-top:16px;border:2px dashed #b0cdb0;border-radius:14px;padding:16px">
+<b>${escapeHtml(t("receiptCheckTitle"))}</b>
+<table style="width:100%;font-size:12px;margin-top:10px;border-collapse:collapse">
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendExact"))}</td><td style="text-align:center;width:40px;border-bottom:1px solid #dde">x____</td><td style="text-align:right;width:80px;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendAdvance"))}</td><td style="text-align:center;border-bottom:1px solid #dde">x____</td><td style="text-align:right;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendOneTeam"))}</td><td style="text-align:center;border-bottom:1px solid #dde">x____</td><td style="text-align:right;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendChampion"))}</td><td style="border-bottom:1px solid #dde"></td><td style="text-align:right;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendRunnerUp"))}</td><td style="border-bottom:1px solid #dde"></td><td style="text-align:right;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendThird"))}</td><td style="border-bottom:1px solid #dde"></td><td style="text-align:right;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td style="padding:4px 6px;border-bottom:1px solid #dde">${escapeHtml(t("receiptLegendFourth"))}</td><td style="border-bottom:1px solid #dde"></td><td style="text-align:right;border-bottom:1px solid #dde">____ pts</td></tr>
+<tr><td colspan="2" style="padding:8px 6px;font-weight:bold">${escapeHtml(t("receiptCheckTotal"))}</td><td style="text-align:right;font-weight:bold;font-size:15px">____ pts</td></tr>
+</table>
+<p style="margin:12px 0 0;font-size:12px;color:#777">${escapeHtml(t("receiptCheckBy"))}: ___________________________ &nbsp;&nbsp;&nbsp; ${escapeHtml(t("receiptCheckDate"))}: ___________</p>
+</div>
 </div></body></html>`;
 }
 

@@ -145,7 +145,19 @@ window.BOLAO_I18N = {
     receiptTeamB: "Time B",
     receiptWinner: "Ganha/avança",
     receiptRuleLabel: "Regra",
-    receiptRuleText: "Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar."
+    receiptRuleText: "Placar válido: 90 minutos + prorrogação. Pênaltis não entram no placar.",
+    receiptLegendTitle: "Legenda de pontuação",
+    receiptLegendExact: "Placar exato: 10 pts",
+    receiptLegendAdvance: "Quem avança: 5 pts",
+    receiptLegendOneTeam: "Gols de um time: 1 pt",
+    receiptLegendChampion: "Bônus campeão: 25 pts",
+    receiptLegendRunnerUp: "Bônus vice: 15 pts",
+    receiptLegendThird: "Bônus 3º lugar: 10 pts",
+    receiptLegendFourth: "Bônus 4º lugar: 5 pts",
+    receiptCheckTitle: "Conferência manual de pontos",
+    receiptCheckBy: "Conferido por",
+    receiptCheckDate: "Data",
+    receiptCheckTotal: "Total"
   },
 
   "es": {
@@ -294,7 +306,19 @@ window.BOLAO_I18N = {
     receiptTeamB: "Equipo B",
     receiptWinner: "Gana/avanza",
     receiptRuleLabel: "Regla",
-    receiptRuleText: "Marcador válido: 90 minutos + prórroga. Los penales no cuentan en el marcador."
+    receiptRuleText: "Marcador válido: 90 minutos + prórroga. Los penales no cuentan en el marcador.",
+    receiptLegendTitle: "Leyenda de puntuación",
+    receiptLegendExact: "Marcador exacto: 10 pts",
+    receiptLegendAdvance: "Quién avanza: 5 pts",
+    receiptLegendOneTeam: "Goles de un equipo: 1 pt",
+    receiptLegendChampion: "Bono campeón: 25 pts",
+    receiptLegendRunnerUp: "Bono subcampeón: 15 pts",
+    receiptLegendThird: "Bono 3er lugar: 10 pts",
+    receiptLegendFourth: "Bono 4to lugar: 5 pts",
+    receiptCheckTitle: "Verificación manual de puntos",
+    receiptCheckBy: "Verificado por",
+    receiptCheckDate: "Fecha",
+    receiptCheckTotal: "Total"
   },
 
   "en-US": {
@@ -443,6 +467,18 @@ window.BOLAO_I18N = {
     receiptTeamB: "Team B",
     receiptWinner: "Winner",
     receiptRuleLabel: "Rule",
-    receiptRuleText: "Valid score: 90 minutes + extra time. Penalty shootout does not count."
+    receiptRuleText: "Valid score: 90 minutes + extra time. Penalty shootout does not count.",
+    receiptLegendTitle: "Scoring legend",
+    receiptLegendExact: "Exact score: 10 pts",
+    receiptLegendAdvance: "Correct advancement: 5 pts",
+    receiptLegendOneTeam: "One team's goals: 1 pt",
+    receiptLegendChampion: "Bonus champion: 25 pts",
+    receiptLegendRunnerUp: "Bonus runner-up: 15 pts",
+    receiptLegendThird: "Bonus 3rd place: 10 pts",
+    receiptLegendFourth: "Bonus 4th place: 5 pts",
+    receiptCheckTitle: "Manual point verification",
+    receiptCheckBy: "Verified by",
+    receiptCheckDate: "Date",
+    receiptCheckTotal: "Total"
   }
 };
