@@ -240,11 +240,20 @@ async function saveRemoteState(s, opts = {}) {
         saveLocalState(merged);
         s = merged;
       } else if (!opts.forceResults) {
-        // Non-admin save: preserve any remote results not present locally
-        // so participant entry saves never overwrite admin's real results.
-        const remoteResults = (cur.state || {}).results || {};
+        // Non-admin save: preserve remote results and paid marks so participant
+        // entry saves never overwrite admin-managed data in Supabase.
+        const cur_state = cur.state || {};
+        const remoteResults = cur_state.results || {};
         if (Object.keys(remoteResults).length > 0) {
           s = { ...s, results: Object.assign({}, s.results || {}, remoteResults) };
+        }
+        const remotePaid = cur_state.paid || {};
+        if (Object.keys(remotePaid).length > 0) {
+          const mergedPaid = Object.assign({}, s.paid || {});
+          for (const k of Object.keys(remotePaid)) {
+            mergedPaid[k] = !!(mergedPaid[k] || remotePaid[k]);
+          }
+          s = { ...s, paid: mergedPaid };
         }
       }
     }
@@ -1625,10 +1634,14 @@ function initEvents() {
   document.addEventListener("change", e => {
     const paidEl = e.target.closest("[data-paid]");
     if (!paidEl) return;
-    if (!guardAdmin()) return;
+    const newChecked = paidEl.checked;
+    if (!guardAdmin()) {
+      paidEl.checked = !newChecked; // revert visual if session expired
+      return;
+    }
     const s = state();
-    s.paid[paidEl.dataset.paid] = paidEl.checked;
-    saveState(s);
+    s.paid[paidEl.dataset.paid] = newChecked;
+    saveState(s, { forceResults: true });
     renderParticipants();
     renderAdminPayments(state());
   });
