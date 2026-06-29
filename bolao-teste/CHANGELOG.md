@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.15 — 2026-06-29
+
+### Added
+- **Botão "📧 Email a todos" e "📧 Teste (admin)" no painel admin**: Envia o email de resultado parcial diretamente do browser (funciona no celular). Usa EmailJS já configurado. Botão Teste envia só para o admin; botão principal envia para todos os participantes com email válido. Reusa `scoreEntry`, `resolveSlot` e `escapeHtml` já existentes.
+
+### Updated
+- **Resultados**: Match 73 (África do Sul 0–1 Canadá) e Match 74 (Brasil 2–1 Japão) atualizados em `data.js` e Supabase.
+
+---
+
 ## v4.13 — 2026-06-28
 
 ### Fixed (arquitetural)

@@ -863,6 +863,184 @@ ${reason ? `<p><b>${escapeHtml(t("deleteReasonPrompt"))}</b> ${escapeHtml(reason
 }
 
 /* ============================================================
+   Result email broadcast (admin button)
+   ============================================================ */
+function resolveTeamsFromResults(s) {
+  const winners = {}, losers = {}, resolved = {};
+  for (const m of DATA.knockoutMatches) {
+    const r = (s.results || {})[m.match];
+    const a = resolveSlot(m.teamA, winners, losers);
+    const b = resolveSlot(m.teamB, winners, losers);
+    resolved[m.match] = { displayA: a, displayB: b };
+    if (r?.advanceSide === "A") { winners[m.match] = a; losers[m.match] = b; }
+    else if (r?.advanceSide === "B") { winners[m.match] = b; losers[m.match] = a; }
+  }
+  return resolved;
+}
+
+function buildResultEmailHtml(s, testMode) {
+  const deleted = new Set(s.deletedIds || []);
+  const results = Object.fromEntries(Object.entries(s.results || {}).filter(([, v]) => v?.advanceSide));
+  const teamNames = resolveTeamsFromResults(s);
+  const realEntries = (s.entries || []).filter(e => !deleted.has(e.id) && !e.diagnostics?.demo);
+  const scored = realEntries.map(e => ({ e, total: scoreEntry(e, s).total })).sort((a, b) => b.total - a.total);
+
+  const sortedMids = Object.keys(results).map(Number).sort((a, b) => a - b);
+  const lastMid = sortedMids.length ? String(sortedMids[sortedMids.length - 1]) : null;
+  const lastResult = lastMid ? results[lastMid] : null;
+  const lastTeamA = lastMid ? (teamNames[lastMid]?.displayA || "Team A") : "";
+  const lastTeamB = lastMid ? (teamNames[lastMid]?.displayB || "Team B") : "";
+  const lastWinner = lastResult?.advanceSide === "B" ? lastTeamB : lastTeamA;
+
+  const sc = CONFIG.scoring;
+  const ptsColor = p => p >= 10 ? "#16a34a" : p >= 5 ? "#ca8a04" : p > 0 ? "#2563eb" : "#9ca3af";
+  const tbl = `style="width:100%;border-collapse:collapse;background:white;border:1px solid #e2e8f0;border-radius:8px;overflow:hidden;font-size:13px;margin-bottom:20px"`;
+  const thead = `style="background:#f1f5f9"`;
+  const th = `style="padding:8px 10px;text-align:left;font-weight:600;color:#374151"`;
+
+  function scoreMatchSingle(pick, result, tA, tB) {
+    if (!pick || !result?.advanceSide) return { pts: 0, detPt: "sem palpite", detEn: "no pick" };
+    const pA = Number(pick.goalsA), pB = Number(pick.goalsB);
+    const rA = Number(result.goalsA), rB = Number(result.goalsB);
+    let pts = 0; const nPt = [], nEn = [];
+    if (pA === rA && pB === rB) {
+      pts += sc.exactScore; nPt.push(`+${sc.exactScore} placar exato`); nEn.push(`+${sc.exactScore} exact score`);
+    } else {
+      if (pA === rA) { pts += sc.oneTeamGoals; nPt.push(`+1 gol ${tA}`); nEn.push(`+1 ${tA} goal`); }
+      if (pB === rB) { pts += sc.oneTeamGoals; nPt.push(`+1 gol ${tB}`); nEn.push(`+1 ${tB} goal`); }
+    }
+    if (pick.advanceSide === result.advanceSide) {
+      const w = result.advanceSide === "B" ? tB : tA;
+      pts += sc.advance; nPt.push(`+${sc.advance} ${w} avança`); nEn.push(`+${sc.advance} ${w} advances`);
+    }
+    return { pts, detPt: nPt.join(", ") || "—", detEn: nEn.join(", ") || "—" };
+  }
+
+  const breakdownScored = lastMid ? scored.map(item => {
+    const pick = item.e.picks?.[lastMid];
+    const { pts, detPt, detEn } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB);
+    const pickStr = pick
+      ? `${Number(pick.goalsA)}–${Number(pick.goalsB)} (${pick.advanceSide === "B" ? lastTeamB : lastTeamA})`
+      : "—";
+    return { name: item.e.entryName || "?", pts, detPt, detEn, pickStr };
+  }).sort((a, b) => b.pts - a.pts) : [];
+
+  let breakdownPt = "", breakdownEn = "";
+  for (const row of breakdownScored) {
+    const c = ptsColor(row.pts);
+    breakdownPt += `<tr><td style="padding:6px 10px">${escapeHtml(row.name)}</td><td style="padding:6px 10px;text-align:center">${escapeHtml(row.pickStr)}</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:${c}">${row.pts}</td><td style="padding:6px 10px;font-size:11px;color:#6b7280">${escapeHtml(row.detPt)}</td></tr>`;
+    breakdownEn += `<tr><td style="padding:6px 10px">${escapeHtml(row.name)}</td><td style="padding:6px 10px;text-align:center">${escapeHtml(row.pickStr)}</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:${c}">${row.pts}</td><td style="padding:6px 10px;font-size:11px;color:#6b7280">${escapeHtml(row.detEn)}</td></tr>`;
+  }
+
+  let rankingRows = "", prevPts = null, rank = 0;
+  for (let i = 0; i < scored.length; i++) {
+    const item = scored[i];
+    if (item.total !== prevPts) rank = i + 1;
+    prevPts = item.total;
+    const medal = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
+    const bg = rank <= 3 ? "#fffbe6" : "white";
+    rankingRows += `<tr style="background:${bg}"><td style="padding:7px 10px;text-align:center">${medal}</td><td style="padding:7px 10px">${escapeHtml(item.e.entryName || "?")}</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:${ptsColor(item.total)}">${item.total}</td></tr>`;
+  }
+
+  const matchCount = sortedMids.length;
+  const lastLabel = lastMid ? `M${lastMid}` : "";
+  const lastResultStr = lastResult ? `${lastTeamA} ${lastResult.goalsA}–${lastResult.goalsB} ${lastTeamB}` : "—";
+  const testBanner = testMode
+    ? `<div style="background:#fef3c7;border:2px dashed #f59e0b;padding:12px;border-radius:8px;text-align:center;margin-bottom:16px;font-weight:700">⚠️ EMAIL DE TESTE / TEST EMAIL</div>`
+    : "";
+
+  return `<div style="font-family:sans-serif;max-width:620px;margin:0 auto;color:#1a1a1a">
+  ${testBanner}
+  <div style="background:linear-gradient(135deg,#1d4ed8,#1e40af);color:white;padding:24px;border-radius:12px 12px 0 0;text-align:center">
+    <div style="font-size:26px;font-weight:700;margin-bottom:4px">🏆 Bolão do Ferrari — Copa 2026</div>
+    <div style="opacity:.8;font-size:13px">Atualização de resultados · Results update</div>
+  </div>
+  <div style="background:#f8fafc;padding:20px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
+    <div style="font-size:15px;font-weight:700;color:#1d4ed8;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #dbeafe">🇧🇷 Português</div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Último jogo (${lastLabel})</div>
+      <div style="font-size:16px;font-weight:700">${escapeHtml(lastResultStr)}</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} avança</div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Pontuação — Último jogo (${lastLabel})</div>
+    <table ${tbl}><thead><tr ${thead}><th ${th}>Entrada</th><th ${th} style="text-align:center">Palpite</th><th ${th} style="text-align:center">Pts</th><th ${th}>Detalhes</th></tr></thead><tbody>${breakdownPt}</tbody></table>
+    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Placar exato = 10 pts · Avanço correto = 5 pts · 1 gol certo = 1 pt</div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Ranking atual (${matchCount} de 32 jogos)</div>
+    <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entrada</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
+    <div style="height:2px;background:#dbeafe;margin:24px 0"></div>
+    <div style="font-size:15px;font-weight:700;color:#1d4ed8;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #dbeafe">🇺🇸 English</div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Latest match (${lastLabel})</div>
+      <div style="font-size:16px;font-weight:700">${escapeHtml(lastResultStr)}</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} advances</div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Scoring — Latest match (${lastLabel})</div>
+    <table ${tbl}><thead><tr ${thead}><th ${th}>Entry</th><th ${th} style="text-align:center">Pick</th><th ${th} style="text-align:center">Pts</th><th ${th}>Details</th></tr></thead><tbody>${breakdownEn}</tbody></table>
+    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Exact score = 10 pts · Correct advance = 5 pts · 1 correct goal = 1 pt</div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking (${matchCount} of 32 matches played)</div>
+    <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entry</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
+    <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
+    <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao-teste/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao-teste/</a> · Bolão do Ferrari · Copa 2026</div>
+  </div>
+</div>`;
+}
+
+async function sendResultEmailFromAdmin(testOnly) {
+  if (!guardAdmin()) return;
+  if (!window.emailjs) { alert(t("emailjsNotLoaded")); return; }
+  const s = state();
+  const completedResults = Object.entries(s.results || {}).filter(([, v]) => v?.advanceSide);
+  if (!completedResults.length) { alert("Nenhum resultado knockout encontrado."); return; }
+
+  const btnId = testOnly ? "#sendResultEmailTest" : "#sendResultEmailAll";
+  const btn = $(btnId);
+  const origText = btn?.textContent || "";
+  if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
+
+  try {
+    const html = buildResultEmailHtml(s, testOnly);
+    const subject = "Resultado Parcial — Bolão Ferrari Copa 2026 / Partial Results";
+    const deleted = new Set(s.deletedIds || []);
+
+    if (testOnly) {
+      await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
+        { to_email: CONFIG.adminEmail, entry_name: "TESTE — todas as entradas", receipt_code: subject, html_message: html },
+        { publicKey: CONFIG.emailjs.publicKey });
+      alert(`Email de teste enviado para ${CONFIG.adminEmail} ✓`);
+    } else {
+      const byEmail = {};
+      for (const e of (s.entries || [])) {
+        if (deleted.has(e.id) || e.diagnostics?.demo) continue;
+        const addr = (e.participantEmail || "").trim();
+        if (!addr.includes("@") || !addr.includes(".")) continue;
+        const key = addr.toLowerCase();
+        if (!byEmail[key]) byEmail[key] = { addr, names: "" };
+        byEmail[key].names = (byEmail[key].names + ", " + (e.entryName || "?")).replace(/^, /, "");
+      }
+      const recipients = Object.values(byEmail);
+      let sent = 0, errors = 0;
+      for (const { addr, names } of recipients) {
+        try {
+          await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
+            { to_email: addr, entry_name: names, receipt_code: subject, html_message: html },
+            { publicKey: CONFIG.emailjs.publicKey });
+          sent++;
+          await new Promise(r => setTimeout(r, 3500));
+        } catch (err) {
+          console.error("Result email error:", addr, err);
+          errors++;
+        }
+      }
+      alert(`Emails enviados: ${sent} ✓${errors ? `, erros: ${errors}` : ""}`);
+    }
+  } catch (err) {
+    alert(`Erro ao enviar: ${err?.text || err?.message || String(err)}`);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
+  }
+}
+
+/* ============================================================
    Render sections
    ============================================================ */
 const PAY_ICON_SVG = { CashApp: "assets/cashapp.svg", Zelle: "assets/zelle.svg", Venmo: "assets/venmo.svg" };
@@ -1724,6 +1902,8 @@ function initEvents() {
   $("#masterCsv")?.addEventListener("click", () => { if (guardAdmin()) masterCsv(); });
   $("#masterHtml")?.addEventListener("click", () => { if (guardAdmin()) masterHtml(); });
   $("#backupJson")?.addEventListener("click", () => { if (guardAdmin()) backupJson(); });
+  $("#sendResultEmailTest")?.addEventListener("click", () => sendResultEmailFromAdmin(true));
+  $("#sendResultEmailAll")?.addEventListener("click", () => sendResultEmailFromAdmin(false));
 
   // Admin results
   const resultsBox = $("#resultsAdmin");

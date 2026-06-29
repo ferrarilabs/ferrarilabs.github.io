@@ -106,8 +106,8 @@ window.BOLAO_DATA = {
   ],
 
   knockoutMatches: [
-    {match:"73",phase:"Round of 32",date:"2026-06-28",teamA:"South Africa",teamB:"Canada",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"15:00 (EDT)",venue:"SoFi Stadium, Inglewood / Los Angeles, USA"},
-    {match:"74",phase:"Round of 32",date:"2026-06-29",teamA:"Brazil",teamB:"Japan",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"13:00 (EDT)",venue:"NRG Stadium, Houston, USA"},
+    {match:"73",phase:"Round of 32",date:"2026-06-28",teamA:"South Africa",teamB:"Canada",goalsA:0,goalsB:1,winner:"Canada",status:"Final",timeET:"15:00 (EDT)",venue:"SoFi Stadium, Inglewood / Los Angeles, USA"},
+    {match:"74",phase:"Round of 32",date:"2026-06-29",teamA:"Brazil",teamB:"Japan",goalsA:2,goalsB:1,winner:"Brazil",status:"Final",timeET:"13:00 (EDT)",venue:"NRG Stadium, Houston, USA"},
     {match:"75",phase:"Round of 32",date:"2026-06-29",teamA:"Germany",teamB:"Paraguay",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"16:30 (EDT)",venue:"Gillette Stadium, Foxborough / Boston, USA"},
     {match:"76",phase:"Round of 32",date:"2026-06-29",teamA:"Netherlands",teamB:"Morocco",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"21:00 (EDT)",venue:"Estadio BBVA, Monterrey, Mexico"},
     {match:"77",phase:"Round of 32",date:"2026-06-30",teamA:"Ivory Coast",teamB:"Norway",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"13:00 (EDT)",venue:"AT&T Stadium, Arlington / Dallas, USA"},
