@@ -1006,7 +1006,7 @@ async function sendResultEmailFromAdmin(testOnly) {
     const lastTeamA = teamNames[lastMid]?.displayA || "Team A";
     const lastTeamB = teamNames[lastMid]?.displayB || "Team B";
     const lastResultStr = `${lastTeamA} ${lastResult.goalsA}–${lastResult.goalsB} ${lastTeamB}`;
-    const emailSubject = `Resultado Parcial — M${lastMid}: ${lastResultStr}${testOnly ? " [TESTE]" : ""}`;
+    const emailSubject = `Resultado Parcial — M${lastMid}: ${lastResultStr}`;
 
     const html = buildResultEmailHtml(s, testOnly);
     const deleted = new Set(s.deletedIds || []);

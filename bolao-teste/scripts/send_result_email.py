@@ -405,7 +405,7 @@ def main():
     ]
 
     if test_mode:
-        recipients = {ADMIN_EMAIL: {"addr": ADMIN_EMAIL, "names": email_subject + " [TESTE]"}}
+        recipients = {ADMIN_EMAIL: {"addr": ADMIN_EMAIL, "names": email_subject}}
         print(f"\n⚠️  TEST MODE — sending only to {ADMIN_EMAIL}")
     else:
         recipients = {}
