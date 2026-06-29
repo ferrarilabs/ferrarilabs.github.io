@@ -1,5 +1,5 @@
 window.BOLAO_DATA = {
-  updatedLabel: "Atualizado até Jun 27. Estádios e horários ET adicionados à fase eliminatória.",
+  updatedLabel: "Atualizado até Jun 29. Bracket corrigido para bater com o oficial FIFA.",
 
   flags: {
     "Mexico":"🇲🇽","South Africa":"🇿🇦","South Korea":"🇰🇷","Czechia":"🇨🇿",
@@ -122,14 +122,14 @@ window.BOLAO_DATA = {
     {match:"86",phase:"Round of 32",date:"2026-07-03",teamA:"Australia",teamB:"Egypt",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"14:00 (EDT)",venue:"AT&T Stadium, Arlington / Dallas, USA"},
     {match:"87",phase:"Round of 32",date:"2026-07-03",teamA:"Argentina",teamB:"Cape Verde",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"18:00 (EDT)",venue:"Hard Rock Stadium, Miami Gardens / Miami, USA"},
     {match:"88",phase:"Round of 32",date:"2026-07-03",teamA:"Colombia",teamB:"Ghana",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"21:30 (EDT)",venue:"Arrowhead Stadium, Kansas City, USA"},
-    {match:"89",phase:"Round of 16",date:"2026-07-04",teamA:"Winner Match 73",teamB:"Winner Match 75",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"13:00 (EDT)",venue:"NRG Stadium, Houston, USA"},
-    {match:"90",phase:"Round of 16",date:"2026-07-04",teamA:"Winner Match 74",teamB:"Winner Match 77",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"17:00 (EDT)",venue:"Lincoln Financial Field, Philadelphia, USA"},
-    {match:"91",phase:"Round of 16",date:"2026-07-05",teamA:"Winner Match 76",teamB:"Winner Match 78",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"16:00 (EDT)",venue:"MetLife Stadium, East Rutherford, USA"},
+    {match:"89",phase:"Round of 16",date:"2026-07-04",teamA:"Winner Match 73",teamB:"Winner Match 76",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"13:00 (EDT)",venue:"NRG Stadium, Houston, USA"},
+    {match:"90",phase:"Round of 16",date:"2026-07-04",teamA:"Winner Match 75",teamB:"Winner Match 78",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"17:00 (EDT)",venue:"Lincoln Financial Field, Philadelphia, USA"},
+    {match:"91",phase:"Round of 16",date:"2026-07-05",teamA:"Winner Match 74",teamB:"Winner Match 77",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"16:00 (EDT)",venue:"MetLife Stadium, East Rutherford, USA"},
     {match:"92",phase:"Round of 16",date:"2026-07-05",teamA:"Winner Match 79",teamB:"Winner Match 80",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"20:00 (EDT)",venue:"Estadio Azteca, Mexico City, Mexico"},
     {match:"93",phase:"Round of 16",date:"2026-07-06",teamA:"Winner Match 83",teamB:"Winner Match 84",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"15:00 (EDT)",venue:"AT&T Stadium, Arlington / Dallas, USA"},
     {match:"94",phase:"Round of 16",date:"2026-07-06",teamA:"Winner Match 81",teamB:"Winner Match 82",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"20:00 (EDT)",venue:"Lumen Field, Seattle, USA"},
-    {match:"95",phase:"Round of 16",date:"2026-07-07",teamA:"Winner Match 86",teamB:"Winner Match 88",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"12:00 (EDT)",venue:"Mercedes-Benz Stadium, Atlanta, USA"},
-    {match:"96",phase:"Round of 16",date:"2026-07-07",teamA:"Winner Match 85",teamB:"Winner Match 87",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"16:00 (EDT)",venue:"BC Place, Vancouver, Canada"},
+    {match:"95",phase:"Round of 16",date:"2026-07-07",teamA:"Winner Match 87",teamB:"Winner Match 86",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"12:00 (EDT)",venue:"Mercedes-Benz Stadium, Atlanta, USA"},
+    {match:"96",phase:"Round of 16",date:"2026-07-07",teamA:"Winner Match 85",teamB:"Winner Match 88",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"16:00 (EDT)",venue:"BC Place, Vancouver, Canada"},
     {match:"97",phase:"Quarterfinal",date:"2026-07-09",teamA:"Winner Match 89",teamB:"Winner Match 90",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"16:00 (EDT)",venue:"Gillette Stadium, Foxborough / Boston, USA"},
     {match:"98",phase:"Quarterfinal",date:"2026-07-10",teamA:"Winner Match 93",teamB:"Winner Match 94",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"15:00 (EDT)",venue:"SoFi Stadium, Inglewood / Los Angeles, USA"},
     {match:"99",phase:"Quarterfinal",date:"2026-07-11",teamA:"Winner Match 91",teamB:"Winner Match 92",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"17:00 (EDT)",venue:"Hard Rock Stadium, Miami Gardens / Miami, USA"},
