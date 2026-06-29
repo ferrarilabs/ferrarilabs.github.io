@@ -3,22 +3,20 @@ send_result_email.py — Bolão Ferrari Copa 2026
 Sends a bilingual PT/EN score-update email to all participants after each match.
 
 Usage:
-  python3 send_result_email.py           # sends to everyone
-  python3 send_result_email.py --test    # sends only to admin (emferrari@gmail.com)
+  python3 send_result_email.py                              # sends to everyone
+  python3 send_result_email.py --test                       # sends only to admin
+  python3 send_result_email.py --update 75 1 1 B            # save M75 result to Supabase (goalsA=1, goalsB=1, advanceSide=B)
+  python3 send_result_email.py --update 75 1 1 B --test     # save + test email
 
-Before the first run of each day:
-  1. Make sure the match result is already saved in Supabase
-     (use the ⚽ ESPN button in the admin panel, or save manually via the Supabase
-     cleanup script if ESPN hasn't updated yet).
-  2. Run with --test, check the email, then run without --test.
+--update <mid> <goalsA> <goalsB> <advanceSide(A|B)>
+  Writes the result to Supabase before sending. Use when ESPN sync hasn't run yet.
+  advanceSide: "A" = teamA advances, "B" = teamB advances (pênaltis count).
 
 EmailJS subject note:
   The subject line is controlled by the EmailJS template. To make it dynamic,
   open the EmailJS dashboard → Templates → template_xq7yzzb → Subject field
   and set it to:  {{subject}}
   Then the SUBJECT constant below will appear as the email subject.
-  Until that change is made, the subject will stay as whatever is hardcoded
-  in the template.
 """
 
 import json, sys, time, urllib.request
@@ -50,24 +48,46 @@ EMAILJS_HEADERS = {
 SCORING = {"exactScore": 10, "advance": 5, "oneTeamGoals": 1}
 
 # ── Knockout match info (match id → teams) ────────────────────────────────────
-# Keep in sync with data.js if teams change.
+# Mirrors data.js exactly — teamA first, teamB second.
 MATCH_TEAMS = {
+    # Round of 32
     "73": ("South Africa", "Canada"),
     "74": ("Brazil", "Japan"),
-    "75": ("Ecuador", "England"),
-    "76": ("Senegal", "Spain"),
-    "77": ("Colombia", "Ghana"),
+    "75": ("Germany", "Paraguay"),
+    "76": ("Netherlands", "Morocco"),
+    "77": ("Ivory Coast", "Norway"),
     "78": ("France", "Sweden"),
-    "79": ("Egypt", "Cape Verde"),
-    "80": ("DR Congo", "Belgium"),
-    "81": ("Paraguay", "Norway"),
-    "82": ("USA", "Mexico"),
-    "83": ("Morocco", "Argentina"),
-    "84": ("South Korea", "Germany"),
-    "85": ("Australia", "Netherlands"),
-    "86": ("Portugal", "Croatia"),
-    "87": ("Algeria", "Austria"),
-    "88": ("Saudi Arabia", "Uruguay"),
+    "79": ("Mexico", "Ecuador"),
+    "80": ("England", "DR Congo"),
+    "81": ("Belgium", "Senegal"),
+    "82": ("United States", "Bosnia and Herzegovina"),
+    "83": ("Spain", "Austria"),
+    "84": ("Portugal", "Croatia"),
+    "85": ("Switzerland", "Algeria"),
+    "86": ("Australia", "Egypt"),
+    "87": ("Argentina", "Cape Verde"),
+    "88": ("Colombia", "Ghana"),
+    # Round of 16 — teams determined as bracket resolves
+    "89": ("W73", "W74"),
+    "90": ("W75", "W76"),
+    "91": ("W77", "W78"),
+    "92": ("W79", "W80"),
+    "93": ("W81", "W82"),
+    "94": ("W83", "W84"),
+    "95": ("W85", "W86"),
+    "96": ("W87", "W88"),
+    # Quarterfinals
+    "97": ("W89", "W90"),
+    "98": ("W91", "W92"),
+    "99": ("W93", "W94"),
+    "100": ("W95", "W96"),
+    # Semifinals
+    "101": ("W97", "W98"),
+    "102": ("W99", "W100"),
+    # 3rd place
+    "103": ("L101", "L102"),
+    # Final
+    "104": ("W101", "W102"),
 }
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
@@ -79,11 +99,46 @@ def sb_fetch():
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read())[0]["state"]
 
+
+def sb_update_result(mid, goalsA, goalsB, advanceSide):
+    """Upsert a single match result into Supabase. advanceSide: 'A' or 'B'."""
+    state = sb_fetch()
+    results = state.get("results") or {}
+    results[str(mid)] = {
+        "goalsA": int(goalsA),
+        "goalsB": int(goalsB),
+        "advanceSide": advanceSide.upper(),
+    }
+    state["results"] = results
+    body = json.dumps({"id": "main", "state": state}).encode()
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/bolao_state",
+        data=body,
+        method="POST",
+        headers={
+            "apikey": ANON_KEY,
+            "Authorization": f"Bearer {ANON_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "resolution=merge-duplicates",
+        }
+    )
+    with urllib.request.urlopen(req, timeout=15) as r:
+        return r.status
+
 # ── Scoring ───────────────────────────────────────────────────────────────────
+def _parse(v):
+    try:
+        return int(v) if v is not None and str(v).strip() != "" else None
+    except (ValueError, TypeError):
+        return None
+
+
 def score_match(pick, result, teamA="Time A", teamB="Time B"):
     """Returns (pts, detail_pt, detail_en) for one match."""
-    pA, pB, pS = int(pick.get("goalsA", -1)), int(pick.get("goalsB", -1)), pick.get("advanceSide", "")
-    rA, rB, rS = int(result["goalsA"]), int(result["goalsB"]), result["advanceSide"]
+    pA, pB, pS = _parse(pick.get("goalsA")), _parse(pick.get("goalsB")), pick.get("advanceSide", "")
+    rA, rB, rS = _parse(result.get("goalsA")), _parse(result.get("goalsB")), result.get("advanceSide", "")
+    if pA is None or pB is None or rA is None or rB is None or not rS:
+        return 0, "—", "—"
     winner = teamB if rS == "B" else teamA
     pts = 0
     notes_pt, notes_en = [], []
@@ -371,6 +426,21 @@ def send_email(addr, entry_names, html):
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     test_mode = "--test" in sys.argv
+    args = sys.argv[1:]
+
+    # --update <mid> <goalsA> <goalsB> <advanceSide>
+    if "--update" in args:
+        idx = args.index("--update")
+        try:
+            mid, gA, gB, side = args[idx+1], args[idx+2], args[idx+3], args[idx+4]
+        except IndexError:
+            print("Usage: --update <mid> <goalsA> <goalsB> <A|B>")
+            sys.exit(1)
+        tA, tB = MATCH_TEAMS.get(str(mid), ("Time A", "Time B"))
+        winner = tB if side.upper() == "B" else tA
+        print(f"Saving M{mid}: {tA} {gA}–{gB} {tB} → {winner} avança...")
+        status = sb_update_result(mid, gA, gB, side)
+        print(f"  Supabase upsert status: {status}")
 
     print("Fetching state from Supabase...")
     state = sb_fetch()
