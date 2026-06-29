@@ -463,6 +463,7 @@ function loadEntryByCode(code) {
     const sel = c.querySelector('[data-field="advanceSide"]'); if (sel && p.advanceSide) sel.value = p.advanceSide;
   }
   lockR32Inputs();
+  updateDynamic(); // resolve R16+ team names from the loaded R32 picks
   updateEditModeUI();
   renderEditByCodeCard();
   // Scroll to bracket
