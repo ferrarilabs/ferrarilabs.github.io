@@ -1455,14 +1455,30 @@ async function saveEntry() {
     const duplicate = s.entries.find(e =>
       e.entryName.trim().toLowerCase() === entry.entryName.trim().toLowerCase()
     );
-    if (duplicate && !confirm(t("duplicateEntryConfirm"))) return;
-    s.entries.push(entry);
-    saveState(s);
-    sessionStorage.removeItem(DRAFT_KEY);
-    renderLatestReceipt(entry);
-    renderAll();
-    await mailReceipt(entry.id, "participant").catch(err => console.warn("Participant email failed", err));
-    await mailReceipt(entry.id, "admin").catch(err => console.warn("Admin email failed", err));
+    if (duplicate) {
+      const msg = t("updateEntryConfirm").replace("{name}", duplicate.entryName);
+      if (!confirm(msg)) return;
+      // Update in-place: preserve R32 picks (M73–M88), replace R16+ picks (M89–M104)
+      const R32 = new Set(["73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88"]);
+      const merged = { ...entry.picks };
+      for (const mid of Object.keys(duplicate.picks || {})) {
+        if (R32.has(mid)) merged[mid] = duplicate.picks[mid];
+      }
+      const idx = s.entries.findIndex(e => e.id === duplicate.id);
+      s.entries[idx] = { ...duplicate, picks: merged, updatedAt: new Date().toISOString() };
+      saveState(s);
+      sessionStorage.removeItem(DRAFT_KEY);
+      renderAll();
+      alert(t("entryUpdated"));
+    } else {
+      s.entries.push(entry);
+      saveState(s);
+      sessionStorage.removeItem(DRAFT_KEY);
+      renderLatestReceipt(entry);
+      renderAll();
+      await mailReceipt(entry.id, "participant").catch(err => console.warn("Participant email failed", err));
+      await mailReceipt(entry.id, "admin").catch(err => console.warn("Admin email failed", err));
+    }
   } finally {
     if (btn) { btn.disabled = isPastCutoff(); btn.textContent = t("saveEntry"); }
   }
