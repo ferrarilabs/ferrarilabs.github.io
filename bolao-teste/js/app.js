@@ -1152,6 +1152,7 @@ async function sendResultEmailFromAdmin(testOnly) {
         if (!byEmail[key]) byEmail[key] = { addr };
       }
       const recipients = Object.values(byEmail);
+      if (!confirm(`Enviar email de resultado para ${recipients.length} participante(s)?`)) return;
       let sent = 0, errors = 0;
       for (const { addr } of recipients) {
         try {
@@ -1624,7 +1625,7 @@ async function saveEntry() {
    Admin actions
    ============================================================ */
 async function adminLogin() {
-  const lock = Number(sessionStorage.getItem("adminLockUntil") || "0");
+  const lock = Number(localStorage.getItem("adminLockUntil") || "0");
   if (Date.now() < lock) { alert(t("adminLocked")); return; }
   if (!CONFIG.adminPasswordHash) { alert(t("adminWrongPassword")); return; }
   const pwd = ($("#adminPassword")?.value || "").trim();
@@ -1640,18 +1641,19 @@ async function adminLogin() {
   if (hash === CONFIG.adminPasswordHash) {
     sessionStorage.setItem("adminOk", "true");
     sessionStorage.setItem("adminUntil", String(Date.now() + CONFIG.adminSessionMinutes * 60000));
-    sessionStorage.removeItem("adminAttempts");
+    localStorage.removeItem("adminAttempts");
+    localStorage.removeItem("adminLockUntil");
     if ($("#adminPassword")) $("#adminPassword").value = "";
     $("#adminLogin")?.classList.add("hidden");
     $("#adminArea")?.classList.remove("hidden");
     renderAdmin();
     startResultsPolling();
   } else {
-    const n = Number(sessionStorage.getItem("adminAttempts") || "0") + 1;
-    sessionStorage.setItem("adminAttempts", String(n));
+    const n = Number(localStorage.getItem("adminAttempts") || "0") + 1;
+    localStorage.setItem("adminAttempts", String(n));
     if (n >= (CONFIG.adminMaxAttempts || 5)) {
-      sessionStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
-      sessionStorage.setItem("adminAttempts", "0");
+      localStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
+      localStorage.setItem("adminAttempts", "0");
       alert(t("adminLocked"));
     } else {
       alert(t("adminWrongPassword"));
@@ -1665,7 +1667,6 @@ function adminLogout() {
   sessionStorage.removeItem("adminOk"); sessionStorage.removeItem("adminUntil");
   $("#adminArea")?.classList.add("hidden");
   $("#adminLogin")?.classList.remove("hidden");
-  alert(t("logoutDone"));
 }
 
 async function deleteEntry(id) {
@@ -2133,6 +2134,6 @@ async function init() {
 
 document.addEventListener("DOMContentLoaded", () => init().catch(err => console.error("Init failed", err)));
 
-window.Bolao = { openReceipt, downloadReceipt, mailReceipt, showSection };
+window.Bolao = { openReceipt, downloadReceipt, showSection };
 
 })();

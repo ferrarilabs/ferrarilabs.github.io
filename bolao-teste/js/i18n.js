@@ -1,5 +1,6 @@
 window.BOLAO_I18N = {
   "pt-BR": {
+    skipToContent: "Pular para o conteúdo",
     navPicks: "Palpites", navRanking: "Ranking", navParticipants: "Participantes",
     navPayment: "Pagamento", navGames: "Jogos", navRules: "Regras", navAdmin: "Admin",
     supportWhatsApp: "Suporte WhatsApp",
@@ -188,6 +189,7 @@ window.BOLAO_I18N = {
   },
 
   "es": {
+    skipToContent: "Saltar al contenido",
     navPicks: "Pronósticos", navRanking: "Clasificación", navParticipants: "Participantes",
     navPayment: "Pago", navGames: "Partidos", navRules: "Reglas", navAdmin: "Admin",
     supportWhatsApp: "Soporte WhatsApp",
@@ -376,6 +378,7 @@ window.BOLAO_I18N = {
   },
 
   "en-US": {
+    skipToContent: "Skip to content",
     navPicks: "Picks", navRanking: "Ranking", navParticipants: "Participants",
     navPayment: "Payment", navGames: "Games", navRules: "Rules", navAdmin: "Admin",
     supportWhatsApp: "WhatsApp Support",
