@@ -189,7 +189,8 @@ def build_html(state, test_mode=False):
         for row in breakdown_scored:
             p = row["pick"]
             pts, det_pt, det_en = row["pts_match"]
-            pick_str = f'{int(p["goalsA"])}–{int(p["goalsB"])} ({"✓" if p.get("advanceSide") else "?"}{"Canada" if p.get("advanceSide")=="B" else last_teamA})' if p else "—"
+            pick_team = last_teamB if p.get("advanceSide") == "B" else last_teamA
+            pick_str = f'{int(p["goalsA"])}–{int(p["goalsB"])} ({pick_team})' if p else "—"
             color = pts_color(pts)
             breakdown_rows_pt += (
                 f'<tr><td style="padding:6px 10px">{row["name"]}</td>'
@@ -381,6 +382,12 @@ def main():
 
     print(f"Completed matches: {sorted(results.keys(), key=int)}")
 
+    # Build subject from last completed match
+    last_mid = sorted(results.keys(), key=int)[-1]
+    last_r   = results[last_mid]
+    last_tA, last_tB = MATCH_TEAMS.get(last_mid, ("A", "B"))
+    email_subject = f"Resultado Parcial — M{last_mid}: {last_tA} {last_r['goalsA']}–{last_r['goalsB']} {last_tB}"
+
     html = build_html(state, test_mode=test_mode)
 
     entries     = state.get("entries", [])
@@ -398,15 +405,13 @@ def main():
     ]
 
     if test_mode:
-        recipients = {ADMIN_EMAIL: {"addr": ADMIN_EMAIL, "names": "TESTE — todas as entradas"}}
+        recipients = {ADMIN_EMAIL: {"addr": ADMIN_EMAIL, "names": email_subject + " [TESTE]"}}
         print(f"\n⚠️  TEST MODE — sending only to {ADMIN_EMAIL}")
     else:
         recipients = {}
         for e in real_entries:
             key = (e.get("participantEmail") or "").strip().lower()
-            recipients.setdefault(key, {"addr": e["participantEmail"], "names": ""})
-            names = recipients[key]["names"]
-            recipients[key]["names"] = (names + ", " + e.get("entryName","?")).lstrip(", ")
+            recipients.setdefault(key, {"addr": e["participantEmail"], "names": email_subject})
         print(f"\nSending to {len(recipients)} recipients...")
 
     sent, errors = 0, []

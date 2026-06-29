@@ -998,13 +998,22 @@ async function sendResultEmailFromAdmin(testOnly) {
   if (btn) { btn.disabled = true; btn.textContent = "Enviando..."; }
 
   try {
+    // Build subject from last completed match (entry_name is used as subject by the EmailJS template)
+    const sortedMids = completedResults.map(([k]) => Number(k)).sort((a, b) => a - b);
+    const lastMid = String(sortedMids[sortedMids.length - 1]);
+    const lastResult = s.results[lastMid];
+    const teamNames = resolveTeamsFromResults(s);
+    const lastTeamA = teamNames[lastMid]?.displayA || "Team A";
+    const lastTeamB = teamNames[lastMid]?.displayB || "Team B";
+    const lastResultStr = `${lastTeamA} ${lastResult.goalsA}–${lastResult.goalsB} ${lastTeamB}`;
+    const emailSubject = `Resultado Parcial — M${lastMid}: ${lastResultStr}${testOnly ? " [TESTE]" : ""}`;
+
     const html = buildResultEmailHtml(s, testOnly);
-    const subject = "Resultado Parcial — Bolão Ferrari Copa 2026 / Partial Results";
     const deleted = new Set(s.deletedIds || []);
 
     if (testOnly) {
       await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
-        { to_email: CONFIG.adminEmail, entry_name: "TESTE — todas as entradas", receipt_code: subject, html_message: html },
+        { to_email: CONFIG.adminEmail, entry_name: emailSubject, receipt_code: emailSubject, html_message: html },
         { publicKey: CONFIG.emailjs.publicKey });
       alert(`Email de teste enviado para ${CONFIG.adminEmail} ✓`);
     } else {
@@ -1014,15 +1023,14 @@ async function sendResultEmailFromAdmin(testOnly) {
         const addr = (e.participantEmail || "").trim();
         if (!addr.includes("@") || !addr.includes(".")) continue;
         const key = addr.toLowerCase();
-        if (!byEmail[key]) byEmail[key] = { addr, names: "" };
-        byEmail[key].names = (byEmail[key].names + ", " + (e.entryName || "?")).replace(/^, /, "");
+        if (!byEmail[key]) byEmail[key] = { addr };
       }
       const recipients = Object.values(byEmail);
       let sent = 0, errors = 0;
-      for (const { addr, names } of recipients) {
+      for (const { addr } of recipients) {
         try {
           await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
-            { to_email: addr, entry_name: names, receipt_code: subject, html_message: html },
+            { to_email: addr, entry_name: emailSubject, receipt_code: emailSubject, html_message: html },
             { publicKey: CONFIG.emailjs.publicKey });
           sent++;
           await new Promise(r => setTimeout(r, 3500));
