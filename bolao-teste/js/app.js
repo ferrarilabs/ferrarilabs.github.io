@@ -212,7 +212,7 @@ function mergeStates(local, remote) {
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
     deletedIds: [...tombstones],
     paid: mergedPaid,
-    results: { ...(remote.results || {}) },
+    results: { ...(remote.results || {}), ...(local.results || {}) },
     meta: { updatedAt: new Date().toISOString(), version: CONFIG.siteVersion }
   };
 }
@@ -821,9 +821,10 @@ function scoreEntry(entry, s) {
   for (const m of DATA.knockoutMatches) {
     const p = entry.picks?.[m.match], r = results[m.match];
     if (!p || !r?.advanceSide) continue;
-    const pA = Number(p.goalsA), pB = Number(p.goalsB);
-    const rA = Number(r.goalsA), rB = Number(r.goalsB);
-    if (isNaN(rA) || isNaN(rB)) continue;
+    const pA = parseScore(p.goalsA), pB = parseScore(p.goalsB);
+    if (pA === null || pB === null) continue;
+    const rA = parseScore(r.goalsA), rB = parseScore(r.goalsB);
+    if (rA === null || rB === null) continue;
     if (pA === rA && pB === rB) {
       total += CONFIG.scoring.exactScore;
     } else {
@@ -1023,8 +1024,10 @@ function buildResultEmailHtml(s, testMode) {
 
   function scoreMatchSingle(pick, result, tA, tB) {
     if (!pick || !result?.advanceSide) return { pts: 0, detPt: "sem palpite", detEn: "no pick" };
-    const pA = Number(pick.goalsA), pB = Number(pick.goalsB);
-    const rA = Number(result.goalsA), rB = Number(result.goalsB);
+    const pA = parseScore(pick.goalsA), pB = parseScore(pick.goalsB);
+    if (pA === null || pB === null) return { pts: 0, detPt: "palpite inválido", detEn: "invalid pick" };
+    const rA = parseScore(result.goalsA), rB = parseScore(result.goalsB);
+    if (rA === null || rB === null) return { pts: 0, detPt: "resultado inválido", detEn: "invalid result" };
     let pts = 0; const nPt = [], nEn = [];
     if (pA === rA && pB === rB) {
       pts += sc.exactScore; nPt.push(`+${sc.exactScore} placar exato`); nEn.push(`+${sc.exactScore} exact score`);
