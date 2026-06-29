@@ -396,6 +396,129 @@ function finalPodiumForEntry(entry) {
    Bracket form
    ============================================================ */
 const DRAFT_KEY = "bolao_draft_v4";
+const R32_IDS = new Set(["73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88"]);
+
+let _editingEntry = null; // set when user loads an entry by receipt code
+
+function isR32Window() {
+  if (!CONFIG.r32CutoffIso) return false;
+  return Date.now() >= new Date(CONFIG.r32CutoffIso).getTime() && !isPastCutoff();
+}
+
+function renderEditByCodeCard() {
+  const card = $("#editByCodeCard");
+  if (!card) return;
+  if (!isR32Window()) { card.classList.add("hidden"); return; }
+  card.classList.remove("hidden");
+  const banner = _editingEntry
+    ? `<div class="edit-mode-banner">${escapeHtml(t("editModeBanner").replace("{name}", _editingEntry.entryName))}</div>`
+    : "";
+  const cancelBtn = _editingEntry
+    ? `<button id="editCancelBtn" type="button" class="secondary">${escapeHtml(t("editCancelBtn"))}</button>`
+    : "";
+  card.innerHTML = `
+    <h3>${escapeHtml(t("editByCodeTitle"))}</h3>
+    <p class="muted">${escapeHtml(t("editByCodeSubtitle"))}</p>
+    <div class="form-grid" style="margin-top:12px">
+      <label>
+        <span>${escapeHtml(t("editCodeLabel"))}</span>
+        <input id="editCodeInput" type="text" placeholder="${escapeHtml(t("editCodePlaceholder"))}" maxlength="32"
+               style="text-transform:uppercase;font-family:monospace;letter-spacing:.05em">
+      </label>
+    </div>
+    <div class="button-row" style="margin-top:10px">
+      <button id="editCodeLoadBtn" type="button">${escapeHtml(t("editCodeLoad"))}</button>
+      ${cancelBtn}
+    </div>
+    ${banner}`;
+  $("#editCodeLoadBtn")?.addEventListener("click", () => {
+    const raw = ($("#editCodeInput")?.value || "").trim().toUpperCase();
+    loadEntryByCode(raw);
+  });
+  $("#editCodeInput")?.addEventListener("keydown", e => {
+    if (e.key === "Enter") { e.preventDefault(); loadEntryByCode((e.target.value || "").trim().toUpperCase()); }
+  });
+  $("#editCancelBtn")?.addEventListener("click", cancelEditMode);
+}
+
+function loadEntryByCode(code) {
+  if (!code) { alert(t("editCodeNotFound")); return; }
+  const found = state().entries.find(e => receiptCode(e) === code);
+  if (!found) { alert(t("editCodeNotFound")); return; }
+  _editingEntry = found;
+  // Pre-fill identity fields (readonly in edit mode)
+  const nameEl = $("#entryName"), payerEl = $("#payerName"), emailEl = $("#participantEmail"), methodEl = $("#paymentMethod");
+  if (nameEl) { nameEl.value = found.entryName || ""; nameEl.readOnly = true; }
+  if (payerEl) { payerEl.value = found.payerName || ""; }
+  if (emailEl) emailEl.value = found.participantEmail || "";
+  if (methodEl) methodEl.value = found.paymentMethod || "";
+  // Populate picks into bracket form
+  for (const m of DATA.knockoutMatches) {
+    const p = found.picks?.[m.match];
+    if (!p) continue;
+    const c = $(`[data-card-match="${m.match}"]`);
+    if (!c) continue;
+    const ga = c.querySelector('[data-field="goalsA"]'); if (ga) ga.value = p.goalsA ?? "";
+    const gb = c.querySelector('[data-field="goalsB"]'); if (gb) gb.value = p.goalsB ?? "";
+    const sel = c.querySelector('[data-field="advanceSide"]'); if (sel && p.advanceSide) sel.value = p.advanceSide;
+  }
+  lockR32Inputs();
+  updateEditModeUI();
+  renderEditByCodeCard();
+  // Scroll to bracket
+  $("#bracketForm")?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function lockR32Inputs() {
+  for (const mid of R32_IDS) {
+    const c = $(`[data-card-match="${mid}"]`);
+    if (!c) continue;
+    c.classList.add("r32-locked");
+    c.querySelectorAll('[data-field="goalsA"],[data-field="goalsB"],[data-field="advanceSide"]').forEach(el => {
+      el.disabled = true;
+      el.title = t("r32LockedNote");
+    });
+  }
+}
+
+function unlockR32Inputs() {
+  for (const mid of R32_IDS) {
+    const c = $(`[data-card-match="${mid}"]`);
+    if (!c) continue;
+    c.classList.remove("r32-locked");
+    c.querySelectorAll('[data-field="goalsA"],[data-field="goalsB"],[data-field="advanceSide"]').forEach(el => {
+      el.disabled = false;
+      el.title = "";
+    });
+  }
+}
+
+function updateEditModeUI() {
+  const saveBtn = $("#saveEntry");
+  if (saveBtn) saveBtn.textContent = _editingEntry ? t("editSaveBtn") : t("saveEntry");
+  const nameEl = $("#entryName");
+  if (nameEl) nameEl.readOnly = !!_editingEntry;
+}
+
+function cancelEditMode() {
+  _editingEntry = null;
+  const nameEl = $("#entryName"), payerEl = $("#payerName"), emailEl = $("#participantEmail"), methodEl = $("#paymentMethod");
+  if (nameEl) { nameEl.value = ""; nameEl.readOnly = false; }
+  if (payerEl) payerEl.value = "";
+  if (emailEl) emailEl.value = "";
+  if (methodEl) methodEl.value = "";
+  // Clear all bracket picks and re-enable
+  for (const m of DATA.knockoutMatches) {
+    const c = $(`[data-card-match="${m.match}"]`);
+    if (!c) continue;
+    const ga = c.querySelector('[data-field="goalsA"]'); if (ga) ga.value = "";
+    const gb = c.querySelector('[data-field="goalsB"]'); if (gb) gb.value = "";
+    const sel = c.querySelector('[data-field="advanceSide"]'); if (sel) sel.value = "";
+  }
+  unlockR32Inputs();
+  updateEditModeUI();
+  renderEditByCodeCard();
+}
 
 function inferFromForm() {
   const winners = {}, losers = {};
@@ -1452,25 +1575,35 @@ async function saveEntry() {
     const entry = await readEntryFromForm();
     if (!entry) return;
     const s = state();
-    const duplicate = s.entries.find(e =>
-      e.entryName.trim().toLowerCase() === entry.entryName.trim().toLowerCase()
-    );
-    if (duplicate) {
-      const msg = t("updateEntryConfirm").replace("{name}", duplicate.entryName);
-      if (!confirm(msg)) return;
-      // Update in-place: preserve R32 picks (M73–M88), replace R16+ picks (M89–M104)
-      const R32 = new Set(["73","74","75","76","77","78","79","80","81","82","83","84","85","86","87","88"]);
+    if (_editingEntry) {
+      // Edit mode: update existing entry in-place, preserve R32 picks
+      const idx = s.entries.findIndex(e => e.id === _editingEntry.id);
+      if (idx === -1) { alert(t("editCodeNotFound")); return; }
       const merged = { ...entry.picks };
-      for (const mid of Object.keys(duplicate.picks || {})) {
-        if (R32.has(mid)) merged[mid] = duplicate.picks[mid];
+      for (const mid of Object.keys(_editingEntry.picks || {})) {
+        if (R32_IDS.has(mid)) merged[mid] = _editingEntry.picks[mid];
       }
-      const idx = s.entries.findIndex(e => e.id === duplicate.id);
-      s.entries[idx] = { ...duplicate, picks: merged, updatedAt: new Date().toISOString() };
+      s.entries[idx] = {
+        ..._editingEntry,
+        picks: merged,
+        payerName: entry.payerName,
+        participantEmail: entry.participantEmail,
+        paymentMethod: entry.paymentMethod,
+        updatedAt: new Date().toISOString()
+      };
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
+      _editingEntry = null;
+      unlockR32Inputs();
+      updateEditModeUI();
+      renderEditByCodeCard();
       renderAll();
       alert(t("entryUpdated"));
     } else {
+      const duplicate = s.entries.find(e =>
+        e.entryName.trim().toLowerCase() === entry.entryName.trim().toLowerCase()
+      );
+      if (duplicate && !confirm(t("duplicateEntryConfirm"))) return;
       s.entries.push(entry);
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
@@ -1827,6 +1960,8 @@ function renderAll() {
   applyLanguage();
   updateCountdown();
   lockIfCutoff();
+  renderEditByCodeCard();
+  updateEditModeUI();
   renderPaymentBox();
   renderRanking();
   renderParticipants();
