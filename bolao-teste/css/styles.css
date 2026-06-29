@@ -5,6 +5,22 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 8px;
+  background: var(--green);
+  color: #000;
+  font-weight: 700;
+  padding: 8px 14px;
+  border-radius: 4px;
+  z-index: 9999;
+  text-decoration: none;
+  font-size: 14px;
+  transition: top .15s;
+}
+.skip-link:focus { top: 8px; }
+
 :root {
   --bg:       #07141b;
   --bg2:      #0d2028;
