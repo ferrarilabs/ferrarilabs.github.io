@@ -1971,9 +1971,9 @@ async function init() {
     if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
   });
 
-  // Cutoff passed — disable entry nav button and default to ranking
+  // Disable entry nav button only after cutoff; default landing depends on cutoff
   const navEntryBtn = document.querySelector('.nav button[data-section="entry"]');
-  if (navEntryBtn) navEntryBtn.disabled = true;
+  if (navEntryBtn) navEntryBtn.disabled = isPastCutoff();
   showSection(isPastCutoff() ? "ranking" : "entry");
 }
 

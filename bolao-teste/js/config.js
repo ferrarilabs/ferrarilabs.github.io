@@ -1,5 +1,5 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.16",
+  siteVersion: "v4.17",
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
   storeKey: "bolao_copa_2026_state",
@@ -9,8 +9,8 @@ window.BOLAO_CONFIG = {
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
   adminSessionMinutes: 30,
-  cutoffIso: "2026-06-28T14:00:00-04:00",
-  cutoffLabel: "Domingo, 28/jun/2026 às 2:00 PM ET",
+  cutoffIso: "2026-07-04T12:00:00-04:00",
+  cutoffLabel: "Sábado, 4/jul/2026 às 12:00 PM ET",
   adminEmail: "emferrari@gmail.com",
   paymentMethods: {
     CashApp: "$EduardoFerrari",
