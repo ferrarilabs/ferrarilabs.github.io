@@ -198,7 +198,13 @@ function mergeStates(local, remote) {
   const byId = {};
   for (const e of (local.entries || [])) if (!tombstones.has(e.id)) byId[e.id] = e;
   for (const e of (remote.entries || [])) {
-    if (!tombstones.has(e.id) && (!byId[e.id] || (e.createdAt > (byId[e.id].createdAt || "")))) byId[e.id] = e;
+    if (tombstones.has(e.id)) continue;
+    const existing = byId[e.id];
+    if (!existing) { byId[e.id] = e; continue; }
+    // prefer whichever was modified more recently (admin edits use updatedAt)
+    const remoteTs = e.updatedAt || e.createdAt || "";
+    const localTs  = existing.updatedAt || existing.createdAt || "";
+    if (remoteTs > localTs) byId[e.id] = e;
   }
   const allPaidKeys = new Set([
     ...Object.keys(local.paid || {}),
