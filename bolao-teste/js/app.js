@@ -1039,8 +1039,8 @@ function buildResultEmailHtml(s, testMode) {
     if (pA === rA && pB === rB) {
       pts += sc.exactScore; nPt.push(`+${sc.exactScore} placar exato`); nEn.push(`+${sc.exactScore} exact score`);
     } else {
-      if (pA === rA) { pts += sc.oneTeamGoals; nPt.push(`+1 gol ${tA}`); nEn.push(`+1 ${tA} goal`); }
-      if (pB === rB) { pts += sc.oneTeamGoals; nPt.push(`+1 gol ${tB}`); nEn.push(`+1 ${tB} goal`); }
+      if (pA === rA) { pts += sc.oneTeamGoals; nPt.push(`+1 acertou gols de ${tA} (${rA})`); nEn.push(`+1 correct goals for ${tA} (${rA})`); }
+      if (pB === rB) { pts += sc.oneTeamGoals; nPt.push(`+1 acertou gols de ${tB} (${rB})`); nEn.push(`+1 correct goals for ${tB} (${rB})`); }
     }
     if (pick.advanceSide === result.advanceSide) {
       const w = result.advanceSide === "B" ? tB : tA;
@@ -1097,7 +1097,7 @@ function buildResultEmailHtml(s, testMode) {
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Pontuação — Último jogo (${lastLabel})</div>
     <table ${tbl}><thead><tr ${thead}><th ${th}>Entrada</th><th ${th} style="text-align:center">Palpite</th><th ${th} style="text-align:center">Pts</th><th ${th}>Detalhes</th></tr></thead><tbody>${breakdownPt}</tbody></table>
-    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Placar exato = 10 pts · Avanço correto = 5 pts · 1 gol certo = 1 pt</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Placar exato = 10 pts · Avanço correto = 5 pts · Gols exatos de 1 time = 1 pt <em>(por time, não por gol)</em></div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Ranking atual (${matchCount} de 32 jogos)</div>
     <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entrada</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:2px;background:#dbeafe;margin:24px 0"></div>
@@ -1109,7 +1109,7 @@ function buildResultEmailHtml(s, testMode) {
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Scoring — Latest match (${lastLabel})</div>
     <table ${tbl}><thead><tr ${thead}><th ${th}>Entry</th><th ${th} style="text-align:center">Pick</th><th ${th} style="text-align:center">Pts</th><th ${th}>Details</th></tr></thead><tbody>${breakdownEn}</tbody></table>
-    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Exact score = 10 pts · Correct advance = 5 pts · 1 correct goal = 1 pt</div>
+    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Exact score = 10 pts · Correct advance = 5 pts · Exact goals of 1 team = 1 pt <em>(per team, not per goal)</em></div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking (${matchCount} of 32 matches played)</div>
     <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entry</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
@@ -1339,6 +1339,7 @@ function renderRules() {
     <tr><td>${escapeHtml(t("scoreThird"))}</td><td>+${BN.third} pts</td></tr>
     <tr><td>${escapeHtml(t("scoreFourth"))}</td><td>+${BN.fourth} pts</td></tr>
   </tbody></table>
+  <p class="footer-note" style="margin-top:10px;background:#fef9c3;border-left:3px solid #ca8a04;padding:8px 10px;border-radius:4px">⚠️ ${escapeHtml(t("rulesGoalsNote"))}</p>
 </div>
 <div class="card">
   <h3>${escapeHtml(t("rulesMainTitle"))}</h3>

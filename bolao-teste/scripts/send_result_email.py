@@ -150,12 +150,12 @@ def score_match(pick, result, teamA="Time A", teamB="Time B"):
     else:
         if pA == rA:
             pts += SCORING["oneTeamGoals"]
-            notes_pt.append(f"+{SCORING['oneTeamGoals']} gol {teamA}")
-            notes_en.append(f"+{SCORING['oneTeamGoals']} {teamA} goal")
+            notes_pt.append(f"+{SCORING['oneTeamGoals']} acertou gols de {teamA} ({rA})")
+            notes_en.append(f"+{SCORING['oneTeamGoals']} correct goals for {teamA} ({rA})")
         if pB == rB:
             pts += SCORING["oneTeamGoals"]
-            notes_pt.append(f"+{SCORING['oneTeamGoals']} gol {teamB}")
-            notes_en.append(f"+{SCORING['oneTeamGoals']} {teamB} goal")
+            notes_pt.append(f"+{SCORING['oneTeamGoals']} acertou gols de {teamB} ({rB})")
+            notes_en.append(f"+{SCORING['oneTeamGoals']} correct goals for {teamB} ({rB})")
 
     if pS == rS:
         pts += SCORING["advance"]
@@ -338,7 +338,7 @@ def build_html(state, test_mode=False):
       <tbody>{breakdown_rows_pt}</tbody>
     </table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">
-      Placar exato = 10 pts &nbsp;·&nbsp; Avanço correto = 5 pts &nbsp;·&nbsp; 1 gol certo = 1 pt
+      Placar exato = 10 pts &nbsp;·&nbsp; Avanço correto = 5 pts &nbsp;·&nbsp; Gols exatos de 1 time = 1 pt <em>(por time, não por gol)</em>
     </div>
 
     <!-- Ranking -->
@@ -378,7 +378,7 @@ def build_html(state, test_mode=False):
       <tbody>{breakdown_rows_en}</tbody>
     </table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">
-      Exact score = 10 pts &nbsp;·&nbsp; Correct advance = 5 pts &nbsp;·&nbsp; 1 correct goal = 1 pt
+      Exact score = 10 pts &nbsp;·&nbsp; Correct advance = 5 pts &nbsp;·&nbsp; Exact goals of 1 team = 1 pt <em>(per team, not per goal)</em>
     </div>
 
     <!-- Current ranking -->
