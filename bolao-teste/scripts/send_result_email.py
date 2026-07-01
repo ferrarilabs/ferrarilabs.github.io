@@ -4,7 +4,7 @@ Sends a bilingual PT/EN score-update email to all participants after each match.
 
 Usage:
   python3 send_result_email.py                              # send about latest saved result
-  python3 send_result_email.py --update 75 1 1 B            # save M75 result to Supabase only
+  python3 send_result_email.py --update 89 2 1 A            # save result to Supabase only
   python3 send_result_email.py --auto                       # check ESPN, save+email any new results
 
 --update <mid> <goalsA> <goalsB> <advanceSide(A|B)>
@@ -12,11 +12,11 @@ Usage:
 
 --auto
   Fetches ESPN, detects matches not yet in Supabase, saves and emails each one.
-  Safe to run repeatedly — idempotent (skips already-saved matches).
+  Covers all rounds (R32 through Final). Idempotent — skips already-saved matches.
 """
 
-import json, sys, time, urllib.request
-from datetime import datetime, timezone
+import json, re, sys, time, urllib.request
+from datetime import datetime, timezone, timedelta
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL  = "https://cmhqkkfczotdnssupkni.supabase.co"
@@ -87,17 +87,52 @@ ESPN_ALIASES = {
     "México":                      "Mexico",
 }
 
+# ── Team slot resolution (W73 → actual team name) ─────────────────────────────
+def _resolve_team(slot, results, _depth=0):
+    """
+    Resolve 'W73' or 'L101' → actual team name using saved Supabase results.
+    Returns None if the prerequisite match hasn't been played yet.
+    Handles recursive resolution (e.g. W89 = winner of M89 = winner of W73 vs W74).
+    """
+    if _depth > 8:
+        return None  # cycle guard
+    m = re.match(r'^([WL])(\d+)$', str(slot))
+    if not m:
+        return slot  # already a real team name
+    prefix, mid = m.group(1), m.group(2)
+    result = results.get(mid)
+    if not result or not result.get("advanceSide"):
+        return None  # match not played yet
+    tA_raw, tB_raw = MATCH_TEAMS.get(mid, (slot, slot))
+    tA = _resolve_team(tA_raw, results, _depth + 1) or tA_raw
+    tB = _resolve_team(tB_raw, results, _depth + 1) or tB_raw
+    if result["advanceSide"] == "B":
+        return tB if prefix == "W" else tA
+    else:
+        return tA if prefix == "W" else tB
+
+
+def _real_teams(mid, results):
+    """Return (teamA, teamB) for a match, resolving W/L slots to actual names."""
+    tA_raw, tB_raw = MATCH_TEAMS.get(str(mid), ("A", "B"))
+    return (
+        _resolve_team(tA_raw, results) or tA_raw,
+        _resolve_team(tB_raw, results) or tB_raw,
+    )
+
+
 # ── ESPN helpers ──────────────────────────────────────────────────────────────
 def _espn_normalize(name):
     return ESPN_ALIASES.get(name, name)
 
 
-def fetch_espn_results():
+def fetch_espn_results(saved_results=None):
     """
-    Fetches ESPN scoreboard and returns completed R32 results.
+    Fetches ESPN scoreboard and returns completed match results for all rounds.
+    saved_results: {mid: result} from Supabase — used to resolve W/L slots for R16+.
     Returns: dict {match_id_str: {goalsA, goalsB, advanceSide, desc}}
-    Skips any match where state != 'post' or no clear winner.
     """
+    saved_results = saved_results or {}
     url = (
         "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
         "scoreboard?limit=300&dates=20260611-20260719"
@@ -120,9 +155,15 @@ def fetch_espn_results():
         event_map[names] = (comp, comps)
 
     found = {}
-    for mid, (tA, tB) in MATCH_TEAMS.items():
-        if int(mid) > 88:
-            continue  # only R32 auto-detection
+    for mid in sorted(MATCH_TEAMS.keys(), key=int):
+        tA_raw, tB_raw = MATCH_TEAMS[mid]
+        # Resolve slots to actual team names using saved results
+        tA = _resolve_team(tA_raw, saved_results) or tA_raw
+        tB = _resolve_team(tB_raw, saved_results) or tB_raw
+        # Skip if teams aren't known yet (prerequisite match unplayed)
+        if re.match(r'^[WL]\d+$', tA) or re.match(r'^[WL]\d+$', tB):
+            continue
+
         key = frozenset({tA, tB})
         if key not in event_map:
             continue
@@ -131,7 +172,7 @@ def fetch_espn_results():
         if st.get("state") != "post":
             continue
 
-        desc   = st.get("description", "")
+        desc    = st.get("description", "")
         by_name = {}
         for c in comps:
             norm  = _espn_normalize(c.get("team", {}).get("displayName", ""))
@@ -145,13 +186,11 @@ def fetch_espn_results():
 
         gA, winA = sA
         gB, winB = sB
-
         if winA:
             side = "A"
         elif winB:
             side = "B"
         else:
-            # Tie with no winner flag — shouldn't occur in knockout
             print(f"  WARN M{mid}: ESPN shows no winner yet — skipping")
             continue
 
@@ -172,24 +211,23 @@ def sb_fetch():
 
 def sb_update_result(mid, goalsA, goalsB, advanceSide):
     """Upsert a single match result into Supabase. advanceSide: 'A' or 'B'."""
-    state = sb_fetch()
+    state   = sb_fetch()
     results = state.get("results") or {}
     results[str(mid)] = {
-        "goalsA": int(goalsA),
-        "goalsB": int(goalsB),
-        "advanceSide": advanceSide.upper(),
+        "goalsA":       int(goalsA),
+        "goalsB":       int(goalsB),
+        "advanceSide":  advanceSide.upper(),
     }
     state["results"] = results
     body = json.dumps({"id": "main", "state": state}).encode()
-    req = urllib.request.Request(
+    req  = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state",
-        data=body,
-        method="POST",
+        data=body, method="POST",
         headers={
-            "apikey": ANON_KEY,
-            "Authorization": f"Bearer {ANON_KEY}",
-            "Content-Type": "application/json",
-            "Prefer": "resolution=merge-duplicates",
+            "apikey":          ANON_KEY,
+            "Authorization":   f"Bearer {ANON_KEY}",
+            "Content-Type":    "application/json",
+            "Prefer":          "resolution=merge-duplicates",
         }
     )
     with urllib.request.urlopen(req, timeout=15) as r:
@@ -266,6 +304,7 @@ def build_html(state, focus_mid=None):
     Builds result email HTML.
     focus_mid: which match to show in the per-participant breakdown.
                Defaults to the latest completed match in state.
+    Team slots (W73, L101 etc.) are resolved to actual team names.
     """
     entries     = state.get("entries", [])
     deleted_ids = set(state.get("deletedIds", []))
@@ -290,10 +329,10 @@ def build_html(state, focus_mid=None):
     winner_name = ""
     result_str  = ""
     if last_mid and last_mid in results:
-        last_result = results[last_mid]
-        last_tA, last_tB = MATCH_TEAMS.get(last_mid, ("A", "B"))
-        winner_name = last_tB if last_result["advanceSide"] == "B" else last_tA
-        result_str  = f'{last_tA} {last_result["goalsA"]}–{last_result["goalsB"]} {last_tB}'
+        last_result        = results[last_mid]
+        last_tA, last_tB   = _real_teams(last_mid, results)
+        winner_name        = last_tB if last_result["advanceSide"] == "B" else last_tA
+        result_str         = f'{last_tA} {last_result["goalsA"]}–{last_result["goalsB"]} {last_tB}'
 
         breakdown_scored = sorted(
             [{"name": item["e"].get("entryName", "?"),
@@ -388,7 +427,7 @@ def build_html(state, focus_mid=None):
       Placar exato = 10 pts &nbsp;·&nbsp; Avanço correto = 5 pts &nbsp;·&nbsp; Gols exatos de 1 time = 1 pt <em>(por time, não por gol)</em>
     </div>
 
-    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Ranking atual ({matches_played} de 32 jogos)</div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Ranking atual ({matches_played} jogos)</div>
     <table {tbl}>
       <thead><tr {thead_style}>
         <th {th} style="text-align:center">#</th>
@@ -425,7 +464,7 @@ def build_html(state, focus_mid=None):
       Exact score = 10 pts &nbsp;·&nbsp; Correct advance = 5 pts &nbsp;·&nbsp; Exact goals of 1 team = 1 pt <em>(per team, not per goal)</em>
     </div>
 
-    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking ({matches_played} of 32 matches played)</div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking ({matches_played} matches played)</div>
     <table {tbl}>
       <thead><tr {thead_style}>
         <th {th} style="text-align:center">#</th>
@@ -502,28 +541,30 @@ def _send_to_all(state, html, subject):
 # ── Auto mode ─────────────────────────────────────────────────────────────────
 def run_auto():
     """
-    Check ESPN for completed R32 matches not yet in Supabase.
+    Check ESPN for completed matches not yet in Supabase (all rounds).
     Save + email each new match in chronological order.
-    Idempotent: already-saved matches are skipped entirely.
+    Idempotent — already-saved matches are skipped.
     """
+    print("AUTO — fetching Supabase state...")
+    state        = sb_fetch()
+    saved        = {k: v for k, v in state.get("results", {}).items() if v.get("advanceSide")}
+    saved_ids    = set(saved.keys())
+    print(f"Supabase has:   {sorted(saved_ids, key=int) if saved_ids else '(none)'}")
+
     print("AUTO — fetching ESPN results...")
     try:
-        espn = fetch_espn_results()
+        espn = fetch_espn_results(saved_results=saved)
     except Exception as ex:
         print(f"ESPN fetch failed: {ex}")
         sys.exit(1)
 
     if not espn:
-        print("ESPN: no completed R32 matches found.")
+        print("ESPN: no completed matches found.")
         return
 
     print(f"ESPN completed: {sorted(espn.keys(), key=int)}")
 
-    state = sb_fetch()
-    saved = {k for k, v in state.get("results", {}).items() if v.get("advanceSide")}
-    print(f"Supabase has:   {sorted(saved, key=int) if saved else '(none)'}")
-
-    new_mids = sorted([m for m in espn if m not in saved], key=int)
+    new_mids = sorted([m for m in espn if m not in saved_ids], key=int)
     if not new_mids:
         print("No new matches. Nothing to do.")
         return
@@ -532,18 +573,21 @@ def run_auto():
 
     for i, mid in enumerate(new_mids):
         r      = espn[mid]
-        tA, tB = MATCH_TEAMS[mid]
+        # Resolve team names (in case they were W/L slots before)
+        tA, tB = _real_teams(mid, {**saved, mid: r})
         winner = tB if r["advanceSide"] == "B" else tA
         print(f"\n[M{mid}] {tA} {r['goalsA']}–{r['goalsB']} {tB} → {winner} avança  ({r['desc']})")
 
         sb_status = sb_update_result(mid, r["goalsA"], r["goalsB"], r["advanceSide"])
         print(f"  Supabase: {sb_status}")
 
-        state   = sb_fetch()  # re-fetch so this result appears in ranking
-        html    = build_html(state, focus_mid=mid)
-        subject = f"Resultado Parcial — M{mid}: {tA} {r['goalsA']}–{r['goalsB']} {tB}"
+        # Re-fetch so this result appears in ranking + can resolve next slots
+        state  = sb_fetch()
+        saved  = {k: v for k, v in state.get("results", {}).items() if v.get("advanceSide")}
+        html   = build_html(state, focus_mid=mid)
+        subj   = f"Resultado Parcial — M{mid}: {tA} {r['goalsA']}–{r['goalsB']} {tB}"
 
-        sent, errors = _send_to_all(state, html, subject)
+        sent, errors = _send_to_all(state, html, subj)
         print(f"  → {sent} sent, {len(errors)} errors")
         for err in errors:
             print(f"    ERROR: {err}")
@@ -588,7 +632,7 @@ def main():
 
     last_mid = sorted(results.keys(), key=int)[-1]
     r        = results[last_mid]
-    tA, tB   = MATCH_TEAMS.get(last_mid, ("A", "B"))
+    tA, tB   = _real_teams(last_mid, results)
     subject  = f"Resultado Parcial — M{last_mid}: {tA} {r['goalsA']}–{r['goalsB']} {tB}"
     html     = build_html(state)
 
