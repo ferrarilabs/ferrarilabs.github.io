@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## v4.27 — 2026-07-01
+
+### Added
+- **Pontuação ao vivo por jogo**: nos cards de jogos em andamento (aba Jogos), um botão "🔴 Ver pontuação ao vivo" abre uma lista com cada entrada, seu palpite e quantos pontos ela faria *se o placar atual valesse agora* — provisório, não escreve em `state().results`, só conta oficialmente quando o admin confirmar o resultado. O dropdown fica aberto entre atualizações (a cada poll de 60s) em vez de fechar sozinho.
+- **Cronômetro em minutos e segundos**: o badge "🔴 Ao vivo" agora mostra o tempo decorrido da partida como MM:SS (ex: "63:27"), usando o campo `status.clock` (segundos) da ESPN em vez do texto resumido (que só tinha o minuto).
+- **Setas de variação no ranking**: cada posição no ranking agora mostra ▲ ou ▼ quando a colocação da entrada mudou desde a última vez que a pontuação oficial mudou (estilo tabela de campeonato). Não pisca em re-renders que não mudam a pontuação (troca de idioma, etc.) — só atualiza quando o placar oficial de fato muda.
+- Chaves i18n novas (`liveToggleShow`, `liveEntryCol`, `livePickCol`, `livePointsCol`, `liveProvisionalNote`, `liveNoPicks`, `rankUp`, `rankDown`) nos três idiomas.
+
+## v4.26 — 2026-07-01
+
+### Added
+- **Pontos por partida no ranking**: a tabela de palpites ("Ver palpites" em cada entrada do ranking) agora mostra, para cada jogo do mata-mata, o resultado real e quantos pontos a entrada ganhou naquela partida especificamente — não só o total. Colunas novas: "Resultado real" e "Pontos" (destacado em verde quando > 0).
+- Chaves i18n `pickRealLabel` e `pickPointsLabel` nos três idiomas.
+
+### Changed
+- **Refatoração (sem mudança de comportamento)**: a lógica de pontuação por partida foi extraída de `scoreEntry` para uma função compartilhada `matchPoints(pick, result)`, reutilizada tanto no cálculo do total quanto na nova coluna de pontos — elimina duplicação e garante que os dois lugares nunca divirjam. `scoreEntry` continua retornando exatamente `{ total, bonus }` como antes; verificado que o total por entrada não mudou.
+
+### Fixed (correção de atribuição)
+- Sugestão de placar/pontuação ao vivo (v4.25) foi do Alan (participante), não do Eduardo — corrigido em `docs/bolao/BUGS_AND_FEEDBACK.md`.
+
+## v4.25 — 2026-07-01
+
+### Added
+- **Placar ao vivo na aba Jogos**: sugestão de usuário — a aba "Jogos" agora busca a fonte ESPN (já usada no sync do admin) a cada 60s, para qualquer visitante, e mostra um badge "🔴 Ao vivo" com o minuto/status do jogo em andamento, sem precisar de login admin. O placar ao vivo é só exibição — não escreve em `state().results`, então não afeta a pontuação até o admin aplicar o resultado oficial (mantém a proteção contra sobrescrita manual já existente).
+- **Ranking com auto-atualização**: o ranking (pontuação) agora recarrega do Supabase a cada 90s enquanto a aba está visível, além dos gatilhos existentes (foco/visibilitychange). Participantes veem a pontuação mudar sem precisar trocar de aba ou dar refresh.
+- Novas chaves i18n `gameLive` e `gamesLiveNote` nos três idiomas.
+
 ## v4.15 — 2026-06-29
 
 ### Added

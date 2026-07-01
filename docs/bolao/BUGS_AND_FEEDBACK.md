@@ -57,6 +57,10 @@ All feedback is from Eduardo Ferrari (app owner, also primary tester) unless oth
 - **Transparency:** requested disclaimer text about informal nature and receipt responsibility. Added to Rules section.
 - **WhatsApp:** requested group link and QR accessible from the app. Added in v4.0.
 - **Venmo/PayPal:** PayPal removed in v4.0 as it was not actually used.
+- **Live scoreboard (suggested by Alan, a participant):** requested a live stream showing game results and points on the site (originally "live stream q mostra o resultado do jogo e a pontuacao"). Clarified as live score/points, not video. Added in v4.25: public auto-refreshing live score badge on the Jogos tab (ESPN, no admin login needed) + ranking auto-refresh every 90s.
+- **Per-match points in picks table (Eduardo):** requested showing how many points each entry earned per match, not just the total. Added in v4.26: `picksTable` now shows the real result and points earned for every knockout match, alongside each pick.
+- **Live points dropdown + match clock (Eduardo):** requested a dropdown under each live match showing everyone's provisional points at the current score, plus a minutes:seconds match clock instead of just the minute. Added in v4.27.
+- **Rank movement arrows (Eduardo):** requested up/down arrows on the ranking showing whether an entry's position improved or dropped since the last score change, similar to a league table (referenced Globo Esporte's Brasileirão table). Added in v4.27.
 
 ---
 

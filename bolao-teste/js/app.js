@@ -831,23 +831,34 @@ function podiumFromResults(s) {
   return { champion, runnerUp, third: thirdPlace, fourth };
 }
 
+// Points for a single knockout match pick vs its real result.
+// Returns null when the match can't be scored yet (no pick, or no finalized result).
+function matchPoints(p, r) {
+  if (!p || !r?.advanceSide) return null;
+  const pA = parseScore(p.goalsA), pB = parseScore(p.goalsB);
+  if (pA === null || pB === null) return null;
+  const rA = parseScore(r.goalsA), rB = parseScore(r.goalsB);
+  if (rA === null || rB === null) return null;
+  const exact = pA === rA && pB === rB;
+  const goalsACorrect = !exact && pA === rA;
+  const goalsBCorrect = !exact && pB === rB;
+  const advanceCorrect = p.advanceSide === r.advanceSide;
+  let pts = 0;
+  if (exact) pts += CONFIG.scoring.exactScore;
+  else {
+    if (goalsACorrect) pts += CONFIG.scoring.oneTeamGoals;
+    if (goalsBCorrect) pts += CONFIG.scoring.oneTeamGoals;
+  }
+  if (advanceCorrect) pts += CONFIG.scoring.advance;
+  return { pts, exact, goalsACorrect, goalsBCorrect, advanceCorrect };
+}
+
 function scoreEntry(entry, s) {
   let total = 0;
   const results = s.results || {};
   for (const m of DATA.knockoutMatches) {
-    const p = entry.picks?.[m.match], r = results[m.match];
-    if (!p || !r?.advanceSide) continue;
-    const pA = parseScore(p.goalsA), pB = parseScore(p.goalsB);
-    if (pA === null || pB === null) continue;
-    const rA = parseScore(r.goalsA), rB = parseScore(r.goalsB);
-    if (rA === null || rB === null) continue;
-    if (pA === rA && pB === rB) {
-      total += CONFIG.scoring.exactScore;
-    } else {
-      if (pA === rA) total += CONFIG.scoring.oneTeamGoals;
-      if (pB === rB) total += CONFIG.scoring.oneTeamGoals;
-    }
-    if (p.advanceSide === r.advanceSide) total += CONFIG.scoring.advance;
+    const mp = matchPoints(entry.picks?.[m.match], results[m.match]);
+    if (mp) total += mp.pts;
   }
   const bonus = { champion: 0, runnerUp: 0, third: 0, fourth: 0, total: 0 };
   const realPod = podiumFromResults(s);
@@ -1220,6 +1231,28 @@ function lockIfCutoff() {
   if (closed) $$("#bracketForm input,#bracketForm select,#smartPick,#randomPick").forEach(el => { el.disabled = true; });
 }
 
+// Rank-movement arrows (like a league table): compares each entry's position
+// against the last time the scores actually changed, not every re-render —
+// so incidental redraws (language switch, countdown tick) don't reset them.
+let _rankSnapshot = {};
+let _rankSignature = null;
+let _rankArrows = {};
+
+function updateRankArrows(ranked) {
+  const signature = ranked.map(e => `${e.id}:${e._score}`).join("|");
+  if (signature === _rankSignature) return;
+  const arrows = {};
+  ranked.forEach((e, i) => {
+    const prevRank = _rankSnapshot[e.id];
+    arrows[e.id] = prevRank === undefined ? null : i < prevRank ? "up" : i > prevRank ? "down" : null;
+  });
+  const snapshot = {};
+  ranked.forEach((e, i) => { snapshot[e.id] = i; });
+  _rankArrows = arrows;
+  _rankSnapshot = snapshot;
+  _rankSignature = signature;
+}
+
 function renderRanking() {
   const s = state(), box = $("#rankingList");
   if (!box) return;
@@ -1230,15 +1263,19 @@ function renderRanking() {
   const ranked = s.entries
     .map(e => { const sc = scoreEntry(e, s); return { ...e, _score: sc.total, _bonus: sc.bonus }; })
     .sort((a, b) => b._score - a._score);
+  updateRankArrows(ranked);
   box.innerHTML = "";
   ranked.forEach((e, i) => {
     const medal = ["🥇","🥈","🥉"][i] || `${i + 1}`;
+    const arrow = _rankArrows[e.id];
+    const arrowHtml = arrow === "up" ? ` <span class="rank-arrow up" title="${escapeHtml(t("rankUp"))}">▲</span>`
+      : arrow === "down" ? ` <span class="rank-arrow down" title="${escapeHtml(t("rankDown"))}">▼</span>` : "";
     const bonusLine = e._bonus?.total ? ` · ${t("bonusLabel")} +${e._bonus.total}` : "";
     const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
-<div class="rank-pos">${medal}</div>
+<div class="rank-pos">${medal}${arrowHtml}</div>
 <div><b>${escapeHtml(e.entryName)}</b>${demoBadge}<br>
 <span class="muted">${escapeHtml(e.payerName)}${escapeHtml(bonusLine)}</span><br>
 <span class="receipt-code">${escapeHtml(receiptCode(e))}</span></div>
@@ -1255,13 +1292,22 @@ function renderRanking() {
 
 function picksTable(entry) {
   const r = resolvedTeamsForEntry(entry);
+  const results = (state().results) || {};
   const rows = DATA.knockoutMatches.map(m => {
     const p = entry.picks?.[m.match], rr = r[m.match] || {};
     if (!p) return "";
     const w = p.advanceSide === "A" ? rr.displayA : rr.displayB;
-    return `<tr><td>M${escapeHtml(String(m.match))}</td><td>${escapeHtml(rr.displayA||"")}</td><td><b>${p.goalsA}×${p.goalsB}</b></td><td>${escapeHtml(rr.displayB||"")}</td><td>${escapeHtml(w||"")}</td></tr>`;
+    const result = results[m.match];
+    const hasRealScore = result?.goalsA !== undefined && result?.goalsB !== undefined;
+    const realScore = hasRealScore ? `${result.goalsA}–${result.goalsB}` : "—";
+    const mp = matchPoints(p, result);
+    const pts = result?.advanceSide ? (mp ? mp.pts : 0) : null;
+    const ptsCell = pts === null
+      ? `<span class="muted">—</span>`
+      : `<b class="pick-pts${pts > 0 ? " pos" : ""}">${pts}</b>`;
+    return `<tr><td>M${escapeHtml(String(m.match))}</td><td>${escapeHtml(rr.displayA||"")}</td><td><b>${p.goalsA}×${p.goalsB}</b></td><td>${escapeHtml(rr.displayB||"")}</td><td>${escapeHtml(w||"")}</td><td>${escapeHtml(realScore)}</td><td style="text-align:center">${ptsCell}</td></tr>`;
   }).join("");
-  return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th><th>${escapeHtml(t("pickRealLabel"))}</th><th>${escapeHtml(t("pickPointsLabel"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function renderParticipants() {
@@ -1301,22 +1347,27 @@ function renderGames() {
   if (!box) return;
   box.innerHTML = "";
   const s = state();
+  const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   for (const m of all) {
     const r = (s.results || {})[m.match];
-    const goalsA = r?.goalsA !== undefined ? r.goalsA : m.goalsA;
-    const goalsB = r?.goalsB !== undefined ? r.goalsB : m.goalsB;
-    const status = r?.goalsA !== undefined ? "Final" : m.status;
+    const live = r?.goalsA === undefined ? _liveScores[m.match] : null;
+    const goalsA = r?.goalsA !== undefined ? r.goalsA : (live ? live.goalsA : m.goalsA);
+    const goalsB = r?.goalsB !== undefined ? r.goalsB : (live ? live.goalsB : m.goalsB);
+    const status = r?.goalsA !== undefined ? "Final" : (live ? "Live" : m.status);
     const hasScore = goalsA !== null && goalsA !== undefined && goalsB !== null && goalsB !== undefined;
     const venue = m.venue && m.venue !== "A confirmar" ? m.venue : "";
     const a = m.teamA || "", b = m.teamB || "";
+    const statusClass = status === "Final" ? "done" : status === "Live" ? "live" : "pending";
+    const statusLabel = status === "Final" ? t("gameFinal") : status === "Live" ? t("gameLive") : t("gamePending");
+    const canShowLivePoints = live && knockoutIds.has(String(m.match));
     const div = document.createElement("div");
-    div.className = "game-card";
+    div.className = `game-card${live ? " is-live" : ""}`;
     div.innerHTML = `
 <div class="game-top">
   <span class="match-badge">${escapeHtml(String(m.match))}</span>
   <span class="muted">${escapeHtml(phaseLabel(m.phase || "Fase de grupos"))}${m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : ""}</span>
-  <span class="status-chip ${status === "Final" ? "done" : "pending"}">${escapeHtml(status === "Final" ? t("gameFinal") : t("gamePending"))}</span>
+  <span class="status-chip ${statusClass}">${live ? "🔴 " : ""}${escapeHtml(statusLabel)}${live?.clock ? ` · ${escapeHtml(live.clock)}` : ""}</span>
 </div>
 <div class="game-meta">
   ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
@@ -1325,10 +1376,18 @@ function renderGames() {
 </div>
 <div class="game-teams">
   <div class="game-team">${flag(a)} ${escapeHtml(a)}</div>
-  ${hasScore ? `<div class="game-score">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
+  ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
   <div class="game-team right">${escapeHtml(b)} ${flag(b)}</div>
-</div>`;
+</div>
+${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
     box.appendChild(div);
+    if (canShowLivePoints) {
+      const detail = document.createElement("div");
+      detail.className = `card picks-detail${_openLiveDetails.has(String(m.match)) ? "" : " hidden"}`;
+      detail.dataset.liveDetail = String(m.match);
+      detail.innerHTML = liveMatchPointsTable(m.match, live.goalsA, live.goalsB);
+      box.appendChild(detail);
+    }
   }
 }
 
@@ -1974,6 +2033,108 @@ async function runEspnUpdate() {
   }
 }
 
+/* ── Public live scoreboard (no admin required) ── */
+let _liveScores = {};
+let _liveScoreTimer = null;
+const _openLiveDetails = new Set();
+
+function formatMatchClock(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// Provisional per-entry points for a match still in progress: goals-correct
+// component always counts; the advance bonus only counts while the live
+// score isn't a draw (pickWinner returns "" on a tie). Never touches
+// state().results — purely a live preview, official points still require
+// the admin to confirm the result.
+function liveMatchPoints(pick, liveGoalsA, liveGoalsB) {
+  if (!pick) return null;
+  const pA = parseScore(pick.goalsA), pB = parseScore(pick.goalsB);
+  if (pA === null || pB === null) return null;
+  const exact = pA === liveGoalsA && pB === liveGoalsB;
+  let pts = 0;
+  if (exact) pts += CONFIG.scoring.exactScore;
+  else {
+    if (pA === liveGoalsA) pts += CONFIG.scoring.oneTeamGoals;
+    if (pB === liveGoalsB) pts += CONFIG.scoring.oneTeamGoals;
+  }
+  const liveAdvance = pickWinner(liveGoalsA, liveGoalsB);
+  if (liveAdvance && pick.advanceSide === liveAdvance) pts += CONFIG.scoring.advance;
+  return pts;
+}
+
+function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
+  const s = state();
+  const rows = (s.entries || [])
+    .map(e => {
+      const pick = e.picks?.[matchId];
+      const pts = liveMatchPoints(pick, liveGoalsA, liveGoalsB);
+      return { name: e.entryName || "?", pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—", pts };
+    })
+    .filter(row => row.pts !== null)
+    .sort((a, b) => b.pts - a.pts);
+  if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
+  const trs = rows.map(row =>
+    `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.pts > 0 ? " pos" : ""}">${row.pts}</b></td></tr>`
+  ).join("");
+  return `<table><thead><tr><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
+<p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
+}
+
+function mapEspnToLiveScores(events) {
+  if (!Array.isArray(events) || !events.length) return {};
+  const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
+  const s = state();
+  const out = {};
+  for (const m of all) {
+    if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamB)) continue;
+    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    for (const ev of events) {
+      const comp = ev.competitions?.[0];
+      if (!comp || comp.status?.type?.state !== "in") continue;
+      const evDateET = new Date(new Date(comp.date || ev.date || "") - 4 * 3600000)
+        .toISOString().slice(0, 10);
+      if (evDateET !== m.date) continue;
+      const [c0, c1] = comp.competitors || [];
+      if (!c0 || !c1) continue;
+      const n0 = normalizeTeamName(c0.team?.displayName);
+      const n1 = normalizeTeamName(c1.team?.displayName);
+      const s0 = parseInt(c0.score || "0", 10), s1 = parseInt(c1.score || "0", 10);
+      const clockSeconds = typeof comp.status?.clock === "number" ? comp.status.clock : null;
+      const clock = clockSeconds !== null && clockSeconds >= 0
+        ? formatMatchClock(clockSeconds)
+        : (comp.status?.type?.shortDetail || "");
+      if (n0 === normA && n1 === normB) { out[m.match] = { goalsA: s0, goalsB: s1, clock }; break; }
+      if (n1 === normA && n0 === normB) { out[m.match] = { goalsA: s1, goalsB: s0, clock }; break; }
+    }
+  }
+  return out;
+}
+
+async function pollLiveScores() {
+  const events = await fetchEspnFixtures();
+  if (!events) return;
+  _liveScores = mapEspnToLiveScores(events);
+  renderGames();
+}
+
+function startLiveScorePolling() {
+  if (_liveScoreTimer) return;
+  pollLiveScores().catch(err => console.warn("Live score poll failed", err));
+  _liveScoreTimer = setInterval(
+    () => pollLiveScores().catch(err => console.warn("Live score poll failed", err)),
+    60000
+  );
+}
+
+function stopLiveScorePolling() {
+  if (_liveScoreTimer) { clearInterval(_liveScoreTimer); _liveScoreTimer = null; }
+}
+
 /* ============================================================
    Main render
    ============================================================ */
@@ -2009,6 +2170,18 @@ function initEvents() {
     if (rankToggle) {
       const det = document.querySelector(`[data-rank-detail="${rankToggle.dataset.rankToggle}"]`);
       if (det) det.classList.toggle("hidden"); return;
+    }
+
+    const liveToggle = e.target.closest("[data-live-toggle]");
+    if (liveToggle) {
+      const mid = liveToggle.dataset.liveToggle;
+      const det = document.querySelector(`[data-live-detail="${mid}"]`);
+      if (det) {
+        det.classList.toggle("hidden");
+        if (det.classList.contains("hidden")) _openLiveDetails.delete(mid);
+        else _openLiveDetails.add(mid);
+      }
+      return;
     }
 
     // Receipt box actions
@@ -2129,18 +2302,23 @@ async function init() {
 
   restoreDraft();
   setInterval(updateCountdown, 1000);
+  startLiveScorePolling();
+  setInterval(() => { if (!document.hidden) debouncedReload(); }, 90000);
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
       stopResultsPolling();
+      stopLiveScorePolling();
     } else {
       debouncedReload();
       if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
+      startLiveScorePolling();
     }
   });
   window.addEventListener("focus", () => {
     debouncedReload();
     if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
+    startLiveScorePolling();
   });
 
   // Disable entry nav button only after cutoff; default landing depends on cutoff
