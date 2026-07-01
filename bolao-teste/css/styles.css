@@ -212,6 +212,36 @@ h3 { font-size: 1.05rem; }
   color: var(--muted);
   margin-top: 2px;
 }
+.hero-live-wrap {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.hero-next-label {
+  font-size: 10px;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--green);
+  margin-bottom: 6px;
+}
+.hero-next-teams {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+.hero-next-time {
+  font-size: 11px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.hero-next-live {
+  font-size: 13px;
+  font-weight: 700;
+  color: #ff6b6b;
+  animation: live-pulse 1.6s ease-in-out infinite;
+}
 .eyebrow {
   color: var(--green);
   text-transform: uppercase;
