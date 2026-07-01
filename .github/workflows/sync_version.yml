@@ -1,0 +1,50 @@
+name: Bolão — Sync cache-bust version in index.html
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'bolao-teste/js/config.js'
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Fetch with the bot token so the push below triggers Pages deploy
+          fetch-depth: 0
+
+      - name: Sync ?v= in index.html from config.js
+        id: sync
+        run: |
+          VERSION=$(grep -o 'siteVersion:.*"v[0-9.]*"' bolao-teste/js/config.js | grep -o 'v[0-9.]*')
+          echo "Detected version: $VERSION"
+          if [ -z "$VERSION" ]; then
+            echo "Could not detect version — skipping"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          BEFORE=$(md5sum bolao-teste/index.html | cut -d' ' -f1)
+          sed -i "s/?v=[0-9.]*/?v=$VERSION/g" bolao-teste/index.html
+          AFTER=$(md5sum bolao-teste/index.html | cut -d' ' -f1)
+          if [ "$BEFORE" = "$AFTER" ]; then
+            echo "index.html already at $VERSION — nothing to commit"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Updated index.html to $VERSION"
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Commit updated index.html
+        if: steps.sync.outputs.changed == 'true'
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add bolao-teste/index.html
+          git commit -m "chore: bump cache-bust version in index.html [skip ci]"
+          git push
