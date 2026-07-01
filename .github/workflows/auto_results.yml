@@ -1,0 +1,24 @@
+name: Bolão — Auto resultado e email (cron)
+
+on:
+  schedule:
+    # Every 30 min, 14:00-04:00 UTC (10am-midnight ET) during June-July
+    - cron: '*/30 14-23 * 6-7 *'
+    - cron: '*/30 0-4 * 6-7 *'
+  workflow_dispatch:  # also allow manual trigger from GitHub UI
+
+# Prevent simultaneous runs — queue the second one rather than cancel
+concurrency:
+  group: auto-results
+  cancel-in-progress: false
+
+jobs:
+  check-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check ESPN and send emails for new results
+        working-directory: bolao-teste/scripts
+        run: python3 send_result_email.py --auto
