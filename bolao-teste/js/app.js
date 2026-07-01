@@ -330,6 +330,55 @@ function updateCountdown() {
   if (lbl) lbl.textContent = CONFIG.cutoffLabel;
 }
 
+function renderHero() {
+  const card   = $("#heroCard");
+  const liveEl = $("#heroLive");
+  const toggle = $("#heroToggle");
+  if (!card || !liveEl || !toggle) return;
+
+  const hasLive = Object.keys(_liveScores).length > 0;
+
+  // Show live scores when there's an active match
+  if (hasLive) {
+    // Auto-expand hero when live scores arrive
+    card.classList.remove("collapsed");
+    sessionStorage.removeItem("heroCollapsed");
+
+    const cards = Object.entries(_liveScores).map(([mid, ls]) => {
+      const m = DATA.knockoutMatches.find(x => x.match === mid)
+             || DATA.groupMatches?.find(x => x.match === mid);
+      const tA = m?.teamA || "A", tB = m?.teamB || "B";
+      return `<div class="hero-live-card">
+        <div class="hero-live-badge">⚽ ${escapeHtml(t("liveNow"))} · ${escapeHtml(ls.clock)}</div>
+        <div class="hero-live-score">${ls.goalsA} — ${ls.goalsB}</div>
+        <div class="hero-live-teams">${escapeHtml(tA)} × ${escapeHtml(tB)}</div>
+      </div>`;
+    }).join("");
+    liveEl.innerHTML = `<div class="hero-live-grid">${cards}</div>`;
+    liveEl.classList.remove("hidden");
+  } else {
+    liveEl.classList.add("hidden");
+    // Auto-collapse when site is closed and nothing is live
+    if (isPastCutoff() && !isR32Window() && sessionStorage.getItem("heroCollapsed") === null) {
+      card.classList.add("collapsed");
+      sessionStorage.setItem("heroCollapsed", "1");
+    }
+  }
+
+  const collapsed = card.classList.contains("collapsed");
+  toggle.textContent = collapsed ? "▶" : "▼";
+  toggle.title = collapsed ? t("heroExpand") : t("heroCollapse");
+}
+
+function toggleHero() {
+  const card = $("#heroCard");
+  if (!card) return;
+  card.classList.toggle("collapsed");
+  const collapsed = card.classList.contains("collapsed");
+  sessionStorage.setItem("heroCollapsed", collapsed ? "1" : "0");
+  renderHero();
+}
+
 /* ============================================================
    Admin
    ============================================================ */
@@ -2120,6 +2169,7 @@ async function pollLiveScores() {
   if (!events) return;
   _liveScores = mapEspnToLiveScores(events);
   renderGames();
+  renderHero();
 }
 
 function startLiveScorePolling() {
@@ -2141,6 +2191,7 @@ function stopLiveScorePolling() {
 function renderAll() {
   applyLanguage();
   updateCountdown();
+  renderHero();
   lockIfCutoff();
   renderEditByCodeCard();
   updateEditModeUI();
@@ -2165,6 +2216,8 @@ function initEvents() {
 
     const lang = e.target.closest("[data-lang]");
     if (lang) { setLang(lang.dataset.lang); return; }
+
+    if (e.target.closest("#heroToggle")) { toggleHero(); return; }
 
     const rankToggle = e.target.closest("[data-rank-toggle]");
     if (rankToggle) {
@@ -2289,6 +2342,10 @@ async function init() {
   applyLanguage();
 
   await loadRemoteState();
+  // Restore hero collapse state from previous session
+  if (sessionStorage.getItem("heroCollapsed") === "1") {
+    $("#heroCard")?.classList.add("collapsed");
+  }
   renderAll();
   initEvents();
 
