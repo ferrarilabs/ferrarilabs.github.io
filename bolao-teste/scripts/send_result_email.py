@@ -6,6 +6,7 @@ Usage:
   python3 send_result_email.py                              # send about latest saved result
   python3 send_result_email.py --update 89 2 1 A            # save result to Supabase only
   python3 send_result_email.py --auto                       # check ESPN, save+email any new results
+  python3 send_result_email.py --clear-result 91            # remove a result + tombstone it
 
 --update <mid> <goalsA> <goalsB> <advanceSide(A|B)>
   Writes the result to Supabase and exits. Run without flag to send emails.
@@ -13,6 +14,10 @@ Usage:
 --auto
   Fetches ESPN, detects matches not yet in Supabase, saves and emails each one.
   Covers all rounds (R32 through Final). Idempotent — skips already-saved matches.
+
+--clear-result <mid>
+  Removes a result from Supabase and adds it to deletedResults tombstone list so
+  the site respects the removal even if it has the result cached in localStorage.
 """
 
 import json, re, sys, time, urllib.request
@@ -228,16 +233,8 @@ def sb_fetch():
         return json.loads(r.read())[0]["state"]
 
 
-def sb_update_result(mid, goalsA, goalsB, advanceSide):
-    """Upsert a single match result into Supabase. advanceSide: 'A' or 'B'."""
-    state   = sb_fetch()
-    results = state.get("results") or {}
-    results[str(mid)] = {
-        "goalsA":       int(goalsA),
-        "goalsB":       int(goalsB),
-        "advanceSide":  advanceSide.upper(),
-    }
-    state["results"] = results
+def _sb_upsert(state):
+    """Write full state blob to Supabase. Returns HTTP status."""
     body = json.dumps({"id": "main", "state": state}).encode()
     req  = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state",
@@ -251,6 +248,43 @@ def sb_update_result(mid, goalsA, goalsB, advanceSide):
     )
     with urllib.request.urlopen(req, timeout=15) as r:
         return r.status
+
+
+def sb_update_result(mid, goalsA, goalsB, advanceSide):
+    """Upsert a single match result into Supabase. advanceSide: 'A' or 'B'."""
+    state   = sb_fetch()
+    results = state.get("results") or {}
+    results[str(mid)] = {
+        "goalsA":       int(goalsA),
+        "goalsB":       int(goalsB),
+        "advanceSide":  advanceSide.upper(),
+    }
+    # Remove from tombstone if it was previously cleared
+    deleted = set(state.get("deletedResults") or [])
+    deleted.discard(str(mid))
+    state["results"] = results
+    state["deletedResults"] = sorted(deleted)
+    return _sb_upsert(state)
+
+
+def sb_clear_result(mid):
+    """Remove a result from Supabase and tombstone it so the site respects the removal."""
+    mid = str(mid)
+    state   = sb_fetch()
+    results = state.get("results") or {}
+    deleted = set(state.get("deletedResults") or [])
+
+    had_result = mid in results
+    results.pop(mid, None)
+    deleted.add(mid)
+
+    state["results"] = results
+    state["deletedResults"] = sorted(deleted)
+    status = _sb_upsert(state)
+    if had_result:
+        print(f"M{mid} removido do Supabase (tombstone adicionado). Status: {status}")
+    else:
+        print(f"M{mid} já não existia em results. Tombstone adicionado. Status: {status}")
 
 
 # ── Scoring ───────────────────────────────────────────────────────────────────
@@ -624,6 +658,17 @@ def main():
 
     if "--auto" in args:
         run_auto()
+        return
+
+    # --clear-result <mid>  →  remove result + tombstone, no email
+    if "--clear-result" in args:
+        idx = args.index("--clear-result")
+        try:
+            mid = args[idx + 1]
+        except IndexError:
+            print("Usage: --clear-result <mid>")
+            sys.exit(1)
+        sb_clear_result(mid)
         return
 
     # --update <mid> <goalsA> <goalsB> <A|B>  →  save only, no email

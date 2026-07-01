@@ -214,11 +214,20 @@ function mergeStates(local, remote) {
   for (const k of allPaidKeys) {
     mergedPaid[k] = !!(local.paid?.[k] || remote.paid?.[k]);
   }
+  // Tombstoned results: explicitly removed by admin via --clear-result
+  const resultTombstones = new Set([
+    ...(local.deletedResults || []),
+    ...(remote.deletedResults || [])
+  ]);
+  const mergedResults = { ...(remote.results || {}), ...(local.results || {}) };
+  for (const mid of resultTombstones) delete mergedResults[mid];
+
   return {
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
     deletedIds: [...tombstones],
+    deletedResults: [...resultTombstones],
     paid: mergedPaid,
-    results: { ...(remote.results || {}), ...(local.results || {}) },
+    results: mergedResults,
     meta: { updatedAt: new Date().toISOString(), version: CONFIG.siteVersion }
   };
 }
