@@ -331,15 +331,13 @@ function updateCountdown() {
 }
 
 function parseMatchKickoff(dateStr, timeET) {
-  // dateStr: "2026-07-02", timeET: "13:00 (EDT)"
   const m = (timeET || "").match(/(\d+):(\d+)/);
   if (!m) return null;
-  const h = parseInt(m[1], 10), min = parseInt(m[2], 10);
   return Date.UTC(
     parseInt(dateStr.slice(0,4), 10),
     parseInt(dateStr.slice(5,7), 10) - 1,
     parseInt(dateStr.slice(8,10), 10),
-    h + 4, min   // EDT = UTC-4
+    parseInt(m[1], 10) + 4, parseInt(m[2], 10)  // EDT = UTC-4
   );
 }
 
@@ -347,30 +345,23 @@ function nextScheduledMatch() {
   const results = state().results || {};
   const now = Date.now();
   for (const m of DATA.knockoutMatches) {
-    if (results[m.match]?.advanceSide) continue; // already played
+    if (results[m.match]?.advanceSide) continue;
     const kickoff = parseMatchKickoff(m.date, m.timeET);
     if (kickoff === null) continue;
-    // Include matches that started up to 3h ago (might be in ET/penalties, not yet on ESPN live)
     if (kickoff > now - 3 * 3600 * 1000) return { m, kickoff };
   }
   return null;
 }
 
-function renderHero() {
-  const card   = $("#heroCard");
-  const right  = $("#heroRight");
-  const toggle = $("#heroToggle");
-  if (!card || !right || !toggle) return;
+function renderNextMatch() {
+  const card = $("#nextMatchCard");
+  if (!card) return;
 
   const hasLive = Object.keys(_liveScores).length > 0;
-  const next    = hasLive ? null : nextScheduledMatch();
+  const next    = nextScheduledMatch();
 
   if (hasLive) {
-    // Auto-expand when a live match starts
-    card.classList.remove("collapsed");
-    sessionStorage.removeItem("heroCollapsed");
-
-    const cards = Object.entries(_liveScores).map(([mid, ls]) => {
+    const items = Object.entries(_liveScores).map(([mid, ls]) => {
       const m = DATA.knockoutMatches.find(x => x.match === mid)
              || DATA.groupMatches?.find(x => x.match === mid);
       const tA = m?.teamA || "A", tB = m?.teamB || "B";
@@ -380,54 +371,55 @@ function renderHero() {
         <div class="hero-live-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} × ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
       </div>`;
     }).join("");
-    right.innerHTML = `<div class="hero-live-grid">${cards}</div>`;
-    right.className = "hero-live-wrap";
-
-  } else if (next) {
-    const { m, kickoff } = next;
-    const diff = kickoff - Date.now();
-    const tA = m.teamA, tB = m.teamB;
-    let timerHtml;
-    if (diff <= 0) {
-      timerHtml = `<div class="hero-next-live">${escapeHtml(t("heroMatchStarted"))}</div>`;
-    } else {
-      const totalS = Math.floor(diff / 1000);
-      const d = Math.floor(totalS / 86400);
-      const h = Math.floor((totalS % 86400) / 3600);
-      const min = Math.floor((totalS % 3600) / 60);
-      const sec = totalS % 60;
-      timerHtml = d > 0
-        ? `<div class="count-grid">
-            <div><b>${d}</b><span>${t("countdownDays")}</span></div>
-            <div><b>${h}</b><span>${t("countdownHours")}</span></div>
-            <div><b>${min}</b><span>${t("countdownMin")}</span></div>
-            <div><b>${String(sec).padStart(2,"0")}</b><span>${t("countdownSec")}</span></div>
-          </div>`
-        : `<div class="count-grid">
-            <div><b>${h}</b><span>${t("countdownHours")}</span></div>
-            <div><b>${min}</b><span>${t("countdownMin")}</span></div>
-            <div><b>${String(sec).padStart(2,"0")}</b><span>${t("countdownSec")}</span></div>
-          </div>`;
-    }
-    right.innerHTML = `
-      <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
-      <div class="hero-next-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} × ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
-      <div class="hero-next-time">${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
-      ${timerHtml}`;
-    right.className = "count-card";
-
-  } else {
-    // Default: cutoff countdown (restored)
-    right.innerHTML = `<div id="countdown" aria-live="polite"></div><small id="cutoffLabel"></small>`;
-    right.className = "count-card";
-    // Auto-collapse when past cutoff with nothing to show
-    if (isPastCutoff() && !isR32Window() && sessionStorage.getItem("heroCollapsed") === null) {
-      card.classList.add("collapsed");
-      sessionStorage.setItem("heroCollapsed", "1");
-    }
-    updateCountdown();
+    card.innerHTML = `<div class="next-match-live-grid">${items}</div>`;
+    card.classList.remove("hidden");
+    return;
   }
 
+  if (!next) { card.classList.add("hidden"); return; }
+
+  const { m, kickoff } = next;
+  const diff   = kickoff - Date.now();
+  const tA = m.teamA, tB = m.teamB;
+
+  let timerHtml;
+  if (diff <= 0) {
+    timerHtml = `<span class="hero-next-live">${escapeHtml(t("heroMatchStarted"))}</span>`;
+  } else {
+    const totalS = Math.floor(diff / 1000);
+    const d   = Math.floor(totalS / 86400);
+    const h   = Math.floor((totalS % 86400) / 3600);
+    const min = Math.floor((totalS % 3600) / 60);
+    const sec = totalS % 60;
+    const cells = d > 0
+      ? [[d, t("countdownDays")], [h, t("countdownHours")], [min, t("countdownMin")], [String(sec).padStart(2,"0"), t("countdownSec")]]
+      : [[h, t("countdownHours")], [min, t("countdownMin")], [String(sec).padStart(2,"0"), t("countdownSec")]];
+    timerHtml = `<div class="count-grid next-match-timer">${
+      cells.map(([v, l]) => `<div><b>${v}</b><span>${escapeHtml(l)}</span></div>`).join("")
+    }</div>`;
+  }
+
+  card.innerHTML = `
+    <div class="next-match-row">
+      <div class="next-match-info">
+        <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
+        <div class="next-match-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+        <div class="hero-next-time">${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
+      </div>
+      <div class="next-match-countdown">${timerHtml}</div>
+    </div>`;
+  card.classList.remove("hidden");
+}
+
+function renderHero() {
+  const card   = $("#heroCard");
+  const toggle = $("#heroToggle");
+  if (!card || !toggle) return;
+  // Clear any stale auto-collapse from previous version
+  if (sessionStorage.getItem("heroCollapsed") === "1" &&
+      !card.classList.contains("collapsed")) {
+    sessionStorage.removeItem("heroCollapsed");
+  }
   const collapsed = card.classList.contains("collapsed");
   toggle.textContent = collapsed ? "▶" : "▼";
   toggle.title = collapsed ? t("heroExpand") : t("heroCollapse");
@@ -437,8 +429,7 @@ function toggleHero() {
   const card = $("#heroCard");
   if (!card) return;
   card.classList.toggle("collapsed");
-  const collapsed = card.classList.contains("collapsed");
-  sessionStorage.setItem("heroCollapsed", collapsed ? "1" : "0");
+  sessionStorage.setItem("heroCollapsed", card.classList.contains("collapsed") ? "1" : "0");
   renderHero();
 }
 
@@ -2232,7 +2223,7 @@ async function pollLiveScores() {
   if (!events) return;
   _liveScores = mapEspnToLiveScores(events);
   renderGames();
-  renderHero();
+  renderNextMatch();
 }
 
 function startLiveScorePolling() {
@@ -2253,7 +2244,9 @@ function stopLiveScorePolling() {
    ============================================================ */
 function renderAll() {
   applyLanguage();
-  renderHero(); // handles countdown internally based on hero mode
+  updateCountdown();
+  renderHero();
+  renderNextMatch();
   lockIfCutoff();
   renderEditByCodeCard();
   updateEditModeUI();
@@ -2404,10 +2397,6 @@ async function init() {
   applyLanguage();
 
   await loadRemoteState();
-  // Restore hero collapse state from previous session
-  if (sessionStorage.getItem("heroCollapsed") === "1") {
-    $("#heroCard")?.classList.add("collapsed");
-  }
   renderAll();
   initEvents();
 
@@ -2420,7 +2409,7 @@ async function init() {
   }
 
   restoreDraft();
-  setInterval(() => { updateCountdown(); renderHero(); }, 1000);
+  setInterval(() => { updateCountdown(); renderNextMatch(); }, 1000);
   startLiveScorePolling();
   setInterval(() => { if (!document.hidden) debouncedReload(); }, 90000);
 
