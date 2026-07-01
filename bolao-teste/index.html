@@ -55,16 +55,20 @@
 
 <main>
   <!-- Hero -->
-  <section class="hero card">
-    <div>
-      <div class="eyebrow" data-i18n="heroEyebrow">Bolão Copa 2026</div>
-      <h1 data-i18n="heroTitle">Preencha seu bracket e participe.</h1>
-      <p data-i18n="heroText">Valor: US$ 5 por entrada.</p>
+  <section id="heroCard" class="hero card">
+    <button id="heroToggle" class="hero-toggle" aria-label="toggle hero">▼</button>
+    <div id="heroBody">
+      <div>
+        <div class="eyebrow" data-i18n="heroEyebrow">Bolão Copa 2026</div>
+        <h1 data-i18n="heroTitle">Preencha seu bracket e participe.</h1>
+        <p data-i18n="heroText">Valor: US$ 5 por entrada.</p>
+      </div>
+      <div class="count-card">
+        <div id="countdown" aria-live="polite"></div>
+        <small id="cutoffLabel"></small>
+      </div>
     </div>
-    <div class="count-card">
-      <div id="countdown" aria-live="polite"></div>
-      <small id="cutoffLabel"></small>
-    </div>
+    <div id="heroLive" class="hidden"></div>
   </section>
 
   <!-- ── Palpites ── -->
