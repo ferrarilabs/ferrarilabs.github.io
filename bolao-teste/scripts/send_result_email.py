@@ -441,6 +441,7 @@ def main():
         print(f"Saving M{mid}: {tA} {gA}–{gB} {tB} → {winner} avança...")
         status = sb_update_result(mid, gA, gB, side)
         print(f"  Supabase upsert status: {status}")
+        return  # only save — run without --update to send emails
 
     print("Fetching state from Supabase...")
     state = sb_fetch()
