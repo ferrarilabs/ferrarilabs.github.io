@@ -218,6 +218,26 @@ h3 { font-size: 1.05rem; }
   flex-wrap: wrap;
   gap: 10px;
 }
+.next-match-live-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.next-match-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.next-match-info { flex: 1; min-width: 160px; }
+.next-match-teams {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 4px 0 2px;
+}
+.next-match-countdown { flex-shrink: 0; }
+.next-match-timer { grid-template-columns: repeat(3, 1fr); }
+.next-match-timer.four { grid-template-columns: repeat(4, 1fr); }
 .hero-next-label {
   font-size: 10px;
   font-weight: 900;
