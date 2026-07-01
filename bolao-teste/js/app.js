@@ -330,17 +330,43 @@ function updateCountdown() {
   if (lbl) lbl.textContent = CONFIG.cutoffLabel;
 }
 
+function parseMatchKickoff(dateStr, timeET) {
+  // dateStr: "2026-07-02", timeET: "13:00 (EDT)"
+  const m = (timeET || "").match(/(\d+):(\d+)/);
+  if (!m) return null;
+  const h = parseInt(m[1], 10), min = parseInt(m[2], 10);
+  return Date.UTC(
+    parseInt(dateStr.slice(0,4), 10),
+    parseInt(dateStr.slice(5,7), 10) - 1,
+    parseInt(dateStr.slice(8,10), 10),
+    h + 4, min   // EDT = UTC-4
+  );
+}
+
+function nextScheduledMatch() {
+  const results = state().results || {};
+  const now = Date.now();
+  for (const m of DATA.knockoutMatches) {
+    if (results[m.match]?.advanceSide) continue; // already played
+    const kickoff = parseMatchKickoff(m.date, m.timeET);
+    if (kickoff === null) continue;
+    // Include matches that started up to 3h ago (might be in ET/penalties, not yet on ESPN live)
+    if (kickoff > now - 3 * 3600 * 1000) return { m, kickoff };
+  }
+  return null;
+}
+
 function renderHero() {
   const card   = $("#heroCard");
-  const liveEl = $("#heroLive");
+  const right  = $("#heroRight");
   const toggle = $("#heroToggle");
-  if (!card || !liveEl || !toggle) return;
+  if (!card || !right || !toggle) return;
 
   const hasLive = Object.keys(_liveScores).length > 0;
+  const next    = hasLive ? null : nextScheduledMatch();
 
-  // Show live scores when there's an active match
   if (hasLive) {
-    // Auto-expand hero when live scores arrive
+    // Auto-expand when a live match starts
     card.classList.remove("collapsed");
     sessionStorage.removeItem("heroCollapsed");
 
@@ -351,18 +377,55 @@ function renderHero() {
       return `<div class="hero-live-card">
         <div class="hero-live-badge">⚽ ${escapeHtml(t("liveNow"))} · ${escapeHtml(ls.clock)}</div>
         <div class="hero-live-score">${ls.goalsA} — ${ls.goalsB}</div>
-        <div class="hero-live-teams">${escapeHtml(tA)} × ${escapeHtml(tB)}</div>
+        <div class="hero-live-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} × ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
       </div>`;
     }).join("");
-    liveEl.innerHTML = `<div class="hero-live-grid">${cards}</div>`;
-    liveEl.classList.remove("hidden");
+    right.innerHTML = `<div class="hero-live-grid">${cards}</div>`;
+    right.className = "hero-live-wrap";
+
+  } else if (next) {
+    const { m, kickoff } = next;
+    const diff = kickoff - Date.now();
+    const tA = m.teamA, tB = m.teamB;
+    let timerHtml;
+    if (diff <= 0) {
+      timerHtml = `<div class="hero-next-live">${escapeHtml(t("heroMatchStarted"))}</div>`;
+    } else {
+      const totalS = Math.floor(diff / 1000);
+      const d = Math.floor(totalS / 86400);
+      const h = Math.floor((totalS % 86400) / 3600);
+      const min = Math.floor((totalS % 3600) / 60);
+      const sec = totalS % 60;
+      timerHtml = d > 0
+        ? `<div class="count-grid">
+            <div><b>${d}</b><span>${t("countdownDays")}</span></div>
+            <div><b>${h}</b><span>${t("countdownHours")}</span></div>
+            <div><b>${min}</b><span>${t("countdownMin")}</span></div>
+            <div><b>${String(sec).padStart(2,"0")}</b><span>${t("countdownSec")}</span></div>
+          </div>`
+        : `<div class="count-grid">
+            <div><b>${h}</b><span>${t("countdownHours")}</span></div>
+            <div><b>${min}</b><span>${t("countdownMin")}</span></div>
+            <div><b>${String(sec).padStart(2,"0")}</b><span>${t("countdownSec")}</span></div>
+          </div>`;
+    }
+    right.innerHTML = `
+      <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
+      <div class="hero-next-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} × ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+      <div class="hero-next-time">${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
+      ${timerHtml}`;
+    right.className = "count-card";
+
   } else {
-    liveEl.classList.add("hidden");
-    // Auto-collapse when site is closed and nothing is live
+    // Default: cutoff countdown (restored)
+    right.innerHTML = `<div id="countdown" aria-live="polite"></div><small id="cutoffLabel"></small>`;
+    right.className = "count-card";
+    // Auto-collapse when past cutoff with nothing to show
     if (isPastCutoff() && !isR32Window() && sessionStorage.getItem("heroCollapsed") === null) {
       card.classList.add("collapsed");
       sessionStorage.setItem("heroCollapsed", "1");
     }
+    updateCountdown();
   }
 
   const collapsed = card.classList.contains("collapsed");
@@ -2190,8 +2253,7 @@ function stopLiveScorePolling() {
    ============================================================ */
 function renderAll() {
   applyLanguage();
-  updateCountdown();
-  renderHero();
+  renderHero(); // handles countdown internally based on hero mode
   lockIfCutoff();
   renderEditByCodeCard();
   updateEditModeUI();
@@ -2358,7 +2420,7 @@ async function init() {
   }
 
   restoreDraft();
-  setInterval(updateCountdown, 1000);
+  setInterval(() => { updateCountdown(); renderHero(); }, 1000);
   startLiveScorePolling();
   setInterval(() => { if (!document.hidden) debouncedReload(); }, 90000);
 
