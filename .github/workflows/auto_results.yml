@@ -2,23 +2,51 @@ name: Bolão — Auto resultado e email (cron)
 
 on:
   schedule:
-    # Every 30 min, 14:00-04:00 UTC (10am-midnight ET) during June-July
+    # Every 30 min, 14:00-23:59 UTC (10am-8pm ET) — covers all match windows
     - cron: '*/30 14-23 * 6-7 *'
-    - cron: '*/30 0-4 * 6-7 *'
-  workflow_dispatch:  # also allow manual trigger from GitHub UI
+    # Every 30 min, 00:00-05:00 UTC — covers late-night matches and penalties
+    - cron: '*/30 0-5 * 6-7 *'
+  workflow_dispatch:  # manual trigger from GitHub UI / mobile app
 
-# Prevent simultaneous runs — queue the second one rather than cancel
+# Prevent simultaneous runs — queue rather than cancel (avoids double-sends)
 concurrency:
   group: auto-results
   cancel-in-progress: false
+
+permissions:
+  contents: write  # needed for auto_reopen to commit config.js
 
 jobs:
   check-and-send:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Check ESPN and send emails for new results
+      # ── Step 1: Send emails for any new completed matches ──────────────────
+      - name: Send result emails for new matches
         working-directory: bolao-teste/scripts
         run: python3 send_result_email.py --auto
+
+      # ── Step 2: Reopen site after R32 if M88 is done ──────────────────────
+      - name: Check if site needs to reopen after R32
+        id: reopen
+        working-directory: bolao-teste/scripts
+        run: |
+          output=$(python3 auto_reopen.py 2>&1)
+          echo "$output"
+          # Export last line as the action signal
+          last_line=$(echo "$output" | tail -n 1)
+          echo "action=$last_line" >> "$GITHUB_OUTPUT"
+
+      - name: Commit and push reopened config.js
+        if: steps.reopen.outputs.action == 'PATCHED'
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+          git add bolao-teste/js/config.js
+          git commit -m "auto: reopen site for R16 edit window after R32 complete (M88 done)"
+          git push
