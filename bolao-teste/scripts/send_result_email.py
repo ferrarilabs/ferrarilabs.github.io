@@ -72,6 +72,17 @@ MATCH_TEAMS = {
     "103": ("L101", "L102"), "104": ("W101", "W102"),
 }
 
+# Earliest date each knockout round can produce a completed match.
+# Used to reject group-stage events that share the same team pair as a future knockout slot.
+# Group stage ends 2026-06-28; R32 starts 2026-06-29.
+ROUND_MIN_DATE = {
+    **{str(m): "2026-06-28" for m in range(73, 89)},   # R32 — first match (M73) played June 28
+    **{str(m): "2026-07-04" for m in range(89, 97)},   # R16
+    **{str(m): "2026-07-08" for m in range(97, 101)},  # QF
+    **{str(m): "2026-07-13" for m in range(101, 103)}, # SF
+    **{str(m): "2026-07-17" for m in range(103, 105)}, # 3rd/Final
+}
+
 # ESPN display names that differ from our names
 ESPN_ALIASES = {
     "Cote d'Ivoire":               "Ivory Coast",
@@ -141,18 +152,17 @@ def fetch_espn_results(saved_results=None):
     with urllib.request.urlopen(req, timeout=20) as r:
         data = json.loads(r.read())
 
-    # Index ESPN events by frozenset of normalized team names
-    event_map = {}
+    # Index ESPN events by frozenset of normalized team names.
+    # One pair can appear multiple times (group stage + knockout), so store a list.
+    event_map: dict[frozenset, list] = {}
     for e in data.get("events", []):
         comp  = e.get("competitions", [{}])[0]
         comps = comp.get("competitors", [])
         if len(comps) < 2:
             continue
-        names = frozenset(
-            _espn_normalize(c.get("team", {}).get("displayName", ""))
-            for c in comps
-        )
-        event_map[names] = (comp, comps)
+        names     = frozenset(_espn_normalize(c.get("team", {}).get("displayName", "")) for c in comps)
+        event_date = e.get("date", "")[:10]  # "2026-06-26"
+        event_map.setdefault(names, []).append((comp, comps, event_date))
 
     found = {}
     for mid in sorted(MATCH_TEAMS.keys(), key=int):
@@ -167,7 +177,16 @@ def fetch_espn_results(saved_results=None):
         key = frozenset({tA, tB})
         if key not in event_map:
             continue
-        comp, comps = event_map[key]
+
+        # Filter to events on or after this round's earliest possible date.
+        # Prevents group-stage matches (same teams, earlier date) from being
+        # mistaken for knockout results.
+        min_date = ROUND_MIN_DATE.get(str(mid), "2026-06-29")
+        candidates = [(comp, comps) for comp, comps, ed in event_map[key] if ed >= min_date]
+        if not candidates:
+            continue
+        comp, comps = candidates[0]
+
         st = comp.get("status", {}).get("type", {})
         if st.get("state") != "post":
             continue
