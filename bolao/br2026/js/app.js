@@ -1,4 +1,4 @@
-/* Bolão Brasileirão 2026 — app.js v1.0
+/* Bolão Brasileirão 2026 — app.js v1.2
    Vanilla JS IIFE, no framework, no build step */
 (function () {
 "use strict";
@@ -12,9 +12,9 @@ const esc  = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 // ─── i18n ───────────────────────────────────────────────────────────────────
-let _lang = localStorage.getItem("bolao_br2026_lang") || "pt-BR";
-const t = key => window.BR2026_I18N?.[_lang]?.[key]
-             ?? window.BR2026_I18N?.["pt-BR"]?.[key] ?? key;
+// BR2026 is PT-BR only. Keep setLang/applyI18n for data-i18n attribute support.
+let _lang = "pt-BR";
+const t = key => window.BR2026_I18N?.["pt-BR"]?.[key] ?? key;
 
 function setLang(l) {
   _lang = l;
@@ -25,7 +25,6 @@ function setLang(l) {
 }
 function applyI18n() {
   $$("[data-i18n]").forEach(el => { const v = t(el.dataset.i18n); if (v) el.textContent = v; });
-  $$("[data-lang]").forEach(b => b.classList.toggle("active", b.dataset.lang === _lang));
 }
 
 // ─── State ──────────────────────────────────────────────────────────────────
@@ -119,16 +118,18 @@ function uuid() {
 // ─── Pick dropdowns ─────────────────────────────────────────────────────────
 function getPickValues() {
   return {
-    g4: [1, 2, 3, 4].map(i => $(`br-g4-${i}`)?.value || ""),
-    z4: [17, 18, 19, 20].map(i => $(`br-z4-${i}`)?.value || ""),
+    g4:  [1, 2, 3, 4].map(i => $(`br-g4-${i}`)?.value || ""),
+    sa6: [1, 2, 3, 4, 5, 6].map(i => $(`br-sa-${i}`)?.value || ""),
+    z4:  [17, 18, 19, 20].map(i => $(`br-z4-${i}`)?.value || ""),
   };
 }
 
 function updateDropdowns() {
-  const { g4, z4 } = getPickValues();
-  const allPicked = new Set([...g4, ...z4].filter(Boolean));
+  const { g4, sa6, z4 } = getPickValues();
+  const allPicked = new Set([...g4, ...sa6, ...z4].filter(Boolean));
   const allSelects = [
     ...[1, 2, 3, 4].map(i => ({ el: $(`br-g4-${i}`), own: g4[i - 1] })),
+    ...[1, 2, 3, 4, 5, 6].map(i => ({ el: $(`br-sa-${i}`), own: sa6[i - 1] })),
     ...[17, 18, 19, 20].map((pos, i) => ({ el: $(`br-z4-${pos}`), own: z4[i] })),
   ];
   allSelects.forEach(({ el, own }) => {
@@ -147,7 +148,7 @@ function renderPickForm() {
     .map(team => `<option value="${esc(team)}">${esc(team)}</option>`)
     .join("");
 
-  const dropdown = (id, labelKey, pts, hintKey) => `
+  const dropdown = (id, labelKey, pts) => `
     <div class="pick-row">
       <label for="${id}">
         <span class="pick-pos-label">${esc(t(labelKey))}</span>
@@ -158,6 +159,21 @@ function renderPickForm() {
         ${teamOpts}
       </select>
     </div>`;
+
+  // SA6 dropdowns — label uses {n} replacement
+  const sa6Dropdowns = [1, 2, 3, 4, 5, 6].map(i => {
+    const label = t("sa6SelectLabel").replace("{n}", i);
+    return `<div class="pick-row">
+      <label for="br-sa-${i}">
+        <span class="pick-pos-label">${esc(label)}</span>
+        <span class="pick-pts-hint">${esc(t("sa6Hit"))}</span>
+      </label>
+      <select id="br-sa-${i}" class="pick-select" ${locked ? "disabled" : ""}>
+        <option value="">${esc(t("pickSelectTeam"))}</option>
+        ${teamOpts}
+      </select>
+    </div>`;
+  }).join("");
 
   const form = $("pickForm");
   if (!form) return;
@@ -171,6 +187,11 @@ function renderPickForm() {
       ${dropdown("br-g4-4",  "pos4",  "15 pts — exato / 10 no G4")}
     </div>
     <div class="pick-group">
+      <div class="pick-group-header sa6-header">🟡 ${esc(t("sa6Title"))}</div>
+      <p class="pick-group-note">${esc(t("sa6Subtitle"))}</p>
+      ${sa6Dropdowns}
+    </div>
+    <div class="pick-group">
       <div class="pick-group-header z4-header">⬇️ ${esc(t("z4Title"))}</div>
       <p class="pick-group-note">${esc(t("z4Subtitle"))}</p>
       ${dropdown("br-z4-17", "pos17", "12 pts — exato / 8 no Z4")}
@@ -181,8 +202,9 @@ function renderPickForm() {
 
   if (_editingEntry) {
     const p = _editingEntry.picks || {};
-    (p.g4 || []).forEach((team, i) => { const el = $(`br-g4-${i + 1}`); if (el && team) el.value = team; });
-    (p.z4 || []).forEach((team, i) => { const el = $(`br-z4-${[17,18,19,20][i]}`); if (el && team) el.value = team; });
+    (p.g4  || []).forEach((team, i) => { const el = $(`br-g4-${i + 1}`);         if (el && team) el.value = team; });
+    (p.sa6 || []).forEach((team, i) => { const el = $(`br-sa-${i + 1}`);         if (el && team) el.value = team; });
+    (p.z4  || []).forEach((team, i) => { const el = $(`br-z4-${[17,18,19,20][i]}`); if (el && team) el.value = team; });
   }
 
   form.removeEventListener("change", updateDropdowns);
@@ -191,41 +213,45 @@ function renderPickForm() {
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
-function validatePicks(g4, z4) {
+function validatePicks(g4, sa6, z4) {
   const errors = [];
-  if (g4.some(x => !x)) errors.push(t("errorG4Incomplete"));
-  if (z4.some(x => !x)) errors.push(t("errorZ4Incomplete"));
-  if (new Set(g4.filter(Boolean)).size < g4.filter(Boolean).length) errors.push(t("errorDuplicateG4"));
-  if (new Set(z4.filter(Boolean)).size < z4.filter(Boolean).length) errors.push(t("errorDuplicateZ4"));
-  const overlap = g4.filter(team => team && z4.includes(team));
-  if (overlap.length) errors.push(t("errorG4Z4Overlap").replace("{teams}", overlap.join(", ")));
+  if (g4.some(x => !x))  errors.push(t("errorG4Incomplete"));
+  if (sa6.some(x => !x)) errors.push(t("errorSA6Incomplete"));
+  if (z4.some(x => !x))  errors.push(t("errorZ4Incomplete"));
+  if (new Set(g4.filter(Boolean)).size  < g4.filter(Boolean).length)  errors.push(t("errorDuplicateG4"));
+  if (new Set(sa6.filter(Boolean)).size < sa6.filter(Boolean).length) errors.push(t("errorDuplicateSA6"));
+  if (new Set(z4.filter(Boolean)).size  < z4.filter(Boolean).length)  errors.push(t("errorDuplicateZ4"));
+  const g4z4Overlap = g4.filter(team => team && z4.includes(team));
+  if (g4z4Overlap.length) errors.push(t("errorG4Z4Overlap").replace("{teams}", g4z4Overlap.join(", ")));
+  const sa6Overlap = sa6.filter(team => team && (g4.includes(team) || z4.includes(team)));
+  if (sa6Overlap.length) errors.push(t("errorSA6Overlap").replace("{teams}", sa6Overlap.join(", ")));
   return errors;
 }
 
 // ─── Save entry ──────────────────────────────────────────────────────────────
 async function saveEntry() {
   if (isPastCutoff()) { alert(t("closed")); return; }
-  const entryName = $("entryName")?.value.trim() || "";
-  const payerName = $("payerName")?.value.trim() || "";
-  const email = $("participantEmail")?.value.trim() || "";
+  const entryName    = $("entryName")?.value.trim() || "";
+  const payerName    = $("payerName")?.value.trim() || "";
+  const email        = $("participantEmail")?.value.trim() || "";
   const paymentMethod = $("paymentMethod")?.value || "";
 
   if (!entryName) { alert(t("errorEntryName")); return; }
   if (!email || !email.includes("@")) { alert(t("errorEmail")); return; }
 
-  const { g4, z4 } = getPickValues();
-  const errors = validatePicks(g4, z4);
+  const { g4, sa6, z4 } = getPickValues();
+  const errors = validatePicks(g4, sa6, z4);
   if (errors.length) { alert(errors.join("\n")); return; }
 
   const btn = $("saveEntryBtn");
   if (btn) { btn.disabled = true; btn.textContent = t("saving"); }
 
   try {
-    const s = state();
+    const s   = state();
     const now = new Date().toISOString();
     const entry = _editingEntry
-      ? { ..._editingEntry, entryName, payerName, participantEmail: email, paymentMethod, picks: { g4, z4 }, updatedAt: now }
-      : { id: uuid(), entryName, payerName, participantEmail: email, paymentMethod, picks: { g4, z4 }, createdAt: now };
+      ? { ..._editingEntry, entryName, payerName, participantEmail: email, paymentMethod, picks: { g4, sa6, z4 }, updatedAt: now }
+      : { id: uuid(), entryName, payerName, participantEmail: email, paymentMethod, picks: { g4, sa6, z4 }, createdAt: now };
 
     if (_editingEntry) {
       const idx = s.entries.findIndex(e => e.id === entry.id);
@@ -256,11 +282,11 @@ async function saveEntry() {
 }
 
 // ─── Scoring ────────────────────────────────────────────────────────────────
-function scoreEntry(entry, g4Result, z4Result) {
+function scoreEntry(entry, g4Result, z4Result, sa6Result) {
   if (!g4Result || !z4Result) return null;
-  const pg4 = entry.picks?.g4 || [];
-  const pz4 = entry.picks?.z4 || [];
-  const detail = { g4: [], z4: [] };
+  const pg4  = entry.picks?.g4  || [];
+  const pz4  = entry.picks?.z4  || [];
+  const detail = { g4: [], z4: [], sa6: [] };
   let total = 0;
 
   C.scoring.g4Exact.forEach((exactPts, i) => {
@@ -287,26 +313,42 @@ function scoreEntry(entry, g4Result, z4Result) {
     }
   }
 
+  // SA6: 8 pts for each pick that's in the sa6Result set (positions 7-12)
+  const sa6Set   = new Set(sa6Result || []);
+  const sa6Picks = entry.picks?.sa6 || [];
+  let sa6Total = 0;
+  sa6Picks.forEach(team => {
+    if (!team) { detail.sa6.push(null); return; }
+    const hit = sa6Set.has(team);
+    const pts = hit ? C.scoring.sa6Hit : 0;
+    sa6Total += pts;
+    detail.sa6.push({ pts, type: hit ? "hit" : "miss" });
+  });
+  total += sa6Total;
+
   return { total, detail };
 }
 
 function getActiveScore(entry, s) {
   if (s.results?.locked && s.results?.g4 && s.results?.z4) {
-    return { ...scoreEntry(entry, s.results.g4, s.results.z4), isOfficial: true };
+    return { ...scoreEntry(entry, s.results.g4, s.results.z4, s.results.sa6), isOfficial: true };
   }
   if (_standings.length >= 20) {
-    const g4 = _standings.slice(0, 4).map(team => team.name);
-    const z4 = _standings.slice(16, 20).map(team => team.name);
-    const sc = scoreEntry(entry, g4, z4);
+    const g4  = _standings.slice(0,  4).map(tm => tm.name);
+    const z4  = _standings.slice(16, 20).map(tm => tm.name);
+    const sa6 = _standings.slice(6,  12).map(tm => tm.name);
+    const sc  = scoreEntry(entry, g4, z4, sa6);
     return sc ? { ...sc, isOfficial: false } : null;
   }
   return null;
 }
 
 // ─── ESPN polling ────────────────────────────────────────────────────────────
-let _standings = [];        // sorted by rank (1st = index 0)
-let _liveMatches = [];      // currently live matches
-let _pollTime = 0;
+let _standings  = [];   // sorted by rank (1st = index 0)
+let _liveMatches = [];  // currently live matches
+let _pollTime   = 0;
+let _schedule   = [];   // full season events from ESPN
+let _scheduleTs = 0;    // last schedule fetch timestamp
 
 async function fetchStandings() {
   try {
@@ -314,9 +356,9 @@ async function fetchStandings() {
     const data = await r.json();
     const entries = data?.children?.[0]?.standings?.entries || [];
     const parsed = entries.map(e => ({
-      name: e.team?.displayName || "",
-      abbr: e.team?.abbreviation || "",
-      rank: (e.stats?.find(s => s.name === "rank") || {}).value ?? 99,
+      name:   e.team?.displayName || "",
+      abbr:   e.team?.abbreviation || "",
+      rank:   (e.stats?.find(s => s.name === "rank") || {}).value ?? 99,
       points: (e.stats?.find(s => s.name === "points") || {}).value ?? 0,
     })).filter(entry => entry.name).sort((a, b) => a.rank - b.rank);
     return parsed.length ? parsed : null;
@@ -330,19 +372,19 @@ async function fetchScoreboard() {
     return (data?.events || []).map(ev => {
       const comp = ev.competitions?.[0];
       if (!comp) return null;
-      const c = comp.competitors || [];
+      const c    = comp.competitors || [];
       const home = c.find(x => x.homeAway === "home") || c[0];
       const away = c.find(x => x.homeAway === "away") || c[1];
       const clockSec = typeof comp.status?.clock === "number" ? comp.status.clock : null;
       return {
-        id: ev.id,
-        state: comp.status?.type?.state,    // "pre" | "in" | "post"
-        homeTeam: home?.team?.displayName || "",
-        awayTeam: away?.team?.displayName || "",
+        id:        ev.id,
+        state:     comp.status?.type?.state,
+        homeTeam:  home?.team?.displayName || "",
+        awayTeam:  away?.team?.displayName || "",
         homeScore: parseInt(home?.score || "0", 10),
         awayScore: parseInt(away?.score || "0", 10),
         clockSec,
-        clockStr: comp.status?.displayClock || "",
+        clockStr:  comp.status?.displayClock || "",
       };
     }).filter(Boolean);
   } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
@@ -351,10 +393,84 @@ async function fetchScoreboard() {
 async function pollAll() {
   const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
   if (standings) _standings = standings;
-  if (matches !== null) { _liveMatches = matches.filter(m => m.state === "in"); _pollTime = Date.now(); }
+  if (matches !== null) {
+    _liveMatches = matches.filter(m => m.state === "in");
+    _pollTime    = Date.now();
+    // Overlay ALL fetched match states onto schedule cache (including "post" so
+    // a finished game doesn't stay stuck as "ao vivo" until the 5-min TTL expires)
+    matches.forEach(m => {
+      const idx = _schedule.findIndex(g =>
+        (g.homeTeam === m.homeTeam && g.awayTeam === m.awayTeam) ||
+        (g.homeTeam === m.awayTeam && g.awayTeam === m.homeTeam)
+      );
+      if (idx >= 0) {
+        _schedule[idx] = { ..._schedule[idx], state: m.state, homeScore: m.homeScore, awayScore: m.awayScore, clockStr: m.clockStr };
+      }
+    });
+  }
   renderLiveCard();
   renderStandingsCard();
   renderRanking();
+  if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
+}
+
+// ─── BRT helpers ────────────────────────────────────────────────────────────
+// Always use { timeZone: "America/Sao_Paulo" } — never manual UTC offset arithmetic,
+// which displays the wrong time for users outside Brazil.
+function brtTimeStr(isoStr) {
+  return new Date(isoStr).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+}
+function brtDateKey(isoStr) {
+  // Returns "YYYY-MM-DD" in BRT, used for grouping games by day
+  const s = new Date(isoStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+  const [dd, mm, yyyy] = s.split("/");
+  return `${yyyy}-${mm}-${dd}`;
+}
+function brtLongDate(isoStr) {
+  return new Date(isoStr).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
+}
+
+// ─── Full-season schedule ────────────────────────────────────────────────────
+async function fetchSchedule() {
+  const CACHE_TTL = 5 * 60 * 1000;
+  const cacheKey  = `br2026_schedule_${C.siteVersion}`;
+  const now = Date.now();
+  if (_schedule.length && now - _scheduleTs < CACHE_TTL) return;
+  // Check sessionStorage cache (versioned key prevents stale structure reads)
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(cacheKey) || "null");
+    if (cached?.ts && now - cached.ts < CACHE_TTL && cached.events?.length) {
+      _schedule   = cached.events;
+      _scheduleTs = cached.ts;
+      return;
+    }
+  } catch {}
+  try {
+    const r = await fetch(C.espn.scheduleUrl, { cache: "no-store" });
+    if (!r.ok) return;
+    const data = await r.json();
+    _schedule = (data.events || []).map(ev => {
+      const comp = ev.competitions?.[0];
+      if (!comp) return null;
+      const comps = comp.competitors || [];
+      const home  = comps.find(c => c.homeAway === "home") || comps[0];
+      const away  = comps.find(c => c.homeAway === "away") || comps[1];
+      return {
+        id:        ev.id,
+        dateISO:   comp.date || ev.date || "",
+        state:     comp.status?.type?.state || "pre",
+        detail:    comp.status?.type?.shortDetail || "",
+        homeTeam:  home?.team?.displayName || "",
+        awayTeam:  away?.team?.displayName || "",
+        homeScore: home?.score != null ? parseInt(home.score, 10) : null,
+        awayScore: away?.score != null ? parseInt(away.score, 10) : null,
+        venue:     comp.venue?.fullName || "",
+        city:      comp.venue?.address?.city || "",
+      };
+    }).filter(Boolean).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+    _scheduleTs = now;
+    sessionStorage.setItem(`br2026_schedule_${C.siteVersion}`, JSON.stringify({ ts: now, events: _schedule }));
+  } catch (err) { console.warn("[BR2026] Schedule fetch failed", err); }
 }
 
 // ─── Ticker (running clock) ──────────────────────────────────────────────────
@@ -372,7 +488,7 @@ function renderLiveCard() {
     ? Math.floor(sec + (Date.now() - _pollTime) / 1000)
     : null;
   card.innerHTML = _liveMatches.map(m => {
-    const sec = elapsed(m.clockSec);
+    const sec   = elapsed(m.clockSec);
     const clock = sec !== null ? formatClock(sec) : m.clockStr;
     return `<div class="live-match">
       <span class="live-badge">${esc(t("liveNow"))}</span>
@@ -387,6 +503,55 @@ function renderLiveCard() {
   card.classList.remove("hidden");
 }
 
+// ─── Render: next game card ──────────────────────────────────────────────────
+function renderNextGameCard() {
+  const card = $("nextGameCard");
+  if (!card) return;
+
+  // If a live match is happening, show it
+  if (_liveMatches.length) {
+    const lm      = _liveMatches[0];
+    const secElap = lm.clockSec !== null
+      ? Math.floor(lm.clockSec + (Date.now() - _pollTime) / 1000)
+      : null;
+    const clock   = secElap !== null ? formatClock(secElap) : lm.clockStr;
+    card.innerHTML = `<div class="next-game-card">
+      <span class="live-badge">${esc(t("nextGameLive"))}</span>
+      <div class="next-game-teams">${esc(lm.homeTeam)} <span class="live-score" style="font-size:1em">${lm.homeScore} – ${lm.awayScore}</span> ${esc(lm.awayTeam)}</div>
+      <div class="next-game-info">${esc(clock)}</div>
+    </div>`;
+    card.classList.remove("hidden");
+    return;
+  }
+
+  // Find first scheduled (pre) game not more than 30 min in the past
+  const now  = Date.now();
+  const next = _schedule.find(g => g.state === "pre" && new Date(g.dateISO).getTime() > now - 30 * 60 * 1000);
+  if (!next) { card.classList.add("hidden"); return; }
+
+  const timeStr = brtLongDate(next.dateISO) + " BRT";
+
+  const diffMs = new Date(next.dateISO).getTime() - now;
+  let countdown = "";
+  if (diffMs > 0) {
+    const totalSec = Math.floor(diffMs / 1000);
+    const d  = Math.floor(totalSec / 86400);
+    const h  = Math.floor((totalSec % 86400) / 3600);
+    const m  = Math.floor((totalSec % 3600) / 60);
+    const s  = totalSec % 60;
+    const p2 = n => String(n).padStart(2, "0");
+    countdown = d > 0 ? `${d}d ${p2(h)}h ${p2(m)}m` : `${p2(h)}h ${p2(m)}m ${p2(s)}s`;
+  }
+
+  card.innerHTML = `<div class="next-game-card">
+    <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
+    <div class="next-game-teams">${esc(next.homeTeam)} <span class="next-game-vs">×</span> ${esc(next.awayTeam)}</div>
+    <div class="next-game-info">${esc(timeStr)}${countdown ? ` · ${esc(countdown)}` : ""}</div>
+    ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
+  </div>`;
+  card.classList.remove("hidden");
+}
+
 // ─── Render: standings table ─────────────────────────────────────────────────
 function renderStandingsCard() {
   const card = $("standingsCard");
@@ -396,9 +561,15 @@ function renderStandingsCard() {
     return;
   }
   const rows = _standings.map((team, i) => {
-    const pos = i + 1;
-    const zoneClass = pos <= 4 ? "g4-zone" : pos >= 17 ? "z4-zone" : "";
-    const badge = pos <= 4 ? `<span class="zone-badge g4-badge">G4</span>` : pos >= 17 ? `<span class="zone-badge z4-badge">Z4</span>` : "";
+    const pos       = i + 1;
+    const zoneClass = pos <= 4 ? "g4-zone" : (pos >= 7 && pos <= 12) ? "sa6-zone" : pos >= 17 ? "z4-zone" : "";
+    const badge     = pos <= 4
+      ? `<span class="zone-badge g4-badge">G4</span>`
+      : (pos >= 7 && pos <= 12)
+        ? `<span class="zone-badge sa6-badge">${esc(t("standingsZoneSA"))}</span>`
+        : pos >= 17
+          ? `<span class="zone-badge z4-badge">Z4</span>`
+          : "";
     return `<tr class="${zoneClass}">
       <td class="td-pos">${pos}</td>
       <td>${esc(team.name)}${badge}</td>
@@ -416,20 +587,101 @@ function renderStandingsCard() {
     <p class="footer-note">${esc(t("standingsSource"))}</p>`;
 }
 
+// ─── Render: games section ───────────────────────────────────────────────────
+function renderGamesSection() {
+  const box = $("gamesList");
+  if (!box) return;
+  if (!_schedule.length) {
+    box.innerHTML = `<p class="muted">${esc(t("gamesLoading"))}</p>`;
+    return;
+  }
+
+  // Group games by BRT calendar date (YYYY-MM-DD key)
+  const byDate = {};
+  _schedule.forEach(g => {
+    const key = brtDateKey(g.dateISO);
+    if (!byDate[key]) byDate[key] = [];
+    byDate[key].push(g);
+  });
+
+  const dateKeys = Object.keys(byDate).sort();
+  let html = "";
+
+  dateKeys.forEach(key => {
+    // Use the first game of the date to derive a display label via proper timezone
+    const refISO    = byDate[key][0].dateISO;
+    const dateLabel = new Date(refISO).toLocaleDateString("pt-BR", {
+      timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit"
+    });
+    html += `<div class="game-date-header">${esc(dateLabel)}</div>`;
+
+    byDate[key].forEach(g => {
+      const timeStr = brtTimeStr(g.dateISO);
+
+      let scoreOrTime, statusHtml;
+      if (g.state === "in") {
+        scoreOrTime = `<span class="game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        statusHtml  = `<span class="game-status live">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
+      } else if (g.state === "post") {
+        scoreOrTime = `<span class="game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        statusHtml  = `<span class="game-status post">${esc(t("gameFinal"))}</span>`;
+      } else {
+        scoreOrTime = `<span class="game-time">${esc(timeStr)}</span>`;
+        statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
+      }
+
+      html += `<div class="game-card ${esc(g.state || "pre")}">
+        <div class="game-teams">
+          <span class="game-team home">${esc(g.homeTeam)}</span>
+          <span class="game-center">${scoreOrTime}</span>
+          <span class="game-team away">${esc(g.awayTeam)}</span>
+        </div>
+        ${g.venue ? `<div class="game-venue">${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
+        <div class="game-status-row">${statusHtml}</div>
+      </div>`;
+    });
+  });
+
+  box.innerHTML = html;
+}
+
+// ─── Tiebreaker helpers ──────────────────────────────────────────────────────
+function countSA6Hits(detail) {
+  return (detail?.sa6 || []).filter(d => d?.type === "hit").length;
+}
+function countG4Exact(entry, g4Result) {
+  return (entry.picks?.g4 || []).filter((pick, i) => pick && g4Result?.[i] === pick).length;
+}
+function countZ4Exact(entry, z4Result) {
+  return (entry.picks?.z4 || []).filter((pick, i) => pick && z4Result?.[i] === pick).length;
+}
+
 // ─── Render: ranking ─────────────────────────────────────────────────────────
 function renderRanking() {
   const box = $("rankingList");
   if (!box) return;
-  const s = state();
+  const s       = state();
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
 
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
 
+  // Tiebreaker reference arrays: when results are officially locked, use locked
+  // values to ensure tiebreakers match the final score calculation exactly.
+  const locked = s.results?.locked;
+  const g4cur  = locked ? (s.results?.g4  || []) : (_standings.length >= 4  ? _standings.slice(0,  4).map(tm => tm.name) : []);
+  const z4cur  = locked ? (s.results?.z4  || []) : (_standings.length >= 20 ? _standings.slice(16, 20).map(tm => tm.name) : []);
+
   const scored = entries.map(e => {
     const sc = getActiveScore(e, s) || { total: 0, detail: null, isOfficial: false };
     return { e, ...sc };
-  }).sort((a, b) => b.total - a.total || a.e.entryName.localeCompare(b.e.entryName, "pt-BR"));
+  }).sort((a, b) =>
+    b.total - a.total ||
+    countSA6Hits(b.detail) - countSA6Hits(a.detail) ||
+    countG4Exact(b.e, g4cur) - countG4Exact(a.e, g4cur) ||
+    countZ4Exact(b.e, z4cur) - countZ4Exact(a.e, z4cur) ||
+    a.e.entryName.localeCompare(b.e.entryName, "pt-BR")
+  );
 
   const hasAnyProvisional = scored.some(x => !x.isOfficial && _standings.length >= 20);
   const provNote = hasAnyProvisional
@@ -438,8 +690,8 @@ function renderRanking() {
   let rank = 0, prevPts = -1;
   const rows = scored.map((item, i) => {
     if (item.total !== prevPts) { rank = i + 1; prevPts = item.total; }
-    const paid = (s.paid || {})[item.e.id];
-    const medal = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
+    const paid      = (s.paid || {})[item.e.id];
+    const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
     const paidBadge = paid
       ? `<span class="paid-badge">${esc(t("paid"))}</span>`
       : `<span class="unpaid-badge">${esc(t("unpaid"))}</span>`;
@@ -460,15 +712,16 @@ function renderRanking() {
 }
 
 function renderPickDisplay(entry, detail) {
-  const p = entry.picks || {};
-  const g4 = p.g4 || [];
-  const z4 = p.z4 || [];
-  const g4Labels = ["pos1","pos2","pos3","pos4"].map(t);
-  const z4Labels = ["pos17","pos18","pos19","pos20"].map(t);
+  const p          = entry.picks || {};
+  const g4         = p.g4  || [];
+  const sa6        = p.sa6 || [];
+  const z4         = p.z4  || [];
+  const g4Labels   = ["pos1","pos2","pos3","pos4"].map(t);
+  const z4Labels   = ["pos17","pos18","pos19","pos20"].map(t);
 
   const mkCell = (team, d) => {
     if (!team) return `<div class="pick-cell pick-empty">—</div>`;
-    const cls = d ? (d.type === "exact" ? "pick-exact" : d.type === "group" ? "pick-group" : "pick-miss") : "";
+    const cls   = d ? (d.type === "exact" ? "pick-exact" : d.type === "group" ? "pick-group" : d.type === "hit" ? "pick-exact" : "pick-miss") : "";
     const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
     return `<div class="pick-cell ${cls}">${esc(team)}${badge}</div>`;
   };
@@ -478,14 +731,25 @@ function renderPickDisplay(entry, detail) {
       <span class="pick-pos-lbl">${esc(g4Labels[i])}</span>
       ${mkCell(team, detail?.g4?.[i])}
     </div>`).join("");
+
+  const sa6html = sa6.map((team, i) => `
+    <div class="pick-item">
+      <span class="pick-pos-lbl">SA ${i + 1}</span>
+      ${mkCell(team, detail?.sa6?.[i])}
+    </div>`).join("");
+
   const z4html = z4.map((team, i) => `
     <div class="pick-item">
       <span class="pick-pos-lbl">${esc(z4Labels[i])}</span>
       ${mkCell(team, detail?.z4?.[i])}
     </div>`).join("");
 
-  return `<div class="picks-display">
+  const hasSA6 = sa6.some(Boolean);
+  const gridClass = hasSA6 ? "picks-display three-col" : "picks-display";
+
+  return `<div class="${gridClass}">
     <div class="picks-col"><div class="picks-col-header g4-header-sm">🏆 G4</div>${g4html}</div>
+    ${hasSA6 ? `<div class="picks-col"><div class="picks-col-header sa6-header-sm">🟡 Sul-Am.</div>${sa6html}</div>` : ""}
     <div class="picks-col"><div class="picks-col-header z4-header-sm">⬇️ Z4</div>${z4html}</div>
   </div>`;
 }
@@ -494,13 +758,13 @@ function renderPickDisplay(entry, detail) {
 function renderParticipants() {
   const box = $("participantsList");
   if (!box) return;
-  const s = state();
+  const s       = state();
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
   const total = entries.length;
-  const paid = entries.filter(e => (s.paid || {})[e.id]).length;
-  const pot = (total * C.entryFee).toFixed(0);
+  const paid  = entries.filter(e => (s.paid || {})[e.id]).length;
+  const pot   = (total * C.entryFee).toFixed(0);
   box.innerHTML = `
     <div class="participants-stats">
       <span>${total} entradas</span>
@@ -522,7 +786,7 @@ function renderPayment() {
   const box = $("paymentMethods");
   if (!box) return;
   box.innerHTML = Object.entries(C.paymentMethods).map(([method, handle]) => {
-    const link = C.paymentLinks?.[method];
+    const link       = C.paymentLinks?.[method];
     const handleHtml = link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(handle)}</a>`
       : esc(handle);
@@ -534,7 +798,10 @@ function renderPayment() {
 function renderRules() {
   const box = $("rulesContent");
   if (!box) return;
-  const cutoff = cutoffDate().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
+  const cutoff = cutoffDate().toLocaleString("pt-BR", {
+    timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit",
+    year: "numeric", hour: "2-digit", minute: "2-digit"
+  });
   box.innerHTML = `
     <div class="card">
       <h3>${esc(t("rulesScoring"))}</h3>
@@ -547,14 +814,23 @@ function renderRules() {
           <tr><td>🥈 2º Lugar (${esc(t("rulesInG4"))})</td><td>10</td></tr>
           <tr><td>3º / 4º G4 (${esc(t("rulesExact"))})</td><td><b>15</b></td></tr>
           <tr><td>3º / 4º G4 (${esc(t("rulesInG4"))})</td><td>10</td></tr>
+          <tr style="background:rgba(245,158,11,.07)"><td>🟡 Sul-Americana (7º–12º) — acerto</td><td><b>8</b></td></tr>
+          <tr style="background:rgba(245,158,11,.07)"><td>🟡 Sul-Americana — erro</td><td>0</td></tr>
           <tr class="z4-zone"><td>17º–20º Z4 (${esc(t("rulesExact"))})</td><td><b>12</b></td></tr>
           <tr class="z4-zone"><td>17º–20º Z4 (${esc(t("rulesInZ4"))})</td><td>8</td></tr>
         </tbody>
       </table>
-      <p>${esc(t("rulesMaxPoints"))}: <b>128 pts</b> (G4: 80 + Z4: 48)</p>
+      <p>${esc(t("rulesMaxPoints"))}: <b>176 pts</b> (G4: 80 + Sul-Am.: 48 + Z4: 48)</p>
       <p>${esc(t("rulesPrizes"))}: 1º 70% · 2º 20% · 3º 10%</p>
       <p>${esc(t("rulesCutoff"))}: <b>${cutoff} (Brasília)</b></p>
-      <p class="muted small-text">${esc(C.transparency.disclaimer)}</p>
+      <h3>${esc(t("tbTitle"))}</h3>
+      <ol style="margin:0;padding-left:18px;font-size:13px;color:var(--muted);line-height:2">
+        <li>Maior pontuação total</li>
+        <li>${esc(t("tbSA6"))}</li>
+        <li>${esc(t("tbG4"))}</li>
+        <li>${esc(t("tbZ4"))}</li>
+      </ol>
+      <p class="muted small-text" style="margin-top:12px">${esc(C.transparency.disclaimer)}</p>
     </div>`;
 }
 
@@ -568,7 +844,7 @@ function renderAdmin() {
 }
 
 function renderAdminPayments(s) {
-  const box = $("adminPayments");
+  const box     = $("adminPayments");
   if (!box) return;
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
@@ -588,7 +864,7 @@ function renderAdminPayments(s) {
     btn.addEventListener("click", () => {
       if (!guardAdmin()) return;
       const s2 = state();
-      s2.paid = s2.paid || {};
+      s2.paid  = s2.paid || {};
       if (s2.paid[btn.dataset.togglePaid]) delete s2.paid[btn.dataset.togglePaid];
       else s2.paid[btn.dataset.togglePaid] = true;
       saveState(s2);
@@ -597,64 +873,83 @@ function renderAdminPayments(s) {
 }
 
 function renderAdminResults(s) {
-  const box = $("adminResults");
+  const box    = $("adminResults");
   if (!box) return;
-  const r = s.results;
+  const r      = s.results;
   const locked = r?.locked;
-  const opts = DATA.teams.sort((a, b) => a.localeCompare(b, "pt-BR"))
+  const opts   = DATA.teams.sort((a, b) => a.localeCompare(b, "pt-BR"))
     .map(team => `<option value="${esc(team)}">${esc(team)}</option>`).join("");
-  const sel = (id, val) =>
+  const sel = id =>
     `<select id="${id}" ${locked ? "disabled" : ""}><option value="">—</option>${opts}</select>`;
 
   const g4rows = [0,1,2,3].map(i => `
     <div class="admin-row">
       <label for="adm-g4-${i}">${esc([t("pos1"),t("pos2"),t("pos3"),t("pos4")][i])}</label>
-      ${sel(`adm-g4-${i}`, r?.g4?.[i] || "")}
+      ${sel(`adm-g4-${i}`)}
     </div>`).join("");
+
+  const sa6rows = [0,1,2,3,4,5].map(i => `
+    <div class="admin-row">
+      <label for="adm-sa-${i}">Sul-Am. ${i + 1}</label>
+      ${sel(`adm-sa-${i}`)}
+    </div>`).join("");
+
   const z4rows = [0,1,2,3].map(i => `
     <div class="admin-row">
       <label for="adm-z4-${i}">${esc([t("pos17"),t("pos18"),t("pos19"),t("pos20")][i])}</label>
-      ${sel(`adm-z4-${i}`, r?.z4?.[i] || "")}
+      ${sel(`adm-z4-${i}`)}
     </div>`).join("");
 
   box.innerHTML = `
     <h3>${esc(t("adminResults"))}</h3>
     ${locked ? `<p class="paid-badge">${esc(t("resultsLocked"))}</p>` : ""}
-    <div class="admin-results-grid">
+    <div class="admin-results-grid three-col">
       <div><h4>🏆 G4</h4>${g4rows}</div>
+      <div><h4>🟡 Sul-Am.</h4>${sa6rows}</div>
       <div><h4>⬇️ Z4</h4>${z4rows}</div>
     </div>
     <div class="button-row" style="margin-top:14px;gap:8px">
       ${!locked ? `<button type="button" id="espnFillResultsBtn" class="secondary small-btn">${esc(t("espnFillResultsBtn"))}</button>` : ""}
       ${!locked ? `<button type="button" id="saveResultsBtn">${esc(t("saveResults"))}</button>` : ""}
-      ${locked ? `<button type="button" id="unlockResultsBtn" class="secondary">${esc(t("unlockResults"))}</button>` : ""}
+      ${locked  ? `<button type="button" id="unlockResultsBtn" class="secondary">${esc(t("unlockResults"))}</button>` : ""}
     </div>`;
 
-  // Populate existing values after render (innerHTML replaced, so must re-query)
-  if (r?.g4) r.g4.forEach((v, i) => { const el = $(`adm-g4-${i}`); if (el && v) el.value = v; });
-  if (r?.z4) r.z4.forEach((v, i) => { const el = $(`adm-z4-${i}`); if (el && v) el.value = v; });
+  // Populate existing values after innerHTML replacement
+  if (r?.g4)  r.g4.forEach((v, i)  => { const el = $(`adm-g4-${i}`);  if (el && v) el.value = v; });
+  if (r?.sa6) r.sa6.forEach((v, i) => { const el = $(`adm-sa-${i}`);  if (el && v) el.value = v; });
+  if (r?.z4)  r.z4.forEach((v, i)  => { const el = $(`adm-z4-${i}`);  if (el && v) el.value = v; });
 
   $("espnFillResultsBtn")?.addEventListener("click", async () => {
     if (!guardAdmin()) return;
     const standings = await fetchStandings();
     if (!standings || standings.length < 20) { alert("ESPN fetch failed — try again."); return; }
-    const g4 = standings.slice(0, 4).map(team => team.name);
-    const z4 = standings.slice(16, 20).map(team => team.name);
-    g4.forEach((v, i) => { const el = $(`adm-g4-${i}`); if (el) el.value = v; });
-    z4.forEach((v, i) => { const el = $(`adm-z4-${i}`); if (el) el.value = v; });
-    alert(`G4: ${g4.join(", ")}\nZ4: ${z4.join(", ")}`);
+    const g4  = standings.slice(0,  4).map(tm => tm.name);
+    const sa6 = standings.slice(6, 12).map(tm => tm.name);
+    const z4  = standings.slice(16, 20).map(tm => tm.name);
+    g4.forEach( (v, i) => { const el = $(`adm-g4-${i}`);  if (el) el.value = v; });
+    sa6.forEach((v, i) => { const el = $(`adm-sa-${i}`);  if (el) el.value = v; });
+    z4.forEach( (v, i) => { const el = $(`adm-z4-${i}`);  if (el) el.value = v; });
+    alert(`G4: ${g4.join(", ")}\nSul-Am.: ${sa6.join(", ")}\nZ4: ${z4.join(", ")}`);
   });
 
   $("saveResultsBtn")?.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    const g4 = [0,1,2,3].map(i => $(`adm-g4-${i}`)?.value || "");
-    const z4 = [0,1,2,3].map(i => $(`adm-z4-${i}`)?.value || "");
-    if (g4.some(v => !v) || z4.some(v => !v)) { alert(t("errorResultsIncomplete")); return; }
-    const overlap = g4.filter(v => z4.includes(v));
+    const g4  = [0,1,2,3].map(i => $(`adm-g4-${i}`)?.value || "");
+    const sa6 = [0,1,2,3,4,5].map(i => $(`adm-sa-${i}`)?.value || "");
+    const z4  = [0,1,2,3].map(i => $(`adm-z4-${i}`)?.value || "");
+    if (g4.some(v => !v) || sa6.some(v => !v) || z4.some(v => !v)) {
+      alert(t("errorResultsIncomplete")); return;
+    }
+    const overlap    = g4.filter(v => z4.includes(v));
     if (overlap.length) { alert(t("errorG4Z4Overlap").replace("{teams}", overlap.join(", "))); return; }
+    const sa6g4 = sa6.filter(v => v && g4.includes(v));
+    const sa6z4 = sa6.filter(v => v && z4.includes(v));
+    if (sa6g4.length || sa6z4.length) {
+      alert(t("errorSA6Overlap").replace("{teams}", [...sa6g4, ...sa6z4].join(", "))); return;
+    }
     if (!confirm(t("confirmLockResults"))) return;
     const s2 = state();
-    s2.results = { locked: true, g4, z4, lockedAt: new Date().toISOString() };
+    s2.results = { locked: true, g4, sa6, z4, lockedAt: new Date().toISOString() };
     saveState(s2);
     alert(t("resultsSaved"));
     renderAdmin();
@@ -671,7 +966,7 @@ function renderAdminResults(s) {
 }
 
 function renderAdminEntries(s) {
-  const box = $("adminEntries");
+  const box     = $("adminEntries");
   if (!box) return;
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
@@ -690,10 +985,10 @@ function renderAdminEntries(s) {
       const entry = state().entries.find(e => e.id === btn.dataset.edit);
       if (!entry) return;
       _editingEntry = entry;
-      $("entryName").value = entry.entryName || "";
-      $("payerName").value = entry.payerName || "";
-      $("participantEmail").value = entry.participantEmail || "";
-      $("paymentMethod").value = entry.paymentMethod || "";
+      $("entryName").value          = entry.entryName          || "";
+      $("payerName").value          = entry.payerName          || "";
+      $("participantEmail").value   = entry.participantEmail   || "";
+      $("paymentMethod").value      = entry.paymentMethod      || "";
       renderPickForm();
       showSection("entry");
     })
@@ -713,20 +1008,27 @@ function renderAdminEntries(s) {
 
 // ─── CSV export ──────────────────────────────────────────────────────────────
 function exportCsv() {
-  const s = state();
+  const s       = state();
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
-  const header = ["Entrada","Pagador","Email","Método","Pago","G4-1","G4-2","G4-3","G4-4","Z4-17","Z4-18","Z4-19","Z4-20","Pontos"].join(",");
+  const header  = ["Entrada","Pagador","Email","Método","Pago",
+    "G4-1","G4-2","G4-3","G4-4",
+    "SA6-1","SA6-2","SA6-3","SA6-4","SA6-5","SA6-6",
+    "Z4-17","Z4-18","Z4-19","Z4-20","Pontos"].join(",");
   const rows = entries.map(e => {
-    const picks = [...(e.picks?.g4 || []), ...(e.picks?.z4 || [])];
+    const picks = [
+      ...(e.picks?.g4  || []),
+      ...(e.picks?.sa6 || []),
+      ...(e.picks?.z4  || []),
+    ];
     const sc = getActiveScore(e, s);
     return [e.entryName, e.payerName || "", e.participantEmail || "", e.paymentMethod || "",
       (s.paid || {})[e.id] ? "Sim" : "Não", ...picks, sc?.total ?? 0]
       .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",");
   });
   const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href     = URL.createObjectURL(blob);
   a.download = `bolao-br2026-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
 }
@@ -734,10 +1036,15 @@ function exportCsv() {
 // ─── Email receipt ───────────────────────────────────────────────────────────
 async function sendReceipt(entry) {
   if (!C.emailjs.enabled || !window.emailjs) return;
-  const g4 = entry.picks?.g4 || [];
-  const z4 = entry.picks?.z4 || [];
-  const g4rows = g4.map((team, i) => `<tr><td style="padding:4px 8px">${[t("pos1"),t("pos2"),t("pos3"),t("pos4")][i]}</td><td style="padding:4px 8px"><b>${team || "—"}</b></td></tr>`).join("");
-  const z4rows = z4.map((team, i) => `<tr><td style="padding:4px 8px">${[t("pos17"),t("pos18"),t("pos19"),t("pos20")][i]}</td><td style="padding:4px 8px"><b>${team || "—"}</b></td></tr>`).join("");
+  const lastSent = Number(sessionStorage.getItem("br2026_emailTs") || 0);
+  if (Date.now() - lastSent < C.emailjs.limitRateMs) return;
+  sessionStorage.setItem("br2026_emailTs", String(Date.now()));
+  const g4   = entry.picks?.g4  || [];
+  const sa6  = entry.picks?.sa6 || [];
+  const z4   = entry.picks?.z4  || [];
+  const g4rows  = g4.map((team, i)  => `<tr><td style="padding:4px 8px">${[t("pos1"),t("pos2"),t("pos3"),t("pos4")][i]}</td><td style="padding:4px 8px"><b>${esc(team || "—")}</b></td></tr>`).join("");
+  const sa6rows = sa6.map((team, i) => `<tr><td style="padding:4px 8px">Sul-Am. ${i+1}</td><td style="padding:4px 8px"><b>${esc(team || "—")}</b></td></tr>`).join("");
+  const z4rows  = z4.map((team, i)  => `<tr><td style="padding:4px 8px">${[t("pos17"),t("pos18"),t("pos19"),t("pos20")][i]}</td><td style="padding:4px 8px"><b>${esc(team || "—")}</b></td></tr>`).join("");
   const html = `
 <div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;background:#07141b;color:#eef7f1;border-radius:12px;overflow:hidden">
   <div style="background:linear-gradient(135deg,#155e1e,#14532d);padding:20px;text-align:center">
@@ -749,14 +1056,16 @@ async function sendReceipt(entry) {
     <p><b>Código:</b> BR2026-${(entry.id || "").slice(0,8).toUpperCase()}</p>
     <h3 style="color:#2fe56e">🏆 G4 — Libertadores</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px;background:#0d2028;border-radius:8px"><tbody>${g4rows}</tbody></table>
+    <h3 style="color:#f59e0b;margin-top:14px">🟡 Sul-Americana</h3>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;background:#0d2028;border-radius:8px"><tbody>${sa6rows}</tbody></table>
     <h3 style="color:#f87171;margin-top:14px">⬇️ Z4 — Rebaixamento</h3>
     <table style="width:100%;border-collapse:collapse;font-size:13px;background:#0d2028;border-radius:8px"><tbody>${z4rows}</tbody></table>
     <p style="margin-top:16px;font-size:11px;opacity:.6">Bolão informal entre amigos. ${new Date().toLocaleString("pt-BR")}</p>
   </div>
 </div>`;
   await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, {
-    to_email: entry.participantEmail,
-    entry_name: `Brasileirão 2026 — ${entry.entryName}`,
+    to_email:     entry.participantEmail,
+    entry_name:   `Brasileirão 2026 — ${entry.entryName}`,
     receipt_code: `BR2026-${(entry.id || "").slice(0, 8).toUpperCase()}`,
     html_message: html,
   }, { publicKey: C.emailjs.publicKey });
@@ -768,7 +1077,7 @@ function renderCountdown() {
   if (!el) return;
   const diff = cutoffDate() - Date.now();
   if (diff <= 0) { el.innerHTML = `<strong>${esc(t("closedLabel"))}</strong>`; return; }
-  const p2 = n => String(n).padStart(2, "0");
+  const p2       = n => String(n).padStart(2, "0");
   const totalSec = Math.floor(diff / 1000);
   const d = Math.floor(totalSec / 86400);
   const h = Math.floor((totalSec % 86400) / 3600);
@@ -786,7 +1095,7 @@ function renderCountdown() {
 function renderFooter() {
   const el = $("siteFooterBar");
   if (!el) return;
-  const s = state();
+  const s  = state();
   const ts = s.meta?.updatedAt
     ? new Date(s.meta.updatedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
     : null;
@@ -803,19 +1112,17 @@ function renderAll() {
   renderRules();
   renderStandingsCard();
   renderFooter();
+  if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
   if (isAdminActive()) renderAdmin();
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
-  // Language buttons
-  $$("[data-lang]").forEach(btn => btn.addEventListener("click", () => setLang(btn.dataset.lang)));
-
   // Navigation
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
   showSection("entry");
 
-  // Countdown
+  // Countdown — 1s tick
   renderCountdown();
   setInterval(renderCountdown, 1000);
 
@@ -829,7 +1136,7 @@ async function init() {
     if (now < _loginLockUntil) {
       alert(t("adminLocked").replace("{min}", Math.ceil((_loginLockUntil - now) / 60000))); return;
     }
-    const pw = $("adminPassword")?.value || "";
+    const pw   = $("adminPassword")?.value || "";
     const hash = await sha256hex(pw);
     if (hash === C.adminPasswordHash) {
       _loginAttempts = 0;
@@ -870,7 +1177,7 @@ async function init() {
     $("adminArea")?.classList.remove("hidden");
   }
 
-  // Load remote state, render, start ESPN polling
+  // Load remote state then render
   await loadRemoteState();
   renderAll();
 
@@ -878,8 +1185,11 @@ async function init() {
   pollAll();
   setInterval(pollAll, C.espn.pollIntervalMs);
 
-  // 1s ticker for running clock
-  setInterval(renderLiveCard, 1000);
+  // 1s ticker for running clock + next game countdown
+  setInterval(() => { renderLiveCard(); renderNextGameCard(); }, 1000);
+
+  // Full-season schedule — fetch in background, render when ready
+  fetchSchedule().then(() => { renderGamesSection(); renderNextGameCard(); });
 }
 
 init();
