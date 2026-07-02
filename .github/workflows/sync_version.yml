@@ -22,7 +22,8 @@ jobs:
       - name: Sync ?v= in index.html from config.js
         id: sync
         run: |
-          VERSION=$(grep -o 'siteVersion:.*"v[0-9.]*"' bolao-teste/js/config.js | grep -o 'v[0-9.]*')
+          # Extract numeric version only (strip leading 'v') to match ?v=4.38 format
+          VERSION=$(grep -o 'siteVersion:.*"v[0-9.]*"' bolao-teste/js/config.js | grep -o '[0-9][0-9.]*')
           echo "Detected version: $VERSION"
           if [ -z "$VERSION" ]; then
             echo "Could not detect version — skipping"
@@ -30,7 +31,7 @@ jobs:
             exit 0
           fi
           BEFORE=$(md5sum bolao-teste/index.html | cut -d' ' -f1)
-          sed -i "s/?v=[0-9.]*/?v=$VERSION/g" bolao-teste/index.html
+          sed -i "s/?v=[^\"' >]*/\?v=$VERSION/g" bolao-teste/index.html
           AFTER=$(md5sum bolao-teste/index.html | cut -d' ' -f1)
           if [ "$BEFORE" = "$AFTER" ]; then
             echo "index.html already at $VERSION — nothing to commit"
