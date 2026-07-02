@@ -1292,7 +1292,7 @@ function buildResultEmailHtml(s, testMode) {
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking (${matchCount} of 32 matches played)</div>
     <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entry</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
-    <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao-teste/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao-teste/</a> · Bolão do Ferrari · Copa 2026</div>
+    <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/</a> · Bolão do Ferrari · Copa 2026</div>
   </div>
 </div>`;
 }
@@ -1881,7 +1881,7 @@ async function saveEntry() {
       await mailReceipt(entry.id, "admin").catch(err => console.warn("Admin email failed", err));
     }
   } finally {
-    if (btn) { btn.disabled = isPastCutoff(); btn.textContent = t("saveEntry"); }
+    if (btn) { btn.disabled = isPastCutoff(); btn.textContent = _editingEntry ? t("editSaveBtn") : t("saveEntry"); }
   }
 }
 
@@ -1913,6 +1913,7 @@ async function adminLogin() {
     renderAdmin();
     startResultsPolling();
   } else {
+    if ($("#adminPassword")) $("#adminPassword").value = "";
     const n = Number(localStorage.getItem("adminAttempts") || "0") + 1;
     localStorage.setItem("adminAttempts", String(n));
     if (n >= (CONFIG.adminMaxAttempts || 5)) {
@@ -2392,7 +2393,7 @@ function showMatchEndBanner(matchIds) {
   const adminReady = isAdminActive();
   const actionHtml = adminReady
     ? `<button id="matchEndSendEmail" type="button" class="banner-btn-primary">📧 Enviar emails agora</button>`
-    : `<button type="button" class="banner-btn-secondary" onclick="showSection('admin')">🔐 Admin → enviar emails</button>`;
+    : `<button type="button" class="banner-btn-secondary" data-banner-nav="admin">🔐 Admin → enviar emails</button>`;
   banner.innerHTML = `<div class="match-end-banner-content">
     <span class="match-end-banner-icon">⚽</span>
     <div class="match-end-banner-text">
@@ -2468,6 +2469,9 @@ function initEvents() {
 
     const lang = e.target.closest("[data-lang]");
     if (lang) { setLang(lang.dataset.lang); return; }
+
+    const bannerNav = e.target.closest("[data-banner-nav]");
+    if (bannerNav) { showSection(bannerNav.dataset.bannerNav); return; }
 
     if (e.target.closest("#heroToggle")) { toggleHero(); return; }
 
@@ -2639,5 +2643,5 @@ window.Bolao = { openReceipt, downloadReceipt, showSection };
 })();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/bolao-teste/sw.js').catch(() => {});
+  navigator.serviceWorker.register('/bolao/sw.js').catch(() => {});
 }

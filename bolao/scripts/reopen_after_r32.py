@@ -20,7 +20,7 @@ import re, subprocess, sys
 from datetime import datetime, timezone, timedelta
 
 REPO = "/Users/eduardoferrari/Documents/GitHub/ferrarilabs.github.io"
-CONFIG = f"{REPO}/bolao-teste/js/config.js"
+CONFIG = f"{REPO}/bolao/js/config.js"
 
 # Janela de edição: abre AGORA, fecha 4 jul meio-dia ET
 ET = timezone(timedelta(hours=-4))
@@ -74,7 +74,7 @@ print(f"\nconfig.js atualizado.")
 
 # Commit + push
 cmds = [
-    ["git", "-C", REPO, "add", "bolao-teste/js/config.js"],
+    ["git", "-C", REPO, "add", "bolao/js/config.js"],
     ["git", "-C", REPO, "commit", "-m",
      f"reopen edit window after R32 final\n\nr32CutoffIso={r32_open}\ncutoffIso={edit_close}"],
     ["git", "-C", REPO, "push"],

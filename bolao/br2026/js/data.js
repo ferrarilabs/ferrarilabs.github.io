@@ -1,0 +1,25 @@
+// All 20 teams — displayName must exactly match ESPN's bra.1 API
+window.BR2026_DATA = {
+  teams: [
+    "Athletico Paranaense",
+    "Atlético-MG",
+    "Bahia",
+    "Botafogo",
+    "Chapecoense",
+    "Corinthians",
+    "Coritiba",
+    "Cruzeiro",
+    "Flamengo",
+    "Fluminense",
+    "Grêmio",
+    "Internacional",
+    "Mirassol",
+    "Palmeiras",
+    "Red Bull Bragantino",
+    "Remo",
+    "Santos",
+    "São Paulo",
+    "Vasco da Gama",
+    "Vitória",
+  ],
+};

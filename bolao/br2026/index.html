@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="description" content="Bolão Brasileirão 2026 — palpites de G4 e Z4 com ranking ao vivo.">
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://cdn.jsdelivr.net;
+    connect-src 'self' https://api.emailjs.com https://*.supabase.co https://site.api.espn.com;
+    img-src 'self' data:;
+    style-src 'self' 'unsafe-inline';
+    worker-src 'self';
+    base-uri 'self';
+    frame-ancestors 'none';
+  ">
+  <link rel="icon" href="data:,">
+  <title>Bolão Brasileirão 2026</title>
+  <link rel="stylesheet" href="css/styles.css?v=1.0">
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
+          integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
+          crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
+          integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
+          crossorigin="anonymous"></script>
+  <script src="js/config.js?v=1.0"></script>
+  <script src="js/data.js?v=1.0"></script>
+  <script src="js/i18n.js?v=1.0"></script>
+  <script defer src="js/app.js?v=1.0"></script>
+</head>
+<body>
+<a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
+
+<header class="topbar">
+  <div class="brand">🇧🇷 <strong>Bolão do Ferrari</strong> <span>Brasileirão 2026</span></div>
+  <div class="lang-links" aria-label="Idioma / Language">
+    <button type="button" data-lang="pt-BR" class="active" aria-label="Português BR">🇧🇷 PT-BR</button>
+    <button type="button" data-lang="es" aria-label="Español">🇲🇽 ES</button>
+    <button type="button" data-lang="en-US" aria-label="English US">🇺🇸 EN</button>
+  </div>
+  <nav class="nav" aria-label="Navegação principal">
+    <button type="button" data-section="entry"        data-i18n="navPicks">Palpites</button>
+    <button type="button" data-section="ranking"      data-i18n="navRanking">Ranking</button>
+    <button type="button" data-section="standings"    data-i18n="navStandings">Tabela</button>
+    <button type="button" data-section="participants" data-i18n="navParticipants">Participantes</button>
+    <button type="button" data-section="payment"      data-i18n="navPayment">Pagamento</button>
+    <button type="button" data-section="rules"        data-i18n="navRules">Regras</button>
+    <button type="button" data-section="admin"        data-i18n="navAdmin">Admin</button>
+  </nav>
+</header>
+
+<main>
+  <!-- Hero -->
+  <div class="hero card">
+    <div class="hero-inner">
+      <div>
+        <div class="hero-eyebrow" data-i18n="heroEyebrow">Bolão Brasileirão 2026</div>
+        <h1 data-i18n="heroTitle">Quem vai terminar o campeonato no G4 e no Z4?</h1>
+        <p class="hero-sub" data-i18n="heroText">Valor: US$ 5 por entrada. Pontuação provisória atualizada em tempo real!</p>
+      </div>
+      <div class="count-card">
+        <div id="cutoffCountdown" aria-live="polite"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live match banner (hidden when no live game) -->
+  <div id="liveMatchCard" class="hidden" role="status" aria-live="polite"></div>
+
+  <!-- ── Palpites ── -->
+  <section id="entry" class="page active">
+    <div class="card">
+      <h2 data-i18n="entryTitle">Nova entrada</h2>
+      <div class="form-grid">
+        <label>
+          <span data-i18n="entryName">Nome da entrada</span>
+          <input id="entryName" type="text" autocomplete="name" placeholder="Eduardo #1" maxlength="80">
+        </label>
+        <label>
+          <span data-i18n="payerName">Responsável pelo pagamento</span>
+          <input id="payerName" type="text" autocomplete="name" placeholder="Eduardo" maxlength="80">
+        </label>
+        <label>
+          <span data-i18n="emailLabel">E-mail para comprovante</span>
+          <input id="participantEmail" type="email" autocomplete="email" placeholder="nome@email.com" required>
+        </label>
+        <label>
+          <span data-i18n="paymentMethod">Método de pagamento</span>
+          <select id="paymentMethod">
+            <option value="" data-i18n="selectOption">Selecione</option>
+            <option>CashApp</option>
+            <option>Zelle</option>
+            <option>Venmo</option>
+          </select>
+        </label>
+      </div>
+      <div id="pickForm"></div>
+    </div>
+    <div class="sticky-submit">
+      <button id="saveEntryBtn" type="button" data-i18n="saveEntry">Salvar entrada</button>
+    </div>
+  </section>
+
+  <!-- ── Ranking ── -->
+  <section id="ranking" class="page">
+    <div class="section-head">
+      <h2 data-i18n="rankingTitle">Ranking</h2>
+      <p class="muted" data-i18n="rankingSubtitle">Pontuação provisória baseada na tabela atual do Brasileirão.</p>
+    </div>
+    <div id="rankingList"></div>
+  </section>
+
+  <!-- ── Tabela ao vivo ── -->
+  <section id="standings" class="page">
+    <div class="section-head">
+      <h2 data-i18n="navStandings">Tabela</h2>
+    </div>
+    <div id="standingsCard" class="card"></div>
+  </section>
+
+  <!-- ── Participantes ── -->
+  <section id="participants" class="page">
+    <div class="section-head">
+      <h2 data-i18n="participantsTitle">Participantes</h2>
+    </div>
+    <div id="participantsList" class="card"></div>
+  </section>
+
+  <!-- ── Pagamento ── -->
+  <section id="payment" class="page">
+    <div class="section-head">
+      <h2 data-i18n="paymentTitle">Pagamento</h2>
+      <p class="muted" data-i18n="paymentSubtitle">Valor da aposta: US$ 5 por entrada.</p>
+    </div>
+    <div id="paymentMethods" class="pay-grid"></div>
+  </section>
+
+  <!-- ── Regras ── -->
+  <section id="rules" class="page">
+    <div class="section-head">
+      <h2 data-i18n="rulesTitle">Regras</h2>
+    </div>
+    <div id="rulesContent"></div>
+  </section>
+
+  <!-- ── Admin ── -->
+  <section id="admin" class="page">
+    <h2 data-i18n="adminTitle">Admin</h2>
+
+    <div id="adminLogin" class="card">
+      <label>
+        <span data-i18n="adminPassword">Senha do admin</span>
+        <input id="adminPassword" type="password" autocomplete="current-password">
+      </label>
+      <div class="button-row" style="margin-top:12px">
+        <button id="adminLoginBtn" type="button" data-i18n="adminEnter">Entrar no admin</button>
+      </div>
+    </div>
+
+    <div id="adminArea" class="hidden">
+      <div class="card">
+        <div class="admin-toolbar">
+          <button id="adminLogoutBtn"    type="button" class="secondary" data-i18n="logout">Sair</button>
+          <button id="exportCsvBtn"      type="button" class="secondary small-btn" data-i18n="exportCsvBtn">📊 CSV</button>
+          <button id="forceSyncBtn"      type="button" class="secondary small-btn" data-i18n="forceSyncBtn">☁️ Sync</button>
+        </div>
+      </div>
+      <div id="adminResults"  class="card"></div>
+      <div id="adminPayments" class="card"></div>
+      <div id="adminEntries"  class="card"></div>
+    </div>
+  </section>
+</main>
+
+<footer id="siteFooterBar" class="site-footer-bar"></footer>
+
+</body>
+</html>

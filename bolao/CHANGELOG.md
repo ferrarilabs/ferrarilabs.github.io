@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.44 — 2026-07-02
+
+### Fixed
+- **Banner "jogo encerrado" — botão admin quebrado**: o botão "🔐 Admin → enviar emails" usava `onclick="showSection('admin')"` inline, que era bloqueado pelo CSP (`script-src` sem `'unsafe-inline'`) e também não encontrava a função (dentro do IIFE). Migrado para `data-banner-nav="admin"` com handler no event delegation existente.
+- **Botão de salvar em modo edição**: o bloco `finally` de `saveEntry()` sempre restaurava o texto "Salvar entrada", mesmo quando o usuário estava no modo edição de palpites. Agora restaura "Atualizar entrada" se `_editingEntry` ainda estiver ativo (ex: validação falhou e o modo ainda está ativo).
+- **Campo de senha admin não limpo após tentativa errada**: ao errar a senha, o campo `#adminPassword` não era apagado, deixando o texto visível para quem pudesse ver a tela. Agora é limpo imediatamente após uma tentativa falha.
+
 ## v4.43 — 2026-07-02
 
 ### Fixed

@@ -28,7 +28,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run update + send
-        working-directory: bolao-teste/scripts
+        working-directory: bolao/scripts
         run: |
           python3 send_result_email.py \
             --update "${{ github.event.inputs.match_id }}" \
