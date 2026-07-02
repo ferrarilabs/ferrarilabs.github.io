@@ -1,13 +1,24 @@
 # CHANGELOG
 
-## v4.40 — 2026-07-01
+## v4.42 — 2026-07-02
 
 ### Added
-- **Notificação automática de jogo encerrado (Parte A — browser)**: quando o ESPN confirma que um jogo acabou (live → não-live na próxima poll), aparece um banner verde sticky no topo da página com o placar e um botão "📧 Enviar emails agora". Se o admin estiver logado, o sync do ESPN já roda silenciosamente antes de mostrar o botão. Se não estiver logado, o banner mostra um link para a aba Admin.
-- **GitHub Actions — disparo manual (Parte B)**: removido o cron de `auto_results.yml`; o workflow agora só dispara via `workflow_dispatch` (botão "Run workflow" no GitHub.com ou app mobile). Roda `send_result_email.py --auto` que sincroniza ESPN → Supabase → envia emails para todos, de forma idempotente (não envia duplicatas).
+- **Notificação automática de jogo encerrado (browser)**: quando o ESPN confirma que um jogo acabou (live → não-live na próxima poll), aparece um banner verde sticky no topo da página com o placar e um botão "📧 Enviar emails agora". Se o admin estiver logado, o sync do ESPN já roda silenciosamente antes de mostrar o botão. Se não estiver logado, o banner mostra um link para a aba Admin.
+- **GitHub Actions — disparo manual**: removido o cron de `auto_results.yml`; o workflow agora só dispara via `workflow_dispatch` (botão "Run workflow" no GitHub.com ou app mobile). Roda `send_result_email.py --auto` que sincroniza ESPN → Supabase → envia emails para todos, de forma idempotente (não envia duplicatas).
 
 ### Changed
 - `runEspnUpdate()` aceita `{ silent: true }` para rodar sem alerts quando chamado automaticamente pela detecção de fim de jogo.
+
+## v4.41 — 2026-07-02
+
+### Added
+- **Contador de placares exatos em "Ver palpites"**: no final da tabela de palpites de cada entrada (na aba Ranking), agora mostra quantos placares exatos aquela entrada acertou — o mesmo número usado no primeiro nível do critério de desempate, pra facilitar entender por que uma entrada ficou acima de outra com o mesmo total. Reaproveita `exactMatchCount()`, sem duplicar a lógica.
+
+## v4.40 — 2026-07-02
+
+### Added
+- **Critério de desempate no ranking**: definido depois de um print no grupo mostrando dois primeiros lugares empatados. Cascata: (1) pontos totais, (2) mais placares exatos, (3) mais acertos de campeão/vice/3º lugar. Se ainda empatar depois dos três níveis, a posição (e o prêmio daquela colocação) é dividida entre os empatados — igual já acontecia visualmente, só que agora é decisão explícita, não um efeito colateral da ordenação estável. Implementado de forma consistente no ranking do site, no gerador de e-mail em JS (usado pelo botão de admin) e no script Python do cron automático (`send_result_email.py`), incluindo a resolução da árvore do mata-mata para achar o campeão/vice/3º previstos por cada entrada.
+- Nova regra no site (`rulesStandingsTie`) documentando o critério, nos três idiomas.
 
 ## v4.39 — 2026-07-01
 

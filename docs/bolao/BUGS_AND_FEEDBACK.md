@@ -64,6 +64,8 @@ All feedback is from Eduardo Ferrari (app owner, also primary tester) unless oth
 - **Rank-movement arrows on the live match points too (Eduardo):** requested the same up/down arrows as the main ranking, but scoped to each live match's provisional points table — like Globo Esporte's real-time Brasileirão table. Added in v4.32. Eduardo also confirmed: the database only updates when a match officially ends, never mid-game — the live points/arrows are purely a browser-side preview and never write to Supabase (already true by design; note text made more explicit about this in v4.32).
 - **Live card redesign, Google style (Eduardo):** sent a screenshot of Google's live World Cup scoreboard (flag badge, team name below, big score, centered "Live" pill + running clock) and asked for the hero's live card to look like that. Redone in v4.33.
 - **Live points list wasn't visible enough (Eduardo):** the per-match provisional points list existed but only behind a toggle on the Jogos tab — Eduardo expected it directly under the score on the hero live card. Moved there (always visible) in v4.34.
+- **Tiebreaker rule finally decided (Eduardo), triggered by a WhatsApp screenshot of two entries tied for 1st with the joking caption "esse sistema é machista!":** cascade is (1) most exact scores, (2) most correct champion/runner-up/3rd picks, (3) if still tied, shared position — prize for that placement split manually since payouts aren't automated. Implemented consistently in the web ranking, the in-browser email builder, and the Python cron email script (`send_result_email.py`) in v4.36. Resolves ROADMAP M-01.
+- **Exact-score counter in picks view (Eduardo):** wanted people to see, at the bottom of "Ver palpites," how many exact scores an entry got right — so ties in the ranking are self-explanatory against tiebreaker level 1. Added in v4.41.
 - **Rank movement arrows (Eduardo):** requested up/down arrows on the ranking showing whether an entry's position improved or dropped since the last score change, similar to a league table (referenced Globo Esporte's Brasileirão table). Added in v4.27.
 
 ---
@@ -76,7 +78,6 @@ These were discussed but not built. Documented here to avoid re-asking.
 - Japanese (ja) language support — mentioned in early CLAUDE.md but never implemented in i18n.js.
 - API-Football auto-update of bracket: when real match results come in, admin should be able to apply them to `data.js` without manual editing.
 - A visual bracket tree view (bracket diagram) instead of match cards list.
-- Tie-breaker rule for same total points (currently no tiebreaker; ranking is sort-stable).
 
 ---
 

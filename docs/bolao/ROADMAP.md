@@ -15,9 +15,6 @@ Currently the API-Football refresh only caches data. A future "Apply cached resu
 
 ## Medium-term
 
-### M-01 — Tie-breaker rule
-When two entries have the same total points, the current sort is stable (no defined tiebreaker). Decide and document the tiebreaker (e.g., who submitted first, or who picked the correct champion).
-
 ### M-02 — Supabase Realtime subscriptions
 Currently sync happens only on page focus and visibility change. A Supabase channel subscription would push updates to all open tabs instantly without polling. Requires loading `@supabase/realtime` or using the existing client's `.channel()` API.
 
