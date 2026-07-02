@@ -704,6 +704,36 @@ def run_auto():
 
     print(f"New:            {[f'M{m}' for m in new_mids]}")
 
+    # Double-check before trusting a freshly-detected "final" result enough to
+    # email everyone: re-fetch ESPN a second time after a short pause and
+    # require the score + advanceSide to match exactly. ESPN occasionally
+    # flags a match "post" with a winner a beat before a late correction
+    # lands (VAR overturn, stat fix) — this catches that instead of emailing
+    # a wrong score. A mismatch just skips the match for this run; the next
+    # cron tick (10 min later) picks it up once ESPN's data has settled.
+    print("AUTO — re-checking ESPN after 20s to confirm result is stable before emailing...")
+    time.sleep(20)
+    try:
+        espn_confirm = fetch_espn_results(saved_results=saved)
+    except Exception as ex:
+        print(f"ESPN re-check fetch failed: {ex} — skipping this cycle, will retry next run.")
+        return
+
+    confirmed_mids = []
+    for mid in new_mids:
+        r1, r2 = espn[mid], espn_confirm.get(mid)
+        if r2 and r1["goalsA"] == r2["goalsA"] and r1["goalsB"] == r2["goalsB"] and r1["advanceSide"] == r2["advanceSide"]:
+            confirmed_mids.append(mid)
+        else:
+            print(f"  WARN M{mid}: result not stable across two checks ({r1} vs {r2}) — skipping for now, will retry next run.")
+
+    if not confirmed_mids:
+        print("No matches confirmed stable. Nothing to do this cycle.")
+        return
+
+    new_mids = confirmed_mids
+    print(f"Confirmed stable: {[f'M{m}' for m in new_mids]}")
+
     for i, mid in enumerate(new_mids):
         r      = espn[mid]
         # Resolve team names (in case they were W/L slots before)

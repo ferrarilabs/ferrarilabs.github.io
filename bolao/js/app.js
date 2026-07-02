@@ -428,6 +428,7 @@ function renderNextMatch() {
     }</div>`;
   }
 
+  const probBlock = preMatchProbBarsHtml(m);
   card.innerHTML = `
     <div class="next-match-row">
       <div class="next-match-info">
@@ -436,7 +437,8 @@ function renderNextMatch() {
         <div class="hero-next-time">${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
       </div>
       <div class="next-match-countdown">${timerHtml}</div>
-    </div>`;
+    </div>
+    ${probBlock}`;
   card.classList.remove("hidden");
 }
 
@@ -1556,19 +1558,11 @@ function renderGames() {
     const canShowLivePoints = live && knockoutIds.has(String(m.match));
 
     // Compute per-match probability hint (upcoming) or in-play bars (live)
-    const teamAKnown = a && !/Winner|Loser/i.test(a);
-    const teamBKnown = b && !/Winner|Loser/i.test(b);
     let probBarsHtml = "";
-    if (teamAKnown && teamBKnown) {
-      if (live) {
-        probBarsHtml = liveProbBarsHtml(m, live);
-      } else if (status !== "Final") {
-        const raStr = teamStrength(a), rbStr = teamStrength(b);
-        const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
-        const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
-        const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
-        probBarsHtml = probBarsMarkup(pA, pD, pB, a, b, drawLabel);
-      }
+    if (live) {
+      probBarsHtml = liveProbBarsHtml(m, live);
+    } else if (status !== "Final") {
+      probBarsHtml = preMatchProbBarsHtml(m);
     }
 
     const div = document.createElement("div");
@@ -1908,6 +1902,20 @@ function probBarsMarkup(pA, pD, pB, a, b, drawLabel) {
   <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${label(pDr, drawLabel)}</div>
   <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${label(pAw, sB)}</div>
 </div>`;
+}
+
+// Pre-match probability bars for a match that hasn't kicked off yet —
+// shared by the Jogos tab's game cards and the hero "próximo jogo" card.
+// Static Poisson estimate from each team's strength rating (no live signal
+// to blend in yet, unlike liveProbBarsHtml below).
+function preMatchProbBarsHtml(m) {
+  const a = m.teamA || "", b = m.teamB || "";
+  if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
+  const raStr = teamStrength(a), rbStr = teamStrength(b);
+  const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
+  const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
+  const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
+  return probBarsMarkup(pA, pD, pB, a, b, drawLabel);
 }
 
 // In-play probability bars for a match currently live — shared by the Jogos
@@ -2771,26 +2779,37 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
 // fetch for the score/clock (comp.details), so no extra network call.
 // Best-effort: ESPN's exact field names for this aren't confirmed without
 // live testing, so this fails soft (empty array) if the shape doesn't match.
+// Wrapped in try/catch and defensive against null/malformed array entries —
+// this must NEVER throw, since it runs inline inside mapEspnToLiveScores()
+// for every live match on every poll; an uncaught exception here would
+// throw before _liveScores gets reassigned, freezing the live score/clock
+// for ALL matches indefinitely (not just the goal-scorer list).
 function extractGoalEvents(comp) {
-  const details = Array.isArray(comp.details) ? comp.details : [];
-  const [c0, c1] = comp.competitors || [];
-  const goals = [];
-  for (const d of details) {
-    const isGoal = d.scoringPlay === true || /goal/i.test(d.type?.text || d.type?.name || "");
-    if (!isGoal) continue;
-    const teamId = d.team?.id;
-    let side = null;
-    if (teamId != null && c0?.team?.id != null && String(teamId) === String(c0.team.id)) side = "c0";
-    else if (teamId != null && c1?.team?.id != null && String(teamId) === String(c1.team.id)) side = "c1";
-    if (!side) continue;
-    const athlete = d.athletesInvolved?.[0];
-    const scorer = athlete?.displayName || athlete?.shortName || null;
-    const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
-    const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
-    if (!scorer && !minute) continue;
-    goals.push({ side, scorer, minute, order: clockVal ?? 0 });
+  try {
+    const details = Array.isArray(comp.details) ? comp.details : [];
+    const [c0, c1] = comp.competitors || [];
+    const goals = [];
+    for (const d of details) {
+      if (!d) continue;
+      const isGoal = d.scoringPlay === true || /goal/i.test(d.type?.text || d.type?.name || "");
+      if (!isGoal) continue;
+      const teamId = d.team?.id;
+      let side = null;
+      if (teamId != null && c0?.team?.id != null && String(teamId) === String(c0.team.id)) side = "c0";
+      else if (teamId != null && c1?.team?.id != null && String(teamId) === String(c1.team.id)) side = "c1";
+      if (!side) continue;
+      const athlete = d.athletesInvolved?.[0];
+      const scorer = athlete?.displayName || athlete?.shortName || null;
+      const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
+      const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
+      if (!scorer && !minute) continue;
+      goals.push({ side, scorer, minute, order: clockVal ?? 0 });
+    }
+    return goals.sort((a, b) => a.order - b.order);
+  } catch (err) {
+    console.warn("extractGoalEvents failed, skipping goal-scorer list for this match", err);
+    return [];
   }
-  return goals.sort((a, b) => a.order - b.order);
 }
 
 function mapEspnToLiveScores(events) {

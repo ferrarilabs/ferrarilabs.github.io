@@ -1,7 +1,12 @@
-name: Bolão — Resultado e email (manual)
+name: Bolão — Resultado e email (auto)
 
 on:
-  workflow_dispatch:  # trigger manual via GitHub UI ou app mobile
+  schedule:
+    # Every 10 min, 16:00-23:50 UTC = 12:00 PM–7:50 PM EDT
+    - cron: '*/10 16-23 * 6-7 *'
+    # Every 10 min, 00:00-05:50 UTC = 8:00 PM–1:50 AM EDT
+    - cron: '*/10 0-5 * 6-7 *'
+  workflow_dispatch:  # manual trigger from GitHub UI / mobile app, still available
 
 # Prevent simultaneous runs — queue rather than cancel (avoids double-sends)
 concurrency:
