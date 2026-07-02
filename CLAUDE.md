@@ -7,21 +7,25 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 No build step. Push to `main` and GitHub Pages auto-deploys to `ferrarilabs.github.io`.
 
 - Main site: `ferrarilabs.github.io`
-- Bolão app: `ferrarilabs.github.io/bolao-teste/`
+- Copa do Mundo 2026: `ferrarilabs.github.io/bolao/`
+- Brasileirão 2026: `ferrarilabs.github.io/bolao/br2026/` (not published yet)
+- Old URL redirect: `ferrarilabs.github.io/bolao/` → `/bolao/`
 
 To preview locally:
 ```bash
 python3 -m http.server 8080
-# Open: http://localhost:8080/bolao-teste/
+# Open: http://localhost:8080/bolao/
 ```
 
 ## Repository structure
 
-Two independent sub-projects:
+Three independent sub-projects:
 
 **Main site** (`index.html`, `index.pt.html`, `index.es.html`, `index.jp.html`, `styles.css`) — static multilingual personal site about Eduardo Ferrari's work in financial crime/AML/AI compliance. Contact form uses Formspree + Cloudflare Turnstile (keys must be set manually in the HTML).
 
-**Bolão app** (`bolao-teste/`) — Copa do Mundo 2026 bracket pool. Vanilla JS, no framework, no build system. URL: `ferrarilabs.github.io/bolao-teste/`.
+**Copa do Mundo 2026** (`bolao/`) — bracket pool. Vanilla JS, no framework, no build system. URL: `ferrarilabs.github.io/bolao/`.
+
+**Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/br2026/`.
 
 ## Bolão app — quick reference
 
@@ -96,13 +100,13 @@ When adding a new key, add it to all three objects. Default fallback is `pt-BR`.
 - Only anon key used — never the service_role key.
 - RLS restricts all operations to `id = 'main'`.
 - Merge strategy: union entries, local wins for paid/results.
-- See `bolao-teste/docs/DATABASE_SETUP_SUPABASE.md` for SQL setup.
+- See `bolao/docs/DATABASE_SETUP_SUPABASE.md` for SQL setup.
 
 ### Release process
 
-1. Edit files under `bolao-teste/`.
+1. Edit files under `bolao/`.
 2. Bump `siteVersion` in `js/config.js`.
-3. Add a CHANGELOG entry in `bolao-teste/CHANGELOG.md`.
+3. Add a CHANGELOG entry in `bolao/CHANGELOG.md`.
 4. Commit and push to `main`.
 5. Run QA checklist from `docs/bolao/QA_CHECKLIST.md`.
 
@@ -111,7 +115,7 @@ When adding a new key, add it to all three objects. Default fallback is `pt-BR`.
 ```bash
 git revert HEAD && git push
 # or
-git checkout <previous-commit> -- bolao-teste/
+git checkout <previous-commit> -- bolao/
 git commit -m "Revert bolao to <version>"
 git push
 ```
@@ -129,4 +133,4 @@ All extended documentation is in `docs/bolao/`:
 - `CHANGELOG.md` — consolidated version history
 - `ROADMAP.md` — planned and discussed future work
 
-Also see `bolao-teste/docs/` for low-level setup guides (Supabase SQL, API-Football, deploy steps).
+Also see `bolao/docs/` for low-level setup guides (Supabase SQL, API-Football, deploy steps).

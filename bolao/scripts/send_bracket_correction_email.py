@@ -19,7 +19,7 @@ EMAILJS_KEY   = "GBZFujsJBET6modve"
 EMAILJS_SVC   = "service_o4hyzxr"
 EMAILJS_TMPL  = "template_xq7yzzb"
 ADMIN_EMAIL   = "emferrari@gmail.com"
-SITE_URL      = "https://ferrarilabs.github.io/bolao-teste/"
+SITE_URL      = "https://ferrarilabs.github.io/bolao/"
 
 SUBJECT = "⚽ Bolão do Ferrari — Correção de bracket (oitavas / Round of 16)"
 
@@ -30,7 +30,7 @@ EMAILJS_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     ),
     "Origin":  "https://ferrarilabs.github.io",
-    "Referer": "https://ferrarilabs.github.io/bolao-teste/",
+    "Referer": "https://ferrarilabs.github.io/bolao/",
 }
 
 # ── Bracket correction data ───────────────────────────────────────────────────

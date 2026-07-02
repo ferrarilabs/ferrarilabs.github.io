@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'bolao-teste/js/config.js'
+      - 'bolao/js/config.js'
 
 permissions:
   contents: write
@@ -23,16 +23,16 @@ jobs:
         id: sync
         run: |
           # Extract numeric version only (strip leading 'v') to match ?v=4.38 format
-          VERSION=$(grep -o 'siteVersion:.*"v[0-9.]*"' bolao-teste/js/config.js | grep -o '[0-9][0-9.]*')
+          VERSION=$(grep -o 'siteVersion:.*"v[0-9.]*"' bolao/js/config.js | grep -o '[0-9][0-9.]*')
           echo "Detected version: $VERSION"
           if [ -z "$VERSION" ]; then
             echo "Could not detect version — skipping"
             echo "changed=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-          BEFORE=$(md5sum bolao-teste/index.html | cut -d' ' -f1)
-          sed -i "s/?v=[^\"' >]*/\?v=$VERSION/g" bolao-teste/index.html
-          AFTER=$(md5sum bolao-teste/index.html | cut -d' ' -f1)
+          BEFORE=$(md5sum bolao/index.html | cut -d' ' -f1)
+          sed -i "s/?v=[^\"' >]*/\?v=$VERSION/g" bolao/index.html
+          AFTER=$(md5sum bolao/index.html | cut -d' ' -f1)
           if [ "$BEFORE" = "$AFTER" ]; then
             echo "index.html already at $VERSION — nothing to commit"
             echo "changed=false" >> "$GITHUB_OUTPUT"
@@ -46,6 +46,6 @@ jobs:
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add bolao-teste/index.html
+          git add bolao/index.html
           git commit -m "chore: bump cache-bust version in index.html [skip ci]"
           git push

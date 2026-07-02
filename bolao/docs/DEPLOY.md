@@ -7,15 +7,15 @@
 
 ## Steps
 
-1. Make sure only files under `bolao-teste/` changed — never touch the repo root site.
+1. Make sure only files under `bolao/` changed — never touch the repo root site.
 2. Commit:
    ```
-   git add bolao-teste/
+   git add bolao/
    git commit -m "Release bolao v4.0-clean"
    git push
    ```
 3. GitHub Pages deploys automatically (usually < 2 min).
-4. Open https://ferrarilabs.github.io/bolao-teste/ and run the QA checklist.
+4. Open https://ferrarilabs.github.io/bolao/ and run the QA checklist.
 
 ## Rollback
 
@@ -27,7 +27,7 @@ git push
 Or revert to a specific commit:
 
 ```
-git checkout <previous-commit> -- bolao-teste/
+git checkout <previous-commit> -- bolao/
 git commit -m "Revert bolao to previous version"
 git push
 ```
@@ -38,7 +38,7 @@ git push
 python3 -m http.server 8080
 ```
 
-Open http://localhost:8080/bolao-teste/
+Open http://localhost:8080/bolao/
 
 ## What NOT to deploy
 

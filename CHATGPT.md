@@ -10,13 +10,13 @@ Last updated: 2026-06-27.
 **Bolão do Ferrari** is a Copa do Mundo 2026 bracket pool app for Eduardo Ferrari's friends and family.
 It is a pure static site (HTML + vanilla JS + CSS) deployed on GitHub Pages — no server, no backend, no build step.
 
-- **URL:** `https://ferrarilabs.github.io/bolao-teste/`
+- **URL:** `https://ferrarilabs.github.io/bolao/`
 - **Admin email:** emferrari@gmail.com
 - **Current version:** v4.0-clean
 
 ---
 
-## File map (bolao-teste/)
+## File map (bolao/)
 
 ```
 index.html          ← single page app; sections toggled by JS
@@ -113,7 +113,7 @@ Admin can: mark payments, enter real results, delete entries, export CSV/JSON/HT
 - URL: `https://cmhqkkfczotdnssupkni.supabase.co`
 - Anon key in `config.js` (safe to commit — RLS limits to `id = 'main'`)
 - Never use service_role key in browser code
-- Setup SQL: `bolao-teste/docs/DATABASE_SETUP_SUPABASE.md`
+- Setup SQL: `bolao/docs/DATABASE_SETUP_SUPABASE.md`
 
 ### EmailJS
 - Public key: `GBZFujsJBET6modve`
@@ -159,14 +159,14 @@ All strings in `js/i18n.js`. Fallback: `pt-BR`.
 
 ## How to make a change
 
-1. Edit files under `bolao-teste/`.
+1. Edit files under `bolao/`.
 2. Bump `siteVersion` in `js/config.js`.
-3. Add entry to `bolao-teste/CHANGELOG.md`.
-4. Commit: `git add bolao-teste/ && git commit -m "Release bolao vX.Y"`.
+3. Add entry to `bolao/CHANGELOG.md`.
+4. Commit: `git add bolao/ && git commit -m "Release bolao vX.Y"`.
 5. Push to main: `git push`. GitHub Pages deploys in < 2 min.
 6. Run QA checklist: `docs/bolao/QA_CHECKLIST.md`.
 
-Local preview: `python3 -m http.server 8080` → `http://localhost:8080/bolao-teste/`
+Local preview: `python3 -m http.server 8080` → `http://localhost:8080/bolao/`
 
 Rollback: `git revert HEAD && git push`
 
@@ -196,7 +196,7 @@ Rollback: `git revert HEAD && git push`
 | `docs/bolao/BUGS_AND_FEEDBACK.md` | Open bugs, fixed bugs, user feedback, wishlist |
 | `docs/bolao/CHANGELOG.md` | Consolidated version history |
 | `docs/bolao/ROADMAP.md` | Planned and discussed future work |
-| `bolao-teste/docs/DATABASE_SETUP_SUPABASE.md` | Supabase SQL setup |
-| `bolao-teste/docs/API_FOOTBALL_SETUP.md` | API-Football setup |
-| `bolao-teste/docs/DEPLOY.md` | Deploy steps and rollback |
-| `bolao-teste/docs/SECURITY_NOTES.md` | Security details for v4.0-clean |
+| `bolao/docs/DATABASE_SETUP_SUPABASE.md` | Supabase SQL setup |
+| `bolao/docs/API_FOOTBALL_SETUP.md` | API-Football setup |
+| `bolao/docs/DEPLOY.md` | Deploy steps and rollback |
+| `bolao/docs/SECURITY_NOTES.md` | Security details for v4.0-clean |
