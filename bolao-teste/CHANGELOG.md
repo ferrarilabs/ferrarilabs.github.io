@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v4.35 — 2026-07-02
+
+### Added
+- **Posição numerada na pontuação ao vivo**: a lista de pontuação provisória (embaixo do placar no hero e no dropdown da aba Jogos) agora mostra o número da posição (1, 2, 3...) de cada entrada, junto com a seta ▲/▼, em vez de só a seta ao lado do nome.
+
+## v4.34 — 2026-07-02
+
+### Added
+- **Pontuação ao vivo direto no card do topo**: o card "ao vivo" no hero agora mostra, sempre visível logo abaixo do placar, a lista de quem apostou o quê naquela partida e quantos pontos cada um estaria fazendo com o placar atual (com as setas ▲/▼) — antes isso só existia escondido atrás do botão "Ver pontuação ao vivo" na aba Jogos. Reaproveita a mesma `liveMatchPointsTable()`, sem duplicar lógica.
+
+## v4.33 — 2026-07-02
+
+### Changed
+- **Card "ao vivo" do topo redesenhado, estilo Google**: o card de partida ao vivo no hero agora segue o layout do placar ao vivo do Google (referência enviada pelo Eduardo) — bandeira de cada time em um selo arredondado, nome do time embaixo, placar grande dos dois lados, e no centro um badge "AO VIVO" com o cronômetro (MM:SS) sublinhado em vermelho. Antes era um bloco empilhado (badge/placar/times em texto corrido); agora é times-placar-badge-placar-times, igual à referência.
+
 ## v4.32 — 2026-07-02
 
 ### Added
