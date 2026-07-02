@@ -361,14 +361,32 @@ function renderNextMatch() {
   const next    = nextScheduledMatch();
 
   if (hasLive) {
+    const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
     const items = Object.entries(_liveScores).map(([mid, ls]) => {
       const m = DATA.knockoutMatches.find(x => x.match === mid)
              || DATA.groupMatches?.find(x => x.match === mid);
       const tA = m?.teamA || "A", tB = m?.teamB || "B";
+      const pointsBlock = knockoutIds.has(String(mid))
+        ? `<div class="hero-live-points picks-detail">${liveMatchPointsTable(mid, ls.goalsA, ls.goalsB)}</div>`
+        : "";
       return `<div class="hero-live-card">
-        <div class="hero-live-badge">⚽ ${escapeHtml(t("liveNow"))} · ${escapeHtml(ls.clock)}</div>
-        <div class="hero-live-score">${ls.goalsA} — ${ls.goalsB}</div>
-        <div class="hero-live-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} × ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+      <div class="hero-live-top">
+        <div class="hero-live-team">
+          <span class="hero-live-flag">${escapeHtml(flag(tA))}</span>
+          <span class="hero-live-team-name">${escapeHtml(tA)}</span>
+        </div>
+        <div class="hero-live-score">${ls.goalsA}</div>
+        <div class="hero-live-center">
+          <span class="hero-live-badge">${escapeHtml(t("liveNow"))}</span>
+          <span class="hero-live-clock">${escapeHtml(ls.clock)}</span>
+        </div>
+        <div class="hero-live-score">${ls.goalsB}</div>
+        <div class="hero-live-team">
+          <span class="hero-live-flag">${escapeHtml(flag(tB))}</span>
+          <span class="hero-live-team-name">${escapeHtml(tB)}</span>
+        </div>
+      </div>
+      ${pointsBlock}
       </div>`;
     }).join("");
     card.innerHTML = `<div class="next-match-live-grid">${items}</div>`;
@@ -2189,10 +2207,10 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
     .sort((a, b) => b.pts - a.pts);
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
   const arrows = computeRankArrows(`live:${matchId}`, rows.map(r => ({ id: r.id, score: r.pts })));
-  const trs = rows.map(row =>
-    `<tr><td>${escapeHtml(row.name)}${rankArrowHtml(arrows[row.id])}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.pts > 0 ? " pos" : ""}">${row.pts}</b></td></tr>`
+  const trs = rows.map((row, i) =>
+    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(arrows[row.id])}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.pts > 0 ? " pos" : ""}">${row.pts}</b></td></tr>`
   ).join("");
-  return `<table><thead><tr><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
+  return `<table><thead><tr><th>${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
 }
 

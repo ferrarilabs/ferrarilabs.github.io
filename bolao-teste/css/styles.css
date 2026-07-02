@@ -188,9 +188,61 @@ h3 { font-size: 1.05rem; }
   background: var(--bg3);
   border: 1px solid #ff6b6b;
   border-radius: 14px;
-  padding: 10px 16px;
-  min-width: 200px;
+  padding: 14px 12px;
+  min-width: 260px;
   flex: 1;
+}
+.hero-live-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+.hero-live-points {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border2);
+}
+.hero-live-points p.muted { margin: 0; text-align: center; }
+.hero-live-team {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 0;
+}
+.hero-live-flag {
+  font-size: 30px;
+  width: 52px;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+}
+.hero-live-team-name {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+.hero-live-score {
+  font-size: 30px;
+  font-weight: 900;
+  color: var(--text);
+  min-width: 28px;
+  text-align: center;
+}
+.hero-live-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  padding: 0 4px;
 }
 .hero-live-badge {
   font-size: 10px;
@@ -198,19 +250,17 @@ h3 { font-size: 1.05rem; }
   text-transform: uppercase;
   letter-spacing: .08em;
   color: #ff6b6b;
-  margin-bottom: 4px;
+  background: #4a0e0e;
+  padding: 4px 10px;
+  border-radius: 999px;
   animation: live-pulse 1.6s ease-in-out infinite;
 }
-.hero-live-score {
-  font-size: 22px;
-  font-weight: 900;
+.hero-live-clock {
+  font-size: 13px;
+  font-weight: 800;
   color: var(--text);
-  letter-spacing: .03em;
-}
-.hero-live-teams {
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 2px;
+  border-bottom: 2px solid #ff6b6b;
+  padding-bottom: 1px;
 }
 .hero-live-wrap {
   grid-column: 1 / -1;
