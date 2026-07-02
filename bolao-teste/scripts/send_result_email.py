@@ -344,6 +344,83 @@ def score_entry_total(entry, results):
     return total
 
 
+def _is_exact_pick(pick, result):
+    pA, pB = _parse(pick.get("goalsA")), _parse(pick.get("goalsB"))
+    rA, rB = _parse(result.get("goalsA")), _parse(result.get("goalsB"))
+    if None in (pA, pB, rA, rB) or not result.get("advanceSide"):
+        return False
+    return pA == rA and pB == rB
+
+
+def exact_match_count(entry, results):
+    """Tiebreaker level 1: how many knockout matches this entry got the exact score right."""
+    picks = entry.get("picks") or {}
+    return sum(1 for mid, result in results.items() if _is_exact_pick(picks.get(mid) or {}, result))
+
+
+def _podium_from_results(results):
+    """Real champion/runner-up/3rd/4th once M104 (final) and M103 (3rd place) are decided."""
+    fin, trd = results.get("104"), results.get("103")
+    champion = runner_up = third = fourth = None
+    if fin and fin.get("advanceSide"):
+        tA, tB = _real_teams("104", results)
+        champion, runner_up = (tB, tA) if fin["advanceSide"] == "B" else (tA, tB)
+    if trd and trd.get("advanceSide"):
+        tA, tB = _real_teams("103", results)
+        third, fourth = (tB, tA) if trd["advanceSide"] == "B" else (tA, tB)
+    if champion and third:
+        return {"champion": champion, "runnerUp": runner_up, "third": third}
+    return None
+
+
+def _entry_predicted_podium(entry):
+    """Champion/runner-up/3rd this entry's own bracket picks predict (independent of real results)."""
+    picks = entry.get("picks") or {}
+    winners, losers = {}, {}
+
+    def resolve_slot(slot):
+        m = re.match(r'^([WL])(\d+)$', str(slot))
+        if not m:
+            return slot
+        prefix, mid = m.group(1), m.group(2)
+        return (winners.get(mid) if prefix == "W" else losers.get(mid)) or slot
+
+    for mid in sorted(MATCH_TEAMS.keys(), key=int):
+        tA_raw, tB_raw = MATCH_TEAMS[mid]
+        a, b = resolve_slot(tA_raw), resolve_slot(tB_raw)
+        p = picks.get(mid)
+        if p and p.get("advanceSide") == "A":
+            winners[mid], losers[mid] = a, b
+        elif p and p.get("advanceSide") == "B":
+            winners[mid], losers[mid] = b, a
+
+    champion = runner_up = third = None
+    fin_pick, trd_pick = picks.get("104"), picks.get("103")
+    if fin_pick:
+        a, b = resolve_slot(MATCH_TEAMS["104"][0]), resolve_slot(MATCH_TEAMS["104"][1])
+        champion, runner_up = (b, a) if fin_pick.get("advanceSide") == "B" else (a, b)
+    if trd_pick:
+        a, b = resolve_slot(MATCH_TEAMS["103"][0]), resolve_slot(MATCH_TEAMS["103"][1])
+        third = b if trd_pick.get("advanceSide") == "B" else a
+    return {"champion": champion, "runnerUp": runner_up, "third": third}
+
+
+def podium_hits(entry, results):
+    """Tiebreaker level 2: how many of champion/runner-up/3rd this entry got right (not 4th)."""
+    real_pod = _podium_from_results(results)
+    if not real_pod:
+        return 0
+    pick_pod = _entry_predicted_podium(entry)
+    hits = 0
+    if pick_pod["champion"] and pick_pod["champion"] == real_pod["champion"]:
+        hits += 1
+    if pick_pod["runnerUp"] and pick_pod["runnerUp"] == real_pod["runnerUp"]:
+        hits += 1
+    if pick_pod["third"] and pick_pod["third"] == real_pod["third"]:
+        hits += 1
+    return hits
+
+
 # ── Email HTML builder ────────────────────────────────────────────────────────
 def pts_color(pts):
     if pts >= 10: return "#16a34a"
@@ -370,8 +447,10 @@ def build_html(state, focus_mid=None):
     ]
 
     scored = sorted(
-        [{"e": e, "total": score_entry_total(e, results)} for e in real_entries],
-        key=lambda x: -x["total"]
+        [{"e": e, "total": score_entry_total(e, results), "exact": exact_match_count(e, results),
+          "podium": podium_hits(e, results)}
+         for e in real_entries],
+        key=lambda x: (-x["total"], -x["exact"], -x["podium"])
     )
 
     last_mid = focus_mid or (sorted(results.keys(), key=int)[-1] if results else None)
@@ -415,12 +494,13 @@ def build_html(state, focus_mid=None):
 
     # ── Ranking ───────────────────────────────────────────────────────────────
     ranking_rows = ""
-    prev_pts = None
+    prev_key = None
     rank = 0
     for i, item in enumerate(scored):
-        if item["total"] != prev_pts:
+        key = (item["total"], item["exact"], item["podium"])
+        if key != prev_key:
             rank = i + 1
-        prev_pts = item["total"]
+        prev_key = key
         medal = {1: "🥇", 2: "🥈", 3: "🥉"}.get(rank, f"{rank}.")
         bg = "#fffbe6" if rank <= 3 else "white"
         ranking_rows += (

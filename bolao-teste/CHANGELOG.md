@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v4.41 — 2026-07-02
+
+### Added
+- **Contador de placares exatos em "Ver palpites"**: no final da tabela de palpites de cada entrada (na aba Ranking), agora mostra quantos placares exatos aquela entrada acertou — o mesmo número usado no primeiro nível do critério de desempate, pra facilitar entender por que uma entrada ficou acima de outra com o mesmo total. Reaproveita `exactMatchCount()`, sem duplicar a lógica.
+
+## v4.40 — 2026-07-02
+
+### Added
+- **Critério de desempate no ranking**: definido depois de um print no grupo mostrando dois primeiros lugares empatados. Cascata: (1) pontos totais, (2) mais placares exatos, (3) mais acertos de campeão/vice/3º lugar. Se ainda empatar depois dos três níveis, a posição (e o prêmio daquela colocação) é dividida entre os empatados — igual já acontecia visualmente, só que agora é decisão explícita, não um efeito colateral da ordenação estável. Implementado de forma consistente no ranking do site, no gerador de e-mail em JS (usado pelo botão de admin) e no script Python do cron automático (`send_result_email.py`), incluindo a resolução da árvore do mata-mata para achar o campeão/vice/3º previstos por cada entrada.
+- Nova regra no site (`rulesStandingsTie`) documentando o critério, nos três idiomas.
+
 ## v4.39 — 2026-07-01
 
 ### Fixed
