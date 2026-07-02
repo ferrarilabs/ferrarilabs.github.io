@@ -64,13 +64,13 @@ MATCH_TEAMS = {
     "87": ("Argentina", "Cape Verde"),
     "88": ("Colombia", "Ghana"),
     # Round of 16
-    "89": ("W73", "W74"), "90": ("W75", "W76"),
-    "91": ("W77", "W78"), "92": ("W79", "W80"),
-    "93": ("W81", "W82"), "94": ("W83", "W84"),
-    "95": ("W85", "W86"), "96": ("W87", "W88"),
+    "89": ("W73", "W76"), "90": ("W75", "W78"),
+    "91": ("W74", "W77"), "92": ("W79", "W80"),
+    "93": ("W83", "W84"), "94": ("W81", "W82"),
+    "95": ("W87", "W86"), "96": ("W85", "W88"),
     # Quarterfinals
-    "97": ("W89", "W90"), "98": ("W91", "W92"),
-    "99": ("W93", "W94"), "100": ("W95", "W96"),
+    "97": ("W89", "W90"), "98": ("W93", "W94"),
+    "99": ("W91", "W92"), "100": ("W95", "W96"),
     # Semifinals
     "101": ("W97", "W98"), "102": ("W99", "W100"),
     # 3rd place + Final
@@ -288,11 +288,16 @@ def sb_clear_result(mid):
 
 
 # ── Scoring ───────────────────────────────────────────────────────────────────
+# Mirrors app.js's parseScore() exactly: digits only, 0-20 range. Previously
+# this accepted anything int() would (negatives, no upper bound) — a
+# malformed value the browser would reject could still be silently scored
+# here, another way the site and the email could disagree.
 def _parse(v):
-    try:
-        return int(v) if v is not None and str(v).strip() != "" else None
-    except (ValueError, TypeError):
+    s = str(v).strip() if v is not None else ""
+    if not re.match(r'^\d+$', s):
         return None
+    n = int(s)
+    return n if 0 <= n <= 20 else None
 
 
 def score_match(pick, result, teamA="Time A", teamB="Time B"):
@@ -341,6 +346,7 @@ def score_entry_total(entry, results):
             continue
         pts, _, _ = score_match(pick, result)
         total += pts
+    total += podium_bonus_points(entry, results)
     return total
 
 
@@ -369,7 +375,7 @@ def _podium_from_results(results):
         tA, tB = _real_teams("103", results)
         third, fourth = (tB, tA) if trd["advanceSide"] == "B" else (tA, tB)
     if champion and third:
-        return {"champion": champion, "runnerUp": runner_up, "third": third}
+        return {"champion": champion, "runnerUp": runner_up, "third": third, "fourth": fourth}
     return None
 
 
@@ -394,15 +400,15 @@ def _entry_predicted_podium(entry):
         elif p and p.get("advanceSide") == "B":
             winners[mid], losers[mid] = b, a
 
-    champion = runner_up = third = None
+    champion = runner_up = third = fourth = None
     fin_pick, trd_pick = picks.get("104"), picks.get("103")
     if fin_pick:
         a, b = resolve_slot(MATCH_TEAMS["104"][0]), resolve_slot(MATCH_TEAMS["104"][1])
         champion, runner_up = (b, a) if fin_pick.get("advanceSide") == "B" else (a, b)
     if trd_pick:
         a, b = resolve_slot(MATCH_TEAMS["103"][0]), resolve_slot(MATCH_TEAMS["103"][1])
-        third = b if trd_pick.get("advanceSide") == "B" else a
-    return {"champion": champion, "runnerUp": runner_up, "third": third}
+        third, fourth = (b, a) if trd_pick.get("advanceSide") == "B" else (a, b)
+    return {"champion": champion, "runnerUp": runner_up, "third": third, "fourth": fourth}
 
 
 def podium_hits(entry, results):
@@ -419,6 +425,34 @@ def podium_hits(entry, results):
     if pick_pod["third"] and pick_pod["third"] == real_pod["third"]:
         hits += 1
     return hits
+
+
+# Bonus points for correctly predicting champion/runner-up/3rd/4th — mirrors
+# CONFIG.bonus in config.js and the bonus block in app.js's scoreEntry()
+# exactly. This was previously entirely missing from the email/CSV pipeline:
+# podium_hits() only ever fed the tiebreak order, never added points to the
+# total, so once the tournament reaches the final, entries with a correct
+# podium pick would show a HIGHER total on the website (which does add these
+# points) than in the result emails (which didn't) — the exact kind of
+# mismatch that causes "duvidas" about which number is right.
+BONUS = {"champion": 25, "runnerUp": 15, "third": 10, "fourth": 5}
+
+
+def podium_bonus_points(entry, results):
+    real_pod = _podium_from_results(results)
+    if not real_pod:
+        return 0
+    pick_pod = _entry_predicted_podium(entry)
+    pts = 0
+    if pick_pod["champion"] and pick_pod["champion"] == real_pod["champion"]:
+        pts += BONUS["champion"]
+    if pick_pod["runnerUp"] and pick_pod["runnerUp"] == real_pod["runnerUp"]:
+        pts += BONUS["runnerUp"]
+    if pick_pod["third"] and pick_pod["third"] == real_pod["third"]:
+        pts += BONUS["third"]
+    if pick_pod["fourth"] and pick_pod["fourth"] == real_pod["fourth"]:
+        pts += BONUS["fourth"]
+    return pts
 
 
 # ── Email HTML builder ────────────────────────────────────────────────────────

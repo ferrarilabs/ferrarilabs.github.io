@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.57 — 2026-07-02
+
+### Fixed — auditoria estilo Big 4 no pipeline de resultado/ranking (Eduardo pediu depois de reclamações sobre o ranking)
+Disparado por participantes questionando o ranking (print do WhatsApp da Aline: "Wu tava em 7 atras do ewerton e agora o vini pegou meu lugar" — na verdade só faltava o resultado da Espanha, já resolvido). Eduardo pediu uma auditoria completa dos resultados/ranking, com a exigência de sempre verificar isso antes de qualquer PR daqui pra frente. Todos os problemas encontrados estavam isolados em `send_result_email.py` (o script Python do cron de email) — o site (`app.js`) já estava correto em todos os pontos abaixo, usa uma única fonte de verdade (`scoreEntry()`) em todo lugar (ranking, CSV, master export, email manual do admin).
+
+- **[Crítico] Chaveamento das Oitavas/Quartas estava errado em 9 dos 16 confrontos**: `MATCH_TEAMS` no script tinha pares diferentes do bracket real em `data.js` (ex: M89 estava codificado como "vencedor M73 x vencedor M74", mas o confronto real é "vencedor M73 x vencedor M76"). Isso não geraria um resultado errado — a busca por esse confronto na ESPN simplesmente nunca bateria, então os emails automáticos das Oitavas em diante parariam silenciosamente de funcionar assim que a Fase de Grupos... digo, a Rodada de 32 terminasse (R16 começa 4/jul, faltavam só 2 dias). Corrigido e verificado programaticamente contra `data.js` (todos os 32 confrontos batem agora) e com simulação completa do torneio (bracket "perfeito" resolve o campeão corretamente através das 4 rodadas de mata-mata).
+- **[Alto] Pontos de bônus (campeão/vice/3º/4º: 25/15/10/5 pts) nunca eram somados no total do email** — só eram usados como critério de desempate, nunca como pontos de fato. O site já soma esses pontos no total (`scoreEntry`). Assim que alguém acertasse um palpite de pódio (o que só é possível perto da final), o total mostrado no email ficaria MENOR que o total real do site — divergência que só apareceria bem na reta final, quando o dinheiro do prêmio está em jogo.
+- **[Alto] 4º lugar computado mas descartado**: as duas funções de resolução de pódio calculavam a variável `fourth` internamente mas nunca a incluíam no dicionário retornado — o bônus de 4º lugar (+5) nunca conseguia ser concedido a ninguém, mesmo que a lógica acima estivesse corrigida.
+- **[Baixo] Validação de placar mais permissiva no Python que no site**: `_parse()` aceitava negativos e valores acima de 20 que o formulário do site (`parseScore`) já rejeita — endurecido pra bater exatamente com a mesma regra (dígitos, 0–20).
+
+Todas as correções verificadas com testes automatizados: comparação programática linha a linha entre `MATCH_TEAMS` e `data.js`, simulação de torneio completo com bracket perfeito (campeão resolve corretamente através de 4 rodadas, bônus = 55 pts, total bate com o esperado), e `build_html()` ponta a ponta com múltiplas entradas e resultados mistos.
+
 ## v4.56 — 2026-07-02
 
 ### Changed
