@@ -2645,11 +2645,34 @@ function mapEspnToLiveScores(events) {
   return out;
 }
 
+// The running clock interpolates seconds between 60s ESPN polls. ESPN's own
+// feed lags the real broadcast by anywhere from a few seconds up to ~1-2 min
+// (worse right after the tab was backgrounded and resumes with a fresh poll).
+// Without this guard, a freshly-polled clockSeconds that's behind what we'd
+// already extrapolated on screen makes the visible clock jump backward —
+// exactly the "resets when I leave and come back" symptom. Small backward
+// drift is treated as feed lag and smoothed over; a large jump (new half,
+// extra time kickoff) is a legitimate reset and passes through untouched.
+function mergeLiveClock(fresh, prev) {
+  if (!prev || prev.clockSeconds == null || fresh.clockSeconds == null) return fresh;
+  const elapsed = (fresh.pollTime - prev.pollTime) / 1000;
+  if (elapsed <= 0) return fresh;
+  const extrapolated = prev.clockSeconds + elapsed;
+  const behindBy = extrapolated - fresh.clockSeconds;
+  if (behindBy > 0 && behindBy < 150) {
+    return { ...fresh, clockSeconds: extrapolated };
+  }
+  return fresh;
+}
+
 async function pollLiveScores() {
   const prevIds = new Set(Object.keys(_liveScores));
   const events = await fetchEspnFixtures();
   if (!events) return;
-  _liveScores = mapEspnToLiveScores(events);
+  const fresh = mapEspnToLiveScores(events);
+  const merged = {};
+  for (const [mid, ls] of Object.entries(fresh)) merged[mid] = mergeLiveClock(ls, _liveScores[mid]);
+  _liveScores = merged;
   _liveScorePollTime = Date.now();
   _prevLiveIds = prevIds;
 

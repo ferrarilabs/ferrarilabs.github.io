@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v4.47 — 2026-07-02
+
+### Fixed
+- **Relógio ao vivo "resetando" ao voltar pra aba (durante o jogo da Espanha)**: o cronômetro interpolado podia visivelmente pular pra trás quando o app fazia um poll novo na ESPN logo depois do usuário sair e voltar pra página — o feed gratuito da ESPN atrasa em relação ao tempo real (tipicamente até ~1-2 min, pior logo após retomar). Adicionado `mergeLiveClock()`: se o valor novo da ESPN estiver *pouco* atrasado em relação ao que já estava na tela, o relógio continua contando a partir do valor extrapolado em vez de saltar pra trás. Um salto grande (ex: início do 2º tempo, prorrogação) continua passando normalmente — não é bloqueado.
+
 ## v4.46 — 2026-07-02
 
 ### Changed
