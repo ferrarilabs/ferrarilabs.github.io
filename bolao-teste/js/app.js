@@ -361,14 +361,32 @@ function renderNextMatch() {
   const next    = nextScheduledMatch();
 
   if (hasLive) {
+    const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
     const items = Object.entries(_liveScores).map(([mid, ls]) => {
       const m = DATA.knockoutMatches.find(x => x.match === mid)
              || DATA.groupMatches?.find(x => x.match === mid);
       const tA = m?.teamA || "A", tB = m?.teamB || "B";
+      const pointsBlock = knockoutIds.has(String(mid))
+        ? `<div class="hero-live-points picks-detail">${liveMatchPointsTable(mid, ls.goalsA, ls.goalsB)}</div>`
+        : "";
       return `<div class="hero-live-card">
-        <div class="hero-live-badge">⚽ ${escapeHtml(t("liveNow"))} · ${escapeHtml(ls.clock)}</div>
-        <div class="hero-live-score">${ls.goalsA} — ${ls.goalsB}</div>
-        <div class="hero-live-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} × ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+      <div class="hero-live-top">
+        <div class="hero-live-team">
+          <span class="hero-live-flag">${escapeHtml(flag(tA))}</span>
+          <span class="hero-live-team-name">${escapeHtml(tA)}</span>
+        </div>
+        <div class="hero-live-score">${ls.goalsA}</div>
+        <div class="hero-live-center">
+          <span class="hero-live-badge">${escapeHtml(t("liveNow"))}</span>
+          <span class="hero-live-clock">${escapeHtml(ls.clock)}</span>
+        </div>
+        <div class="hero-live-score">${ls.goalsB}</div>
+        <div class="hero-live-team">
+          <span class="hero-live-flag">${escapeHtml(flag(tB))}</span>
+          <span class="hero-live-team-name">${escapeHtml(tB)}</span>
+        </div>
+      </div>
+      ${pointsBlock}
       </div>`;
     }).join("");
     card.innerHTML = `<div class="next-match-live-grid">${items}</div>`;
@@ -1334,26 +1352,37 @@ function lockIfCutoff() {
   if (closed) $$("#bracketForm input,#bracketForm select,#smartPick,#randomPick").forEach(el => { el.disabled = true; });
 }
 
-// Rank-movement arrows (like a league table): compares each entry's position
-// against the last time the scores actually changed, not every re-render —
-// so incidental redraws (language switch, countdown tick) don't reset them.
-let _rankSnapshot = {};
-let _rankSignature = null;
-let _rankArrows = {};
+// Rank-movement arrows (like a live league table): compares each id's position
+// in `items` against the last time this `key`'s scores actually changed, not
+// every re-render — so incidental redraws (language switch, countdown tick,
+// a poll that finds no change) don't reset the arrows. Keyed so the overall
+// ranking and each live match's provisional table track movement separately.
+const _rankArrowState = new Map();
 
-function updateRankArrows(ranked) {
-  const signature = ranked.map(e => `${e.id}:${e._score}`).join("|");
-  if (signature === _rankSignature) return;
-  const arrows = {};
-  ranked.forEach((e, i) => {
-    const prevRank = _rankSnapshot[e.id];
-    arrows[e.id] = prevRank === undefined ? null : i < prevRank ? "up" : i > prevRank ? "down" : null;
-  });
-  const snapshot = {};
-  ranked.forEach((e, i) => { snapshot[e.id] = i; });
-  _rankArrows = arrows;
-  _rankSnapshot = snapshot;
-  _rankSignature = signature;
+function computeRankArrows(key, items) {
+  const sorted = [...items].sort((a, b) => b.score - a.score);
+  let st = _rankArrowState.get(key);
+  if (!st) { st = { signature: null, snapshot: {}, arrows: {} }; _rankArrowState.set(key, st); }
+  const signature = sorted.map(x => `${x.id}:${x.score}`).join("|");
+  if (signature !== st.signature) {
+    const arrows = {};
+    sorted.forEach((x, i) => {
+      const prevRank = st.snapshot[x.id];
+      arrows[x.id] = prevRank === undefined ? null : i < prevRank ? "up" : i > prevRank ? "down" : null;
+    });
+    const snapshot = {};
+    sorted.forEach((x, i) => { snapshot[x.id] = i; });
+    st.arrows = arrows;
+    st.snapshot = snapshot;
+    st.signature = signature;
+  }
+  return st.arrows;
+}
+
+function rankArrowHtml(arrow) {
+  if (arrow === "up") return ` <span class="rank-arrow up" title="${escapeHtml(t("rankUp"))}">▲</span>`;
+  if (arrow === "down") return ` <span class="rank-arrow down" title="${escapeHtml(t("rankDown"))}">▼</span>`;
+  return "";
 }
 
 function renderRanking() {
@@ -1366,13 +1395,11 @@ function renderRanking() {
   const ranked = s.entries
     .map(e => { const sc = scoreEntry(e, s); return { ...e, _score: sc.total, _bonus: sc.bonus }; })
     .sort((a, b) => b._score - a._score);
-  updateRankArrows(ranked);
+  const arrows = computeRankArrows("ranking", ranked.map(e => ({ id: e.id, score: e._score })));
   box.innerHTML = "";
   ranked.forEach((e, i) => {
     const medal = ["🥇","🥈","🥉"][i] || `${i + 1}`;
-    const arrow = _rankArrows[e.id];
-    const arrowHtml = arrow === "up" ? ` <span class="rank-arrow up" title="${escapeHtml(t("rankUp"))}">▲</span>`
-      : arrow === "down" ? ` <span class="rank-arrow down" title="${escapeHtml(t("rankDown"))}">▼</span>` : "";
+    const arrowHtml = rankArrowHtml(arrows[e.id]);
     const bonusLine = e._bonus?.total ? ` · ${t("bonusLabel")} +${e._bonus.total}` : "";
     const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
     const row = document.createElement("div");
@@ -2174,15 +2201,16 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
     .map(e => {
       const pick = e.picks?.[matchId];
       const pts = liveMatchPoints(pick, liveGoalsA, liveGoalsB);
-      return { name: e.entryName || "?", pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—", pts };
+      return { id: e.id, name: e.entryName || "?", pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—", pts };
     })
     .filter(row => row.pts !== null)
     .sort((a, b) => b.pts - a.pts);
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
-  const trs = rows.map(row =>
-    `<tr><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.pts > 0 ? " pos" : ""}">${row.pts}</b></td></tr>`
+  const arrows = computeRankArrows(`live:${matchId}`, rows.map(r => ({ id: r.id, score: r.pts })));
+  const trs = rows.map((row, i) =>
+    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(arrows[row.id])}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.pts > 0 ? " pos" : ""}">${row.pts}</b></td></tr>`
   ).join("");
-  return `<table><thead><tr><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
+  return `<table><thead><tr><th>${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
 }
 
