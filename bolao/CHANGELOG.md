@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v4.59 — 2026-07-02
+
+### Changed
+- **Relógio ao vivo mostra acréscimos e intervalo, estilo Google**: pedido depois de um print do placar do Google (Portugal x Croácia, "46:03 (+4)" no intervalo). Agora, quando o relógio passa de 45/90/105/120 minutos, mostra "(+N)" com os minutos de acréscimo em vez de só continuar contando (ex: "46:03 (+2)"). Durante o intervalo (detectado via status da ESPN), mostra "Intervalo" em vez de um relógio andando — antes o relógio interpolado continuava subindo durante o intervalo todo, o que não fazia sentido (o jogo não está rolando). Aplica no card "ao vivo" do hero e no chip de status da aba Jogos. O cálculo de probabilidade ao vivo (minuto da partida) foi desacoplado do texto exibido, usando o `clockSeconds` bruto diretamente, pra não quebrar com o novo texto "(+N)"/"Intervalo".
+
 ## v4.58 — 2026-07-02
 
 ### Added — auditoria automática antes de CADA envio de email, não só uma vez

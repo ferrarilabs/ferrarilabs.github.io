@@ -374,9 +374,13 @@ function renderNextMatch() {
         : "";
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const scorersBlock = goalScorersHtml(ls, tA, tB);
-      const runningClock = ls.clockSeconds !== null
-        ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
-        : ls.clock;
+      // Halftime is a real break, not more elapsed play time — don't let the
+      // interpolation below keep ticking the clock forward through it.
+      const runningClock = ls.isHalftime
+        ? ls.clock
+        : ls.clockSeconds !== null
+          ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
+          : ls.clock;
       return `<div class="hero-live-card">
       <div class="hero-live-top">
         <div class="hero-live-team">
@@ -1924,7 +1928,13 @@ function preMatchProbBarsHtml(m) {
 function liveProbBarsHtml(m, live) {
   const a = m.teamA || "", b = m.teamB || "";
   if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
-  const minute = parseMinute(live.clock);
+  // Derive minute from the raw clockSeconds, not the display string — the
+  // string can now read "(+2)" mid-stoppage or "Intervalo" at halftime,
+  // neither of which parseMinute's leading-digit regex should have to
+  // handle correctly on our behalf.
+  const minute = live.clockSeconds != null
+    ? Math.min(Math.floor(live.clockSeconds / 60), 90)
+    : parseMinute(live.clock);
   const isTied = live.goalsA === live.goalsB;
   if (minute < 0 || (minute >= 90 && isTied && !m.group)) return "";
   const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
@@ -2685,10 +2695,21 @@ let _liveScorePollTime = 0;
 let _prevLiveIds = new Set();
 const _openLiveDetails = new Set();
 
+// Regulation/extra-time half boundaries, in minutes, checked largest-first —
+// once the clock passes one, show "(+N)" stoppage minutes past it, the same
+// convention broadcasters (and Google's live scoreboard) use instead of a
+// raw minute count that just keeps climbing past 45/90.
+const HALF_BOUNDARIES_MIN = [120, 105, 90, 45];
+
 function formatMatchClock(totalSeconds) {
   const m = Math.floor(totalSeconds / 60);
   const s = Math.floor(totalSeconds % 60);
-  return `${m}:${String(s).padStart(2, "0")}`;
+  const base = `${m}:${String(s).padStart(2, "0")}`;
+  const totalMinutes = totalSeconds / 60;
+  const boundary = HALF_BOUNDARIES_MIN.find(b => totalMinutes > b);
+  if (!boundary) return base;
+  const stoppageMin = Math.max(1, Math.ceil((totalSeconds - boundary * 60) / 60));
+  return `${base} (+${stoppageMin})`;
 }
 
 // Provisional per-entry points for a match still in progress: goals-correct
@@ -2837,19 +2858,29 @@ function mapEspnToLiveScores(events) {
       const n1 = normalizeTeamName(c1.team?.displayName);
       const s0 = parseInt(c0.score || "0", 10), s1 = parseInt(c1.score || "0", 10);
       const clockSeconds = typeof comp.status?.clock === "number" ? comp.status.clock : null;
-      const clock = clockSeconds !== null && clockSeconds >= 0
-        ? formatMatchClock(clockSeconds)
-        : (comp.status?.type?.shortDetail || "");
+      // ESPN's break-state naming isn't confirmed without live testing (no
+      // network access from this sandbox) — best-effort match on the common
+      // enum/description shapes, falls back to the normal clock if it
+      // doesn't hit so a miss here never breaks the display, just skips the
+      // "Intervalo" label.
+      const statusName = (comp.status?.type?.name || "").toUpperCase();
+      const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""}`.toLowerCase();
+      const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
+      const clock = isHalftime
+        ? t("liveHalftime")
+        : clockSeconds !== null && clockSeconds >= 0
+          ? formatMatchClock(clockSeconds)
+          : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, isHalftime, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
       if (n1 === normA && n0 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "B" : "A", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, isHalftime, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
     }
