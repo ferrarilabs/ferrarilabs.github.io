@@ -373,6 +373,7 @@ function renderNextMatch() {
         ? `<div class="hero-live-points picks-detail">${liveMatchPointsTable(mid, ls.goalsA, ls.goalsB)}</div>`
         : "";
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
+      const scorersBlock = goalScorersHtml(ls, tA, tB);
       const runningClock = ls.clockSeconds !== null
         ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
         : ls.clock;
@@ -393,6 +394,7 @@ function renderNextMatch() {
           <span class="hero-live-team-name">${escapeHtml(tB)}</span>
         </div>
       </div>
+      ${scorersBlock}
       ${probBlock}
       ${pointsBlock}
       </div>`;
@@ -1588,6 +1590,7 @@ function renderGames() {
   ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
   <div class="game-team right">${escapeHtml(b)} ${escapeHtml(flag(b))}</div>
 </div>
+${live ? goalScorersHtml(live, a, b) : ""}
 ${probBarsHtml}
 ${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
     box.appendChild(div);
@@ -1929,6 +1932,26 @@ function liveProbBarsHtml(m, live) {
   const { lambdaA, lambdaB } = statsAdjustedLambdas(base.lambdaA, base.lambdaB, _espnStatsCache.get(m.match));
   const ip = inPlayProb(lambdaA, lambdaB, minute, live.goalsA, live.goalsB);
   return probBarsMarkup(ip.pA, ip.pD, ip.pB, a, b, drawLabel);
+}
+
+// Goal-scorer + minute list for a live match (Google/ESPN scoreboard style),
+// shared by the hero live card and the Jogos tab's game cards. Silently
+// renders nothing if ESPN didn't return scoring-play detail for this match.
+function goalScorersHtml(live, tA, tB) {
+  const scorers = live?.scorers;
+  if (!Array.isArray(scorers) || !scorers.length) return "";
+  const rows = scorers
+    .filter(g => g.scorer || g.minute)
+    .map(g => {
+      const teamName = g.side === "A" ? tA : tB;
+      return `<div class="goal-scorer-row">
+        <span class="goal-scorer-flag">${escapeHtml(flag(teamName))}</span>
+        <span class="goal-scorer-name">${escapeHtml(g.scorer || "")}</span>
+        <span class="goal-scorer-minute">${escapeHtml(g.minute || "")}</span>
+      </div>`;
+    });
+  if (!rows.length) return "";
+  return `<div class="goal-scorers">${rows.join("")}</div>`;
 }
 
 // Cache pWinA for each ordered team pair to avoid recomputing Poisson for
@@ -2693,22 +2716,30 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
     .sort((a, b) => (officialScore[b.id] || 0) - (officialScore[a.id] || 0))
     .forEach((e, i) => { officialRank[e.id] = i; });
 
-  // Provisional rank: add live match pts to every entry, re-rank all entries
+  // Points this live match would add for each entry (null = no pick for it)
+  const livePtsRaw = {};
+  entries.forEach(e => { livePtsRaw[e.id] = liveMatchPoints(e.picks?.[matchId], liveGoalsA, liveGoalsB); });
+
+  // Provisional rank: add live match pts to every entry, re-rank all entries.
+  // Tie-broken by this match's own live points so the assigned "Pos." always
+  // matches the order rows are displayed in below — previously the rank here
+  // and the visual row sort used different tie-breaks and could disagree
+  // (e.g. two entries tied on provisional total but the one further ahead
+  // in this specific match would render above a "lower Pos." entry).
   const provScore = {};
-  entries.forEach(e => {
-    const livePts = liveMatchPoints(e.picks?.[matchId], liveGoalsA, liveGoalsB) ?? 0;
-    provScore[e.id] = (officialScore[e.id] || 0) + livePts;
-  });
+  entries.forEach(e => { provScore[e.id] = (officialScore[e.id] || 0) + (livePtsRaw[e.id] ?? 0); });
   const provRank = {};
   [...entries]
-    .sort((a, b) => (provScore[b.id] || 0) - (provScore[a.id] || 0))
+    .sort((a, b) => (provScore[b.id] || 0) - (provScore[a.id] || 0) || (livePtsRaw[b.id] ?? 0) - (livePtsRaw[a.id] ?? 0))
     .forEach((e, i) => { provRank[e.id] = i; });
 
-  // Show only entries with picks for this match, sorted by provisional overall total
+  // Show only entries with picks for this match, sorted by that same
+  // provisional rank — guaranteed consistent with the Pos. column by
+  // construction, can't diverge again.
   const rows = entries
     .map(e => {
       const pick = e.picks?.[matchId];
-      const livePts = liveMatchPoints(pick, liveGoalsA, liveGoalsB);
+      const livePts = livePtsRaw[e.id];
       if (livePts === null) return null;
       const oRank = officialRank[e.id] ?? 0;
       const pRank = provRank[e.id] ?? 0;
@@ -2725,7 +2756,7 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
       };
     })
     .filter(Boolean)
-    .sort((a, b) => b.provTotal - a.provTotal || b.livePts - a.livePts);
+    .sort((a, b) => a.provPos - b.provPos);
 
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
 
@@ -2734,6 +2765,32 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
   ).join("");
   return `<table><thead><tr><th style="text-align:center">${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th style="text-align:center">${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
+}
+
+// Pulls goal-scorer + minute from the same scoreboard event we already
+// fetch for the score/clock (comp.details), so no extra network call.
+// Best-effort: ESPN's exact field names for this aren't confirmed without
+// live testing, so this fails soft (empty array) if the shape doesn't match.
+function extractGoalEvents(comp) {
+  const details = Array.isArray(comp.details) ? comp.details : [];
+  const [c0, c1] = comp.competitors || [];
+  const goals = [];
+  for (const d of details) {
+    const isGoal = d.scoringPlay === true || /goal/i.test(d.type?.text || d.type?.name || "");
+    if (!isGoal) continue;
+    const teamId = d.team?.id;
+    let side = null;
+    if (teamId != null && c0?.team?.id != null && String(teamId) === String(c0.team.id)) side = "c0";
+    else if (teamId != null && c1?.team?.id != null && String(teamId) === String(c1.team.id)) side = "c1";
+    if (!side) continue;
+    const athlete = d.athletesInvolved?.[0];
+    const scorer = athlete?.displayName || athlete?.shortName || null;
+    const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
+    const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
+    if (!scorer && !minute) continue;
+    goals.push({ side, scorer, minute, order: clockVal ?? 0 });
+  }
+  return goals.sort((a, b) => a.order - b.order);
 }
 
 function mapEspnToLiveScores(events) {
@@ -2762,8 +2819,17 @@ function mapEspnToLiveScores(events) {
         ? formatMatchClock(clockSeconds)
         : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
-      if (n0 === normA && n1 === normB) { out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId }; break; }
-      if (n1 === normA && n0 === normB) { out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId }; break; }
+      const goalEvents = extractGoalEvents(comp);
+      if (n0 === normA && n1 === normB) {
+        const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
+        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId, scorers };
+        break;
+      }
+      if (n1 === normA && n0 === normB) {
+        const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "B" : "A", scorer: g.scorer, minute: g.minute }));
+        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId, scorers };
+        break;
+      }
     }
   }
   return out;

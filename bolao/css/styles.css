@@ -204,6 +204,26 @@ h3 { font-size: 1.05rem; }
   border-top: 1px solid var(--border2);
 }
 .hero-live-points p.muted { margin: 0; text-align: center; }
+.goal-scorers {
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.goal-scorer-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.goal-scorer-flag { font-size: 14px; flex-shrink: 0; }
+.goal-scorer-name { font-weight: 700; color: var(--text); }
+.goal-scorer-minute { margin-left: auto; flex-shrink: 0; font-variant-numeric: tabular-nums; }
 .hero-live-team {
   display: flex;
   flex-direction: column;
