@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v4.43 — 2026-07-02
+
+### Fixed
+- **Countdown sem jitter de tamanho**: horas e minutos agora são sempre 2 dígitos (padStart "0"), igual aos segundos. Somado a `font-variant-numeric: tabular-nums` e `min-width: 2ch` nos dígitos, a caixa do countdown não muda mais de largura a cada segundo.
+
+### Added
+- **Versão e última sincronização discreta no rodapé**: rodapé minúsculo (11px, opacity 60%) mostra `v4.43 · sync 02/07 14:32 ET` — útil para confirmar visualmente que o deploy chegou e quando foi a última sincronização com o Supabase.
+
 ## v4.42 — 2026-07-02
 
 ### Added

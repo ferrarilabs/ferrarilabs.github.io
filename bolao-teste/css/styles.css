@@ -347,8 +347,18 @@ h3 { font-size: 1.05rem; }
   border-radius: 12px;
   padding: 10px 6px;
   text-align: center;
+  min-width: 52px;
 }
-.count-grid b { display: block; color: var(--green); font-size: 26px; font-weight: 900; }
+.count-grid b {
+  display: block;
+  color: var(--green);
+  font-size: 26px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -.5px;
+  min-width: 2ch;
+  margin: 0 auto;
+}
 .count-grid span { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 #cutoffLabel { display: block; margin-top: 10px; font-size: 11px; color: var(--muted); }
 
@@ -735,3 +745,17 @@ select:focus-visible {
   vertical-align: middle;
   margin-left: 6px;
 }
+
+/* ── Site footer — version + last sync ── */
+.site-footer-bar {
+  margin-top: 32px;
+  padding: 10px 16px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  border-top: 1px solid var(--border2);
+  opacity: .6;
+  user-select: none;
+}
+.site-footer-bar a { color: inherit; text-decoration: none; }
+.site-footer-bar a:hover { text-decoration: underline; }

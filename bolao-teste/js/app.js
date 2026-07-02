@@ -320,11 +320,12 @@ function updateCountdown() {
   const s = Math.floor(diff / 1000);
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
         m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const p2 = n => String(n).padStart(2, "0");
   box.innerHTML = `<div class="count-grid">
     <div><b>${d}</b><span>${t("countdownDays")}</span></div>
-    <div><b>${h}</b><span>${t("countdownHours")}</span></div>
-    <div><b>${m}</b><span>${t("countdownMin")}</span></div>
-    <div><b>${String(sec).padStart(2,"0")}</b><span>${t("countdownSec")}</span></div>
+    <div><b>${p2(h)}</b><span>${t("countdownHours")}</span></div>
+    <div><b>${p2(m)}</b><span>${t("countdownMin")}</span></div>
+    <div><b>${p2(sec)}</b><span>${t("countdownSec")}</span></div>
   </div>`;
   const lbl = $("#cutoffLabel");
   if (lbl) lbl.textContent = CONFIG.cutoffLabel;
@@ -414,9 +415,10 @@ function renderNextMatch() {
     const h   = Math.floor((totalS % 86400) / 3600);
     const min = Math.floor((totalS % 3600) / 60);
     const sec = totalS % 60;
+    const p2  = n => String(n).padStart(2, "0");
     const cells = d > 0
-      ? [[d, t("countdownDays")], [h, t("countdownHours")], [min, t("countdownMin")], [String(sec).padStart(2,"0"), t("countdownSec")]]
-      : [[h, t("countdownHours")], [min, t("countdownMin")], [String(sec).padStart(2,"0"), t("countdownSec")]];
+      ? [[d, t("countdownDays")], [p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]]
+      : [[p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]];
     timerHtml = `<div class="count-grid next-match-timer">${
       cells.map(([v, l]) => `<div><b>${v}</b><span>${escapeHtml(l)}</span></div>`).join("")
     }</div>`;
@@ -2424,6 +2426,18 @@ function stopLiveScorePolling() {
 /* ============================================================
    Main render
    ============================================================ */
+function renderFooterBar() {
+  const el = $("#siteFooterBar");
+  if (!el) return;
+  const s = state();
+  const syncAt = s.meta?.updatedAt
+    ? new Date(s.meta.updatedAt).toLocaleString("pt-BR", { timeZone: "America/New_York", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
+    : null;
+  el.innerHTML = syncAt
+    ? `${escapeHtml(CONFIG.siteVersion)} · sync ${escapeHtml(syncAt)} ET`
+    : escapeHtml(CONFIG.siteVersion);
+}
+
 function renderAll() {
   applyLanguage();
   updateCountdown();
@@ -2439,6 +2453,7 @@ function renderAll() {
   renderGames();
   renderRules();
   updateDynamic();
+  renderFooterBar();
   if (isAdminActive() && !$("#adminArea")?.classList.contains("hidden")) renderAdmin();
 }
 
