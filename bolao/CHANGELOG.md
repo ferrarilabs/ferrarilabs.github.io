@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v4.56 — 2026-07-02
+
+### Changed
+- **Lista de artilheiros dividida em duas colunas, uma pro lado de cada time (Eduardo):** "identado ao lado do time... assim se os dois times fizerem gol você tem um na esquerda e um na direita, tipo o Google." Antes era uma lista única centralizada com uma bandeirinha por linha; agora os gols do time A ficam na coluna esquerda e os do time B na direita, alinhados como os nomes dos times logo acima — quem fez o gol fica óbvio pela posição, sem precisar de bandeira em cada linha.
+
 ## v4.55 — 2026-07-02
 
 ### Fixed

@@ -1943,23 +1943,26 @@ function liveProbBarsHtml(m, live) {
 }
 
 // Goal-scorer + minute list for a live match (Google/ESPN scoreboard style),
-// shared by the hero live card and the Jogos tab's game cards. Silently
+// shared by the hero live card and the Jogos tab's game cards. Split into two
+// columns under each team's own side (left = team A, right = team B) — same
+// left/right convention as the team names/flags above it — so which team
+// scored is obvious from position alone, no per-row flag needed. Silently
 // renders nothing if ESPN didn't return scoring-play detail for this match.
 function goalScorersHtml(live, tA, tB) {
   const scorers = live?.scorers;
   if (!Array.isArray(scorers) || !scorers.length) return "";
-  const rows = scorers
-    .filter(g => g.scorer || g.minute)
-    .map(g => {
-      const teamName = g.side === "A" ? tA : tB;
-      return `<div class="goal-scorer-row">
-        <span class="goal-scorer-flag">${escapeHtml(flag(teamName))}</span>
+  const rowHtml = g => `<div class="goal-scorer-row">
         <span class="goal-scorer-name">${escapeHtml(g.scorer || "")}</span>
         <span class="goal-scorer-minute">${escapeHtml(g.minute || "")}</span>
       </div>`;
-    });
-  if (!rows.length) return "";
-  return `<div class="goal-scorers">${rows.join("")}</div>`;
+  const withText = g => g.scorer || g.minute;
+  const leftRows = scorers.filter(g => g.side === "A" && withText(g)).map(rowHtml);
+  const rightRows = scorers.filter(g => g.side === "B" && withText(g)).map(rowHtml);
+  if (!leftRows.length && !rightRows.length) return "";
+  return `<div class="goal-scorers">
+    <div class="goal-scorer-col left">${leftRows.join("")}</div>
+    <div class="goal-scorer-col right">${rightRows.join("")}</div>
+  </div>`;
 }
 
 // Cache pWinA for each ordered team pair to avoid recomputing Poisson for
