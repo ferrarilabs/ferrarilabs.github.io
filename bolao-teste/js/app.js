@@ -1975,7 +1975,9 @@ function normalizeTeamName(name) {
     .trim()
     .replace(/\bcote d ivoire\b|\bivory coast\b/g, "ivory coast")
     .replace(/\bunited states(?: of america)?\b|\busa\b/g, "united states")
-    .replace(/\bbih\b/g, "bosnia and herzegovina");
+    .replace(/\bbosniaherzegovina\b|\bbosnia herzegovina\b|\bbih\b/g, "bosnia and herzegovina")
+    .replace(/\bcongo dr\b|\bdr congo\b|\bdemocratic republic of(?: the)? congo\b|\bcod\b/g, "dr congo")
+    .replace(/\bturkiye\b|\bturkey\b/g, "turkiye");
 }
 
 async function fetchApiFootballFixtures() {
