@@ -187,10 +187,10 @@ def fetch_espn_results(saved_results=None):
         # Prevents group-stage matches (same teams, earlier date) from being
         # mistaken for knockout results.
         min_date = ROUND_MIN_DATE.get(str(mid), "2026-06-29")
-        candidates = [(comp, comps) for comp, comps, ed in event_map[key] if ed >= min_date]
+        candidates = [(comp, comps, ed) for comp, comps, ed in event_map[key] if ed >= min_date]
         if not candidates:
             continue
-        comp, comps = candidates[0]
+        comp, comps, ev_date = candidates[0]
 
         st = comp.get("status", {}).get("type", {})
         if st.get("state") != "post":
@@ -218,7 +218,8 @@ def fetch_espn_results(saved_results=None):
             print(f"  WARN M{mid}: ESPN shows no winner yet — skipping")
             continue
 
-        found[str(mid)] = {"goalsA": gA, "goalsB": gB, "advanceSide": side, "desc": desc}
+        found[str(mid)] = {"goalsA": gA, "goalsB": gB, "advanceSide": side, "desc": desc,
+                            "date": ev_date, "teamA": tA, "teamB": tB}
 
     return found
 
@@ -712,6 +713,15 @@ def run_auto():
     Save + email each new match in chronological order.
     Idempotent — already-saved matches are skipped.
     """
+    print("AUTO — running scoring/ranking self-audit before touching anything...")
+    import audit_scoring
+    audit_ok, _ = audit_scoring.run_static_audit(sys.modules[__name__], verbose=True)
+    if not audit_ok:
+        print("\n🛑 SELF-AUDIT FAILED — refusing to send any emails until this is fixed.")
+        print("This usually means the bracket mapping or scoring logic has drifted from app.js.")
+        sys.exit(1)
+    print("✓ Self-audit passed.\n")
+
     print("AUTO — fetching Supabase state...")
     state        = sb_fetch()
     saved        = {k: v for k, v in state.get("results", {}).items() if v.get("advanceSide")}
@@ -756,10 +766,21 @@ def run_auto():
     confirmed_mids = []
     for mid in new_mids:
         r1, r2 = espn[mid], espn_confirm.get(mid)
-        if r2 and r1["goalsA"] == r2["goalsA"] and r1["goalsB"] == r2["goalsB"] and r1["advanceSide"] == r2["advanceSide"]:
-            confirmed_mids.append(mid)
-        else:
+        if not (r2 and r1["goalsA"] == r2["goalsA"] and r1["goalsB"] == r2["goalsB"] and r1["advanceSide"] == r2["advanceSide"]):
             print(f"  WARN M{mid}: result not stable across two checks ({r1} vs {r2}) — skipping for now, will retry next run.")
+            continue
+
+        # Per-match runtime sanity check — guards against the specific failure
+        # mode that happened before (CHANGELOG: "Resultados somente do banco
+        # de dados"): a result appearing for a match that hasn't actually been
+        # played. Never trust a "confirmed stable" result blindly.
+        real_ok, real_detail = audit_scoring.check_match_is_real(mid, r2.get("date"), r2.get("teamA"), r2.get("teamB"))
+        shape_ok, shape_detail = audit_scoring.check_result_shape(r2)
+        if not (real_ok and shape_ok):
+            print(f"  🛑 WARN M{mid}: failed runtime sanity check — {real_detail} {shape_detail} — skipping, will NOT save or email.")
+            continue
+
+        confirmed_mids.append(mid)
 
     if not confirmed_mids:
         print("No matches confirmed stable. Nothing to do this cycle.")

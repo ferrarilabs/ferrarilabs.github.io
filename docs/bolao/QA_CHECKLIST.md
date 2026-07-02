@@ -113,23 +113,26 @@ python3 -m http.server 8080
 - [ ] Scoring: exact score gives 10pts; advance only gives 5pts; one goal match gives 1pt.
 - [ ] Bonus: champion match correctly identified as Match 104; 3rd place as Match 103.
 
-## Scoring/ranking parity — run before ANY PR that touches results, ranking, bracket data, or `bolao/scripts/*.py`
+## Scoring/ranking parity — run before ANY PR, always, no exceptions
 
-Added after a July 2026 audit found `send_result_email.py` had silently drifted from
-`app.js` (wrong R16/QF bracket pairing, missing bonus points — see CHANGELOG v4.57).
+**This is the part of the site that can never be broken — real money is paid out based
+on it.** Added after a July 2026 audit found `send_result_email.py` had silently drifted
+from `app.js` (wrong R16/QF bracket pairing, missing bonus points — see CHANGELOG v4.57).
 The site itself can't internally disagree with itself (one `scoreEntry()` used
-everywhere), but the standalone Python email script re-implements the same logic and
-has no way to catch drift automatically. Check by hand every time:
+everywhere), but the standalone Python email script re-implements the same logic and has
+no way to catch drift automatically without an explicit check.
 
-- [ ] `bolao/scripts/send_result_email.py`'s `MATCH_TEAMS` dict exactly mirrors every
-      `teamA`/`teamB` pair in `bolao/js/data.js`'s `knockoutMatches` (including R16/QF
-      `W`/`L` slot references — cross-check match-by-match, not just row count).
-- [ ] Bonus points (champion/runner-up/3rd/4th: 25/15/10/5) are present in whatever
-      function computes an entry's *total* in both `app.js` (`scoreEntry`) and
-      `send_result_email.py` (`score_entry_total`) — not just used for tiebreak order.
-- [ ] Run a full mock-tournament simulation against `send_result_email.py` (all 32
-      knockout matches decided, one entry with a "perfect" bracket) and confirm the
-      champion resolves correctly through all 4 rounds and the total equals
-      `(match points) + 25 + 15 + 10 + 5`. See v4.57's commit for a working test script.
-- [ ] Tiebreak cascade order (total → exact scores → podium hits) matches across the
-      website ranking, the admin's manual email builder, and `send_result_email.py`.
+- [ ] Run `python3 bolao/scripts/audit_scoring.py` — exit code 0 and all 5 checks pass.
+      `send_result_email.py --auto` also runs this automatically before every send and
+      refuses to email anyone if it fails, but run it by hand too before opening a PR.
+- [ ] State explicitly in the PR/summary that this was run, even if the change looks
+      unrelated to scoring — say so either way ("audit re-run, still passes" or the
+      specific failure and fix). Two real bugs were found this way in code nobody thought
+      was scoring-related at the time.
+- [ ] If you touched `bolao/js/data.js`'s bracket, `bolao/js/config.js`'s `scoring`/`bonus`
+      values, or anything in `bolao/scripts/send_result_email.py`, also manually re-check
+      the tiebreak cascade (total → exact scores → podium hits) still matches across the
+      website ranking, the admin's manual email builder, and the auto-email script — the
+      audit script covers the Python side's internal correctness and its parity with
+      `data.js`, but a simultaneous change to both the bracket and the JS scoring logic in
+      the same PR is still worth eyeballing directly.
