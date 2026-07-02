@@ -2199,18 +2199,53 @@ function liveMatchPoints(pick, liveGoalsA, liveGoalsB) {
 
 function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
   const s = state();
-  const rows = (s.entries || [])
+  const entries = s.entries || [];
+  if (!entries.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
+
+  // Official score for every entry (before this live match)
+  const officialScore = {};
+  entries.forEach(e => { officialScore[e.id] = scoreEntry(e, s).total; });
+
+  // Official rank (position in overall ranking right now)
+  const officialRank = {};
+  [...entries]
+    .sort((a, b) => (officialScore[b.id] || 0) - (officialScore[a.id] || 0))
+    .forEach((e, i) => { officialRank[e.id] = i; });
+
+  // Provisional rank: add live match pts to every entry, re-rank all entries
+  const provScore = {};
+  entries.forEach(e => {
+    const livePts = liveMatchPoints(e.picks?.[matchId], liveGoalsA, liveGoalsB) ?? 0;
+    provScore[e.id] = (officialScore[e.id] || 0) + livePts;
+  });
+  const provRank = {};
+  [...entries]
+    .sort((a, b) => (provScore[b.id] || 0) - (provScore[a.id] || 0))
+    .forEach((e, i) => { provRank[e.id] = i; });
+
+  // Show only entries with picks for this match, sorted by their live pts
+  const rows = entries
     .map(e => {
       const pick = e.picks?.[matchId];
-      const pts = liveMatchPoints(pick, liveGoalsA, liveGoalsB);
-      return { id: e.id, name: e.entryName || "?", pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—", pts };
+      const livePts = liveMatchPoints(pick, liveGoalsA, liveGoalsB);
+      if (livePts === null) return null;
+      const oRank = officialRank[e.id] ?? 0;
+      const pRank = provRank[e.id] ?? 0;
+      return {
+        id: e.id,
+        name: e.entryName || "?",
+        pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—",
+        livePts,
+        arrow: pRank < oRank ? "up" : pRank > oRank ? "down" : null
+      };
     })
-    .filter(row => row.pts !== null)
-    .sort((a, b) => b.pts - a.pts);
+    .filter(Boolean)
+    .sort((a, b) => b.livePts - a.livePts);
+
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
-  const arrows = computeRankArrows(`live:${matchId}`, rows.map(r => ({ id: r.id, score: r.pts })));
+
   const trs = rows.map((row, i) =>
-    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(arrows[row.id])}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.pts > 0 ? " pos" : ""}">${row.pts}</b></td></tr>`
+    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(row.arrow)}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`
   ).join("");
   return `<table><thead><tr><th>${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
