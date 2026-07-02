@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v4.40 — 2026-07-01
+
+### Added
+- **Notificação automática de jogo encerrado (Parte A — browser)**: quando o ESPN confirma que um jogo acabou (live → não-live na próxima poll), aparece um banner verde sticky no topo da página com o placar e um botão "📧 Enviar emails agora". Se o admin estiver logado, o sync do ESPN já roda silenciosamente antes de mostrar o botão. Se não estiver logado, o banner mostra um link para a aba Admin.
+- **GitHub Actions — disparo manual (Parte B)**: removido o cron de `auto_results.yml`; o workflow agora só dispara via `workflow_dispatch` (botão "Run workflow" no GitHub.com ou app mobile). Roda `send_result_email.py --auto` que sincroniza ESPN → Supabase → envia emails para todos, de forma idempotente (não envia duplicatas).
+
+### Changed
+- `runEspnUpdate()` aceita `{ silent: true }` para rodar sem alerts quando chamado automaticamente pela detecção de fim de jogo.
+
 ## v4.39 — 2026-07-01
 
 ### Fixed
