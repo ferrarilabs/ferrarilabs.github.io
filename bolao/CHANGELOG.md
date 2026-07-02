@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v4.54 — 2026-07-02
+
+### Fixed
+- **Banner de "jogo encerrado" mostrava um botão de admin pra todo mundo**: Eduardo pegou um screenshot mostrando o banner com "🔐 Admin → enviar emails" aparecendo para um participante comum. O banner é público (dispara pra qualquer visitante quando um jogo termina), mas o botão navegava pra seção Admin — expondo um fluxo de admin pra todo o bolão. Agora só quem já está logado como admin vê algum botão de ação ali (o de "Enviar emails agora"); todo mundo mais só vê o aviso "Jogo encerrado! M{id} encerrado" e o X pra fechar.
+
 ## v4.53 — 2026-07-02
 
 ### Added
