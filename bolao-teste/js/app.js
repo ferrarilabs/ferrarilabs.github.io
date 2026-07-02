@@ -2468,3 +2468,7 @@ document.addEventListener("DOMContentLoaded", () => init().catch(err => console.
 window.Bolao = { openReceipt, downloadReceipt, showSection };
 
 })();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/bolao-teste/sw.js').catch(() => {});
+}
