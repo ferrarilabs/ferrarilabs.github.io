@@ -1,12 +1,7 @@
-name: Bolão — Auto resultado e email (cron)
+name: Bolão — Resultado e email (manual)
 
 on:
-  schedule:
-    # Every 10 min, 16:00-23:50 UTC = 12:00 PM–7:50 PM EDT
-    - cron: '*/10 16-23 * 6-7 *'
-    # Every 10 min, 00:00-05:50 UTC = 8:00 PM–1:50 AM EDT
-    - cron: '*/10 0-5 * 6-7 *'
-  workflow_dispatch:  # manual trigger from GitHub UI / mobile app
+  workflow_dispatch:  # trigger manual via GitHub UI ou app mobile
 
 # Prevent simultaneous runs — queue rather than cancel (avoids double-sends)
 concurrency:
@@ -38,7 +33,6 @@ jobs:
         run: |
           output=$(python3 auto_reopen.py 2>&1)
           echo "$output"
-          # Export last line as the action signal
           last_line=$(echo "$output" | tail -n 1)
           echo "action=$last_line" >> "$GITHUB_OUTPUT"
 

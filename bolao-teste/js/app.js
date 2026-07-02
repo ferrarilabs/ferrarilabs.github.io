@@ -2155,12 +2155,12 @@ function mapEspnToMatches(events) {
   return mapped;
 }
 
-async function runEspnUpdate() {
+async function runEspnUpdate({ silent = false } = {}) {
   if (!guardAdmin()) return;
   const events = await fetchEspnFixtures();
-  if (!events) { alert("Erro ao buscar ESPN. Verifique o console."); return; }
+  if (!events) { if (!silent) alert("Erro ao buscar ESPN. Verifique o console."); return; }
   const mapped = mapEspnToMatches(events);
-  if (!mapped.length) { alert("Nenhum resultado novo encontrado via ESPN."); return; }
+  if (!mapped.length) { if (!silent) alert("Nenhum resultado novo encontrado via ESPN."); return; }
   const knockoutIds = new Set(DATA.knockoutMatches.map(m => String(m.match)));
   const s = state();
   let applied = 0;
@@ -2177,9 +2177,9 @@ async function runEspnUpdate() {
   _lastApiUpdate = new Date();
   if (applied > 0) {
     saveState(s, { forceResults: true }); renderRanking(); renderGames(); renderAdmin();
-    alert(`${applied} resultado(s) atualizado(s) via ESPN.`);
+    if (!silent) alert(`${applied} resultado(s) atualizado(s) via ESPN.`);
   } else {
-    alert("Nenhum resultado novo para aplicar.");
+    if (!silent) alert("Nenhum resultado novo para aplicar.");
   }
 }
 
@@ -2187,6 +2187,7 @@ async function runEspnUpdate() {
 let _liveScores = {};
 let _liveScoreTimer = null;
 let _liveScorePollTime = 0;
+let _prevLiveIds = new Set();
 const _openLiveDetails = new Set();
 
 function formatMatchClock(totalSeconds) {
@@ -2307,12 +2308,66 @@ function mapEspnToLiveScores(events) {
 }
 
 async function pollLiveScores() {
+  const prevIds = new Set(Object.keys(_liveScores));
   const events = await fetchEspnFixtures();
   if (!events) return;
   _liveScores = mapEspnToLiveScores(events);
   _liveScorePollTime = Date.now();
+  _prevLiveIds = prevIds;
+
+  // Detect knockout matches that just transitioned from live → ended
+  if (prevIds.size > 0) {
+    const knockoutIds = new Set(DATA.knockoutMatches.map(m => String(m.match)));
+    const ended = [...prevIds].filter(id => !_liveScores[id] && knockoutIds.has(id));
+    if (ended.length) onMatchesEnded(ended);
+  }
+
   renderGames();
   renderNextMatch();
+}
+
+async function onMatchesEnded(matchIds) {
+  const shownKey = "_matchEndBanners";
+  const alreadyShown = new Set(JSON.parse(sessionStorage.getItem(shownKey) || "[]"));
+  const newEnded = matchIds.filter(id => !alreadyShown.has(id));
+  if (!newEnded.length) return;
+  newEnded.forEach(id => alreadyShown.add(id));
+  sessionStorage.setItem(shownKey, JSON.stringify([...alreadyShown]));
+  if (isAdminActive()) await runEspnUpdate({ silent: true });
+  showMatchEndBanner(newEnded);
+}
+
+function showMatchEndBanner(matchIds) {
+  const banner = $("#matchEndBanner");
+  if (!banner) return;
+  const s = state();
+  const lines = matchIds.map(mid => {
+    const r = s.results?.[mid];
+    const m = DATA.knockoutMatches.find(x => String(x.match) === mid);
+    if (!r || !m) return `M${mid} encerrado`;
+    const tA = m.teamA, tB = m.teamB;
+    const winner = r.advanceSide === "B" ? tB : tA;
+    return `M${mid}: ${escapeHtml(tA)} ${r.goalsA}–${r.goalsB} ${escapeHtml(tB)} · ${escapeHtml(flag(winner))} <strong>${escapeHtml(winner)}</strong> avança`;
+  });
+  const adminReady = isAdminActive();
+  const actionHtml = adminReady
+    ? `<button id="matchEndSendEmail" type="button" class="banner-btn-primary">📧 Enviar emails agora</button>`
+    : `<button type="button" class="banner-btn-secondary" onclick="showSection('admin')">🔐 Admin → enviar emails</button>`;
+  banner.innerHTML = `<div class="match-end-banner-content">
+    <span class="match-end-banner-icon">⚽</span>
+    <div class="match-end-banner-text">
+      <strong>Jogo encerrado!</strong>
+      ${lines.map(l => `<span>${l}</span>`).join("")}
+      ${adminReady ? `<small>Resultado sincronizado via ESPN ✓</small>` : ""}
+    </div>
+    <div class="match-end-banner-actions">
+      ${actionHtml}
+      <button type="button" class="banner-btn-dismiss" aria-label="Fechar">✕</button>
+    </div>
+  </div>`;
+  banner.classList.remove("hidden");
+  $("#matchEndSendEmail")?.addEventListener("click", () => sendResultEmailFromAdmin(false));
+  banner.querySelector(".banner-btn-dismiss")?.addEventListener("click", () => banner.classList.add("hidden"));
 }
 
 function startLiveScorePolling() {
