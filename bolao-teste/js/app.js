@@ -981,19 +981,27 @@ function matchPoints(p, r) {
   return { pts, exact, goalsACorrect, goalsBCorrect, advanceCorrect };
 }
 
-function scoreEntry(entry, s) {
-  let total = 0;
-  const results = s.results || {};
-  for (const m of DATA.knockoutMatches) {
-    // Use stored result; fall back to hardcoded DATA result for offline resilience
-    const r = results[m.match] ?? (m.status === "Final" && m.goalsA !== null ? {
+// Stored result for a match; falls back to the hardcoded DATA result (offline
+// resilience) when Supabase/localStorage hasn't got it yet.
+function resolvedMatchResult(m, s) {
+  const stored = (s.results || {})[m.match];
+  if (stored !== undefined) return stored;
+  if (m.status === "Final" && m.goalsA !== null) {
+    return {
       goalsA: m.goalsA, goalsB: m.goalsB,
       advanceSide: m.winner === m.teamA ? "A" : m.winner === m.teamB ? "B" : null
-    } : null);
-    const mp = matchPoints(entry.picks?.[m.match], r);
+    };
+  }
+  return null;
+}
+
+function scoreEntry(entry, s) {
+  let total = 0;
+  for (const m of DATA.knockoutMatches) {
+    const mp = matchPoints(entry.picks?.[m.match], resolvedMatchResult(m, s));
     if (mp) total += mp.pts;
   }
-  const bonus = { champion: 0, runnerUp: 0, third: 0, fourth: 0, total: 0 };
+  const bonus = { champion: 0, runnerUp: 0, third: 0, fourth: 0, total: 0, podiumHits: 0 };
   const realPod = podiumFromResults(s);
   if (realPod) {
     const pickPod = finalPodiumForEntry(entry);
@@ -1002,9 +1010,22 @@ function scoreEntry(entry, s) {
     if (pickPod.third    && pickPod.third    === realPod.third)    bonus.third    = CONFIG.bonus.third;
     if (pickPod.fourth   && pickPod.fourth   === realPod.fourth)   bonus.fourth   = CONFIG.bonus.fourth;
     bonus.total = bonus.champion + bonus.runnerUp + bonus.third + bonus.fourth;
+    // Tiebreaker level 2: champion/runner-up/3rd correctly picked (not 4th).
+    bonus.podiumHits = (bonus.champion > 0 ? 1 : 0) + (bonus.runnerUp > 0 ? 1 : 0) + (bonus.third > 0 ? 1 : 0);
     total += bonus.total;
   }
   return { total, bonus };
+}
+
+// Tiebreaker: how many knockout matches this entry got the exact score right.
+// Used to break ties in total points — more exact scores ranks higher.
+function exactMatchCount(entry, s) {
+  let n = 0;
+  for (const m of DATA.knockoutMatches) {
+    const mp = matchPoints(entry.picks?.[m.match], resolvedMatchResult(m, s));
+    if (mp?.exact) n++;
+  }
+  return n;
 }
 
 /* ============================================================
@@ -1167,7 +1188,9 @@ function buildResultEmailHtml(s, testMode) {
   const results = Object.fromEntries(Object.entries(s.results || {}).filter(([, v]) => v?.advanceSide));
   const teamNames = resolveTeamsFromResults(s);
   const realEntries = (s.entries || []).filter(e => !deleted.has(e.id) && !e.diagnostics?.demo);
-  const scored = realEntries.map(e => ({ e, total: scoreEntry(e, s).total })).sort((a, b) => b.total - a.total);
+  const scored = realEntries
+    .map(e => { const sc = scoreEntry(e, s); return { e, total: sc.total, exact: exactMatchCount(e, s), podiumHits: sc.bonus.podiumHits }; })
+    .sort((a, b) => b.total - a.total || b.exact - a.exact || b.podiumHits - a.podiumHits);
 
   const sortedMids = Object.keys(results).map(Number).sort((a, b) => a - b);
   const lastMid = sortedMids.length ? String(sortedMids[sortedMids.length - 1]) : null;
@@ -1218,11 +1241,12 @@ function buildResultEmailHtml(s, testMode) {
     breakdownEn += `<tr><td style="padding:6px 10px">${escapeHtml(row.name)}</td><td style="padding:6px 10px;text-align:center">${escapeHtml(row.pickStr)}</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:${c}">${row.pts}</td><td style="padding:6px 10px;font-size:11px;color:#6b7280">${escapeHtml(row.detEn)}</td></tr>`;
   }
 
-  let rankingRows = "", prevPts = null, rank = 0;
+  let rankingRows = "", prevKey = null, rank = 0;
   for (let i = 0; i < scored.length; i++) {
     const item = scored[i];
-    if (item.total !== prevPts) rank = i + 1;
-    prevPts = item.total;
+    const key = `${item.total}:${item.exact}:${item.podiumHits}`;
+    if (key !== prevKey) rank = i + 1;
+    prevKey = key;
     const medal = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
     const bg = rank <= 3 ? "#fffbe6" : "white";
     rankingRows += `<tr style="background:${bg}"><td style="padding:7px 10px;text-align:center">${medal}</td><td style="padding:7px 10px">${escapeHtml(item.e.entryName || "?")}</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:${ptsColor(item.total)}">${item.total}</td></tr>`;
@@ -1405,13 +1429,22 @@ function renderRanking() {
   const potEl = $("#potValue");
   if (potEl) potEl.textContent = `$${paidCount * (CONFIG.entryFee || 5)}`;
   if (!s.entries.length) { box.innerHTML = `<div class="card"><p>${escapeHtml(t("noEntries"))}</p></div>`; return; }
+  // Tiebreak cascade: total points → most exact scores → most correct
+  // champion/runner-up/3rd picks. Still tied after all three? Shared position —
+  // Eduardo splits that placement's prize manually (payouts aren't automated).
   const ranked = s.entries
-    .map(e => { const sc = scoreEntry(e, s); return { ...e, _score: sc.total, _bonus: sc.bonus }; })
-    .sort((a, b) => b._score - a._score);
-  const arrows = computeRankArrows("ranking", ranked.map(e => ({ id: e.id, score: e._score })));
+    .map(e => { const sc = scoreEntry(e, s); return { ...e, _score: sc.total, _bonus: sc.bonus, _exact: exactMatchCount(e, s) }; })
+    .sort((a, b) => b._score - a._score || b._exact - a._exact || b._bonus.podiumHits - a._bonus.podiumHits);
+  // Tiebreak-aware arrows: encode (total, exact, podiumHits) as one sortable
+  // number so ties that share a rank don't get an arbitrary up/down between them.
+  const arrows = computeRankArrows("ranking", ranked.map(e => ({ id: e.id, score: e._score * 100000 + e._exact * 10 + e._bonus.podiumHits })));
   box.innerHTML = "";
+  let prevKey = null, rank = 0;
   ranked.forEach((e, i) => {
-    const medal = ["🥇","🥈","🥉"][i] || `${i + 1}`;
+    const key = `${e._score}:${e._exact}:${e._bonus.podiumHits}`;
+    if (key !== prevKey) rank = i + 1;
+    prevKey = key;
+    const medal = ["🥇","🥈","🥉"][rank - 1] || `${rank}`;
     const arrowHtml = rankArrowHtml(arrows[e.id]);
     const bonusLine = e._bonus?.total ? ` · ${t("bonusLabel")} +${e._bonus.total}` : "";
     const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
@@ -1450,7 +1483,11 @@ function picksTable(entry) {
       : `<b class="pick-pts${pts > 0 ? " pos" : ""}">${pts}</b>`;
     return `<tr><td>M${escapeHtml(String(m.match))}</td><td>${escapeHtml(rr.displayA||"")}</td><td><b>${p.goalsA}×${p.goalsB}</b></td><td>${escapeHtml(rr.displayB||"")}</td><td>${escapeHtml(w||"")}</td><td>${escapeHtml(realScore)}</td><td style="text-align:center">${ptsCell}</td></tr>`;
   }).join("");
-  return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th><th>${escapeHtml(t("pickRealLabel"))}</th><th>${escapeHtml(t("pickPointsLabel"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+  // Same count used for the standings tiebreaker — lets people see why they're
+  // ranked above/below a tied entry without having to do the math themselves.
+  const exactCount = exactMatchCount(entry, state());
+  return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th><th>${escapeHtml(t("pickRealLabel"))}</th><th>${escapeHtml(t("pickPointsLabel"))}</th></tr></thead><tbody>${rows}</tbody></table>
+<p class="footer-note" style="margin-top:8px">🎯 ${escapeHtml(t("pickExactCount").replace("{n}", exactCount))}</p>`;
 }
 
 function renderParticipants() {
@@ -1562,6 +1599,7 @@ function renderRules() {
     <li>${escapeHtml(t("rulesTie"))}</li>
     <li>${escapeHtml(t("rulesBracket"))}</li>
     <li>${escapeHtml(t("rulesBonus"))}</li>
+    <li>${escapeHtml(t("rulesStandingsTie"))}</li>
     <li>${escapeHtml(t("rulesInformal"))}</li>
     <li>${escapeHtml(t("rulesReceipt"))}</li>
     <li>${escapeHtml(t("rulesPayment"))}</li>
