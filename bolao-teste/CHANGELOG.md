@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.32 — 2026-07-02
+
+### Added
+- **Setas de variação também no placar ao vivo por partida**: o dropdown "🔴 Ver pontuação ao vivo" de cada jogo em andamento agora mostra ▲/▼ ao lado de cada entrada, indicando se ela subiu ou desceu na pontuação provisória *daquela partida* desde a última mudança no placar ao vivo — igual à tabela do Brasileirão em tempo real no Globo Esporte. Reaproveita a mesma lógica de setas do ranking geral (extraída para `computeRankArrows(key, items)`, agora compartilhada entre o ranking oficial e cada partida ao vivo, uma "trilha" de setas por jogo).
+- Texto de aviso do placar ao vivo reforçado nos três idiomas: deixa explícito que o banco de dados e o ranking oficial só atualizam quando a partida termina oficialmente — nunca durante o jogo. A pontuação/setas ao vivo são só uma prévia no navegador, nunca gravadas no Supabase.
+
+## v4.31 — 2026-07-01
+
+### Fixed
+- **Cache-busting parado desde v4.19**: os `?v=` de `styles.css`/`config.js`/`data.js`/`i18n.js`/`app.js` no `index.html` não eram atualizados desde a v4.19, mesmo com várias releases depois (v4.20–v4.30). Navegadores (principalmente mobile) continuavam servindo os arquivos antigos do cache em vez de buscar a versão nova após cada deploy. Atualizado para `?v=4.31` — provável causa de "não estou vendo as mudanças no celular".
+- **Card "Próximo jogo" quebrado no mobile**: o cronômetro (HRS/MIN/SEG) herdava a regra `.count-grid { grid-template-columns: repeat(2, 1fr) }` do breakpoint `max-width:500px` — pensada para o countdown de 4 células (dias/hrs/min/seg) do banner principal — fazendo o cronômetro de 3 células quebrar em 2+1 de forma feia. Adicionado override específico para `.next-match-timer` restaurando 3/4 colunas. Também: o card agora empilha (informação do jogo em cima, cronômetro embaixo, full-width) em telas estreitas em vez de espremer o cronômetro ao lado do nome dos times, evitando que a altura do card varie de forma estranha conforme o tamanho do nome dos times (ex: "Bosnia and Herzegovina").
+
 ## v4.27 — 2026-07-01
 
 ### Added
