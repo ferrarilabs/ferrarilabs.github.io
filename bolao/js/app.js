@@ -372,6 +372,7 @@ function renderNextMatch() {
       const pointsBlock = knockoutIds.has(String(mid))
         ? `<div class="hero-live-points picks-detail">${liveMatchPointsTable(mid, ls.goalsA, ls.goalsB)}</div>`
         : "";
+      const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const runningClock = ls.clockSeconds !== null
         ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
         : ls.clock;
@@ -392,6 +393,7 @@ function renderNextMatch() {
           <span class="hero-live-team-name">${escapeHtml(tB)}</span>
         </div>
       </div>
+      ${probBlock}
       ${pointsBlock}
       </div>`;
     }).join("");
@@ -1556,35 +1558,14 @@ function renderGames() {
     const teamBKnown = b && !/Winner|Loser/i.test(b);
     let probBarsHtml = "";
     if (teamAKnown && teamBKnown) {
-      const raStr = teamStrength(a), rbStr = teamStrength(b);
-      const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
-      const sA = escapeHtml(a.length > 12 ? a.slice(0, 12) + "…" : a);
-      const sB = escapeHtml(b.length > 12 ? b.slice(0, 12) + "…" : b);
-      const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
       if (live) {
-        const minute = parseMinute(live.clock);
-        const isTied = live.goalsA === live.goalsB;
-        if (minute >= 0 && !(minute >= 90 && isTied && !m.group)) {
-          const ip = inPlayProb(lambdaA, lambdaB, minute, live.goalsA, live.goalsB);
-          const pH  = Math.round(ip.pA * 100);
-          const pDr = Math.round(ip.pD * 100);
-          const pAw = Math.round(ip.pB * 100);
-          probBarsHtml = `<div class="prob-bars" role="group" aria-label="${escapeHtml(t("probBarsLabel"))}">
-  <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${sA} ${pH}%</div>
-  <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${drawLabel} ${pDr}%</div>
-  <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${sB} ${pAw}%</div>
-</div>`;
-        }
+        probBarsHtml = liveProbBarsHtml(m, live);
       } else if (status !== "Final") {
+        const raStr = teamStrength(a), rbStr = teamStrength(b);
+        const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
+        const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
         const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
-        const pH  = Math.round(pA * 100);
-        const pDr = Math.round(pD * 100);
-        const pAw = Math.round(pB * 100);
-        probBarsHtml = `<div class="prob-bars" role="group" aria-label="${escapeHtml(t("probBarsLabel"))}">
-  <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${sA} ${pH}%</div>
-  <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${drawLabel} ${pDr}%</div>
-  <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${sB} ${pAw}%</div>
-</div>`;
+        probBarsHtml = probBarsMarkup(pA, pD, pB, a, b, drawLabel);
       }
     }
 
@@ -1909,6 +1890,45 @@ function parseMinute(clockStr) {
   if (!clockStr) return -1;
   const m = String(clockStr).match(/^(\d+)/);
   return m ? Math.min(parseInt(m[1], 10), 90) : 0;
+}
+
+function probBarsMarkup(pA, pD, pB, a, b, drawLabel) {
+  const sA = escapeHtml(a.length > 12 ? a.slice(0, 12) + "…" : a);
+  const sB = escapeHtml(b.length > 12 ? b.slice(0, 12) + "…" : b);
+  const pH = Math.round(pA * 100), pDr = Math.round(pD * 100), pAw = Math.round(pB * 100);
+  // A narrow slice can't fit "Team NN%" without spilling out of its own bar —
+  // below this threshold, drop just the name and keep the number (the title
+  // tooltip still carries the full "Team: NN%" either way).
+  const label = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+  return `<div class="prob-bars" role="group" aria-label="${escapeHtml(t("probBarsLabel"))}">
+  <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${label(pH, sA)}</div>
+  <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${label(pDr, drawLabel)}</div>
+  <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${label(pAw, sB)}</div>
+</div>`;
+}
+
+// In-play probability bars for a match currently live — shared by the Jogos
+// tab's game cards and the hero "ao vivo" card, so both always show the same
+// number computed the same way.
+function liveProbBarsHtml(m, live) {
+  const a = m.teamA || "", b = m.teamB || "";
+  if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
+  const minute = parseMinute(live.clock);
+  const isTied = live.goalsA === live.goalsB;
+  if (minute < 0 || (minute >= 90 && isTied && !m.group)) return "";
+  const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
+  // Prefer ESPN's own win-probability model when a poll successfully fetched
+  // it for this match; otherwise fall back to the site's Poisson estimate.
+  const espnProb = _espnProbCache.get(m.match);
+  if (espnProb) return probBarsMarkup(espnProb.pA, espnProb.pD, espnProb.pB, a, b, drawLabel);
+  const raStr = teamStrength(a), rbStr = teamStrength(b);
+  const base = copaExpectedGoals(raStr, rbStr);
+  // ESPN's real win-probability isn't in — sharpen our own estimate with
+  // match stats (shots on target / possession) if we managed to fetch them,
+  // instead of relying purely on the static pre-match strength rating.
+  const { lambdaA, lambdaB } = statsAdjustedLambdas(base.lambdaA, base.lambdaB, _espnStatsCache.get(m.match));
+  const ip = inPlayProb(lambdaA, lambdaB, minute, live.goalsA, live.goalsB);
+  return probBarsMarkup(ip.pA, ip.pD, ip.pB, a, b, drawLabel);
 }
 
 // Cache pWinA for each ordered team pair to avoid recomputing Poisson for
@@ -2444,6 +2464,109 @@ function stopResultsPolling() {
   updateApiStatusBar();
 }
 
+// ESPN's own in-game win-probability model (undocumented Core API v2 —
+// confirmed to exist for other sports, not confirmed for soccer). Best
+// effort only: on any failure or unexpected shape, returns null so the
+// caller falls back to the site's own Poisson-based estimate. Never throws,
+// never blocks rendering (fetched async, cached, applied on the next render).
+async function fetchEspnWinProbability(eventId, competitionId) {
+  if (!eventId) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const res = await fetch(
+      `https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events/${eventId}/competitions/${competitionId || eventId}/probabilities?limit=1`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const item = json.items?.[json.items.length - 1];
+    if (!item) return null;
+    const pH = typeof item.homeWinPercentage === "number" ? item.homeWinPercentage : null;
+    const pAw = typeof item.awayWinPercentage === "number" ? item.awayWinPercentage : null;
+    if (pH === null || pAw === null) return null;
+    const pD = typeof item.tiePercentage === "number" ? item.tiePercentage : Math.max(0, 1 - pH - pAw);
+    return { pA: pH, pD, pB: pAw };
+  } catch (err) {
+    clearTimeout(timer);
+    return null;
+  }
+}
+
+const _espnProbCache = new Map();
+
+// ESPN's per-event "summary" endpoint (same site.api.espn.com family we
+// already use for scores, so much more likely to actually work for soccer
+// than the specialized predictor API above). Pulls shots-on-target and
+// possession — used only as an input to sharpen our own in-play estimate
+// when ESPN's real win-probability isn't available, never displayed
+// directly. Tries a few plausible stat-name variants since the exact keys
+// aren't confirmed without live testing; returns null on any mismatch.
+async function fetchEspnMatchStats(eventId, teamAName, teamBName) {
+  if (!eventId) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const res = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const json = await res.json();
+    const teams = json.boxscore?.teams;
+    if (!Array.isArray(teams) || teams.length < 2) return null;
+
+    const findStat = (team, aliases) => {
+      for (const name of aliases) {
+        const s = team.statistics?.find(x => x.name === name);
+        if (s) { const v = parseFloat(s.displayValue); if (!isNaN(v)) return v; }
+      }
+      return null;
+    };
+    const normA = normalizeTeamName(teamAName), normB = normalizeTeamName(teamBName);
+    const out = {};
+    for (const team of teams) {
+      const name = normalizeTeamName(team.team?.displayName);
+      const side = name === normA ? "A" : name === normB ? "B" : null;
+      if (!side) continue;
+      out[`shotsOnTarget${side}`] = findStat(team, ["shotsOnTarget", "totalShotsOnTarget", "shotsOnGoal"]);
+      out[`possession${side}`] = findStat(team, ["possessionPct", "possession", "ballPossession"]);
+    }
+    if (out.shotsOnTargetA == null && out.shotsOnTargetB == null &&
+        out.possessionA == null && out.possessionB == null) return null;
+    return out;
+  } catch (err) {
+    clearTimeout(timer);
+    return null;
+  }
+}
+
+// Blend pre-match lambdas with an in-match dominance signal (shots on
+// target, then possession as a weaker fallback signal) so the fallback
+// estimate reacts to what's actually happening, not just the static
+// pre-tournament team strength rating + elapsed time. Deliberately mild
+// (70/30) — a stat snapshot is noisy, especially early in a match.
+function statsAdjustedLambdas(lambdaA, lambdaB, stats) {
+  if (!stats) return { lambdaA, lambdaB };
+  let shareA = null;
+  const sotA = stats.shotsOnTargetA, sotB = stats.shotsOnTargetB;
+  if (sotA != null && sotB != null && sotA + sotB >= 2) {
+    shareA = sotA / (sotA + sotB);
+  } else if (stats.possessionA != null && stats.possessionB != null) {
+    const sum = stats.possessionA + stats.possessionB;
+    if (sum > 0) shareA = stats.possessionA / sum;
+  }
+  if (shareA === null) return { lambdaA, lambdaB };
+  const total = lambdaA + lambdaB;
+  if (total <= 0) return { lambdaA, lambdaB };
+  const adjA = total * (0.7 * (lambdaA / total) + 0.3 * shareA);
+  return { lambdaA: adjA, lambdaB: total - adjA };
+}
+
+const _espnStatsCache = new Map();
+
 /* ── ESPN free results ── */
 async function fetchEspnFixtures() {
   const ctrl = new AbortController();
@@ -2638,8 +2761,9 @@ function mapEspnToLiveScores(events) {
       const clock = clockSeconds !== null && clockSeconds >= 0
         ? formatMatchClock(clockSeconds)
         : (comp.status?.type?.shortDetail || "");
-      if (n0 === normA && n1 === normB) { out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, pollTime: Date.now() }; break; }
-      if (n1 === normA && n0 === normB) { out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, pollTime: Date.now() }; break; }
+      const eventId = ev.id, competitionId = comp.id || ev.id;
+      if (n0 === normA && n1 === normB) { out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId }; break; }
+      if (n1 === normA && n0 === normB) { out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, pollTime: Date.now(), eventId, competitionId }; break; }
     }
   }
   return out;
@@ -2665,14 +2789,39 @@ function mergeLiveClock(fresh, prev) {
   return fresh;
 }
 
+// mergeLiveClock only has something to compare against while _liveScores
+// lives in memory — a full page reload wipes it, so the very first poll
+// after a refresh had no prior estimate and just took ESPN's (laggy) value
+// as-is, undoing the anti-backward-jump guard on every reload. Persisting
+// the last known clock per match to localStorage gives that first poll a
+// prior estimate to compare against too.
+const LIVE_CLOCK_CACHE_KEY = "bolao_live_clock_cache";
+
+function loadLiveClockCache() {
+  try { return JSON.parse(localStorage.getItem(LIVE_CLOCK_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function saveLiveClockCache(scores) {
+  try {
+    const cache = {};
+    for (const [mid, ls] of Object.entries(scores)) {
+      if (ls.clockSeconds != null) cache[mid] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime };
+    }
+    localStorage.setItem(LIVE_CLOCK_CACHE_KEY, JSON.stringify(cache));
+  } catch { /* storage full/unavailable — clock just won't survive a reload this time */ }
+}
+
 async function pollLiveScores() {
   const prevIds = new Set(Object.keys(_liveScores));
   const events = await fetchEspnFixtures();
   if (!events) return;
   const fresh = mapEspnToLiveScores(events);
+  const cache = loadLiveClockCache();
   const merged = {};
-  for (const [mid, ls] of Object.entries(fresh)) merged[mid] = mergeLiveClock(ls, _liveScores[mid]);
+  for (const [mid, ls] of Object.entries(fresh)) merged[mid] = mergeLiveClock(ls, _liveScores[mid] || cache[mid]);
   _liveScores = merged;
+  saveLiveClockCache(_liveScores);
   _liveScorePollTime = Date.now();
   _prevLiveIds = prevIds;
 
@@ -2685,6 +2834,27 @@ async function pollLiveScores() {
 
   renderGames();
   renderNextMatch();
+
+  // Best-effort: try ESPN's own win-probability model for each live match,
+  // once per poll cycle. Fire-and-forget — renders already happened above
+  // with the Poisson fallback; this just upgrades the numbers in place if
+  // ESPN's endpoint returns something usable.
+  for (const [mid, ls] of Object.entries(_liveScores)) {
+    fetchEspnWinProbability(ls.eventId, ls.competitionId).then(prob => {
+      if (!prob) return;
+      _espnProbCache.set(mid, prob);
+      renderGames();
+      renderNextMatch();
+    });
+    const m = DATA.knockoutMatches.find(x => x.match === mid) || DATA.groupMatches?.find(x => x.match === mid);
+    if (m) {
+      fetchEspnMatchStats(ls.eventId, m.teamA, m.teamB).then(stats => {
+        if (!stats) return;
+        _espnStatsCache.set(mid, stats);
+        if (!_espnProbCache.has(mid)) { renderGames(); renderNextMatch(); }
+      });
+    }
+  }
 }
 
 async function onMatchesEnded(matchIds) {

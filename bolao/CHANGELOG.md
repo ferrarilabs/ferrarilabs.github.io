@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## v4.51 — 2026-07-02
+
+### Added
+- **Estimativa própria de probabilidade agora usa estatísticas reais do jogo**: quando o modelo de probabilidade da ESPN não estiver disponível, o app tenta buscar chutes a gol e posse de bola do jogo (via `site.api.espn.com/.../summary`, mesmo domínio já usado pro placar — mais provável de funcionar que a API de probabilidade especializada) e usa isso pra ajustar o cálculo próprio (70% força pré-jogo + 30% domínio do jogo em andamento), em vez de depender só do rating estático dos times + tempo decorrido. Essas estatísticas não aparecem em lugar nenhum da interface — são só um dado de entrada a mais pro cálculo. Se a busca falhar, cai pro cálculo estático de sempre, sem quebrar nada.
+
+## v4.50 — 2026-07-02
+
+### Changed
+- **Barra de probabilidade nunca fica totalmente vazia**: em vez de esconder o rótulo inteiro em fatias estreitas (< 12%), agora sempre mostra pelo menos o "N%" — só o nome do time/rótulo é que some quando não cabe. O tooltip ao passar o mouse continua com a informação completa.
+
+## v4.49 — 2026-07-02
+
+### Added
+- **Barra de probabilidade também no card "ao vivo" do topo**: antes só aparecia nos cards de jogo da aba Jogos — agora aparece embaixo do placar no card ao vivo do hero também, mesmo cálculo (compartilhado via `liveProbBarsHtml`, sem duplicar lógica).
+- **Tentativa de usar o modelo de probabilidade real da ESPN**: além do cálculo próprio (Poisson com base na força dos times), o app agora tenta buscar a probabilidade real da ESPN (`sports.core.api.espn.com/.../probabilities`, o mesmo tipo de modelo que alimenta os placares ao vivo deles) uma vez por ciclo de poll. Se a ESPN não devolver dado válido pra futebol (não documentado, não foi possível confirmar antes do deploy), cai automaticamente pro cálculo próprio — nunca quebra.
+
+### Fixed
+- **Texto cortado em fatias estreitas da barra de probabilidade** (ex: "Austria 3%" vazando pra fora da fatia azul): fatias abaixo de 12% agora escondem o texto (mantendo cor + tooltip ao passar o mouse) em vez de estourar o texto pra fora da barra.
+
+## v4.48 — 2026-07-02
+
+### Fixed
+- **Relógio ao vivo ainda voltava pra trás a cada refresh da página**: a correção da v4.47 só funcionava enquanto a aba ficava aberta continuamente — o estado que protege contra retrocesso vivia só na memória do JavaScript, então um refresh (F5 / recarregar) zerava tudo e o primeiro poll depois do reload aceitava o valor (atrasado) da ESPN sem nenhuma referência anterior pra comparar. Agora o último relógio conhecido de cada partida é salvo no `localStorage` a cada poll, então mesmo logo após um refresh o app tem uma referência pra continuar contando pra frente em vez de voltar. Testado simulando exatamente esse cenário (tempo real avança, ESPN reporta atrasado, dá refresh) — o relógio não regride mais.
+
 ## v4.47 — 2026-07-02
 
 ### Fixed
