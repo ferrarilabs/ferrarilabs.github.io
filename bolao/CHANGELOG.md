@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.58 — 2026-07-02
+
+### Added — auditoria automática antes de CADA envio de email, não só uma vez
+Eduardo, depois da auditoria do v4.57: "acho que a gente deveria fazer isso antes de um email ser enviado, logo depois que o jogo termina... precisa rodar uma auditoria completa pra garantir 1000% de precisão... não quero ouvir os usuários me dizendo de novo que não entendem a pontuação... isso nunca pode quebrar... todo pedido de mudança que eu fizer, revise se a função de pontuação continua funcionando, mesmo que seja só pra dizer que nada mudou." Duas coisas viraram regra permanente:
+
+- **`bolao/scripts/audit_scoring.py` (novo)**: bateria de 5 checagens estáticas (bracket bate com `data.js`, simulação de torneio completo com bracket perfeito, bônus+4º lugar presentes, validação de placar bate com o site, ordem de desempate correta) rodável isolada (`python3 audit_scoring.py`) ou importada. `send_result_email.py --auto` agora roda essa auditoria ANTES de tocar em qualquer coisa — se falhar, não salva nem envia email nenhum (saída não-zero, falha visível no GitHub Actions).
+- **Checagem em tempo real por partida**: além do duplo-check de estabilidade já existente (v4.55), cada resultado "confirmado" agora passa por `check_match_is_real()` (data do evento não pode ser futura; times não podem ainda ser um slot "WN"/"LN" não resolvido) e `check_result_shape()` (placar 0–20, `advanceSide` só A ou B) antes de ser salvo ou disparar email. Isso mira especificamente o problema que já aconteceu antes (ver "Resultados somente do banco de dados" no changelog): um resultado aparecendo pra uma partida que não tinha realmente acontecido ainda.
+- Testado com simulação completa: bracket antigo (quebrado, pré-v4.57) reintroduzido numa cópia isolada confirma que a auditoria realmente pega os 9 confrontos errados; teste de integração ponta a ponta simula `run_auto()` inteiro com um resultado real (salva + envia, 1 destinatário) e com um resultado com data no futuro (corretamente bloqueado, zero salvamentos, zero emails).
+- **Regra permanente documentada no `CLAUDE.md`**: essa é a parte do site que nunca pode quebrar — tem dinheiro real em jogo. A partir de agora, toda mudança no repositório (relacionada a pontuação ou não) deve rodar `audit_scoring.py` e reportar o resultado explicitamente, mesmo que seja só "nada mudou, auditoria continua passando".
+
 ## v4.57 — 2026-07-02
 
 ### Fixed — auditoria estilo Big 4 no pipeline de resultado/ranking (Eduardo pediu depois de reclamações sobre o ranking)

@@ -65,6 +65,24 @@ Three independent sub-projects:
 - Bonus: champion **+25**, runner-up **+15**, 3rd **+10**, 4th **+5**
 - Prize pool: 70% → 1st, 20% → 2nd, 10% → 3rd
 
+**This is the part of the site that can never be broken — real money is paid out based on it.**
+Standing rule from Eduardo (July 2026, after an audit found `send_result_email.py` had
+silently drifted from the site's own scoring logic — see CHANGELOG v4.57):
+
+- `send_result_email.py --auto` runs `audit_scoring.py`'s static self-test suite before
+  touching anything, and refuses to send any email if it fails. It also re-validates each
+  individual match at runtime (event date not in the future, teams fully resolved, result
+  shape sane) right before trusting it enough to save + email — see `check_match_is_real()`
+  and `check_result_shape()` in `bolao/scripts/audit_scoring.py`.
+- **After every change you make to this repo — whether or not it looks scoring-related —
+  run `python3 bolao/scripts/audit_scoring.py` and say so in your summary to Eduardo, even
+  if the answer is just "scoring untouched, audit still passes."** Don't assume a change is
+  unrelated; the two bugs found in the July 2026 audit were both in code that looked
+  unrelated to whatever was being worked on at the time.
+- If you change the bracket (`bolao/js/data.js`'s `knockoutMatches`), the scoring formula,
+  the tiebreak cascade, or anything in `bolao/scripts/send_result_email.py`, treat
+  `audit_scoring.py` failing as a hard blocker — fix it before opening a PR, not after.
+
 ### Admin
 
 - Password stored as SHA-256 hash in `config.adminPasswordHash`. Plaintext never in source.
