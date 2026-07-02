@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v4.39 — 2026-07-01
+
+### Fixed
+- **Relógio ao vivo correndo**: o cronômetro do card ao vivo agora conta os segundos em tempo real entre polls do ESPN (antes ficava estático mostrando só minutos, atualizava só a cada 60s). ESPN retorna segundos inteiros, mas o relógio avança continuamente via interpolação.
+- **Ranking ao vivo mostra posição geral, não posição no jogo**: a tabela de pontuação provisória agora é ordenada pelo total geral provisional (não pelos pontos daquele jogo específico) e exibe a posição real do participante no ranking geral — ex.: "3°" quer dizer 3° no bolão inteiro, não 3° entre quem apostou naquele jogo.
+- **Jogo encerrado não fica mais "Em andamento"**: ao término da partida (ESPN confirma FULL_TIME), o card some corretamente e mostra o próximo jogo. Antes ficava mostrando "Em andamento" por até 3 horas após o apito. Novo comportamento: jogo ignorado após 135 min do horário de kickoff sem placar ao vivo confirmado.
+- **BUG-04 crítico — entrada manual de resultado reativada**: admin pode agora inserir resultado manualmente para jogos com empate no placar (que vão a pênaltis). Antes `box.innerHTML = ""` desabilitava o painel inteiramente.
+- **BUG-01 — pontuação funciona offline/sem sync**: `scoreEntry()` agora usa os resultados hardcoded de data.js como fallback quando o admin ainda não rodou o ESPN sync. M73 (Canadá) e M74 (Brasil) agora pontuam corretamente para usuários com localStorage limpo.
+- **BUG-03 — isToday() usa timezone correto**: comparação de "hoje" agora usa `America/New_York` em vez de comparar UTC com local, eliminando o falso "jogo de hoje" quando se está a leste do ET.
+- **BUG-05 — autoFill respeita R32 bloqueadas**: ao usar ⚡ Simular ou 🎲 Simular Maluco no modo de edição, os campos R32 (M73–M88) bloqueados para edição não são mais sobrescritos.
+- **A11Y-01 — foco se move ao trocar seção**: ao clicar nas abas de navegação, o foco do teclado/leitor de tela vai automaticamente para o primeiro cabeçalho daquela seção.
+- **A11Y-02 — aria-label contextual em "Ver palpites"**: o botão agora inclui o nome da entrada no aria-label, facilitando navegação por leitor de tela.
+- **SEC-05 — flag() escapado em innerHTML**: todos os usos de `flag()` dentro de templates HTML agora passam por `escapeHtml()` para evitar possível XSS via nomes de times.
+
 ## v4.35 — 2026-07-02
 
 ### Added

@@ -145,8 +145,8 @@ function applyLanguage() {
    ============================================================ */
 function isToday(isoString) {
   if (!isoString) return false;
-  const d = new Date(isoString), now = new Date();
-  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+  const opts = { timeZone: "America/New_York" };
+  return new Date(isoString).toLocaleDateString("en-US", opts) === new Date().toLocaleDateString("en-US", opts);
 }
 
 function emptyState() {
@@ -348,7 +348,9 @@ function nextScheduledMatch() {
     if (results[m.match]?.advanceSide) continue;
     const kickoff = parseMatchKickoff(m.date, m.timeET);
     if (kickoff === null) continue;
-    if (kickoff > now - 3 * 3600 * 1000) return { m, kickoff };
+    // Skip if >135 min since kickoff with no live data — match is definitely over
+    if (now - kickoff > 135 * 60 * 1000) continue;
+    return { m, kickoff };
   }
   return null;
 }
@@ -369,6 +371,9 @@ function renderNextMatch() {
       const pointsBlock = knockoutIds.has(String(mid))
         ? `<div class="hero-live-points picks-detail">${liveMatchPointsTable(mid, ls.goalsA, ls.goalsB)}</div>`
         : "";
+      const runningClock = ls.clockSeconds !== null
+        ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
+        : ls.clock;
       return `<div class="hero-live-card">
       <div class="hero-live-top">
         <div class="hero-live-team">
@@ -378,7 +383,7 @@ function renderNextMatch() {
         <div class="hero-live-score">${ls.goalsA}</div>
         <div class="hero-live-center">
           <span class="hero-live-badge">${escapeHtml(t("liveNow"))}</span>
-          <span class="hero-live-clock">${escapeHtml(ls.clock)}</span>
+          <span class="hero-live-clock">${escapeHtml(runningClock)}</span>
         </div>
         <div class="hero-live-score">${ls.goalsB}</div>
         <div class="hero-live-team">
@@ -480,6 +485,8 @@ function showSection(id) {
   $$(".page").forEach(p => p.classList.toggle("active", p.id === id));
   $$(".nav button[data-section]").forEach(b => b.classList.toggle("active", b.dataset.section === id));
   if (id === "admin") renderAdmin();
+  const heading = document.querySelector(`#${id} h2, #${id} h3`);
+  if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: false }); }
 }
 
 /* ============================================================
@@ -685,8 +692,8 @@ function updateCard(card, preW, preL) {
   card.dataset.currentA = a; card.dataset.currentB = b;
   const teamA = card.querySelector(".team-a");
   const teamB = card.querySelector(".team-b");
-  if (teamA) teamA.innerHTML = `${flag(a)} ${escapeHtml(a)}`;
-  if (teamB) teamB.innerHTML = `${escapeHtml(b)} ${flag(b)}`;
+  if (teamA) teamA.innerHTML = `${escapeHtml(flag(a))} ${escapeHtml(a)}`;
+  if (teamB) teamB.innerHTML = `${escapeHtml(b)} ${escapeHtml(flag(b))}`;
   const slA = card.querySelector('[data-score-label="A"]');
   const slB = card.querySelector('[data-score-label="B"]');
   if (slA) slA.textContent = a;
@@ -978,7 +985,12 @@ function scoreEntry(entry, s) {
   let total = 0;
   const results = s.results || {};
   for (const m of DATA.knockoutMatches) {
-    const mp = matchPoints(entry.picks?.[m.match], results[m.match]);
+    // Use stored result; fall back to hardcoded DATA result for offline resilience
+    const r = results[m.match] ?? (m.status === "Final" && m.goalsA !== null ? {
+      goalsA: m.goalsA, goalsB: m.goalsB,
+      advanceSide: m.winner === m.teamA ? "A" : m.winner === m.teamB ? "B" : null
+    } : null);
+    const mp = matchPoints(entry.picks?.[m.match], r);
     if (mp) total += mp.pts;
   }
   const bonus = { champion: 0, runnerUp: 0, third: 0, fourth: 0, total: 0 };
@@ -1411,7 +1423,7 @@ function renderRanking() {
 <span class="muted">${escapeHtml(e.payerName)}${escapeHtml(bonusLine)}</span><br>
 <span class="receipt-code">${escapeHtml(receiptCode(e))}</span></div>
 <div class="points">${e._score}</div>
-<button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}">${escapeHtml(t("viewPicks"))}</button>`;
+<button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
     detail.className = "card picks-detail hidden";
@@ -1506,9 +1518,9 @@ function renderGames() {
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
 </div>
 <div class="game-teams">
-  <div class="game-team">${flag(a)} ${escapeHtml(a)}</div>
+  <div class="game-team">${escapeHtml(flag(a))} ${escapeHtml(a)}</div>
   ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
-  <div class="game-team right">${escapeHtml(b)} ${flag(b)}</div>
+  <div class="game-team right">${escapeHtml(b)} ${escapeHtml(flag(b))}</div>
 </div>
 ${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
     box.appendChild(div);
@@ -1621,11 +1633,7 @@ function inferRealWinners(s) {
 }
 
 function renderAdminResults(s) {
-  const box = $("#resultsAdmin");
-  if (!box) return;
-  // Manual entry disabled — results come from ⚽ ESPN sync only.
-  // Call renderAdminResultsManual(s) here to re-enable in an emergency.
-  box.innerHTML = "";
+  renderAdminResultsManual(s);
 }
 
 function renderAdminResultsManual(s) {
@@ -1757,6 +1765,15 @@ async function autoFill(mode) {
   for (const m of DATA.knockoutMatches) {
     const c = $(`[data-card-match="${m.match}"]`);
     if (!c) continue;
+    // Don't overwrite R32 picks that are locked during the R32 edit window
+    if (R32_IDS.has(String(m.match)) && _editingEntry) {
+      const a2 = resolveSlot(m.teamA, winners, losers);
+      const b2 = resolveSlot(m.teamB, winners, losers);
+      const p = _editingEntry.picks?.[m.match];
+      if (p?.advanceSide === "A") { winners[m.match] = a2; losers[m.match] = b2; }
+      else if (p?.advanceSide === "B") { winners[m.match] = b2; losers[m.match] = a2; }
+      continue;
+    }
     const a = resolveSlot(m.teamA, winners, losers);
     const b = resolveSlot(m.teamB, winners, losers);
     const [ga, gb] = predictScore(a, b, mode);
@@ -2169,6 +2186,7 @@ async function runEspnUpdate() {
 /* ── Public live scoreboard (no admin required) ── */
 let _liveScores = {};
 let _liveScoreTimer = null;
+let _liveScorePollTime = 0;
 const _openLiveDetails = new Set();
 
 function formatMatchClock(totalSeconds) {
@@ -2224,7 +2242,7 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
     .sort((a, b) => (provScore[b.id] || 0) - (provScore[a.id] || 0))
     .forEach((e, i) => { provRank[e.id] = i; });
 
-  // Show only entries with picks for this match, sorted by their live pts
+  // Show only entries with picks for this match, sorted by provisional overall total
   const rows = entries
     .map(e => {
       const pick = e.picks?.[matchId];
@@ -2238,17 +2256,19 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
         name: e.entryName || "?",
         pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—",
         livePts,
+        provTotal: provScore[e.id] || 0,
+        provPos: pRank + 1,
         arrow: pRank < oRank ? "up" : pRank > oRank ? "down" : null,
         delta
       };
     })
     .filter(Boolean)
-    .sort((a, b) => b.livePts - a.livePts);
+    .sort((a, b) => b.provTotal - a.provTotal || b.livePts - a.livePts);
 
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
 
-  const trs = rows.map((row, i) =>
-    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(row.arrow, row.delta)}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`
+  const trs = rows.map((row) =>
+    `<tr><td style="text-align:center">${row.provPos}${rankArrowHtml(row.arrow, row.delta)}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`
   ).join("");
   return `<table><thead><tr><th style="text-align:center">${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th style="text-align:center">${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
@@ -2279,8 +2299,8 @@ function mapEspnToLiveScores(events) {
       const clock = clockSeconds !== null && clockSeconds >= 0
         ? formatMatchClock(clockSeconds)
         : (comp.status?.type?.shortDetail || "");
-      if (n0 === normA && n1 === normB) { out[m.match] = { goalsA: s0, goalsB: s1, clock }; break; }
-      if (n1 === normA && n0 === normB) { out[m.match] = { goalsA: s1, goalsB: s0, clock }; break; }
+      if (n0 === normA && n1 === normB) { out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, pollTime: Date.now() }; break; }
+      if (n1 === normA && n0 === normB) { out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, pollTime: Date.now() }; break; }
     }
   }
   return out;
@@ -2290,6 +2310,7 @@ async function pollLiveScores() {
   const events = await fetchEspnFixtures();
   if (!events) return;
   _liveScores = mapEspnToLiveScores(events);
+  _liveScorePollTime = Date.now();
   renderGames();
   renderNextMatch();
 }
