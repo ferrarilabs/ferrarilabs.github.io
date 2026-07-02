@@ -519,6 +519,7 @@ input[readonly] {
 .picks-detail th { color: var(--muted); font-weight: 700; }
 .pick-pts { color: var(--muted); }
 .pick-pts.pos { color: var(--green); }
+.rank-arrow-n { font-size: 0.8em; font-weight: 700; margin-left: 1px; vertical-align: middle; }
 
 /* ── Payment ── */
 .pay-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
