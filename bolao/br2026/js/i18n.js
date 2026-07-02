@@ -88,6 +88,7 @@ window.BR2026_I18N = {
     points: "Pts",
     // Games
     nextGameLabel: "Próximo jogo",
+    todayGamesLabel: "Jogos de hoje",
     nextGameNoGame: "Nenhum jogo agendado",
     nextGameLive: "Jogo em andamento",
     gamesTitle: "Jogos",

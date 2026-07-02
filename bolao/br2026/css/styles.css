@@ -78,13 +78,14 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .lang-links button.active { background: var(--green); color: var(--green-dk); border-color: var(--green); }
 
-.nav { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+.nav { display: flex; gap: 5px; flex-wrap: wrap; }
 .nav button {
-  background: transparent; color: var(--muted); border: 0;
-  border-radius: 8px; padding: 7px 11px; font-size: 13px; font-weight: 600;
+  background: var(--bg3); color: var(--text);
+  padding: 8px 12px; font-size: 13px; font-weight: 700;
+  border: 1px solid transparent;
 }
-.nav button:hover  { color: var(--text); }
-.nav button.active { background: var(--bg2); color: var(--green); }
+.nav button:hover  { opacity: .88; }
+.nav button.active { background: var(--green); color: var(--green-dk); }
 
 /* ── Main layout ── */
 main {
@@ -353,6 +354,17 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 .next-game-vs { color: var(--muted); margin: 0 6px; }
 .next-game-info { font-size: 12px; color: var(--muted); }
 .next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
+
+/* ── Today's games (mini list in nextGameCard) ── */
+.today-games-header { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.today-game { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid var(--border); }
+.today-game:first-of-type { border-top: none; padding-top: 0; }
+.today-game-teams { font-size: 14px; font-weight: 700; }
+.today-game-time { font-size: 11px; }
+.today-game-post .today-game-teams { opacity: .55; }
+.today-game-live .today-game-teams { font-size: 15px; }
+.today-score { color: var(--green); margin: 0 4px; }
+.team-logo { vertical-align: middle; border-radius: 2px; object-fit: contain; }
 
 /* ── Games section ── */
 .game-date-header {

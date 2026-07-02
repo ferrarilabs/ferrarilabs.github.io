@@ -488,6 +488,12 @@ function showSection(id) {
   $$(".nav button[data-section]").forEach(b => b.classList.toggle("active", b.dataset.section === id));
   if (id === "admin") renderAdmin();
   if (id === "probs") scheduleMC();
+  if (id === "games") {
+    setTimeout(() => {
+      const next = document.querySelector('.game-card[data-state="pre"]');
+      next?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }
   const heading = document.querySelector(`#${id} h2, #${id} h3`);
   if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: false }); }
 }
@@ -1548,38 +1554,43 @@ function renderGames() {
     // Compute per-match probability hint (upcoming) or in-play bars (live)
     const teamAKnown = a && !/Winner|Loser/i.test(a);
     const teamBKnown = b && !/Winner|Loser/i.test(b);
-    let probHintHtml = "", probBarsHtml = "";
+    let probBarsHtml = "";
     if (teamAKnown && teamBKnown) {
       const raStr = teamStrength(a), rbStr = teamStrength(b);
       const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
+      const sA = escapeHtml(a.length > 12 ? a.slice(0, 12) + "…" : a);
+      const sB = escapeHtml(b.length > 12 ? b.slice(0, 12) + "…" : b);
+      const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
       if (live) {
-        // In-play probability bars
         const minute = parseMinute(live.clock);
-        if (minute > 0) {
+        const isTied = live.goalsA === live.goalsB;
+        if (minute >= 0 && !(minute >= 90 && isTied && !m.group)) {
           const ip = inPlayProb(lambdaA, lambdaB, minute, live.goalsA, live.goalsB);
           const pH  = Math.round(ip.pA * 100);
           const pDr = Math.round(ip.pD * 100);
           const pAw = Math.round(ip.pB * 100);
-          const sA = escapeHtml(a.split(" ")[0]);
-          const sB = escapeHtml(b.split(" ")[0]);
-          probBarsHtml = `<div class="prob-bars" role="meter" aria-label="Probabilidade de vitória">
+          probBarsHtml = `<div class="prob-bars" role="group" aria-label="${escapeHtml(t("probBarsLabel"))}">
   <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${sA} ${pH}%</div>
-  <div class="prob-bar draw"  style="width:${pDr}%" title="Emp: ${pDr}%">Emp ${pDr}%</div>
+  <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${drawLabel} ${pDr}%</div>
   <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${sB} ${pAw}%</div>
 </div>`;
         }
       } else if (status !== "Final") {
-        // Pre-match probability hint
         const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
         const pH  = Math.round(pA * 100);
         const pDr = Math.round(pD * 100);
         const pAw = Math.round(pB * 100);
-        probHintHtml = `<div class="game-prob-hint">🎲 ${escapeHtml(a.split(" ")[0])} ${pH}% · Emp ${pDr}% · ${escapeHtml(b.split(" ")[0])} ${pAw}%</div>`;
+        probBarsHtml = `<div class="prob-bars" role="group" aria-label="${escapeHtml(t("probBarsLabel"))}">
+  <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${sA} ${pH}%</div>
+  <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${drawLabel} ${pDr}%</div>
+  <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${sB} ${pAw}%</div>
+</div>`;
       }
     }
 
     const div = document.createElement("div");
     div.className = `game-card${live ? " is-live" : ""}`;
+    div.dataset.state = live ? "in" : (hasScore ? "post" : "pre");
     div.innerHTML = `
 <div class="game-top">
   <span class="match-badge">${escapeHtml(String(m.match))}</span>
@@ -1590,7 +1601,6 @@ function renderGames() {
   ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
   ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)}</span>` : ""}
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
-  ${probHintHtml}
 </div>
 <div class="game-teams">
   <div class="game-team">${escapeHtml(flag(a))} ${escapeHtml(a)}</div>
@@ -1837,6 +1847,9 @@ function predictScore(a, b, mode) {
 /* ============================================================
    Monte Carlo / Probabilidades
    ============================================================ */
+let _mcResult = null;
+let _mcTs     = 0;
+
 function poisson(lambda, k) {
   if (k < 0 || lambda <= 0) return k === 0 ? 1 : 0;
   let logP = -lambda + k * Math.log(lambda);
@@ -1848,6 +1861,7 @@ function copaExpectedGoals(ratingA, ratingB) {
   const GOAL_BUDGET = 2.4;
   const ra = ratingA / 100, rb = ratingB / 100;
   const total = ra + rb;
+  if (!total) return { lambdaA: 1.2, lambdaB: 1.2 };
   return { lambdaA: GOAL_BUDGET * ra / total, lambdaB: GOAL_BUDGET * rb / total };
 }
 
@@ -1862,7 +1876,8 @@ function matchProb(lambdaA, lambdaB) {
       else pB += p;
     }
   }
-  return { pA, pD, pB };
+  const sum = pA + pD + pB || 1;
+  return { pA: pA / sum, pD: pD / sum, pB: pB / sum };
 }
 
 function knockoutWinnerProb(lambdaA, lambdaB) {
@@ -1891,8 +1906,9 @@ function inPlayProb(lambdaA, lambdaB, minuteElapsed, goalsA, goalsB) {
 }
 
 function parseMinute(clockStr) {
-  const m = String(clockStr || "").match(/^(\d+)/);
-  return m ? Math.min(parseInt(m[1], 10), 90) : 45;
+  if (!clockStr) return -1;
+  const m = String(clockStr).match(/^(\d+)/);
+  return m ? Math.min(parseInt(m[1], 10), 90) : 0;
 }
 
 // Cache pWinA for each ordered team pair to avoid recomputing Poisson for
@@ -1974,19 +1990,16 @@ function runMonteCarlo(N) {
 }
 
 const MC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes between automatic recalcs
+let _mcPending = false;
 
 function scheduleMC() {
   const now = Date.now();
-  // Use cached result if it's fresh enough
-  if (_mcResult && now - _mcTs < MC_INTERVAL_MS) {
-    renderProbs();
-    return;
-  }
-  // Show loading state immediately
+  if (_mcResult && now - _mcTs < MC_INTERVAL_MS) { renderProbs(); return; }
+  if (_mcPending) return;
+  _mcPending = true;
   const box = $("#probsContent");
   if (box) box.innerHTML = `<p class="muted">${escapeHtml(t("probsLoading"))}</p>`;
   _mcTs = now;
-  // Defer to keep the UI responsive
   setTimeout(() => {
     try {
       const result = runMonteCarlo(2000);
@@ -1995,6 +2008,7 @@ function scheduleMC() {
       console.warn("MC simulation failed", err);
       _mcResult = null;
     }
+    _mcPending = false;
     renderProbs();
   }, 0);
 }
@@ -2506,10 +2520,6 @@ async function runEspnUpdate({ silent = false } = {}) {
     if (!silent) alert("Nenhum resultado novo para aplicar.");
   }
 }
-
-/* ── Monte Carlo cache ── */
-let _mcResult = null;
-let _mcTs     = 0;
 
 /* ── Public live scoreboard (no admin required) ── */
 let _liveScores = {};
