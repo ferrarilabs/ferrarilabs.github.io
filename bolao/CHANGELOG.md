@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.55 — 2026-07-02
+
+### Fixed
+- **Placar ao vivo podia congelar indefinidamente ("mostrando jogo em andamento a noite toda")**: `extractGoalEvents()` (novo em v4.53, artilheiro + minuto) rodava sem proteção dentro de `mapEspnToLiveScores()` — se a ESPN mandasse qualquer item inesperado dentro de `competitions[].details` (ex: entrada nula no array), a função lançava uma exceção ANTES de `_liveScores` ser atualizado, travando o placar/relógio ao vivo de TODAS as partidas indefinidamente (não só o artilheiro), até a página ser recarregada. Agora `extractGoalEvents()` nunca lança exceção — qualquer formato inesperado só derruba a lista de artilheiros daquela partida, sem afetar placar/relógio. Reproduzido com Playwright (array `details` com entradas nulas/inválidas) — placar ao vivo continua atualizando normalmente.
+- **Cron de email automático tinha sido removido sem querer**: um commit anterior (v4.40, 1/jul) trocou o envio automático de emails por um fluxo manual (admin clica "Enviar emails agora" ou dispara o GitHub Action manualmente) — mas isso exige alguém ativo o tempo todo. Restaurado o agendamento automático (`*/10 min` durante a janela de jogos) em `auto_results.yml`, mantendo o disparo manual disponível também.
+- **Duplo-check antes de mandar email de resultado**: `send_result_email.py --auto` agora espera 20s e busca a ESPN de novo antes de confirmar um resultado como definitivo — só salva no Supabase e envia email se o placar e o time que avança baterem nas duas consultas. Evita mandar um resultado errado caso a ESPN marque "final" um instante antes de uma correção tardia (VAR, ajuste de estatística).
+
+### Added
+- **Barra de probabilidade no card "Próximo jogo" do topo**: até agora só aparecia na aba Jogos (pré-jogo) e no card "ao vivo" — faltava no hero quando não há nenhum jogo rolando, então ninguém via a probabilidade antes do jogo começar de fato. Extraído `preMatchProbBarsHtml()` (compartilhado com a aba Jogos, mesma conta) e adicionado ao card do hero.
+
 ## v4.54 — 2026-07-02
 
 ### Fixed
