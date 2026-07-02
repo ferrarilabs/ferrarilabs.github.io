@@ -2946,10 +2946,14 @@ function showMatchEndBanner(matchIds) {
     const winner = r.advanceSide === "B" ? tB : tA;
     return `M${mid}: ${escapeHtml(tA)} ${r.goalsA}–${r.goalsB} ${escapeHtml(tB)} · ${escapeHtml(flag(winner))} <strong>${escapeHtml(winner)}</strong> avança`;
   });
+  // Only the logged-in admin gets an action button here — everyone else
+  // (i.e. virtually every visitor) just gets the plain "match ended"
+  // notice. Surfacing an "Admin → enviar emails" prompt to regular
+  // participants exposed an admin-only workflow to the whole bolão.
   const adminReady = isAdminActive();
   const actionHtml = adminReady
     ? `<button id="matchEndSendEmail" type="button" class="banner-btn-primary">📧 Enviar emails agora</button>`
-    : `<button type="button" class="banner-btn-secondary" data-banner-nav="admin">🔐 Admin → enviar emails</button>`;
+    : "";
   banner.innerHTML = `<div class="match-end-banner-content">
     <span class="match-end-banner-icon">⚽</span>
     <div class="match-end-banner-text">
