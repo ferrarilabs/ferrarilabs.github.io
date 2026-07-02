@@ -326,6 +326,63 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
   color: var(--muted);
 }
 
+/* ── SA6 zone (orange/amber) ── */
+.pick-group-header.sa6-header { background: linear-gradient(135deg, #92400e, #b45309); color: #fff; border: none; }
+.sa6-badge { background: #f59e0b; color: #78350f; }
+.standings-table tr.sa6-zone { background: rgba(245,158,11,.07); }
+.picks-col-header.sa6-header-sm { background: rgba(245,158,11,.15); color: #f59e0b; }
+
+/* ── Picks display — 3 columns when SA6 present ── */
+.picks-display.three-col { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 600px) { .picks-display.three-col { grid-template-columns: 1fr; } }
+
+/* ── Admin results grid — 3 cols ── */
+.admin-results-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
+@media (max-width: 660px) { .admin-results-grid.three-col { grid-template-columns: 1fr; } }
+
+/* ── Next game card ── */
+#nextGameCard {
+  background: linear-gradient(135deg, #0a1e2d, #0d2028);
+  border: 1px solid var(--border2);
+  border-radius: 14px; padding: 12px 18px; margin-bottom: 14px;
+}
+#nextGameCard.hidden { display: none; }
+.next-game-card { display: flex; flex-direction: column; gap: 4px; }
+.next-game-label { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.next-game-teams { font-size: 15px; font-weight: 700; }
+.next-game-vs { color: var(--muted); margin: 0 6px; }
+.next-game-info { font-size: 12px; color: var(--muted); }
+.next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
+
+/* ── Games section ── */
+.game-date-header {
+  font-size: 12px; font-weight: 900; text-transform: uppercase; letter-spacing: .06em;
+  color: var(--muted); padding: 10px 0 6px; margin-top: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.game-date-header:first-child { margin-top: 0; }
+.game-card {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.game-card:last-child { border-bottom: 0; }
+.game-teams {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+}
+.game-team { font-size: 13px; font-weight: 600; flex: 1; }
+.game-team.home { text-align: right; }
+.game-team.away { text-align: left; }
+.game-center { text-align: center; min-width: 56px; }
+.game-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.game-score-live { font-size: 16px; font-weight: 900; color: var(--green); font-variant-numeric: tabular-nums; }
+.game-score-final { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
+.game-venue { font-size: 11px; color: var(--muted); }
+.game-status-row { font-size: 11px; }
+.game-status { font-weight: 700; }
+.game-status.live { color: #ef4444; }
+.game-status.post { color: var(--muted); }
+.game-status.pre  { color: var(--muted); }
+
 /* ── Mobile ── */
 @media (max-width: 600px) {
   main { padding: 12px 10px 80px; }

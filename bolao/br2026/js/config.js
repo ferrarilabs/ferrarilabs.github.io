@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.0",
+  siteVersion: "v1.2",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -31,6 +31,8 @@ window.BR2026_CONFIG = {
     z4Exact: 12,
     // Points for being in Z4 but wrong position
     z4Group: 8,
+    // Sul-Americana: points for any pick that lands in positions 7-12
+    sa6Hit: 8,
   },
   emailjs: {
     enabled: true,
@@ -55,6 +57,7 @@ window.BR2026_CONFIG = {
     season: 2026,
     standingsUrl: "https://site.api.espn.com/apis/v2/sports/soccer/bra.1/standings",
     scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard",
+    scheduleUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard?dates=20260101-20261231&limit=500",
     pollIntervalMs: 60000,
   },
   transparency: {
