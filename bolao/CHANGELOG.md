@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.45 — 2026-07-02
+
+### Added
+- **Aba "Probabilidades"**: nova seção com simulação Monte Carlo (2.000 iterações) da Copa do Mundo 2026. Mostra P(Campeão), P(Final) e P(Semi) para cada seleção ainda no torneio, usando modelo Poisson bivariado com os ratings de força das equipes. Botão "Recalcular" + cache de 5 minutos para não sobrecarregar.
+- **Barras de probabilidade ao vivo**: durante partidas em andamento, barras animadas (tipo Google) abaixo do placar mostram probabilidades dinâmicas de vitória/empate/derrota conforme o jogo avança e gols são marcados.
+- **Hint de probabilidade por jogo**: jogos ainda não disputados mostram um hint discreto (ex: "🎲 Brasil 62% · Emp 21% · Japão 17%") abaixo do local, calculado com as mesmas ratings de força.
+
 ## v4.44 — 2026-07-02
 
 ### Fixed

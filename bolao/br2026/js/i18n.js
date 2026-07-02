@@ -150,5 +150,17 @@ window.BR2026_I18N = {
     langPt: "PT-BR",
     langEs: "ES",
     langEn: "EN",
+    // Probabilidades
+    navProbs: "Probabilidades",
+    probsTitle: "Probabilidades",
+    probsSubtitle: "Simulação Monte Carlo — 2.000 iterações. Atualiza a cada 5 min.",
+    probsLoading: "Calculando probabilidades...",
+    probsNoData: "Tabela ESPN necessária para calcular probabilidades.",
+    probsG4: "G4",
+    probsSA: "Sul-Am.",
+    probsZ4: "Rebaixado",
+    probsDisclaimer: "Modelo Poisson bivariado + Monte Carlo. Baseado na tabela atual do ESPN. Apenas informativo.",
+    probsRefresh: "Recalcular",
+    probsLastRun: "Calculado às",
   },
 };

@@ -1,4 +1,4 @@
-/* Bolão Brasileirão 2026 — app.js v1.2
+/* Bolão Brasileirão 2026 — app.js v1.3
    Vanilla JS IIFE, no framework, no build step */
 (function () {
 "use strict";
@@ -103,6 +103,7 @@ function showSection(id) {
   const h = document.querySelector(`#${id} h2, #${id} h3`);
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: false }); }
   if (id === "admin") renderAdmin();
+  if (id === "probs") renderProbSection();
 }
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
@@ -349,18 +350,33 @@ let _liveMatches = [];  // currently live matches
 let _pollTime   = 0;
 let _schedule   = [];   // full season events from ESPN
 let _scheduleTs = 0;    // last schedule fetch timestamp
+let _mcResult   = null; // Monte Carlo result cache
+let _mcTs       = 0;    // timestamp of last MC run
+let _matchProbs = {};   // { "HomeTeam|AwayTeam": { pH, pD, pA } } for upcoming matches
 
 async function fetchStandings() {
   try {
     const r = await fetch(C.espn.standingsUrl);
     const data = await r.json();
     const entries = data?.children?.[0]?.standings?.entries || [];
-    const parsed = entries.map(e => ({
-      name:   e.team?.displayName || "",
-      abbr:   e.team?.abbreviation || "",
-      rank:   (e.stats?.find(s => s.name === "rank") || {}).value ?? 99,
-      points: (e.stats?.find(s => s.name === "points") || {}).value ?? 0,
-    })).filter(entry => entry.name).sort((a, b) => a.rank - b.rank);
+    const parsed = entries.map(e => {
+      const getStat = (...names) => {
+        for (const nm of names) {
+          const hit = (e.stats || []).find(s => s.name === nm);
+          if (hit) return hit.value ?? 0;
+        }
+        return 0;
+      };
+      return {
+        name:   e.team?.displayName || "",
+        abbr:   e.team?.abbreviation || "",
+        rank:   getStat("rank") || 99,
+        points: getStat("points"),
+        played: getStat("gamesPlayed", "GP") || 1,
+        gf:     getStat("pointsFor", "goalsFor"),
+        ga:     getStat("pointsAgainst", "goalsAgainst"),
+      };
+    }).filter(entry => entry.name).sort((a, b) => a.rank - b.rank);
     return parsed.length ? parsed : null;
   } catch (err) { console.warn("[BR2026] Standings fetch failed", err); return null; }
 }
@@ -392,7 +408,7 @@ async function fetchScoreboard() {
 
 async function pollAll() {
   const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
-  if (standings) _standings = standings;
+  if (standings) { _standings = standings; _matchProbs = {}; scheduleMC(); }
   if (matches !== null) {
     _liveMatches = matches.filter(m => m.state === "in");
     _pollTime    = Date.now();
@@ -479,6 +495,155 @@ function formatClock(totalSec) {
   return `${m}:${String(s).padStart(2, "0")}`;
 }
 
+// ─── Probability math (Poisson + Monte Carlo) ────────────────────────────────
+function poisson(lambda, k) {
+  if (k < 0) return 0;
+  let logP = -lambda + k * Math.log(lambda || 1e-9);
+  for (let i = 1; i <= k; i++) logP -= Math.log(i);
+  return Math.exp(logP);
+}
+
+function samplePoisson(lambda) {
+  // Knuth's method — fast for lambda < 30
+  const l = Math.exp(-lambda);
+  let k = 0, p = 1;
+  do { k++; p *= Math.random(); } while (p > l);
+  return k - 1;
+}
+
+function buildRatings() {
+  const LG_AVG = 1.3;
+  const ratings = {};
+  _standings.forEach(tm => {
+    const n = Math.max(tm.played || 1, 1);
+    ratings[tm.name] = {
+      atk: (tm.gf || 0) / n / LG_AVG,
+      def: (tm.ga || 0) / n / LG_AVG,
+    };
+  });
+  return ratings;
+}
+
+function expectedGoals(home, away, ratings) {
+  const LG_AVG = 1.3, HOME_ADV = 1.15;
+  const h = ratings[home] || { atk: 1, def: 1 };
+  const a = ratings[away] || { atk: 1, def: 1 };
+  return {
+    lambdaH: h.atk * a.def * LG_AVG * HOME_ADV,
+    lambdaA: a.atk * h.def * LG_AVG,
+  };
+}
+
+function matchProb(lambdaH, lambdaA) {
+  const MAX = 8;
+  let pH = 0, pD = 0, pA = 0;
+  for (let i = 0; i <= MAX; i++) {
+    for (let j = 0; j <= MAX; j++) {
+      const p = poisson(lambdaH, i) * poisson(lambdaA, j);
+      if (i > j) pH += p;
+      else if (i === j) pD += p;
+      else pA += p;
+    }
+  }
+  return { pH, pD, pA };
+}
+
+function inPlayProb(lambdaH, lambdaA, minuteElapsed, homeGoals, awayGoals) {
+  const timeRem = Math.max(0, 90 - minuteElapsed) / 90;
+  const lhRem = lambdaH * timeRem;
+  const laRem = lambdaA * timeRem;
+  const MAX = 8;
+  let pH = 0, pD = 0, pA = 0;
+  for (let i = 0; i <= MAX; i++) {
+    for (let j = 0; j <= MAX; j++) {
+      const p = poisson(lhRem, i) * poisson(laRem, j);
+      const totH = homeGoals + i, totA = awayGoals + j;
+      if (totH > totA) pH += p;
+      else if (totH === totA) pD += p;
+      else pA += p;
+    }
+  }
+  const sum = pH + pD + pA;
+  return { pH: pH / sum, pD: pD / sum, pA: pA / sum };
+}
+
+function parseMinute(clockStr) {
+  const m = String(clockStr || "").match(/^(\d+)/);
+  return m ? parseInt(m[1], 10) : 45;
+}
+
+function runMonteCarlo() {
+  if (_standings.length < 20 || !_schedule.length) return null;
+  const ratings   = buildRatings();
+  const remaining = _schedule.filter(g => g.state === "pre");
+  if (!remaining.length) return null;
+
+  // Pre-compute Poisson match probs per unique fixture (avoids 81 evals × 2000 sims)
+  const mpCache = {};
+  remaining.forEach(g => {
+    const key = `${g.homeTeam}|${g.awayTeam}`;
+    if (!mpCache[key]) {
+      const { lambdaH, lambdaA } = expectedGoals(g.homeTeam, g.awayTeam, ratings);
+      const prob = matchProb(lambdaH, lambdaA);
+      mpCache[key]      = { ...prob, lambdaH, lambdaA };
+      _matchProbs[key]  = prob;  // update global per-match cache as side-effect
+    }
+  });
+
+  const counts = {};
+  DATA.teams.forEach(t => { counts[t] = { g4: 0, sa6: 0, z4: 0 }; });
+
+  for (let sim = 0; sim < 2000; sim++) {
+    const pts = {}, gd = {};
+    _standings.forEach(tm => {
+      pts[tm.name] = tm.points || 0;
+      gd[tm.name]  = (tm.gf || 0) - (tm.ga || 0);
+    });
+    DATA.teams.forEach(t => { if (pts[t] == null) pts[t] = 0; if (gd[t] == null) gd[t] = 0; });
+
+    remaining.forEach(g => {
+      const { pH, pD, lambdaH, lambdaA } = mpCache[`${g.homeTeam}|${g.awayTeam}`];
+      const r  = Math.random();
+      const hg = samplePoisson(lambdaH), ag = samplePoisson(lambdaA);
+      if (r < pH) {
+        pts[g.homeTeam] = (pts[g.homeTeam] || 0) + 3;
+        gd[g.homeTeam]  = (gd[g.homeTeam]  || 0) + (hg - ag);
+        gd[g.awayTeam]  = (gd[g.awayTeam]  || 0) - (hg - ag);
+      } else if (r < pH + pD) {
+        pts[g.homeTeam] = (pts[g.homeTeam] || 0) + 1;
+        pts[g.awayTeam] = (pts[g.awayTeam] || 0) + 1;
+      } else {
+        pts[g.awayTeam] = (pts[g.awayTeam] || 0) + 3;
+        gd[g.awayTeam]  = (gd[g.awayTeam]  || 0) + (ag - hg);
+        gd[g.homeTeam]  = (gd[g.homeTeam]  || 0) - (ag - hg);
+      }
+    });
+
+    const sorted = DATA.teams.slice().sort((a, b) =>
+      ((pts[b] || 0) - (pts[a] || 0)) || ((gd[b] || 0) - (gd[a] || 0)) || (Math.random() - 0.5)
+    );
+    sorted.slice(0, 4).forEach(t  => { if (counts[t]) counts[t].g4++;  });
+    sorted.slice(6, 12).forEach(t => { if (counts[t]) counts[t].sa6++; });
+    sorted.slice(16).forEach(t    => { if (counts[t]) counts[t].z4++;  });
+  }
+
+  return DATA.teams.map(t => ({
+    name: t,
+    g4:  Math.round((counts[t]?.g4  || 0) / 20),
+    sa6: Math.round((counts[t]?.sa6 || 0) / 20),
+    z4:  Math.round((counts[t]?.z4  || 0) / 20),
+  })).sort((a, b) => b.g4 - a.g4 || b.sa6 - a.sa6 || a.z4 - b.z4);
+}
+
+function scheduleMC() {
+  if (Date.now() - _mcTs < 5 * 60 * 1000) return; // at most every 5 min
+  setTimeout(() => {
+    _mcResult = runMonteCarlo();
+    _mcTs     = Date.now();
+    renderProbSection();
+  }, 50);
+}
+
 // ─── Render: live match card ─────────────────────────────────────────────────
 function renderLiveCard() {
   const card = $("liveMatchCard");
@@ -488,8 +653,23 @@ function renderLiveCard() {
     ? Math.floor(sec + (Date.now() - _pollTime) / 1000)
     : null;
   card.innerHTML = _liveMatches.map(m => {
-    const sec   = elapsed(m.clockSec);
-    const clock = sec !== null ? formatClock(sec) : m.clockStr;
+    const sec    = elapsed(m.clockSec);
+    const clock  = sec !== null ? formatClock(sec) : m.clockStr;
+    // In-play probability bars (only when standings are loaded)
+    let probBarsHtml = "";
+    if (_standings.length >= 20) {
+      const ratings = buildRatings();
+      const { lambdaH, lambdaA } = expectedGoals(m.homeTeam, m.awayTeam, ratings);
+      const minute = sec !== null ? Math.floor(sec / 60) : parseMinute(m.clockStr);
+      const { pH, pD, pA } = inPlayProb(lambdaH, lambdaA, minute, m.homeScore, m.awayScore);
+      const homeLbl = esc(m.homeTeam.split(" ")[0]);
+      const awayLbl = esc(m.awayTeam.split(" ")[0]);
+      probBarsHtml = `<div class="prob-bars">
+        <div class="prob-bar home" style="width:${(pH*100).toFixed(0)}%">${homeLbl} ${(pH*100).toFixed(0)}%</div>
+        <div class="prob-bar draw"  style="width:${(pD*100).toFixed(0)}%">Emp ${(pD*100).toFixed(0)}%</div>
+        <div class="prob-bar away"  style="width:${(pA*100).toFixed(0)}%">${awayLbl} ${(pA*100).toFixed(0)}%</div>
+      </div>`;
+    }
     return `<div class="live-match">
       <span class="live-badge">${esc(t("liveNow"))}</span>
       <div class="live-teams">
@@ -498,6 +678,7 @@ function renderLiveCard() {
         <span class="live-team-name">${esc(m.awayTeam)}</span>
       </div>
       <span class="live-clock">${esc(clock)}</span>
+      ${probBarsHtml}
     </div>`;
   }).join("");
   card.classList.remove("hidden");
@@ -606,6 +787,8 @@ function renderGamesSection() {
 
   const dateKeys = Object.keys(byDate).sort();
   let html = "";
+  const hasRatings = _standings.length >= 20;
+  const gRatings   = hasRatings ? buildRatings() : null;
 
   dateKeys.forEach(key => {
     // Use the first game of the date to derive a display label via proper timezone
@@ -630,6 +813,16 @@ function renderGamesSection() {
         statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
       }
 
+      let probHintHtml = "";
+      if (g.state === "pre" && hasRatings) {
+        const mpKey = `${g.homeTeam}|${g.awayTeam}`;
+        if (!_matchProbs[mpKey]) {
+          const { lambdaH, lambdaA } = expectedGoals(g.homeTeam, g.awayTeam, gRatings);
+          _matchProbs[mpKey] = matchProb(lambdaH, lambdaA);
+        }
+        const { pH, pD, pA } = _matchProbs[mpKey];
+        probHintHtml = `<div class="game-prob-hint">Casa ${(pH*100).toFixed(0)}% · Emp ${(pD*100).toFixed(0)}% · Fora ${(pA*100).toFixed(0)}%</div>`;
+      }
       html += `<div class="game-card ${esc(g.state || "pre")}">
         <div class="game-teams">
           <span class="game-team home">${esc(g.homeTeam)}</span>
@@ -638,6 +831,7 @@ function renderGamesSection() {
         </div>
         ${g.venue ? `<div class="game-venue">${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
         <div class="game-status-row">${statusHtml}</div>
+        ${probHintHtml}
       </div>`;
     });
   });
@@ -1102,6 +1296,79 @@ function renderFooter() {
   el.textContent = ts ? `${C.siteVersion} · sync ${ts} BRT` : C.siteVersion;
 }
 
+// ─── Render: probabilidades (Monte Carlo) ────────────────────────────────────
+function renderProbSection() {
+  const box = $("probsContent");
+  if (!box) return;
+
+  if (_standings.length < 20) {
+    box.innerHTML = `<p class="muted">${esc(t("probsNoData"))}</p>`;
+    return;
+  }
+
+  if (!_mcResult) {
+    box.innerHTML = `<p class="muted">${esc(t("probsLoading"))}</p>`;
+    scheduleMC();
+    return;
+  }
+
+  const lastRun = _mcTs
+    ? new Date(_mcTs).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" })
+    : "—";
+
+  const rows = _mcResult.map(row => `
+    <tr>
+      <td>${esc(row.name)}</td>
+      <td>
+        <div class="prob-cell">
+          <span class="prob-pct g4">${row.g4}%</span>
+          <div class="prob-bar-mini g4" style="width:${row.g4}px"></div>
+        </div>
+      </td>
+      <td>
+        <div class="prob-cell">
+          <span class="prob-pct sa6">${row.sa6}%</span>
+          <div class="prob-bar-mini sa6" style="width:${row.sa6}px"></div>
+        </div>
+      </td>
+      <td>
+        <div class="prob-cell">
+          <span class="prob-pct z4">${row.z4}%</span>
+          <div class="prob-bar-mini z4" style="width:${row.z4}px"></div>
+        </div>
+      </td>
+    </tr>`).join("");
+
+  box.innerHTML = `
+    <table class="prob-table">
+      <thead>
+        <tr>
+          <th>${esc(t("team"))}</th>
+          <th>${esc(t("probsG4"))}</th>
+          <th>${esc(t("probsSA"))}</th>
+          <th>${esc(t("probsZ4"))}</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div style="display:flex;align-items:center;gap:12px;margin-top:12px;flex-wrap:wrap">
+      <button type="button" id="mcRefreshBtn" class="secondary small-btn">${esc(t("probsRefresh"))}</button>
+      <span class="muted" style="font-size:11px">${esc(t("probsLastRun"))} ${esc(lastRun)} BRT</span>
+    </div>
+    <p class="prob-disclaimer">${esc(t("probsDisclaimer"))}</p>`;
+
+  $("mcRefreshBtn")?.addEventListener("click", () => {
+    _mcTs     = 0;    // force re-run regardless of debounce
+    _mcResult = null;
+    box.innerHTML = `<p class="muted">${esc(t("probsLoading"))}</p>`;
+    setTimeout(() => {
+      _mcResult = runMonteCarlo();
+      _mcTs     = Date.now();
+      renderProbSection();
+    }, 50);
+  });
+}
+
 // ─── Render all ──────────────────────────────────────────────────────────────
 function renderAll() {
   applyI18n();
@@ -1114,6 +1381,7 @@ function renderAll() {
   renderFooter();
   if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
   if (isAdminActive()) renderAdmin();
+  renderProbSection();
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
