@@ -1379,9 +1379,10 @@ function computeRankArrows(key, items) {
   return st.arrows;
 }
 
-function rankArrowHtml(arrow) {
-  if (arrow === "up") return ` <span class="rank-arrow up" title="${escapeHtml(t("rankUp"))}">▲</span>`;
-  if (arrow === "down") return ` <span class="rank-arrow down" title="${escapeHtml(t("rankDown"))}">▼</span>`;
+function rankArrowHtml(arrow, delta) {
+  const n = delta > 0 ? `<span class="rank-arrow-n">${delta}</span>` : "";
+  if (arrow === "up")   return ` <span class="rank-arrow up"   title="${escapeHtml(t("rankUp"))}">▲${n}</span>`;
+  if (arrow === "down") return ` <span class="rank-arrow down" title="${escapeHtml(t("rankDown"))}">▼${n}</span>`;
   return "";
 }
 
@@ -2231,12 +2232,14 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
       if (livePts === null) return null;
       const oRank = officialRank[e.id] ?? 0;
       const pRank = provRank[e.id] ?? 0;
+      const delta = Math.abs(oRank - pRank);
       return {
         id: e.id,
         name: e.entryName || "?",
         pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—",
         livePts,
-        arrow: pRank < oRank ? "up" : pRank > oRank ? "down" : null
+        arrow: pRank < oRank ? "up" : pRank > oRank ? "down" : null,
+        delta
       };
     })
     .filter(Boolean)
@@ -2245,9 +2248,9 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
 
   const trs = rows.map((row, i) =>
-    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(row.arrow)}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`
+    `<tr><td style="text-align:center">${i + 1}${rankArrowHtml(row.arrow, row.delta)}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`
   ).join("");
-  return `<table><thead><tr><th>${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th>${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
+  return `<table><thead><tr><th style="text-align:center">${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th style="text-align:center">${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
 }
 
