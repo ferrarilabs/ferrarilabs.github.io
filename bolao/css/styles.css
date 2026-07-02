@@ -775,11 +775,12 @@ select:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 32px;
+  min-width: 6px;
   padding: 0 4px;
   transition: width 0.7s ease;
   white-space: nowrap;
   overflow: hidden;
+  text-overflow: ellipsis;
   border-radius: 4px;
 }
 .prob-bar.home { background: #16a34a; color: #fff; }
