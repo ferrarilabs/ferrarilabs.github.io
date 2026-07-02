@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.53 — 2026-07-02
+
+### Added
+- **Nome de quem fez o gol e o minuto no placar ao vivo**: pedido depois de um print do placar ao vivo do Google (Espanha x Áustria mostrando "M. Oyarzabal 36'" / "P. Porro 66'" abaixo do placar). O app agora extrai os gols (`competitions[].details`) do mesmo evento da ESPN que já usamos pro placar/relógio — sem chamada de rede extra — e mostra artilheiro + minuto tanto no card "ao vivo" do topo quanto no card do jogo na aba Jogos. Best-effort: se a ESPN não mandar esse detalhe pra uma partida específica, a lista simplesmente não aparece, sem quebrar o resto do card.
+
+## v4.52 — 2026-07-02
+
+### Fixed
+- **Posições da tabela de pontuação ao vivo fora de ordem**: o número da "Pos." e a ordem visual das linhas usavam critérios de desempate diferentes quando duas entradas empatavam na pontuação provisória geral — o número da posição desempatava por ordem de cadastro, mas a linha em si era ordenada pelos pontos daquela partida específica, então "Pos. 3" podia aparecer visualmente acima de "Pos. 2". Agora os dois usam exatamente o mesmo critério (pontuação provisória geral, desempatada pelos pontos da partida ao vivo), então a lista sempre aparece em ordem 1, 2, 3... batendo com o número mostrado.
+
 ## v4.51 — 2026-07-02
 
 ### Added
