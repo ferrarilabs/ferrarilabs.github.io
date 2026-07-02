@@ -18,17 +18,17 @@
   ">
   <link rel="icon" href="data:,">
   <title>Bolão do Ferrari — Copa 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=4.44">
+  <link rel="stylesheet" href="css/styles.css?v=4.45">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
           integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
           crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous"></script>
-  <script src="js/config.js?v=4.44"></script>
-  <script src="js/data.js?v=4.44"></script>
-  <script src="js/i18n.js?v=4.44"></script>
-  <script defer src="js/app.js?v=4.44"></script>
+  <script src="js/config.js?v=4.45"></script>
+  <script src="js/data.js?v=4.45"></script>
+  <script src="js/i18n.js?v=4.45"></script>
+  <script defer src="js/app.js?v=4.45"></script>
 </head>
 <body>
 <a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
@@ -49,6 +49,7 @@
     <button type="button" data-section="participants" data-i18n="navParticipants">Participantes</button>
     <button type="button" data-section="payment" data-i18n="navPayment">Pagamento</button>
     <button type="button" data-section="games" data-i18n="navGames">Jogos</button>
+    <button type="button" data-section="probs" data-i18n="navProbs">Probabilidades</button>
     <button type="button" data-section="rules" data-i18n="navRules">Regras</button>
     <button type="button" data-section="admin" data-i18n="navAdmin">Admin</button>
   </nav>
@@ -175,6 +176,15 @@
       <p class="muted" style="font-size:12px" data-i18n="gamesLiveNote"></p>
     </div>
     <div id="gamesList"></div>
+  </section>
+
+  <!-- ── Probabilidades ── -->
+  <section id="probs" class="page">
+    <div class="section-head">
+      <h2 data-i18n="probsTitle">Probabilidades</h2>
+      <p class="muted" data-i18n="probsSubtitle">Simulação Monte Carlo da Copa do Mundo 2026.</p>
+    </div>
+    <div id="probsContent" class="card"></div>
   </section>
 
   <!-- ── Regras ── -->

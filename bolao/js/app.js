@@ -1,4 +1,4 @@
-/* Bolão do Ferrari — v4.0-clean */
+/* Bolão do Ferrari — v4.45 */
 (function () {
 "use strict";
 
@@ -487,6 +487,7 @@ function showSection(id) {
   $$(".page").forEach(p => p.classList.toggle("active", p.id === id));
   $$(".nav button[data-section]").forEach(b => b.classList.toggle("active", b.dataset.section === id));
   if (id === "admin") renderAdmin();
+  if (id === "probs") scheduleMC();
   const heading = document.querySelector(`#${id} h2, #${id} h3`);
   if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: false }); }
 }
@@ -1543,6 +1544,40 @@ function renderGames() {
     const statusClass = status === "Final" ? "done" : status === "Live" ? "live" : "pending";
     const statusLabel = status === "Final" ? t("gameFinal") : status === "Live" ? t("gameLive") : t("gamePending");
     const canShowLivePoints = live && knockoutIds.has(String(m.match));
+
+    // Compute per-match probability hint (upcoming) or in-play bars (live)
+    const teamAKnown = a && !/Winner|Loser/i.test(a);
+    const teamBKnown = b && !/Winner|Loser/i.test(b);
+    let probHintHtml = "", probBarsHtml = "";
+    if (teamAKnown && teamBKnown) {
+      const raStr = teamStrength(a), rbStr = teamStrength(b);
+      const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
+      if (live) {
+        // In-play probability bars
+        const minute = parseMinute(live.clock);
+        if (minute > 0) {
+          const ip = inPlayProb(lambdaA, lambdaB, minute, live.goalsA, live.goalsB);
+          const pH  = Math.round(ip.pA * 100);
+          const pDr = Math.round(ip.pD * 100);
+          const pAw = Math.round(ip.pB * 100);
+          const sA = escapeHtml(a.split(" ")[0]);
+          const sB = escapeHtml(b.split(" ")[0]);
+          probBarsHtml = `<div class="prob-bars" role="meter" aria-label="Probabilidade de vitória">
+  <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${sA} ${pH}%</div>
+  <div class="prob-bar draw"  style="width:${pDr}%" title="Emp: ${pDr}%">Emp ${pDr}%</div>
+  <div class="prob-bar away" style="width:${pAw}%" title="${escapeHtml(b)}: ${pAw}%">${sB} ${pAw}%</div>
+</div>`;
+        }
+      } else if (status !== "Final") {
+        // Pre-match probability hint
+        const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
+        const pH  = Math.round(pA * 100);
+        const pDr = Math.round(pD * 100);
+        const pAw = Math.round(pB * 100);
+        probHintHtml = `<div class="game-prob-hint">🎲 ${escapeHtml(a.split(" ")[0])} ${pH}% · Emp ${pDr}% · ${escapeHtml(b.split(" ")[0])} ${pAw}%</div>`;
+      }
+    }
+
     const div = document.createElement("div");
     div.className = `game-card${live ? " is-live" : ""}`;
     div.innerHTML = `
@@ -1555,12 +1590,14 @@ function renderGames() {
   ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
   ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)}</span>` : ""}
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
+  ${probHintHtml}
 </div>
 <div class="game-teams">
   <div class="game-team">${escapeHtml(flag(a))} ${escapeHtml(a)}</div>
   ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
   <div class="game-team right">${escapeHtml(b)} ${escapeHtml(flag(b))}</div>
 </div>
+${probBarsHtml}
 ${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
     box.appendChild(div);
     if (canShowLivePoints) {
@@ -1795,6 +1832,252 @@ function predictScore(a, b, mode) {
   const aWins = Math.random() < 1 / (1 + Math.exp(-diff / 8));
   const close = Math.abs(diff) < 8;
   return aWins ? (close ? [2,1] : [3,1]) : (close ? [1,2] : [1,3]);
+}
+
+/* ============================================================
+   Monte Carlo / Probabilidades
+   ============================================================ */
+function poisson(lambda, k) {
+  if (k < 0 || lambda <= 0) return k === 0 ? 1 : 0;
+  let logP = -lambda + k * Math.log(lambda);
+  for (let i = 1; i <= k; i++) logP -= Math.log(i);
+  return Math.exp(logP);
+}
+
+function copaExpectedGoals(ratingA, ratingB) {
+  const GOAL_BUDGET = 2.4;
+  const ra = ratingA / 100, rb = ratingB / 100;
+  const total = ra + rb;
+  return { lambdaA: GOAL_BUDGET * ra / total, lambdaB: GOAL_BUDGET * rb / total };
+}
+
+function matchProb(lambdaA, lambdaB) {
+  const MAX = 8;
+  let pA = 0, pD = 0, pB = 0;
+  for (let i = 0; i <= MAX; i++) {
+    for (let j = 0; j <= MAX; j++) {
+      const p = poisson(lambdaA, i) * poisson(lambdaB, j);
+      if (i > j) pA += p;
+      else if (i === j) pD += p;
+      else pB += p;
+    }
+  }
+  return { pA, pD, pB };
+}
+
+function knockoutWinnerProb(lambdaA, lambdaB) {
+  const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
+  const penA = (lambdaA + lambdaB) > 0 ? 0.45 + 0.1 * (lambdaA / (lambdaA + lambdaB)) : 0.5;
+  return { pWinA: pA + pD * penA, pWinB: pB + pD * (1 - penA) };
+}
+
+function inPlayProb(lambdaA, lambdaB, minuteElapsed, goalsA, goalsB) {
+  const timeRem = Math.max(0, 90 - minuteElapsed) / 90;
+  const laRem = lambdaA * timeRem;
+  const lbRem = lambdaB * timeRem;
+  const MAX = 8;
+  let pA = 0, pD = 0, pB = 0;
+  for (let i = 0; i <= MAX; i++) {
+    for (let j = 0; j <= MAX; j++) {
+      const p = poisson(laRem, i) * poisson(lbRem, j);
+      const totA = goalsA + i, totB = goalsB + j;
+      if (totA > totB) pA += p;
+      else if (totA === totB) pD += p;
+      else pB += p;
+    }
+  }
+  const sum = pA + pD + pB || 1;
+  return { pA: pA / sum, pD: pD / sum, pB: pB / sum };
+}
+
+function parseMinute(clockStr) {
+  const m = String(clockStr || "").match(/^(\d+)/);
+  return m ? Math.min(parseInt(m[1], 10), 90) : 45;
+}
+
+// Cache pWinA for each ordered team pair to avoid recomputing Poisson for
+// identical match-ups across the 2000 simulation iterations.
+const _winProbCache = new Map();
+function cachedKnockoutProb(nameA, nameB) {
+  const key = `${nameA}|${nameB}`;
+  if (_winProbCache.has(key)) return _winProbCache.get(key);
+  const ra = teamStrength(nameA), rb = teamStrength(nameB);
+  const { lambdaA, lambdaB } = copaExpectedGoals(ra, rb);
+  const { pWinA } = knockoutWinnerProb(lambdaA, lambdaB);
+  _winProbCache.set(key, pWinA);
+  return pWinA;
+}
+
+function runMonteCarlo(N) {
+  N = N || 2000;
+  const s = state();
+
+  // Build initial winners/losers from all already-finalized matches
+  const baseWinners = {}, baseLosers = {};
+  for (const m of DATA.knockoutMatches) {
+    const r = resolvedMatchResult(m, s);
+    const a = resolveSlot(m.teamA, baseWinners, baseLosers);
+    const b = resolveSlot(m.teamB, baseWinners, baseLosers);
+    if (r?.advanceSide === "A") { baseWinners[m.match] = a; baseLosers[m.match] = b; }
+    else if (r?.advanceSide === "B") { baseWinners[m.match] = b; baseLosers[m.match] = a; }
+  }
+
+  // Check that at least the first R32 match has known participants
+  const hasAnyTeam = DATA.knockoutMatches.some(m => {
+    const a = resolveSlot(m.teamA, baseWinners, baseLosers);
+    return a && !/Winner|Loser/i.test(a);
+  });
+  if (!hasAnyTeam) return null;
+
+  const champCount = {}, finalCount = {}, semiCount = {};
+
+  for (let iter = 0; iter < N; iter++) {
+    // Copy known results; unplayed matches will be filled in below
+    const winners = Object.assign({}, baseWinners);
+    const losers  = Object.assign({}, baseLosers);
+
+    for (const m of DATA.knockoutMatches) {
+      // Skip if result is already known
+      const r = resolvedMatchResult(m, s);
+      if (r?.advanceSide) continue;
+
+      const a = resolveSlot(m.teamA, winners, losers);
+      const b = resolveSlot(m.teamB, winners, losers);
+
+      // Safety: if either team is still an unresolved placeholder, skip
+      if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) continue;
+
+      const pWinA = cachedKnockoutProb(a, b);
+      const aWins = Math.random() < pWinA;
+      winners[m.match] = aWins ? a : b;
+      losers[m.match]  = aWins ? b : a;
+    }
+
+    // Champion = winner of match 104 (the Final)
+    const champ = winners["104"];
+    if (champ) champCount[champ] = (champCount[champ] || 0) + 1;
+
+    // Finalists = both participants in match 104
+    if (champ) finalCount[champ] = (finalCount[champ] || 0) + 1;
+    const runnerUp = losers["104"];
+    if (runnerUp) finalCount[runnerUp] = (finalCount[runnerUp] || 0) + 1;
+
+    // Semi-finalists = all 4 participants in matches 101 and 102
+    for (const sfId of ["101", "102"]) {
+      const w = winners[sfId], l = losers[sfId];
+      if (w) semiCount[w] = (semiCount[w] || 0) + 1;
+      if (l) semiCount[l] = (semiCount[l] || 0) + 1;
+    }
+  }
+
+  return { champCount, finalCount, semiCount, N, ts: Date.now() };
+}
+
+const MC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes between automatic recalcs
+
+function scheduleMC() {
+  const now = Date.now();
+  // Use cached result if it's fresh enough
+  if (_mcResult && now - _mcTs < MC_INTERVAL_MS) {
+    renderProbs();
+    return;
+  }
+  // Show loading state immediately
+  const box = $("#probsContent");
+  if (box) box.innerHTML = `<p class="muted">${escapeHtml(t("probsLoading"))}</p>`;
+  _mcTs = now;
+  // Defer to keep the UI responsive
+  setTimeout(() => {
+    try {
+      const result = runMonteCarlo(2000);
+      _mcResult = result;
+    } catch (err) {
+      console.warn("MC simulation failed", err);
+      _mcResult = null;
+    }
+    renderProbs();
+  }, 0);
+}
+
+function recalcMC() {
+  _mcResult = null;
+  _mcTs = 0;
+  _winProbCache.clear();
+  scheduleMC();
+}
+
+function renderProbs() {
+  const box = $("#probsContent");
+  if (!box) return;
+
+  if (!_mcResult) {
+    box.innerHTML = `<p class="muted">${escapeHtml(t("probsNoData"))}</p>
+<div class="button-row" style="margin-top:14px">
+  <button type="button" data-action="recalcMC">${escapeHtml(t("probsRefresh"))}</button>
+</div>`;
+    return;
+  }
+
+  const { champCount, finalCount, semiCount, N, ts } = _mcResult;
+
+  // Collect all teams that appear in any count
+  const allTeams = new Set([
+    ...Object.keys(champCount),
+    ...Object.keys(finalCount),
+    ...Object.keys(semiCount)
+  ]);
+
+  const rows = [...allTeams]
+    .map(team => ({
+      team,
+      pChamp: (champCount[team] || 0) / N,
+      pFinal: (finalCount[team] || 0) / N,
+      pSemi:  (semiCount[team] || 0) / N
+    }))
+    .filter(r => r.pSemi > 0.001)
+    .sort((a, b) => b.pChamp - a.pChamp || b.pFinal - a.pFinal || b.pSemi - a.pSemi);
+
+  if (!rows.length) {
+    box.innerHTML = `<p class="muted">${escapeHtml(t("probsNoData"))}</p>`;
+    return;
+  }
+
+  const maxChamp = rows[0].pChamp || 0.01;
+  const timeStr = ts
+    ? new Date(ts).toLocaleTimeString(currentLang, { hour: "2-digit", minute: "2-digit" })
+    : "";
+  const lastCalcStr = timeStr
+    ? ` &middot; ${escapeHtml(t("probsLastCalc"))}: ${escapeHtml(timeStr)}`
+    : "";
+
+  const trs = rows.map(r => {
+    const champPct = Math.round(r.pChamp * 100);
+    const finalPct = Math.round(r.pFinal * 100);
+    const semiPct  = Math.round(r.pSemi  * 100);
+    const barW = Math.max(2, Math.round(r.pChamp / maxChamp * 100));
+    return `<tr>
+      <td>${escapeHtml(flag(r.team))} ${escapeHtml(r.team)}</td>
+      <td><span class="prob-champ-bar" style="width:${barW}px"></span><span class="prob-pct-champ">${champPct}%</span></td>
+      <td class="prob-pct-final">${finalPct}%</td>
+      <td class="prob-pct-semi">${semiPct}%</td>
+    </tr>`;
+  }).join("");
+
+  box.innerHTML = `
+<p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}</p>
+<table class="prob-table">
+  <thead><tr>
+    <th></th>
+    <th>${escapeHtml(t("probsChamp"))}</th>
+    <th>${escapeHtml(t("probsFinal"))}</th>
+    <th>${escapeHtml(t("probsSemi"))}</th>
+  </tr></thead>
+  <tbody>${trs}</tbody>
+</table>
+<div class="button-row" style="margin-top:14px">
+  <button type="button" class="secondary" data-action="recalcMC">${escapeHtml(t("probsRefresh"))}</button>
+</div>
+<p class="prob-disclaimer">${escapeHtml(t("probsDisclaimer"))}</p>`;
 }
 
 async function autoFill(mode) {
@@ -2224,6 +2507,10 @@ async function runEspnUpdate({ silent = false } = {}) {
   }
 }
 
+/* ── Monte Carlo cache ── */
+let _mcResult = null;
+let _mcTs     = 0;
+
 /* ── Public live scoreboard (no admin required) ── */
 let _liveScores = {};
 let _liveScoreTimer = null;
@@ -2452,6 +2739,7 @@ function renderAll() {
   renderParticipants();
   renderPayment();
   renderGames();
+  renderProbs();
   renderRules();
   updateDynamic();
   renderFooterBar();
@@ -2492,6 +2780,9 @@ function initEvents() {
       }
       return;
     }
+
+    // Recalculate Monte Carlo (Probabilidades tab)
+    if (e.target.closest('[data-action="recalcMC"]')) { recalcMC(); return; }
 
     // Receipt box actions
     const actionBtn = e.target.closest("[data-action][data-eid]");
