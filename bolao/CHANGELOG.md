@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## v4.46 — 2026-07-02
+
+### Changed
+- **Barras de probabilidade pré-jogo (Google-style)**: jogos agendados agora mostram a mesma barra visual colorida que os jogos ao vivo — barra proporcional ao % de vitória de cada time, com "ET/Pen." no meio para mata-mata e "Emp" para fase de grupos
+- **Label correto nas barras**: fase de grupos usa "Emp"; mata-mata usa "ET/Pen." — tanto em live quanto pré-jogo
+- **Auto-scroll Jogos**: ao clicar na aba Jogos, a lista rola automaticamente até o próximo jogo agendado
+
+### Fixed
+- **i18n barras (A1)**: "Emp" hardcoded em português substituído por `t("probDrawShort")` — usuários en-US/es veem "D"/"Emp"
+- **90' empatado mata-mata (C2)**: barras ocultas quando relógio ≥ 90 min e jogo empatado em mata-mata (evitava "Emp 100%")
+- **ARIA prob-bars (C1)**: `role="meter"` inválido removido; substituído por `role="group"` com `aria-label` localizado
+- **Debounce scheduleMC (A3)**: flag `_mcPending` evita múltiplos `setTimeout` enfileirados
+- **copaExpectedGoals NaN (M1)**: guard para `total=0` retorna lambdas neutras 1.2/1.2
+- **matchProb normalizado (M4)**: probabilidades de vitória/empate/derrota somam exatamente 100%
+- **parseMinute (M2/M3)**: string vazia retorna -1 (sem barras); "0:00" retorna 0 (barras mostram no kick-off)
+- **probsNoData**: texto atualizado sem referência obsoleta a "início do mata-mata"
+
 ## v4.45 — 2026-07-02
 
 ### Added

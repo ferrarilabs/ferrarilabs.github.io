@@ -1,5 +1,28 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.4 — 2026-07-02
+
+### Added
+- **Logos ESPN nos jogos**: escudos dos clubes carregados da API ESPN (CSP atualizada para `https://a.espncdn.com`)
+- **Jogos de hoje**: card do próximo jogo substituído por lista de todos os jogos do dia atual — jogos ao vivo destacados, encerrados em cinza, próximos com countdown
+- **Auto-scroll Jogos**: ao clicar na aba Jogos, a lista rola até o próximo jogo agendado
+- **Título corrigido**: browser tab agora mostra "Bolão do Ferrari — Brasileirão 2026"
+
+### Changed
+- **Barras de probabilidade pré-jogo**: Jogos agendados mostram barras visuais coloridas com nome dos times (substituiu texto "Casa X% · Emp Y% · Fora Z%")
+- **Nav buttons**: estilo igual ao da Copa (fundo sólido, verde no ativo)
+- **Botão Recalcular**: aparece mesmo durante "Calculando..." para permitir retry
+- **Monte Carlo GD corrigido**: GD agora determinado pelos gols amostrados `hg/ag` (não por comparação independente com `pH`) — resultados estatisticamente coerentes
+- **buildRatings cacheado**: recalculado só quando standings atualizam, não a cada segundo
+
+### Fixed
+- **Monte Carlo fim de temporada**: quando não há jogos restantes, retorna classificação final determinística (100%/0%) em vez de estado "Calculando..." permanente
+- **prob-bar-mini px→%**: barras na tabela de probabilidades agora escalam corretamente (era `width:${n}px`, correto é `width:${n}%`)
+- **buildRatings floor**: ataque/defesa mínimo de 0.3× para evitar P(Emp)=100% em times com `gf=0`
+- **matchProb normalizado**: probabilidades somam exatamente 100%
+- **ARIA**: `scope="col"` nos th, `aria-hidden="true"` nas barras decorativas, `role="group"` nas prob-bars
+- **scheduleMC debounce**: `_mcTs` atualizado antes do setTimeout para evitar enfileiramento duplo
+
 ## v1.3 — 2026-07-02
 
 ### New features

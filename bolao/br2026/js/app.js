@@ -104,6 +104,12 @@ function showSection(id) {
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: false }); }
   if (id === "admin") renderAdmin();
   if (id === "probs") renderProbSection();
+  if (id === "games") {
+    setTimeout(() => {
+      const next = document.querySelector("#gamesList .game-card.pre");
+      next?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }
 }
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
@@ -352,7 +358,9 @@ let _schedule   = [];   // full season events from ESPN
 let _scheduleTs = 0;    // last schedule fetch timestamp
 let _mcResult   = null; // Monte Carlo result cache
 let _mcTs       = 0;    // timestamp of last MC run
-let _matchProbs = {};   // { "HomeTeam|AwayTeam": { pH, pD, pA } } for upcoming matches
+let _matchProbs   = {};   // { "HomeTeam|AwayTeam": { pH, pD, pA } } for upcoming matches
+let _ratingsCache = null; // invalidated on each standings poll
+let _teamLogos    = {};   // { teamName: logoUrl } parsed from ESPN standings
 
 async function fetchStandings() {
   try {
@@ -370,6 +378,7 @@ async function fetchStandings() {
       return {
         name:   e.team?.displayName || "",
         abbr:   e.team?.abbreviation || "",
+        logo:   e.team?.logos?.[0]?.href || "",
         rank:   getStat("rank") || 99,
         points: getStat("points"),
         played: getStat("gamesPlayed", "GP") || 1,
@@ -408,7 +417,13 @@ async function fetchScoreboard() {
 
 async function pollAll() {
   const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
-  if (standings) { _standings = standings; _matchProbs = {}; scheduleMC(); }
+  if (standings) {
+    _standings    = standings;
+    _matchProbs   = {};
+    _ratingsCache = null;
+    _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([,v]) => v));
+    scheduleMC();
+  }
   if (matches !== null) {
     _liveMatches = matches.filter(m => m.state === "in");
     _pollTime    = Date.now();
@@ -512,15 +527,17 @@ function samplePoisson(lambda) {
 }
 
 function buildRatings() {
-  const LG_AVG = 1.3;
+  if (_ratingsCache) return _ratingsCache;
+  const LG_AVG = 1.3, MIN_R = 0.3;
   const ratings = {};
   _standings.forEach(tm => {
     const n = Math.max(tm.played || 1, 1);
     ratings[tm.name] = {
-      atk: (tm.gf || 0) / n / LG_AVG,
-      def: (tm.ga || 0) / n / LG_AVG,
+      atk: Math.max((tm.gf || 0) / n / LG_AVG, MIN_R),
+      def: Math.max((tm.ga || 0) / n / LG_AVG, MIN_R),
     };
   });
+  _ratingsCache = ratings;
   return ratings;
 }
 
@@ -545,7 +562,8 @@ function matchProb(lambdaH, lambdaA) {
       else pA += p;
     }
   }
-  return { pH, pD, pA };
+  const sum = pH + pD + pA || 1;
+  return { pH: pH / sum, pD: pD / sum, pA: pA / sum };
 }
 
 function inPlayProb(lambdaH, lambdaA, minuteElapsed, homeGoals, awayGoals) {
@@ -576,17 +594,23 @@ function runMonteCarlo() {
   if (_standings.length < 20 || !_schedule.length) return null;
   const ratings   = buildRatings();
   const remaining = _schedule.filter(g => g.state === "pre");
-  if (!remaining.length) return null;
+  if (!remaining.length) {
+    const sorted = _standings.slice().sort((a, b) => (b.points || 0) - (a.points || 0) || ((b.gf || 0) - (b.ga || 0)) - ((a.gf || 0) - (a.ga || 0)));
+    const g4Set  = new Set(sorted.slice(0, 4).map(t => t.name));
+    const sa6Set = new Set(sorted.slice(6, 12).map(t => t.name));
+    const z4Set  = new Set(sorted.slice(16).map(t => t.name));
+    return DATA.teams.map(name => ({ name, g4: g4Set.has(name) ? 100 : 0, sa6: sa6Set.has(name) ? 100 : 0, z4: z4Set.has(name) ? 100 : 0 }))
+      .sort((a, b) => b.g4 - a.g4 || b.sa6 - a.sa6 || a.z4 - b.z4);
+  }
 
-  // Pre-compute Poisson match probs per unique fixture (avoids 81 evals × 2000 sims)
+  // Pre-compute lambdas per unique fixture (sample Poisson per sim for unbiased GD)
   const mpCache = {};
   remaining.forEach(g => {
     const key = `${g.homeTeam}|${g.awayTeam}`;
     if (!mpCache[key]) {
       const { lambdaH, lambdaA } = expectedGoals(g.homeTeam, g.awayTeam, ratings);
-      const prob = matchProb(lambdaH, lambdaA);
-      mpCache[key]      = { ...prob, lambdaH, lambdaA };
-      _matchProbs[key]  = prob;  // update global per-match cache as side-effect
+      mpCache[key]      = { lambdaH, lambdaA };
+      _matchProbs[key]  = matchProb(lambdaH, lambdaA); // for game-hint display
     }
   });
 
@@ -602,21 +626,18 @@ function runMonteCarlo() {
     DATA.teams.forEach(t => { if (pts[t] == null) pts[t] = 0; if (gd[t] == null) gd[t] = 0; });
 
     remaining.forEach(g => {
-      const { pH, pD, lambdaH, lambdaA } = mpCache[`${g.homeTeam}|${g.awayTeam}`];
-      const r  = Math.random();
+      const { lambdaH, lambdaA } = mpCache[`${g.homeTeam}|${g.awayTeam}`];
       const hg = samplePoisson(lambdaH), ag = samplePoisson(lambdaA);
-      if (r < pH) {
+      if (hg > ag) {
         pts[g.homeTeam] = (pts[g.homeTeam] || 0) + 3;
-        gd[g.homeTeam]  = (gd[g.homeTeam]  || 0) + (hg - ag);
-        gd[g.awayTeam]  = (gd[g.awayTeam]  || 0) - (hg - ag);
-      } else if (r < pH + pD) {
+      } else if (hg === ag) {
         pts[g.homeTeam] = (pts[g.homeTeam] || 0) + 1;
         pts[g.awayTeam] = (pts[g.awayTeam] || 0) + 1;
       } else {
         pts[g.awayTeam] = (pts[g.awayTeam] || 0) + 3;
-        gd[g.awayTeam]  = (gd[g.awayTeam]  || 0) + (ag - hg);
-        gd[g.homeTeam]  = (gd[g.homeTeam]  || 0) - (ag - hg);
       }
+      gd[g.homeTeam] = (gd[g.homeTeam] || 0) + hg - ag;
+      gd[g.awayTeam] = (gd[g.awayTeam] || 0) + ag - hg;
     });
 
     const sorted = DATA.teams.slice().sort((a, b) =>
@@ -637,6 +658,7 @@ function runMonteCarlo() {
 
 function scheduleMC() {
   if (Date.now() - _mcTs < 5 * 60 * 1000) return; // at most every 5 min
+  _mcTs = Date.now(); // mark immediately to prevent duplicate enqueue
   setTimeout(() => {
     _mcResult = runMonteCarlo();
     _mcTs     = Date.now();
@@ -664,7 +686,7 @@ function renderLiveCard() {
       const { pH, pD, pA } = inPlayProb(lambdaH, lambdaA, minute, m.homeScore, m.awayScore);
       const homeLbl = esc(m.homeTeam.split(" ")[0]);
       const awayLbl = esc(m.awayTeam.split(" ")[0]);
-      probBarsHtml = `<div class="prob-bars">
+      probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
         <div class="prob-bar home" style="width:${(pH*100).toFixed(0)}%">${homeLbl} ${(pH*100).toFixed(0)}%</div>
         <div class="prob-bar draw"  style="width:${(pD*100).toFixed(0)}%">Emp ${(pD*100).toFixed(0)}%</div>
         <div class="prob-bar away"  style="width:${(pA*100).toFixed(0)}%">${awayLbl} ${(pA*100).toFixed(0)}%</div>
@@ -687,32 +709,58 @@ function renderLiveCard() {
 // ─── Render: next game card ──────────────────────────────────────────────────
 function renderNextGameCard() {
   const card = $("nextGameCard");
-  if (!card) return;
+  if (!card || !_schedule.length) { card?.classList.add("hidden"); return; }
 
-  // If a live match is happening, show it
-  if (_liveMatches.length) {
-    const lm      = _liveMatches[0];
-    const secElap = lm.clockSec !== null
-      ? Math.floor(lm.clockSec + (Date.now() - _pollTime) / 1000)
-      : null;
-    const clock   = secElap !== null ? formatClock(secElap) : lm.clockStr;
+  const todayKey   = brtDateKey(new Date().toISOString());
+  const todayGames = _schedule.filter(g => brtDateKey(g.dateISO) === todayKey);
+
+  if (todayGames.length) {
+    const items = todayGames.map(g => {
+      const lm = _liveMatches.find(l => l.homeTeam === g.homeTeam && l.awayTeam === g.awayTeam);
+      if (lm) {
+        const secElap = lm.clockSec !== null ? Math.floor(lm.clockSec + (Date.now() - _pollTime) / 1000) : null;
+        const clock   = secElap !== null ? formatClock(secElap) : lm.clockStr;
+        return `<div class="today-game today-game-live">
+          <span class="live-badge">${esc(t("liveNow"))}</span>
+          <div class="today-game-teams">${esc(g.homeTeam)} <b class="today-score">${lm.homeScore} – ${lm.awayScore}</b> ${esc(g.awayTeam)}</div>
+          <span class="today-game-time muted">${esc(clock)}</span>
+        </div>`;
+      } else if (g.state === "post") {
+        return `<div class="today-game today-game-post">
+          <div class="today-game-teams muted">${esc(g.homeTeam)} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${esc(g.awayTeam)}</div>
+          <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
+        </div>`;
+      } else {
+        const timeStr = brtTimeStr(g.dateISO);
+        const now     = Date.now();
+        const diffMs  = new Date(g.dateISO).getTime() - now;
+        let countdown = "";
+        if (diffMs > 0 && diffMs < 3600000) {
+          const m = Math.floor(diffMs / 60000), s = Math.floor((diffMs % 60000) / 1000);
+          countdown = ` · ${m}m ${String(s).padStart(2, "0")}s`;
+        }
+        return `<div class="today-game">
+          <div class="today-game-teams">${esc(g.homeTeam)} <span class="next-game-vs">×</span> ${esc(g.awayTeam)}</div>
+          <span class="today-game-time muted">${esc(timeStr)} BRT${esc(countdown)}</span>
+        </div>`;
+      }
+    }).join("");
+
     card.innerHTML = `<div class="next-game-card">
-      <span class="live-badge">${esc(t("nextGameLive"))}</span>
-      <div class="next-game-teams">${esc(lm.homeTeam)} <span class="live-score" style="font-size:1em">${lm.homeScore} – ${lm.awayScore}</span> ${esc(lm.awayTeam)}</div>
-      <div class="next-game-info">${esc(clock)}</div>
+      <div class="today-games-header">${esc(t("todayGamesLabel"))}</div>
+      ${items}
     </div>`;
     card.classList.remove("hidden");
     return;
   }
 
-  // Find first scheduled (pre) game not more than 30 min in the past
+  // No games today — show next upcoming game
   const now  = Date.now();
   const next = _schedule.find(g => g.state === "pre" && new Date(g.dateISO).getTime() > now - 30 * 60 * 1000);
   if (!next) { card.classList.add("hidden"); return; }
 
   const timeStr = brtLongDate(next.dateISO) + " BRT";
-
-  const diffMs = new Date(next.dateISO).getTime() - now;
+  const diffMs  = new Date(next.dateISO).getTime() - now;
   let countdown = "";
   if (diffMs > 0) {
     const totalSec = Math.floor(diffMs / 1000);
@@ -813,7 +861,7 @@ function renderGamesSection() {
         statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
       }
 
-      let probHintHtml = "";
+      let probBarsHtml = "";
       if (g.state === "pre" && hasRatings) {
         const mpKey = `${g.homeTeam}|${g.awayTeam}`;
         if (!_matchProbs[mpKey]) {
@@ -821,7 +869,16 @@ function renderGamesSection() {
           _matchProbs[mpKey] = matchProb(lambdaH, lambdaA);
         }
         const { pH, pD, pA } = _matchProbs[mpKey];
-        probHintHtml = `<div class="game-prob-hint">Casa ${(pH*100).toFixed(0)}% · Emp ${(pD*100).toFixed(0)}% · Fora ${(pA*100).toFixed(0)}%</div>`;
+        const hPct = Math.round(pH * 100), dPct = Math.round(pD * 100), aPct = Math.round(pA * 100);
+        const hLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
+        const aLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
+        const hLabel = esc(g.homeTeam.length > 12 ? g.homeTeam.slice(0, 12) + "…" : g.homeTeam);
+        const aLabel = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
+        probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
+          <div class="prob-bar home" style="width:${hPct}%" title="${esc(g.homeTeam)}: ${hPct}%">${hLogo} ${hLabel} ${hPct}%</div>
+          <div class="prob-bar draw"  style="width:${dPct}%" title="Emp: ${dPct}%">Emp ${dPct}%</div>
+          <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${aLabel} ${aPct}% ${aLogo}</div>
+        </div>`;
       }
       html += `<div class="game-card ${esc(g.state || "pre")}">
         <div class="game-teams">
@@ -831,7 +888,7 @@ function renderGamesSection() {
         </div>
         ${g.venue ? `<div class="game-venue">${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
         <div class="game-status-row">${statusHtml}</div>
-        ${probHintHtml}
+        ${probBarsHtml}
       </div>`;
     });
   });
@@ -1307,7 +1364,11 @@ function renderProbSection() {
   }
 
   if (!_mcResult) {
-    box.innerHTML = `<p class="muted">${esc(t("probsLoading"))}</p>`;
+    box.innerHTML = `<p class="muted">${esc(t("probsLoading"))}</p>
+<div style="margin-top:10px">
+  <button type="button" id="mcRefreshBtn" class="secondary small-btn">${esc(t("probsRefresh"))}</button>
+</div>`;
+    $("mcRefreshBtn")?.addEventListener("click", () => { _mcTs = 0; _mcResult = null; renderProbSection(); scheduleMC(); });
     scheduleMC();
     return;
   }
@@ -1322,19 +1383,19 @@ function renderProbSection() {
       <td>
         <div class="prob-cell">
           <span class="prob-pct g4">${row.g4}%</span>
-          <div class="prob-bar-mini g4" style="width:${row.g4}px"></div>
+          <div class="prob-bar-mini g4" style="width:${row.g4}%" aria-hidden="true"></div>
         </div>
       </td>
       <td>
         <div class="prob-cell">
           <span class="prob-pct sa6">${row.sa6}%</span>
-          <div class="prob-bar-mini sa6" style="width:${row.sa6}px"></div>
+          <div class="prob-bar-mini sa6" style="width:${row.sa6}%" aria-hidden="true"></div>
         </div>
       </td>
       <td>
         <div class="prob-cell">
           <span class="prob-pct z4">${row.z4}%</span>
-          <div class="prob-bar-mini z4" style="width:${row.z4}px"></div>
+          <div class="prob-bar-mini z4" style="width:${row.z4}%" aria-hidden="true"></div>
         </div>
       </td>
     </tr>`).join("");
@@ -1343,10 +1404,10 @@ function renderProbSection() {
     <table class="prob-table">
       <thead>
         <tr>
-          <th>${esc(t("team"))}</th>
-          <th>${esc(t("probsG4"))}</th>
-          <th>${esc(t("probsSA"))}</th>
-          <th>${esc(t("probsZ4"))}</th>
+          <th scope="col">${esc(t("team"))}</th>
+          <th scope="col">${esc(t("probsG4"))}</th>
+          <th scope="col">${esc(t("probsSA"))}</th>
+          <th scope="col">${esc(t("probsZ4"))}</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
