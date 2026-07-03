@@ -916,23 +916,21 @@ select:focus-visible {
 .reopen-cta.highlight { color: #86efac; font-weight: 600; }
 .reopen-cta button.small { font-size: 12px; padding: 4px 12px; margin-left: 8px; }
 
-/* ── America 250 badge (July 4, 2026) ── */
+/* ── America 250 badge (July 4, 2026) ──
+   Uses the actual official America250 logo (US Semiquincentennial
+   Commission), supplied directly by Eduardo — background removed and
+   cropped to the mark, assets/america250-logo.png. Earlier attempts to
+   fetch it from Wikimedia Commons were blocked by this sandbox's network
+   policy, and a CSS-only recreation was tried first but couldn't match the
+   real ribbon artwork at badge scale, so this replaced both. */
 .america250-badge {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
   margin-top: 10px;
-  padding: 5px 12px 5px 8px;
-  background: linear-gradient(135deg, rgba(0,40,104,0.55), rgba(0,20,60,0.75));
-  border: 1px solid rgba(191,10,48,0.45);
-  border-radius: 20px;
-  font-size: 11px;
-  color: #e2e8f0;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #04214f, #001845);
+  border: 1px solid rgba(191,10,48,0.55);
+  border-radius: 10px;
   cursor: default;
-  user-select: none;
 }
-.america250-badge span:first-child { font-size: 17px; line-height: 1; }
-.a250-text { display: flex; flex-direction: column; line-height: 1; }
-.a250-label { font-size: 7px; letter-spacing: 2.5px; color: #BF0A30; font-weight: 700; }
-.a250-num { font-size: 16px; font-weight: 900; color: #fff; letter-spacing: -0.5px; font-family: Georgia, serif; line-height: 1.1; }
-.a250-stars { font-size: 8px; color: #BF0A30; letter-spacing: 2px; }
+.america250-badge img { height: 34px; width: auto; display: block; }
