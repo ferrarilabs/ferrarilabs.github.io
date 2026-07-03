@@ -2963,42 +2963,62 @@ const HALF_BOUNDARIES_MIN = [120, 105, 90, 45];
 // own period flips, including for extra time.
 const PERIOD_BOUNDARY_MIN = { 1: 45, 2: 90, 3: 105, 4: 120 };
 
+function fmtClock(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// Realistic upper bound on how long past a boundary something is still
+// credible as "stoppage" — broadcasters essentially never call it stoppage
+// further past a half/period's normal duration than this.
+const MAX_STOPPAGE_SECONDS = 8 * 60;
+
 // period: ESPN's status.period for this match, when known — see
 // PERIOD_BOUNDARY_MIN above. skipBoundariesUpTo: legacy fallback used only
 // when period isn't available (see _confirmedBoundary below) — ignores any
 // boundary at or below this value (minutes) once a halftime/pause
 // observation confirmed the match has moved past that half.
 function formatMatchClock(totalSeconds, period = null, skipBoundariesUpTo = 0) {
-  const m = Math.floor(totalSeconds / 60);
-  const s = Math.floor(totalSeconds % 60);
-  const base = `${m}:${String(s).padStart(2, "0")}`;
   const totalMinutes = totalSeconds / 60;
 
-  if (period === 5) return base; // penalties — no running stoppage concept
+  if (period === 5) return fmtClock(totalSeconds); // penalties — no running stoppage concept
 
   const knownBoundary = period != null ? PERIOD_BOUNDARY_MIN[period] : undefined;
   if (knownBoundary !== undefined) {
-    if (totalMinutes <= knownBoundary) return base;
-    const stoppageMin = Math.max(1, Math.ceil((totalSeconds - knownBoundary * 60) / 60));
-    return `${base} (+${stoppageMin})`;
+    if (totalMinutes <= knownBoundary) return fmtClock(totalSeconds);
+    const secsPastBoundary = totalSeconds - knownBoundary * 60;
+    // Extra time's 2nd period (period 4) has no legitimate next real-clock
+    // state to numerically grow into — it's always followed by either
+    // full-time or a shootout with no running clock at all. Once its own
+    // cap is passed, freeze here for good instead of letting the display
+    // keep climbing. This is the actual fix for the runaway "120:07 (+1)…"
+    // Eduardo caught live during Australia x Egypt's shootout: ESPN briefly
+    // reported a status this app's text matching didn't recognize as
+    // "penalties," and this branch (period known) had NO cap at all, so
+    // local interpolation just kept adding seconds forever with nothing to
+    // stop it — unlike the fallback branch below, which always had one.
+    if (period === 4 && secsPastBoundary > MAX_STOPPAGE_SECONDS) {
+      return `${fmtClock(knownBoundary * 60 + MAX_STOPPAGE_SECONDS)} (+${MAX_STOPPAGE_SECONDS / 60})`;
+    }
+    const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
+    return `${fmtClock(totalSeconds)} (+${stoppageMin})`;
   }
 
   // Fallback for when ESPN's period field isn't present in the feed: the
   // largest boundary the clock has actually passed, capped at a realistic
-  // 8 minutes of stoppage (broadcasters essentially never call it stoppage
-  // further past a half's normal duration) — needed because without period,
-  // this clock is just one continuous counter with no built-in notion of
-  // "which half" it's in. This is exactly what Eduardo caught live ("55:11
-  // (+11)" during confirmed 2nd-half play, well past any real 1st-half
-  // stoppage) — period fixes that at the source when available; this stays
-  // as a safety net for when it isn't.
+  // 8 minutes of stoppage — needed because without period, this clock is
+  // just one continuous counter with no built-in notion of "which half" it's
+  // in. This is exactly what Eduardo caught live ("55:11 (+11)" during
+  // confirmed 2nd-half play, well past any real 1st-half stoppage) — period
+  // fixes that at the source when available; this stays as a safety net for
+  // when it isn't.
   const boundary = HALF_BOUNDARIES_MIN.find(b => b > skipBoundariesUpTo && totalMinutes > b);
-  if (!boundary) return base;
+  if (!boundary) return fmtClock(totalSeconds);
   const secsPastBoundary = totalSeconds - boundary * 60;
-  const MAX_STOPPAGE_SECONDS = 8 * 60;
-  if (secsPastBoundary > MAX_STOPPAGE_SECONDS) return base;
+  if (secsPastBoundary > MAX_STOPPAGE_SECONDS) return fmtClock(totalSeconds);
   const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
-  return `${base} (+${stoppageMin})`;
+  return `${fmtClock(totalSeconds)} (+${stoppageMin})`;
 }
 
 // Sticky per-match record of the highest half-boundary we've directly
