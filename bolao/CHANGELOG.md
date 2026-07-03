@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.71 — 2026-07-03
+
+### Fixed
+- **Badge "America 250" quebrado (Eduardo): "O logo america 250 nao ficou legal, arrume ele"**. Causa: um bug de seletor CSS — `.america250-badge span:first-child` pretendia estilizar só a bandeirinha, mas essa combinação (descendente + `:first-child`) também batia em `.a250-label` ("AMERICA"), já que ele também é o primeiro filho do SEU PRÓPRIO pai (`.a250-text`). Isso fazia "AMERICA" herdar 17px em vez dos 7px pretendidos, com especificidade maior que a regra certa — o texto ficava gigante, colidindo com as estrelas, e "250" quebrava linha. Também investigado: os fogos de artifício não são bug, só estão programados pra só aparecerem no dia 4/jul (`getMonth()===6 && getDate()===4`) — testado forçando a data e confirmado que funcionam normalmente.
+- Tentei achar o logo oficial via Wikimedia Commons pra usar em vez de recriar em CSS, mas o sandbox não tem acesso de rede pra esses domínios (403 da política de rede). Eduardo mandou o PNG oficial diretamente — extraí o fundo preto (transparência via luminância), recortei e redimensionei (`bolao/assets/america250-logo.png`), e troquei o badge inteiro (que antes era bandeira+texto+estrelas em CSS) pra usar a imagem oficial de verdade.
+- Auditoria de pontuação: mudança é só visual (imagem estática), não mexe em resultado/ranking. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.65 — 2026-07-03
 
 ### Fixed — M85 resultado em data.js
