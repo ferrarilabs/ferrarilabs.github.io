@@ -6,6 +6,18 @@
 - **Relógio ao vivo continuava andando durante o intervalo de verdade (Portugal x Croácia)**: mesmo depois do v4.61 tornar o relógio monotônico (nunca volta pra trás), um relógio genuinamente PAUSADO (intervalo, uma parada longa qualquer) ainda parecia "atrás da extrapolação" pra essa lógica — e como não existe mais nenhum teto (o v4.61 removeu o cap de 150s de propósito, pra resolver o problema de saltos pra trás), o relógio ficava subindo pra sempre durante a pausa inteira, sem se autocorrigir nunca. Corrigido com uma detecção que não depende de adivinhar o texto de status da ESPN pra intervalo: compara o `clockSeconds` bruto entre dois polls reais — se passou bastante tempo real mas o relógio do jogo mal andou, está pausado, e tanto a extrapolação armazenada quanto a interpolação exibida na tela param completamente até o relógio voltar a se mexer de verdade. Compatível com a reescrita monotônica do v4.61 — só entra em ação quando uma pausa real é detectada, sem interferir na lógica de reset de período deles.
 - Auditoria de pontuação: mudança é só de exibição do relógio ao vivo, não mexe em resultado/ranking. Rodei `audit_scoring.py` mesmo assim — 5/5 continuam passando.
 
+## v4.63 — 2026-07-02
+
+### Added — Polymarket como fonte de probabilidades
+
+**Tab Probabilidades:** coluna "📈 Mercado" ao lado do nosso Monte Carlo. Preços ao vivo do mercado "World Cup Winner" do Polymarket (event 30615) — mostra o que o mercado de previsão coloca em cada time. Diferença clara: nosso ELO tinha Brasil alto, Polymarket mostra França 34%, Argentina 20%, Brasil 6%. Cache de 60 min (configurável em `config.js`).
+
+**Barras de pré-jogo nos jogos do mata-mata:** agora usam a probabilidade derivada do Polymarket via normalização — P(A avança) = poly_A / (poly_A + poly_B) — em vez do modelo ELO puro. A fatia ET/Pens é estimada como min(22%, 2×min(advA,advB)) para que jogos muito desequilibrados (França vs Paraguai) não aloquem probabilidade absurda de prorrogação. Carregado no init da página, barras já aparecem com dados do mercado desde o primeiro acesso.
+
+`fetchPolymarketOdds()`, `polyMatchProb()`, coluna `.poly-bar` (âmbar) na tabela de probs. Scoring não foi tocado — audit 5/5 passando.
+
+## v4.62 — 2026-07-03
+
 ## v4.61 — 2026-07-02
 
 ### Fixed — relógio ao vivo monotônico + email em quasi-tempo-real após jogo

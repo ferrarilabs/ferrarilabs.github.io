@@ -1830,10 +1830,39 @@ function predictScore(a, b, mode) {
 /* ============================================================
    Monte Carlo / Probabilidades
    ============================================================ */
-let _mcResult = null;
-let _mcTs     = 0;
+let _mcResult    = null;
+let _mcTs        = 0;
 let _copaEloCache = null;
 const _lambdaCache = new Map();
+let _polyCache   = null; // { data: {TeamName: prob}, ts }
+
+async function fetchPolymarketOdds() {
+  const ttlMs = (CONFIG.externalData?.polymarket?.cacheMinutes ?? 60) * 60000;
+  if (_polyCache && Date.now() - _polyCache.ts < ttlMs) return _polyCache.data;
+  if (!CONFIG.externalData?.polymarket?.enabled) return null;
+  try {
+    // Event 30615 = "World Cup Winner" — each market is a single-team Yes/No binary
+    const res  = await fetch("https://gamma-api.polymarket.com/events/30615");
+    const ev   = await res.json();
+    const data = {};
+    for (const m of (ev.markets || [])) {
+      const outcomes = JSON.parse(m.outcomes || "[]");
+      const prices   = JSON.parse(m.outcomePrices || "[]");
+      if (outcomes[0] !== "Yes" || !prices[0]) continue;
+      const q = (m.question || "");
+      // "Will France win the 2026 FIFA World Cup?" → "France"
+      const match = q.match(/Will (.+?) win the 2026/i);
+      if (!match) continue;
+      const team = match[1].trim();
+      data[team] = parseFloat(prices[0]);
+    }
+    _polyCache = { data, ts: Date.now() };
+    return data;
+  } catch (err) {
+    console.warn("Polymarket fetch failed:", err);
+    return _polyCache?.data ?? null;
+  }
+}
 
 function poisson(lambda, k) {
   if (k < 0 || lambda <= 0) return k === 0 ? 1 : 0;
@@ -1982,11 +2011,44 @@ function probBarsMarkup(pA, pD, pB, a, b, drawLabel) {
 // shared by the Jogos tab's game cards and the hero "próximo jogo" card.
 // Static Poisson estimate from each team's strength rating (no live signal
 // to blend in yet, unlike liveProbBarsHtml below).
+// Derives match-level probabilities from Polymarket's tournament-winner prices.
+// Formula: P(A advances) = poly_A / (poly_A + poly_B) — market-consensus normalization.
+// For the draw slice (ET/pens): capped at min(22%, 2×min(advA,advB)) so lopsided
+// matchups don't allocate absurd draw probabilities. Returns null when prices
+// aren't loaded yet or when either team isn't found in the market.
+function polyMatchProb(teamA, teamB) {
+  const poly = _polyCache?.data;
+  if (!poly) return null;
+  const lookup = name => {
+    if (poly[name] !== undefined) return poly[name];
+    const k = Object.keys(poly).find(k2 =>
+      k2.toLowerCase() === name.toLowerCase() ||
+      name.toLowerCase().includes(k2.toLowerCase()) ||
+      k2.toLowerCase().includes(name.toLowerCase())
+    );
+    return k !== undefined ? poly[k] : null;
+  };
+  const pA = lookup(teamA), pB = lookup(teamB);
+  if (pA === null || pB === null) return null;
+  const total = pA + pB;
+  if (total < 0.001) return null;
+  const advA = pA / total, advB = pB / total;
+  // ET/Pens slice: capped so lopsided matchups don't overflow
+  const pD  = Math.min(0.22, 2 * Math.min(advA, advB));
+  return { pA: advA - pD * 0.5, pD, pB: advB - pD * 0.5, source: "polymarket" };
+}
+
 function preMatchProbBarsHtml(m) {
   const a = m.teamA || "", b = m.teamB || "";
   if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
-  const { lambdaA, lambdaB } = copaExpectedGoals(a, b);
   const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
+  // Use Polymarket-derived match probability when available (knockout only —
+  // group stage keeps the ELO model since Polymarket prices are per-tournament)
+  if (!m.group) {
+    const poly = polyMatchProb(a, b);
+    if (poly) return probBarsMarkup(poly.pA, poly.pD, poly.pB, a, b, drawLabel);
+  }
+  const { lambdaA, lambdaB } = copaExpectedGoals(a, b);
   const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
   return probBarsMarkup(pA, pD, pB, a, b, drawLabel);
 }
@@ -2131,7 +2193,8 @@ function scheduleMC() {
   const box = $("#probsContent");
   if (box) box.innerHTML = `<p class="muted">${escapeHtml(t("probsLoading"))}</p>`;
   _mcTs = now;
-  setTimeout(() => {
+  // Run MC sync then fetch Polymarket async — both trigger a re-render
+  setTimeout(async () => {
     try {
       const result = runMonteCarlo(2000);
       _mcResult = result;
@@ -2141,6 +2204,9 @@ function scheduleMC() {
     }
     _mcPending = false;
     renderProbs();
+    // Fetch Polymarket in background; re-render once data arrives
+    const poly = await fetchPolymarketOdds();
+    if (poly) renderProbs();
   }, 0);
 }
 
@@ -2166,56 +2232,90 @@ function renderProbs() {
   }
 
   const { champCount, finalCount, semiCount, N, ts } = _mcResult;
+  const poly = _polyCache?.data ?? null;
 
-  // Collect all teams that appear in any count
+  // Merge MC teams + any Polymarket team still in tournament (price > 0.005)
   const allTeams = new Set([
     ...Object.keys(champCount),
     ...Object.keys(finalCount),
-    ...Object.keys(semiCount)
+    ...Object.keys(semiCount),
+    ...(poly ? Object.keys(poly).filter(k => poly[k] > 0.005) : [])
   ]);
 
   const rows = [...allTeams]
-    .map(team => ({
-      team,
-      pChamp: (champCount[team] || 0) / N,
-      pFinal: (finalCount[team] || 0) / N,
-      pSemi:  (semiCount[team] || 0) / N
-    }))
-    .filter(r => r.pSemi > 0.001)
-    .sort((a, b) => b.pChamp - a.pChamp || b.pFinal - a.pFinal || b.pSemi - a.pSemi);
+    .map(team => {
+      // Try to match Polymarket by exact name, then by partial match
+      let pPoly = poly ? (poly[team] ?? null) : null;
+      if (pPoly === null && poly) {
+        const key = Object.keys(poly).find(k =>
+          k.toLowerCase() === team.toLowerCase() ||
+          team.toLowerCase().includes(k.toLowerCase()) ||
+          k.toLowerCase().includes(team.toLowerCase())
+        );
+        if (key) pPoly = poly[key];
+      }
+      return {
+        team,
+        pChamp: (champCount[team] || 0) / N,
+        pFinal: (finalCount[team] || 0) / N,
+        pSemi:  (semiCount[team] || 0) / N,
+        pPoly
+      };
+    })
+    .filter(r => r.pSemi > 0.001 || (r.pPoly ?? 0) > 0.005)
+    .sort((a, b) => {
+      // Sort by Polymarket if available, else by MC
+      if (poly) return (b.pPoly ?? 0) - (a.pPoly ?? 0) || b.pChamp - a.pChamp;
+      return b.pChamp - a.pChamp || b.pFinal - a.pFinal;
+    });
 
   if (!rows.length) {
     box.innerHTML = `<p class="muted">${escapeHtml(t("probsNoData"))}</p>`;
     return;
   }
 
-  const maxChamp = rows[0].pChamp || 0.01;
-  const timeStr = ts
+  const maxChamp = Math.max(...rows.map(r => r.pChamp), 0.01);
+  const maxPoly  = poly ? Math.max(...rows.map(r => r.pPoly ?? 0), 0.01) : 0.01;
+  const timeStr  = ts
     ? new Date(ts).toLocaleTimeString(currentLang, { hour: "2-digit", minute: "2-digit" })
     : "";
-  const lastCalcStr = timeStr
-    ? ` &middot; ${escapeHtml(t("probsLastCalc"))}: ${escapeHtml(timeStr)}`
-    : "";
+  const lastCalcStr = timeStr ? ` · ${escapeHtml(t("probsLastCalc"))}: ${escapeHtml(timeStr)}` : "";
+  const polyNote    = poly
+    ? ` · <a href="https://polymarket.com/event/world-cup-winner" target="_blank" rel="noopener" style="color:inherit">Polymarket</a> (ao vivo)`
+    : ' · <span class="muted">Polymarket carregando…</span>';
+
+  const hasPoly = poly && rows.some(r => r.pPoly !== null);
 
   const trs = rows.map(r => {
     const champPct = Math.round(r.pChamp * 100);
     const finalPct = Math.round(r.pFinal * 100);
     const semiPct  = Math.round(r.pSemi  * 100);
-    const barW = Math.max(2, Math.round(r.pChamp / maxChamp * 100));
+    const barW     = Math.max(2, Math.round(r.pChamp / maxChamp * 100));
+    const polyPct  = r.pPoly !== null ? Math.round(r.pPoly * 100) : null;
+    const polyBar  = r.pPoly !== null ? Math.max(2, Math.round(r.pPoly / maxPoly * 100)) : 0;
+    const polyCell = hasPoly
+      ? (polyPct !== null
+          ? `<td><span class="prob-champ-bar poly-bar" style="width:${polyBar}px"></span><span class="prob-pct-champ">${polyPct}%</span></td>`
+          : `<td class="muted" style="font-size:11px">—</td>`)
+      : "";
     return `<tr>
       <td>${escapeHtml(flag(r.team))} ${escapeHtml(r.team)}</td>
       <td><span class="prob-champ-bar" style="width:${barW}px"></span><span class="prob-pct-champ">${champPct}%</span></td>
+      ${polyCell}
       <td class="prob-pct-final">${finalPct}%</td>
       <td class="prob-pct-semi">${semiPct}%</td>
     </tr>`;
   }).join("");
 
+  const polyHeader = hasPoly ? `<th title="Preços ao vivo do Polymarket">📈 Mercado</th>` : "";
+
   box.innerHTML = `
-<p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}</p>
+<p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}${polyNote}</p>
 <table class="prob-table">
   <thead><tr>
     <th></th>
-    <th>${escapeHtml(t("probsChamp"))}</th>
+    <th title="${escapeHtml(t("probsChamp"))}">${escapeHtml(t("probsChamp"))}</th>
+    ${polyHeader}
     <th>${escapeHtml(t("probsFinal"))}</th>
     <th>${escapeHtml(t("probsSemi"))}</th>
   </tr></thead>
@@ -3346,6 +3446,9 @@ async function init() {
   restoreDraft();
   setInterval(() => { updateCountdown(); renderNextMatch(); }, 1000);
   startLiveScorePolling();
+  // Pre-fetch Polymarket odds in background so match prob bars are ready before
+  // the user visits the Probabilidades tab; re-renders games/next-match on arrival
+  fetchPolymarketOdds().then(poly => { if (poly) { renderNextMatch(); renderGames?.(); } }).catch(() => {});
   setInterval(() => { if (!document.hidden) debouncedReload(); }, 90000);
 
   document.addEventListener("visibilitychange", () => {
