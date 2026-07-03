@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v4.78 — 2026-07-03
+
+### Fixed — relógio sem teto de segurança na prorrogação (2º tempo) causou subida sem parar
+- No mesmo jogo (Austrália x Egito), depois que os pênaltis começaram de verdade, Eduardo pegou o relógio mostrando "120:07 (+1)" e subindo — a v4.77 já reconhecia o estado "AET-pens" (fim da prorrogação, prestes a bater pênaltis), mas assim que os pênaltis realmente começaram, a ESPN mudou pra um status/texto que ainda não tínhamos visto/reconhecido, e esse relógio continuou subindo até se corrigir sozinho minutos depois.
+- Causa raiz, achada revisando o código com mais cuidado: o ramo do `formatMatchClock` que usa o `period` da ESPN como fonte de verdade (introduzido na v4.75) **não tinha nenhum teto** — diferente do fallback antigo, que sempre limitou o acréscimo mostrado a 8 minutos. Pra período 4 (2º tempo da prorrogação) especificamente, isso é grave: depois desse período não existe mais "próximo tempo real" pro relógio crescer de forma legítima — só dá em pênaltis ou fim de jogo — então, sem teto, qualquer status que a gente não reconheça deixa a interpolação local subir pra sempre.
+- Corrigido: o período 4 agora usa o mesmo teto realista de 8 minutos que o fallback sempre teve, mas em vez de só esconder a anotação "+N" (que ainda deixaria o número base subindo puro), o relógio agora **para de vez** em "120:00 (+8)" quando o teto é alcançado — não sobe mais, esteja a ESPN mandando o texto de status certo ou não. Isso funciona como uma segunda camada de proteção, independente de reconhecer o texto exato que a ESPN usa: mesmo se a v4.77 (e futuras tentativas de reconhecer o texto exato dos pênaltis) não pegar algum status novo que a ESPN inventar, o relógio nunca mais vai subir pra sempre — no pior caso, ele congela num valor razoável em vez de continuar subindo na tela do Eduardo.
+- Verificado com Playwright simulando exatamente o cenário real: relógio em "120:07 (+1)" (igual ao print do Eduardo) e depois mais de 20 minutos de "tempo real" passando com um status nunca visto antes — o relógio sobe até "128:00 (+8)" e trava ali, não continua subindo. Todos os testes de regressão anteriores (v4.73, v4.75, v4.76, v4.77) continuam passando.
+- Auditoria de pontuação: mudança é só de exibição do relógio ao vivo. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.77 — 2026-07-03
 
 ### Fixed — relógio realmente parou nos pênaltis (v4.76 não pegou o estado real da ESPN)
