@@ -2956,24 +2956,27 @@ function mapEspnToLiveScores(events) {
   return out;
 }
 
-// The running clock interpolates seconds between 60s ESPN polls. ESPN's own
-// feed lags the real broadcast by anywhere from a few seconds up to ~1-2 min
-// (worse right after the tab was backgrounded and resumes with a fresh poll).
-// Without this guard, a freshly-polled clockSeconds that's behind what we'd
-// already extrapolated on screen makes the visible clock jump backward —
-// exactly the "resets when I leave and come back" symptom. Small backward
-// drift is treated as feed lag and smoothed over; a large jump (new half,
-// extra time kickoff) is a legitimate reset and passes through untouched.
+// The running clock interpolates seconds between 60s ESPN polls. ESPN's feed
+// can lag the real broadcast by 2–4+ minutes (VAR delays, half-time transitions,
+// network lag after the tab was backgrounded). The old 150s cap caused visible
+// backward jumps whenever ESPN's lag exceeded that threshold.
+// New strategy: the clock is MONOTONIC during play — it never goes backward
+// unless ESPN signals a legitimate period boundary reset (clock drops from near
+// a 45-min mark to near 0, which means a new half or ET period is starting).
 function mergeLiveClock(fresh, prev) {
   if (!prev || prev.clockSeconds == null || fresh.clockSeconds == null) return fresh;
   const elapsed = (fresh.pollTime - prev.pollTime) / 1000;
   if (elapsed <= 0) return fresh;
   const extrapolated = prev.clockSeconds + elapsed;
   const behindBy = extrapolated - fresh.clockSeconds;
-  if (behindBy > 0 && behindBy < 150) {
-    return { ...fresh, clockSeconds: extrapolated };
-  }
-  return fresh;
+  if (behindBy <= 0) return fresh; // ESPN is ahead — accept it
+  // ESPN is behind our extrapolation. Accept reset only if this looks like
+  // a period boundary: clock dropped from near a 45-min multiple to near 0.
+  const BOUNDARY_S = [45, 90, 105].map(m => m * 60);
+  const nearBoundary = BOUNDARY_S.some(b => prev.clockSeconds >= b - 120);
+  const looksLikePeriodReset = fresh.clockSeconds < 120 && nearBoundary;
+  if (looksLikePeriodReset) return fresh;
+  return { ...fresh, clockSeconds: extrapolated };
 }
 
 // mergeLiveClock only has something to compare against while _liveScores

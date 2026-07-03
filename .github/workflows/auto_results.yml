@@ -41,7 +41,7 @@ permissions:
 jobs:
   check-and-send:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 100
 
     steps:
       - uses: actions/checkout@v4
