@@ -403,7 +403,7 @@ function renderNextMatch() {
       const runningClock = ls.isHalftime || ls.clockPaused
         ? ls.clock
         : ls.clockSeconds !== null
-          ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
+          ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000), ls.pastBoundary || 0)
           : ls.clock;
       return `<div class="hero-live-card">
       <div class="hero-live-top">
@@ -2952,15 +2952,50 @@ const _openLiveDetails = new Set();
 // raw minute count that just keeps climbing past 45/90.
 const HALF_BOUNDARIES_MIN = [120, 105, 90, 45];
 
-function formatMatchClock(totalSeconds) {
+// skipBoundariesUpTo: ignore any boundary at or below this value (minutes) —
+// once we've confirmed (via a halftime/pause observation, see
+// _confirmedBoundary below) that a match has moved past a given half, that
+// boundary is no longer "the one we might still be in stoppage from."
+function formatMatchClock(totalSeconds, skipBoundariesUpTo = 0) {
   const m = Math.floor(totalSeconds / 60);
   const s = Math.floor(totalSeconds % 60);
   const base = `${m}:${String(s).padStart(2, "0")}`;
   const totalMinutes = totalSeconds / 60;
-  const boundary = HALF_BOUNDARIES_MIN.find(b => totalMinutes > b);
+  const boundary = HALF_BOUNDARIES_MIN.find(b => b > skipBoundariesUpTo && totalMinutes > b);
   if (!boundary) return base;
-  const stoppageMin = Math.max(1, Math.ceil((totalSeconds - boundary * 60) / 60));
+  const secsPastBoundary = totalSeconds - boundary * 60;
+  // Realistic upper bound for stoppage time — broadcasters essentially never
+  // call it stoppage this far past a half's normal duration. Needed because
+  // this clock is one continuous counter with no built-in notion of "which
+  // half" it's in: without a cap, a match well into the 2nd half (e.g.
+  // 55:11, ~10 min after the 45:00 mark) still looks like "45:00 + 10 min of
+  // 1st-half stoppage" forever, since it's still numerically past 45 — this
+  // is exactly what Eduardo caught live ("55:11 (+11)" during confirmed
+  // 2nd-half play). skipBoundariesUpTo (above) is the precise fix when we
+  // directly observed the halftime break; this cap is the fallback for when
+  // we didn't (e.g. the page loaded fresh already mid-2nd-half).
+  const MAX_STOPPAGE_SECONDS = 8 * 60;
+  if (secsPastBoundary > MAX_STOPPAGE_SECONDS) return base;
+  const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
   return `${base} (+${stoppageMin})`;
+}
+
+// Sticky per-match record of the highest half-boundary we've directly
+// confirmed the match has moved past — set the moment we observe the match
+// paused (isHalftime) at/near a boundary. Once set, formatMatchClock stops
+// treating that boundary as a possible ongoing stoppage for this match, no
+// matter how long since the tab last polled while it was still 1st half.
+const CONFIRMED_BOUNDARY_KEY = "bolao_confirmed_half_boundary";
+let _confirmedBoundary = {};
+
+function loadConfirmedBoundary() {
+  try { return JSON.parse(localStorage.getItem(CONFIRMED_BOUNDARY_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function saveConfirmedBoundary() {
+  try { localStorage.setItem(CONFIRMED_BOUNDARY_KEY, JSON.stringify(_confirmedBoundary)); }
+  catch { /* storage full/unavailable — falls back to formatMatchClock's time cap only */ }
 }
 
 // Provisional per-entry points for a match still in progress: goals-correct
@@ -3092,6 +3127,7 @@ function mapEspnToLiveScores(events) {
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   const s = state();
   const out = {};
+  if (!Object.keys(_confirmedBoundary).length) _confirmedBoundary = loadConfirmedBoundary();
   for (const m of all) {
     if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
     if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
@@ -3117,21 +3153,34 @@ function mapEspnToLiveScores(events) {
       const statusName = (comp.status?.type?.name || "").toUpperCase();
       const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""}`.toLowerCase();
       const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
+      // Paused right at/near a boundary confirms this match has moved past
+      // it for good — record it so formatMatchClock never again mistakes
+      // "well into the next half" for "still stoppage from the last one."
+      if (isHalftime && clockSeconds != null) {
+        const nearBoundary = HALF_BOUNDARIES_MIN
+          .filter(b => clockSeconds / 60 >= b - 3)
+          .sort((a, b) => b - a)[0];
+        if (nearBoundary && (_confirmedBoundary[m.match] ?? 0) < nearBoundary) {
+          _confirmedBoundary[m.match] = nearBoundary;
+          saveConfirmedBoundary();
+        }
+      }
+      const skipUpTo = _confirmedBoundary[m.match] ?? 0;
       const clock = isHalftime
         ? t("liveHalftime")
         : clockSeconds !== null && clockSeconds >= 0
-          ? formatMatchClock(clockSeconds)
+          ? formatMatchClock(clockSeconds, skipUpTo)
           : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, isHalftime, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
       if (n1 === normA && n0 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "B" : "A", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, isHalftime, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
     }

@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v4.73 — 2026-07-03
+
+### Fixed
+- **Relógio mostrava "(+11)" de acréscimo do 1º tempo com o jogo já 10 minutos dentro do 2º tempo (Austrália x Egito)**: `formatMatchClock` não tinha limite pra quanto tempo depois de um marco (45/90/105/120 min) ainda considerava "acréscimo" — como o `clockSeconds` da ESPN é um contador contínuo sem noção de "qual tempo estamos", um valor tipo 55:11 (55 min de jogo, ~10 min dentro do 2º tempo) continuava sendo lido como "45:00 + 10 min de acréscimo do 1º tempo" pra sempre, mesmo estando claramente no 2º tempo. Duas correções: (1) um teto de 8 minutos — além disso, presume-se que já viramos de tempo, mostra o relógio puro sem "(+N)"; (2) mais precisa: quando o app observa diretamente o intervalo (`isHalftime`) perto de um marco, grava isso por partida (`localStorage`) e nunca mais considera aquele marco específico como possível acréscimo em andamento, mesmo poucos minutos depois de retomar o jogo. Verificado com Playwright reproduzindo o cenário exato reportado (55:11 sem ter visto o intervalo → mostra limpo) e mais 3 cenários de regressão (acréscimo real do 1º tempo, retomada logo após intervalo confirmado, acréscimo real do 2º tempo perto dos 90 min) — todos corretos.
+- Auditoria de pontuação: mudança é só de exibição do relógio ao vivo. Rodei `audit_scoring.py` mesmo assim — 5/5 continuam passando.
+
 ## v4.72 — 2026-07-03
 
 ### Fixed — badge gigante era cache, não bug de código
