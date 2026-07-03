@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## v4.65 — 2026-07-03
+
+### Fixed — M85 resultado em data.js
+- Switzerland 2-0 Algeria (Final) — ESPN já mostrava "post"; data.js ainda estava "Scheduled"
+
+### Added — banner de reabertura com contagem regressiva
+- `#reopenBanner`: aparece enquanto o site está fechado (cutoffIso no passado)
+- Mostra M86/M87/M88 com status dinâmico (⏳ / 🔴 ao vivo / ✅ concluído)
+- Conta regressiva em segundos até o kickoff do M88 (Colombia vs Ghana 21:30 EDT)
+- Após M88 kick off: "ao vivo — aguardando resultado"
+- Quando resultado do M88 chega no Supabase: "site reabre em instantes" + botão recarregar
+- `startReopenPolling()`: verifica config.js a cada 60s; auto-reload quando `auto_reopen.py`
+  comitar `cutoffIso = 2026-07-04T12:00:00-04:00` no GitHub Pages
+- Informa prazo: palpites R16 disponíveis até 12:00 EDT (4 jul)
+
+### Verified — bracket 100% até a Final
+- M89 Canada vs Morocco · M90 Paraguay vs France · M91 Brazil vs Norway
+- M92 Mexico vs England · M93 Spain vs Portugal · M94 Belgium vs United States
+- M95 W(M87) vs W(M86) · M96 W(M85=Switzerland) vs W(M88) · QF/SF/3rd/Final corretos
+- Sem conflitos de chaveamento · Audit 5/5
+
 ## v4.62 — 2026-07-03
 
 ### Fixed

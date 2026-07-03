@@ -3301,6 +3301,80 @@ function showMatchEndBanner(matchIds) {
   banner.querySelector(".banner-btn-dismiss")?.addEventListener("click", () => banner.classList.add("hidden"));
 }
 
+/* ============================================================
+   Reopen banner (visible while site is past cutoff / closed)
+   ============================================================ */
+// M88 Colombia vs Ghana: July 3 21:30 EDT = July 4 01:30 UTC
+const M88_KICKOFF_UTC = Date.UTC(2026, 6, 4, 1, 30);
+
+function fmtCdMs(ms) {
+  if (ms <= 0) return null;
+  const s = Math.floor(ms / 1000);
+  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+  const p2 = n => String(n).padStart(2, "0");
+  return h > 0 ? `${h}h ${p2(m)}m ${p2(sec)}s` : `${p2(m)}m ${p2(sec)}s`;
+}
+
+function renderReopenBanner() {
+  const box = document.getElementById("reopenBanner");
+  if (!box) return;
+  if (cutoffDate() > Date.now()) { box.classList.add("hidden"); return; }
+
+  const now = Date.now();
+  const results = state().results || {};
+
+  const todaysGames = [
+    { mid: "86", label: "M86", teams: "Australia vs Egypt",      timeET: "14:00 EDT", utc: Date.UTC(2026, 6, 3, 18, 0) },
+    { mid: "87", label: "M87", teams: "Argentina vs Cape Verde", timeET: "18:00 EDT", utc: Date.UTC(2026, 6, 3, 22, 0) },
+    { mid: "88", label: "M88", teams: "Colombia vs Ghana",       timeET: "21:30 EDT — último jogo", utc: M88_KICKOFF_UTC },
+  ];
+
+  const gameRows = todaysGames.map(g => {
+    const done  = !!results[g.mid]?.advanceSide;
+    const isLive = !done && now > g.utc && now < g.utc + 135 * 60000;
+    const icon  = done ? "✅" : isLive ? "🔴" : "⏳";
+    const cls   = "reopen-game" + (done ? " done" : isLive ? " live" : "");
+    return `<div class="${cls}">${icon} <b>${escapeHtml(g.label)}</b> ${escapeHtml(g.teams)} <span class="muted">${escapeHtml(g.timeET)}</span></div>`;
+  }).join("");
+
+  const m88Done = !!results["88"]?.advanceSide;
+  let bottomHtml;
+  if (m88Done) {
+    bottomHtml = `<div class="reopen-cta highlight">🔓 M88 encerrado — site reabre em instantes!
+      <button type="button" class="secondary small" onclick="location.reload()">Recarregar agora</button></div>`;
+  } else if (now < M88_KICKOFF_UTC) {
+    const cd = fmtCdMs(M88_KICKOFF_UTC - now);
+    bottomHtml = `<div class="reopen-countdown">⏰ M88 começa em <b>${cd}</b></div>
+      <div class="reopen-cta">Após o apito final · palpites R16 disponíveis até <b>12:00 EDT (4 jul)</b></div>`;
+  } else {
+    bottomHtml = `<div class="reopen-countdown">🔴 M88 ao vivo — aguardando resultado final</div>
+      <div class="reopen-cta"><button type="button" class="secondary small" onclick="location.reload()">Verificar reabertura</button></div>`;
+  }
+
+  box.innerHTML = `<div class="reopen-inner">
+    <div class="reopen-header">🏆 R32 encerrada · Últimos jogos hoje — 3 de julho</div>
+    <div class="reopen-games">${gameRows}</div>
+    ${bottomHtml}
+  </div>`;
+  box.classList.remove("hidden");
+}
+
+// Polls config.js every 60 s while closed; auto-reloads when auto_reopen.py
+// commits the new cutoffIso (2026-07-04T12:00:00-04:00) to GitHub Pages.
+let _reopenPoller = null;
+function startReopenPolling() {
+  if (cutoffDate() > Date.now() || _reopenPoller) return;
+  _reopenPoller = setInterval(async () => {
+    if (cutoffDate() > Date.now()) { clearInterval(_reopenPoller); _reopenPoller = null; return; }
+    try {
+      const r = await fetch(`js/config.js?nc=${Date.now()}`);
+      const text = await r.text();
+      const m = text.match(/cutoffIso:\s*"([^"]+)"/);
+      if (m && m[1] >= "2026-07-04") location.reload();
+    } catch (e) {}
+  }, 60000);
+}
+
 function startLiveScorePolling() {
   if (_liveScoreTimer) return;
   pollLiveScores().catch(err => console.warn("Live score poll failed", err));
@@ -3504,7 +3578,9 @@ async function init() {
   }
 
   restoreDraft();
-  setInterval(() => { updateCountdown(); renderNextMatch(); }, 1000);
+  renderReopenBanner();
+  startReopenPolling();
+  setInterval(() => { updateCountdown(); renderNextMatch(); renderReopenBanner(); }, 1000);
   startLiveScorePolling();
   // Pre-fetch Polymarket odds in background so match prob bars are ready before
   // the user visits the Probabilidades tab; re-renders games/next-match on arrival

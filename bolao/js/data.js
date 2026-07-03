@@ -118,7 +118,7 @@ window.BOLAO_DATA = {
     {match:"82",phase:"Round of 32",date:"2026-07-01",teamA:"United States",teamB:"Bosnia and Herzegovina",goalsA:2,goalsB:0,winner:"United States",status:"Final",timeET:"20:00 (EDT)",venue:"Levi's Stadium, Santa Clara / San Francisco, USA"},
     {match:"83",phase:"Round of 32",date:"2026-07-02",teamA:"Spain",teamB:"Austria",goalsA:3,goalsB:0,winner:"Spain",status:"Final",timeET:"15:00 (EDT)",venue:"SoFi Stadium, Inglewood / Los Angeles, USA"},
     {match:"84",phase:"Round of 32",date:"2026-07-02",teamA:"Portugal",teamB:"Croatia",goalsA:2,goalsB:1,winner:"Portugal",status:"Final",timeET:"19:00 (EDT)",venue:"BMO Field, Toronto, Canada"},
-    {match:"85",phase:"Round of 32",date:"2026-07-02",teamA:"Switzerland",teamB:"Algeria",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"23:00 (EDT)",venue:"BC Place, Vancouver, Canada"},
+    {match:"85",phase:"Round of 32",date:"2026-07-02",teamA:"Switzerland",teamB:"Algeria",goalsA:2,goalsB:0,winner:"Switzerland",status:"Final",timeET:"23:00 (EDT)",venue:"BC Place, Vancouver, Canada"},
     {match:"86",phase:"Round of 32",date:"2026-07-03",teamA:"Australia",teamB:"Egypt",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"14:00 (EDT)",venue:"AT&T Stadium, Arlington / Dallas, USA"},
     {match:"87",phase:"Round of 32",date:"2026-07-03",teamA:"Argentina",teamB:"Cape Verde",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"18:00 (EDT)",venue:"Hard Rock Stadium, Miami Gardens / Miami, USA"},
     {match:"88",phase:"Round of 32",date:"2026-07-03",teamA:"Colombia",teamB:"Ghana",goalsA:null,goalsB:null,winner:"",status:"Scheduled",timeET:"21:30 (EDT)",venue:"Arrowhead Stadium, Kansas City, USA"},
