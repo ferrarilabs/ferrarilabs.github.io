@@ -374,9 +374,10 @@ function renderNextMatch() {
         : "";
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const scorersBlock = goalScorersHtml(ls, tA, tB);
-      // Halftime is a real break, not more elapsed play time — don't let the
-      // interpolation below keep ticking the clock forward through it.
-      const runningClock = ls.isHalftime
+      // A real break in play (halftime, or any other stoppage clockPaused
+      // picked up from the clock's own behavior) isn't more elapsed play
+      // time — don't let the interpolation below keep ticking through it.
+      const runningClock = ls.isHalftime || ls.clockPaused
         ? ls.clock
         : ls.clockSeconds !== null
           ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000))
@@ -2963,7 +2964,14 @@ function mapEspnToLiveScores(events) {
 // New strategy: the clock is MONOTONIC during play — it never goes backward
 // unless ESPN signals a legitimate period boundary reset (clock drops from near
 // a 45-min mark to near 0, which means a new half or ET period is starting).
+// A genuinely paused clock (fresh.clockPaused, from detectClockPaused's own
+// raw poll-to-poll comparison, below) skips all of this and trusts ESPN's
+// frozen value as-is — otherwise "monotonic" would mean a stalled clock (a
+// real break, not lag) keeps extrapolating forward with no cap at all for
+// as long as the pause lasts, since a frozen clock never looks like either
+// "ahead" or "a period reset" to the logic above.
 function mergeLiveClock(fresh, prev) {
+  if (fresh.clockPaused) return fresh;
   if (!prev || prev.clockSeconds == null || fresh.clockSeconds == null) return fresh;
   const elapsed = (fresh.pollTime - prev.pollTime) / 1000;
   if (elapsed <= 0) return fresh;
@@ -3002,14 +3010,52 @@ function saveLiveClockCache(scores) {
   } catch { /* storage full/unavailable — clock just won't survive a reload this time */ }
 }
 
+// Detects a genuinely paused clock (halftime, a long stoppage, VAR review)
+// straight from its own behavior across two REAL polls, instead of trying to
+// recognize ESPN's exact halftime status wording (isHalftime, above, is a
+// best-effort label for when that guess happens to be right — this is the
+// fallback that works even when it isn't). Must compare raw poll-to-poll
+// values, not the smoothed/extrapolated ones mergeLiveClock produces, or a
+// pause would look identical to normal lag and never trigger.
+const LIVE_CLOCK_RAW_CACHE_KEY = "bolao_live_clock_raw_cache";
+let _rawClockHistory = {};
+
+function loadRawClockCache() {
+  try { return JSON.parse(localStorage.getItem(LIVE_CLOCK_RAW_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+
+function saveRawClockCache(history) {
+  try { localStorage.setItem(LIVE_CLOCK_RAW_CACHE_KEY, JSON.stringify(history)); }
+  catch { /* storage full/unavailable — pause detection just resets on reload this time */ }
+}
+
+function detectClockPaused(freshRaw, prevRaw) {
+  if (!prevRaw || prevRaw.clockSeconds == null || freshRaw.clockSeconds == null) return false;
+  const realElapsed = (freshRaw.pollTime - prevRaw.pollTime) / 1000;
+  if (realElapsed < 30) return false; // too little time between polls to tell anything
+  const clockDelta = freshRaw.clockSeconds - prevRaw.clockSeconds;
+  // Real time passed but the match clock barely moved — it's paused right
+  // now, whatever the reason. Some slack (30%) for ESPN's own poll jitter.
+  return clockDelta < realElapsed * 0.3;
+}
+
 async function pollLiveScores() {
   const prevIds = new Set(Object.keys(_liveScores));
   const events = await fetchEspnFixtures();
   if (!events) return;
   const fresh = mapEspnToLiveScores(events);
   const cache = loadLiveClockCache();
+  if (!Object.keys(_rawClockHistory).length) _rawClockHistory = loadRawClockCache();
   const merged = {};
-  for (const [mid, ls] of Object.entries(fresh)) merged[mid] = mergeLiveClock(ls, _liveScores[mid] || cache[mid]);
+  const nextRawHistory = {};
+  for (const [mid, ls] of Object.entries(fresh)) {
+    ls.clockPaused = detectClockPaused(ls, _rawClockHistory[mid]);
+    merged[mid] = mergeLiveClock(ls, _liveScores[mid] || cache[mid]);
+    if (ls.clockSeconds != null) nextRawHistory[mid] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime };
+  }
+  _rawClockHistory = nextRawHistory;
+  saveRawClockCache(_rawClockHistory);
   _liveScores = merged;
   saveLiveClockCache(_liveScores);
   _liveScorePollTime = Date.now();
