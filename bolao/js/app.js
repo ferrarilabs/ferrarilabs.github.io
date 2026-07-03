@@ -312,11 +312,35 @@ function debouncedReload() {
 function cutoffDate() { return new Date(CONFIG.cutoffIso); }
 function isPastCutoff() { return Date.now() >= cutoffDate().getTime(); }
 
+// July 3 21:30 EDT + 120 min = July 3 23:30 EDT = July 4 03:30 UTC
+const ESTIMATED_REOPEN_UTC = Date.UTC(2026, 6, 4, 3, 30);
+
 function updateCountdown() {
   const box = $("#countdown");
   if (!box) return;
   const diff = cutoffDate() - Date.now();
-  if (diff <= 0) { box.innerHTML = `<strong>${escapeHtml(t("closed"))}</strong>`; return; }
+  const lbl  = $("#cutoffLabel");
+
+  if (diff <= 0) {
+    // Site is closed — show countdown to estimated reopen (M88 end ~23:30 EDT)
+    const toReopen = ESTIMATED_REOPEN_UTC - Date.now();
+    const p2 = n => String(n).padStart(2, "0");
+    if (toReopen > 0) {
+      const s = Math.floor(toReopen / 1000);
+      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+      box.innerHTML = `<div class="count-grid">
+        <div><b>${p2(h)}</b><span>h</span></div>
+        <div><b>${p2(m)}</b><span>m</span></div>
+        <div><b>${p2(sec)}</b><span>s</span></div>
+      </div>`;
+      if (lbl) lbl.textContent = "Reabre ~23:30 EDT (após M88)";
+    } else {
+      box.innerHTML = `<strong style="font-size:13px;color:var(--accent)">Abrindo em breve…</strong>`;
+      if (lbl) lbl.textContent = "Verificando resultado do M88…";
+    }
+    return;
+  }
+
   const s = Math.floor(diff / 1000);
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
         m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -327,7 +351,6 @@ function updateCountdown() {
     <div><b>${p2(m)}</b><span>${t("countdownMin")}</span></div>
     <div><b>${p2(sec)}</b><span>${t("countdownSec")}</span></div>
   </div>`;
-  const lbl = $("#cutoffLabel");
   if (lbl) lbl.textContent = CONFIG.cutoffLabel;
 }
 
