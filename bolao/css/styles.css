@@ -119,14 +119,18 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   border-color: var(--green);
 }
 
-.nav { display: flex; gap: 5px; flex-wrap: wrap; }
+.nav { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; width: 100%; }
 .nav button {
   background: var(--bg3);
   color: var(--text);
-  padding: 8px 12px;
+  padding: 8px 6px;
   font-size: 13px;
   font-weight: 700;
   border: 1px solid transparent;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .nav button.active {
   background: var(--green);
@@ -757,8 +761,24 @@ input[readonly] {
 }
 
 @media (min-width: 901px) {
-  .topbar { display: flex !important; align-items: center !important; }
-  .brand { margin-right: auto !important; }
+  /* Two-row topbar: brand/WA/lang on row 1, nav full-width on row 2.
+     Nav uses 8 equal columns so button positions never shift on lang change. */
+  .topbar {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto;
+    grid-template-rows: auto auto;
+    gap: 8px 12px;
+  }
+  .brand       { grid-column: 1; grid-row: 1; margin-right: 0 !important; }
+  .whatsapp-btn{ grid-column: 2; grid-row: 1; }
+  .lang-links  { grid-column: 3; grid-row: 1; }
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+  }
+  .nav button { font-size: 13px; padding: 8px 6px; }
 }
 
 /* Accessibility: visible focus ring for keyboard navigation */
