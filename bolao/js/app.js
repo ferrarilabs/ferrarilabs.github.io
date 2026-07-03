@@ -2042,12 +2042,15 @@ function preMatchProbBarsHtml(m) {
   const a = m.teamA || "", b = m.teamB || "";
   if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
   const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
-  // Use Polymarket-derived match probability when available (knockout only —
-  // group stage keeps the ELO model since Polymarket prices are per-tournament)
+  // Priority 1: ESPN/DraftKings moneyline — sharpest, already in the poll payload
+  const ek = _espnOddsCache.get(String(m.match));
+  if (ek) return probBarsMarkup(ek.pA, ek.pD, ek.pB, a, b, drawLabel);
+  // Priority 2: Polymarket tournament-odds normalization (knockout only)
   if (!m.group) {
     const poly = polyMatchProb(a, b);
     if (poly) return probBarsMarkup(poly.pA, poly.pD, poly.pB, a, b, drawLabel);
   }
+  // Priority 3: ELO + Poisson model
   const { lambdaA, lambdaB } = copaExpectedGoals(a, b);
   const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
   return probBarsMarkup(pA, pD, pB, a, b, drawLabel);
@@ -2280,9 +2283,11 @@ function renderProbs() {
     ? new Date(ts).toLocaleTimeString(currentLang, { hour: "2-digit", minute: "2-digit" })
     : "";
   const lastCalcStr = timeStr ? ` · ${escapeHtml(t("probsLastCalc"))}: ${escapeHtml(timeStr)}` : "";
+  const hasEspnOdds = _espnOddsCache.size > 0;
   const polyNote    = poly
     ? ` · <a href="https://polymarket.com/event/world-cup-winner" target="_blank" rel="noopener" style="color:inherit">Polymarket</a> (ao vivo)`
     : ' · <span class="muted">Polymarket carregando…</span>';
+  const oddsNote = hasEspnOdds ? ' · Barras: odds DraftKings via ESPN' : '';
 
   const hasPoly = poly && rows.some(r => r.pPoly !== null);
 
@@ -2310,7 +2315,7 @@ function renderProbs() {
   const polyHeader = hasPoly ? `<th title="Preços ao vivo do Polymarket">📈 Mercado</th>` : "";
 
   box.innerHTML = `
-<p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}${polyNote}</p>
+<p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}${polyNote}${oddsNote}</p>
 <table class="prob-table">
   <thead><tr>
     <th></th>
@@ -2708,6 +2713,60 @@ async function fetchEspnWinProbability(eventId, competitionId) {
 }
 
 const _espnProbCache = new Map();
+const _espnOddsCache = new Map(); // mid → {pA, pD, pB} vig-stripped DraftKings
+
+function americanToImplied(oddsStr) {
+  const v = parseInt(oddsStr, 10);
+  if (isNaN(v)) return null;
+  return v < 0 ? Math.abs(v) / (Math.abs(v) + 100) : 100 / (v + 100);
+}
+
+// Reads DraftKings moneyline odds from the ESPN scoreboard response — the
+// same JSON fetchEspnFixtures() already fetches, just fields that were
+// never read. Populates _espnOddsCache for every upcoming match where
+// DraftKings has published a line (typically 1–2 days before kickoff).
+function extractEspnOdds(events) {
+  if (!Array.isArray(events)) return;
+  const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
+  const s = state();
+  for (const m of all) {
+    if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
+    if (/Winner|Loser/i.test(m.teamA) || /Winner|Loser/i.test(m.teamB)) continue;
+    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    for (const ev of events) {
+      const comp = ev.competitions?.[0];
+      if (!comp || comp.status?.type?.state === "post") continue;
+      const odds = comp.odds?.[0];
+      if (!odds?.moneyline) continue;
+      const [c0, c1] = comp.competitors || [];
+      if (!c0 || !c1) continue;
+      const n0 = normalizeTeamName(c0.team?.displayName);
+      const n1 = normalizeTeamName(c1.team?.displayName);
+      // Map ESPN home/away to our teamA/teamB — c0 is ESPN's home side
+      let oddsA, oddsB;
+      if (n0 === normA && n1 === normB) {
+        oddsA = odds.moneyline.home?.close?.odds;
+        oddsB = odds.moneyline.away?.close?.odds;
+      } else if (n1 === normA && n0 === normB) {
+        oddsA = odds.moneyline.away?.close?.odds;
+        oddsB = odds.moneyline.home?.close?.odds;
+      } else {
+        continue;
+      }
+      const oddsD = odds.moneyline.draw?.close?.odds;
+      const rA = americanToImplied(oddsA), rB = americanToImplied(oddsB), rD = americanToImplied(oddsD);
+      if (rA === null || rB === null) continue;
+      const total = rA + rB + (rD ?? 0);
+      if (total < 0.1) continue;
+      _espnOddsCache.set(String(m.match), {
+        pA: rA / total,
+        pD: rD !== null ? rD / total : 0,
+        pB: rB / total
+      });
+      break;
+    }
+  }
+}
 
 // ESPN's per-event "summary" endpoint (same site.api.espn.com family we
 // already use for scores, so much more likely to actually work for soccer
@@ -3144,6 +3203,7 @@ async function pollLiveScores() {
   const prevIds = new Set(Object.keys(_liveScores));
   const events = await fetchEspnFixtures();
   if (!events) return;
+  extractEspnOdds(events); // reads DraftKings lines already in the same payload
   const fresh = mapEspnToLiveScores(events);
   const cache = loadLiveClockCache();
   if (!Object.keys(_rawClockHistory).length) _rawClockHistory = loadRawClockCache();

@@ -6,6 +6,19 @@
 - **Relógio ao vivo continuava andando durante o intervalo de verdade (Portugal x Croácia)**: mesmo depois do v4.61 tornar o relógio monotônico (nunca volta pra trás), um relógio genuinamente PAUSADO (intervalo, uma parada longa qualquer) ainda parecia "atrás da extrapolação" pra essa lógica — e como não existe mais nenhum teto (o v4.61 removeu o cap de 150s de propósito, pra resolver o problema de saltos pra trás), o relógio ficava subindo pra sempre durante a pausa inteira, sem se autocorrigir nunca. Corrigido com uma detecção que não depende de adivinhar o texto de status da ESPN pra intervalo: compara o `clockSeconds` bruto entre dois polls reais — se passou bastante tempo real mas o relógio do jogo mal andou, está pausado, e tanto a extrapolação armazenada quanto a interpolação exibida na tela param completamente até o relógio voltar a se mexer de verdade. Compatível com a reescrita monotônica do v4.61 — só entra em ação quando uma pausa real é detectada, sem interferir na lógica de reset de período deles.
 - Auditoria de pontuação: mudança é só de exibição do relógio ao vivo, não mexe em resultado/ranking. Rodei `audit_scoring.py` mesmo assim — 5/5 continuam passando.
 
+## v4.64 — 2026-07-03
+
+### Added — odds DraftKings via ESPN (zero custo, zero chamadas novas)
+
+A pesquisa da madrugada revelou que `fetchEspnFixtures()` já traz o campo `competitions[0].odds[0].moneyline.home/away/draw.close.odds` no mesmo JSON que sempre foi buscado — apenas nunca foi lido.
+
+- `americanToImplied()`: converte odds americanas (+135, -550) em probabilidade implícita
+- `extractEspnOdds(events)`: varre o payload ESPN e popula `_espnOddsCache` com probabilidades vig-stripped (home + draw + away normalizados para somar 1) para cada jogo identificado no bracket
+- Barras de pré-jogo agora têm 3 fontes em prioridade: **1) DraftKings via ESPN** → 2) Polymarket normalizado → 3) ELO+Poisson. DraftKings é publicado 1-2 dias antes do apito para jogos concretos (times definidos).
+- Nota "Barras: odds DraftKings via ESPN" aparece na tab Probabilidades quando dados estão carregados.
+
+Dados confirmados para R16: Paraguay 5% / ET 14% / France 81%, Brazil 51% / ET 25% / Norway 23%, Spain 49% / ET 27% / Portugal 24%, etc. Audit: ✓ 5/5.
+
 ## v4.63 — 2026-07-02
 
 ### Added — Polymarket como fonte de probabilidades
