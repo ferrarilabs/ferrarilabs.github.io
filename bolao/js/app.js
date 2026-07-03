@@ -1513,11 +1513,17 @@ function renderRanking() {
 function picksTable(entry) {
   const r = resolvedTeamsForEntry(entry);
   const results = (state().results) || {};
+  // Hide picks for unplayed phases while the entry window for that phase is still open.
+  // Prevents participants from copying each other's future-round picks.
+  const r16Locked = CONFIG.r32CutoffIso && Date.now() < new Date(CONFIG.r32CutoffIso).getTime();
   const rows = DATA.knockoutMatches.map(m => {
     const p = entry.picks?.[m.match], rr = r[m.match] || {};
     if (!p) return "";
-    const w = p.advanceSide === "A" ? rr.displayA : rr.displayB;
     const result = results[m.match];
+    if (r16Locked && !result?.advanceSide && m.phase !== "Round of 32") {
+      return `<tr><td>M${escapeHtml(String(m.match))}</td><td colspan="6" class="pick-hidden-cell">🔒 ${escapeHtml(t("picksHiddenMsg"))}</td></tr>`;
+    }
+    const w = p.advanceSide === "A" ? rr.displayA : rr.displayB;
     const hasRealScore = result?.goalsA !== undefined && result?.goalsB !== undefined;
     const realScore = hasRealScore ? `${result.goalsA}–${result.goalsB}` : "—";
     const mp = matchPoints(p, result);
