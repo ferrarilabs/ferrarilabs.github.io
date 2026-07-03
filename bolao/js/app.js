@@ -328,7 +328,7 @@ function updateCountdown() {
     if (toReopen > 0) {
       const s = Math.floor(toReopen / 1000);
       const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-      box.innerHTML = `<div class="count-grid">
+      box.innerHTML = `<div class="count-grid" style="grid-template-columns:repeat(3,1fr)">
         <div><b>${p2(h)}</b><span>h</span></div>
         <div><b>${p2(m)}</b><span>m</span></div>
         <div><b>${p2(sec)}</b><span>s</span></div>
@@ -3578,6 +3578,78 @@ function initEvents() {
 }
 
 /* ============================================================
+   July 4 — America 250 fireworks (canvas overlay, 8 s, today only)
+   ============================================================ */
+function launchJuly4Fireworks() {
+  const d = new Date();
+  if (d.getMonth() !== 6 || d.getDate() !== 4) return; // July 4 only
+
+  const canvas = document.createElement("canvas");
+  canvas.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9998";
+  document.body.appendChild(canvas);
+  const ctx = canvas.getContext("2d");
+  canvas.width  = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  // US palette + gold
+  const PAL = ["#BF0A30","#ffffff","#002868","#FFD700","#FF8C00","#AEE6FF"];
+  const particles = [];
+
+  function burst(x, y) {
+    const n = 80 + (Math.random() * 40 | 0);
+    for (let i = 0; i < n; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const spd   = Math.random() * 4.5 + 0.8;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * spd,
+        vy: Math.sin(angle) * spd - 1.2,
+        color: PAL[Math.random() * PAL.length | 0],
+        life: 1,
+        decay: 0.010 + Math.random() * 0.016,
+        r: 1.5 + Math.random() * 2
+      });
+    }
+  }
+
+  const endAt    = Date.now() + 8000;
+  let nextBurst  = Date.now() + 300;
+
+  function frame() {
+    ctx.fillStyle = "rgba(0,0,0,0.16)";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const now = Date.now();
+    if (now < endAt && now >= nextBurst) {
+      burst(
+        canvas.width  * (0.15 + Math.random() * 0.7),
+        canvas.height * (0.08 + Math.random() * 0.40)
+      );
+      nextBurst = now + 450 + (Math.random() * 350 | 0);
+    }
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x  += p.vx; p.y += p.vy;
+      p.vy += 0.055; p.vx *= 0.99;
+      p.life -= p.decay;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle   = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    if (now < endAt || particles.length > 0) requestAnimationFrame(frame);
+    else canvas.remove();
+  }
+
+  requestAnimationFrame(frame);
+}
+
+/* ============================================================
    Init
    ============================================================ */
 async function init() {
@@ -3603,6 +3675,7 @@ async function init() {
   restoreDraft();
   renderReopenBanner();
   startReopenPolling();
+  setTimeout(launchJuly4Fireworks, 1800); // after page settles
   setInterval(() => { updateCountdown(); renderNextMatch(); renderReopenBanner(); }, 1000);
   startLiveScorePolling();
   // Pre-fetch Polymarket odds in background so match prob bars are ready before
