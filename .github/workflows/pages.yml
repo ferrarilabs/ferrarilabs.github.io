@@ -3,6 +3,16 @@ name: Deploy GitHub Pages
 on:
   push:
     branches: ["main"]
+    # Only deploy when actual site content changes — not scripts, docs, or
+    # workflow files. This prevents queuing on every bot commit.
+    paths:
+      - 'bolao/index.html'
+      - 'bolao/js/**'
+      - 'bolao/css/**'
+      - 'bolao/assets/**'
+      - 'index*.html'
+      - 'styles.css'
+      - 'assets/**'
   workflow_dispatch:
 
 permissions:
@@ -10,10 +20,10 @@ permissions:
   pages: write
   id-token: write
 
-# Allow only one Pages deploy at a time; don't cancel in-progress deploys
+# Cancel any in-progress deploy when a newer commit arrives — always ship latest
 concurrency:
   group: "pages"
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   deploy:
@@ -31,7 +41,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          # Deploy the full repo root — no build step needed
           path: "."
 
       - name: Deploy to GitHub Pages
