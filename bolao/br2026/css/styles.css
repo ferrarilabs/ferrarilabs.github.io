@@ -389,6 +389,7 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 .game-score-live { font-size: 16px; font-weight: 900; color: var(--green); font-variant-numeric: tabular-nums; }
 .game-score-final { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .game-venue { font-size: 11px; color: var(--muted); }
+.game-number { font-size: 10px; color: var(--muted); opacity: .75; font-weight: 600; letter-spacing: .03em; }
 .game-status-row { font-size: 11px; }
 .game-status { font-weight: 700; }
 .game-status.live { color: #ef4444; }

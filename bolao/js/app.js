@@ -1831,6 +1831,8 @@ function predictScore(a, b, mode) {
    ============================================================ */
 let _mcResult = null;
 let _mcTs     = 0;
+let _copaEloCache = null;
+const _lambdaCache = new Map();
 
 function poisson(lambda, k) {
   if (k < 0 || lambda <= 0) return k === 0 ? 1 : 0;
@@ -1839,20 +1841,87 @@ function poisson(lambda, k) {
   return Math.exp(logP);
 }
 
-function copaExpectedGoals(ratingA, ratingB) {
-  const GOAL_BUDGET = 2.4;
-  const ra = ratingA / 100, rb = ratingB / 100;
-  const total = ra + rb;
-  if (!total) return { lambdaA: 1.2, lambdaB: 1.2 };
-  return { lambdaA: GOAL_BUDGET * ra / total, lambdaB: GOAL_BUDGET * rb / total };
+// Compute ELO ratings from all Copa 2026 results (group stage + knockout).
+// Initialised from DATA.strength ratings; each match updates both teams.
+// Cached per page-load; cleared in recalcMC() when new results are saved.
+function buildCopaELO() {
+  if (_copaEloCache) return _copaEloCache;
+  const K = 40;
+  const elo = {};
+  // Seed from pre-tournament strength ratings
+  Object.entries(DATA.strength || {}).forEach(([name, s]) => {
+    elo[name] = 1500 + (s - 70) * 10;
+  });
+  const update = (tA, tB, gA, gB) => {
+    if (!elo[tA]) elo[tA] = 1500;
+    if (!elo[tB]) elo[tB] = 1500;
+    const sA = gA > gB ? 1 : gA === gB ? 0.5 : 0;
+    const gdMult = 1 + Math.log1p(Math.abs(gA - gB)) * 0.3;
+    const eA = 1 / (1 + Math.pow(10, (elo[tB] - elo[tA]) / 400));
+    elo[tA] += K * gdMult * (sA - eA);
+    elo[tB] += K * gdMult * ((1 - sA) - (1 - eA));
+  };
+  // Group stage (all 72 matches already have scores in DATA.matches)
+  (DATA.matches || []).forEach(m => {
+    if (m.status === "Final" && m.goalsA != null) update(m.teamA, m.teamB, m.goalsA, m.goalsB);
+  });
+  // Knockout: iterate in match order so slot resolution is correct
+  const winners = {}, losers = {};
+  const s = state();
+  for (const m of DATA.knockoutMatches) {
+    const r = resolvedMatchResult(m, s);
+    const tA = resolveSlot(m.teamA, winners, losers);
+    const tB = resolveSlot(m.teamB, winners, losers);
+    if (r?.advanceSide) {
+      if (!(/Winner|Loser/i.test(tA) || /Winner|Loser/i.test(tB))) {
+        const gA = r.goalsA ?? (r.advanceSide === "A" ? 1 : 0);
+        const gB = r.goalsB ?? (r.advanceSide === "B" ? 1 : 0);
+        update(tA, tB, gA, gB);
+      }
+      if (r.advanceSide === "A") { winners[m.match] = tA; losers[m.match] = tB; }
+      else { winners[m.match] = tB; losers[m.match] = tA; }
+    }
+  }
+  _copaEloCache = elo;
+  return elo;
+}
+
+// Compute Poisson lambdas from ELO ratings via bisection — ensures our
+// bivariate Poisson win probability exactly matches the ELO prediction.
+function copaExpectedGoals(teamA, teamB) {
+  const key = `λ|${teamA}|${teamB}`;
+  if (_lambdaCache.has(key)) return _lambdaCache.get(key);
+  const TOTAL = 2.4;
+  const elo  = buildCopaELO();
+  const eloA = elo[teamA] ?? (1500 + (teamStrength(teamA) - 70) * 10);
+  const eloB = elo[teamB] ?? (1500 + (teamStrength(teamB) - 70) * 10);
+  const pWinA = 1 / (1 + Math.pow(10, (eloB - eloA) / 400));
+  let lo = 0.1, hi = TOTAL - 0.1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (matchProb(mid, TOTAL - mid).pA < pWinA) lo = mid; else hi = mid;
+  }
+  const lambdaA = (lo + hi) / 2;
+  const result = { lambdaA, lambdaB: TOTAL - lambdaA };
+  _lambdaCache.set(key, result);
+  return result;
+}
+
+// Dixon-Coles (1997) low-score correction — adjusts overestimated 0-0/1-0/0-1/1-1 cells.
+function tauDC(x, y, lA, lB, rho) {
+  if (x === 0 && y === 0) return 1 - lA * lB * rho;
+  if (x === 0 && y === 1) return 1 + lA * rho;
+  if (x === 1 && y === 0) return 1 + lB * rho;
+  if (x === 1 && y === 1) return 1 - rho;
+  return 1;
 }
 
 function matchProb(lambdaA, lambdaB) {
-  const MAX = 8;
+  const MAX = 8, RHO = -0.13;
   let pA = 0, pD = 0, pB = 0;
   for (let i = 0; i <= MAX; i++) {
     for (let j = 0; j <= MAX; j++) {
-      const p = poisson(lambdaA, i) * poisson(lambdaB, j);
+      const p = poisson(lambdaA, i) * poisson(lambdaB, j) * tauDC(i, j, lambdaA, lambdaB, RHO);
       if (i > j) pA += p;
       else if (i === j) pD += p;
       else pB += p;
@@ -1915,8 +1984,7 @@ function probBarsMarkup(pA, pD, pB, a, b, drawLabel) {
 function preMatchProbBarsHtml(m) {
   const a = m.teamA || "", b = m.teamB || "";
   if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
-  const raStr = teamStrength(a), rbStr = teamStrength(b);
-  const { lambdaA, lambdaB } = copaExpectedGoals(raStr, rbStr);
+  const { lambdaA, lambdaB } = copaExpectedGoals(a, b);
   const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
   const { pA, pD, pB } = matchProb(lambdaA, lambdaB);
   return probBarsMarkup(pA, pD, pB, a, b, drawLabel);
@@ -1942,8 +2010,7 @@ function liveProbBarsHtml(m, live) {
   // it for this match; otherwise fall back to the site's Poisson estimate.
   const espnProb = _espnProbCache.get(m.match);
   if (espnProb) return probBarsMarkup(espnProb.pA, espnProb.pD, espnProb.pB, a, b, drawLabel);
-  const raStr = teamStrength(a), rbStr = teamStrength(b);
-  const base = copaExpectedGoals(raStr, rbStr);
+  const base = copaExpectedGoals(a, b);
   // ESPN's real win-probability isn't in — sharpen our own estimate with
   // match stats (shots on target / possession) if we managed to fetch them,
   // instead of relying purely on the static pre-match strength rating.
@@ -1981,8 +2048,7 @@ const _winProbCache = new Map();
 function cachedKnockoutProb(nameA, nameB) {
   const key = `${nameA}|${nameB}`;
   if (_winProbCache.has(key)) return _winProbCache.get(key);
-  const ra = teamStrength(nameA), rb = teamStrength(nameB);
-  const { lambdaA, lambdaB } = copaExpectedGoals(ra, rb);
+  const { lambdaA, lambdaB } = copaExpectedGoals(nameA, nameB);
   const { pWinA } = knockoutWinnerProb(lambdaA, lambdaB);
   _winProbCache.set(key, pWinA);
   return pWinA;
@@ -2081,6 +2147,8 @@ function recalcMC() {
   _mcResult = null;
   _mcTs = 0;
   _winProbCache.clear();
+  _lambdaCache.clear();
+  _copaEloCache = null;
   scheduleMC();
 }
 

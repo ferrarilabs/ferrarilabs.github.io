@@ -528,35 +528,85 @@ function samplePoisson(lambda) {
 
 function buildRatings() {
   if (_ratingsCache) return _ratingsCache;
-  const LG_AVG = 1.3, MIN_R = 0.3;
-  const ratings = {};
-  _standings.forEach(tm => {
-    const n = Math.max(tm.played || 1, 1);
-    ratings[tm.name] = {
-      atk: Math.max((tm.gf || 0) / n / LG_AVG, MIN_R),
-      def: Math.max((tm.ga || 0) / n / LG_AVG, MIN_R),
-    };
-  });
+  const completed = _schedule.filter(g => g.state === "post" && g.homeScore != null && g.awayScore != null);
+
+  if (completed.length < 8) {
+    // Early season: naive Poisson from standings averages
+    const LG_AVG = 1.3, MIN_R = 0.3;
+    const ratings = {};
+    _standings.forEach(tm => {
+      const n = Math.max(tm.played || 1, 1);
+      ratings[tm.name] = { atk: Math.max((tm.gf||0)/n/LG_AVG, MIN_R), def: Math.max((tm.ga||0)/n/LG_AVG, MIN_R) };
+    });
+    _ratingsCache = ratings;
+    return ratings;
+  }
+
+  // Dixon-Coles (1997) iterative proportional fitting with exponential time decay.
+  // Estimates attack (α) and defense (β) jointly from observed goals — correctly
+  // accounts for opponent quality instead of using naive season averages.
+  const sorted = [...completed].sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  const N = sorted.length;
+  const DECAY = 10; // half-weight at ~7 games back
+  const weights = sorted.map((_, i) => Math.exp(-(N - 1 - i) / DECAY));
+  const HOME_ADV = 1.15;
+  const teams = [...new Set([...sorted.map(m => m.homeTeam), ...sorted.map(m => m.awayTeam)])];
+  const alpha = {}, beta = {};
+  teams.forEach(t => { alpha[t] = 1.0; beta[t] = 1.0; });
+
+  for (let iter = 0; iter < 50; iter++) {
+    teams.forEach(t => {
+      let obs = 0, exp = 0;
+      sorted.forEach((m, i) => {
+        const w = weights[i];
+        if (m.homeTeam === t) { obs += w * m.homeScore; exp += w * alpha[t] * beta[m.awayTeam] * HOME_ADV; }
+        if (m.awayTeam === t) { obs += w * m.awayScore; exp += w * alpha[t] * beta[m.homeTeam]; }
+      });
+      if (exp > 0) alpha[t] = alpha[t] * obs / exp;
+    });
+    teams.forEach(t => {
+      let obs = 0, exp = 0;
+      sorted.forEach((m, i) => {
+        const w = weights[i];
+        if (m.homeTeam === t) { obs += w * m.awayScore; exp += w * alpha[m.awayTeam] * beta[t]; }
+        if (m.awayTeam === t) { obs += w * m.homeScore; exp += w * alpha[m.homeTeam] * beta[t] * HOME_ADV; }
+      });
+      if (exp > 0) beta[t] = beta[t] * obs / exp;
+    });
+    // Identifiability: set geometric mean of α = 1
+    const gm = Math.exp(teams.reduce((s, t) => s + Math.log(Math.max(alpha[t], 1e-9)), 0) / teams.length);
+    teams.forEach(t => { alpha[t] /= gm; beta[t] *= gm; });
+  }
+
+  const ratings = { __dixonColes: true };
+  teams.forEach(t => { ratings[t] = { atk: alpha[t], def: beta[t] }; });
+  _standings.forEach(tm => { if (!ratings[tm.name]) ratings[tm.name] = { atk: 1.0, def: 1.0 }; });
   _ratingsCache = ratings;
   return ratings;
 }
 
 function expectedGoals(home, away, ratings) {
-  const LG_AVG = 1.3, HOME_ADV = 1.15;
+  const HOME_ADV = 1.15;
   const h = ratings[home] || { atk: 1, def: 1 };
   const a = ratings[away] || { atk: 1, def: 1 };
-  return {
-    lambdaH: h.atk * a.def * LG_AVG * HOME_ADV,
-    lambdaA: a.atk * h.def * LG_AVG,
-  };
+  if (ratings.__dixonColes) {
+    // IPF parameters are already on the correct absolute scale; no LG_AVG factor needed
+    return { lambdaH: h.atk * a.def * HOME_ADV, lambdaA: a.atk * h.def };
+  }
+  const LG_AVG = 1.3;
+  return { lambdaH: h.atk * a.def * LG_AVG * HOME_ADV, lambdaA: a.atk * h.def * LG_AVG };
 }
 
 function matchProb(lambdaH, lambdaA) {
-  const MAX = 8;
+  const MAX = 8, RHO = -0.13;
   let pH = 0, pD = 0, pA = 0;
   for (let i = 0; i <= MAX; i++) {
     for (let j = 0; j <= MAX; j++) {
-      const p = poisson(lambdaH, i) * poisson(lambdaA, j);
+      // Dixon-Coles low-score correction
+      const tau = i <= 1 && j <= 1
+        ? (i===0&&j===0 ? 1-lambdaH*lambdaA*RHO : i===0&&j===1 ? 1+lambdaH*RHO : i===1&&j===0 ? 1+lambdaA*RHO : 1-RHO)
+        : 1;
+      const p = poisson(lambdaH, i) * poisson(lambdaA, j) * tau;
       if (i > j) pH += p;
       else if (i === j) pD += p;
       else pA += p;
@@ -739,9 +789,30 @@ function renderNextGameCard() {
           const m = Math.floor(diffMs / 60000), s = Math.floor((diffMs % 60000) / 1000);
           countdown = ` · ${m}m ${String(s).padStart(2, "0")}s`;
         }
+        const mpKey = `${g.homeTeam}|${g.awayTeam}`;
+        if (!_matchProbs[mpKey] && _standings.length >= 20) {
+          const r = buildRatings();
+          const { lambdaH, lambdaA } = expectedGoals(g.homeTeam, g.awayTeam, r);
+          _matchProbs[mpKey] = matchProb(lambdaH, lambdaA);
+        }
+        const mp = _matchProbs[mpKey];
+        const heroBars = mp ? (() => {
+          const hPct = Math.round(mp.pH * 100), dPct = Math.round(mp.pD * 100), aPct = Math.round(mp.pA * 100);
+          const hLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
+          const aLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
+          const hLbl = esc(g.homeTeam.length > 12 ? g.homeTeam.slice(0, 12) + "…" : g.homeTeam);
+          const aLbl = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
+          const bl = (pct, name, logo) => pct >= 14 ? `${name} ${logo} ${pct}%` : (pct >= 7 ? `${logo} ${pct}%` : `${pct}%`);
+          return `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
+            <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl, hLogo)}</div>
+            <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+            <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl, aLogo)}</div>
+          </div>`;
+        })() : "";
         return `<div class="today-game">
           <div class="today-game-teams">${esc(g.homeTeam)} <span class="next-game-vs">×</span> ${esc(g.awayTeam)}</div>
           <span class="today-game-time muted">${esc(timeStr)} BRT${esc(countdown)}</span>
+          ${heroBars}
         </div>`;
       }
     }).join("");
@@ -772,9 +843,30 @@ function renderNextGameCard() {
     countdown = d > 0 ? `${d}d ${p2(h)}h ${p2(m)}m` : `${p2(h)}h ${p2(m)}m ${p2(s)}s`;
   }
 
+  const mpKeyNext = `${next.homeTeam}|${next.awayTeam}`;
+  if (!_matchProbs[mpKeyNext] && _standings.length >= 20) {
+    const r = buildRatings();
+    const { lambdaH, lambdaA } = expectedGoals(next.homeTeam, next.awayTeam, r);
+    _matchProbs[mpKeyNext] = matchProb(lambdaH, lambdaA);
+  }
+  const mpNext = _matchProbs[mpKeyNext];
+  const nextBars = mpNext ? (() => {
+    const hPct = Math.round(mpNext.pH * 100), dPct = Math.round(mpNext.pD * 100), aPct = Math.round(mpNext.pA * 100);
+    const hLogo = _teamLogos[next.homeTeam] ? `<img src="${esc(_teamLogos[next.homeTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
+    const aLogo = _teamLogos[next.awayTeam] ? `<img src="${esc(_teamLogos[next.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
+    const hLbl = esc(next.homeTeam.length > 12 ? next.homeTeam.slice(0, 12) + "…" : next.homeTeam);
+    const aLbl = esc(next.awayTeam.length > 12 ? next.awayTeam.slice(0, 12) + "…" : next.awayTeam);
+    const bl = (pct, name, logo) => pct >= 14 ? `${name} ${logo} ${pct}%` : (pct >= 7 ? `${logo} ${pct}%` : `${pct}%`);
+    return `<div class="prob-bars" role="group" aria-label="Probabilidades">
+      <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl, hLogo)}</div>
+      <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+      <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl, aLogo)}</div>
+    </div>`;
+  })() : "";
   card.innerHTML = `<div class="next-game-card">
     <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
     <div class="next-game-teams">${esc(next.homeTeam)} <span class="next-game-vs">×</span> ${esc(next.awayTeam)}</div>
+    ${nextBars}
     <div class="next-game-info">${esc(timeStr)}${countdown ? ` · ${esc(countdown)}` : ""}</div>
     ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
   </div>`;
@@ -837,6 +929,8 @@ function renderGamesSection() {
   let html = "";
   const hasRatings = _standings.length >= 20;
   const gRatings   = hasRatings ? buildRatings() : null;
+  // Map dateISO → 1-based sequential game number in the season
+  const gameNum = new Map(_schedule.map((g, i) => [g.id, i + 1]));
 
   dateKeys.forEach(key => {
     // Use the first game of the date to derive a display label via proper timezone
@@ -874,19 +968,22 @@ function renderGamesSection() {
         const aLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
         const hLabel = esc(g.homeTeam.length > 12 ? g.homeTeam.slice(0, 12) + "…" : g.homeTeam);
         const aLabel = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
+        // Narrow bars: drop the name when < 14% to avoid overflow
+        const barLabel = (pct, name, logo) => pct >= 14 ? `${name} ${logo} ${pct}%` : (pct >= 7 ? `${logo} ${pct}%` : `${pct}%`);
         probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
-          <div class="prob-bar home" style="width:${hPct}%" title="${esc(g.homeTeam)}: ${hPct}%">${hLogo} ${hLabel} ${hPct}%</div>
+          <div class="prob-bar home" style="width:${hPct}%" title="${esc(g.homeTeam)}: ${hPct}%">${barLabel(hPct, hLabel, hLogo)}</div>
           <div class="prob-bar draw"  style="width:${dPct}%" title="Emp: ${dPct}%">Emp ${dPct}%</div>
-          <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${aLabel} ${aPct}% ${aLogo}</div>
+          <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${barLabel(aPct, aLabel, aLogo)}</div>
         </div>`;
       }
+      const partida = gameNum.has(g.id) ? `<span class="game-number">Partida ${gameNum.get(g.id)}</span>` : "";
       html += `<div class="game-card ${esc(g.state || "pre")}">
         <div class="game-teams">
           <span class="game-team home">${esc(g.homeTeam)}</span>
           <span class="game-center">${scoreOrTime}</span>
           <span class="game-team away">${esc(g.awayTeam)}</span>
         </div>
-        ${g.venue ? `<div class="game-venue">${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
+        ${g.venue ? `<div class="game-venue">${partida}${g.venue ? ` · ${esc(g.venue)}` : ""}${g.city ? `, ${esc(g.city)}` : ""}</div>` : partida}
         <div class="game-status-row">${statusHtml}</div>
         ${probBarsHtml}
       </div>`;

@@ -64,10 +64,10 @@ MATCH_TEAMS = {
     "87": ("Argentina", "Cape Verde"),
     "88": ("Colombia", "Ghana"),
     # Round of 16
-    "89": ("W73", "W76"), "90": ("W75", "W78"),
-    "91": ("W74", "W77"), "92": ("W79", "W80"),
-    "93": ("W83", "W84"), "94": ("W81", "W82"),
-    "95": ("W87", "W86"), "96": ("W85", "W88"),
+    "89": ("Canada", "Morocco"),      "90": ("Paraguay", "France"),
+    "91": ("Brazil", "Norway"),       "92": ("Mexico", "England"),
+    "93": ("Spain", "Portugal"),      "94": ("Belgium", "United States"),
+    "95": ("W87", "W86"),             "96": ("W85", "W88"),
     # Quarterfinals
     "97": ("W89", "W90"), "98": ("W93", "W94"),
     "99": ("W91", "W92"), "100": ("W95", "W96"),
