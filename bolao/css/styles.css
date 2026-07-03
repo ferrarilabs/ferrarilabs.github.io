@@ -871,3 +871,47 @@ select:focus-visible {
   color: var(--muted);
   margin-top: 3px;
 }
+
+/* ── Reopen banner (closed site, awaiting M88) ── */
+#reopenBanner { margin: 0 auto 16px; max-width: 680px; }
+.reopen-inner {
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  border: 1px solid #334155;
+  border-radius: 12px;
+  padding: 20px 24px;
+  color: #e2e8f0;
+}
+.reopen-header {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #f59e0b;
+  margin-bottom: 14px;
+}
+.reopen-games { display: flex; flex-direction: column; gap: 8px; margin-bottom: 16px; }
+.reopen-game {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: rgba(255,255,255,0.04);
+}
+.reopen-game.done { opacity: 0.55; }
+.reopen-game.live { background: rgba(239,68,68,0.14); color: #fca5a5; }
+.reopen-countdown {
+  font-size: 17px;
+  font-weight: 600;
+  text-align: center;
+  color: #e2e8f0;
+  margin-bottom: 8px;
+}
+.reopen-cta {
+  font-size: 12px;
+  text-align: center;
+  color: #94a3b8;
+}
+.reopen-cta.highlight { color: #86efac; font-weight: 600; }
+.reopen-cta button.small { font-size: 12px; padding: 4px 12px; margin-left: 8px; }
