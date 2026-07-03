@@ -397,10 +397,11 @@ function renderNextMatch() {
         : "";
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const scorersBlock = goalScorersHtml(ls, tA, tB);
-      // A real break in play (halftime, or any other stoppage clockPaused
+      // A real break in play (halftime, penalties — no running clock exists
+      // once regulation/extra time ends — or any other stoppage clockPaused
       // picked up from the clock's own behavior) isn't more elapsed play
       // time — don't let the interpolation below keep ticking through it.
-      const runningClock = ls.isHalftime || ls.clockPaused
+      const runningClock = ls.isHalftime || ls.isPenalties || ls.clockPaused
         ? ls.clock
         : ls.clockSeconds !== null
           ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000), ls.period ?? null, ls.pastBoundary || 0)
@@ -3174,6 +3175,15 @@ function mapEspnToLiveScores(events) {
       const statusName = (comp.status?.type?.name || "").toUpperCase();
       const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""}`.toLowerCase();
       const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
+      // Penalty shootout: there's no running match clock during penalties —
+      // regulation/extra time is over, the "45/90/105/120 + stoppage" concept
+      // doesn't apply at all. Google's own live scoreboard shows a static
+      // "Penalties" label here instead of a clock (confirmed from a
+      // screenshot Eduardo sent: score "1 (0) — Live — Penalties — 1 (0)",
+      // no ticking timer). Detected primarily via ESPN's period === 5, with a
+      // text-based fallback for when period isn't present, same pattern as
+      // isHalftime above.
+      const isPenalties = period === 5 || /penalt|pênalti|penales/.test(statusText);
       // Paused right at/near a boundary confirms this match has moved past
       // it for good — record it so formatMatchClock never again mistakes
       // "well into the next half" for "still stoppage from the last one."
@@ -3189,19 +3199,21 @@ function mapEspnToLiveScores(events) {
       const skipUpTo = _confirmedBoundary[m.match] ?? 0;
       const clock = isHalftime
         ? t("liveHalftime")
-        : clockSeconds !== null && clockSeconds >= 0
-          ? formatMatchClock(clockSeconds, period, skipUpTo)
-          : (comp.status?.type?.shortDetail || "");
+        : isPenalties
+          ? t("livePenalties")
+          : clockSeconds !== null && clockSeconds >= 0
+            ? formatMatchClock(clockSeconds, period, skipUpTo)
+            : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, period, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, period, isHalftime, isPenalties, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
       if (n1 === normA && n0 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "B" : "A", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, period, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, period, isHalftime, isPenalties, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
     }

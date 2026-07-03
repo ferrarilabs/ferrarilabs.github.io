@@ -1,5 +1,14 @@
 # CHANGELOG
 
+## v4.76 — 2026-07-03
+
+### Fixed — relógio não parava na disputa de pênaltis
+- Eduardo mandou print do placar ao vivo do Google (Austrália x Egito, 1-1, "Live — Penalties", sem relógio nenhum rodando) e reportou que o nosso relógio continuava correndo depois que o jogo foi pra pênaltis. Causa: nada no código tratava a fase de pênaltis como uma pausa — o relógio continuava interpolando segundo a segundo pra sempre, já que não existe mais tempo de jogo real depois do fim da prorrogação.
+- Corrigido igual ao padrão já usado pro intervalo: quando `status.period === 5` (pênaltis, o mesmo campo da ESPN usado no fix do v4.75) — ou, como fallback, quando o texto de status da ESPN menciona "penalty"/"pênalti"/"penales" — o card mostra "Pênaltis" (i18n em `pt-BR`/`es`/`en-US`) parado no lugar do relógio, igual ao "Penalties" estático do Google, e a interpolação por segundo é desligada nesse estado (mesmo tratamento que já existia pro intervalo).
+- Verificado com Playwright: relógio mostra "Pênaltis" assim que a disputa começa, continua mostrando "Pênaltis" (não sobe pra "125:00" nem nada do tipo) mesmo simulando vários minutos depois, e o fallback por texto (quando `period` não vem no payload) também funciona.
+- Não implementado ainda: o placar da disputa de pênaltis em si — tipo o "1 (0)" do Google, onde o número entre parênteses é o placar dos pênaltis separado do placar normal. Não achei, sem acesso à API ao vivo pra confirmar, qual campo exato a ESPN usa pra isso — prefiro não adivinhar um nome de campo e arriscar mostrar um número errado. Se você conseguir me mandar um exemplo do JSON ao vivo durante uma disputa de pênaltis (ou eu confirmar o campo de outro jeito), dá pra adicionar.
+- Auditoria de pontuação: mudança é só de exibição do relógio ao vivo. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.75 — 2026-07-03
 
 ### Fixed — relógio ao vivo: correção pela raiz, não mais um patch heurístico
