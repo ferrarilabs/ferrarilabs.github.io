@@ -333,10 +333,10 @@ function updateCountdown() {
         <div><b>${p2(m)}</b><span>m</span></div>
         <div><b>${p2(sec)}</b><span>s</span></div>
       </div>`;
-      if (lbl) lbl.textContent = "Reabre ~23:30 EDT (após M88)";
+      if (lbl) lbl.textContent = t("reopenLabel").replace("{time}", "23:30");
     } else {
-      box.innerHTML = `<strong style="font-size:13px;color:var(--accent)">Abrindo em breve…</strong>`;
-      if (lbl) lbl.textContent = "Verificando resultado do M88…";
+      box.innerHTML = `<strong style="font-size:13px;color:var(--accent)">${escapeHtml(t("reopenSoon"))}</strong>`;
+      if (lbl) lbl.textContent = t("reopenChecking");
     }
     return;
   }
@@ -3349,7 +3349,7 @@ function renderReopenBanner() {
   const todaysGames = [
     { mid: "86", label: "M86", teams: "Australia vs Egypt",      timeET: "14:00 EDT", utc: Date.UTC(2026, 6, 3, 18, 0) },
     { mid: "87", label: "M87", teams: "Argentina vs Cape Verde", timeET: "18:00 EDT", utc: Date.UTC(2026, 6, 3, 22, 0) },
-    { mid: "88", label: "M88", teams: "Colombia vs Ghana",       timeET: "21:30 EDT — último jogo", utc: M88_KICKOFF_UTC },
+    { mid: "88", label: "M88", teams: "Colombia vs Ghana",       timeET: `21:30 EDT — ${escapeHtml(t("reopenLastGame"))}`, utc: M88_KICKOFF_UTC },
   ];
 
   const gameRows = todaysGames.map(g => {
@@ -3357,25 +3357,25 @@ function renderReopenBanner() {
     const isLive = !done && now > g.utc && now < g.utc + 135 * 60000;
     const icon  = done ? "✅" : isLive ? "🔴" : "⏳";
     const cls   = "reopen-game" + (done ? " done" : isLive ? " live" : "");
-    return `<div class="${cls}">${icon} <b>${escapeHtml(g.label)}</b> ${escapeHtml(g.teams)} <span class="muted">${escapeHtml(g.timeET)}</span></div>`;
+    return `<div class="${cls}">${icon} <b>${escapeHtml(g.label)}</b> ${escapeHtml(g.teams)} <span class="muted">${g.timeET}</span></div>`;
   }).join("");
 
   const m88Done = !!results["88"]?.advanceSide;
   let bottomHtml;
   if (m88Done) {
-    bottomHtml = `<div class="reopen-cta highlight">🔓 M88 encerrado — site reabre em instantes!
-      <button type="button" class="secondary small" onclick="location.reload()">Recarregar agora</button></div>`;
+    bottomHtml = `<div class="reopen-cta highlight">${escapeHtml(t("reopenReady"))}
+      <button type="button" class="secondary small" onclick="location.reload()">${escapeHtml(t("reopenReload"))}</button></div>`;
   } else if (now < M88_KICKOFF_UTC) {
     const cd = fmtCdMs(M88_KICKOFF_UTC - now);
-    bottomHtml = `<div class="reopen-countdown">⏰ M88 começa em <b>${cd}</b></div>
-      <div class="reopen-cta">Após o apito final · palpites R16 disponíveis até <b>12:00 EDT (4 jul)</b></div>`;
+    bottomHtml = `<div class="reopen-countdown">⏰ ${escapeHtml(t("reopenCountsIn"))} <b>${cd}</b></div>
+      <div class="reopen-cta">${escapeHtml(t("reopenCutoffNote"))}</div>`;
   } else {
-    bottomHtml = `<div class="reopen-countdown">🔴 M88 ao vivo — aguardando resultado final</div>
-      <div class="reopen-cta"><button type="button" class="secondary small" onclick="location.reload()">Verificar reabertura</button></div>`;
+    bottomHtml = `<div class="reopen-countdown">${escapeHtml(t("reopenLive"))}</div>
+      <div class="reopen-cta"><button type="button" class="secondary small" onclick="location.reload()">${escapeHtml(t("reopenCheckBtn"))}</button></div>`;
   }
 
   box.innerHTML = `<div class="reopen-inner">
-    <div class="reopen-header">🏆 R32 encerrada · Últimos jogos hoje — 3 de julho</div>
+    <div class="reopen-header">${escapeHtml(t("reopenHeader"))}</div>
     <div class="reopen-games">${gameRows}</div>
     ${bottomHtml}
   </div>`;
