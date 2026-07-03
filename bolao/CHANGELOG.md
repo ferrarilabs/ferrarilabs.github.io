@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.61 — 2026-07-02
+
+### Fixed — relógio ao vivo monotônico + email em quasi-tempo-real após jogo
+
+**Relógio ao vivo (`mergeLiveClock`):** O antigo guard de `behindBy < 150s` bloqueava a extrapolação apenas para lags pequenos — se o feed da ESPN atrasasse mais de 2m30s (comum na Copa com VAR, transições de período, tab em background), o relógio pulava para trás visivelmente. A nova lógica torna o relógio **monotônico durante o jogo**: nunca volta, independentemente do lag do ESPN. O único momento em que aceita uma queda é quando a diferença parece um reset de período legítimo (clock cai de próximo a um múltiplo de 45 min para perto de 0), cobrindo início do 2T, início da prorrogação e início do 2T da prorrogação.
+
+**Email quasi-tempo-real (`run_auto` + `any_copa_match_live`):** O modo `--auto` agora detecta quando há um jogo ao vivo após não encontrar resultados novos. Nesse caso, em vez de sair e esperar o próximo cron (até 10 min), fica em loop de polling a cada 2 min por até 80 min até o jogo terminar — detectando o final em até ~2 min em vez de até 10. O `timeout-minutes` do workflow foi ajustado para 100 min para comportar esse loop.
+
+## v4.60 — 2026-07-02
+
 ## v4.59 — 2026-07-02
 
 ### Changed

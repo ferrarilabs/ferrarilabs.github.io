@@ -142,6 +142,21 @@ def _espn_normalize(name):
     return ESPN_ALIASES.get(name, name)
 
 
+def any_copa_match_live():
+    """Returns True if any Copa 2026 match is currently in-progress on ESPN."""
+    url = (
+        "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
+        "scoreboard?limit=300&dates=20260611-20260719"
+    )
+    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        data = json.loads(r.read())
+    return any(
+        e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") == "in"
+        for e in data.get("events", [])
+    )
+
+
 def fetch_espn_results(saved_results=None):
     """
     Fetches ESPN scoreboard and returns completed match results for all rounds.
@@ -735,16 +750,49 @@ def run_auto():
         print(f"ESPN fetch failed: {ex}")
         sys.exit(1)
 
-    if not espn:
-        print("ESPN: no completed matches found.")
-        return
+    new_mids = sorted([m for m in espn if m not in saved_ids], key=int)
+
+    if not new_mids:
+        # No new completed match yet — check if a game is live and wait for it
+        try:
+            if any_copa_match_live():
+                print("Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, máx 80 min)...")
+                deadline = time.time() + 80 * 60
+                while time.time() < deadline:
+                    remaining = int((deadline - time.time()) / 60)
+                    print(f"  [{remaining} min restantes] Aguardando 120s...")
+                    time.sleep(120)
+                    try:
+                        espn2 = fetch_espn_results(saved_results=saved)
+                    except Exception as ex:
+                        print(f"  ESPN re-fetch falhou: {ex} — continuando loop")
+                        continue
+                    new_mids = sorted([m for m in espn2 if m not in saved_ids], key=int)
+                    if new_mids:
+                        espn = espn2
+                        print(f"  Jogo(s) finalizado(s): {[f'M{m}' for m in new_mids]}!")
+                        break
+                    # Check if still live; if not, exit early
+                    try:
+                        if not any_copa_match_live():
+                            print("  Nenhum jogo ao vivo detectado. Encerrando monitoramento.")
+                            break
+                    except Exception:
+                        pass
+                else:
+                    print("Monitoramento encerrado por timeout (80 min). Próximo cron tentará novamente.")
+                    return
+                if not new_mids:
+                    print("Nenhum resultado detectado após monitoramento. Encerrando.")
+                    return
+            else:
+                print("ESPN: nenhum jogo novo ou ao vivo. Nada a fazer.")
+                return
+        except Exception as ex:
+            print(f"Verificação de jogo ao vivo falhou: {ex} — encerrando normalmente.")
+            return
 
     print(f"ESPN completed: {sorted(espn.keys(), key=int)}")
-
-    new_mids = sorted([m for m in espn if m not in saved_ids], key=int)
-    if not new_mids:
-        print("No new matches. Nothing to do.")
-        return
 
     print(f"New:            {[f'M{m}' for m in new_mids]}")
 
