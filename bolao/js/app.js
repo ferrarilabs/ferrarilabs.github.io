@@ -1520,9 +1520,7 @@ function picksTable(entry) {
     const p = entry.picks?.[m.match], rr = r[m.match] || {};
     if (!p) return "";
     const result = results[m.match];
-    if (r16Locked && !result?.advanceSide && m.phase !== "Round of 32") {
-      return `<tr><td>M${escapeHtml(String(m.match))}</td><td colspan="6" class="pick-hidden-cell">🔒 ${escapeHtml(t("picksHiddenMsg"))}</td></tr>`;
-    }
+    if (r16Locked && !result?.advanceSide && m.phase !== "Round of 32") return "";
     const w = p.advanceSide === "A" ? rr.displayA : rr.displayB;
     const hasRealScore = result?.goalsA !== undefined && result?.goalsB !== undefined;
     const realScore = hasRealScore ? `${result.goalsA}–${result.goalsB}` : "—";
