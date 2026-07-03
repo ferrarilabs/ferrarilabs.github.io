@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.75 — 2026-07-03
+
+### Fixed — relógio ao vivo: correção pela raiz, não mais um patch heurístico
+- Eduardo reportou de novo que o relógio "ainda não está funcionando" e pediu algo tão bom quanto o placar ao vivo do Google. As correções anteriores (v4.59, v4.62, v4.73) eram todas heurísticas: adivinhar em qual tempo o jogo está observando o número bruto do relógio da ESPN (que é um contador contínuo, sem noção de 1º/2º tempo) e um texto de status nem sempre confiável. Isso deixava buracos: um acréscimo real de mais de 8 minutos no 2º tempo era escondido pelo teto de segurança; o intervalo só era "lembrado" se fosse observado dentro de uma janela de 3 minutos do marco de 45 min (fácil de perder com polling a cada 60s); e o prorrogação (105/120 min) nunca tinha essa mesma proteção.
+- Correção pela raiz: a própria ESPN já manda, no mesmo payload, `status.period` — um número que diz exatamente em qual tempo o jogo está (1 = 1º tempo, 2 = 2º tempo, 3/4 = prorrogação, 5 = pênaltis). É o mesmo tipo de sinal que uma fonte de dados profissional (a que provavelmente alimenta o placar do Google) fornece — não precisa mais ser reconstruído por adivinhação. Agora `formatMatchClock` usa esse campo como fonte de verdade sempre que presente: o marco de tempo (45/90/105/120) vem direto do `period`, não de qual valor o relógio "parece" ter cruzado. Isso corrige o problema definitivamente, no instante em que a ESPN reporta a virada de tempo — sem depender de ter "visto" o intervalo, sem teto arbitrário de 8 minutos escondendo acréscimos reais e longos, e cobrindo a prorrogação do mesmo jeito.
+- A lógica antiga (marco por valor do relógio + confirmação por observar o intervalo) continua no código como fallback — só entra em ação se `status.period` não vier no payload por algum motivo. Sem regressão possível: no pior caso, volta a se comportar exatamente como a v4.73.
+- `mergeLiveClock` (anti-retrocesso do relógio entre polls) também passou a usar a mudança de `period` como sinal de "novo tempo começou de verdade", em vez de só adivinhar pelo valor bruto do relógio.
+- Verificado com Playwright: cenário exato reportado (55:11, ESPN já mandando period=2 desde o primeiro poll, sem nunca ter visto o intervalo) → relógio limpo, imediato. Também testado: acréscimo real de 9 minutos no 2º tempo (que a v4.73 esconderia pelo teto de 8 min) → mostrado corretamente; prorrogação (period=3, 100:00) → limpo, não confunde com acréscimo do 2º tempo; acréscimo real dentro da prorrogação → mostrado corretamente; e o fallback antigo (sem `period` no payload) → continua funcionando como antes, sem quebrar.
+- Auditoria de pontuação: mudança é só de exibição do relógio ao vivo, não toca em `data.js`, scoring ou tiebreak. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.74 — 2026-07-03
 
 ### Fixed — deploy do GitHub Pages falhando ("Deployment failed, try again later")
