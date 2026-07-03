@@ -1,4 +1,4 @@
-name: Bolão — Resultado e email (auto)
+name: Bolão — Emails Copa 2026 (auto + manual)
 
 on:
   schedule:
@@ -6,9 +6,31 @@ on:
     - cron: '*/10 16-23 * 6-7 *'
     # Every 10 min, 00:00-05:50 UTC = 8:00 PM–1:50 AM EDT
     - cron: '*/10 0-5 * 6-7 *'
-  workflow_dispatch:  # manual trigger from GitHub UI / mobile app, still available
+  workflow_dispatch:
+    inputs:
+      match_id:
+        description: "Número do jogo (ex: 89) — vazio = modo auto ESPN"
+        required: false
+        type: string
+        default: ""
+      goals_a:
+        description: "Gols time A (só se match_id fornecido)"
+        required: false
+        type: string
+        default: ""
+      goals_b:
+        description: "Gols time B (só se match_id fornecido)"
+        required: false
+        type: string
+        default: ""
+      advance_side:
+        description: "Quem avança — A ou B (só se match_id fornecido)"
+        required: false
+        type: choice
+        options: ["", "A", "B"]
+        default: ""
 
-# Prevent simultaneous runs — queue rather than cancel (avoids double-sends)
+# Queue rather than cancel — avoids double-sends if jobs overlap
 concurrency:
   group: auto-results
   cancel-in-progress: false
@@ -26,12 +48,25 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # ── Step 1: Send emails for any new completed matches ──────────────────
-      - name: Send result emails for new matches
+      # ── Step 1: Send emails (auto ESPN detection or manual override) ──────────
+      - name: Send result emails
         working-directory: bolao/scripts
-        run: python3 send_result_email.py --auto
+        run: |
+          MID="${{ github.event.inputs.match_id }}"
+          if [ -n "$MID" ]; then
+            echo "Manual mode: updating M${MID}"
+            python3 send_result_email.py \
+              --update "$MID" \
+                       "${{ github.event.inputs.goals_a }}" \
+                       "${{ github.event.inputs.goals_b }}" \
+                       "${{ github.event.inputs.advance_side }}"
+            python3 send_result_email.py
+          else
+            echo "Auto mode: checking ESPN for new results"
+            python3 send_result_email.py --auto
+          fi
 
-      # ── Step 2: Reopen site after R32 if M88 is done ──────────────────────
+      # ── Step 2: Reopen site after R32 if M88 is done ─────────────────────────
       - name: Check if site needs to reopen after R32
         id: reopen
         working-directory: bolao/scripts
@@ -41,7 +76,7 @@ jobs:
           last_line=$(echo "$output" | tail -n 1)
           echo "action=$last_line" >> "$GITHUB_OUTPUT"
 
-      - name: Commit and push reopened config.js
+      - name: Commit reopened config.js
         if: steps.reopen.outputs.action == 'PATCHED'
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
