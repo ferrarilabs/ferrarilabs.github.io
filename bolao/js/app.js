@@ -403,7 +403,7 @@ function renderNextMatch() {
       const runningClock = ls.isHalftime || ls.clockPaused
         ? ls.clock
         : ls.clockSeconds !== null
-          ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000), ls.pastBoundary || 0)
+          ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000), ls.period ?? null, ls.pastBoundary || 0)
           : ls.clock;
       return `<div class="hero-live-card">
       <div class="hero-live-top">
@@ -2952,28 +2952,48 @@ const _openLiveDetails = new Set();
 // raw minute count that just keeps climbing past 45/90.
 const HALF_BOUNDARIES_MIN = [120, 105, 90, 45];
 
-// skipBoundariesUpTo: ignore any boundary at or below this value (minutes) —
-// once we've confirmed (via a halftime/pause observation, see
-// _confirmedBoundary below) that a match has moved past a given half, that
-// boundary is no longer "the one we might still be in stoppage from."
-function formatMatchClock(totalSeconds, skipBoundariesUpTo = 0) {
+// ESPN's scoreboard feed reports which half/period a live match is actually
+// in via status.period (1 = 1st half, 2 = 2nd half, 3/4 = extra-time periods,
+// 5 = penalties). That's the SAME signal broadcasters (and Google's live
+// scoreboard) use — an authoritative fact from the match feed, not something
+// we have to reconstruct by watching the raw clock number and guessing. This
+// is preferred over the boundary-guessing fallback below whenever it's
+// present: no lag, no missed observation window, correct the instant ESPN's
+// own period flips, including for extra time.
+const PERIOD_BOUNDARY_MIN = { 1: 45, 2: 90, 3: 105, 4: 120 };
+
+// period: ESPN's status.period for this match, when known — see
+// PERIOD_BOUNDARY_MIN above. skipBoundariesUpTo: legacy fallback used only
+// when period isn't available (see _confirmedBoundary below) — ignores any
+// boundary at or below this value (minutes) once a halftime/pause
+// observation confirmed the match has moved past that half.
+function formatMatchClock(totalSeconds, period = null, skipBoundariesUpTo = 0) {
   const m = Math.floor(totalSeconds / 60);
   const s = Math.floor(totalSeconds % 60);
   const base = `${m}:${String(s).padStart(2, "0")}`;
   const totalMinutes = totalSeconds / 60;
+
+  if (period === 5) return base; // penalties — no running stoppage concept
+
+  const knownBoundary = period != null ? PERIOD_BOUNDARY_MIN[period] : undefined;
+  if (knownBoundary !== undefined) {
+    if (totalMinutes <= knownBoundary) return base;
+    const stoppageMin = Math.max(1, Math.ceil((totalSeconds - knownBoundary * 60) / 60));
+    return `${base} (+${stoppageMin})`;
+  }
+
+  // Fallback for when ESPN's period field isn't present in the feed: the
+  // largest boundary the clock has actually passed, capped at a realistic
+  // 8 minutes of stoppage (broadcasters essentially never call it stoppage
+  // further past a half's normal duration) — needed because without period,
+  // this clock is just one continuous counter with no built-in notion of
+  // "which half" it's in. This is exactly what Eduardo caught live ("55:11
+  // (+11)" during confirmed 2nd-half play, well past any real 1st-half
+  // stoppage) — period fixes that at the source when available; this stays
+  // as a safety net for when it isn't.
   const boundary = HALF_BOUNDARIES_MIN.find(b => b > skipBoundariesUpTo && totalMinutes > b);
   if (!boundary) return base;
   const secsPastBoundary = totalSeconds - boundary * 60;
-  // Realistic upper bound for stoppage time — broadcasters essentially never
-  // call it stoppage this far past a half's normal duration. Needed because
-  // this clock is one continuous counter with no built-in notion of "which
-  // half" it's in: without a cap, a match well into the 2nd half (e.g.
-  // 55:11, ~10 min after the 45:00 mark) still looks like "45:00 + 10 min of
-  // 1st-half stoppage" forever, since it's still numerically past 45 — this
-  // is exactly what Eduardo caught live ("55:11 (+11)" during confirmed
-  // 2nd-half play). skipBoundariesUpTo (above) is the precise fix when we
-  // directly observed the halftime break; this cap is the fallback for when
-  // we didn't (e.g. the page loaded fresh already mid-2nd-half).
   const MAX_STOPPAGE_SECONDS = 8 * 60;
   if (secsPastBoundary > MAX_STOPPAGE_SECONDS) return base;
   const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
@@ -3145,6 +3165,7 @@ function mapEspnToLiveScores(events) {
       const n1 = normalizeTeamName(c1.team?.displayName);
       const s0 = parseInt(c0.score || "0", 10), s1 = parseInt(c1.score || "0", 10);
       const clockSeconds = typeof comp.status?.clock === "number" ? comp.status.clock : null;
+      const period = typeof comp.status?.period === "number" ? comp.status.period : null;
       // ESPN's break-state naming isn't confirmed without live testing (no
       // network access from this sandbox) — best-effort match on the common
       // enum/description shapes, falls back to the normal clock if it
@@ -3169,18 +3190,18 @@ function mapEspnToLiveScores(events) {
       const clock = isHalftime
         ? t("liveHalftime")
         : clockSeconds !== null && clockSeconds >= 0
-          ? formatMatchClock(clockSeconds, skipUpTo)
+          ? formatMatchClock(clockSeconds, period, skipUpTo)
           : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, period, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
       if (n1 === normA && n0 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "B" : "A", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
+        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, period, isHalftime, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
         break;
       }
     }
@@ -3209,12 +3230,18 @@ function mergeLiveClock(fresh, prev) {
   const extrapolated = prev.clockSeconds + elapsed;
   const behindBy = extrapolated - fresh.clockSeconds;
   if (behindBy <= 0) return fresh; // ESPN is ahead — accept it
-  // ESPN is behind our extrapolation. Accept reset only if this looks like
-  // a period boundary: clock dropped from near a 45-min multiple to near 0.
-  const BOUNDARY_S = [45, 90, 105].map(m => m * 60);
-  const nearBoundary = BOUNDARY_S.some(b => prev.clockSeconds >= b - 120);
-  const looksLikePeriodReset = fresh.clockSeconds < 120 && nearBoundary;
-  if (looksLikePeriodReset) return fresh;
+  // ESPN is behind our extrapolation. Accept the reset if ESPN's own period
+  // number changed — authoritative, a new half/ET period genuinely started.
+  // Only fall back to guessing from the raw clock value when period isn't
+  // available on either side to compare.
+  if (fresh.period != null && prev.period != null) {
+    if (fresh.period !== prev.period) return fresh;
+  } else {
+    const BOUNDARY_S = [45, 90, 105].map(m => m * 60);
+    const nearBoundary = BOUNDARY_S.some(b => prev.clockSeconds >= b - 120);
+    const looksLikePeriodReset = fresh.clockSeconds < 120 && nearBoundary;
+    if (looksLikePeriodReset) return fresh;
+  }
   return { ...fresh, clockSeconds: extrapolated };
 }
 
@@ -3235,7 +3262,7 @@ function saveLiveClockCache(scores) {
   try {
     const cache = {};
     for (const [mid, ls] of Object.entries(scores)) {
-      if (ls.clockSeconds != null) cache[mid] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime };
+      if (ls.clockSeconds != null) cache[mid] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime, period: ls.period ?? null };
     }
     localStorage.setItem(LIVE_CLOCK_CACHE_KEY, JSON.stringify(cache));
   } catch { /* storage full/unavailable — clock just won't survive a reload this time */ }
