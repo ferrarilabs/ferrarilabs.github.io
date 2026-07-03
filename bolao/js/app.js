@@ -529,7 +529,7 @@ function showSection(id) {
     }, 80);
   }
   const heading = document.querySelector(`#${id} h2, #${id} h3`);
-  if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: false }); }
+  if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: true }); }
 }
 
 /* ============================================================
