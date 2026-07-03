@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## v4.72 — 2026-07-03
+
+### Fixed — badge gigante era cache, não bug de código
+Eduardo mandou foto do laptop mostrando o badge America250 enorme, dominando o hero card. Verificado: o código-fonte atual em `main` já estava correto — testei um checkout limpo de `origin/main` (`021c1ae`) com carregamento totalmente sem cache e o badge renderiza pequeno e certo (34px de altura, exatamente como pretendido). Causa real: dois commits ficaram com o MESMO número de versão "v4.71" — o meu (fix do badge, `7e590ca`) e um fix de layout de navegação de outra sessão que chegou ~1 minuto depois (`021c1ae`) sem bumpar `siteVersion` de novo. Como o cache-busting (`?v=`) depende desse número, o CSS mudou de conteúdo duas vezes sob a mesma URL — o navegador do Eduardo (ou algum cache intermediário) pegou uma cópia inconsistente durante essa janela de transição. Bump pra v4.72 força uma URL de cache-busting garantidamente nova.
+
 ## v4.71 — 2026-07-03
 
 ### Fixed
