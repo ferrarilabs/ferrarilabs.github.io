@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.77 — 2026-07-03
+
+### Fixed — relógio realmente parou nos pênaltis (v4.76 não pegou o estado real da ESPN)
+- Eduardo mandou o JSON real da ESPN direto do jogo Austrália x Egito que estava ao vivo nesse exato momento (não deu pra pegar sozinho — `site.api.espn.com` está bloqueado pela política de rede do sandbox, confirmado nos logs do proxy). Isso permitiu confirmar, com dado real, o que a v4.76 tinha adivinhado sem conseguir testar contra a API de verdade.
+- O jogo estava no estado exato do fim da prorrogação, prestes a ir pra pênaltis: `status.period` ainda era **4** (não 5 como eu tinha assumido), `status.type.name` era `"STATUS_END_OF_EXTRATIME"`, e `status.type.detail`/`shortDetail` era `"AET-pens"` — com o relógio (`status.clock`) já parado em 7200s (120:00) fixo. A detecção da v4.76 só reconhecia a palavra "penalt" no texto — "AET-pens" não contém essa palavra, então esse estado passava batido e o relógio continuava interpolando pra frente sem parar. Esse é o bug real que o Eduardo viu.
+- Corrigido: a detecção de pênaltis agora também reconhece `type.name` contendo `"END_OF_EXTRATIME"` ou `"SHOOTOUT"`/`"PENALT"`, e o texto de status agora também inclui `type.detail` (antes só olhava `description` + `shortDetail`), com o regex ampliado pra pegar variações como "pens", "shootout" e "end of extra time" além de "penalt"/"pênalti"/"penales".
+- Confirmado: nesse payload real não existe nenhum campo separado pro placar da disputa de pênaltis (só `score` normal, "1"/"1") — reforça a decisão de não ter implementado ainda o "1 (0)" do Google; ainda não dá pra confirmar o nome do campo sem uma amostra durante a disputa em si.
+- Verificado com Playwright usando o payload real exato que o Eduardo mandou: relógio mostra "Pênaltis" imediatamente em vez de continuar subindo, e continua assim mesmo simulando vários minutos depois no mesmo estado. Todos os testes de regressão anteriores (v4.73, v4.75, v4.76) continuam passando.
+- Auditoria de pontuação: mudança é só de exibição do relógio ao vivo. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.76 — 2026-07-03
 
 ### Fixed — relógio não parava na disputa de pênaltis
