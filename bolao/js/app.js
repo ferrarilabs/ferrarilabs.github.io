@@ -3173,17 +3173,31 @@ function mapEspnToLiveScores(events) {
       // doesn't hit so a miss here never breaks the display, just skips the
       // "Intervalo" label.
       const statusName = (comp.status?.type?.name || "").toUpperCase();
-      const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""}`.toLowerCase();
+      const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""} ${comp.status?.type?.detail || ""}`.toLowerCase();
       const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
       // Penalty shootout: there's no running match clock during penalties —
       // regulation/extra time is over, the "45/90/105/120 + stoppage" concept
       // doesn't apply at all. Google's own live scoreboard shows a static
       // "Penalties" label here instead of a clock (confirmed from a
       // screenshot Eduardo sent: score "1 (0) — Live — Penalties — 1 (0)",
-      // no ticking timer). Detected primarily via ESPN's period === 5, with a
-      // text-based fallback for when period isn't present, same pattern as
-      // isHalftime above.
-      const isPenalties = period === 5 || /penalt|pênalti|penales/.test(statusText);
+      // no ticking timer).
+      //
+      // Confirmed from a real live payload (Eduardo sent it mid-match,
+      // Australia vs Egypt): the instant extra time ends, ESPN reports
+      // period 4 still (not yet 5) with type.name "STATUS_END_OF_EXTRATIME"
+      // and type.detail/shortDetail "AET-pens" — the clock is frozen at
+      // 120:00 in that state too, well before penalties actually start. The
+      // original fix here only matched the word "penalt", which "AET-pens"
+      // doesn't contain — that gap is exactly why the clock kept climbing
+      // instead of freezing. period === 5 is kept as a guess for once kicks
+      // are actually being taken (unconfirmed, no live sample of that state
+      // yet), alongside broader name/text matching so any wording ESPN uses
+      // for either state is covered.
+      const isPenalties = period === 5
+        || statusName.includes("SHOOTOUT")
+        || statusName.includes("PENALT")
+        || statusName.includes("END_OF_EXTRATIME")
+        || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
       // Paused right at/near a boundary confirms this match has moved past
       // it for good — record it so formatMatchClock never again mistakes
       // "well into the next half" for "still stoppage from the last one."
