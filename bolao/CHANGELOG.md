@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.74 — 2026-07-03
+
+### Fixed — deploy do GitHub Pages falhando ("Deployment failed, try again later")
+- Eduardo reportou: "deploy / Deploy GitHub Pages / deploy / Failed in 15 seconds". Causa: duas rotinas de deploy disputando a mesma publicação a cada push — o job automático do GitHub Pages ("pages build and deployment", ativo porque o Source do repo está em "Deploy from a branch") e um workflow customizado `.github/workflows/pages.yml` (adicionado por outra sessão, v4.69) usando `actions/deploy-pages@v4`, que só funciona sem conflito se o Source do repo for "GitHub Actions". Como isso não foi alterado, os dois disparavam pro mesmo commit ao mesmo tempo e um sempre falhava com "Deployment failed, try again later" — confirmado nos logs exatos do job via GitHub Actions.
+- Correção: removido `.github/workflows/pages.yml`, voltando ao único caminho de deploy que funcionou a sessão inteira (o automático). Eduardo escolheu essa opção em vez de mexer manualmente nas configurações do GitHub Pages.
+- Auditoria de pontuação: mudança é puramente de infraestrutura de deploy, não toca em `data.js`, scoring ou `send_result_email.py`. `audit_scoring.py` re-rodado mesmo assim — 5/5 continuam passando.
+
 ## v4.73 — 2026-07-03
 
 ### Fixed
