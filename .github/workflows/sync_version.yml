@@ -1,10 +1,27 @@
 name: Bolão — Sync cache-bust version in index.html
 
+# Was scoped to only bolao/js/config.js — meant "bump siteVersion to get a
+# fresh cache-bust". Broke in practice: two concurrent sessions each pushed
+# a commit claiming the same siteVersion string (v4.71) about a minute
+# apart. The second one only touched styles.css, so this workflow never
+# fired for it at all — index.html kept the stale "?v=4.71" pointing at a
+# URL whose cached content no longer matched what was actually being
+# served, and a real user (Eduardo) got stuck looking at a broken layout
+# with no way to know a refresh wouldn't even help (same URL either way).
+#
+# Fixed two ways: (1) broadened the trigger to any source file that could
+# change what index.html's cache-busted URLs serve — not just config.js —
+# and (2) the cache-bust value is now the commit SHA, not the manually
+# maintained siteVersion string, so it's guaranteed unique on every commit
+# regardless of whether anyone remembered (or coordinated) a version bump.
+# index.html itself stays out of the path list so this workflow's own
+# commit doesn't retrigger itself.
 on:
   push:
     branches: [main]
     paths:
-      - 'bolao/js/config.js'
+      - 'bolao/js/**.js'
+      - 'bolao/css/**.css'
 
 permissions:
   contents: write
@@ -19,17 +36,11 @@ jobs:
           # Fetch with the bot token so the push below triggers Pages deploy
           fetch-depth: 0
 
-      - name: Sync ?v= in index.html from config.js
+      - name: Sync ?v= in index.html to this commit's SHA
         id: sync
         run: |
-          # Extract numeric version only (strip leading 'v') to match ?v=4.38 format
-          VERSION=$(grep -o 'siteVersion:.*"v[0-9.]*"' bolao/js/config.js | grep -o '[0-9][0-9.]*')
-          echo "Detected version: $VERSION"
-          if [ -z "$VERSION" ]; then
-            echo "Could not detect version — skipping"
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
+          VERSION=$(git rev-parse --short HEAD)
+          echo "Cache-bust value: $VERSION"
           BEFORE=$(md5sum bolao/index.html | cut -d' ' -f1)
           sed -i "s/?v=[^\"' >]*/\?v=$VERSION/g" bolao/index.html
           AFTER=$(md5sum bolao/index.html | cut -d' ' -f1)
