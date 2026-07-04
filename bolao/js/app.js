@@ -1552,14 +1552,14 @@ function renderRanking() {
     prevKey = key;
     const medal = ["🥇","🥈","🥉"][rank - 1] || `${rank}`;
     const arrowHtml = rankArrowHtml(arrows[e.id]);
-    const bonusLine = e._bonus?.total ? ` · ${t("bonusLabel")} +${e._bonus.total}` : "";
+    const bonusLine = e._bonus?.total ? `${t("bonusLabel")} +${e._bonus.total}` : "";
     const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
+    const bonusBadge = bonusLine ? `<br><span class="muted">${escapeHtml(bonusLine)}</span>` : "";
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
 <div class="rank-pos">${medal}${arrowHtml}</div>
-<div><b>${escapeHtml(e.entryName)}</b>${demoBadge}<br>
-<span class="muted">${escapeHtml(e.payerName)}${escapeHtml(bonusLine)}</span></div>
+<div><b>${escapeHtml(e.entryName)}</b>${demoBadge}${bonusBadge}</div>
 <div class="points">${e._score}</div>
 <button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
