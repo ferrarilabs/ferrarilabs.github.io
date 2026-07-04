@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v4.105 — 2026-07-04
+
+### Added — desempate por ordem alfabética (Z→A) só pra exibição
+- Eduardo perguntou por que "Roberta" aparecia depois de "Simone" no ranking, mesmo empatadas (111 pts). Resposta: elas (junto com Rodrigo Hajj) estavam totalmente empatadas nos 3 critérios de desempate já existentes (total, placares exatos, acertos de campeão/vice/3º) — sem um 4º critério, a ordem entre empatados ficava só na ordem em que as entradas foram salvas, sem nenhum significado.
+- A pedido do Eduardo: adicionado um 4º nível, só de exibição (não muda a posição/medalha, que continua compartilhada) — quando tudo mais empata, ordena por nome da entrada em ordem alfabética invertida (Z→A). "Tem que estar tudo exatamente igual" — implementado com a mesma lógica (maiúsculas, comparação simples por código de caractere, sem colação de idioma) tanto no site (`renderRanking()`) quanto no e-mail (`send_result_email.py`), e verificado que os dois produzem exatamente a mesma ordem pro cenário real reportado (Simone Hirle #4, Rodrigo Hajj, Roberta).
+- `audit_scoring.py` também ganhou um caso de teste novo cobrindo esse 4º nível (usando esses mesmos três nomes), já que a regra pede pra atualizar o audit sempre que a cascata de desempate mudar.
+- Auditoria de pontuação: mudança é só de ORDEM DE EXIBIÇÃO entre empatados — não muda quem está empatado, quantos pontos cada um tem, nem a posição/medalha. `audit_scoring.py` re-rodado — 5/5 continuam passando (incluindo o novo caso).
+
 ## v4.104 — 2026-07-04
 
 ### Fixed — flash da aba Palpites ao dar refresh
