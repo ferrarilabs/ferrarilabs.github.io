@@ -361,11 +361,12 @@ h3 { font-size: 1.05rem; }
   margin-bottom: 4px;
 }
 /* Hero intro copy ("Bolão Copa 2026" / "Preencha seu bracket..." / "Valor:
-   US$ 5...") — Eduardo asked to hide this now; the America250 badge and
-   countdown box stay. */
+   US$ 5...") and the America250 badge — Eduardo asked to hide both; the
+   countdown box stays. */
 #heroBody .eyebrow,
 #heroBody h1,
-#heroBody p[data-i18n="heroText"] {
+#heroBody p[data-i18n="heroText"],
+#heroBody .america250-badge {
   display: none;
 }
 .warning {
