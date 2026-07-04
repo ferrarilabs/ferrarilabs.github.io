@@ -3906,6 +3906,9 @@ function initEvents() {
 function launchJuly4Fireworks() {
   const d = new Date();
   if (d.getMonth() !== 6 || d.getDate() !== 4) return; // July 4 only
+  const SEEN_KEY = "bolao_july4fw_2026";
+  if (localStorage.getItem(SEEN_KEY)) return;
+  localStorage.setItem(SEEN_KEY, "1");
 
   const canvas = document.createElement("canvas");
   canvas.style.cssText = "position:fixed;top:0;left:0;width:100vw;height:100vh;pointer-events:none;z-index:9998";
@@ -3935,12 +3938,12 @@ function launchJuly4Fireworks() {
     }
   }
 
-  const endAt    = Date.now() + 8000;
-  let nextBurst  = Date.now() + 300;
+  const endAt   = Date.now() + 8000;
+  let nextBurst = Date.now() + 300;
 
   function frame() {
-    ctx.fillStyle = "rgba(0,0,0,0.16)";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Clear to transparent so the page shows through — no dark overlay build-up
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const now = Date.now();
     if (now < endAt && now >= nextBurst) {
@@ -3998,7 +4001,7 @@ async function init() {
   restoreDraft();
   renderReopenBanner();
   startReopenPolling();
-  setTimeout(launchJuly4Fireworks, 1800); // after page settles
+  setTimeout(launchJuly4Fireworks, 400); // brief settle, then launch
   setInterval(() => { updateCountdown(); renderNextMatch(); renderReopenBanner(); }, 1000);
   startLiveScorePolling();
   // Pre-fetch Polymarket odds in background so match prob bars are ready before
