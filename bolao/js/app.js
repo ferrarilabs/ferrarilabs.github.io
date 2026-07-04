@@ -239,12 +239,20 @@ function mergeStates(local, remote) {
   const mergedResults = { ...(remote.results || {}), ...(local.results || {}) };
   for (const mid of resultTombstones) delete mergedResults[mid];
 
+  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200.
+  const auditMap = new Map();
+  for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
+    if (entry?.ts) auditMap.set(entry.ts, entry);
+  }
+  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+
   return {
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
     deletedIds: [...tombstones],
     deletedResults: [...resultTombstones],
     paid: mergedPaid,
     results: mergedResults,
+    auditLog: mergedAuditLog,
     meta: { updatedAt: new Date().toISOString(), version: CONFIG.siteVersion }
   };
 }
@@ -752,6 +760,7 @@ function cancelEditMode() {
   unlockR32Inputs();
   updateEditModeUI();
   renderEditByCodeCard();
+  renderPaymentBox();
 }
 
 function inferFromForm() {
@@ -1452,7 +1461,7 @@ async function sendResultEmailFromAdmin(testOnly) {
           sent++;
           await new Promise(r => setTimeout(r, 3500));
         } catch (err) {
-          console.error("Result email error:", addr, err);
+          console.error("Result email error:", err);
           errors++;
         }
       }
@@ -2023,8 +2032,8 @@ function buildCopaELO() {
     elo[tA] += K * gdMult * (sA - eA);
     elo[tB] += K * gdMult * ((1 - sA) - (1 - eA));
   };
-  // Group stage (all 72 matches already have scores in DATA.matches)
-  (DATA.matches || []).forEach(m => {
+  // Group stage (all 72 matches already have scores in DATA.groupMatches)
+  (DATA.groupMatches || []).forEach(m => {
     if (m.status === "Final" && m.goalsA != null) update(m.teamA, m.teamB, m.goalsA, m.goalsB);
   });
   // Knockout: iterate in match order so slot resolution is correct
@@ -2469,20 +2478,22 @@ async function autoFill(mode) {
   const filled = $$('[data-field="goalsA"],[data-field="goalsB"]').some(el => el.value !== "");
   if (filled && !confirm(t("overwritePicks"))) return;
   const winners = {}, losers = {};
+  const stateResults = state().results || {};
   for (const m of DATA.knockoutMatches) {
     const c = $(`[data-card-match="${m.match}"]`);
-    if (!c) continue;
-    // Don't overwrite R32 picks that are locked during the R32 edit window
-    if (R32_IDS.has(String(m.match)) && _editingEntry) {
-      const a2 = resolveSlot(m.teamA, winners, losers);
-      const b2 = resolveSlot(m.teamB, winners, losers);
-      const p = _editingEntry.picks?.[m.match];
-      if (p?.advanceSide === "A") { winners[m.match] = a2; losers[m.match] = b2; }
-      else if (p?.advanceSide === "B") { winners[m.match] = b2; losers[m.match] = a2; }
-      continue;
-    }
+    // Resolve slot names before card guard — hidden R32 cards must still propagate.
     const a = resolveSlot(m.teamA, winners, losers);
     const b = resolveSlot(m.teamB, winners, losers);
+    if (R32_IDS.has(String(m.match))) {
+      // Propagate winner from existing picks (edit mode) or confirmed results, skip fill.
+      const p = _editingEntry?.picks?.[m.match];
+      const r = stateResults[m.match];
+      const side = p?.advanceSide || r?.advanceSide;
+      if (side === "A") { winners[m.match] = a; losers[m.match] = b; }
+      else if (side === "B") { winners[m.match] = b; losers[m.match] = a; }
+      continue;
+    }
+    if (!c) continue;
     const [ga, gb] = predictScore(a, b, mode);
     const gaEl = c.querySelector('[data-field="goalsA"]');
     const gbEl = c.querySelector('[data-field="goalsB"]');
@@ -2613,10 +2624,10 @@ async function saveEntry() {
       appendToAuditLog(s, beforeEntry, updatedEntry, changes, { ip: clientIp });
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
-      _editingEntry = null;
-      unlockR32Inputs();
+      // Stay in edit mode so user can keep adjusting without re-entering their code.
+      _editingEntry = updatedEntry;
       updateEditModeUI();
-      renderEditByCodeCard();
+      loadEntryIntoForm(updatedEntry);
       renderAll();
       showToast(t("entryUpdated"), "success");
       // Send confirmation email to participant only (fire-and-forget, no admin copy)
@@ -3690,7 +3701,7 @@ function renderReopenBanner() {
   let bottomHtml;
   if (m88Done) {
     bottomHtml = `<div class="reopen-cta highlight">${escapeHtml(t("reopenReady"))}
-      <button type="button" class="secondary small" onclick="location.reload()">${escapeHtml(t("reopenReload"))}</button></div>`;
+      <button type="button" class="secondary small" data-action="reload">${escapeHtml(t("reopenReload"))}</button></div>`;
   } else if (now < M88_KICKOFF_UTC) {
     const cd = fmtCdMs(M88_KICKOFF_UTC - now);
     bottomHtml = `<div class="reopen-countdown">⏰ ${escapeHtml(t("reopenCountsIn"))} <b>${cd}</b></div>
@@ -3787,6 +3798,8 @@ function initEvents() {
     if (bannerNav) { showSection(bannerNav.dataset.bannerNav); return; }
 
     if (e.target.closest("#heroToggle")) { toggleHero(); return; }
+
+    if (e.target.closest("[data-action='reload']")) { location.reload(); return; }
 
     const rankToggle = e.target.closest("[data-rank-toggle]");
     if (rankToggle) {
