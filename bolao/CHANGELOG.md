@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.87 — 2026-07-04
+
+### Reabertura para picks de Oitavas de Final
+
+- `cutoffIso` atualizado para `2026-07-05T14:00:00-04:00` — site reaberto após M88 (Colombia vs Ghana)
+- `cutoffLabel` atualizado para "Oitavas de Final — prazo: 5 jul, 14h ET"
+- O poller de reopen detecta `cutoffIso >= "2026-07-04"` e recarrega automaticamente para quem estava na página fechada
+- A partir de `r32CutoffIso` (4 jul, 01h ET): modo edição-apenas ativa (sem novas entradas)
+- audit_scoring.py: 5/5 ✓
+
 ## v4.86 — 2026-07-04
 
 ### Fixed — visual mobile na aba Jogos (e no formulário de palpites)
