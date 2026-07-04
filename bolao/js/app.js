@@ -848,6 +848,7 @@ function renderBracket() {
   if (!form) return;
   form.innerHTML = "";
   for (const m of DATA.knockoutMatches) {
+    if (isR32Window() && R32_IDS.has(String(m.match))) continue; // R32 done — hide during R16 window
     const card = document.createElement("div");
     card.className = "match-card";
     card.dataset.cardMatch = m.match;
@@ -980,8 +981,8 @@ async function readEntryFromForm() {
 
   const picks = {};
   for (const m of DATA.knockoutMatches) {
-    // New entries during R16 window cannot pick already-played R32 matches.
-    if (isR32Window() && !_editingEntry && R32_IDS.has(String(m.match))) continue;
+    // R32 matches not rendered during R16 window — nothing to read from form.
+    if (isR32Window() && R32_IDS.has(String(m.match))) continue;
     const c = $(`[data-card-match="${m.match}"]`);
     const gaRaw = c?.querySelector('[data-field="goalsA"]')?.value;
     const gbRaw = c?.querySelector('[data-field="goalsB"]')?.value;
@@ -1480,8 +1481,9 @@ ${link ? `<br><a href="${escapeHtml(link)}" target="_blank" rel="noopener norefe
 
 function lockIfCutoff() {
   const closed = isPastCutoff();
+  const r16Only = isR32Window() && !_editingEntry;
   const btn = $("#saveEntry");
-  if (btn) btn.disabled = closed;
+  if (btn) btn.disabled = closed || r16Only;
   if (closed) $$("#bracketForm input,#bracketForm select,#smartPick,#randomPick").forEach(el => { el.disabled = true; });
 }
 
@@ -2612,7 +2614,7 @@ async function saveEntry() {
       await mailReceipt(entry.id, "admin").catch(err => console.warn("Admin email failed", err));
     }
   } finally {
-    if (btn) { btn.disabled = isPastCutoff(); btn.textContent = _editingEntry ? t("editSaveBtn") : t("saveEntry"); }
+    if (btn) { btn.disabled = isPastCutoff() || (isR32Window() && !_editingEntry); btn.textContent = _editingEntry ? t("editSaveBtn") : t("saveEntry"); }
   }
 }
 
