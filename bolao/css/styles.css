@@ -360,6 +360,14 @@ h3 { font-size: 1.05rem; }
   letter-spacing: .1em;
   margin-bottom: 4px;
 }
+/* Hero intro copy ("Bolão Copa 2026" / "Preencha seu bracket..." / "Valor:
+   US$ 5...") — Eduardo asked to hide this now; the America250 badge and
+   countdown box stay. */
+#heroBody .eyebrow,
+#heroBody h1,
+#heroBody p[data-i18n="heroText"] {
+  display: none;
+}
 .warning {
   background: #fff4cc;
   color: #392d00;
@@ -742,21 +750,22 @@ input[readonly] {
   .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
   .sticky-submit button { width: 100%; }
   .receipt-actions button { flex: 1 0 auto; }
-  /* Compact ranking card: position + name-block + points share one row
-     (points beside the name instead of on its own full row below), and the
-     "Ver palpites" button shrinks back to its natural compact size instead
-     of stretching full-width — cuts the card from 3 stacked row-bands down
-     to 2, without touching the underlying markup/data at all. */
+  /* Compact ranking card, all on one row: position, name, points and the
+     "Ver palpites" button side by side — no separate row-band for the
+     button, so more entries fit per screen. Points gets a fixed-width
+     column (not auto/content-sized) so the button's horizontal position
+     never shifts whether the score is "0" or "117" — only the points text
+     itself shifts within its own reserved slot. */
   .rank-row {
-    grid-template-columns: 32px 1fr auto;
-    grid-template-rows: auto auto;
+    grid-template-columns: 28px 1fr 40px auto;
     padding: 10px 12px;
-    gap: 4px 8px;
+    gap: 8px;
+    align-items: start;
   }
-  .rank-row .rank-pos { grid-column: 1; grid-row: 1 / 3; font-size: 17px; align-self: start; }
-  .rank-row > div:nth-child(2) { grid-column: 2; grid-row: 1; font-size: 13px; line-height: 1.35; }
-  .rank-row .points { grid-column: 3; grid-row: 1; font-size: 18px; text-align: right; align-self: start; }
-  .rank-row button { grid-column: 2 / -1; grid-row: 2; justify-self: end; }
+  .rank-row .rank-pos { font-size: 16px; }
+  .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
+  .rank-row .points { font-size: 17px; text-align: right; }
+  .rank-row button { justify-self: end; }
 }
 
 @media (max-width: 500px) {

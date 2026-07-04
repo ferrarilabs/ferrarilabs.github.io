@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.101 — 2026-07-04
+
+### Changed — hero simplificado + ranking realmente em uma linha só no mobile
+- Eduardo pediu pra esconder o texto de intro do hero ("Bolão Copa 2026" / "Preencha seu bracket e participe." / "Valor: US$ 5 por entrada..."). Escondido via CSS (`#heroBody .eyebrow`, `h1`, `p[data-i18n="heroText"]`) — o badge America250 e a caixa de contagem regressiva continuam aparecendo normalmente.
+- No ranking mobile (v4.100 já tinha reduzido de 3 blocos de linha pra 2), Eduardo pediu pra ir além: posição, nome, pontuação e o botão "Ver palpites" numa linha só, sem desalinhar dependendo do tamanho do placar. A pontuação agora tem uma coluna de largura FIXA (não mais `auto`/dependente do conteúdo) — assim o botão sempre começa exatamente no mesmo X, seja o placar "0" ou "117". Verificado com Playwright: posição do botão idêntica (mesmo pixel) em 3 placares de tamanhos diferentes (1, 2 e 3 dígitos); nome de entrada bem longo quebra em várias linhas normalmente sem desalinhar pontos/botão; desktop conferido sem mudanças (a alteração é só no breakpoint mobile).
+- Auditoria de pontuação: as duas mudanças são só de exibição/CSS. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.100 — 2026-07-04
 
 ### Fixed — mensagens de reabertura ficavam permanentemente presas em "aguardando M88"
