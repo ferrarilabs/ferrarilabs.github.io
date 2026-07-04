@@ -360,13 +360,11 @@ h3 { font-size: 1.05rem; }
   letter-spacing: .1em;
   margin-bottom: 4px;
 }
-/* Hero intro copy ("Bolão Copa 2026" / "Preencha seu bracket..." / "Valor:
-   US$ 5...") and the America250 badge — Eduardo asked to hide both; the
-   countdown box stays. */
-#heroBody .eyebrow,
-#heroBody h1,
-#heroBody p[data-i18n="heroText"],
-#heroBody .america250-badge {
+/* Hero card ("Bolão Copa 2026" intro text, America250 badge, countdown
+   box) — Eduardo asked to hide the intro text and badge, then pointed out
+   the now-empty outer card shell was still showing as a hollow box, so the
+   whole card is hidden. */
+#heroCard {
   display: none;
 }
 .warning {
