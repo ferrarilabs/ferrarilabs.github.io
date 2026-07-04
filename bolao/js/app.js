@@ -759,18 +759,19 @@ function inferFromForm() {
   const results = state().results || {};
   for (const m of DATA.knockoutMatches) {
     const card = $(`[data-card-match="${m.match}"]`);
-    if (!card) continue;
+    // Always resolve slot names first (needed for hidden R32 cards too).
     const a = resolveSlot(m.teamA, winners, losers);
     const b = resolveSlot(m.teamB, winners, losers);
-    card.dataset.currentA = a; card.dataset.currentB = b;
-    // Completed matches: always use the actual result for bracket propagation,
-    // regardless of what the user typed. Prevents wrong team cascading to next round.
+    if (card) { card.dataset.currentA = a; card.dataset.currentB = b; }
+    // Completed matches: propagate real result into winners map regardless of
+    // whether the card is rendered. Fixes R16+ slots when R32 cards are hidden.
     const result = results[m.match];
     if (result?.advanceSide) {
       if (result.advanceSide === "A") { winners[m.match] = a; losers[m.match] = b; }
       else { winners[m.match] = b; losers[m.match] = a; }
       continue;
     }
+    if (!card) continue; // hidden and no real result — nothing to propagate
     const ga = parseScore(card.querySelector('[data-field="goalsA"]')?.value);
     const gb = parseScore(card.querySelector('[data-field="goalsB"]')?.value);
     const sel = card.querySelector('[data-field="advanceSide"]');
