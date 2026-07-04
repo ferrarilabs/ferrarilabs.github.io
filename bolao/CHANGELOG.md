@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v4.100 — 2026-07-04
+
+### Fixed — mensagens de reabertura ficavam permanentemente presas em "aguardando M88"
+- Eduardo: "Agora que os palpites acabaram pode esconder essas duas boxes". A caixa do hero ("Abrindo em breve… Verificando resultado do M88…") e o banner de reabertura ("🔒 M88 encerrado — site reabre em instantes! Recarregar agora") só existiam pra cobrir o período entre o M88 terminar e o site reabrir pras Oitavas — mas nenhum dos dois tinha uma condição de saída pra quando esse período TAMBÉM já tivesse passado. Resultado: depois que o prazo de edição das Oitavas (12h ET, 4 jul) também encerrou, as duas caixas continuavam mostrando pra sempre a mesma mensagem desatualizada de "aguardando M88", mesmo o M88 já tendo acabado há horas.
+- Corrigido: as duas agora reconhecem quando o `cutoffIso` já foi atualizado pelo `auto_reopen.py` pra depois de 4 de julho (ou seja, o M88 já reabriu o site uma vez) E esse novo prazo também já passou — nesse caso, escondem a caixa inteira em vez de repetir a mensagem de "M88 encerrado, reabre em instantes" pro resto do torneio. Verificado com Playwright em 4 cenários: aguardando M88 ainda (mostra normal), fechado mas checando M88 (mostra "Abrindo em breve"), janela das Oitavas aberta (esconde as duas, mostra contagem normal até o prazo), e totalmente resolvido — as duas somem (o caso do Eduardo).
+
+### Fixed — ranking muito grande no mobile
+- Eduardo: "veja se tem como redesenhar o ranking no mobile pra ficar mais simples de ver. Ta muito grande a caixa agora!" — cada entrada ocupava 3 blocos de linha empilhados (posição+nome, pontos numa linha própria, botão "Ver palpites" ocupando a largura toda numa terceira linha), deixando só ~1 entrada visível por tela no celular.
+- Corrigido só via CSS (mobile, sem tocar em nenhuma lógica de pontuação/ranking/dados): posição, nome e pontos agora dividem a mesma linha (pontos ao lado do nome em vez de embaixo), e o botão "Ver palpites" volta ao tamanho compacto natural dele em vez de esticar a largura toda — o card cai de 3 blocos de linha pra 2, sem mudar nada na estrutura/HTML gerado. Verificado com Playwright: 5 entradas cabem confortavelmente na tela onde antes cabia 1; nome de entrada bem longo continua quebrando limpo sem colidir com os pontos; botão "Ver palpites" testado e confirmado que continua abrindo o detalhe dos palpites normalmente; desktop conferido pixel-idêntico ao que já era (fora do breakpoint mobile).
+- Auditoria de pontuação: as duas mudanças são só de exibição/CSS, não tocam em `data.js`, scoring, ranking ou `send_result_email.py`. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.88 — 2026-07-04
 
 ### Deadline + nav simplificada

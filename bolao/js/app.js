@@ -343,10 +343,18 @@ const ESTIMATED_REOPEN_UTC = Date.UTC(2026, 6, 4, 3, 30);
 function updateCountdown() {
   const box = $("#countdown");
   if (!box) return;
+  const countCard = box.closest(".count-card");
   const diff = cutoffDate() - Date.now();
   const lbl  = $("#cutoffLabel");
 
   if (diff <= 0) {
+    // Once the R32→R16 reopen has already happened AND its own edit window
+    // has also closed (cutoffIso already bumped past 2026-07-04 by
+    // auto_reopen.py, and that later date has itself now passed), there's no
+    // further reopen scheduled — hide the whole box instead of permanently
+    // showing a stale "waiting for M88" message forever after.
+    if (CONFIG.cutoffIso >= "2026-07-04") { countCard?.classList.add("hidden"); return; }
+    countCard?.classList.remove("hidden");
     // Site is closed — show countdown to estimated reopen (M88 end ~23:30 EDT)
     const toReopen = ESTIMATED_REOPEN_UTC - Date.now();
     const p2 = n => String(n).padStart(2, "0");
@@ -366,6 +374,7 @@ function updateCountdown() {
     return;
   }
 
+  countCard?.classList.remove("hidden");
   const s = Math.floor(diff / 1000);
   const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
         m = Math.floor((s % 3600) / 60), sec = s % 60;
@@ -3677,6 +3686,11 @@ function renderReopenBanner() {
   const box = document.getElementById("reopenBanner");
   if (!box) return;
   if (cutoffDate() > Date.now()) { box.classList.add("hidden"); return; }
+  // Same reasoning as updateCountdown() above: once the R32→R16 reopen has
+  // already happened and its own edit window has also closed, this banner's
+  // M88-specific messaging ("M88 encerrado — site reabre em instantes!") no
+  // longer reflects anything real — there's no further scheduled reopen.
+  if (CONFIG.cutoffIso >= "2026-07-04") { box.classList.add("hidden"); return; }
 
   const now = Date.now();
   const results = state().results || {};
