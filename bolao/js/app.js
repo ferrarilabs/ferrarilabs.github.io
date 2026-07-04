@@ -1596,7 +1596,7 @@ function picksTable(entry) {
   // Same count used for the standings tiebreaker — lets people see why they're
   // ranked above/below a tied entry without having to do the math themselves.
   const exactCount = exactMatchCount(entry, state());
-  const pod = finalPodiumForEntry(entry);
+  const pod = isPastCutoff() ? finalPodiumForEntry(entry) : {};
   const podHtml = (pod.champion || pod.runnerUp || pod.third)
     ? `<div class="picks-podium">
         ${pod.champion ? `<span>🥇 ${escapeHtml(pod.champion)}</span>` : ""}
