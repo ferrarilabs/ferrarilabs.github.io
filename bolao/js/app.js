@@ -651,6 +651,24 @@ function loadEntryByCode(code) {
   }
   lockR32Inputs();
   updateDynamic(); // resolve R16+ team names from the loaded R32 picks
+  // After updateDynamic, team names are resolved. Flag any R16+ match where
+  // the teams changed since the pick was made (opponent changed mid-tournament).
+  for (const m of DATA.knockoutMatches) {
+    if (R32_IDS.has(String(m.match))) continue;
+    const c = $(`[data-card-match="${m.match}"]`);
+    const p = found.picks?.[m.match];
+    if (!c || !p?.displayA || !p?.displayB) continue;
+    if (p.displayA !== c.dataset.currentA || p.displayB !== c.dataset.currentB) {
+      const head = c.querySelector(".match-head");
+      if (head && !head.querySelector(".teams-changed-chip")) {
+        const chip = document.createElement("span");
+        chip.className = "pill teams-changed-chip";
+        chip.title = `${t("teamsChangedTitle")}: ${p.displayA} × ${p.displayB}`;
+        chip.textContent = `⚠️ ${t("teamsChangedChip")}`;
+        head.appendChild(chip);
+      }
+    }
+  }
   updateEditModeUI();
   renderEditByCodeCard();
   // Scroll to bracket
@@ -710,12 +728,21 @@ function cancelEditMode() {
 
 function inferFromForm() {
   const winners = {}, losers = {};
+  const results = state().results || {};
   for (const m of DATA.knockoutMatches) {
     const card = $(`[data-card-match="${m.match}"]`);
     if (!card) continue;
     const a = resolveSlot(m.teamA, winners, losers);
     const b = resolveSlot(m.teamB, winners, losers);
     card.dataset.currentA = a; card.dataset.currentB = b;
+    // Completed matches: always use the actual result for bracket propagation,
+    // regardless of what the user typed. Prevents wrong team cascading to next round.
+    const result = results[m.match];
+    if (result?.advanceSide) {
+      if (result.advanceSide === "A") { winners[m.match] = a; losers[m.match] = b; }
+      else { winners[m.match] = b; losers[m.match] = a; }
+      continue;
+    }
     const ga = parseScore(card.querySelector('[data-field="goalsA"]')?.value);
     const gb = parseScore(card.querySelector('[data-field="goalsB"]')?.value);
     const sel = card.querySelector('[data-field="advanceSide"]');
@@ -842,6 +869,9 @@ function renderBracket() {
     form.appendChild(card);
   }
   updateDynamic();
+  // During R16 window, lock R32 inputs even for blank new entries so
+  // participants can't retroactively pick already-played matches.
+  if (isR32Window() && !_editingEntry) lockR32Inputs();
 }
 
 /* ── Draft ── */
@@ -929,6 +959,8 @@ async function readEntryFromForm() {
 
   const picks = {};
   for (const m of DATA.knockoutMatches) {
+    // New entries during R16 window cannot pick already-played R32 matches.
+    if (isR32Window() && !_editingEntry && R32_IDS.has(String(m.match))) continue;
     const c = $(`[data-card-match="${m.match}"]`);
     const gaRaw = c?.querySelector('[data-field="goalsA"]')?.value;
     const gbRaw = c?.querySelector('[data-field="goalsB"]')?.value;
@@ -1534,8 +1566,15 @@ function picksTable(entry) {
   // Same count used for the standings tiebreaker — lets people see why they're
   // ranked above/below a tied entry without having to do the math themselves.
   const exactCount = exactMatchCount(entry, state());
+  const pod = podiumPicks(entry);
+  const podHtml = (pod.champion || pod.runnerUp || pod.third)
+    ? `<div class="picks-podium">
+        ${pod.champion ? `<span>🥇 ${escapeHtml(pod.champion)}</span>` : ""}
+        ${pod.runnerUp ? `<span>🥈 ${escapeHtml(pod.runnerUp)}</span>` : ""}
+        ${pod.third    ? `<span>🥉 ${escapeHtml(pod.third)}</span>`    : ""}
+      </div>` : "";
   return `<table><thead><tr><th>${escapeHtml(t("receiptGame"))}</th><th>${escapeHtml(t("receiptTeamA"))}</th><th>${escapeHtml(t("receiptScore"))}</th><th>${escapeHtml(t("receiptTeamB"))}</th><th>${escapeHtml(t("receiptWinner"))}</th><th>${escapeHtml(t("pickRealLabel"))}</th><th>${escapeHtml(t("pickPointsLabel"))}</th></tr></thead><tbody>${rows}</tbody></table>
-<p class="footer-note" style="margin-top:8px">🎯 ${escapeHtml(t("pickExactCount").replace("{n}", exactCount))}</p>`;
+<p class="footer-note" style="margin-top:8px">🎯 ${escapeHtml(t("pickExactCount").replace("{n}", exactCount))}</p>${podHtml}`;
 }
 
 function renderParticipants() {
