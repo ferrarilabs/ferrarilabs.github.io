@@ -67,6 +67,23 @@ function downloadBlob(filename, content, type) {
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
+function showToast(msg, type = "info", durationMs = 3500) {
+  let container = document.querySelector(".bolao-toasts");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "bolao-toasts";
+    document.body.appendChild(container);
+  }
+  const el = document.createElement("div");
+  el.className = `bolao-toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 320);
+  }, durationMs);
+}
+
 function formatDate(d) {
   if (!d) return "";
   const [y, m, day] = String(d).split("-");
@@ -506,7 +523,7 @@ function guardAdmin() {
   sessionStorage.removeItem("adminOk"); sessionStorage.removeItem("adminUntil");
   $("#adminArea")?.classList.add("hidden");
   $("#adminLogin")?.classList.remove("hidden");
-  alert(t("adminExpired"));
+  showToast(t("adminExpired"), "warn");
   return false;
 }
 
@@ -1213,17 +1230,17 @@ async function mailReceipt(id, target) {
   const e = state().entries.find(x => x.id === id);
   if (!e) return;
   const to = target === "admin" ? CONFIG.adminEmail : e.participantEmail;
-  if (!isValidEmail(to)) { alert(t("invalidEmail")); return; }
-  if (!window.emailjs) { alert(t("emailjsNotLoaded")); return; }
+  if (!isValidEmail(to)) { showToast(t("invalidEmail"), "error"); return; }
+  if (!window.emailjs) { showToast(t("emailjsNotLoaded"), "error"); return; }
   const template = target === "admin" ? CONFIG.emailjs.adminTemplateId : CONFIG.emailjs.participantTemplateId;
   try {
     await emailjs.send(CONFIG.emailjs.serviceId, template, {
       to_email: to, entry_name: e.entryName, receipt_code: receiptCode(e), html_message: receiptHtml(e)
     }, { publicKey: CONFIG.emailjs.publicKey });
-    alert(t("emailSent"));
+    showToast(t("emailSent"), "success");
   } catch (err) {
     console.warn("Email failed", err);
-    alert(`${t("emailjsNotLoaded")}: ${err?.text || err?.message || String(err)}`);
+    showToast(`${t("emailjsNotLoaded")}: ${err?.text || err?.message || String(err)}`, "error");
   }
 }
 
@@ -1373,10 +1390,10 @@ function buildResultEmailHtml(s, testMode) {
 
 async function sendResultEmailFromAdmin(testOnly) {
   if (!guardAdmin()) return;
-  if (!window.emailjs) { alert(t("emailjsNotLoaded")); return; }
+  if (!window.emailjs) { showToast(t("emailjsNotLoaded"), "error"); return; }
   const s = state();
   const completedResults = Object.entries(s.results || {}).filter(([, v]) => v?.advanceSide);
-  if (!completedResults.length) { alert("Nenhum resultado knockout encontrado."); return; }
+  if (!completedResults.length) { showToast("Nenhum resultado knockout encontrado.", "warn"); return; }
 
   const btnId = testOnly ? "#sendResultEmailTest" : "#sendResultEmailAll";
   const btn = $(btnId);
@@ -1401,7 +1418,7 @@ async function sendResultEmailFromAdmin(testOnly) {
       await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
         { to_email: CONFIG.adminEmail, entry_name: emailSubject, receipt_code: emailSubject, html_message: html },
         { publicKey: CONFIG.emailjs.publicKey });
-      alert(`Email de teste enviado para ${CONFIG.adminEmail} ✓`);
+      showToast(`Email de teste enviado para ${CONFIG.adminEmail} ✓`, "success");
     } else {
       const byEmail = {};
       for (const e of (s.entries || [])) {
@@ -1426,10 +1443,10 @@ async function sendResultEmailFromAdmin(testOnly) {
           errors++;
         }
       }
-      alert(`Emails enviados: ${sent} ✓${errors ? `, erros: ${errors}` : ""}`);
+      showToast(`Emails enviados: ${sent} ✓${errors ? `, erros: ${errors}` : ""}`, errors ? "warn" : "success", 5000);
     }
   } catch (err) {
-    alert(`Erro ao enviar: ${err?.text || err?.message || String(err)}`);
+    showToast(`Erro ao enviar: ${err?.text || err?.message || String(err)}`, "error", 5000);
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = origText; }
   }
@@ -1566,7 +1583,7 @@ function picksTable(entry) {
   // Same count used for the standings tiebreaker — lets people see why they're
   // ranked above/below a tied entry without having to do the math themselves.
   const exactCount = exactMatchCount(entry, state());
-  const pod = podiumPicks(entry);
+  const pod = finalPodiumForEntry(entry);
   const podHtml = (pod.champion || pod.runnerUp || pod.third)
     ? `<div class="picks-podium">
         ${pod.champion ? `<span>🥇 ${escapeHtml(pod.champion)}</span>` : ""}
@@ -2400,7 +2417,7 @@ function renderProbs() {
 }
 
 async function autoFill(mode) {
-  if (isPastCutoff()) { alert(t("closed")); return; }
+  if (isPastCutoff()) { showToast(t("closed"), "warn"); return; }
   const filled = $$('[data-field="goalsA"],[data-field="goalsB"]').some(el => el.value !== "");
   if (filled && !confirm(t("overwritePicks"))) return;
   const winners = {}, losers = {};
@@ -2438,7 +2455,7 @@ async function autoFill(mode) {
    Save entry
    ============================================================ */
 async function saveEntry() {
-  if (isPastCutoff()) { alert(t("cutoffClosed")); return; }
+  if (isPastCutoff()) { showToast(t("cutoffClosed"), "warn"); return; }
   const btn = $("#saveEntry");
   if (btn) { btn.disabled = true; btn.textContent = t("saveInProgress"); }
   try {
@@ -2448,7 +2465,7 @@ async function saveEntry() {
     if (_editingEntry) {
       // Edit mode: update existing entry in-place, preserve R32 picks
       const idx = s.entries.findIndex(e => e.id === _editingEntry.id);
-      if (idx === -1) { alert(t("editCodeNotFound")); return; }
+      if (idx === -1) { showToast(t("editCodeNotFound"), "error"); return; }
       const merged = { ...entry.picks };
       for (const mid of Object.keys(_editingEntry.picks || {})) {
         if (R32_IDS.has(mid)) merged[mid] = _editingEntry.picks[mid];
@@ -2468,7 +2485,7 @@ async function saveEntry() {
       updateEditModeUI();
       renderEditByCodeCard();
       renderAll();
-      alert(t("entryUpdated"));
+      showToast(t("entryUpdated"), "success");
     } else {
       const duplicate = s.entries.find(e =>
         e.entryName.trim().toLowerCase() === entry.entryName.trim().toLowerCase()
@@ -2492,8 +2509,8 @@ async function saveEntry() {
    ============================================================ */
 async function adminLogin() {
   const lock = Number(localStorage.getItem("adminLockUntil") || "0");
-  if (Date.now() < lock) { alert(t("adminLocked")); return; }
-  if (!CONFIG.adminPasswordHash) { alert(t("adminWrongPassword")); return; }
+  if (Date.now() < lock) { showToast(t("adminLocked"), "warn"); return; }
+  if (!CONFIG.adminPasswordHash) { showToast(t("adminWrongPassword"), "error"); return; }
   const pwd = ($("#adminPassword")?.value || "").trim();
   if (!pwd) return;
   let hash;
@@ -2501,7 +2518,7 @@ async function adminLogin() {
     hash = await sha256Hex(pwd);
   } catch (err) {
     console.warn("SHA-256 unavailable", err);
-    alert(t("adminLoginError"));
+    showToast(t("adminLoginError"), "error");
     return;
   }
   if (hash === CONFIG.adminPasswordHash) {
@@ -2521,9 +2538,9 @@ async function adminLogin() {
     if (n >= (CONFIG.adminMaxAttempts || 5)) {
       localStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
       localStorage.setItem("adminAttempts", "0");
-      alert(t("adminLocked"));
+      showToast(t("adminLocked"), "warn");
     } else {
-      alert(t("adminWrongPassword"));
+      showToast(t("adminWrongPassword"), "error");
     }
   }
 }
@@ -2541,7 +2558,7 @@ async function deleteEntry(id) {
   const s = state();
   const e = s.entries.find(x => x.id === id);
   if (!e) return;
-  if (isToday(e.createdAt) && !e.diagnostics?.demo) { alert(t("deleteTodayBlocked")); return; }
+  if (isToday(e.createdAt) && !e.diagnostics?.demo) { showToast(t("deleteTodayBlocked"), "warn"); return; }
   if (!confirm(t("deleteConfirm"))) return;
   const reason = prompt(t("deleteReasonPrompt"), "") || "";
   s.entries = s.entries.filter(x => x.id !== id);
@@ -2551,7 +2568,7 @@ async function deleteEntry(id) {
   saveState(s, { forceResults: true });
   await sendRemovalEmail(e, reason).catch(() => {});
   renderAll();
-  alert(t("deleteEmailSent"));
+  showToast(t("deleteEmailSent"), "success");
 }
 
 async function forceSyncFromRemote() {
@@ -2575,7 +2592,7 @@ async function clearAllData() {
   saveLocalState(empty);
   await saveRemoteState(empty, { forceResults: true }).catch(err => console.warn("Remote clear failed", err));
   renderAll();
-  if (todayEntries.length > 0) alert(t("clearDataTodayKept").replace("{n}", todayEntries.length));
+  if (todayEntries.length > 0) showToast(t("clearDataTodayKept").replace("{n}", todayEntries.length), "info");
 }
 
 function loadDemoData() {
@@ -2596,12 +2613,12 @@ function loadDemoData() {
       paymentTo: CONFIG.paymentMethods.CashApp, createdAt: new Date().toISOString(),
       diagnostics: { demo: true }, picks });
   });
-  saveState(s); renderAll(); alert(t("demoCreated"));
+  saveState(s); renderAll(); showToast(t("demoCreated"), "success");
 }
 
 async function refreshApiFootball() {
   if (!guardAdmin()) return;
-  if (!CONFIG.apiFootball?.enabled || !CONFIG.apiFootball?.apiKey) { alert(t("apiFootballNotConfigured")); return; }
+  if (!CONFIG.apiFootball?.enabled || !CONFIG.apiFootball?.apiKey) { showToast(t("apiFootballNotConfigured"), "warn"); return; }
   try {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), 10000);
@@ -2610,8 +2627,8 @@ async function refreshApiFootball() {
     clearTimeout(timer);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     localStorage.setItem("bolao_api_football_cache", JSON.stringify({ ts: Date.now(), payload: await res.json() }));
-    alert(t("apiFootballUpdated"));
-  } catch (err) { console.warn("API-Football failed", err); alert(t("apiFootballNotConfigured")); }
+    showToast(t("apiFootballUpdated"), "success");
+  } catch (err) { console.warn("API-Football failed", err); showToast(t("apiFootballNotConfigured"), "error"); }
 }
 
 /* ============================================================
@@ -2958,9 +2975,9 @@ function mapEspnToMatches(events) {
 async function runEspnUpdate({ silent = false } = {}) {
   if (!guardAdmin()) return;
   const events = await fetchEspnFixtures();
-  if (!events) { if (!silent) alert("Erro ao buscar ESPN. Verifique o console."); return; }
+  if (!events) { if (!silent) showToast("Erro ao buscar ESPN. Verifique o console.", "error"); return; }
   const mapped = mapEspnToMatches(events);
-  if (!mapped.length) { if (!silent) alert("Nenhum resultado novo encontrado via ESPN."); return; }
+  if (!mapped.length) { if (!silent) showToast("Nenhum resultado novo encontrado via ESPN.", "info"); return; }
   const knockoutIds = new Set(DATA.knockoutMatches.map(m => String(m.match)));
   const s = state();
   let applied = 0;
@@ -2977,9 +2994,9 @@ async function runEspnUpdate({ silent = false } = {}) {
   _lastApiUpdate = new Date();
   if (applied > 0) {
     saveState(s, { forceResults: true }); renderRanking(); renderGames(); renderAdmin();
-    if (!silent) alert(`${applied} resultado(s) atualizado(s) via ESPN.`);
+    if (!silent) showToast(`${applied} resultado(s) atualizado(s) via ESPN.`, "success");
   } else {
-    if (!silent) alert("Nenhum resultado novo para aplicar.");
+    if (!silent) showToast("Nenhum resultado novo para aplicar.", "info");
   }
 }
 
@@ -3713,7 +3730,7 @@ function initEvents() {
     if (!guardAdmin()) return;
     await runApiResultsUpdate().catch(err => console.warn("Manual refresh failed", err));
   });
-  $("#espnSync")?.addEventListener("click", () => runEspnUpdate().catch(err => { console.warn("ESPN update failed", err); alert("Erro ESPN. Verifique o console."); }));
+  $("#espnSync")?.addEventListener("click", () => runEspnUpdate().catch(err => { console.warn("ESPN update failed", err); showToast("Erro ESPN. Verifique o console.", "error"); }));
   $("#forceSync")?.addEventListener("click", forceSyncFromRemote);
   $("#clearData")?.addEventListener("click", clearAllData);
   $("#backupCsv")?.addEventListener("click", () => { if (guardAdmin()) backupCsv(); });
