@@ -479,8 +479,8 @@ input[disabled] { opacity: .5; }
   align-items: center;
   margin: 10px 0;
 }
-.team { font-weight: 800; font-size: 15px; }
-.team.right { text-align: right; }
+.team { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.team.right { justify-content: flex-end; }
 .vs { color: var(--muted); font-size: 13px; text-align: center; }
 .score-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
 .score-inputs label span { display: block; font-size: 12px; min-height: 1.3em; color: var(--text); font-weight: 700; }
@@ -690,7 +690,7 @@ input[readonly] {
   align-items: center;
 }
 .game-team { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 6px; }
-.game-team.right { justify-content: flex-end; flex-direction: row-reverse; text-align: right; }
+.game-team.right { justify-content: flex-start; }
 .game-score {
   font-size: 22px;
   font-weight: 900;
@@ -749,9 +749,41 @@ input[readonly] {
 
 @media (max-width: 500px) {
   .count-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Bracket entry form (Palpites tab) — same fix as .game-teams below: long
+     team names had no mobile stacking rule at all and stayed crammed into
+     the 3-column desktop grid, cramped or overflowing on a phone. */
+  .teams { grid-template-columns: 1fr; gap: 4px; margin: 8px 0; }
+  .team.right { flex-direction: row-reverse; justify-content: flex-end; }
+  .vs { font-size: 11px; margin: 0; }
   .game-teams { grid-template-columns: 1fr; gap: 8px; }
-  .game-team.right { flex-direction: row; justify-content: flex-start; text-align: left; }
+  .game-team.right { flex-direction: row-reverse; justify-content: flex-end; }
   .game-score { width: 100%; }
+  /* Pre-match placeholder ("×", no score yet) shouldn't take as much visual
+     weight as an actual score — full-width padded box reads as a big empty
+     rectangle once teams stack into a single column. Real scores/live keep
+     the full treatment above; only the empty-state variant shrinks. */
+  .game-score.muted {
+    width: auto;
+    min-width: 0;
+    padding: 2px 14px;
+    font-size: 15px;
+    background: none;
+    border: none;
+    margin: 0 auto;
+  }
+
+  /* Prob-bar segments get too narrow for "Team NN%" on a phone-width
+     screen — let the label wrap onto two lines instead of being clipped
+     mid-word by text-overflow: ellipsis. */
+  .prob-bars { height: auto; min-height: 30px; }
+  .prob-bar {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 10px;
+    line-height: 1.25;
+    padding: 3px 4px;
+  }
 
   /* "Próximo jogo" card: stack instead of squeezing the countdown next to
      long team names, and keep its 3/4-cell timer from inheriting the
