@@ -2473,10 +2473,13 @@ async function saveEntry() {
       s.entries[idx] = {
         ..._editingEntry,
         picks: merged,
-        payerName: entry.payerName,
-        participantEmail: entry.participantEmail,
-        paymentMethod: entry.paymentMethod,
-        updatedAt: new Date().toISOString()
+        // entryName and createdAt are intentionally NOT updated — receiptCode depends on both.
+        entryName:          _editingEntry.entryName,
+        createdAt:          _editingEntry.createdAt,
+        payerName:          entry.payerName,
+        participantEmail:   entry.participantEmail,
+        paymentMethod:      entry.paymentMethod,
+        updatedAt:          new Date().toISOString()
       };
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
