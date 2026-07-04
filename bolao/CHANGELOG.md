@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v4.83 — 2026-07-04
+
+### Corrigido — número de comprovante nunca muda ao editar palpites
+- `saveEntry()` em modo de edição agora declara `entryName` e `createdAt` explicitamente a partir de `_editingEntry`, em vez de confiar no spread implícito. O `receiptCode` depende de ambos; tornar explícito impede que qualquer alteração futura no bloco quebre essa garantia por acidente.
+- Auditoria de pontuação: `audit_scoring.py` 5/5 ✓
+
 ## v4.82 — 2026-07-03
 
 ### Fixed — `podiumPicks` ReferenceError silencioso quebrava ver palpites no ranking
