@@ -2624,10 +2624,8 @@ async function saveEntry() {
       appendToAuditLog(s, beforeEntry, updatedEntry, changes, { ip: clientIp });
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
-      // Stay in edit mode so user can keep adjusting without re-entering their code.
-      _editingEntry = updatedEntry;
-      updateEditModeUI();
-      loadEntryIntoForm(updatedEntry);
+      // Stay in edit mode — repopulate form from state and keep _editingEntry set.
+      loadEntryByCode(receiptCode(updatedEntry));
       renderAll();
       showToast(t("entryUpdated"), "success");
       // Send confirmation email to participant only (fire-and-forget, no admin copy)
