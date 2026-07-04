@@ -1557,9 +1557,22 @@ function renderRanking() {
   // Tiebreak cascade: total points → most exact scores → most correct
   // champion/runner-up/3rd picks. Still tied after all three? Shared position —
   // Eduardo splits that placement's prize manually (payouts aren't automated).
+  // Display-only 4th level for still-tied entries: reverse alphabetical
+  // (Z→A) by entry name, uppercased and compared by plain code-unit order
+  // (no locale-aware collation) so this always matches send_result_email.py's
+  // identical Python-side tiebreak exactly.
   const ranked = s.entries
     .map(e => { const sc = scoreEntry(e, s); return { ...e, _score: sc.total, _bonus: sc.bonus, _exact: exactMatchCount(e, s) }; })
-    .sort((a, b) => b._score - a._score || b._exact - a._exact || b._bonus.podiumHits - a._bonus.podiumHits);
+    .sort((a, b) => {
+      if (b._score !== a._score) return b._score - a._score;
+      if (b._exact !== a._exact) return b._exact - a._exact;
+      if (b._bonus.podiumHits !== a._bonus.podiumHits) return b._bonus.podiumHits - a._bonus.podiumHits;
+      const aName = (a.entryName || "").toUpperCase();
+      const bName = (b.entryName || "").toUpperCase();
+      if (aName < bName) return 1;
+      if (aName > bName) return -1;
+      return 0;
+    });
   // Tiebreak-aware arrows: encode (total, exact, podiumHits) as one sortable
   // number so ties that share a rank don't get an arbitrary up/down between them.
   const arrows = computeRankArrows("ranking", ranked.map(e => ({ id: e.id, score: e._score * 100000 + e._exact * 10 + e._bonus.podiumHits })));

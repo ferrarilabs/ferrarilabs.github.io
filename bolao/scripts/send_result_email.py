@@ -496,12 +496,31 @@ def build_html(state, focus_mid=None):
         and not (e.get("diagnostics") or {}).get("demo")
     ]
 
+    # Tiebreak cascade: total -> exact -> podium hits, same as the site's own
+    # renderRanking(). Still tied after all three? Display-only 4th level:
+    # reverse alphabetical (Z->A) by entry name, uppercased and compared by
+    # plain code-point order (no locale collation) -- must match the JS side
+    # exactly, since Eduardo asked for both to be identical.
+    def _entry_name_key(item):
+        return (item["e"].get("entryName") or "").upper()
+
     scored = sorted(
         [{"e": e, "total": score_entry_total(e, results), "exact": exact_match_count(e, results),
           "podium": podium_hits(e, results)}
          for e in real_entries],
-        key=lambda x: (-x["total"], -x["exact"], -x["podium"])
+        key=lambda x: (-x["total"], -x["exact"], -x["podium"]),
     )
+    # Python's sort is stable, so re-sorting only within each fully-tied group
+    # (same total/exact/podium) by reverse name preserves the cascade above
+    # while breaking remaining ties Z->A.
+    i = 0
+    while i < len(scored):
+        j = i
+        key = (scored[i]["total"], scored[i]["exact"], scored[i]["podium"])
+        while j < len(scored) and (scored[j]["total"], scored[j]["exact"], scored[j]["podium"]) == key:
+            j += 1
+        scored[i:j] = sorted(scored[i:j], key=_entry_name_key, reverse=True)
+        i = j
 
     last_mid = focus_mid or (sorted(results.keys(), key=int)[-1] if results else None)
 

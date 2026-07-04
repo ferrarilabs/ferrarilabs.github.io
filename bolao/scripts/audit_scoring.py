@@ -148,8 +148,9 @@ def check_parse_bounds(mod):
 
 
 def check_tiebreak_order(mod):
-    """Sort must be total DESC, then exact-score-count DESC, then podium-hits DESC —
-    same cascade as app.js's renderRanking()."""
+    """Sort must be total DESC, then exact-score-count DESC, then podium-hits DESC,
+    then (display-only, for entries still fully tied) reverse-alphabetical (Z->A)
+    entry name — same cascade as app.js's renderRanking()."""
     results = {"73": {"goalsA": 1, "goalsB": 0, "advanceSide": "A"}}
     entries = [
         {"id": "a", "entryName": "A", "picks": {"73": {"goalsA": 1, "goalsB": 0, "advanceSide": "A"}}},  # 15 pts, 1 exact
@@ -162,6 +163,27 @@ def check_tiebreak_order(mod):
     )
     if scored[0]["e"]["id"] != "a":
         return False, f"expected entry 'a' (higher total) ranked first, got order: {[s['e']['id'] for s in scored]}"
+
+    # Fully-tied entries (same total/exact/podium) must fall back to
+    # reverse-alphabetical (Z->A) order, matching app.js's renderRanking().
+    tied = [
+        {"e": {"entryName": "Roberta"}, "total": 111, "exact": 3, "podium": 1},
+        {"e": {"entryName": "Simone Hirle #4"}, "total": 111, "exact": 3, "podium": 1},
+        {"e": {"entryName": "Rodrigo Hajj"}, "total": 111, "exact": 3, "podium": 1},
+    ]
+    tied_sorted = sorted(tied, key=lambda x: (-x["total"], -x["exact"], -x["podium"]))
+    i = 0
+    while i < len(tied_sorted):
+        j = i
+        key = (tied_sorted[i]["total"], tied_sorted[i]["exact"], tied_sorted[i]["podium"])
+        while j < len(tied_sorted) and (tied_sorted[j]["total"], tied_sorted[j]["exact"], tied_sorted[j]["podium"]) == key:
+            j += 1
+        tied_sorted[i:j] = sorted(tied_sorted[i:j], key=lambda x: (x["e"].get("entryName") or "").upper(), reverse=True)
+        i = j
+    tied_names = [x["e"]["entryName"] for x in tied_sorted]
+    expected = ["Simone Hirle #4", "Rodrigo Hajj", "Roberta"]
+    if tied_names != expected:
+        return False, f"expected fully-tied entries in Z->A order {expected}, got {tied_names}"
     return True, ""
 
 
