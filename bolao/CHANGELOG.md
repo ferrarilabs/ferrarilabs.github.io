@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.104 — 2026-07-04
+
+### Fixed — flash da aba Palpites ao dar refresh
+- Eduardo: "Quando da refresh na pagina aparece por uns segundos a pagina de entradas. Acho que é melhor fazer default do botão de ranking." Causa: o HTML estático sempre marcava `#entry` (Palpites) como a aba `active` por padrão — só depois que `js/app.js` termina de carregar e rodar (`showSection(isPastCutoff() ? "ranking" : "entry")`) é que a aba correta (Ranking, já que o prazo encerrou) aparece. Nesse intervalo, a página de Palpites piscava na tela.
+- Corrigido exatamente como o Eduardo sugeriu: trocado o `active` estático do HTML de `#entry` pra `#ranking`, já que o site está fechado pro resto deste torneio (sem mais fase de entrada esperada). Confirmado direto no HTML bruto (antes de qualquer JS rodar) que `#ranking` já vem marcado como a aba ativa.
+- Auditoria de pontuação: mudança é só de qual aba aparece primeiro. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.103 — 2026-07-04
 
 ### Fixed — sobrou uma caixa vazia onde era o hero
