@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.103 — 2026-07-04
+
+### Fixed — sobrou uma caixa vazia onde era o hero
+- Eduardo: "Ainda ficou uma caixa ali…", com print mostrando uma barra escura vazia (só com a setinha ▼ de recolher) logo abaixo do menu. Causa: v4.102 escondeu todo o CONTEÚDO do hero (texto de intro, badge America250) e, como o prazo já passou, a caixa de contagem regressiva também já estava escondida (lógica da v4.100) — mas o CARD em si (fundo, borda, padding) continuava sendo renderizado, agora vazio.
+- Corrigido: `#heroCard` inteiro escondido via CSS. A página agora vai direto do menu pro card "Próximo jogo".
+- Auditoria de pontuação: mudança é só de exibição/CSS. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.102 — 2026-07-04
 
 ### Changed — badge America250 removido do hero
