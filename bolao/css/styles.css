@@ -958,6 +958,19 @@ select:focus-visible {
 }
 .america250-badge img { height: 34px; width: auto; display: block; }
 
+/* Audit log */
+.audit-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.audit-row:last-child { border-bottom: none; }
+.audit-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+.audit-changes { margin: 2px 0 0 16px; padding: 0; font-size: 12px; list-style: disc; }
+.audit-changes li { margin-bottom: 2px; }
+
 /* Toast notifications */
 .bolao-toasts {
   position: fixed;
