@@ -725,6 +725,13 @@ function updateEditModeUI() {
   }
   const nameEl = $("#entryName");
   if (nameEl) nameEl.readOnly = !!_editingEntry || r16Only;
+  // In R16 window without active edit: hide new-entry form, progress bar, save bar
+  const formCard     = $("#entryFormCard");
+  const progressCard = $("#entryProgressCard");
+  const submitBar    = $(".sticky-submit");
+  if (formCard)     formCard.style.display     = r16Only ? "none" : "";
+  if (progressCard) progressCard.style.display = r16Only ? "none" : "";
+  if (submitBar)    submitBar.style.display     = r16Only ? "none" : "";
 }
 
 function cancelEditMode() {
