@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## v4.85 — 2026-07-04
+
+### Removed — botão "Verificar reabertura"
+- Eduardo perguntou o que era o botão "Verificar reabertura" no banner de reabertura (mostrado enquanto o site está fechado esperando o M88 terminar) e, depois de eu explicar que ele só faz `location.reload()` — um atalho manual redundante, já que o site já checa sozinho a cada 60s se o prazo foi atualizado — pediu pra remover.
+- Removido o botão e a chave de i18n `reopenCheckBtn` (não usada em mais nenhum lugar) nos três idiomas. O texto "🔴 M88 ao vivo — aguardando resultado final" continua aparecendo normalmente; só o botão saiu.
+- Auditoria de pontuação: mudança é só de UI. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.84 — 2026-07-04
 
 ### Edição de palpites: audit log + email confirmação + bloqueio de novas entradas na janela R16

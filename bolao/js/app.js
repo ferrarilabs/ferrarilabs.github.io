@@ -3664,8 +3664,7 @@ function renderReopenBanner() {
     bottomHtml = `<div class="reopen-countdown">⏰ ${escapeHtml(t("reopenCountsIn"))} <b>${cd}</b></div>
       <div class="reopen-cta">${escapeHtml(t("reopenCutoffNote"))}</div>`;
   } else {
-    bottomHtml = `<div class="reopen-countdown">${escapeHtml(t("reopenLive"))}</div>
-      <div class="reopen-cta"><button type="button" class="secondary small" onclick="location.reload()">${escapeHtml(t("reopenCheckBtn"))}</button></div>`;
+    bottomHtml = `<div class="reopen-countdown">${escapeHtml(t("reopenLive"))}</div>`;
   }
 
   box.innerHTML = `<div class="reopen-inner">
