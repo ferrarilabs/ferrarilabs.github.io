@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.86 — 2026-07-04
+
+### Fixed — visual mobile na aba Jogos (e no formulário de palpites)
+- Eduardo: "Tem como fazer um visual melhor no mobile para a aba jogos? No pc parece ok…". Com uma screenshot real do celular, três problemas ficaram claros:
+  1. **Ordem de bandeira/nome trocava entre os dois times**: o time A sempre mostrava "🏳️ Nome", mas o time B mostrava "Nome 🏳️" — porque bandeira+nome eram uma única string de texto (não elementos separados), então o CSS de mobile não conseguia reordenar. No desktop isso fica ok porque as bandeiras ficam nas bordas externas (visual intencional); empilhado em uma coluna só no mobile, virava um zigue-zague estranho.
+  2. **Caixa vazia enorme** onde o placar ainda não saiu: o placeholder "×" herdava o mesmo box com bastante padding e fonte 22px usado pro placar de verdade, ficando um retângulo praticamente vazio e chamativo.
+  3. **Texto cortado nas barras de probabilidade** ("United State...", "gypt 17%"): a barra de 3 seções fica bem estreita no celular e o texto era só cortado com reticências no meio da palavra.
+- Corrigido: bandeira e nome agora são `<span>`s separados (não mais uma string concatenada), permitindo o CSS reordenar por breakpoint sem tocar no HTML gerado — resultado: os dois times sempre mostram "bandeira nome" no mobile, consistente, e o desktop continua pixel-idêntico ao que já era (verificado por screenshot antes/depois). O placeholder "×" agora encolhe pra um texto pequeno e discreto só no mobile — o placar de verdade (ao vivo ou finalizado) continua com o destaque de sempre. As barras de probabilidade agora quebram linha em vez de cortar o texto no meio.
+- Mesma classe de bug encontrada e corrigida também no **formulário de palpites** (aba Palpites): o card de cada confronto do mata-mata não tinha NENHUMA regra de mobile — ficava sempre 3 colunas lado a lado mesmo em telas estreitas, apertando nomes longos tipo "Bosnia and Herzegovina". Agora empilha em coluna única no mobile, consistente com a aba Jogos. Também alinhado o painel de resultados reais do Admin (`resultsAdmin`), que usava o mesmo HTML sem as classes certas.
+- Verificado com Playwright em várias larguras (390px mobile, 1280px desktop) e com o nome de time mais longo do bracket ("Bosnia and Herzegovina") — cabe numa linha só, sem cortar.
+- Auditoria de pontuação: mudança é só visual/CSS. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.85 — 2026-07-04
 
 ### Removed — botão "Verificar reabertura"

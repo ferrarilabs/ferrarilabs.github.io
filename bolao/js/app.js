@@ -784,8 +784,8 @@ function updateCard(card, preW, preL) {
   card.dataset.currentA = a; card.dataset.currentB = b;
   const teamA = card.querySelector(".team-a");
   const teamB = card.querySelector(".team-b");
-  if (teamA) teamA.innerHTML = `${escapeHtml(flag(a))} ${escapeHtml(a)}`;
-  if (teamB) teamB.innerHTML = `${escapeHtml(b)} ${escapeHtml(flag(b))}`;
+  if (teamA) teamA.innerHTML = `<span class="team-flag">${escapeHtml(flag(a))}</span><span class="team-name">${escapeHtml(a)}</span>`;
+  if (teamB) teamB.innerHTML = `<span class="team-name">${escapeHtml(b)}</span><span class="team-flag">${escapeHtml(flag(b))}</span>`;
   const slA = card.querySelector('[data-score-label="A"]');
   const slB = card.querySelector('[data-score-label="B"]');
   if (slA) slA.textContent = a;
@@ -1673,9 +1673,9 @@ function renderGames() {
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
 </div>
 <div class="game-teams">
-  <div class="game-team">${escapeHtml(flag(a))} ${escapeHtml(a)}</div>
+  <div class="game-team"><span class="team-flag">${escapeHtml(flag(a))}</span><span class="team-name">${escapeHtml(a)}</span></div>
   ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
-  <div class="game-team right">${escapeHtml(b)} ${escapeHtml(flag(b))}</div>
+  <div class="game-team right"><span class="team-name">${escapeHtml(b)}</span><span class="team-flag">${escapeHtml(flag(b))}</span></div>
 </div>
 ${live ? goalScorersHtml(live, a, b) : ""}
 ${probBarsHtml}
@@ -1841,9 +1841,9 @@ function renderAdminResultsManual(s) {
   <span class="phase">${escapeHtml(phaseLabel(m.phase))}</span>
 </div>
 <div class="teams">
-  <div>${flag(a)} ${escapeHtml(a)}</div>
+  <div class="team"><span class="team-flag">${flag(a)}</span><span class="team-name">${escapeHtml(a)}</span></div>
   <div class="vs">×</div>
-  <div>${escapeHtml(b)} ${flag(b)}</div>
+  <div class="team right"><span class="team-name">${escapeHtml(b)}</span><span class="team-flag">${flag(b)}</span></div>
 </div>
 <div class="score-inputs">
   <input type="number" min="0" max="20" inputmode="numeric" data-real-field="goalsA" value="${r.goalsA !== undefined && r.goalsA !== null ? r.goalsA : ""}" autocomplete="off">
