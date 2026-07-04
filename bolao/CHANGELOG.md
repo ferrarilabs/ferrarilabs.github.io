@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v4.88 — 2026-07-04
+
+### Deadline + nav simplificada
+
+- `cutoffIso` e `r32CutoffIso` ajustados para `2026-07-04T12:00:00-04:00` (4 jul, meio-dia ET — 1h antes do 1º jogo das Oitavas)
+- Botões "Participantes" e "Pagamento" ocultos na nav (site está no modo Ranking+Palpites agora)
+- audit_scoring.py: 5/5 ✓
+
 ## v4.87 — 2026-07-04
 
 ### Reabertura para picks de Oitavas de Final
