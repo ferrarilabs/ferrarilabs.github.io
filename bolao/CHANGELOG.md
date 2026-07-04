@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.82 — 2026-07-03
+
+### Fixed — `podiumPicks` ReferenceError silencioso quebrava ver palpites no ranking
+- `picksTable()` chamava `podiumPicks(entry)` mas a função se chama `finalPodiumForEntry`. Toda vez que um usuário clicava em uma entrada no Ranking para ver os palpites, a função lançava um `ReferenceError` silencioso: a tabela de palpites ficava em branco e as medalhas 🥇🥈🥉 nunca apareciam. Corrigido para `finalPodiumForEntry(entry)`.
+
+### Melhorado — sistema de notificações toast (sem mais alertas bloqueantes)
+- Adicionada função `showToast(msg, type, durationMs)` e CSS `.bolao-toast` com animação de entrada e 4 variantes: `success` (verde), `error` (vermelho), `warn` (laranja), `info` (azul).
+- ~25 chamadas `alert()` não-bloqueantes convertidas para toasts: confirmações de salvar entrada, login/logout admin, envio de emails, sync ESPN, demo data, delete de entrada, etc.
+- Mantidos como `alert()`: validação de formulário (erros que precisam de atenção imediata antes de continuar) e popup bloqueado.
+- Mantidos como `confirm()`: todas as ações destrutivas (deletar, limpar dados, sobrescrever palpites).
+- Auditoria de pontuação: `audit_scoring.py` rodado — 5/5 checks passam ✓
+
 ## v4.78 — 2026-07-03
 
 ### Fixed — relógio sem teto de segurança na prorrogação (2º tempo) causou subida sem parar
