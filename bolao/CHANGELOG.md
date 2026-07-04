@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v4.84 — 2026-07-04
+
+### Edição de palpites: audit log + email confirmação + bloqueio de novas entradas na janela R16
+
+**Audit log interno:**
+- `state.auditLog[]` registra cada edição com timestamp, entry name, email, e diff pick-a-pick (antes × depois). Máximo 200 entradas. Visível no painel Admin → "Log de Alterações".
+
+**Email de confirmação ao participante (somente):**
+- Ao salvar edição, envia email ao participante com tabela de alterações (M89 France×Argentina: 2×1 → 1×0, etc.). Sem cópia para o admin.
+- Fire-and-forget: UI reseta imediatamente, email é enviado em background. Toast "Confirmação enviada para email@..." aparece quando o envio completa.
+
+**Bloqueio de novas entradas na janela R16:**
+- `isR32Window() && !_editingEntry` → botão Salvar desabilitado, campo nome readOnly. Toast de aviso se tentar salvar. Apenas edições via código de comprovante são aceitas.
+
+**audit_scoring.py: 5/5 ✓**
+
 ## v4.83 — 2026-07-04
 
 ### Corrigido — número de comprovante nunca muda ao editar palpites

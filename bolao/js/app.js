@@ -167,7 +167,7 @@ function isToday(isoString) {
 }
 
 function emptyState() {
-  return { entries: [], deletedIds: [], paid: {}, results: {}, meta: { updatedAt: null, version: CONFIG.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, results: {}, auditLog: [], meta: { updatedAt: null, version: CONFIG.siteVersion } };
 }
 
 function state() {
@@ -718,9 +718,13 @@ function unlockR32Inputs() {
 
 function updateEditModeUI() {
   const saveBtn = $("#saveEntry");
-  if (saveBtn) saveBtn.textContent = _editingEntry ? t("editSaveBtn") : t("saveEntry");
+  const r16Only = isR32Window() && !_editingEntry;
+  if (saveBtn) {
+    saveBtn.disabled = r16Only;
+    saveBtn.textContent = _editingEntry ? t("editSaveBtn") : t("saveEntry");
+  }
   const nameEl = $("#entryName");
-  if (nameEl) nameEl.readOnly = !!_editingEntry;
+  if (nameEl) nameEl.readOnly = !!_editingEntry || r16Only;
 }
 
 function cancelEditMode() {
@@ -1732,6 +1736,35 @@ function renderAdmin() {
   renderAdminReceipts(s);
   renderAdminPayments(s);
   renderAdminResults(s);
+  renderAdminAuditLog(s);
+}
+
+function renderAdminAuditLog(s) {
+  const box = $("#adminAuditLog");
+  if (!box) return;
+  const log = Array.isArray(s.auditLog) ? s.auditLog : [];
+  box.innerHTML = `<h3>${escapeHtml(t("auditLogTitle"))}</h3>`;
+  if (!log.length) { box.innerHTML += `<p class="muted">${escapeHtml(t("auditLogEmpty"))}</p>`; return; }
+  const fmtPick = p => p
+    ? `${p.goalsA}×${p.goalsB} (${escapeHtml(p.advanceSide === "A" ? (p.displayA || "A") : (p.displayB || "B"))})`
+    : "—";
+  const rows = log.slice(0, 100).map(entry => {
+    const ts = new Date(entry.ts).toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" });
+    const changesHtml = (entry.changes || []).map(c =>
+      `<li>M${escapeHtml(String(c.match))}: <span class="muted">${fmtPick(c.before)}</span> → <b>${fmtPick(c.after)}</b></li>`
+    ).join("");
+    return `<div class="audit-row">
+      <div class="audit-meta">
+        <span class="muted" style="font-size:11px">${escapeHtml(ts)} ET</span>
+        <b>${escapeHtml(entry.entryName)}</b>
+        <span class="muted" style="font-size:12px">${escapeHtml(entry.email)}</span>
+      </div>
+      ${entry.changeCount
+        ? `<ul class="audit-changes">${changesHtml}</ul>`
+        : `<span class="muted" style="font-size:12px">(apenas dados pessoais)</span>`}
+    </div>`;
+  }).join("");
+  box.innerHTML += rows;
 }
 
 function renderAdminReceipts(s) {
@@ -2452,10 +2485,64 @@ async function autoFill(mode) {
 }
 
 /* ============================================================
+   Audit log + edit confirmation email
+   ============================================================ */
+function appendToAuditLog(s, beforeEntry, updatedEntry, changes) {
+  if (!Array.isArray(s.auditLog)) s.auditLog = [];
+  s.auditLog.unshift({
+    ts:          new Date().toISOString(),
+    action:      "edit",
+    entryId:     beforeEntry.id,
+    entryName:   beforeEntry.entryName,
+    email:       updatedEntry.participantEmail || beforeEntry.participantEmail || "",
+    changeCount: changes.length,
+    changes
+  });
+  if (s.auditLog.length > 200) s.auditLog.length = 200;
+}
+
+function buildEditEmailHtml(beforeEntry, updatedEntry, changes) {
+  const rc = receiptCode(beforeEntry);
+  const ts = new Date().toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" });
+  const fmtPick = p => p
+    ? `${p.goalsA}×${p.goalsB} → ${escapeHtml(p.advanceSide === "A" ? (p.displayA || "A") : (p.displayB || "B"))}`
+    : "—";
+  const changeRows = changes.map(c => {
+    const m = DATA.knockoutMatches.find(x => String(x.match) === String(c.match));
+    const label = m ? `M${c.match} · ${escapeHtml(m.phase || m.round || "")}` : `M${c.match}`;
+    return `<tr>
+      <td style="padding:6px 10px;border-bottom:1px solid #2a3a4a">${label}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #2a3a4a;color:#aaa">${fmtPick(c.before)}</td>
+      <td style="padding:6px 10px;border-bottom:1px solid #2a3a4a;color:#6cf">${fmtPick(c.after)}</td>
+    </tr>`;
+  }).join("");
+  const changesHtml = changes.length
+    ? `<h3 style="margin-top:20px">Alterações (${changes.length}):</h3>
+<table style="width:100%;border-collapse:collapse;font-size:13px">
+  <thead><tr>
+    <th style="padding:6px 10px;text-align:left;background:#07151c">Jogo</th>
+    <th style="padding:6px 10px;text-align:left;background:#07151c">Antes</th>
+    <th style="padding:6px 10px;text-align:left;background:#07151c">Depois</th>
+  </tr></thead>
+  <tbody>${changeRows}</tbody>
+</table>`
+    : `<p style="color:#aaa">Apenas dados pessoais atualizados (sem alteração de picks).</p>`;
+  return `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;background:#0d1b26;color:#e0e8f0;padding:24px;border-radius:10px">
+<h2 style="margin-top:0;color:#6cf">Palpites atualizados ✓</h2>
+<p><b>Entrada:</b> ${escapeHtml(beforeEntry.entryName)}</p>
+<p><b>Código:</b> <code style="background:#07151c;padding:2px 6px;border-radius:4px">${escapeHtml(rc)}</code></p>
+<p><b>Atualizado em:</b> ${escapeHtml(ts)} ET</p>
+${changesHtml}
+<p style="margin-top:24px;font-size:12px;color:#667">Se não foi você que fez essa alteração, entre em contato com o administrador do bolão.</p>
+</div>`;
+}
+
+/* ============================================================
    Save entry
    ============================================================ */
 async function saveEntry() {
   if (isPastCutoff()) { showToast(t("cutoffClosed"), "warn"); return; }
+  if (isR32Window() && !_editingEntry) { showToast(t("r16EditOnly"), "warn"); return; }
   const btn = $("#saveEntry");
   if (btn) { btn.disabled = true; btn.textContent = t("saveInProgress"); }
   try {
@@ -2464,11 +2551,20 @@ async function saveEntry() {
     const s = state();
     if (_editingEntry) {
       // Edit mode: update existing entry in-place, preserve R32 picks
+      const beforeEntry = JSON.parse(JSON.stringify(_editingEntry)); // snapshot for audit/email
       const idx = s.entries.findIndex(e => e.id === _editingEntry.id);
       if (idx === -1) { showToast(t("editCodeNotFound"), "error"); return; }
       const merged = { ...entry.picks };
       for (const mid of Object.keys(_editingEntry.picks || {})) {
         if (R32_IDS.has(mid)) merged[mid] = _editingEntry.picks[mid];
+      }
+      // Compute diff for audit log and email
+      const allMids = new Set([...Object.keys(beforeEntry.picks || {}), ...Object.keys(merged)]);
+      const changes = [];
+      for (const mid of allMids) {
+        const before = beforeEntry.picks?.[mid] ?? null;
+        const after  = merged[mid] ?? null;
+        if (JSON.stringify(before) !== JSON.stringify(after)) changes.push({ match: mid, before, after });
       }
       s.entries[idx] = {
         ..._editingEntry,
@@ -2481,6 +2577,8 @@ async function saveEntry() {
         paymentMethod:      entry.paymentMethod,
         updatedAt:          new Date().toISOString()
       };
+      const updatedEntry = s.entries[idx];
+      appendToAuditLog(s, beforeEntry, updatedEntry, changes);
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
       _editingEntry = null;
@@ -2489,6 +2587,17 @@ async function saveEntry() {
       renderEditByCodeCard();
       renderAll();
       showToast(t("entryUpdated"), "success");
+      // Send confirmation email to participant only (fire-and-forget, no admin copy)
+      const toEmail = updatedEntry.participantEmail;
+      if (isValidEmail(toEmail) && window.emailjs && CONFIG.emailjs?.enabled) {
+        const html = buildEditEmailHtml(beforeEntry, updatedEntry, changes);
+        const subject = `Palpites atualizados — ${beforeEntry.entryName}`;
+        emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
+          { to_email: toEmail, entry_name: subject, receipt_code: receiptCode(beforeEntry), html_message: html },
+          { publicKey: CONFIG.emailjs.publicKey }
+        ).then(() => showToast(t("editConfirmSent").replace("{email}", toEmail), "info", 5000))
+         .catch(err => console.warn("Edit confirmation email failed", err));
+      }
     } else {
       const duplicate = s.entries.find(e =>
         e.entryName.trim().toLowerCase() === entry.entryName.trim().toLowerCase()
