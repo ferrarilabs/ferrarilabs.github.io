@@ -1,5 +1,5 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.87",
+  siteVersion: "v4.88",
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
   storeKey: "bolao_copa_2026_state",
@@ -9,9 +9,9 @@ window.BOLAO_CONFIG = {
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
   adminSessionMinutes: 30,
-  r32CutoffIso: "2026-07-04T01:00:00-04:00",
-  cutoffIso: "2026-07-05T14:00:00-04:00",
-  cutoffLabel: "Oitavas de Final — prazo: 5 jul, 14h ET",
+  r32CutoffIso: "2026-07-04T12:00:00-04:00",
+  cutoffIso: "2026-07-04T12:00:00-04:00",
+  cutoffLabel: "Oitavas de Final — prazo: 4 jul, 12h ET (meio-dia)",
   adminEmail: "emferrari@gmail.com",
   paymentMethods: {
     CashApp: "$EduardoFerrari",
