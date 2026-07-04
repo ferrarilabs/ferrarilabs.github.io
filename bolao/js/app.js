@@ -1574,14 +1574,15 @@ function renderRanking() {
 function picksTable(entry) {
   const r = resolvedTeamsForEntry(entry);
   const results = (state().results) || {};
-  // Hide picks for unplayed phases while the entry window for that phase is still open.
+  // Hide picks for any unplayed match while the entry window is still open.
   // Prevents participants from copying each other's future-round picks.
-  const r16Locked = CONFIG.r32CutoffIso && Date.now() < new Date(CONFIG.r32CutoffIso).getTime();
+  // Uses isPastCutoff() so this stays correct regardless of which window phase we're in.
+  const hideFuturePicks = !isPastCutoff();
   const rows = DATA.knockoutMatches.map(m => {
     const p = entry.picks?.[m.match], rr = r[m.match] || {};
     if (!p) return "";
     const result = results[m.match];
-    if (r16Locked && !result?.advanceSide && m.phase !== "Round of 32") return "";
+    if (hideFuturePicks && !result?.advanceSide) return "";
     const w = p.advanceSide === "A" ? rr.displayA : rr.displayB;
     const hasRealScore = result?.goalsA !== undefined && result?.goalsB !== undefined;
     const realScore = hasRealScore ? `${result.goalsA}–${result.goalsB}` : "—";
