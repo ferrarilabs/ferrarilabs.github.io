@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v4.102 — 2026-07-04
+
+### Changed — badge America250 removido do hero
+- Eduardo: "Pode esconder o america 250 também tire toda a caixa. Agora ficou melhor!" — depois de esconder o texto de intro do hero (v4.101), pediu pra remover o badge/logo America250 também. Escondido via CSS (`#heroBody .america250-badge`), mesma abordagem das outras duas remoções — a caixa de contagem regressiva continua normal.
+- Auditoria de pontuação: mudança é só de exibição/CSS. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.101 — 2026-07-04
 
 ### Changed — hero simplificado + ranking realmente em uma linha só no mobile
