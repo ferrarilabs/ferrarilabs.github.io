@@ -1559,8 +1559,7 @@ function renderRanking() {
     row.innerHTML = `
 <div class="rank-pos">${medal}${arrowHtml}</div>
 <div><b>${escapeHtml(e.entryName)}</b>${demoBadge}<br>
-<span class="muted">${escapeHtml(e.payerName)}${escapeHtml(bonusLine)}</span><br>
-<span class="receipt-code">${escapeHtml(receiptCode(e))}</span></div>
+<span class="muted">${escapeHtml(e.payerName)}${escapeHtml(bonusLine)}</span></div>
 <div class="points">${e._score}</div>
 <button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
@@ -1762,12 +1761,17 @@ function renderAdminAuditLog(s) {
     const changesHtml = (entry.changes || []).map(c =>
       `<li>M${escapeHtml(String(c.match))}: <span class="muted">${fmtPick(c.before)}</span> → <b>${fmtPick(c.after)}</b></li>`
     ).join("");
+    const ipLine  = entry.ip && entry.ip !== "unknown" ? escapeHtml(entry.ip) : "IP desconhecido";
+    const uaShort = entry.userAgent ? escapeHtml(entry.userAgent.slice(0, 80)) : "—";
+    const scr     = entry.screen ? ` · ${escapeHtml(entry.screen)}` : "";
     return `<div class="audit-row">
       <div class="audit-meta">
         <span class="muted" style="font-size:11px">${escapeHtml(ts)} ET</span>
         <b>${escapeHtml(entry.entryName)}</b>
         <span class="muted" style="font-size:12px">${escapeHtml(entry.email)}</span>
       </div>
+      <div style="font-size:11px;color:#667;margin-top:2px">🌐 ${ipLine}${scr}</div>
+      <div style="font-size:10px;color:#555;word-break:break-all;margin-top:1px">📱 ${uaShort}</div>
       ${entry.changeCount
         ? `<ul class="audit-changes">${changesHtml}</ul>`
         : `<span class="muted" style="font-size:12px">(apenas dados pessoais)</span>`}
@@ -2496,8 +2500,19 @@ async function autoFill(mode) {
 /* ============================================================
    Audit log + edit confirmation email
    ============================================================ */
-function appendToAuditLog(s, beforeEntry, updatedEntry, changes) {
+async function fetchClientIp() {
+  try {
+    const r = await Promise.race([
+      fetch("https://api.ipify.org?format=json").then(r => r.json()),
+      new Promise((_, rej) => setTimeout(() => rej(), 3000))
+    ]);
+    return r.ip || "unknown";
+  } catch { return "unknown"; }
+}
+
+function appendToAuditLog(s, beforeEntry, updatedEntry, changes, ctx = {}) {
   if (!Array.isArray(s.auditLog)) s.auditLog = [];
+  const ua = navigator.userAgent || "";
   s.auditLog.unshift({
     ts:          new Date().toISOString(),
     action:      "edit",
@@ -2505,7 +2520,12 @@ function appendToAuditLog(s, beforeEntry, updatedEntry, changes) {
     entryName:   beforeEntry.entryName,
     email:       updatedEntry.participantEmail || beforeEntry.participantEmail || "",
     changeCount: changes.length,
-    changes
+    changes,
+    ip:          ctx.ip || "unknown",
+    userAgent:   ua,
+    platform:    navigator.platform || "",
+    screen:      `${screen.width}×${screen.height}`,
+    lang:        navigator.language || ""
   });
   if (s.auditLog.length > 200) s.auditLog.length = 200;
 }
@@ -2587,7 +2607,8 @@ async function saveEntry() {
         updatedAt:          new Date().toISOString()
       };
       const updatedEntry = s.entries[idx];
-      appendToAuditLog(s, beforeEntry, updatedEntry, changes);
+      const clientIp = await fetchClientIp();
+      appendToAuditLog(s, beforeEntry, updatedEntry, changes, { ip: clientIp });
       saveState(s);
       sessionStorage.removeItem(DRAFT_KEY);
       _editingEntry = null;
