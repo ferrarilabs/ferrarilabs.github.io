@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v4.106 — 2026-07-05
+
+### Fixed — cronômetro definitivo (4 bugs de uma vez)
+
+**Bug 1 — layout quebrado com d>0 (`four` class):** O `renderNextMatch()` gerava 4 células (Dias/Horas/Min/Seg) quando o próximo jogo era no dia seguinte, mas o CSS de `.next-match-timer` só tem 3 colunas por padrão. O 4° bloco (Dias) transbordava pra uma segunda linha em mobile e desktop. Corrigido: adicionada a classe `four` quando `d > 0` — o CSS já existia (`.next-match-timer.four { grid-template-columns: repeat(4,1fr) }`), só nunca era aplicado pelo JS.
+
+**Bug 2 — nomes de times "Winner Match X" nas Quartas e em diante:** `renderNextMatch()` usava `m.teamA`/`m.teamB` diretamente do `data.js`, que para QF+ são templates como "Winner Match 89". Adicionado `officialWinnersMap(s)` que percorre os resultados salvos no estado e resolve os slots em ordem, e `renderNextMatch()` agora resolve os nomes antes de exibir.
+
+**Bug 3 — prazo das Oitavas invisível (e de todas as rodadas futuras):** O countdown de prazo estava dentro de `#heroCard { display: none }` (CSS permanente) — nunca aparecia na tela. Corrigido: `updateCountdown()` agora usa `#reopenBanner` para mostrar o countdown quando `cutoffIso` é futuro, ou esconde o banner quando passou. Isso garante que prazos das QF/SF/Final apareçam automaticamente quando Eduardo atualizar `cutoffIso` no `config.js`.
+
+**Bug 4 — badge "AO VIVO" piscando após o jogo encerrar:** Quando o jogo termina, a API do ESPN pode demorar vários minutos para atualizar o status de "in" para "post". Nesse intervalo, `_liveScores` ainda tinha dados e o card pulsava. Corrigido: `renderNextMatch()` agora filtra `_liveScores` excluindo (a) partidas cujo resultado já foi salvo no estado (`advanceSide` confirmado) e (b) partidas cujo kickoff foi há mais de 150 minutos — ambos indicam que o jogo terminou, independentemente do delay da ESPN.
+
+**Limpeza:** Removidos `ESTIMATED_REOPEN_UTC`, `M88_KICKOFF_UTC`, `fmtCdMs()` e toda a lógica M88-específica de `renderReopenBanner()` (obsoleta desde 4 jul). `renderReopenBanner()` é agora um no-op; `updateCountdown()` gerencia o `#reopenBanner` para todas as rodadas futuras.
+
+Auditoria de pontuação: mudanças são só de UI/display. `audit_scoring.py` re-rodado — 5/5 continuam passando.
+
 ## v4.105 — 2026-07-04
 
 ### Added — desempate por ordem alfabética (Z→A) só pra exibição
