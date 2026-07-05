@@ -210,7 +210,7 @@ function initDb() {
   catch (err) { console.warn("Supabase init failed", err); return false; }
 }
 
-function mergeStates(local, remote) {
+function mergeStates(local, remote, opts = {}) {
   const tombstones = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   const byId = {};
   for (const e of (local.entries || [])) if (!tombstones.has(e.id)) byId[e.id] = e;
@@ -236,7 +236,11 @@ function mergeStates(local, remote) {
     ...(local.deletedResults || []),
     ...(remote.deletedResults || [])
   ]);
-  const mergedResults = { ...(remote.results || {}), ...(local.results || {}) };
+  // preferRemoteResults: used by loadRemoteState so Supabase corrections propagate
+  // immediately (overwrite stale local cache). Default: local wins (for admin saves).
+  const mergedResults = opts.preferRemoteResults
+    ? { ...(local.results || {}), ...(remote.results || {}) }
+    : { ...(remote.results || {}), ...(local.results || {}) };
   for (const mid of resultTombstones) delete mergedResults[mid];
 
   // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200.
@@ -269,7 +273,9 @@ async function loadRemoteState() {
       const local = state();
       // Always merge entries (union + tombstones) so participant submissions
       // from other sessions are never silently dropped due to timestamp skew.
-      const merged = mergeStates(local, data.state);
+      // preferRemoteResults: Supabase results (admin-managed) always win over
+      // stale local cache — ensures corrections from Python script propagate.
+      const merged = mergeStates(local, data.state, { preferRemoteResults: true });
       saveLocalState(merged);
       return true;
     }
@@ -550,6 +556,8 @@ function showSection(id) {
   $$(".nav button[data-section]").forEach(b => b.classList.toggle("active", b.dataset.section === id));
   if (id === "admin") renderAdmin();
   if (id === "probs") scheduleMC();
+  // Ranking always fetches fresh from Supabase so scores are never stale
+  if (id === "ranking") debouncedReload();
   if (id === "games") {
     setTimeout(() => {
       const next = document.querySelector('.game-card[data-state="pre"]');
@@ -4022,7 +4030,7 @@ async function init() {
   // Pre-fetch Polymarket odds in background so match prob bars are ready before
   // the user visits the Probabilidades tab; re-renders games/next-match on arrival
   fetchPolymarketOdds().then(poly => { if (poly) { renderNextMatch(); renderGames?.(); } }).catch(() => {});
-  setInterval(() => { if (!document.hidden) debouncedReload(); }, 90000);
+  setInterval(() => { if (!document.hidden) debouncedReload(); }, 30000);
 
   document.addEventListener("visibilitychange", () => {
     if (document.hidden) {
