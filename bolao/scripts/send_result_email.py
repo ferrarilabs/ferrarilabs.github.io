@@ -280,6 +280,11 @@ def sb_update_result(mid, goalsA, goalsB, advanceSide):
     deleted.discard(str(mid))
     state["results"] = results
     state["deletedResults"] = sorted(deleted)
+    # Update meta.updatedAt so the app's timestamp-based sync guards detect
+    # the change and trigger a re-render on all connected browsers.
+    if "meta" not in state or not isinstance(state["meta"], dict):
+        state["meta"] = {}
+    state["meta"]["updatedAt"] = datetime.now(timezone.utc).isoformat()
     return _sb_upsert(state)
 
 
@@ -296,6 +301,9 @@ def sb_clear_result(mid):
 
     state["results"] = results
     state["deletedResults"] = sorted(deleted)
+    if "meta" not in state or not isinstance(state["meta"], dict):
+        state["meta"] = {}
+    state["meta"]["updatedAt"] = datetime.now(timezone.utc).isoformat()
     status = _sb_upsert(state)
     if had_result:
         print(f"M{mid} removido do Supabase (tombstone adicionado). Status: {status}")
