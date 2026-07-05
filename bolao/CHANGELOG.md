@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v4.109 — 2026-07-05
+
+### Fixed — auditoria: reload loop infinito + 7 quick wins
+
+**🔴 Crítico — reload loop infinito:** `startReopenPolling()` comparava o `cutoffIso` do servidor com `>= "2026-07-04"` — sempre true pois o config atual tem exatamente essa data → `location.reload()` a cada 60s para todos os visitantes. Fix: só recarregar quando o servidor publicar um `cutoffIso` diferente do carregado (`m[1] !== CONFIG.cutoffIso`).
+
+**🟡 Médio — setInterval de 1s em background:** `renderNextMatch()` rodava com aba escondida. Adicionado guard `if (!document.hidden)`. Removido `renderReopenBanner()` (no-op) do loop.
+
+**🟡 Médio — strings hardcoded em PT:** "Nenhum resultado knockout encontrado", "Nenhum resultado novo encontrado via ESPN", "Nenhum resultado novo para aplicar", "Jogo encerrado!", "Resultado sincronizado via ESPN ✓", "avança" — movidas para `i18n.js` em pt-BR/es/en-US.
+
+**🟢 Baixo — Scotland duplicada em data.js:** segunda entrada no objeto `flags` removida.
+
+---
+
 ## v4.108 — 2026-07-05
 
 ### Fixed — cache stale: resultados do Supabase agora sempre vencem o localStorage
