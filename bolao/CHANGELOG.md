@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v4.107 — 2026-07-05
+
+### Fixed — probabilidades: times eliminados sumiam apenas do MC, não do Polymarket
+
+Times eliminados tinham probabilidade 0 na simulação Monte Carlo, mas podiam continuar aparecendo na tabela de probabilidades se o Polymarket ainda exibisse odds > 0.5% para eles (API lenta a atualizar). Corrigido: `renderProbs()` agora constrói um `eliminated` set a partir dos resultados oficiais salvos e o usa em dois lugares — ao filtrar as chaves do Polymarket que entram em `allTeams`, e no `.filter()` final das linhas — garantindo que nenhum time eliminado apareça, independente do estado da API do Polymarket.
+
+---
+
 ## v4.106 — 2026-07-05
 
 ### Fixed — cronômetro definitivo (4 bugs de uma vez)

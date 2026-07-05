@@ -2408,12 +2408,32 @@ function renderProbs() {
   const { champCount, finalCount, semiCount, N, ts } = _mcResult;
   const poly = _polyCache?.data ?? null;
 
+  // Build set of teams definitively eliminated by saved results.
+  // Polymarket is slow to update — without this, eliminated teams can appear
+  // with non-zero Polymarket odds even after losing their match.
+  const eliminated = new Set();
+  {
+    const ew = {}, el = {};
+    for (const m of DATA.knockoutMatches) {
+      const r = resolvedMatchResult(m, state());
+      const a = resolveSlot(m.teamA, ew, el);
+      const b = resolveSlot(m.teamB, ew, el);
+      if (r?.advanceSide === "A") {
+        ew[m.match] = a; el[m.match] = b;
+        if (b && !/Winner|Loser/i.test(b)) eliminated.add(b);
+      } else if (r?.advanceSide === "B") {
+        ew[m.match] = b; el[m.match] = a;
+        if (a && !/Winner|Loser/i.test(a)) eliminated.add(a);
+      }
+    }
+  }
+
   // Merge MC teams + any Polymarket team still in tournament (price > 0.005)
   const allTeams = new Set([
     ...Object.keys(champCount),
     ...Object.keys(finalCount),
     ...Object.keys(semiCount),
-    ...(poly ? Object.keys(poly).filter(k => poly[k] > 0.005) : [])
+    ...(poly ? Object.keys(poly).filter(k => poly[k] > 0.005 && !eliminated.has(k)) : [])
   ]);
 
   const rows = [...allTeams]
@@ -2436,7 +2456,7 @@ function renderProbs() {
         pPoly
       };
     })
-    .filter(r => r.pSemi > 0.001 || (r.pPoly ?? 0) > 0.005)
+    .filter(r => !eliminated.has(r.team) && (r.pSemi > 0.001 || (r.pPoly ?? 0) > 0.005))
     .sort((a, b) => {
       // Sort by Polymarket if available, else by MC
       if (poly) return (b.pPoly ?? 0) - (a.pPoly ?? 0) || b.pChamp - a.pChamp;
