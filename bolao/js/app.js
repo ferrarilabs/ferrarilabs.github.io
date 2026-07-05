@@ -337,55 +337,29 @@ function debouncedReload() {
 function cutoffDate() { return new Date(CONFIG.cutoffIso); }
 function isPastCutoff() { return Date.now() >= cutoffDate().getTime(); }
 
-// July 3 21:30 EDT + 120 min = July 3 23:30 EDT = July 4 03:30 UTC
-const ESTIMATED_REOPEN_UTC = Date.UTC(2026, 6, 4, 3, 30);
-
 function updateCountdown() {
-  const box = $("#countdown");
+  // #heroCard is permanently display:none (CSS) — deadline rendered in
+  // #reopenBanner so it is always visible regardless of hero state.
+  const box = document.getElementById("reopenBanner");
   if (!box) return;
-  const countCard = box.closest(".count-card");
   const diff = cutoffDate() - Date.now();
-  const lbl  = $("#cutoffLabel");
-
-  if (diff <= 0) {
-    // Once the R32→R16 reopen has already happened AND its own edit window
-    // has also closed (cutoffIso already bumped past 2026-07-04 by
-    // auto_reopen.py, and that later date has itself now passed), there's no
-    // further reopen scheduled — hide the whole box instead of permanently
-    // showing a stale "waiting for M88" message forever after.
-    if (CONFIG.cutoffIso >= "2026-07-04") { countCard?.classList.add("hidden"); return; }
-    countCard?.classList.remove("hidden");
-    // Site is closed — show countdown to estimated reopen (M88 end ~23:30 EDT)
-    const toReopen = ESTIMATED_REOPEN_UTC - Date.now();
-    const p2 = n => String(n).padStart(2, "0");
-    if (toReopen > 0) {
-      const s = Math.floor(toReopen / 1000);
-      const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-      box.innerHTML = `<div class="count-grid" style="grid-template-columns:repeat(3,1fr)">
-        <div><b>${p2(h)}</b><span>h</span></div>
-        <div><b>${p2(m)}</b><span>m</span></div>
-        <div><b>${p2(sec)}</b><span>s</span></div>
-      </div>`;
-      if (lbl) lbl.textContent = t("reopenLabel").replace("{time}", "23:30");
-    } else {
-      box.innerHTML = `<strong style="font-size:13px;color:var(--accent)">${escapeHtml(t("reopenSoon"))}</strong>`;
-      if (lbl) lbl.textContent = t("reopenChecking");
-    }
-    return;
-  }
-
-  countCard?.classList.remove("hidden");
-  const s = Math.floor(diff / 1000);
-  const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
-        m = Math.floor((s % 3600) / 60), sec = s % 60;
-  const p2 = n => String(n).padStart(2, "0");
-  box.innerHTML = `<div class="count-grid">
-    <div><b>${d}</b><span>${t("countdownDays")}</span></div>
-    <div><b>${p2(h)}</b><span>${t("countdownHours")}</span></div>
-    <div><b>${p2(m)}</b><span>${t("countdownMin")}</span></div>
-    <div><b>${p2(sec)}</b><span>${t("countdownSec")}</span></div>
+  if (diff <= 0) { box.classList.add("hidden"); return; }
+  const s   = Math.floor(diff / 1000);
+  const d   = Math.floor(s / 86400);
+  const h   = Math.floor((s % 86400) / 3600);
+  const m   = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  const p2  = n => String(n).padStart(2, "0");
+  box.innerHTML = `<div class="reopen-inner" style="text-align:center">
+    <div class="reopen-header">⏰ ${escapeHtml(CONFIG.cutoffLabel)}</div>
+    <div class="count-grid" style="max-width:360px;margin:0 auto">
+      <div><b>${d}</b><span>${escapeHtml(t("countdownDays"))}</span></div>
+      <div><b>${p2(h)}</b><span>${escapeHtml(t("countdownHours"))}</span></div>
+      <div><b>${p2(m)}</b><span>${escapeHtml(t("countdownMin"))}</span></div>
+      <div><b>${p2(sec)}</b><span>${escapeHtml(t("countdownSec"))}</span></div>
+    </div>
   </div>`;
-  if (lbl) lbl.textContent = CONFIG.cutoffLabel;
+  box.classList.remove("hidden");
 }
 
 function parseMatchKickoff(dateStr, timeET) {
@@ -417,12 +391,26 @@ function renderNextMatch() {
   const card = $("#nextMatchCard");
   if (!card) return;
 
-  const hasLive = Object.keys(_liveScores).length > 0;
+  // Filter live scores: skip matches where result is already saved OR
+  // kickoff was > 150 min ago (game is over — ESPN just hasn't reported "post" yet).
+  const savedResults = state().results || {};
+  const nowMs = Date.now();
+  const liveEntries = Object.entries(_liveScores).filter(([mid, ls]) => {
+    if (savedResults[mid]?.advanceSide) return false;
+    const km = DATA.knockoutMatches.find(x => String(x.match) === mid);
+    if (km) {
+      const ko = parseMatchKickoff(km.date, km.timeET);
+      if (ko && nowMs - ko > 150 * 60 * 1000) return false;
+    }
+    return true;
+  });
+
+  const hasLive = liveEntries.length > 0;
   const next    = nextScheduledMatch();
 
   if (hasLive) {
     const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
-    const items = Object.entries(_liveScores).map(([mid, ls]) => {
+    const items = liveEntries.map(([mid, ls]) => {
       const m = DATA.knockoutMatches.find(x => x.match === mid)
              || DATA.groupMatches?.find(x => x.match === mid);
       const tA = m?.teamA || "A", tB = m?.teamB || "B";
@@ -470,8 +458,12 @@ function renderNextMatch() {
   if (!next) { card.classList.add("hidden"); return; }
 
   const { m, kickoff } = next;
-  const diff   = kickoff - Date.now();
-  const tA = m.teamA, tB = m.teamB;
+  const diff = kickoff - Date.now();
+
+  // Resolve slot names ("Winner Match X") to actual team names from official results.
+  const { winners, losers } = officialWinnersMap(state());
+  const tA = resolveSlot(m.teamA, winners, losers);
+  const tB = resolveSlot(m.teamB, winners, losers);
 
   let timerHtml;
   if (diff <= 0) {
@@ -486,7 +478,8 @@ function renderNextMatch() {
     const cells = d > 0
       ? [[d, t("countdownDays")], [p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]]
       : [[p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]];
-    timerHtml = `<div class="count-grid next-match-timer">${
+    // "four" class sets grid to 4 columns when days > 0; default timer is 3-col.
+    timerHtml = `<div class="count-grid next-match-timer${d > 0 ? " four" : ""}">${
       cells.map(([v, l]) => `<div><b>${v}</b><span>${escapeHtml(l)}</span></div>`).join("")
     }</div>`;
   }
@@ -593,6 +586,21 @@ function resolvedTeamsForEntry(entry) {
     else if (p?.advanceSide === "B") { winners[m.match] = b; losers[m.match] = a; }
   }
   return resolved;
+}
+
+// Builds a winners/losers map from official state.results — used to resolve
+// slot names ("Winner Match X") for display in the next-match card and elsewhere.
+function officialWinnersMap(s) {
+  const results = s.results || {};
+  const winners = {}, losers = {};
+  for (const m of DATA.knockoutMatches) {
+    const a = resolveSlot(m.teamA, winners, losers);
+    const b = resolveSlot(m.teamB, winners, losers);
+    const r = results[m.match];
+    if (r?.advanceSide === "A") { winners[m.match] = a; losers[m.match] = b; }
+    else if (r?.advanceSide === "B") { winners[m.match] = b; losers[m.match] = a; }
+  }
+  return { winners, losers };
 }
 
 function finalPodiumForEntry(entry) {
@@ -3684,64 +3692,11 @@ function showMatchEndBanner(matchIds) {
 /* ============================================================
    Reopen banner (visible while site is past cutoff / closed)
    ============================================================ */
-// M88 Colombia vs Ghana: July 3 21:30 EDT = July 4 01:30 UTC
-const M88_KICKOFF_UTC = Date.UTC(2026, 6, 4, 1, 30);
-
-function fmtCdMs(ms) {
-  if (ms <= 0) return null;
-  const s = Math.floor(ms / 1000);
-  const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
-  const p2 = n => String(n).padStart(2, "0");
-  return h > 0 ? `${h}h ${p2(m)}m ${p2(sec)}s` : `${p2(m)}m ${p2(sec)}s`;
-}
-
-function renderReopenBanner() {
-  const box = document.getElementById("reopenBanner");
-  if (!box) return;
-  if (cutoffDate() > Date.now()) { box.classList.add("hidden"); return; }
-  // Same reasoning as updateCountdown() above: once the R32→R16 reopen has
-  // already happened and its own edit window has also closed, this banner's
-  // M88-specific messaging ("M88 encerrado — site reabre em instantes!") no
-  // longer reflects anything real — there's no further scheduled reopen.
-  if (CONFIG.cutoffIso >= "2026-07-04") { box.classList.add("hidden"); return; }
-
-  const now = Date.now();
-  const results = state().results || {};
-
-  const todaysGames = [
-    { mid: "86", label: "M86", teams: "Australia vs Egypt",      timeET: "14:00 EDT", utc: Date.UTC(2026, 6, 3, 18, 0) },
-    { mid: "87", label: "M87", teams: "Argentina vs Cape Verde", timeET: "18:00 EDT", utc: Date.UTC(2026, 6, 3, 22, 0) },
-    { mid: "88", label: "M88", teams: "Colombia vs Ghana",       timeET: `21:30 EDT — ${escapeHtml(t("reopenLastGame"))}`, utc: M88_KICKOFF_UTC },
-  ];
-
-  const gameRows = todaysGames.map(g => {
-    const done  = !!results[g.mid]?.advanceSide;
-    const isLive = !done && now > g.utc && now < g.utc + 135 * 60000;
-    const icon  = done ? "✅" : isLive ? "🔴" : "⏳";
-    const cls   = "reopen-game" + (done ? " done" : isLive ? " live" : "");
-    return `<div class="${cls}">${icon} <b>${escapeHtml(g.label)}</b> ${escapeHtml(g.teams)} <span class="muted">${g.timeET}</span></div>`;
-  }).join("");
-
-  const m88Done = !!results["88"]?.advanceSide;
-  let bottomHtml;
-  if (m88Done) {
-    bottomHtml = `<div class="reopen-cta highlight">${escapeHtml(t("reopenReady"))}
-      <button type="button" class="secondary small" data-action="reload">${escapeHtml(t("reopenReload"))}</button></div>`;
-  } else if (now < M88_KICKOFF_UTC) {
-    const cd = fmtCdMs(M88_KICKOFF_UTC - now);
-    bottomHtml = `<div class="reopen-countdown">⏰ ${escapeHtml(t("reopenCountsIn"))} <b>${cd}</b></div>
-      <div class="reopen-cta">${escapeHtml(t("reopenCutoffNote"))}</div>`;
-  } else {
-    bottomHtml = `<div class="reopen-countdown">${escapeHtml(t("reopenLive"))}</div>`;
-  }
-
-  box.innerHTML = `<div class="reopen-inner">
-    <div class="reopen-header">${escapeHtml(t("reopenHeader"))}</div>
-    <div class="reopen-games">${gameRows}</div>
-    ${bottomHtml}
-  </div>`;
-  box.classList.remove("hidden");
-}
+// renderReopenBanner: M88-specific reopen logic permanently obsolete after
+// July 4, 2026. Deadline countdown is now handled by updateCountdown() which
+// writes directly to #reopenBanner — this function is kept as a no-op for
+// call-site compatibility.
+function renderReopenBanner() {}
 
 // Polls config.js every 60 s while closed; auto-reloads when auto_reopen.py
 // commits the new cutoffIso (2026-07-04T12:00:00-04:00) to GitHub Pages.
