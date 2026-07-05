@@ -2015,6 +2015,20 @@ let _copaEloCache = null;
 const _lambdaCache = new Map();
 let _polyCache   = null; // { data: {TeamName: prob}, ts }
 
+// Maps Polymarket team names → our canonical names (data.js / knockoutMatches)
+const POLY_ALIASES = {
+  "USA":                       "United States",
+  "Cote d'Ivoire":             "Ivory Coast",
+  "Côte d'Ivoire":             "Ivory Coast",
+  "Cabo Verde":                "Cape Verde",
+  "Bosnia-Herzegovina":        "Bosnia and Herzegovina",
+  "Bosnia & Herzegovina":      "Bosnia and Herzegovina",
+  "Congo DR":                  "DR Congo",
+  "DRC":                       "DR Congo",
+  "Korea Republic":            "South Korea",
+  "South Korea":               "South Korea",
+};
+
 async function fetchPolymarketOdds() {
   const ttlMs = (CONFIG.externalData?.polymarket?.cacheMinutes ?? 60) * 60000;
   if (_polyCache && Date.now() - _polyCache.ts < ttlMs) return _polyCache.data;
@@ -2032,7 +2046,8 @@ async function fetchPolymarketOdds() {
       // "Will France win the 2026 FIFA World Cup?" → "France"
       const match = q.match(/Will (.+?) win the 2026/i);
       if (!match) continue;
-      const team = match[1].trim();
+      const raw  = match[1].trim();
+      const team = POLY_ALIASES[raw] ?? raw;
       data[team] = parseFloat(prices[0]);
     }
     _polyCache = { data, ts: Date.now() };

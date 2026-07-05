@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.110 — 2026-07-05
+
+### Fixed — probabilidades: "USA" e "United States" apareciam como entradas separadas
+
+Polymarket usa nomes próprios que divergem dos nomes canônicos do site (ex: "USA" vs "United States", "Cabo Verde" vs "Cape Verde"). O partial match genérico não detectava todos os casos. Fix: adicionado `POLY_ALIASES` em `fetchPolymarketOdds()` — normaliza os nomes na ingestão para que "USA" → "United States" antes de qualquer comparação.
+
+Aliases mapeados: USA, Cote d'Ivoire, Côte d'Ivoire, Cabo Verde, Bosnia-Herzegovina, Bosnia & Herzegovina, Congo DR, DRC, Korea Republic.
+
+---
+
 ## v4.109 — 2026-07-05
 
 ### Fixed — auditoria: reload loop infinito + 7 quick wins
