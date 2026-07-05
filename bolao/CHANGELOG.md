@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v4.108 — 2026-07-05
+
+### Fixed — cache stale: resultados do Supabase agora sempre vencem o localStorage
+
+Problema: quando o script Python salvava um resultado corrigido no Supabase, o browser local continuava mostrando o valor antigo porque o merge (`mergeStates`) usava local-wins para resultados. Só na próxima sessão sem cache é que o valor correto aparecia.
+
+Três mudanças:
+- `mergeStates` aceita `{ preferRemoteResults: true }` — quando ativo, o Supabase vence para a chave de resultado duplicada (ao invés do local)
+- `loadRemoteState()` agora usa `preferRemoteResults: true` — resultados do Supabase sempre sobrescrevem o cache local ao sincronizar
+- Intervalo de sync automático reduzido de 90s → 30s
+- Aba Ranking dispara `debouncedReload()` ao ser aberta — ranking sempre busca dado fresco ao ser visualizado
+
+Comportamento de save preservado: `saveRemoteState()` continua usando local-wins (admins do browser escrevem sobre Supabase, não o contrário).
+
+---
+
 ## v4.107 — 2026-07-05
 
 ### Fixed — probabilidades: times eliminados sumiam apenas do MC, não do Polymarket
