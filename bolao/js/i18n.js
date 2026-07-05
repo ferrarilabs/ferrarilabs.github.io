@@ -237,7 +237,13 @@ window.BOLAO_I18N = {
     adminMasterHtml: "📄 Master HTML", adminJsonBackup: "💾 JSON backup",
     goalsTeamA: "Gols time A", goalsTeamB: "Gols time B",
     removalEmailTitle: "Entrada removida — Bolão Copa 2026",
-    removalEmailContact: "Em caso de dúvidas, entre em contato com o administrador."
+    removalEmailContact: "Em caso de dúvidas, entre em contato com o administrador.",
+    noKnockoutResults: "Nenhum resultado knockout encontrado.",
+    noEspnResults: "Nenhum resultado novo encontrado via ESPN.",
+    noNewResults: "Nenhum resultado novo para aplicar.",
+    matchEnded: "Jogo encerrado!",
+    espnSyncedNote: "Resultado sincronizado via ESPN ✓",
+    teamAdvances: "{team} avança"
   },
 
   "es": {
@@ -478,7 +484,13 @@ window.BOLAO_I18N = {
     adminMasterHtml: "📄 Master HTML", adminJsonBackup: "💾 JSON backup",
     goalsTeamA: "Goles equipo A", goalsTeamB: "Goles equipo B",
     removalEmailTitle: "Entrada eliminada — Porra Copa 2026",
-    removalEmailContact: "Para dudas, contacta al administrador."
+    removalEmailContact: "Para dudas, contacta al administrador.",
+    noKnockoutResults: "No se encontraron resultados de fase eliminatoria.",
+    noEspnResults: "No se encontraron resultados nuevos vía ESPN.",
+    noNewResults: "No hay resultados nuevos para aplicar.",
+    matchEnded: "¡Partido terminado!",
+    espnSyncedNote: "Resultado sincronizado vía ESPN ✓",
+    teamAdvances: "{team} avanza"
   },
 
   "en-US": {
@@ -719,6 +731,12 @@ window.BOLAO_I18N = {
     adminMasterHtml: "📄 Master HTML", adminJsonBackup: "💾 JSON backup",
     goalsTeamA: "Team A goals", goalsTeamB: "Team B goals",
     removalEmailTitle: "Entry removed — World Cup 2026 Pool",
-    removalEmailContact: "For questions, contact the administrator."
+    removalEmailContact: "For questions, contact the administrator.",
+    noKnockoutResults: "No knockout results found.",
+    noEspnResults: "No new results found via ESPN.",
+    noNewResults: "No new results to apply.",
+    matchEnded: "Match over!",
+    espnSyncedNote: "Result synced via ESPN ✓",
+    teamAdvances: "{team} advances"
   }
 };

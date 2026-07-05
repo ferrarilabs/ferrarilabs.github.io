@@ -1440,7 +1440,7 @@ async function sendResultEmailFromAdmin(testOnly) {
   if (!window.emailjs) { showToast(t("emailjsNotLoaded"), "error"); return; }
   const s = state();
   const completedResults = Object.entries(s.results || {}).filter(([, v]) => v?.advanceSide);
-  if (!completedResults.length) { showToast("Nenhum resultado knockout encontrado.", "warn"); return; }
+  if (!completedResults.length) { showToast(t("noKnockoutResults"), "warn"); return; }
 
   const btnId = testOnly ? "#sendResultEmailTest" : "#sendResultEmailAll";
   const btn = $(btnId);
@@ -3188,7 +3188,7 @@ async function runEspnUpdate({ silent = false } = {}) {
   const events = await fetchEspnFixtures();
   if (!events) { if (!silent) showToast("Erro ao buscar ESPN. Verifique o console.", "error"); return; }
   const mapped = mapEspnToMatches(events);
-  if (!mapped.length) { if (!silent) showToast("Nenhum resultado novo encontrado via ESPN.", "info"); return; }
+  if (!mapped.length) { if (!silent) showToast(t("noEspnResults"), "info"); return; }
   const knockoutIds = new Set(DATA.knockoutMatches.map(m => String(m.match)));
   const s = state();
   let applied = 0;
@@ -3207,7 +3207,7 @@ async function runEspnUpdate({ silent = false } = {}) {
     saveState(s, { forceResults: true }); renderRanking(); renderGames(); renderAdmin();
     if (!silent) showToast(`${applied} resultado(s) atualizado(s) via ESPN.`, "success");
   } else {
-    if (!silent) showToast("Nenhum resultado novo para aplicar.", "info");
+    if (!silent) showToast(t("noNewResults"), "info");
   }
 }
 
@@ -3690,7 +3690,8 @@ function showMatchEndBanner(matchIds) {
     if (!r || !m) return `M${mid} encerrado`;
     const tA = m.teamA, tB = m.teamB;
     const winner = r.advanceSide === "B" ? tB : tA;
-    return `M${mid}: ${escapeHtml(tA)} ${r.goalsA}–${r.goalsB} ${escapeHtml(tB)} · ${escapeHtml(flag(winner))} <strong>${escapeHtml(winner)}</strong> avança`;
+    const verb = t("teamAdvances").replace("{team}", "").trim();
+    return `M${mid}: ${escapeHtml(tA)} ${r.goalsA}–${r.goalsB} ${escapeHtml(tB)} · ${escapeHtml(flag(winner))} <strong>${escapeHtml(winner)}</strong> ${escapeHtml(verb)}`;
   });
   // Only the logged-in admin gets an action button here — everyone else
   // (i.e. virtually every visitor) just gets the plain "match ended"
@@ -3703,9 +3704,9 @@ function showMatchEndBanner(matchIds) {
   banner.innerHTML = `<div class="match-end-banner-content">
     <span class="match-end-banner-icon">⚽</span>
     <div class="match-end-banner-text">
-      <strong>Jogo encerrado!</strong>
+      <strong>${escapeHtml(t("matchEnded"))}</strong>
       ${lines.map(l => `<span>${l}</span>`).join("")}
-      ${adminReady ? `<small>Resultado sincronizado via ESPN ✓</small>` : ""}
+      ${adminReady ? `<small>${escapeHtml(t("espnSyncedNote"))}</small>` : ""}
     </div>
     <div class="match-end-banner-actions">
       ${actionHtml}
@@ -3737,7 +3738,10 @@ function startReopenPolling() {
       const r = await fetch(`js/config.js?nc=${Date.now()}`);
       const text = await r.text();
       const m = text.match(/cutoffIso:\s*"([^"]+)"/);
-      if (m && m[1] >= "2026-07-04") location.reload();
+      // Reload only when the published cutoff changed — not when it matches the
+      // currently loaded value (the old ">= date" check caused an infinite reload
+      // loop once we passed that date with no new config published).
+      if (m && m[1] !== CONFIG.cutoffIso) location.reload();
     } catch (e) {}
   }, 60000);
 }
@@ -4025,7 +4029,7 @@ async function init() {
   renderReopenBanner();
   startReopenPolling();
   setTimeout(launchJuly4Fireworks, 400); // brief settle, then launch
-  setInterval(() => { updateCountdown(); renderNextMatch(); renderReopenBanner(); }, 1000);
+  setInterval(() => { if (!document.hidden) { updateCountdown(); renderNextMatch(); } }, 1000);
   startLiveScorePolling();
   // Pre-fetch Polymarket odds in background so match prob bars are ready before
   // the user visits the Probabilidades tab; re-renders games/next-match on arrival
