@@ -379,6 +379,13 @@ function parseMatchKickoff(dateStr, timeET) {
   );
 }
 
+// Knockout matches can run regulation (90) + stoppage (~10) + extra time (30)
+// + a penalty shootout (no fixed length, historically up to ~20-30 min) —
+// well past 135/150 min. A cutoff shorter than that made the UI treat a
+// match still in extra time/penalties as "over" and silently jump to the
+// next scheduled match instead of showing it as live (July 2026 bug).
+const MATCH_ASSUMED_OVER_MS = 210 * 60 * 1000;
+
 function nextScheduledMatch() {
   const results = state().results || {};
   const now = Date.now();
@@ -386,8 +393,13 @@ function nextScheduledMatch() {
     if (results[m.match]?.advanceSide) continue;
     const kickoff = parseMatchKickoff(m.date, m.timeET);
     if (kickoff === null) continue;
-    // Skip if >135 min since kickoff with no live data — match is definitely over
-    if (now - kickoff > 135 * 60 * 1000) continue;
+    // ESPN confirming this exact fixture is postponed/delayed always wins
+    // over the elapsed-time guess — never silently skip to the next match
+    // just because a postponed one never actually kicked off.
+    const hint = _matchStatusHints[m.match];
+    if (hint?.postponed) return { m, kickoff, postponed: true, label: hint.label };
+    // Skip only once we're well past any realistic match length with no live data.
+    if (now - kickoff > MATCH_ASSUMED_OVER_MS) continue;
     return { m, kickoff };
   }
   return null;
@@ -398,7 +410,7 @@ function renderNextMatch() {
   if (!card) return;
 
   // Filter live scores: skip matches where result is already saved OR
-  // kickoff was > 150 min ago (game is over — ESPN just hasn't reported "post" yet).
+  // kickoff was too long ago (game is over — ESPN just hasn't reported "post" yet).
   const savedResults = state().results || {};
   const nowMs = Date.now();
   const liveEntries = Object.entries(_liveScores).filter(([mid, ls]) => {
@@ -406,7 +418,7 @@ function renderNextMatch() {
     const km = DATA.knockoutMatches.find(x => String(x.match) === mid);
     if (km) {
       const ko = parseMatchKickoff(km.date, km.timeET);
-      if (ko && nowMs - ko > 150 * 60 * 1000) return false;
+      if (ko && nowMs - ko > MATCH_ASSUMED_OVER_MS) return false;
     }
     return true;
   });
@@ -463,14 +475,27 @@ function renderNextMatch() {
 
   if (!next) { card.classList.add("hidden"); return; }
 
-  const { m, kickoff } = next;
-  const diff = kickoff - Date.now();
+  const { m, kickoff, postponed, label } = next;
 
   // Resolve slot names ("Winner Match X") to actual team names from official results.
   const { winners, losers } = officialWinnersMap(state());
   const tA = resolveSlot(m.teamA, winners, losers);
   const tB = resolveSlot(m.teamB, winners, losers);
 
+  if (postponed) {
+    card.innerHTML = `
+      <div class="next-match-row">
+        <div class="next-match-info">
+          <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
+          <div class="next-match-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+          <div class="hero-next-time"><span class="hero-next-live">${escapeHtml(t("matchPostponed"))}</span>${label ? " — " + escapeHtml(label) : ""} · M${escapeHtml(String(m.match))}</div>
+        </div>
+      </div>`;
+    card.classList.remove("hidden");
+    return;
+  }
+
+  const diff = kickoff - Date.now();
   let timerHtml;
   if (diff <= 0) {
     timerHtml = `<span class="hero-next-live">${escapeHtml(t("heroMatchStarted"))}</span>`;
@@ -3232,6 +3257,14 @@ let _liveScoreTimer = null;
 let _liveScorePollTime = 0;
 let _prevLiveIds = new Set();
 const _openLiveDetails = new Set();
+// Real ESPN status for not-yet-live matches, matched by team name alone
+// (ignoring data.js's hardcoded date) — a postponed/delayed fixture gets a
+// new real kickoff from ESPN that no longer matches m.date/timeET, so this
+// is the only way to detect it. Without it, nextScheduledMatch()'s
+// elapsed-time heuristic is the sole signal, and it just silently treats a
+// postponed match as "over" once enough time passes — confirmed real case:
+// Mexico x England (M92) postponed for weather, July 2026.
+let _matchStatusHints = {};
 
 // Regulation/extra-time half boundaries, in minutes, checked largest-first —
 // once the clock passes one, show "(+N)" stoppage minutes past it, the same
@@ -3541,6 +3574,41 @@ function mapEspnToLiveScores(events) {
   return out;
 }
 
+// Matches by team name only (no date filter — see _matchStatusHints comment
+// above) so a postponed/rescheduled fixture is still found even though its
+// real ESPN date no longer matches data.js. Only worth checking for matches
+// that aren't already resolved or currently showing as live.
+function computeMatchStatusHints(events) {
+  if (!Array.isArray(events) || !events.length) return {};
+  const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
+  const s = state();
+  const out = {};
+  for (const m of all) {
+    if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamB)) continue;
+    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    for (const ev of events) {
+      const comp = ev.competitions?.[0];
+      if (!comp) continue;
+      const [c0, c1] = comp.competitors || [];
+      if (!c0 || !c1) continue;
+      const n0 = normalizeTeamName(c0.team?.displayName);
+      const n1 = normalizeTeamName(c1.team?.displayName);
+      if (!((n0 === normA && n1 === normB) || (n1 === normA && n0 === normB))) continue;
+      const stateName = comp.status?.type?.state || "";
+      const name = (comp.status?.type?.name || "").toUpperCase();
+      const detail = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""} ${comp.status?.type?.detail || ""}`.trim();
+      const postponed = stateName === "pre" && (
+        /POSTPON|DELAY|SUSPEND|CANCEL/.test(name) || /postpon|delay|suspend|adiad|cancel/i.test(detail)
+      );
+      out[m.match] = { state: stateName, postponed, label: detail, kickoffIso: comp.date || ev.date || null };
+      break;
+    }
+  }
+  return out;
+}
+
 // The running clock interpolates seconds between 60s ESPN polls. ESPN's feed
 // can lag the real broadcast by 2–4+ minutes (VAR delays, half-time transitions,
 // network lag after the tab was backgrounded). The old 150s cap caused visible
@@ -3636,6 +3704,7 @@ async function pollLiveScores() {
   if (!events) return;
   extractEspnOdds(events); // reads DraftKings lines already in the same payload
   const fresh = mapEspnToLiveScores(events);
+  _matchStatusHints = computeMatchStatusHints(events);
   const cache = loadLiveClockCache();
   if (!Object.keys(_rawClockHistory).length) _rawClockHistory = loadRawClockCache();
   const merged = {};

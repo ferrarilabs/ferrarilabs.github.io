@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v4.112 — 2026-07-06
+
+### Fixed — "Próximo Jogo" pulava para o jogo seguinte enquanto o atual ainda estava rolando ou tinha sido adiado
+
+Reportado com o México × Inglaterra (M92, oitavas), adiado por causa do clima: o card "Próximo Jogo" trocou para Spain × Portugal como se o jogo do México já tivesse terminado, quando na verdade nunca chegou a começar.
+
+Duas causas, dois fixes:
+
+1. **Corte de tempo curto demais:** `nextScheduledMatch()` considerava um jogo "definitivamente encerrado" 135 minutos após o pontapé inicial, e o filtro de placar ao vivo em `renderNextMatch()` usava 150 minutos — nenhum dos dois contava com prorrogação (30 min) + pênaltis (sem tempo fixo, historicamente até ~20-30 min), que somados facilmente passam de 150 min. Fix: os dois cortes foram unificados numa única constante `MATCH_ASSUMED_OVER_MS` de 210 minutos.
+2. **Adiamentos não eram detectados (o pedido do Eduardo — "deve puxar ao vivo da fonte se o jogo está rolando; isso vai acontecer de novo"):** o site não tinha nenhum jeito de saber que um jogo foi adiado — só comparava o relógio contra o horário fixo do `data.js`. Agora `computeMatchStatusHints()` casa cada partida ainda não resolvida com o evento real da ESPN por nome de time (ignorando a data cadastrada, já que um jogo adiado tem uma data real diferente na ESPN), e se a ESPN reportar status "adiado/atrasado/suspenso" antes do jogo começar, o card mostra "Adiado" em vez de pular pro próximo jogo da chave — a fonte ao vivo passa a valer mais que a suposição por tempo decorrido.
+
+Não muda scoring nem estrutura do ranking — só quando/como o card de "próximo jogo"/"ao vivo" decide que uma partida acabou ou nunca começou.
+
+---
+
 ## v4.111 — 2026-07-06
 
 ### Fixed — mobile: navegador normal ainda mostrava dado antigo (incógnito funcionava)
