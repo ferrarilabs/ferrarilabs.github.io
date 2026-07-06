@@ -3830,6 +3830,32 @@ function startReopenPolling() {
   }, 60000);
 }
 
+// A tab that's been open since before a fix shipped is stuck running the old
+// JS forever — no client-side code can retroactively patch code already
+// loaded into a running page. sw.js (no-store) and the pageshow/bfcache
+// listener (see init()) cover most real navigations, but a tab that's simply
+// left open and foregrounded the whole time gets neither. This is the
+// general-purpose backstop: poll the deployed siteVersion and reload once it
+// genuinely differs — same safe pattern as startReopenPolling above (exact
+// string match only, never a range/threshold, which is what caused an
+// infinite reload loop before — see v4.109).
+let _versionPoller = null;
+function startVersionPolling() {
+  if (_versionPoller) return;
+  _versionPoller = setInterval(async () => {
+    // Skip while an admin session is active — don't risk wiping an in-progress
+    // result entry out from under them. Regular participants (the vast
+    // majority, and the ones this is actually for) are unaffected.
+    if (document.hidden || isAdminActive()) return;
+    try {
+      const r = await fetch(`js/config.js?nc=${Date.now()}`);
+      const text = await r.text();
+      const m = text.match(/siteVersion:\s*"([^"]+)"/);
+      if (m && m[1] !== CONFIG.siteVersion) location.reload();
+    } catch (e) {}
+  }, 10 * 60 * 1000);
+}
+
 function startLiveScorePolling() {
   if (_liveScoreTimer) return;
   pollLiveScores().catch(err => console.warn("Live score poll failed", err));
@@ -4112,6 +4138,7 @@ async function init() {
   restoreDraft();
   renderReopenBanner();
   startReopenPolling();
+  startVersionPolling();
   setTimeout(launchJuly4Fireworks, 400); // brief settle, then launch
   setInterval(() => { if (!document.hidden) { updateCountdown(); renderNextMatch(); } }, 1000);
   startLiveScorePolling();
