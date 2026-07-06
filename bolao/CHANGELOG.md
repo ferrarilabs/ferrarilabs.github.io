@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.113 — 2026-07-06
+
+### Fixed — ranking ainda ficava desatualizado (Brasil × Noruega) em abas já abertas antes das correções anteriores
+
+Reportado de novo depois do v4.108/v4.111: ranking sem o resultado atualizado fora do modo anônimo. As correções anteriores (Supabase vencendo o cache local, service worker sem cache HTTP, resync no bfcache) já cobrem qualquer carregamento novo da página — mas uma aba que já estava aberta desde ANTES dessas correções irem ao ar continua rodando o JavaScript antigo, com a lógica de merge antiga, para sempre. Código já carregado na memória do navegador não se autoatualiza sozinho — só um reload de verdade da página resolve, e nada no código antigo sabia que devia fazer isso.
+
+Fix: `startVersionPolling()` — a cada 10 minutos (aba visível, sem sessão de admin ativa para não atrapalhar alguém digitando um resultado), busca `config.js` e recarrega a página sozinha se o `siteVersion` publicado for diferente do carregado. Comparação é sempre por igualdade exata (nunca um "maior/igual que") — o mesmo cuidado do fix do loop de reload do v4.109, para não repetir aquele bug.
+
+A partir de agora, qualquer aba (mesmo uma esquecida aberta por dias) se autocorrige sozinha em até 10 minutos após qualquer novo deploy — ninguém mais deve precisar fechar e reabrir manualmente por causa de cache.
+
+---
+
 ## v4.112 — 2026-07-06
 
 ### Fixed — "Próximo Jogo" pulava para o jogo seguinte enquanto o atual ainda estava rolando ou tinha sido adiado
