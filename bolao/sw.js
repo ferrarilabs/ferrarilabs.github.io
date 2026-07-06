@@ -1,5 +1,5 @@
 // Service worker — network-first for HTML, cache-first for versioned assets
-const CACHE = 'bolao-sw-v1';
+const CACHE = 'bolao-sw-v2';
 
 self.addEventListener('install', () => self.skipWaiting());
 self.addEventListener('activate', e => {
@@ -15,10 +15,13 @@ self.addEventListener('fetch', e => {
   // Only handle same-origin requests
   if (url.origin !== self.location.origin) return;
 
-  // HTML pages: always try network first so users get fresh content
+  // HTML pages: always try network first so users get fresh content.
+  // cache: 'no-store' bypasses the browser's own HTTP cache too — a plain
+  // fetch() here still let mobile Safari / carrier caches serve a stale
+  // index.html even though this handler ran, defeating "network-first".
   if (e.request.mode === 'navigate' || e.request.headers.get('accept')?.includes('text/html')) {
     e.respondWith(
-      fetch(e.request)
+      fetch(e.request, { cache: 'no-store' })
         .then(res => {
           const clone = res.clone();
           caches.open(CACHE).then(c => c.put(e.request, clone));
