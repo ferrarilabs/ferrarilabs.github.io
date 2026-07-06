@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v4.111 — 2026-07-06
+
+### Fixed — mobile: navegador normal ainda mostrava dado antigo (incógnito funcionava)
+
+v4.108 já tinha corrigido o merge para o Supabase vencer o cache local, mas dois problemas independentes ainda podiam prender um celular numa versão velha mesmo com essa correção:
+
+- **`sw.js` (service worker):** a estratégia "network-first" para HTML fazia só `fetch(e.request)`, que ainda consulta o cache HTTP do próprio navegador antes de ir na rede. Safari no iOS (e alguns proxies de operadora) cacheiam de forma mais agressiva que desktop — então mesmo com o handler "network-first" rodando, o navegador podia devolver um `index.html` antigo do cache, travando o usuário nos `app.js?v=<sha antigo>` para sempre. Fix: `fetch(e.request, { cache: 'no-store' })`, forçando ida real à rede. Versão do cache do SW também subiu (`bolao-sw-v1` → `v2`) para descartar entradas antigas.
+- **bfcache do iOS Safari:** ao voltar para uma aba em segundo plano, o WebKit pode restaurar a página do bfcache sem disparar `visibilitychange` de forma confiável (bug conhecido do WebKit) — a página nunca refaz o `debouncedReload()` e fica presa no estado em memória do último carregamento real. Fix: listener em `pageshow` com `event.persisted` forçando um resync sempre que isso acontece.
+
+Nenhum dos dois precisa de ação do usuário — o SW novo se instala sozinho na próxima visita e o `pageshow` cobre daí em diante.
+
+---
+
 ## v4.110 — 2026-07-05
 
 ### Fixed — probabilidades: "USA" e "United States" apareciam como entradas separadas

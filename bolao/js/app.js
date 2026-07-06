@@ -4066,6 +4066,10 @@ async function init() {
     if (isAdminActive() && apiFootballConfigured()) startResultsPolling();
     startLiveScorePolling();
   });
+  // iOS Safari can restore a backgrounded tab from bfcache without reliably
+  // firing visibilitychange, leaving the page stuck on whatever state was in
+  // memory at the last real load — force a resync whenever that happens.
+  window.addEventListener("pageshow", e => { if (e.persisted) debouncedReload(); });
 
   // Disable entry nav button only after cutoff; default landing depends on cutoff
   const navEntryBtn = document.querySelector('.nav button[data-section="entry"]');
