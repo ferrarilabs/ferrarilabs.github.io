@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## v4.114 — 2026-07-06
+
+### Fixed — placar ao vivo, probabilidades e detecção automática de resultado nunca funcionaram a partir da 2ª metade das oitavas (M95+)
+
+Reportado com Argentina × Egypt (M95): o site mostrava "Em andamento" mas sem placar, sem relógio, sem barra de probabilidade — e o ranking não reagia. Causa raiz: `data.js` guarda os times das oitavas de final (M89-94) e da fase de grupos com nome real, mas M95 em diante (M95, M96, quartas, semis, disputa de 3º, final) ficam **para sempre** como `"Winner Match 87"` / `"Loser Match 101"` no arquivo — nunca são reescritos com o nome real do time, mesmo depois de decididos. Toda função que casava esses jogos com a ESPN por nome de time tinha um filtro que ignorava qualquer time ainda em formato `"Winner/Loser Match N"` — então essas partidas eram silenciosamente excluídas do rastreamento ao vivo, para sempre, a partir de M95.
+
+Como isso nunca tinha aparecido antes: é a primeira vez que o campeonato chega numa partida desse grupo (M95+) — R32 e a primeira leva de oitavas (M89-94) sempre tiveram nome de time real no `data.js` desde o início, então o bug estava latente sem nunca ter sido exercitado.
+
+Sete funções tinham exatamente essa mesma lacuna, todas corrigidas resolvendo `"Winner/Loser Match N"` pelo resultado oficial (mesmo mecanismo já usado — e correto — no rótulo "Próximo Jogo") antes de comparar com a ESPN:
+
+- `mapEspnToLiveScores` — placar/relógio ao vivo nunca populava
+- `computeMatchStatusHints` — detecção de adiamento (v4.112) também nunca funcionava
+- `extractEspnOdds` — odds do DraftKings/barra de probabilidade pré-jogo ficavam sempre vazias
+- Card "ao vivo" do "Próximo Jogo" — mostraria `"Winner Match 87"` como nome do time e bandeira errada assim que o placar ao vivo passasse a funcionar
+- `renderGames` (aba Jogos) — mesma coisa, nome cru aparecendo na lista de jogos
+- `preMatchProbBarsHtml` / `liveProbBarsHtml` — barra de probabilidade em branco
+- `fetchEspnMatchStats` — chutes no alvo/posse de bola nunca populavam (degradação silenciosa, sem erro visível)
+- `mapEspnToMatches` — botão "Atualizar via ESPN" do admin nunca detectava um resultado de M95+ automaticamente
+- `showMatchEndBanner` — mostraria `"Winner Match 87"` no aviso de "partida encerrada"
+
+O ranking não estar "reagindo" durante o jogo é esperado — pontos só entram quando o resultado oficial é salvo, nunca durante a partida (pontuação provisória só aparece dentro do detalhe expandido "Pontos provisórios"). Isso não muda.
+
+`send_result_email.py` (o script Python que roda no GitHub Actions) já fazia essa resolução corretamente em `_resolve_team` — só o caminho client-side (JS, no navegador) tinha a lacuna.
+
+---
+
 ## v4.113 — 2026-07-06
 
 ### Fixed — ranking ainda ficava desatualizado (Brasil × Noruega) em abas já abertas antes das correções anteriores
