@@ -428,10 +428,15 @@ function renderNextMatch() {
 
   if (hasLive) {
     const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
+    const { winners: liveWinners, losers: liveLosers } = officialWinnersMap(state());
     const items = liveEntries.map(([mid, ls]) => {
       const m = DATA.knockoutMatches.find(x => x.match === mid)
              || DATA.groupMatches?.find(x => x.match === mid);
-      const tA = m?.teamA || "A", tB = m?.teamB || "B";
+      // m.teamA/teamB come straight from data.js, which never gets rewritten
+      // with real names — for M95+ that's still "Winner Match 87" unless
+      // resolved through official results, same gap as mapEspnToLiveScores.
+      const tA = (m && resolveSlot(m.teamA, liveWinners, liveLosers)) || "A";
+      const tB = (m && resolveSlot(m.teamB, liveWinners, liveLosers)) || "B";
       const pointsBlock = knockoutIds.has(String(mid))
         ? `<div class="hero-live-points picks-detail">${liveMatchPointsTable(mid, ls.goalsA, ls.goalsB)}</div>`
         : "";
@@ -1719,6 +1724,10 @@ function renderGames() {
   const s = state();
   const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
+  // Same data.js slot-resolution gap as mapEspnToLiveScores — without it,
+  // the Jogos tab shows the raw "Winner Match N" placeholder for M95+
+  // instead of the real team name once it's known.
+  const { winners: gameWinners, losers: gameLosers } = officialWinnersMap(s);
   for (const m of all) {
     const r = (s.results || {})[m.match];
     const live = r?.goalsA === undefined ? _liveScores[m.match] : null;
@@ -1727,7 +1736,8 @@ function renderGames() {
     const status = r?.goalsA !== undefined ? "Final" : (live ? "Live" : m.status);
     const hasScore = goalsA !== null && goalsA !== undefined && goalsB !== null && goalsB !== undefined;
     const venue = m.venue && m.venue !== "A confirmar" ? m.venue : "";
-    const a = m.teamA || "", b = m.teamB || "";
+    const a = resolveSlot(m.teamA, gameWinners, gameLosers) || "";
+    const b = resolveSlot(m.teamB, gameWinners, gameLosers) || "";
     const statusClass = status === "Final" ? "done" : status === "Live" ? "live" : "pending";
     const statusLabel = status === "Final" ? t("gameFinal") : status === "Live" ? t("gameLive") : t("gamePending");
     const canShowLivePoints = live && knockoutIds.has(String(m.match));
@@ -2258,7 +2268,12 @@ function polyMatchProb(teamA, teamB) {
 }
 
 function preMatchProbBarsHtml(m) {
-  const a = m.teamA || "", b = m.teamB || "";
+  // data.js keeps "Winner Match N" forever for M95+ — resolve via official
+  // results first, or these bars silently stay blank once that's all that's
+  // left unresolved (the actual matches, once decided, are real team names).
+  const { winners: probWinners, losers: probLosers } = officialWinnersMap(state());
+  const a = resolveSlot(m.teamA, probWinners, probLosers) || "";
+  const b = resolveSlot(m.teamB, probWinners, probLosers) || "";
   if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
   const drawLabel = m.group ? t("probDrawShort") : "ET/Pen.";
   // Priority 1: ESPN/DraftKings moneyline — sharpest, already in the poll payload
@@ -2279,7 +2294,9 @@ function preMatchProbBarsHtml(m) {
 // tab's game cards and the hero "ao vivo" card, so both always show the same
 // number computed the same way.
 function liveProbBarsHtml(m, live) {
-  const a = m.teamA || "", b = m.teamB || "";
+  const { winners: probWinners, losers: probLosers } = officialWinnersMap(state());
+  const a = resolveSlot(m.teamA, probWinners, probLosers) || "";
+  const b = resolveSlot(m.teamB, probWinners, probLosers) || "";
   if (!a || !b || /Winner|Loser/i.test(a) || /Winner|Loser/i.test(b)) return "";
   // Derive minute from the raw clockSeconds, not the display string — the
   // string can now read "(+2)" mid-stoppage or "Intervalo" at halftime,
@@ -3064,10 +3081,15 @@ function extractEspnOdds(events) {
   if (!Array.isArray(events)) return;
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   const s = state();
+  // Same data.js slot-resolution gap as mapEspnToLiveScores — without it,
+  // odds never populate for M95+ either.
+  const { winners: oddsWinners, losers: oddsLosers } = officialWinnersMap(s);
   for (const m of all) {
     if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
-    if (/Winner|Loser/i.test(m.teamA) || /Winner|Loser/i.test(m.teamB)) continue;
-    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    const teamA = resolveSlot(m.teamA, oddsWinners, oddsLosers);
+    const teamB = resolveSlot(m.teamB, oddsWinners, oddsLosers);
+    if (/Winner|Loser/i.test(teamA) || /Winner|Loser/i.test(teamB)) continue;
+    const normA = normalizeTeamName(teamA), normB = normalizeTeamName(teamB);
     for (const ev of events) {
       const comp = ev.competitions?.[0];
       if (!comp || comp.status?.type?.state === "post") continue;
@@ -3199,11 +3221,17 @@ function mapEspnToMatches(events) {
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   const s = state();
   const mapped = [];
+  // Same data.js slot-resolution gap as mapEspnToLiveScores — without it, the
+  // admin's "Atualizar via ESPN" button can never auto-detect a finished
+  // M95+ match at all, since data.js's team names for those never resolve.
+  const { winners: matchWinners, losers: matchLosers } = officialWinnersMap(s);
   for (const m of all) {
     if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
-    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
-        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamB)) continue;
-    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    const teamA = resolveSlot(m.teamA, matchWinners, matchLosers);
+    const teamB = resolveSlot(m.teamB, matchWinners, matchLosers);
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(teamA) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(teamB)) continue;
+    const normA = normalizeTeamName(teamA), normB = normalizeTeamName(teamB);
     for (const ev of events) {
       const comp = ev.competitions?.[0];
       if (!comp || comp.status?.type?.state !== "post") continue;
@@ -3488,11 +3516,20 @@ function mapEspnToLiveScores(events) {
   const s = state();
   const out = {};
   if (!Object.keys(_confirmedBoundary).length) _confirmedBoundary = loadConfirmedBoundary();
+  // data.js's knockoutMatches never gets rewritten with real team names — a
+  // match like M95 stays "Winner Match 87"/"Winner Match 86" in the static
+  // fixture forever. Resolve those slots via the official results (the same
+  // mechanism already used for the "Próximo Jogo" label) before matching
+  // against ESPN, or live tracking silently never works for R16's second
+  // half onward (confirmed dead for M95 — Argentina x Egypt — July 2026).
+  const { winners: officialWinners, losers: officialLosers } = officialWinnersMap(s);
   for (const m of all) {
     if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
-    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
-        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamB)) continue;
-    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    const teamA = resolveSlot(m.teamA, officialWinners, officialLosers);
+    const teamB = resolveSlot(m.teamB, officialWinners, officialLosers);
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(teamA) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(teamB)) continue;
+    const normA = normalizeTeamName(teamA), normB = normalizeTeamName(teamB);
     for (const ev of events) {
       const comp = ev.competitions?.[0];
       if (!comp || comp.status?.type?.state !== "in") continue;
@@ -3583,11 +3620,17 @@ function computeMatchStatusHints(events) {
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   const s = state();
   const out = {};
+  // Same slot-resolution gap as mapEspnToLiveScores above — without it, this
+  // never fires for M95 onward either since data.js's team names stay as
+  // "Winner Match N" forever.
+  const { winners: officialWinners, losers: officialLosers } = officialWinnersMap(s);
   for (const m of all) {
     if ((s.results || {})[m.match]?.goalsA !== undefined) continue;
-    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamA) ||
-        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(m.teamB)) continue;
-    const normA = normalizeTeamName(m.teamA), normB = normalizeTeamName(m.teamB);
+    const teamA = resolveSlot(m.teamA, officialWinners, officialLosers);
+    const teamB = resolveSlot(m.teamB, officialWinners, officialLosers);
+    if (/Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(teamA) ||
+        /Winner|Loser|(?:1st|2nd|3rd)\s|Group\s/i.test(teamB)) continue;
+    const normA = normalizeTeamName(teamA), normB = normalizeTeamName(teamB);
     for (const ev of events) {
       const comp = ev.competitions?.[0];
       if (!comp) continue;
@@ -3744,7 +3787,12 @@ async function pollLiveScores() {
     });
     const m = DATA.knockoutMatches.find(x => x.match === mid) || DATA.groupMatches?.find(x => x.match === mid);
     if (m) {
-      fetchEspnMatchStats(ls.eventId, m.teamA, m.teamB).then(stats => {
+      // Resolve data.js's "Winner Match N" placeholders (M95+) before passing
+      // team names in — fetchEspnMatchStats matches ESPN's boxscore by name.
+      const { winners: statsWinners, losers: statsLosers } = officialWinnersMap(state());
+      const statsTeamA = resolveSlot(m.teamA, statsWinners, statsLosers);
+      const statsTeamB = resolveSlot(m.teamB, statsWinners, statsLosers);
+      fetchEspnMatchStats(ls.eventId, statsTeamA, statsTeamB).then(stats => {
         if (!stats) return;
         _espnStatsCache.set(mid, stats);
         if (!_espnProbCache.has(mid)) { renderGames(); renderNextMatch(); }
@@ -3768,11 +3816,16 @@ function showMatchEndBanner(matchIds) {
   const banner = $("#matchEndBanner");
   if (!banner) return;
   const s = state();
+  const { winners: endWinners, losers: endLosers } = officialWinnersMap(s);
   const lines = matchIds.map(mid => {
     const r = s.results?.[mid];
     const m = DATA.knockoutMatches.find(x => String(x.match) === mid);
     if (!r || !m) return `M${mid} encerrado`;
-    const tA = m.teamA, tB = m.teamB;
+    // data.js keeps "Winner Match N" forever for M95+ — resolve via official
+    // results (earlier matches only, so this match's own result being saved
+    // yet or not doesn't matter) instead of showing the raw placeholder.
+    const tA = resolveSlot(m.teamA, endWinners, endLosers);
+    const tB = resolveSlot(m.teamB, endWinners, endLosers);
     const winner = r.advanceSide === "B" ? tB : tA;
     const verb = t("teamAdvances").replace("{team}", "").trim();
     return `M${mid}: ${escapeHtml(tA)} ${r.goalsA}–${r.goalsB} ${escapeHtml(tB)} · ${escapeHtml(flag(winner))} <strong>${escapeHtml(winner)}</strong> ${escapeHtml(verb)}`;
