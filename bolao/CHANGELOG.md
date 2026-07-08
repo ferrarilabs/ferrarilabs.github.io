@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.116 — 2026-07-08
+
+### Fixed — "Ver palpites" fechava sozinho depois de alguns segundos
+
+`renderRanking()` reconstrói o HTML de todos os cards de "Ver palpites" do zero toda vez que roda — inclusive na sincronização automática de 30s, ao voltar pra aba, e no novo check de versão (v4.113). Cada reconstrução recriava o painel de detalhe já fechado (`hidden`) por padrão, sem lembrar que o usuário tinha acabado de abrir um — por isso fechava sozinho pouco depois de clicar.
+
+Fix: `_openRankDetails`, um Set que guarda quais entradas estão com o painel aberto no momento, igual ao mecanismo que já existia pro placar ao vivo da aba Jogos (`_openLiveDetails`) — `renderRanking()` agora consulta esse Set ao reconstruir cada painel, em vez de sempre começar fechado.
+
+---
+
 ## v4.115 — 2026-07-07
 
 ### Novo — "Ver palpites" mostra o time real (com o palpite original entre parênteses) + destaque de quem avança no placar ao vivo

@@ -1602,6 +1602,14 @@ function lockIfCutoff() {
 // ranking and each live match's provisional table track movement separately.
 const _rankArrowState = new Map();
 
+// renderRanking() fully rebuilds every entry's "Ver palpites" detail panel
+// (always starting hidden) on every call — including the periodic 30s sync,
+// visibilitychange/focus, and the version-check reload poll. Without this,
+// an open panel silently snaps shut a few seconds after opening it, on the
+// next background sync. Mirrors the same pattern already used for the Jogos
+// tab's live-points toggle (_openLiveDetails).
+const _openRankDetails = new Set();
+
 function computeRankArrows(key, items) {
   const sorted = [...items].sort((a, b) => b.score - a.score);
   let st = _rankArrowState.get(key);
@@ -1678,7 +1686,7 @@ function renderRanking() {
 <button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
-    detail.className = "card picks-detail hidden";
+    detail.className = `card picks-detail${_openRankDetails.has(e.id) ? "" : " hidden"}`;
     detail.dataset.rankDetail = e.id;
     detail.innerHTML = picksTable(e);
     box.appendChild(detail);
@@ -4030,8 +4038,14 @@ function initEvents() {
 
     const rankToggle = e.target.closest("[data-rank-toggle]");
     if (rankToggle) {
-      const det = document.querySelector(`[data-rank-detail="${rankToggle.dataset.rankToggle}"]`);
-      if (det) det.classList.toggle("hidden"); return;
+      const id = rankToggle.dataset.rankToggle;
+      const det = document.querySelector(`[data-rank-detail="${id}"]`);
+      if (det) {
+        det.classList.toggle("hidden");
+        if (det.classList.contains("hidden")) _openRankDetails.delete(id);
+        else _openRankDetails.add(id);
+      }
+      return;
     }
 
     const liveToggle = e.target.closest("[data-live-toggle]");
