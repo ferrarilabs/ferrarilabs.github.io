@@ -646,6 +646,7 @@ input[readonly] {
 .picks-detail th { color: var(--muted); font-weight: 700; }
 .pick-pts { color: var(--muted); }
 .pick-pts.pos { color: var(--green); }
+.live-pick-team { display: block; font-size: 11px; color: var(--green); white-space: nowrap; }
 .picks-podium { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 12px; font-size: 13px; font-weight: 700; }
 .picks-podium span { opacity: 0.9; }
 .teams-changed-chip { background: #7a4f00; color: #ffd166; font-size: 11px; font-weight: 700; }

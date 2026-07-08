@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v4.115 — 2026-07-07
+
+### Novo — "Ver palpites" mostra o time real (com o palpite original entre parênteses) + destaque de quem avança no placar ao vivo
+
+Pedido dos participantes, via Eduardo, depois que as oitavas terminaram:
+
+**1. "Ver palpites" mostra o time real das rodadas seguintes.** Antes, a linha de cada partida futura (quartas em diante) mostrava o time que o PRÓPRIO palpite da pessoa previa (às vezes já sabidamente errado, ou ainda "Winner Match N" cru se faltava palpite de rodada anterior). Agora, uma vez que o time real de um confronto é conhecido pelo resultado oficial, ele aparece primeiro — com o palpite original entre parênteses só quando ele foi diferente do que aconteceu de verdade. Exemplo: se alguém apostou no Canadá e o Marrocos avançou de verdade, a linha mostra "Marrocos (Canadá)". Se o palpite bateu, mostra só o nome, sem repetição redundante. **Puramente visual — a pontuação nunca usou esses nomes para calcular pontos** (sempre compara resultado real com o palpite pelo ID da partida, goalsA/goalsB/advanceSide), só a exibição na tabela mudou. O recibo (comprovante de envio) e o "pódio previsto" continuam mostrando exatamente o que a pessoa previu originalmente, sem essa substituição — são registros históricos e devem continuar assim.
+
+**2. Placar ao vivo: time escolhido para avançar agora aparece em negrito.** Na tabela "Pontos provisórios" (aba Jogos/próximo jogo, com o jogo rolando), cada linha só mostrava o placar previsto (ex: "1×1") — em caso de empate no palpite de gols, não dava pra saber qual time a pessoa escolheu pra passar de fase. Agora o nome do time escolhido aparece embaixo do placar, em negrito/verde.
+
+Rodei `audit_scoring.py` de novo depois dessa mudança — sem impacto (esperado, é só exibição).
+
+---
+
 ## v4.114 — 2026-07-06
 
 ### Fixed — placar ao vivo, probabilidades e detecção automática de resultado nunca funcionaram a partir da 2ª metade das oitavas (M95+)

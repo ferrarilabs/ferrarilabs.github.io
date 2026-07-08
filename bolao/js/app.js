@@ -626,6 +626,42 @@ function resolvedTeamsForEntry(entry) {
   return resolved;
 }
 
+function isRealTeamName(s) {
+  return !!s && !/^Winner|^Loser/i.test(s);
+}
+
+// "Ver palpites" row display only (never scoring — matchPoints/resolvedMatchResult
+// always compare against real results directly, independent of this). Once the
+// real team in a future-round slot is known via official results, show it
+// instead of the entry's own guessed cascade, with their original guess in
+// parentheses when it turned out wrong. Requested by participants after R16
+// concluded — "Winner Match 89" (or a since-incorrect guess) was confusing to
+// read once the real bracket was already decided.
+function resolvedTeamsForEntryDisplay(entry, officialWinners, officialLosers) {
+  const winners = {}, losers = {}, resolved = {};
+  for (const m of DATA.knockoutMatches) {
+    const p = entry.picks?.[m.match];
+    const predictedA = resolveSlot(m.teamA, winners, losers);
+    const predictedB = resolveSlot(m.teamB, winners, losers);
+    const realA = resolveSlot(m.teamA, officialWinners, officialLosers);
+    const realB = resolveSlot(m.teamB, officialWinners, officialLosers);
+    // Only show "(original pick)" when the entry actually had one — a late
+    // joiner missing an early-round pick would otherwise show the raw
+    // "Winner Match N" placeholder as their "original pick", which they
+    // never made.
+    const displayA = isRealTeamName(realA)
+      ? (realA !== predictedA && isRealTeamName(predictedA) ? `${realA} (${predictedA})` : realA)
+      : predictedA;
+    const displayB = isRealTeamName(realB)
+      ? (realB !== predictedB && isRealTeamName(predictedB) ? `${realB} (${predictedB})` : realB)
+      : predictedB;
+    resolved[m.match] = { displayA, displayB };
+    if (p?.advanceSide === "A") { winners[m.match] = predictedA; losers[m.match] = predictedB; }
+    else if (p?.advanceSide === "B") { winners[m.match] = predictedB; losers[m.match] = predictedA; }
+  }
+  return resolved;
+}
+
 // Builds a winners/losers map from official state.results — used to resolve
 // slot names ("Winner Match X") for display in the next-match card and elsewhere.
 function officialWinnersMap(s) {
@@ -1650,7 +1686,8 @@ function renderRanking() {
 }
 
 function picksTable(entry) {
-  const r = resolvedTeamsForEntry(entry);
+  const { winners: officialWinners, losers: officialLosers } = officialWinnersMap(state());
+  const r = resolvedTeamsForEntryDisplay(entry, officialWinners, officialLosers);
   const results = (state().results) || {};
   // Hide picks for any unplayed match while the entry window is still open.
   // Prevents participants from copying each other's future-round picks.
@@ -3412,6 +3449,17 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
   const entries = s.entries || [];
   if (!entries.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
 
+  // Real team names for this match, so each row can show which team the
+  // entry actually picked to advance — a tied predicted score (e.g. "1×1")
+  // otherwise gives no visual clue which side they picked. Requested by
+  // participants: hard to tell during a live tie who picked what.
+  const km = DATA.knockoutMatches.find(x => String(x.match) === String(matchId));
+  const { winners: pointsWinners, losers: pointsLosers } = officialWinnersMap(s);
+  const pickTeamName = side => {
+    if (!km || !side) return null;
+    return resolveSlot(side === "A" ? km.teamA : km.teamB, pointsWinners, pointsLosers);
+  };
+
   // Official score for every entry (before this live match)
   const officialScore = {};
   entries.forEach(e => { officialScore[e.id] = scoreEntry(e, s).total; });
@@ -3454,6 +3502,7 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
         id: e.id,
         name: e.entryName || "?",
         pickStr: pick ? `${pick.goalsA}×${pick.goalsB}` : "—",
+        pickTeam: pickTeamName(pick?.advanceSide),
         livePts,
         provTotal: provScore[e.id] || 0,
         provPos: pRank + 1,
@@ -3466,9 +3515,12 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
 
   if (!rows.length) return `<p class="muted">${escapeHtml(t("liveNoPicks"))}</p>`;
 
-  const trs = rows.map((row) =>
-    `<tr><td style="text-align:center">${row.provPos}${rankArrowHtml(row.arrow, row.delta)}</td><td>${escapeHtml(row.name)}</td><td>${escapeHtml(row.pickStr)}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`
-  ).join("");
+  const trs = rows.map((row) => {
+    const pickCell = row.pickTeam
+      ? `${escapeHtml(row.pickStr)} <b class="live-pick-team">${escapeHtml(row.pickTeam)}</b>`
+      : escapeHtml(row.pickStr);
+    return `<tr><td style="text-align:center">${row.provPos}${rankArrowHtml(row.arrow, row.delta)}</td><td>${escapeHtml(row.name)}</td><td>${pickCell}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`;
+  }).join("");
   return `<table><thead><tr><th style="text-align:center">${escapeHtml(t("livePosCol"))}</th><th>${escapeHtml(t("liveEntryCol"))}</th><th>${escapeHtml(t("livePickCol"))}</th><th style="text-align:center">${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
 }
