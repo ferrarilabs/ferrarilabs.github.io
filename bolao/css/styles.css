@@ -770,27 +770,37 @@ input[readonly] {
 
 @media (max-width: 500px) {
   .count-grid { grid-template-columns: repeat(2, 1fr); }
-  /* Bracket entry form (Palpites tab) — same fix as .game-teams below: long
-     team names had no mobile stacking rule at all and stayed crammed into
-     the 3-column desktop grid, cramped or overflowing on a phone. */
-  .teams { grid-template-columns: 1fr; gap: 4px; margin: 8px 0; }
-  .team.right { flex-direction: row-reverse; justify-content: flex-end; }
+  /* Bracket cards — used by both the Palpites entry form and the admin's
+     result-entry form (actively used every match, often from a phone).
+     Same compact single-row treatment as .game-teams below: stay on one
+     row, shrink text, let a long name wrap within its own column instead
+     of stacking the whole row into 3 separate full-width blocks. */
+  .teams { gap: 4px; margin: 8px 0; }
+  .team { font-size: 13px; gap: 4px; min-width: 0; line-height: 1.15; }
+  .team .team-flag { flex-shrink: 0; }
+  .team .team-name { overflow-wrap: break-word; }
+  .team.right { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
   .vs { font-size: 11px; margin: 0; }
-  .game-teams { grid-template-columns: 1fr; gap: 8px; }
-  .game-team.right { flex-direction: row-reverse; justify-content: flex-end; }
-  .game-score { width: 100%; }
+  /* Was a full 3-row stack (name row / score row / name row) per match —
+     each row full-width, so even short team names ("Spain", "Belgium")
+     took up 3x the vertical space they needed and the list felt endless.
+     Stay on one row like desktop; just shrink text/gaps to fit, and let a
+     genuinely long name (e.g. "Bosnia and Herzegovina") wrap onto a second
+     line within its own column instead of forcing the whole row to stack. */
+  .game-teams { gap: 6px; }
+  .game-team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
+  .game-team .team-flag { flex-shrink: 0; }
+  .game-team .team-name { overflow-wrap: break-word; }
+  .game-team.right { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
+  .game-score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
   /* Pre-match placeholder ("×", no score yet) shouldn't take as much visual
-     weight as an actual score — full-width padded box reads as a big empty
-     rectangle once teams stack into a single column. Real scores/live keep
-     the full treatment above; only the empty-state variant shrinks. */
+     weight as an actual score. */
   .game-score.muted {
-    width: auto;
     min-width: 0;
-    padding: 2px 14px;
+    padding: 2px 10px;
     font-size: 15px;
     background: none;
     border: none;
-    margin: 0 auto;
   }
 
   /* Prob-bar segments get too narrow for "Team NN%" on a phone-width
