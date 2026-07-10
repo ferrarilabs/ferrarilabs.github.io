@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.117 — 2026-07-08
+
+### Fixed — cards da aba Jogos (e formulário de resultado do admin) empilhavam em 3 blocos no mobile
+
+Reportado com screenshot: no celular, cada partida virava 3 blocos separados de altura total — nome do time A, depois o placar, depois o nome do time B, cada um numa linha própria e com sua própria borda/respiro — mesmo para nomes curtos como "Spain" e "Belgium". Causa: uma regra de mobile (`@media max-width: 500px`) trocava `.game-teams` de grid de 3 colunas (nome × placar × nome, numa linha só, igual ao desktop) para grid de 1 coluna — empilhando tudo. A mesma regra existia para `.teams`, usado tanto no formulário de palpites quanto no formulário de resultado do admin (o que o Eduardo usa toda vez que lança um resultado, geralmente do celular).
+
+Fix: manteve a partida numa linha só no mobile também (igual ao desktop) — só reduziu fonte/gap para caber, e deixou o nome do time quebrar em 2 linhas dentro da própria coluna quando for muito comprido (ex: "Bosnia and Herzegovina"), em vez de forçar a linha inteira a virar 3 blocos.
+
+QA feita com Playwright/Chromium local antes de subir: comparei screenshots antes/depois em 390px, 360px (Android comum) e desktop; testei o caso de nome de time bem longo; conferi que a versão desktop (que já estava boa) não mudou nada. Sem mudança de scoring — só CSS.
+
+---
+
 ## v4.116 — 2026-07-08
 
 ### Fixed — "Ver palpites" fechava sozinho depois de alguns segundos
