@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## v4.118 — 2026-07-11
+
+### Changed — layout centralizado no card de partidas (Jogos)
+
+Cards de jogo agora exibem `Nome | 🏴 | Score | 🏴 | Nome` em fileira única — antes era `🏴 Nome | Score | Nome 🏴` com times pressionados para as bordas. Mudança puramente cosmética (HTML + CSS); scoring, lógica e dados intocados. audit_scoring.py: ✓ 5/5.
+
 ## v4.117 — 2026-07-08
 
 ### Fixed — cards da aba Jogos (e formulário de resultado do admin) empilhavam em 3 blocos no mobile
