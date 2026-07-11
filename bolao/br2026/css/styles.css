@@ -70,6 +70,22 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
 
+/* ── Bolão switcher ── */
+.bolao-switcher select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  width: auto;
+}
+.bolao-switcher select:focus { border-color: var(--green); }
+
 .lang-links { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
 .lang-links button {
   background: var(--bg3); color: var(--text);
@@ -378,19 +394,31 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
   padding: 10px 0; border-bottom: 1px solid var(--border);
 }
 .game-card:last-child { border-bottom: 0; }
-.game-teams {
-  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+.game-matchup {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
-.game-team { font-size: 13px; font-weight: 600; flex: 1; }
-.game-team.home { text-align: right; }
-.game-team.away { text-align: left; }
-.game-center { text-align: center; min-width: 56px; }
+.match-team-name {
+  font-size: 13px; font-weight: 700;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  max-width: clamp(70px, 22vw, 130px);
+}
+.home-name { text-align: right; }
+.away-name { text-align: left; }
+.match-logo { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; border-radius: 2px; }
+.match-center { min-width: 60px; text-align: center; flex-shrink: 0; }
+.game-meta {
+  display: flex; gap: 6px; align-items: center;
+  font-size: 11px; color: var(--muted); flex-wrap: wrap; margin-top: 1px;
+  justify-content: center;
+}
+.game-meta-sep { opacity: .4; }
 .game-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .game-score-live { font-size: 16px; font-weight: 900; color: var(--green); font-variant-numeric: tabular-nums; }
 .game-score-final { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
-.game-venue { font-size: 11px; color: var(--muted); }
 .game-number { font-size: 10px; color: var(--muted); opacity: .75; font-weight: 600; letter-spacing: .03em; }
-.game-status-row { font-size: 11px; }
 .game-status { font-weight: 700; }
 .game-status.live { color: #ef4444; }
 .game-status.post { color: var(--muted); }
