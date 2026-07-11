@@ -1651,3 +1651,18 @@ init();
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/bolao/sw.js').catch(() => {});
 }
+
+// Reload when a new deploy is detected — on tab focus and every 10 min
+(function startVersionPolling() {
+  async function checkVersion() {
+    if (document.hidden) return;
+    try {
+      const r = await fetch(`js/config.js?nc=${Date.now()}`);
+      const text = await r.text();
+      const m = text.match(/siteVersion:\s*"([^"]+)"/);
+      if (m && m[1] !== window.BR2026_CONFIG?.siteVersion) location.reload();
+    } catch (e) {}
+  }
+  setInterval(checkVersion, 10 * 60 * 1000);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });
+}());

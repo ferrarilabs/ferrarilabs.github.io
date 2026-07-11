@@ -3953,20 +3953,24 @@ function startReopenPolling() {
 // string match only, never a range/threshold, which is what caused an
 // infinite reload loop before — see v4.109).
 let _versionPoller = null;
+async function checkVersion() {
+  if (document.hidden || isAdminActive()) return;
+  try {
+    const r = await fetch(`js/config.js?nc=${Date.now()}`);
+    const text = await r.text();
+    const m = text.match(/siteVersion:\s*"([^"]+)"/);
+    if (m && m[1] !== CONFIG.siteVersion) location.reload();
+  } catch (e) {}
+}
 function startVersionPolling() {
   if (_versionPoller) return;
-  _versionPoller = setInterval(async () => {
-    // Skip while an admin session is active — don't risk wiping an in-progress
-    // result entry out from under them. Regular participants (the vast
-    // majority, and the ones this is actually for) are unaffected.
-    if (document.hidden || isAdminActive()) return;
-    try {
-      const r = await fetch(`js/config.js?nc=${Date.now()}`);
-      const text = await r.text();
-      const m = text.match(/siteVersion:\s*"([^"]+)"/);
-      if (m && m[1] !== CONFIG.siteVersion) location.reload();
-    } catch (e) {}
-  }, 10 * 60 * 1000);
+  _versionPoller = setInterval(checkVersion, 10 * 60 * 1000);
+  // Also check immediately when user switches back to this tab — catches
+  // deploys that happened while the tab was in background without waiting
+  // the full 10-minute poll interval.
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkVersion();
+  });
 }
 
 function startLiveScorePolling() {
