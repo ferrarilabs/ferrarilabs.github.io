@@ -697,7 +697,7 @@ input[readonly] {
   gap: 10px;
   align-items: center;
 }
-.game-team { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 6px; }
+.game-team { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
 .game-team.right { justify-content: flex-start; }
 .game-score {
   font-size: 22px;
@@ -791,7 +791,7 @@ input[readonly] {
   .game-team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
   .game-team .team-flag { flex-shrink: 0; }
   .game-team .team-name { overflow-wrap: break-word; }
-  .game-team.right { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
+  .game-team.right { justify-content: flex-start; }
   .game-score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
   /* Pre-match placeholder ("×", no score yet) shouldn't take as much visual
      weight as an actual score. */

@@ -1810,9 +1810,9 @@ function renderGames() {
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
 </div>
 <div class="game-teams">
-  <div class="game-team"><span class="team-flag">${escapeHtml(flag(a))}</span><span class="team-name">${escapeHtml(a)}</span></div>
+  <div class="game-team"><span class="team-name">${escapeHtml(a)}</span><span class="team-flag">${escapeHtml(flag(a))}</span></div>
   ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
-  <div class="game-team right"><span class="team-name">${escapeHtml(b)}</span><span class="team-flag">${escapeHtml(flag(b))}</span></div>
+  <div class="game-team right"><span class="team-flag">${escapeHtml(flag(b))}</span><span class="team-name">${escapeHtml(b)}</span></div>
 </div>
 ${live ? goalScorersHtml(live, a, b) : ""}
 ${probBarsHtml}
