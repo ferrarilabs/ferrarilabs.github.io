@@ -1647,3 +1647,7 @@ async function init() {
 init();
 
 })();
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/bolao/sw.js').catch(() => {});
+}
