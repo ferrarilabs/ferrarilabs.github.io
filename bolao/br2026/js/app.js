@@ -57,7 +57,7 @@ async function loadRemoteState() {
     if (!r.ok) return;
     const data = await r.json();
     if (!data?.[0]?.state) return;
-    const merged = mergeStates(state(), data[0].state);
+    const merged = mergeStates(state(), data[0].state, { preferRemoteResults: true });
     localStorage.setItem(C.storeKey, JSON.stringify(merged));
   } catch (err) { console.warn("[BR2026] Supabase load failed", err); }
 }
@@ -70,12 +70,17 @@ async function saveRemoteState(s) {
     body: JSON.stringify({ id: stateId, state: s })
   });
 }
-function mergeStates(local, remote) {
+function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   const byId = {};
   [...(remote.entries || []), ...(local.entries || [])].forEach(e => { if (!deleted.has(e.id)) byId[e.id] = e; });
   const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
-  const results = local.results?.locked ? local.results : (remote.results?.locked ? remote.results : local.results || remote.results);
+  let results;
+  if (opts.preferRemoteResults) {
+    results = remote.results?.locked ? remote.results : (local.results?.locked ? local.results : remote.results || local.results);
+  } else {
+    results = local.results?.locked ? local.results : (remote.results?.locked ? remote.results : local.results || remote.results);
+  }
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
@@ -976,15 +981,20 @@ function renderGamesSection() {
           <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${barLabel(aPct, aLabel, aLogo)}</div>
         </div>`;
       }
-      const partida = gameNum.has(g.id) ? `<span class="game-number">Partida ${gameNum.get(g.id)}</span>` : "";
+      const homeLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
+      const awayLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
+      const partida  = gameNum.has(g.id) ? `<span class="game-number">Partida ${gameNum.get(g.id)}</span>` : "";
+      const venueStr = g.venue ? `${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}` : "";
+      const metaParts = [statusHtml, partida, venueStr].filter(Boolean);
       html += `<div class="game-card ${esc(g.state || "pre")}">
-        <div class="game-teams">
-          <span class="game-team home">${esc(g.homeTeam)}</span>
-          <span class="game-center">${scoreOrTime}</span>
-          <span class="game-team away">${esc(g.awayTeam)}</span>
+        <div class="game-matchup">
+          <span class="match-team-name home-name">${esc(g.homeTeam)}</span>
+          ${homeLogo}
+          <div class="match-center">${scoreOrTime}</div>
+          ${awayLogo}
+          <span class="match-team-name away-name">${esc(g.awayTeam)}</span>
         </div>
-        ${g.venue ? `<div class="game-venue">${partida}${g.venue ? ` · ${esc(g.venue)}` : ""}${g.city ? `, ${esc(g.city)}` : ""}</div>` : partida}
-        <div class="game-status-row">${statusHtml}</div>
+        <div class="game-meta">${metaParts.join('<span class="game-meta-sep"> · </span>')}</div>
         ${probBarsHtml}
       </div>`;
     });
@@ -1028,7 +1038,7 @@ function renderRanking() {
     countSA6Hits(b.detail) - countSA6Hits(a.detail) ||
     countG4Exact(b.e, g4cur) - countG4Exact(a.e, g4cur) ||
     countZ4Exact(b.e, z4cur) - countZ4Exact(a.e, z4cur) ||
-    a.e.entryName.localeCompare(b.e.entryName, "pt-BR")
+    b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
   );
 
   const hasAnyProvisional = scored.some(x => !x.isOfficial && _standings.length >= 20);
@@ -1386,7 +1396,6 @@ async function sendReceipt(entry) {
   if (!C.emailjs.enabled || !window.emailjs) return;
   const lastSent = Number(sessionStorage.getItem("br2026_emailTs") || 0);
   if (Date.now() - lastSent < C.emailjs.limitRateMs) return;
-  sessionStorage.setItem("br2026_emailTs", String(Date.now()));
   const g4   = entry.picks?.g4  || [];
   const sa6  = entry.picks?.sa6 || [];
   const z4   = entry.picks?.z4  || [];
@@ -1411,12 +1420,17 @@ async function sendReceipt(entry) {
     <p style="margin-top:16px;font-size:11px;opacity:.6">Bolão informal entre amigos. ${new Date().toLocaleString("pt-BR")}</p>
   </div>
 </div>`;
-  await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, {
-    to_email:     entry.participantEmail,
-    entry_name:   `Brasileirão 2026 — ${entry.entryName}`,
-    receipt_code: `BR2026-${(entry.id || "").slice(0, 8).toUpperCase()}`,
-    html_message: html,
-  }, { publicKey: C.emailjs.publicKey });
+  try {
+    await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, {
+      to_email:     entry.participantEmail,
+      entry_name:   `Brasileirão 2026 — ${entry.entryName}`,
+      receipt_code: `BR2026-${(entry.id || "").slice(0, 8).toUpperCase()}`,
+      html_message: html,
+    }, { publicKey: C.emailjs.publicKey });
+    sessionStorage.setItem("br2026_emailTs", String(Date.now()));
+  } catch (err) {
+    console.error("[BR2026] sendReceipt failed:", err);
+  }
 }
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
@@ -1546,7 +1560,10 @@ function renderAll() {
 async function init() {
   // Navigation
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
-  showSection("entry");
+  showSection(isPastCutoff() ? "ranking" : "entry");
+
+  // Bolão switcher
+  $("bolaoSelect")?.addEventListener("change", e => { if (e.target.value) location.href = e.target.value; });
 
   // Countdown — 1s tick
   renderCountdown();
@@ -1611,8 +1628,17 @@ async function init() {
   pollAll();
   setInterval(pollAll, C.espn.pollIntervalMs);
 
-  // 1s ticker for running clock + next game countdown
-  setInterval(() => { renderLiveCard(); renderNextGameCard(); }, 1000);
+  // 1s ticker for running clock + next game countdown (skip when tab is hidden)
+  setInterval(() => { if (!document.hidden) { renderLiveCard(); renderNextGameCard(); } }, 1000);
+
+  // Remote sync every 30s (when database enabled) — skip when form is being filled or tab is hidden
+  if (C.database.enabled) {
+    setInterval(async () => {
+      if (document.hidden || _editingEntry) return;
+      await loadRemoteState();
+      renderAll();
+    }, 30000);
+  }
 
   // Full-season schedule — fetch in background, render when ready
   fetchSchedule().then(() => { renderGamesSection(); renderNextGameCard(); });
