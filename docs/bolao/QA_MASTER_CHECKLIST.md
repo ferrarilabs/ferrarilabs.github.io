@@ -212,4 +212,46 @@ checklist são obrigatórias:
 
 Cada área marcada aumenta o escopo de QA exigido (seções B–F, H, I) e determina se a mudança
 precisa ser avaliada nos outros dois apps (seção E).
+
+## K. Audit Gate
+
+Ver `docs/bolao/AUDIT_PROTOCOL.md` para o protocolo completo. Esta seção é o checklist
+executável do gate de auditoria descrito lá.
+
+Antes da implementação:
+
+- [ ] Escopo auditado.
+- [ ] Findings registrados.
+- [ ] Severidades atribuídas.
+- [ ] Apps afetados identificados.
+- [ ] Propagação cross-app avaliada.
+- [ ] Itens autorizados pelo usuário.
+- [ ] Plano de rollback definido.
+
+Depois da implementação:
+
+- [ ] Cada finding autorizado foi corrigido.
+- [ ] Nenhum finding não autorizado foi alterado.
+- [ ] Nenhuma regressão nova encontrada.
+- [ ] Componentes visuais comparados nos três apps.
+- [ ] Auditoria direcionada pós-change executada.
+- [ ] Consistency Matrix atualizada.
+- [ ] Changelogs atualizados.
+- [ ] Resultado dos testes relatado.
+
+## L. Visual Alignment Gate
+
+Para cada tela ou componente alterado, contra `docs/bolao/DESIGN_SYSTEM.md`:
+
+- [ ] Altura de botões consistente.
+- [ ] Largura e comportamento de botão documentados.
+- [ ] Labels alinhados.
+- [ ] Inputs alinhados.
+- [ ] Grids não apresentam colunas quebradas.
+- [ ] Ações primárias e secundárias têm hierarquia clara.
+- [ ] Toolbars quebram linha de forma previsível.
+- [ ] Mobile não tem overflow horizontal.
+- [ ] Desktop usa largura de maneira adequada.
+- [ ] Componentes equivalentes foram comparados nos três apps.
+- [ ] Diferenças intencionais foram documentadas.
 <!-- AUTO:QA_MASTER_CHECKLIST:END -->
