@@ -11,6 +11,27 @@ const $$   = sel => [...document.querySelectorAll(sel)];
 const esc  = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
+// ─── Toast ──────────────────────────────────────────────────────────────────
+// Mesma implementação da Copa (bolao/js/app.js) — não-bloqueante, substitui alert() em toda
+// confirmação/erro que não seja validação de formulário (essas continuam alert(), de propósito
+// — ver DESIGN_SYSTEM.md "Alert").
+function showToast(msg, type = "info", durationMs = 3500) {
+  let container = document.querySelector(".bolao-toasts");
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "bolao-toasts";
+    document.body.appendChild(container);
+  }
+  const el = document.createElement("div");
+  el.className = `bolao-toast ${type}`;
+  el.textContent = msg;
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = "0";
+    setTimeout(() => el.remove(), 320);
+  }, durationMs);
+}
+
 // ─── i18n ───────────────────────────────────────────────────────────────────
 // BR2026 is PT-BR only. Keep setLang/applyI18n for data-i18n attribute support.
 let _lang = "pt-BR";
@@ -29,6 +50,9 @@ function applyI18n() {
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let _editingEntry = null;
+// IDs de entrada com o detalhe de palpites expandido no ranking — mesmo padrão da Copa
+// (bolao/js/app.js), sobrevive a re-renders (sync, troca de idioma) até o usuário fechar.
+const _openRankDetails = new Set();
 
 function emptyState() {
   return { entries: [], deletedIds: [], paid: {}, results: null, meta: { updatedAt: null, version: C.siteVersion } };
@@ -242,7 +266,7 @@ function validatePicks(g4, sa6, z4) {
 
 // ─── Save entry ──────────────────────────────────────────────────────────────
 async function saveEntry() {
-  if (isPastCutoff()) { alert(t("closed")); return; }
+  if (isPastCutoff()) { showToast(t("closed"), "warn"); return; }
   const entryName    = $("entryName")?.value.trim() || "";
   const payerName    = $("payerName")?.value.trim() || "";
   const email        = $("participantEmail")?.value.trim() || "";
@@ -283,11 +307,11 @@ async function saveEntry() {
     ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
     $("paymentMethod") && ($("paymentMethod").value = "");
 
-    alert(t("savedSuccess"));
+    showToast(t("savedSuccess"), "success");
     showSection("ranking");
   } catch (err) {
     console.error("[BR2026] Save error", err);
-    alert(t("saveError"));
+    showToast(t("saveError"), "error");
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
   }
@@ -1058,28 +1082,42 @@ function renderRanking() {
   const provNote = hasAnyProvisional
     ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
 
+  // Estrutura densa de 1 linha (.rank-row) + detalhe expansível (.picks-detail) — mesmo padrão
+  // da Copa (bolao/js/app.js renderRanking()), ver DESIGN_SYSTEM.md "Ranking — estrutura do
+  // card". Cada entrada gera dois elementos irmãos, não um card único empilhado.
   let rank = 0, prevPts = -1;
-  const rows = scored.map((item, i) => {
+  box.innerHTML = provNote;
+  scored.forEach((item, i) => {
     if (item.total !== prevPts) { rank = i + 1; prevPts = item.total; }
     const paid      = (s.paid || {})[item.e.id];
     const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
     const paidBadge = paid
       ? `<span class="paid-badge">${esc(t("paid"))}</span>`
       : `<span class="unpaid-badge">${esc(t("unpaid"))}</span>`;
-    return `<div class="rank-card">
-      <div class="rank-top">
-        <span class="rank-pos">${medal}</span>
-        <span class="rank-name">${esc(item.e.entryName)}</span>
-        <span class="rank-pts${!item.isOfficial && item.total > 0 ? " prov" : ""}">
-          ${item.total}<small>${!item.isOfficial && item.total > 0 ? " ↕" : " pts"}</small>
-        </span>
-        ${paidBadge}
-      </div>
-      ${renderPickDisplay(item.e, item.detail)}
-    </div>`;
-  }).join("");
+    const provFlag  = !item.isOfficial && item.total > 0;
+    const row = document.createElement("div");
+    row.className = "rank-row";
+    row.innerHTML = `
+      <div class="rank-pos">${medal}</div>
+      <div><b>${esc(item.e.entryName)}</b> ${paidBadge}</div>
+      <div class="points${provFlag ? " prov" : ""}">${item.total}<small>${provFlag ? " ↕" : " pts"}</small></div>
+      <button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`;
+    box.appendChild(row);
+    const detail = document.createElement("div");
+    detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
+    detail.dataset.rankDetail = item.e.id;
+    detail.innerHTML = renderPickDisplay(item.e, item.detail);
+    box.appendChild(detail);
+  });
 
-  box.innerHTML = provNote + rows;
+  box.querySelectorAll("[data-rank-toggle]").forEach(btn => btn.addEventListener("click", () => {
+    const id  = btn.dataset.rankToggle;
+    const det = box.querySelector(`[data-rank-detail="${id}"]`);
+    if (!det) return;
+    det.classList.toggle("hidden");
+    if (det.classList.contains("hidden")) _openRankDetails.delete(id);
+    else _openRankDetails.add(id);
+  }));
 }
 
 function renderPickDisplay(entry, detail) {
@@ -1293,7 +1331,7 @@ function renderAdminResults(s) {
   $("espnFillResultsBtn")?.addEventListener("click", async () => {
     if (!guardAdmin()) return;
     const standings = await fetchStandings();
-    if (!standings || standings.length < 20) { alert("ESPN fetch failed — try again."); return; }
+    if (!standings || standings.length < 20) { showToast("ESPN fetch failed — try again.", "error"); return; }
     const g4  = standings.slice(0,  4).map(tm => tm.name);
     const sa6 = standings.slice(6, 12).map(tm => tm.name);
     const z4  = standings.slice(16, 20).map(tm => tm.name);
@@ -1322,7 +1360,7 @@ function renderAdminResults(s) {
     const s2 = state();
     s2.results = { locked: true, g4, sa6, z4, lockedAt: new Date().toISOString() };
     saveState(s2);
-    alert(t("resultsSaved"));
+    showToast(t("resultsSaved"), "success");
     renderAdmin();
   });
 
@@ -1596,7 +1634,7 @@ async function init() {
   $("adminLoginBtn")?.addEventListener("click", async () => {
     const now = Date.now();
     if (now < _loginLockUntil) {
-      alert(t("adminLocked").replace("{min}", Math.ceil((_loginLockUntil - now) / 60000))); return;
+      showToast(t("adminLocked").replace("{min}", Math.ceil((_loginLockUntil - now) / 60000)), "warn"); return;
     }
     const pw   = $("adminPassword")?.value || "";
     const hash = await sha256hex(pw);
@@ -1613,9 +1651,9 @@ async function init() {
       if (_loginAttempts >= C.adminMaxAttempts) {
         _loginLockUntil = Date.now() + C.adminLockMinutes * 60000;
         sessionStorage.setItem("br2026_loginLockUntil", _loginLockUntil);
-        alert(t("adminLockedNow").replace("{min}", C.adminLockMinutes));
+        showToast(t("adminLockedNow").replace("{min}", C.adminLockMinutes), "warn");
       } else {
-        alert(t("adminWrongPassword").replace("{n}", C.adminMaxAttempts - _loginAttempts));
+        showToast(t("adminWrongPassword").replace("{n}", C.adminMaxAttempts - _loginAttempts), "error");
       }
     }
   });
@@ -1631,7 +1669,7 @@ async function init() {
     if (!guardAdmin()) return;
     await loadRemoteState();
     renderAll();
-    alert(t("syncDone"));
+    showToast(t("syncDone"), "success");
   });
 
   if (isAdminActive()) {

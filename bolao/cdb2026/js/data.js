@@ -24,25 +24,31 @@ window.CDB2026_DATA = {
     "Vitória",
   ],
 
-  // Abreviação de 3 letras por time — usada no símbolo/badge junto ao nome, nos mesmos
-  // pontos onde a Copa usa bandeira e o Brasileirão usa o escudo da ESPN.
-  teamAbbrev: {
-    "Athletico-PR": "CAP",
-    "Atlético-MG": "CAM",
-    "Chapecoense": "CHA",
-    "Corinthians": "COR",
-    "Cruzeiro": "CRU",
-    "Fluminense": "FLU",
-    "Fortaleza": "FOR",
-    "Grêmio": "GRE",
-    "Internacional": "INT",
-    "Juventude": "JUV",
-    "Mirassol": "MIR",
-    "Palmeiras": "PAL",
-    "Remo": "REM",
-    "Santos": "SAN",
-    "Vasco": "VAS",
-    "Vitória": "VIT",
+  // Escudo real de cada time (ESPN CDN) — mesmas URLs que bolao/br2026/js/app.js busca ao vivo
+  // do endpoint de standings da Série A (site.api.espn.com/.../soccer/bra.1/teams), fixas aqui
+  // porque o CDB2026 não tem nenhuma chamada de API ao vivo própria. Símbolo do time consistente
+  // com o BR2026 (mesmo escudo, mesmas classes CSS .team-logo/.match-logo) — ver CLAUDE.md
+  // "Toda vez que um componente visual for alterado".
+  // IDs verificados diretamente no endpoint ESPN (bra.1 para Série A, bra.2 para Fortaleza e
+  // Juventude, que estão na Série B nesta temporada) — não assumir que todos os 16 estão na
+  // mesma divisão sem checar.
+  teamLogos: {
+    "Athletico-PR": "https://a.espncdn.com/i/teamlogos/soccer/500/3458.png",
+    "Atlético-MG": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
+    "Chapecoense": "https://a.espncdn.com/i/teamlogos/soccer/500/9318.png",
+    "Corinthians": "https://a.espncdn.com/i/teamlogos/soccer/500/874.png",
+    "Cruzeiro": "https://a.espncdn.com/i/teamlogos/soccer/500/2022.png",
+    "Fluminense": "https://a.espncdn.com/i/teamlogos/soccer/500/3445.png",
+    "Fortaleza": "https://a.espncdn.com/i/teamlogos/soccer/500/6272.png",
+    "Grêmio": "https://a.espncdn.com/i/teamlogos/soccer/500/6273.png",
+    "Internacional": "https://a.espncdn.com/i/teamlogos/soccer/500/1936.png",
+    "Juventude": "https://a.espncdn.com/i/teamlogos/soccer/500/6270.png",
+    "Mirassol": "https://a.espncdn.com/i/teamlogos/soccer/500/9169.png",
+    "Palmeiras": "https://a.espncdn.com/i/teamlogos/soccer/500/2029.png",
+    "Remo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
+    "Santos": "https://a.espncdn.com/i/teamlogos/soccer/500/2674.png",
+    "Vasco": "https://a.espncdn.com/i/teamlogos/soccer/500/3454.png",
+    "Vitória": "https://a.espncdn.com/i/teamlogos/soccer/500/3457.png",
   },
 
   // Confrontos do mata-mata. Cada "tie" (confronto) pontua pelo placar agregado (ida + volta).

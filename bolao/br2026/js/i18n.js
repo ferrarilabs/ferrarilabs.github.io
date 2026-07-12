@@ -78,6 +78,7 @@ window.BR2026_I18N = {
     provisionalNote: "Pontuação provisória — baseada na tabela atual. Atualiza a cada 60s.",
     finalNote: "Resultado oficial encerrado pelo admin.",
     noEntries: "Nenhuma entrada ainda.",
+    viewPicks: "Ver palpites",
     paid: "✓ Pago",
     unpaid: "Pendente",
     // Standings

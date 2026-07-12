@@ -116,8 +116,10 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 .nav button.active { background: var(--green); color: var(--green-dk); }
 
 /* ── Main layout ── */
+/* max-width igual à Copa (bolao/css/styles.css) — Copa é a referência visual canônica da
+   plataforma, ver DESIGN_SYSTEM.md e CLAUDE.md. Era 860px, divergente. */
 main {
-  max-width: 860px; margin: 0 auto;
+  max-width: 1140px; margin: 0 auto;
   padding: 16px 14px 80px;
 }
 
@@ -170,6 +172,14 @@ main {
 /* ── Pages ── */
 .page { display: none; }
 .page.active { display: block; }
+
+/* Normalização global de heading — mesma regra do Copa (bolao/css/styles.css), evita que um
+   <h3> fora de .section-head (ex.: dentro de um .card) caia no tamanho/margem default do
+   navegador — ver DESIGN_SYSTEM.md "Header". */
+h1, h2, h3 { margin: .15em 0 .4em; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+
 .section-head { margin-bottom: 16px; }
 .section-head h2 { margin: 0 0 4px; font-size: 22px; }
 
@@ -210,7 +220,7 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
   position: sticky; bottom: 14px; z-index: 10;
   display: flex; justify-content: center; padding-top: 8px;
 }
-.sticky-submit button { min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(0,0,0,.5); }
+.sticky-submit button { min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
 
 /* ── Provisional note ── */
 .prov-note {
@@ -218,22 +228,27 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
   background: var(--bg2); border-radius: 8px; margin-bottom: 10px;
 }
 
-/* ── Ranking cards ── */
-.rank-card {
-  background: var(--bg2); border: 1px solid var(--border);
-  border-radius: 14px; padding: 14px 16px; margin-bottom: 10px;
+/* ── Ranking — mesma estrutura densa de 1 linha da Copa (.rank-row), já validada em várias
+   rodadas de feedback mobile real — ver DESIGN_SYSTEM.md "Ranking — estrutura do card" e
+   CONSISTENCY_MATRIX.md item 68. Substitui o antigo .rank-card empilhado. */
+.rank-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 12px;
+  margin-bottom: 8px;
 }
-.rank-top {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  margin-bottom: 10px;
-}
-.rank-pos   { font-size: 18px; font-weight: 900; min-width: 28px; }
-.rank-name  { font-weight: 700; font-size: 15px; flex: 1; }
-.rank-pts   { font-weight: 900; font-size: 17px; margin-left: auto; }
-.rank-pts small { font-size: 11px; color: var(--muted); }
+.rank-row .rank-pos { font-size: 22px; text-align: center; }
+.rank-row .points { font-size: 26px; color: var(--green); font-weight: 900; text-align: right; }
+.picks-detail { margin-bottom: 10px; }
 
-.paid-badge   { background: rgba(47,229,110,.15); color: var(--green); border: 1px solid rgba(47,229,110,.3); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
-.unpaid-badge { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.25); font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; white-space: nowrap; }
+/* Mesmo tratamento visual do .status-chip da Copa — ver DESIGN_SYSTEM.md "Badge / Status indicator". */
+.paid-badge   { background: rgba(47,229,110,.15); color: var(--green); border: 1px solid rgba(47,229,110,.3); font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+.unpaid-badge { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.25); font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 
 /* ── Picks display in ranking ── */
 .picks-display.cdb-picks { display: flex; flex-direction: column; gap: 4px; }
@@ -294,13 +309,9 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 .small-text { font-size: 12px; }
 .button-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
-/* ── Team badge (símbolo do time — abreviação em círculo colorido) ── */
-.team-badge {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 20px; height: 20px; border-radius: 50%;
-  font-size: 8px; font-weight: 900; color: #fff;
-  vertical-align: middle; flex-shrink: 0;
-}
+/* ── Team logo (escudo real ESPN) — mesmas classes/medidas do BR2026 ── */
+.team-logo { width: 14px; height: 14px; vertical-align: middle; border-radius: 2px; object-fit: contain; flex-shrink: 0; }
+.match-logo { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; border-radius: 2px; vertical-align: middle; }
 
 /* ── Per-tie picks (confrontos) ── */
 .tie-row {
@@ -429,8 +440,56 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .nav            { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }
   .pick-row label { flex-direction: column; align-items: flex-start; }
+  /* Ranking compacta em 1 linha — mesmo tratamento da Copa (bolao/css/styles.css). Coluna de
+     pontos com largura fixa (40px) pra o botão nunca deslocar conforme o placar tem 1-3 dígitos. */
+  .rank-row {
+    grid-template-columns: 28px 1fr 40px auto;
+    padding: 10px 12px;
+    gap: 8px;
+    align-items: start;
+  }
+  .rank-row .rank-pos { font-size: 16px; }
+  .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
+  .rank-row .points { font-size: 17px; text-align: right; }
+  .rank-row button { justify-self: end; }
 }
 
 @media (max-width: 500px) {
   .count-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Toast notifications — mesma implementação da Copa (bolao/css/styles.css) */
+.bolao-toasts {
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10000;
+  pointer-events: none;
+  max-width: 320px;
+}
+.bolao-toast {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
+  pointer-events: auto;
+  animation: toast-in 0.2s ease;
+  transition: opacity 0.3s ease;
+  word-break: break-word;
+}
+.bolao-toast.success { background: #0f2a0f; color: #69c569; border-left: 3px solid #4caf50; }
+.bolao-toast.error   { background: #2a0f0f; color: #f08080; border-left: 3px solid #e05050; }
+.bolao-toast.warn    { background: #2a1f00; color: #ffcc66; border-left: 3px solid #ff9800; }
+.bolao-toast.info    { background: #0d1f33; color: #80c8f0; border-left: 3px solid #4a9fd4; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@media (max-width: 480px) {
+  .bolao-toasts { right: 8px; left: 8px; max-width: none; }
 }
