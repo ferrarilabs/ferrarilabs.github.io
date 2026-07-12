@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.10",
+  siteVersion: "v1.11",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -8,8 +8,8 @@ window.BR2026_CONFIG = {
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
   adminSessionMinutes: 30,
-  // UPDATE before publishing: cutoff before round that hasn't started yet
-  cutoffIso: "2026-07-10T10:00:00-03:00",
+  // Prazo: domingo 19/jul às 23h59 BRT (2 dias antes do reinício do BR)
+  cutoffIso: "2026-07-19T23:59:00-03:00",
   adminEmail: "emferrari@gmail.com",
   paymentMethods: {
     CashApp: "$EduardoFerrari",

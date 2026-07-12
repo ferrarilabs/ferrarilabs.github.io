@@ -1,5 +1,14 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v1.4 — 2026-07-12
+
+### Fixed — alinhamento topbar
+
+- `align-items: center` no grid do topbar (desktop e mobile)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.3 — 2026-07-12
 
 ### Fixed — segurança + CSS (Big Tech QA audit)

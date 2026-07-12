@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.125 — 2026-07-12
+
+### Fixed — alinhamento do topbar (todos os bolões)
+
+- `align-items: center` + `align-self: center` adicionados em todos os breakpoints do topbar grid
+- Copa mobile: gap ajustado para `6px 8px` (row gap menor entre linhas do topbar)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.124 — 2026-07-12
 
 ### Fixed — topbar Copa: switcher sempre top-right em mobile e desktop
