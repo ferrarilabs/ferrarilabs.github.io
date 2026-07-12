@@ -71,6 +71,15 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
 
+/* ── WhatsApp support button ── */
+.whatsapp-btn {
+  display: inline-flex; gap: 6px; align-items: center;
+  background: #25D366; color: #000; text-decoration: none;
+  border-radius: 999px; padding: 8px 13px;
+  font-weight: 900; font-size: 13px; white-space: nowrap;
+}
+.whatsapp-btn img { width: 18px; height: 18px; }
+
 /* ── Bolão switcher ── */
 .bolao-switcher select {
   appearance: none;
@@ -285,6 +294,55 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 .small-text { font-size: 12px; }
 .button-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
+/* ── Team badge (símbolo do time — abreviação em círculo colorido) ── */
+.team-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 20px; height: 20px; border-radius: 50%;
+  font-size: 8px; font-weight: 900; color: #fff;
+  vertical-align: middle; flex-shrink: 0;
+}
+
+/* ── Per-tie picks (confrontos) ── */
+.tie-row {
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
+}
+.tie-row.locked { opacity: .75; }
+.tie-teams { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; flex-wrap: wrap; }
+.tie-vs { color: var(--muted); font-weight: 400; margin: 0 2px; }
+.tie-teams-pending, .tie-teams-admin { font-size: 13px; color: var(--muted); }
+.tie-inputs { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+.tie-inputs input[type="number"] { width: 56px; text-align: center; }
+.tie-inputs select { min-width: 140px; }
+.tie-x { color: var(--muted); }
+.tie-locked-note { margin-top: 4px; font-size: 12px; }
+.tie-locked-score { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+
+/* ── Games section rounds ── */
+.games-round-header, .admin-round-header {
+  font-size: 13px; font-weight: 900; color: var(--gold);
+  text-transform: uppercase; letter-spacing: .05em;
+  margin: 18px 0 8px;
+}
+.games-round-header:first-child, .admin-round-header:first-child { margin-top: 0; }
+.confronto-result { font-size: 12px; color: var(--green); font-weight: 700; }
+
+/* ── Admin per-tie results row ── */
+.cdb-admin-tie { flex-wrap: wrap; }
+.cdb-admin-tie input[type="number"] { width: 56px; text-align: center; }
+.cdb-admin-tie select { min-width: 140px; width: auto; }
+
+/* ── Find-my-entry + receipt ── */
+.find-entry-card h3 { margin: 0 0 6px; font-size: 15px; }
+.receipt-code { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 3px 8px; font-size: 13px; }
+
+/* ── Payment QR ── */
+.pay-qr { width: 120px; height: 120px; border-radius: 8px; margin-top: 6px; }
+
+/* ── Pick cell — extra states ── */
+.pick-cell.pick-partial { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3); }
+.pick-partial .pick-pts-badge { color: var(--gold); }
+
 /* ── Jogos — Oitavas ── */
 .confronto-card {
   margin-bottom: 14px;
@@ -341,14 +399,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 @media (min-width: 901px) {
   .topbar {
     display: grid !important;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 8px 12px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
-  .lang-links     { grid-column: 2; grid-row: 1; align-self: center; }
-  .bolao-switcher { grid-column: 3; grid-row: 1; align-self: center; }
+  .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; }
+  .lang-links     { grid-column: 3; grid-row: 1; align-self: center; }
+  .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
   .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(7, 1fr); gap: 5px; }
   .nav button     { font-size: 13px; padding: 8px 6px; }
 }
@@ -357,14 +416,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   main { padding: 12px 10px 80px; }
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-rows: auto auto auto;
     align-items: center;
     padding: 10px 12px;
     gap: 8px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
-  .bolao-switcher { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
+  .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; font-size: 12px; padding: 7px 10px; }
+  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; }
   .lang-links     { grid-column: 1 / -1; grid-row: 2; }
   .nav            { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }

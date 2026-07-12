@@ -46,6 +46,9 @@
     <button type="button" disabled aria-label="Español MX">🇲🇽 ES-MX</button>
     <button type="button" disabled aria-label="English US">🇺🇸 EN-US</button>
   </div>
+  <a id="supportWhatsappBtn" class="whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer" aria-label="Suporte WhatsApp">
+    <img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span>
+  </a>
   <nav class="nav" aria-label="Navegação principal">
     <button type="button" data-section="entry"        data-i18n="navPicks">Palpites</button>
     <button type="button" data-section="ranking"      data-i18n="navRanking">Ranking</button>
@@ -74,6 +77,24 @@
 
   <!-- ── Palpites ── -->
   <section id="entry" class="page active">
+    <div class="card find-entry-card">
+      <h3 data-i18n="findEntryTitle">Já enviei meus palpites — editar entrada</h3>
+      <p class="muted" style="font-size:12px" data-i18n="findEntryHint">Conforme cada fase termina, novos confrontos ficam liberados para palpite. Informe o e-mail e o código do comprovante (enviado por e-mail ao salvar) para editar.</p>
+      <div class="form-grid">
+        <label>
+          <span data-i18n="findEntryLabel">E-mail da entrada</span>
+          <input id="findEntryEmail" type="email" autocomplete="email" placeholder="nome@email.com">
+        </label>
+        <label>
+          <span data-i18n="findEntryCodeLabel">Código do comprovante</span>
+          <input id="findEntryCode" type="text" placeholder="CDB2026-XXXXXXXX-YYYYMMDD" maxlength="40">
+        </label>
+      </div>
+      <div class="button-row" style="margin-top:10px">
+        <button id="findEntryBtn" type="button" class="secondary" data-i18n="findEntryBtn">Buscar minha entrada</button>
+      </div>
+    </div>
+    <div id="receiptBox" class="card hidden"></div>
     <div class="card">
       <h2 data-i18n="entryTitle">Nova entrada</h2>
       <div class="form-grid">
@@ -168,7 +189,9 @@
         <div class="admin-toolbar">
           <button id="adminLogoutBtn"  type="button" class="secondary" data-i18n="logout">Sair</button>
           <button id="exportCsvBtn"    type="button" class="secondary small-btn" data-i18n="exportCsvBtn">📊 CSV</button>
+          <button id="exportJsonBtn"   type="button" class="secondary small-btn" data-i18n="exportJsonBtn">💾 JSON</button>
           <button id="forceSyncBtn"    type="button" class="secondary small-btn" data-i18n="forceSyncBtn">☁️ Sync</button>
+          <button id="clearDataBtn"    type="button" class="danger small-btn" data-i18n="clearDataBtn">🗑️ Limpar tudo</button>
         </div>
       </div>
       <div id="adminResults"  class="card"></div>

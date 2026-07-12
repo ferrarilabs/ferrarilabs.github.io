@@ -1,5 +1,5 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v1.6",
+  siteVersion: "v2.0",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -21,14 +21,30 @@ window.CDB2026_CONFIG = {
     Zelle: "",
     Venmo: "https://venmo.com/u/Eduardo-Ferrari"
   },
+  // Mesmo grupo da Copa do Mundo (bolao/js/config.js) — reaproveitado, não é um grupo novo.
+  whatsappGroup: {
+    name: "Bolão do Ferrari",
+    link: "https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t",
+    qrImage: "assets/whatsapp-group-qr.png"
+  },
+  zelle: {
+    qrImage: "assets/zelle-qr.png"
+  },
   prizes: { first: 0.70, second: 0.20, third: 0.10 },
   scoring: {
-    // Campeão exato
-    champion: 30,
-    // Vice-campeão (finalista que perde) exato
-    runnerUp: 20,
-    // Cada semifinalista correto (qualquer um dos 2 que perderam nas semis)
-    semifinalist: 10,
+    // Pontuação por confronto (placar agregado ida+volta) — mesmos valores da Copa do Mundo
+    // (bolao/js/config.js), aplicados ao agregado em vez de a uma partida única.
+    tie: {
+      exact: 10,   // placar agregado exato
+      advance: 5,  // time que avança está correto (mesmo com placar agregado errado)
+      partial: 1,  // gols agregados de um dos dois lados batem
+    },
+    // Bônus de pódio final — específico da Copa do Brasil (sem disputa de 3º lugar)
+    bonus: {
+      champion: 30,
+      runnerUp: 20,
+      semifinalist: 10, // cada um dos 2 semifinalistas que não chegaram à final
+    },
   },
   emailjs: {
     enabled: true,

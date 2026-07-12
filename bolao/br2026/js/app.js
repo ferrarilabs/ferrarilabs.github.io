@@ -367,6 +367,12 @@ let _matchProbs   = {};   // { "HomeTeam|AwayTeam": { pH, pD, pA } } for upcomin
 let _ratingsCache = null; // invalidated on each standings poll
 let _teamLogos    = {};   // { teamName: logoUrl } parsed from ESPN standings
 
+function teamLogoImg(team, cls) {
+  return _teamLogos[team]
+    ? `<img src="${esc(_teamLogos[team])}" class="${cls || "match-logo"}" alt="" aria-hidden="true">`
+    : "";
+}
+
 async function fetchStandings() {
   try {
     const r = await fetch(C.espn.standingsUrl);
@@ -752,9 +758,11 @@ function renderLiveCard() {
     return `<div class="live-match">
       <span class="live-badge">${esc(t("liveNow"))}</span>
       <div class="live-teams">
+        ${teamLogoImg(m.homeTeam)}
         <span class="live-team-name">${esc(m.homeTeam)}</span>
         <span class="live-score">${m.homeScore} – ${m.awayScore}</span>
         <span class="live-team-name">${esc(m.awayTeam)}</span>
+        ${teamLogoImg(m.awayTeam)}
       </div>
       <span class="live-clock">${esc(clock)}</span>
       ${probBarsHtml}
@@ -779,12 +787,12 @@ function renderNextGameCard() {
         const clock   = secElap !== null ? formatClock(secElap) : lm.clockStr;
         return `<div class="today-game today-game-live">
           <span class="live-badge">${esc(t("liveNow"))}</span>
-          <div class="today-game-teams">${esc(g.homeTeam)} <b class="today-score">${lm.homeScore} – ${lm.awayScore}</b> ${esc(g.awayTeam)}</div>
+          <div class="today-game-teams">${teamLogoImg(g.homeTeam, "team-logo")} ${esc(g.homeTeam)} <b class="today-score">${lm.homeScore} – ${lm.awayScore}</b> ${esc(g.awayTeam)} ${teamLogoImg(g.awayTeam, "team-logo")}</div>
           <span class="today-game-time muted">${esc(clock)}</span>
         </div>`;
       } else if (g.state === "post") {
         return `<div class="today-game today-game-post">
-          <div class="today-game-teams muted">${esc(g.homeTeam)} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${esc(g.awayTeam)}</div>
+          <div class="today-game-teams muted">${teamLogoImg(g.homeTeam, "team-logo")} ${esc(g.homeTeam)} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${esc(g.awayTeam)} ${teamLogoImg(g.awayTeam, "team-logo")}</div>
           <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
         </div>`;
       } else {
@@ -817,7 +825,7 @@ function renderNextGameCard() {
           </div>`;
         })() : "";
         return `<div class="today-game">
-          <div class="today-game-teams">${esc(g.homeTeam)} <span class="next-game-vs">×</span> ${esc(g.awayTeam)}</div>
+          <div class="today-game-teams">${teamLogoImg(g.homeTeam, "team-logo")} ${esc(g.homeTeam)} <span class="next-game-vs">×</span> ${esc(g.awayTeam)} ${teamLogoImg(g.awayTeam, "team-logo")}</div>
           <span class="today-game-time muted">${esc(timeStr)} BRT${esc(countdown)}</span>
           ${heroBars}
         </div>`;
@@ -872,7 +880,7 @@ function renderNextGameCard() {
   })() : "";
   card.innerHTML = `<div class="next-game-card">
     <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
-    <div class="next-game-teams">${esc(next.homeTeam)} <span class="next-game-vs">×</span> ${esc(next.awayTeam)}</div>
+    <div class="next-game-teams">${teamLogoImg(next.homeTeam, "team-logo")} ${esc(next.homeTeam)} <span class="next-game-vs">×</span> ${esc(next.awayTeam)} ${teamLogoImg(next.awayTeam, "team-logo")}</div>
     ${nextBars}
     <div class="next-game-info">${esc(timeStr)}${countdown ? ` · ${esc(countdown)}` : ""}</div>
     ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
@@ -1563,6 +1571,9 @@ function renderAll() {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
+  const wa = $("supportWhatsappBtn");
+  if (wa) wa.href = C.whatsappGroup?.link || "#";
+
   // Navigation
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
   showSection(isPastCutoff() ? "ranking" : "entry");
