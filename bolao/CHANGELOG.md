@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v4.123 — 2026-07-12
+
+### Fixed — segurança + CSS (Big Tech QA audit)
+
+- **SEC HIGH-1**: lockout admin migrado de `localStorage` para `sessionStorage`
+- **SEC MEDIUM-2**: `escapeHtml()` em `p.goalsA`/`p.goalsB` no audit log (XSS no painel admin)
+- **SEC LOW-1**: whitelist antes de `location.href` no switcher de bolão
+- **CSS H1**: `.bolao-switcher` agora tem `grid-column/grid-row` explícitos no topbar (estava sumindo no desktop)
+- **CSS MOB-3**: `-webkit-backdrop-filter` adicionado (blur do topbar no iOS Safari ≤ 15)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.122 — 2026-07-12
 
 ### Fixed — card "Próximo jogo": bandeiras no meio + local do jogo

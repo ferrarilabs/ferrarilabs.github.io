@@ -59,6 +59,7 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 .topbar {
   position: sticky; top: 0; z-index: 20;
   background: rgba(7,20,27,.94);
+  -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--border);
   display: flex; align-items: center; gap: 10px;
