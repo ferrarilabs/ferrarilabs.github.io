@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v4.124 — 2026-07-12
+
+### Fixed — topbar Copa: switcher sempre top-right em mobile e desktop
+
+- Mobile `1fr auto auto`: brand | WA | switcher na row 1 — WA volta a ficar visível
+- Desktop `1fr auto auto auto`: brand | WA | lang | switcher (col 4 = far right)
+- Posição do switcher agora consistente com BR2026/CDB2026 em todas as resoluções
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.123 — 2026-07-12
 
 ### Fixed — segurança + CSS (Big Tech QA audit)
