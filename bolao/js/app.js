@@ -442,7 +442,7 @@ function renderNextMatch() {
         : "";
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const scorersBlock = goalScorersHtml(ls, tA, tB);
-      const playsBlock = livePlaysHtml(ls, tA, tB); // NOT SHIPPED — local verification build, see extractMatchPlays
+      const playsBlock = livePlaysHtml(ls, tA, tB, mid);
       // A real break in play (halftime, penalties — no running clock exists
       // once regulation/extra time ends — or any other stoppage clockPaused
       // picked up from the clock's own behavior) isn't more elapsed play
@@ -475,7 +475,9 @@ function renderNextMatch() {
       ${pointsBlock}
       </div>`;
     }).join("");
+    const savedScroll = captureLivePlaysScroll(card);
     card.innerHTML = `<div class="next-match-live-grid">${items}</div>`;
+    restoreLivePlaysScroll(card, savedScroll);
     card.classList.remove("hidden");
     return;
   }
@@ -1767,6 +1769,7 @@ ${method === "Zelle" && CONFIG.zelle?.qrImage ? `<br><img src="${escapeHtml(CONF
 function renderGames() {
   const box = $("#gamesList");
   if (!box) return;
+  const savedPlaysScroll = captureLivePlaysScroll(box);
   box.innerHTML = "";
   const s = state();
   const knockoutIds = new Set(DATA.knockoutMatches.map(km => String(km.match)));
@@ -1817,7 +1820,7 @@ function renderGames() {
   <div class="game-team right"><span class="team-flag">${escapeHtml(flag(b))}</span><span class="team-name">${escapeHtml(b)}</span></div>
 </div>
 ${live ? goalScorersHtml(live, a, b) : ""}
-${live ? livePlaysHtml(live, a, b) : ""}
+${live ? livePlaysHtml(live, a, b, m.match) : ""}
 ${probBarsHtml}
 ${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
     box.appendChild(div);
@@ -1829,6 +1832,7 @@ ${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="
       box.appendChild(detail);
     }
   }
+  restoreLivePlaysScroll(box, savedPlaysScroll);
 }
 
 function renderRules() {
@@ -2392,15 +2396,16 @@ function goalScorersHtml(live, tA, tB) {
   </div>`;
 }
 
-// NOT WIRED INTO PRODUCTION RENDERING YET — see extractMatchPlays comment
-// for the full caveat (built + verified locally against a mocked ESPN
-// payload, not a real one; field names for cards/subs are unconfirmed).
 // One row per play (goal/card/sub), newest first, single scrollable column
 // (unlike goalScorersHtml's two side-by-side columns) — box height is
 // capped in CSS to ~3 rows so it can't grow the card indefinitely; more
 // plays scroll inside their own box instead of pushing page content down.
+// data-plays-match lets the caller restore this box's scrollTop across a
+// full innerHTML rebuild (see preserveLivePlaysScroll) — without it, the
+// running-clock tick (every 1s) recreates this element fresh each time and
+// silently resets any scroll position the user just set.
 const PLAY_ICON = { goal: "⚽", yellow: "🟨", red: "🟥", sub: "🔄" };
-function livePlaysHtml(live, tA, tB) {
+function livePlaysHtml(live, tA, tB, mid) {
   const plays = live?.plays;
   if (!Array.isArray(plays) || !plays.length) return "";
   const rows = [...plays].reverse().map(p => `<div class="live-plays-row">
@@ -2410,7 +2415,27 @@ function livePlaysHtml(live, tA, tB) {
     <span class="live-plays-text">${escapeHtml(p.text || "")}</span>
   </div>`).join("");
   if (!rows) return "";
-  return `<div class="live-plays">${rows}</div>`;
+  return `<div class="live-plays" data-plays-match="${escapeHtml(String(mid ?? ""))}">${rows}</div>`;
+}
+
+// A full innerHTML rebuild (renderNextMatch's 1s clock tick, renderGames'
+// periodic re-render) creates every .live-plays box fresh, wiping its
+// scrollTop back to 0 — mid-scroll, that reads as the box "snapping back up"
+// on its own. Call before mutating innerHTML and after, around the same
+// root element, to carry each box's scroll position across the rebuild.
+function captureLivePlaysScroll(root) {
+  const saved = {};
+  root?.querySelectorAll?.(".live-plays[data-plays-match]").forEach(el => {
+    if (el.scrollTop > 0) saved[el.dataset.playsMatch] = el.scrollTop;
+  });
+  return saved;
+}
+function restoreLivePlaysScroll(root, saved) {
+  if (!saved || !Object.keys(saved).length) return;
+  root?.querySelectorAll?.(".live-plays[data-plays-match]").forEach(el => {
+    const s = saved[el.dataset.playsMatch];
+    if (s) el.scrollTop = s;
+  });
 }
 
 // Cache pWinA for each ordered team pair to avoid recomputing Poisson for
@@ -3594,24 +3619,24 @@ function extractGoalEvents(comp) {
   }
 }
 
-// NOT WIRED INTO PRODUCTION RENDERING YET — built + verified locally per
-// Eduardo's request (July 2026), kept unshipped pending a live match to
-// confirm ESPN's real field values (see caveats below). Generalizes
-// extractGoalEvents to capture cards and substitutions from the exact same
-// comp.details array — no extra network call, same endpoint already polled
-// every 60s for the live score/clock. This is ESPN's data, not a broadcaster
-// commentary feed: only discrete events (goal/card/sub) are available, never
-// prose-style play-by-play like a TV broadcaster's live text (e.g. ge.globo)
-// — that data source isn't available to this site.
+// Built for the "últimos lances" minute-by-minute feed (July 2026).
+// Generalizes extractGoalEvents to capture cards and substitutions from the
+// exact same comp.details array — no extra network call, same endpoint
+// already polled every 60s for the live score/clock. This is ESPN's data,
+// not a broadcaster commentary feed: only discrete events (goal/card/sub)
+// are available, never prose-style play-by-play like a TV broadcaster's
+// live text (e.g. ge.globo) — that data source isn't available to this site.
 //
-// UNVERIFIED without a live payload: the exact type.text/type.name strings
-// ESPN uses for yellow/red cards and substitutions, and whether a
-// substitution's athletesInvolved lists [in, out] or [out, in] — order is
-// deliberately NOT asserted below (see extractMatchPlays' sub handling).
-// Same "fails soft, never throws" contract as extractGoalEvents: this runs
-// inline inside mapEspnToLiveScores() on every poll, so a shape mismatch
-// must degrade to an empty array, never break the live score/clock for
-// every match.
+// Verified pre-ship against a hand-built mock matching ESPN's typical API
+// conventions (not a real live payload — see PR #41's QA notes). The exact
+// type.text/type.name strings ESPN uses for yellow/red cards and
+// substitutions, and whether a substitution's athletesInvolved lists
+// [in, out] or [out, in], are still unconfirmed against a real match —
+// order is deliberately NOT asserted below (see extractMatchPlays' sub
+// handling). Same "fails soft, never throws" contract as extractGoalEvents:
+// this runs inline inside mapEspnToLiveScores() on every poll, so a shape
+// mismatch must degrade to an empty array, never break the live score/clock
+// for every match.
 function extractMatchPlays(comp) {
   try {
     const details = Array.isArray(comp.details) ? comp.details : [];
@@ -3740,7 +3765,6 @@ function mapEspnToLiveScores(events) {
             : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
-      // plays: NOT WIRED INTO PRODUCTION RENDERING YET — see extractMatchPlays comment.
       const matchPlays = extractMatchPlays(comp);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));

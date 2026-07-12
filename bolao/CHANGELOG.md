@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v4.120 — 2026-07-12
+
+### Fixed — caixa de lances "voltava sozinha pra cima" ao tentar rolar
+
+Reportado logo após o v4.119 ir ao ar: ao tentar rolar a caixa de lances pra ver os mais antigos, ela voltava pro topo sozinha.
+
+Causa: o card ao vivo é reconstruído do zero a cada 1 segundo (pra atualizar o relógio correndo) e a cada 60s (novo placar da ESPN) — cada reconstrução cria a caixa de lances como um elemento novo, zerando a posição de rolagem que a pessoa tinha acabado de definir. Como o relógio atualiza a cada segundo, a rolagem praticamente nunca "grudava".
+
+Fix: `captureLivePlaysScroll`/`restoreLivePlaysScroll` guardam a posição de rolagem de cada caixa antes da reconstrução e a devolvem depois, tanto no card "ao vivo" (aba Palpites/próximo jogo) quanto na aba Jogos.
+
+QA: reproduzi o bug isoladamente (rolei a caixa, esperei os ticks do relógio, confirmei que voltava a zero na versão antiga), confirmei que o fix resolve exatamente isso, e rodei de novo toda a bateria de testes do v4.119 (varredura de regressão em todas as abas, 13 payloads maliciosos, isolamento entre duas partidas ao vivo simultâneas) — tudo passou de novo, incluindo através dos ticks do relógio. `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.119 — 2026-07-12
 
 ### Novo — lances minuto a minuto (gols, cartões, substituições) no card ao vivo
