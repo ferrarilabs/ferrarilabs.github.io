@@ -1,5 +1,20 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v1.6 — 2026-07-12
+
+### Novo — seção Jogos (Oitavas de Final) + times reais populados
+
+- **Jogos**: nova aba no nav com os 8 confrontos das Oitavas de Final (ida e volta)
+  - Exibe stadium, data e horário em BRT para cada jogo
+  - Dados estáticos em `js/data.js` (não depende de API externa)
+- **Times**: `js/data.js` atualizado com os 16 times reais das Oitavas:
+  Athletico-PR, Atlético-MG, Chapecoense, Corinthians, Cruzeiro, Fluminense,
+  Fortaleza, Grêmio, Internacional, Juventude, Mirassol, Palmeiras, Remo, Santos, Vasco, Vitória
+- **CSS nav**: `repeat(6, 1fr)` → `repeat(7, 1fr)` para acomodar novo botão
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.5 — 2026-07-12
 
 ### Novo — botões de idioma no topbar (padronização com Copa)

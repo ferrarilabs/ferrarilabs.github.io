@@ -79,6 +79,12 @@ window.CDB2026_I18N = {
     tbChampion: "1º desempate: acertou campeão",
     tbRunnerUp: "2º desempate: acertou vice-campeão",
     tbAlpha: "3º desempate: nome da entrada Z→A",
+    // Jogos — Oitavas de Final
+    navGames: "Jogos",
+    gamesTitle: "Oitavas de Final",
+    gamesSubtitle: "Confrontos das Oitavas da Copa do Brasil 2026 (horários em Brasília)",
+    gamesLeg1: "Jogo 1",
+    gamesLeg2: "Jogo 2",
     // Admin
     adminTitle: "Admin",
     adminPassword: "Senha do admin",
