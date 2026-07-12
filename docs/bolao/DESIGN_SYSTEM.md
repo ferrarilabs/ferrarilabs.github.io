@@ -1,0 +1,486 @@
+# Design System — Plataforma Bolão
+
+Especificação oficial de interface para os três aplicativos (`bolao/`, `bolao/br2026/`,
+`bolao/cdb2026/`). Este documento é o resultado de uma auditoria de UX comparativa entre os
+três apps (2026-07-12) — ver `docs/bolao/CONSISTENCY_MATRIX.md` para o histórico item a item, e
+`docs/bolao/LESSONS_LEARNED.md` para os bugs de UI já corrigidos no passado.
+
+**Método da auditoria** — leitura completa e comparação linha a linha dos três arquivos
+`css/styles.css` e `index.html`, com verificação cruzada de todas as ocorrências de cada
+componente (regra permanente em `CLAUDE.md`: "toda vez que um componente visual for alterado").
+**Limitação registrada:** este sandbox não tinha extensão de navegador conectada no momento da
+auditoria — não foi possível capturar screenshots reais em Safari/Chrome nos 8 breakpoints
+pedidos. Toda medida abaixo vem do CSS/HTML real (portanto é exata e verificável — `grep` no
+próprio repositório reproduz qualquer valor citado), mas julgamentos que dependem só de olhar a
+tela renderizada (ex.: "está feio", cor exata percebida em um monitor real) não foram feitos.
+Recomendo uma passada visual manual (`python3 -m http.server 8080`, abrir os três apps) antes de
+aceitar qualquer correção "Low"/"Medium" cosmética como definitiva.
+
+Os três apps compartilham o mesmo sistema de tokens de cor (CSS custom properties):
+
+```css
+--bg: #07141b;       --bg2: #0d2028;      --bg3: #10252d;
+--border: #1f3b45;   --border2: #29444d;
+--green: #2fe56e;    --green-dk: #03130b;
+--text: #eef7f1;     --muted: #9cb2b9;
+--danger-bg: #3d1520; --danger-tx: #ffdbe1; --danger-br: #8e2d42;
+```
+Copa adiciona `--gold` não existe (usa hex direto em vários lugares — ver "Inconsistências").
+BR2026/CDB2026 adicionam `--gold: #f59e0b;` `--red: #f87171;`. **Copa não tem esses dois
+tokens** — onde precisa de dourado/vermelho usa hex literal espalhado pelo CSS
+(`#f59e0b`, `#ff6b6b`, `#4a0e0e`...). Isso já é uma inconsistência de fundação — ver item 1 da
+lista de inconsistências no final.
+
+---
+
+## Botão Primary
+
+```css
+border: 0;
+border-radius: 12px;
+padding: 11px 18px;
+background: var(--green);
+color: var(--green-dk);
+font-weight: 900;
+cursor: pointer;
+transition: opacity .15s;
+/* hover */    opacity: .88;
+/* disabled */ opacity: .45; cursor: not-allowed;
+```
+Sem sombra própria (sombra só aparece no contexto `.sticky-submit button`, ver "Sticky Action").
+Sem animação além do `transition: opacity .15s` no hover.
+
+**Status:** byte-a-byte idêntico nos três apps. ✅ Nenhuma ação necessária.
+
+## Botão Secondary
+
+```css
+background: var(--bg3);
+color: var(--text);
+border: 1px solid var(--border2);
+/* herda o resto do Primary: border-radius 12px, padding 11px 18px, font-weight 900 */
+```
+**Status:** idêntico nos três apps. ✅
+
+## Botão Danger
+
+```css
+background: var(--danger-bg);
+color: var(--danger-tx);
+border: 1px solid var(--danger-br);
+```
+**Status:** idêntico nos três apps. ✅ Uso na UI diverge — ver inconsistência #7 (botão "Limpar
+tudo" existia só na Copa até esta sessão; agora existe também no CDB2026, ainda falta no
+BR2026).
+
+## Botão Small
+
+```css
+padding: 7px 11px;
+font-size: 12px;
+border-radius: 9px;
+white-space: nowrap;
+```
+**Status:** idêntico nos três apps. ✅ Densidade de uso diverge (Copa: 12 ações no admin
+toolbar; BR2026: 3 — CSV/Sync/[JSON quando existir]; CDB2026: 4 — CSV/JSON/Sync/Limpar). Isso
+não é um bug de componente, é uma lacuna de feature já catalogada (`CONSISTENCY_MATRIX.md`
+item 6).
+
+---
+
+## Input
+
+| Propriedade | Copa | BR2026 / CDB2026 | Divergência |
+|---|---|---|---|
+| `background` | `var(--bg)` (mais escuro) | `var(--bg3)` (mais claro) | **Sim — cor de fundo do campo diferente** |
+| `border-radius` | `11px` | `9px` | **Sim** |
+| `padding` | `11px 12px` | `10px 12px` | Sim (1px, imperceptível sozinho) |
+| `border` | `1px solid var(--border2)` | idêntico | — |
+| `width` | `100%` | idêntico | — |
+| Espaçamento do label | `margin-top: 5px` no próprio input | `gap: 5px` no `label` flex | Efeito visual igual, mecanismo diferente |
+| Foco (clique/mouse) | `outline: 2px solid var(--green)` | `border-color: var(--green)` (sem outline) | **Sim — anel de foco visível só na Copa em clique de mouse** |
+| Foco (teclado, `:focus-visible`) | `outline: 2px solid #2fe56e; outline-offset: 3px` | idêntico | — |
+| `disabled` | `input[disabled] { opacity: .5 }` | `input:disabled { opacity: .5; cursor: not-allowed }` | BR2026/CDB2026 também mudam o cursor; Copa não |
+
+**Especificação recomendada (canônica):**
+```css
+label { display: flex; flex-direction: column; gap: 5px; }
+label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+input, select, textarea {
+  width: 100%;
+  background: var(--bg3);
+  border: 1px solid var(--border2);
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--text);
+  outline: none;
+  transition: border-color .15s;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--green); }
+input:disabled, select:disabled, textarea:disabled { opacity: .5; cursor: not-allowed; }
+```
+Motivo da escolha: 2 dos 3 apps já usam este padrão; o anel de `outline` no foco por mouse da
+Copa é redundante com o `:focus-visible` global que os três já têm — manter os dois é
+inconsistente sem ganho de acessibilidade real (o `:focus-visible` já cobre o caso que importa,
+navegação por teclado).
+
+## Textarea
+
+**Nenhum dos três apps usa `<textarea>` em nenhum lugar da UI atual** — não há campo de texto
+livre multi-linha em nenhum formulário (motivo de negócio, delete de entrada usa `prompt()`
+implícito no fluxo, não textarea). Especificação acima serve de base para quando um for
+necessário; não há inconsistência a corrigir hoje porque o componente não existe ainda.
+
+## Select
+
+Mesma regra do Input (`input, select { ... }` é uma única declaração combinada nos três apps).
+Diferença adicional: `.bolao-switcher select` e os dropdowns de palpite (`.pick-select`,
+`.tie-advance`) têm `appearance: none` — confirmado idêntico nos três apps.
+
+---
+
+## Card
+
+```css
+background: var(--bg2);
+border: 1px solid var(--border);
+border-radius: 18px;
+padding: 18px;
+margin-bottom: 14px;
+box-shadow: 0 8px 32px rgba(0,0,0,.22);
+```
+**Status:** idêntico nos três apps, byte-a-byte. ✅
+
+## Section
+
+Container `<section id="..." class="page">` com `display:none` por padrão, `.page.active {
+display:block}`. Idêntico nos três apps. Cabeçalho de seção (`.section-head`) também
+idêntico em estrutura, mas a tipografia do `<h2>` dentro dele diverge — ver "Header" abaixo.
+
+---
+
+## Header (h1/h2/h3)
+
+| | Copa | BR2026 / CDB2026 |
+|---|---|---|
+| Regra global | `h1,h2,h3 { margin:.15em 0 .4em }` / `h2{font-size:1.25rem}` / `h3{font-size:1.05rem}` | **Nenhuma regra global** — só `.section-head h2 { margin:0 0 4px; font-size:22px }` |
+| `<h3>` fora de `.section-head` (ex.: dentro de cards, títulos de admin) | `1.05rem` (~16.8px), margem apertada | **Tamanho e margem default do navegador** (`~1.17em`, margem grande) |
+
+**Esta é uma inconsistência real de hierarquia visual**, não cosmética: qualquer `<h3>` dentro
+de um `.card` (ex.: "Resultado final", "Pagamentos" no admin do CDB2026; "Como funcionam os
+simuladores?" na Copa) renderiza em tamanhos e espaçamentos verticais diferentes dependendo do
+app, porque só a Copa normaliza isso globalmente.
+
+**Especificação recomendada (canônica, para os três apps):**
+```css
+h1, h2, h3 { margin: .15em 0 .4em; }
+h2 { font-size: 1.25rem; }
+h3 { font-size: 1.05rem; }
+.section-head h2 { margin: 0 0 4px; font-size: 22px; } /* overrides local ao header de seção */
+```
+
+---
+
+## Table
+
+Não existe uma classe `.table` genérica em nenhum app — cada tabela tem sua própria classe:
+
+| Tabela | App | `border-collapse` | `padding` da célula | Borda de linha |
+|---|---|---|---|---|
+| `.rules-table` | Copa | `collapse` | `8px 10px` | `1px solid var(--border)` |
+| `.rules-table` | BR2026 | `collapse` | `7px 10px` | idêntico |
+| `.rules-table` | CDB2026 | `collapse` | `7px 10px` | idêntico |
+| `.picks-detail table` | Copa (só Copa — sem equivalente nos outros dois) | `collapse` | `7px 8px` | `1px solid var(--border)` |
+| `.prob-table` | Copa (só Copa) | `collapse` | `6-7px 8px` | idêntico |
+
+**Divergência real:** `.rules-table` tem `8px 10px` de padding na Copa e `7px 10px` em
+BR2026/CDB2026 — 1px, imperceptível isoladamente, mas é o mesmo padrão do input (Copa
+sistematicamente 1px "maior" em paddings verticais) — sugere que a Copa nunca foi re-alinhada
+depois que BR2026/CDB2026 nasceram como cópia dela e divergiram.
+
+**Mobile:** nenhuma tabela tem uma estratégia de scroll horizontal (`overflow-x:auto`) própria
+— exceto `.picks-detail { overflow-x: auto }` na Copa. `.rules-table` (a única tabela presente
+nos três apps) tem só 2 colunas curtas ("Acerto" / "Pts"), então não quebra em mobile na
+prática — mas isso é sorte de conteúdo, não uma garantia estrutural do componente.
+
+**Especificação recomendada:**
+```css
+.table-wrap { overflow-x: auto; margin-bottom: 10px; } /* wrapper obrigatório para QUALQUER tabela nova */
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; }
+th { color: var(--muted); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+```
+
+---
+
+## Badge / Status indicator
+
+**Esta é a maior inconsistência de componente encontrada na auditoria.** Três apps, três
+tratamentos visuais completamente diferentes para o mesmo conceito ("indicador de estado"):
+
+| App | Classe | Formato | Cor |
+|---|---|---|---|
+| Copa | `.status-chip.done/.pending/.live` | Pílula preenchida (`border-radius:999px; padding:4px 10px`) | Hex literal (`#143d22`/`#72ff9d`, `#4a0e0e`/`#ff6b6b`) — **não usa `var(--green)`/`var(--red)` nem token nenhum** |
+| BR2026 | `.game-status.live/.post/.pre/.postponed` | **Texto colorido puro, sem fundo, sem borda, sem padding** | `#ef4444` / `var(--muted)` / `var(--gold)` |
+| BR2026/CDB2026 | `.paid-badge` / `.unpaid-badge` | Pílula translúcida com borda (`background:rgba(...)`, `border-radius:6px`) | `var(--green)`/`var(--red)` via `rgba()` |
+| CDB2026 | (sem equivalente a `.game-status` — jogos não têm chip de "ao vivo/finalizado" nenhum, só mostram o placar quando existe) | — | — |
+
+Três formatos de badge (pílula preenchida sólida / texto puro sem fundo / pílula translúcida
+com borda) para o mesmo papel semântico, mais um app (CDB2026) sem badge de status de jogo
+nenhum. Nenhum dos três usa uma variável de cor semântica (`--success`, `--danger`,
+`--warning`) — todos misturam `var(--green)`/`var(--red)`/`var(--gold)` com hex literal
+ad-hoc.
+
+**Especificação recomendada (canônica):**
+```css
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  border-radius: 999px; padding: 4px 10px;
+  font-size: 11px; font-weight: 900; white-space: nowrap;
+}
+.badge-success { background: rgba(47,229,110,.15); color: var(--green); border: 1px solid rgba(47,229,110,.3); }
+.badge-danger  { background: rgba(248,113,113,.12); color: var(--red);   border: 1px solid rgba(248,113,113,.28); }
+.badge-warning { background: rgba(245,158,11,.15);  color: var(--gold);  border: 1px solid rgba(245,158,11,.3); }
+.badge-neutral { background: var(--bg3); color: var(--muted); border: 1px solid var(--border2); }
+.badge-live    { background: #4a0e0e; color: #ff6b6b; animation: live-pulse 1.6s ease-in-out infinite; }
+```
+`.paid-badge`/`.unpaid-badge`/`.status-chip`/`.game-status` deveriam todos ser reescritos em
+cima de `.badge` + um modificador semântico — hoje são 4 implementações paralelas do mesmo
+componente.
+
+---
+
+## Alert
+
+Não existe um componente `.alert` genérico. O que existe, espalhado:
+- `.warning` (Copa only): fundo amarelo claro `#fff4cc`, texto escuro `#392d00` — **é o único
+  lugar em toda a plataforma com tema claro dentro de uma UI 100% escura** (contraste correto
+  isoladamente, mas visualmente destoa muito do resto — parece um elemento de outro site).
+- `.edit-mode-banner` (Copa only): fundo `#fff9c4`, mesma família de tema claro isolado.
+- `.bolao-toast.warn/.error/.success/.info` (Copa only — BR2026/CDB2026 usam `alert()`/
+  `confirm()` nativos do navegador para tudo, sem sistema de toast).
+- Nenhum "Alert" de card inline em BR2026/CDB2026 — mensagens de erro de validação vão direto
+  para `alert()` nativo (bloqueante, feio, mas funcional).
+
+**Inconsistência real:** BR2026/CDB2026 não têm o sistema de toast que a Copa construiu
+especificamente para reduzir `alert()`s bloqueantes (ver `LESSONS_LEARNED.md` → "QA" e
+histórico de v4.82 no changelog da Copa). Isso é uma regressão de UX nos dois apps novos em
+relação ao padrão que a própria plataforma já validou como melhor.
+
+**Especificação recomendada:** portar `.bolao-toast` (Copa) para BR2026/CDB2026 tal como está —
+já é o componente correto, só não foi propagado.
+
+---
+
+## Header (topbar/navbar)
+
+```css
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  background: rgba(7,20,27,.94);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 10px 18px;
+}
+```
+Idêntico nos três apps, incluindo o grid responsivo (`brand | whatsapp | lang-links |
+switcher` na linha 1, `nav` full-width na linha 2, `min-width:901px`). **Status:** consistente
+✅ — inclusive depois desta sessão, quando o botão WhatsApp foi propagado para os três.
+
+Única diferença real: número de itens no `.nav` (Copa 8, BR2026 9, CDB2026 7) — consequência
+direta do número de seções de cada app, não um bug.
+
+## Footer
+
+`.site-footer-bar` — idêntico nos três apps (mesma tipografia, padding, `opacity:.6`).
+**Status:** consistente ✅.
+
+## Sticky Action
+
+```css
+.sticky-submit {
+  position: sticky; bottom: 12-14px; z-index: 6-10;
+}
+.sticky-submit button {
+  box-shadow: 0 4px 24px rgba(47,229,110,.35); /* só a Copa tem esta sombra */
+  font-size: 16px; padding: 14px 28px;
+}
+```
+**Divergência:** a sombra verde (`box-shadow`) do botão sticky existe só na Copa. BR2026/CDB2026
+têm `.sticky-submit button { min-width:200px; padding:14px 28px; font-size:16px;
+box-shadow:0 4px 24px rgba(0,0,0,.5) }` — cor da sombra diferente (verde-translúcido na Copa,
+preto na BR2026/CDB2026) e BR2026/CDB2026 adicionam `min-width:200px` que a Copa não tem.
+
+**Especificação recomendada:** unificar em `box-shadow: 0 4px 24px rgba(47,229,110,.35)` (a
+cor verde reforça "ação primária positiva"; preto é neutro demais para o botão mais importante
+da tela) e manter `min-width:200px` (evita o botão ficar pequeno demais em telas largas).
+
+## Admin Toolbar
+
+```css
+.admin-toolbar { display: flex; gap: 6-8px; flex-wrap: wrap; margin-bottom: 8-14px; }
+```
+Estrutura CSS idêntica nos três. **Densidade de conteúdo muito diferente:** Copa = 12 botões
+`small-btn` numa única `flex-wrap` (em telas estreitas isso quebra em ~4 linhas de botões antes
+de chegar em qualquer conteúdo — ver "Admin" nas inconsistências); BR2026 = 2 botões; CDB2026 =
+4 botões. Não é um bug de componente (o componente é o mesmo), é uma questão de organização de
+informação — ver seção "Admin" abaixo.
+
+## Hero
+
+Estruturalmente diferente por app:
+- **Copa:** `.hero` é um grid de 2 colunas (`1fr 300px`) com toggle de colapsar
+  (`.hero-toggle`), conteúdo condicional (`#heroCard{display:none}` — atualmente **sempre
+  escondido por decisão de produto**, ver comentário no CSS), cards de partida ao vivo dentro
+  do hero.
+- **BR2026:** hero simples (`.hero-inner{display:flex;flex-direction:column}`) + dois cards
+  irmãos fora do hero (`#liveMatchCard`, `#nextGameCard`), sem toggle de colapsar.
+- **CDB2026:** hero simples, sem nenhum card de "ao vivo" (não tem placar ao vivo — sem API).
+
+**Isso é esperado e correto** — cada app tem uma necessidade de hero diferente pela natureza do
+torneio (Copa tem partidas simultâneas + mata-mata longo; BR2026 tem um jogo por vez;
+CDB2026 não tem dado ao vivo). Classificado como `INTENTIONALLY_DIFFERENT`, não como bug.
+
+## Modal
+
+**Nenhum dos três apps tem um componente de modal/dialog real.** Todas as confirmações usam
+`window.confirm()`/`window.alert()` nativos do navegador (exceto os toasts não-bloqueantes da
+Copa, que substituem `alert()` mas não `confirm()`). Não há `<dialog>`, overlay customizado, ou
+qualquer modal estilizado em nenhum lugar da plataforma.
+
+## Tooltip
+
+Só existe via atributo `title="..."` nativo do HTML (ex.: barras de probabilidade da Copa,
+`title="${team}: ${pct}%"`) — sem componente de tooltip customizado em nenhum app. Consistente
+por ausência total nos três — não há inconsistência porque não há implementação nenhuma pra
+divergir.
+
+## Loading / Spinner
+
+**Não existe nenhum spinner ou indicador de carregamento animado em nenhum dos três apps.**
+Estados de carregamento são só texto estático: `"Carregando calendário..."` (BR2026,
+`#gamesList`), nenhuma equivalente na Copa nem no CDB2026 (a seção Jogos da Copa/CDB2026 aparece
+vazia até o primeiro render, sem nenhuma mensagem). Gap real, não inconsistência entre apps —
+os três têm o mesmo nível (zero) de sofisticação aqui.
+
+## Empty State
+
+- Copa/BR2026/CDB2026: `<p class="muted">${t("noEntries")}</p>` — texto simples centralizado
+  por herança do container pai, sem ícone, sem CTA. **Idêntico nos três** (mesma classe
+  `.muted`, mesmo padrão de string).
+- **Status:** consistente ✅, mas rudimentar nos três igualmente (sem ilustração/ícone/CTA de
+  "criar a primeira entrada") — oportunidade de melhoria de plataforma, não uma divergência.
+
+## Skeleton
+
+**Não existe em nenhum app.** Nenhuma tela usa skeleton loading — o conteúdo aparece vazio (ou
+com o texto "Carregando...", só no BR2026) até o primeiro `renderAll()`. Consistente por
+ausência.
+
+---
+
+## Consistência entre componentes — tabela completa
+
+| Componente | Onde aparece | Consistente? | Correção sugerida | Prioridade |
+|---|---|---|---|---|
+| Botão Primary/Secondary/Danger/Small | Todos os apps, toda ação | ✅ Sim (idêntico) | Nenhuma | — |
+| Card | Todos os apps, todo container | ✅ Sim (idêntico) | Nenhuma | — |
+| Header/Footer/Sticky nav | Todos os apps | ✅ Sim (idêntico) | Nenhuma | — |
+| Empty state | Ranking/Participantes vazios, todos os apps | ✅ Sim (idêntico, rudimentar) | Adicionar CTA "criar primeira entrada" nos três, se quiser melhorar (não é bug) | Low |
+| **`main` max-width (largura do conteúdo)** | Toda a página, desktop | ❌ Não — Copa 1140px vs BR2026/CDB2026 860px | Padronizar em um valor único (recomendo 900–960px: mais largo que 860 sem chegar no exagero de 1140 numa UI de formulário/lista, não de dashboard) | **High** |
+| **Input/Select (fundo, radius, foco)** | Todo formulário, todos os apps | ✅ Resolvido v4.126 — Copa migrada para o padrão BR2026/CDB2026 | Nenhuma | — |
+| **Label de formulário (case, cor, tipografia)** | Todo formulário, todos os apps | ✅ Resolvido v4.126 — Copa migrada para uppercase/muted | Nenhuma | — |
+| **h1/h2/h3 fora de `.section-head`** | Títulos dentro de cards, admin, simulador | ✅ Resolvido v1.16/v2.2 — regra global portada para BR2026/CDB2026 | Nenhuma | — |
+| **Badge/status indicator** | Jogos (ao vivo/finalizado), pagamento | ✅ Resolvido v4.127/v1.17/v2.3 — paleta/formato convergidos (nomes de classe mantidos por app) | Nenhuma | — |
+| **Ranking — estrutura do card** | Seção Ranking, todos os apps | ✅ Resolvido v1.17/v2.3 — BR2026/CDB2026 adotaram `.rank-row`/`.picks-detail` da Copa | Nenhuma | — |
+| Toast/Alert não-bloqueante | Feedback de ação (salvar, erro, sync) | ✅ Resolvido v1.17/v2.3 — `showToast()` portado para BR2026/CDB2026 | Nenhuma | — |
+| Sombra do botão sticky | Botão "Salvar entrada" | ✅ Resolvido v4.126/v1.16/v2.2 — sombra verde + `min-width:200px` nos três | Nenhuma | — |
+| Símbolo do time (não-Copa) | Jogos, palpites, ranking | ✅ Sim, desde v1.15/v2.1 (escudo real ESPN, mesmas classes) — Copa usa bandeira, intencionalmente diferente | Nenhuma pendente | — |
+| Tabela (`.rules-table`) | Seção Regras, todos os apps | ✅ Resolvido v4.126 — padding `7px 10px` nos três | Nenhuma | — |
+| Tokens de cor (`--gold`, `--red`) | CSS `:root`, todos os apps | ⚠️ Parcial v4.126 — tokens existem nos três, `--red` da Copa (`#ff6b6b`) difere do valor de BR2026/CDB2026 (`#f87171`), não unificado (mudaria cor em produção) | Decidir valor único numa mudança visual deliberada, fora do escopo de patch mínimo | Low |
+| WhatsApp button | Header, todos os apps | ✅ Sim, desde v1.14/v1.15/v2.1 (byte-a-byte igual, mesmo grupo) | Nenhuma | — |
+| Admin toolbar (componente CSS) | Seção Admin | ✅ Sim (CSS idêntico) — densidade de conteúdo diverge (feature gap, não bug de componente) | Ver `CONSISTENCY_MATRIX.md` item 6 | Medium (feature, não UI) |
+| Modal/Dialog | Nenhum app tem | — (ausência consistente) | Nenhuma ação — não é uma lacuna crítica dado o uso de `confirm()` nativo | — |
+| Loading/Skeleton | Nenhum app tem de verdade | — (ausência consistente, exceto 1 string solta no BR2026) | Se for investir, adicionar um spinner simples nos três ao mesmo tempo | Low |
+
+---
+
+## Inconsistências — lista final classificada
+
+**Status:** de 14 inconsistências catalogadas, 8 foram resolvidas em duas rodadas — patches
+mínimos CSS-only (v4.126 Copa / v1.16 BR2026 / v2.2 CDB2026 — itens 4, 5, 6, 8, 11, e
+parcialmente 9) e, com autorização explícita do Eduardo, os 3 findings maiores que tocam JS
+(v4.127 Copa / v1.17 BR2026 / v2.3 CDB2026 — itens 1, 2, 7). Zero `Critical` restante em
+`CONSISTENCY_MATRIX.md`. Itens 3, 10, 12, 13 e 14 seguem em aberto — ver o racional de cada um
+abaixo.
+
+### Critical
+
+1. ✅ **Resolvido (v4.127/v1.17/v2.3).** Badge/status indicator tinha 3 implementações visuais
+   diferentes para o mesmo conceito (`.status-chip` pílula sólida com hex literal /
+   `.game-status` texto puro sem fundo / `.paid-badge` pílula translúcida com `rgba()`). CSS
+   convergido nos três apps (mesma paleta baseada em `var()`, `border-radius:999px`,
+   `padding:4px 10px`, `font-weight:900`); nomes de classe mantidos por app (custo de renomear
+   no JS > benefício). CDB2026 continua sem chip de status de jogo — gap de feature (sem API
+   ao vivo), não de componente, ver `CONSISTENCY_MATRIX.md` item 67.
+2. ✅ **Resolvido (v1.17/v2.3).** Estrutura do card de Ranking era totalmente diferente — grid
+   denso de 1 linha (Copa) vs card empilhado com detalhe sempre visível (BR2026/CDB2026).
+   BR2026/CDB2026 reescreveram `renderRanking()` para adotar o `.rank-row`/`.picks-detail` da
+   Copa (detalhe expansível por clique, `_openRankDetails`) — ver `CONSISTENCY_MATRIX.md`
+   item 68.
+
+### High
+
+3. `main` max-width diferente (1140px Copa vs 860px BR2026/CDB2026) — muda a densidade e a
+   proporção de todo o layout desktop. **Não implementado** — mudaria a proporção de toda a
+   Copa em produção, fora do escopo de patch mínimo.
+4. ✅ **Resolvido (v4.126).** Input/select com fundo, `border-radius` e comportamento de foco
+   diferentes entre Copa e os outros dois apps — Copa migrada para o padrão dos outros dois.
+5. ✅ **Resolvido (v4.126).** Label de formulário com case, cor e tipografia diferentes —
+   Copa migrada para UPPERCASE/`var(--muted)`.
+6. ✅ **Resolvido (v1.16/v2.2).** `h1/h2/h3` sem normalização global em BR2026/CDB2026 —
+   mesma regra da Copa portada para os outros dois.
+7. ✅ **Resolvido (v1.17/v2.3).** Sistema de toast não-bloqueante existia só na Copa —
+   `showToast()`/`.bolao-toast` portados para BR2026/CDB2026, substituindo `alert()` em
+   confirmações/erros (validação de formulário continua `alert()`, igual à Copa) — ver
+   `CONSISTENCY_MATRIX.md` item 69.
+
+### Medium
+
+8. ✅ **Resolvido (v4.126/v1.16/v2.2).** Sombra e `min-width` do botão sticky
+   (`.sticky-submit button`) divergiam entre Copa e os outros dois apps — unificados em sombra
+   verde `rgba(47,229,110,.35)` + `min-width:200px`.
+9. ⚠️ **Parcialmente resolvido.** Tokens `--gold`/`--red` agora existem no `:root` da Copa
+   (v4.126); `--red` ficou com o valor já usado em produção (`#ff6b6b`), diferente do
+   `#f87171` de BR2026/CDB2026 — não unificado de propósito (ver `CONSISTENCY_MATRIX.md`
+   item 62).
+10. Admin toolbar com densidade de ação muito diferente (12 vs 2–4 botões) — não é bug de
+    componente, mas é uma lacuna de feature já catalogada que também é uma divergência de UX
+    percebida. Não tocado nesta rodada (é feature, não patch de UI).
+11. ✅ **Resolvido (v4.126).** `.rules-table` com 1px de diferença de padding entre Copa e os
+    outros dois apps.
+
+### Low
+
+12. Nenhuma tabela (exceto `.picks-detail` na Copa) tem um wrapper `overflow-x:auto`
+    garantido — hoje não quebra porque o conteúdo é curto, mas não é uma garantia estrutural
+    do componente `table`.
+13. Empty state é idêntico mas rudimentar nos três (sem CTA/ilustração) — oportunidade de
+    melhoria de plataforma, não uma divergência a corrigir.
+14. Ausência de loading/skeleton state é consistente entre os três (ninguém tem), mas seria
+    uma melhoria de percepção de performance se adicionada nos três ao mesmo tempo.
+
+---
+
+## Fora do escopo desta auditoria (não verificado)
+
+- Contraste de cor medido por ferramenta (ex.: WebAIM) — as cores foram lidas do CSS, mas
+  nenhum cálculo de contraste WCAG foi rodado.
+- Comportamento real em Safari (motor WebKit) — só o código foi lido; comportamentos
+  específicos de WebKit (como os já documentados em `LESSONS_LEARNED.md` para `change` em
+  checkbox e cache agressivo) não foram re-testados nesta auditoria.
+- Screenshots reais nos 8 breakpoints pedidos (320/375/390/414/768/900/1200/1600px) — os
+  breakpoints que o CSS realmente define são `max-width:900px`, `max-width:500px`,
+  `max-width:480px` e `min-width:901px` nos três apps (idênticos entre si) — qualquer
+  largura pedida cai dentro de um desses buckets, mas o comportamento *visual* dentro de cada
+  bucket não foi capturado.

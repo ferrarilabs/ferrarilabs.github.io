@@ -240,4 +240,46 @@ Full detail, change classification categories, and the area-by-area audit:
 Toda alteração visual, de componente, acessibilidade, segurança, banco, email, admin, PDF,
 comprovante ou infraestrutura deve ser auditada nos demais aplicativos antes do encerramento da
 tarefa — ver a regra de propagação acima.
+
+### Toda vez que um componente visual for alterado
+
+1. Localizar **todas** as ocorrências desse componente na plataforma (nos três apps, e em mais
+   de um lugar dentro do mesmo app quando aplicável — ex.: um símbolo de time pode aparecer no
+   card de jogo, no formulário de palpites e no ranking).
+2. Comparar visualmente todas elas (tamanho, cor, posição, comportamento responsivo).
+3. Atualizar todas as ocorrências que deveriam ser iguais.
+4. Se alguma ocorrência permanecer diferente de propósito, registrar como
+   `INTENTIONALLY_DIFFERENT` em `docs/bolao/CONSISTENCY_MATRIX.md`, com o motivo.
+
+Nunca encerrar uma tarefa que tocou UI sem executar essa comparação — mesmo que a mudança
+pareça isolada a um único app.
+
+### Auditoria obrigatória antes de mudanças de maior risco
+
+Antes de qualquer alteração classificada como `PLATFORM_SHARED`, `SECURITY`,
+`EMERGENCY_HOTFIX`, mudança visual relevante, alteração de banco, alteração de scoring,
+alteração de admin, alteração de email/PDF/comprovante, ou release candidate/produção: ler e
+aplicar `docs/bolao/AUDIT_PROTOCOL.md`.
+
+- Para alterações pequenas, executar no mínimo uma auditoria direcionada ao escopo alterado.
+- Para alterações grandes, executar auditoria completa (todas as áreas do protocolo).
+- Auditoria e implementação são etapas separadas — ver `docs/bolao/ENGINEERING_STANDARD.md`
+  ("Audit-first workflow").
+- Não corrigir silenciosamente tudo que a auditoria encontrar. Primeiro apresentar os findings
+  e o plano; implementar somente os itens autorizados pelo usuário.
+- Depois de implementar, executar uma auditoria de regressão direcionada ao que foi alterado.
+- Componentes equivalentes entre os três apps devem seguir `docs/bolao/DESIGN_SYSTEM.md`;
+  diferenças não corrigidas devem ser registradas como `INTENTIONALLY_DIFFERENT` ou dívida
+  técnica, nunca deixadas sem registro.
+
+### Copa do Mundo 2026 é a referência visual canônica
+
+A Copa do Mundo 2026 (`bolao/`) é a referência visual canônica da plataforma. Todo novo
+componente ou alteração visual em BR2026 ou CDB2026 deve primeiro localizar o componente
+equivalente na Copa e reproduzir seus tokens, dimensões, alinhamento, espaçamento e
+responsividade, salvo diferença explicitamente documentada como `TOURNAMENT_SPECIFIC`.
+
+Nenhuma tarefa visual pode ser encerrada apenas com `node --check` (quando disponível). É
+obrigatória comparação visual cross-app em desktop e mobile antes de considerar a tarefa
+concluída.
 <!-- AUTO:PLATFORM_RULES:END -->

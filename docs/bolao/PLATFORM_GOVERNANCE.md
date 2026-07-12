@@ -72,4 +72,19 @@ ser implementada:
    for de segurança.
 3. `TOURNAMENT_SPECIFIC` e `DATA_ONLY` — não propagar; apenas confirmar que a mudança não
    vazou acidentalmente para um componente compartilhado.
+
+## Mandatory Audit Policy
+
+- Alterações grandes exigem auditoria completa pré e pós-change (ver
+  `docs/bolao/AUDIT_PROTOCOL.md` e o "Audit-first workflow" em
+  `docs/bolao/ENGINEERING_STANDARD.md`).
+- Alterações pequenas exigem auditoria direcionada ao escopo alterado.
+- Mudanças em produção exigem rollback explícito.
+- Scoring, ranking, resultados, banco e comprovantes exigem evidência de testes.
+- Auditoria não equivale a autorização para alteração — findings são apresentados primeiro, a
+  implementação só acontece com autorização explícita.
+- Findings `Critical` podem receber recomendação de hotfix, mas ainda devem ser explicitamente
+  apresentados antes de qualquer correção.
+- Mudanças compartilhadas devem ser avaliadas nos três apps.
+- A implementação deve preservar diferenças intencionais de cada torneio.
 <!-- AUTO:GOVERNANCE:END -->

@@ -678,6 +678,39 @@ citada no disclaimer" desses apps.
 
 ---
 
+## Símbolo do time — `<img>` sem `width`/`height` renderiza em tamanho nativo
+
+### Problema
+Escudo do time no BR2026 renderizava gigante (bem maior que o resto da UI) nos cards "Ao
+vivo" e "Próximo jogo", logo depois de um fix que adicionava o escudo a esses dois widgets
+(que antes só mostravam o nome do time em texto puro).
+
+### Causa raiz
+O helper `teamLogoImg(team, cls)` gera `<img src=... class="${cls}">` sem nenhum atributo
+`width`/`height` inline. Os usos antigos da mesma classe (`.team-logo`, dentro das barras de
+probabilidade) sempre tiveram `width="14" height="14"` como atributo HTML direto no `<img>` —
+o que mascarava o fato de a própria classe `.team-logo` no CSS nunca ter tido essas dimensões
+definidas. Assim que o helper passou a ser usado em lugares novos sem esse atributo inline, o
+navegador renderizou a imagem no tamanho nativo do arquivo (bem maior que 14px).
+
+### Como foi corrigido
+Adicionado `width:14px; height:14px` diretamente à classe `.team-logo` no CSS (`v1.15`) — cobre
+todos os usos, presentes e futuros, sem depender de lembrar o atributo inline toda vez que o
+helper for chamado em um novo lugar.
+
+### Como evitar novamente
+- Sempre que um componente visual (ícone, escudo, logo) tiver uma classe CSS dedicada, o
+  **tamanho deve estar na classe**, nunca só em atributo HTML inline espalhado pelos call
+  sites — um único lugar esquecido quebra visualmente sem erro nenhum no console.
+- Ao criar um helper que gera `<img>` dinamicamente (como `teamLogoImg()`), testar
+  visualmente em pelo menos um lugar novo antes de considerar o padrão "reaproveitado com
+  segurança" — o código roda sem erro dos dois jeitos, só o resultado visual denuncia o bug.
+- Regra permanente adicionada a `CLAUDE.md`: toda alteração de componente visual exige
+  localizar todas as ocorrências, comparar visualmente, e corrigir todas — não só o lugar
+  onde o bug foi reportado.
+
+---
+
 ## LocalStorage — dado obsoleto/corrompido
 
 ### Problema
