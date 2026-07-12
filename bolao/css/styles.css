@@ -803,12 +803,13 @@ input[readonly] {
     display: grid;
     grid-template-columns: 1fr auto auto;
     grid-template-rows: auto auto auto;
+    align-items: center;
     padding: 10px 12px;
-    gap: 8px;
+    gap: 6px 8px;
   }
-  .brand { grid-column: 1; grid-row: 1; margin-right: 0; }
-  .whatsapp-btn { grid-column: 2; grid-row: 1; justify-self: end; font-size: 12px; padding: 7px 10px; }
-  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; }
+  .brand { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
+  .whatsapp-btn { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; font-size: 12px; padding: 7px 10px; }
+  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; }
   .lang-links { grid-column: 1 / -1; grid-row: 2; }
   .nav { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
   .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
@@ -897,12 +898,13 @@ input[readonly] {
     display: grid !important;
     grid-template-columns: 1fr auto auto auto;
     grid-template-rows: auto auto;
+    align-items: center;
     gap: 8px 12px;
   }
-  .brand       { grid-column: 1; grid-row: 1; margin-right: 0 !important; }
-  .whatsapp-btn{ grid-column: 2; grid-row: 1; }
-  .lang-links  { grid-column: 3; grid-row: 1; }
-  .bolao-switcher { grid-column: 4; grid-row: 1; }
+  .brand       { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
+  .whatsapp-btn{ grid-column: 2; grid-row: 1; align-self: center; }
+  .lang-links  { grid-column: 3; grid-row: 1; align-self: center; }
+  .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;

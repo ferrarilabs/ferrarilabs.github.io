@@ -1,5 +1,15 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.11 — 2026-07-12
+
+### Fixed — alinhamento topbar + cutoff atualizado
+
+- `align-items: center` no grid do topbar (desktop e mobile)
+- `cutoffIso` atualizado para **domingo 19/jul às 23h59 BRT** (2 dias antes do reinício do Brasileirão)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.10 — 2026-07-12
 
 ### Fixed — segurança + CSS (Big Tech QA audit)
