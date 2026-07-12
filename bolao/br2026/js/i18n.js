@@ -95,6 +95,7 @@ window.BR2026_I18N = {
     gamesLoading: "Carregando calendário...",
     gameFinal: "Encerrado",
     gameLive: "Ao vivo",
+    gamePostponed: "Adiado",
     gamePending: "Agendado",
     // Participants
     participantsTitle: "Participantes",

@@ -491,11 +491,13 @@ async function fetchSchedule() {
       const comps = comp.competitors || [];
       const home  = comps.find(c => c.homeAway === "home") || comps[0];
       const away  = comps.find(c => c.homeAway === "away") || comps[1];
+      const statusName = comp.status?.type?.name || "";
       return {
         id:        ev.id,
         dateISO:   comp.date || ev.date || "",
         state:     comp.status?.type?.state || "pre",
         detail:    comp.status?.type?.shortDetail || "",
+        postponed: statusName === "Postponed" || statusName === "Canceled",
         homeTeam:  home?.team?.displayName || "",
         awayTeam:  away?.team?.displayName || "",
         homeScore: home?.score != null ? parseInt(home.score, 10) : null,
@@ -949,7 +951,10 @@ function renderGamesSection() {
       const timeStr = brtTimeStr(g.dateISO);
 
       let scoreOrTime, statusHtml;
-      if (g.state === "in") {
+      if (g.postponed) {
+        scoreOrTime = `<span class="game-time muted">—</span>`;
+        statusHtml  = `<span class="game-status postponed">${esc(t("gamePostponed"))}</span>`;
+      } else if (g.state === "in") {
         scoreOrTime = `<span class="game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status live">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
       } else if (g.state === "post") {
