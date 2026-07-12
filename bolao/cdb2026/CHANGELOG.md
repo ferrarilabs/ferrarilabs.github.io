@@ -1,5 +1,88 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v2.4 — 2026-07-12 (WIP — commit parcial)
+
+### Fixed — Copa como referência visual canônica (início; tarefa incompleta)
+
+Início da padronização com a Copa (`bolao/`) como referência visual canônica — ver
+`bolao/br2026/CHANGELOG.md` v1.18 para o racional completo (mesma mudança aplicada aos dois
+apps). Commit parcial por limitação de créditos da sessão — auditoria completa ainda pendente.
+
+- **`main` max-width**: `860px` → `1140px`, igual à Copa. `.confronto-card` já usava a classe
+  `.card` compartilhada, nenhuma mudança necessária lá.
+
+`audit_scoring.py`: 5/5 — só CSS.
+
+## v2.3 — 2026-07-12
+
+### Added — sistema de toast + badge/status unificado + ranking reestruturado (findings Critical/High autorizados)
+
+Mesma rodada aplicada ao BR2026 nesta versão — ver `bolao/br2026/CHANGELOG.md` v1.17 e
+`docs/bolao/CONSISTENCY_MATRIX.md` itens 67-69 para o racional completo.
+
+- **Badge/status unificado**: `.paid-badge`/`.unpaid-badge` ganharam `border-radius:999px`/
+  `padding:4px 10px`/`font-weight:900` (eram `6px`/`3px 8px`/`700`), mesmo tratamento do
+  `.status-chip` da Copa. CDB2026 não tem chip de status de jogo (não tem API ao vivo) —
+  gap já catalogado, não resolvido nesta rodada (é feature nova, não harmonização).
+- **Sistema de toast portado da Copa**: `showToast()` + CSS `.bolao-toasts`/`.bolao-toast`.
+  Convertidos os `alert()`s de confirmação/erro (salvar entrada, "buscar minha entrada",
+  admin login/lockout, sync, resultados) — validação de campo obrigatório continua `alert()`.
+  O comprovante deixou de duplicar o código no `alert()` de sucesso — `renderReceiptBox()` já
+  mostra o código de forma persistente na tela, o toast só confirma o salvamento.
+- **Ranking reestruturado**: `.rank-card` empilhado substituído pelo `.rank-row` denso de 1
+  linha da Copa + `.picks-detail` expansível por clique (mesmo padrão de `bolao/js/app.js`).
+- Nova chave i18n: `viewPicks`.
+
+`audit_scoring.py`: 5/5 — mudança é de apresentação/interação, nenhuma fórmula de scoring ou
+critério de desempate foi tocado.
+
+## v2.2 — 2026-07-12
+
+### Fixed — patches mínimos de design system (auditoria de UX cross-app)
+
+Parte dos findings de baixo risco do `docs/bolao/DESIGN_SYSTEM.md`, CSS-only:
+
+- **`h1,h2,h3` normalizado globalmente** — mesma regra da Copa portada (idêntica ao fix
+  aplicado no BR2026 na mesma versão desta rodada, ver `bolao/br2026/CHANGELOG.md` v1.16).
+- **Botão sticky (`.sticky-submit button`)**: sombra `rgba(0,0,0,.5)` → `rgba(47,229,110,.35)`
+  (verde, igual à Copa) — `min-width:200px` já existia.
+- Input/select/label e `.rules-table` padding já batiam com a Copa antes desta rodada.
+
+Findings maiores (badge/status, ranking, toast) não implementados nesta rodada — ver
+`bolao/CHANGELOG.md` v4.126 para o racional completo.
+
+`audit_scoring.py`: 5/5 (só CSS).
+
+## v2.1 — 2026-07-12
+
+### Fixed — símbolo de time trocado por escudo real; edição só após oitavas
+
+Reportado por Eduardo testando o site ao vivo, logo após o v2.0:
+
+- **Escudo real em vez de bolinha com iniciais**: o badge colorido com abreviação (`teamBadge`)
+  foi substituído por `teamLogoImg()` — mesmo nome de função, mesmas classes CSS
+  (`.team-logo` 14px / `.match-logo` 22px) e mesmas medidas do `bolao/br2026/js/app.js`. As
+  URLs são as mesmas que o BR2026 busca ao vivo do endpoint de standings da ESPN
+  (`site.api.espn.com/.../soccer/bra.1/teams` para 14 dos 16 times; Fortaleza e Juventude
+  estão na Série B nesta temporada — `bra.2` — verificado time a time, não assumido). Como o
+  CDB2026 não tem nenhuma chamada de API ao vivo, as URLs ficam fixas em `DATA.teamLogos`
+  (`js/data.js`) em vez de buscadas dinamicamente — mesmo resultado visual do BR2026, sem
+  adicionar uma dependência de API nova a um app que hoje é 100% estático. CSP (`img-src`)
+  atualizado para permitir `a.espncdn.com`, igual ao BR2026.
+- **Edição própria só abre depois das Oitavas**: o card "Buscar minha entrada" ficava sempre
+  visível, mesmo antes de qualquer confronto ser resolvido — nesse ponto não há nada de novo
+  pra editar (Quartas em diante ainda não têm times definidos), então só confundia quem estava
+  enviando a entrada pela primeira vez. Agora o card mostra uma mensagem explicativa e só
+  libera o formulário depois que os 8 confrontos das Oitavas tiverem resultado lançado pelo
+  admin (`oitavasComplete()`), com a mesma checagem repetida no clique do botão como segunda
+  camada.
+
+Aplicada a regra de comparação de componente visual (nova em `CLAUDE.md`): o mesmo bug de
+`<img>` sem `width`/`height` explícito existia potencialmente no BR2026 também — ver o
+changelog daquele app nesta mesma data.
+
+`audit_scoring.py`: 5/5 (Copa não tocada).
+
 ## v2.0 — 2026-07-12
 
 ### Novo — palpites por confronto (placar agregado ida+volta), símbolos de time, comprovante

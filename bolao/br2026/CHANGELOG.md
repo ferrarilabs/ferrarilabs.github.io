@@ -1,5 +1,85 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.18 — 2026-07-12 (WIP — commit parcial)
+
+### Fixed — Copa como referência visual canônica (início; tarefa incompleta)
+
+Início da padronização com a Copa (`bolao/`) como referência visual canônica (nova regra
+permanente em `CLAUDE.md`). Commit parcial por limitação de créditos da sessão — ver
+`docs/bolao/CONSISTENCY_MATRIX.md`/`DESIGN_SYSTEM.md` para o que ainda falta (auditoria
+completa de jogos/times, admin, pagamento, regras, e a tabela de validação visual por
+viewport pedidas na tarefa não foram concluídas).
+
+- **`main` max-width**: `860px` → `1140px`, igual à Copa.
+- **`.game-card`**: era uma linha de lista plana (só `border-bottom`); agora usa o mesmo
+  tratamento de card da Copa (`background`, `border`, `border-radius:16px`, `margin-bottom`).
+
+`audit_scoring.py`: 5/5 — só CSS.
+
+## v1.17 — 2026-07-12
+
+### Added — sistema de toast + badge/status unificado + ranking reestruturado (findings Critical/High autorizados)
+
+Autorização explícita do Eduardo para implementar os 3 findings maiores do
+`docs/bolao/DESIGN_SYSTEM.md` que ficaram pendentes na rodada anterior (patch mínimo só CSS).
+Ver `docs/bolao/CONSISTENCY_MATRIX.md` itens 67-69 e `bolao/CHANGELOG.md` v4.127.
+
+- **Badge/status unificado**: `.game-status` deixou de ser só texto colorido e virou pílula
+  (`border-radius:999px; padding:4px 10px`), mesmo tratamento do `.status-chip` da Copa —
+  adicionado `.game-status.live` com a mesma animação de pulso (`@keyframes live-pulse`,
+  copiado da Copa, não existia aqui). `.paid-badge`/`.unpaid-badge` ganharam
+  `border-radius:999px`/`padding:4px 10px`/`font-weight:900` (eram `6px`/`3px 8px`/`700`).
+- **Sistema de toast portado da Copa**: `showToast()` (mesma implementação, copiada de
+  `bolao/js/app.js`) + CSS `.bolao-toasts`/`.bolao-toast` (4 variantes: success/error/warn/
+  info). Convertidos os `alert()`s de confirmação/erro que não são validação de formulário
+  (fluxo de salvar entrada, admin login/lockout, sync, resultados) — validação de campo
+  obrigatório continua `alert()`, de propósito, igual à Copa.
+- **Ranking reestruturado**: `.rank-card` empilhado (com o detalhe de palpites sempre visível)
+  substituído pelo `.rank-row` denso de 1 linha da Copa + `.picks-detail` expansível por clique
+  (`data-rank-toggle`/`_openRankDetails`, mesmo padrão de `bolao/js/app.js`). Card de posição/
+  nome/pontos/badge de pagamento/botão "Ver palpites" numa linha só; detalhe dos palpites some
+  por padrão, mesmo comportamento em mobile (breakpoint 900px com coluna de pontos de largura
+  fixa, já usado na Copa desde as rodadas de otimização documentadas em `LESSONS_LEARNED.md`).
+- Nova chave i18n: `viewPicks`.
+
+`audit_scoring.py`: 5/5 — mudança é de apresentação/interação, nenhuma fórmula de pontuação ou
+critério de desempate foi tocado (o `scored.sort()` que já existia continua idêntico).
+
+## v1.16 — 2026-07-12
+
+### Fixed — patches mínimos de design system (auditoria de UX cross-app)
+
+Parte dos findings de baixo risco do `docs/bolao/DESIGN_SYSTEM.md`, CSS-only:
+
+- **`h1,h2,h3` normalizado globalmente** — antes só existia `.section-head h2`; um `<h3>` fora
+  dessa seção (ex.: dentro de um `.card`) caía no tamanho/margem default do navegador,
+  diferente da Copa. Mesma regra da Copa portada (`margin:.15em 0 .4em`, `h2:1.25rem`,
+  `h3:1.05rem` — sem `h1` explícito, a Copa também não tem).
+- **Botão sticky (`.sticky-submit button`)**: sombra `rgba(0,0,0,.5)` → `rgba(47,229,110,.35)`
+  (verde, igual à Copa) — `min-width:200px` já existia.
+- Input/select/label e `.rules-table` padding já batiam com a Copa antes desta rodada — nenhuma
+  mudança necessária aqui (a Copa que migrou para o padrão que este app já tinha).
+
+Findings maiores (badge/status, ranking, toast) não implementados nesta rodada — ver
+`bolao/CHANGELOG.md` v4.126 para o racional completo.
+
+`audit_scoring.py`: 5/5 (só CSS).
+
+## v1.15 — 2026-07-12
+
+### Fixed — escudo do time renderizando em tamanho gigante (bug real do fix de v1.14)
+
+Reportado por Eduardo testando o site ao vivo: o fix de v1.14 (escudo no card "Ao vivo"/
+"Próximo jogo") usava `teamLogoImg()` gerando `<img class="team-logo">` sem `width`/`height` —
+e a classe `.team-logo` no CSS também não tinha essas dimensões definidas (os usos antigos, nas
+barras de probabilidade, tinham `width="14" height="14"` como atributo HTML inline direto,
+mascarando a lacuna). Resultado: o navegador renderizava a imagem no tamanho nativo do arquivo
+da ESPN (bem maior que 14px) nos dois cards novos. Corrigido adicionando `width:14px;
+height:14px` diretamente à classe `.team-logo` no CSS — cobre todos os usos, novos e antigos,
+sem depender de atributo inline em cada `<img>`.
+
+`audit_scoring.py`: 5/5 (só CSS).
+
 ## v1.14 — 2026-07-12
 
 ### Fixed — escudo do time só aparecia na barra de probabilidade, não no card do jogo

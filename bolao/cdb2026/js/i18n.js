@@ -68,6 +68,7 @@ window.CDB2026_I18N = {
     findEntryMissing: "Informe e-mail e código do comprovante.",
     findEntryNotFound: "Nenhuma entrada encontrada com esse e-mail e código.",
     findEntryLoaded: "Entrada carregada — role para baixo para editar os palpites liberados.",
+    findEntryLockedMsg: "Disponível assim que os jogos das Oitavas de Final terminarem.",
     // Receipt
     receiptTitle: "Comprovante",
     receiptCodeLabel: "Código do comprovante",
@@ -88,6 +89,7 @@ window.CDB2026_I18N = {
     provisionalNote: "Resultado não travado — pontuação provisória.",
     finalNote: "Resultado oficial encerrado pelo admin.",
     noEntries: "Nenhuma entrada ainda.",
+    viewPicks: "Ver palpites",
     paid: "✓ Pago",
     unpaid: "Pendente",
     // Pick labels in ranking
