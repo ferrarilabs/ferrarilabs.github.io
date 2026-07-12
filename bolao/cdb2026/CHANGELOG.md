@@ -1,5 +1,17 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v1.5 — 2026-07-12
+
+### Novo — botões de idioma no topbar (padronização com Copa)
+
+- Adicionado `lang-links` ao topbar: PT-BR ativo, ES-MX e EN-US desabilitados
+- CSS `.lang-links button` adicionado (pill style, igual Copa e BR2026)
+- Desktop: grid `1fr auto auto` → brand | lang | switcher
+- Mobile: brand | switcher (row 1) → lang (row 2) → nav (row 3)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.4 — 2026-07-12
 
 ### Fixed — alinhamento topbar

@@ -1,5 +1,16 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.12 — 2026-07-12
+
+### Novo — botões de idioma no topbar (padronização com Copa)
+
+- Adicionado `lang-links` ao topbar: PT-BR ativo, ES-MX e EN-US desabilitados
+- Desktop: grid `1fr auto auto` → brand | lang | switcher
+- Mobile: brand | switcher (row 1) → lang (row 2) → nav (row 3)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.11 — 2026-07-12
 
 ### Fixed — alinhamento topbar + cutoff atualizado
