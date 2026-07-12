@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v4.122 — 2026-07-12
+
+### Fixed — card "Próximo jogo": bandeiras no meio + local do jogo
+
+- Flags movidas para o centro: `France 🇫🇷 × 🇪🇸 Spain` (era `🇫🇷 France × 🇪🇸 Spain`)
+- Local do jogo (`m.venue` + `m.city`) exibido abaixo do horário com ícone 📍 (classe `.hero-next-venue`)
+- Mesma correção no path de jogo adiado
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.121 — 2026-07-12
 
 ### Novo — seletor de bolão no header da Copa do Mundo

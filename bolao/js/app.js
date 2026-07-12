@@ -496,8 +496,9 @@ function renderNextMatch() {
       <div class="next-match-row">
         <div class="next-match-info">
           <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
-          <div class="next-match-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+          <div class="next-match-teams">${escapeHtml(tA)} ${escapeHtml(flag(tA))} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
           <div class="hero-next-time"><span class="hero-next-live">${escapeHtml(t("matchPostponed"))}</span>${label ? " — " + escapeHtml(label) : ""} · M${escapeHtml(String(m.match))}</div>
+          ${m.venue && m.venue !== "A confirmar" ? `<div class="hero-next-venue">📍 ${escapeHtml(m.venue)}${m.city ? `, ${escapeHtml(m.city)}` : ""}</div>` : ""}
         </div>
       </div>`;
     card.classList.remove("hidden");
@@ -529,8 +530,9 @@ function renderNextMatch() {
     <div class="next-match-row">
       <div class="next-match-info">
         <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
-        <div class="next-match-teams">${escapeHtml(flag(tA))} ${escapeHtml(tA)} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+        <div class="next-match-teams">${escapeHtml(tA)} ${escapeHtml(flag(tA))} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
         <div class="hero-next-time">${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
+        ${m.venue && m.venue !== "A confirmar" ? `<div class="hero-next-venue">📍 ${escapeHtml(m.venue)}${m.city ? `, ${escapeHtml(m.city)}` : ""}</div>` : ""}
       </div>
       <div class="next-match-countdown">${timerHtml}</div>
     </div>
