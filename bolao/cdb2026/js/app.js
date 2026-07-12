@@ -1,5 +1,9 @@
-/* Bolão Copa do Brasil 2026 — app.js v1.0
-   Vanilla JS IIFE, no framework, no build step */
+/* Bolão Copa do Brasil 2026 — app.js v2.0
+   Vanilla JS IIFE, no framework, no build step.
+   Picks are per-confronto (mata-mata ida+volta, placar agregado), same shape as the
+   Copa do Mundo bracket in bolao/js/app.js: exact aggregate / correct advance / partial
+   goal-count points per tie, plus a champion/runner-up/semifinalist bonus resolved by
+   walking the bracket — see resolveBracket(). */
 (function () {
 "use strict";
 
@@ -21,11 +25,16 @@ function applyI18n() {
 let _editingEntry = null;
 
 function emptyState() {
-  return { entries: [], deletedIds: [], paid: {}, results: null, meta: { updatedAt: null, version: C.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, results: { ties: {} }, meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
-  try { const r = localStorage.getItem(C.storeKey); return r ? Object.assign(emptyState(), JSON.parse(r)) : emptyState(); }
-  catch { return emptyState(); }
+  try {
+    const r = localStorage.getItem(C.storeKey);
+    const s = r ? Object.assign(emptyState(), JSON.parse(r)) : emptyState();
+    s.results = s.results && typeof s.results === "object" ? s.results : { ties: {} };
+    s.results.ties = s.results.ties || {};
+    return s;
+  } catch { return emptyState(); }
 }
 function saveState(s, opts = {}) {
   s.meta = s.meta || {};
@@ -65,17 +74,16 @@ function mergeStates(local, remote, opts = {}) {
   const byId = {};
   [...(remote.entries || []), ...(local.entries || [])].forEach(e => { if (!deleted.has(e.id)) byId[e.id] = e; });
   const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
-  let results;
-  if (opts.preferRemoteResults) {
-    results = remote.results?.locked ? remote.results : (local.results?.locked ? local.results : remote.results || local.results);
-  } else {
-    results = local.results?.locked ? local.results : (remote.results?.locked ? remote.results : local.results || remote.results);
-  }
+  const localTies  = local.results?.ties  || {};
+  const remoteTies = remote.results?.ties || {};
+  const ties = opts.preferRemoteResults
+    ? { ...localTies, ...remoteTies }
+    : { ...remoteTies, ...localTies };
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
     paid,
-    results,
+    results: { ties },
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -105,23 +113,101 @@ function showSection(id) {
 const cutoffDate  = () => new Date(C.cutoffIso);
 const isPastCutoff = () => Date.now() > cutoffDate().getTime();
 
+// ─── Receipt code ───────────────────────────────────────────────────────────
+// Mesmo algoritmo (FNV-32, não criptográfico, só identificação) e formato usado na Copa do
+// Mundo (hashString/receiptCode em bolao/js/app.js) — padrão compartilhado da plataforma.
+function hashString(str) {
+  let h = 2166136261;
+  for (const cp of str) { h ^= cp.codePointAt(0); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(16).padStart(8, "0").toUpperCase();
+}
+function receiptCode(e) {
+  return `CDB2026-${hashString(JSON.stringify({ n: e.entryName, t: e.createdAt }))}-${String(e.createdAt || "").slice(0, 10).replace(/-/g, "")}`;
+}
+// Edição própria da entrada exige e-mail + código do comprovante (não só o e-mail) — o
+// comprovante só é conhecido por quem criou a entrada, o e-mail sozinho não é um segredo real.
+function findEntryByEmailAndCode(email, code) {
+  const s = state();
+  const deleted = new Set(s.deletedIds || []);
+  const norm = v => String(v || "").trim().toLowerCase();
+  return (s.entries || []).find(e =>
+    !deleted.has(e.id) &&
+    norm(e.participantEmail) === norm(email) &&
+    receiptCode(e).toUpperCase() === norm(code).toUpperCase()
+  ) || null;
+}
+
 // ─── UUID ───────────────────────────────────────────────────────────────────
 function uuid() {
   return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
     (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16));
 }
 
-// ─── Pick dropdowns ─────────────────────────────────────────────────────────
-function getPickValues() {
+// ─── Team badge ─────────────────────────────────────────────────────────────
+// Símbolo do time (abreviação de 3 letras em badge colorido) — mesmo padrão de "símbolo ao
+// lado do nome do time" usado na Copa (bandeira) e no Brasileirão (escudo ESPN), aplicado nos
+// jogos, no formulário de palpites e no ranking — não só numa barra de probabilidade.
+function teamBadge(team) {
+  if (!team) return "";
+  const abbr = DATA.teamAbbrev?.[team] || team.slice(0, 3).toUpperCase();
+  let hash = 0;
+  for (let i = 0; i < team.length; i++) hash = (hash * 31 + team.charCodeAt(i)) >>> 0;
+  const hue = hash % 360;
+  return `<span class="team-badge" style="background:hsl(${hue},55%,32%)" aria-hidden="true">${esc(abbr)}</span>`;
+}
+
+// ─── Bracket resolution ─────────────────────────────────────────────────────
+// Resolve os nomes reais de cada confronto a partir de uma fonte de resultado (oficial ou o
+// palpite de uma entrada) — mesmo padrão de resolução dinâmica de bracket usado na Copa do
+// Mundo (resolvedTeamsForEntry/podiumFromResults em bolao/js/app.js), generalizado aqui via
+// getResultFn(tieId) -> {advance:"home"|"away"} | undefined.
+function resolveBracket(getResultFn) {
+  const resolved = {};
+  DATA.ties.forEach(tie => {
+    let home = tie.home, away = tie.away;
+    if (tie.fromHome) {
+      const r   = getResultFn(tie.fromHome);
+      const src = resolved[tie.fromHome];
+      home = (r && r.advance && src) ? (r.advance === "home" ? src.home : src.away) : null;
+    }
+    if (tie.fromAway) {
+      const r   = getResultFn(tie.fromAway);
+      const src = resolved[tie.fromAway];
+      away = (r && r.advance && src) ? (r.advance === "home" ? src.home : src.away) : null;
+    }
+    resolved[tie.id] = { home, away };
+  });
+  return resolved;
+}
+function resolveOfficial(results) { return resolveBracket(id => results?.ties?.[id]); }
+function resolveEntry(entry)      { return resolveBracket(id => entry.picks?.ties?.[id]); }
+
+function tieIsOpen(tie, resolvedHome, resolvedAway, results) {
+  if (!resolvedHome || !resolvedAway) return false;      // times ainda não definidos
+  if (!tie.cutoffIso) return false;                       // data ainda não confirmada
+  if (Date.now() >= new Date(tie.cutoffIso).getTime()) return false; // cutoff da ida já passou
+  if (results?.ties?.[tie.id]) return false;               // resultado já lançado
+  return true;
+}
+
+const ROUND_LABELS = { oitavas: "roundOitavas", quartas: "roundQuartas", semifinal: "roundSemifinal", final: "roundFinal" };
+const ROUNDS = ["oitavas", "quartas", "semifinal", "final"];
+
+// ─── Podium picks (campeão/vice/semifinalistas) ──────────────────────────────
+// Travados junto com o cutoff global (antes das oitavas começarem) — igual à Copa do Mundo:
+// uma vez feito o palpite, ele não muda mesmo que o time seja eliminado depois. Isso é
+// INTENCIONALMENTE separado dos palpites por confronto abaixo, que sim vão abrindo fase a
+// fase — a trava aqui é sempre isPastCutoff() (cutoff único, anterior às oitavas), nunca
+// depende de estar editando uma entrada existente.
+function getPodiumPickValues() {
   return {
     champion: $("cdb-champion")?.value || "",
     runnerUp: $("cdb-runner-up")?.value || "",
     semis:    [$("cdb-semi-1")?.value || "", $("cdb-semi-2")?.value || ""],
   };
 }
-
-function updateDropdowns() {
-  const { champion, runnerUp, semis } = getPickValues();
+function updatePodiumDropdowns() {
+  const { champion, runnerUp, semis } = getPodiumPickValues();
   const allPicked = new Set([champion, runnerUp, ...semis].filter(Boolean));
   [
     { el: $("cdb-champion"),  own: champion },
@@ -136,16 +222,8 @@ function updateDropdowns() {
     });
   });
 }
-
-function renderPickForm() {
-  const locked  = isPastCutoff();
-  const teamOpts = DATA.teams
-    .slice()
-    .sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .map(t => `<option value="${esc(t)}">${esc(t)}</option>`)
-    .join("");
-
-  const sel = (id, labelKey, hintKey) => `
+function podiumPickRowHtml(id, labelKey, hintKey, locked, teamOpts) {
+  return `
     <div class="pick-row">
       <label for="${id}">
         <span class="pick-pos-label">${esc(t(labelKey))}</span>
@@ -156,18 +234,89 @@ function renderPickForm() {
         ${teamOpts}
       </select>
     </div>`;
+}
 
-  const form = $("pickForm");
+// ─── Per-tie picks ────────────────────────────────────────────────────────────
+function tieRowId(tie) { return `tie-${tie.id}`; }
+
+function inferAdvance(goalsAEl, goalsBEl, advanceEl) {
+  const a = parseInt(goalsAEl.value, 10), b = parseInt(goalsBEl.value, 10);
+  if (Number.isFinite(a) && Number.isFinite(b) && a !== b) {
+    advanceEl.value = a > b ? "home" : "away";
+  }
+}
+
+function renderPickForm() {
+  const s          = state();
+  const resolved   = resolveOfficial(s.results);
+  const savedTies  = (_editingEntry?.picks?.ties) || {};
+  const form       = $("pickForm");
   if (!form) return;
-  form.innerHTML = `
-    <div class="pick-group">
-      <div class="pick-group-header champion-header">🏆 ${esc(t("picksGroupTitle"))}</div>
-      ${sel("cdb-champion",  "pickChampion",  "pickHintChampion")}
-      ${sel("cdb-runner-up", "pickRunnerUp",  "pickHintRunnerUp")}
-      ${sel("cdb-semi-1",    "pickSemi1",     "pickHintSemi")}
-      ${sel("cdb-semi-2",    "pickSemi2",     "pickHintSemi")}
-    </div>`;
 
+  // Podium picks — locked once the global cutoff passes, regardless of edit mode.
+  const podiumLocked = isPastCutoff();
+  const teamOpts = DATA.teams.slice().sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .map(team => `<option value="${esc(team)}">${esc(team)}</option>`).join("");
+  let html = `<div class="pick-group">
+    <div class="pick-group-header champion-header">🏆 ${esc(t("picksGroupTitle"))}</div>
+    ${podiumPickRowHtml("cdb-champion",  "pickChampion",  "pickHintChampion", podiumLocked, teamOpts)}
+    ${podiumPickRowHtml("cdb-runner-up", "pickRunnerUp",  "pickHintRunnerUp", podiumLocked, teamOpts)}
+    ${podiumPickRowHtml("cdb-semi-1",    "pickSemi1",     "pickHintSemi",     podiumLocked, teamOpts)}
+    ${podiumPickRowHtml("cdb-semi-2",    "pickSemi2",     "pickHintSemi",     podiumLocked, teamOpts)}
+  </div>`;
+
+  ROUNDS.forEach(round => {
+    const ties = DATA.ties.filter(tie => tie.round === round);
+    if (!ties.length) return;
+    html += `<div class="pick-group">
+      <div class="pick-group-header champion-header">${esc(t(ROUND_LABELS[round]))}</div>`;
+    ties.forEach(tie => {
+      const { home, away } = resolved[tie.id];
+      const saved = savedTies[tie.id];
+      const open  = tieIsOpen(tie, home, away, s.results);
+      const rid   = tieRowId(tie);
+
+      if (!home || !away) {
+        html += `<div class="pick-row tie-row" id="${rid}">
+          <span class="tie-teams-pending">${esc(t("pickWaitingSlot"))}</span>
+        </div>`;
+        return;
+      }
+      if (!open) {
+        const pts = saved ? "" : `<span class="muted">${esc(t("pickNotSubmitted"))}</span>`;
+        const summary = saved
+          ? `<span class="tie-locked-score">${teamBadge(home)} ${esc(home)} ${saved.goalsA} × ${saved.goalsB} ${esc(away)} ${teamBadge(away)}</span>`
+          : pts;
+        html += `<div class="pick-row tie-row locked" id="${rid}">
+          <div class="tie-teams">${teamBadge(home)} ${esc(home)} <span class="tie-vs">×</span> ${esc(away)} ${teamBadge(away)}</div>
+          <div class="tie-locked-note">${summary}</div>
+        </div>`;
+        return;
+      }
+
+      const gA = saved?.goalsA ?? "", gB = saved?.goalsB ?? "";
+      const adv = saved?.advance || "";
+      html += `<div class="pick-row tie-row open" id="${rid}" data-tie-id="${esc(tie.id)}">
+        <div class="tie-teams">${teamBadge(home)} ${esc(home)} <span class="tie-vs">×</span> ${esc(away)} ${teamBadge(away)}</div>
+        <div class="tie-inputs">
+          <input type="number" min="0" max="20" class="tie-goals-a" data-tie="${esc(tie.id)}" value="${esc(gA)}" aria-label="${esc(t("pickAggScoreA"))} ${esc(home)}">
+          <span class="tie-x">×</span>
+          <input type="number" min="0" max="20" class="tie-goals-b" data-tie="${esc(tie.id)}" value="${esc(gB)}" aria-label="${esc(t("pickAggScoreB"))} ${esc(away)}">
+          <select class="tie-advance" data-tie="${esc(tie.id)}" aria-label="${esc(t("pickAdvanceLabel"))}">
+            <option value="">${esc(t("pickSelectAdvance"))}</option>
+            <option value="home" ${adv === "home" ? "selected" : ""}>${esc(home)}</option>
+            <option value="away" ${adv === "away" ? "selected" : ""}>${esc(away)}</option>
+          </select>
+        </div>
+        <span class="pick-pts-hint">${esc(t("pickHintTie"))}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  form.innerHTML = html || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`;
+
+  // Restore saved podium picks (read-only display once locked, editable before cutoff)
   if (_editingEntry) {
     const p = _editingEntry.picks || {};
     if (p.champion && $("cdb-champion"))  $("cdb-champion").value  = p.champion;
@@ -177,24 +326,57 @@ function renderPickForm() {
       if (el && v) el.value = v;
     });
   }
+  form.removeEventListener("change", updatePodiumDropdowns);
+  form.addEventListener("change", updatePodiumDropdowns);
+  updatePodiumDropdowns();
 
-  form.removeEventListener("change", updateDropdowns);
-  form.addEventListener("change", updateDropdowns);
-  updateDropdowns();
+  form.querySelectorAll(".tie-row.open").forEach(row => {
+    const tieId = row.dataset.tieId;
+    const a = row.querySelector(".tie-goals-a"), b = row.querySelector(".tie-goals-b"), adv = row.querySelector(".tie-advance");
+    [a, b].forEach(el => el.addEventListener("input", () => inferAdvance(a, b, adv)));
+  });
+}
+
+function getPickValues() {
+  const podium = getPodiumPickValues();
+  const ties   = { ...(_editingEntry?.picks?.ties || {}) };
+  $$(".tie-row.open").forEach(row => {
+    const tieId = row.dataset.tieId;
+    const a   = row.querySelector(".tie-goals-a")?.value;
+    const b   = row.querySelector(".tie-goals-b")?.value;
+    const adv = row.querySelector(".tie-advance")?.value;
+    if (a === "" && b === "" && !adv) { delete ties[tieId]; return; }
+    ties[tieId] = { goalsA: parseInt(a, 10), goalsB: parseInt(b, 10), advance: adv || "" };
+  });
+  return { champion: podium.champion, runnerUp: podium.runnerUp, semis: podium.semis, ties };
 }
 
 // ─── Validation ──────────────────────────────────────────────────────────────
-function validatePicks({ champion, runnerUp, semis }) {
+// Podium picks (champion/runnerUp/semis) are only required/validated while still editable
+// (before the global cutoff) — once locked, saveEntry() never touches them again, so an
+// admin/self-service edit of later-round tie picks can't accidentally wipe or re-require them.
+function validatePicks({ champion, runnerUp, semis, ties }) {
   const errors = [];
-  if (!champion || !runnerUp || semis.some(x => !x)) errors.push(t("errorPicksIncomplete"));
-  const all = [champion, runnerUp, ...semis].filter(Boolean);
-  if (new Set(all).size < all.length) errors.push(t("errorDuplicatePicks"));
-  return errors;
+  if (!isPastCutoff()) {
+    if (!champion || !runnerUp || semis.some(x => !x)) errors.push(t("errorPicksIncomplete"));
+    const all = [champion, runnerUp, ...semis].filter(Boolean);
+    if (new Set(all).size < all.length) errors.push(t("errorDuplicatePicks"));
+  }
+  $$(".tie-row.open").forEach(row => {
+    const tieId = row.dataset.tieId;
+    const pick  = ties[tieId];
+    if (!pick || !Number.isFinite(pick.goalsA) || !Number.isFinite(pick.goalsB) ||
+        pick.goalsA < 0 || pick.goalsA > 20 || pick.goalsB < 0 || pick.goalsB > 20) {
+      errors.push(t("errorPicksIncomplete")); return;
+    }
+    if (!pick.advance) errors.push(t("errorAdvanceRequired"));
+  });
+  return [...new Set(errors)];
 }
 
 // ─── Save entry ──────────────────────────────────────────────────────────────
 async function saveEntry() {
-  if (isPastCutoff()) { alert(t("closed")); return; }
+  if (isPastCutoff() && !_editingEntry) { alert(t("closed")); return; }
   const entryName     = $("entryName")?.value.trim() || "";
   const payerName     = $("payerName")?.value.trim() || "";
   const email         = $("participantEmail")?.value.trim() || "";
@@ -211,6 +393,7 @@ async function saveEntry() {
   if (btn) { btn.disabled = true; btn.textContent = t("saving"); }
 
   try {
+    const wasNew = !_editingEntry;
     const s   = state();
     const now = new Date().toISOString();
     const entry = _editingEntry
@@ -235,8 +418,9 @@ async function saveEntry() {
     ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
     $("paymentMethod") && ($("paymentMethod").value = "");
 
-    alert(t("savedSuccess"));
-    showSection("ranking");
+    renderReceiptBox(entry);
+    alert(`${t("savedSuccess")}\n\n${t("receiptCodeLabel")}: ${receiptCode(entry)}`);
+    if (!wasNew) showSection("ranking");
   } catch (err) {
     console.error("[CDB2026] Save error", err);
     alert(t("saveError"));
@@ -245,51 +429,104 @@ async function saveEntry() {
   }
 }
 
-// ─── Scoring ────────────────────────────────────────────────────────────────
-function scoreEntry(entry, results) {
-  if (!results) return null;
-  const picks = entry.picks || {};
-  let total = 0;
-  const detail = {};
+// ─── Receipt box ────────────────────────────────────────────────────────────
+function renderReceiptBox(entry) {
+  const box = $("receiptBox");
+  if (!box) return;
+  const code = receiptCode(entry);
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <h3>${esc(t("receiptTitle"))}</h3>
+    <p>${esc(t("receiptCodeLabel"))}: <code class="receipt-code">${esc(code)}</code></p>
+    <p class="muted" style="font-size:12px">${esc(t("receiptSaveHint"))}</p>`;
+}
 
-  // Champion
-  if (picks.champion) {
-    const exact = picks.champion === results.champion;
-    detail.champion = { pts: exact ? C.scoring.champion : 0, type: exact ? "exact" : "miss" };
+// ─── Podium resolution (from official tie results) ───────────────────────────
+// Deriva o campeão/vice/semifinalistas reais a partir dos resultados dos confrontos já
+// lançados pelo admin (final-1 e semifinal-1/2) — evita que o admin precise digitar o pódio
+// duas vezes (uma no resultado do confronto, outra "à parte").
+function officialPodium(results) {
+  const resolved = resolveOfficial(results);
+  const finalRes = results?.ties?.["final-1"];
+  const finalOff = resolved["final-1"];
+  let champion = null, runnerUp = null;
+  if (finalRes?.advance && finalOff.home && finalOff.away) {
+    champion = finalRes.advance === "home" ? finalOff.home : finalOff.away;
+    runnerUp = finalRes.advance === "home" ? finalOff.away : finalOff.home;
+  }
+  const semis = [];
+  ["semifinal-1", "semifinal-2"].forEach(id => {
+    const res = results?.ties?.[id], off = resolved[id];
+    if (res?.advance && off.home && off.away) semis.push(res.advance === "home" ? off.away : off.home);
+  });
+  return { champion, runnerUp, semis };
+}
+
+// ─── Scoring ────────────────────────────────────────────────────────────────
+// scoreEntry: pontos por confronto (placar agregado exato / avanço correto / um lado do
+// agregado correto) — mesmo modelo da Copa do Mundo (scoreEntry em bolao/js/app.js), aplicado
+// ao agregado da ida+volta em vez de a uma partida única — MAIS bônus de pódio.
+//
+// O bônus usa entry.picks.champion/runnerUp/semis — os 4 palpites feitos e travados ANTES do
+// cutoff global, exatamente como a Copa do Mundo: se o time escolhido cair no meio do
+// caminho, o bônus é perdido, sem chance de trocar o palpite depois (ver validatePicks() e o
+// "locked" dos dropdowns em renderPickForm()). Isso é deliberadamente diferente dos palpites
+// por confronto acima, que vão abrindo fase a fase.
+function scoreEntry(entry, results) {
+  if (!results || !results.ties) return null;
+  const picks = entry.picks || {};
+  const ties  = picks.ties || {};
+  const sc    = C.scoring;
+  let total   = 0;
+  const detail = { ties: {} };
+
+  DATA.ties.forEach(tie => {
+    const res  = results.ties[tie.id];
+    const pick = ties[tie.id];
+    if (!res || !pick) return;
+    let pts = 0, type = "miss";
+    if (pick.goalsA === res.goalsA && pick.goalsB === res.goalsB) { pts = sc.tie.exact; type = "exact"; }
+    else if (pick.advance === res.advance) { pts = sc.tie.advance; type = "advance"; }
+    else if (pick.goalsA === res.goalsA || pick.goalsB === res.goalsB) { pts = sc.tie.partial; type = "partial"; }
+    detail.ties[tie.id] = { pts, type };
+    total += pts;
+  });
+
+  const podium = officialPodium(results);
+  if (podium.champion && picks.champion) {
+    const exact = picks.champion === podium.champion;
+    detail.champion = { pts: exact ? sc.bonus.champion : 0, type: exact ? "exact" : "miss" };
     total += detail.champion.pts;
   }
-
-  // Runner-up
-  if (picks.runnerUp) {
-    const exact = picks.runnerUp === results.runnerUp;
-    detail.runnerUp = { pts: exact ? C.scoring.runnerUp : 0, type: exact ? "exact" : "miss" };
+  if (podium.runnerUp && picks.runnerUp) {
+    const exact = picks.runnerUp === podium.runnerUp;
+    detail.runnerUp = { pts: exact ? sc.bonus.runnerUp : 0, type: exact ? "exact" : "miss" };
     total += detail.runnerUp.pts;
   }
-
-  // Semifinalists — any order (just need to be in the top 4, including champion/runner-up)
-  const semifinalistSet = new Set([
-    results.champion, results.runnerUp, ...(results.semis || [])
-  ].filter(Boolean));
-  detail.semis = (picks.semis || []).map(pick => {
-    if (!pick) return null;
-    const hit = semifinalistSet.has(pick);
-    return { pts: hit ? C.scoring.semifinalist : 0, type: hit ? "hit" : "miss" };
-  });
-  detail.semis.forEach(d => { if (d) total += d.pts; });
+  if (podium.semis.length) {
+    const semifinalistSet = new Set([podium.champion, podium.runnerUp, ...podium.semis].filter(Boolean));
+    detail.semis = (picks.semis || []).map(pick => {
+      if (!pick) return null;
+      const hit = semifinalistSet.has(pick);
+      return { pts: hit ? sc.bonus.semifinalist : 0, type: hit ? "hit" : "miss" };
+    });
+    detail.semis.forEach(d => { if (d) total += d.pts; });
+  }
 
   return { total, detail };
 }
 
-function getActiveScore(entry, s) {
-  if (s.results?.locked) {
-    return { ...scoreEntry(entry, s.results), isOfficial: true };
-  }
-  return null;
+function getActiveScore(entry, s) { return scoreEntry(entry, s.results); }
+
+function resultsProgress(results) {
+  const done = DATA.ties.filter(tie => results?.ties?.[tie.id]).length;
+  return { done, totalTies: DATA.ties.length };
 }
 
 // ─── Tiebreaker helpers ──────────────────────────────────────────────────────
 function hitChampion(detail) { return detail?.champion?.type === "exact" ? 1 : 0; }
 function hitRunnerUp(detail) { return detail?.runnerUp?.type === "exact" ? 1 : 0; }
+function countExactTies(detail) { return Object.values(detail?.ties || {}).filter(d => d.type === "exact").length; }
 
 // ─── Email receipt ───────────────────────────────────────────────────────────
 let _lastEmailTs = 0;
@@ -298,14 +535,28 @@ async function sendReceipt(entry) {
   const now = Date.now();
   if (now - _lastEmailTs < C.emailjs.limitRateMs) return;
 
+  const resolved = resolveEntry(entry);
+  const ties     = entry.picks?.ties || {};
+  const rows = DATA.ties.map(tie => {
+    const pick = ties[tie.id];
+    const { home, away } = resolved[tie.id];
+    if (!pick || !home || !away) return "";
+    return `<tr><td>${esc(home)} × ${esc(away)}</td><td>${pick.goalsA} × ${pick.goalsB}</td></tr>`;
+  }).join("");
   const p = entry.picks || {};
-  const picksHtml = `
+  const podiumHtml = `
+    <p><b>${esc(t("receiptCodeLabel"))}:</b> <code>${esc(receiptCode(entry))}</code></p>
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
       <tr><th>Palpite</th><th>Time</th></tr>
       <tr><td>🏆 Campeão</td><td>${esc(p.champion || "—")}</td></tr>
       <tr><td>🥈 Vice-campeão</td><td>${esc(p.runnerUp || "—")}</td></tr>
       <tr><td>Semi 1</td><td>${esc((p.semis || [])[0] || "—")}</td></tr>
       <tr><td>Semi 2</td><td>${esc((p.semis || [])[1] || "—")}</td></tr>
+    </table>`;
+  const picksHtml = `
+    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;margin-top:10px">
+      <tr><th>Confronto</th><th>Placar agregado palpitado</th></tr>
+      ${rows || `<tr><td colspan="2">—</td></tr>`}
     </table>`;
 
   const params = {
@@ -314,6 +565,7 @@ async function sendReceipt(entry) {
     entry_name:  entry.entryName,
     html_message: `<h2>Bolão Copa do Brasil 2026 — Comprovante</h2>
       <p>Entrada: <strong>${esc(entry.entryName)}</strong></p>
+      ${podiumHtml}
       ${picksHtml}
       <p style="color:#888;font-size:12px">Versão: ${esc(C.siteVersion)} · ${esc(new Date().toISOString())}</p>`
   };
@@ -325,7 +577,7 @@ async function sendReceipt(entry) {
       await window.emailjs.send(C.emailjs.serviceId, C.emailjs.adminTemplateId, {
         ...params,
         to_email: C.adminEmail,
-        html_message: `<p>Nova entrada: <strong>${esc(entry.entryName)}</strong> (${esc(entry.participantEmail)})</p>${picksHtml}`
+        html_message: `<p>Nova entrada: <strong>${esc(entry.entryName)}</strong> (${esc(entry.participantEmail)})</p>${podiumHtml}${picksHtml}`
       }, C.emailjs.publicKey);
     }
   } catch (err) {
@@ -368,17 +620,18 @@ function renderRanking() {
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
 
   const scored = entries.map(e => {
-    const sc = getActiveScore(e, s) || { total: 0, detail: null, isOfficial: false };
+    const sc = getActiveScore(e, s) || { total: 0, detail: null };
     return { e, ...sc };
   }).sort((a, b) =>
     b.total - a.total ||
     hitChampion(b.detail) - hitChampion(a.detail) ||
     hitRunnerUp(b.detail) - hitRunnerUp(a.detail) ||
+    countExactTies(b.detail) - countExactTies(a.detail) ||
     b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
   );
 
-  const hasOfficial = s.results?.locked;
-  const provNote = !hasOfficial
+  const { done, totalTies } = resultsProgress(s.results);
+  const provNote = done < totalTies
     ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
 
   let rank = 0, prevPts = -1;
@@ -404,19 +657,31 @@ function renderRanking() {
 }
 
 function renderPickDisplay(entry, detail) {
-  const p = entry.picks || {};
-  const mkCell = (team, d) => {
-    if (!team) return `<div class="pick-cell pick-empty">—</div>`;
-    const cls   = d ? (d.type === "exact" ? "pick-exact" : d.type === "hit" ? "pick-exact" : "pick-miss") : "";
+  const resolved = resolveEntry(entry);
+  const picks    = entry.picks?.ties || {};
+  const rows = DATA.ties.map(tie => {
+    const pick = picks[tie.id];
+    const { home, away } = resolved[tie.id];
+    if (!home || !away || !pick) return "";
+    const d     = detail?.ties?.[tie.id];
+    const cls   = d ? (d.type === "exact" ? "pick-exact" : d.type === "advance" ? "pick-partial" : d.type === "partial" ? "pick-partial" : "pick-miss") : "";
     const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
-    return `<div class="pick-cell ${cls}">${esc(team)}${badge}</div>`;
-  };
+    return `<div class="pick-item">
+      <span class="pick-pos-lbl">${teamBadge(home)} ${esc(home)} × ${esc(away)} ${teamBadge(away)}</span>
+      <div class="pick-cell ${cls}">${pick.goalsA} × ${pick.goalsB}${badge}</div>
+    </div>`;
+  }).filter(Boolean).join("");
+
+  const p = entry.picks || {};
+  const bonusRow = (label, team, d) => team
+    ? `<div class="pick-item"><span class="pick-pos-lbl">${esc(label)}: ${teamBadge(team)} ${esc(team)}</span><div class="pick-cell ${d ? (d.type === "exact" || d.type === "hit" ? "pick-exact" : "pick-miss") : ""}">${d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : ""}</div></div>`
+    : "";
 
   return `<div class="picks-display cdb-picks">
-    <div class="pick-item"><span class="pick-pos-lbl">🏆 ${esc(t("pickLabelChampion"))}</span>${mkCell(p.champion, detail?.champion)}</div>
-    <div class="pick-item"><span class="pick-pos-lbl">🥈 ${esc(t("pickLabelRunnerUp"))}</span>${mkCell(p.runnerUp, detail?.runnerUp)}</div>
-    ${(p.semis || []).map((team, i) => `
-    <div class="pick-item"><span class="pick-pos-lbl">${esc(t("pickLabelSemi"))} ${i + 1}</span>${mkCell(team, detail?.semis?.[i])}</div>`).join("")}
+    ${bonusRow("🏆 " + t("pickLabelChampion"), p.champion, detail?.champion)}
+    ${bonusRow("🥈 " + t("pickLabelRunnerUp"), p.runnerUp, detail?.runnerUp)}
+    ${(p.semis || []).map((team, i) => bonusRow(t("pickLabelSemi") + " " + (i + 1), team, detail?.semis?.[i])).join("")}
+    ${rows || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`}
   </div>`;
 }
 
@@ -453,9 +718,12 @@ function renderPayment() {
   if (!box) return;
   box.innerHTML = Object.entries(C.paymentMethods).map(([method, handle]) => {
     const link = C.paymentLinks?.[method];
+    const qr   = method === "Zelle" && C.zelle?.qrImage
+      ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
     return `<div class="pay-card">
       <strong>${esc(method)}</strong>
       ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(handle)}</a>` : `<span>${esc(handle)}</span>`}
+      ${qr}
     </div>`;
   }).join("");
 }
@@ -466,23 +734,25 @@ function renderRules() {
   if (!box) return;
   const sc  = C.scoring;
   const pr  = C.prizes;
-  const total = entries => entries * C.entryFee;
   box.innerHTML = `
     <div class="card">
       <h3>${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
         <thead><tr><th>${esc(t("rulesAcerto"))}</th><th>${esc(t("rulesPts"))}</th></tr></thead>
         <tbody>
-          <tr><td>🏆 Campeão — ${esc(t("rulesExact"))}</td><td><b>${sc.champion}</b></td></tr>
-          <tr><td>🥈 Vice-campeão — ${esc(t("rulesExact"))}</td><td><b>${sc.runnerUp}</b></td></tr>
-          <tr><td>Semifinalista acertado (×2)</td><td><b>${sc.semifinalist}</b> cada</td></tr>
-          <tr><td><b>${esc(t("rulesMaxPoints"))}</b></td><td><b>${sc.champion + sc.runnerUp + sc.semifinalist * 2}</b></td></tr>
+          <tr><td>${esc(t("rulesTieExact"))}</td><td><b>${sc.tie.exact}</b></td></tr>
+          <tr><td>${esc(t("rulesTieAdvance"))}</td><td><b>${sc.tie.advance}</b></td></tr>
+          <tr><td>${esc(t("rulesTiePartial"))}</td><td><b>${sc.tie.partial}</b></td></tr>
+          <tr><td>🏆 Campeão — ${esc(t("rulesExact"))}</td><td><b>${sc.bonus.champion}</b></td></tr>
+          <tr><td>🥈 Vice-campeão — ${esc(t("rulesExact"))}</td><td><b>${sc.bonus.runnerUp}</b></td></tr>
+          <tr><td>Semifinalista acertado (×2)</td><td><b>${sc.bonus.semifinalist}</b> cada</td></tr>
         </tbody>
       </table>
       <h3>${esc(t("tbTitle"))}</h3>
       <ol style="margin:0;padding:0 0 0 18px;font-size:13px;line-height:1.8">
         <li>${esc(t("tbChampion"))}</li>
         <li>${esc(t("tbRunnerUp"))}</li>
+        <li>${esc(t("tbExactTies"))}</li>
         <li>${esc(t("tbAlpha"))}</li>
       </ol>
     </div>
@@ -500,7 +770,7 @@ function renderRules() {
     </div>
     <div class="card">
       <h3>${esc(t("rulesCutoff"))}</h3>
-      <p style="font-size:13px">${esc(new Date(C.cutoffIso).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }))} BRT</p>
+      <p style="font-size:13px">${esc(t("rulesCutoffText"))}</p>
     </div>
     <div class="card">
       <h3>${esc(t("rulesTransparency"))}</h3>
@@ -508,14 +778,15 @@ function renderRules() {
     </div>`;
 }
 
-// ─── Render: games (Oitavas de Final) ────────────────────────────────────────
+// ─── Render: games (bracket completo) ────────────────────────────────────────
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
-  const oitavas = DATA.oitavas || [];
-  if (!oitavas.length) { box.innerHTML = `<p class="muted">Sem confrontos disponíveis.</p>`; return; }
+  const s        = state();
+  const resolved = resolveOfficial(s.results);
 
   const fmtDate = (dateStr, timeStr) => {
+    if (!dateStr || !timeStr) return t("gamesTbd");
     try {
       const d = new Date(`${dateStr}T${timeStr}:00-03:00`);
       return d.toLocaleString("pt-BR", {
@@ -526,23 +797,38 @@ function renderGamesSection() {
     } catch { return `${dateStr} ${timeStr} BRT`; }
   };
 
-  box.innerHTML = oitavas.map(o => {
-    const legHtml = (legData, labelKey) => {
-      if (!legData) return "";
-      return `<div class="leg">
-        <span class="leg-label">${esc(t(labelKey))}</span>
-        <span class="leg-teams">${esc(legData.home)} × ${esc(legData.away)}</span>
-        <span class="leg-info">📍 ${esc(legData.stadium)} · ${esc(fmtDate(legData.date, legData.time))}</span>
+  let html = "";
+  ROUNDS.forEach(round => {
+    const ties = DATA.ties.filter(tie => tie.round === round);
+    if (!ties.length) return;
+    html += `<h3 class="games-round-header">${esc(t(ROUND_LABELS[round]))}</h3>`;
+    html += ties.map(tie => {
+      const { home, away } = resolved[tie.id];
+      const res = s.results.ties[tie.id];
+      const legHtml = (legData, labelKey) => {
+        if (!legData || !legData.date) return "";
+        return `<div class="leg">
+          <span class="leg-label">${esc(t(labelKey))}</span>
+          <span class="leg-teams">${home ? esc(home) : "?"} × ${away ? esc(away) : "?"}</span>
+          <span class="leg-info">📍 ${esc(legData.stadium || "—")} · ${esc(fmtDate(legData.date, legData.time))}</span>
+        </div>`;
+      };
+      const headerTeams = (home && away) ? `${teamBadge(home)} ${esc(home)} × ${esc(away)} ${teamBadge(away)}` : esc(t("pickWaitingSlot"));
+      const resultLine = res
+        ? `<div class="leg confronto-result">${esc(t("gamesAggregate"))}: <b>${res.goalsA} × ${res.goalsB}</b> — ${esc(t("gamesAdvances"))}: ${res.advance === "home" ? esc(home) : esc(away)}</div>`
+        : "";
+      return `<div class="confronto-card card">
+        <div class="confronto-header">${headerTeams}</div>
+        <div class="confronto-legs">
+          ${legHtml({ home: tie.home, away: tie.away, stadium: tie.stadium, date: tie.date, time: tie.time }, "gamesLeg1")}
+          ${legHtml(tie.leg2, "gamesLeg2")}
+          ${resultLine}
+        </div>
       </div>`;
-    };
-    return `<div class="confronto-card card">
-      <div class="confronto-header">Oitavas ${o.id} — ${esc(o.home)} × ${esc(o.away)}</div>
-      <div class="confronto-legs">
-        ${legHtml({ home: o.home, away: o.away, stadium: o.stadium, date: o.date, time: o.time }, "gamesLeg1")}
-        ${legHtml(o.leg2, "gamesLeg2")}
-      </div>
-    </div>`;
-  }).join("");
+    }).join("");
+  });
+
+  box.innerHTML = html;
 }
 
 // ─── Render: footer ───────────────────────────────────────────────────────────
@@ -567,58 +853,59 @@ function renderAdmin() {
 function renderAdminResults(s) {
   const box = $("adminResults");
   if (!box) return;
-  const r      = s.results;
-  const locked = r?.locked;
-  const opts   = DATA.teams.slice().sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .map(team => `<option value="${esc(team)}">${esc(team)}</option>`).join("");
-  const sel = id =>
-    `<select id="${id}" ${locked ? "disabled" : ""}><option value="">—</option>${opts}</select>`;
+  const resolved = resolveOfficial(s.results);
 
-  box.innerHTML = `
-    <h3>${esc(t("adminResults"))}</h3>
-    ${locked ? `<p class="paid-badge">${esc(t("resultsLocked"))}</p>` : ""}
-    <div class="cdb-results-grid">
-      <div class="admin-row"><label for="adm-champion">${esc(t("adminChampion"))}</label>${sel("adm-champion")}</div>
-      <div class="admin-row"><label for="adm-runner-up">${esc(t("adminRunnerUp"))}</label>${sel("adm-runner-up")}</div>
-      <div class="admin-row"><label for="adm-semi-1">${esc(t("adminSemi1"))}</label>${sel("adm-semi-1")}</div>
-      <div class="admin-row"><label for="adm-semi-2">${esc(t("adminSemi2"))}</label>${sel("adm-semi-2")}</div>
-    </div>
-    <div class="button-row" style="margin-top:14px;gap:8px">
-      ${!locked ? `<button type="button" id="saveResultsBtn">${esc(t("saveResults"))}</button>` : ""}
-      ${locked  ? `<button type="button" id="unlockResultsBtn" class="secondary">${esc(t("unlockResults"))}</button>` : ""}
-    </div>`;
+  let html = `<h3>${esc(t("adminResults"))}</h3>`;
+  ROUNDS.forEach(round => {
+    const ties = DATA.ties.filter(tie => tie.round === round);
+    if (!ties.length) return;
+    html += `<div class="admin-round-header">${esc(t(ROUND_LABELS[round]))}</div>`;
+    ties.forEach(tie => {
+      const { home, away } = resolved[tie.id];
+      const res = s.results.ties[tie.id];
+      if (!home || !away) {
+        html += `<div class="admin-row muted">${esc(tie.id)} — ${esc(t("pickWaitingSlot"))}</div>`;
+        return;
+      }
+      html += `<div class="admin-row cdb-admin-tie" data-tie-id="${esc(tie.id)}">
+        <span class="tie-teams-admin">${esc(home)} × ${esc(away)}</span>
+        <input type="number" min="0" max="20" class="adm-goals-a" value="${res ? res.goalsA : ""}" ${res ? "disabled" : ""} aria-label="${esc(home)}">
+        <span class="tie-x">×</span>
+        <input type="number" min="0" max="20" class="adm-goals-b" value="${res ? res.goalsB : ""}" ${res ? "disabled" : ""} aria-label="${esc(away)}">
+        <select class="adm-advance" ${res ? "disabled" : ""}>
+          <option value="">—</option>
+          <option value="home" ${res?.advance === "home" ? "selected" : ""}>${esc(home)}</option>
+          <option value="away" ${res?.advance === "away" ? "selected" : ""}>${esc(away)}</option>
+        </select>
+        ${res
+          ? `<button type="button" class="secondary small-btn" data-unlock-tie="${esc(tie.id)}">${esc(t("unlockResults"))}</button>`
+          : `<button type="button" class="small-btn" data-save-tie="${esc(tie.id)}">${esc(t("saveResults"))}</button>`}
+      </div>`;
+    });
+  });
+  box.innerHTML = html;
 
-  if (r?.champion) $("adm-champion") && ($("adm-champion").value = r.champion);
-  if (r?.runnerUp) $("adm-runner-up") && ($("adm-runner-up").value = r.runnerUp);
-  if (r?.semis?.[0]) $("adm-semi-1") && ($("adm-semi-1").value = r.semis[0]);
-  if (r?.semis?.[1]) $("adm-semi-2") && ($("adm-semi-2").value = r.semis[1]);
-
-  $("saveResultsBtn")?.addEventListener("click", () => {
+  box.querySelectorAll("[data-save-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    const champion = $("adm-champion")?.value || "";
-    const runnerUp = $("adm-runner-up")?.value || "";
-    const semis    = [$("adm-semi-1")?.value || "", $("adm-semi-2")?.value || ""];
-    if (!champion || !runnerUp || semis.some(v => !v)) {
-      alert(t("errorResultsIncomplete")); return;
-    }
-    const all = [champion, runnerUp, ...semis];
-    if (new Set(all).size < all.length) { alert(t("errorDuplicatePicks")); return; }
+    const tieId = btn.dataset.saveTie;
+    const row = box.querySelector(`.cdb-admin-tie[data-tie-id="${tieId}"]`);
+    const a = parseInt(row.querySelector(".adm-goals-a").value, 10);
+    const b = parseInt(row.querySelector(".adm-goals-b").value, 10);
+    const adv = row.querySelector(".adm-advance").value;
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0 || !adv) { alert(t("errorResultsIncomplete")); return; }
     if (!confirm(t("confirmLockResults"))) return;
     const s2 = state();
-    s2.results = { champion, runnerUp, semis, locked: true, lockedAt: new Date().toISOString() };
+    s2.results.ties[tieId] = { goalsA: a, goalsB: b, advance: adv, lockedAt: new Date().toISOString() };
     saveState(s2);
     alert(t("resultsSaved"));
-    renderAdmin();
-  });
-
-  $("unlockResultsBtn")?.addEventListener("click", () => {
+  }));
+  box.querySelectorAll("[data-unlock-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
     if (!confirm(t("confirmUnlockResults"))) return;
     const s2 = state();
-    if (s2.results) { s2.results.locked = false; }
+    delete s2.results.ties[btn.dataset.unlockTie];
     saveState(s2);
-    renderAdmin();
-  });
+  }));
 }
 
 function renderAdminPayments(s) {
@@ -695,22 +982,59 @@ function exportCsv() {
   const s       = state();
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
-  const rows    = [["Nome", "Pagador", "Email", "Pagamento", "Campeão", "Vice", "Semi1", "Semi2", "Pago", "Criado"]];
+  const header  = ["Nome", "Pagador", "Email", "Pagamento", "Campeão", "Vice", "Semi1", "Semi2", "Pago", "Criado",
+    ...DATA.ties.map(tie => tie.id)];
+  const rows    = [header];
   entries.forEach(e => {
     const p = e.picks || {};
+    const resolved = resolveEntry(e);
+    const picks    = e.picks?.ties || {};
+    const tieCols  = DATA.ties.map(tie => {
+      const pick = picks[tie.id];
+      const { home, away } = resolved[tie.id];
+      if (!pick || !home || !away) return "";
+      return `${home} ${pick.goalsA}×${pick.goalsB} ${away}`;
+    });
     rows.push([
       e.entryName, e.payerName || "", e.participantEmail || "", e.paymentMethod || "",
       p.champion || "", p.runnerUp || "", (p.semis || [])[0] || "", (p.semis || [])[1] || "",
       (s.paid || {})[e.id] ? "Sim" : "Não",
-      e.createdAt ? new Date(e.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : ""
+      e.createdAt ? new Date(e.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+      ...tieCols
     ]);
   });
-  const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\n");
+  const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
   a.href = url; a.download = `cdb2026_${new Date().toISOString().slice(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── Export JSON backup ───────────────────────────────────────────────────────
+function exportJsonBackup() {
+  const s    = state();
+  const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `cdb2026_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// ─── Clear all data (admin) ───────────────────────────────────────────────────
+async function clearAllData() {
+  if (!confirm(t("clearDataConfirm"))) return;
+  localStorage.removeItem(C.storeKey);
+  if (C.database.enabled) {
+    try {
+      const { url, anonKey, table, stateId } = C.database;
+      await fetch(`${url}/rest/v1/${table}?id=eq.${stateId}`, {
+        method: "DELETE",
+        headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
+      });
+    } catch (err) { console.warn("[CDB2026] Clear remote failed", err); }
+  }
+  renderAll();
 }
 
 // ─── Render all ──────────────────────────────────────────────────────────────
@@ -728,6 +1052,9 @@ function renderAll() {
 
 // ─── Init ────────────────────────────────────────────────────────────────────
 async function init() {
+  const wa = $("supportWhatsappBtn");
+  if (wa) wa.href = C.whatsappGroup?.link || "#";
+
   // Navigation
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
   showSection(isPastCutoff() ? "ranking" : "entry");
@@ -744,6 +1071,22 @@ async function init() {
 
   // Save entry
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
+
+  // Self-service: find and edit my own entry (email + receipt code — email alone isn't a secret)
+  $("findEntryBtn")?.addEventListener("click", () => {
+    const email = $("findEntryEmail")?.value.trim() || "";
+    const code  = $("findEntryCode")?.value.trim() || "";
+    if (!email || !code) { alert(t("findEntryMissing")); return; }
+    const found = findEntryByEmailAndCode(email, code);
+    if (!found) { alert(t("findEntryNotFound")); return; }
+    _editingEntry = found;
+    renderPickForm();
+    $("entryName") && ($("entryName").value = found.entryName || "");
+    $("payerName") && ($("payerName").value = found.payerName || "");
+    $("participantEmail") && ($("participantEmail").value = found.participantEmail || "");
+    $("paymentMethod") && ($("paymentMethod").value = found.paymentMethod || "");
+    alert(t("findEntryLoaded"));
+  });
 
   // Admin login
   $("adminPassword")?.addEventListener("keydown", e => { if (e.key === "Enter") $("adminLoginBtn")?.click(); });
@@ -781,6 +1124,8 @@ async function init() {
   });
 
   $("exportCsvBtn")?.addEventListener("click", () => { if (guardAdmin()) exportCsv(); });
+  $("exportJsonBtn")?.addEventListener("click", () => { if (guardAdmin()) exportJsonBackup(); });
+  $("clearDataBtn")?.addEventListener("click", () => { if (guardAdmin()) clearAllData(); });
   $("forceSyncBtn")?.addEventListener("click", async () => {
     if (!guardAdmin()) return;
     await loadRemoteState();

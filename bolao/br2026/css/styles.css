@@ -71,6 +71,15 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
 
+/* ── WhatsApp support button ── */
+.whatsapp-btn {
+  display: inline-flex; gap: 6px; align-items: center;
+  background: #25D366; color: #000; text-decoration: none;
+  border-radius: 999px; padding: 8px 13px;
+  font-weight: 900; font-size: 13px; white-space: nowrap;
+}
+.whatsapp-btn img { width: 18px; height: 18px; }
+
 /* ── Bolão switcher ── */
 .bolao-switcher select {
   appearance: none;
@@ -476,14 +485,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 @media (min-width: 901px) {
   .topbar {
     display: grid !important;
-    grid-template-columns: 1fr auto auto;
+    grid-template-columns: 1fr auto auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 8px 12px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
-  .lang-links     { grid-column: 2; grid-row: 1; align-self: center; }
-  .bolao-switcher { grid-column: 3; grid-row: 1; align-self: center; }
+  .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; }
+  .lang-links     { grid-column: 3; grid-row: 1; align-self: center; }
+  .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
   .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(9, 1fr); gap: 5px; }
   .nav button     { font-size: 13px; padding: 8px 6px; }
 }
@@ -492,14 +502,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   main { padding: 12px 10px 80px; }
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-rows: auto auto auto;
     align-items: center;
     padding: 10px 12px;
     gap: 8px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
-  .bolao-switcher { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
+  .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; font-size: 12px; padding: 7px 10px; }
+  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; }
   .lang-links     { grid-column: 1 / -1; grid-row: 2; }
   .nav            { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }

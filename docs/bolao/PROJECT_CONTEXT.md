@@ -56,3 +56,24 @@ On a draw, the participant selects who advances (the "advanceSide" field).
 | v3.3.1 | 2025 | Desktop/mobile header, flag language buttons, games view redesign |
 | v3.3.4 | 2025 | Language dropdown removed, timer seconds, Supabase focus/visibility reload |
 | **v4.0-clean** | **2026-06-27** | **Full clean rebuild. No code carried from v3.x.** |
+
+<!-- AUTO:PLATFORM_CONTEXT:START -->
+## Platform context (three apps)
+
+This product vision document describes **Copa do Mundo 2026** (`bolao/`) specifically. It is
+one of three bolão apps in this repo:
+
+| App | Pasta | Status |
+|---|---|---|
+| Copa do Mundo 2026 | `bolao/` | Em produção |
+| Brasileirão 2026 | `bolao/br2026/` | Não publicado |
+| Copa do Brasil 2026 | `bolao/cdb2026/` | Não publicado |
+
+The three apps share the same design system, admin auth pattern, EmailJS/Supabase
+integration style, and general product shape (entry → picks → ranking → admin), but each has
+its own scoring formula and bracket/table structure appropriate to its tournament format.
+Product-vision decisions made here (pricing, prize split, informal/no-liability framing)
+apply as defaults to the other two apps unless their own `CHANGELOG.md` documents a deliberate
+difference. See `docs/bolao/PLATFORM_GOVERNANCE.md` for the propagation rules and
+`docs/bolao/CONSISTENCY_MATRIX.md` for the current area-by-area comparison.
+<!-- AUTO:PLATFORM_CONTEXT:END -->

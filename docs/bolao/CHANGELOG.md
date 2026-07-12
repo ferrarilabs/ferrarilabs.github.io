@@ -74,3 +74,64 @@ Full clean rebuild from scratch. No code carried over from v3.x.
 ## v3.0 — 2025
 
 Clean rebuild from unstable v2. Fixed from Claude audit: CSV CRLF, admin password handling, EmailJS throttle, score validation, receipt Blob URL, simulator guards, HTML escaping, event delegation, scoring performance.
+
+<!-- AUTO:GOVERNANCE_CHANGELOG:START -->
+## Platform governance audit — baseline snapshot (Copa v4.125 / BR2026 v1.13 / CDB2026 v1.6)
+
+Introduced platform-level governance documentation and a cross-app consistency audit covering
+all three bolão apps (`bolao/`, `bolao/br2026/`, `bolao/cdb2026/`). Documentation only — no
+functional code was changed.
+
+### Added
+- `docs/bolao/PLATFORM_GOVERNANCE.md` — change classification categories (`PLATFORM_SHARED`,
+  `TOURNAMENT_SPECIFIC`, `DATA_ONLY`, `SECURITY`, `EMERGENCY_HOTFIX`) and propagation rules
+  between the three apps.
+- `docs/bolao/CONSISTENCY_MATRIX.md` — 60-area audit comparing the three apps (design system,
+  admin, security, email/receipts, live scores, i18n, accessibility, CSP, and more).
+- `docs/bolao/QA_MASTER_CHECKLIST.md` — cross-app QA checklist (pre-change, static checks,
+  functional, visual, cross-app, post-change).
+- `AUTO:PLATFORM_RULES` block in `CLAUDE.md` with the mandatory propagation rule.
+- `AUTO:PLATFORM_CONTEXT`, `AUTO:MULTI_APP_ARCHITECTURE`, `AUTO:CROSS_APP_QA` blocks in the
+  corresponding existing docs, cross-linking to the new governance files.
+
+### Findings summary (see CONSISTENCY_MATRIX.md for detail)
+- No Critical divergences found.
+- High: BR2026/CDB2026 have no scoring self-audit script equivalent to
+  `bolao/scripts/audit_scoring.py`, and no receipt/PDF/email-receipt system for participants
+  despite promising "comprovantes" in their own transparency disclaimer.
+- Medium: CSV exports in BR2026/CDB2026 use LF instead of the CRLF fix already applied in
+  Copa v3.0; no WhatsApp support button or `assets/` folder (payment QR codes) in the two
+  newer apps; no `AbortController`/timeout on their `fetch()` calls; CDB2026 has no postponed-
+  match detection (BR2026 has it since v1.13); no "clear data" admin action or JSON backup
+  export in the two newer apps.
+
+## Governance documentation — permanent memory, lessons learned, DoD/smoke/regression/risk
+
+Documentation-only session. No functional code was changed.
+
+### Added
+- `docs/bolao/PROJECT_MEMORY.md` — permanent project memory (history, architecture, per-app
+  structure, tech stack, architectural decisions, limitations, database, email, PDF, scoring,
+  ranking, admin, APIs, i18n, security, audits performed, historical bugs, tech debt, roadmap),
+  extracted entirely from existing docs/code, no invented content.
+- `docs/bolao/LESSONS_LEARNED.md` — historical bugs in problem/root-cause/fix/prevention
+  format, covering CSV line endings, receipt/PDF flow, EmailJS payload shape, mobile flag/name
+  ordering, i18n gaps, admin hash/lockout, hardcoded credentials, event delegation, ranking
+  tie-break drift, bonus-scoring drift, popup blockers, Supabase merge strategy, multi-tab/
+  bfcache sync, clear-data, API-Football, countdown, mobile layout, Safari/WebKit quirks,
+  receipts, backups, localStorage recovery, cross-app consistency drift, and QA process gaps.
+- `docs/bolao/QA_MASTER_CHECKLIST.md`: added sections G (Definition of Done), H (Smoke Tests),
+  I (Regression Tests), J (Risk Assessment) inside the existing `AUTO:QA_MASTER_CHECKLIST`
+  block.
+- `CLAUDE.md`: added a "Permanent rules" block inside `AUTO:PLATFORM_RULES` — mandatory reading
+  list before any change (`PROJECT_MEMORY.md`, `ENGINEERING_STANDARD.md`,
+  `PLATFORM_GOVERNANCE.md`, `CONSISTENCY_MATRIX.md`, `QA_MASTER_CHECKLIST.md`, `CHANGELOG.md`),
+  pre-modification checklist, and an explicit never/always list.
+
+### Known gap introduced by this session
+- `CLAUDE.md`'s new permanent-rules block and this session's own instructions reference
+  `docs/bolao/ENGINEERING_STANDARD.md`, which **does not exist yet**. Tracked as missing
+  documentation — see the consistency audit note below and `PROJECT_MEMORY.md`/
+  `CONSISTENCY_MATRIX.md` for context. Not created in this session because it wasn't explicitly
+  requested as content to author, only as a rule to reference.
+<!-- AUTO:GOVERNANCE_CHANGELOG:END -->

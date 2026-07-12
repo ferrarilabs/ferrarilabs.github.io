@@ -136,3 +136,18 @@ no way to catch drift automatically without an explicit check.
       audit script covers the Python side's internal correctness and its parity with
       `data.js`, but a simultaneous change to both the bracket and the JS scoring logic in
       the same PR is still worth eyeballing directly.
+
+<!-- AUTO:CROSS_APP_QA:START -->
+## Cross-app QA (this checklist is Copa-specific)
+
+This file only covers `bolao/` (Copa do Mundo 2026). The Copa is **in production**, so treat
+any UI/component, accessibility, security, database, email, receipt, admin, or infrastructure
+change made here as something that must also be checked against `bolao/br2026/` and
+`bolao/cdb2026/` before the task is considered done — per the propagation rule in `CLAUDE.md`
+and `docs/bolao/PLATFORM_GOVERNANCE.md`.
+
+For the full cross-app checklist (pre-change through post-change, static checks, and the
+security/quality grep sweep shared by all three apps), run
+`docs/bolao/QA_MASTER_CHECKLIST.md` in addition to this file. If a change here reveals or
+resolves a divergence with the other two apps, update `docs/bolao/CONSISTENCY_MATRIX.md`.
+<!-- AUTO:CROSS_APP_QA:END -->
