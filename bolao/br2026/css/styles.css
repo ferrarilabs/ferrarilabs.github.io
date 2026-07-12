@@ -475,13 +475,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 @media (min-width: 901px) {
   .topbar {
     display: grid !important;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 8px 12px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
-  .bolao-switcher { grid-column: 2; grid-row: 1; align-self: center; }
+  .lang-links     { grid-column: 2; grid-row: 1; align-self: center; }
+  .bolao-switcher { grid-column: 3; grid-row: 1; align-self: center; }
   .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(9, 1fr); gap: 5px; }
   .nav button     { font-size: 13px; padding: 8px 6px; }
 }
@@ -491,14 +492,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .topbar {
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     align-items: center;
     padding: 10px 12px;
     gap: 8px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
   .bolao-switcher { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
-  .nav            { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .lang-links     { grid-column: 1 / -1; grid-row: 2; }
+  .nav            { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }
   .pick-row label { flex-direction: column; align-items: flex-start; }
 }

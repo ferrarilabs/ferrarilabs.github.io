@@ -87,6 +87,15 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .bolao-switcher select:focus { border-color: var(--green); }
 
+/* ── Lang links ── */
+.lang-links { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.lang-links button {
+  background: var(--bg3); color: var(--text);
+  border: 1px solid var(--border2); border-radius: 999px;
+  padding: 7px 12px; font-size: 12px; font-weight: 700;
+}
+.lang-links button.active { background: var(--green); color: var(--green-dk); border-color: var(--green); }
+
 /* ── Nav ── */
 .nav { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; width: 100%; }
 .nav button {
@@ -299,13 +308,14 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 @media (min-width: 901px) {
   .topbar {
     display: grid !important;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 8px 12px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
-  .bolao-switcher { grid-column: 2; grid-row: 1; align-self: center; }
+  .lang-links     { grid-column: 2; grid-row: 1; align-self: center; }
+  .bolao-switcher { grid-column: 3; grid-row: 1; align-self: center; }
   .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(6, 1fr); gap: 5px; }
   .nav button     { font-size: 13px; padding: 8px 6px; }
 }
@@ -315,14 +325,15 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .topbar {
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     align-items: center;
     padding: 10px 12px;
     gap: 8px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
   .bolao-switcher { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; }
-  .nav            { grid-column: 1 / -1; grid-row: 2; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .lang-links     { grid-column: 1 / -1; grid-row: 2; }
+  .nav            { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }
   .pick-row label { flex-direction: column; align-items: flex-start; }
 }
