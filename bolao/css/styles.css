@@ -801,15 +801,15 @@ input[readonly] {
   .count-grid { grid-template-columns: repeat(4, 1fr); }
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 1fr auto auto;
     grid-template-rows: auto auto auto;
     padding: 10px 12px;
     gap: 8px;
   }
   .brand { grid-column: 1; grid-row: 1; margin-right: 0; }
   .whatsapp-btn { grid-column: 2; grid-row: 1; justify-self: end; font-size: 12px; padding: 7px 10px; }
-  .lang-links { grid-column: 1; grid-row: 2; }
-  .bolao-switcher { grid-column: 2; grid-row: 2; justify-self: end; }
+  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; }
+  .lang-links { grid-column: 1 / -1; grid-row: 2; }
   .nav { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
   .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
   .sticky-submit button { width: 100%; }
@@ -891,7 +891,8 @@ input[readonly] {
 }
 
 @media (min-width: 901px) {
-  /* Two-row topbar: brand/switcher/WA/lang on row 1, nav full-width on row 2. */
+  /* Two-row topbar: brand/WA/lang/switcher on row 1, nav full-width on row 2.
+     Switcher is always far-right (col 4) to match BR2026/CDB2026 visual position. */
   .topbar {
     display: grid !important;
     grid-template-columns: 1fr auto auto auto;
@@ -899,9 +900,9 @@ input[readonly] {
     gap: 8px 12px;
   }
   .brand       { grid-column: 1; grid-row: 1; margin-right: 0 !important; }
-  .bolao-switcher { grid-column: 2; grid-row: 1; }
-  .whatsapp-btn{ grid-column: 3; grid-row: 1; }
-  .lang-links  { grid-column: 4; grid-row: 1; }
+  .whatsapp-btn{ grid-column: 2; grid-row: 1; }
+  .lang-links  { grid-column: 3; grid-row: 1; }
+  .bolao-switcher { grid-column: 4; grid-row: 1; }
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
