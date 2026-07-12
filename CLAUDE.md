@@ -9,6 +9,7 @@ No build step. Push to `main` and GitHub Pages auto-deploys to `ferrarilabs.gith
 - Main site: `ferrarilabs.github.io`
 - Copa do Mundo 2026: `ferrarilabs.github.io/bolao/`
 - Brasileirão 2026: `ferrarilabs.github.io/bolao/br2026/` (not published yet)
+- Copa do Brasil 2026: `ferrarilabs.github.io/bolao/cdb2026/` (not published yet)
 - Old URL redirect: `ferrarilabs.github.io/bolao/` → `/bolao/`
 
 To preview locally:
@@ -26,6 +27,8 @@ Three independent sub-projects:
 **Copa do Mundo 2026** (`bolao/`) — bracket pool. Vanilla JS, no framework, no build system. URL: `ferrarilabs.github.io/bolao/`.
 
 **Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/br2026/`.
+
+**Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/cdb2026/`.
 
 ## Bolão app — quick reference
 
@@ -150,5 +153,91 @@ All extended documentation is in `docs/bolao/`:
 - `BUGS_AND_FEEDBACK.md` — open bugs, fixed bugs, user feedback, wishlist
 - `CHANGELOG.md` — consolidated version history
 - `ROADMAP.md` — planned and discussed future work
+- `PROJECT_MEMORY.md` — permanent project memory: history, architecture, decisions, limitations, bugs, tech debt
+- `LESSONS_LEARNED.md` — historical bugs in problem/root-cause/fix/prevention format
 
 Also see `bolao/docs/` for low-level setup guides (Supabase SQL, API-Football, deploy steps).
+
+<!-- AUTO:PLATFORM_RULES:START -->
+## Platform governance (three apps)
+
+This repo runs **three independent bolão apps** that share one design system and one set of
+conventions: `bolao/` (Copa do Mundo 2026, **in production**), `bolao/br2026/` (Brasileirão
+2026, not published), and `bolao/cdb2026/` (Copa do Brasil 2026, not published). They do not
+share code (no imports between them) but they are audited together.
+
+**Propagation rule — mandatory:**
+
+> Uma alteração visual, de componente, acessibilidade, segurança, banco, email, receipt,
+> admin ou infraestrutura feita em um aplicativo deve ser auditada nos demais aplicativos
+> antes do encerramento da tarefa.
+
+Additional rules:
+
+- Correções compartilhadas devem ser propagadas quando fizer sentido.
+- Diferenças específicas de torneio (scoring, bracket, regras) devem ser preservadas — não
+  generalizar entre apps.
+- Quando uma alteração não for propagada, o motivo deve ser registrado (no changelog do app e,
+  se for uma decisão de plataforma, em `docs/bolao/CONSISTENCY_MATRIX.md`).
+- Nunca alterar scoring ou regras de negócio em nenhum dos três apps sem autorização explícita
+  do Eduardo — os três movimentam dinheiro real por entrada.
+- O bolão da Copa está em produção e deve receber apenas patches pequenos, testados e
+  reversíveis.
+- Mudanças no bolão da Copa devem ser avaliadas nos outros dois apps.
+- Mudanças nos outros dois apps não devem ser aplicadas automaticamente à Copa sem avaliação
+  de risco.
+
+Full detail, change classification categories, and the area-by-area audit:
+
+- `docs/bolao/PLATFORM_GOVERNANCE.md` — governance rules and change classification
+- `docs/bolao/CONSISTENCY_MATRIX.md` — area-by-area consistency audit across the three apps
+- `docs/bolao/QA_MASTER_CHECKLIST.md` — cross-app QA checklist (pre-change through post-change)
+
+## Permanent rules
+
+### Sempre ler antes de qualquer alteração
+
+1. `docs/bolao/PROJECT_MEMORY.md`
+2. `docs/bolao/ENGINEERING_STANDARD.md`
+3. `docs/bolao/PLATFORM_GOVERNANCE.md`
+4. `docs/bolao/CONSISTENCY_MATRIX.md`
+5. `docs/bolao/QA_MASTER_CHECKLIST.md`
+6. `bolao/CHANGELOG.md` (e o `CHANGELOG.md` de cada app afetado)
+
+### Antes de modificar qualquer arquivo
+
+- Identificar a categoria da mudança (`PLATFORM_SHARED` / `TOURNAMENT_SPECIFIC` / `DATA_ONLY` /
+  `SECURITY` / `EMERGENCY_HOTFIX` — ver `PLATFORM_GOVERNANCE.md`).
+- Identificar quais dos três aplicativos (`bolao/`, `bolao/br2026/`, `bolao/cdb2026/`) são
+  afetados.
+- Verificar a necessidade de propagação para os demais aplicativos.
+- Analisar riscos antes de editar (ver seção "Risk Assessment" em `QA_MASTER_CHECKLIST.md`).
+
+### Nunca
+
+- Reescrever arquivos inteiros quando um patch mínimo resolve.
+- Alterar scoring sem autorização explícita do Eduardo.
+- Alterar regras de negócio sem autorização explícita do Eduardo.
+- Misturar refatoração com correção de bug no mesmo patch.
+- Deixar `TODO` novo sem justificativa registrada.
+- Deixar `FIXME` novo.
+- Deixar `console.log` esquecido em código de produção.
+- Deixar bloco `catch` vazio sem comentário explicando por que o erro é intencionalmente
+  ignorado.
+
+### Sempre
+
+- Patch mínimo, cirúrgico, reversível.
+- QA (rodar `docs/bolao/QA_CHECKLIST.md` e/ou `docs/bolao/QA_MASTER_CHECKLIST.md` conforme a
+  categoria da mudança).
+- Atualizar o changelog do(s) app(s) alterado(s).
+- Atualizar `docs/bolao/CONSISTENCY_MATRIX.md` quando a mudança resolve, cria ou altera uma
+  divergência já catalogada.
+- Atualizar a documentação relevante junto com o código, no mesmo patch.
+- Comparar a implementação equivalente entre os três aplicativos antes de considerar a mudança
+  concluída.
+
+Toda alteração visual, de componente, acessibilidade, segurança, banco, email, admin, PDF,
+comprovante ou infraestrutura deve ser auditada nos demais aplicativos antes do encerramento da
+tarefa — ver a regra de propagação acima.
+<!-- AUTO:PLATFORM_RULES:END -->

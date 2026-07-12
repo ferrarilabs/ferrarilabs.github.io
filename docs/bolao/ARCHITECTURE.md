@@ -389,3 +389,46 @@ Fix:
 3. If ESPN keeps applying the same wrong match: the sync only skips matches where `state.results[matchId].goalsA` is already set. Once you set the correct result manually, ESPN sync will no longer overwrite it.
 
 Root cause note: ESPN sync matches events by team name + date. If two different tournaments had the same teams play on the same date, a false match is possible. Date is checked as ET timezone (UTC−4).
+
+<!-- AUTO:MULTI_APP_ARCHITECTURE:START -->
+## Multi-app architecture
+
+This document describes `bolao/` (Copa do Mundo 2026) in detail. `bolao/br2026/` and
+`bolao/cdb2026/` follow the same file-layout convention but are separate, independent
+codebases — there is no shared module, import, or build step linking them. Each app's
+`js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js` and `css/styles.css` are self-contained.
+
+### File-path equivalence table
+
+| Purpose | Copa (`bolao/`) | BR2026 (`bolao/br2026/`) | CDB2026 (`bolao/cdb2026/`) |
+|---|---|---|---|
+| Entry point | `index.html` | `index.html` | `index.html` |
+| Styles | `css/styles.css` | `css/styles.css` | `css/styles.css` |
+| Runtime config | `js/config.js` → `window.BOLAO_CONFIG` | `js/config.js` → `window.BR2026_CONFIG` | `js/config.js` → `window.CDB2026_CONFIG` |
+| Fixture data | `js/data.js` | `js/data.js` | `js/data.js` |
+| i18n strings | `js/i18n.js` (pt-BR, es, en-US) | `js/i18n.js` (pt-BR only) | `js/i18n.js` (pt-BR only) |
+| App logic | `js/app.js` (single IIFE, ~4400 lines) | `js/app.js` (single IIFE, ~1700 lines) | `js/app.js` (single IIFE, ~830 lines) |
+| Assets (logos, QR) | `assets/` | none | none |
+| Changelog | `bolao/CHANGELOG.md` | `bolao/br2026/CHANGELOG.md` | `bolao/cdb2026/CHANGELOG.md` |
+| Supabase row | `bolao_state.id = "main"` | `bolao_state.id = "br2026"` | `bolao_state.id = "cdb2026"` |
+| localStorage key | `bolao_copa_2026_state` | `bolao_br2026_state` | `bolao_cdb2026_state` |
+
+### Shared conventions across all three
+
+- Script load order: EmailJS CDN → Supabase CDN → `config.js` → `data.js` → `i18n.js` →
+  `app.js` (`defer`).
+- Admin auth: SHA-256 password hash comparison, `sessionStorage`-based lockout (5 attempts /
+  15 min) and session (30 min), `guardAdmin()` called on every admin action.
+- Local-first state with Supabase as an optional remote mirror; `mergeStates()` unions
+  entries and lets local win on `paid`/`results` conflicts.
+- Cutoff enforcement via `isPastCutoff()` reading `config.cutoffIso`, client-side only.
+- HTML escaping before any DOM insertion (`escapeHtml()` in Copa, `esc()` in the other two —
+  functionally equivalent).
+
+### Where the apps diverge (by design or by gap)
+
+See `docs/bolao/CONSISTENCY_MATRIX.md` for the full area-by-area audit. The largest
+architectural gaps as of the last audit: BR2026/CDB2026 have no receipt-generation system, no
+scoring self-audit script equivalent to `bolao/scripts/audit_scoring.py`, and no `assets/`
+folder for payment QR codes or a WhatsApp support button.
+<!-- AUTO:MULTI_APP_ARCHITECTURE:END -->
