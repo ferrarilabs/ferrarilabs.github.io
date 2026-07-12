@@ -442,6 +442,7 @@ function renderNextMatch() {
         : "";
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const scorersBlock = goalScorersHtml(ls, tA, tB);
+      const playsBlock = livePlaysHtml(ls, tA, tB); // NOT SHIPPED — local verification build, see extractMatchPlays
       // A real break in play (halftime, penalties — no running clock exists
       // once regulation/extra time ends — or any other stoppage clockPaused
       // picked up from the clock's own behavior) isn't more elapsed play
@@ -469,6 +470,7 @@ function renderNextMatch() {
         </div>
       </div>
       ${scorersBlock}
+      ${playsBlock}
       ${probBlock}
       ${pointsBlock}
       </div>`;
@@ -1815,6 +1817,7 @@ function renderGames() {
   <div class="game-team right"><span class="team-flag">${escapeHtml(flag(b))}</span><span class="team-name">${escapeHtml(b)}</span></div>
 </div>
 ${live ? goalScorersHtml(live, a, b) : ""}
+${live ? livePlaysHtml(live, a, b) : ""}
 ${probBarsHtml}
 ${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
     box.appendChild(div);
@@ -2387,6 +2390,27 @@ function goalScorersHtml(live, tA, tB) {
     <div class="goal-scorer-col left">${leftRows.join("")}</div>
     <div class="goal-scorer-col right">${rightRows.join("")}</div>
   </div>`;
+}
+
+// NOT WIRED INTO PRODUCTION RENDERING YET — see extractMatchPlays comment
+// for the full caveat (built + verified locally against a mocked ESPN
+// payload, not a real one; field names for cards/subs are unconfirmed).
+// One row per play (goal/card/sub), newest first, single scrollable column
+// (unlike goalScorersHtml's two side-by-side columns) — box height is
+// capped in CSS to ~3 rows so it can't grow the card indefinitely; more
+// plays scroll inside their own box instead of pushing page content down.
+const PLAY_ICON = { goal: "⚽", yellow: "🟨", red: "🟥", sub: "🔄" };
+function livePlaysHtml(live, tA, tB) {
+  const plays = live?.plays;
+  if (!Array.isArray(plays) || !plays.length) return "";
+  const rows = [...plays].reverse().map(p => `<div class="live-plays-row">
+    <span class="live-plays-minute">${escapeHtml(p.minute || "")}</span>
+    <span class="live-plays-icon" aria-hidden="true">${PLAY_ICON[p.kind] || "•"}</span>
+    <span class="live-plays-flag">${escapeHtml(flag(p.side === "A" ? tA : tB))}</span>
+    <span class="live-plays-text">${escapeHtml(p.text || "")}</span>
+  </div>`).join("");
+  if (!rows) return "";
+  return `<div class="live-plays">${rows}</div>`;
 }
 
 // Cache pWinA for each ordered team pair to avoid recomputing Poisson for
@@ -3570,6 +3594,66 @@ function extractGoalEvents(comp) {
   }
 }
 
+// NOT WIRED INTO PRODUCTION RENDERING YET — built + verified locally per
+// Eduardo's request (July 2026), kept unshipped pending a live match to
+// confirm ESPN's real field values (see caveats below). Generalizes
+// extractGoalEvents to capture cards and substitutions from the exact same
+// comp.details array — no extra network call, same endpoint already polled
+// every 60s for the live score/clock. This is ESPN's data, not a broadcaster
+// commentary feed: only discrete events (goal/card/sub) are available, never
+// prose-style play-by-play like a TV broadcaster's live text (e.g. ge.globo)
+// — that data source isn't available to this site.
+//
+// UNVERIFIED without a live payload: the exact type.text/type.name strings
+// ESPN uses for yellow/red cards and substitutions, and whether a
+// substitution's athletesInvolved lists [in, out] or [out, in] — order is
+// deliberately NOT asserted below (see extractMatchPlays' sub handling).
+// Same "fails soft, never throws" contract as extractGoalEvents: this runs
+// inline inside mapEspnToLiveScores() on every poll, so a shape mismatch
+// must degrade to an empty array, never break the live score/clock for
+// every match.
+function extractMatchPlays(comp) {
+  try {
+    const details = Array.isArray(comp.details) ? comp.details : [];
+    const [c0, c1] = comp.competitors || [];
+    const plays = [];
+    for (const d of details) {
+      if (!d) continue;
+      const typeText = `${d.type?.text || ""} ${d.type?.name || ""}`;
+      const isGoal = d.scoringPlay === true || /goal/i.test(typeText);
+      const isRedCard = /red card|second yellow/i.test(typeText);
+      const isYellowCard = !isRedCard && /yellow card/i.test(typeText);
+      const isSub = /substitution/i.test(typeText);
+      let kind = null;
+      if (isGoal) kind = "goal";
+      else if (isRedCard) kind = "red";
+      else if (isYellowCard) kind = "yellow";
+      else if (isSub) kind = "sub";
+      if (!kind) continue; // not a play type we render — skip silently
+      const teamId = d.team?.id;
+      let side = null;
+      if (teamId != null && c0?.team?.id != null && String(teamId) === String(c0.team.id)) side = "c0";
+      else if (teamId != null && c1?.team?.id != null && String(teamId) === String(c1.team.id)) side = "c1";
+      if (!side) continue;
+      const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
+      const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
+      const names = (d.athletesInvolved || [])
+        .map(a => a?.displayName || a?.shortName)
+        .filter(Boolean);
+      // Substitution: show both names joined, without claiming which is
+      // in/out — that ordering isn't confirmed. Everything else: first
+      // (only) name involved.
+      const text = kind === "sub" ? names.slice(0, 2).join(" ↔ ") : (names[0] || "");
+      if (!text && !minute) continue;
+      plays.push({ kind, side, minute, text, order: clockVal ?? 0 });
+    }
+    return plays.sort((a, b) => a.order - b.order);
+  } catch (err) {
+    console.warn("extractMatchPlays failed, skipping plays feed for this match", err);
+    return [];
+  }
+}
+
 function mapEspnToLiveScores(events) {
   if (!Array.isArray(events) || !events.length) return {};
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
@@ -3656,14 +3740,18 @@ function mapEspnToLiveScores(events) {
             : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
+      // plays: NOT WIRED INTO PRODUCTION RENDERING YET — see extractMatchPlays comment.
+      const matchPlays = extractMatchPlays(comp);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, period, isHalftime, isPenalties, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
+        const plays = matchPlays.map(p => ({ ...p, side: p.side === "c0" ? "A" : "B" }));
+        out[m.match] = { goalsA: s0, goalsB: s1, clock, clockSeconds, period, isHalftime, isPenalties, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers, plays };
         break;
       }
       if (n1 === normA && n0 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "B" : "A", scorer: g.scorer, minute: g.minute }));
-        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, period, isHalftime, isPenalties, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers };
+        const plays = matchPlays.map(p => ({ ...p, side: p.side === "c0" ? "B" : "A" }));
+        out[m.match] = { goalsA: s1, goalsB: s0, clock, clockSeconds, period, isHalftime, isPenalties, pastBoundary: skipUpTo, pollTime: Date.now(), eventId, competitionId, scorers, plays };
         break;
       }
     }
