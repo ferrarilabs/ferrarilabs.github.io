@@ -1,5 +1,13 @@
 # CHANGELOG
 
+## v4.121 — 2026-07-12
+
+### Novo — seletor de bolão no header da Copa do Mundo
+
+Adicionado dropdown "Alternar bolão" no header da Copa do Mundo (já existia no BR2026 e CDB2026). Permite navegar entre os três bolões — Copa do Mundo, Brasileirão 2026 e Copa do Brasil 2026 — sem precisar lembrar a URL manualmente. Estilo consistente com os outros bolões (pill border-radius, sem `appearance` nativo, cor do theme). `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.120 — 2026-07-12
 
 ### Fixed — caixa de lances "voltava sozinha pra cima" ao tentar rolar

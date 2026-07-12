@@ -4137,6 +4137,11 @@ function renderAll() {
    Event delegation — single listener on document
    ============================================================ */
 function initEvents() {
+  // bolão switcher
+  document.getElementById("bolaoSelect")?.addEventListener("change", e => {
+    if (e.target.value) location.href = e.target.value;
+  });
+
   // nav buttons
   document.addEventListener("click", e => {
     const nav = e.target.closest(".nav button[data-section]");
