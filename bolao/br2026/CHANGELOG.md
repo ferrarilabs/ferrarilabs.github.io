@@ -1,5 +1,28 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.14 — 2026-07-12
+
+### Fixed — escudo do time só aparecia na barra de probabilidade, não no card do jogo
+
+Reportado por Eduardo: o escudo do time (`_teamLogos`, vindo do standings da ESPN) já era
+buscado e usado dentro das barrinhas de probabilidade, mas os dois widgets mais visíveis da
+tela — o card "Ao vivo" (`renderLiveCard`) e o card "Hoje tem jogo"/"Próximo jogo"
+(`renderNextGameCard`, nos 3 estados: ao vivo, encerrado hoje, e sem jogo hoje) — mostravam só
+o nome do time em texto puro, sem nenhum símbolo. A aba Jogos (`renderGamesSection`) já
+mostrava o escudo corretamente ao lado do nome — só os widgets do topo da página estavam sem.
+
+- Extraído helper `teamLogoImg(team, cls)` reaproveitando `_teamLogos` (já existente).
+- Escudo adicionado nas bordas externas dos nomes de time (mesmo padrão visual da Copa com
+  bandeira) em `renderLiveCard`, `renderNextGameCard` (todos os 3 estados) e
+  `renderNextGameCard`'s "próximo jogo" (sem jogo hoje).
+- Só CSS/markup — nenhuma lógica de scoring, ranking ou dado alterada. `audit_scoring.py`: 5/5.
+
+### Added — botão WhatsApp no topbar
+
+Resolve a divergência `MISSING` catalogada em `docs/bolao/CONSISTENCY_MATRIX.md` item 34 —
+reaproveita o mesmo grupo, QR e ícone da Copa do Mundo (`assets/whatsapp.svg`,
+`assets/whatsapp-group-qr.png`), não é um grupo novo.
+
 ## v1.13 — 2026-07-12
 
 ### Fixed — CSS badge para jogos adiados
