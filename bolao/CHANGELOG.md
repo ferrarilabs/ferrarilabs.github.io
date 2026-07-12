@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## v4.119 — 2026-07-12
+
+### Novo — lances minuto a minuto (gols, cartões, substituições) no card ao vivo
+
+Pedido do Eduardo: uma caixa compacta logo abaixo dos artilheiros, uma linha por lance (gol/cartão/substituição), altura fixa (~3 linhas visíveis) e rolagem para ver o resto — sem quebrar o layout do card.
+
+Usa exatamente os mesmos dados que o placar ao vivo já busca a cada 60s (`comp.details` da ESPN) — nenhuma chamada de API extra. Ícone em vez de texto para o tipo de lance (⚽🟨🟥🔄), então não depende de idioma nenhum; nomes de jogador vêm da ESPN como estão.
+
+QA muito rigoroso antes de subir, já que mexe no card ao vivo (visto por todo mundo durante cada partida):
+- Varredura de regressão em todas as abas (Palpites, Ranking, Jogos, Probabilidades, Regras, Admin) com placar ao vivo mockado e sem — zero erros de console além de um warning de CSP pré-existente (confirmado idêntico rodando a mesma varredura sem essa mudança).
+- 13 payloads maliciosos/malformados testados contra a função de extração (`details` ausente/nulo/não-array, entradas nulas, time ausente, atletas ausentes ou não-array, relógio ausente, tipos de evento desconhecidos como "Offside"/"Corner Kick", substituição com atletas nulos misturados) — todos passaram sem erro e sem quebrar o placar/relógio ao vivo.
+- Confirmado que tipos de evento não reconhecidos não geram nenhum falso positivo (a caixa nem aparece).
+- Testado com 12 lances simultâneos — a caixa mantém a altura de ~3 linhas, resto rola, card não estica.
+- Testado com duas partidas ao vivo simultaneamente — cada card mostra só os próprios lances, sem misturar dados.
+- `python3 bolao/scripts/audit_scoring.py`: 5/5 — a mudança não toca em nenhuma função de pontuação.
+
+---
+
 ## v4.118 — 2026-07-11
 
 ### Changed — layout centralizado no card de partidas (Jogos)
