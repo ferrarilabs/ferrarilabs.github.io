@@ -436,9 +436,10 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 .game-score-final { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
 .game-number { font-size: 10px; color: var(--muted); opacity: .75; font-weight: 600; letter-spacing: .03em; }
 .game-status { font-weight: 700; }
-.game-status.live { color: #ef4444; }
-.game-status.post { color: var(--muted); }
-.game-status.pre  { color: var(--muted); }
+.game-status.live      { color: #ef4444; }
+.game-status.post      { color: var(--muted); }
+.game-status.pre       { color: var(--muted); }
+.game-status.postponed { color: var(--gold); }
 
 /* ── Probability bars (live match) ── */
 .prob-bars { display: flex; border-radius: 6px; overflow: hidden; height: 28px; margin-top: 10px; font-size: 11px; font-weight: 700; gap: 2px; }

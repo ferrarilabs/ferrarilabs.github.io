@@ -1,5 +1,15 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.13 — 2026-07-12
+
+### Fixed — CSS badge para jogos adiados
+
+- `.game-status.postponed { color: var(--gold); }` adicionado (texto "Adiado" em dourado)
+- Completa implementação de detecção de jogos adiados via ESPN (`status.type.name === "Postponed" || "Canceled"`)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.12 — 2026-07-12
 
 ### Novo — botões de idioma no topbar (padronização com Copa)

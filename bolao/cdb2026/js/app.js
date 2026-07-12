@@ -98,6 +98,7 @@ function showSection(id) {
   const h = document.querySelector(`#${id} h2, #${id} h3`);
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: false }); }
   if (id === "admin") renderAdmin();
+  if (id === "games") renderGamesSection();
 }
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
@@ -507,6 +508,43 @@ function renderRules() {
     </div>`;
 }
 
+// ─── Render: games (Oitavas de Final) ────────────────────────────────────────
+function renderGamesSection() {
+  const box = $("gamesList");
+  if (!box) return;
+  const oitavas = DATA.oitavas || [];
+  if (!oitavas.length) { box.innerHTML = `<p class="muted">Sem confrontos disponíveis.</p>`; return; }
+
+  const fmtDate = (dateStr, timeStr) => {
+    try {
+      const d = new Date(`${dateStr}T${timeStr}:00-03:00`);
+      return d.toLocaleString("pt-BR", {
+        timeZone: "America/Sao_Paulo",
+        weekday: "short", day: "2-digit", month: "2-digit",
+        hour: "2-digit", minute: "2-digit"
+      }) + " BRT";
+    } catch { return `${dateStr} ${timeStr} BRT`; }
+  };
+
+  box.innerHTML = oitavas.map(o => {
+    const legHtml = (legData, labelKey) => {
+      if (!legData) return "";
+      return `<div class="leg">
+        <span class="leg-label">${esc(t(labelKey))}</span>
+        <span class="leg-teams">${esc(legData.home)} × ${esc(legData.away)}</span>
+        <span class="leg-info">📍 ${esc(legData.stadium)} · ${esc(fmtDate(legData.date, legData.time))}</span>
+      </div>`;
+    };
+    return `<div class="confronto-card card">
+      <div class="confronto-header">Oitavas ${o.id} — ${esc(o.home)} × ${esc(o.away)}</div>
+      <div class="confronto-legs">
+        ${legHtml({ home: o.home, away: o.away, stadium: o.stadium, date: o.date, time: o.time }, "gamesLeg1")}
+        ${legHtml(o.leg2, "gamesLeg2")}
+      </div>
+    </div>`;
+  }).join("");
+}
+
 // ─── Render: footer ───────────────────────────────────────────────────────────
 function renderFooter() {
   const el = $("siteFooterBar");
@@ -680,6 +718,7 @@ function renderAll() {
   applyI18n();
   renderPickForm();
   renderRanking();
+  renderGamesSection();
   renderParticipants();
   renderPayment();
   renderRules();
