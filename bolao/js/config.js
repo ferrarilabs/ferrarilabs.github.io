@@ -1,5 +1,5 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.121",
+  siteVersion: "v4.122",
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
   storeKey: "bolao_copa_2026_state",

@@ -401,6 +401,11 @@ h3 { font-size: 1.05rem; }
 .hero-next-time {
   font-size: 11px;
   color: var(--muted);
+  margin-bottom: 4px;
+}
+.hero-next-venue {
+  font-size: 11px;
+  color: var(--muted);
   margin-bottom: 10px;
 }
 .hero-next-live {
