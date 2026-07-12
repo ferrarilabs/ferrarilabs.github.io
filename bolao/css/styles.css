@@ -34,6 +34,8 @@
   --danger-bg:#3d1520;
   --danger-tx:#ffdbe1;
   --danger-br:#8e2d42;
+  --gold:     #f59e0b;
+  --red:      #ff6b6b;
 }
 
 body {
@@ -487,19 +489,23 @@ h3 { font-size: 1.05rem; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-label { display: block; color: #cfe6dd; font-weight: 700; font-size: 13px; }
+/* Mesmo padrão de label/input do BR2026/CDB2026 (2 dos 3 apps já usavam este formato antes
+   desta migração) — ver DESIGN_SYSTEM.md "Input". */
+label { display: flex; flex-direction: column; gap: 5px; }
+label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 input, select {
   width: 100%;
-  margin-top: 5px;
-  padding: 11px 12px;
-  border-radius: 11px;
+  padding: 10px 12px;
+  border-radius: 9px;
   border: 1px solid var(--border2);
-  background: var(--bg);
+  background: var(--bg3);
   color: var(--text);
+  outline: none;
+  transition: border-color .15s;
   appearance: none;
 }
-input:focus, select:focus { outline: 2px solid var(--green); }
-input[disabled] { opacity: .5; }
+input:focus, select:focus { border-color: var(--green); }
+input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 
 .payment-box { margin-top: 10px; }
 
@@ -567,6 +573,7 @@ input[disabled] { opacity: .5; }
 }
 .sticky-submit button {
   pointer-events: auto;
+  min-width: 200px;
   box-shadow: 0 4px 24px rgba(47,229,110,.35);
   font-size: 16px;
   padding: 14px 28px;
@@ -747,12 +754,16 @@ input[readonly] {
   margin-bottom: 8px;
 }
 .game-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
+/* Badge/status — mesmo tratamento visual usado em .game-status (BR2026/CDB2026) e
+   .paid-badge/.unpaid-badge (BR2026/CDB2026) — ver DESIGN_SYSTEM.md "Badge / Status indicator".
+   Nomes de classe mantidos por app (custo de renomear no JS > benefício); a convergência é só
+   visual (mesmo border-radius/padding/paleta baseada em var()). */
 .status-chip { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 900; }
-.status-chip.done { background: #143d22; color: #72ff9d; }
+.status-chip.done { background: rgba(47,229,110,.15); color: var(--green); border: 1px solid rgba(47,229,110,.3); }
 .status-chip.pending { background: var(--bg3); color: var(--muted); border: 1px solid var(--border2); }
-.status-chip.live { background: #4a0e0e; color: #ff6b6b; animation: live-pulse 1.6s ease-in-out infinite; }
-.game-card.is-live { border-color: #ff6b6b; }
-.game-score.is-live { border-color: #ff6b6b; color: #ff6b6b; }
+.status-chip.live { background: #4a0e0e; color: var(--red); animation: live-pulse 1.6s ease-in-out infinite; }
+.game-card.is-live { border-color: var(--red); }
+.game-score.is-live { border-color: var(--red); color: var(--red); }
 @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 .game-teams {
   display: grid;
@@ -776,7 +787,7 @@ input[readonly] {
 
 /* ── Rules ── */
 .rules-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.rules-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); }
+.rules-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
 .rules-table td:last-child { text-align: right; color: var(--green); font-weight: 900; }
 .rules-list { padding-left: 18px; margin: 10px 0; }
 .rules-list li { margin-bottom: 8px; }

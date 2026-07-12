@@ -1,5 +1,60 @@
 # CHANGELOG
 
+## v4.127 — 2026-07-12
+
+### Fixed — badge/status tokenizado (findings Critical/High autorizados do DESIGN_SYSTEM.md)
+
+Autorização explícita do Eduardo para implementar os 3 findings maiores que ficaram pendentes
+em v4.126 (badge/status, ranking, toast — ver `docs/bolao/CONSISTENCY_MATRIX.md` itens 67-69).
+Nesta versão, só o que toca a Copa:
+
+- **`.status-chip.done`**: hex literal (`#143d22`/`#72ff9d`) → `rgba(47,229,110,.15)`/
+  `var(--green)`/borda `rgba(47,229,110,.3)` — mesmo tratamento visual agora usado em
+  `.game-status`/`.paid-badge` no BR2026/CDB2026 (ver changelogs daqueles apps). `.status-chip
+  .live`, `.game-card.is-live`, `.game-score.is-live` passaram a usar `var(--red)` em vez de
+  `#ff6b6b` hardcoded (mesmo valor, agora tokenizado).
+- Nenhuma mudança de estrutura/JS na Copa — o ranking da Copa (`.rank-row`) já era o padrão
+  que BR2026/CDB2026 adotaram nesta mesma versão (ver item 68 da matrix); nada a fazer aqui.
+- A Copa já tinha o sistema de toast (`.bolao-toast`/`showToast()`) — nada a portar aqui; foi
+  BR2026/CDB2026 que ganharam o sistema nesta versão (ver changelogs daqueles apps, item 69).
+
+`audit_scoring.py`: 5/5 — só CSS, nenhuma lógica de scoring/ranking tocada.
+
+## v4.126 — 2026-07-12
+
+### Fixed — 5 patches mínimos de design system (auditoria de UX cross-app)
+
+Findings de baixo risco do `docs/bolao/DESIGN_SYSTEM.md` (auditoria comparativa Copa/BR2026/
+CDB2026), CSS-only, sem tocar lógica/JS/scoring:
+
+- **Tokens `--gold`/`--red` adicionados ao `:root`** — a Copa usava hex literal (`#f59e0b`,
+  `#ff6b6b`) onde BR2026/CDB2026 já usam variável; os hex existentes não foram trocados (fora
+  do escopo de patch mínimo), só o token passou a existir para uso futuro. `--red` da Copa
+  ficou `#ff6b6b` (o valor já usado ao vivo em produção), não `#f87171` como BR2026/CDB2026 —
+  trocar o valor mudaria a cor renderizada em produção, registrado como diferença residual em
+  `CONSISTENCY_MATRIX.md`.
+- **Input/select/label migrados para o padrão BR2026/CDB2026** (2 dos 3 apps já usavam):
+  fundo `var(--bg3)` em vez de `var(--bg)`, `border-radius:9px` em vez de `11px`, foco por
+  `border-color` em vez de `outline`, label em `UPPERCASE`/`var(--muted)` em vez de
+  sentence-case com cor hardcoded `#cfe6dd`. Cutoff de entrada já passou há duas semanas
+  (tournament em fase de mata-mata) — campos de formulário hoje só são usados pelo admin,
+  risco de mudar a aparência agora é baixo.
+- **`h1,h2,h3` normalizado** — nenhuma mudança aqui (a Copa já tinha essa regra; ela virou o
+  padrão que BR2026/CDB2026 adotaram, ver changelogs daqueles apps).
+- **`.rules-table td` padding**: `8px 10px` → `7px 10px`, igual aos outros dois apps.
+- **Botão sticky (`.sticky-submit button`)**: adicionado `min-width:200px` (já existia em
+  BR2026/CDB2026).
+
+Findings maiores da mesma auditoria (badge/status com 3 implementações diferentes, estrutura
+do card de Ranking divergente, sistema de toast ausente em BR2026/CDB2026) **não foram
+implementados nesta rodada** — tocam lógica de render em JS, patch maior, aguardando
+autorização específica (ver `docs/bolao/AUDIT_PROTOCOL.md` — findings Critical/High ainda
+precisam ser apresentados antes de corrigidos).
+
+`audit_scoring.py`: 5/5 — nenhuma mudança de scoring/JS.
+
+---
+
 ## v4.125 — 2026-07-12
 
 ### Fixed — alinhamento do topbar (todos os bolões)
