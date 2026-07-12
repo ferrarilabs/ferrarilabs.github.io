@@ -1892,7 +1892,7 @@ function renderAdminAuditLog(s) {
   box.innerHTML = `<h3>${escapeHtml(t("auditLogTitle"))}</h3>`;
   if (!log.length) { box.innerHTML += `<p class="muted">${escapeHtml(t("auditLogEmpty"))}</p>`; return; }
   const fmtPick = p => p
-    ? `${p.goalsA}×${p.goalsB} (${escapeHtml(p.advanceSide === "A" ? (p.displayA || "A") : (p.displayB || "B"))})`
+    ? `${escapeHtml(String(p.goalsA))}×${escapeHtml(String(p.goalsB))} (${escapeHtml(p.advanceSide === "A" ? (p.displayA || "A") : (p.displayB || "B"))})`
     : "—";
   const rows = log.slice(0, 100).map(entry => {
     const ts = new Date(entry.ts).toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" });
@@ -2872,7 +2872,7 @@ async function saveEntry() {
    Admin actions
    ============================================================ */
 async function adminLogin() {
-  const lock = Number(localStorage.getItem("adminLockUntil") || "0");
+  const lock = Number(sessionStorage.getItem("adminLockUntil") || "0");
   if (Date.now() < lock) { showToast(t("adminLocked"), "warn"); return; }
   if (!CONFIG.adminPasswordHash) { showToast(t("adminWrongPassword"), "error"); return; }
   const pwd = ($("#adminPassword")?.value || "").trim();
@@ -2888,8 +2888,8 @@ async function adminLogin() {
   if (hash === CONFIG.adminPasswordHash) {
     sessionStorage.setItem("adminOk", "true");
     sessionStorage.setItem("adminUntil", String(Date.now() + CONFIG.adminSessionMinutes * 60000));
-    localStorage.removeItem("adminAttempts");
-    localStorage.removeItem("adminLockUntil");
+    sessionStorage.removeItem("adminAttempts");
+    sessionStorage.removeItem("adminLockUntil");
     if ($("#adminPassword")) $("#adminPassword").value = "";
     $("#adminLogin")?.classList.add("hidden");
     $("#adminArea")?.classList.remove("hidden");
@@ -2897,11 +2897,11 @@ async function adminLogin() {
     startResultsPolling();
   } else {
     if ($("#adminPassword")) $("#adminPassword").value = "";
-    const n = Number(localStorage.getItem("adminAttempts") || "0") + 1;
-    localStorage.setItem("adminAttempts", String(n));
+    const n = Number(sessionStorage.getItem("adminAttempts") || "0") + 1;
+    sessionStorage.setItem("adminAttempts", String(n));
     if (n >= (CONFIG.adminMaxAttempts || 5)) {
-      localStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
-      localStorage.setItem("adminAttempts", "0");
+      sessionStorage.setItem("adminLockUntil", String(Date.now() + CONFIG.adminLockMinutes * 60000));
+      sessionStorage.setItem("adminAttempts", "0");
       showToast(t("adminLocked"), "warn");
     } else {
       showToast(t("adminWrongPassword"), "error");
@@ -4141,7 +4141,8 @@ function renderAll() {
 function initEvents() {
   // bolão switcher
   document.getElementById("bolaoSelect")?.addEventListener("change", e => {
-    if (e.target.value) location.href = e.target.value;
+    const allowed = ["/bolao/", "/bolao/br2026/", "/bolao/cdb2026/"];
+    if (allowed.includes(e.target.value)) location.href = e.target.value;
   });
 
   // nav buttons

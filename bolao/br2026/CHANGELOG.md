@@ -1,5 +1,15 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.10 — 2026-07-12
+
+### Fixed — segurança + CSS (Big Tech QA audit)
+
+- **SEC LOW-1**: whitelist antes de `location.href` no switcher de bolão
+- **CSS MOB-3**: `-webkit-backdrop-filter` adicionado (blur do topbar no iOS Safari ≤ 15)
+- `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.9 — 2026-07-12
 
 ### Design — padronização 100% com a Copa do Mundo (auditoria sistemática)

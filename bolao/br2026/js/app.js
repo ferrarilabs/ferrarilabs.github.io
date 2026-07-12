@@ -1563,7 +1563,10 @@ async function init() {
   showSection(isPastCutoff() ? "ranking" : "entry");
 
   // Bolão switcher
-  $("bolaoSelect")?.addEventListener("change", e => { if (e.target.value) location.href = e.target.value; });
+  $("bolaoSelect")?.addEventListener("change", e => {
+    const allowed = ["/bolao/", "/bolao/br2026/", "/bolao/cdb2026/"];
+    if (allowed.includes(e.target.value)) location.href = e.target.value;
+  });
 
   // Countdown — 1s tick
   renderCountdown();
