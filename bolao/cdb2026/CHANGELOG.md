@@ -1,5 +1,13 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v1.2 — 2026-07-12
+
+### Design — padronização 100% com a Copa do Mundo (auditoria sistemática)
+
+Mesmas 11 correções do BR2026 v1.9, adaptadas para 6 botões no nav (`repeat(6, 1fr)`). `audit_scoring.py`: 5/5.
+
+---
+
 ## v1.1 — 2026-07-11
 
 ### Fixed

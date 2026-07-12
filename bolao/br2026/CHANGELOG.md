@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.9 — 2026-07-12
+
+### Design — padronização 100% com a Copa do Mundo (auditoria sistemática)
+
+11 diferenças identificadas por auditoria diff completa dos 3 CSS/HTML. Todas corrigidas:
+
+- **Nav**: convertido de `flex-wrap` para `grid repeat(9, 1fr)` — botões sempre com largura uniforme, idêntico à Copa
+- **Topbar responsivo**: adicionados breakpoints `@media ≥901px` e `≤900px` — topbar vira grade de 2 linhas (brand+switcher em cima, nav em baixo) igual à Copa
+- **Card**: `border-radius 16px → 18px`, `padding 18px 20px → 18px`, `margin-bottom 16px → 14px`, adicionado `box-shadow 0 8px 32px rgba(0,0,0,.22)`
+- **Countdown**: `.count-card` ganhou `background var(--bg3)`, `border`, `border-radius 16px`, `padding 16px`; `.count-grid` virou `grid repeat(4, 1fr)`; células `background var(--bg)`, `border-radius 12px`; números agora em `color: var(--green)`, `font-size 26px`
+- **Brand gap**: `6px → 8px`
+- **Footer**: `margin-top 32px`, `opacity .6`, `border-top var(--border2)`, `user-select none`, links com hover
+- **Focus ring**: adicionado `button/input/select:focus-visible` (acessibilidade)
+- **Mobile `≤500px`**: `count-grid` vira 2 colunas no celular
+
+`audit_scoring.py`: 5/5.
+
+---
+
 ## v1.8 — 2026-07-11
 
 ### Fixed
