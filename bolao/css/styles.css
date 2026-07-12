@@ -103,6 +103,22 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .whatsapp-btn img { width: 18px; height: 18px; }
 
+/* ── Bolão switcher ── */
+.bolao-switcher select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  width: auto;
+}
+.bolao-switcher select:focus { border-color: var(--green); }
+
 .lang-links { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
 .lang-links button {
   background: var(--bg3);
