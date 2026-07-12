@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.13",
+  siteVersion: "v1.14",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -20,6 +20,12 @@ window.BR2026_CONFIG = {
     CashApp: "https://cash.app/$EduardoFerrari",
     Zelle: "",
     Venmo: "https://venmo.com/u/Eduardo-Ferrari"
+  },
+  // Mesmo grupo da Copa do Mundo (bolao/js/config.js) — reaproveitado, não é um grupo novo.
+  whatsappGroup: {
+    name: "Bolão do Ferrari",
+    link: "https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t",
+    qrImage: "assets/whatsapp-group-qr.png"
   },
   prizes: { first: 0.70, second: 0.20, third: 0.10 },
   scoring: {
