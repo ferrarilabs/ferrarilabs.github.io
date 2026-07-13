@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.19 — 2026-07-12
+
+### Fixed — bugs reais reportados testando o site ao vivo
+
+- **Tabela do Brasileirão sem V/E/D/GF/GC/SG**: `fetchStandings()` só extraía
+  `points`/`gamesPlayed`/`gf`/`ga` da ESPN. Adicionado `wins`/`ties`(`draws`)/`losses`/
+  `pointDifferential` (nomes de stat confirmados direto no endpoint real da ESPN) e as colunas
+  correspondentes na tabela — padrão J/V/E/D/GP/GC/SG/Pts de tabela de futebol brasileiro.
+- **Jogos não alinhavam**: `.game-matchup` era `flex` com `justify-content:center` — o placar/
+  hora central não ficava na mesma posição horizontal entre linhas com nomes de time de
+  tamanhos diferentes, porque flex empacota pelo conteúdo. Trocado para grid `1fr auto 1fr`
+  (mesmo padrão de `.game-teams` na Copa), forçando as duas colunas de time a terem a mesma
+  largura — o centro sempre alinha agora, independente do tamanho do nome.
+- **Botão WhatsApp**: texto visível era só "WhatsApp"; Copa usa "Suporte WhatsApp". Alinhado.
+- **Card de pagamento sem ícone**: `.pay-card` não tinha o ícone por método (CashApp/Zelle/
+  Venmo) que a Copa tem — `cashapp.svg`/`venmo.svg` copiados para `assets/`, `payIcon()`
+  portado, `zelle.qrImage` configurado (asset já existia). `.pay-grid`/`.pay-card` migrados
+  para o mesmo layout/tokens da Copa (3 colunas fixas, ícone + texto em linha, `var(--bg2)`/
+  `border-radius:16px`).
+- **Spinner nativo removido** dos inputs numéricos (mesmo fix nos três apps).
+
+`audit_scoring.py`: 5/5 — só CSS/apresentação, nenhum dado de standings usado para
+scoring/ranking (BR2026 não pontua pela tabela do Brasileirão em si, só pelos palpites de
+G4/Z4/SA6 dos participantes).
+
 ## v1.18 — 2026-07-12 (WIP — commit parcial)
 
 ### Fixed — Copa como referência visual canônica (início; tarefa incompleta)

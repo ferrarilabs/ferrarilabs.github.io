@@ -2,7 +2,7 @@ window.BR2026_I18N = {
   "pt-BR": {
     // Nav
     skipToContent: "Pular para o conteúdo",
-    supportWhatsApp: "WhatsApp",
+    supportWhatsApp: "Suporte WhatsApp",
     navPicks: "Palpites",
     navRanking: "Ranking",
     navStandings: "Tabela",
