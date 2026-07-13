@@ -81,11 +81,24 @@ window.BR2026_I18N = {
     viewPicks: "Ver palpites",
     paid: "✓ Pago",
     unpaid: "Pendente",
+    // Ranking — movimento do participante (separado do movimento de clube abaixo; nunca reutilizar
+    // estas chaves para a tabela do Brasileirão, e vice-versa — ver BR2026_LIVE_STANDINGS.md)
+    rankMovementUp: "Subiu {n} posições no ranking",
+    rankMovementDown: "Caiu {n} posições no ranking",
+    rankMovementSame: "Permaneceu na mesma posição do ranking",
+    rankMovementUnavailable: "Movimento no ranking indisponível até a base de comparação ser carregada",
     // Standings
     standingsTitle: "Tabela do Brasileirão 2026",
     standingsSource: "Fonte: ESPN. Atualizada automaticamente.",
     standingsLoading: "Carregando tabela…",
     standingsZoneSA: "SA",
+    standingsMovCol: "Mov.",
+    // Classificação ao vivo — movimento de clube (separado do movimento de participante acima)
+    standingsMovementUp: "Subiu {n} posições, de {previous}º para {current}º",
+    standingsMovementDown: "Caiu {n} posições, de {previous}º para {current}º",
+    standingsMovementSame: "Permaneceu em {pos}º",
+    standingsMovementUnavailable: "Movimento indisponível até a classificação-base ser carregada",
+    liveTableDisclaimer: "Classificação ao vivo estimada com base nos placares atuais. A ordem oficial pode variar conforme critérios de desempate e atualizações da fonte de dados.",
     team: "Time",
     points: "Pts",
     // Games

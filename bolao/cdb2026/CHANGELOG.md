@@ -1,5 +1,74 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.0 — 2026-07-13
+
+### Reformulação completa do modelo — bracket fixo estava errado para a Copa do Brasil real
+
+Eduardo apontou (com o regulamento oficial da Copa do Brasil 2026 em mãos) que o modelo usado
+desde a v2.0 estava incorreto: copiava a estrutura de mata-mata fixo da Copa do Mundo (16
+times, 15 confrontos definidos no código desde o início, ida+volta em tudo exceto a final) em
+vez de modelar a competição real — **126 clubes, 9 fases, 1ª–4ª e a Final em partida única, só
+5ª–8ª (incluindo a Semifinal) em ida e volta, com sorteios progressivos a cada fase**, não um
+chaveamento pré-conhecido. Auditoria completa, relatório e proposta de modelo em
+`docs/bolao/CDB2026_RULES_AND_MODEL.md` (fonte oficial do modelo a partir de agora) — 4
+perguntas de confirmação respondidas por Eduardo antes de qualquer código ser escrito.
+
+**Reescrita completa do app** (`js/data.js`, `js/app.js`, `js/i18n.js`, `js/config.js`,
+`css/styles.css`, `index.html`):
+
+- **Fases dinâmicas, não bracket fixo.** `data.js` agora só declara as 9 fases (nome, formato,
+  ordem) — isso é regulamento, não muda durante o torneio. Confrontos e partidas **não** ficam
+  mais em `data.js`: vivem no estado (`s.phases[faseId].ties`), cadastrados pelo admin conforme
+  cada sorteio real acontece. Nenhuma fase vem pré-populada — todas nascem "Aguardando sorteio
+  oficial", inclusive a 1ª Fase.
+- **Palpite por partida, nunca agregado digitado direto.** Antes, o participante digitava um
+  "placar agregado" como se fosse uma partida só, mesmo em confrontos de ida+volta. Agora cada
+  jogo (ida, volta, ou partida única) tem seu próprio placar palpitado, e o agregado é sempre
+  **calculado ao vivo** conforme os dois campos são preenchidos — nunca digitado.
+- **Pontuação por partida** (mutuamente exclusiva: placar exato **10** substitui resultado certo
+  **5**, que substitui gols de um time certos **1** por lado — nunca soma) **+ bônus de 5 pts
+  por confronto** por acertar quem se classifica (separado do placar) **+ campeão 30 / vice 20**
+  (mantidos no valor atual, Eduardo optou por não mudar para 25/15 como o regulamento sugeria
+  inicialmente). Sem bônus de 3º/4º lugar — nunca existiu na Copa do Brasil.
+- **Cutoff por fase**, não mais um valor único global — cada fase tem seu próprio prazo,
+  definido pelo admin ao cadastrar os confrontos daquela fase.
+- **Admin ganhou uma tela nova** ("Fases e confrontos"): cadastrar confronto (2 times, formato
+  herdado da fase), definir prazo por fase, remover confronto antes de ter resultado. Entrada de
+  resultado (Jogo 1/Jogo 2 ou partida única) generalizada para funcionar com confrontos
+  dinâmicos — mesmo padrão de UI da v2.9, só que os confrontos agora nascem do cadastro do
+  admin, não de `data.js`.
+- **Regras reescrita** com os dois exemplos concretos do pedido original (ida+volta decidida nos
+  pênaltis mantendo o agregado 2×2; partida única decidida nos pênaltis mantendo 1×1),
+  explicando partida vs. confronto, ausência de gol fora, cutoff por fase.
+- **Probabilidades adaptada** para iterar os confrontos dinâmicos já sorteados (em vez de um
+  bracket fixo), cobrindo os dois formatos (partida única e ida+volta); time cadastrado pelo
+  admin sem rating conhecido usa um valor neutro em vez de quebrar a estimativa.
+- **Ranking**: detalhamento por partida (ida/volta separados) + bônus de classificado + campeão/
+  vice, cada linha com o placar palpitado e os pontos ganhos.
+
+**Não migrado / reescrito do zero:** confirmado com Eduardo que não existem entradas reais
+(`database.enabled` continua `false`, app nunca publicado) — sem necessidade de conversão de
+dado antigo ou versionamento de regras retroativo.
+
+**Fora de escopo desta rodada** (registrado como dívida técnica, não esquecido):
+jogo adiado/cancelado/remarcado não tem tratamento dedicado (fica como partida sem placar até o
+admin decidir manualmente); nenhum log de auditoria de alterações administrativas; nenhuma
+integração esportiva externa (a Copa do Brasil não tem uma, dado real diverso de 126 clubes).
+
+**QA:** `node --check` limpo em todos os `.js`. `audit_scoring.py`: 5/5, sem impacto (mudança
+isolada ao CDB2026). Testado via Playwright: cadastro de confronto (partida única e ida+volta),
+placar salvo por jogo, agregado calculado corretamente ao vivo (formulário de palpite E painel
+admin), confronto empatado exige escolha manual de classificado (testado nos dois formatos, com
+os valores exatos do exemplo do pedido — Flamengo × Palmeiras 2×2 nos pênaltis, Corinthians ×
+Grêmio 1×1 nos pênaltis), confronto não-empatado trava automaticamente, pontuação testada em
+todos os níveis (exato/resultado/lado/bônus de classificado/campeão/vice) com total calculado à
+mão batendo exatamente (86 pontos num cenário misto), fase com cutoff no passado bloqueia
+palpite, export CSV/JSON não quebram, nenhum erro de JS em nenhum fluxo, zero overflow
+horizontal (320–1440px) na nova tela de admin.
+
+Não altera `bolao/` (Copa do Mundo) nem `bolao/br2026/` (Brasileirão) — confirmado por escopo de
+arquivo (só `bolao/cdb2026/*` e `docs/bolao/CDB2026_RULES_AND_MODEL.md` tocados).
+
 ## v2.9 — 2026-07-13
 
 ### Fixed — admin só deixava lançar o resultado do jogo de ida, não da volta

@@ -537,3 +537,40 @@ CSS real** — mas essa checagem foi estática (leitura de arquivo), não visual
 passada manual (`python3 -m http.server 8080`, abrir os três apps lado a lado em pelo menos
 Chrome desktop + um device mobile real) é recomendada antes de considerar isto definitivamente
 fechado.
+
+## Movement (seta de posição — clube e ranking) (2026-07-13, BR2026 v1.23)
+
+Componente novo, introduzido no BR2026 apenas — Copa e CDB2026 não o recebem nesta mudança (Copa
+mantém `.status-chip`/`.rank-arrow` como estão; CDB2026 não tem tabela de liga, e o ranking de
+participantes só ganharia esta seta em uma mudança futura separada, conforme o item registrado em
+`CONSISTENCY_MATRIX.md`).
+
+```css
+.movement { display: inline-block; font-size: 12px; vertical-align: middle; }
+.movement-up { color: var(--green); }
+.movement-down { color: var(--red); }
+.movement-same { color: var(--muted); }
+.movement-unavailable { color: var(--muted); opacity: .6; }
+.movement-n { font-size: .8em; font-weight: 700; margin-left: 1px; }
+```
+
+Dois pontos de uso, propositalmente com markup/classes de nível superior distintos (ver
+`docs/bolao/BR2026_LIVE_STANDINGS.md` "Por que dois cálculos separados"):
+
+- **Tabela do Brasileirão** (`standingsMovementHtml()`): coluna `.td-mov` dedicada, `▲`/`▼`/`•`/`–`
+  com contagem de posições ao lado.
+- **Ranking do bolão** (`rankMovementHtml()`): dentro de `.rank-row .rank-pos`, empilhado abaixo
+  da medalha/número (`flex-direction: column`) para não empurrar o nome do participante.
+
+Ambos usam `<span class="visually-hidden">` com o texto completo (nunca cor pura como único
+portador de informação) e `title` como reforço, não como única fonte. Diferente do `.status-chip`
+(pílula preenchida) ou `.paid-badge` (pílula translúcida com borda) documentados acima — este é
+deliberadamente um glifo inline compacto (sem fundo/borda), porque aparece em uma coluna estreita
+de tabela e dentro de uma célula de ranking de 48px; um badge de pílula não caberia nesses dois
+contextos sem quebrar layout mobile.
+
+Validado visualmente via Playwright nesta entrega (não apenas por leitura de CSS, ao contrário da
+seção anterior): 320px, 390px e 1440px, com dados mockados de uma janela de partida ao vivo. Nos
+três, Pos/Mov/Time/Pts permanecem visíveis sem scroll horizontal (colunas sticky), o nome do time
+trunca com reticências em vez de empurrar as colunas seguintes, e a seta não quebra o alinhamento
+da linha do ranking.

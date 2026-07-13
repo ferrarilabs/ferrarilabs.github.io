@@ -190,3 +190,53 @@ reprocessar a tabela inteira:
   são uma estimativa inicial de força relativa entre os 16 clubes, não uma fonte oficial —
   **pendente de revisão do Eduardo antes de publicar o app.** Não afeta scoring/resultado
   real (`audit_scoring.py` continua 5/5, campo não é lido por nenhum caminho de pontuação).
+
+## Nota manual — CDB2026 reformulado do zero (2026-07-13, v3.0)
+
+**Supersede parcialmente a nota acima e várias linhas da matrix AUTO relacionadas ao CDB2026**
+(itens que descrevem o bracket fixo de 16 times/15 confrontos — esse modelo não existe mais).
+Não editado dentro do bloco `AUTO:CONSISTENCY_MATRIX` (é substituído por inteiro na próxima
+auditoria formal); registrado aqui como nota manual até lá.
+
+- **Motivo:** Eduardo identificou, com o Regulamento Específico da Copa do Brasil 2026 em mãos,
+  que o CDB2026 (v2.9) modelava a competição errado — bracket fixo copiado da Copa do Mundo em
+  vez das 9 fases reais (126 clubes, sorteio progressivo, formato misto partida única/ida e
+  volta por fase). Ver auditoria completa e modelo aprovado em
+  `docs/bolao/CDB2026_RULES_AND_MODEL.md` (fonte oficial do modelo do CDB2026 a partir de
+  agora) e `docs/bolao/PROJECT_MEMORY.md` → "Auditoria de modelo de negócio".
+- **O que mudou estruturalmente:** confrontos/partidas saíram de `data.js` (estático, bracket
+  fixo) para o estado dinâmico `s.phases[faseId].ties` (cadastrado pelo admin fase a fase,
+  conforme cada sorteio real). Palpite deixou de ser um "agregado" digitado direto e passou a
+  ser por partida, com agregado sempre calculado. Cutoff deixou de ser um valor único global e
+  passou a ser por fase. Pontuação de bônus por confronto (5 pts "acertar quem se classifica")
+  ficou separada da pontuação de partida — antes eram a mesma coisa.
+- **`INTENTIONALLY_DIFFERENT` confirmado, não generalizar:** o modelo de fases dinâmicas com
+  sorteio progressivo é específico da Copa do Brasil (regulamento real) — Copa do Mundo e
+  Brasileirão têm formatos de torneio conhecidos com antecedência e **não devem** adotar esse
+  padrão. Ver `PLATFORM_GOVERNANCE.md`: diferenças de torneio devem ser preservadas.
+- **Itens da matriz AUTO que ficam desatualizados até a próxima auditoria formal**: qualquer
+  item que descreva "bracket" ou "confrontos" do CDB2026 como algo fixo/definido em `data.js`
+  (o dado agora é dinâmico, cadastrado via admin) — a comparação de admin toolbar (item 6) e
+  comprovante (item 8) continuam válidas conceitualmente, só a estrutura de dados por trás do
+  torneio em si mudou.
+- **Não afeta Copa nem Brasileirão** — mudança isolada ao modelo de dados do CDB2026, nenhum
+  arquivo de `bolao/` ou `bolao/br2026/` foi tocado.
+
+## Nota manual — classificação ao vivo + movimento de ranking no BR2026 (2026-07-13, v1.23)
+
+Auditoria completa e detalhes técnicos em `docs/bolao/BR2026_LIVE_STANDINGS.md`. Resumo para a
+matrix:
+
+| Item | Copa | BR2026 | CDB2026 | Status | Correção necessária |
+|---|---|---|---|---|---|
+| Seta de movimento do ranking de participantes | Duas implementações concorrentes: `computeRankArrows()`/`_rankArrowState` (sessão, baseline = último render — **imperfeita**) e `liveMatchPointsTable()` (stateless, oficial-vs-provisório — **correta**, mas só usada dentro do detalhe de uma partida, não no ranking geral) | Nova: `calculateRankingMovement()`, stateless, baseline = janela de partidas ao vivo, reusa `rankEntries()` (mesmo comparador do ranking exibido) | Não existe ainda | `NEEDS_REVIEW` (Copa) / `CONSISTENT` (BR2026, novo, correto) | Copa: considerar migrar `renderRanking()` geral para o padrão `liveMatchPointsTable()` — **fora do escopo desta mudança**, registrado como dívida técnica, não corrigido. CDB2026: adicionar quando fizer sentido (torneio de eliminação simples, sem "rodadas" no mesmo sentido) |
+| Classificação de clube ao vivo (tabela) | Não aplicável (Copa não tem tabela de liga) | Nova: `calculateLiveStandings()`, tabela reordena por posição ao vivo durante uma janela de partidas, coluna "Mov." com setas acessíveis | Não aplicável (mata-mata, sem tabela) | `CONSISTENT` (Copa/CDB2026 não têm esse conceito por design do torneio — `INTENTIONALLY_DIFFERENT`) | Nenhuma — BR2026 é o único app com liga por pontos |
+| Classes CSS de movimento | `.rank-arrow`, `.rank-arrow-n` (Copa, mantidas como estão) | Novas: `.movement`, `.movement-up/-down/-same/-unavailable`, `.movement-n` — nomenclatura diferente de propósito (ver BR2026_LIVE_STANDINGS.md) | N/A ainda | `INTENTIONALLY_DIFFERENT` | Copa mantém seu naming atual; não renomear por conveniência agora — só se/quando o padrão `.rank-arrow` da Copa for migrado para o padrão stateless |
+| Aria-label / acessibilidade das setas | `title` apenas, sem `aria-label`/texto oculto | `title` + `<span class="visually-hidden">` com texto completo em ambos os movimentos (clube e participante) | N/A | `NEEDS_REVIEW` (Copa) / `CONSISTENT` (BR2026) | Copa: adicionar texto acessível às setas existentes — fora do escopo desta mudança |
+| Identificação de partida ao vivo (matching) | Usa IDs internos do bracket (`data.js`), não depende de nome de time da API | Antes: só nome de time da API ESPN. Agora: `ev.id` estável como critério primário, nome como fallback | N/A (sem API ao vivo) | `CONSISTENT` (corrigido nesta mudança) | — |
+| Flag `postponed`/cancelado excluindo jogo do cálculo | N/A (não usa API externa para resultados) | Antes: campo já computado em `fetchSchedule()`, mas não lido em nenhum lugar. Agora: checado dentro de `calculateLiveStandings()` | N/A | `CONSISTENT` (corrigido nesta mudança) | — |
+
+**Não generalizar**: o padrão de movimento de clube é `TOURNAMENT_SPECIFIC` do BR2026 (única
+liga por pontos entre os três apps). O padrão de movimento de participante é conceitualmente
+`PLATFORM_SHARED`, mas a Copa **não foi migrada** para a implementação correta nesta mudança —
+ficou registrado como dívida técnica pré-existente, não como regressão desta entrega.

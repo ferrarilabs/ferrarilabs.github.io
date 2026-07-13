@@ -1,9 +1,11 @@
-/* Bolão Copa do Brasil 2026 — app.js v2.0
+/* Bolão Copa do Brasil 2026 — app.js v3.0
    Vanilla JS IIFE, no framework, no build step.
-   Picks are per-confronto (mata-mata ida+volta, placar agregado), same shape as the
-   Copa do Mundo bracket in bolao/js/app.js: exact aggregate / correct advance / partial
-   goal-count points per tie, plus a champion/runner-up/semifinalist bonus resolved by
-   walking the bracket — see resolveBracket(). */
+   Modelo de fases dinâmicas — ver docs/bolao/CDB2026_RULES_AND_MODEL.md (fonte oficial do
+   modelo, aprovada por Eduardo em 2026-07-13). Diferente do bracket fixo da Copa do Mundo:
+   confrontos e partidas nascem do admin cadastrando o sorteio real de cada fase, não de um
+   chaveamento pré-definido no código-fonte. Pontuação é por partida (nunca por um "agregado"
+   digitado direto pelo participante — isso era o modelo antigo v2.x, incorreto para o formato
+   real da Copa do Brasil). */
 (function () {
 "use strict";
 
@@ -44,22 +46,28 @@ function applyI18n() {
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let _editingEntry = null;
-// IDs de entrada com o detalhe de palpites expandido no ranking — mesmo padrão da Copa
-// (bolao/js/app.js), sobrevive a re-renders (sync, troca de idioma) até o usuário fechar.
+// IDs de entrada com o detalhe de palpites expandido no ranking — sobrevive a re-renders (sync,
+// troca de idioma) até o usuário fechar. Mesmo padrão da Copa (bolao/js/app.js).
 const _openRankDetails = new Set();
 
+// Estado de uma fase dentro do estado dinâmico: cutoffAt (definido pelo admin ao cadastrar os
+// confrontos da fase) + ties (confrontos reais, cadastrados conforme cada sorteio acontece —
+// nunca inventados no código-fonte, ver data.js).
+function emptyPhaseState() { return { cutoffAt: null, ties: {} }; }
 function emptyState() {
-  return { entries: [], deletedIds: [], paid: {}, results: { ties: {}, legs: {} }, meta: { updatedAt: null, version: C.siteVersion } };
+  const phases = {};
+  DATA.phases.forEach(p => { phases[p.id] = emptyPhaseState(); });
+  return { entries: [], deletedIds: [], paid: {}, phases, meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try {
     const r = localStorage.getItem(C.storeKey);
     const s = r ? Object.assign(emptyState(), JSON.parse(r)) : emptyState();
-    s.results = s.results && typeof s.results === "object" ? s.results : { ties: {}, legs: {} };
-    s.results.ties = s.results.ties || {};
-    // legs: placar de cada perna (ida/volta) informado separadamente pelo admin, antes do
-    // agregado ser calculado e travado em s.results.ties[tieId] — ver renderAdminResults().
-    s.results.legs = s.results.legs || {};
+    s.phases = s.phases && typeof s.phases === "object" ? s.phases : {};
+    DATA.phases.forEach(p => {
+      s.phases[p.id] = s.phases[p.id] && typeof s.phases[p.id] === "object" ? s.phases[p.id] : emptyPhaseState();
+      s.phases[p.id].ties = s.phases[p.id].ties || {};
+    });
     return s;
   } catch { return emptyState(); }
 }
@@ -96,29 +104,32 @@ async function saveRemoteState(s) {
     body: JSON.stringify({ id: stateId, state: s })
   });
 }
+// Merge de fases: para cada fase, cutoffAt e ties são mesclados independentemente — união de
+// ties por id (nunca perde um confronto cadastrado em qualquer lado), remote-wins em cutoffAt e
+// no conteúdo de cada tie já existente por padrão (mesma regra dos resultados oficiais na
+// Copa/BR2026 — o admin/Supabase é fonte de verdade para resultado real).
 function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   const byId = {};
   [...(remote.entries || []), ...(local.entries || [])].forEach(e => { if (!deleted.has(e.id)) byId[e.id] = e; });
   const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
-  const localTies  = local.results?.ties  || {};
-  const remoteTies = remote.results?.ties || {};
-  const localLegs  = local.results?.legs  || {};
-  const remoteLegs = remote.results?.legs || {};
-  const ties = opts.preferRemoteResults
-    ? { ...localTies, ...remoteTies }
-    : { ...remoteTies, ...localTies };
-  // Mesma regra de precedência do agregado (ties) aplicada ao placar por perna — evita que um
-  // sync remoto apague um Jogo 1/Jogo 2 já salvo localmente (ou vice-versa) antes do agregado
-  // travar.
-  const legs = opts.preferRemoteResults
-    ? { ...localLegs, ...remoteLegs }
-    : { ...remoteLegs, ...localLegs };
+  const phases = {};
+  DATA.phases.forEach(p => {
+    const localP  = local.phases?.[p.id]  || emptyPhaseState();
+    const remoteP = remote.phases?.[p.id] || emptyPhaseState();
+    const ties = opts.preferRemoteResults
+      ? { ...localP.ties, ...remoteP.ties }
+      : { ...remoteP.ties, ...localP.ties };
+    const cutoffAt = opts.preferRemoteResults
+      ? (remoteP.cutoffAt ?? localP.cutoffAt)
+      : (localP.cutoffAt ?? remoteP.cutoffAt);
+    phases[p.id] = { cutoffAt, ties };
+  });
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
     paid,
-    results: { ties, legs },
+    phases,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -146,8 +157,26 @@ function showSection(id) {
 }
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
-const cutoffDate  = () => new Date(C.cutoffIso);
-const isPastCutoff = () => Date.now() > cutoffDate().getTime();
+// Não existe mais um cutoff único global (era um resquício do modelo antigo de bracket fixo —
+// ver CDB2026_RULES_AND_MODEL.md). Cada FASE tem seu próprio cutoffAt, definido pelo admin ao
+// cadastrar os confrontos daquela fase. O único uso "global" que resta é bloquear a CRIAÇÃO de
+// entradas novas depois que a 1ª Fase já fechou — editar uma entrada existente continua
+// funcionando fase a fase, cada confronto usa o cutoff da própria fase.
+function fase1CutoffMs() {
+  const c = state().phases?.["fase-1"]?.cutoffAt;
+  return c ? new Date(c).getTime() : null;
+}
+function isPastFase1Cutoff() {
+  const ms = fase1CutoffMs();
+  return ms !== null && Date.now() > ms;
+}
+function isPhaseLocked(phaseState) {
+  return !!phaseState?.cutoffAt && Date.now() > new Date(phaseState.cutoffAt).getTime();
+}
+function fase1Complete(s) {
+  const ties = Object.values(s.phases?.["fase-1"]?.ties || {});
+  return ties.length > 0 && ties.every(tie => tie.qualifiedTeamId);
+}
 
 // ─── Receipt code ───────────────────────────────────────────────────────────
 // Mesmo algoritmo (FNV-32, não criptográfico, só identificação) e formato usado na Copa do
@@ -180,11 +209,10 @@ function uuid() {
 }
 
 // ─── Team logo ──────────────────────────────────────────────────────────────
-// Escudo real do time (ESPN CDN, DATA.teamLogos — mesmas URLs que o BR2026 busca ao vivo do
-// standings da Série A, aqui fixas em data.js porque o CDB2026 não tem nenhuma API ao vivo).
-// Mesmo helper name/assinatura que teamLogoImg() em bolao/br2026/js/app.js, mesmas classes CSS
-// (.team-logo 14px inline / .match-logo 22px em destaque) — símbolo do time consistente nos
-// três apps: bandeira na Copa, escudo real aqui e no BR2026.
+// Escudo real do time (ESPN CDN, DATA.teamLogos). Cobre os clubes mais prováveis de chegar às
+// fases finais — um time cadastrado pelo admin que não estiver no dicionário simplesmente não
+// mostra escudo (fallback gracioso, não é erro — a Copa do Brasil tem 126 clubes, muitos de
+// divisões sem CDN de escudo conhecida).
 function teamLogoImg(team, cls) {
   const url = DATA.teamLogos?.[team];
   if (!url) return "";
@@ -192,180 +220,185 @@ function teamLogoImg(team, cls) {
 }
 
 // ─── Payment icon ───────────────────────────────────────────────────────────
-// Mesmos ícones/assinatura que payIcon() em bolao/js/app.js — ver DESIGN_SYSTEM.md "Pagamento".
 const PAY_ICON_SVG = { CashApp: "assets/cashapp.svg", Zelle: "assets/zelle.svg", Venmo: "assets/venmo.svg" };
 function payIcon(method) {
   const src = PAY_ICON_SVG[method];
   return src ? `<img src="${esc(src)}" alt="${esc(method)}" class="pay-method-icon">` : "💳";
 }
 
-// ─── Bracket resolution ─────────────────────────────────────────────────────
-// Resolve os nomes reais de cada confronto a partir de uma fonte de resultado (oficial ou o
-// palpite de uma entrada) — mesmo padrão de resolução dinâmica de bracket usado na Copa do
-// Mundo (resolvedTeamsForEntry/podiumFromResults em bolao/js/app.js), generalizado aqui via
-// getResultFn(tieId) -> {advance:"home"|"away"} | undefined.
-function resolveBracket(getResultFn) {
-  const resolved = {};
-  DATA.ties.forEach(tie => {
-    let home = tie.home, away = tie.away;
-    if (tie.fromHome) {
-      const r   = getResultFn(tie.fromHome);
-      const src = resolved[tie.fromHome];
-      home = (r && r.advance && src) ? (r.advance === "home" ? src.home : src.away) : null;
-    }
-    if (tie.fromAway) {
-      const r   = getResultFn(tie.fromAway);
-      const src = resolved[tie.fromAway];
-      away = (r && r.advance && src) ? (r.advance === "home" ? src.home : src.away) : null;
-    }
-    resolved[tie.id] = { home, away };
-  });
-  return resolved;
-}
-function resolveOfficial(results) { return resolveBracket(id => results?.ties?.[id]); }
-function resolveEntry(entry)      { return resolveBracket(id => entry.picks?.ties?.[id]); }
+// ─── Phase / tie / match helpers ────────────────────────────────────────────
+function getPhaseDef(phaseId) { return DATA.phases.find(p => p.id === phaseId); }
+function legsForFormat(format) { return format === "TWO_LEG" ? ["first", "second"] : ["single"]; }
+function emptyMatch() { return { homeTeam: null, awayTeam: null, kickoff: null, venue: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" }; }
 
-function tieIsOpen(tie, resolvedHome, resolvedAway, results) {
-  if (!resolvedHome || !resolvedAway) return false;      // times ainda não definidos
-  if (!tie.cutoffIso) return false;                       // data ainda não confirmada
-  if (Date.now() >= new Date(tie.cutoffIso).getTime()) return false; // cutoff da ida já passou
-  if (results?.ties?.[tie.id]) return false;               // resultado já lançado
-  return true;
+// Agregado de um confronto de ida+volta a partir das duas partidas — null se alguma ainda não
+// tem placar. O mandante se inverte na volta (regra real do mata-mata): teamA soma seus gols
+// como mandante da ida + visitante da volta; teamB o inverso.
+function aggregateFromMatches(matches) {
+  const first = matches?.first, second = matches?.second;
+  if (!first || first.goalsHome == null || first.goalsAway == null) return null;
+  if (!second || second.goalsHome == null || second.goalsAway == null) return null;
+  return { totalA: first.goalsHome + second.goalsAway, totalB: first.goalsAway + second.goalsHome };
+}
+// Mesmo cálculo, mas a partir de um palpite (goalsHome/goalsAway "crus", ainda não gravados como
+// Match) — usado tanto na pré-visualização ao vivo do formulário de palpite quanto na validação.
+function predictedAggFromPicks(format, matchPicks) {
+  if (format !== "TWO_LEG") {
+    const m = matchPicks.single;
+    return m ? { totalA: m.goalsHome, totalB: m.goalsAway } : null;
+  }
+  const first = matchPicks.first, second = matchPicks.second;
+  if (!first || !second) return null;
+  return { totalA: first.goalsHome + second.goalsAway, totalB: first.goalsAway + second.goalsHome };
 }
 
-const ROUND_LABELS = { oitavas: "roundOitavas", quartas: "roundQuartas", semifinal: "roundSemifinal", final: "roundFinal" };
-const ROUNDS = ["oitavas", "quartas", "semifinal", "final"];
-
-// ─── Podium picks (campeão/vice/semifinalistas) ──────────────────────────────
-// Travados junto com o cutoff global (antes das oitavas começarem) — igual à Copa do Mundo:
-// uma vez feito o palpite, ele não muda mesmo que o time seja eliminado depois. Isso é
-// INTENCIONALMENTE separado dos palpites por confronto abaixo, que sim vão abrindo fase a
-// fase — a trava aqui é sempre isPastCutoff() (cutoff único, anterior às oitavas), nunca
-// depende de estar editando uma entrada existente.
-function getPodiumPickValues() {
+// ─── Podium (campeão/vice) a partir da Final ────────────────────────────────
+// A Final é sempre partida única com exatamente 1 confronto — campeão é o time classificado
+// oficialmente, vice é o outro. Diferente da Copa do Mundo, não existe cascata de fases
+// anteriores aqui: cada fase é palpitada e resolvida de forma independente, porque a Copa do
+// Brasil sorteia os confrontos reais a cada fase (não é um chaveamento fixo e previsível).
+function finalTieEntry(s) {
+  const finalTies = s.phases?.final?.ties || {};
+  const tieId = Object.keys(finalTies)[0];
+  return tieId ? { tieId, tie: finalTies[tieId] } : null;
+}
+function officialPodium(s) {
+  const f = finalTieEntry(s);
+  if (!f || !f.tie.qualifiedTeamId) return { champion: null, runnerUp: null };
+  const { tie } = f;
   return {
-    champion: $("cdb-champion")?.value || "",
-    runnerUp: $("cdb-runner-up")?.value || "",
-    semis:    [$("cdb-semi-1")?.value || "", $("cdb-semi-2")?.value || ""],
+    champion: tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB,
+    runnerUp: tie.qualifiedTeamId === "A" ? tie.teamB : tie.teamA,
   };
 }
-function updatePodiumDropdowns() {
-  const { champion, runnerUp, semis } = getPodiumPickValues();
-  const allPicked = new Set([champion, runnerUp, ...semis].filter(Boolean));
-  [
-    { el: $("cdb-champion"),  own: champion },
-    { el: $("cdb-runner-up"), own: runnerUp },
-    { el: $("cdb-semi-1"),    own: semis[0] },
-    { el: $("cdb-semi-2"),    own: semis[1] },
-  ].forEach(({ el, own }) => {
-    if (!el) return;
-    el.querySelectorAll("option[value]").forEach(opt => {
-      if (!opt.value) return;
-      opt.disabled = allPicked.has(opt.value) && opt.value !== own;
+function predictedPodium(entry, s) {
+  const f = finalTieEntry(s);
+  if (!f) return { champion: null, runnerUp: null };
+  const pick = entry.picks?.qualified?.[f.tieId];
+  if (!pick) return { champion: null, runnerUp: null };
+  const { tie } = f;
+  return {
+    champion: pick === "A" ? tie.teamA : tie.teamB,
+    runnerUp: pick === "A" ? tie.teamB : tie.teamA,
+  };
+}
+
+// ─── Per-tie picks (palpite por partida) ────────────────────────────────────
+function getPickValues() {
+  const picks = {
+    matches:   { ...(_editingEntry?.picks?.matches   || {}) },
+    qualified: { ...(_editingEntry?.picks?.qualified || {}) },
+  };
+  $$(".tie-pick-block.open").forEach(block => {
+    const tieId  = block.dataset.tieId;
+    const format = block.dataset.format;
+    const legs   = legsForFormat(format);
+    const matchPicks = {};
+    let anyFilled = false;
+    legs.forEach(leg => {
+      const a = block.querySelector(`.pk-goals-home[data-leg="${leg}"]`)?.value;
+      const b = block.querySelector(`.pk-goals-away[data-leg="${leg}"]`)?.value;
+      if (a === "" && b === "") return;
+      anyFilled = true;
+      matchPicks[leg] = { goalsHome: parseInt(a, 10), goalsAway: parseInt(b, 10) };
     });
+    const qual = block.querySelector(".pk-qualified")?.value || "";
+    if (!anyFilled && !qual) { delete picks.matches[tieId]; delete picks.qualified[tieId]; return; }
+    picks.matches[tieId] = matchPicks;
+    if (qual) picks.qualified[tieId] = qual; else delete picks.qualified[tieId];
   });
-}
-function podiumPickRowHtml(id, labelKey, hintKey, locked, teamOpts) {
-  return `
-    <div class="pick-row">
-      <label for="${id}">
-        <span class="pick-pos-label">${esc(t(labelKey))}</span>
-        <span class="pick-pts-hint">${esc(t(hintKey))}</span>
-      </label>
-      <select id="${id}" class="pick-select" ${locked ? "disabled" : ""}>
-        <option value="">${esc(t("pickSelectTeam"))}</option>
-        ${teamOpts}
-      </select>
-    </div>`;
+  return picks;
 }
 
-// ─── Per-tie picks ────────────────────────────────────────────────────────────
-function tieRowId(tie) { return `tie-${tie.id}`; }
-
-// Regra da CBF na Copa do Brasil: sem critério de gols fora de casa — agregado igual depois
-// dos dois jogos vai direto para pênaltis. Vitória simples no agregado: quem avança é
-// determinístico, o campo é preenchido automaticamente e travado (sem edição manual possível
-// — não faz sentido deixar escolher algo que a regra já decide sozinha). Agregado empatado:
-// pênaltis são imprevisíveis, o campo destrava e o participante escolhe manualmente quem acha
-// que avança.
-// `reset`: true quando chamado a partir de um evento de digitação (usuário mudando o placar
-// ativamente) — aí limpa qualquer seleção de um estado anterior que ficaria obsoleta/enganosa.
-// false na sincronização inicial ao editar uma entrada existente — preserva a escolha manual
-// já salva para um agregado empatado em vez de apagá-la só por re-renderizar a tela.
-function inferAdvance(goalsAEl, goalsBEl, advanceEl, reset = true) {
-  const a = parseInt(goalsAEl.value, 10), b = parseInt(goalsBEl.value, 10);
-  if (!Number.isFinite(a) || !Number.isFinite(b)) { advanceEl.disabled = false; if (reset) advanceEl.value = ""; return; }
-  if (a !== b) {
-    advanceEl.value = a > b ? "home" : "away";
-    advanceEl.disabled = true;
-  } else {
-    advanceEl.disabled = false;
-    if (reset) advanceEl.value = "";
-  }
+// ─── Validation ──────────────────────────────────────────────────────────────
+function validatePicks(picks) {
+  const errors = [];
+  $$(".tie-pick-block.open").forEach(block => {
+    const tieId  = block.dataset.tieId;
+    const format = block.dataset.format;
+    const legs   = legsForFormat(format);
+    const matchPicks = picks.matches[tieId] || {};
+    legs.forEach(leg => {
+      const m = matchPicks[leg];
+      if (!m || !Number.isFinite(m.goalsHome) || !Number.isFinite(m.goalsAway) ||
+          m.goalsHome < 0 || m.goalsHome > 20 || m.goalsAway < 0 || m.goalsAway > 20) {
+        errors.push(t("errorPicksIncomplete"));
+      }
+    });
+    const agg = predictedAggFromPicks(format, matchPicks);
+    if (agg && agg.totalA === agg.totalB && !picks.qualified[tieId]) {
+      errors.push(t("errorAdvanceRequired"));
+    }
+  });
+  return [...new Set(errors)];
 }
 
+// ─── Render: pick form ───────────────────────────────────────────────────────
 function renderPickForm() {
-  const s          = state();
-  const resolved   = resolveOfficial(s.results);
-  const savedTies  = (_editingEntry?.picks?.ties) || {};
-  const form       = $("pickForm");
+  const s    = state();
+  const form = $("pickForm");
   if (!form) return;
 
-  // Podium picks — locked once the global cutoff passes, regardless of edit mode.
-  const podiumLocked = isPastCutoff();
-  const teamOpts = DATA.teams.slice().sort((a, b) => a.localeCompare(b, "pt-BR"))
-    .map(team => `<option value="${esc(team)}">${esc(team)}</option>`).join("");
-  let html = `<div class="pick-group">
-    <div class="pick-group-header champion-header">🏆 ${esc(t("picksGroupTitle"))}</div>
-    ${podiumPickRowHtml("cdb-champion",  "pickChampion",  "pickHintChampion", podiumLocked, teamOpts)}
-    ${podiumPickRowHtml("cdb-runner-up", "pickRunnerUp",  "pickHintRunnerUp", podiumLocked, teamOpts)}
-    ${podiumPickRowHtml("cdb-semi-1",    "pickSemi1",     "pickHintSemi",     podiumLocked, teamOpts)}
-    ${podiumPickRowHtml("cdb-semi-2",    "pickSemi2",     "pickHintSemi",     podiumLocked, teamOpts)}
-  </div>`;
-
-  ROUNDS.forEach(round => {
-    const ties = DATA.ties.filter(tie => tie.round === round);
-    if (!ties.length) return;
+  let html = "";
+  DATA.phases.forEach(phase => {
+    const phaseState = s.phases?.[phase.id] || emptyPhaseState();
+    const ties = Object.entries(phaseState.ties || {});
     html += `<div class="pick-group">
-      <div class="pick-group-header champion-header">${esc(t(ROUND_LABELS[round]))}</div>`;
-    ties.forEach(tie => {
-      const { home, away } = resolved[tie.id];
-      const saved = savedTies[tie.id];
-      const open  = tieIsOpen(tie, home, away, s.results);
-      const rid   = tieRowId(tie);
+      <div class="pick-group-header champion-header">${esc(phase.name)}</div>`;
+    if (!ties.length) {
+      html += `<p class="muted small-text">${esc(t("waitingDraw"))}</p></div>`;
+      return;
+    }
+    ties.forEach(([tieId, tie]) => {
+      if (!tie.teamA || !tie.teamB) return;
+      const savedMatches = _editingEntry?.picks?.matches?.[tieId] || {};
+      const savedQual    = _editingEntry?.picks?.qualified?.[tieId] || "";
 
-      if (!home || !away) {
-        html += `<div class="pick-row tie-row" id="${rid}">
-          <span class="tie-teams-pending">${esc(t("pickWaitingSlot"))}</span>
+      if (tie.qualifiedTeamId) {
+        const winner = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
+        html += `<div class="pick-row tie-row locked" id="tie-${esc(tieId)}">
+          <div class="tie-locked-note"><span class="tie-locked-score">${esc(tie.teamA)} ${teamLogoImg(tie.teamA)} × ${teamLogoImg(tie.teamB)} ${esc(tie.teamB)} — ${esc(t("gamesAdvances"))}: <b>${esc(winner)}</b></span></div>
         </div>`;
         return;
       }
-      if (!open) {
-        const summary = saved
-          ? `<span class="tie-locked-score">${esc(home)} ${teamLogoImg(home)} ${saved.goalsA} × ${saved.goalsB} ${teamLogoImg(away)} ${esc(away)}</span>`
-          : `<span class="tie-locked-score">${esc(home)} ${teamLogoImg(home)} <span class="muted">${esc(t("pickNotSubmitted"))}</span> ${teamLogoImg(away)} ${esc(away)}</span>`;
-        html += `<div class="pick-row tie-row locked" id="${rid}">
-          <div class="tie-locked-note">${summary}</div>
+      if (isPhaseLocked(phaseState)) {
+        html += `<div class="pick-row tie-row locked" id="tie-${esc(tieId)}">
+          <div class="tie-locked-note"><span class="tie-locked-score">${esc(tie.teamA)} ${teamLogoImg(tie.teamA)} <span class="muted">${esc(t("pickNotSubmitted"))}</span> ${teamLogoImg(tie.teamB)} ${esc(tie.teamB)}</span></div>
         </div>`;
         return;
       }
 
-      const gA = saved?.goalsA ?? "", gB = saved?.goalsB ?? "";
-      const adv = saved?.advance || "";
-      html += `<div class="pick-row tie-row open" id="${rid}" data-tie-id="${esc(tie.id)}">
-        <div class="tie-inputs">
-          <span class="tie-team-name">${esc(home)}</span>
-          ${teamLogoImg(home)}
-          <input type="number" min="0" max="20" class="tie-goals-a" data-tie="${esc(tie.id)}" value="${esc(gA)}" aria-label="${esc(t("pickAggScoreA"))} ${esc(home)}">
-          <span class="tie-x">×</span>
-          <input type="number" min="0" max="20" class="tie-goals-b" data-tie="${esc(tie.id)}" value="${esc(gB)}" aria-label="${esc(t("pickAggScoreB"))} ${esc(away)}">
-          ${teamLogoImg(away)}
-          <span class="tie-team-name">${esc(away)}</span>
-        </div>
-        <select class="tie-advance" data-tie="${esc(tie.id)}" aria-label="${esc(t("pickAdvanceLabel"))}">
+      const legs = legsForFormat(phase.format);
+      const legInputs = legs.map(leg => {
+        const home = leg === "second" ? tie.teamB : tie.teamA;
+        const away = leg === "second" ? tie.teamA : tie.teamB;
+        const label = leg === "single" ? "" : leg === "first" ? t("gamesLeg1") : t("gamesLeg2");
+        const saved = savedMatches[leg];
+        const gA = saved?.goalsHome ?? "", gB = saved?.goalsAway ?? "";
+        return `<div class="tie-leg-pick">
+          ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
+          <div class="tie-inputs">
+            <span class="tie-team-name">${esc(home)}</span>
+            ${teamLogoImg(home)}
+            <input type="number" min="0" max="20" class="pk-goals-home" data-leg="${leg}" value="${esc(gA)}" aria-label="${esc(t("pickAggScoreA"))} ${esc(home)}">
+            <span class="tie-x">×</span>
+            <input type="number" min="0" max="20" class="pk-goals-away" data-leg="${leg}" value="${esc(gB)}" aria-label="${esc(t("pickAggScoreB"))} ${esc(away)}">
+            ${teamLogoImg(away)}
+            <span class="tie-team-name">${esc(away)}</span>
+          </div>
+        </div>`;
+      }).join("");
+      const aggBlock = phase.format === "TWO_LEG"
+        ? `<div class="pick-pts-hint">${esc(t("aggregatePreview"))}: <b class="pk-agg-value">—</b></div>`
+        : "";
+
+      html += `<div class="pick-row tie-row open tie-pick-block open" id="tie-${esc(tieId)}" data-tie-id="${esc(tieId)}" data-format="${esc(phase.format)}">
+        ${legInputs}
+        ${aggBlock}
+        <select class="pk-qualified" aria-label="${esc(t("pickAdvanceLabel"))}">
           <option value="">${esc(t("pickSelectAdvance"))}</option>
-          <option value="home" ${adv === "home" ? "selected" : ""}>${esc(home)}</option>
-          <option value="away" ${adv === "away" ? "selected" : ""}>${esc(away)}</option>
+          <option value="A" ${savedQual === "A" ? "selected" : ""}>${esc(tie.teamA)}</option>
+          <option value="B" ${savedQual === "B" ? "selected" : ""}>${esc(tie.teamB)}</option>
         </select>
         <span class="pick-pts-hint">${esc(t("pickHintTie"))}</span>
       </div>`;
@@ -375,68 +408,41 @@ function renderPickForm() {
 
   form.innerHTML = html || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`;
 
-  // Restore saved podium picks (read-only display once locked, editable before cutoff)
-  if (_editingEntry) {
-    const p = _editingEntry.picks || {};
-    if (p.champion && $("cdb-champion"))  $("cdb-champion").value  = p.champion;
-    if (p.runnerUp && $("cdb-runner-up")) $("cdb-runner-up").value = p.runnerUp;
-    (p.semis || []).forEach((v, i) => {
-      const el = $(`cdb-semi-${i + 1}`);
-      if (el && v) el.value = v;
-    });
-  }
-  form.removeEventListener("change", updatePodiumDropdowns);
-  form.addEventListener("change", updatePodiumDropdowns);
-  updatePodiumDropdowns();
-
-  form.querySelectorAll(".tie-row.open").forEach(row => {
-    const tieId = row.dataset.tieId;
-    const a = row.querySelector(".tie-goals-a"), b = row.querySelector(".tie-goals-b"), adv = row.querySelector(".tie-advance");
-    inferAdvance(a, b, adv, false); // sincroniza travado/destravado sem apagar escolha manual salva
-    [a, b].forEach(el => el.addEventListener("input", () => inferAdvance(a, b, adv)));
+  // Agregado previsto recalcula ao vivo enquanto o participante digita; "quem se classifica"
+  // trava automaticamente quando o agregado previsto não empata (mesma regra da CBF real: só
+  // faz sentido escolher manualmente quando o resultado seria decidido nos pênaltis).
+  form.querySelectorAll(".tie-pick-block.open").forEach(block => {
+    const format    = block.dataset.format;
+    const qualSel    = block.querySelector(".pk-qualified");
+    const aggValueEl = block.querySelector(".pk-agg-value");
+    const update = () => {
+      const legs = legsForFormat(format);
+      const matchPicks = {};
+      let complete = true;
+      legs.forEach(leg => {
+        const a = block.querySelector(`.pk-goals-home[data-leg="${leg}"]`)?.value;
+        const b = block.querySelector(`.pk-goals-away[data-leg="${leg}"]`)?.value;
+        if (a === "" || b === "") { complete = false; return; }
+        matchPicks[leg] = { goalsHome: parseInt(a, 10), goalsAway: parseInt(b, 10) };
+      });
+      const agg = complete ? predictedAggFromPicks(format, matchPicks) : null;
+      if (aggValueEl) aggValueEl.textContent = agg ? `${agg.totalA} × ${agg.totalB}` : "—";
+      if (!agg) { qualSel.disabled = false; return; }
+      if (agg.totalA === agg.totalB) {
+        qualSel.disabled = false;
+      } else {
+        qualSel.value = agg.totalA > agg.totalB ? "A" : "B";
+        qualSel.disabled = true;
+      }
+    };
+    block.querySelectorAll(".pk-goals-home, .pk-goals-away").forEach(el => el.addEventListener("input", update));
+    update(); // sincroniza travado/destravado ao carregar (inclusive editando entrada já salva)
   });
-}
-
-function getPickValues() {
-  const podium = getPodiumPickValues();
-  const ties   = { ...(_editingEntry?.picks?.ties || {}) };
-  $$(".tie-row.open").forEach(row => {
-    const tieId = row.dataset.tieId;
-    const a   = row.querySelector(".tie-goals-a")?.value;
-    const b   = row.querySelector(".tie-goals-b")?.value;
-    const adv = row.querySelector(".tie-advance")?.value;
-    if (a === "" && b === "" && !adv) { delete ties[tieId]; return; }
-    ties[tieId] = { goalsA: parseInt(a, 10), goalsB: parseInt(b, 10), advance: adv || "" };
-  });
-  return { champion: podium.champion, runnerUp: podium.runnerUp, semis: podium.semis, ties };
-}
-
-// ─── Validation ──────────────────────────────────────────────────────────────
-// Podium picks (champion/runnerUp/semis) are only required/validated while still editable
-// (before the global cutoff) — once locked, saveEntry() never touches them again, so an
-// admin/self-service edit of later-round tie picks can't accidentally wipe or re-require them.
-function validatePicks({ champion, runnerUp, semis, ties }) {
-  const errors = [];
-  if (!isPastCutoff()) {
-    if (!champion || !runnerUp || semis.some(x => !x)) errors.push(t("errorPicksIncomplete"));
-    const all = [champion, runnerUp, ...semis].filter(Boolean);
-    if (new Set(all).size < all.length) errors.push(t("errorDuplicatePicks"));
-  }
-  $$(".tie-row.open").forEach(row => {
-    const tieId = row.dataset.tieId;
-    const pick  = ties[tieId];
-    if (!pick || !Number.isFinite(pick.goalsA) || !Number.isFinite(pick.goalsB) ||
-        pick.goalsA < 0 || pick.goalsA > 20 || pick.goalsB < 0 || pick.goalsB > 20) {
-      errors.push(t("errorPicksIncomplete")); return;
-    }
-    if (!pick.advance) errors.push(t("errorAdvanceRequired"));
-  });
-  return [...new Set(errors)];
 }
 
 // ─── Save entry ──────────────────────────────────────────────────────────────
 async function saveEntry() {
-  if (isPastCutoff() && !_editingEntry) { showToast(t("closed"), "warn"); return; }
+  if (isPastFase1Cutoff() && !_editingEntry) { showToast(t("closed"), "warn"); return; }
   const entryName     = $("entryName")?.value.trim() || "";
   const payerName     = $("payerName")?.value.trim() || "";
   const email         = $("participantEmail")?.value.trim() || "";
@@ -501,108 +507,89 @@ function renderReceiptBox(entry) {
     <p class="muted" style="font-size:12px">${esc(t("receiptSaveHint"))}</p>`;
 }
 
-// ─── Podium resolution (from official tie results) ───────────────────────────
-// Deriva o campeão/vice/semifinalistas reais a partir dos resultados dos confrontos já
-// lançados pelo admin (final-1 e semifinal-1/2) — evita que o admin precise digitar o pódio
-// duas vezes (uma no resultado do confronto, outra "à parte").
-function officialPodium(results) {
-  const resolved = resolveOfficial(results);
-  const finalRes = results?.ties?.["final-1"];
-  const finalOff = resolved["final-1"];
-  let champion = null, runnerUp = null;
-  if (finalRes?.advance && finalOff.home && finalOff.away) {
-    champion = finalRes.advance === "home" ? finalOff.home : finalOff.away;
-    runnerUp = finalRes.advance === "home" ? finalOff.away : finalOff.home;
+// ─── Scoring ────────────────────────────────────────────────────────────────
+// Pontuação por partida, mutuamente exclusiva (nunca soma exact+result+side na mesma partida) —
+// mesmo espírito da Copa do Mundo (matchPoints/scoreEntry em bolao/js/app.js), aplicada aqui a
+// cada partida individual (não a um agregado digitado direto — ver CDB2026_RULES_AND_MODEL.md).
+function matchPoints(pick, result) {
+  if (!pick || !result || result.goalsHome == null || result.goalsAway == null) return null;
+  const sc = C.scoring.match;
+  if (pick.goalsHome === result.goalsHome && pick.goalsAway === result.goalsAway) {
+    return { pts: sc.exact, type: "exact" };
   }
-  const semis = [];
-  ["semifinal-1", "semifinal-2"].forEach(id => {
-    const res = results?.ties?.[id], off = resolved[id];
-    if (res?.advance && off.home && off.away) semis.push(res.advance === "home" ? off.away : off.home);
-  });
-  return { champion, runnerUp, semis };
+  const pickSign = Math.sign(pick.goalsHome - pick.goalsAway);
+  const realSign = Math.sign(result.goalsHome - result.goalsAway);
+  if (pickSign === realSign) return { pts: sc.result, type: "result" };
+  let pts = 0;
+  if (pick.goalsHome === result.goalsHome) pts += sc.side;
+  if (pick.goalsAway === result.goalsAway) pts += sc.side;
+  return { pts, type: pts > 0 ? "side" : "miss" };
 }
 
-// ─── Scoring ────────────────────────────────────────────────────────────────
-// scoreEntry: pontos por confronto (placar agregado exato / avanço correto / um lado do
-// agregado correto) — mesmo modelo da Copa do Mundo (scoreEntry em bolao/js/app.js), aplicado
-// ao agregado da ida+volta em vez de a uma partida única — MAIS bônus de pódio.
-//
-// O bônus usa entry.picks.champion/runnerUp/semis — os 4 palpites feitos e travados ANTES do
-// cutoff global, exatamente como a Copa do Mundo: se o time escolhido cair no meio do
-// caminho, o bônus é perdido, sem chance de trocar o palpite depois (ver validatePicks() e o
-// "locked" dos dropdowns em renderPickForm()). Isso é deliberadamente diferente dos palpites
-// por confronto acima, que vão abrindo fase a fase.
-function scoreEntry(entry, results) {
-  if (!results || !results.ties) return null;
-  const picks = entry.picks || {};
-  const ties  = picks.ties || {};
-  const sc    = C.scoring;
-  let total   = 0;
-  const detail = { ties: {} };
+function scoreEntry(entry, s) {
+  const sc = C.scoring;
+  let total = 0;
+  const detail = { matches: {}, ties: {} };
 
-  DATA.ties.forEach(tie => {
-    const res  = results.ties[tie.id];
-    const pick = ties[tie.id];
-    if (!res || !pick) return;
-    let pts = 0, type = "miss";
-    if (pick.goalsA === res.goalsA && pick.goalsB === res.goalsB) { pts = sc.tie.exact; type = "exact"; }
-    else if (pick.advance === res.advance) { pts = sc.tie.advance; type = "advance"; }
-    else if (pick.goalsA === res.goalsA || pick.goalsB === res.goalsB) { pts = sc.tie.partial; type = "partial"; }
-    detail.ties[tie.id] = { pts, type };
-    total += pts;
+  DATA.phases.forEach(phase => {
+    const ties = s.phases?.[phase.id]?.ties || {};
+    Object.entries(ties).forEach(([tieId, tie]) => {
+      const legs = legsForFormat(phase.format);
+      const pickMatches = entry.picks?.matches?.[tieId] || {};
+      legs.forEach(leg => {
+        const r = matchPoints(pickMatches[leg], tie.matches?.[leg]);
+        if (!r) return;
+        detail.matches[`${tieId}:${leg}`] = r;
+        total += r.pts;
+      });
+      if (tie.qualifiedTeamId) {
+        const pickQual = entry.picks?.qualified?.[tieId];
+        if (pickQual) {
+          const hit = pickQual === tie.qualifiedTeamId;
+          detail.ties[tieId] = { pts: hit ? sc.tieBonus : 0, type: hit ? "hit" : "miss" };
+          total += detail.ties[tieId].pts;
+        }
+      }
+    });
   });
 
-  const podium = officialPodium(results);
-  if (podium.champion && picks.champion) {
-    const exact = picks.champion === podium.champion;
-    detail.champion = { pts: exact ? sc.bonus.champion : 0, type: exact ? "exact" : "miss" };
+  const official  = officialPodium(s);
+  const predicted = predictedPodium(entry, s);
+  if (official.champion && predicted.champion) {
+    const hit = predicted.champion === official.champion;
+    detail.champion = { pts: hit ? sc.bonus.champion : 0, type: hit ? "exact" : "miss" };
     total += detail.champion.pts;
   }
-  if (podium.runnerUp && picks.runnerUp) {
-    const exact = picks.runnerUp === podium.runnerUp;
-    detail.runnerUp = { pts: exact ? sc.bonus.runnerUp : 0, type: exact ? "exact" : "miss" };
+  if (official.runnerUp && predicted.runnerUp) {
+    const hit = predicted.runnerUp === official.runnerUp;
+    detail.runnerUp = { pts: hit ? sc.bonus.runnerUp : 0, type: hit ? "exact" : "miss" };
     total += detail.runnerUp.pts;
-  }
-  if (podium.semis.length) {
-    const semifinalistSet = new Set([podium.champion, podium.runnerUp, ...podium.semis].filter(Boolean));
-    detail.semis = (picks.semis || []).map(pick => {
-      if (!pick) return null;
-      const hit = semifinalistSet.has(pick);
-      return { pts: hit ? sc.bonus.semifinalist : 0, type: hit ? "hit" : "miss" };
-    });
-    detail.semis.forEach(d => { if (d) total += d.pts; });
   }
 
   return { total, detail };
 }
+function getActiveScore(entry, s) { return scoreEntry(entry, s); }
 
-function getActiveScore(entry, s) { return scoreEntry(entry, s.results); }
-
-function resultsProgress(results) {
-  const done = DATA.ties.filter(tie => results?.ties?.[tie.id]).length;
-  return { done, totalTies: DATA.ties.length };
-}
-
-// Edição própria só faz sentido depois que a primeira fase (oitavas) termina — antes disso,
-// nenhum confronto de fase seguinte está resolvido, então não há nada novo pra editar e o
-// card só confunde quem está enviando a entrada pela primeira vez.
-function oitavasComplete(results) {
-  return DATA.ties.filter(tie => tie.round === "oitavas").every(tie => results?.ties?.[tie.id]);
+function resultsProgress(s) {
+  let done = 0, totalTies = 0;
+  DATA.phases.forEach(phase => {
+    const ties = Object.values(s.phases?.[phase.id]?.ties || {});
+    totalTies += ties.length;
+    done += ties.filter(tie => tie.qualifiedTeamId).length;
+  });
+  return { done, totalTies };
 }
 
 function renderFindEntryCard() {
   const card = $("findEntryCard");
   if (!card) return;
-  // Escondido por completo (não só os campos) até as oitavas terminarem — antes disso não há
-  // nada de novo pra editar, e o card só confundia quem estava enviando a entrada pela
-  // primeira vez (via feedback direto do Eduardo).
-  card.classList.toggle("hidden", !oitavasComplete(state().results));
+  card.classList.toggle("hidden", !fase1Complete(state()));
 }
 
 // ─── Tiebreaker helpers ──────────────────────────────────────────────────────
 function hitChampion(detail) { return detail?.champion?.type === "exact" ? 1 : 0; }
 function hitRunnerUp(detail) { return detail?.runnerUp?.type === "exact" ? 1 : 0; }
-function countExactTies(detail) { return Object.values(detail?.ties || {}).filter(d => d.type === "exact").length; }
+function countExactMatches(detail) { return Object.values(detail?.matches || {}).filter(d => d.type === "exact").length; }
 
 // ─── Email receipt ───────────────────────────────────────────────────────────
 let _lastEmailTs = 0;
@@ -611,28 +598,33 @@ async function sendReceipt(entry) {
   const now = Date.now();
   if (now - _lastEmailTs < C.emailjs.limitRateMs) return;
 
-  const resolved = resolveEntry(entry);
-  const ties     = entry.picks?.ties || {};
-  const rows = DATA.ties.map(tie => {
-    const pick = ties[tie.id];
-    const { home, away } = resolved[tie.id];
-    if (!pick || !home || !away) return "";
-    return `<tr><td>${esc(home)} × ${esc(away)}</td><td>${pick.goalsA} × ${pick.goalsB}</td></tr>`;
-  }).join("");
-  const p = entry.picks || {};
+  const s = state();
+  const rows = [];
+  DATA.phases.forEach(phase => {
+    Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+      if (!tie.teamA || !tie.teamB) return;
+      const pickMatches = entry.picks?.matches?.[tieId];
+      if (!pickMatches) return;
+      legsForFormat(phase.format).forEach(leg => {
+        const pick = pickMatches[leg];
+        if (!pick) return;
+        const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
+        rows.push(`<tr><td>${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</td><td>${pick.goalsHome} × ${pick.goalsAway}</td></tr>`);
+      });
+    });
+  });
+  const predicted = predictedPodium(entry, s);
   const podiumHtml = `
     <p><b>${esc(t("receiptCodeLabel"))}:</b> <code>${esc(receiptCode(entry))}</code></p>
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
       <tr><th>Palpite</th><th>Time</th></tr>
-      <tr><td>🏆 Campeão</td><td>${esc(p.champion || "—")}</td></tr>
-      <tr><td>🥈 Vice-campeão</td><td>${esc(p.runnerUp || "—")}</td></tr>
-      <tr><td>Semi 1</td><td>${esc((p.semis || [])[0] || "—")}</td></tr>
-      <tr><td>Semi 2</td><td>${esc((p.semis || [])[1] || "—")}</td></tr>
+      <tr><td>🏆 Campeão</td><td>${esc(predicted.champion || "—")}</td></tr>
+      <tr><td>🥈 Vice-campeão</td><td>${esc(predicted.runnerUp || "—")}</td></tr>
     </table>`;
   const picksHtml = `
     <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;margin-top:10px">
-      <tr><th>Confronto</th><th>Placar agregado palpitado</th></tr>
-      ${rows || `<tr><td colspan="2">—</td></tr>`}
+      <tr><th>Partida</th><th>Placar palpitado</th></tr>
+      ${rows.join("") || `<tr><td colspan="2">—</td></tr>`}
     </table>`;
 
   const params = {
@@ -665,7 +657,12 @@ async function sendReceipt(entry) {
 function renderCountdown() {
   const box = $("cutoffCountdown");
   if (!box) return;
-  const diff = cutoffDate().getTime() - Date.now();
+  const ms = fase1CutoffMs();
+  if (ms === null) {
+    box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t("waitingDraw"))}</span>`;
+    return;
+  }
+  const diff = ms - Date.now();
   if (diff <= 0) {
     box.innerHTML = `<span class="count-closed">${esc(t("closedLabel"))}</span>`;
     return;
@@ -702,17 +699,14 @@ function renderRanking() {
     b.total - a.total ||
     hitChampion(b.detail) - hitChampion(a.detail) ||
     hitRunnerUp(b.detail) - hitRunnerUp(a.detail) ||
-    countExactTies(b.detail) - countExactTies(a.detail) ||
+    countExactMatches(b.detail) - countExactMatches(a.detail) ||
     b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
   );
 
-  const { done, totalTies } = resultsProgress(s.results);
-  const provNote = done < totalTies
+  const { done, totalTies } = resultsProgress(s);
+  const provNote = totalTies > 0 && done < totalTies
     ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
 
-  // Estrutura densa de 1 linha (.rank-row) + detalhe expansível (.picks-detail) — mesmo padrão
-  // da Copa (bolao/js/app.js renderRanking()), ver DESIGN_SYSTEM.md "Ranking — estrutura do
-  // card". Cada entrada gera dois elementos irmãos, não um card único empilhado.
   let rank = 0, prevPts = -1;
   box.innerHTML = provNote;
   scored.forEach((item, i) => {
@@ -748,31 +742,48 @@ function renderRanking() {
 }
 
 function renderPickDisplay(entry, detail) {
-  const resolved = resolveEntry(entry);
-  const picks    = entry.picks?.ties || {};
-  const rows = DATA.ties.map(tie => {
-    const pick = picks[tie.id];
-    const { home, away } = resolved[tie.id];
-    if (!home || !away || !pick) return "";
-    const d     = detail?.ties?.[tie.id];
-    const cls   = d ? (d.type === "exact" ? "pick-exact" : d.type === "advance" ? "pick-partial" : d.type === "partial" ? "pick-partial" : "pick-miss") : "";
-    const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
-    return `<div class="pick-item">
-      <span class="pick-pos-lbl">${esc(home)} ${teamLogoImg(home)} × ${teamLogoImg(away)} ${esc(away)}</span>
-      <div class="pick-cell ${cls}">${pick.goalsA} × ${pick.goalsB}${badge}</div>
-    </div>`;
-  }).filter(Boolean).join("");
+  const s = state();
+  const rows = [];
+  DATA.phases.forEach(phase => {
+    Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+      if (!tie.teamA || !tie.teamB) return;
+      const pickMatches = entry.picks?.matches?.[tieId];
+      if (!pickMatches) return;
+      legsForFormat(phase.format).forEach(leg => {
+        const pick = pickMatches[leg];
+        if (!pick) return;
+        const d = detail?.matches?.[`${tieId}:${leg}`];
+        const legLabel = leg === "single" ? "" : ` — ${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))}`;
+        const cls = d ? (d.type === "exact" ? "pick-exact" : d.type === "miss" ? "pick-miss" : "pick-partial") : "";
+        const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
+        rows.push(`<div class="pick-item">
+          <span class="pick-pos-lbl">${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</span>
+          <div class="pick-cell ${cls}">${pick.goalsHome} × ${pick.goalsAway}${badge}</div>
+        </div>`);
+      });
+      const pickQual = entry.picks?.qualified?.[tieId];
+      if (tie.qualifiedTeamId && pickQual) {
+        const d = detail?.ties?.[tieId];
+        const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
+        const cls = d?.type === "hit" ? "pick-exact" : "pick-miss";
+        const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
+        rows.push(`<div class="pick-item">
+          <span class="pick-pos-lbl">${esc(t("pickQualifiedLabel"))}: ${teamLogoImg(teamName)} ${esc(teamName)}</span>
+          <div class="pick-cell ${cls}">${badge}</div>
+        </div>`);
+      }
+    });
+  });
 
-  const p = entry.picks || {};
+  const predicted = predictedPodium(entry, s);
   const bonusRow = (label, team, d) => team
-    ? `<div class="pick-item"><span class="pick-pos-lbl">${esc(label)}: ${teamLogoImg(team)} ${esc(team)}</span><div class="pick-cell ${d ? (d.type === "exact" || d.type === "hit" ? "pick-exact" : "pick-miss") : ""}">${d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : ""}</div></div>`
+    ? `<div class="pick-item"><span class="pick-pos-lbl">${esc(label)}: ${teamLogoImg(team)} ${esc(team)}</span><div class="pick-cell ${d ? (d.type === "exact" ? "pick-exact" : "pick-miss") : ""}">${d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : ""}</div></div>`
     : "";
 
   return `<div class="picks-display cdb-picks">
-    ${bonusRow("🏆 " + t("pickLabelChampion"), p.champion, detail?.champion)}
-    ${bonusRow("🥈 " + t("pickLabelRunnerUp"), p.runnerUp, detail?.runnerUp)}
-    ${(p.semis || []).map((team, i) => bonusRow(t("pickLabelSemi") + " " + (i + 1), team, detail?.semis?.[i])).join("")}
-    ${rows || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`}
+    ${bonusRow("🏆 " + t("pickLabelChampion"), predicted.champion, detail?.champion)}
+    ${bonusRow("🥈 " + t("pickLabelRunnerUp"), predicted.runnerUp, detail?.runnerUp)}
+    ${rows.join("") || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`}
   </div>`;
 }
 
@@ -804,8 +815,6 @@ function renderParticipants() {
 }
 
 // ─── Render: payment ─────────────────────────────────────────────────────────
-// Mesma estrutura de card (ícone + nome + handle) da Copa (bolao/js/app.js renderPayment()) —
-// ver DESIGN_SYSTEM.md "Pagamento".
 function renderPayment() {
   const box = $("paymentMethods");
   if (!box) return;
@@ -828,22 +837,23 @@ function renderPayment() {
 function renderRules() {
   const box = $("rulesContent");
   if (!box) return;
-  const sc  = C.scoring;
-  const pr  = C.prizes;
+  const sc = C.scoring;
+  const pr = C.prizes;
   box.innerHTML = `
     <div class="card">
       <h3>${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
         <thead><tr><th>${esc(t("rulesAcerto"))}</th><th>${esc(t("rulesPts"))}</th></tr></thead>
         <tbody>
-          <tr><td>${esc(t("rulesTieExact"))}</td><td><b>${sc.tie.exact}</b></td></tr>
-          <tr><td>${esc(t("rulesTieAdvance"))}</td><td><b>${sc.tie.advance}</b></td></tr>
-          <tr><td>${esc(t("rulesTiePartial"))}</td><td><b>${sc.tie.partial}</b></td></tr>
-          <tr><td>🏆 Campeão — ${esc(t("rulesExact"))}</td><td><b>${sc.bonus.champion}</b></td></tr>
-          <tr><td>🥈 Vice-campeão — ${esc(t("rulesExact"))}</td><td><b>${sc.bonus.runnerUp}</b></td></tr>
-          <tr><td>Semifinalista acertado (×2)</td><td><b>${sc.bonus.semifinalist}</b> cada</td></tr>
+          <tr><td>${esc(t("rulesMatchExact"))}</td><td><b>${sc.match.exact}</b></td></tr>
+          <tr><td>${esc(t("rulesMatchResult"))}</td><td><b>${sc.match.result}</b></td></tr>
+          <tr><td>${esc(t("rulesMatchSide"))}</td><td><b>${sc.match.side}</b> por lado</td></tr>
+          <tr><td>${esc(t("rulesTieBonus"))}</td><td><b>${sc.tieBonus}</b></td></tr>
+          <tr><td>🏆 Campeão</td><td><b>${sc.bonus.champion}</b></td></tr>
+          <tr><td>🥈 Vice-campeão</td><td><b>${sc.bonus.runnerUp}</b></td></tr>
         </tbody>
       </table>
+      <p class="muted small-text">${esc(t("rulesScoreNote"))}</p>
       <h3>${esc(t("tbTitle"))}</h3>
       <ol style="margin:0;padding:0 0 0 18px;font-size:13px;line-height:1.8">
         <li>${esc(t("tbChampion"))}</li>
@@ -851,6 +861,18 @@ function renderRules() {
         <li>${esc(t("tbExactTies"))}</li>
         <li>${esc(t("tbAlpha"))}</li>
       </ol>
+    </div>
+    <div class="card">
+      <h3>${esc(t("rulesFormat"))}</h3>
+      <p style="font-size:13px">${esc(t("rulesFormatText"))}</p>
+      <p style="font-size:13px">${esc(t("rulesPenaltyText"))}</p>
+      <p style="font-size:13px">${esc(t("rulesNoAwayGoalsText"))}</p>
+    </div>
+    <div class="card">
+      <h3>${esc(t("rulesExampleTwoLegTitle"))}</h3>
+      <p style="font-size:13px">${esc(t("rulesExampleTwoLegText"))}</p>
+      <h3>${esc(t("rulesExampleSingleTitle"))}</h3>
+      <p style="font-size:13px">${esc(t("rulesExampleSingleText"))}</p>
     </div>
     <div class="card">
       <h3>${esc(t("rulesPrizes"))}</h3>
@@ -874,19 +896,16 @@ function renderRules() {
     </div>`;
 }
 
-// ─── Probabilidades — mata-mata ida+volta agregado ────────────────────────────
-// Mesma matemática (Poisson bivariado + correção Dixon-Coles) usada em bolao/js/app.js
-// (Copa) e bolao/br2026/js/app.js (Brasileirão), portada aqui porque os três apps não
-// compartilham código (ver docs/bolao/PLATFORM_GOVERNANCE.md). Diferença de torneio: aqui
-// o resultado de um confronto depende do AGREGADO de dois jogos (ida+volta), não de uma
-// partida só — por isso a distribuição de placar de cada perna é combinada (convolução)
-// antes de decidir quem avança. Não influencia scoring/resultado real — só exibição.
+// ─── Probabilidades — estimativa por confronto já sorteado ──────────────────
+// Mesma matemática (Poisson bivariado + correção Dixon-Coles) usada em bolao/js/app.js (Copa)
+// e bolao/br2026/js/app.js (Brasileirão). Diferente do modelo antigo: itera os confrontos
+// DINÂMICOS já cadastrados pelo admin (não um bracket fixo) e cobre tanto partida única quanto
+// ida+volta, já que a Copa do Brasil tem os dois formatos dependendo da fase.
 function poisson(lambda, k) {
   let p = Math.exp(-lambda);
   for (let i = 1; i <= k; i++) p *= lambda / i;
   return p;
 }
-
 function tauDC(x, y, lA, lB, rho) {
   if (x === 0 && y === 0) return 1 - lA * lB * rho;
   if (x === 0 && y === 1) return 1 + lA * rho;
@@ -894,10 +913,6 @@ function tauDC(x, y, lA, lB, rho) {
   if (x === 1 && y === 1) return 1 - rho;
   return 1;
 }
-
-// Grade completa de placar (i×j, 0-8 gols) de UMA perna, com correção Dixon-Coles nos
-// placares baixos. Retorna também pA/pD/pB (vitória mandante/empate/vitória visitante da
-// perna) para o passo de bisseção em legLambdas().
 function matchProb(lambdaHome, lambdaAway) {
   const MAX = 8, RHO = -0.13;
   const grid = [];
@@ -913,17 +928,10 @@ function matchProb(lambdaHome, lambdaAway) {
   const sum = pA + pD + pB || 1;
   return { pA: pA / sum, pD: pD / sum, pB: pB / sum, grid, sum };
 }
-
-// Rating aproximado (escala tipo Elo) a partir do strength 0-100 de data.js — mesma
-// conversão usada como fallback em bolao/js/app.js (copaExpectedGoals): 1500 + (strength -
-// 70) * 10. Vantagem de mandante: +65 pontos, valor típico usado em modelos públicos de
-// força de time no futebol de clubes (a Copa não usa isso — seleções em sede neutra).
 const HOME_ADV_ELO = 65;
+const DEFAULT_STRENGTH = 60;
+function teamStrength(name) { return DATA.strength?.[name] ?? DEFAULT_STRENGTH; }
 function eloFromStrength(strength) { return 1500 + ((strength ?? 65) - 70) * 10; }
-
-// Resolve o par de lambdas (gols esperados) de UMA perna a partir da força dos dois times
-// e de quem manda o jogo. TOTAL=2.5 gols (referência de clubes; a Copa usa 2.4 para
-// seleções). Bisseção igual a copaExpectedGoals() em bolao/js/app.js.
 function legLambdas(strengthHome, strengthAway) {
   const TOTAL = 2.5;
   const eloHome = eloFromStrength(strengthHome) + HOME_ADV_ELO;
@@ -937,17 +945,17 @@ function legLambdas(strengthHome, strengthAway) {
   const lambdaHome = (lo + hi) / 2;
   return { lambdaHome, lambdaAway: TOTAL - lambdaHome };
 }
-
-// Combina os placares das duas pernas em um placar agregado e aplica a regra real da CBF na
-// Copa do Brasil (sem gol fora de casa — ver inferAdvance() acima): agregado empatado vai
-// para os pênaltis, tratado aqui como 50/50 porque pênaltis não são previsíveis por modelo
-// de gols. "home"/"away" abaixo são os dois lados do CONFRONTO (quem manda a ida) — o
-// mandante da volta é o outro lado.
-function tieAdvanceProb(nameHome, nameAway) {
-  const sHome = DATA.strength?.[nameHome];
-  const sAway = DATA.strength?.[nameAway];
-  const leg1 = legLambdas(sHome, sAway); // ida: nameHome manda
-  const leg2 = legLambdas(sAway, sHome); // volta: nameAway manda
+// Combina os placares das duas pernas (ou usa a partida única direto) e aplica a regra real
+// da CBF: sem gol fora de casa, empate vai para os pênaltis (50/50, imprevisível por modelo
+// de gols).
+function tieAdvanceProb(nameA, nameB, format) {
+  if (format !== "TWO_LEG") {
+    const { lambdaHome, lambdaAway } = legLambdas(teamStrength(nameA), teamStrength(nameB));
+    const { pA, pD, pB } = matchProb(lambdaHome, lambdaAway);
+    return { pHome: pA + pD * 0.5, pAway: pB + pD * 0.5 };
+  }
+  const leg1 = legLambdas(teamStrength(nameA), teamStrength(nameB));
+  const leg2 = legLambdas(teamStrength(nameB), teamStrength(nameA));
   const grid1 = matchProb(leg1.lambdaHome, leg1.lambdaAway).grid;
   const grid2 = matchProb(leg2.lambdaHome, leg2.lambdaAway).grid;
   const MAX = 8;
@@ -958,8 +966,6 @@ function tieAdvanceProb(nameHome, nameAway) {
     for (let a2 = 0; a2 <= MAX; a2++) for (let b2 = 0; b2 <= MAX; b2++) {
       const p2 = grid2[a2][b2];
       if (!p2) continue;
-      // agregado: nameHome marcou a1 (ida, mandante) + b2 (volta, visitante)
-      //           nameAway marcou b1 (ida, visitante) + a2 (volta, mandante)
       const aggHome = a1 + b2, aggAway = b1 + a2;
       const p = p1 * p2;
       total += p;
@@ -969,115 +975,99 @@ function tieAdvanceProb(nameHome, nameAway) {
     }
   }
   if (total > 0) { pHome /= total; pDrawAgg /= total; pAway /= total; }
-  return { pHome: pHome + pDrawAgg * 0.5, pAway: pAway + pDrawAgg * 0.5, pDrawAgg };
+  return { pHome: pHome + pDrawAgg * 0.5, pAway: pAway + pDrawAgg * 0.5 };
 }
-
-// Barra de probabilidade de 2 vias (sem empate — o confronto sempre resolve em alguém
-// avançando, mesmo que via pênaltis) — mesmo componente visual .prob-bars/.prob-bar usado
-// nos outros dois apps, só sem a divisão central de empate.
-function tieProbBarsHtml(nameHome, nameAway) {
-  const { pHome, pAway } = tieAdvanceProb(nameHome, nameAway);
+function tieProbBarsHtml(nameA, nameB, format) {
+  const { pHome, pAway } = tieAdvanceProb(nameA, nameB, format);
   const hPct = Math.round(pHome * 100), aPct = Math.round(pAway * 100);
-  const sHome = esc(nameHome.length > 14 ? nameHome.slice(0, 14) + "…" : nameHome);
-  const sAway = esc(nameAway.length > 14 ? nameAway.slice(0, 14) + "…" : nameAway);
+  const sA = esc(nameA.length > 14 ? nameA.slice(0, 14) + "…" : nameA);
+  const sB = esc(nameB.length > 14 ? nameB.slice(0, 14) + "…" : nameB);
   const label = (pct, name) => pct >= 20 ? `${name} ${pct}%` : `${pct}%`;
   return `<div class="prob-bars" role="group" aria-label="${esc(t("probBarsLabel"))}">
-    <div class="prob-bar home" style="width:${hPct}%" title="${esc(nameHome)}: ${hPct}%">${label(hPct, sHome)}</div>
-    <div class="prob-bar away" style="width:${aPct}%" title="${esc(nameAway)}: ${aPct}%">${label(aPct, sAway)}</div>
+    <div class="prob-bar home" style="width:${hPct}%" title="${esc(nameA)}: ${hPct}%">${label(hPct, sA)}</div>
+    <div class="prob-bar away" style="width:${aPct}%" title="${esc(nameB)}: ${aPct}%">${label(aPct, sB)}</div>
   </div>`;
 }
-
 function renderProbsSection() {
   const box = $("probsContent");
   if (!box) return;
-  const s        = state();
-  const resolved = resolveOfficial(s.results);
-
+  const s = state();
   let html = "";
-  ROUNDS.forEach(round => {
-    const ties = DATA.ties.filter(tie => tie.round === round);
+  DATA.phases.forEach(phase => {
+    const ties = Object.entries(s.phases?.[phase.id]?.ties || {}).filter(([, tie]) => tie.teamA && tie.teamB);
     if (!ties.length) return;
-    const rows = ties.map(tie => {
-      const { home, away } = resolved[tie.id];
-      const res = s.results.ties[tie.id];
-      if (!home || !away) {
-        return `<div class="confronto-card card"><div class="confronto-header">${esc(t("pickWaitingSlot"))}</div></div>`;
-      }
-      if (res) {
-        // Confronto já decidido — não faz sentido mostrar probabilidade estimada.
-        const winner = res.advance === "home" ? home : away;
+    const rows = ties.map(([tieId, tie]) => {
+      if (tie.qualifiedTeamId) {
+        const winner = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
         return `<div class="confronto-card card">
-          <div class="confronto-header">${esc(home)} ${teamLogoImg(home, "match-logo")} × ${teamLogoImg(away, "match-logo")} ${esc(away)}</div>
+          <div class="confronto-header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
           <p class="muted" style="font-size:12px">${esc(t("gamesAdvances"))}: <b>${esc(winner)}</b></p>
         </div>`;
       }
       return `<div class="confronto-card card">
-        <div class="confronto-header">${esc(home)} ${teamLogoImg(home, "match-logo")} × ${teamLogoImg(away, "match-logo")} ${esc(away)}</div>
-        ${tieProbBarsHtml(home, away)}
+        <div class="confronto-header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
+        ${tieProbBarsHtml(tie.teamA, tie.teamB, phase.format)}
       </div>`;
     }).join("");
-    if (rows) html += `<h3 class="games-round-header">${esc(t(ROUND_LABELS[round]))}</h3>${rows}`;
+    html += `<h3 class="games-round-header">${esc(phase.name)}</h3>${rows}`;
   });
-
-  box.innerHTML = html || `<p class="muted">${esc(t("pickWaitingSlot"))}</p>`;
+  box.innerHTML = html || `<p class="muted">${esc(t("waitingDraw"))}</p>`;
 }
 
-// ─── Render: games (bracket completo) ────────────────────────────────────────
+// ─── Render: games (fases dinâmicas) ─────────────────────────────────────────
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
-  const s        = state();
-  const resolved = resolveOfficial(s.results);
-
-  const fmtDate = (dateStr, timeStr) => {
-    if (!dateStr || !timeStr) return t("gamesTbd");
+  const s = state();
+  const fmtDate = dateStr => {
+    if (!dateStr) return t("gamesTbd");
     try {
-      const d = new Date(`${dateStr}T${timeStr}:00-03:00`);
-      return d.toLocaleString("pt-BR", {
+      return new Date(dateStr).toLocaleString("pt-BR", {
         timeZone: "America/Sao_Paulo",
-        weekday: "short", day: "2-digit", month: "2-digit",
-        hour: "2-digit", minute: "2-digit"
+        weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
       }) + " BRT";
-    } catch { return `${dateStr} ${timeStr} BRT`; }
+    } catch { return dateStr; }
   };
 
   let html = "";
-  ROUNDS.forEach(round => {
-    const ties = DATA.ties.filter(tie => tie.round === round);
-    if (!ties.length) return;
-    html += `<h3 class="games-round-header">${esc(t(ROUND_LABELS[round]))}</h3>`;
-    html += ties.map(tie => {
-      const { home, away } = resolved[tie.id];
-      const res = s.results.ties[tie.id];
-      // O jogo de volta (leg2) tem mandante/visitante invertidos em relação à ida — usa sempre
-      // os nomes resolvidos do bracket (home/away), nunca os campos estáticos de tie.leg2, que
-      // só existem para as oitavas e ficam null a partir das quartas. Antes o "Jogo 2" mostrava
-      // a mesma ordem do "Jogo 1", errado.
-      const legHtml = (legData, labelKey, swapped) => {
-        if (!legData || !legData.date) return "";
-        const h = swapped ? away : home;
-        const a = swapped ? home : away;
+  DATA.phases.forEach(phase => {
+    const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
+    html += `<h3 class="games-round-header">${esc(phase.name)}</h3>`;
+    if (!ties.length) {
+      html += `<p class="muted" style="margin-bottom:14px">${esc(t("waitingDraw"))}</p>`;
+      return;
+    }
+    html += ties.map(([tieId, tie]) => {
+      if (!tie.teamA || !tie.teamB) return "";
+      const legs = legsForFormat(phase.format);
+      const legHtml = leg => {
+        const m = tie.matches?.[leg];
+        if (!m) return "";
+        const home = leg === "second" ? tie.teamB : tie.teamA;
+        const away = leg === "second" ? tie.teamA : tie.teamB;
+        const label = leg === "single" ? "" : leg === "first" ? t("gamesLeg1") : t("gamesLeg2");
+        const scoreOrDate = m.goalsHome != null
+          ? `<b>${m.goalsHome} × ${m.goalsAway}</b>`
+          : esc(fmtDate(m.kickoff));
         return `<div class="leg">
-          <span class="leg-label">${esc(t(labelKey))}</span>
-          <span class="leg-teams">${h ? esc(h) : "?"} ${teamLogoImg(h, "team-logo")} × ${teamLogoImg(a, "team-logo")} ${a ? esc(a) : "?"}</span>
-          <span class="leg-info">📍 ${esc(legData.stadium || "—")} · ${esc(fmtDate(legData.date, legData.time))}</span>
+          ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
+          <span class="leg-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} × ${teamLogoImg(away, "team-logo")} ${esc(away)}</span>
+          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + " · " : ""}${scoreOrDate}</span>
         </div>`;
       };
-      const headerTeams = (home && away) ? `${esc(home)} ${teamLogoImg(home, "match-logo")} × ${teamLogoImg(away, "match-logo")} ${esc(away)}` : esc(t("pickWaitingSlot"));
-      const resultLine = res
-        ? `<div class="leg confronto-result">${esc(t("gamesAggregate"))}: <b>${res.goalsA} × ${res.goalsB}</b> — ${esc(t("gamesAdvances"))}: ${res.advance === "home" ? esc(home) : esc(away)}</div>`
+      const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
+      const resultLine = tie.qualifiedTeamId
+        ? `<div class="leg confronto-result">${agg ? `${esc(t("gamesAggregate"))}: <b>${agg.totalA} × ${agg.totalB}</b> — ` : ""}${esc(t("gamesAdvances"))}: ${esc(tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB)}</div>`
         : "";
       return `<div class="confronto-card card">
-        <div class="confronto-header">${headerTeams}</div>
+        <div class="confronto-header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
         <div class="confronto-legs">
-          ${legHtml({ home: tie.home, away: tie.away, stadium: tie.stadium, date: tie.date, time: tie.time }, "gamesLeg1", false)}
-          ${legHtml(tie.leg2, "gamesLeg2", true)}
+          ${legs.map(legHtml).join("")}
           ${resultLine}
         </div>
       </div>`;
     }).join("");
   });
-
   box.innerHTML = html;
 }
 
@@ -1095,130 +1085,224 @@ function renderFooter() {
 // ─── Render: admin ───────────────────────────────────────────────────────────
 function renderAdmin() {
   if (!isAdminActive()) return;
-  renderAdminResults(state());
-  renderAdminPayments(state());
-  renderAdminEntries(state());
+  const s = state();
+  renderAdminPhases(s);
+  renderAdminResults(s);
+  renderAdminPayments(s);
+  renderAdminEntries(s);
 }
 
-// Placar de UMA perna já salvo (s.results.legs[tieId][leg]) — renderiza a linha travada
-// (read-only) ou os inputs abertos para preencher, igual ao padrão já usado no agregado.
-function adminLegRowHtml(tieId, legNum, teamHome, teamAway, saved) {
-  const cls = `adm-leg${legNum}`;
-  if (saved) {
-    return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-leg="${legNum}">
-      <span class="leg-label">${esc(t(legNum === 1 ? "gamesLeg1" : "gamesLeg2"))}</span>
-      <span class="leg-teams-admin">${esc(teamHome)} × ${esc(teamAway)}</span>
-      <span class="leg-result-saved">✓ ${saved.goalsA} × ${saved.goalsB}</span>
-      <button type="button" class="secondary small-btn" data-edit-leg="${esc(tieId)}" data-leg-num="${legNum}">${esc(t("edit"))}</button>
+function toLocalDatetimeValue(iso) {
+  const d = new Date(iso);
+  const pad = n => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+// Admin: cadastro de confrontos por fase. Nenhuma fase vem com confrontos pré-cadastrados no
+// código — o admin adiciona o confronto real assim que o sorteio de cada fase acontece (ver
+// CDB2026_RULES_AND_MODEL.md, "não inventar confrontos futuros").
+function renderAdminPhases(s) {
+  const box = $("adminPhases");
+  if (!box) return;
+  const teamOptions = Object.keys(DATA.teamLogos || {}).sort((a, b) => a.localeCompare(b, "pt-BR"))
+    .map(name => `<option value="${esc(name)}">`).join("");
+  let html = `<h3>${esc(t("adminPhasesTitle"))}</h3><datalist id="cdbTeamList">${teamOptions}</datalist>`;
+  DATA.phases.forEach(phase => {
+    const phaseState = s.phases?.[phase.id] || emptyPhaseState();
+    const tieCount = Object.keys(phaseState.ties || {}).length;
+    html += `<div class="admin-phase-block" data-phase="${esc(phase.id)}">
+      <div class="admin-phase-header">
+        <b>${esc(phase.name)}</b>
+        <span class="muted small-text">${phase.format === "TWO_LEG" ? esc(t("formatTwoLeg")) : esc(t("formatSingleMatch"))} · ${tieCount} ${esc(t("adminTiesCount"))}</span>
+      </div>
+      <div class="admin-row">
+        <span class="small-text muted">${esc(t("adminPhaseCutoff"))}</span>
+        <input type="datetime-local" class="adm-phase-cutoff" value="${phaseState.cutoffAt ? esc(toLocalDatetimeValue(phaseState.cutoffAt)) : ""}">
+        <button type="button" class="secondary small-btn" data-save-cutoff="${esc(phase.id)}">${esc(t("adminSaveCutoff"))}</button>
+      </div>
+      <div class="admin-row cdb-add-tie">
+        <input type="text" class="adm-team-a" placeholder="${esc(t("adminTeamA"))}" list="cdbTeamList">
+        <input type="text" class="adm-team-b" placeholder="${esc(t("adminTeamB"))}" list="cdbTeamList">
+        <button type="button" class="small-btn" data-add-tie="${esc(phase.id)}">${esc(t("adminAddTie"))}</button>
+      </div>
+      ${Object.entries(phaseState.ties || {}).map(([tieId, tie]) => {
+        const hasResults = tie.qualifiedTeamId || Object.values(tie.matches || {}).some(m => m?.goalsHome != null);
+        return `<div class="admin-row">
+          <span class="tie-teams-admin">${esc(tie.teamA)} × ${esc(tie.teamB)}</span>
+          ${hasResults
+            ? `<span class="muted small-text">${esc(t("adminTieHasResults"))}</span>`
+            : `<button type="button" class="danger small-btn" data-remove-tie="${esc(tieId)}" data-phase="${esc(phase.id)}">${esc(t("delete"))}</button>`}
+        </div>`;
+      }).join("")}
+    </div>`;
+  });
+  box.innerHTML = html;
+
+  box.querySelectorAll("[data-save-cutoff]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const phaseId = btn.dataset.saveCutoff;
+    const input = box.querySelector(`.admin-phase-block[data-phase="${phaseId}"] .adm-phase-cutoff`);
+    const val = input.value;
+    const s2 = state();
+    s2.phases[phaseId].cutoffAt = val ? new Date(val).toISOString() : null;
+    saveState(s2);
+    showToast(t("adminCutoffSaved"), "success");
+  }));
+
+  box.querySelectorAll("[data-add-tie]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const phaseId = btn.dataset.addTie;
+    const block = box.querySelector(`.admin-phase-block[data-phase="${phaseId}"]`);
+    const teamA = block.querySelector(".adm-team-a").value.trim();
+    const teamB = block.querySelector(".adm-team-b").value.trim();
+    if (!teamA || !teamB || teamA === teamB) { alert(t("errorTieTeams")); return; }
+    const format = getPhaseDef(phaseId).format;
+    const tie = { teamA, teamB, matches: {}, qualifiedTeamId: null };
+    legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
+    const s2 = state();
+    s2.phases[phaseId].ties[uuid()] = tie;
+    saveState(s2);
+    showToast(t("adminTieAdded"), "success");
+  }));
+
+  box.querySelectorAll("[data-remove-tie]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    if (!confirm(t("confirmRemoveTie"))) return;
+    const s2 = state();
+    delete s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.removeTie];
+    saveState(s2);
+  }));
+}
+
+// Linha(s) de resultado de UM confronto — 1 partida (SINGLE_MATCH) ou 2 (TWO_LEG, ida/volta).
+// Cada partida é salva independentemente; assim que todas as partidas do confronto têm placar,
+// o agregado (ou o próprio placar, se for partida única) é calculado e um botão travar o
+// resultado oficial aparece — quem se classifica é automático quando não empata, manual (igual
+// à escolha de pênaltis) quando empata.
+function renderAdminResultsForTie(phase, tieId, tie) {
+  if (tie.qualifiedTeamId) {
+    const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
+    const summary = agg ? `${esc(t("gamesAggregate"))}: ${agg.totalA} × ${agg.totalB} — ` : "";
+    return `<div class="admin-row cdb-admin-tie" data-tie-id="${esc(tieId)}">
+      <span class="tie-teams-admin">${esc(tie.teamA)} × ${esc(tie.teamB)}</span>
+      <span class="leg-result-saved">✓ ${summary}${esc(t("gamesAdvances"))}: ${esc(tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB)}</span>
+      <button type="button" class="secondary small-btn" data-unlock-tie="${esc(tieId)}" data-phase="${esc(phase.id)}">${esc(t("unlockResults"))}</button>
     </div>`;
   }
-  return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-leg="${legNum}">
-    <span class="leg-label">${esc(t(legNum === 1 ? "gamesLeg1" : "gamesLeg2"))}</span>
-    <span class="leg-teams-admin">${esc(teamHome)} × ${esc(teamAway)}</span>
-    <input type="number" min="0" max="20" class="${cls}-a" aria-label="${esc(teamHome)}">
-    <span class="tie-x">×</span>
-    <input type="number" min="0" max="20" class="${cls}-b" aria-label="${esc(teamAway)}">
-    <button type="button" class="small-btn" data-save-leg="${esc(tieId)}" data-leg-num="${legNum}">${esc(t("saveLegResult"))}</button>
+
+  const legs = legsForFormat(phase.format);
+  const legRows = legs.map(leg => {
+    const m = tie.matches?.[leg] || emptyMatch();
+    const label = leg === "single" ? "" : leg === "first" ? t("gamesLeg1") : t("gamesLeg2");
+    const home = leg === "second" ? tie.teamB : tie.teamA;
+    const away = leg === "second" ? tie.teamA : tie.teamB;
+    if (m.goalsHome != null) {
+      return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-phase="${esc(phase.id)}" data-leg="${leg}">
+        ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
+        <span class="leg-teams-admin">${esc(home)} × ${esc(away)}</span>
+        <span class="leg-result-saved">✓ ${m.goalsHome} × ${m.goalsAway}</span>
+        <button type="button" class="secondary small-btn" data-edit-leg="${esc(tieId)}" data-phase="${esc(phase.id)}" data-leg="${leg}">${esc(t("edit"))}</button>
+      </div>`;
+    }
+    return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-phase="${esc(phase.id)}" data-leg="${leg}">
+      ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
+      <span class="leg-teams-admin">${esc(home)} × ${esc(away)}</span>
+      <input type="number" min="0" max="20" class="adm-leg-a" aria-label="${esc(home)}">
+      <span class="tie-x">×</span>
+      <input type="number" min="0" max="20" class="adm-leg-b" aria-label="${esc(away)}">
+      <button type="button" class="small-btn" data-save-leg="${esc(tieId)}" data-phase="${esc(phase.id)}" data-leg="${leg}">${esc(t("saveLegResult"))}</button>
+    </div>`;
+  }).join("");
+
+  const allSaved = legs.every(leg => tie.matches?.[leg]?.goalsHome != null);
+  let aggregateBlock = "";
+  if (allSaved) {
+    let totalA, totalB;
+    if (phase.format === "TWO_LEG") {
+      const agg = aggregateFromMatches(tie.matches);
+      totalA = agg.totalA; totalB = agg.totalB;
+    } else {
+      totalA = tie.matches.single.goalsHome; totalB = tie.matches.single.goalsAway;
+    }
+    const tied = totalA === totalB;
+    aggregateBlock = `<div class="admin-tie-aggregate">
+      <span class="leg-label">${esc(t("aggregatePreview"))}</span>
+      <span class="leg-teams-admin">${totalA} × ${totalB}</span>
+      ${tied
+        ? `<select class="adm-qualified" aria-label="${esc(t("pickQualifiedLabel"))}">
+             <option value="">${esc(t("pickSelectAdvance"))}</option>
+             <option value="A">${esc(tie.teamA)}</option>
+             <option value="B">${esc(tie.teamB)}</option>
+           </select>`
+        : `<span class="leg-teams-admin">${esc(t("gamesAdvances"))}: ${esc(totalA > totalB ? tie.teamA : tie.teamB)}</span>`}
+      <button type="button" class="small-btn" data-lock-tie="${esc(tieId)}" data-phase="${esc(phase.id)}" data-total-a="${totalA}" data-total-b="${totalB}">${esc(t("saveResults"))}</button>
+    </div>`;
+  }
+
+  return `<div class="admin-tie-block" data-tie-block="${esc(tieId)}">
+    <div class="tie-teams-admin">${esc(tie.teamA)} × ${esc(tie.teamB)}</div>
+    ${legRows}
+    ${aggregateBlock}
   </div>`;
 }
 
 function renderAdminResults(s) {
   const box = $("adminResults");
   if (!box) return;
-  const resolved = resolveOfficial(s.results);
 
   let html = `<h3>${esc(t("adminResults"))}</h3>`;
-  ROUNDS.forEach(round => {
-    const ties = DATA.ties.filter(tie => tie.round === round);
+  let anyTies = false;
+  DATA.phases.forEach(phase => {
+    const ties = Object.entries(s.phases?.[phase.id]?.ties || {}).filter(([, tie]) => tie.teamA && tie.teamB);
     if (!ties.length) return;
-    html += `<div class="admin-round-header">${esc(t(ROUND_LABELS[round]))}</div>`;
-    ties.forEach(tie => {
-      const { home, away } = resolved[tie.id];
-      const res = s.results.ties[tie.id];
-      if (!home || !away) {
-        html += `<div class="admin-row muted">${esc(tie.id)} — ${esc(t("pickWaitingSlot"))}</div>`;
-        return;
-      }
-
-      if (res) {
-        // Agregado já travado — mostra o resultado oficial (mesmo padrão de antes) e permite
-        // destravar. As duas pernas continuam salvas em s.results.legs — destravar não apaga
-        // o placar de cada jogo, só o agregado oficial.
-        html += `<div class="admin-row cdb-admin-tie" data-tie-id="${esc(tie.id)}">
-          <span class="tie-teams-admin">${esc(home)} × ${esc(away)}</span>
-          <span class="leg-result-saved">✓ ${esc(t("gamesAggregate"))}: ${res.goalsA} × ${res.goalsB} — ${esc(t("gamesAdvances"))}: ${esc(res.advance === "home" ? home : away)}</span>
-          <button type="button" class="secondary small-btn" data-unlock-tie="${esc(tie.id)}">${esc(t("unlockResults"))}</button>
-        </div>`;
-        return;
-      }
-
-      const legs  = s.results.legs[tie.id] || {};
-      const leg1  = legs.leg1; // {home} manda
-      const leg2  = legs.leg2; // {away} manda (mandante/visitante invertido)
-      html += `<div class="admin-tie-block" data-tie-block="${esc(tie.id)}">
-        <div class="tie-teams-admin">${esc(home)} × ${esc(away)}</div>
-        ${adminLegRowHtml(tie.id, 1, home, away, leg1)}
-        ${adminLegRowHtml(tie.id, 2, away, home, leg2)}
-        ${leg1 && leg2 ? (() => {
-          const aggHome = leg1.goalsA + leg2.goalsB;
-          const aggAway = leg1.goalsB + leg2.goalsA;
-          const tied = aggHome === aggAway;
-          return `<div class="admin-tie-aggregate">
-            <span class="leg-label">${esc(t("aggregatePreview"))}</span>
-            <span class="leg-teams-admin">${aggHome} × ${aggAway}</span>
-            ${tied
-              ? `<select class="adm-advance" aria-label="${esc(t("pickAdvanceLabel"))}">
-                   <option value="">${esc(t("pickSelectAdvance"))}</option>
-                   <option value="home">${esc(home)}</option>
-                   <option value="away">${esc(away)}</option>
-                 </select>`
-              : `<span class="leg-teams-admin">${esc(t("gamesAdvances"))}: ${esc(aggHome > aggAway ? home : away)}</span>`}
-            <button type="button" class="small-btn" data-lock-tie="${esc(tie.id)}" data-agg-home="${aggHome}" data-agg-away="${aggAway}">${esc(t("saveResults"))}</button>
-          </div>`;
-        })() : ""}
-      </div>`;
-    });
+    anyTies = true;
+    html += `<div class="admin-round-header">${esc(phase.name)}</div>`;
+    ties.forEach(([tieId, tie]) => { html += renderAdminResultsForTie(phase, tieId, tie); });
   });
-  box.innerHTML = html;
+  box.innerHTML = anyTies ? html : `<h3>${esc(t("adminResults"))}</h3><p class="muted">${esc(t("waitingDraw"))}</p>`;
 
   box.querySelectorAll("[data-save-leg]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    const tieId  = btn.dataset.saveLeg;
-    const legNum = btn.dataset.legNum;
-    const row = box.querySelector(`.admin-leg-row[data-tie-id="${tieId}"][data-leg="${legNum}"]`);
-    const a = parseInt(row.querySelector(`.adm-leg${legNum}-a`).value, 10);
-    const b = parseInt(row.querySelector(`.adm-leg${legNum}-b`).value, 10);
+    const tieId = btn.dataset.saveLeg, phaseId = btn.dataset.phase, leg = btn.dataset.leg;
+    const row = box.querySelector(`.admin-leg-row[data-tie-id="${tieId}"][data-phase="${phaseId}"][data-leg="${leg}"]`);
+    const a = parseInt(row.querySelector(".adm-leg-a").value, 10);
+    const b = parseInt(row.querySelector(".adm-leg-b").value, 10);
     if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) { alert(t("errorLegIncomplete")); return; }
     const s2 = state();
-    s2.results.legs[tieId] = s2.results.legs[tieId] || {};
-    s2.results.legs[tieId][`leg${legNum}`] = { goalsA: a, goalsB: b };
+    const tie = s2.phases[phaseId].ties[tieId];
+    const home = leg === "second" ? tie.teamB : tie.teamA;
+    const away = leg === "second" ? tie.teamA : tie.teamB;
+    tie.matches[leg] = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL" };
     saveState(s2);
     showToast(t("legResultSaved"), "success");
   }));
   box.querySelectorAll("[data-edit-leg]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    const tieId  = btn.dataset.editLeg;
-    const legNum = btn.dataset.legNum;
     const s2 = state();
-    if (s2.results.legs[tieId]) delete s2.results.legs[tieId][`leg${legNum}`];
+    const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.editLeg];
+    if (tie?.matches?.[btn.dataset.leg]) {
+      tie.matches[btn.dataset.leg].goalsHome = null;
+      tie.matches[btn.dataset.leg].goalsAway = null;
+      tie.matches[btn.dataset.leg].status = "SCHEDULED";
+    }
     saveState(s2);
   }));
   box.querySelectorAll("[data-lock-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    const tieId    = btn.dataset.lockTie;
-    const aggHome  = parseInt(btn.dataset.aggHome, 10);
-    const aggAway  = parseInt(btn.dataset.aggAway, 10);
-    const block    = box.querySelector(`[data-tie-block="${tieId}"]`);
-    let adv;
-    if (aggHome === aggAway) {
-      adv = block.querySelector(".adm-advance")?.value;
-      if (!adv) { alert(t("errorAdvanceRequired")); return; }
+    const tieId = btn.dataset.lockTie, phaseId = btn.dataset.phase;
+    const totalA = parseInt(btn.dataset.totalA, 10), totalB = parseInt(btn.dataset.totalB, 10);
+    const block = box.querySelector(`[data-tie-block="${tieId}"]`);
+    let qualified;
+    if (totalA === totalB) {
+      qualified = block.querySelector(".adm-qualified")?.value;
+      if (!qualified) { alert(t("errorAdminAdvanceRequired")); return; }
     } else {
-      adv = aggHome > aggAway ? "home" : "away";
+      qualified = totalA > totalB ? "A" : "B";
     }
     if (!confirm(t("confirmLockResults"))) return;
     const s2 = state();
-    s2.results.ties[tieId] = { goalsA: aggHome, goalsB: aggAway, advance: adv, lockedAt: new Date().toISOString() };
+    s2.phases[phaseId].ties[tieId].qualifiedTeamId = qualified;
+    s2.phases[phaseId].ties[tieId].lockedAt = new Date().toISOString();
     saveState(s2);
     showToast(t("resultsSaved"), "success");
   }));
@@ -1226,7 +1310,8 @@ function renderAdminResults(s) {
     if (!guardAdmin()) return;
     if (!confirm(t("confirmUnlockResults"))) return;
     const s2 = state();
-    delete s2.results.ties[btn.dataset.unlockTie];
+    const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.unlockTie];
+    if (tie) { delete tie.qualifiedTeamId; delete tie.lockedAt; }
     saveState(s2);
   }));
 }
@@ -1236,28 +1321,23 @@ function renderAdminPayments(s) {
   if (!box) return;
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
-  box.innerHTML = `<h3>${esc(t("adminPayments"))}</h3>`
-    + (entries.length ? entries.map(e => {
-      const paid = (s.paid || {})[e.id];
-      return `<div class="admin-row">
-        <span>${esc(e.entryName)}</span>
-        <span class="muted">${esc(e.payerName || "")}</span>
-        <button type="button" class="${paid ? "secondary" : ""} small-btn" data-toggle-paid="${esc(e.id)}">
-          ${esc(paid ? t("markUnpaid") : t("markPaid"))}
-        </button>
-      </div>`;
-    }).join("") : `<p class="muted">${esc(t("noEntries"))}</p>`);
+  box.innerHTML = `<h3>${esc(t("adminPayments"))}</h3>` + entries.map(e => {
+    const isPaid = (s.paid || {})[e.id];
+    return `<div class="admin-row">
+      <span>${esc(e.entryName)}</span>
+      <span class="muted small-text">${esc(e.paymentMethod || "")}</span>
+      <button type="button" class="small-btn ${isPaid ? "secondary" : ""}" data-toggle-paid="${esc(e.id)}">${esc(isPaid ? t("markUnpaid") : t("markPaid"))}</button>
+    </div>`;
+  }).join("");
 
-  box.querySelectorAll("[data-toggle-paid]").forEach(btn =>
-    btn.addEventListener("click", () => {
-      if (!guardAdmin()) return;
-      const s2 = state();
-      s2.paid = s2.paid || {};
-      if (s2.paid[btn.dataset.togglePaid]) delete s2.paid[btn.dataset.togglePaid];
-      else s2.paid[btn.dataset.togglePaid] = true;
-      saveState(s2);
-    })
-  );
+  box.querySelectorAll("[data-toggle-paid]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const id = btn.dataset.togglePaid;
+    const s2 = state();
+    s2.paid = s2.paid || {};
+    s2.paid[id] = !s2.paid[id];
+    saveState(s2, { localOnly: false });
+  }));
 }
 
 function renderAdminEntries(s) {
@@ -1265,39 +1345,21 @@ function renderAdminEntries(s) {
   if (!box) return;
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
-  box.innerHTML = `<h3>${esc(t("adminEntries"))}</h3>`
-    + (entries.length ? entries.map(e => `
-      <div class="admin-row">
-        <span>${esc(e.entryName)}</span>
-        <span class="muted">${esc(e.participantEmail || "")}</span>
-        <button type="button" class="secondary small-btn" data-edit-id="${esc(e.id)}">${esc(t("edit"))}</button>
-        <button type="button" class="danger small-btn" data-delete-id="${esc(e.id)}">${esc(t("delete"))}</button>
-      </div>`).join("") : `<p class="muted">${esc(t("noEntries"))}</p>`);
+  box.innerHTML = `<h3>${esc(t("adminEntries"))}</h3>` + (entries.length ? entries.map(e => `
+    <div class="admin-row">
+      <span>${esc(e.entryName)}</span>
+      <span class="muted small-text">${esc(e.participantEmail || "")}</span>
+      <button type="button" class="danger small-btn" data-delete-entry="${esc(e.id)}">${esc(t("delete"))}</button>
+    </div>`).join("") : `<p class="muted">${esc(t("noEntries"))}</p>`);
 
-  box.querySelectorAll("[data-edit-id]").forEach(btn =>
-    btn.addEventListener("click", () => {
-      if (!guardAdmin()) return;
-      const s2 = state();
-      _editingEntry = (s2.entries || []).find(e => e.id === btn.dataset.editId) || null;
-      renderPickForm();
-      if (_editingEntry) {
-        $("entryName") && ($("entryName").value = _editingEntry.entryName || "");
-        $("payerName") && ($("payerName").value = _editingEntry.payerName || "");
-        $("participantEmail") && ($("participantEmail").value = _editingEntry.participantEmail || "");
-        $("paymentMethod") && ($("paymentMethod").value = _editingEntry.paymentMethod || "");
-      }
-      showSection("entry");
-    })
-  );
-  box.querySelectorAll("[data-delete-id]").forEach(btn =>
-    btn.addEventListener("click", () => {
-      if (!guardAdmin()) return;
-      if (!confirm(t("confirmDelete"))) return;
-      const s2 = state();
-      s2.deletedIds = [...(s2.deletedIds || []), btn.dataset.deleteId];
-      saveState(s2);
-    })
-  );
+  box.querySelectorAll("[data-delete-entry]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    if (!confirm(t("confirmDelete"))) return;
+    const s2 = state();
+    s2.deletedIds = s2.deletedIds || [];
+    s2.deletedIds.push(btn.dataset.deleteEntry);
+    saveState(s2);
+  }));
 }
 
 // ─── Export CSV ──────────────────────────────────────────────────────────────
@@ -1305,25 +1367,30 @@ function exportCsv() {
   const s       = state();
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
-  const header  = ["Nome", "Pagador", "Email", "Pagamento", "Campeão", "Vice", "Semi1", "Semi2", "Pago", "Criado",
-    ...DATA.ties.map(tie => tie.id)];
+  const header  = ["Nome", "Pagador", "Email", "Pagamento", "Campeão", "Vice", "Pago", "Criado", "Palpites"];
   const rows    = [header];
   entries.forEach(e => {
-    const p = e.picks || {};
-    const resolved = resolveEntry(e);
-    const picks    = e.picks?.ties || {};
-    const tieCols  = DATA.ties.map(tie => {
-      const pick = picks[tie.id];
-      const { home, away } = resolved[tie.id];
-      if (!pick || !home || !away) return "";
-      return `${home} ${pick.goalsA}×${pick.goalsB} ${away}`;
+    const predicted = predictedPodium(e, s);
+    const lines = [];
+    DATA.phases.forEach(phase => {
+      Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+        if (!tie.teamA || !tie.teamB) return;
+        const pickMatches = e.picks?.matches?.[tieId];
+        if (!pickMatches) return;
+        legsForFormat(phase.format).forEach(leg => {
+          const pick = pickMatches[leg];
+          if (!pick) return;
+          const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
+          lines.push(`${tie.teamA} ${pick.goalsHome}x${pick.goalsAway} ${tie.teamB}${legLabel}`);
+        });
+      });
     });
     rows.push([
       e.entryName, e.payerName || "", e.participantEmail || "", e.paymentMethod || "",
-      p.champion || "", p.runnerUp || "", (p.semis || [])[0] || "", (p.semis || [])[1] || "",
+      predicted.champion || "", predicted.runnerUp || "",
       (s.paid || {})[e.id] ? "Sim" : "Não",
       e.createdAt ? new Date(e.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
-      ...tieCols
+      lines.join(" | ")
     ]);
   });
   const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
@@ -1380,26 +1447,21 @@ async function init() {
   const wa = $("supportWhatsappBtn");
   if (wa) wa.href = C.whatsappGroup?.link || "#";
 
-  // Navigation
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
-  showSection(isPastCutoff() ? "ranking" : "entry");
+  showSection(isPastFase1Cutoff() ? "ranking" : "entry");
 
-  // Bolão switcher
   $("bolaoSelect")?.addEventListener("change", e => {
     const allowed = ["/bolao/", "/bolao/br2026/", "/bolao/cdb2026/"];
     if (allowed.includes(e.target.value)) location.href = e.target.value;
   });
 
-  // Countdown
   renderCountdown();
   setInterval(() => { if (!document.hidden) renderCountdown(); }, 1000);
 
-  // Save entry
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
 
-  // Self-service: find and edit my own entry (email + receipt code — email alone isn't a secret)
   $("findEntryBtn")?.addEventListener("click", () => {
-    if (!oitavasComplete(state().results)) { showToast(t("findEntryLockedMsg"), "warn"); return; }
+    if (!fase1Complete(state())) { showToast(t("findEntryLockedMsg"), "warn"); return; }
     const email = $("findEntryEmail")?.value.trim() || "";
     const code  = $("findEntryCode")?.value.trim() || "";
     if (!email || !code) { alert(t("findEntryMissing")); return; }
@@ -1414,7 +1476,6 @@ async function init() {
     showToast(t("findEntryLoaded"), "success");
   });
 
-  // Admin login
   $("adminPassword")?.addEventListener("keydown", e => { if (e.key === "Enter") $("adminLoginBtn")?.click(); });
   $("adminLoginBtn")?.addEventListener("click", async () => {
     const now = Date.now();
@@ -1464,11 +1525,9 @@ async function init() {
     $("adminArea")?.classList.remove("hidden");
   }
 
-  // Load remote state then render
   await loadRemoteState();
   renderAll();
 
-  // Remote sync every 30s (when database enabled)
   if (C.database.enabled) {
     setInterval(async () => { await loadRemoteState(); renderAll(); }, 30000);
   }

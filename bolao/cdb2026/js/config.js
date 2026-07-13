@@ -1,5 +1,5 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v2.9",
+  siteVersion: "v3.0",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -8,8 +8,9 @@ window.CDB2026_CONFIG = {
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
   adminSessionMinutes: 30,
-  // UPDATE before publishing: cutoff before quarterfinal second leg
-  cutoffIso: "2026-08-01T12:00:00-03:00",
+  // Cutoff não é mais um valor único global — cada fase tem seu próprio prazo, definido pelo
+  // admin ao cadastrar os confrontos daquela fase (ver docs/bolao/CDB2026_RULES_AND_MODEL.md e
+  // s.phases[id].cutoffAt no estado dinâmico em app.js).
   adminEmail: "emferrari@gmail.com",
   paymentMethods: {
     CashApp: "$EduardoFerrari",
@@ -31,19 +32,23 @@ window.CDB2026_CONFIG = {
     qrImage: "assets/zelle-qr.png"
   },
   prizes: { first: 0.70, second: 0.20, third: 0.10 },
+  // Modelo de pontuação — ver docs/bolao/CDB2026_RULES_AND_MODEL.md (fonte oficial do modelo,
+  // aprovada por Eduardo em 2026-07-13). Pontuação é POR PARTIDA (não por confronto agregado
+  // digitado direto — isso era o modelo antigo, incorreto para a Copa do Brasil real).
   scoring: {
-    // Pontuação por confronto (placar agregado ida+volta) — mesmos valores da Copa do Mundo
-    // (bolao/js/config.js), aplicados ao agregado em vez de a uma partida única.
-    tie: {
-      exact: 10,   // placar agregado exato
-      advance: 5,  // time que avança está correto (mesmo com placar agregado errado)
-      partial: 1,  // gols agregados de um dos dois lados batem
+    // Por partida individual — mutuamente exclusivo (nunca soma exact+result+side na mesma
+    // partida), mesmos valores da Copa do Mundo (bolao/js/config.js).
+    match: {
+      exact: 10,   // placar exato da partida
+      result: 5,   // resultado certo (vitória/derrota/empate), placar não exato
+      side: 1,     // gols de um dos dois times batem exatamente, mesmo com resultado errado
     },
-    // Bônus de pódio final — específico da Copa do Brasil (sem disputa de 3º lugar)
+    // Bônus por confronto — acertar quem se classifica, independente do placar de cada perna.
+    tieBonus: 5,
+    // Bônus de pódio final — sem disputa de 3º lugar (não existe na Copa do Brasil).
     bonus: {
       champion: 30,
       runnerUp: 20,
-      semifinalist: 10, // cada um dos 2 semifinalistas que não chegaram à final
     },
   },
   emailjs: {

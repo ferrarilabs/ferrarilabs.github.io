@@ -405,9 +405,18 @@ function payIcon(method) {
   return src ? `<img src="${esc(src)}" alt="${esc(method)}" class="pay-method-icon">` : "💳";
 }
 
+// AbortController timeout wrapper — every ESPN fetch in this file goes through this so a hung
+// request can't pile up across polls (see docs/bolao/BR2026_LIVE_STANDINGS.md "Higiene de rede").
+async function fetchJson(url, opts = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs || 10000);
+  try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
+  finally { clearTimeout(timer); }
+}
+
 async function fetchStandings() {
   try {
-    const r = await fetch(C.espn.standingsUrl);
+    const r = await fetchJson(C.espn.standingsUrl);
     const data = await r.json();
     const entries = data?.children?.[0]?.standings?.entries || [];
     const parsed = entries.map(e => {
@@ -439,7 +448,7 @@ async function fetchStandings() {
 
 async function fetchScoreboard() {
   try {
-    const r = await fetch(C.espn.scoreboardUrl + "?limit=20");
+    const r = await fetchJson(C.espn.scoreboardUrl + "?limit=20");
     const data = await r.json();
     return (data?.events || []).map(ev => {
       const comp = ev.competitions?.[0];
@@ -462,34 +471,179 @@ async function fetchScoreboard() {
   } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
 }
 
+let _pollInFlight = false;
+
 async function pollAll() {
-  const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
-  if (standings) {
-    _standings    = standings;
-    _matchProbs   = {};
-    _ratingsCache = null;
-    _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([,v]) => v));
-    scheduleMC();
+  if (_pollInFlight) return; // a poll is already running — never overlap requests
+  if (document.hidden) return; // resource hygiene — no network work while the tab isn't visible
+  _pollInFlight = true;
+  try {
+    const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
+    _pollFailed = !standings && matches === null;
+
+    if (matches !== null) {
+      const nextLive = matches.filter(m => m.state === "in");
+      // Window state machine keyed off baseline presence (not _liveMatches, which resets to []
+      // on every page load) so a reload mid-match keeps the same frozen baseline instead of
+      // silently adopting a fresh, already-live one. See docs/bolao/BR2026_LIVE_STANDINGS.md
+      // "Baseline" for the full priority order and the reload/two-tabs edge cases.
+      if (nextLive.length > 0 && !_standingsBaseline) captureStandingsBaseline();
+      if (nextLive.length === 0 && _standingsBaseline) clearStandingsBaseline();
+      _liveMatches = nextLive;
+      _pollTime    = Date.now();
+      // Overlay fetched match states onto the schedule cache (including "post" so a finished
+      // game doesn't stay stuck as "ao vivo" until the 5-min TTL expires). Matched by ESPN's
+      // stable event id first — team-name comparison is only a fallback for rows the id can't
+      // reach yet (e.g. schedule cache older than this poll's ids).
+      matches.forEach(m => {
+        let idx = m.id ? _schedule.findIndex(g => g.id === m.id) : -1;
+        if (idx < 0) {
+          idx = _schedule.findIndex(g =>
+            (g.homeTeam === m.homeTeam && g.awayTeam === m.awayTeam) ||
+            (g.homeTeam === m.awayTeam && g.awayTeam === m.homeTeam)
+          );
+        }
+        if (idx >= 0) {
+          _schedule[idx] = { ..._schedule[idx], state: m.state, homeScore: m.homeScore, awayScore: m.awayScore, clockStr: m.clockStr };
+        }
+      });
+    }
+
+    if (standings) {
+      _standings    = standings;
+      _matchProbs   = {};
+      _ratingsCache = null;
+      _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([,v]) => v));
+      scheduleMC();
+    }
+
+    renderLiveCard();
+    renderStandingsCard();
+    renderRanking();
+    if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
+  } finally {
+    _pollInFlight = false;
   }
-  if (matches !== null) {
-    _liveMatches = matches.filter(m => m.state === "in");
-    _pollTime    = Date.now();
-    // Overlay ALL fetched match states onto schedule cache (including "post" so
-    // a finished game doesn't stay stuck as "ao vivo" until the 5-min TTL expires)
-    matches.forEach(m => {
-      const idx = _schedule.findIndex(g =>
-        (g.homeTeam === m.homeTeam && g.awayTeam === m.awayTeam) ||
-        (g.homeTeam === m.awayTeam && g.awayTeam === m.homeTeam)
-      );
-      if (idx >= 0) {
-        _schedule[idx] = { ..._schedule[idx], state: m.state, homeScore: m.homeScore, awayScore: m.awayScore, clockStr: m.clockStr };
-      }
-    });
-  }
-  renderLiveCard();
-  renderStandingsCard();
-  renderRanking();
-  if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
+}
+
+// Self-scheduling loop (not setInterval) so a slow poll can't overlap the next tick, and so a
+// failed poll backs off instead of hammering ESPN every 60s. Same single loop as always — this
+// does not add a second/parallel polling path.
+let _pollBackoffMs = 0;
+let _pollFailed    = false;
+function schedulePoll() {
+  const base  = C.espn.pollIntervalMs;
+  const delay = _pollFailed ? Math.min(base * 4, base + _pollBackoffMs) : base;
+  _pollBackoffMs = _pollFailed ? Math.min(_pollBackoffMs + base, base * 4) : 0;
+  setTimeout(async () => { await pollAll(); schedulePoll(); }, delay);
+}
+
+// ─── Live club-standings movement ────────────────────────────────────────────
+// Separate on purpose from participant-ranking movement below: separate storage key, separate
+// pure function, separate output shape/labels/icons. Never merge the two — see
+// docs/bolao/BR2026_LIVE_STANDINGS.md "Por que dois cálculos separados".
+const STANDINGS_BASELINE_KEY = "bolao_br2026_standings_baseline_v1";
+let _standingsBaseline = null; // { capturedAt, standings: [{name,abbr,logo,rank,points,played,wins,draws,losses,gf,ga,gd}] } | null
+
+function loadStandingsBaseline() {
+  try {
+    const raw = sessionStorage.getItem(STANDINGS_BASELINE_KEY);
+    _standingsBaseline = raw ? JSON.parse(raw) : null;
+  } catch { _standingsBaseline = null; }
+}
+function captureStandingsBaseline() {
+  // Only freeze a baseline from a snapshot we actually trust (full 20-team table fetched before
+  // this window started). If the page just loaded mid-match there is no such snapshot yet — leave
+  // the baseline null and the UI shows "unavailable" rather than a fabricated 0-movement.
+  if (_standings.length < 20) { _standingsBaseline = null; saveStandingsBaseline(); return; }
+  _standingsBaseline = { capturedAt: new Date().toISOString(), standings: _standings.map(t => ({ ...t })) };
+  saveStandingsBaseline();
+}
+function clearStandingsBaseline() {
+  _standingsBaseline = null;
+  saveStandingsBaseline();
+}
+function saveStandingsBaseline() {
+  try {
+    if (_standingsBaseline) sessionStorage.setItem(STANDINGS_BASELINE_KEY, JSON.stringify(_standingsBaseline));
+    else sessionStorage.removeItem(STANDINGS_BASELINE_KEY);
+  } catch {}
+}
+
+function zoneForPosition(pos) {
+  if (pos == null) return null;
+  if (pos <= 4) return "g4";
+  if (pos >= 7 && pos <= 12) return "sa6";
+  if (pos >= 17) return "z4";
+  return null;
+}
+
+// Matches still relevant to the open window that ESPN has already marked "post" (finished while
+// the tab was open) — NOT the whole season's completed matches, or already-baselined results
+// would be double counted.
+function windowCompletedMatches() {
+  if (!_standingsBaseline) return [];
+  return _schedule.filter(g => g.state === "post" && !g.postponed && g.dateISO >= _standingsBaseline.capturedAt);
+}
+
+// Pure, side-effect-free — takes full snapshots in, returns a brand-new array, never mutates its
+// inputs. Tie-break intentionally reuses only the criteria already coded elsewhere in this app
+// (points, then goal difference — see runMonteCarlo()'s sort); BR2026 has no fuller CBF tiebreak
+// chain (head-to-head etc.) implemented anywhere yet, so this does not invent one — see
+// docs/bolao/BR2026_LIVE_STANDINGS.md "Critérios de desempate" for the documented limitation.
+function calculateLiveStandings({ baselineStandings, liveMatches, completedMatches, tieBreakRules }) {
+  if (!baselineStandings || !baselineStandings.length) return null;
+  const rules = tieBreakRules || ["points", "goalDifference"];
+  const table = new Map(baselineStandings.map(t => [t.name, {
+    name: t.name, abbr: t.abbr, logo: t.logo, previousPosition: t.rank,
+    points: t.points, played: t.played, wins: t.wins, draws: t.draws, losses: t.losses,
+    gf: t.gf, ga: t.ga,
+  }]));
+  [...(liveMatches || []), ...(completedMatches || [])].forEach(m => {
+    if (!m || m.postponed) return; // adiado/cancelado nunca altera a tabela ao vivo
+    const home = table.get(m.homeTeam), away = table.get(m.awayTeam);
+    if (!home || !away) return; // time desconhecido na baseline — ignora defensivamente
+    const hg = Number(m.homeScore) || 0, ag = Number(m.awayScore) || 0;
+    home.played++; away.played++;
+    home.gf += hg; home.ga += ag;
+    away.gf += ag; away.ga += hg;
+    if (hg > ag)      { home.points += 3; home.wins++;  away.losses++; }
+    else if (hg < ag) { away.points += 3; away.wins++;  home.losses++; }
+    else              { home.points += 1; away.points += 1; home.draws++; away.draws++; }
+  });
+  const rows = [...table.values()].map(r => ({ ...r, gd: r.gf - r.ga }));
+  rows.sort((a, b) => {
+    for (const rule of rules) {
+      if (rule === "points" && b.points !== a.points) return b.points - a.points;
+      if (rule === "goalDifference" && b.gd !== a.gd) return b.gd - a.gd;
+      if (rule === "goalsFor" && b.gf !== a.gf) return b.gf - a.gf;
+    }
+    // Sem critério para desempatar: preserva a ordem da baseline em vez de inventar um novo
+    // critério ou depender da ordem de iteração do Map (não-determinística por nome).
+    return (a.previousPosition ?? 99) - (b.previousPosition ?? 99);
+  });
+  return rows.map((r, i) => {
+    const livePosition = i + 1;
+    const movement = r.previousPosition != null ? r.previousPosition - livePosition : 0;
+    return {
+      teamName: r.name, abbr: r.abbr, logo: r.logo,
+      previousPosition: r.previousPosition, livePosition, movement,
+      pointsBeforeLive: baselineStandings.find(b => b.name === r.name)?.points ?? null,
+      livePoints: r.points, played: r.played, wins: r.wins, draws: r.draws, losses: r.losses,
+      goalsFor: r.gf, goalsAgainst: r.ga, goalDifference: r.gd,
+      zoneBefore: zoneForPosition(r.previousPosition), liveZone: zoneForPosition(livePosition),
+      sourceTimestamp: Date.now(),
+    };
+  });
+}
+
+function liveStandingsNow() {
+  if (!_standingsBaseline) return null;
+  return calculateLiveStandings({
+    baselineStandings: _standingsBaseline.standings,
+    liveMatches: _liveMatches,
+    completedMatches: windowCompletedMatches(),
+  });
 }
 
 // ─── BRT helpers ────────────────────────────────────────────────────────────
@@ -524,7 +678,7 @@ async function fetchSchedule() {
     }
   } catch {}
   try {
-    const r = await fetch(C.espn.scheduleUrl, { cache: "no-store" });
+    const r = await fetchJson(C.espn.scheduleUrl, { cache: "no-store" });
     if (!r.ok) return;
     const data = await r.json();
     _schedule = (data.events || []).map(ev => {
@@ -924,6 +1078,24 @@ function renderNextGameCard() {
   card.classList.remove("hidden");
 }
 
+// Club-table movement glyph — separate markup/classes/i18n keys from the participant ranking's
+// rankMovementHtml() above (movement vs rank-movement namespaces never mix).
+function standingsMovementHtml(mv) {
+  if (!mv || mv.previousPosition == null) {
+    return `<span class="movement movement-unavailable" title="${esc(t("standingsMovementUnavailable"))}"><span class="visually-hidden">${esc(t("standingsMovementUnavailable"))}</span>–</span>`;
+  }
+  if (mv.movement === 0) {
+    const label = t("standingsMovementSame").replace("{pos}", mv.livePosition);
+    return `<span class="movement movement-same" title="${esc(label)}"><span class="visually-hidden">${esc(label)}</span>•</span>`;
+  }
+  const status = mv.movement > 0 ? "up" : "down";
+  const n     = Math.abs(mv.movement);
+  const label = (status === "up" ? t("standingsMovementUp") : t("standingsMovementDown"))
+    .replace("{n}", n).replace("{previous}", mv.previousPosition).replace("{current}", mv.livePosition);
+  const glyph = status === "up" ? "▲" : "▼";
+  return `<span class="movement movement-${status}" title="${esc(label)}"><span class="visually-hidden">${esc(label)}</span>${glyph}<span class="movement-n" aria-hidden="true">${n}</span></span>`;
+}
+
 // ─── Render: standings table ─────────────────────────────────────────────────
 function renderStandingsCard() {
   const card = $("standingsCard");
@@ -932,8 +1104,24 @@ function renderStandingsCard() {
     card.innerHTML = `<p class="muted">${esc(t("standingsLoading"))}</p>`;
     return;
   }
-  const rows = _standings.map((team, i) => {
-    const pos       = i + 1;
+  // While a match window is open, the table itself re-sorts to live position (like the sports
+  // apps this feature is modeled on) — annotating a delta badge onto ESPN's still-official row
+  // order would not actually show "posição ao vivo atual" as asked. Outside a window, fall back
+  // to ESPN's own order (unavailable movement, no fabricated position).
+  const live = liveStandingsNow();
+  const rowsSource = live
+    ? live.map(r => ({
+        name: r.teamName, pos: r.livePosition, points: r.livePoints, played: r.played,
+        wins: r.wins, draws: r.draws, losses: r.losses, gf: r.goalsFor, ga: r.goalsAgainst,
+        gd: r.goalDifference, mv: r,
+      }))
+    : _standings.map((team, i) => ({
+        name: team.name, pos: i + 1, points: team.points, played: team.played,
+        wins: team.wins, draws: team.draws, losses: team.losses, gf: team.gf, ga: team.ga,
+        gd: team.gd, mv: null,
+      }));
+  const rows = rowsSource.map(row => {
+    const pos       = row.pos;
     const zoneClass = pos <= 4 ? "g4-zone" : (pos >= 7 && pos <= 12) ? "sa6-zone" : pos >= 17 ? "z4-zone" : "";
     const badge     = pos <= 4
       ? `<span class="zone-badge g4-badge">G4</span>`
@@ -942,31 +1130,36 @@ function renderStandingsCard() {
         : pos >= 17
           ? `<span class="zone-badge z4-badge">Z4</span>`
           : "";
-    const gd = Math.round(team.gd);
+    const gd = Math.round(row.gd);
     return `<tr class="${zoneClass}">
       <td class="td-pos">${pos}</td>
-      <td>${esc(team.name)}${badge}</td>
-      <td class="td-pts">${Math.round(team.points)}</td>
-      <td>${Math.round(team.played)}</td>
-      <td>${Math.round(team.wins)}</td>
-      <td>${Math.round(team.draws)}</td>
-      <td>${Math.round(team.losses)}</td>
-      <td>${Math.round(team.gf)}</td>
-      <td>${Math.round(team.ga)}</td>
+      <td class="td-mov">${standingsMovementHtml(row.mv)}</td>
+      <td class="td-team"><span class="td-team-name" title="${esc(row.name)}">${esc(row.name)}</span>${badge}</td>
+      <td class="td-pts">${Math.round(row.points)}</td>
+      <td>${Math.round(row.played)}</td>
+      <td>${Math.round(row.wins)}</td>
+      <td>${Math.round(row.draws)}</td>
+      <td>${Math.round(row.losses)}</td>
+      <td>${Math.round(row.gf)}</td>
+      <td>${Math.round(row.ga)}</td>
       <td>${gd > 0 ? "+" + gd : gd}</td>
     </tr>`;
   }).join("");
+  const disclaimer = live
+    ? `<p class="footer-note live-standings-disclaimer">${esc(t("liveTableDisclaimer"))}</p>` : "";
   card.innerHTML = `
     <h3>${esc(t("standingsTitle"))}</h3>
     <div class="standings-wrap">
       <table class="standings-table">
         <thead><tr>
-          <th>#</th><th>${esc(t("team"))}</th><th>Pts</th><th>J</th><th>V</th><th>E</th>
-          <th>D</th><th>GP</th><th>GC</th><th>SG</th>
+          <th class="td-pos">#</th><th class="td-mov">${esc(t("standingsMovCol"))}</th>
+          <th class="td-team">${esc(t("team"))}</th><th class="td-pts">Pts</th>
+          <th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
+    ${disclaimer}
     <p class="footer-note">${esc(t("standingsSource"))}</p>`;
 }
 
@@ -1071,6 +1264,85 @@ function countZ4Exact(entry, z4Result) {
   return (entry.picks?.z4 || []).filter((pick, i) => pick && z4Result?.[i] === pick).length;
 }
 
+// Single source of truth for "score entries against a result set, then rank them" — used for the
+// displayed ranking AND for both sides of the ranking-movement comparison below, so baseline rank
+// and live rank can never drift apart from what renderRanking() actually shows (see CLAUDE.md
+// "send_result_email.py had silently drifted from the site's own scoring logic" — same class of
+// bug, avoided here by only ever having one implementation of this comparator).
+function rankEntries(entries, g4Result, z4Result, sa6Result) {
+  const scored = entries.map(e => {
+    const sc = scoreEntry(e, g4Result, z4Result, sa6Result) || { total: 0, detail: null };
+    return { e, ...sc };
+  }).sort((a, b) =>
+    b.total - a.total ||
+    countSA6Hits(b.detail) - countSA6Hits(a.detail) ||
+    countG4Exact(b.e, g4Result) - countG4Exact(a.e, g4Result) ||
+    countZ4Exact(b.e, z4Result) - countZ4Exact(a.e, z4Result) ||
+    b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
+  );
+  let rank = 0, prevPts = -1;
+  return scored.map((item, i) => {
+    if (item.total !== prevPts) { rank = i + 1; prevPts = item.total; }
+    return { ...item, rank };
+  });
+}
+
+// ─── Participant ranking movement ────────────────────────────────────────────────────────────
+// Deliberately separate from calculateLiveStandings() above: own inputs, own output shape, own
+// caller, own CSS/i18n (rank-movement-*, not the club's movement-*). Never merge — see
+// docs/bolao/BR2026_LIVE_STANDINGS.md "Por que dois cálculos separados".
+//
+// Uses the stateless official-vs-provisional pattern already proven correct in the Copa
+// (bolao/js/app.js liveMatchPointsTable(): recomputed fully fresh from two full snapshots every
+// call, nothing persisted between calls) — NOT the Copa's other, flawed ranking-arrow pattern
+// (computeRankArrows()/_rankArrowState: baseline = last render, resets on reload). Eduardo
+// confirmed building BR2026 on the correct pattern and diverging from the flawed one on purpose.
+function calculateRankingMovement({ entries, baseline, live }) {
+  if (!entries || !entries.length) return new Map();
+  const liveRanked = rankEntries(entries, live.g4, live.z4, live.sa6);
+  if (!baseline) {
+    // No trustworthy pre-window snapshot yet (e.g. page loaded mid-match) — never fabricate
+    // movement; mark it explicitly unavailable instead.
+    return new Map(liveRanked.map(x => [x.e.id, { rank: x.rank, total: x.total, previousRank: null, movement: null, status: "unavailable" }]));
+  }
+  const baseRanked   = rankEntries(entries, baseline.g4, baseline.z4, baseline.sa6);
+  const baseRankById = new Map(baseRanked.map(x => [x.e.id, x.rank]));
+  return new Map(liveRanked.map(x => {
+    const previousRank = baseRankById.has(x.e.id) ? baseRankById.get(x.e.id) : null;
+    const movement = previousRank != null ? previousRank - x.rank : null;
+    const status = movement == null ? "unavailable" : movement > 0 ? "up" : movement < 0 ? "down" : "same";
+    return [x.e.id, { rank: x.rank, total: x.total, previousRank, movement, status }];
+  }));
+}
+
+// Baseline G4/Z4/SA6 name arrays for the ranking comparison, derived from the SAME frozen
+// standings snapshot the club table uses (_standingsBaseline) — sharing the raw data source is
+// fine; it's the calculation/state/labels/icons that must stay separate, not the inputs.
+function rankingBaselineResultSet() {
+  if (!_standingsBaseline || _standingsBaseline.standings.length < 20) return null;
+  const st = _standingsBaseline.standings;
+  return {
+    g4:  st.slice(0, 4).map(tm => tm.name),
+    z4:  st.slice(16, 20).map(tm => tm.name),
+    sa6: st.slice(6, 12).map(tm => tm.name),
+  };
+}
+
+// Participant-ranking movement glyph — separate markup/classes/i18n keys from the club table's
+// standingsMovementHtml() below (movement vs rank-movement namespaces never mix).
+function rankMovementHtml(mv) {
+  if (!mv || mv.status === "unavailable") {
+    return ` <span class="movement movement-unavailable" title="${esc(t("rankMovementUnavailable"))}"><span class="visually-hidden">${esc(t("rankMovementUnavailable"))}</span>–</span>`;
+  }
+  if (mv.status === "same") {
+    return ` <span class="movement movement-same" title="${esc(t("rankMovementSame"))}"><span class="visually-hidden">${esc(t("rankMovementSame"))}</span>•</span>`;
+  }
+  const n     = Math.abs(mv.movement);
+  const label = (mv.status === "up" ? t("rankMovementUp") : t("rankMovementDown")).replace("{n}", n);
+  const glyph = mv.status === "up" ? "▲" : "▼";
+  return ` <span class="movement movement-${mv.status}" title="${esc(label)}"><span class="visually-hidden">${esc(label)}</span>${glyph}<span class="movement-n" aria-hidden="true">${n}</span></span>`;
+}
+
 // ─── Render: ranking ─────────────────────────────────────────────────────────
 function renderRanking() {
   const box = $("rankingList");
@@ -1084,41 +1356,41 @@ function renderRanking() {
   // Tiebreaker reference arrays: when results are officially locked, use locked
   // values to ensure tiebreakers match the final score calculation exactly.
   const locked = s.results?.locked;
+  const isOfficial = !!(locked && s.results?.g4 && s.results?.z4);
   const g4cur  = locked ? (s.results?.g4  || []) : (_standings.length >= 4  ? _standings.slice(0,  4).map(tm => tm.name) : []);
   const z4cur  = locked ? (s.results?.z4  || []) : (_standings.length >= 20 ? _standings.slice(16, 20).map(tm => tm.name) : []);
+  const sa6cur = locked ? (s.results?.sa6 || []) : (_standings.length >= 12 ? _standings.slice(6,  12).map(tm => tm.name) : []);
 
-  const scored = entries.map(e => {
-    const sc = getActiveScore(e, s) || { total: 0, detail: null, isOfficial: false };
-    return { e, ...sc };
-  }).sort((a, b) =>
-    b.total - a.total ||
-    countSA6Hits(b.detail) - countSA6Hits(a.detail) ||
-    countG4Exact(b.e, g4cur) - countG4Exact(a.e, g4cur) ||
-    countZ4Exact(b.e, z4cur) - countZ4Exact(a.e, z4cur) ||
-    b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
-  );
+  const scored = rankEntries(entries, g4cur, z4cur, sa6cur);
 
-  const hasAnyProvisional = scored.some(x => !x.isOfficial && _standings.length >= 20);
+  // Ranking movement is a separate, additive calculation — see calculateRankingMovement() above.
+  // Only meaningful while the season is still live; once results are locked there is no more
+  // "live window" to compare against.
+  const rankMovement = locked ? null : calculateRankingMovement({
+    entries, baseline: rankingBaselineResultSet(), live: { g4: g4cur, z4: z4cur, sa6: sa6cur },
+  });
+
+  const hasAnyProvisional = !isOfficial && _standings.length >= 20;
   const provNote = hasAnyProvisional
     ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
 
   // Estrutura densa de 1 linha (.rank-row) + detalhe expansível (.picks-detail) — mesmo padrão
   // da Copa (bolao/js/app.js renderRanking()), ver DESIGN_SYSTEM.md "Ranking — estrutura do
   // card". Cada entrada gera dois elementos irmãos, não um card único empilhado.
-  let rank = 0, prevPts = -1;
   box.innerHTML = provNote;
-  scored.forEach((item, i) => {
-    if (item.total !== prevPts) { rank = i + 1; prevPts = item.total; }
+  scored.forEach(item => {
+    const rank      = item.rank;
     const paid      = (s.paid || {})[item.e.id];
     const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
     const paidBadge = paid
       ? `<span class="paid-badge">${esc(t("paid"))}</span>`
       : `<span class="unpaid-badge">${esc(t("unpaid"))}</span>`;
-    const provFlag  = !item.isOfficial && item.total > 0;
+    const provFlag  = !isOfficial && item.total > 0;
+    const mv        = rankMovement?.get(item.e.id);
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
-      <div class="rank-pos">${medal}</div>
+      <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
       <div><b>${esc(item.e.entryName)}</b> ${paidBadge}</div>
       <div class="points${provFlag ? " prov" : ""}">${item.total}<small>${provFlag ? " ↕" : " pts"}</small></div>
       <button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`;
@@ -1705,12 +1977,15 @@ async function init() {
   }
 
   // Load remote state then render
+  loadStandingsBaseline();
   await loadRemoteState();
   renderAll();
 
-  // ESPN: poll immediately, then every 60s
+  // ESPN: poll immediately, then self-reschedule (backoff on failure, paused while hidden)
   pollAll();
-  setInterval(pollAll, C.espn.pollIntervalMs);
+  schedulePoll();
+  // Resume promptly on focus instead of waiting out the rest of a paused interval
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pollAll(); });
 
   // 1s ticker for running clock + next game countdown (skip when tab is hidden)
   setInterval(() => { if (!document.hidden) { renderLiveCard(); renderNextGameCard(); } }, 1000);
@@ -1727,6 +2002,11 @@ async function init() {
   // Full-season schedule — fetch in background, render when ready
   fetchSchedule().then(() => { renderGamesSection(); renderNextGameCard(); });
 }
+
+// Read-only test hooks — pure functions only, no state mutation exposed. Used by
+// bolao/br2026/scripts/audit_live_standings_and_ranking.py and Playwright regression tests. See
+// docs/bolao/BR2026_LIVE_STANDINGS.md "Testes".
+window.__BR2026_TESTHOOKS__ = { calculateLiveStandings, zoneForPosition, rankEntries, calculateRankingMovement, scoreEntry, pollAll };
 
 init();
 
