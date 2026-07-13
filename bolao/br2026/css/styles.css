@@ -68,6 +68,7 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 .brand {
   display: flex; gap: 8px; align-items: center;
   margin-right: auto; font-weight: 900; font-size: 16px; white-space: nowrap;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis;
 }
 .brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
 
@@ -104,7 +105,7 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 }
 .lang-links button.active { background: var(--green); color: var(--green-dk); border-color: var(--green); }
 
-.nav { display: grid; grid-template-columns: repeat(9, 1fr); gap: 5px; width: 100%; }
+.nav { display: grid; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; width: 100%; }
 .nav button {
   background: var(--bg3); color: var(--text);
   padding: 8px 6px; font-size: 13px; font-weight: 700;
@@ -215,7 +216,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pick-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
 .pick-row label { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
 .pick-pos-label { font-size: 13px; font-weight: 700; color: var(--text); }
-.pick-pts-hint  { font-size: 11px; color: var(--muted); white-space: nowrap; }
+.pick-pts-hint  { font-size: 11px; color: var(--muted); min-width: 0; }
 .pick-select    { min-width: 0; }
 
 /* ── Sticky submit ── */
@@ -529,7 +530,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 @media (min-width: 901px) {
   .topbar {
     display: grid !important;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 8px 12px;
@@ -538,26 +539,33 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; }
   .lang-links     { grid-column: 3; grid-row: 1; align-self: center; }
   .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
-  .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(9, 1fr); gap: 5px; }
+  .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(9, minmax(0, 1fr)); gap: 5px; }
   .nav button     { font-size: 13px; padding: 8px 6px; }
 }
 
 @media (max-width: 900px) {
   main { padding: 12px 10px 80px; }
   .pay-grid { grid-template-columns: 1fr; }
+  /* .brand and .whatsapp-btn both force nowrap on their own text, and
+     .bolao-switcher's <select> sizes to its selected option's text —
+     three non-shrinking items crammed into one row overflow any phone
+     width. Switcher gets its own full-width row instead of competing with
+     brand+WhatsApp for row 1's space (same fix as bolao/css/styles.css). */
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    grid-template-rows: auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto auto;
     align-items: center;
     padding: 10px 12px;
     gap: 8px;
   }
   .brand          { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
+  .brand span     { display: none; }
   .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; font-size: 12px; padding: 7px 10px; }
-  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; }
-  .lang-links     { grid-column: 1 / -1; grid-row: 2; }
-  .nav            { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5px; }
+  .bolao-switcher { grid-column: 1 / -1; grid-row: 2; }
+  .bolao-switcher select { width: 100%; }
+  .lang-links     { grid-column: 1 / -1; grid-row: 3; }
+  .nav            { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }
   .pick-row label { flex-direction: column; align-items: flex-start; }
   /* Ranking compacta em 1 linha — mesmo tratamento da Copa (bolao/css/styles.css). Coluna de

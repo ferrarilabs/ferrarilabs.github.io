@@ -847,17 +847,19 @@ function renderNextGameCard() {
           _matchProbs[mpKey] = matchProb(lambdaH, lambdaA);
         }
         const mp = _matchProbs[mpKey];
+        // No team badge in the bar — matches bolao/js/app.js's probBarsMarkup
+        // exactly (plain "Team NN%", same 12% threshold for dropping the
+        // name on a narrow slice). Badges were cluttering the label and
+        // pulling it off the visual center.
         const heroBars = mp ? (() => {
           const hPct = Math.round(mp.pH * 100), dPct = Math.round(mp.pD * 100), aPct = Math.round(mp.pA * 100);
-          const hLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
-          const aLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
           const hLbl = esc(g.homeTeam.length > 12 ? g.homeTeam.slice(0, 12) + "…" : g.homeTeam);
           const aLbl = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
-          const bl = (pct, name, logo) => pct >= 14 ? `${name} ${logo} ${pct}%` : (pct >= 7 ? `${logo} ${pct}%` : `${pct}%`);
+          const bl = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
           return `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
-            <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl, hLogo)}</div>
+            <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl)}</div>
             <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
-            <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl, aLogo)}</div>
+            <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
           </div>`;
         })() : "";
         return `<div class="today-game">
@@ -903,15 +905,13 @@ function renderNextGameCard() {
   const mpNext = _matchProbs[mpKeyNext];
   const nextBars = mpNext ? (() => {
     const hPct = Math.round(mpNext.pH * 100), dPct = Math.round(mpNext.pD * 100), aPct = Math.round(mpNext.pA * 100);
-    const hLogo = _teamLogos[next.homeTeam] ? `<img src="${esc(_teamLogos[next.homeTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
-    const aLogo = _teamLogos[next.awayTeam] ? `<img src="${esc(_teamLogos[next.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
     const hLbl = esc(next.homeTeam.length > 12 ? next.homeTeam.slice(0, 12) + "…" : next.homeTeam);
     const aLbl = esc(next.awayTeam.length > 12 ? next.awayTeam.slice(0, 12) + "…" : next.awayTeam);
-    const bl = (pct, name, logo) => pct >= 14 ? `${name} ${logo} ${pct}%` : (pct >= 7 ? `${logo} ${pct}%` : `${pct}%`);
+    const bl = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
     return `<div class="prob-bars" role="group" aria-label="Probabilidades">
-      <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl, hLogo)}</div>
+      <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl)}</div>
       <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
-      <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl, aLogo)}</div>
+      <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
     </div>`;
   })() : "";
   card.innerHTML = `<div class="next-game-card">
@@ -1029,16 +1029,15 @@ function renderGamesSection() {
         }
         const { pH, pD, pA } = _matchProbs[mpKey];
         const hPct = Math.round(pH * 100), dPct = Math.round(pD * 100), aPct = Math.round(pA * 100);
-        const hLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
-        const aLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" width="14" height="14" alt="" aria-hidden="true" class="team-logo">` : "";
         const hLabel = esc(g.homeTeam.length > 12 ? g.homeTeam.slice(0, 12) + "…" : g.homeTeam);
         const aLabel = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
-        // Narrow bars: drop the name when < 14% to avoid overflow
-        const barLabel = (pct, name, logo) => pct >= 14 ? `${name} ${logo} ${pct}%` : (pct >= 7 ? `${logo} ${pct}%` : `${pct}%`);
+        // No team badge in the bar (matches bolao/js/app.js's probBarsMarkup) —
+        // drop the name below 12% to avoid overflow, same threshold too.
+        const barLabel = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
         probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
-          <div class="prob-bar home" style="width:${hPct}%" title="${esc(g.homeTeam)}: ${hPct}%">${barLabel(hPct, hLabel, hLogo)}</div>
+          <div class="prob-bar home" style="width:${hPct}%" title="${esc(g.homeTeam)}: ${hPct}%">${barLabel(hPct, hLabel)}</div>
           <div class="prob-bar draw"  style="width:${dPct}%" title="Emp: ${dPct}%">Emp ${dPct}%</div>
-          <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${barLabel(aPct, aLabel, aLogo)}</div>
+          <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${barLabel(aPct, aLabel)}</div>
         </div>`;
       }
       const homeLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
