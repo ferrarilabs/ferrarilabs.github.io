@@ -1,5 +1,44 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v2.5 — 2026-07-12
+
+### Fixed — bugs reais reportados testando o site ao vivo
+
+- **Mandante/visitante trocados no jogo de volta**: a linha "Jogo 2" da aba Jogos sempre
+  mostrava a mesma ordem do "Jogo 1", mas no jogo de volta o mandante é o outro time (ex.:
+  Vasco manda a ida, Fluminense manda a volta). `legHtml()` usava os campos estáticos de
+  `tie.leg2` (que só existem pras oitavas) em vez dos nomes já resolvidos do bracket; agora
+  inverte `home`/`away` explicitamente pro leg2, funciona em qualquer fase.
+- **Escudo só aparecia no cabeçalho do confronto**: as linhas "Jogo 1"/"Jogo 2" individuais
+  não tinham escudo, só o cabeçalho do card. Adicionado nas duas.
+- **Card "Já enviei meus palpites" não escondia por completo**: o fix anterior só escondia os
+  campos, mas o título e o texto explicativo continuavam visíveis mesmo com o card bloqueado
+  — mostrava duas mensagens conflitantes na tela. Agora o card inteiro (`#findEntryCard`) fica
+  escondido até as oitavas terminarem, com `class="hidden"` já no HTML estático (sem flash
+  antes do JS carregar).
+- **Palpite por confronto reorganizado numa linha só**: time + escudo + placar × placar +
+  escudo + time, em vez de nome dos times numa linha e placar numa linha separada abaixo.
+  "Quem avança" continua abaixo, numa linha própria.
+- **"Quem avança" agora segue a regra real da CBF**: sem critério de gols fora de casa — se o
+  agregado tem lado claramente maior, quem avança é automático e o campo fica travado (sem
+  edição manual, não faz sentido escolher o que a regra já decide). Se o agregado empata, vai
+  pra pênaltis (imprevisível) — o campo destrava e o participante escolhe manualmente. Alternar
+  entre os dois estados nunca deixa uma seleção antiga (automática ou manual) inválida sobrar;
+  ao editar uma entrada já salva, a escolha manual de um agregado empatado é preservada, só uma
+  edição ativa do placar limpa o valor.
+- **Alinhamento dos 4 selects de pódio (campeão/vice/semis)**: sem largura fixa, a borda
+  direita de cada `<select>` ficava numa posição horizontal diferente dependendo do tamanho do
+  nome do time selecionado ("Remo" vs "Athletico-PR"). `width:100%` explícito nos quatro.
+- **Botão WhatsApp**: texto visível era só "WhatsApp"; Copa usa "Suporte WhatsApp". Alinhado.
+- **Card de pagamento sem ícone**: mesmo fix do BR2026 (ver `bolao/br2026/CHANGELOG.md`
+  v1.19) — `cashapp.svg`/`venmo.svg` copiados, `payIcon()` portado, `.pay-grid`/`.pay-card`
+  migrados pro layout da Copa.
+- **Spinner nativo removido** dos inputs numéricos (mesmo fix nos três apps).
+
+`audit_scoring.py`: 5/5 — a mudança na regra de "quem avança" é só na UI (trava/destrava e
+auto-preenche o campo); a lógica de pontuação (`scoreEntry`) já comparava `pick.advance` contra
+`res.advance` sem nenhuma suposição sobre como o campo foi preenchido, nada mudou lá.
+
 ## v2.4 — 2026-07-12 (WIP — commit parcial)
 
 ### Fixed — Copa como referência visual canônica (início; tarefa incompleta)

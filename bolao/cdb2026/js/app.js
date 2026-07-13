@@ -179,6 +179,14 @@ function teamLogoImg(team, cls) {
   return `<img src="${esc(url)}" class="${cls || "team-logo"}" alt="" aria-hidden="true">`;
 }
 
+// ─── Payment icon ───────────────────────────────────────────────────────────
+// Mesmos ícones/assinatura que payIcon() em bolao/js/app.js — ver DESIGN_SYSTEM.md "Pagamento".
+const PAY_ICON_SVG = { CashApp: "assets/cashapp.svg", Zelle: "assets/zelle.svg", Venmo: "assets/venmo.svg" };
+function payIcon(method) {
+  const src = PAY_ICON_SVG[method];
+  return src ? `<img src="${esc(src)}" alt="${esc(method)}" class="pay-method-icon">` : "💳";
+}
+
 // ─── Bracket resolution ─────────────────────────────────────────────────────
 // Resolve os nomes reais de cada confronto a partir de uma fonte de resultado (oficial ou o
 // palpite de uma entrada) — mesmo padrão de resolução dinâmica de bracket usado na Copa do
@@ -262,10 +270,25 @@ function podiumPickRowHtml(id, labelKey, hintKey, locked, teamOpts) {
 // ─── Per-tie picks ────────────────────────────────────────────────────────────
 function tieRowId(tie) { return `tie-${tie.id}`; }
 
-function inferAdvance(goalsAEl, goalsBEl, advanceEl) {
+// Regra da CBF na Copa do Brasil: sem critério de gols fora de casa — agregado igual depois
+// dos dois jogos vai direto para pênaltis. Vitória simples no agregado: quem avança é
+// determinístico, o campo é preenchido automaticamente e travado (sem edição manual possível
+// — não faz sentido deixar escolher algo que a regra já decide sozinha). Agregado empatado:
+// pênaltis são imprevisíveis, o campo destrava e o participante escolhe manualmente quem acha
+// que avança.
+// `reset`: true quando chamado a partir de um evento de digitação (usuário mudando o placar
+// ativamente) — aí limpa qualquer seleção de um estado anterior que ficaria obsoleta/enganosa.
+// false na sincronização inicial ao editar uma entrada existente — preserva a escolha manual
+// já salva para um agregado empatado em vez de apagá-la só por re-renderizar a tela.
+function inferAdvance(goalsAEl, goalsBEl, advanceEl, reset = true) {
   const a = parseInt(goalsAEl.value, 10), b = parseInt(goalsBEl.value, 10);
-  if (Number.isFinite(a) && Number.isFinite(b) && a !== b) {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) { advanceEl.disabled = false; if (reset) advanceEl.value = ""; return; }
+  if (a !== b) {
     advanceEl.value = a > b ? "home" : "away";
+    advanceEl.disabled = true;
+  } else {
+    advanceEl.disabled = false;
+    if (reset) advanceEl.value = "";
   }
 }
 
@@ -306,12 +329,10 @@ function renderPickForm() {
         return;
       }
       if (!open) {
-        const pts = saved ? "" : `<span class="muted">${esc(t("pickNotSubmitted"))}</span>`;
         const summary = saved
-          ? `<span class="tie-locked-score">${teamLogoImg(home)} ${esc(home)} ${saved.goalsA} × ${saved.goalsB} ${esc(away)} ${teamLogoImg(away)}</span>`
-          : pts;
+          ? `<span class="tie-locked-score">${esc(home)} ${teamLogoImg(home)} ${saved.goalsA} × ${saved.goalsB} ${teamLogoImg(away)} ${esc(away)}</span>`
+          : `<span class="tie-locked-score">${esc(home)} ${teamLogoImg(home)} <span class="muted">${esc(t("pickNotSubmitted"))}</span> ${teamLogoImg(away)} ${esc(away)}</span>`;
         html += `<div class="pick-row tie-row locked" id="${rid}">
-          <div class="tie-teams">${teamLogoImg(home)} ${esc(home)} <span class="tie-vs">×</span> ${esc(away)} ${teamLogoImg(away)}</div>
           <div class="tie-locked-note">${summary}</div>
         </div>`;
         return;
@@ -320,17 +341,20 @@ function renderPickForm() {
       const gA = saved?.goalsA ?? "", gB = saved?.goalsB ?? "";
       const adv = saved?.advance || "";
       html += `<div class="pick-row tie-row open" id="${rid}" data-tie-id="${esc(tie.id)}">
-        <div class="tie-teams">${teamLogoImg(home)} ${esc(home)} <span class="tie-vs">×</span> ${esc(away)} ${teamLogoImg(away)}</div>
         <div class="tie-inputs">
+          <span class="tie-team-name">${esc(home)}</span>
+          ${teamLogoImg(home)}
           <input type="number" min="0" max="20" class="tie-goals-a" data-tie="${esc(tie.id)}" value="${esc(gA)}" aria-label="${esc(t("pickAggScoreA"))} ${esc(home)}">
           <span class="tie-x">×</span>
           <input type="number" min="0" max="20" class="tie-goals-b" data-tie="${esc(tie.id)}" value="${esc(gB)}" aria-label="${esc(t("pickAggScoreB"))} ${esc(away)}">
-          <select class="tie-advance" data-tie="${esc(tie.id)}" aria-label="${esc(t("pickAdvanceLabel"))}">
-            <option value="">${esc(t("pickSelectAdvance"))}</option>
-            <option value="home" ${adv === "home" ? "selected" : ""}>${esc(home)}</option>
-            <option value="away" ${adv === "away" ? "selected" : ""}>${esc(away)}</option>
-          </select>
+          ${teamLogoImg(away)}
+          <span class="tie-team-name">${esc(away)}</span>
         </div>
+        <select class="tie-advance" data-tie="${esc(tie.id)}" aria-label="${esc(t("pickAdvanceLabel"))}">
+          <option value="">${esc(t("pickSelectAdvance"))}</option>
+          <option value="home" ${adv === "home" ? "selected" : ""}>${esc(home)}</option>
+          <option value="away" ${adv === "away" ? "selected" : ""}>${esc(away)}</option>
+        </select>
         <span class="pick-pts-hint">${esc(t("pickHintTie"))}</span>
       </div>`;
     });
@@ -356,6 +380,7 @@ function renderPickForm() {
   form.querySelectorAll(".tie-row.open").forEach(row => {
     const tieId = row.dataset.tieId;
     const a = row.querySelector(".tie-goals-a"), b = row.querySelector(".tie-goals-b"), adv = row.querySelector(".tie-advance");
+    inferAdvance(a, b, adv, false); // sincroniza travado/destravado sem apagar escolha manual salva
     [a, b].forEach(el => el.addEventListener("input", () => inferAdvance(a, b, adv)));
   });
 }
@@ -554,12 +579,12 @@ function oitavasComplete(results) {
 }
 
 function renderFindEntryCard() {
-  const fields = $("findEntryFields");
-  const locked = $("findEntryLocked");
-  if (!fields) return;
-  const open = oitavasComplete(state().results);
-  fields.classList.toggle("hidden", !open);
-  if (locked) locked.classList.toggle("hidden", open);
+  const card = $("findEntryCard");
+  if (!card) return;
+  // Escondido por completo (não só os campos) até as oitavas terminarem — antes disso não há
+  // nada de novo pra editar, e o card só confundia quem estava enviando a entrada pela
+  // primeira vez (via feedback direto do Eduardo).
+  card.classList.toggle("hidden", !oitavasComplete(state().results));
 }
 
 // ─── Tiebreaker helpers ──────────────────────────────────────────────────────
@@ -767,6 +792,8 @@ function renderParticipants() {
 }
 
 // ─── Render: payment ─────────────────────────────────────────────────────────
+// Mesma estrutura de card (ícone + nome + handle) da Copa (bolao/js/app.js renderPayment()) —
+// ver DESIGN_SYSTEM.md "Pagamento".
 function renderPayment() {
   const box = $("paymentMethods");
   if (!box) return;
@@ -774,10 +801,13 @@ function renderPayment() {
     const link = C.paymentLinks?.[method];
     const qr   = method === "Zelle" && C.zelle?.qrImage
       ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
-    return `<div class="pay-card">
-      <strong>${esc(method)}</strong>
-      ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(handle)}</a>` : `<span>${esc(handle)}</span>`}
-      ${qr}
+    return `<div class="card pay-card">
+      <div class="pay-icon">${payIcon(method)}</div>
+      <div>
+        <strong>${esc(method)}</strong><br>
+        ${link ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(handle)}</a>` : `<span>${esc(handle)}</span>`}
+        ${qr}
+      </div>
     </div>`;
   }).join("");
 }
@@ -859,11 +889,17 @@ function renderGamesSection() {
     html += ties.map(tie => {
       const { home, away } = resolved[tie.id];
       const res = s.results.ties[tie.id];
-      const legHtml = (legData, labelKey) => {
+      // O jogo de volta (leg2) tem mandante/visitante invertidos em relação à ida — usa sempre
+      // os nomes resolvidos do bracket (home/away), nunca os campos estáticos de tie.leg2, que
+      // só existem para as oitavas e ficam null a partir das quartas. Antes o "Jogo 2" mostrava
+      // a mesma ordem do "Jogo 1", errado.
+      const legHtml = (legData, labelKey, swapped) => {
         if (!legData || !legData.date) return "";
+        const h = swapped ? away : home;
+        const a = swapped ? home : away;
         return `<div class="leg">
           <span class="leg-label">${esc(t(labelKey))}</span>
-          <span class="leg-teams">${home ? esc(home) : "?"} × ${away ? esc(away) : "?"}</span>
+          <span class="leg-teams">${teamLogoImg(h, "team-logo")} ${h ? esc(h) : "?"} × ${a ? esc(a) : "?"} ${teamLogoImg(a, "team-logo")}</span>
           <span class="leg-info">📍 ${esc(legData.stadium || "—")} · ${esc(fmtDate(legData.date, legData.time))}</span>
         </div>`;
       };
@@ -874,8 +910,8 @@ function renderGamesSection() {
       return `<div class="confronto-card card">
         <div class="confronto-header">${headerTeams}</div>
         <div class="confronto-legs">
-          ${legHtml({ home: tie.home, away: tie.away, stadium: tie.stadium, date: tie.date, time: tie.time }, "gamesLeg1")}
-          ${legHtml(tie.leg2, "gamesLeg2")}
+          ${legHtml({ home: tie.home, away: tie.away, stadium: tie.stadium, date: tie.date, time: tie.time }, "gamesLeg1", false)}
+          ${legHtml(tie.leg2, "gamesLeg2", true)}
           ${resultLine}
         </div>
       </div>`;

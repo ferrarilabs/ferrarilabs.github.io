@@ -58,7 +58,7 @@ window.CDB2026_I18N = {
     exportJsonBtn: "💾 JSON",
     clearDataBtn: "🗑️ Limpar tudo",
     clearDataConfirm: "⚠️ Limpar TODOS os dados (local + remoto)? Esta ação não pode ser desfeita.",
-    supportWhatsApp: "WhatsApp",
+    supportWhatsApp: "Suporte WhatsApp",
     // Find my entry (self-service edit)
     findEntryTitle: "Já enviei meus palpites — editar entrada",
     findEntryHint: "Conforme cada fase termina, novos confrontos ficam liberados para palpite. Informe o e-mail e o código do comprovante para editar.",

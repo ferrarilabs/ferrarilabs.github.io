@@ -198,6 +198,11 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--green); }
 input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
+/* Placar é sempre digitado (0-20), o spinner nativo do navegador não ajuda e ocupa espaço
+   à toa em telas estreitas. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Pick groups ── */
 .pick-group { margin-bottom: 20px; }
@@ -213,7 +218,10 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 .pick-row label { flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; }
 .pick-pos-label { font-size: 13px; font-weight: 700; color: var(--text); }
 .pick-pts-hint  { font-size: 11px; color: var(--muted); white-space: nowrap; }
-.pick-select    { min-width: 0; }
+/* Largura fixa (não `min-width:0` + stretch implícito) — o texto do time selecionado varia de
+   tamanho ("Remo" vs "Athletico-PR") e sem isso a borda direita de cada select ficava numa
+   posição horizontal diferente entre as 4 linhas de palpite de pódio. */
+.pick-select { width: 100%; text-overflow: ellipsis; }
 
 /* ── Sticky submit ── */
 .sticky-submit {
@@ -277,14 +285,18 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
 }
 .participant-row:last-child { border-bottom: 0; }
 
-/* ── Payment ── */
-.pay-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+/* ── Payment — mesmo tratamento visual da Copa (bolao/css/styles.css .pay-card), com ícone
+   por método. Era um card empilhado sem ícone, layout/tokens diferentes. */
+.pay-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .pay-card {
-  background: var(--bg3); border: 1px solid var(--border2); border-radius: 12px;
-  padding: 14px 16px; display: flex; flex-direction: column; gap: 4px;
+  display: flex; gap: 12px; align-items: center;
+  background: var(--bg2); border: 1px solid var(--border); border-radius: 16px;
+  padding: 14px;
 }
+.pay-icon { font-size: 36px; width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.pay-method-icon { width: 40px; height: 40px; object-fit: contain; display: block; }
 .pay-card strong { font-size: 14px; color: var(--green); }
-.pay-card a { color: var(--text); }
+.pay-card a { color: var(--green); font-size: 13px; }
 
 /* ── Rules ── */
 .rules-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
@@ -319,15 +331,17 @@ input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
   border-radius: 10px; padding: 10px 12px; margin-bottom: 8px;
 }
 .tie-row.locked { opacity: .75; }
-.tie-teams { display: flex; align-items: center; gap: 6px; font-weight: 700; font-size: 13px; flex-wrap: wrap; }
 .tie-vs { color: var(--muted); font-weight: 400; margin: 0 2px; }
 .tie-teams-pending, .tie-teams-admin { font-size: 13px; color: var(--muted); }
-.tie-inputs { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
-.tie-inputs input[type="number"] { width: 56px; text-align: center; }
-.tie-inputs select { min-width: 140px; }
+/* Uma linha só: time A + escudo + placar × placar + escudo + time B (era time numa linha,
+   placar em outra abaixo — layout pedido pelo Eduardo depois de testar ao vivo). */
+.tie-inputs { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
+.tie-inputs input[type="number"] { width: 48px; text-align: center; flex-shrink: 0; }
+.tie-team-name { font-weight: 700; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: clamp(60px, 20vw, 120px); }
 .tie-x { color: var(--muted); }
-.tie-locked-note { margin-top: 4px; font-size: 12px; }
-.tie-locked-score { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+.tie-advance { margin-top: 8px; width: 100%; }
+.tie-locked-note { font-size: 12px; }
+.tie-locked-score { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
 
 /* ── Games section rounds ── */
 .games-round-header, .admin-round-header {
@@ -425,6 +439,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 
 @media (max-width: 900px) {
   main { padding: 12px 10px 80px; }
+  .pay-grid { grid-template-columns: 1fr; }
   .topbar {
     display: grid;
     grid-template-columns: 1fr auto auto;
