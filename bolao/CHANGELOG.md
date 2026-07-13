@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.128 — 2026-07-12
+
+### Fixed — spinner nativo removido dos inputs numéricos
+
+Placar é sempre digitado (0-20); o spinner de seta pra cima/baixo do navegador não ajuda e
+ocupa espaço à toa em telas estreitas. `input[type=number]::-webkit-inner/outer-spin-button`
+suprimido + `-moz-appearance:textfield`, mesmo tratamento aplicado nos três apps.
+
+`audit_scoring.py`: 5/5 — só CSS.
+
 ## v4.127 — 2026-07-12
 
 ### Fixed — badge/status tokenizado (findings Critical/High autorizados do DESIGN_SYSTEM.md)
