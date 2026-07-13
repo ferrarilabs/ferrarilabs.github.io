@@ -1,5 +1,39 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.25 — 2026-07-13
+
+### Changed — Supabase habilitado (`database.enabled: true`)
+
+Eduardo pediu para não deixar dados só em `localStorage`. `database.enabled` ligado
+(`js/config.js`), mesmo projeto/tabela Supabase que a Copa já usa (`bolao_state`, linha própria
+via `stateId: "br2026"`). `localFallback: true` mantido — a arquitetura local-first com espelho
+remoto não foi removida, só passou a sincronizar de fato.
+
+**Ação pendente do lado do Supabase (fora do alcance desta sessão):** as policies de RLS só
+liberavam `id='main'` — SQL para estender aos três apps em
+`docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela", precisa ser rodado uma
+vez no painel do Supabase por Eduardo. Até lá, o app continua funcionando normalmente em modo
+local (testado com a resposta do Supabase mockada como 403 — nenhum erro não tratado, nenhuma
+perda de dado local).
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto (mudança de infraestrutura, não de
+scoring).
+
+## v1.24 — 2026-07-13
+
+### Fixed — texto confuso na tabela de Regras (parênteses duplicados)
+
+Reportado por Eduardo: linhas como "🥇 1º Lugar (no G4 (posição errada))" — parênteses aninhados
+confusos. Causa: `renderRules()` (`bolao/br2026/js/app.js`) já envolve o valor de
+`t("rulesInG4")`/`t("rulesInZ4")` em parênteses no template; as strings em `i18n.js` também
+traziam seus próprios parênteses (`"no G4 (posição errada)"`), duplicando o nível de aninhamento.
+Corrigido removendo os parênteses internos das strings (`"no G4, posição errada"` /
+`"no Z4, posição errada"`) — nenhuma mudança de valor de pontos, só de texto. Copa e CDB2026 não
+têm o conceito de G4/Z4 (bracket e mata-mata, respectivamente), então o mesmo bug não existe nos
+outros dois apps — nada a propagar.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto (só texto).
+
 ## v1.23 — 2026-07-13
 
 ### Added — classificação ao vivo do Brasileirão + movimento de ranking dos participantes

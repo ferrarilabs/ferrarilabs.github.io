@@ -240,3 +240,37 @@ matrix:
 liga por pontos entre os três apps). O padrão de movimento de participante é conceitualmente
 `PLATFORM_SHARED`, mas a Copa **não foi migrada** para a implementação correta nesta mudança —
 ficou registrado como dívida técnica pré-existente, não como regressão desta entrega.
+
+## Nota manual — sincronização com ESPN no admin do CDB2026 (2026-07-13, v3.1)
+
+| Item | Copa | BR2026 | CDB2026 | Status | Correção necessária |
+|---|---|---|---|---|---|
+| Botão admin de sincronização com ESPN, humano confirma antes de gravar | `espnFillResultsBtn` — pré-preenche o resultado final, admin ainda clica "Salvar resultados" | `espnFillResultsBtn` — mesmo padrão | Novo: "Buscar da ESPN" — lista candidatos, admin escolhe fase e confirma confronto por confronto | `CONSISTENT` (mesmo princípio: busca sob demanda + confirmação humana, nunca escrita silenciosa) | Nenhuma — CDB2026 precisa de mais confirmação por linha (cria confrontos, não só resultados de um bracket já fixo), então a UI é mais granular de propósito, não inconsistente |
+| CSP `connect-src` inclui `site.api.espn.com` | Sim | Sim | **Não tinha** — bug pré-existente, encontrado e corrigido nesta mudança | `CONSISTENT` (corrigido) | — |
+
+Não generalizado como polling automático: CDB2026 é mata-mata sem "ao vivo" contínuo, então a
+sincronização é sob demanda (clique do admin), diferente do polling em segundo plano do BR2026 —
+diferença intencional, documentada em `docs/bolao/CDB2026_RULES_AND_MODEL.md` seção 7, não uma
+divergência a corrigir.
+
+## Nota manual — Supabase habilitado em BR2026 e CDB2026 (2026-07-13)
+
+**Supersede o item 21 do bloco AUTO acima** (não editado ali — será substituído por inteiro na
+próxima auditoria formal, ver convenção no topo deste arquivo):
+
+- **Antes:** `database.enabled` — Copa `true`, BR2026/CDB2026 `false` ("aguardando criação da
+  linha"), classificado `INTENTIONALLY_DIFFERENT`.
+- **Depois:** os três `true`. Eduardo pediu explicitamente para não deixar dados só em
+  `localStorage`. `localFallback: true` mantido nos três — arquitetura local-first com espelho
+  remoto preservada, não removida (ver decisão registrada em `PROJECT_MEMORY.md`).
+- **Pendência que impede isso de funcionar de fato ainda**: as policies de RLS do Supabase só
+  liberavam `id='main'`. SQL para estender aos três ids entregue em
+  `docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" — precisa ser rodado
+  manualmente por Eduardo no painel do Supabase. Até lá, `CONSISTENT` no código (mesma
+  configuração nos 3 apps) mas `NEEDS_REVIEW` operacionalmente (não sincroniza de verdade).
+
+**Também supersede parcialmente o item 54** (CSP): CDB2026 ganhou `site.api.espn.com` em
+`connect-src` (v3.1, ver nota acima) — escopo deixou de ser "só Supabase/EmailJS", passou a
+incluir ESPN como BR2026. Ainda `CONSISTENT` (cada CSP reflete o que o app realmente chama), só
+o texto descritivo do item 54 ficou desatualizado até a próxima auditoria formal reprocessar a
+tabela.

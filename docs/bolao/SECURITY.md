@@ -54,7 +54,14 @@ frame-ancestors 'none';
 
 - Only the **anon/public** key is in `config.js`. It is safe to commit.
 - The **service_role** key bypasses RLS — it must **never** appear in browser code or this repo.
-- RLS policies restrict all operations to `id = 'main'` for the anon role.
+- All three apps (Copa, BR2026, CDB2026) share the same Supabase project and `bolao_state` table,
+  distinguished only by row `id` (`main` / `br2026` / `cdb2026` — see `config.database.stateId`
+  in each app). RLS policies restrict all operations to those three specific ids for the anon
+  role — see `docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" for the
+  exact SQL. Until that SQL is run, BR2026/CDB2026 rows are rejected by RLS even with
+  `database.enabled: true` in their config — the local-first fallback swallows the error
+  silently, so this fails safe (no data loss, no crash) but also fails silently (no sync
+  happens) until the policy is updated.
 - Anyone with the site URL can read/write the bolão state. This is intentional — it is a transparent public pool.
 
 ## EmailJS
