@@ -89,6 +89,9 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   font-weight: 900;
   font-size: 16px;
   white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
 .whatsapp-btn {
@@ -138,7 +141,7 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   border-color: var(--green);
 }
 
-.nav { display: grid; grid-template-columns: repeat(8, 1fr); gap: 5px; width: 100%; }
+.nav { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; width: 100%; }
 .nav button {
   background: var(--bg3);
   color: var(--text);
@@ -815,19 +818,35 @@ input[readonly] {
   .bracket { grid-template-columns: 1fr; }
   .pay-grid { grid-template-columns: 1fr; }
   .count-grid { grid-template-columns: repeat(4, 1fr); }
+  /* .brand and .whatsapp-btn both force nowrap on their own text, and
+     .bolao-switcher's <select> sizes to its selected option's text —
+     three non-shrinking items crammed into one row don't fit any phone
+     width (confirmed overflowing by 200px+ at 390px), dragging the whole
+     page into horizontal scroll. Switcher gets its own full-width row
+     instead of competing with brand+WhatsApp for row 1's space. */
   .topbar {
     display: grid;
-    grid-template-columns: 1fr auto auto;
-    grid-template-rows: auto auto auto;
+    /* minmax(0,1fr), not bare 1fr — a plain 1fr track still won't shrink
+       below its content's min-content width, which is exactly what let
+       .brand's un-shrinkable text force the whole grid wider than the
+       viewport in the first place. */
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto auto;
     align-items: center;
     padding: 10px 12px;
     gap: 6px 8px;
   }
   .brand { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
+  /* text-overflow:ellipsis doesn't render on a flex container with multiple
+     children (only single-child inline text) — the subtitle just gets
+     silently clipped instead of showing "...". Hide it outright on mobile
+     rather than leave an invisible sliver of clipped text. */
+  .brand span { display: none; }
   .whatsapp-btn { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; font-size: 12px; padding: 7px 10px; }
-  .bolao-switcher { grid-column: 3; grid-row: 1; justify-self: end; align-self: center; }
-  .lang-links { grid-column: 1 / -1; grid-row: 2; }
-  .nav { grid-column: 1 / -1; grid-row: 3; display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+  .bolao-switcher { grid-column: 1 / -1; grid-row: 2; }
+  .bolao-switcher select { width: 100%; }
+  .lang-links { grid-column: 1 / -1; grid-row: 3; }
+  .nav { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
   .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
   .sticky-submit button { width: 100%; }
   .receipt-actions button { flex: 1 0 auto; }
@@ -912,7 +931,7 @@ input[readonly] {
      Switcher is always far-right (col 4) to match BR2026/CDB2026 visual position. */
   .topbar {
     display: grid !important;
-    grid-template-columns: 1fr auto auto auto;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
     grid-template-rows: auto auto;
     align-items: center;
     gap: 8px 12px;
@@ -924,7 +943,7 @@ input[readonly] {
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
-    grid-template-columns: repeat(8, 1fr);
+    grid-template-columns: repeat(8, minmax(0, 1fr));
     gap: 5px;
   }
   .nav button { font-size: 13px; padding: 8px 6px; }

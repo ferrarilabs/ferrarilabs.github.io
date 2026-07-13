@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## v4.129 — 2026-07-13
+
+### Fixed — topbar quebrava horizontalmente no mobile (afetava Copa, Brasileirão e Copa do Brasil)
+
+Reportado com screenshots: no celular, a página inteira aparecia cortada/deslocada horizontalmente — texto do cabeçalho e da lista de jogos cortados na borda esquerda.
+
+Causa: o seletor de bolão (`<select id="bolaoSelect">`, adicionado recentemente) foi colocado na mesma linha do grid mobile do topbar junto com a marca e o botão do WhatsApp — três elementos que não encolhem (texto `nowrap`) espremidos numa única linha simplesmente não cabem em nenhuma largura de celular, empurrando a página inteira pra rolagem horizontal. Além disso, `grid-template-columns: 1fr` (e `repeat(N, 1fr)` da navegação) tem largura mínima implícita — não encolhe abaixo do conteúdo sem `minmax(0, 1fr)`, que é o motivo raiz de tudo transbordar mesmo com `flex-wrap`/grid presente.
+
+Fix (aplicado nos três bolões — Copa, Brasileirão e Copa do Brasil):
+- Seletor de bolão ganhou linha própria no mobile, em vez de competir por espaço com marca+WhatsApp.
+- `grid-template-columns` do topbar e da navegação trocado para `minmax(0, 1fr)` — permite os itens encolherem de verdade em vez de forçar a largura do conteúdo.
+- Subtítulo da marca ("Copa 2026" etc.) escondido no mobile — `text-overflow: ellipsis` não funciona num container flex com múltiplos filhos, só cortava o texto sem indicar visualmente.
+
+QA: testado em 9 larguras (320px a 1440px) nos três bolões — zero overflow horizontal em qualquer combinação.
+
+Sem mudança de scoring — só CSS. `audit_scoring.py`: 5/5.
+
+---
+
 ## v4.128 — 2026-07-12
 
 ### Fixed — spinner nativo removido dos inputs numéricos

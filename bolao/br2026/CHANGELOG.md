@@ -1,5 +1,19 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.21 — 2026-07-13
+
+### Fixed — topbar quebrava horizontalmente no mobile + escudo do time nas barras de probabilidade
+
+Reportado com screenshots: página cortada/deslocada horizontalmente no celular, e as barras de probabilidade (card "Próximo Jogo" e aba Jogos) mostrando o escudo do time junto com o nome, diferente do bolão da Copa.
+
+Dois fixes:
+1. **Topbar** — mesma causa raiz do bolão da Copa (`bolao/css/styles.css`): seletor de bolão competindo por espaço com marca+WhatsApp numa linha só, e `grid-template-columns` sem `minmax(0, 1fr)` não deixava os itens encolherem. Mesmo fix: seletor em linha própria, `minmax(0, 1fr)`, subtítulo da marca escondido no mobile. Bônus: `.pick-pts-hint` (texto de dica nos palpites G4/Z4) também estava com `white-space: nowrap`, forçando overflow em telas bem estreitas (320-360px) — removido.
+2. **Escudo nas barras de probabilidade** — as três funções que montam as barras ("Próximo Jogo" de hoje, "Próximo Jogo" sem jogo hoje, e a lista da aba Jogos) injetavam `<img>` do escudo do time dentro do texto da barra. Removido — agora mostra só "Time NN%", igual ao bolão da Copa (`probBarsMarkup` em `bolao/js/app.js`), inclusive o mesmo limite de 12% pra esconder o nome em fatias muito estreitas. Escudo ao lado do nome do time no cabeçalho do card (fora da barra) continua igual — não é o mesmo lugar do bug.
+
+QA: 9 larguras testadas (320-1440px), zero overflow horizontal. Rodei `python3 bolao/scripts/audit_scoring.py` (bolão da Copa) — sem impacto, mudança isolada ao Brasileirão.
+
+---
+
 ## v1.20 — 2026-07-13
 
 ### Fixed — fechamento da tarefa "Copa como referência canônica"

@@ -1,5 +1,17 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v2.7 — 2026-07-13
+
+### Fixed — topbar quebrava horizontalmente no mobile
+
+Reportado com screenshots: página cortada/deslocada horizontalmente no celular. Mesma causa raiz e mesmo fix do bolão da Copa e do Brasileirão (`bolao/css/styles.css`, `bolao/br2026/css/styles.css`): o seletor de bolão competia por espaço com marca+WhatsApp numa única linha que não cabe em nenhum celular, e `grid-template-columns` sem `minmax(0, 1fr)` não deixava os itens encolherem de verdade. Seletor agora tem linha própria no mobile; grid do topbar/navegação usa `minmax(0, 1fr)`; subtítulo da marca escondido no mobile; `.pick-pts-hint` (dica de pontuação) não força mais `nowrap`.
+
+Não encontrei escudo de time dentro das barras de probabilidade neste bolão (diferente do Brasileirão) — nada a corrigir nessa frente aqui.
+
+QA: 9 larguras testadas (320-1440px), zero overflow horizontal. `python3 bolao/scripts/audit_scoring.py` (bolão da Copa): sem impacto, mudança isolada à Copa do Brasil.
+
+---
+
 ## v2.6 — 2026-07-13
 
 ### Fixed — fechamento da tarefa "Copa como referência canônica"
