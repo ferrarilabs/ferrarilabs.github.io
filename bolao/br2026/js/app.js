@@ -397,6 +397,14 @@ function teamLogoImg(team, cls) {
     : "";
 }
 
+// ─── Payment icon ───────────────────────────────────────────────────────────
+// Mesmos ícones/assinatura que payIcon() em bolao/js/app.js — ver DESIGN_SYSTEM.md "Pagamento".
+const PAY_ICON_SVG = { CashApp: "assets/cashapp.svg", Zelle: "assets/zelle.svg", Venmo: "assets/venmo.svg" };
+function payIcon(method) {
+  const src = PAY_ICON_SVG[method];
+  return src ? `<img src="${esc(src)}" alt="${esc(method)}" class="pay-method-icon">` : "💳";
+}
+
 async function fetchStandings() {
   try {
     const r = await fetch(C.espn.standingsUrl);
@@ -417,8 +425,12 @@ async function fetchStandings() {
         rank:   getStat("rank") || 99,
         points: getStat("points"),
         played: getStat("gamesPlayed", "GP") || 1,
+        wins:   getStat("wins"),
+        draws:  getStat("ties", "draws"),
+        losses: getStat("losses"),
         gf:     getStat("pointsFor", "goalsFor"),
         ga:     getStat("pointsAgainst", "goalsAgainst"),
+        gd:     getStat("pointDifferential", "goalDifferential"),
       };
     }).filter(entry => entry.name).sort((a, b) => a.rank - b.rank);
     return parsed.length ? parsed : null;
@@ -930,17 +942,28 @@ function renderStandingsCard() {
         : pos >= 17
           ? `<span class="zone-badge z4-badge">Z4</span>`
           : "";
+    const gd = Math.round(team.gd);
     return `<tr class="${zoneClass}">
       <td class="td-pos">${pos}</td>
       <td>${esc(team.name)}${badge}</td>
       <td class="td-pts">${Math.round(team.points)}</td>
+      <td>${Math.round(team.played)}</td>
+      <td>${Math.round(team.wins)}</td>
+      <td>${Math.round(team.draws)}</td>
+      <td>${Math.round(team.losses)}</td>
+      <td>${Math.round(team.gf)}</td>
+      <td>${Math.round(team.ga)}</td>
+      <td>${gd > 0 ? "+" + gd : gd}</td>
     </tr>`;
   }).join("");
   card.innerHTML = `
     <h3>${esc(t("standingsTitle"))}</h3>
     <div class="standings-wrap">
       <table class="standings-table">
-        <thead><tr><th>#</th><th>${esc(t("team"))}</th><th>Pts</th></tr></thead>
+        <thead><tr>
+          <th>#</th><th>${esc(t("team"))}</th><th>Pts</th><th>J</th><th>V</th><th>E</th>
+          <th>D</th><th>GP</th><th>GC</th><th>SG</th>
+        </tr></thead>
         <tbody>${rows}</tbody>
       </table>
     </div>
@@ -1025,11 +1048,9 @@ function renderGamesSection() {
       const metaParts = [statusHtml, partida, venueStr].filter(Boolean);
       html += `<div class="game-card ${esc(g.state || "pre")}">
         <div class="game-matchup">
-          <span class="match-team-name home-name">${esc(g.homeTeam)}</span>
-          ${homeLogo}
+          <div class="match-team home"><span class="match-team-name home-name">${esc(g.homeTeam)}</span>${homeLogo}</div>
           <div class="match-center">${scoreOrTime}</div>
-          ${awayLogo}
-          <span class="match-team-name away-name">${esc(g.awayTeam)}</span>
+          <div class="match-team away">${awayLogo}<span class="match-team-name away-name">${esc(g.awayTeam)}</span></div>
         </div>
         <div class="game-meta">${metaParts.join('<span class="game-meta-sep"> · </span>')}</div>
         ${probBarsHtml}
@@ -1191,6 +1212,8 @@ function renderParticipants() {
 }
 
 // ─── Render: payment ─────────────────────────────────────────────────────────
+// Mesma estrutura de card (ícone + nome + handle) da Copa (bolao/js/app.js renderPayment()) —
+// ver DESIGN_SYSTEM.md "Pagamento".
 function renderPayment() {
   const box = $("paymentMethods");
   if (!box) return;
@@ -1199,7 +1222,12 @@ function renderPayment() {
     const handleHtml = link
       ? `<a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(handle)}</a>`
       : esc(handle);
-    return `<div class="pay-card"><strong>${esc(method)}</strong><span>${handleHtml}</span></div>`;
+    const qr = method === "Zelle" && C.zelle?.qrImage
+      ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
+    return `<div class="card pay-card">
+      <div class="pay-icon">${payIcon(method)}</div>
+      <div><strong>${esc(method)}</strong><br><span>${handleHtml}</span>${qr}</div>
+    </div>`;
   }).join("");
 }
 
