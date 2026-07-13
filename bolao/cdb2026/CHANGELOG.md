@@ -1,5 +1,18 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v2.6 — 2026-07-13
+
+### Fixed — fechamento da tarefa "Copa como referência canônica"
+
+- `.admin-toolbar` gap/margin alinhados com a Copa (`8px`/`14px`, era `6px`/`8px`).
+- `.admin-row` **mantido** como lista densa — mesma decisão do BR2026, ver
+  `docs/bolao/CONSISTENCY_MATRIX.md` item 78.
+
+Ver `docs/bolao/DESIGN_SYSTEM.md` para a tabela de mapeamento completa e a tabela de
+validação (sem captura visual real — sem navegador disponível, tudo verificado por CSS).
+
+`audit_scoring.py`: 5/5 — só CSS.
+
 ## v2.5 — 2026-07-12
 
 ### Fixed — bugs reais reportados testando o site ao vivo

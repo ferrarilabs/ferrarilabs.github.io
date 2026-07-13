@@ -310,7 +310,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 .admin-row:last-child { border-bottom: 0; }
 .admin-row label { font-size: 13px; color: var(--muted); min-width: 120px; flex-direction: row; text-transform: none; letter-spacing: 0; }
-.admin-toolbar { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+.admin-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .cdb-results-grid { display: flex; flex-direction: column; gap: 0; }
 #adminArea .card { margin-bottom: 14px; }
 #adminArea h3 { margin: 0 0 12px; font-size: 15px; }
