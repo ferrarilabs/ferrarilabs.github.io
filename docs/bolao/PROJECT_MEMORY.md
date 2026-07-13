@@ -170,20 +170,45 @@ independentes que seguem a mesma convenção de arquivo e o mesmo design system 
   existem na Copa — específico de torneio).
 - **Gaps conhecidos vs. Copa** (documentados em `CONSISTENCY_MATRIX.md`): sem sistema de
   comprovante/PDF/e-mail ao participante, sem script de auditoria de scoring equivalente ao
-  `audit_scoring.py`, sem botão "Limpar dados" na UI admin, sem backup JSON, sem
-  `AbortController`/timeout em nenhum `fetch()`, CSV usa `\n` (LF) em vez do `\r\n` (CRLF) já
-  corrigido na Copa desde v3.0, apenas idioma pt-BR ativo (ES/EN desabilitados desde v1.12).
+  `audit_scoring.py`, sem botão "Limpar dados" na UI admin, sem backup JSON, CSV usa `\n` (LF)
+  em vez do `\r\n` (CRLF) já corrigido na Copa desde v3.0, apenas idioma pt-BR ativo (ES/EN
+  desabilitados desde v1.12).
+- **v1.23 (2026-07-13) — classificação ao vivo + movimento de ranking**: `fetchJson()` com
+  `AbortController`/timeout de 10s agora cobre todo `fetch()` do app (gap fechado, listado acima
+  como resolvido); `pollAll()` virou um `setTimeout` autorreagendado com backoff em falha e pausa
+  quando `document.hidden`, em vez de `setInterval` fixo. Tabela do Brasileirão ganhou coluna
+  "Mov." e reordena por posição ao vivo durante uma janela de partidas (`calculateLiveStandings()`
+  — função pura, baseline em `sessionStorage`, nunca no estado principal). Ranking do bolão ganhou
+  movimento de participante (`calculateRankingMovement()`, padrão stateless correto, não o padrão
+  de sessão imperfeito que a Copa usa hoje). Detalhe completo, incluindo a auditoria da Copa e a
+  definição de baseline usada: `docs/bolao/BR2026_LIVE_STANDINGS.md`. Não alterou scoring nem
+  regras do Brasileirão.
 - Toolbar admin: apenas 2 botões (CSV, Sync).
 
 ### CDB2026 (`bolao/cdb2026/`) — não publicado
 
 - URL: `ferrarilabs.github.io/bolao/cdb2026/` (sem link do site principal).
-- Formato: mata-mata com times reais da Copa do Brasil 2026, sem nenhuma API externa (dados
-  estáticos em `js/data.js` — o formato do torneio, com poucos jogos, ainda não demandou
-  polling ao vivo).
-- Mesmos gaps de BR2026 em relação à Copa, mais: **nenhuma detecção de jogo adiado**
-  (`postponed`) — BR2026 já implementou isso desde v1.13, CDB2026 ainda não.
-- Toolbar admin: apenas 2 botões (CSV, Sync).
+- **Reformulado do zero em v3.0 (2026-07-13)** — fonte oficial do modelo:
+  `docs/bolao/CDB2026_RULES_AND_MODEL.md`. Até v2.9 o app copiava a estrutura de mata-mata fixo
+  da Copa do Mundo (16 times, 15 confrontos definidos em `data.js` desde o início, ida+volta em
+  tudo exceto a final) — **modelo errado**, identificado por Eduardo com o regulamento oficial
+  em mãos. A Copa do Brasil real tem 126 clubes, 9 fases (1ª–4ª e Final em partida única, 5ª–8ª
+  incluindo Semifinal em ida+volta), com **sorteio progressivo a cada fase** — não um
+  chaveamento pré-conhecido.
+- **Modelo v3.0**: `data.js` só declara as 9 fases (nome/formato/ordem, é regulamento, não muda
+  durante o torneio) — nenhum confronto fica no código-fonte. Confrontos/partidas vivem no
+  estado dinâmico (`s.phases[faseId].ties`), cadastrados pelo admin conforme cada sorteio real
+  acontece (tela admin "Fases e confrontos"). Participante palpita cada PARTIDA (nunca um
+  agregado digitado direto); agregado de ida+volta é sempre calculado, nunca digitado. Cutoff é
+  por fase, não mais um valor único global.
+- **Sem nenhuma API externa** (dados 100% cadastrados manualmente pelo admin — a Copa do Brasil
+  tem 126 clubes de todas as divisões, sem uma fonte única de dados ao vivo equivalente ao
+  standings da Série A que o BR2026 usa).
+- Mesmos gaps de BR2026 em relação à Copa, mais: **nenhuma detecção de jogo adiado/cancelado**
+  dedicada (fica como partida sem placar até o admin decidir manualmente) e **nenhum log de
+  auditoria de alterações administrativas** — ambos registrados como dívida técnica em
+  `CDB2026_RULES_AND_MODEL.md`.
+- Toolbar admin: CSV, JSON, Sync, Limpar tudo — mais a tela nova "Fases e confrontos".
 
 Todos os três compartilham: padrão de arquivos (`index.html`, `css/styles.css`, `js/config.js`,
 `js/data.js`, `js/i18n.js`, `js/app.js`), autenticação admin (hash SHA-256 idêntico nos três —
@@ -303,9 +328,10 @@ visuais (cores, padding, border-radius, breakpoints 900/500/480px).
 - **BR2026 e CDB2026 não têm um `audit_scoring.py` equivalente** — o mesmo tipo de drift entre
   site e script de e-mail que ocorreu na Copa em julho de 2026 poderia se repetir neles sem
   detecção automática.
-- **Nenhum dos três apps tem `AbortController`/timeout em todos os `fetch()`** — a Copa cobre 5
-  de 9 chamadas; BR2026/CDB2026 não cobrem nenhuma. Requisições a ESPN/Supabase podem travar
-  indefinidamente sem timeout nos dois apps novos.
+- **Nenhum dos três apps cobre 100% dos `fetch()` com `AbortController`/timeout** — a Copa cobre
+  5 de 9 chamadas; BR2026 cobre todas (fechado em v1.23, ver "Auditorias realizadas"); CDB2026
+  não cobre nenhuma. Requisições sem timeout podem travar indefinidamente na Copa (parcial) e no
+  CDB2026 (nenhuma).
 - **Sincronização multi-dispositivo não é em tempo real** — depende de polling e dos eventos
   `focus`/`visibilitychange`; não usa Supabase Realtime (roadmap `M-02`, não implementado).
 - **Matching de nomes de time entre fontes (ESPN, API-Football, Polymarket, `data.js`) é
@@ -507,8 +533,9 @@ só o que aquele app realmente chama (Copa tem o escopo mais amplo: ESPN, API-Fo
 Polymarket, ipify; BR2026 escopo médio: ESPN + espncdn; CDB2026 escopo mínimo: só
 Supabase/EmailJS).
 
-Só a Copa usa `AbortController`/timeout em parte de suas chamadas (5 de 9); BR2026/CDB2026 não
-usam em nenhuma — gap conhecido (`CONSISTENCY_MATRIX.md` item 50).
+Copa usa `AbortController`/timeout em parte de suas chamadas (5 de 9); BR2026 usa em 100% desde
+v1.23 (`fetchJson()` wrapper); CDB2026 não usa em nenhuma — gap conhecido
+(`CONSISTENCY_MATRIX.md` item 50).
 
 ---
 
@@ -621,6 +648,38 @@ de severidade alta (falta de `audit_scoring.py` equivalente e de sistema de comp
 BR2026/CDB2026), 12 de severidade média, 14 de baixa. Gerou `PLATFORM_GOVERNANCE.md` e
 `QA_MASTER_CHECKLIST.md` como artefatos permanentes de processo.
 
+### Auditoria de modelo de negócio — CDB2026 usava bracket errado (2026-07-13)
+
+Eduardo, com o Regulamento Específico da Copa do Brasil 2026 em mãos, apontou que o CDB2026
+(v2.9) estava modelando a competição errado — copiava o mata-mata fixo de 16 times/15
+confrontos da Copa do Mundo em vez das 9 fases reais (126 clubes, sorteio progressivo, 1ª–4ª e
+Final em partida única, só 5ª–8ª+Semifinal em ida+volta). Auditoria completa respondendo às 12
+perguntas obrigatórias, relatório de findings por severidade, proposta de modelo e plano de
+migração em `docs/bolao/CDB2026_RULES_AND_MODEL.md` — 4 perguntas de confirmação respondidas
+por Eduardo (sem entradas reais → reescrita limpa; bônus campeão/vice mantido 30/20; 1ª Fase
+cadastrada via admin, não hardcoded; entryFee/prêmio sem mudança) antes de qualquer código ser
+escrito. Reescrita completa do app em v3.0 — ver `bolao/cdb2026/CHANGELOG.md`. Não afetou Copa
+nem BR2026 (achado era específico do modelo de dados do CDB2026).
+
+### Auditoria de movimento de ranking (Copa) + classificação ao vivo (BR2026) (2026-07-13)
+
+Eduardo pediu para auditar se o ranking de participantes do BR2026 usa "o recurso equivalente já
+existente na Copa do Mundo" antes de implementar classificação ao vivo de clube + movimento de
+ranking. Achado: a Copa tem **duas implementações concorrentes** do mesmo conceito —
+`computeRankArrows()`/`_rankArrowState` (usada no ranking geral, baseline = último render, um
+`Map` em memória de sessão que reseta ao recarregar — viola o requisito de baseline estável) e
+`liveMatchPointsTable()` (usada só no detalhe de uma partida específica, stateless,
+oficial-vs-provisório recomputado a cada chamada — correta). Eduardo confirmou explicitamente
+(via pergunta direta) usar o padrão correto no BR2026, divergindo de propósito do padrão com
+falha que a Copa usa hoje — a Copa **não foi alterada** nesta mudança; a divergência de
+implementação entre os dois apps ficou registrada como dívida técnica pré-existente da Copa em
+`CONSISTENCY_MATRIX.md`, não como regressão. Detalhe completo da implementação nova do BR2026
+(`calculateLiveStandings()` para clubes, `calculateRankingMovement()` para participantes, ambas
+puras e com baseline documentada) em `docs/bolao/BR2026_LIVE_STANDINGS.md`. Como efeito colateral
+do escopo confirmado por Eduardo, também corrigidos: matching de partida por `ev.id` estável da
+ESPN (antes só por nome de time) e uso do flag `postponed` (já existia, nunca era lido) para
+excluir jogos adiados/cancelados do cálculo ao vivo.
+
 ---
 
 ## Bugs históricos
@@ -678,7 +737,8 @@ Padrões de correção que se repetem e valem a pena reconhecer em bugs futuros:
   de um bug já resolvido, reintroduzida em apps novos que não herdaram a correção).
   Consequência clássica de os três apps não compartilharem código: um bug corrigido em um app
   não se propaga automaticamente para os outros.
-- Nenhuma chamada de rede em BR2026/CDB2026 usa `AbortController`/timeout.
+- Nenhuma chamada de rede em CDB2026 usa `AbortController`/timeout (BR2026 fechou esse gap em
+  v1.23).
 - CDB2026 sem detecção de jogo adiado (BR2026 já tem desde v1.13).
 - `SECURITY.md`/`ARCHITECTURE.md` descrevem o lockout admin como `localStorage`, mas o código
   atual usa `sessionStorage` — divergência de documentação vs. código ainda não corrigida.

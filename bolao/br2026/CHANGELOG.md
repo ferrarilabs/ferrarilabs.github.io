@@ -1,5 +1,44 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.23 — 2026-07-13
+
+### Added — classificação ao vivo do Brasileirão + movimento de ranking dos participantes
+
+Pedido de Eduardo, com auditoria obrigatória prévia contra o recurso equivalente da Copa (ver
+`docs/bolao/BR2026_LIVE_STANDINGS.md` para o detalhamento completo). Resumo:
+
+- **Tabela do Brasileirão** ganhou uma coluna "Mov." e passa a reordenar por posição ao vivo
+  durante uma janela de partidas em andamento, recalculando pontos/saldo com os placares atuais.
+  Função pura nova: `calculateLiveStandings({ baselineStandings, liveMatches, completedMatches,
+  tieBreakRules })`. Baseline congelada em `sessionStorage` no momento em que a contagem de
+  partidas ao vivo passa de 0 para >0 (nunca a cada gol); descartada quando volta a 0. Sem
+  baseline confiável, mostra "indisponível" em vez de inventar uma posição anterior.
+- **Ranking dos participantes** ganhou setas de movimento (`▲`/`▼`/`•`/`–`) com a mesma lógica.
+  Função pura nova: `calculateRankingMovement()`, usando o padrão stateless correto já
+  comprovado na Copa (`liveMatchPointsTable()`) — **não** o outro padrão da Copa
+  (`computeRankArrows()`, baseline = último render), decisão confirmada explicitamente por
+  Eduardo. Reaproveita o mesmo comparador (`rankEntries()`) usado pelo ranking exibido, para que
+  baseline e live nunca possam divergir do total realmente mostrado na tela.
+- Correções de escopo confirmadas junto: casamento de partida por `ev.id` estável da ESPN (antes
+  só por nome de time — string matching); uso do flag `postponed` (já existia, nunca era lido)
+  para excluir jogos adiados/cancelados do cálculo ao vivo.
+- Higiene de rede: todo `fetch()` do app passa a usar `AbortController` com timeout de 10s;
+  `pollAll()` nunca sobrepõe (`_pollInFlight`), não roda com `document.hidden`, e o loop trocou
+  de `setInterval` fixo para um `setTimeout` autorreagendado com backoff em falha; foco de aba
+  dispara um poll imediato.
+- Novas classes CSS `.movement`/`.movement-up/-down/-same/-unavailable` (deliberadamente
+  separadas do `.rank-arrow` da Copa — ver design system). Colunas Pos/Mov/Time/Pts da tabela
+  agora usam `position: sticky` para nunca saírem de vista em 320–414px; nome de time trunca com
+  reticências.
+- Setas nunca são só glifo — `<span class="visually-hidden">` com texto completo em todas
+  (`"Subiu 3 posições, de 5º para 2º"`, etc.), respeitando `prefers-reduced-motion`.
+
+Testes: 27 testes puros (`calculateLiveStandings`, `zoneForPosition`, `rankEntries`,
+`calculateRankingMovement`) + 9 testes de integração ponta a ponta com ESPN mockada — todos
+verdes. `node --check` limpo nos 12 arquivos JS dos 3 apps. `audit_scoring.py`: 5/5, Copa
+intocada. Scoring do BR2026, CDB2026 e regras do Brasileirão **não foram alterados** — apenas
+classificação ao vivo, movimento e consistência do ranking.
+
 ## v1.22 — 2026-07-13
 
 ### Fixed — escudo do time ainda "nas pontas" em vez de flanquear o centro + token `--gold` ausente

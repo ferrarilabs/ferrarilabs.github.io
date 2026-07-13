@@ -371,6 +371,16 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .admin-tie-aggregate select { min-width: 140px; width: auto; }
 .leg-result-saved { color: var(--green); font-weight: 700; font-size: 13px; }
 
+/* ── Admin — fases e confrontos (cadastro dinâmico, ver CDB2026_RULES_AND_MODEL.md) ── */
+.admin-phase-block { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.admin-phase-block:last-child { border-bottom: 0; }
+.admin-phase-header { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.cdb-add-tie input[type="text"] { width: auto; flex: 1; min-width: 120px; }
+
+/* ── Palpite por partida (ida/volta ou única) ── */
+.tie-leg-pick { margin-bottom: 6px; }
+.tie-leg-pick:last-of-type { margin-bottom: 8px; }
+
 /* ── Find-my-entry + receipt ── */
 .find-entry-card h3 { margin: 0 0 6px; font-size: 15px; }
 .receipt-code { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 3px 8px; font-size: 13px; }

@@ -255,3 +255,100 @@ Para cada tela ou componente alterado, contra `docs/bolao/DESIGN_SYSTEM.md`:
 - [ ] Componentes equivalentes foram comparados nos três apps.
 - [ ] Diferenças intencionais foram documentadas.
 <!-- AUTO:QA_MASTER_CHECKLIST:END -->
+
+## Nota manual — QA da reformulação do CDB2026 (2026-07-13, v3.0)
+
+Registro de execução deste checklist para a reformulação completa de modelo do CDB2026 (ver
+`docs/bolao/CDB2026_RULES_AND_MODEL.md` e `bolao/cdb2026/CHANGELOG.md` v3.0). Categoria:
+`TOURNAMENT_SPECIFIC` de maior porte (mudança de modelo de dados + scoring + admin + picks) —
+auditoria completa aplicada (seção K, gate completo), não só direcionada.
+
+**Seção B (static checks):** `node --check` limpo em `data.js`/`app.js`/`i18n.js`/`config.js`.
+Nenhum segredo/`service_role`/senha em texto puro no diff. Nenhum `TODO`/`FIXME` novo sem
+justificativa. Nenhum `console.log` esquecido. Nenhum `innerHTML` com dado de usuário não
+escapado (`esc()` em todo lugar novo). Nenhum listener de evento duplicado.
+
+**Seção C/H (funcional/smoke — via Playwright, não manual):**
+- Cadastro de confronto (partida única e ida+volta) pelo admin.
+- Placar salvo por partida, agregado calculado automaticamente e ao vivo (formulário de
+  palpite E painel admin) — nunca digitado.
+- Confronto com agregado/placar empatado exige escolha manual de classificado (testado nos
+  dois formatos, com os valores exatos do EXEMPLO 1 e EXEMPLO 2 do pedido original — Flamengo ×
+  Palmeiras 2×2 nos pênaltis, Corinthians × Grêmio 1×1 nos pênaltis).
+- Confronto não-empatado trava automaticamente (sem exigir escolha manual do que a regra já
+  decide).
+- Pontuação testada em todos os níveis (placar exato / resultado certo / gols de um time /
+  bônus de classificado / campeão / vice) — total calculado à mão bateu exatamente (86 pontos
+  num cenário misto cobrindo todos os níveis simultaneamente).
+- Fase com cutoff no passado bloqueia palpite, mostra nota de prazo encerrado.
+- Fase sem confrontos cadastrados mostra "Aguardando sorteio oficial" (Jogos, Palpites,
+  Probabilidades — as 3 telas que iteram fases).
+- Export CSV/JSON não lançam erro.
+- Zero erro de JS em qualquer fluxo testado.
+
+**Seção D (visual):** zero overflow horizontal testado em 9 larguras (320–1440px) na nova tela
+de admin "Fases e confrontos". Componentes reaproveitados (card, botão, input, badge) do
+design system existente — nenhum componente novo introduzido.
+
+**Seção J (risk assessment):** UI ✓, Scoring ✓ (fórmula mudou, autorizado explicitamente por
+Eduardo), Banco — não aplicável (`database.enabled: false`), Admin ✓ (tela nova).
+
+**Não coberto nesta rodada** (dívida técnica registrada em `CDB2026_RULES_AND_MODEL.md`): jogo
+adiado/cancelado/remarcado sem tratamento dedicado; duas abas sincronizando em tempo real (sem
+mudança de comportamento em relação ao que já existia); migração de estado antigo (não
+aplicável — confirmado que não existem entradas reais).
+
+Confirmado: `bolao/` (Copa) e `bolao/br2026/` (Brasileirão) não foram tocados nesta rodada —
+`python3 bolao/scripts/audit_scoring.py` rodado após a mudança, 5/5, sem impacto.
+
+## QA — classificação ao vivo + movimento de ranking (BR2026 v1.23, 2026-07-13)
+
+Classificação: `TOURNAMENT_SPECIFIC` (cálculo da classificação ao vivo do Brasileirão) +
+`PLATFORM_SHARED` (componente visual `.movement`, mas não migrado para a Copa/CDB2026 nesta
+rodada — ver `CONSISTENCY_MATRIX.md`). Auditoria direcionada ao escopo alterado (não full-scope),
+por ser um patch aditivo sem alterar scoring/regras.
+
+**Seção B (static checks):** `node --check` limpo nos 12 arquivos JS dos 3 apps (Copa, BR2026,
+CDB2026 — todos, não só o app alterado, por exigência do CLAUDE.md). Nenhum segredo em texto
+puro no diff. Nenhum `TODO`/`FIXME` novo sem justificativa. Nenhum `console.log` novo. Nenhum
+`innerHTML` com dado não escapado (`esc()`/`esc()` mantido em todo markup novo).
+
+**Seção C/H (funcional — via Playwright, 27 testes puros + 9 de integração, todos verdes):**
+- `calculateLiveStandings()`: time ultrapassa ao vivo, time cai, sem partidas → sem movimento,
+  troca de posição, empates de pontos/GD/gols-pró, fallback determinístico sem inventar
+  critério, `postponed` ignorado, time desconhecido não derruba o cálculo, baseline vazia →
+  `null`, pureza dos argumentos, limites de zona (`zoneForPosition`).
+- `calculateRankingMovement()`/`rankEntries()`: sobe/cai com ranks distintos, regra de empate
+  compartilhado não gera "subida" falsa (mesmo comparador usado no ranking exibido, na baseline
+  e no live — sem risco de drift), sem baseline → "indisponível" nunca fabricado, lista vazia,
+  entrada única.
+- Integração ponta a ponta com ESPN mockada: tabela em ordem oficial + movimento indisponível
+  antes de qualquer partida ao vivo; tabela **reordena** por posição ao vivo quando a janela
+  abre, seta certa na linha certa, disclaimer visível; ranking do bolão mostra o movimento; ao
+  fechar a janela, baseline é apagada do `sessionStorage` e a seta volta a "indisponível" (sem
+  ficar presa em um estado obsoleto).
+
+**Seção D (visual — Playwright real, screenshots capturados, não só leitura de CSS):** 320px,
+390px, 1440px. Pos/Mov/Time/Pts permanecem visíveis sem scroll horizontal (colunas sticky, bug
+encontrado e corrigido nesta própria rodada — `.td-pts` não tinha `left` definido, então não
+grudava de fato; corrigido junto com largura fixa de `.td-team` para o offset sticky ser
+previsível). Nome de time longo trunca com reticências + `title` com o nome completo. Seta de
+ranking não empurra o nome do participante (fica empilhada abaixo da medalha).
+
+**Seção J (risk assessment):** UI ✓ (aditivo, nenhum componente existente removido). Scoring —
+não aplicável, nenhuma fórmula de pontos/critério de classificação oficial foi alterada
+(`audit_scoring.py` 5/5 após a mudança). Banco — não aplicável (`database.enabled:false` no
+BR2026; nenhum campo novo entra no `state()` sincronizável, baseline vive só em
+`sessionStorage`). Admin — não aplicável, nenhuma tela admin alterada. Rede — melhorado
+(`AbortController`/timeout agora em 100% dos `fetch()` do BR2026, poll não sobrepõe, pausa com
+`document.hidden`, backoff em falha).
+
+**Não coberto nesta rodada** (documentado como limitação em
+`docs/bolao/BR2026_LIVE_STANDINGS.md`): duas abas simultâneas e interrupção real de rede não
+foram testadas E2E (analisadas por revisão de código); cadeia de desempate oficial da CBF além de
+pontos/saldo (confronto direto etc.) não está implementada em nenhum lugar do app — documentado
+como limitação, não fingido como resolvido; janela de partidas é uma aproximação por ausência de
+identificador de rodada na API ESPN usada.
+
+Confirmado: scoring da Copa, scoring do CDB2026 e regras do Brasileirão não foram alterados —
+apenas classificação ao vivo, movimento e consistência do ranking do BR2026.

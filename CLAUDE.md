@@ -303,4 +303,10 @@ responsividade, salvo diferença explicitamente documentada como `TOURNAMENT_SPE
 Nenhuma tarefa visual pode ser encerrada apenas com `node --check` (quando disponível). É
 obrigatória comparação visual cross-app em desktop e mobile antes de considerar a tarefa
 concluída.
+
+### Movimento de clube vs. movimento de participante no BR2026
+
+No BR2026, movimento de clube na classificação e movimento de participante no ranking são
+conceitos distintos. Ambos devem usar baseline estável, não a atualização anterior, e nunca podem
+compartilhar a mesma estrutura de estado por conveniência.
 <!-- AUTO:PLATFORM_RULES:END -->
