@@ -1,5 +1,45 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v2.8 — 2026-07-13
+
+### Fixed — escudo do time "nas pontas" em vez de flanquear o centro
+
+Mesmo achado do Brasileirão (v1.22): o padrão canônico da Copa (`renderNextMatch()`, nome
+fora / escudo dentro, `Time A 🏳 × 🏳 Time B`) não estava sendo seguido em `pick-pos-lbl`
+(resumo de palpite no ranking), `leg-teams` (linhas Jogo 1/Jogo 2) e `confronto-header`
+(título do confronto) — os três tinham escudo fora / nome dentro. Interessante: o formulário
+de palpite (`tie-inputs`/`tie-locked-score`) já usava o padrão certo — a inconsistência era
+só nas telas de leitura. Invertido nos três lugares para bater com a Copa.
+
+### Added — aba "Probabilidades"
+
+Faltava esta aba em comparação com o Brasileirão. Diferença de formato: aqui o confronto é
+mata-mata ida+volta com placar agregado (não partida única/tabela), então a Copa/Brasileirão
+não tinham simulador equivalente pronto para reaproveitar — matemática nova, mesma base
+(Poisson bivariado + correção Dixon-Coles, igual aos outros dois apps):
+
+- `bolao/cdb2026/js/data.js`: novo campo `strength` (força aproximada 0-100 de cada um dos
+  16 clubes) — **valor inicial estimado, não uma fonte oficial; Eduardo deve revisar antes de
+  publicar.** Não alimenta scoring/resultado real.
+- Cada perna (ida/volta) tem seus gols esperados calculados a partir da força dos dois times
+  + vantagem de mandante (+65 pontos numa escala tipo Elo, valor comum em modelos públicos de
+  futebol de clubes — a Copa não usa isso, por ser seleção em sede neutra).
+- O placar das duas pernas é combinado (convolução da distribuição completa de placar de cada
+  uma) para chegar no agregado, aplicando a regra real da CBF já implementada no site (sem
+  gol fora de casa — agregado empatado = pênaltis, tratado como 50/50 por não ser previsível
+  por modelo de gols).
+- Barra de probabilidade de 2 vias (sem empate — o confronto sempre resolve em alguém
+  avançando), mesmo componente visual `.prob-bars`/`.prob-bar` dos outros dois apps.
+- Nova seção `#probs` + botão de navegação, ordem igual ao Brasileirão (depois de "Jogos").
+- Confrontos já decididos (resultado oficial lançado) mostram quem avançou em vez de uma
+  probabilidade — não faz sentido estimar o que já é fato.
+
+Não toca scoring/resultado oficial em nenhum momento — é só uma exibição informativa
+calculada em cima da mesma força de time estática, sem gravar nada em `localStorage`/Supabase.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto de scoring. Testado via Playwright
+(mock de dado local, sem rede) — aba renderiza sem erro JS, percentuais somam 100%.
+
 ## v2.7 — 2026-07-13
 
 ### Fixed — topbar quebrava horizontalmente no mobile

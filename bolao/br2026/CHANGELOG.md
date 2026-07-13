@@ -1,5 +1,23 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.22 — 2026-07-13
+
+### Fixed — escudo do time ainda "nas pontas" em vez de flanquear o centro + token `--gold` ausente
+
+Dois achados reportados por Eduardo depois do fix v1.21 (que só tinha removido o escudo de
+*dentro* das barras de probabilidade, mas não corrigiu os outros lugares onde nome+escudo
+aparecem em texto corrido):
+
+1. **Escudo nas pontas.** O padrão canônico da Copa (`bolao/js/app.js`, `renderNextMatch()`)
+   é nome fora / escudo dentro, flanqueando o "×" central: `Time A 🏳 × 🏳 Time B`. Este app
+   fazia o oposto em 6 lugares (`live-teams`, `today-game-teams` ×3 variantes,
+   `next-game-teams`): escudo fora, nome dentro. Invertido para bater com a Copa.
+2. **`--gold` não definido no `:root`.** `.game-status.postponed` usava `var(--gold)` sem o
+   token existir neste app (só Copa e CDB2026 tinham `--gold`) — o texto do badge "adiado"
+   ficava sem cor válida. Adicionado `--gold: #f59e0b` (mesmo valor de Copa/CDB2026).
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto de scoring (só CSS/markup).
+
 ## v1.21 — 2026-07-13
 
 ### Fixed — topbar quebrava horizontalmente no mobile + escudo do time nas barras de probabilidade

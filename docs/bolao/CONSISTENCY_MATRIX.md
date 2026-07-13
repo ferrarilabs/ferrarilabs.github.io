@@ -172,3 +172,21 @@ Itens resolvidos no CDB2026 (v2.0) e/ou BR2026 (v1.14): 7 (parcial), 8/9/10 (par
 aberta: item 1 (sem `audit_scoring.py` equivalente para BR2026/CDB2026, apesar de o CDB2026 ter
 ganhado uma fórmula de scoring nova e mais complexa — ver `bolao/cdb2026/CHANGELOG.md` v2.0).
 <!-- AUTO:CONSISTENCY_MATRIX:END -->
+
+## Nota manual — aba "Probabilidades" no CDB2026 (2026-07-13, v2.8)
+
+Não catalogado como linha própria na última auditoria formal (a matrix acima não tinha um item
+dedicado a "presença da aba Probabilidades"). Registro manual até a próxima auditoria formal
+reprocessar a tabela inteira:
+
+- **Antes:** CDB2026 tinha nav com 7 botões (sem "Probabilidades"), Brasileirão com 9
+  (incluindo "Tabela", que não se aplica ao CDB2026 — mata-mata sem classificação por pontos
+  e sem API ao vivo, `INTENTIONALLY_DIFFERENT` legítimo).
+- **Depois:** CDB2026 ganhou a aba (nav agora com 8 botões). Diferença de torneio preservada
+  de propósito: a matemática não é uma cópia da Copa/Brasileirão — é nova, adaptada para
+  confronto ida+volta com placar agregado (convolução de duas pernas + regra CBF sem gol fora
+  de casa, pênaltis tratados como 50/50).
+- **Risco/dívida técnica registrado:** os valores em `bolao/cdb2026/js/data.js` → `strength`
+  são uma estimativa inicial de força relativa entre os 16 clubes, não uma fonte oficial —
+  **pendente de revisão do Eduardo antes de publicar o app.** Não afeta scoring/resultado
+  real (`audit_scoring.py` continua 5/5, campo não é lido por nenhum caminho de pontuação).

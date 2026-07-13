@@ -126,6 +126,11 @@ window.CDB2026_I18N = {
     gamesSubtitle: "Confrontos da Copa do Brasil 2026 — Oitavas, Quartas, Semifinal e Final (horários em Brasília)",
     gamesLeg1: "Jogo 1",
     gamesLeg2: "Jogo 2",
+    // Probabilidades
+    navProbs: "Probabilidades",
+    probsTitle: "Probabilidades",
+    probsSubtitle: "Estimativa de quem avança em cada confronto, com base na força dos times e mandante de cada jogo. Não usa dado real de resultado — é só uma referência.",
+    probBarsLabel: "Probabilidade de avançar",
     // Admin
     adminTitle: "Admin",
     adminPassword: "Senha do admin",

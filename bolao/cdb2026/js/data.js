@@ -51,6 +51,19 @@ window.CDB2026_DATA = {
     "Vitória": "https://a.espncdn.com/i/teamlogos/soccer/500/3457.png",
   },
 
+  // Força aproximada de cada time (escala 0-100, mesmo espírito do campo `strength` em
+  // bolao/js/data.js) — usada só pela aba "Probabilidades" para estimar quem avança em cada
+  // confronto. NÃO alimenta scoring/resultado real (audit_scoring.py não depende disto).
+  // ATENÇÃO: valores abaixo são uma estimativa inicial de força relativa entre os 16 clubes,
+  // não uma fonte oficial (não há rating público único para clubes brasileiros equivalente ao
+  // ranking FIFA usado na Copa) — Eduardo deve revisar/ajustar antes de publicar o app.
+  strength: {
+    "Palmeiras": 85, "Atlético-MG": 78, "Corinthians": 76, "Internacional": 76,
+    "Grêmio": 75, "Cruzeiro": 75, "Fluminense": 73, "Fortaleza": 70,
+    "Santos": 68, "Athletico-PR": 66, "Vasco": 66, "Vitória": 62,
+    "Mirassol": 62, "Juventude": 60, "Chapecoense": 55, "Remo": 55,
+  },
+
   // Confrontos do mata-mata. Cada "tie" (confronto) pontua pelo placar agregado (ida + volta).
   // round: "oitavas" | "quartas" | "semifinal" | "final"
   // home/away: null enquanto o confronto anterior (fromHome/fromAway) não tiver resultado.

@@ -195,6 +195,27 @@ Full detail, change classification categories, and the area-by-area audit:
 
 ## Permanent rules
 
+### Repository is the source of truth (all devices, all sessions)
+
+Every Claude Code session, regardless of device, must read the same repository governance
+documents before editing.
+
+The repository is the source of truth. Conversation memory, device history, and prior session
+context must never override the current checked-out code and documentation.
+
+Before any edit, Claude must report:
+
+- current branch;
+- git status;
+- latest commit;
+- applications affected;
+- change classification;
+- cross-app propagation decision.
+
+Mobile sessions are subject to the same audit, testing, documentation, and cross-app
+consistency requirements as desktop sessions. Reduced screen size or session duration is not
+justification for skipping validation.
+
 ### Sempre ler antes de qualquer alteração
 
 1. `docs/bolao/PROJECT_MEMORY.md`
