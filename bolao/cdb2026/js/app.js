@@ -131,6 +131,7 @@ function showSection(id) {
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: false }); }
   if (id === "admin") renderAdmin();
   if (id === "games") renderGamesSection();
+  if (id === "probs") renderProbsSection();
 }
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
@@ -746,7 +747,7 @@ function renderPickDisplay(entry, detail) {
     const cls   = d ? (d.type === "exact" ? "pick-exact" : d.type === "advance" ? "pick-partial" : d.type === "partial" ? "pick-partial" : "pick-miss") : "";
     const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
     return `<div class="pick-item">
-      <span class="pick-pos-lbl">${teamLogoImg(home)} ${esc(home)} × ${esc(away)} ${teamLogoImg(away)}</span>
+      <span class="pick-pos-lbl">${esc(home)} ${teamLogoImg(home)} × ${teamLogoImg(away)} ${esc(away)}</span>
       <div class="pick-cell ${cls}">${pick.goalsA} × ${pick.goalsB}${badge}</div>
     </div>`;
   }).filter(Boolean).join("");
@@ -862,6 +863,154 @@ function renderRules() {
     </div>`;
 }
 
+// ─── Probabilidades — mata-mata ida+volta agregado ────────────────────────────
+// Mesma matemática (Poisson bivariado + correção Dixon-Coles) usada em bolao/js/app.js
+// (Copa) e bolao/br2026/js/app.js (Brasileirão), portada aqui porque os três apps não
+// compartilham código (ver docs/bolao/PLATFORM_GOVERNANCE.md). Diferença de torneio: aqui
+// o resultado de um confronto depende do AGREGADO de dois jogos (ida+volta), não de uma
+// partida só — por isso a distribuição de placar de cada perna é combinada (convolução)
+// antes de decidir quem avança. Não influencia scoring/resultado real — só exibição.
+function poisson(lambda, k) {
+  let p = Math.exp(-lambda);
+  for (let i = 1; i <= k; i++) p *= lambda / i;
+  return p;
+}
+
+function tauDC(x, y, lA, lB, rho) {
+  if (x === 0 && y === 0) return 1 - lA * lB * rho;
+  if (x === 0 && y === 1) return 1 + lA * rho;
+  if (x === 1 && y === 0) return 1 + lB * rho;
+  if (x === 1 && y === 1) return 1 - rho;
+  return 1;
+}
+
+// Grade completa de placar (i×j, 0-8 gols) de UMA perna, com correção Dixon-Coles nos
+// placares baixos. Retorna também pA/pD/pB (vitória mandante/empate/vitória visitante da
+// perna) para o passo de bisseção em legLambdas().
+function matchProb(lambdaHome, lambdaAway) {
+  const MAX = 8, RHO = -0.13;
+  const grid = [];
+  let pA = 0, pD = 0, pB = 0;
+  for (let i = 0; i <= MAX; i++) {
+    grid[i] = [];
+    for (let j = 0; j <= MAX; j++) {
+      const p = poisson(lambdaHome, i) * poisson(lambdaAway, j) * tauDC(i, j, lambdaHome, lambdaAway, RHO);
+      grid[i][j] = p;
+      if (i > j) pA += p; else if (i === j) pD += p; else pB += p;
+    }
+  }
+  const sum = pA + pD + pB || 1;
+  return { pA: pA / sum, pD: pD / sum, pB: pB / sum, grid, sum };
+}
+
+// Rating aproximado (escala tipo Elo) a partir do strength 0-100 de data.js — mesma
+// conversão usada como fallback em bolao/js/app.js (copaExpectedGoals): 1500 + (strength -
+// 70) * 10. Vantagem de mandante: +65 pontos, valor típico usado em modelos públicos de
+// força de time no futebol de clubes (a Copa não usa isso — seleções em sede neutra).
+const HOME_ADV_ELO = 65;
+function eloFromStrength(strength) { return 1500 + ((strength ?? 65) - 70) * 10; }
+
+// Resolve o par de lambdas (gols esperados) de UMA perna a partir da força dos dois times
+// e de quem manda o jogo. TOTAL=2.5 gols (referência de clubes; a Copa usa 2.4 para
+// seleções). Bisseção igual a copaExpectedGoals() em bolao/js/app.js.
+function legLambdas(strengthHome, strengthAway) {
+  const TOTAL = 2.5;
+  const eloHome = eloFromStrength(strengthHome) + HOME_ADV_ELO;
+  const eloAway = eloFromStrength(strengthAway);
+  const pWinHome = 1 / (1 + Math.pow(10, (eloAway - eloHome) / 400));
+  let lo = 0.1, hi = TOTAL - 0.1;
+  for (let i = 0; i < 40; i++) {
+    const mid = (lo + hi) / 2;
+    if (matchProb(mid, TOTAL - mid).pA < pWinHome) lo = mid; else hi = mid;
+  }
+  const lambdaHome = (lo + hi) / 2;
+  return { lambdaHome, lambdaAway: TOTAL - lambdaHome };
+}
+
+// Combina os placares das duas pernas em um placar agregado e aplica a regra real da CBF na
+// Copa do Brasil (sem gol fora de casa — ver inferAdvance() acima): agregado empatado vai
+// para os pênaltis, tratado aqui como 50/50 porque pênaltis não são previsíveis por modelo
+// de gols. "home"/"away" abaixo são os dois lados do CONFRONTO (quem manda a ida) — o
+// mandante da volta é o outro lado.
+function tieAdvanceProb(nameHome, nameAway) {
+  const sHome = DATA.strength?.[nameHome];
+  const sAway = DATA.strength?.[nameAway];
+  const leg1 = legLambdas(sHome, sAway); // ida: nameHome manda
+  const leg2 = legLambdas(sAway, sHome); // volta: nameAway manda
+  const grid1 = matchProb(leg1.lambdaHome, leg1.lambdaAway).grid;
+  const grid2 = matchProb(leg2.lambdaHome, leg2.lambdaAway).grid;
+  const MAX = 8;
+  let pHome = 0, pDrawAgg = 0, pAway = 0, total = 0;
+  for (let a1 = 0; a1 <= MAX; a1++) for (let b1 = 0; b1 <= MAX; b1++) {
+    const p1 = grid1[a1][b1];
+    if (!p1) continue;
+    for (let a2 = 0; a2 <= MAX; a2++) for (let b2 = 0; b2 <= MAX; b2++) {
+      const p2 = grid2[a2][b2];
+      if (!p2) continue;
+      // agregado: nameHome marcou a1 (ida, mandante) + b2 (volta, visitante)
+      //           nameAway marcou b1 (ida, visitante) + a2 (volta, mandante)
+      const aggHome = a1 + b2, aggAway = b1 + a2;
+      const p = p1 * p2;
+      total += p;
+      if (aggHome > aggAway) pHome += p;
+      else if (aggHome === aggAway) pDrawAgg += p;
+      else pAway += p;
+    }
+  }
+  if (total > 0) { pHome /= total; pDrawAgg /= total; pAway /= total; }
+  return { pHome: pHome + pDrawAgg * 0.5, pAway: pAway + pDrawAgg * 0.5, pDrawAgg };
+}
+
+// Barra de probabilidade de 2 vias (sem empate — o confronto sempre resolve em alguém
+// avançando, mesmo que via pênaltis) — mesmo componente visual .prob-bars/.prob-bar usado
+// nos outros dois apps, só sem a divisão central de empate.
+function tieProbBarsHtml(nameHome, nameAway) {
+  const { pHome, pAway } = tieAdvanceProb(nameHome, nameAway);
+  const hPct = Math.round(pHome * 100), aPct = Math.round(pAway * 100);
+  const sHome = esc(nameHome.length > 14 ? nameHome.slice(0, 14) + "…" : nameHome);
+  const sAway = esc(nameAway.length > 14 ? nameAway.slice(0, 14) + "…" : nameAway);
+  const label = (pct, name) => pct >= 20 ? `${name} ${pct}%` : `${pct}%`;
+  return `<div class="prob-bars" role="group" aria-label="${esc(t("probBarsLabel"))}">
+    <div class="prob-bar home" style="width:${hPct}%" title="${esc(nameHome)}: ${hPct}%">${label(hPct, sHome)}</div>
+    <div class="prob-bar away" style="width:${aPct}%" title="${esc(nameAway)}: ${aPct}%">${label(aPct, sAway)}</div>
+  </div>`;
+}
+
+function renderProbsSection() {
+  const box = $("probsContent");
+  if (!box) return;
+  const s        = state();
+  const resolved = resolveOfficial(s.results);
+
+  let html = "";
+  ROUNDS.forEach(round => {
+    const ties = DATA.ties.filter(tie => tie.round === round);
+    if (!ties.length) return;
+    const rows = ties.map(tie => {
+      const { home, away } = resolved[tie.id];
+      const res = s.results.ties[tie.id];
+      if (!home || !away) {
+        return `<div class="confronto-card card"><div class="confronto-header">${esc(t("pickWaitingSlot"))}</div></div>`;
+      }
+      if (res) {
+        // Confronto já decidido — não faz sentido mostrar probabilidade estimada.
+        const winner = res.advance === "home" ? home : away;
+        return `<div class="confronto-card card">
+          <div class="confronto-header">${esc(home)} ${teamLogoImg(home, "match-logo")} × ${teamLogoImg(away, "match-logo")} ${esc(away)}</div>
+          <p class="muted" style="font-size:12px">${esc(t("gamesAdvances"))}: <b>${esc(winner)}</b></p>
+        </div>`;
+      }
+      return `<div class="confronto-card card">
+        <div class="confronto-header">${esc(home)} ${teamLogoImg(home, "match-logo")} × ${teamLogoImg(away, "match-logo")} ${esc(away)}</div>
+        ${tieProbBarsHtml(home, away)}
+      </div>`;
+    }).join("");
+    if (rows) html += `<h3 class="games-round-header">${esc(t(ROUND_LABELS[round]))}</h3>${rows}`;
+  });
+
+  box.innerHTML = html || `<p class="muted">${esc(t("pickWaitingSlot"))}</p>`;
+}
+
 // ─── Render: games (bracket completo) ────────────────────────────────────────
 function renderGamesSection() {
   const box = $("gamesList");
@@ -899,11 +1048,11 @@ function renderGamesSection() {
         const a = swapped ? home : away;
         return `<div class="leg">
           <span class="leg-label">${esc(t(labelKey))}</span>
-          <span class="leg-teams">${teamLogoImg(h, "team-logo")} ${h ? esc(h) : "?"} × ${a ? esc(a) : "?"} ${teamLogoImg(a, "team-logo")}</span>
+          <span class="leg-teams">${h ? esc(h) : "?"} ${teamLogoImg(h, "team-logo")} × ${teamLogoImg(a, "team-logo")} ${a ? esc(a) : "?"}</span>
           <span class="leg-info">📍 ${esc(legData.stadium || "—")} · ${esc(fmtDate(legData.date, legData.time))}</span>
         </div>`;
       };
-      const headerTeams = (home && away) ? `${teamLogoImg(home, "match-logo")} ${esc(home)} × ${esc(away)} ${teamLogoImg(away, "match-logo")}` : esc(t("pickWaitingSlot"));
+      const headerTeams = (home && away) ? `${esc(home)} ${teamLogoImg(home, "match-logo")} × ${teamLogoImg(away, "match-logo")} ${esc(away)}` : esc(t("pickWaitingSlot"));
       const resultLine = res
         ? `<div class="leg confronto-result">${esc(t("gamesAggregate"))}: <b>${res.goalsA} × ${res.goalsB}</b> — ${esc(t("gamesAdvances"))}: ${res.advance === "home" ? esc(home) : esc(away)}</div>`
         : "";
@@ -1134,6 +1283,7 @@ function renderAll() {
   renderPickForm();
   renderRanking();
   renderGamesSection();
+  renderProbsSection();
   renderParticipants();
   renderPayment();
   renderRules();
