@@ -151,6 +151,13 @@ window.CDB2026_I18N = {
     confirmLockResults: "Travar o resultado oficial? Isso vai calcular a pontuação final.",
     confirmUnlockResults: "Desbloquear o resultado? A pontuação voltará a ser provisória.",
     resultsSaved: "Resultado oficial salvo e travado!",
+    // Resultado por jogo (ida/volta) — cada perna é salva separadamente; o agregado (acima) só
+    // trava depois que as duas pernas tiverem placar salvo.
+    saveLegResult: "Salvar jogo",
+    legResultSaved: "Jogo salvo!",
+    errorLegIncomplete: "Preencha os dois placares antes de salvar o jogo.",
+    aggregatePreview: "Agregado calculado",
+    errorAdvanceRequired: "Agregado empatado — escolha manualmente quem avança nos pênaltis antes de travar.",
     confirmDelete: "Apagar esta entrada permanentemente?",
     edit: "Editar",
     delete: "Apagar",

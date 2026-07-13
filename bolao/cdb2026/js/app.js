@@ -49,14 +49,17 @@ let _editingEntry = null;
 const _openRankDetails = new Set();
 
 function emptyState() {
-  return { entries: [], deletedIds: [], paid: {}, results: { ties: {} }, meta: { updatedAt: null, version: C.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, results: { ties: {}, legs: {} }, meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try {
     const r = localStorage.getItem(C.storeKey);
     const s = r ? Object.assign(emptyState(), JSON.parse(r)) : emptyState();
-    s.results = s.results && typeof s.results === "object" ? s.results : { ties: {} };
+    s.results = s.results && typeof s.results === "object" ? s.results : { ties: {}, legs: {} };
     s.results.ties = s.results.ties || {};
+    // legs: placar de cada perna (ida/volta) informado separadamente pelo admin, antes do
+    // agregado ser calculado e travado em s.results.ties[tieId] — ver renderAdminResults().
+    s.results.legs = s.results.legs || {};
     return s;
   } catch { return emptyState(); }
 }
@@ -100,14 +103,22 @@ function mergeStates(local, remote, opts = {}) {
   const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
   const localTies  = local.results?.ties  || {};
   const remoteTies = remote.results?.ties || {};
+  const localLegs  = local.results?.legs  || {};
+  const remoteLegs = remote.results?.legs || {};
   const ties = opts.preferRemoteResults
     ? { ...localTies, ...remoteTies }
     : { ...remoteTies, ...localTies };
+  // Mesma regra de precedência do agregado (ties) aplicada ao placar por perna — evita que um
+  // sync remoto apague um Jogo 1/Jogo 2 já salvo localmente (ou vice-versa) antes do agregado
+  // travar.
+  const legs = opts.preferRemoteResults
+    ? { ...localLegs, ...remoteLegs }
+    : { ...remoteLegs, ...localLegs };
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
     paid,
-    results: { ties },
+    results: { ties, legs },
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -1089,6 +1100,28 @@ function renderAdmin() {
   renderAdminEntries(state());
 }
 
+// Placar de UMA perna já salvo (s.results.legs[tieId][leg]) — renderiza a linha travada
+// (read-only) ou os inputs abertos para preencher, igual ao padrão já usado no agregado.
+function adminLegRowHtml(tieId, legNum, teamHome, teamAway, saved) {
+  const cls = `adm-leg${legNum}`;
+  if (saved) {
+    return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-leg="${legNum}">
+      <span class="leg-label">${esc(t(legNum === 1 ? "gamesLeg1" : "gamesLeg2"))}</span>
+      <span class="leg-teams-admin">${esc(teamHome)} × ${esc(teamAway)}</span>
+      <span class="leg-result-saved">✓ ${saved.goalsA} × ${saved.goalsB}</span>
+      <button type="button" class="secondary small-btn" data-edit-leg="${esc(tieId)}" data-leg-num="${legNum}">${esc(t("edit"))}</button>
+    </div>`;
+  }
+  return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-leg="${legNum}">
+    <span class="leg-label">${esc(t(legNum === 1 ? "gamesLeg1" : "gamesLeg2"))}</span>
+    <span class="leg-teams-admin">${esc(teamHome)} × ${esc(teamAway)}</span>
+    <input type="number" min="0" max="20" class="${cls}-a" aria-label="${esc(teamHome)}">
+    <span class="tie-x">×</span>
+    <input type="number" min="0" max="20" class="${cls}-b" aria-label="${esc(teamAway)}">
+    <button type="button" class="small-btn" data-save-leg="${esc(tieId)}" data-leg-num="${legNum}">${esc(t("saveLegResult"))}</button>
+  </div>`;
+}
+
 function renderAdminResults(s) {
   const box = $("adminResults");
   if (!box) return;
@@ -1106,35 +1139,86 @@ function renderAdminResults(s) {
         html += `<div class="admin-row muted">${esc(tie.id)} — ${esc(t("pickWaitingSlot"))}</div>`;
         return;
       }
-      html += `<div class="admin-row cdb-admin-tie" data-tie-id="${esc(tie.id)}">
-        <span class="tie-teams-admin">${esc(home)} × ${esc(away)}</span>
-        <input type="number" min="0" max="20" class="adm-goals-a" value="${res ? res.goalsA : ""}" ${res ? "disabled" : ""} aria-label="${esc(home)}">
-        <span class="tie-x">×</span>
-        <input type="number" min="0" max="20" class="adm-goals-b" value="${res ? res.goalsB : ""}" ${res ? "disabled" : ""} aria-label="${esc(away)}">
-        <select class="adm-advance" ${res ? "disabled" : ""}>
-          <option value="">—</option>
-          <option value="home" ${res?.advance === "home" ? "selected" : ""}>${esc(home)}</option>
-          <option value="away" ${res?.advance === "away" ? "selected" : ""}>${esc(away)}</option>
-        </select>
-        ${res
-          ? `<button type="button" class="secondary small-btn" data-unlock-tie="${esc(tie.id)}">${esc(t("unlockResults"))}</button>`
-          : `<button type="button" class="small-btn" data-save-tie="${esc(tie.id)}">${esc(t("saveResults"))}</button>`}
+
+      if (res) {
+        // Agregado já travado — mostra o resultado oficial (mesmo padrão de antes) e permite
+        // destravar. As duas pernas continuam salvas em s.results.legs — destravar não apaga
+        // o placar de cada jogo, só o agregado oficial.
+        html += `<div class="admin-row cdb-admin-tie" data-tie-id="${esc(tie.id)}">
+          <span class="tie-teams-admin">${esc(home)} × ${esc(away)}</span>
+          <span class="leg-result-saved">✓ ${esc(t("gamesAggregate"))}: ${res.goalsA} × ${res.goalsB} — ${esc(t("gamesAdvances"))}: ${esc(res.advance === "home" ? home : away)}</span>
+          <button type="button" class="secondary small-btn" data-unlock-tie="${esc(tie.id)}">${esc(t("unlockResults"))}</button>
+        </div>`;
+        return;
+      }
+
+      const legs  = s.results.legs[tie.id] || {};
+      const leg1  = legs.leg1; // {home} manda
+      const leg2  = legs.leg2; // {away} manda (mandante/visitante invertido)
+      html += `<div class="admin-tie-block" data-tie-block="${esc(tie.id)}">
+        <div class="tie-teams-admin">${esc(home)} × ${esc(away)}</div>
+        ${adminLegRowHtml(tie.id, 1, home, away, leg1)}
+        ${adminLegRowHtml(tie.id, 2, away, home, leg2)}
+        ${leg1 && leg2 ? (() => {
+          const aggHome = leg1.goalsA + leg2.goalsB;
+          const aggAway = leg1.goalsB + leg2.goalsA;
+          const tied = aggHome === aggAway;
+          return `<div class="admin-tie-aggregate">
+            <span class="leg-label">${esc(t("aggregatePreview"))}</span>
+            <span class="leg-teams-admin">${aggHome} × ${aggAway}</span>
+            ${tied
+              ? `<select class="adm-advance" aria-label="${esc(t("pickAdvanceLabel"))}">
+                   <option value="">${esc(t("pickSelectAdvance"))}</option>
+                   <option value="home">${esc(home)}</option>
+                   <option value="away">${esc(away)}</option>
+                 </select>`
+              : `<span class="leg-teams-admin">${esc(t("gamesAdvances"))}: ${esc(aggHome > aggAway ? home : away)}</span>`}
+            <button type="button" class="small-btn" data-lock-tie="${esc(tie.id)}" data-agg-home="${aggHome}" data-agg-away="${aggAway}">${esc(t("saveResults"))}</button>
+          </div>`;
+        })() : ""}
       </div>`;
     });
   });
   box.innerHTML = html;
 
-  box.querySelectorAll("[data-save-tie]").forEach(btn => btn.addEventListener("click", () => {
+  box.querySelectorAll("[data-save-leg]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    const tieId = btn.dataset.saveTie;
-    const row = box.querySelector(`.cdb-admin-tie[data-tie-id="${tieId}"]`);
-    const a = parseInt(row.querySelector(".adm-goals-a").value, 10);
-    const b = parseInt(row.querySelector(".adm-goals-b").value, 10);
-    const adv = row.querySelector(".adm-advance").value;
-    if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0 || !adv) { alert(t("errorResultsIncomplete")); return; }
+    const tieId  = btn.dataset.saveLeg;
+    const legNum = btn.dataset.legNum;
+    const row = box.querySelector(`.admin-leg-row[data-tie-id="${tieId}"][data-leg="${legNum}"]`);
+    const a = parseInt(row.querySelector(`.adm-leg${legNum}-a`).value, 10);
+    const b = parseInt(row.querySelector(`.adm-leg${legNum}-b`).value, 10);
+    if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) { alert(t("errorLegIncomplete")); return; }
+    const s2 = state();
+    s2.results.legs[tieId] = s2.results.legs[tieId] || {};
+    s2.results.legs[tieId][`leg${legNum}`] = { goalsA: a, goalsB: b };
+    saveState(s2);
+    showToast(t("legResultSaved"), "success");
+  }));
+  box.querySelectorAll("[data-edit-leg]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const tieId  = btn.dataset.editLeg;
+    const legNum = btn.dataset.legNum;
+    const s2 = state();
+    if (s2.results.legs[tieId]) delete s2.results.legs[tieId][`leg${legNum}`];
+    saveState(s2);
+  }));
+  box.querySelectorAll("[data-lock-tie]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const tieId    = btn.dataset.lockTie;
+    const aggHome  = parseInt(btn.dataset.aggHome, 10);
+    const aggAway  = parseInt(btn.dataset.aggAway, 10);
+    const block    = box.querySelector(`[data-tie-block="${tieId}"]`);
+    let adv;
+    if (aggHome === aggAway) {
+      adv = block.querySelector(".adm-advance")?.value;
+      if (!adv) { alert(t("errorAdvanceRequired")); return; }
+    } else {
+      adv = aggHome > aggAway ? "home" : "away";
+    }
     if (!confirm(t("confirmLockResults"))) return;
     const s2 = state();
-    s2.results.ties[tieId] = { goalsA: a, goalsB: b, advance: adv, lockedAt: new Date().toISOString() };
+    s2.results.ties[tieId] = { goalsA: aggHome, goalsB: aggAway, advance: adv, lockedAt: new Date().toISOString() };
     saveState(s2);
     showToast(t("resultsSaved"), "success");
   }));

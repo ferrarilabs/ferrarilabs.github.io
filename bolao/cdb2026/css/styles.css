@@ -358,6 +358,19 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .cdb-admin-tie input[type="number"] { width: 56px; text-align: center; }
 .cdb-admin-tie select { min-width: 140px; width: auto; }
 
+/* ── Admin results por perna (ida/volta) ── */
+.admin-tie-block { padding: 10px 0; border-bottom: 1px solid var(--border); }
+.admin-tie-block:last-child { border-bottom: 0; }
+.admin-tie-block .tie-teams-admin { font-weight: 700; color: var(--text); margin-bottom: 6px; }
+.admin-leg-row, .admin-tie-aggregate {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  padding: 6px 0 6px 10px; font-size: 13px;
+}
+.admin-leg-row input[type="number"] { width: 48px; text-align: center; }
+.admin-tie-aggregate { border-top: 1px dashed var(--border2); margin-top: 4px; padding-top: 8px; }
+.admin-tie-aggregate select { min-width: 140px; width: auto; }
+.leg-result-saved { color: var(--green); font-weight: 700; font-size: 13px; }
+
 /* ── Find-my-entry + receipt ── */
 .find-entry-card h3 { margin: 0 0 6px; font-size: 15px; }
 .receipt-code { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 3px 8px; font-size: 13px; }

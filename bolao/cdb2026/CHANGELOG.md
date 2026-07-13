@@ -1,5 +1,38 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v2.9 — 2026-07-13
+
+### Fixed — admin só deixava lançar o resultado do jogo de ida, não da volta
+
+Reportado por Eduardo. Causa: `renderAdminResults()` tinha só UM par de campos de placar por
+confronto, sem noção de "ida"/"volta" — era pensado como entrada direta do AGREGADO. Na
+prática isso obriga o admin a esperar os dois jogos acontecerem e somar o placar de cabeça
+antes de conseguir digitar qualquer coisa, e o campo único "parece" ser só do jogo de ida
+porque não há onde lançar o segundo placar.
+
+Fix: cada confronto agora tem duas linhas de entrada independentes — **Jogo 1 (ida)** e
+**Jogo 2 (volta)** — cada uma salva seu placar assim que aquele jogo termina
+(`s.results.legs[tieId].leg1`/`.leg2`, campo novo no estado). Assim que as duas pernas têm
+placar salvo, o agregado é calculado automaticamente e aparece um resumo com quem avança
+(ou, se o agregado empatar, um seletor manual — mesma regra da CBF sem gol fora de casa já
+usada no formulário de palpite: agregado empatado = pênaltis, imprevisível, o admin escolhe).
+Só o clique explícito em "Salvar e travar resultado" grava o resultado oficial, que continua
+sendo escrito em `s.results.ties[tieId]` **no mesmo formato de sempre** (`goalsA`, `goalsB`,
+`advance`, `lockedAt`) — nada mudou na leitura desse dado por `resolveOfficial()`, ranking,
+CSV ou qualquer outro consumidor. Destravar o resultado oficial não apaga mais o placar de
+cada perna (fica salvo para reaproveitar/corrigir), só o agregado travado.
+
+Também corrigido `mergeStates()`/`state()`/`emptyState()`, que descartavam silenciosamente
+`results.legs` num sync remoto (só carregavam `results.ties`) — não afetava nada hoje porque
+`database.enabled` ainda é `false` neste app, mas teria apagado o placar por perna assim que
+o Supabase fosse ativado.
+
+**Não toca em scoring/pontuação/ranking** — só na forma como o admin chega ao mesmo objeto de
+resultado que já existia. `node --check`: OK. `audit_scoring.py`: 5/5, sem impacto. Testado
+via Playwright: salvar Jogo 1, salvar Jogo 2, agregado calculado corretamente (inclusive caso
+empatado, exigindo escolha manual de quem avança), travar, destravar (pernas sobrevivem),
+sem erro de JS em nenhum passo; regressão em Ranking/Jogos/Probabilidades/Palpites limpa.
+
 ## v2.8 — 2026-07-13
 
 ### Fixed — escudo do time "nas pontas" em vez de flanquear o centro
