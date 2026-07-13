@@ -1,5 +1,5 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.0",
+  siteVersion: "v3.2",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -60,14 +60,28 @@ window.CDB2026_CONFIG = {
     limitRateMs: 30000
   },
   database: {
-    // Set to true after adding row id='cdb2026' in Supabase bolao_state table
-    enabled: false,
+    // REQUIRES the RLS policies on bolao_state to allow id='cdb2026' (they only allowed
+    // id='main' until 2026-07-13) — see docs/bolao/DATABASE_SETUP_SUPABASE.md "Múltiplos apps
+    // na mesma tabela". Until that SQL is run in Supabase, every read/write here silently no-ops
+    // (RLS rejects it, the local-first fallback swallows the error) — enabled:true alone is not
+    // enough to actually sync. Especially important here: this app now has real confrontos and
+    // real picks riding on it (ESPN sync, v3.1).
+    enabled: true,
     provider: "supabase",
     url: "https://cmhqkkfczotdnssupkni.supabase.co",
     anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
     table: "bolao_state",
     stateId: "cdb2026",
     localFallback: true
+  },
+  // Sincronização com a ESPN — só busca sob demanda (botão no admin), nunca grava nada sem
+  // confirmação humana. Diferente do BR2026 (polling automático de uma tabela de liga), a Copa
+  // do Brasil é mata-mata sem "ao vivo" contínuo — ver docs/bolao/CDB2026_RULES_AND_MODEL.md
+  // "Sincronização com ESPN". Slug encontrado via busca pública, não verificado com uma chamada
+  // direta (ambiente sem acesso de rede a hosts externos) — testar no primeiro uso real.
+  espn: {
+    leagueSlug: "bra.copa_do_brazil",
+    scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard?dates=20260101-20261231&limit=500",
   },
   transparency: {
     disclaimer: "Bolão informal entre amigos. Comprovantes individuais e backups servem como evidência. Sem responsabilidade por dados externos, APIs ou falhas de terceiros."

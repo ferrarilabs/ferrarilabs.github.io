@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.23",
+  siteVersion: "v1.25",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -52,8 +52,12 @@ window.BR2026_CONFIG = {
     limitRateMs: 30000
   },
   database: {
-    // Set to true after adding row id='br2026' in Supabase bolao_state table
-    enabled: false,
+    // REQUIRES the RLS policies on bolao_state to allow id='br2026' (they only allowed
+    // id='main' until 2026-07-13) — see docs/bolao/DATABASE_SETUP_SUPABASE.md "Múltiplos apps
+    // na mesma tabela". Until that SQL is run in Supabase, every read/write here silently no-ops
+    // (RLS rejects it, the local-first fallback swallows the error) — enabled:true alone is not
+    // enough to actually sync.
+    enabled: true,
     provider: "supabase",
     url: "https://cmhqkkfczotdnssupkni.supabase.co",
     anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",

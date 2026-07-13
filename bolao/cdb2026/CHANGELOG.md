@@ -1,5 +1,64 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.2 — 2026-07-13
+
+### Changed — Supabase habilitado (`database.enabled: true`)
+
+Eduardo pediu para não deixar dados só em `localStorage` — especialmente relevante agora que este
+app tem confrontos e picks reais em jogo (ESPN sync, v3.1). `database.enabled` ligado
+(`js/config.js`), mesmo projeto/tabela Supabase que a Copa já usa (`bolao_state`, linha própria
+via `stateId: "cdb2026"`). `localFallback: true` mantido — local-first com espelho remoto, não
+substituído por dependência exclusiva do Supabase.
+
+**Ação pendente do lado do Supabase (fora do alcance desta sessão):** as policies de RLS só
+liberavam `id='main'` — SQL para estender aos três apps em
+`docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela", precisa ser rodado uma
+vez no painel do Supabase por Eduardo. Até lá, o app continua funcionando normalmente em modo
+local (testado com a resposta do Supabase mockada como 403 — nenhum erro não tratado, nenhuma
+perda de dado local).
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto (mudança de infraestrutura, não de
+scoring).
+
+## v3.1 — 2026-07-13
+
+### Added — sincronização com a ESPN no admin ("Buscar da ESPN")
+
+Eduardo reportou que os confrontos "desapareceram" depois da reformulação v3.0 — comportamento
+esperado do novo modelo (fases começam vazias, `data.js` não tem mais bracket fixo, ver v3.0
+abaixo), mas frustrante de popular manualmente jogo a jogo. Pediu para buscar os dados reais e
+também automatizar a atualização após cada sorteio.
+
+**Nova ferramenta no admin** ("Fases e confrontos" → "Sincronizar com a ESPN"): busca sob
+demanda no scoreboard da ESPN (`site.api.espn.com`, liga `bra.copa_do_brazil`), lista os jogos
+encontrados (times, data, placar se já finalizado) e deixa o admin escolher a fase e confirmar
+cada confronto individualmente antes de qualquer gravação — **nada é salvo automaticamente**.
+Jogos cujo par de times já existe em alguma fase aparecem marcados "já cadastrado" e não são
+oferecidos de novo. Partida única já finalizada na ESPN tem o placar pré-preenchido no mesmo
+formato usado pelo lançamento manual de resultado (evita redigitar).
+
+Desenho deliberadamente diferente do polling automático em segundo plano do BR2026: a Copa do
+Brasil é mata-mata sem "ao vivo" contínuo a manter sincronizado, e cada confronto aqui decide
+dinheiro real — um clique explícito do admin por confronto é mais seguro que qualquer gravação
+silenciosa. Ver `docs/bolao/CDB2026_RULES_AND_MODEL.md` "Sincronização com ESPN".
+
+**Limitação registrada:** o ambiente onde este recurso foi desenvolvido não tem acesso de rede a
+hosts externos (`site.api.espn.com` bloqueado pela política de proxy do sandbox), então o slug
+`bra.copa_do_brazil` foi confirmado apenas via busca pública (não testado com uma chamada real) —
+**testar no primeiro uso real, no navegador do Eduardo.** Também corrigido, no mesmo commit, um
+bug real e independente: a CSP do `index.html` do CDB2026 não incluía `site.api.espn.com` em
+`connect-src` — sem essa correção, o fetch teria sido bloqueado pelo próprio navegador mesmo em
+produção, com ou sem sandbox.
+
+Testado via mock do endpoint da ESPN (Playwright): busca lista candidatos corretamente, ordena
+por data, times já cadastrados não se repetem, criação de confronto TWO_LEG não inventa placar
+para jogo ainda não realizado, confronto SINGLE_MATCH com placar final da ESPN pré-preenche o
+resultado, e o confronto aparece na aba Jogos assim que adicionado — 8/8 testes passando.
+
+`node --check`: OK (12 arquivos, 3 apps). `audit_scoring.py`: 5/5, sem impacto — nenhuma fórmula
+de pontuação ou critério oficial foi alterado, só a origem dos dados de confronto (ESPN em vez de
+digitação manual, sempre confirmada pelo admin).
+
 ## v3.0 — 2026-07-13
 
 ### Reformulação completa do modelo — bracket fixo estava errado para a Copa do Brasil real

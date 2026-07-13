@@ -175,5 +175,16 @@ window.CDB2026_I18N = {
     adminTieAdded: "Confronto adicionado!",
     adminTieHasResults: "já tem resultado lançado",
     confirmRemoveTie: "Remover este confronto? Só é possível antes de qualquer resultado lançado.",
+    // Admin — sincronização com ESPN
+    espnSyncTitle: "Sincronizar com a ESPN",
+    espnSyncDisclaimer: "Busca sob demanda — nada é salvo automaticamente. Revise cada confronto e escolha a fase antes de adicionar.",
+    espnSyncFetch: "🔄 Buscar jogos da ESPN",
+    espnSyncFetching: "Buscando…",
+    espnSyncHint: "Clique em \"Buscar jogos da ESPN\" para ver os confrontos disponíveis.",
+    espnSyncError: "Não foi possível buscar da ESPN agora — tente novamente em instantes.",
+    espnSyncEmpty: "Nenhum jogo encontrado na ESPN no momento.",
+    espnSyncAlready: "já cadastrado",
+    espnSyncAdd: "Adicionar",
+    espnSyncAdded: "Confronto adicionado a partir da ESPN!",
   },
 };

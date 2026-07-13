@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' https://cdn.jsdelivr.net;
-    connect-src 'self' https://api.emailjs.com https://*.supabase.co;
+    connect-src 'self' https://api.emailjs.com https://*.supabase.co https://site.api.espn.com;
     img-src 'self' data: https://a.espncdn.com;
     style-src 'self' 'unsafe-inline';
     worker-src 'self';
@@ -204,6 +204,7 @@
           <button id="clearDataBtn"    type="button" class="danger small-btn" data-i18n="clearDataBtn">🗑️ Limpar tudo</button>
         </div>
       </div>
+      <div id="adminEspnSync" class="card"></div>
       <div id="adminPhases"   class="card"></div>
       <div id="adminResults"  class="card"></div>
       <div id="adminPayments" class="card"></div>

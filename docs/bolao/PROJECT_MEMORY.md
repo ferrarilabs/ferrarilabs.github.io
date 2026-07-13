@@ -522,7 +522,7 @@ apps (`PLATFORM_GOVERNANCE.md`: diferenças de torneio devem ser preservadas).
 
 | API | Uso | Status |
 |---|---|---|
-| Supabase REST | Persistência remota (espelho do estado) | Ativa nos 3 apps (Copa `enabled:true`; BR2026/CDB2026 `enabled:false`, aguardando linha) |
+| Supabase REST | Persistência remota (espelho do estado) | Ativa nos 3 apps desde 2026-07-13 (`enabled:true` em Copa, BR2026 e CDB2026 — mesmo projeto/tabela `bolao_state`, uma linha por app via `stateId`). Depende de uma alteração de RLS ainda pendente do lado do Supabase — ver `docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" |
 | EmailJS | Envio de comprovante/notificação | Ativa na Copa; config presente mas sem UI dedicada de notificação admin em BR2026/CDB2026 |
 | ESPN (não oficial) | Placar ao vivo, relógio, período, artilheiros, probabilidade (fallback) | Ativa na Copa (poll dinâmico) e BR2026 (poll 60s); ausente em CDB2026 (sem API externa, dados estáticos) |
 | API-Football (api-sports.io) | Polling opcional de resultados finais, aplica ao bracket sem sobrescrever entrada manual | Desabilitada por padrão nos 3 apps (`enabled:false`, `apiKey:""`); free tier 100 req/dia |
@@ -679,6 +679,48 @@ puras e com baseline documentada) em `docs/bolao/BR2026_LIVE_STANDINGS.md`. Como
 do escopo confirmado por Eduardo, também corrigidos: matching de partida por `ev.id` estável da
 ESPN (antes só por nome de time) e uso do flag `postponed` (já existia, nunca era lido) para
 excluir jogos adiados/cancelados do cálculo ao vivo.
+
+### Texto confuso nas Regras do BR2026 + confrontos "sumidos" do CDB2026 (2026-07-13)
+
+Dois reports separados no mesmo dia, apps diferentes, não misturados:
+
+- **BR2026**: `"🥇 1º Lugar (no G4 (posição errada))"` — parênteses duplicados. Causa:
+  `renderRules()` já envolve `t("rulesInG4")`/`t("rulesInZ4")` em parênteses; as strings de
+  `i18n.js` traziam parênteses próprios. Corrigido removendo o nível interno (v1.24). Sem
+  equivalente em Copa/CDB2026 (não têm conceito de G4/Z4), nada a propagar.
+- **CDB2026**: Eduardo viu os confrontos "desaparecidos" — comportamento esperado da reformulação
+  v3.0 (fases começam vazias por design, ver seção anterior), mas frustrante para popular
+  manualmente. Pediu para buscar dados reais da Copa do Brasil 2026 e automatizar após sorteios.
+  **Limitação descoberta durante a investigação**: o ambiente de desenvolvimento não tem acesso
+  de rede a hosts externos (proxy do sandbox bloqueia `site.api.espn.com`, `cbf.com.br`,
+  `wikipedia.org` — só uma ferramenta de busca via backend interno funciona, sem fetch direto).
+  Resolvido com uma ferramenta de sincronização sob demanda no admin ("Buscar da ESPN") em vez de
+  tentar popular dados às cegas a partir de resumos de busca — o admin, no próprio navegador
+  (com acesso de rede real), busca, revisa e confirma cada confronto individualmente antes de
+  qualquer gravação. Ver `docs/bolao/CDB2026_RULES_AND_MODEL.md` seção 7. Encontrado de brinde:
+  a CSP do CDB2026 nunca teve `site.api.espn.com` liberado em `connect-src` — teria bloqueado o
+  fetch em produção mesmo sem o sandbox; corrigido no mesmo commit (v3.1).
+
+### Supabase habilitado em BR2026 e CDB2026 (2026-07-13)
+
+Eduardo pediu para não deixar nada só em `localStorage` — motivado, no contexto imediato, pelo
+CDB2026 agora ter confrontos e picks reais em jogo (ESPN sync, v3.1). `database.enabled: true`
+ligado nos dois apps (`js/config.js`), mantendo `localFallback: true` — a arquitetura
+"local-first com espelho remoto" **não foi removida**, só passou a ter os três apps
+espelhando de fato, igual à Copa já fazia. Removê-la inteiramente (fazer o app depender só do
+Supabase, sem fallback) seria uma mudança de confiabilidade na direção errada — se o Supabase
+cair, os apps parariam de funcionar em vez de continuar localmente — e não é o que foi pedido;
+interpretação confirmada explicitamente com Eduardo antes de implementar.
+
+**Achado durante a auditoria**: os três apps compartilham o mesmo projeto/tabela Supabase
+(`bolao_state`), diferenciados só por `stateId`. As policies de RLS existentes só liberavam
+`id = 'main'` (só a Copa) — ligar o flag sozinho não sincroniza nada até essa policy ser
+estendida. Testado (Playwright, resposta 403 mockada): com a RLS ainda restrita, os dois apps
+continuam funcionando normalmente em modo local, sem crash e sem perda de dado — falha de forma
+segura, mas silenciosa. SQL para estender a RLS aos três ids entregue a Eduardo em
+`docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" — precisa ser rodado
+manualmente no painel do Supabase (fora do alcance desta sessão, sem acesso de rede a hosts
+externos, incluindo `supabase.co`).
 
 ---
 

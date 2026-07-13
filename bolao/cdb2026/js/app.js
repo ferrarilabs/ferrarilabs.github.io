@@ -1086,10 +1086,125 @@ function renderFooter() {
 function renderAdmin() {
   if (!isAdminActive()) return;
   const s = state();
+  renderAdminEspnSync(s);
   renderAdminPhases(s);
   renderAdminResults(s);
   renderAdminPayments(s);
   renderAdminEntries(s);
+}
+
+// ─── Sincronização com ESPN (sob demanda, admin confirma cada confronto) ─────────────────────
+// Nunca escreve no estado sem um clique explícito do admin em cada linha — ver comentário em
+// config.js e docs/bolao/CDB2026_RULES_AND_MODEL.md "Sincronização com ESPN". Diferente do
+// BR2026 (polling automático contínuo de uma tabela de liga), aqui é busca pontual: o admin
+// clica quando um sorteio sai, revisa a lista, e decide o que entra em qual fase.
+let _espnCandidates = null; // null = nunca buscou; [] = buscou, nada encontrado; [...] = resultados
+
+async function fetchEspnCandidates() {
+  const url = C.espn?.scoreboardUrl;
+  if (!url) return null;
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const r = await fetch(url, { signal: ctrl.signal });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return (data.events || []).map(ev => {
+      const comp = ev.competitions?.[0];
+      if (!comp) return null;
+      const comps = comp.competitors || [];
+      const home  = comps.find(c => c.homeAway === "home") || comps[0];
+      const away  = comps.find(c => c.homeAway === "away") || comps[1];
+      const evState = comp.status?.type?.state || "pre";
+      return {
+        id: ev.id,
+        dateISO: comp.date || ev.date || "",
+        homeTeam: home?.team?.displayName || "",
+        awayTeam: away?.team?.displayName || "",
+        homeScore: evState === "post" && home?.score != null ? parseInt(home.score, 10) : null,
+        awayScore: evState === "post" && away?.score != null ? parseInt(away.score, 10) : null,
+      };
+    }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
+      .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
+  } catch (err) {
+    console.warn("[CDB2026] ESPN fetch failed", err);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+function renderAdminEspnSync(s) {
+  const box = $("adminEspnSync");
+  if (!box) return;
+
+  const existingPairs = new Set();
+  Object.values(s.phases || {}).forEach(ph => Object.values(ph.ties || {}).forEach(tie => {
+    if (tie.teamA && tie.teamB) existingPairs.add([tie.teamA, tie.teamB].sort().join("|"));
+  }));
+
+  const phaseOptions = DATA.phases.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
+
+  let listHtml = "";
+  if (_espnCandidates === null) {
+    listHtml = `<p class="muted small-text">${esc(t("espnSyncHint"))}</p>`;
+  } else if (_espnCandidates === "error") {
+    listHtml = `<p class="muted small-text">${esc(t("espnSyncError"))}</p>`;
+  } else if (!_espnCandidates.length) {
+    listHtml = `<p class="muted small-text">${esc(t("espnSyncEmpty"))}</p>`;
+  } else {
+    listHtml = _espnCandidates.map((ev, i) => {
+      const already = existingPairs.has([ev.homeTeam, ev.awayTeam].sort().join("|"));
+      const dateStr = ev.dateISO ? new Date(ev.dateISO).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }) : t("gamesTbd");
+      const scoreStr = ev.homeScore != null ? ` — ${ev.homeScore} × ${ev.awayScore}` : "";
+      return `<div class="admin-row espn-candidate-row" data-espn-idx="${i}">
+        <span class="tie-teams-admin">${esc(ev.homeTeam)} × ${esc(ev.awayTeam)}<span class="muted small-text"> — ${esc(dateStr)}${scoreStr}</span></span>
+        ${already
+          ? `<span class="muted small-text">${esc(t("espnSyncAlready"))}</span>`
+          : `<select class="espn-candidate-phase" aria-label="${esc(t("adminPhasesTitle"))}">${phaseOptions}</select>
+             <button type="button" class="small-btn" data-espn-add="${i}">${esc(t("espnSyncAdd"))}</button>`}
+      </div>`;
+    }).join("");
+  }
+
+  box.innerHTML = `
+    <h3>${esc(t("espnSyncTitle"))}</h3>
+    <p class="muted small-text">${esc(t("espnSyncDisclaimer"))}</p>
+    <div class="button-row" style="margin:10px 0">
+      <button type="button" id="espnSyncFetchBtn" class="secondary small-btn">${esc(t("espnSyncFetch"))}</button>
+    </div>
+    ${listHtml}`;
+
+  $("espnSyncFetchBtn")?.addEventListener("click", async () => {
+    if (!guardAdmin()) return;
+    const btn = $("espnSyncFetchBtn");
+    btn.disabled = true; btn.textContent = t("espnSyncFetching");
+    const result = await fetchEspnCandidates();
+    _espnCandidates = result === null ? "error" : result;
+    renderAdminEspnSync(state());
+  });
+
+  box.querySelectorAll("[data-espn-add]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const idx = parseInt(btn.dataset.espnAdd, 10);
+    const ev  = _espnCandidates[idx];
+    const row = box.querySelector(`.espn-candidate-row[data-espn-idx="${idx}"]`);
+    const phaseId = row.querySelector(".espn-candidate-phase").value;
+    if (!ev || !phaseId) return;
+    const format = getPhaseDef(phaseId).format;
+    const tie = { teamA: ev.homeTeam, teamB: ev.awayTeam, matches: {}, qualifiedTeamId: null };
+    legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
+    // Partida única já finalizada na ESPN: preenche o placar direto, mesmo caminho usado pelo
+    // salvamento manual de perna — evita o admin redigitar um resultado que já veio pronto.
+    if (format === "SINGLE_MATCH" && ev.homeScore != null) {
+      tie.matches.single = { homeTeam: ev.homeTeam, awayTeam: ev.awayTeam, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL" };
+    }
+    const s2 = state();
+    s2.phases[phaseId].ties[uuid()] = tie;
+    saveState(s2);
+    showToast(t("espnSyncAdded"), "success");
+    renderAdminEspnSync(state());
+  }));
 }
 
 function toLocalDatetimeValue(iso) {

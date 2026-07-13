@@ -72,6 +72,47 @@ Open the site in two different browsers simultaneously. Create an entry in one �
 
 Set `enabled: false` in `config.js` and redeploy. Local data is unaffected.
 
+## Múltiplos apps na mesma tabela (2026-07-13)
+
+Os três apps (Copa, BR2026, CDB2026) compartilham o **mesmo projeto e a mesma tabela**
+`bolao_state` do Supabase — a URL e a `anonKey` em `js/config.js` são idênticas nos três,
+diferenciados só pelo `stateId` (`main` / `br2026` / `cdb2026`, uma linha por app). Isso já
+estava assim desde que BR2026/CDB2026 foram criados (`database.enabled: false`, aguardando este
+passo), não é uma tabela nova.
+
+As policies de RLS documentadas na seção 3 acima só liberavam `id = 'main'` (só a Copa). Com
+`database.enabled: true` agora também em BR2026 e CDB2026 (2026-07-13), rode isto uma vez no SQL
+Editor do Supabase para estender as três policies aos três ids:
+
+```sql
+drop policy if exists "allow anon read"   on public.bolao_state;
+drop policy if exists "allow anon insert" on public.bolao_state;
+drop policy if exists "allow anon update" on public.bolao_state;
+
+create policy "allow anon read"
+  on public.bolao_state for select to anon
+  using (id in ('main', 'br2026', 'cdb2026'));
+
+create policy "allow anon insert"
+  on public.bolao_state for insert to anon
+  with check (id in ('main', 'br2026', 'cdb2026'));
+
+create policy "allow anon update"
+  on public.bolao_state for update to anon
+  using (id in ('main', 'br2026', 'cdb2026'))
+  with check (id in ('main', 'br2026', 'cdb2026'));
+```
+
+Não é preciso inserir as linhas `br2026`/`cdb2026` manualmente — o primeiro `saveState()` de cada
+app faz um upsert (`Prefer: resolution=merge-duplicates`) que cria a linha sozinho, assim que a
+policy acima permitir.
+
+**Antes de rodar este SQL**, `database.enabled: true` em BR2026/CDB2026 não quebra nada — a RLS
+rejeita a operação (403), e o fallback local-first absorve o erro silenciosamente (sem crash, sem
+perda de dado local, mas também sem sincronizar de fato). Testado via Playwright com a resposta
+da Supabase mockada como 403. Depois de rodar o SQL, teste como na seção 6 acima (duas abas, uma
+entrada em cada app).
+
 ## Merge behavior
 
 `app.js` uses merge-before-save:

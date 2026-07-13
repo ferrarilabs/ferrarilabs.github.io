@@ -329,3 +329,43 @@ precisa de confirmação explícita antes de decidir a estratégia de migração
 continua sendo rodado e reportado (não afeta CDB2026 hoje, mas é regra permanente do
 repositório — confirmar que nenhuma mudança vazou para `bolao/js/data.js` ou
 `bolao/js/config.js`).
+
+## 7. Sincronização com ESPN (v3.1, 2026-07-13)
+
+Depois da reformulação v3.0, as fases começam vazias (`data.js` não tem mais bracket
+hardcoded — ver seção 3). Eduardo pediu para popular os confrontos reais e automatizar isso após
+cada sorteio. Decisão de design:
+
+- **Busca sob demanda, não polling automático em segundo plano.** A Copa do Brasil é mata-mata:
+  não existe uma tabela/"ao vivo" contínuo a manter sincronizado como no BR2026. O admin clica
+  "Buscar da ESPN" quando um sorteio sai; a ferramenta busca o scoreboard
+  (`site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard`) e lista
+  candidatos.
+- **Nunca grava sem confirmação humana por confronto.** Cada linha da lista tem seu próprio
+  seletor de fase e botão "Adicionar" — o admin decide o que entra em qual fase. Isso é
+  deliberado: cada confronto aqui decide dinheiro real, e o app não tem visibilidade própria do
+  agrupamento de fases da ESPN (não foi possível verificar diretamente — ver limitação abaixo) —
+  confiar no julgamento do admin para essa etapa é mais seguro que qualquer heurística automática
+  de "qual fase é essa".
+- **Dedup por par de times.** Um confronto cujo par de times já existe em qualquer fase aparece
+  marcado "já cadastrado" e não é oferecido de novo — evita duplicar ao clicar "Buscar" mais de
+  uma vez.
+- **Prefill de placar só quando já é fato consumado.** Se a ESPN já marca a partida como
+  finalizada (`state: "post"`, com placar) E a fase é `SINGLE_MATCH`, o resultado é
+  pré-preenchido no mesmo formato usado pelo lançamento manual — não há ambiguidade a confirmar
+  nesse caso (o jogo já aconteceu). Para `TWO_LEG`, os placares de cada perna continuam manuais
+  (o admin já tem essa tela em "Resultados"), para não arriscar casar a perna errada
+  automaticamente.
+
+**Limitação conhecida:** o slug `bra.copa_do_brazil` foi confirmado apenas via busca pública
+(WebSearch), não por uma chamada real ao endpoint — o ambiente de desenvolvimento não tinha
+acesso de rede a hosts externos (política de proxy do sandbox bloqueou `site.api.espn.com`,
+`cbf.com.br`, `wikipedia.org` e qualquer outro host arbitrário). **Testar no primeiro uso real.**
+Se o slug estiver errado ou a ESPN não cobrir bem a Copa do Brasil, a busca simplesmente retorna
+vazio ou erro (mensagem visível no admin) — não há caminho silencioso de falha que grave dado
+errado.
+
+Também corrigido no mesmo commit: a CSP (`Content-Security-Policy`) do `index.html` do CDB2026
+não incluía `site.api.espn.com` em `connect-src` — sem essa correção, qualquer fetch a esse host
+teria sido bloqueado pelo próprio navegador do Eduardo em produção, independente do sandbox. Bug
+real, pré-existente, encontrado ao testar esta feature.
