@@ -91,27 +91,54 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 67 | Badge/status indicator (jogo ao vivo/finalizado, pagamento) | `.status-chip` — pílula, agora tokenizada (`var(--green)`/`var(--red)`, era hex literal) | `.game-status` — agora pílula (era texto puro); `.paid-badge` — `border-radius:999px`/`padding:4px 10px`/`weight:900` | `.paid-badge` — mesmo tratamento; sem chip de status de jogo (sem API ao vivo, gap distinto) | Sim — mesmo conceito semântico | CONSISTENT | Resolvido em v4.127/v1.17/v2.3 — mesma paleta/formato de pílula nos três; nomes de classe mantidos por app (custo de renomear no JS > benefício), só a CSS convergiu | — | CDB2026 sem chip de jogo ao vivo continua como gap de feature (não de componente), ver item 24 |
 | 68 | Estrutura do card de Ranking | `.rank-row` — grid denso de 1 linha, detalhe expansível por clique | `.rank-row`/`.picks-detail` — adotado em v1.17, mesmo padrão da Copa (`_openRankDetails`, toggle) | `.rank-row`/`.picks-detail` — adotado em v2.3, idêntico | Sim — é a tela mais visitada pós-cutoff nos três apps | CONSISTENT | Resolvido — BR2026/CDB2026 reescreveram `renderRanking()` para gerar `.rank-row` + `.picks-detail` como elementos irmãos, igual à Copa; `renderPickDisplay()` (conteúdo do detalhe) não mudou, só passou a ficar escondido por padrão | — | Badge de pagamento (ausente na Copa) inserido dentro da célula de nome, não como 5ª coluna — mantém o grid de 4 colunas da Copa intacto |
 | 69 | Sistema de toast não-bloqueante | `.bolao-toast`/`showToast()` — original | Portado em v1.17 (mesma implementação, copiada de `bolao/js/app.js`) | Portado em v2.3 (idem) | Recomendado | CONSISTENT | Resolvido — `alert()` convertido para toast em confirmações/erros que não são validação de formulário (essas continuam `alert()`, igual à Copa); CDB2026 também aproveitou pra parar de duplicar o código do comprovante no alert, já que `renderReceiptBox()` mostra persistente | — | — |
+| 70 | `main` max-width | `1140px` | `1140px` desde v1.18 (era `860px`) | `1140px` desde v2.4 (era `860px`) | Sim — Copa é a referência canônica (regra em `CLAUDE.md`) | CONSISTENT | Resolvido — todos os grids internos usam `fr`/`auto-fill`, nenhum overflow introduzido | — | — |
+| 71 | Card de jogo (lista pública) | `.game-card` — card completo (`background`/`border`/`radius:16px`) | `.game-card` — card completo desde v1.19 (era lista plana só com `border-bottom`) | `.confronto-card card` — já usava a classe `.card` compartilhada, nenhuma mudança necessária | Sim | CONSISTENT | Resolvido no BR2026 | — | — |
+| 72 | Grid de time×placar×time no card de jogo | `.game-teams { grid: 1fr auto 1fr }` — centro sempre alinhado | `.game-matchup` migrado pra grid `1fr auto 1fr` em v1.19 (era `flex justify-content:center`, centro desalinhava com nomes de tamanhos diferentes) | `.confronto-header`/`.leg` já usam layout próprio adequado ao formato ida+volta (tournament-specific) | Sim para BR2026 (mesmo formato de partida única da Copa); CDB2026 tem formato de confronto ida+volta, estrutura interna é diferente por natureza dos dados | CONSISTENT (Copa↔BR2026); INTENTIONALLY_DIFFERENT (CDB2026, ida+volta) | Resolvido no BR2026 | — | — |
+| 73 | Card de pagamento — ícone por método | `.pay-card` com `.pay-icon`/`payIcon()` (SVG por método) | Adicionado em v1.19 (não tinha ícone nenhum) | Adicionado em v2.5 (idem) | Sim | CONSISTENT | Resolvido — `cashapp.svg`/`venmo.svg` copiados dos assets reais da Copa para os dois apps, `zelle-qr.png` já existia | — | — |
+| 74 | `.pay-grid` — nº de colunas | `repeat(3, 1fr)` fixo | `repeat(3,1fr)` desde v1.19 (era `auto-fill, minmax(200px,1fr)`) | `repeat(3,1fr)` desde v2.5 (idem) | Sim — os três apps têm exatamente 3 métodos de pagamento | CONSISTENT | Resolvido | — | — |
+| 75 | Texto do botão WhatsApp | "Suporte WhatsApp" | "Suporte WhatsApp" desde v1.19 (era só "WhatsApp") | "Suporte WhatsApp" desde v2.5 (idem) | Sim | CONSISTENT | Resolvido | — | — |
+| 76 | `input[type=number]` — spinner nativo | Suprimido (`-webkit-appearance:none` nos spin-buttons) desde v4.128 | Suprimido desde v1.19 | Suprimido desde v2.5 | Sim | CONSISTENT | Resolvido nos três ao mesmo tempo | — | — |
+| 77 | `.admin-toolbar` — gap/margin | `gap:8px; margin-bottom:14px` | Alinhado (era `6px`/`8px`) | Alinhado (era `6px`/`8px`) | Sim | CONSISTENT | Resolvido — diferença de 2px/6px, baixo impacto visual mas corrigido para exatidão | — | — |
+| 78 | `.admin-row` — lista vs. card | `<div class="card admin-entry">` — cada linha é um card completo | `.admin-row` — lista densa com `border-bottom`, não é card | `.admin-row` — idem BR2026 | Recomendado pela regra de referência canônica, mas admin tem densidade de dados maior (lista de entradas pode ser longa) e é área de baixa visibilidade (só o Eduardo usa) | NEEDS_REVIEW | **Não resolvido nesta rodada** — decisão consciente de manter lista densa em vez de virar N cards separados, dado o volume de linhas e o contexto admin-only; reavaliar se algum dia a lista de participantes crescer muito | Low | Se decidir padronizar, converter para `<div class="card admin-entry">` por linha, igual à Copa |
+| 79 | Tabela do Brasileirão — colunas (BR2026 apenas) | N/A — Copa não tem tabela de classificação (torneio é mata-mata) | V/E/D/GP/GC/SG adicionados em v1.19 (só tinha Pos/Time/Pts) | N/A — CDB2026 não tem standings (sem API ao vivo) | Tournament-specific — não existe equivalente na Copa pra comparar | INTENTIONALLY_DIFFERENT | Resolvido como bug funcional (dado já vinha da ESPN, só não era exibido), não como divergência cross-app | — | — |
 
 ## Resumo por severidade
 
 | Severidade | Quantidade |
 |---|---|
 | Critical | 0 |
-| High | 3 (itens 1, 8/9/10 combinados — item 69/toast saiu desta contagem, resolvido) |
+| High | 3 (itens 1, 8/9/10 combinados) |
 | Medium | 10 |
-| Low | 15 |
-| Sem severidade (CONSISTENT/INTENTIONALLY_DIFFERENT sem ação) | 41 |
+| Low | 16 (item 78/`.admin-row` entrou nesta rodada) |
+| Sem severidade (CONSISTENT/INTENTIONALLY_DIFFERENT sem ação) | 50 |
 
 ## Resumo por status
 
 | Status | Quantidade |
 |---|---|
-| CONSISTENT | 41 |
-| INTENTIONALLY_DIFFERENT | 13 |
+| CONSISTENT | 48 |
+| INTENTIONALLY_DIFFERENT | 14 |
 | MISSING | 0 |
 | OUTDATED | 0 |
-| NEEDS_REVIEW | 14 |
+| NEEDS_REVIEW | 15 |
 | CRITICAL_DIVERGENCE | 0 |
+
+### Progresso — Copa como referência visual canônica (v4.128 / v1.19 / v2.5)
+
+Itens resolvidos: 70 (`main` max-width), 71 (card de jogo no BR2026), 72 (grid time×placar no
+BR2026), 73 (ícone no card de pagamento), 74 (`.pay-grid` 3 colunas), 75 (texto do botão
+WhatsApp), 76 (spinner de input numérico), 77 (`.admin-toolbar` gap/margin). Item 78
+(`.admin-row` vs. card por linha) fica registrado como `NEEDS_REVIEW`, decisão consciente de
+não converter nesta rodada — ver a linha para o racional. Item 79 é uma correção funcional da
+tabela do Brasileirão (dado que a ESPN já fornecia e não estava sendo exibido), não uma
+divergência cross-app, classificado `INTENTIONALLY_DIFFERENT` porque a Copa não tem
+equivalente (mata-mata não tem tabela de classificação).
+
+Junto com bugs reais encontrados testando o CDB2026 ao vivo (não fazem parte da comparação com
+a Copa, mas foram corrigidos na mesma leva): ordem de mandante/visitante no jogo de volta,
+escudo faltando nas linhas de jogo individuais, card de edição de entrada não escondendo por
+completo, layout do palpite por confronto reorganizado numa linha, e a automação da regra real
+da CBF pra "quem avança" (trava em vitória simples, destrava em empate agregado).
 
 ### Progresso — patches mínimos do DESIGN_SYSTEM.md (v4.126 / v1.16 / v2.2)
 

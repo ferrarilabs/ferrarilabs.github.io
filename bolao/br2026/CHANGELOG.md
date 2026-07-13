@@ -1,5 +1,21 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.20 — 2026-07-13
+
+### Fixed — fechamento da tarefa "Copa como referência canônica"
+
+- `.admin-toolbar` gap/margin alinhados com a Copa (`8px`/`14px`, era `6px`/`8px`).
+- `.admin-row` (lista de entradas/pagamentos no admin) **mantido** como lista densa em vez de
+  virar um card por linha como a Copa — decisão consciente registrada em
+  `docs/bolao/CONSISTENCY_MATRIX.md` item 78 (densidade de dados + área admin-only de baixa
+  visibilidade), não uma omissão.
+
+Ver `docs/bolao/DESIGN_SYSTEM.md` para a tabela de mapeamento completa desta rodada e a
+tabela de validação (com a ressalva de que não houve captura visual real — sem navegador
+disponível neste sandbox, tudo verificado por leitura de CSS).
+
+`audit_scoring.py`: 5/5 — só CSS.
+
 ## v1.19 — 2026-07-12
 
 ### Fixed — bugs reais reportados testando o site ao vivo

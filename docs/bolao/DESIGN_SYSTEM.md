@@ -484,3 +484,56 @@ abaixo.
   `max-width:480px` e `min-width:901px` nos três apps (idênticos entre si) — qualquer
   largura pedida cai dentro de um desses buckets, mas o comportamento *visual* dentro de cada
   bucket não foi capturado.
+
+---
+
+## Copa como referência visual canônica — mapeamento por componente (2026-07-13)
+
+Ver a regra permanente em `CLAUDE.md` ("Copa do Mundo 2026 é a referência visual canônica").
+Tabela de mapeamento da rodada que padronizou header/nav, botões, formulários, cards, jogos/
+times, ranking, pagamento e badges/status contra a Copa. Componentes já cobertos nas seções
+acima (Botão, Input, Card, Badge, Header, Ranking) não são repetidos aqui.
+
+| Componente | Referência (Copa) | BR2026 (antes → depois) | CDB2026 (antes → depois) | Risco | Intencional? |
+|---|---|---|---|---|---|
+| `main` max-width | `1140px` | `860px` → `1140px` | `860px` → `1140px` | Baixo — todos os grids internos usam `fr`/`auto-fill` | Não |
+| Card de jogo | `.game-card` (background/border/radius) | Lista plana (`border-bottom`) → card completo | Já era card (`.confronto-card card`) | Baixo — só CSS, classe já usada no JS | Não |
+| Grid time×placar | `.game-teams { 1fr auto 1fr }` | `.game-matchup` flex→grid | N/A — formato ida+volta é estrutura própria do torneio | Baixo (BR2026); N/A (CDB2026) | Não (BR2026); Sim (CDB2026, dados diferentes) |
+| Card de pagamento | `.pay-card` com `.pay-icon` | Sem ícone → ícone (`payIcon()` portado) | Sem ícone → ícone (idem) | Baixo — assets reais copiados, não inventados | Não |
+| `.pay-grid` colunas | `repeat(3,1fr)` | `auto-fill,minmax(200px,1fr)` → `repeat(3,1fr)` | idem | Nenhum — os 3 apps têm exatamente 3 métodos | Não |
+| Texto do botão WhatsApp | "Suporte WhatsApp" | "WhatsApp" → "Suporte WhatsApp" | idem | Nenhum | Não |
+| Spinner de `input[type=number]` | Suprimido | Ausente → suprimido | idem | Nenhum | Não |
+| `.admin-toolbar` gap/margin | `8px`/`14px` | `6px`/`8px` → `8px`/`14px` | idem | Nenhum | Não |
+| `.admin-row` (lista de entradas) | `.card.admin-entry` por linha | Lista densa `border-bottom` (mantido) | idem | — (não alterado) | **Sim, por ora** — densidade de dados admin, ver item 78 da matrix |
+| Tabela de standings | N/A (Copa é mata-mata) | Só Pos/Time/Pts → +V/E/D/GP/GC/SG | N/A (sem API ao vivo) | Baixo — dado já vinha da ESPN | Sim — torneio sem equivalente na Copa |
+
+## Validação visual pós-implementação — limitação e método real usado
+
+**Não foi possível capturar screenshots reais nos viewports pedidos (375/390/768/1200/1440px)
+nem comparar lado a lado em Safari/Chrome** — este sandbox não teve extensão de navegador
+conectada em nenhum momento desta tarefa. A tabela abaixo reflete o que foi **verificado por
+código** (valores de CSS computáveis, estrutura de grid/flex, presença/ausência de classes) —
+não uma inspeção visual real. Marcado explicitamente onde isso importa.
+
+| Componente | Copa | BR2026 | CDB2026 | Status final | Diferença intencional |
+|---|---|---|---|---|---|
+| Topbar/nav | referência | idêntico (CSS byte-a-byte) | idêntico | MATCHED | — |
+| Botão Primary/Secondary/Danger/Small | referência | idêntico | idêntico | MATCHED | — |
+| Input/Select/Label | referência | idêntico (desde v4.126) | idêntico | MATCHED | — |
+| Card | referência | idêntico | idêntico | MATCHED | — |
+| Badge/status | `.status-chip` | `.game-status`/`.paid-badge` — CSS convergido, nomes de classe diferentes | idem | MATCHED (visual); classe diferente | Sim — custo de renomear no JS > benefício |
+| Ranking (`.rank-row`) | referência | idêntico desde v1.17 | idêntico desde v2.3 | MATCHED | — |
+| Card de jogo | referência | idêntico desde v1.19 | usa `.card` compartilhada | MATCHED | — |
+| Grid time×placar | referência | idêntico desde v1.19 | estrutura ida+volta própria | MATCHED (BR2026) | INTENTIONALLY_DIFFERENT (CDB2026) |
+| Pagamento | referência | idêntico desde v1.19 | idêntico desde v2.5 | MATCHED | — |
+| Admin toolbar (CSS do botão) | referência | idêntico | idêntico | MATCHED | — |
+| Admin — lista de entradas | card por linha | lista densa `border-bottom` | idem | **NEEDS_FOLLOW_UP** | Não resolvido — ver item 78 |
+| `main` max-width | `1140px` | `1140px` | `1140px` | MATCHED | — |
+| **Altura real de botão renderizado em cada viewport** | — | — | — | **NEEDS_FOLLOW_UP** | Não verificado visualmente, só por CSS |
+| **Comportamento em Safari real** | — | — | — | **NEEDS_FOLLOW_UP** | Não testado, sem browser disponível |
+
+**Nenhum item foi declarado MATCHED sem checar altura/alinhamento/espaçamento/tipografia no
+CSS real** — mas essa checagem foi estática (leitura de arquivo), não visual/renderizada. Uma
+passada manual (`python3 -m http.server 8080`, abrir os três apps lado a lado em pelo menos
+Chrome desktop + um device mobile real) é recomendada antes de considerar isto definitivamente
+fechado.
