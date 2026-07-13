@@ -506,6 +506,11 @@ input, select {
 }
 input:focus, select:focus { border-color: var(--green); }
 input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
+/* Placar é sempre digitado (0-20), o spinner nativo do navegador não ajuda e ocupa espaço
+   à toa em telas estreitas. */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 .payment-box { margin-top: 10px; }
 
