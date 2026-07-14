@@ -705,3 +705,19 @@ padrão já usado pelo BR2026 para os mesmos elementos. Mantido dourado só em `
 Nenhuma justificativa de `TOURNAMENT_SPECIFIC` foi encontrada em nenhum documento para esse
 esquema dourado — não havia decisão registrada de Eduardo aprovando isso, então foi tratado como
 divergência não intencional, não como preferência estética a preservar.
+
+## "Próximo jogo" — faltava o contador visual em si, não só o campo de data (2026-07-14, BR2026 v1.30 / CDB2026 v3.11)
+
+Rodada anterior (v3.9) unificou os CAMPOS mostrados no card "Próximo jogo" (time/data/hora/local)
+mas não verificou se o COMPONENTE de contador em si (a caixa de dígitos grandes que a Copa usa,
+`.next-match-timer`) também estava presente nos outros dois apps — outro caso do mesmo buraco de
+metodologia documentado acima (verificar campo/token não basta, é preciso verificar o componente
+inteiro). Eduardo apontou: "próximo jogo br nao mostra countdown... igual copa que funciona bem".
+
+Achado: BR2026 tinha só texto inline ("6d 01h 13m"), sem caixa de dígitos. CDB2026 tinha um texto
+de contador ainda mais limitado (só para partidas em menos de 1h) e nem isso atualizava ao vivo —
+`renderNextTieCard()` não tinha nenhum `setInterval` próprio, só re-renderizava quando
+`renderAll()` rodava por outro motivo. Corrigido: `countdownTimerHtml()` (mesmo nome/mesma
+implementação nos dois apps) gera a mesma caixa `.count-grid` + dias/horas/min/seg da Copa;
+CDB2026 ganhou um `setInterval` de 1s dedicado (junto ao `renderCountdown()` do topo, que já
+tinha). Ver `PROJECT_MEMORY.md` para a lição de metodologia.

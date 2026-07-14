@@ -20,6 +20,7 @@ window.BR2026_I18N = {
     countdownHours: "h",
     countdownMin: "min",
     countdownSec: "s",
+    matchStarted: "Em andamento",
     closedLabel: "Encerrado",
     // Form
     entryTitle: "Nova entrada",

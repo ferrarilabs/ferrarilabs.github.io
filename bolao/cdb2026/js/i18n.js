@@ -19,6 +19,7 @@ window.CDB2026_I18N = {
     countdownHours: "h",
     countdownMin: "min",
     countdownSec: "s",
+    matchStarted: "Em andamento",
     closedLabel: "Encerrado",
     waitingDraw: "Aguardando sorteio oficial",
     phaseAlreadyConcluded: "Fase já concluída antes do início deste bolão — não fez parte do período de palpites.",

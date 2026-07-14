@@ -686,6 +686,27 @@ function brtLongDate(isoStr) {
   return new Date(isoStr).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+// Caixa de dígitos ao vivo (dias/horas/min/seg) para o card "Próximo jogo" -- mesmo algoritmo e
+// mesma marcação (.count-grid + variante .four quando há dias) do contador da Copa
+// (renderNextMatch() em bolao/js/app.js), só trocando a classe .next-match-timer por
+// .next-game-timer (CSS local). Ver DESIGN_SYSTEM.md -- antes o "próximo jogo" só tinha texto
+// inline ("6d 01h 13m"), divergência real encontrada por Eduardo.
+function countdownTimerHtml(diffMs) {
+  if (diffMs <= 0) return `<span class="next-game-live">${esc(t("matchStarted"))}</span>`;
+  const totalS = Math.floor(diffMs / 1000);
+  const d   = Math.floor(totalS / 86400);
+  const h   = Math.floor((totalS % 86400) / 3600);
+  const min = Math.floor((totalS % 3600) / 60);
+  const sec = totalS % 60;
+  const p2  = n => String(n).padStart(2, "0");
+  const cells = d > 0
+    ? [[d, t("countdownDays")], [p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]]
+    : [[p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]];
+  return `<div class="count-grid next-game-timer${d > 0 ? " four" : ""}">${
+    cells.map(([v, l]) => `<div><b>${v}</b><span>${esc(l)}</span></div>`).join("")
+  }</div>`;
+}
+
 // ─── Full-season schedule ────────────────────────────────────────────────────
 async function fetchSchedule() {
   const CACHE_TTL = 5 * 60 * 1000;
@@ -1063,16 +1084,7 @@ function renderNextGameCard() {
 
   const timeStr = brtLongDate(next.dateISO) + " BRT";
   const diffMs  = new Date(next.dateISO).getTime() - now;
-  let countdown = "";
-  if (diffMs > 0) {
-    const totalSec = Math.floor(diffMs / 1000);
-    const d  = Math.floor(totalSec / 86400);
-    const h  = Math.floor((totalSec % 86400) / 3600);
-    const m  = Math.floor((totalSec % 3600) / 60);
-    const s  = totalSec % 60;
-    const p2 = n => String(n).padStart(2, "0");
-    countdown = d > 0 ? `${d}d ${p2(h)}h ${p2(m)}m` : `${p2(h)}h ${p2(m)}m ${p2(s)}s`;
-  }
+  const timerHtml = countdownTimerHtml(diffMs);
 
   const mpKeyNext = `${next.homeTeam}|${next.awayTeam}`;
   if (!_matchProbs[mpKeyNext] && _standings.length >= 20) {
@@ -1094,10 +1106,15 @@ function renderNextGameCard() {
   })() : "";
   card.innerHTML = `<div class="next-game-card">
     <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
-    <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>
+    <div class="next-game-row">
+      <div class="next-game-info-block">
+        <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>
+        <div class="next-game-info">${esc(timeStr)}</div>
+        ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
+      </div>
+      ${timerHtml}
+    </div>
     ${nextBars}
-    <div class="next-game-info">${esc(timeStr)}${countdown ? ` · ${esc(countdown)}` : ""}</div>
-    ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
   </div>`;
   card.classList.remove("hidden");
 }
