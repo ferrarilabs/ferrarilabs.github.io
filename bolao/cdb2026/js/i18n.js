@@ -66,7 +66,7 @@ window.CDB2026_I18N = {
     findEntryMissing: "Informe e-mail e código do comprovante.",
     findEntryNotFound: "Nenhuma entrada encontrada com esse e-mail e código.",
     findEntryLoaded: "Entrada carregada — role para baixo para editar os palpites liberados.",
-    findEntryLockedMsg: "Disponível assim que os jogos da 1ª Fase terminarem.",
+    findEntryLockedMsg: "Disponível assim que os jogos das Oitavas de Final terminarem.",
     // Receipt
     receiptTitle: "Comprovante — Bolão Copa do Brasil 2026",
     receiptCodeLabel: "Código do comprovante",

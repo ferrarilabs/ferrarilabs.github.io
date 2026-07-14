@@ -1072,6 +1072,47 @@ por identidade/nome tiver um bug de escopo temporal encontrado em uma metade, a 
 usa o mesmo feed/mesma falta de filtro de proximidade deve ser auditada junto, não só a que gerou
 o sintoma mais recente.
 
+### CDB2026: "editar entrada" liberado o tempo todo desde a v3.9 (v3.20, EMERGENCY_HOTFIX, mesmo dia)
+
+No mesmo report do incidente de confrontos-fantasma, Eduardo trouxe dois pontos: a página padrão
+deve ser Palpites a não ser que esteja fechado para palpites (aí sempre Ranking), e "editar
+entrada" não precisa estar ativo agora — só deve abrir depois que a Oitavas terminar. O primeiro
+ponto já estava correto no código (`showSection(isPastEntryCutoff() ? "ranking" : "entry")`,
+verificado com teste automatizado no v3.17 desta manhã) e o sintoma era só efeito colateral do bug
+de confrontos-fantasma já corrigido em v3.19 (cutoff corrompido por kickoffs fantasma no passado).
+
+O segundo ponto era um bug real e diferente: `fase1Complete()`, usada para mostrar/esconder o card
+de auto-atendimento "Buscar minha entrada", tem uma história de duas correções no mesmo dia que se
+acumularam num no-op. No modelo antigo (bracket fixo, pré-rewrite de 13/07), existia
+`oitavasComplete()` — edição própria só abria depois que os confrontos das Oitavas (a primeira
+fase pickável naquele modelo) tinham resultado. A reescrita para o modelo real de 9 fases
+renomeou essa função mecanicamente para `fase1Complete()`, checando `fase-1` — mas no modelo novo
+`fase-1` é uma fase histórica já concluída antes do bolão existir (`DATA.phasesConcludedNoData`),
+não a Oitavas. v3.8 então quebrou o gate (fase-1 nunca teria confronto cadastrado, então nunca
+seria `true`, travando "Buscar minha entrada" para sempre); v3.9 "corrigiu" isso adicionando
+`phasesConcludedNoData.includes("fase-1") → true`, o que resolveu o travamento mas transformou a
+checagem num no-op permanente — fase-1 é sempre "concluída" por definição, então o card ficou
+liberado o tempo todo desde a v3.9, quando devia continuar fechado até a Oitavas (a fase que o
+participante de fato palpita primeiro) terminar de verdade.
+
+Corrigido: função renomeada de volta para `oitavasComplete(s)`, agora checando
+`phaseFullyResolved(s, "oitavas")` — a fase certa, restaurando a intenção original do modelo
+antigo no modelo novo. Mensagem de bloqueio (`findEntryLockedMsg`) também estava desatualizada
+("Disponível assim que os jogos da 1ª Fase terminarem"), corrigida para referenciar Oitavas.
+**Importante, verificado antes de classificar a severidade**: isso nunca foi um bypass de trava
+de palpite — cada confronto individual já ficava corretamente travado por `isPhaseLocked()` em
+`renderPickForm()` assim que o cutoff daquela fase específica passava, independente de
+`_editingEntry`. O bug real era só de sequenciamento de UX: o fluxo de auto-atendimento ficava
+disponível na fase errada do produto, não uma falha de segurança sobre picks já resolvidos.
+`audit_scoring.py` passou — scoring não foi tocado.
+
+**Lição consolidada**: uma correção "de um clique" para um travamento permanente (v3.9,
+`phasesConcludedNoData.includes(...) → true`) pode silenciar o sintoma sem corrigir a causa —
+nesse caso, o valor retornado nunca deveria ter sido baseado em `fase-1` para começo de conversa;
+o nome da função sobreviveu ao rewrite, mas o significado por trás dele (qual é "a primeira fase
+que o participante realmente palpita") mudou, e ninguém re-verificou se o corpo da função ainda
+apontava pra fase certa depois da mudança de modelo.
+
 ---
 
 ## Bugs históricos
