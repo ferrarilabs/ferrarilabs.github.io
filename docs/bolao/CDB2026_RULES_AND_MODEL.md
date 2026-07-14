@@ -330,42 +330,49 @@ continua sendo rodado e reportado (não afeta CDB2026 hoje, mas é regra permane
 repositório — confirmar que nenhuma mudança vazou para `bolao/js/data.js` ou
 `bolao/js/config.js`).
 
-## 7. Sincronização com ESPN (v3.1, 2026-07-13)
+## 7. Sincronização com ESPN (v3.1 → v3.3, 2026-07-13)
 
 Depois da reformulação v3.0, as fases começam vazias (`data.js` não tem mais bracket
 hardcoded — ver seção 3). Eduardo pediu para popular os confrontos reais e automatizar isso após
-cada sorteio. Decisão de design:
+cada sorteio.
 
-- **Busca sob demanda, não polling automático em segundo plano.** A Copa do Brasil é mata-mata:
-  não existe uma tabela/"ao vivo" contínuo a manter sincronizado como no BR2026. O admin clica
-  "Buscar da ESPN" quando um sorteio sai; a ferramenta busca o scoreboard
-  (`site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard`) e lista
-  candidatos.
-- **Nunca grava sem confirmação humana por confronto.** Cada linha da lista tem seu próprio
-  seletor de fase e botão "Adicionar" — o admin decide o que entra em qual fase. Isso é
-  deliberado: cada confronto aqui decide dinheiro real, e o app não tem visibilidade própria do
-  agrupamento de fases da ESPN (não foi possível verificar diretamente — ver limitação abaixo) —
-  confiar no julgamento do admin para essa etapa é mais seguro que qualquer heurística automática
-  de "qual fase é essa".
-- **Dedup por par de times.** Um confronto cujo par de times já existe em qualquer fase aparece
-  marcado "já cadastrado" e não é oferecido de novo — evita duplicar ao clicar "Buscar" mais de
-  uma vez.
-- **Prefill de placar só quando já é fato consumado.** Se a ESPN já marca a partida como
-  finalizada (`state: "post"`, com placar) E a fase é `SINGLE_MATCH`, o resultado é
-  pré-preenchido no mesmo formato usado pelo lançamento manual — não há ambiguidade a confirmar
-  nesse caso (o jogo já aconteceu). Para `TWO_LEG`, os placares de cada perna continuam manuais
-  (o admin já tem essa tela em "Resultados"), para não arriscar casar a perna errada
-  automaticamente.
+**v3.1 (primeira versão):** busca sob demanda, admin clicava "Buscar", revisava a lista e
+confirmava confronto por confronto (fase + clique "Adicionar" em cada linha). Eduardo testou e
+achou o fluxo ruim — clicar em cada confronto individualmente era tedioso.
 
-**Limitação conhecida:** o slug `bra.copa_do_brazil` foi confirmado apenas via busca pública
-(WebSearch), não por uma chamada real ao endpoint — o ambiente de desenvolvimento não tinha
-acesso de rede a hosts externos (política de proxy do sandbox bloqueou `site.api.espn.com`,
-`cbf.com.br`, `wikipedia.org` e qualquer outro host arbitrário). **Testar no primeiro uso real.**
-Se o slug estiver errado ou a ESPN não cobrir bem a Copa do Brasil, a busca simplesmente retorna
-vazio ou erro (mensagem visível no admin) — não há caminho silencioso de falha que grave dado
-errado.
+**v3.3 (atual) — automático, uma decisão só:**
 
-Também corrigido no mesmo commit: a CSP (`Content-Security-Policy`) do `index.html` do CDB2026
+- **A única decisão que continua manual: qual fase é "a atual" agora**
+  (`s.espnSync.activePhaseId`, um seletor no admin). Não dá para inferir isso com segurança a
+  partir dos dados da ESPN sem verificação ao vivo do agrupamento de fases/rodadas (não foi
+  possível confirmar — ver limitação abaixo) — depois de escolhida, fica valendo até o admin
+  trocar de novo (ex.: quando a fase atual termina e a próxima é sorteada).
+- **Com a fase ativa definida, tudo o resto é automático.** A sincronização roda sozinha: ao
+  abrir o painel admin, a cada 5 minutos se ele continuar aberto, e via um botão "Sincronizar
+  agora" para forçar na hora. Confrontos novos (par de times ainda não cadastrado em nenhuma
+  fase) são criados sem nenhum clique adicional.
+- **O que NUNCA é automatizado: travar um resultado.** Isso decide o pagamento. A sincronização
+  só pré-preenche o placar de uma partida única já finalizada na ESPN (mesmo formato do
+  lançamento manual, evita redigitar) — mas travar o resultado/classificado continua exigindo o
+  fluxo manual já existente em "Resultados". Para `TWO_LEG`, os placares de cada perna continuam
+  100% manuais (risco de casar a perna errada automaticamente não vale a pena).
+- **Dedup por par de times + IDs determinísticos.** Um confronto cujo par de times já existe em
+  qualquer fase nunca é recriado. IDs de confrontos auto-adicionados são determinísticos
+  (`espn-<time-a>_<time-b>`, normalizado e ordenado), não aleatórios — se dois dispositivos
+  sincronizarem de forma independente antes de se encontrarem no Supabase, os dois geram o
+  mesmo id para o mesmo confronto real, e o merge por chave colapsa em uma entrada só em vez de
+  duplicar. Confrontos adicionados manualmente (fora da sincronização) continuam com id
+  aleatório — sem esse risco de corrida, e sem necessidade dele.
+
+**Limitação conhecida, ainda não resolvida:** o slug `bra.copa_do_brazil` foi confirmado apenas
+via busca pública (WebSearch), não por uma chamada real ao endpoint — o ambiente de
+desenvolvimento não tem acesso de rede a hosts externos (política de proxy do sandbox bloqueou
+`site.api.espn.com`, `cbf.com.br`, `wikipedia.org` e qualquer outro host arbitrário). Se o slug
+estiver errado ou a ESPN não cobrir bem a Copa do Brasil, a sincronização simplesmente não
+encontra nada ou mostra erro (mensagem visível no admin) — não há caminho silencioso de falha
+que grave dado errado.
+
+Também corrigido durante a v3.1: a CSP (`Content-Security-Policy`) do `index.html` do CDB2026
 não incluía `site.api.espn.com` em `connect-src` — sem essa correção, qualquer fetch a esse host
 teria sido bloqueado pelo próprio navegador do Eduardo em produção, independente do sandbox. Bug
-real, pré-existente, encontrado ao testar esta feature.
+real, pré-existente, encontrado ao testar a feature.

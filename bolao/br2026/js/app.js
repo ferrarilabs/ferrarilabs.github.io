@@ -85,6 +85,21 @@ async function loadRemoteState() {
     localStorage.setItem(C.storeKey, JSON.stringify(merged));
   } catch (err) { console.warn("[BR2026] Supabase load failed", err); }
 }
+
+// Same pattern as the Copa (bolao/js/app.js reloadRemoteIfVisible/debouncedReload) — a single,
+// debounced entry point for "resync from Supabase now" so visibilitychange/focus/pageshow firing
+// close together (which they do) can't trigger overlapping fetches.
+async function reloadRemoteIfVisible() {
+  if (document.hidden || !C.database.enabled || _editingEntry) return;
+  await loadRemoteState();
+  renderAll();
+}
+let _reloadTimer = null;
+function debouncedReload() {
+  clearTimeout(_reloadTimer);
+  _reloadTimer = setTimeout(() => reloadRemoteIfVisible().catch(err => console.warn("[BR2026] Reload failed", err)), 60);
+}
+
 async function saveRemoteState(s) {
   if (!C.database.enabled) return;
   const { url, anonKey, table, stateId } = C.database;
@@ -1985,18 +2000,24 @@ async function init() {
   pollAll();
   schedulePoll();
   // Resume promptly on focus instead of waiting out the rest of a paused interval
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) pollAll(); });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { pollAll(); debouncedReload(); } });
 
   // 1s ticker for running clock + next game countdown (skip when tab is hidden)
   setInterval(() => { if (!document.hidden) { renderLiveCard(); renderNextGameCard(); } }, 1000);
 
   // Remote sync every 30s (when database enabled) — skip when form is being filled or tab is hidden
   if (C.database.enabled) {
-    setInterval(async () => {
-      if (document.hidden || _editingEntry) return;
-      await loadRemoteState();
-      renderAll();
-    }, 30000);
+    setInterval(() => { if (!document.hidden && !_editingEntry) debouncedReload(); }, 30000);
+    window.addEventListener("focus", debouncedReload);
+    // iOS Safari can restore a backgrounded tab from bfcache without reliably firing
+    // visibilitychange, leaving the page stuck on whatever state was in memory at the last real
+    // load — force a resync whenever that happens. Same fix already applied to the Copa
+    // (bolao/js/app.js) after a real incident where a stale local browser state won a merge
+    // against fresher Supabase data; see docs/bolao/LESSONS_LEARNED.md "Safari" / "Supabase —
+    // merge/sync". This app's mergeStates() already applies preferRemoteResults:true on every
+    // load, so the missing piece here was purely "reliably trigger that reload", not the merge
+    // rule itself.
+    window.addEventListener("pageshow", e => { if (e.persisted) debouncedReload(); });
   }
 
   // Full-season schedule — fetch in background, render when ready

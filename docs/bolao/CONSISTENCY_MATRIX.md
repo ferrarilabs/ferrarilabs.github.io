@@ -263,14 +263,46 @@ próxima auditoria formal, ver convenção no topo deste arquivo):
 - **Depois:** os três `true`. Eduardo pediu explicitamente para não deixar dados só em
   `localStorage`. `localFallback: true` mantido nos três — arquitetura local-first com espelho
   remoto preservada, não removida (ver decisão registrada em `PROJECT_MEMORY.md`).
-- **Pendência que impede isso de funcionar de fato ainda**: as policies de RLS do Supabase só
+- **Pendência que impedia isso de funcionar de fato**: as policies de RLS do Supabase só
   liberavam `id='main'`. SQL para estender aos três ids entregue em
-  `docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" — precisa ser rodado
-  manualmente por Eduardo no painel do Supabase. Até lá, `CONSISTENT` no código (mesma
-  configuração nos 3 apps) mas `NEEDS_REVIEW` operacionalmente (não sincroniza de verdade).
+  `docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" — **rodado por
+  Eduardo em 2026-07-13**. `CONSISTENT` no código e, a partir de agora, também
+  operacionalmente — os três apps devem estar sincronizando de verdade. Confirmação prática
+  ainda recomendada: criar uma entrada em cada app e checar em duas abas/dispositivos.
 
 **Também supersede parcialmente o item 54** (CSP): CDB2026 ganhou `site.api.espn.com` em
 `connect-src` (v3.1, ver nota acima) — escopo deixou de ser "só Supabase/EmailJS", passou a
 incluir ESPN como BR2026. Ainda `CONSISTENT` (cada CSP reflete o que o app realmente chama), só
 o texto descritivo do item 54 ficou desatualizado até a próxima auditoria formal reprocessar a
 tabela.
+
+## Nota manual — sincronização com ESPN do CDB2026 ficou mais automática que a da Copa/BR2026 (2026-07-13, v3.3)
+
+**Supersede a linha da nota "sincronização com ESPN" acima** (marcada v3.1) — Eduardo testou o
+fluxo de confirmação por confronto e pediu para automatizar. Comparação atualizada:
+
+| Item | Copa | BR2026 | CDB2026 | Status | Correção necessária |
+|---|---|---|---|---|---|
+| Grau de automação da sincronização com ESPN | `espnFillResultsBtn` — busca sob demanda, pré-preenche, admin ainda confirma manualmente ("Salvar resultados") | idem | **Mais automático**: admin escolhe a fase ativa uma vez; confrontos novos são adicionados sozinhos daí em diante (sem clique por confronto); só travar um resultado continua manual | `INTENTIONALLY_DIFFERENT` | Nenhuma — CDB2026 tem muito mais confrontos a cadastrar ao longo do torneio (um por fase, repetidamente) do que a Copa/BR2026 (uma tabela final, uma vez). Automatizar a criação de confrontos aqui não é o mesmo risco que automatizar um resultado — a trava de resultado (o que decide pagamento) continua manual nos três apps |
+
+Não generalizar para Copa/BR2026: os dois têm um resultado final a lançar (uma vez, um evento),
+não uma sequência de confrontos a cadastrar repetidamente ao longo de meses — o caso de uso que
+motivou automatizar a criação de confrontos no CDB2026 não existe neles.
+
+## Nota manual — item 23 resolvido: listener de bfcache (`pageshow`) propagado para BR2026/CDB2026 (2026-07-13, BR2026 v1.26 / CDB2026 v3.4)
+
+**Resolve o item 23 do bloco AUTO** ("BR2026/CDB2026 hoje só têm `visibilitychange`, sem `focus`
+nem `pageshow`" — classificado `NEEDS_REVIEW`, catalogado em `LESSONS_LEARNED.md` "Multi-tab").
+
+- **Antes:** só a Copa tinha o listener de `pageshow`/`event.persisted` (desde v4.111, corrigindo
+  um bug real de bfcache do WebKit no iOS Safari — a página ficava presa em estado de memória
+  antigo ao voltar de segundo plano). BR2026/CDB2026 tinham só `visibilitychange`, sem cobertura
+  para esse caso específico.
+- **Depois:** os três apps têm `debouncedReload()` cobrindo visibilitychange + focus + pageshow,
+  mesmo padrão. Motivado por Eduardo pedindo para garantir que nada fique desatualizado/em cache
+  agora que BR2026/CDB2026 têm Supabase ligado — a causa raiz real do bug histórico que ele
+  citou ("mesmo problema da Copa antiga") era a regra de merge (já corrigida nos três apps,
+  `preferRemoteResults: true`) combinada com esse gatilho de resync não confiável em bfcache —
+  não a existência do `localStorage` em si. Detalhe completo em `LESSONS_LEARNED.md`
+  "Supabase — merge/sync" e "Safari".
+- `CONSISTENT` nos três apps agora.

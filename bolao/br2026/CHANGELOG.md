@@ -1,5 +1,33 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.26 — 2026-07-13
+
+### Fixed — resync forçado ao voltar de uma aba em segundo plano (bfcache)
+
+Eduardo pediu para garantir que nada fique "em cache" e que tudo reflita o Supabase depois da
+sincronização ser ligada. Investigado: o app **já** usa a regra de merge correta (`results`/dados
+travados sempre vencem do lado remoto — `preferRemoteResults: true`, mesmo padrão que corrigiu o
+bug histórico "resultado real sobrescrito por localStorage de teste" na Copa — ver
+`docs/bolao/LESSONS_LEARNED.md` "Supabase — merge/sync"). Remover o `localStorage` inteiramente
+não teria corrigido aquele bug (a causa era a regra de merge, não a existência do
+`localStorage`) e tornaria o app 100% dependente do Supabase estar no ar — pior para
+confiabilidade, e o app já é `local-first` por design.
+
+O que realmente faltava (gap já catalogado em `CONSISTENCY_MATRIX.md` item 23, nunca corrigido
+até agora): o listener de `pageshow`/`event.persisted` que a Copa já tem desde a v4.111 — sem
+ele, o Safari/iOS pode restaurar uma aba do bfcache (voltar de segundo plano) sem disparar
+`visibilitychange` de forma confiável, deixando a página presa no estado em memória do último
+carregamento real em vez de rebuscar o Supabase. Adicionado (junto com um listener de `focus`,
+que também faltava) — mesmo padrão da Copa, agora `debouncedReload()` cobre
+visibilitychange + focus + pageshow, todos debatidos em 60ms para não disparar chamadas
+sobrepostas.
+
+Testado (Playwright): carregamento inicial busca o Supabase; simular `pageshow(persisted:true)`
+dispara um resync novo; disparar `focus` e `pageshow` juntos gera só uma chamada (debounce
+funcionando), não uma rajada.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
 ## v1.25 — 2026-07-13
 
 ### Changed — Supabase habilitado (`database.enabled: true`)
