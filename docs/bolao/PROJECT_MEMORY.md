@@ -978,6 +978,55 @@ fixo) e BR2026 não tem modelo de confronto/resultado por partida (é projeção
 
 ---
 
+### CDB2026: v3.16 casava evento ESPN errado, corrigido em v3.17 (EMERGENCY_HOTFIX, mesmo dia)
+
+Horas depois de v3.16 ir ao ar, Eduardo reportou de novo: "CDB2026 continua dizendo fechado, sem
+o contador regressivo, sem possibilidade de entrada para palpites das oitavas." Causa raiz real:
+`autoSyncEspnResults()` (v3.16) casava um evento da ESPN com uma perna usando só o par de nomes de
+time, sem checar proximidade de data — `fetchEspnCandidates()` busca o ANO INTEIRO da competição.
+Um evento de uma rodada anterior (fase-1 a fase-5, já disputadas meses antes) com o mesmo par de
+nomes podia preencher/travar a perna errada da Oitavas, que ainda nem começou. Isso explica os três
+sintomas juntos: `status: "FINAL"` tira a perna de `findNextUpcomingMatch()` (sem contador), e
+`qualifiedTeamId` em todas as pernas faz `phaseFullyResolved()` tirar a fase inteira do formulário
+de palpites (fechado). Corrigido com `withinResultMatchWindow()` (±21 dias do kickoff conhecido da
+perna, ou de qualquer outra perna do mesmo confronto como âncora quando a específica ainda não tem
+kickoff). Também confirmado, a pedido do Eduardo, que a aba padrão ao carregar (`entry`/Palpites
+antes do cutoff, `ranking` depois) já é idêntica à Copa nos 3 apps — o que parecia "abrir direto no
+ranking" era o mesmo bug de cutoff acima, não uma lógica de aba diferente. 5 testes novos
+(reprodução exata + controle positivo), suíte completa sem regressões. Commit/push direto como
+`EMERGENCY_HOTFIX`, fora do fluxo normal — bug bloqueava entrada de palpites reais em produção.
+
+**v3.17 sozinho não bastou (v3.18, mesmo dia, mesmo incidente)**: minutos depois, Eduardo mandou
+print de tela confirmando o mecanismo exato — banner "Encerrado" no topo, mas o card "Próxima
+partida" mostrando corretamente 18 dias até Vasco × Fluminense (kickoff real, no futuro) — e
+reportou que o admin "Resultados" também não deixava lançar placar em algumas Oitavas. Pediu
+explicitamente: "esse negócio de resultado manual não funciona, implemente igual a Copa do Mundo,
+urgente" e, quando sugeri destravar manualmente pela UI existente: "no manual clean up, do it
+automatically." Causa raiz mais fundamental: `effectivePhaseCutoffMs()` dava prioridade
+INCONDICIONAL a um `cutoffAt` manual sobre o auto-calculado, para sempre, sem checagem de validade
+— exatamente a ambiguidade que a Copa nunca teve. Duas correções: (1) simplificado para o
+auto-calculado SEMPRE vencer quando existe kickoff conhecido (manual vira só fallback pra fase sem
+kickoff nenhum ainda — elimina a classe de bug de vez, não só para Oitavas); (2)
+`healFalseEspnAutoResults()`, migração que roda uma única vez na inicialização e reverte sozinha
+qualquer placar/travamento `espn-auto` numa fase cujo kickoff conhecido ainda não passou (prova
+lógica de corrupção, sem ambiguidade — nunca toca um resultado `admin` nem um confronto com pelo
+menos um kickoff já passado). Zero limpeza manual exigida do Eduardo, conforme pedido. 9 testes
+novos (`test_heal_false_espn_results.js`) cobrindo corrupção total/parcial + confirmação de que um
+resultado legítimo do admin nunca é tocado + idempotência. `test_auto_cutoff.js` teve sua asserção
+antiga ("manual vence") invertida para a nova ("manual desatualizado nunca mais trava") — mudança
+intencional, documentando a correção, não uma regressão de teste.
+
+**Lição consolidada**: uma correção "de um clique" (v3.17, diagnóstico + botão manual) não é
+suficiente quando o usuário já reportou o mesmo bug 3+ vezes no mesmo dia — nesse ponto, a barra
+para "corrigido" precisa ser "impossível de quebrar de novo sozinho", não "tem um jeito de
+corrigir se alguém perceber e clicar".
+
+**Lição para a próxima automação que ler eventos externos por identidade (nome/par) em vez de ID
+único**: sempre ancorar em uma janela de tempo plausível, nunca confiar só em correspondência de
+nome/par em um feed que cobre um período mais amplo do que o evento específico sendo procurado.
+
+---
+
 ## Bugs históricos
 
 Ver `docs/bolao/LESSONS_LEARNED.md` para o detalhamento completo (causa raiz, correção,

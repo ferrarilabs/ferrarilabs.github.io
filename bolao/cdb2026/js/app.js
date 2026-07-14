@@ -221,19 +221,30 @@ function firstKnownKickoffMs(s, phaseId) {
   });
   return earliest;
 }
-// Mesmo cálculo (manual > auto 1h-antes-do-kickoff) reaproveitado nos dois pontos que precisam
-// saber se UMA fase específica já travou — a criação/edição de entradas (isPhaseLocked, abaixo)
-// e o contador/bloqueio global da fase ativa (entryCutoffMs). Bug real encontrado em auditoria
-// (2026-07-14): antes desta correção, isPhaseLocked() só olhava o cutoffAt MANUAL — como a fase
-// nunca teve esse campo preenchido em produção (é opcional, o auto-cálculo existe justamente para
-// não depender disso), uma entrada podia continuar sendo editada para um confronto cujo jogo real
-// já tinha começado ou terminado, mesmo depois do cutoff automático já ter passado — só ficava de
-// fato travada quando o admin clicasse "salvar e travar resultado" naquele confronto específico.
+// Mesmo cálculo reaproveitado nos dois pontos que precisam saber se UMA fase específica já travou
+// — a criação/edição de entradas (isPhaseLocked, abaixo) e o contador/bloqueio global da fase
+// ativa (entryCutoffMs). Bug real encontrado em auditoria (2026-07-14): antes desta correção,
+// isPhaseLocked() só olhava o cutoffAt MANUAL — como a fase nunca teve esse campo preenchido em
+// produção (é opcional, o auto-cálculo existe justamente para não depender disso), uma entrada
+// podia continuar sendo editada para um confronto cujo jogo real já tinha começado ou terminado.
+//
+// v3.18 (2026-07-14, EMERGENCY_HOTFIX, Eduardo: "esse negócio de resultado manual não funciona,
+// implemente igual a Copa do Mundo, urgente, ninguém está conseguindo entrar palpites"): até aqui,
+// um `cutoffAt` MANUAL tinha prioridade incondicional sobre o auto-calculado, para sempre, sem
+// nenhuma checagem de validade -- foi a causa raiz de PELO MENOS três incidentes de produção no
+// mesmo dia (um valor manual esquecido de testes anteriores ao mecanismo de auto-cálculo travava a
+// fase inteira). A Copa não tem esse problema porque não existe ambiguidade manual-vs-auto: o
+// cutoff é um valor único, direto, sem um toggle que pode ficar esquecido/desatualizado.
+// Replicando essa simplicidade aqui: quando existe kickoff conhecido para a fase, o auto-calculado
+// (kickoff mais cedo conhecido menos 1h) SEMPRE vence -- elimina essa classe inteira de bug de
+// vez. O campo manual (`cutoffAt`) continua existindo só como fallback para quando NENHUM kickoff é
+// conhecido ainda (ex.: antes do sorteio real de uma fase), igual sempre foi seu propósito original
+// antes do auto-cálculo existir.
 function effectivePhaseCutoffMs(s, phaseId) {
-  const manual = s.phases?.[phaseId]?.cutoffAt;
-  if (manual) return new Date(manual).getTime();
   const firstKickoff = firstKnownKickoffMs(s, phaseId);
-  return firstKickoff !== null ? firstKickoff - 3600000 : null;
+  if (firstKickoff !== null) return firstKickoff - 3600000;
+  const manual = s.phases?.[phaseId]?.cutoffAt;
+  return manual ? new Date(manual).getTime() : null;
 }
 function entryCutoffMs() {
   const s = state();
@@ -1503,6 +1514,44 @@ function backfillOitavasKickoffs(s) {
   return changed;
 }
 
+// Auto-cura de dado corrompido pela v3.16 (2026-07-14, EMERGENCY_HOTFIX v3.18, Eduardo: "os jogos
+// das oitavas também estão errados e não deixam entrar resultado" / "não faça limpeza manual, faça
+// automático"). v3.16 podia casar um evento antigo/errado da ESPN (mesmo par de nomes de time, ver
+// autoSyncEspnResults) e preencher placar/travar um confronto que ainda nem começou de verdade.
+// Prova definitiva de corrupção, sem ambiguidade nenhuma: um resultado "espn-auto" numa fase cujo
+// kickoff conhecido ainda não passou é logicamente impossível (o jogo não pode ter terminado antes
+// de começar). Reverte automaticamente -- roda uma única vez por estado (flag própria), na
+// inicialização, depois do merge com o Supabase. NUNCA mexe num confronto onde pelo menos um
+// kickoff conhecido já passou (esse pode legitimamente já ter sido jogado de verdade) -- só reverte
+// o que é matematicamente impossível de ser real agora.
+function healFalseEspnAutoResults(s) {
+  if (s.espnSync?.healedFalseAutoResults) return false;
+  s.espnSync = s.espnSync || {};
+  s.espnSync.healedFalseAutoResults = true;
+  const now = Date.now();
+  let changed = false;
+  Object.values(s.phases || {}).forEach(phase => {
+    Object.values(phase.ties || {}).forEach(tie => {
+      const matches = Object.values(tie.matches || {});
+      const anyKnownKickoffAlreadyPast = matches.some(m => {
+        const ms = m?.kickoff ? new Date(m.kickoff).getTime() : NaN;
+        return Number.isFinite(ms) && ms <= now;
+      });
+      if (anyKnownKickoffAlreadyPast) return; // pelo menos um jogo pode já ter sido jogado de verdade -- não mexe
+      const hadEspnAutoData = matches.some(m => m?.resultSource === "espn-auto") || tie.lockedBy === "espn-auto";
+      if (!hadEspnAutoData) return;
+      Object.values(tie.matches || {}).forEach(m => {
+        if (m?.resultSource === "espn-auto") {
+          m.goalsHome = null; m.goalsAway = null; m.status = "SCHEDULED"; delete m.resultSource;
+        }
+      });
+      if (tie.lockedBy === "espn-auto") { delete tie.qualifiedTeamId; delete tie.lockedAt; delete tie.lockedBy; }
+      changed = true;
+    });
+  });
+  return changed;
+}
+
 // Faz o trabalho de fato: busca, filtra o que já existe, cria os confrontos novos na fase ativa,
 // salva uma vez (não uma vez por confronto). Retorna um resumo para o admin ver o que aconteceu.
 async function autoSyncEspn(s) {
@@ -1575,6 +1624,25 @@ function aggregateOrSingleTotals(format, matches) {
   return [matches.single.goalsHome, matches.single.goalsAway];
 }
 
+// Achado real em produção (2026-07-14, Eduardo: "CDB2026 continua dizendo fechado, sem o contador
+// regressivo, sem possibilidade de entrada para palpites das oitavas"): o casamento de evento por
+// nome de time sozinho (ver autoSyncEspnResults abaixo) busca em `candidates`, que cobre o ANO
+// INTEIRO da competição (fetchEspnCandidates usa dates=20260101-20261231) -- sem checar proximidade
+// de data, um evento antigo/não relacionado com o mesmo par de nomes de time (temporada inteira,
+// múltiplas rodadas) podia em tese ser casado com uma perna que ainda nem começou, preenchendo
+// placar/travando o confronto errado. Guarda mínima: só aceita o evento se a data dele estiver
+// razoavelmente perto do kickoff já conhecido da perna (quando existe um -- Oitavas já vem com
+// kickoff semeado via DATA.knownConfrontos, ver seedKnownConfrontos). Sem kickoff conhecido ainda,
+// mantém o comportamento permissivo anterior (nada pra comparar).
+const RESULT_MATCH_WINDOW_DAYS = 21;
+function withinResultMatchWindow(candidateDateISO, knownKickoffISO) {
+  if (!knownKickoffISO) return true;
+  const c = new Date(candidateDateISO).getTime();
+  const k = new Date(knownKickoffISO).getTime();
+  if (!Number.isFinite(c) || !Number.isFinite(k)) return true;
+  return Math.abs(c - k) <= RESULT_MATCH_WINDOW_DAYS * 86400000;
+}
+
 async function autoSyncEspnResults(s) {
   const phaseId = s.espnSync?.activePhaseId;
   if (!phaseId) return { lockedCount: 0, locked: [], filledLegsCount: 0, error: false };
@@ -1592,12 +1660,19 @@ async function autoSyncEspnResults(s) {
   Object.values(ties).forEach(tie => {
     if (!tie.teamA || !tie.teamB) return;
 
+    // Âncora de data pro tie inteiro: a perna sendo checada pode ainda não ter kickoff conhecido
+    // (ex.: volta, antes da ida ser jogada) -- nesse caso usa o kickoff de QUALQUER outra perna já
+    // conhecida do mesmo confronto como referência (ida e volta acontecem sempre a poucos dias uma
+    // da outra), em vez de ficar sem checagem nenhuma nessa perna.
+    const tieKickoffAnchor = legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean);
+
     legs.forEach(leg => {
       const m = tie.matches?.[leg];
       if (!m || m.goalsHome != null) return; // já preenchido (manual ou auto) — nunca sobrescreve
       const home = leg === "second" ? tie.teamB : tie.teamA;
       const away = leg === "second" ? tie.teamA : tie.teamB;
-      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away && c.homeScore != null);
+      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away && c.homeScore != null
+        && withinResultMatchWindow(c.dateISO, m.kickoff || tieKickoffAnchor));
       if (!ev) return;
       tie.matches[leg] = { ...m, homeTeam: home, awayTeam: away, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" };
       filledLegsCount++;
@@ -1614,7 +1689,8 @@ async function autoSyncEspnResults(s) {
       const decisiveLeg  = format === "TWO_LEG" ? "second" : "single";
       const decisiveHome = decisiveLeg === "second" ? tie.teamB : tie.teamA;
       const decisiveAway = decisiveLeg === "second" ? tie.teamA : tie.teamB;
-      const ev = candidates.find(c => c.homeTeam === decisiveHome && c.awayTeam === decisiveAway);
+      const ev = candidates.find(c => c.homeTeam === decisiveHome && c.awayTeam === decisiveAway
+        && withinResultMatchWindow(c.dateISO, tie.matches?.[decisiveLeg]?.kickoff || legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean)));
       if (ev?.homeWinner === true) qualified = decisiveHome === tie.teamA ? "A" : "B";
       else if (ev?.awayWinner === true) qualified = decisiveAway === tie.teamA ? "A" : "B";
       // Sem sinal de vencedor da ESPN: fica sem travar, cai pro fluxo manual existente.
@@ -1770,18 +1846,27 @@ function renderAdminPhases(s) {
       </div>
       ${(() => {
         // Diagnóstico de fonte do cutoff -- achado real (2026-07-14, Eduardo: "o bolao da CDB
-        // fala encerrado, quando não deveria"): effectivePhaseCutoffMs() dá prioridade
-        // silenciosa a um cutoffAt MANUAL sobre o valor automático, sem nenhuma indicação visual
-        // de qual dos dois está valendo -- um valor manual antigo (de um teste anterior a este
-        // mecanismo existir) trava o cutoff errado pra sempre sem o admin conseguir perceber o
-        // porquê. Mostra explicitamente a fonte e a data efetiva, com um botão pra limpar o
-        // manual e voltar ao cálculo automático.
+        // fala encerrado, quando não deveria" / "ninguém está conseguindo entrar palpites").
+        // v3.18: desde que o auto-cálculo SEMPRE vence quando existe kickoff conhecido (ver
+        // effectivePhaseCutoffMs), um cutoffAt manual preenchido pode estar simplesmente sendo
+        // IGNORADO -- mostra os dois estados sem ambiguidade: "manual ativo" só quando não há
+        // kickoff conhecido nenhum (é o único caso em que o manual pesa de verdade); "manual
+        // preenchido mas ignorado" quando há kickoff conhecido (o auto está mandando, o manual é
+        // só um resquício sem efeito -- o botão deixa limpar por clareza, mas não muda o cutoff
+        // efetivo, que já é o automático).
         const effMs = effectivePhaseCutoffMs(s, phase.id);
-        const isManual = !!phaseState.cutoffAt;
-        const label = effMs === null
-          ? t("cutoffSourceNone")
-          : `${isManual ? t("cutoffSourceManual") : t("cutoffSourceAuto")}: ${new Date(effMs).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} BRT`;
-        const resetBtn = isManual
+        const hasManual = !!phaseState.cutoffAt;
+        const hasKnownKickoff = firstKnownKickoffMs(s, phase.id) !== null;
+        const manualInEffect = hasManual && !hasKnownKickoff;
+        let label;
+        if (effMs === null) label = t("cutoffSourceNone");
+        else {
+          const dateStr = new Date(effMs).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+          if (manualInEffect) label = `${t("cutoffSourceManual")}: ${dateStr} BRT`;
+          else if (hasManual) label = `${t("cutoffSourceAuto")}: ${dateStr} BRT — ${t("cutoffSourceManualIgnored")}`;
+          else label = `${t("cutoffSourceAuto")}: ${dateStr} BRT`;
+        }
+        const resetBtn = hasManual
           ? `<button type="button" class="secondary small-btn" data-clear-cutoff="${esc(phase.id)}">${esc(t("adminUseAutoCutoff"))}</button>`
           : "";
         return `<div class="admin-row cutoff-source-diag"><span class="small-text muted">${esc(label)}</span>${resetBtn}</div>`;
@@ -2281,9 +2366,11 @@ async function init() {
   const seedState  = state();
   const wasSeeded   = !!seedState.espnSync.seededKnownConfrontos;
   const wasBackfilled = !!seedState.espnSync.backfilledOitavasKickoffs;
+  const wasHealed = !!seedState.espnSync.healedFalseAutoResults;
   seedKnownConfrontos(seedState);
   backfillOitavasKickoffs(seedState);
-  if (!wasSeeded || !wasBackfilled) saveState(seedState);
+  healFalseEspnAutoResults(seedState);
+  if (!wasSeeded || !wasBackfilled || !wasHealed) saveState(seedState, { localOnly: false });
   renderAll();
 
   if (C.database.enabled) {

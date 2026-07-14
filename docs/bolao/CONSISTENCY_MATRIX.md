@@ -343,10 +343,14 @@ de "o primeiro jogo" é diferente em cada um:
   jogo" avançaria a cada rodada e reabriria entradas já fechadas.
 - **CDB2026** (`bolao/cdb2026/`): mata-mata com fases cadastradas incrementalmente pelo admin
   conforme cada sorteio real acontece. Corrigido em v3.12: `entryCutoffMs()` calcula 1h antes do
-  kickoff mais cedo conhecido na fase ativa, com `cutoffAt` manual do admin como prioridade quando
-  definido (não existe um "congelamento" separado porque o próprio conjunto de confrontos da fase
-  ativa não muda depois de sorteado — apenas kickoffs específicos que ainda faltam ser conhecidos
-  vão sendo preenchidos, e a fase muda só quando o admin avança para a próxima).
+  kickoff mais cedo conhecido na fase ativa (não existe um "congelamento" separado porque o próprio
+  conjunto de confrontos da fase ativa não muda depois de sorteado — apenas kickoffs específicos que
+  ainda faltam ser conhecidos vão sendo preenchidos, e a fase muda só quando o admin avança para a
+  próxima). **v3.12–v3.17 davam prioridade incondicional a um `cutoffAt` manual do admin sobre o
+  auto-calculado — essa ambiguidade foi a causa raiz de pelo menos três incidentes de produção no
+  mesmo dia (2026-07-14, ver `PROJECT_MEMORY.md`). Removida em v3.18**: o auto-calculado agora
+  SEMPRE vence quando existe kickoff conhecido; `cutoffAt` manual virou fallback só para fase sem
+  kickoff nenhum ainda — elimina a ambiguidade manual-vs-auto que a Copa nunca teve.
 
 **Decisão: `INTENTIONALLY_DIFFERENT` no mecanismo, `CONSISTENT` na regra de negócio.** Nenhuma
 propagação adicional necessária — cada app já usa o mecanismo certo para sua própria estrutura de

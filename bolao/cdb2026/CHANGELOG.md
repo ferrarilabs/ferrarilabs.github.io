@@ -1,5 +1,108 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.18 — 2026-07-14 (EMERGENCY_HOTFIX, mesmo incidente do v3.17)
+
+### Fixed — o v3.17 sozinho não bastou; Eduardo continuou sem conseguir cadastrar palpites
+
+Minutos depois do v3.17 (guarda de janela de data no casamento de evento ESPN) estar pronto,
+Eduardo reportou de novo, com prints de tela confirmando: banner "Encerrado" no topo mesmo com o
+card "Próxima partida" mostrando corretamente 18 dias até Vasco × Fluminense (kickoff real
+conhecido, no futuro) — E os jogos das Oitavas no admin "Resultados" também não deixavam entrar
+placar. Pediu explicitamente: "esse negócio de resultado manual não funciona, implemente igual a
+Copa do Mundo, urgente" e, quando sugeri destravar manualmente os confrontos afetados: "no manual
+clean up, do it automatically."
+
+**Causa raiz real, mais fundamental que o v3.17 sozinho resolvia**: `effectivePhaseCutoffMs()` dava
+prioridade INCONDICIONAL a um `cutoffAt` manual sobre o valor automático, para sempre, sem
+checagem de validade nenhuma — um valor manual esquecido de testes anteriores ao mecanismo de
+auto-cálculo travava a fase inteira, mesmo com o kickoff real (Ago/2026) sendo conhecido e ainda no
+futuro. Essa ambiguidade manual-vs-auto é algo que a Copa nunca teve (lá o cutoff é um valor único,
+sem toggle nenhum) — daí o pedido explícito do Eduardo para reproduzir essa simplicidade aqui.
+
+**Correção 1 — `effectivePhaseCutoffMs()` simplificado**: quando existe kickoff conhecido pra fase,
+o auto-calculado (kickoff mais cedo − 1h) SEMPRE vence, sem exceção. `cutoffAt` manual passa a ser
+só um fallback para quando NENHUM kickoff é conhecido ainda (seu propósito original, antes do
+auto-cálculo existir). Isso elimina essa classe de bug de vez, não só nesta fase — não existe mais
+nenhum caminho de código onde um valor manual esquecido consegue travar uma fase com kickoff real
+conhecido no futuro.
+
+**Correção 2 — auto-cura automática, sem limpeza manual** (`healFalseEspnAutoResults()`, roda uma
+única vez na inicialização, depois do merge com o Supabase): reverte sozinho qualquer placar/
+travamento que a v3.16 tenha gravado errado por casar um evento antigo/errado da ESPN (ver v3.17).
+Prova usada para decidir o que reverter, sem ambiguidade: um resultado `espn-auto` numa fase cujo
+kickoff conhecido ainda não passou é logicamente impossível (o jogo não pode ter terminado antes de
+começar) — reverte só isso, nunca toca um confronto onde pelo menos um kickoff conhecido já passou
+(pode ter sido jogado de verdade), e NUNCA toca um resultado com `resultSource: "admin"` (lançado à
+mão pelo Eduardo), mesmo que a fase ainda não tenha kickoff passado.
+
+**Diagnóstico do admin atualizado**: agora distingue com clareza "cutoff manual em vigor" (só
+acontece sem kickoff conhecido) de "cutoff manual preenchido mas ignorado" (kickoff conhecido
+manda, o campo manual só está lá sem efeito nenhum) — antes das duas apareciam como "manual" sem
+diferenciação.
+
+### Testado
+
+- 9 testes novos (`test_heal_false_espn_results.js`): reprodução exata da corrupção reportada (3
+  confrontos com combinações diferentes de corrupção parcial/total), confirmação de reversão
+  automática sem intervenção manual, confirmação de que um resultado LEGÍTIMO lançado à mão pelo
+  admin nunca é tocado (mesmo em fase sem kickoff passado), confirmação de que a cura roda uma
+  única vez (não apaga um resultado real lançado depois).
+- `test_auto_cutoff.js` atualizado: a asserção antiga ("manual vence") virou a asserção nova e
+  correta ("manual desatualizado nunca mais trava a fase").
+- Suíte completa (89 testes no total entre os arquivos de CDB2026) re-executada sem falhas reais.
+- `audit_scoring.py` passou — scoring não foi tocado (esta correção é só sobre QUANDO uma fase
+  fica travada para novos palpites/edição, não sobre COMO a pontuação é calculada).
+
+### Classificação
+
+`EMERGENCY_HOTFIX` — continuação direta do incidente do v3.17, mesmo dia, bloqueando entrada de
+palpites reais em produção. Commit/push direto.
+
+## v3.17 — 2026-07-14 (EMERGENCY_HOTFIX)
+
+### Fixed — v3.16's automação de resultado podia casar evento errado (achado horas após o deploy)
+
+Eduardo reportou de novo, horas depois do v3.16 ir ao ar: "CDB2026 continua dizendo fechado, sem
+o contador regressivo, sem possibilidade de entrada para palpites das oitavas."
+
+**Causa raiz**: `autoSyncEspnResults()` (v3.16) casava um evento da ESPN com uma perna de confronto
+usando SÓ o par de nomes de time (`homeTeam`/`awayTeam`), sem checar proximidade de data —
+`fetchEspnCandidates()` busca o ANO INTEIRO da competição (`dates=20260101-20261231`). Se o mesmo
+par de nomes de time aparecesse em um evento de uma rodada anterior (ex.: fase-1 a fase-5, já
+disputadas meses antes das Oitavas), a função podia preencher o placar de uma perna que nem
+começou e travar o confronto errado — explicando os três sintomas de uma vez: `status: "FINAL"`
+tira a perna de `findNextUpcomingMatch()` (sem contador regressivo), e `qualifiedTeamId` em todas
+as pernas faz `phaseFullyResolved()` tirar a fase inteira do formulário de palpites (fechado, sem
+possibilidade de entrada).
+
+**Correção**: nova guarda `withinResultMatchWindow()` — só aceita um evento da ESPN como resultado
+de uma perna se a data dele estiver dentro de ±21 dias do kickoff já conhecido daquela perna (ou,
+se essa perna específica ainda não tem kickoff próprio — caso comum da volta antes da ida ser
+jogada —, do kickoff conhecido de QUALQUER outra perna do mesmo confronto, já que ida e volta
+sempre acontecem a poucos dias uma da outra). Sem nenhum kickoff conhecido ainda para o confronto,
+mantém o comportamento permissivo anterior (nada para comparar, sem regressão nesse caso).
+Aplicada tanto no preenchimento de placar por perna quanto na checagem de vencedor por pênaltis em
+agregado empatado.
+
+**Confirmado que não é um bug separado**: a página inicial (aba padrão ao carregar) já usa
+exatamente a mesma lógica da Copa (`showSection(isPastEntryCutoff() ? "ranking" : "entry")`,
+idêntica nos 3 apps) — verificado com teste automatizado que a aba padrão É "Palpites" com estado
+limpo. O que parecia "abrir direto no ranking" era o mesmo bug de cutoff acima fazendo
+`isPastEntryCutoff()` retornar `true` incorretamente, não uma lógica de aba padrão diferente.
+
+### Testado
+
+- 5 testes novos em `test_espn_auto_results.js` (total 18): reprodução exata do incidente (evento
+  antigo com o mesmo par de nomes de time, 3+ meses antes do kickoff real, é rejeitado) + controle
+  positivo (o evento real, perto do kickoff conhecido, continua sendo casado normalmente).
+- Suíte completa re-executada sem regressões; `node --check`; `audit_scoring.py` passou.
+
+### Classificação
+
+`EMERGENCY_HOTFIX` — bug em produção bloqueando entrada de palpites reais (dinheiro em jogo).
+Commit/push direto, fora do fluxo normal de PR com revisão prévia de findings, por afetar
+disponibilidade do bolão em produção.
+
 ## v3.16 — 2026-07-14
 
 ### Changed — automação da captura de RESULTADO (não só emparelhamento) — autorizado por Eduardo
