@@ -57,7 +57,10 @@ function emptyPhaseState() { return { cutoffAt: null, ties: {} }; }
 function emptyState() {
   const phases = {};
   DATA.phases.forEach(p => { phases[p.id] = emptyPhaseState(); });
-  return { entries: [], deletedIds: [], paid: {}, phases, meta: { updatedAt: null, version: C.siteVersion } };
+  // espnSync.activePhaseId: a única decisão que fica com o admin na sincronização automática —
+  // qual fase é "a atual" agora. Ver autoSyncEspn() — não dá para inferir isso com segurança a
+  // partir dos dados da ESPN sem verificação ao vivo (ambiente sem acesso de rede externo).
+  return { entries: [], deletedIds: [], paid: {}, phases, espnSync: { activePhaseId: null }, meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try {
@@ -68,6 +71,7 @@ function state() {
       s.phases[p.id] = s.phases[p.id] && typeof s.phases[p.id] === "object" ? s.phases[p.id] : emptyPhaseState();
       s.phases[p.id].ties = s.phases[p.id].ties || {};
     });
+    s.espnSync = s.espnSync && typeof s.espnSync === "object" ? s.espnSync : { activePhaseId: null };
     return s;
   } catch { return emptyState(); }
 }
@@ -94,6 +98,20 @@ async function loadRemoteState() {
     const merged = mergeStates(state(), data[0].state, { preferRemoteResults: true });
     localStorage.setItem(C.storeKey, JSON.stringify(merged));
   } catch (err) { console.warn("[CDB2026] Supabase load failed", err); }
+}
+
+// Same pattern as the Copa (bolao/js/app.js reloadRemoteIfVisible/debouncedReload) — a single,
+// debounced entry point for "resync from Supabase now" so visibilitychange/focus/pageshow firing
+// close together (which they do) can't trigger overlapping fetches.
+async function reloadRemoteIfVisible() {
+  if (document.hidden || !C.database.enabled || _editingEntry) return;
+  await loadRemoteState();
+  renderAll();
+}
+let _reloadTimer = null;
+function debouncedReload() {
+  clearTimeout(_reloadTimer);
+  _reloadTimer = setTimeout(() => reloadRemoteIfVisible().catch(err => console.warn("[CDB2026] Reload failed", err)), 60);
 }
 async function saveRemoteState(s) {
   if (!C.database.enabled) return;
@@ -125,11 +143,17 @@ function mergeStates(local, remote, opts = {}) {
       : (localP.cutoffAt ?? remoteP.cutoffAt);
     phases[p.id] = { cutoffAt, ties };
   });
+  const espnSync = {
+    activePhaseId: opts.preferRemoteResults
+      ? (remote.espnSync?.activePhaseId ?? local.espnSync?.activePhaseId ?? null)
+      : (local.espnSync?.activePhaseId ?? remote.espnSync?.activePhaseId ?? null),
+  };
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
     paid,
     phases,
+    espnSync,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -1093,12 +1117,17 @@ function renderAdmin() {
   renderAdminEntries(s);
 }
 
-// ─── Sincronização com ESPN (sob demanda, admin confirma cada confronto) ─────────────────────
-// Nunca escreve no estado sem um clique explícito do admin em cada linha — ver comentário em
-// config.js e docs/bolao/CDB2026_RULES_AND_MODEL.md "Sincronização com ESPN". Diferente do
-// BR2026 (polling automático contínuo de uma tabela de liga), aqui é busca pontual: o admin
-// clica quando um sorteio sai, revisa a lista, e decide o que entra em qual fase.
-let _espnCandidates = null; // null = nunca buscou; [] = buscou, nada encontrado; [...] = resultados
+// ─── Sincronização com ESPN (automática, sem clique por confronto) ───────────────────────────
+// v3.3: a v3.1 exigia um clique de confirmação por confronto — Eduardo pediu para automatizar.
+// A única decisão que continua manual é qual fase é "a atual" (s.espnSync.activePhaseId): não
+// dá para inferir isso com segurança a partir dos dados da ESPN sem verificação ao vivo (ver
+// docs/bolao/CDB2026_RULES_AND_MODEL.md "Sincronização com ESPN"). Com a fase ativa definida,
+// confrontos novos são detectados e adicionados sozinhos — sem clique por linha. O que
+// continua manual e nunca é automatizado: TRAVAR um resultado (isso decide o pagamento) — essa
+// etapa continua exigindo o fluxo existente em "Resultados".
+const ESPN_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
+let _espnLastAutoSyncAt = 0;
+let _espnLastRunSummary = null; // { addedCount, error, at } | null — só para exibir no admin
 
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
@@ -1134,77 +1163,123 @@ async function fetchEspnCandidates() {
   }
 }
 
+function existingPairsAcrossPhases(s) {
+  const pairs = new Set();
+  Object.values(s.phases || {}).forEach(ph => Object.values(ph.ties || {}).forEach(tie => {
+    if (tie.teamA && tie.teamB) pairs.add([tie.teamA, tie.teamB].sort().join("|"));
+  }));
+  return pairs;
+}
+
+// Slug determinístico (não um uuid aleatório) para confrontos adicionados pela sincronização
+// automática — se dois dispositivos rodarem a auto-sync de forma independente antes de se
+// sincronizarem entre si (Supabase), os dois geram o MESMO id para o mesmo confronto real, e o
+// merge por chave (mergeStates) naturalmente colapsa em uma única entrada em vez de duplicar.
+// Ties adicionados manualmente continuam usando uuid() — sem esse risco de corrida.
+function espnTieId(teamA, teamB) {
+  const slug = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
+    .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  return "espn-" + [slug(teamA), slug(teamB)].sort().join("_");
+}
+
+// Faz o trabalho de fato: busca, filtra o que já existe, cria os confrontos novos na fase ativa,
+// salva uma vez (não uma vez por confronto). Retorna um resumo para o admin ver o que aconteceu.
+async function autoSyncEspn(s) {
+  const phaseId = s.espnSync?.activePhaseId;
+  if (!phaseId) return { addedCount: 0, added: [], error: false, needsPhase: true };
+
+  const candidates = await fetchEspnCandidates();
+  if (candidates === null) return { addedCount: 0, added: [], error: true, needsPhase: false };
+
+  const existingPairs = existingPairsAcrossPhases(s);
+  const format = getPhaseDef(phaseId).format;
+  const added = [];
+  const s2 = state(); // relê o estado mais recente antes de escrever — outra aba pode ter mudado algo
+
+  candidates.forEach(ev => {
+    const pairKey = [ev.homeTeam, ev.awayTeam].sort().join("|");
+    if (existingPairs.has(pairKey)) return;
+    existingPairs.add(pairKey); // evita adicionar o mesmo par duas vezes nesta mesma leva
+    const tie = { teamA: ev.homeTeam, teamB: ev.awayTeam, matches: {}, qualifiedTeamId: null };
+    legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
+    // Partida única já finalizada na ESPN: preenche o placar (não trava o resultado — isso
+    // continua exigindo o clique manual em "Resultados", que decide o pagamento).
+    if (format === "SINGLE_MATCH" && ev.homeScore != null) {
+      tie.matches.single = { homeTeam: ev.homeTeam, awayTeam: ev.awayTeam, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL" };
+    }
+    s2.phases[phaseId].ties[espnTieId(ev.homeTeam, ev.awayTeam)] = tie;
+    added.push(`${ev.homeTeam} × ${ev.awayTeam}`);
+  });
+
+  if (added.length) saveState(s2);
+  return { addedCount: added.length, added, error: false, needsPhase: false };
+}
+
 function renderAdminEspnSync(s) {
   const box = $("adminEspnSync");
   if (!box) return;
 
-  const existingPairs = new Set();
-  Object.values(s.phases || {}).forEach(ph => Object.values(ph.ties || {}).forEach(tie => {
-    if (tie.teamA && tie.teamB) existingPairs.add([tie.teamA, tie.teamB].sort().join("|"));
-  }));
+  const phaseOptions = `<option value="">${esc(t("espnSyncPickPhase"))}</option>`
+    + DATA.phases.map(p => `<option value="${esc(p.id)}" ${s.espnSync?.activePhaseId === p.id ? "selected" : ""}>${esc(p.name)}</option>`).join("");
 
-  const phaseOptions = DATA.phases.map(p => `<option value="${esc(p.id)}">${esc(p.name)}</option>`).join("");
-
-  let listHtml = "";
-  if (_espnCandidates === null) {
-    listHtml = `<p class="muted small-text">${esc(t("espnSyncHint"))}</p>`;
-  } else if (_espnCandidates === "error") {
-    listHtml = `<p class="muted small-text">${esc(t("espnSyncError"))}</p>`;
-  } else if (!_espnCandidates.length) {
-    listHtml = `<p class="muted small-text">${esc(t("espnSyncEmpty"))}</p>`;
+  let statusHtml;
+  if (!s.espnSync?.activePhaseId) {
+    statusHtml = `<p class="muted small-text">${esc(t("espnSyncNeedsPhase"))}</p>`;
+  } else if (_espnLastRunSummary?.error) {
+    statusHtml = `<p class="muted small-text">${esc(t("espnSyncError"))}</p>`;
+  } else if (_espnLastRunSummary) {
+    const when = new Date(_espnLastRunSummary.at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+    statusHtml = _espnLastRunSummary.addedCount
+      ? `<p class="small-text">✓ ${_espnLastRunSummary.addedCount} ${esc(t("espnSyncAddedCount"))}: ${esc(_espnLastRunSummary.added.join(", "))} — ${esc(when)}</p>`
+      : `<p class="muted small-text">${esc(t("espnSyncNothingNew"))} — ${esc(when)}</p>`;
   } else {
-    listHtml = _espnCandidates.map((ev, i) => {
-      const already = existingPairs.has([ev.homeTeam, ev.awayTeam].sort().join("|"));
-      const dateStr = ev.dateISO ? new Date(ev.dateISO).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", year: "numeric" }) : t("gamesTbd");
-      const scoreStr = ev.homeScore != null ? ` — ${ev.homeScore} × ${ev.awayScore}` : "";
-      return `<div class="admin-row espn-candidate-row" data-espn-idx="${i}">
-        <span class="tie-teams-admin">${esc(ev.homeTeam)} × ${esc(ev.awayTeam)}<span class="muted small-text"> — ${esc(dateStr)}${scoreStr}</span></span>
-        ${already
-          ? `<span class="muted small-text">${esc(t("espnSyncAlready"))}</span>`
-          : `<select class="espn-candidate-phase" aria-label="${esc(t("adminPhasesTitle"))}">${phaseOptions}</select>
-             <button type="button" class="small-btn" data-espn-add="${i}">${esc(t("espnSyncAdd"))}</button>`}
-      </div>`;
-    }).join("");
+    statusHtml = `<p class="muted small-text">${esc(t("espnSyncChecking"))}</p>`;
   }
 
   box.innerHTML = `
     <h3>${esc(t("espnSyncTitle"))}</h3>
-    <p class="muted small-text">${esc(t("espnSyncDisclaimer"))}</p>
-    <div class="button-row" style="margin:10px 0">
-      <button type="button" id="espnSyncFetchBtn" class="secondary small-btn">${esc(t("espnSyncFetch"))}</button>
+    <p class="muted small-text">${esc(t("espnSyncAutoDisclaimer"))}</p>
+    <div class="admin-row">
+      <span class="small-text muted">${esc(t("espnSyncActivePhase"))}</span>
+      <select id="espnSyncPhaseSelect">${phaseOptions}</select>
+      <button type="button" id="espnSyncNowBtn" class="secondary small-btn">${esc(t("espnSyncRefresh"))}</button>
     </div>
-    ${listHtml}`;
+    ${statusHtml}`;
 
-  $("espnSyncFetchBtn")?.addEventListener("click", async () => {
+  $("espnSyncPhaseSelect")?.addEventListener("change", (e) => {
     if (!guardAdmin()) return;
-    const btn = $("espnSyncFetchBtn");
+    // Zera o guard ANTES de saveState() — saveState() re-renderiza de forma síncrona (via
+    // renderAll()), então se isso rodasse depois, a re-renderização em cascata leria o valor
+    // antigo do guard e poderia pular a sincronização da fase recém-selecionada.
+    _espnLastRunSummary = null;
+    _espnLastAutoSyncAt = 0; // força a próxima renderização a sincronizar de novo com a fase nova
+    const s2 = state();
+    s2.espnSync = s2.espnSync || {};
+    s2.espnSync.activePhaseId = e.target.value || null;
+    saveState(s2);
+  });
+
+  $("espnSyncNowBtn")?.addEventListener("click", async () => {
+    if (!guardAdmin()) return;
+    _espnLastAutoSyncAt = Date.now();
+    const btn = $("espnSyncNowBtn");
     btn.disabled = true; btn.textContent = t("espnSyncFetching");
-    const result = await fetchEspnCandidates();
-    _espnCandidates = result === null ? "error" : result;
+    _espnLastRunSummary = { ...(await autoSyncEspn(state())), at: Date.now() };
+    if (_espnLastRunSummary.addedCount) showToast(t("espnSyncAddedToast"), "success");
     renderAdminEspnSync(state());
   });
 
-  box.querySelectorAll("[data-espn-add]").forEach(btn => btn.addEventListener("click", () => {
-    if (!guardAdmin()) return;
-    const idx = parseInt(btn.dataset.espnAdd, 10);
-    const ev  = _espnCandidates[idx];
-    const row = box.querySelector(`.espn-candidate-row[data-espn-idx="${idx}"]`);
-    const phaseId = row.querySelector(".espn-candidate-phase").value;
-    if (!ev || !phaseId) return;
-    const format = getPhaseDef(phaseId).format;
-    const tie = { teamA: ev.homeTeam, teamB: ev.awayTeam, matches: {}, qualifiedTeamId: null };
-    legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
-    // Partida única já finalizada na ESPN: preenche o placar direto, mesmo caminho usado pelo
-    // salvamento manual de perna — evita o admin redigitar um resultado que já veio pronto.
-    if (format === "SINGLE_MATCH" && ev.homeScore != null) {
-      tie.matches.single = { homeTeam: ev.homeTeam, awayTeam: ev.awayTeam, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL" };
-    }
-    const s2 = state();
-    s2.phases[phaseId].ties[uuid()] = tie;
-    saveState(s2);
-    showToast(t("espnSyncAdded"), "success");
-    renderAdminEspnSync(state());
-  }));
+  // Auto-sync: roda sozinho quando o painel admin abre (ou a cada 5 min se ele continuar aberto)
+  // — sem exigir clique. Guarda por timestamp para não rodar de novo a cada re-render (ex.: depois
+  // de marcar um pagamento como pago, o que também dispara renderAdmin()).
+  if (s.espnSync?.activePhaseId && Date.now() - _espnLastAutoSyncAt > ESPN_AUTO_SYNC_INTERVAL_MS) {
+    _espnLastAutoSyncAt = Date.now();
+    autoSyncEspn(s).then(summary => {
+      _espnLastRunSummary = { ...summary, at: Date.now() };
+      if (summary.addedCount) { showToast(t("espnSyncAddedToast"), "success"); renderAdminEspnSync(state()); }
+      else renderAdminEspnSync(state());
+    });
+  }
 }
 
 function toLocalDatetimeValue(iso) {
@@ -1644,7 +1719,17 @@ async function init() {
   renderAll();
 
   if (C.database.enabled) {
-    setInterval(async () => { await loadRemoteState(); renderAll(); }, 30000);
+    setInterval(() => { if (!document.hidden && !_editingEntry) debouncedReload(); }, 30000);
+    document.addEventListener("visibilitychange", () => { if (!document.hidden) debouncedReload(); });
+    window.addEventListener("focus", debouncedReload);
+    // iOS Safari can restore a backgrounded tab from bfcache without reliably firing
+    // visibilitychange, leaving the page stuck on whatever state was in memory at the last real
+    // load — force a resync whenever that happens. Same fix already applied to the Copa
+    // (bolao/js/app.js) after a real incident where a stale local browser state won a merge
+    // against fresher Supabase data; see docs/bolao/LESSONS_LEARNED.md "Safari" / "Supabase —
+    // merge/sync". mergeStates() here already applies preferRemoteResults:true on every load, so
+    // the missing piece was purely "reliably trigger that reload", not the merge rule itself.
+    window.addEventListener("pageshow", e => { if (e.persisted) debouncedReload(); });
   }
 }
 

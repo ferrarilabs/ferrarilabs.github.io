@@ -718,9 +718,66 @@ interpretação confirmada explicitamente com Eduardo antes de implementar.
 estendida. Testado (Playwright, resposta 403 mockada): com a RLS ainda restrita, os dois apps
 continuam funcionando normalmente em modo local, sem crash e sem perda de dado — falha de forma
 segura, mas silenciosa. SQL para estender a RLS aos três ids entregue a Eduardo em
-`docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" — precisa ser rodado
-manualmente no painel do Supabase (fora do alcance desta sessão, sem acesso de rede a hosts
-externos, incluindo `supabase.co`).
+`docs/bolao/DATABASE_SETUP_SUPABASE.md` "Múltiplos apps na mesma tabela" — **rodado por Eduardo
+em 2026-07-13**, confirmado por ele diretamente. Os três apps devem estar sincronizando de
+verdade a partir de agora.
+
+### Sincronização com ESPN do CDB2026 virou automática (v3.3, 2026-07-13)
+
+Eduardo testou a v3.1 (clicar "Buscar da ESPN", escolher fase, clicar "Adicionar" confronto por
+confronto) e reportou que o fluxo "fica muito ruim". Redesenhado: o admin escolhe apenas **qual
+fase é a atual** uma vez (`s.espnSync.activePhaseId`); com isso definido, confrontos novos são
+detectados e cadastrados sozinhos (ao abrir o admin, a cada 5 min se continuar aberto, ou por um
+botão "Sincronizar agora"). O que continua manual e não foi automatizado: travar um resultado
+— essa etapa decide o pagamento e continua exigindo o fluxo existente em "Resultados". IDs de
+confrontos auto-adicionados passaram a ser determinísticos (derivados do par de times, não
+`uuid()` aleatório) para que uma sincronização rodando de forma independente em dois
+dispositivos não crie duas entradas para o mesmo confronto real depois do merge via Supabase.
+
+### "Nada pode ficar só no localStorage" — investigado, não implementado como pedido literalmente (2026-07-13)
+
+Eduardo pediu para garantir que nada fique só em `localStorage`, citando explicitamente "o mesmo
+problema que tivemos nas versões antigas do bolão da Copa do Mundo" e pedindo para "garantir que
+nada fique em cache". Em vez de remover `localStorage` (o que teria sido a leitura literal do
+pedido), investiguei o incidente real que ele estava lembrando — `docs/bolao/LESSONS_LEARNED.md`
+"Supabase — merge/sync" e "Safari" — antes de implementar, porque remover `localStorage`
+inteiramente **não teria corrigido aquele bug** e teria introduzido um problema novo (o app
+ficaria 100% dependente do Supabase estar no ar; hoje é local-first por design, degradando
+graciosamente).
+
+**O que o incidente real foi:** (1) resultado correto no Supabase sendo sobrescrito por
+`localStorage` de teste desatualizado em outro dispositivo — causa raiz era a **regra de merge**
+(`results` dava preferência ao local em vez do remoto), não a existência do `localStorage`; (2)
+`index.html` desatualizado servido por cache HTTP agressivo do Safari/iOS mesmo com service
+worker "network-first"; (3) bfcache do WebKit restaurando uma aba sem disparar
+`visibilitychange`, deixando a página presa em estado antigo.
+
+**Auditoria do estado atual, antes de mexer em qualquer coisa:**
+- Regra de merge (`preferRemoteResults: true`, resultados travados sempre vencem do lado
+  remoto) — **já corrigida nos três apps** desde as versões anteriores, confirmado lendo o
+  código de `mergeStates`/`loadRemoteState` de BR2026 e CDB2026 antes de assumir que precisava
+  de correção.
+- Cache HTTP de `index.html`/assets estáticos — `bolao/sw.js` é **compartilhado pelos três apps**
+  (todos registram o mesmo `/bolao/sw.js`) e já usa `fetch(e.request, { cache: 'no-store' })` —
+  o fix da Copa (v4.111) já cobre BR2026/CDB2026 automaticamente, sem trabalho adicional.
+- Listener de `pageshow`/`event.persisted` (bfcache) — **este sim estava faltando** em
+  BR2026/CDB2026 (só a Copa tinha, desde v4.111) — gap já catalogado em
+  `CONSISTENCY_MATRIX.md` item 23, nunca corrigido até agora. Esta era a peça real ainda
+  faltando do fix documentado do incidente histórico.
+
+**O que foi implementado**: `debouncedReload()` (mesmo padrão de `debouncedReload`/
+`reloadRemoteIfVisible` da Copa) adicionado a BR2026 e CDB2026, cobrindo
+`visibilitychange` + `focus` + `pageshow` — resolve o gap real (gatilho de resync não confiável
+em bfcache), sem remover `localStorage` nem a arquitetura local-first. `localStorage` continua
+existindo nos três apps como estava — é o design consciente e documentado da plataforma
+(`docs/bolao/DATABASE_SETUP_SUPABASE.md`: "Local-first with optional remote mirror"), não uma
+falha a eliminar.
+
+Bug de ordenação encontrado durante os testes desta mudança (não relacionado ao ESPN em si): o
+handler de troca de fase ativa zerava o guard de intervalo de sincronização *depois* de
+`saveState()`, mas `saveState()` já dispara uma re-renderização síncrona que lia o valor antigo
+do guard — corrigido invertendo a ordem. Achado só porque havia teste automatizado cobrindo o
+fluxo "selecionar fase → confronto aparece sozinho" ponta a ponta, não só a função isolada.
 
 ---
 

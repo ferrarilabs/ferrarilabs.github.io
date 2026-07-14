@@ -1,5 +1,60 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.4 — 2026-07-13
+
+### Fixed — resync forçado ao voltar de uma aba em segundo plano (bfcache)
+
+Mesma correção aplicada ao BR2026 nesta versão — ver o CHANGELOG do BR2026 v1.26 para a
+explicação completa (bug histórico, por que remover `localStorage` não seria a correção certa,
+o que realmente faltava). Resumo: adicionado `debouncedReload()` cobrindo
+visibilitychange + focus + `pageshow`/`event.persisted` (gap catalogado em
+`CONSISTENCY_MATRIX.md` item 23), mesmo padrão que a Copa já tem desde a v4.111. A regra de
+merge (`preferRemoteResults: true`) já estava correta neste app — o gap era só a confiabilidade
+do gatilho de resync, não a lógica de merge.
+
+Testado (Playwright): mesmos 4 casos do BR2026, todos passando.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
+## v3.3 — 2026-07-13
+
+### Changed — sincronização com ESPN totalmente automática
+
+Eduardo testou a v3.1 (clicar "Buscar", escolher fase, clicar "Adicionar" por confronto) e achou
+o fluxo ruim. Removido o clique por confronto:
+
+- Novo campo de estado `s.espnSync.activePhaseId` — a única decisão que continua manual: qual
+  fase é "a atual" agora. Não dá para inferir isso com segurança a partir dos dados da ESPN sem
+  verificação ao vivo (ver `docs/bolao/CDB2026_RULES_AND_MODEL.md`).
+- Com a fase ativa escolhida, a sincronização roda sozinha: ao abrir o painel admin, a cada 5
+  minutos se ele continuar aberto, e via um botão "🔄 Sincronizar agora" para forçar na hora.
+  Confrontos novos (par de times ainda não cadastrado em nenhuma fase) são criados
+  automaticamente — sem clique.
+- **O que continua manual, de propósito:** travar um resultado. Isso decide o pagamento — a
+  sincronização só preenche o placar de uma partida única já finalizada na ESPN (mesmo dado,
+  sem precisar redigitar), mas quem confirma e trava o resultado continua sendo o fluxo já
+  existente em "Resultados".
+- IDs de confronto adicionados pela sincronização passaram a ser determinísticos
+  (`espn-<time-a>_<time-b>`, normalizado e ordenado) em vez de aleatórios — se dois dispositivos
+  rodarem a sincronização automática de forma independente antes de se encontrarem no Supabase,
+  os dois geram o mesmo id para o mesmo confronto real, e o merge (por chave) colapsa em uma
+  única entrada em vez de duplicar. Confrontos adicionados manualmente continuam com id
+  aleatório (sem esse risco de corrida).
+
+**Bug de ordenação encontrado e corrigido durante os testes**: o handler de troca de fase ativa
+zerava o "guard" de intervalo *depois* de `saveState()`, mas `saveState()` já dispara uma
+re-renderização síncrona — a re-renderização em cascata lia o valor antigo do guard e podia
+pular a sincronização da fase recém-selecionada. Corrigido invertendo a ordem.
+
+11 testes automatizados (Playwright, ESPN mockada): sem fase ativa não sincroniza; selecionar
+fase dispara sincronização sem clique adicional; dois confrontos adicionados automaticamente;
+TWO_LEG não fabrica placar; ids determinísticos; sincronização repetida não duplica; confronto
+novo aparece automaticamente numa checagem seguinte; SINGLE_MATCH com resultado final da ESPN
+preenche o placar mas nunca trava o confronto sozinho; Jogos reflete os confrontos automáticos.
+
+`node --check`: OK (12 arquivos, 3 apps). `audit_scoring.py`: 5/5, sem impacto — nenhuma fórmula
+de pontuação alterada, só a origem/automação do cadastro de confrontos.
+
 ## v3.2 — 2026-07-13
 
 ### Changed — Supabase habilitado (`database.enabled: true`)
