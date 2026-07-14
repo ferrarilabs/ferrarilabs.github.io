@@ -448,6 +448,18 @@ function renderPickForm() {
   DATA.phases.forEach(phase => {
     const phaseState = s.phases?.[phase.id] || emptyPhaseState();
     const ties = Object.entries(phaseState.ties || {});
+    // Mesma ordenação cronológica da aba "Jogos" (ver firstLegKickoffMs()) -- achado por Eduardo
+    // (2026-07-14): o fix anterior só cobria "Jogos" (fora deliberadamente do escopo pedido na
+    // hora), mas o formulário de Palpites é o que participantes de fato usam, e continuava na
+    // ordem crua de inserção. Confrontos sem kickoff conhecido ainda ficam no fim.
+    ties.sort(([, tieA], [, tieB]) => {
+      const msA = firstLegKickoffMs(tieA, phase.format);
+      const msB = firstLegKickoffMs(tieB, phase.format);
+      if (msA === null && msB === null) return 0;
+      if (msA === null) return 1;
+      if (msB === null) return -1;
+      return msA - msB;
+    });
     // Fases já decididas (todo confronto com qualifiedTeamId) ou já concluídas antes do bolão
     // existir (ver DATA.phasesConcludedNoData) não têm nada a apostar — tiradas do formulário de
     // palpites em vez de mostrar N linhas travadas ou um "aguardando sorteio" enganoso. Ainda
