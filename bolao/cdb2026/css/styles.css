@@ -134,13 +134,16 @@ main {
   box-shadow: 0 8px 32px rgba(0,0,0,.22);
 }
 
-/* ── Hero ── */
+/* ── Hero — mesmo gradiente/cor do BR2026 (verde, não dourado). Era um esquema de cor próprio
+   (dourado, remetendo ao troféu) só deste app, sem registro em DESIGN_SYSTEM.md justificando como
+   TOURNAMENT_SPECIFIC — divergência real encontrada por Eduardo (2026-07-14): "Cdb tem cores
+   diferentes". Alinhado à Copa/BR2026 (verde é a cor primária dos três apps). ── */
 .hero {
-  background: linear-gradient(145deg, #1a1200 0%, #0d2028 60%, #0a1a24 100%);
-  border-color: #403010;
+  background: linear-gradient(145deg, #0f2d1a 0%, #0d2028 60%, #0a1a24 100%);
+  border-color: #1e4030;
 }
 .hero-inner { display: flex; flex-direction: column; gap: 16px; }
-.hero-eyebrow { font-size: 12px; font-weight: 700; color: var(--gold); letter-spacing: .08em; text-transform: uppercase; }
+.hero-eyebrow { font-size: 12px; font-weight: 700; color: var(--green); letter-spacing: .08em; text-transform: uppercase; }
 .hero h1 { margin: 4px 0 8px; font-size: clamp(18px, 4vw, 26px); line-height: 1.25; }
 .hero-sub { color: var(--muted); font-size: 13px; margin: 0; }
 
@@ -212,7 +215,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   text-transform: uppercase; padding: 8px 14px;
   border-radius: 10px; margin-bottom: 6px;
 }
-.pick-group-header.champion-header { background: rgba(245,158,11,.15); color: var(--gold); border: 1px solid rgba(245,158,11,.25); }
+.pick-group-header.champion-header { background: rgba(47,229,110,.12); color: var(--green); border: 1px solid rgba(47,229,110,.2); }
 .pick-group-note { font-size: 12px; color: var(--muted); margin: 0 0 12px; }
 
 .pick-row { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
@@ -346,7 +349,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Games section rounds ── */
 .games-round-header, .admin-round-header {
-  font-size: 13px; font-weight: 900; color: var(--gold);
+  font-size: 13px; font-weight: 900; color: var(--green);
   text-transform: uppercase; letter-spacing: .05em;
   margin: 18px 0 8px;
 }
@@ -414,7 +417,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   margin-bottom: 14px;
 }
 .confronto-header {
-  font-size: 14px; font-weight: 900; color: var(--gold);
+  font-size: 14px; font-weight: 900; color: var(--green);
   letter-spacing: .04em; text-transform: uppercase;
   margin-bottom: 12px; padding-bottom: 8px;
   border-bottom: 1px solid var(--border2);

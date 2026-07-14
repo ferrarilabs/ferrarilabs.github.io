@@ -1,5 +1,39 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.10 — 2026-07-14
+
+### Fixed — esquema de cor dourado (não verde) usado neste app inteiro (achado por Eduardo)
+
+A auditoria "estilo big 4" da v3.9 comparou os TOKENS de cor entre os 3 apps (mesmos valores hex
+nos três) mas não verificou se o MESMO token era usado no MESMO elemento — esse foi o buraco real
+na auditoria. CDB2026 usava `var(--gold)` como cor primária (título/eyebrow do hero, cabeçalho de
+cada fase no formulário de palpites, cabeçalhos de confronto em Jogos/Admin, gradiente de fundo do
+hero) onde a Copa e o BR2026 usam `var(--green)` para os mesmos elementos — sem nenhum registro em
+`DESIGN_SYSTEM.md` justificando isso como `TOURNAMENT_SPECIFIC`. Alinhado ao verde dos outros dois
+apps: `.hero-eyebrow`, `.pick-group-header.champion-header`, `.games-round-header`/
+`.admin-round-header`, `.confronto-header`, gradiente do `.hero`. Mantido dourado só em
+`.pick-partial` (estado semântico de "parcial", equivalente ao amarelo usado pelo BR2026 para a
+mesma ideia — não é cor de marca).
+
+### Fixed — contador regressivo sumiu, virou "aguardando sorteio" para sempre (bug crítico)
+
+Eduardo reportou: "Cdb nao tem contador regressivo antes tinha, sumiu, agora fala aguardando
+sorteio". Causa raiz: `fase1CutoffMs()` (usada pelo contador do topo, pelo bloqueio de criação de
+entrada nova e pela escolha de aba padrão) sempre lia `phases["fase-1"].cutoffAt` — e fase-1
+NUNCA vai ter esse campo preenchido, porque desde a v3.6/v3.8 ela é histórica, sem confronto
+cadastrado nenhum (`DATA.phasesConcludedNoData`). Mesmo o admin definindo um cutoff real na fase
+que está de fato aberta para palpite (Oitavas), o contador continuava preso em "aguardando
+sorteio" para sempre, porque olhava o campo errado.
+
+Renomeada para `entryCutoffMs()`/`isPastEntryCutoff()`, agora lendo o cutoff da fase que está
+`espnSync.activePhaseId` (hoje "oitavas") em vez de literalmente "fase-1" — acompanha
+automaticamente qual fase está aberta para palpite conforme o torneio avança, sem precisar trocar
+um nome de fase hardcoded pelo outro a cada rodada.
+
+11 testes automatizados novos (troca de cor confirmada visualmente + Playwright, contador
+funcionando com cutoff real definido em Oitavas, bloqueio de entrada nova respeitando o cutoff
+certo). `node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
 ## v3.9 — 2026-07-14
 
 ### Fixed — palpites apagados ao interagir com o formulário (bug crítico)

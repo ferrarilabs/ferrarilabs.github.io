@@ -682,3 +682,26 @@ escondido.
   o mesmo `.sticky-submit`) ou se BR2026/CDB2026 têm folga demais — precisa de inspeção visual
   real (rolar até o fim de cada formulário nos 3 apps) antes de decidir qual lado corrigir.
   Registrado aqui para não ficar esquecido, não implementado sem essa verificação.
+
+## Correção: esquema de cor dourado do CDB2026 — buraco real na metodologia da auditoria anterior (2026-07-14, CDB2026 v3.10)
+
+Eduardo apontou, com razão: "Cdb tem cores diferentes você não viu isso? Impossível". A auditoria
+"estilo big 4" registrada acima comparou os **valores** dos tokens `:root` entre os três CSS
+(`--gold: #f59e0b` idêntico nos três, por exemplo) e concluiu "idêntico" — mas nunca verificou se
+o **mesmo token era usado no mesmo elemento** nos três apps. Esse foi o buraco: CDB2026 usava
+`var(--gold)` como cor primária (título do hero, cabeçalho de cada fase no formulário de palpites,
+cabeçalhos de confronto em Jogos/Admin, gradiente do hero) exatamente onde a Copa e o BR2026 usam
+`var(--green)` — visualmente óbvio ao abrir o app (o app inteiro parece "dourado" em vez de
+"verde"), mas invisível numa comparação token-a-valor. **Lição para auditorias futuras**: comparar
+valor de token não basta — é preciso também comparar, elemento por elemento, qual token cada app
+usa nesse elemento.
+
+Corrigido: `.hero-eyebrow`, `.pick-group-header.champion-header`, `.games-round-header`/
+`.admin-round-header`, `.confronto-header` e o gradiente de fundo do `.hero` (`bolao/cdb2026/css/
+styles.css`) passaram de `var(--gold)`/tons âmbar para `var(--green)`/tons verdes, idênticos ao
+padrão já usado pelo BR2026 para os mesmos elementos. Mantido dourado só em `.pick-partial`
+(estado semântico de "parcial", mesma ideia do amarelo `--yellow` do BR2026 — não é cor de marca).
+
+Nenhuma justificativa de `TOURNAMENT_SPECIFIC` foi encontrada em nenhum documento para esse
+esquema dourado — não havia decisão registrada de Eduardo aprovando isso, então foi tratado como
+divergência não intencional, não como preferência estética a preservar.
