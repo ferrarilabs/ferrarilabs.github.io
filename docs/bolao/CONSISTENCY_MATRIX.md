@@ -306,3 +306,40 @@ nem `pageshow`" — classificado `NEEDS_REVIEW`, catalogado em `LESSONS_LEARNED.
   não a existência do `localStorage` em si. Detalhe completo em `LESSONS_LEARNED.md`
   "Supabase — merge/sync" e "Safari".
 - `CONSISTENT` nos três apps agora.
+
+## Nota manual — ordem dos botões de header/nav divergindo da Copa (2026-07-14, BR2026 v1.27 / CDB2026 v3.5)
+
+Eduardo apontou que "a ordem dos botões não é a mesma em todos". Auditado contra a Copa
+(referência canônica), dois desalinhamentos reais no `index.html` de BR2026 e CDB2026 (ambos
+tinham o mesmo problema):
+
+| Item | Copa | BR2026 (antes) | CDB2026 (antes) | Status | Correção |
+|---|---|---|---|---|---|
+| Ordem WhatsApp vs. idioma no header | WhatsApp → PT-BR/ES-MX/EN-US → seletor de bolão | idioma → WhatsApp (trocados) | idioma → WhatsApp (trocados) | `CONSISTENT` (corrigido) | Reordenado para bater com a Copa nos dois apps |
+| Posição de Participantes/Pagamento no nav | Logo após Ranking (posições 3–4; ocultos por CSS na Copa, mas essa é a posição no DOM) | Depois de Probabilidades (posições 6–7) | Depois de Probabilidades (posições 5–6) | `CONSISTENT` (corrigido) | Movidos para logo após Ranking nos dois apps; "Tabela" (BR2026, sem equivalente na Copa) manteve posição relativa, logo antes de Jogos |
+
+Apenas markup (`index.html`), sem mudança de `app.js`/CSS — nada depende da ordem do DOM
+(navegação usa `data-section`, não índice/posição). Verificado via Playwright: zero erros de JS
+nos três apps depois da mudança, ordem do nav lida diretamente do DOM confirmada igual à Copa
+(com a exceção intencional de "Tabela" no BR2026).
+
+## Nota manual — fases já concluídas fora do formulário de palpites: `TOURNAMENT_SPECIFIC`, não propagado (2026-07-14, CDB2026 v3.8)
+
+CDB2026 ganhou (v3.7/v3.8) uma feature nova: fases 100% decididas (`phaseFullyResolved()`) ou sem
+confronto cadastrado por estarem fora do escopo de população (`DATA.phasesConcludedNoData`) somem
+do formulário de palpites, com nota de "já concluída" na aba Jogos em vez de "aguardando sorteio".
+
+**Decisão: `INTENTIONALLY_DIFFERENT` / `TOURNAMENT_SPECIFIC` — não propagado para Copa nem
+BR2026.** Motivo: a feature resolve um problema estrutural específico do modelo de fases dinâmicas
+do CDB2026 (9 fases cadastradas incrementalmente pelo admin conforme cada sorteio real acontece,
+ver `CDB2026_RULES_AND_MODEL.md`) que simplesmente não existe nos outros dois apps:
+
+- **Copa** usa um bracket fixo desde o deploy (`data.js`, `knockoutMatches`) com um único
+  `cutoffIso` global para todos os palpites de uma vez — não há conceito de "fase" que possa ter
+  ficado pra trás antes do bolão existir.
+- **BR2026** é uma tabela de temporada única (classificação ao vivo via ESPN), sem fases nem
+  cutoff por rodada — mesma ausência de estrutura equivalente.
+
+Nenhum dos dois tem o problema que motivou a feature (fases que a CBF já encerrou antes do bolão
+ir ao ar aparecendo como "aguardando sorteio", enganoso, e abertas a palpite sem terem o que
+apostar). Nada a propagar.

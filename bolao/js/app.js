@@ -2043,7 +2043,15 @@ function commitRealResult(card) {
 /* ============================================================
    CSV / export
    ============================================================ */
-function csvEscape(v) { const s = String(v ?? ""); return `"${s.replace(/"/g, '""')}"`; }
+function csvEscape(v) {
+  let s = String(v ?? "");
+  // CSV/formula injection: a cell starting with =, +, -, @ (or tab/CR) can be read as a formula
+  // by Excel/Sheets when the exported file is opened — prefix with an apostrophe so it's always
+  // literal text. Real risk here: entryName/payerName are free text fully controlled by whoever
+  // submits the entry form.
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+}
 function toCsv(rows) {
   if (!rows.length) return "";
   const headers = [...rows.reduce((set, r) => { Object.keys(r).forEach(k => set.add(k)); return set; }, new Set())];
@@ -4053,7 +4061,7 @@ function startReopenPolling() {
       // currently loaded value (the old ">= date" check caused an infinite reload
       // loop once we passed that date with no new config published).
       if (m && m[1] !== CONFIG.cutoffIso) location.reload();
-    } catch (e) {}
+    } catch (e) { /* network hiccup — next poll retries, nothing to recover here */ }
   }, 60000);
 }
 
@@ -4074,7 +4082,7 @@ async function checkVersion() {
     const text = await r.text();
     const m = text.match(/siteVersion:\s*"([^"]+)"/);
     if (m && m[1] !== CONFIG.siteVersion) location.reload();
-  } catch (e) {}
+  } catch (e) { /* network hiccup — next poll retries, nothing to recover here */ }
 }
 function startVersionPolling() {
   if (_versionPoller) return;

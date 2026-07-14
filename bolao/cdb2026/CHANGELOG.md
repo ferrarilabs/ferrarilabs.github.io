@@ -1,5 +1,113 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.8 — 2026-07-14
+
+### Added — população da 5ª Fase (histórico, referência) + fases passadas fora dos palpites
+
+Eduardo pediu para popular "os jogos anteriores" (só para referência) e tirar do formulário de
+palpites as fases já decididas. O torneio tem 5 fases antes das Oitavas (126 times, 90+ partidas
+nas 4 primeiras) — todas já concluídas antes deste bolão existir.
+
+Escopo decidido por Eduardo depois de eu apresentar o trade-off risco/esforço: só a 5ª Fase (32
+times, 16 confrontos, fontes de imprensa boas) foi populada em detalhe — `DATA.knownConfrontos["fase-5"]`
+em `data.js`, com o placar real de ida e volta dos 16 confrontos. 1ª a 4ª fase (90+ partidas de
+times estaduais/regionais menores, fontes bem mais esparsas) ficam marcadas como já concluídas
+sem placar partida a partida (`DATA.phasesConcludedNoData`).
+
+`seedKnownConfrontos()` generalizada para aceitar confronto já decidido (`winner` + `legs`), não
+só confronto futuro (só `teamA`/`teamB`, como a Oitavas). Validação cruzada forte: os 16
+vencedores da 5ª fase batem exatamente com os 16 times já cadastrados na Oitavas (v3.6) — nenhum
+de menos, nenhum a mais, nenhum duplicado.
+
+`renderPickForm()` agora pula qualquer fase 100% decidida ou sem dado — cobre 5ª fase e 1ª–4ª. A
+aba "Jogos" mostra os cards reais da 5ª fase e uma nota de "já concluída" (em vez de "aguardando
+sorteio", que seria enganoso) nas fases sem dado.
+
+Sourcing e limitações documentados em `docs/bolao/CDB2026_RULES_AND_MODEL.md` seção 7.2 — mesmo
+padrão de transparência da v3.6 (2+ fontes por confronto, dois erros de busca pegos e corrigidos
+antes de entrar no código, sem verificação contra API oficial da CBF/ESPN neste ambiente).
+
+19 testes novos (`test_fase5_seed.js`), todos passando. Sem mudança de scoring — fase nunca
+esteve aberta a palpite. `audit_scoring.py` (Copa): 5/5.
+
+## v3.7 — 2026-07-14
+
+### Fixed — CSV/formula injection no export (segurança)
+
+Mesma varredura/mesmo bug da Copa e do Brasileirão (ver changelogs respectivos). `exportCsv()`
+só escapava aspas duplas, não os caracteres que disparam interpretação como fórmula no
+Excel/Sheets (`=+-@`/tab/CR) em campos de texto livre (`entryName`, `payerName`). Adicionado
+`csvEscape` (novo const, mesmo padrão dos outros dois apps) e trocado no `.map()` de
+`exportCsv()`.
+
+### Fixed — bloco `catch` vazio sem comentário
+
+Um `catch (e) {}` (polling de versão) sem o comentário exigido pelo `CLAUDE.md`. Adicionado —
+sem mudança de comportamento.
+
+Sem mudança de scoring/regras. `audit_scoring.py` (Copa): 5/5.
+
+## v3.6 — 2026-07-14
+
+### Added — população inicial das Oitavas de Final já sorteadas
+
+Eduardo pediu, pela terceira vez, para popular os confrontos já conhecidos — a ferramenta de
+sincronização com a ESPN (v3.1/v3.3) por si só não resolvia porque depende do admin acessar o
+painel e escolher a fase, e o ambiente de desenvolvimento não tem acesso de rede a
+`site.api.espn.com`/`supabase.co` para verificar ou popular remotamente. Mudança de curso:
+semear os 8 confrontos das Oitavas de Final diretamente, já que são fato conhecido (sorteio da
+CBF em 26/05/2026), não invenção de chaveamento futuro.
+
+- `DATA.knownConfrontos.oitavas` (novo, `js/data.js`): os 8 confrontos com mando de campo por
+  perna (`teamA` manda a ida, `teamB` manda a volta/decisiva) — Vasco×Fluminense,
+  Internacional×Corinthians, Mirassol×Grêmio, Athletico-PR×Vitória, Atlético-MG×Juventude,
+  Santos×Remo, Chapecoense×Cruzeiro, Palmeiras×Fortaleza.
+- `seedKnownConfrontos()` (novo, `js/app.js`): roda uma única vez por estado
+  (`s.espnSync.seededKnownConfrontos`), depois do merge com o Supabase (nunca antes — não
+  semeia por cima do que outro dispositivo já salvou). Depois da primeira vez, nunca reaplica —
+  se o admin remover um confronto errado pela UI existente, ele não volta sozinho. Nenhum
+  placar ou classificado é fabricado — só o par de times; datas de kickoff ficam em aberto
+  ("Data a definir") até a CBF publicar a tabela detalhada e o admin preencher.
+- `espnSync.activePhaseId` também é definido para `"oitavas"` como padrão, então a sincronização
+  automática com a ESPN (v3.3) já fica ativa para pegar resultados/atualizações a partir de
+  agora, sem passo manual adicional.
+
+**Fonte e limitação de confiança, registradas com transparência**: dados de busca pública
+(múltiplas matérias jornalísticas, incluindo o site oficial do Corinthians), cruzados entre 3+
+fontes independentes para cada par — mas **não verificados contra uma chamada direta à API da
+CBF/ESPN** (sem acesso de rede externo neste ambiente). Uma busca inicial trouxe um resultado
+contraditório (Corinthians×Palmeiras, de uma notícia de outro ano misturada no resultado) —
+descartado depois de uma busca mais específica confirmar Corinthians×Internacional em 5+ fontes,
+incluindo `corinthians.com.br`. **Confira contra a tabela oficial da CBF antes do prazo de
+palpites** — qualquer confronto errado pode ser removido e recriado corretamente pela tela
+"Fases e confrontos" do admin, sem risco a resultados já lançados (nenhum existe ainda).
+
+18 testes automatizados (Playwright): semeia exatamente 8 confrontos na primeira carga; todos os
+8 pares corretos com mando de campo correto; nenhum placar/classificado fabricado; ids
+determinísticos; reload não duplica; admin consegue remover um confronto semeado e ele não volta.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto — nenhuma fórmula de pontuação alterada,
+só a origem dos dados de confronto (população inicial em vez de cadastro manual).
+
+## v3.5 — 2026-07-14
+
+### Fixed — ordem dos botões do header/nav divergindo da Copa
+
+Mesma correção aplicada ao BR2026 nesta versão — ver o CHANGELOG do BR2026 v1.27 para a
+explicação completa. Resumo: header reordenado para WhatsApp → idioma → seletor de bolão (batia
+com a Copa antes trocado); nav reordenado para Palpites → Ranking → Participantes → Pagamento →
+Jogos → Probabilidades → Regras → Admin, igual à posição no DOM da Copa (Participantes/Pagamento
+estavam depois de Probabilidades). Apenas `index.html`, sem mudança de `app.js`/CSS.
+
+### Fixed — ícone do Zelle quebrado (asset ausente)
+
+Mesmo bug do BR2026 nesta versão — ver o CHANGELOG do BR2026 v1.27. `assets/zelle.svg` nunca
+existiu neste app; `PAY_ICON_SVG` em `js/app.js` já referenciava esse caminho, resultando em
+ícone quebrado no card de pagamento Zelle. Corrigido copiando o SVG da Copa. Encontrado durante
+auditoria cosmética completa (44 screenshots via Playwright) pedida por Eduardo — ver
+`docs/bolao/DESIGN_SYSTEM.md` "Auditoria cosmética completa" para os demais achados (dois itens
+de layout aguardando decisão, não implementados nesta rodada).
+
 ## v3.4 — 2026-07-13
 
 ### Fixed — resync forçado ao voltar de uma aba em segundo plano (bfcache)

@@ -21,6 +21,7 @@ window.CDB2026_I18N = {
     countdownSec: "s",
     closedLabel: "Encerrado",
     waitingDraw: "Aguardando sorteio oficial",
+    phaseAlreadyConcluded: "Fase já concluída antes do início deste bolão — não fez parte do período de palpites.",
     // Form
     entryTitle: "Nova entrada",
     editTitle: "Editar entrada",

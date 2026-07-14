@@ -16,6 +16,15 @@ const $    = id => document.getElementById(id);
 const $$   = sel => [...document.querySelectorAll(sel)];
 const esc  = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// CSV/formula injection: a cell starting with =, +, -, @ (or tab/CR) can be read as a formula
+// by Excel/Sheets when the exported file is opened — prefix with an apostrophe so it's always
+// literal text. Real risk here: entryName/payerName are free text fully controlled by whoever
+// submits the entry form.
+const csvEscape = v => {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 
 // ─── Toast ──────────────────────────────────────────────────────────────────
 // Mesma implementação da Copa (bolao/js/app.js) — não-bloqueante, substitui alert() em toda
@@ -60,7 +69,9 @@ function emptyState() {
   // espnSync.activePhaseId: a única decisão que fica com o admin na sincronização automática —
   // qual fase é "a atual" agora. Ver autoSyncEspn() — não dá para inferir isso com segurança a
   // partir dos dados da ESPN sem verificação ao vivo (ambiente sem acesso de rede externo).
-  return { entries: [], deletedIds: [], paid: {}, phases, espnSync: { activePhaseId: null }, meta: { updatedAt: null, version: C.siteVersion } };
+  // espnSync.seededKnownConfrontos: true depois que seedKnownConfrontos() rodar uma vez — nunca
+  // reaplica a população inicial, mesmo que o admin remova um confronto semeado.
+  return { entries: [], deletedIds: [], paid: {}, phases, espnSync: { activePhaseId: null, seededKnownConfrontos: false }, meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try {
@@ -147,6 +158,9 @@ function mergeStates(local, remote, opts = {}) {
     activePhaseId: opts.preferRemoteResults
       ? (remote.espnSync?.activePhaseId ?? local.espnSync?.activePhaseId ?? null)
       : (local.espnSync?.activePhaseId ?? remote.espnSync?.activePhaseId ?? null),
+    // OR, não remote-wins/local-wins — uma vez semeado em QUALQUER dispositivo, o flag deve
+    // permanecer true depois do merge em todos, para seedKnownConfrontos() nunca reaplicar.
+    seededKnownConfrontos: !!(local.espnSync?.seededKnownConfrontos || remote.espnSync?.seededKnownConfrontos),
   };
   return {
     entries: Object.values(byId),
@@ -197,8 +211,12 @@ function isPastFase1Cutoff() {
 function isPhaseLocked(phaseState) {
   return !!phaseState?.cutoffAt && Date.now() > new Date(phaseState.cutoffAt).getTime();
 }
-function fase1Complete(s) {
-  const ties = Object.values(s.phases?.["fase-1"]?.ties || {});
+function fase1Complete(s) { return phaseFullyResolved(s, "fase-1"); }
+// Verdadeiro quando a fase tem confrontos cadastrados e todos já têm resultado (qualifiedTeamId)
+// — usado para tirar fases já decididas do formulário de palpites (nada a apostar) sem depender
+// de cutoffAt, que é opcional e só o admin define manualmente.
+function phaseFullyResolved(s, phaseId) {
+  const ties = Object.values(s.phases?.[phaseId]?.ties || {});
   return ties.length > 0 && ties.every(tie => tie.qualifiedTeamId);
 }
 
@@ -367,6 +385,12 @@ function renderPickForm() {
   DATA.phases.forEach(phase => {
     const phaseState = s.phases?.[phase.id] || emptyPhaseState();
     const ties = Object.entries(phaseState.ties || {});
+    // Fases já decididas (todo confronto com qualifiedTeamId) ou já concluídas antes do bolão
+    // existir (ver DATA.phasesConcludedNoData) não têm nada a apostar — tiradas do formulário de
+    // palpites em vez de mostrar N linhas travadas ou um "aguardando sorteio" enganoso. Ainda
+    // aparecem normalmente em "Jogos" para referência.
+    if (phaseFullyResolved(s, phase.id)) return;
+    if (!ties.length && (DATA.phasesConcludedNoData || []).includes(phase.id)) return;
     html += `<div class="pick-group">
       <div class="pick-group-header champion-header">${esc(phase.name)}</div>`;
     if (!ties.length) {
@@ -1058,7 +1082,8 @@ function renderGamesSection() {
     const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
     html += `<h3 class="games-round-header">${esc(phase.name)}</h3>`;
     if (!ties.length) {
-      html += `<p class="muted" style="margin-bottom:14px">${esc(t("waitingDraw"))}</p>`;
+      const msg = (DATA.phasesConcludedNoData || []).includes(phase.id) ? "phaseAlreadyConcluded" : "waitingDraw";
+      html += `<p class="muted" style="margin-bottom:14px">${esc(t(msg))}</p>`;
       return;
     }
     html += ties.map(([tieId, tie]) => {
@@ -1180,6 +1205,53 @@ function espnTieId(teamA, teamB) {
   const slug = t => String(t || "").normalize("NFD").replace(/[̀-ͯ]/g, "")
     .toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
   return "espn-" + [slug(teamA), slug(teamB)].sort().join("_");
+}
+
+// Popula os confrontos JÁ SORTEADOS conhecidos (DATA.knownConfrontos, ver data.js) — roda
+// exatamente uma vez por estado (marcado em s.espnSync.seededKnownConfrontos), nunca de novo
+// depois disso. Isso é o que garante que o admin possa remover um confronto errado pela UI
+// existente sem que ele volte sozinho no próximo carregamento. Chamado em init(), depois do
+// merge com o Supabase, para nunca semear por cima do que outro dispositivo já salvou.
+function seedKnownConfrontos(s) {
+  if (s.espnSync?.seededKnownConfrontos) return false;
+  s.espnSync = s.espnSync || {};
+  s.espnSync.seededKnownConfrontos = true;
+  const existingPairs = existingPairsAcrossPhases(s);
+  let added = false;
+  Object.entries(DATA.knownConfrontos || {}).forEach(([phaseId, ties]) => {
+    if (!s.phases[phaseId]) return;
+    const format = getPhaseDef(phaseId).format;
+    // Dois formatos de entrada em DATA.knownConfrontos[phaseId]: confronto FUTURO (só
+    // teamA/teamB — ex. Oitavas, sorteado mas ainda não jogado, matches ficam vazios) e
+    // confronto JÁ DECIDIDO (com winner + legs — ex. 5ª Fase, já concluída em maio/2026,
+    // populada aqui só para referência em "Jogos", ver DATA.phasesConcludedNoData e
+    // docs/bolao/CDB2026_RULES_AND_MODEL.md seção 7.2). legs[leg] pode ser null/incompleto
+    // quando o placar de uma perna específica não pôde ser confirmado por fonte — nesse caso a
+    // perna fica sem resultado (mesmo estado de "ainda não jogada"), mas quem avançou
+    // (qualifiedTeamId) já é conhecido com confiança e é setado de qualquer forma.
+    ties.forEach(({ teamA, teamB, winner, legs }) => {
+      const pairKey = [teamA, teamB].sort().join("|");
+      if (existingPairs.has(pairKey)) return;
+      const tie = { teamA, teamB, matches: {}, qualifiedTeamId: winner || null };
+      legsForFormat(format).forEach(leg => {
+        const home  = leg === "second" ? teamB : teamA;
+        const away  = leg === "second" ? teamA : teamB;
+        const score = legs?.[leg];
+        tie.matches[leg] = (score && score.goalsHome != null && score.goalsAway != null)
+          ? { ...emptyMatch(), homeTeam: home, awayTeam: away, goalsHome: score.goalsHome, goalsAway: score.goalsAway, status: "FINAL" }
+          : emptyMatch();
+      });
+      s.phases[phaseId].ties[espnTieId(teamA, teamB)] = tie;
+      existingPairs.add(pairKey);
+      added = true;
+    });
+    // Só promove a fase a "ativa" (usada pela sincronização ESPN) se ela não vier inteira já
+    // decidida — senão a 5ª Fase (histórico, ver acima) tomaria o lugar da Oitavas como fase
+    // ativa dependendo da ordem de DATA.knownConfrontos, quebrando a sincronização automática.
+    const allResolved = ties.length > 0 && ties.every(tie => tie.winner);
+    if (!allResolved && !s.espnSync.activePhaseId) s.espnSync.activePhaseId = phaseId;
+  });
+  return added;
 }
 
 // Faz o trabalho de fato: busca, filtra o que já existe, cria os confrontos novos na fase ativa,
@@ -1583,7 +1655,7 @@ function exportCsv() {
       lines.join(" | ")
     ]);
   });
-  const csv  = rows.map(r => r.map(v => `"${String(v).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+  const csv  = rows.map(r => r.map(csvEscape).join(",")).join("\r\n");
   const blob = new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
@@ -1716,6 +1788,14 @@ async function init() {
   }
 
   await loadRemoteState();
+  // Roda depois do merge com o Supabase (nunca antes) — nunca semeia por cima do que outro
+  // dispositivo já salvou. Persiste na primeira vez que o flag vira true, mesmo se nada novo foi
+  // de fato adicionado (ex.: outro dispositivo já semeou e isso só chegou agora via merge) — ver
+  // seedKnownConfrontos() e docs/bolao/CDB2026_RULES_AND_MODEL.md seção 7 "Confrontos já sorteados".
+  const seedState  = state();
+  const wasSeeded   = !!seedState.espnSync.seededKnownConfrontos;
+  seedKnownConfrontos(seedState);
+  if (!wasSeeded) saveState(seedState);
   renderAll();
 
   if (C.database.enabled) {
@@ -1749,7 +1829,7 @@ if ('serviceWorker' in navigator) {
       const text = await r.text();
       const m = text.match(/siteVersion:\s*"([^"]+)"/);
       if (m && m[1] !== window.CDB2026_CONFIG?.siteVersion) location.reload();
-    } catch (e) {}
+    } catch (e) { /* network hiccup — next poll retries, nothing to recover here */ }
   }
   setInterval(checkVersion, 10 * 60 * 1000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });

@@ -1,5 +1,26 @@
 # CHANGELOG
 
+## v4.130 — 2026-07-14
+
+### Fixed — CSV/formula injection no export (segurança)
+
+Varredura pedida por Eduardo ("find all possible bugs, as if you were a qa of a betting site").
+`csvEscape()` (usado por `backupCsv()` e `masterCsv()`) só escapava aspas duplas — uma célula
+começando com `=`, `+`, `-`, `@`, tab ou CR pode ser interpretada como fórmula pelo Excel/Sheets
+ao abrir o arquivo exportado (CSV/formula injection, OWASP). Risco real: `entryName`/`payerName`
+são texto livre, totalmente controlado por quem preenche o formulário público de inscrição.
+Corrigido prefixando essas células com um apóstrofo `'` antes do escape de aspas, forçando
+interpretação como texto literal. Mesmo bug encontrado e corrigido nos outros dois apps (ver
+changelogs de `br2026` e `cdb2026`).
+
+### Fixed — blocos `catch` vazios sem comentário
+
+Dois `catch (e) {}` (polling de cutoff/versão) não tinham o comentário exigido pelo
+`CLAUDE.md` explicando por que o erro é intencionalmente ignorado. Adicionado comentário — sem
+mudança de comportamento (falha de rede numa checagem periódica: a próxima tentativa cobre).
+
+Sem mudança de scoring. `audit_scoring.py`: 5/5.
+
 ## v4.129 — 2026-07-13
 
 ### Fixed — topbar quebrava horizontalmente no mobile (afetava Copa, Brasileirão e Copa do Brasil)
