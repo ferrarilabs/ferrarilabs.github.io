@@ -1,5 +1,51 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.13 — 2026-07-14
+
+### Fixed — auditoria estilo Big Tech: cutoff automático não travava palpite, ranking mostrava rank errado em empate
+
+Eduardo pediu uma auditoria completa nível Big Tech nos 3 apps (arquitetura, bugs, UX, QA,
+segurança, mobile, performance, acessibilidade, consistência, produto), com instrução explícita
+de reportar achados primeiro e não alterar scoring/regra de negócio sem autorização. Relatório
+completo entregue a Eduardo fora deste changelog; aqui só o que foi corrigido nesta rodada
+(verificado lendo o código real antes de cada correção, não só confiando no relatório do agente):
+
+- **🔴 `isPhaseLocked()` ignorava o cutoff automático da v3.12** (código desta mesma manhã): a
+  função só olhava `phaseState.cutoffAt` MANUAL diretamente — como esse campo é opcional e o
+  auto-cálculo (`entryCutoffMs()`/`firstKnownKickoffMs()`) existe justamente para não depender
+  dele, um confronto continuava aparecendo como editável no formulário de palpites mesmo depois
+  do cutoff automático (1h antes do kickoff real) já ter passado, até o admin clicar "salvar e
+  travar resultado" naquele confronto específico. Corrigido: extraída `effectivePhaseCutoffMs(s,
+  phaseId)` (mesmo cálculo manual-ou-automático, reaproveitado tanto por `entryCutoffMs()` quanto
+  por `isPhaseLocked(s, phaseId)` agora) — os dois usos do cutoff nunca mais podem discordar sobre
+  se uma fase específica já travou. Testado via Playwright: confronto com kickoff 2h no passado e
+  nenhum `cutoffAt` manual definido agora aparece travado (sem inputs de placar) no formulário.
+- **🔴 Rank/medalha exibidos errados em empate de pontos** (`renderRanking()`): mesmo bug e mesma
+  correção do BR2026 (ver changelog daquele app) — o array já era ordenado corretamente pela
+  cascata completa de desempate (total → campeão exato → vice exato → nº de placares exatos →
+  nome), mas o rank exibido só avançava por `item.total`. Corrigido usando chave composta
+  `${total}:${hitChampion}:${hitRunnerUp}:${countExactMatches}`, mesmo padrão já comprovado na
+  Copa.
+- **`checkVersion()` podia apagar um palpite não salvo:** mesmo bug e mesma correção do BR2026 —
+  o poller de deploy não checava se o formulário tinha dado não salvo antes de forçar
+  `location.reload()`. Adicionada a mesma checagem de `pickFormIsDirty()` (duplicada localmente,
+  IIFE fora do escopo do módulo principal).
+- **`aria-label` ausente nos campos de time/prazo do admin** ("Fases e confrontos"): os inputs de
+  nome de time e o campo de prazo manual não tinham nome acessível (só `placeholder`, que leitor
+  de tela não trata como label) — inconsistente com os campos de placar da linha logo abaixo, que
+  já tinham. Adicionado, reaproveitando as mesmas chaves i18n já usadas no `placeholder`.
+
+Achados de maior risco reportados a Eduardo mas não corrigidos automaticamente (fora do escopo de
+"patch pequeno e reversível" desta rodada, ou dependem de decisão de produto): painel do admin
+("Fases e confrontos"/"Resultados") sem a mesma proteção `pickFormIsDirty()` contra sync em
+segundo plano durante digitação, "Adicionar confronto" manual sem checagem de par duplicado
+(existe só para sincronização automática via ESPN), entrada de placar do admin sem limite máximo
+nem confirmação (ao contrário de excluir/travar/destravar confronto, que já pedem confirmação).
+
+`node --check`: OK. `audit_scoring.py`: 5/5 — scoring (valores de pontos) não tocado, só a
+exibição do rank/medalha em caso de empate no total e o enforcement do cutoff já definido em
+v3.12.
+
 ## v3.12 — 2026-07-14
 
 ### Fixed — cutoff automático (1h antes do primeiro jogo) + dados reais da Oitavas em produção

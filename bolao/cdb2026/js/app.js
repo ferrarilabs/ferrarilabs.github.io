@@ -221,20 +221,32 @@ function firstKnownKickoffMs(s, phaseId) {
   });
   return earliest;
 }
-function entryCutoffMs() {
-  const s = state();
-  const phaseId = s.espnSync?.activePhaseId || "fase-1";
+// Mesmo cálculo (manual > auto 1h-antes-do-kickoff) reaproveitado nos dois pontos que precisam
+// saber se UMA fase específica já travou — a criação/edição de entradas (isPhaseLocked, abaixo)
+// e o contador/bloqueio global da fase ativa (entryCutoffMs). Bug real encontrado em auditoria
+// (2026-07-14): antes desta correção, isPhaseLocked() só olhava o cutoffAt MANUAL — como a fase
+// nunca teve esse campo preenchido em produção (é opcional, o auto-cálculo existe justamente para
+// não depender disso), uma entrada podia continuar sendo editada para um confronto cujo jogo real
+// já tinha começado ou terminado, mesmo depois do cutoff automático já ter passado — só ficava de
+// fato travada quando o admin clicasse "salvar e travar resultado" naquele confronto específico.
+function effectivePhaseCutoffMs(s, phaseId) {
   const manual = s.phases?.[phaseId]?.cutoffAt;
   if (manual) return new Date(manual).getTime();
   const firstKickoff = firstKnownKickoffMs(s, phaseId);
   return firstKickoff !== null ? firstKickoff - 3600000 : null;
 }
+function entryCutoffMs() {
+  const s = state();
+  const phaseId = s.espnSync?.activePhaseId || "fase-1";
+  return effectivePhaseCutoffMs(s, phaseId);
+}
 function isPastEntryCutoff() {
   const ms = entryCutoffMs();
   return ms !== null && Date.now() > ms;
 }
-function isPhaseLocked(phaseState) {
-  return !!phaseState?.cutoffAt && Date.now() > new Date(phaseState.cutoffAt).getTime();
+function isPhaseLocked(s, phaseId) {
+  const ms = effectivePhaseCutoffMs(s, phaseId);
+  return ms !== null && Date.now() > ms;
 }
 // "Fase 1 acabou" tem duas formas de ser verdade: a fase foi rastreada com confrontos e todos
 // resolveram (phaseFullyResolved), OU ela está em DATA.phasesConcludedNoData (v3.8) -- ou seja,
@@ -443,7 +455,7 @@ function renderPickForm() {
         </div>`;
         return;
       }
-      if (isPhaseLocked(phaseState)) {
+      if (isPhaseLocked(s, phase.id)) {
         html += `<div class="pick-row tie-row locked" id="tie-${esc(tieId)}">
           <div class="tie-locked-note"><span class="tie-locked-score">${esc(tie.teamA)} ${teamLogoImg(tie.teamA)} <span class="muted">${esc(t("pickNotSubmitted"))}</span> ${teamLogoImg(tie.teamB)} ${esc(tie.teamB)}</span></div>
         </div>`;
@@ -789,10 +801,17 @@ function renderRanking() {
   const provNote = totalTies > 0 && done < totalTies
     ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
 
-  let rank = 0, prevPts = -1;
+  // Rank deve avançar sempre que QUALQUER nível do desempate mudar, não só o total — mesmo padrão
+  // da Copa (bolao/js/app.js renderRanking(), chave composta `${total}:${exact}:${podiumHits}`).
+  // Bug real encontrado em auditoria (2026-07-14): comparar só `item.total` deixava duas entradas
+  // com o mesmo total mas desempate diferente mostrando o MESMO rank/medalha, mesmo com o array
+  // já ordenado corretamente — afeta diretamente quem aparece como 2º lugar (não há 3º na Copa do
+  // Brasil, prêmio é só campeão/vice), base do rateio de prêmio.
+  let rank = 0, prevKey = null;
   box.innerHTML = provNote;
   scored.forEach((item, i) => {
-    if (item.total !== prevPts) { rank = i + 1; prevPts = item.total; }
+    const key = `${item.total}:${hitChampion(item.detail)}:${hitRunnerUp(item.detail)}:${countExactMatches(item.detail)}`;
+    if (key !== prevKey) { rank = i + 1; prevKey = key; }
     const paid      = (s.paid || {})[item.e.id];
     const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
     const paidBadge = paid
@@ -1540,12 +1559,12 @@ function renderAdminPhases(s) {
       </div>
       <div class="admin-row">
         <span class="small-text muted">${esc(t("adminPhaseCutoff"))}</span>
-        <input type="datetime-local" class="adm-phase-cutoff" value="${phaseState.cutoffAt ? esc(toLocalDatetimeValue(phaseState.cutoffAt)) : ""}">
+        <input type="datetime-local" class="adm-phase-cutoff" aria-label="${esc(t("adminPhaseCutoff"))}" value="${phaseState.cutoffAt ? esc(toLocalDatetimeValue(phaseState.cutoffAt)) : ""}">
         <button type="button" class="secondary small-btn" data-save-cutoff="${esc(phase.id)}">${esc(t("adminSaveCutoff"))}</button>
       </div>
       <div class="admin-row cdb-add-tie">
-        <input type="text" class="adm-team-a" placeholder="${esc(t("adminTeamA"))}" list="cdbTeamList">
-        <input type="text" class="adm-team-b" placeholder="${esc(t("adminTeamB"))}" list="cdbTeamList">
+        <input type="text" class="adm-team-a" placeholder="${esc(t("adminTeamA"))}" aria-label="${esc(t("adminTeamA"))}" list="cdbTeamList">
+        <input type="text" class="adm-team-b" placeholder="${esc(t("adminTeamB"))}" aria-label="${esc(t("adminTeamB"))}" list="cdbTeamList">
         <button type="button" class="small-btn" data-add-tie="${esc(phase.id)}">${esc(t("adminAddTie"))}</button>
       </div>
       ${Object.entries(phaseState.ties || {}).map(([tieId, tie]) => {
@@ -2009,8 +2028,18 @@ if ('serviceWorker' in navigator) {
 
 // Reload when a new deploy is detected — on tab focus and every 10 min
 (function startVersionPolling() {
+  // Bug real encontrado em auditoria (2026-07-14): sem essa checagem, um deploy no meio do
+  // preenchimento do formulário de palpites apagava tudo sem aviso (location.reload() forçado).
+  // Mesma checagem de pickFormIsDirty() lá em cima, duplicada aqui porque esta IIFE roda fora do
+  // escopo do módulo principal (não tem acesso às funções internas).
+  function formIsDirty() {
+    const form = document.getElementById("pickForm");
+    if (!form) return false;
+    return [...form.querySelectorAll(".pk-goals-home, .pk-goals-away")].some(el => el.value !== "") ||
+           [...form.querySelectorAll(".pk-qualified")].some(el => el.value !== "");
+  }
   async function checkVersion() {
-    if (document.hidden) return;
+    if (document.hidden || formIsDirty()) return;
     try {
       const r = await fetch(`js/config.js?nc=${Date.now()}`);
       const text = await r.text();

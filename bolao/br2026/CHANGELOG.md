@@ -1,5 +1,50 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.32 — 2026-07-14
+
+### Fixed — auditoria estilo Big Tech: ranking mostrava rank/medalha errados em empate, deploy podia apagar palpite
+
+Eduardo pediu uma auditoria completa nível Big Tech nos 3 apps (arquitetura, bugs, UX, QA,
+segurança, mobile, performance, acessibilidade, consistência, produto), com instrução explícita
+de reportar achados primeiro e não alterar scoring/regra de negócio sem autorização. Relatório
+completo entregue a Eduardo fora deste changelog; aqui só o que foi corrigido nesta rodada
+(verificado lendo o código real antes de cada correção, não só confiando no relatório do agente):
+
+- **🔴 Rank/medalha exibidos errados em empate de pontos** (`rankEntries()`): o array já era
+  ordenado corretamente pela cascata de desempate completa (total → acertos SA6 → G4 exato → Z4
+  exato → nome), mas o número de rank/medalha exibido só avançava quando `item.total` mudava —
+  duas entradas com o mesmo total mas desempate diferente apareciam com a MESMA medalha, mesmo
+  ordenadas corretamente no array. Afeta diretamente quem aparece como 2º/3º lugar, base do
+  rateio de prêmio (70/20/10%). Corrigido usando o mesmo padrão já comprovado da Copa
+  (`bolao/js/app.js`): chave composta `${total}:${sa6Hits}:${g4Exact}:${z4Exact}` decide quando o
+  rank avança, não só o total. Testado via `window.__BR2026_TESTHOOKS__.rankEntries` com duas
+  entradas empatadas no total por fontes de pontos diferentes (uma via Z4 exato, outra via SA6) —
+  confirma ranks diferentes agora.
+- **`checkVersion()` podia apagar um palpite não salvo:** o poller de deploy (10 min + toda troca
+  de aba) não checava se o formulário de palpites tinha dado não salvo antes de forçar
+  `location.reload()`. Adicionada a mesma checagem de `pickFormIsDirty()` (duplicada localmente
+  porque essa IIFE roda fora do escopo do módulo principal).
+- **CSV export usava `\n`, não `\r\n`:** bug já corrigido uma vez na Copa (v3.0) e no CDB2026
+  (v2.0), nunca corrigido aqui (`CONSISTENCY_MATRIX.md` item 14, rastreado desde então). Excel no
+  Windows renderiza mal um CSV com quebra de linha bare-LF.
+- **Coluna "J" (jogos) podia mostrar 1 em vez de 0:** `getStat("gamesPlayed", "GP") || 1` fazia um
+  time com 0 jogos de verdade (início de temporada) aparecer com "1" na tabela. A divisão que
+  dependia disso (`buildRatings()`) já tinha sua própria proteção independente contra dividir por
+  zero — não dependia deste valor errado para funcionar.
+- **`aria-expanded` ausente no botão "Ver palpites" do ranking:** leitor de tela não indicava que
+  o botão controla uma região expansível nem seu estado atual. Adicionado, sincronizado com o
+  toggle de `.picks-detail`.
+
+Achados de maior risco reportados a Eduardo mas não corrigidos automaticamente (fora do escopo
+de "patch pequeno e reversível" desta rodada, ou dependem de decisão de produto): admin sem botão
+"Cancelar" ao editar uma entrada (bloqueia sync em segundo plano indefinidamente até salvar),
+formulário de resultado do admin sem proteção contra sync em segundo plano durante digitação
+(mesma classe do bug já corrigido no formulário de palpite, mas no lado do admin), falta checagem
+de time duplicado dentro do mesmo grupo no formulário de resultado oficial.
+
+`node --check`: OK. `audit_scoring.py`: 5/5 — scoring (valores de pontos) não tocado, só a
+exibição do rank/medalha em caso de empate no total.
+
 ## v1.31 — 2026-07-14
 
 ### Fixed — cutoff usava data estática defasada, divergindo do calendário real ("Próximo jogo")

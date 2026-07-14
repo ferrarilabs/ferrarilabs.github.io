@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## v4.132 — 2026-07-14
+
+### Fixed — auditoria estilo Big Tech (arquitetura, bugs, UX, QA, segurança, mobile, performance, a11y): deploy podia apagar palpite não salvo
+
+Eduardo pediu uma auditoria completa nível Big Tech ("Google, Meta, Amazon ou Microsoft") nos 3
+apps, com instrução explícita de reportar achados primeiro e não alterar scoring/regras de
+negócio sem autorização. Três agentes de pesquisa (um por app) leram o código real e citaram
+arquivo:linha para cada achado; os de maior severidade foram verificados manualmente lendo o
+código de novo antes de qualquer correção. Relatório completo entregue a Eduardo fora deste
+changelog. Nesta rodada, corrigido só o que era seguro, estreito, reversível e não mexia em
+scoring/regra de negócio:
+
+- **`checkVersion()` podia apagar um palpite não salvo:** o poller de deploy (10 min + toda
+  troca de aba) já protegia sessão de admin (`isAdminActive()`), mas não protegia um participante
+  no meio do preenchimento do bracket — um deploy nesse momento forçava `location.reload()` sem
+  aviso, apagando tudo. Adicionado `bracketFormIsDirty()`, mesmo princípio do `pickFormIsDirty()`
+  já usado no BR2026/CDB2026 desde a correção do bug de apagar palpite em segundo plano.
+
+Achados de maior risco (ex.: envio de e-mail em massa possivelmente falhando por causa do
+throttle do EmailJS, entrada de resultado real do admin sem proteção contra sync em segundo
+plano) foram documentados e reportados a Eduardo para decisão, não corrigidos automaticamente —
+tocam o caminho de resultado/e-mail em produção, correção nesse ponto é maior risco.
+`audit_scoring.py`: 5/5, scoring não tocado.
+
 ## v4.131 — 2026-07-14
 
 ### Fixed — card "Próximo jogo" não mostrava a data
