@@ -113,6 +113,11 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   padding: 8px 6px; font-size: 13px; font-weight: 700;
   border: 1px solid transparent;
   text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* Alvo de toque mínimo (WCAG) -- mesmo achado/correção da Copa (2026-07-14). */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .nav button.active { background: var(--green); color: var(--green-dk); }
 
