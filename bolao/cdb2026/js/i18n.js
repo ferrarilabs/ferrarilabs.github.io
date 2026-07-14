@@ -108,6 +108,7 @@ window.CDB2026_I18N = {
     picksHiddenUntilCutoff: "Os palpites ficam ocultos até o prazo da fase ativa encerrar — evita que participantes copiem uns dos outros.",
     cutoffSourceAuto: "Cutoff automático (1h antes do primeiro jogo)",
     cutoffSourceManual: "Cutoff manual (definido pelo admin)",
+    cutoffSourceManualIgnored: "há um cutoff manual preenchido, mas ele é ignorado enquanto houver kickoff conhecido",
     cutoffSourceNone: "Sem cutoff calculável ainda (falta kickoff conhecido nesta fase)",
     adminUseAutoCutoff: "Usar cálculo automático",
     viewPicks: "Ver palpites",
