@@ -405,3 +405,26 @@ até lá. Item 68 (estrutura do card de Ranking) também fica reforçado: a estr
 `.picks-detail` já estava `CONSISTENT` desde antes, mas o **conteúdo** dentro do detalhe
 (`renderPickDisplay()`) ainda usava cards bespoke em BR2026/CDB2026 — agora usa `<table>` igual à
 Copa nos 3 apps, sem lacuna remanescente.
+
+## Nota manual — CDB2026: automação de RESULTADO autorizada explicitamente por Eduardo, `TOURNAMENT_SPECIFIC` não propagado (2026-07-14, CDB2026 v3.16)
+
+Eduardo pediu para automatizar a atualização de placar do admin do CDB2026. Antes de implementar,
+foi perguntado explicitamente (via `AskUserQuestion`) se a intenção era manter manual (mais seguro,
+comportamento até então) ou automatizar também o resultado (risco documentado: decide pagamento;
+casar a perna errada num confronto de ida/volta seria grave — ver `CDB2026_RULES_AND_MODEL.md` §7).
+Eduardo escolheu automatizar mesmo com o risco apresentado. Autorização explícita registrada —
+satisfaz `PLATFORM_GOVERNANCE.md` ("nunca alterar regra de negócio sem autorização explícita do
+Eduardo").
+
+**Decisão: `TOURNAMENT_SPECIFIC`, não propagado para Copa nem BR2026.** Motivo: nenhum dos outros
+dois apps tem a estrutura de dados que motivou a mudança —
+
+- **Copa** usa um bracket fixo desde o deploy (`data.js`), sem sincronização com ESPN nenhuma — o
+  conceito de "resultado vindo automaticamente de uma API externa" não existe lá.
+- **BR2026** não é um mata-mata — não há "confronto"/"perna"/"travar resultado" no seu modelo,
+  é uma projeção de classificação calculada sobre a tabela ao vivo do Brasileirão inteiro, sem
+  eventos individuais para sincronizar.
+
+Ver `PROJECT_MEMORY.md` (seção "CDB2026: automação da captura de RESULTADO") e
+`bolao/cdb2026/CHANGELOG.md` v3.16 para o detalhamento técnico completo das salvaguardas
+implementadas para mitigar o risco original.

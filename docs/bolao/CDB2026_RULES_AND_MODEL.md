@@ -351,11 +351,28 @@ achou o fluxo ruim — clicar em cada confronto individualmente era tedioso.
   abrir o painel admin, a cada 5 minutos se ele continuar aberto, e via um botão "Sincronizar
   agora" para forçar na hora. Confrontos novos (par de times ainda não cadastrado em nenhuma
   fase) são criados sem nenhum clique adicional.
-- **O que NUNCA é automatizado: travar um resultado.** Isso decide o pagamento. A sincronização
-  só pré-preenche o placar de uma partida única já finalizada na ESPN (mesmo formato do
-  lançamento manual, evita redigitar) — mas travar o resultado/classificado continua exigindo o
-  fluxo manual já existente em "Resultados". Para `TWO_LEG`, os placares de cada perna continuam
-  100% manuais (risco de casar a perna errada automaticamente não vale a pena).
+- **O que NUNCA era automatizado até v3.15: travar um resultado.** Isso decide o pagamento. Até
+  v3.15, a sincronização só pré-preenchia o placar de uma partida única já finalizada na ESPN —
+  travar o resultado/classificado exigia o fluxo manual em "Resultados". Para `TWO_LEG`, os
+  placares de cada perna eram 100% manuais (risco de casar a perna errada automaticamente).
+  **Revertido em v3.16** — ver nota abaixo.
+
+> **v3.16 (2026-07-14) — automação estendida a RESULTADO, com autorização explícita de Eduardo.**
+> Eduardo pediu para "automatizar a atualização de placar do admin". Antes de implementar, foi
+> apresentado exatamente o risco descrito no parágrafo acima (decide pagamento; casar a perna
+> errada seria grave) — Eduardo confirmou explicitamente que queria a automação mesmo assim.
+> Implementado (`autoSyncEspnResults()`, `bolao/cdb2026/js/app.js`) com salvaguardas que preservam
+> a intenção original deste documento o máximo possível:
+> - **Perna certa por identidade do mandante**, não ordem de data — ida e volta têm mandantes
+>   sempre invertidos entre si por definição de mata-mata; não há ambiguidade nesse sinal.
+> - **Nunca sobrescreve** uma perna já preenchida (manual ou auto) nem um confronto já travado
+>   (manual ou auto) — corrigir ainda exige "Destravar" na UI.
+> - **Agregado não empatado**: trava automaticamente, vencedor inequívoco pelo placar (mesma regra
+>   que o botão manual sempre usou).
+> - **Agregado empatado** (só decide nos pênaltis): só trava automaticamente se a ESPN reportar um
+>   vencedor explícito (`winner`); sem esse dado, cai pro fluxo manual — nunca adivinha.
+> Ver `bolao/cdb2026/CHANGELOG.md` v3.16 e `docs/bolao/CONSISTENCY_MATRIX.md` para o registro
+> completo da decisão.
 - **Dedup por par de times + IDs determinísticos.** Um confronto cujo par de times já existe em
   qualquer fase nunca é recriado. IDs de confrontos auto-adicionados são determinísticos
   (`espn-<time-a>_<time-b>`, normalizado e ordenado), não aleatórios — se dois dispositivos

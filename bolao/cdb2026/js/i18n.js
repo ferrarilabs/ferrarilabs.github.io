@@ -204,7 +204,7 @@ window.CDB2026_I18N = {
     confirmRemoveTieWithPicks: "Remover este confronto? {n} entrada(s) já têm palpite salvo para ele — os palpites ficam órfãos, sem aviso ao participante.",
     // Admin — sincronização com ESPN (automática desde v3.3)
     espnSyncTitle: "Sincronizar com a ESPN",
-    espnSyncAutoDisclaimer: "Automático: confrontos novos da fase ativa são adicionados sozinhos, sem precisar clicar. Resultados continuam exigindo confirmação manual em \"Resultados\" — isso é o que decide o pagamento.",
+    espnSyncAutoDisclaimer: "Automático: confrontos novos da fase ativa são adicionados sozinhos, e o resultado é travado sozinho quando a ESPN confirma o placar — sem precisar clicar. Só cai para confirmação manual em \"Resultados\" quando o agregado empata e a ESPN não informa quem venceu nos pênaltis.",
     espnSyncActivePhase: "Fase atual para sincronização automática",
     espnSyncPickPhase: "— Escolha a fase —",
     espnSyncNeedsPhase: "Escolha a fase atual acima para ligar a sincronização automática.",
@@ -215,5 +215,9 @@ window.CDB2026_I18N = {
     espnSyncAddedCount: "confronto(s) adicionado(s) automaticamente",
     espnSyncNothingNew: "Nenhum confronto novo encontrado",
     espnSyncAddedToast: "Confrontos adicionados automaticamente da ESPN!",
+    // Automação de resultado (v3.16) — autorizado por Eduardo em 2026-07-14
+    espnSyncLockedCount: "confronto(s) travado(s) automaticamente",
+    espnSyncLockedToast: "Resultado travado automaticamente pela ESPN!",
+    espnAutoTag: "(via ESPN)",
   },
 };
