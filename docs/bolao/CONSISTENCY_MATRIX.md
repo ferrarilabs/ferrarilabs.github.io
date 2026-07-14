@@ -461,19 +461,48 @@ plataforma. Ver `docs/bolao/PLATFORM_DESIGN_SYSTEM.md` (novo), `docs/bolao/PLATF
 | Payment card (`.pay-grid`/`.pay-card`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — BR2026/CDB2026 têm comentário explícito "mesmo tratamento visual da Copa" | — | Nenhuma |
 | Rules section (`#rules`/`.section-head`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — HTML idêntico nos 3 apps | — | Nenhuma |
 | Form/input (`label`/`input`/`select`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — mesmo padrão, mesmos tokens (ver `PLATFORM_DESIGN_SYSTEM.md`) | — | Nenhuma |
-| Nav — nº de abas visíveis | Não auditado formalmente | `NEEDS_REVIEW` | Copa esconde "Participantes" e "Pagamento" do nav (`style="display:none"` inline) — BR2026/CDB2026 mostram as duas. CSS `.nav` da Copa ainda declara `repeat(8,...)` mas só 6 botões ficam visíveis (renderiza corretamente — grid do navegador colapsa itens `display:none`, confirmado via screenshot Playwright, sem gap visual) | Low (visual correto, mas intenção não documentada) | Perguntar ao Eduardo se é decisão deliberada (ex.: Copa não precisa de aba própria porque o ranking já mostra participante+pago) ou resquício de refatoração — **não alterado nesta tarefa**, por ser decisão de arquitetura de informação, não um patch de token visual |
+| Nav — nº de abas visíveis | `NEEDS_REVIEW` | `INTENTIONALLY_DIFFERENT` | Copa esconde "Participantes" e "Pagamento" do nav — BR2026/CDB2026 mostram as duas. Resolvido por investigação de histórico (ver nota abaixo): decisão deliberada, não bug | Low (resolvido) | Nenhuma — ver rationale abaixo |
 
 **Componentes já unificados em sessões anteriores no mesmo dia** (não re-auditados do zero aqui,
 apenas confirmados como ainda válidos): ranking shell (`.rank-row`/`.picks-detail`, item 68),
 comprovante/e-mail (item 8/10), "Ver palpites" como `<table>` (nota de 2026-07-14 acima).
 
-**Diferenças intencionais confirmadas nesta rodada**: nenhuma nova além da já registrada (cutoff
-por mecanismo, fases dinâmicas do CDB2026).
+**Diferenças intencionais confirmadas nesta rodada**: item de nav acima, resolvido via
+`git log -S` (ver nota "Nav — Participantes/Pagamento ocultos na Copa" abaixo).
 
-**Risco residual**: item da tabela acima (`NEEDS_REVIEW`) é o único ponto em aberto — baixo risco,
-não bloqueia nada, mas fica registrado para não ser esquecido.
+**Risco residual**: nenhum — o único item em aberto desta rodada foi resolvido.
 
 **Regra de propagação aplicada**: mudanças desta rodada foram só documentação (`CLAUDE.md`,
 `docs/bolao/PLATFORM_DESIGN_SYSTEM.md`, `PLATFORM_ARCHITECTURE.md`, `UI_REGRESSION_PROTOCOL.md`,
 `QA_MASTER_CHECKLIST.md`) — nenhum código de app alterado, nada para propagar via changelog de
 app individual.
+
+## Nota manual — Nav: "Participantes"/"Pagamento" ocultos na Copa é decisão deliberada, não bug (resolvido 2026-07-14)
+
+O item `NEEDS_REVIEW` da rodada de auditoria acima (nav com nº de abas visíveis diferente entre
+apps) foi investigado via `git log -S` no lugar de perguntar ao Eduardo — a resposta já estava no
+histórico do repositório.
+
+**Achado**: `git log -S 'data-i18n="navParticipants" style="display:none"' -- bolao/index.html`
+aponta pro commit `836e965` ("feat(v4.88): deadline 4 jul 12h ET + hide Participantes/Pagamento
+nav", 2026-07-04). O `CHANGELOG.md` da Copa (entrada v4.88) documenta o motivo explicitamente:
+"Botões 'Participantes' e 'Pagamento' ocultos na nav (site está no modo Ranking+Palpites agora)".
+
+**Rationale**: "Participantes" (lista de quem entrou) e "Pagamento" (como pagar) só importam
+durante a fase de inscrição. Uma vez o prazo de entrada encerrado (a Copa fechou pra novas
+entradas no R32), ninguém mais precisa saber "como pagar" — o site pivota pra focar em
+Ranking+Palpites, que é o que resta relevante durante o mata-mata. Simplificação de UX ligada ao
+CICLO DE VIDA do bolão, não ao componente em si.
+
+**Decisão: `INTENTIONALLY_DIFFERENT`, não propagado.** BR2026 e CDB2026 estão os dois ainda na
+fase de inscrição (não publicados, torneios não começaram) — "Participantes"/"Pagamento" continuam
+diretamente relevantes pra quem está decidindo se entra ou não. Esconder essas abas agora, em
+qualquer um dos dois, removeria funcionalidade que participantes realmente precisam hoje —
+errado na direção oposta do que a Copa fez. **Nenhum código alterado** em nenhum dos três apps:
+Copa já está correta (decisão de 10 dias atrás, ainda válida), BR2026/CDB2026 já estão corretos
+(ainda em fase de inscrição).
+
+**Padrão registrado para o futuro, não implementado agora**: quando o prazo de entrada de BR2026
+ou CDB2026 encerrar de verdade (fim da fase de inscrição de cada um), o mesmo padrão da Copa
+(esconder "Participantes"/"Pagamento" da nav, pivotar pra Ranking+Palpites) é o comportamento
+correto a replicar — ligado ao ciclo de vida de CADA torneio, não algo pra fazer hoje.

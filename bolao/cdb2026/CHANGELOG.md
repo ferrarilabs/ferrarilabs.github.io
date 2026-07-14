@@ -1,5 +1,29 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.22 — 2026-07-14
+
+### Fixed — caixa de placar do formulário de palpites desproporcional ao dígito
+
+Eduardo reportou (com print) que a caixa de placar no formulário de palpites (ida/volta) estava
+visivelmente grande demais em relação ao número pequeno dentro dela.
+
+Causa: `.tie-inputs input[type="number"]` (e o equivalente no admin, `.admin-leg-row
+input[type="number"]`) só definiam `width: 48px`, herdando o `padding: 10px 12px` genérico de
+`input, select` — 20px de padding vertical numa caixa com um dígito de 15px cria bastante espaço
+morto. Corrigido reaproveitando o tratamento visual que a Copa já usa no próprio placar
+(`.score-inputs input`, `bolao/css/styles.css`): dígito maior e mais grosso (`font-size:18px;
+font-weight:900`) preenche a caixa em vez de esvaziá-la, com padding reduzido (`8px 4px`) e
+largura levemente menor (`44px`, ainda confortável pra 2 dígitos no tamanho de fonte maior).
+Aplicado nos dois lugares (formulário de palpite do participante e formulário de resultado do
+admin) para consistência dentro do próprio app.
+
+### Testado
+
+- Regressão visual confirmada via screenshot Playwright antes/depois.
+- Suíte de regressão (`test_admin_leg_save.js`, `test_round2_fixes.js`, `test_seed.js`) sem
+  falhas.
+- `node --check`; CSS brace balance; `audit_scoring.py` passou (mudança é só CSS).
+
 ## v3.21 — 2026-07-14
 
 ### Fixed — aba "Jogos" fora de ordem cronológica
