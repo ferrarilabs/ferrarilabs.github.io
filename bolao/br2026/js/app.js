@@ -488,7 +488,11 @@ async function fetchStandings() {
         logo:   e.team?.logos?.[0]?.href || "",
         rank:   getStat("rank") || 99,
         points: getStat("points"),
-        played: getStat("gamesPlayed", "GP") || 1,
+        // Sem "|| 1" -- um time com 0 jogos de verdade (início de temporada/recém-promovido) tem
+        // que aparecer como 0 na coluna "J" da tabela, não 1 (achado em auditoria, 2026-07-14).
+        // A divisão em buildRatings() (linha ~817) já tem sua própria proteção independente
+        // (Math.max(tm.played || 1, 1)) contra dividir por zero -- não depende deste valor.
+        played: getStat("gamesPlayed", "GP"),
         wins:   getStat("wins"),
         draws:  getStat("ties", "draws"),
         losses: getStat("losses"),
@@ -1353,9 +1357,16 @@ function rankEntries(entries, g4Result, z4Result, sa6Result) {
     countZ4Exact(b.e, z4Result) - countZ4Exact(a.e, z4Result) ||
     b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
   );
-  let rank = 0, prevPts = -1;
+  // Rank deve avançar sempre que QUALQUER nível do desempate mudar, não só o total — mesmo padrão
+  // da Copa (bolao/js/app.js renderRanking(), chave composta `${total}:${exact}:${podiumHits}`).
+  // Bug real encontrado em auditoria (2026-07-14): comparar só `item.total` deixava duas entradas
+  // com o mesmo total mas desempate diferente (ex.: acertos de SA6 diferentes) mostrando o MESMO
+  // rank/medalha, mesmo com o array já ordenado corretamente — afeta diretamente quem aparece
+  // como 2º/3º lugar, base do rateio de prêmio (70/20/10%).
+  let rank = 0, prevKey = null;
   return scored.map((item, i) => {
-    if (item.total !== prevPts) { rank = i + 1; prevPts = item.total; }
+    const key = `${item.total}:${countSA6Hits(item.detail)}:${countG4Exact(item.e, g4Result)}:${countZ4Exact(item.e, z4Result)}`;
+    if (key !== prevKey) { rank = i + 1; prevKey = key; }
     return { ...item, rank };
   });
 }
@@ -1466,7 +1477,7 @@ function renderRanking() {
       <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
       <div><b>${esc(item.e.entryName)}</b> ${paidBadge}</div>
       <div class="points${provFlag ? " prov" : ""}">${item.total}<small>${provFlag ? " ↕" : " pts"}</small></div>
-      <button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`;
+      <button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-expanded="${_openRankDetails.has(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
     detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
@@ -1482,6 +1493,7 @@ function renderRanking() {
     det.classList.toggle("hidden");
     if (det.classList.contains("hidden")) _openRankDetails.delete(id);
     else _openRankDetails.add(id);
+    btn.setAttribute("aria-expanded", String(!det.classList.contains("hidden")));
   }));
 }
 
@@ -1807,7 +1819,10 @@ function exportCsv() {
       (s.paid || {})[e.id] ? "Sim" : "Não", ...picks, sc?.total ?? 0]
       .map(csvEscape).join(",");
   });
-  const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
+  // CRLF, não LF -- Excel no Windows renderiza mal um CSV com quebra de linha bare-LF. Mesmo
+  // bug já corrigido uma vez na Copa (CHANGELOG v3.0) e no CDB2026 (v2.0); BR2026 nunca tinha
+  // recebido a correção (CONSISTENCY_MATRIX.md item 14).
+  const blob = new Blob([header + "\r\n" + rows.join("\r\n")], { type: "text/csv;charset=utf-8;" });
   const a    = document.createElement("a");
   a.href     = URL.createObjectURL(blob);
   a.download = `bolao-br2026-${new Date().toISOString().slice(0, 10)}.csv`;
@@ -2117,8 +2132,17 @@ if ('serviceWorker' in navigator) {
 
 // Reload when a new deploy is detected — on tab focus and every 10 min
 (function startVersionPolling() {
+  // Bug real encontrado em auditoria (2026-07-14): sem essa checagem, um deploy no meio do
+  // preenchimento do formulário de palpites apagava tudo sem aviso (location.reload() forçado).
+  // Mesma checagem de pickFormIsDirty() lá em cima, duplicada aqui porque esta IIFE roda fora do
+  // escopo do módulo principal (não tem acesso às funções internas).
+  function formIsDirty() {
+    const form = document.getElementById("pickForm");
+    if (!form) return false;
+    return [...form.querySelectorAll(".pick-select")].some(el => el.value !== "");
+  }
   async function checkVersion() {
-    if (document.hidden) return;
+    if (document.hidden || formIsDirty()) return;
     try {
       const r = await fetch(`js/config.js?nc=${Date.now()}`);
       const text = await r.text();

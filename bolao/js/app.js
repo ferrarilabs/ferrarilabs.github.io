@@ -4075,8 +4075,18 @@ function startReopenPolling() {
 // string match only, never a range/threshold, which is what caused an
 // infinite reload loop before — see v4.109).
 let _versionPoller = null;
+// Bug real encontrado em auditoria (2026-07-14): checkVersion() já protegia sessões de admin
+// (isAdminActive()) contra o reload forçado, mas não protegia um participante no meio do
+// preenchimento do bracket — um deploy no meio de uma sessão apagava os palpites ainda não
+// salvos sem aviso nenhum. Mesmo princípio do pickFormIsDirty() já usado no BR2026/CDB2026.
+function bracketFormIsDirty() {
+  const form = document.getElementById("bracketForm");
+  if (!form) return false;
+  return [...form.querySelectorAll('[data-field="goalsA"], [data-field="goalsB"]')].some(el => el.value !== "") ||
+         [...form.querySelectorAll('[data-field="advanceSide"]')].some(el => el.value !== "");
+}
 async function checkVersion() {
-  if (document.hidden || isAdminActive()) return;
+  if (document.hidden || isAdminActive() || bracketFormIsDirty()) return;
   try {
     const r = await fetch(`js/config.js?nc=${Date.now()}`);
     const text = await r.text();

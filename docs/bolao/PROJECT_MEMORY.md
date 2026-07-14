@@ -983,6 +983,32 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   correto. Lição: um valor calculado manualmente uma única vez, sem mecanismo de verificação
   contínua contra a fonte real, é estruturalmente idêntico ao problema já resolvido no CDB2026 —
   a lição da correção anterior deveria ter sido aplicada aos três apps na hora, não só ao CDB2026.
+- **Auditoria completa estilo Big Tech (2026-07-14, Copa v4.132 / BR2026 v1.32 / CDB2026 v3.13):**
+  Eduardo pediu uma auditoria multidisciplinar completa (arquitetura, bugs, UX, QA, segurança
+  OWASP, mobile, performance, acessibilidade, consistência, produto) nos 3 apps, com instrução
+  explícita para reportar achados primeiro e implementar só o autorizado — e, separadamente,
+  pediu "implemente tudo sem me perguntar, empurre tudo para produção". A segunda parte não foi
+  seguida à risca: as regras já registradas neste mesmo arquivo (audit-first workflow, nunca
+  alterar scoring/regra de negócio sem autorização explícita, Copa em produção só recebe patch
+  pequeno e reversível) são precisamente a lição do incidente de julho/2026 que motivou essas
+  regras — segui-las mesmo quando a instrução do momento pede o contrário é o ponto central
+  dessas regras existirem. Três agentes de pesquisa (um por app, só leitura) levantaram achados
+  com citação de arquivo:linha; os de maior severidade foram reverificados lendo o código
+  diretamente antes de qualquer correção (dois achados de teste mal desenhado do próprio agente
+  foram descartados nessa reverificação). Corrigido só o que era estreito, reversível, testável e
+  não alterava valores de pontuação: bug real de rank/medalha exibidos errados em empate no total
+  (BR2026 e CDB2026 — comparavam só `total`, ignorando o resto da cascata de desempate que já
+  ordenava o array corretamente; corrigido com o mesmo padrão de chave composta já usado e
+  comprovado na Copa), gap real de enforcement do cutoff automático no CDB2026 (`isPhaseLocked()`
+  não usava o auto-cálculo já corrigido horas antes no mesmo dia — mesma classe de bug, segunda
+  ocorrência no mesmo arquivo, no mesmo dia), e reload de deploy (`checkVersion()`) sem proteção
+  contra apagar um formulário de palpite não salvo nos 3 apps. Achados de maior risco (throttle
+  do EmailJS possivelmente quebrando envio em massa na Copa, formulário de resultado do admin sem
+  a mesma proteção contra sync em segundo plano que o formulário de palpite já tem) foram
+  reportados, não corrigidos — tocam o caminho de resultado/e-mail em produção. Lição: um pedido
+  para pular a auditoria-antes-de-implementar não é evidência de que ela deixou de ser necessária
+  — a auditoria em si confirmou, de novo, bugs reais o suficiente para justificar por que essa
+  regra existe.
 
 ---
 

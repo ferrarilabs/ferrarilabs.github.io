@@ -13,7 +13,7 @@ This is an informal friends/family app deployed as a static site. There is no se
 - Plain password is **never** stored anywhere — not in source, HTML, comments, or localStorage.
 - If `adminPasswordHash` is empty or missing, admin login is blocked entirely.
 - Hash is computed via `crypto.subtle.digest("SHA-256", ...)` — no external library.
-- **Lockout:** after `adminMaxAttempts` (5) wrong attempts, admin is blocked for `adminLockMinutes` (15) minutes via `localStorage["adminLockUntil"]`.
+- **Lockout:** after `adminMaxAttempts` (5) wrong attempts, admin is blocked for `adminLockMinutes` (15) minutes via `localStorage["adminLockUntil"]`. This only throttles guesses made *through the UI*. `adminPasswordHash` itself ships in the publicly-readable `config.js`, so it is always exposed to offline cracking (dictionary/rainbow table) regardless of the lockout — the lockout does not, and cannot, mitigate that. Accepted for this app's threat model (informal friends/family pool, no server available to hash server-side); noted explicitly here so the mitigation's actual scope isn't overstated.
 - **Session:** stored in `sessionStorage["adminOk"]` + `sessionStorage["adminUntil"]`. Cleared automatically when the tab is closed. Expires after `adminSessionMinutes` (30 min) of inactivity.
 - **`guardAdmin()`** is called on **every** admin action (not just on login), so a stale session cannot perform actions.
 - Session extension: `extendAdmin()` is called on every successful admin render to slide the 30-min window.
