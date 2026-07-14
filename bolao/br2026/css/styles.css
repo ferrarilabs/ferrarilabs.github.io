@@ -27,7 +27,7 @@
   --gold:      #f59e0b;
   --text:      #eef7f1;
   --muted:     #9cb2b9;
-  --red:       #f87171;
+  --red:       #ff6b6b;
   --danger-bg: #3d1520;
   --danger-tx: #ffdbe1;
   --danger-br: #8e2d42;
@@ -178,8 +178,7 @@ h1, h2, h3 { margin: .15em 0 .4em; }
 h2 { font-size: 1.25rem; }
 h3 { font-size: 1.05rem; }
 
-.section-head { margin-bottom: 16px; }
-.section-head h2 { margin: 0 0 4px; font-size: 22px; }
+.section-head { margin-bottom: 14px; }
 
 /* ── Form ── */
 .form-grid {
@@ -194,6 +193,7 @@ input, select {
   background: var(--bg3); border: 1px solid var(--border2);
   color: var(--text); border-radius: 9px; padding: 10px 12px;
   outline: none; transition: border-color .15s; width: 100%;
+  appearance: none; -webkit-appearance: none;
 }
 input:focus, select:focus { border-color: var(--green); }
 input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }

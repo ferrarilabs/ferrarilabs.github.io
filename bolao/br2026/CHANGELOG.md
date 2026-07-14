@@ -1,5 +1,33 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.29 — 2026-07-14
+
+### Fixed — palpites apagados ao interagir com o formulário (bug crítico, mesmo achado no CDB2026)
+
+Mesmo bug e causa raiz do CDB2026 v3.9 (ver esse changelog para a investigação completa):
+`renderAll()` reconstrói `#pickForm` (14 `<select>` de time) toda vez que roda, inclusive quando
+um resync em segundo plano dispara sozinho (Supabase, a cada 30s ou em todo `focus`/
+`visibilitychange` — abrir qualquer um dos `<select>` pode causar esse ciclo em vários
+navegadores/mobile). Uma entrada nova, ainda não salva, não tinha proteção nenhuma contra isso.
+Corrigido: `renderAll()` não reconstrói mais o formulário enquanto tiver algum time já
+selecionado e ainda não salvo (`pickFormIsDirty()`). Confirmado com Playwright: um `focus`
+disparado no meio do preenchimento apagava a seleção ~1s depois; corrigido, sobrevive até salvar.
+
+### Fixed — inconsistências visuais com a Copa (auditoria "estilo big 4")
+
+Eduardo pediu uma auditoria profunda comparando cores/fontes/tamanhos/posicionamento nos 3 apps.
+Token a token nos 3 arquivos CSS:
+- `--red`: era `#f87171` aqui e no CDB2026, a Copa usa `#ff6b6b` para o mesmo tom semântico
+  (badge "ao vivo", não pago) — alinhado à Copa.
+- `.section-head`: tinha `margin-bottom: 16px` + um `h2 { font-size: 22px }` que a Copa não tem
+  — títulos de seção renderizavam maiores que na Copa. Removida a divergência.
+- `input, select`: faltava `appearance: none` no seletor genérico — todo `<select>` sem regra
+  própria mostrava a seta nativa do navegador em vez do visual limpo da Copa.
+
+Ver `docs/bolao/DESIGN_SYSTEM.md` para a auditoria completa.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
 ## v1.28 — 2026-07-14
 
 ### Fixed — CSV/formula injection no export (segurança)

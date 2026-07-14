@@ -1915,10 +1915,25 @@ function renderProbSection() {
   });
 }
 
+// Real bug found by Eduardo in CDB2026 (2026-07-14, same architecture here): renderPickForm()
+// rebuilds #pickForm's entire innerHTML every time renderAll() runs, and renderAll() also runs
+// from a BACKGROUND resync (reloadRemoteIfVisible()) that a window blur/focus cycle can trigger
+// mid-fill (opening any of these 14 native <select> dropdowns does this on many browsers/mobile).
+// A brand-new, never-saved entry has no _editingEntry set, so nothing protected it -- the resync
+// would silently wipe every team already picked. Fix: never rebuild a form the user is actively
+// filling in, regardless of why renderAll() ran. See bolao/cdb2026/js/app.js for the full
+// reproduction writeup (same fix, only the dirty-check selector differs: dropdowns here vs.
+// number inputs + a select there).
+function pickFormIsDirty() {
+  const form = $("pickForm");
+  if (!form) return false;
+  return [...form.querySelectorAll(".pick-select")].some(el => el.value !== "");
+}
+
 // ─── Render all ──────────────────────────────────────────────────────────────
 function renderAll() {
   applyI18n();
-  renderPickForm();
+  if (!pickFormIsDirty()) renderPickForm();
   renderRanking();
   renderParticipants();
   renderPayment();

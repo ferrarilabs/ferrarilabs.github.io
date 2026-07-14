@@ -635,3 +635,50 @@ trade-off real, não uma correção óbvia:
   linha).
 - Contraste de cor WCAG, comportamento real em Safari — mesmas limitações já registradas
   acima, ainda não cobertas.
+
+## Auditoria "estilo big 4" — tokens CSS + card "Próximo jogo" (2026-07-14, Copa v4.131 / BR2026 v1.29 / CDB2026 v3.9)
+
+Eduardo pediu explicitamente uma auditoria profunda comparando cores, fontes, tamanhos de fonte,
+tamanho de campos de input e posicionamento nos três apps, "faça alterações" (não só reportar), e
+apontou especificamente que o card de "próximo jogo" mostra campos diferentes (dia/hora/estádio)
+em cada app. Diferente da rodada anterior (screenshots), esta comparou **os três arquivos CSS
+inteiros, token a token**, e o código-fonte de cada widget "próximo jogo".
+
+### Corrigido nesta rodada
+
+| Item | Copa (referência) | BR2026/CDB2026 (antes) | Correção |
+|---|---|---|---|
+| `--red` (token) | `#ff6b6b` | `#f87171` | Alinhado ao valor da Copa nos dois apps — mesmo tom semântico ("ao vivo", "não pago") renderizava visivelmente diferente. |
+| `.section-head` margin-bottom | `14px` (implícito, sem override de `h2`) | `16px` + `h2 { font-size: 22px }` próprio | Removido o override — título de seção (`<h2>`) renderizava maior nos dois apps que na Copa (22px vs 20px/1.25rem). |
+| `input, select { appearance }` | `appearance: none` explícito | ausente | Adicionado — todo `<select>` sem regra própria (pagamento, palpite de time) mostrava a seta nativa do navegador em vez do visual limpo já usado em `.bolao-switcher select`. |
+| Card "Próximo jogo" — campos | Time, **hora** (sem data), local, contador | BR2026: time, **data+hora**, local, sem contador. CDB2026: **não existia**. | Unificado: time, **data+hora**, local nos três. Copa ganhou a data que faltava (`formatDate(m.date)`); CDB2026 ganhou o card inteiro pela primeira vez (`#nextTieCard`, mesmas classes `.next-game-*` do BR2026, mesmo formato de data `fmtDate()`/`brtLongDate()`). |
+
+O card do CDB2026 depende de `matches[leg].kickoff` — hoje só é preenchido pela sincronização com
+a ESPN (estendida nesta rodada para gravar `kickoff`/`venue`/`city` da primeira perna de um
+confronto novo, não só o placar de partida já finalizada). Não existe ainda um jeito do admin
+cadastrar `kickoff` manualmente — o card fica escondido normalmente até isso acontecer (mesmo
+comportamento de "sem próximo jogo" que a Copa/BR2026 já têm). Registrado como lacuna conhecida em
+`PROJECT_MEMORY.md`, não como bug — o card não fica quebrado ou com dado errado, só continua
+escondido.
+
+### Verificado e confirmado igual (sem ação necessária)
+
+- Todos os outros tokens de `:root` (bg/bg2/bg3/border/border2/green/green-dk/text/muted/gold/
+  danger-*) — idênticos nos três arquivos.
+- `body { font-family, font-size, line-height }`, `button { ... }`, `.card`, `.topbar`,
+  `.brand`, `.whatsapp-btn`, `.bolao-switcher`, `.lang-links`, `.nav` (exceto contagem de colunas,
+  proporcional ao número de abas de cada app) — byte-idênticos.
+- `input, select { padding, border-radius, border, background, color }` — valores idênticos
+  (só faltava `appearance`, corrigido acima).
+- `--yellow` (só existe no BR2026) — `INTENTIONALLY_DIFFERENT`: usado só para o estado
+  "pontuação provisória" da classificação ao vivo, conceito que não existe na Copa nem no
+  CDB2026 (mata-mata sem "provisório").
+
+### Não corrigido nesta rodada — precisa de confirmação visual antes de mexer
+
+- `main { padding }`: Copa usa `20px 18px` (sem padding-bottom extra); BR2026/CDB2026 usam
+  `16px 14px 80px` (80px de folga embaixo, provavelmente para o `.sticky-submit` não cobrir o
+  último card ao rolar até o fim). Não fica claro se a Copa também precisaria dessa folga (tem
+  o mesmo `.sticky-submit`) ou se BR2026/CDB2026 têm folga demais — precisa de inspeção visual
+  real (rolar até o fim de cada formulário nos 3 apps) antes de decidir qual lado corrigir.
+  Registrado aqui para não ficar esquecido, não implementado sem essa verificação.

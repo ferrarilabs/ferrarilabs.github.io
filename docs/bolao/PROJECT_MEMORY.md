@@ -850,6 +850,51 @@ perna, validação cruzada com a Oitavas, `activePhaseId` não sobrescrito pela 
 ausência de 1ª–5ª no formulário de palpites, nota de "já concluída" em Jogos, idempotência em
 reload. Ver `docs/bolao/CDB2026_RULES_AND_MODEL.md` seção 7.2 para o relato completo.
 
+### Bug crítico: palpites apagados durante o preenchimento + auditoria visual profunda (Copa v4.131 / BR2026 v1.29 / CDB2026 v3.9, 2026-07-14)
+
+Eduardo reportou um bug real e sério: "quando estou entrando os palpites da cdb2026 e clico no
+time que passa ele apaga tudo que entrei" — junto com um pedido de auditoria visual profunda
+("estilo big 4") comparando cores/fontes/tamanhos/posicionamento nos 3 apps, e uma observação
+específica de que o card "próximo jogo" mostra campos diferentes em cada app.
+
+**Investigação do bug**: reproduzido com Playwright depois de descartar várias hipóteses (o
+`<select>` "quem se classifica" não tinha listener de `change` nenhum na hipótese inicial). Causa
+raiz real: `renderAll()` reconstrói `#pickForm` inteiro toda vez que roda — inclusive quando um
+resync com o Supabase dispara sozinho em segundo plano (a cada 30s, ou em todo `focus`/
+`visibilitychange`). Abrir um `<select>` nativo causa um ciclo de blur/focus da janela em vários
+navegadores/mobile (o seletor do sistema operacional tira e devolve o foco), disparando esse
+resync no meio da digitação. A proteção existente (`_editingEntry`) só cobria quem já tinha
+carregado uma entrada salva para editar — uma entrada nova, nunca salva, ficava sem proteção
+alguma. **Mesmo bug confirmado no BR2026** (mesma arquitetura). **A Copa nunca teve esse bug** —
+lá, `renderBracket()` (constrói o formulário) e `updateDynamic()` (atualiza o estado visual a
+partir do que já foi digitado, chamada em todo `renderAll()`) sempre foram funções separadas.
+Corrigido nos dois apps com uma função `pickFormIsDirty()` que impede `renderAll()` de reconstruir
+o formulário enquanto ele tiver algo digitado e ainda não salvo.
+
+**Regressão relacionada, encontrada durante a mesma investigação**: `fase1Complete()` (CDB2026)
+ficou permanentemente `false` desde a v3.8 (fase-1 passou a não ter confronto nenhum, de
+propósito) — isso travava "Buscar minha entrada" (editar uma entrada já salva) para sempre, mesmo
+a fase já tendo acabado de verdade. Corrigido: a função também considera `true` quando a fase está
+em `DATA.phasesConcludedNoData`.
+
+**Auditoria visual**: comparação token a token dos 3 arquivos CSS (não só screenshot) encontrou e
+corrigiu: `--red` divergente (`#f87171` vs `#ff6b6b` da Copa), `.section-head` com
+`margin-bottom`/`h2` divergentes da Copa, `appearance: none` faltando em `input, select` no
+BR2026/CDB2026. Ver `docs/bolao/DESIGN_SYSTEM.md` "Auditoria estilo big 4" para a tabela completa.
+
+**Card "Próximo jogo"**: CDB2026 era o único dos três sem esse card (nenhum CSS/HTML/JS). Copa
+mostrava só hora, sem data. Unificado: time + data + hora + local nos três — Copa ganhou a data
+que faltava, CDB2026 ganhou o card inteiro (`#nextTieCard`, reaproveitando as classes `.next-game-*`
+do BR2026 e o mesmo formato de data). Depende de `matches[leg].kickoff`, que a sincronização com a
+ESPN do CDB2026 passou a gravar (antes só gravava placar de partida já finalizada) — mas ainda não
+existe um jeito do admin cadastrar `kickoff` manualmente para um confronto, então o card fica
+escondido normalmente até a ESPN sync capturar a primeira perna de algum confronto futuro. Lacuna
+conhecida, registrada (não é um bug — o card não mostra dado errado, só fica escondido).
+
+32 testes automatizados novos no total (dirty-form guard, regressão do `fase1Complete`, card
+"Próxima partida" com dado real e sem dado, captura de `kickoff`/`venue`/`city` pela sincronização
+com a ESPN), todos passando, mais os 37 já existentes re-executados sem regressão.
+
 ---
 
 ## Bugs históricos
@@ -875,6 +920,14 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   Excel do Windows); payload de e-mail com campos além de `html_message`.
 - **Deploy/infra:** dois workflows de deploy do GitHub Pages competindo entre si; cache-busting
   (`?v=`) não disparando para mudanças de CSS/JS porque só reagia a mudanças em `config.js`.
+- **Formulário apagado por resync em segundo plano (BR2026/CDB2026, v1.29/v3.9, 2026-07-14):**
+  `renderAll()` reconstrói o formulário de palpites inteiro toda vez que roda, inclusive quando um
+  resync com o Supabase dispara sozinho (a cada 30s, ou em todo `focus`/`visibilitychange` — abrir
+  um `<select>` causa esse ciclo em vários navegadores/mobile). A proteção existente
+  (`_editingEntry`) só cobria quem carregou uma entrada já salva para editar — uma entrada nova
+  nunca salva ficava sem proteção o tempo todo em que estava sendo preenchida, e o resync apagava
+  tudo. A Copa nunca teve esse bug: lá, construir o formulário e atualizar o estado visual a
+  partir do que já foi digitado sempre foram funções separadas.
 
 ---
 

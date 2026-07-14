@@ -211,7 +211,16 @@ function isPastFase1Cutoff() {
 function isPhaseLocked(phaseState) {
   return !!phaseState?.cutoffAt && Date.now() > new Date(phaseState.cutoffAt).getTime();
 }
-function fase1Complete(s) { return phaseFullyResolved(s, "fase-1"); }
+// "Fase 1 acabou" tem duas formas de ser verdade: a fase foi rastreada com confrontos e todos
+// resolveram (phaseFullyResolved), OU ela está em DATA.phasesConcludedNoData (v3.8) -- ou seja,
+// já sabemos que acabou antes deste bolão existir, mesmo sem ter confronto cadastrado nenhum.
+// Bug real encontrado por Eduardo (2026-07-14): antes desta correção, "buscar minha entrada"
+// ficava travado PARA SEMPRE, porque fase-1 nunca vai ter confronto/resultado cadastrado (decisão
+// deliberada da v3.8) -- phaseFullyResolved() sozinha nunca seria true.
+function fase1Complete(s) {
+  if ((DATA.phasesConcludedNoData || []).includes("fase-1")) return true;
+  return phaseFullyResolved(s, "fase-1");
+}
 // Verdadeiro quando a fase tem confrontos cadastrados e todos já têm resultado (qualifiedTeamId)
 // — usado para tirar fases já decididas do formulário de palpites (nada a apostar) sem depender
 // de cutoffAt, que é opcional e só o admin define manualmente.
@@ -271,7 +280,7 @@ function payIcon(method) {
 // ─── Phase / tie / match helpers ────────────────────────────────────────────
 function getPhaseDef(phaseId) { return DATA.phases.find(p => p.id === phaseId); }
 function legsForFormat(format) { return format === "TWO_LEG" ? ["first", "second"] : ["single"]; }
-function emptyMatch() { return { homeTeam: null, awayTeam: null, kickoff: null, venue: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" }; }
+function emptyMatch() { return { homeTeam: null, awayTeam: null, kickoff: null, venue: null, city: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" }; }
 
 // Agregado de um confronto de ida+volta a partir das duas partidas — null se alguma ainda não
 // tem placar. O mandante se inverte na volta (regra real do mata-mata): teamA soma seus gols
@@ -1063,19 +1072,24 @@ function renderProbsSection() {
 }
 
 // ─── Render: games (fases dinâmicas) ─────────────────────────────────────────
+// Mesmo formato usado pelo BR2026 (brtLongDate em bolao/br2026/js/app.js) — dia da semana
+// abreviado + data + hora, fuso America/Sao_Paulo. Compartilhado entre a aba "Jogos" e o card
+// "Próxima partida" (renderNextTieCard()) para o mesmo confronto aparecer com a mesma data nos
+// dois lugares.
+function fmtDate(dateStr) {
+  if (!dateStr) return t("gamesTbd");
+  try {
+    return new Date(dateStr).toLocaleString("pt-BR", {
+      timeZone: "America/Sao_Paulo",
+      weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
+    }) + " BRT";
+  } catch { return dateStr; }
+}
+
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
   const s = state();
-  const fmtDate = dateStr => {
-    if (!dateStr) return t("gamesTbd");
-    try {
-      return new Date(dateStr).toLocaleString("pt-BR", {
-        timeZone: "America/Sao_Paulo",
-        weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
-      }) + " BRT";
-    } catch { return dateStr; }
-  };
 
   let html = "";
   DATA.phases.forEach(phase => {
@@ -1101,7 +1115,7 @@ function renderGamesSection() {
         return `<div class="leg">
           ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
           <span class="leg-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} × ${teamLogoImg(away, "team-logo")} ${esc(away)}</span>
-          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + " · " : ""}${scoreOrDate}</span>
+          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}</span>
         </div>`;
       };
       const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
@@ -1118,6 +1132,59 @@ function renderGamesSection() {
     }).join("");
   });
   box.innerHTML = html;
+}
+
+// ─── Render: próxima partida ───────────────────────────────────────────────────
+// Card equivalente ao #nextGameCard do BR2026 (mesmas classes CSS, mesmo formato de data —
+// fmtDate() acima) — não existia nenhum aqui antes (achado por Eduardo, 2026-07-14, ver
+// DESIGN_SYSTEM.md). Depende de matches[leg].kickoff estar preenchido; hoje isso só acontece via
+// sincronização com a ESPN (autoSyncEspn() grava kickoff/venue/city na primeira perna de um
+// confronto novo) — não existe ainda um jeito do admin cadastrar kickoff manualmente para um
+// confronto adicionado à mão. Fica escondido normalmente até isso acontecer, mesmo comportamento
+// de "sem próximo jogo" que a Copa/BR2026 já têm.
+function findNextUpcomingMatch(s) {
+  let best = null;
+  DATA.phases.forEach(phase => {
+    Object.values(s.phases?.[phase.id]?.ties || {}).forEach(tie => {
+      if (!tie.teamA || !tie.teamB) return;
+      legsForFormat(phase.format).forEach(leg => {
+        const m = tie.matches?.[leg];
+        if (!m || !m.kickoff || m.status === "FINAL") return;
+        const kickoffMs = new Date(m.kickoff).getTime();
+        if (!Number.isFinite(kickoffMs) || kickoffMs <= Date.now()) return;
+        if (!best || kickoffMs < best.kickoffMs) {
+          const home = m.homeTeam || (leg === "second" ? tie.teamB : tie.teamA);
+          const away = m.awayTeam || (leg === "second" ? tie.teamA : tie.teamB);
+          best = { kickoffMs, m, home, away };
+        }
+      });
+    });
+  });
+  return best;
+}
+
+function renderNextTieCard() {
+  const card = $("nextTieCard");
+  if (!card) return;
+  const s    = state();
+  const next = findNextUpcomingMatch(s);
+  if (!next) { card.classList.add("hidden"); return; }
+
+  const { m, home, away } = next;
+  const diffMs   = next.kickoffMs - Date.now();
+  let countdown  = "";
+  if (diffMs > 0 && diffMs < 3600000) {
+    const min = Math.floor(diffMs / 60000), sec = Math.floor((diffMs % 60000) / 1000);
+    countdown = ` · ${min}m ${String(sec).padStart(2, "0")}s`;
+  }
+
+  card.innerHTML = `<div class="next-game-card">
+    <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
+    <div class="next-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
+    <div class="next-game-info">${esc(fmtDate(m.kickoff))}${countdown}</div>
+    ${m.venue ? `<div class="next-game-venue">${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
+  </div>`;
+  card.classList.remove("hidden");
 }
 
 // ─── Render: footer ───────────────────────────────────────────────────────────
@@ -1177,6 +1244,8 @@ async function fetchEspnCandidates() {
         awayTeam: away?.team?.displayName || "",
         homeScore: evState === "post" && home?.score != null ? parseInt(home.score, 10) : null,
         awayScore: evState === "post" && away?.score != null ? parseInt(away.score, 10) : null,
+        venue: comp.venue?.fullName || "",
+        city: comp.venue?.address?.city || "",
       };
     }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -1274,11 +1343,18 @@ async function autoSyncEspn(s) {
     existingPairs.add(pairKey); // evita adicionar o mesmo par duas vezes nesta mesma leva
     const tie = { teamA: ev.homeTeam, teamB: ev.awayTeam, matches: {}, qualifiedTeamId: null };
     legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
-    // Partida única já finalizada na ESPN: preenche o placar (não trava o resultado — isso
-    // continua exigindo o clique manual em "Resultados", que decide o pagamento).
-    if (format === "SINGLE_MATCH" && ev.homeScore != null) {
-      tie.matches.single = { homeTeam: ev.homeTeam, awayTeam: ev.awayTeam, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL" };
-    }
+    // O evento da ESPN corresponde à primeira perna do confronto (a ida, ou a única partida em
+    // SINGLE_MATCH) — kickoff/local vêm do evento mesmo se ainda não jogado (alimenta o card
+    // "próxima partida", ver renderNextTieCard()). Placar só é preenchido se o jogo já terminou
+    // na ESPN — não trava o resultado (isso continua exigindo o clique manual em "Resultados",
+    // que decide o pagamento).
+    const firstLeg = format === "SINGLE_MATCH" ? "single" : "first";
+    tie.matches[firstLeg] = {
+      ...tie.matches[firstLeg],
+      homeTeam: ev.homeTeam, awayTeam: ev.awayTeam,
+      kickoff: ev.dateISO || null, venue: ev.venue || null, city: ev.city || null,
+      ...(ev.homeScore != null ? { goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL" } : {}),
+    };
     s2.phases[phaseId].ties[espnTieId(ev.homeTeam, ev.awayTeam)] = tie;
     added.push(`${ev.homeTeam} × ${ev.awayTeam}`);
   });
@@ -1689,12 +1765,33 @@ async function clearAllData() {
   renderAll();
 }
 
+// Real bug found by Eduardo (2026-07-14): renderPickForm() rebuilds #pickForm's entire innerHTML
+// from scratch every time renderAll() runs. renderAll() also runs from a BACKGROUND resync
+// (reloadRemoteIfVisible(), gated by _editingEntry) — but _editingEntry is only set when the user
+// loaded an EXISTING saved entry; a brand-new, never-saved entry leaves it null the entire time
+// it's being filled out. Opening the "quem se classifica" <select> triggers a window blur/focus
+// cycle on many browsers/mobile (the native picker takes and returns focus), which fires the
+// `focus` listener -> debouncedReload() -> renderAll() -> renderPickForm() mid-typing, wiping
+// every score/pick the participant hadn't saved yet. Reproduced and confirmed with Playwright
+// (dispatch a focus event mid-fill -> the just-typed goal is gone ~1s later, once the background
+// fetch settles). Same code pattern exists in BR2026 (also fixed) — Copa doesn't have this bug,
+// its renderBracket() (builds the form) and updateDynamic() (called every renderAll()) are
+// already separate functions, so a resync there never touches the live input elements.
+// Fix: never blow away a form the user is actively typing into, regardless of why renderAll() ran.
+function pickFormIsDirty() {
+  const form = $("pickForm");
+  if (!form) return false;
+  return [...form.querySelectorAll(".pk-goals-home, .pk-goals-away")].some(el => el.value !== "") ||
+         [...form.querySelectorAll(".pk-qualified")].some(el => el.value !== "");
+}
+
 // ─── Render all ──────────────────────────────────────────────────────────────
 function renderAll() {
   applyI18n();
   renderFindEntryCard();
-  renderPickForm();
+  if (!pickFormIsDirty()) renderPickForm();
   renderRanking();
+  renderNextTieCard();
   renderGamesSection();
   renderProbsSection();
   renderParticipants();
