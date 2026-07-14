@@ -73,11 +73,21 @@ window.BR2026_I18N = {
     savedSuccess: "Palpite salvo com sucesso! Verifique seu e-mail para o comprovante.",
     saveError: "Erro ao salvar. Tente novamente.",
     closed: "Prazo encerrado. Não é mais possível enviar palpites.",
-    // Ranking
-    rankingTitle: "Ranking",
-    rankingSubtitle: "Pontuação provisória baseada na tabela atual do Brasileirão.",
-    provisionalNote: "Pontuação provisória — baseada na tabela atual. Atualiza a cada 60s.",
+    // Ranking / Projeção do Bolão (2026-07-14, spec completa do Eduardo -- ver
+    // docs/bolao/BR2026_PROJECTION_MODEL.md). Título/subtítulo/aviso seguem a linguagem
+    // obrigatória: nunca "pontuação final"/"campeão atual"/"resultado definitivo" antes do
+    // encerramento oficial -- sempre "projeção"/"posição projetada"/"se terminasse hoje".
+    rankingTitle: "Projeção do Bolão",
+    rankingSubtitle: "Se o Brasileirão terminasse hoje",
+    projectionDisclaimer: "Esta classificação é uma projeção baseada na tabela atual do Brasileirão. A pontuação oficial e os vencedores serão definidos somente após o encerramento da competição.",
+    provisionalNote: "Pontuação projetada — baseada na tabela atual. Atualiza a cada 60s.",
     finalNote: "Resultado oficial encerrado pelo admin.",
+    accuracyIndexLabel: "Precisão da projeção",
+    accuracyExactLabel: "Posições exatas",
+    accuracyTopDivergencesTitle: "Maiores divergências",
+    accuracyColPicked: "Palpite",
+    accuracyColCurrent: "Posição atual",
+    accuracyOutsideGroup: "Fora do grupo",
     noEntries: "Nenhuma entrada ainda.",
     // Achado real (2026-07-14, Eduardo: "ver palpites nao pode estar aberto ate o Brasileirão
     // iniciar, senao as pessoas podem copiar") -- mesma proteção que a Copa já tem

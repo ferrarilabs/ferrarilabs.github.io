@@ -449,6 +449,74 @@ function getActiveScore(entry, s) {
   return null;
 }
 
+// ─── Projeção do Bolão — índice de precisão (2026-07-14) ─────────────────────
+// Puramente informativo: NUNCA usado em ranking, ordenação, desempate ou pontuação (essas
+// continuam 100% baseadas em scoreEntry()/getActiveScore()/rankEntries(), intocados). Mede o
+// quão perto o palpite original está da tabela atual, posição a posição, para dar ao
+// participante um número além da pontuação -- não decide nada.
+//
+// G4/Z4: cada posição do palpite (1..4 e 17..20) tem uma posição real correspondente na tabela
+// atual -- a "distância" é o deslocamento entre onde o participante colocou o time e onde ele
+// está de verdade DENTRO do próprio grupo de 4 (0 = acertou a posição exata; 3 = o time picado
+// para aquela posição está na ponta oposta do grupo, ou nem está no grupo -- distância máxima).
+// SA6: é um conjunto de 6 times sem posição própria dentro do grupo (meio de tabela, posições
+// 7-12) -- só faz sentido acerto/erro, não distância.
+function accuracyMetrics(entry, g4Result, z4Result, sa6Result) {
+  const pg4  = entry.picks?.g4  || [];
+  const pz4  = entry.picks?.z4  || [];
+  const psa6 = entry.picks?.sa6 || [];
+
+  const distances = [];
+  let exactPositions = 0, onePositionAway = 0, twoPositionsAway = 0;
+
+  // Distância = |posição do slot que o participante escolheu para esse time − posição real do
+  // time dentro do mesmo grupo hoje| (0 = acertou a posição exata). Precisa do índice do SLOT
+  // (não só do time), senão "onde o time está de verdade" fica comparado contra 0 sempre, em vez
+  // de contra a posição que o participante efetivamente palpitou.
+  const groupDistance = (picked, slotIndex, resultArr) => {
+    if (!picked || !resultArr || !resultArr.length) return null;
+    const realIdx = resultArr.indexOf(picked);
+    return realIdx === -1 ? resultArr.length : Math.abs(slotIndex - realIdx); // fora do grupo = distância máxima
+  };
+
+  [[pg4, g4Result], [pz4, z4Result]].forEach(([picks, result]) => {
+    picks.forEach((picked, slotIndex) => {
+      const d = groupDistance(picked, slotIndex, result);
+      if (d == null) return;
+      distances.push(d);
+      if (d === 0) exactPositions++;
+      else if (d === 1) onePositionAway++;
+      else if (d === 2) twoPositionsAway++;
+    });
+  });
+
+  const sa6Set = new Set(sa6Result || []);
+  let sa6Hits = 0, sa6Total = 0;
+  psa6.forEach(picked => { if (!picked) return; sa6Total++; if (sa6Set.has(picked)) sa6Hits++; });
+
+  if (!distances.length && !sa6Total) {
+    return { exactPositions: 0, onePositionAway: 0, twoPositionsAway: 0, totalPositionDistance: 0,
+      averageDeviation: null, largestDeviation: null, accuracyIndex: null };
+  }
+
+  const totalPositionDistance = distances.reduce((a, b) => a + b, 0);
+  // Maior distância possível dentro de um grupo de 4 é 3 -- normaliza a precisão posicional pra
+  // uma escala 0..1 (1 = todas as posições exatas) independente de quantos palpites de G4/Z4 o
+  // participante preencheu.
+  const positionalAccuracy = distances.length ? 1 - (totalPositionDistance / (distances.length * 3)) : null;
+  const sa6Accuracy = sa6Total ? sa6Hits / sa6Total : null;
+  const parts = [positionalAccuracy, sa6Accuracy].filter(v => v != null);
+  const accuracyIndex = parts.length ? parts.reduce((a, b) => a + b, 0) / parts.length : null;
+
+  return {
+    exactPositions, onePositionAway, twoPositionsAway,
+    totalPositionDistance,
+    averageDeviation: distances.length ? totalPositionDistance / distances.length : null,
+    largestDeviation: distances.length ? Math.max(...distances) : null,
+    accuracyIndex, // 0..1 (ou null sem palpite nenhum comparável ainda) -- só informativo
+  };
+}
+
 // ─── ESPN polling ────────────────────────────────────────────────────────────
 let _standings  = [];   // sorted by rank (1st = index 0)
 let _liveMatches = [];  // currently live matches
@@ -1518,7 +1586,7 @@ function renderRanking() {
     const detail = document.createElement("div");
     detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
     detail.dataset.rankDetail = item.e.id;
-    detail.innerHTML = renderPickDisplay(item.e, item.detail);
+    detail.innerHTML = renderPickDisplay(item.e, item.detail, { g4: g4cur, z4: z4cur, sa6: sa6cur, isOfficial });
     box.appendChild(detail);
   });
 
@@ -1533,7 +1601,7 @@ function renderRanking() {
   }));
 }
 
-function renderPickDisplay(entry, detail) {
+function renderPickDisplay(entry, detail, resultSet) {
   // Achado real (2026-07-14, Eduardo: "ver palpites nao pode estar aberto ate o Brasileirão
   // iniciar, senao as pessoas podem copiar") -- mesma proteção que a Copa já tem
   // (hideFuturePicks() em bolao/js/app.js), nunca implementada aqui: nada impedia expandir
@@ -1568,11 +1636,55 @@ function renderPickDisplay(entry, detail) {
   };
 
   const hasSA6 = sa6.some(Boolean);
+
+  // Projeção do Bolão -- índice de precisão + maiores divergências (Fase 4 da spec, 2026-07-14).
+  // Só aparece na fase de projeção (não oficial ainda) -- uma vez os resultados travados
+  // (`resultSet.isOfficial`), a pontuação já é definitiva e essa seção informativa não faz mais
+  // sentido (accuracyMetrics() continua correta mas deixa de ser exibida, evitando confundir
+  // "precisão da projeção" com "resultado final"). Sem resultSet (ex.: e-mail de comprovante, que
+  // reusa esta mesma função) a seção simplesmente não aparece -- puramente aditivo.
+  let accuracyBlock = "";
+  if (resultSet && !resultSet.isOfficial) {
+    const acc = accuracyMetrics(entry, resultSet.g4, resultSet.z4, resultSet.sa6);
+    const pct = acc.accuracyIndex != null ? `${Math.round(acc.accuracyIndex * 100)}%` : "—";
+
+    const divergences = [];
+    // Mesmo cálculo de distância que accuracyMetrics() usa (slot palpitado vs. posição real) --
+    // nunca comparar contra 0 fixo, senão "divergência" vira só "índice real do time", ignorando
+    // pra qual posição o participante efetivamente palpitou.
+    const pushDiv = (picks, labels, result, groupLabel) => picks.forEach((picked, i) => {
+      if (!picked) return;
+      const realIdx = result.indexOf(picked);
+      const distance = realIdx === -1 ? result.length : Math.abs(i - realIdx);
+      if (distance === 0) return; // acertou -- não é divergência
+      divergences.push({ team: picked, pickedLabel: labels[i], groupLabel, distance, realIdx });
+    });
+    pushDiv(g4, g4Labels, resultSet.g4 || [], t("receiptGroupG4"));
+    pushDiv(z4, z4Labels, resultSet.z4 || [], t("receiptGroupZ4"));
+    divergences.sort((a, b) => b.distance - a.distance);
+    const top5 = divergences.slice(0, 5);
+
+    const divRows = top5.map(d => {
+      const realPos = d.realIdx === -1 ? t("accuracyOutsideGroup") : `${d.groupLabel} #${d.realIdx + 1}`;
+      return `<tr><td>${esc(d.team)}</td><td>${esc(d.pickedLabel)}</td><td>${esc(realPos)}</td></tr>`;
+    }).join("");
+
+    accuracyBlock = `
+      <div class="accuracy-summary">
+        <span>${esc(t("accuracyIndexLabel"))}: <b>${pct}</b></span>
+        <span>${esc(t("accuracyExactLabel"))}: <b>${acc.exactPositions}</b></span>
+      </div>
+      ${top5.length ? `<h4 style="margin:14px 0 4px">${esc(t("accuracyTopDivergencesTitle"))}</h4>
+      <table><thead><tr><th>${esc(t("receiptColTeam"))}</th><th>${esc(t("accuracyColPicked"))}</th><th>${esc(t("accuracyColCurrent"))}</th></tr></thead>
+      <tbody>${divRows}</tbody></table>` : ""}`;
+  }
+
   // Sem wrapper próprio -- o container externo (renderRanking(), <div class="card picks-detail">)
   // já carrega essa classe, igual ao padrão da Copa (picksTable() também não se auto-envolve).
   return `${groupTable(t("receiptGroupG4"), g4, g4Labels, detail?.g4)}
     ${hasSA6 ? groupTable(t("receiptGroupSA6"), sa6, sa6.map((_, i) => `SA ${i + 1}`), detail?.sa6) : ""}
-    ${groupTable(t("receiptGroupZ4"), z4, z4Labels, detail?.z4)}`;
+    ${groupTable(t("receiptGroupZ4"), z4, z4Labels, detail?.z4)}
+    ${accuracyBlock}`;
 }
 
 // ─── Render: participants ─────────────────────────────────────────────────────
@@ -2246,7 +2358,7 @@ async function init() {
 // Read-only test hooks — pure functions only, no state mutation exposed. Used by
 // bolao/br2026/scripts/audit_live_standings_and_ranking.py and Playwright regression tests. See
 // docs/bolao/BR2026_LIVE_STANDINGS.md "Testes".
-window.__BR2026_TESTHOOKS__ = { calculateLiveStandings, zoneForPosition, rankEntries, calculateRankingMovement, scoreEntry, pollAll };
+window.__BR2026_TESTHOOKS__ = { calculateLiveStandings, zoneForPosition, rankEntries, calculateRankingMovement, scoreEntry, pollAll, accuracyMetrics };
 
 init();
 

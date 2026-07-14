@@ -432,3 +432,16 @@ dois apps tem a estrutura de dados que motivou a mudança —
 Ver `PROJECT_MEMORY.md` (seção "CDB2026: automação da captura de RESULTADO") e
 `bolao/cdb2026/CHANGELOG.md` v3.16 para o detalhamento técnico completo das salvaguardas
 implementadas para mitigar o risco original.
+
+## Nota manual — BR2026 "Projeção do Bolão": `TOURNAMENT_SPECIFIC`, não propagado (2026-07-14, BR2026 v1.35)
+
+Ranking do BR2026 reenquadrado como projeção explícita (título/subtítulo/disclaimer + índice de
+precisão informativo `accuracyMetrics()`) — ver `docs/bolao/BR2026_PROJECTION_MODEL.md`.
+
+**Decisão: `TOURNAMENT_SPECIFIC`, não propagado para Copa nem CDB2026.** Nenhum dos outros dois
+apps tem o problema que motivou a mudança: a Copa tem um bracket com jogos que realmente terminam
+(pontuação real desde o primeiro resultado, nunca "projetada" contra uma tabela de terceiros); o
+CDB2026 pontua confronto a confronto conforme os jogos reais acontecem, também sem depender de uma
+tabela externa em progresso. Só o BR2026 pontua com base numa classificação de terceiros
+(Brasileirão inteiro) que só termina no fim da temporada — daí a necessidade única de deixar claro
+que o número exibido durante a temporada é uma projeção, não um resultado.
