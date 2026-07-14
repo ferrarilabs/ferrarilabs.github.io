@@ -68,9 +68,22 @@ window.CDB2026_I18N = {
     findEntryLoaded: "Entrada carregada — role para baixo para editar os palpites liberados.",
     findEntryLockedMsg: "Disponível assim que os jogos da 1ª Fase terminarem.",
     // Receipt
-    receiptTitle: "Comprovante",
+    receiptTitle: "Comprovante — Bolão Copa do Brasil 2026",
     receiptCodeLabel: "Código do comprovante",
     receiptSaveHint: "Guarde este código — ele também foi enviado por e-mail. Você vai precisar dele (junto com seu e-mail) para editar seus palpites conforme novas fases abrirem.",
+    // E-mail de comprovante — mesma estrutura/CSS visual da Copa e do BR2026 (achado em
+    // auditoria, 2026-07-14: "o email de comprovante do BR2026 é diferente do da CDB2026...
+    // tem que ser igual"). Conteúdo adaptado ao formato deste torneio (campeão/vice + placares
+    // por confronto, não bracket de 32 jogos).
+    receiptIntro: "Este comprovante registra exatamente os palpites enviados.",
+    receiptEntry: "Entrada",
+    receiptResponsible: "Responsável",
+    receiptEmail: "E-mail",
+    receiptPayment: "Pagamento",
+    receiptSentAt: "Enviado em",
+    receiptColMatch: "Confronto",
+    receiptColScore: "Placar palpitado",
+    receiptFooterNote: "Bolão informal entre amigos. A pontuação final só é calculada após o encerramento da Copa do Brasil.",
     // Validation
     errorEntryName: "Informe o nome da entrada.",
     errorEmail: "Informe um e-mail válido.",
@@ -91,6 +104,12 @@ window.CDB2026_I18N = {
     provisionalNote: "Resultado não travado — pontuação provisória.",
     finalNote: "Resultado oficial encerrado pelo admin.",
     noEntries: "Nenhuma entrada ainda.",
+    // Achado real (2026-07-14, Eduardo) -- ver renderPickDisplay() em app.js.
+    picksHiddenUntilCutoff: "Os palpites ficam ocultos até o prazo da fase ativa encerrar — evita que participantes copiem uns dos outros.",
+    cutoffSourceAuto: "Cutoff automático (1h antes do primeiro jogo)",
+    cutoffSourceManual: "Cutoff manual (definido pelo admin)",
+    cutoffSourceNone: "Sem cutoff calculável ainda (falta kickoff conhecido nesta fase)",
+    adminUseAutoCutoff: "Usar cálculo automático",
     viewPicks: "Ver palpites",
     paid: "✓ Pago",
     unpaid: "Pendente",

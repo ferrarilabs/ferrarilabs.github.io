@@ -79,6 +79,12 @@ window.BR2026_I18N = {
     provisionalNote: "Pontuação provisória — baseada na tabela atual. Atualiza a cada 60s.",
     finalNote: "Resultado oficial encerrado pelo admin.",
     noEntries: "Nenhuma entrada ainda.",
+    // Achado real (2026-07-14, Eduardo: "ver palpites nao pode estar aberto ate o Brasileirão
+    // iniciar, senao as pessoas podem copiar") -- mesma proteção que a Copa já tem
+    // (hideFuturePicks em bolao/js/app.js), nunca implementada aqui. Palpite é "tudo ou nada"
+    // (classificação final), então fica escondido por inteiro até o prazo passar, não parte por
+    // parte como na Copa (que revela partida a partida conforme cada jogo termina).
+    picksHiddenUntilCutoff: "Os palpites ficam ocultos até o prazo de entrada encerrar — evita que participantes copiem uns dos outros.",
     viewPicks: "Ver palpites",
     paid: "✓ Pago",
     unpaid: "Pendente",
@@ -160,6 +166,23 @@ window.BR2026_I18N = {
     delete: "Apagar",
     editModeBanner: "Editando a entrada de {name}",
     editCancelBtn: "Cancelar edição",
+    // Comprovante por e-mail — mesmos rótulos/estrutura visual da Copa e do CDB2026 (achado em
+    // auditoria, 2026-07-14: "o email de comprovante do BR2026 é diferente... tem que ser
+    // igual"), conteúdo adaptado ao formato deste torneio (G4/Sul-Americana/Z4, não bracket).
+    receiptTitle: "Comprovante — Bolão Brasileirão 2026",
+    receiptIntro: "Este comprovante registra exatamente os palpites enviados.",
+    receiptEntry: "Entrada",
+    receiptResponsible: "Responsável",
+    receiptEmail: "E-mail",
+    receiptPayment: "Pagamento",
+    receiptSentAt: "Enviado em",
+    receiptCode: "Código",
+    receiptGroupG4: "🏆 G4 — Libertadores",
+    receiptGroupSA6: "🟡 Sul-Americana",
+    receiptGroupZ4: "⬇️ Z4 — Rebaixamento",
+    receiptColPos: "Posição",
+    receiptColTeam: "Time",
+    receiptFooterNote: "Bolão informal entre amigos. A pontuação final só é calculada após o encerramento do Brasileirão.",
     espnFillResultsBtn: "Preencher pelo ESPN",
     forceSyncBtn: "☁️ Sync remoto",
     exportCsvBtn: "📊 CSV",

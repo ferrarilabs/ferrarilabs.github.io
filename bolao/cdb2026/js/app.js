@@ -687,12 +687,15 @@ function countExactMatches(detail) { return Object.values(detail?.matches || {})
 
 // ─── Email receipt ───────────────────────────────────────────────────────────
 let _lastEmailTs = 0;
-async function sendReceipt(entry) {
-  if (!C.emailjs.enabled || !window.emailjs) return;
-  const now = Date.now();
-  if (now - _lastEmailTs < C.emailjs.limitRateMs) return;
-
-  const s = state();
+// Mesma estrutura/CSS visual do comprovante da Copa (receiptHtml() em bolao/js/app.js) e do
+// BR2026 -- achado em auditoria (2026-07-14): os três apps tinham um e-mail de comprovante
+// visualmente diferente entre si (tabela `border="1"` sem estilo nenhum aqui, tema escuro/Inter
+// no BR2026, tema claro/Arial na Copa). Alinhado ao padrão canônico da Copa (tema claro, cartão
+// branco, grade `.meta`, código em monospace, tabela com cabeçalho escuro, bloco de destaque
+// estilo pódio) -- só o CONTEÚDO muda por torneio (campeão/vice em 2 cartões em vez de 4, placar
+// por confronto em vez de partidas do bracket), como previsto em PLATFORM_GOVERNANCE.md
+// ("diferenças específicas de torneio devem ser preservadas").
+function receiptHtml(entry, s) {
   const rows = [];
   DATA.phases.forEach(phase => {
     Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
@@ -703,44 +706,69 @@ async function sendReceipt(entry) {
         const pick = pickMatches[leg];
         if (!pick) return;
         const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
-        rows.push(`<tr><td>${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</td><td>${pick.goalsHome} × ${pick.goalsAway}</td></tr>`);
+        rows.push(`<tr><td>${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
       });
     });
   });
   const predicted = predictedPodium(entry, s);
-  const podiumHtml = `
-    <p><b>${esc(t("receiptCodeLabel"))}:</b> <code>${esc(receiptCode(entry))}</code></p>
-    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px">
-      <tr><th>Palpite</th><th>Time</th></tr>
-      <tr><td>🏆 Campeão</td><td>${esc(predicted.champion || "—")}</td></tr>
-      <tr><td>🥈 Vice-campeão</td><td>${esc(predicted.runnerUp || "—")}</td></tr>
-    </table>`;
-  const picksHtml = `
-    <table border="1" cellpadding="6" cellspacing="0" style="border-collapse:collapse;font-family:sans-serif;font-size:14px;margin-top:10px">
-      <tr><th>Partida</th><th>Placar palpitado</th></tr>
-      ${rows.join("") || `<tr><td colspan="2">—</td></tr>`}
-    </table>`;
 
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>${esc(t("receiptTitle"))}</title>
+<style>body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}
+.doc{max-width:900px;margin:24px auto;background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 40px #0002}
+h1{margin:0 0 4px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f1f5f9;border-radius:14px;padding:14px;margin:18px 0}
+.code{font-family:monospace;color:#087a35;font-weight:bold}.pod{background:linear-gradient(135deg,#07151c,#0f3b22);color:#fff;border-radius:18px;padding:18px;margin:22px 0}
+.pod h2{text-align:center;margin:0 0 14px}.podgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.podcard{border-radius:14px;padding:14px;text-align:center;background:#ffffff18}
+.champ{background:#ffd35a;color:#111}.team-name{font-size:22px;font-weight:900;margin-top:4px}
+table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:8px 10px;border-bottom:1px solid #dde}
+th{background:#07151c;color:#fff;text-align:left}
+.notice{background:#fff4cc;border:1px solid #e8c65b;border-radius:12px;padding:12px;margin-top:16px;font-size:13px}
+@media print{body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0;padding:10px}}</style></head>
+<body><div class="doc">
+<h1>${esc(t("receiptTitle"))}</h1>
+<p>${esc(t("receiptIntro"))}</p>
+<div class="meta">
+<div><b>${esc(t("receiptEntry"))}:</b> ${esc(entry.entryName)}<br>
+<b>${esc(t("receiptResponsible"))}:</b> ${esc(entry.payerName || "")}<br>
+<b>${esc(t("receiptEmail"))}:</b> ${esc(entry.participantEmail)}</div>
+<div><b>${esc(t("receiptPayment"))}:</b> ${esc(entry.paymentMethod || "")}<br>
+<b>${esc(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}<br>
+<b>${esc(t("receiptCodeLabel"))}:</b> <span class="code">${esc(receiptCode(entry))}</span></div></div>
+<div class="pod"><h2>${esc(t("pickHintTie") ? "🏆 Palpite final do participante" : "")}</h2><div class="podgrid">
+<div class="podcard champ"><div>🥇 ${esc(t("pickLabelChampion"))}</div><div class="team-name">${esc(predicted.champion || "—")}</div></div>
+<div class="podcard"><div>🥈 ${esc(t("pickLabelRunnerUp"))}</div><div class="team-name" style="color:#fff">${esc(predicted.runnerUp || "—")}</div></div>
+</div></div>
+<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th></tr></thead>
+<tbody>${rows.join("") || `<tr><td colspan="2">—</td></tr>`}</tbody></table>
+<div class="notice">${esc(t("receiptFooterNote"))}</div>
+</div></body></html>`;
+}
+
+async function sendReceipt(entry) {
+  if (!C.emailjs.enabled || !window.emailjs) return;
+  const now = Date.now();
+  if (now - _lastEmailTs < C.emailjs.limitRateMs) return;
+
+  const s = state();
+  const html = receiptHtml(entry, s);
+  const code = receiptCode(entry);
   const params = {
-    to_email:    entry.participantEmail,
-    to_name:     entry.entryName,
-    entry_name:  entry.entryName,
-    html_message: `<h2>Bolão Copa do Brasil 2026 — Comprovante</h2>
-      <p>Entrada: <strong>${esc(entry.entryName)}</strong></p>
-      ${podiumHtml}
-      ${picksHtml}
-      <p style="color:#888;font-size:12px">Versão: ${esc(C.siteVersion)} · ${esc(new Date().toISOString())}</p>`
+    to_email:     entry.participantEmail,
+    entry_name:   `Copa do Brasil 2026 — ${entry.entryName}`,
+    receipt_code: code,
+    html_message: html,
   };
 
   try {
-    await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, params, C.emailjs.publicKey);
+    await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, params, { publicKey: C.emailjs.publicKey });
     _lastEmailTs = Date.now();
     if (C.adminEmail) {
       await window.emailjs.send(C.emailjs.serviceId, C.emailjs.adminTemplateId, {
         ...params,
         to_email: C.adminEmail,
-        html_message: `<p>Nova entrada: <strong>${esc(entry.entryName)}</strong> (${esc(entry.participantEmail)})</p>${podiumHtml}${picksHtml}`
-      }, C.emailjs.publicKey);
+        entry_name: `Nova entrada — ${entry.entryName}`,
+      }, { publicKey: C.emailjs.publicKey });
     }
   } catch (err) {
     console.error("[CDB2026] sendReceipt failed:", err);
@@ -843,7 +871,25 @@ function renderRanking() {
 }
 
 function renderPickDisplay(entry, detail) {
+  // Achado real (2026-07-14, Eduardo: "ver palpites nao pode estar aberto ate a CDB e o
+  // brasileirao iniciarem, senao as pessoas podem copiar") -- mesma proteção que a Copa já tem
+  // (hideFuturePicks() em bolao/js/app.js), nunca implementada aqui: nada impedia expandir "Ver
+  // palpites" de qualquer entrada a qualquer momento, mesmo antes do prazo da fase ativa --
+  // outro participante podia copiar o palpite de alguém antes de enviar o seu. Gate simples e
+  // seguro por enquanto: esconde TUDO até o prazo da fase ativa passar (mais restritivo que o
+  // necessário quando a fase ativa já avançou além de uma fase antiga já decidida, mas nunca
+  // expõe cedo demais -- refino por fase específica fica para uma iteração futura se precisar).
+  if (!isPastEntryCutoff()) return `<p class="muted">${esc(t("picksHiddenUntilCutoff"))}</p>`;
+  // Achado real (2026-07-14, Eduardo: "a visualizacao de ver palpites da CDB tambem esta
+  // inconsistente com a da copa"): esta função usava um card flex-column
+  // (.picks-display.cdb-picks/.pick-item/.pick-cell), estrutura totalmente diferente da Copa,
+  // que usa <table> dentro de .picks-detail (mesmas classes de CSS: .picks-detail table/th/td,
+  // ver bolao/css/styles.css). Reconstruído para usar a MESMA estrutura de tabela -- só o
+  // conteúdo muda por torneio (confronto/placar em vez de partida/placar/vencedor do bracket).
   const s = state();
+  const ptsCell = d => d
+    ? `<b class="pick-pts${d.pts > 0 ? " pos" : ""}">${d.pts > 0 ? "+" + d.pts : "—"}</b>`
+    : `<span class="muted">—</span>`;
   const rows = [];
   DATA.phases.forEach(phase => {
     Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
@@ -854,38 +900,31 @@ function renderPickDisplay(entry, detail) {
         const pick = pickMatches[leg];
         if (!pick) return;
         const d = detail?.matches?.[`${tieId}:${leg}`];
-        const legLabel = leg === "single" ? "" : ` — ${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))}`;
+        const legLabel = leg === "single" ? "" : ` (${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))})`;
         const cls = d ? (d.type === "exact" ? "pick-exact" : d.type === "miss" ? "pick-miss" : "pick-partial") : "";
-        const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
-        rows.push(`<div class="pick-item">
-          <span class="pick-pos-lbl">${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</span>
-          <div class="pick-cell ${cls}">${pick.goalsHome} × ${pick.goalsAway}${badge}</div>
-        </div>`);
+        rows.push(`<tr class="${cls}"><td>${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       });
       const pickQual = entry.picks?.qualified?.[tieId];
       if (tie.qualifiedTeamId && pickQual) {
         const d = detail?.ties?.[tieId];
         const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
         const cls = d?.type === "hit" ? "pick-exact" : "pick-miss";
-        const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
-        rows.push(`<div class="pick-item">
-          <span class="pick-pos-lbl">${esc(t("pickQualifiedLabel"))}: ${teamLogoImg(teamName)} ${esc(teamName)}</span>
-          <div class="pick-cell ${cls}">${badge}</div>
-        </div>`);
+        rows.push(`<tr class="${cls}"><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td><b>${esc(teamName)}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
     });
   });
 
   const predicted = predictedPodium(entry, s);
   const bonusRow = (label, team, d) => team
-    ? `<div class="pick-item"><span class="pick-pos-lbl">${esc(label)}: ${teamLogoImg(team)} ${esc(team)}</span><div class="pick-cell ${d ? (d.type === "exact" ? "pick-exact" : "pick-miss") : ""}">${d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : ""}</div></div>`
+    ? `<tr class="${d ? (d.type === "exact" ? "pick-exact" : "pick-miss") : ""}"><td>${esc(label)}</td><td><b>${esc(team)}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
 
-  return `<div class="picks-display cdb-picks">
-    ${bonusRow("🏆 " + t("pickLabelChampion"), predicted.champion, detail?.champion)}
-    ${bonusRow("🥈 " + t("pickLabelRunnerUp"), predicted.runnerUp, detail?.runnerUp)}
-    ${rows.join("") || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`}
-  </div>`;
+  return `<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th><th style="text-align:center">Pts</th></tr></thead>
+    <tbody>
+      ${bonusRow("🏆 " + t("pickLabelChampion"), predicted.champion, detail?.champion)}
+      ${bonusRow("🥈 " + t("pickLabelRunnerUp"), predicted.runnerUp, detail?.runnerUp)}
+      ${rows.join("") || `<tr><td colspan="3">${esc(t("pickNoOpenTies"))}</td></tr>`}
+    </tbody></table>`;
 }
 
 // ─── Render: participants ─────────────────────────────────────────────────────
@@ -1608,6 +1647,24 @@ function renderAdminPhases(s) {
         <input type="datetime-local" class="adm-phase-cutoff" aria-label="${esc(t("adminPhaseCutoff"))}" value="${phaseState.cutoffAt ? esc(toLocalDatetimeValue(phaseState.cutoffAt)) : ""}">
         <button type="button" class="secondary small-btn" data-save-cutoff="${esc(phase.id)}">${esc(t("adminSaveCutoff"))}</button>
       </div>
+      ${(() => {
+        // Diagnóstico de fonte do cutoff -- achado real (2026-07-14, Eduardo: "o bolao da CDB
+        // fala encerrado, quando não deveria"): effectivePhaseCutoffMs() dá prioridade
+        // silenciosa a um cutoffAt MANUAL sobre o valor automático, sem nenhuma indicação visual
+        // de qual dos dois está valendo -- um valor manual antigo (de um teste anterior a este
+        // mecanismo existir) trava o cutoff errado pra sempre sem o admin conseguir perceber o
+        // porquê. Mostra explicitamente a fonte e a data efetiva, com um botão pra limpar o
+        // manual e voltar ao cálculo automático.
+        const effMs = effectivePhaseCutoffMs(s, phase.id);
+        const isManual = !!phaseState.cutoffAt;
+        const label = effMs === null
+          ? t("cutoffSourceNone")
+          : `${isManual ? t("cutoffSourceManual") : t("cutoffSourceAuto")}: ${new Date(effMs).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} BRT`;
+        const resetBtn = isManual
+          ? `<button type="button" class="secondary small-btn" data-clear-cutoff="${esc(phase.id)}">${esc(t("adminUseAutoCutoff"))}</button>`
+          : "";
+        return `<div class="admin-row cutoff-source-diag"><span class="small-text muted">${esc(label)}</span>${resetBtn}</div>`;
+      })()}
       <div class="admin-row cdb-add-tie">
         <input type="text" class="adm-team-a" placeholder="${esc(t("adminTeamA"))}" aria-label="${esc(t("adminTeamA"))}" list="cdbTeamList">
         <input type="text" class="adm-team-b" placeholder="${esc(t("adminTeamB"))}" aria-label="${esc(t("adminTeamB"))}" list="cdbTeamList">
@@ -1633,6 +1690,15 @@ function renderAdminPhases(s) {
     const val = input.value;
     const s2 = state();
     s2.phases[phaseId].cutoffAt = val ? new Date(val).toISOString() : null;
+    saveState(s2);
+    showToast(t("adminCutoffSaved"), "success");
+  }));
+
+  box.querySelectorAll("[data-clear-cutoff]").forEach(btn => btn.addEventListener("click", () => {
+    if (!guardAdmin()) return;
+    const phaseId = btn.dataset.clearCutoff;
+    const s2 = state();
+    s2.phases[phaseId].cutoffAt = null;
     saveState(s2);
     showToast(t("adminCutoffSaved"), "success");
   }));

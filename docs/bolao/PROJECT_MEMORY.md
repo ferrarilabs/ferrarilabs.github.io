@@ -897,6 +897,55 @@ com a ESPN), todos passando, mais os 37 já existentes re-executados sem regress
 
 ---
 
+### Consistência de "Ver palpites" e email + bug de cutoff manual travando Oitavas (BR2026 v1.34 / CDB2026 v3.15, 2026-07-14)
+
+Sequência de reports do Eduardo no mesmo dia: (1) email de comprovante do BR2026 diferente do
+CDB2026; (2) print de tela mostrando as Oitavas de Final do CDB2026 100% travadas ("prazo desta
+fase encerrado") mesmo com a fase claramente aberta; (3) "Ver palpites" acessível antes do prazo
+em ambos os apps, risco real de cópia entre participantes; (4) "Ver palpites" do CDB2026 com
+layout inconsistente com a Copa; (5) regressão do mesmo bug de cutoff, agora descrito como
+"mostrando jogos que passaram e não mostra mais os jogos atuais".
+
+**Bug de cutoff (achado real, root cause único explica os reports 2 e 5)**: `effectivePhaseCutoffMs()`
+dava prioridade incondicional a um `cutoffAt` manual salvo em `s.phases[phaseId].cutoffAt`, sem
+nenhuma indicação visual de qual fonte (manual vs. automática) estava valendo. Um valor manual
+definido durante testes anteriores ao mecanismo de auto-cutoff, no passado, travava `isPhaseLocked()`
+para TODAS as chaves da fase — tanto o "encerrado" incorreto quanto a regressão eram o mesmo
+sintoma. Sem acesso ao Supabase de produção do Eduardo para inspecionar o valor real, a correção
+implementada foi um diagnóstico visível + correção de um clique em `renderAdminPhases()`: mostra
+"Cutoff manual (definido pelo admin): <data>" ou "Cutoff automático" explicitamente, com botão
+"Usar cálculo automático" que limpa o override. Deliberadamente **não foi feito** auto-clear
+automático de um valor manual "muito antigo" sem confirmação do Eduardo — mudar o comportamento de
+qual cutoff vale é decisão de admin, não algo para o código decidir sozinho.
+
+**"Ver palpites" sem proteção de cutoff (achado de segurança real)**: nem BR2026 nem CDB2026
+verificavam cutoff nenhum antes de renderizar o painel de detalhe do ranking — diferente da Copa,
+que já tinha `hideFuturePicks = !isPastCutoff()`. Corrigido nos dois apps com um retorno antecipado
+em `renderPickDisplay()` (mais conservador que o padrão granular da Copa: esconde o painel inteiro
+até o cutoff relevante passar, em vez de esconder partida por partida).
+
+**"Ver palpites" inconsistente (achado de padronização)**: BR2026 usava grid de cards 2-3 colunas
+(`.picks-display`/`.pick-item`/`.pick-cell`), CDB2026 usava lista de cards em coluna flex — nenhum
+dos dois batia com a Copa (`<table>` dentro de `.picks-detail`). Reconstruídos os dois para usar a
+mesma estrutura `<table>` e as mesmas classes CSS da Copa; CSS morto das cards antigas removido.
+
+**Email de comprovante**: BR2026 tinha email em tema escuro, inline, próprio; CDB2026 tinha tabela
+`<table border="1">` bruta. Ambos reescritos para o mesmo layout HTML (tema claro, `.doc`/`.meta`/
+`.code`/tabela/`.notice`) e o mesmo formato de código de recibo (`hashString()`/`receiptCode()` →
+`{PREFIX}-XXXXXXXX-YYYYMMDD`) que a Copa já usa. BR2026 passou a enviar cópia para o admin também
+(Copa e CDB2026 já enviavam; BR2026 era o único que não). De passagem, corrigida a assinatura do
+`emailjs.send()` no CDB2026, que ainda usava a forma antiga (4º argumento como string solta) em vez
+da forma objeto (`{ publicKey }`) usada em Copa e BR2026.
+
+13 testes Playwright novos (`test_urgent_fixes.js`), incluindo reprodução exata do bug de cutoff a
+partir do print do Eduardo, mais a suíte de regressão completa re-executada sem falhas.
+
+Pendente, não respondido ainda ao Eduardo nesta sessão: pergunta sobre remover a atualização manual
+de resultado do admin do CDB2026 — ver `docs/bolao/CDB2026_RULES_AND_MODEL.md` seção 7 (decisão de
+design deliberada, nunca automatizada de propósito: "isso decide o pagamento").
+
+---
+
 ## Bugs históricos
 
 Ver `docs/bolao/LESSONS_LEARNED.md` para o detalhamento completo (causa raiz, correção,
