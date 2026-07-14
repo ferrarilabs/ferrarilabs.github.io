@@ -198,14 +198,22 @@ function showSection(id) {
 // Não existe mais um cutoff único global (era um resquício do modelo antigo de bracket fixo —
 // ver CDB2026_RULES_AND_MODEL.md). Cada FASE tem seu próprio cutoffAt, definido pelo admin ao
 // cadastrar os confrontos daquela fase. O único uso "global" que resta é bloquear a CRIAÇÃO de
-// entradas novas depois que a 1ª Fase já fechou — editar uma entrada existente continua
-// funcionando fase a fase, cada confronto usa o cutoff da própria fase.
-function fase1CutoffMs() {
-  const c = state().phases?.["fase-1"]?.cutoffAt;
+// entradas novas e alimentar o contador regressivo do topo — os dois usam o cutoff da fase que
+// está realmente aberta para palpite AGORA (`espnSync.activePhaseId`, hoje "oitavas"), não
+// literalmente "fase-1". Bug real encontrado por Eduardo (2026-07-14): "sumiu o contador,
+// agora fala aguardando sorteio" — a função antiga (fase1CutoffMs) sempre olhava o cutoffAt de
+// fase-1, que NUNCA vai existir (fase-1 é histórico, sem confronto cadastrado desde a v3.6/v3.8) —
+// o contador ficava preso em "aguardando sorteio" para sempre, mesmo com um cutoff real salvo em
+// Oitavas. Editar uma entrada existente continua funcionando fase a fase, cada confronto usa o
+// cutoff da própria fase — isso não muda.
+function entryCutoffMs() {
+  const s = state();
+  const phaseId = s.espnSync?.activePhaseId || "fase-1";
+  const c = s.phases?.[phaseId]?.cutoffAt;
   return c ? new Date(c).getTime() : null;
 }
-function isPastFase1Cutoff() {
-  const ms = fase1CutoffMs();
+function isPastEntryCutoff() {
+  const ms = entryCutoffMs();
   return ms !== null && Date.now() > ms;
 }
 function isPhaseLocked(phaseState) {
@@ -499,7 +507,7 @@ function renderPickForm() {
 
 // ─── Save entry ──────────────────────────────────────────────────────────────
 async function saveEntry() {
-  if (isPastFase1Cutoff() && !_editingEntry) { showToast(t("closed"), "warn"); return; }
+  if (isPastEntryCutoff() && !_editingEntry) { showToast(t("closed"), "warn"); return; }
   const entryName     = $("entryName")?.value.trim() || "";
   const payerName     = $("payerName")?.value.trim() || "";
   const email         = $("participantEmail")?.value.trim() || "";
@@ -714,7 +722,7 @@ async function sendReceipt(entry) {
 function renderCountdown() {
   const box = $("cutoffCountdown");
   if (!box) return;
-  const ms = fase1CutoffMs();
+  const ms = entryCutoffMs();
   if (ms === null) {
     box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t("waitingDraw"))}</span>`;
     return;
@@ -1807,7 +1815,7 @@ async function init() {
   if (wa) wa.href = C.whatsappGroup?.link || "#";
 
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
-  showSection(isPastFase1Cutoff() ? "ranking" : "entry");
+  showSection(isPastEntryCutoff() ? "ranking" : "entry");
 
   $("bolaoSelect")?.addEventListener("change", e => {
     const allowed = ["/bolao/", "/bolao/br2026/", "/bolao/cdb2026/"];

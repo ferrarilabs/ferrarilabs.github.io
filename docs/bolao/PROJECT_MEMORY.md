@@ -928,6 +928,20 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   nunca salva ficava sem proteção o tempo todo em que estava sendo preenchida, e o resync apagava
   tudo. A Copa nunca teve esse bug: lá, construir o formulário e atualizar o estado visual a
   partir do que já foi digitado sempre foram funções separadas.
+- **Contador regressivo do CDB2026 preso em "aguardando sorteio" para sempre (v3.10, 2026-07-14):**
+  `fase1CutoffMs()` (contador do topo, bloqueio de entrada nova, aba padrão) sempre lia
+  `phases["fase-1"].cutoffAt`, campo que nunca é preenchido desde que fase-1 virou histórica (sem
+  confronto cadastrado, v3.6/v3.8) — mesmo o admin definindo um cutoff real em Oitavas (a fase
+  realmente aberta para palpite), o contador nunca refletia. Renomeada para `entryCutoffMs()`,
+  passou a ler o cutoff de `espnSync.activePhaseId` (a fase realmente ativa) em vez de um nome de
+  fase hardcoded — acompanha o torneio conforme ele avança de fase.
+- **Esquema de cor dourado só no CDB2026 — buraco de metodologia numa auditoria anterior (v3.10,
+  2026-07-14):** a auditoria de tokens CSS da v3.9 comparou VALORES de token (`--gold` idêntico
+  nos três) mas não verificou se o MESMO token era usado no MESMO elemento — CDB2026 usava
+  `var(--gold)` como cor primária (hero, cabeçalhos de fase, cabeçalhos de confronto) onde Copa/
+  BR2026 usam `var(--green)`, visualmente óbvio mas invisível numa comparação só de valores.
+  Lição registrada em `DESIGN_SYSTEM.md`: auditoria de cor precisa comparar token-por-elemento,
+  não só os valores declarados em `:root`.
 
 ---
 
