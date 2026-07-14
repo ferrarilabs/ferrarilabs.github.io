@@ -1212,6 +1212,15 @@ function countdownTimerHtml(diffMs) {
   }</div>`;
 }
 
+// Kickoff da perna de ida (ou da partida única em SINGLE_MATCH) -- sempre o primeiro item de
+// legsForFormat(format), nunca a volta -- usado só para ORDENAR a aba "Jogos" em ordem
+// cronológica (pedido do Eduardo, 2026-07-14), nunca para decidir nada de pontuação/cutoff.
+function firstLegKickoffMs(tie, format) {
+  const firstLeg = legsForFormat(format)[0];
+  const ms = tie.matches?.[firstLeg]?.kickoff ? new Date(tie.matches[firstLeg].kickoff).getTime() : NaN;
+  return Number.isFinite(ms) ? ms : null;
+}
+
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
@@ -1220,6 +1229,16 @@ function renderGamesSection() {
   let html = "";
   DATA.phases.forEach(phase => {
     const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
+    // Ordem cronológica pela data da ida (ou única) -- confrontos sem kickoff conhecido ainda
+    // (aguardando sorteio/data) ficam no fim, na ordem em que já estavam, em vez de embaralhar.
+    ties.sort(([, tieA], [, tieB]) => {
+      const msA = firstLegKickoffMs(tieA, phase.format);
+      const msB = firstLegKickoffMs(tieB, phase.format);
+      if (msA === null && msB === null) return 0;
+      if (msA === null) return 1;
+      if (msB === null) return -1;
+      return msA - msB;
+    });
     html += `<h3 class="games-round-header">${esc(phase.name)}</h3>`;
     if (!ties.length) {
       const msg = (DATA.phasesConcludedNoData || []).includes(phase.id) ? "phaseAlreadyConcluded" : "waitingDraw";

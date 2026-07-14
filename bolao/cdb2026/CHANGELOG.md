@@ -1,5 +1,26 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.21 — 2026-07-14
+
+### Fixed — aba "Jogos" fora de ordem cronológica
+
+Eduardo pediu um fix pequeno e pontual: ordenar os confrontos da aba "Jogos" por data. Cada
+confronto dentro de uma fase renderizava na ordem de inserção do objeto de estado (ordem em que
+foram cadastrados/sincronizados da ESPN), não pela data real do jogo. Corrigido em
+`renderGamesSection()`: ordena pela data da perna de **ida** (`firstLegKickoffMs()`, sempre o
+primeiro item de `legsForFormat(format)` — `"first"` em confrontos de ida+volta, `"single"` em
+partida única; nunca a volta, como pedido explicitamente). Confrontos sem kickoff conhecido ainda
+(aguardando sorteio/data) ficam no fim da lista, na ordem em que já estavam, em vez de embaralhar.
+Escopo intencionalmente restrito à aba "Jogos" — não toca a ordem do formulário de palpites nem
+nenhuma lógica de cutoff/pontuação.
+
+**Checagem de propagação**: BR2026 já ordena sua lista de jogos por `dateISO`
+(`renderGamesSection()`) — CDB2026 era a exceção. A Copa não tem esse problema estruturalmente
+(`DATA.knockoutMatches` é um array estático já ordenado, não um objeto de ties dinâmico). Nada a
+propagar; esta correção só alinha o CDB2026 ao padrão que o BR2026 já seguia.
+
+`audit_scoring.py`: PASSOU (scoring não foi tocado).
+
 ## v3.20 — 2026-07-14 (EMERGENCY_HOTFIX, mesmo dia)
 
 ### Fixed — "editar entrada" liberado o tempo todo desde a v3.9; devia continuar fechado até a Oitavas terminar
