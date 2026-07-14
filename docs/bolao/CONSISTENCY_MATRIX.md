@@ -49,6 +49,7 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 25 | Detecção de jogo adiado (postponed) | Implementado (`postponed` hint + i18n `matchPostponed`) | Implementado (`.game-status.postponed`, i18n `gamePostponed`) desde v1.13 | **Não implementado** — sem CSS, sem i18n, sem lógica | Sim, mata-mata é sensível a adiamentos | NEEDS_REVIEW | CDB2026 não tem nenhuma forma de sinalizar jogo adiado | Medium | Portar a lógica de BR2026 (v1.13) para CDB2026 antes de publicar |
 | 26 | Cache de API externa | `localStorage["bolao_api_football_cache"]`, TTL 60min | cache implícito via poll 60s (não persistido) | N/A (sem API) | Não necessariamente | INTENTIONALLY_DIFFERENT | Estratégias diferentes por natureza da fonte de dados | — | — |
 | 27 | Cutoff — enforcement | Client-side, `isPastCutoff()` | idêntico padrão | idêntico padrão | Sim | CONSISTENT | Nenhuma | — | — |
+| 27b | Cutoff — fonte do valor | `cutoffIso` estático em `data.js` (bracket fixo, datas conhecidas com anos de antecedência via calendário oficial FIFA) | `s.cutoffAt` auto-calculado (1h antes do 1º jogo real do calendário ESPN) e **congelado** uma vez (v1.31) — `cutoffIso` só fallback pré-congelamento | `cutoffAt` por fase, auto-calculado (1h antes do 1º kickoff conhecido na fase ativa, v3.12), `cutoffAt` manual do admin como prioridade | Não — mecanismos diferentes por design (ver nota abaixo), mas a REGRA de negócio ("1h antes do primeiro jogo") é a mesma nos 3 | INTENTIONALLY_DIFFERENT | Ver nota "Cutoff — fonte do valor" abaixo | — | — |
 | 28 | Cutoff — rótulo customizado | `cutoffLabel` no config | calculado/exibido via `toLocaleString` direto, sem campo de config dedicado | idem BR2026 | Não necessariamente | INTENTIONALLY_DIFFERENT | — | Low | — |
 | 29 | Countdown timer | `#countdown` + segundos, colapsável (`heroToggle`) | `#cutoffCountdown`, hero não colapsável | `#cutoffCountdown`, hero não colapsável | Não necessariamente (UX) | INTENTIONALLY_DIFFERENT | IDs e comportamento (toggle) diferentes | Low | Avaliar se o toggle do hero deveria ser padronizado |
 | 30 | Header/topbar — logo/marca | 🏆 Bolão do Ferrari · Copa 2026 | 🇧🇷 Bolão do Ferrari · Brasileirão 2026 | 🏅 Bolão do Ferrari · Copa do Brasil 2026 | Sim (mesmo padrão visual, emoji distinto) | CONSISTENT | Nenhuma — padrão intencional e consistente | — | — |
@@ -322,6 +323,36 @@ Apenas markup (`index.html`), sem mudança de `app.js`/CSS — nada depende da o
 (navegação usa `data-section`, não índice/posição). Verificado via Playwright: zero erros de JS
 nos três apps depois da mudança, ordem do nav lida diretamente do DOM confirmada igual à Copa
 (com a exceção intencional de "Tabela" no BR2026).
+
+## Nota manual — Cutoff: fonte do valor, mecanismo diferente por app mas mesma regra de negócio (2026-07-14, BR2026 v1.31 / CDB2026 v3.12)
+
+Eduardo confirmou a mesma regra de negócio para os 3 apps: **cutoff = 1h antes do início do
+primeiro jogo**. O MECANISMO para chegar nesse valor é, intencionalmente, diferente em cada app —
+propagar um mecanismo idêntico entre os três seria errado, porque a estrutura de dados por trás
+de "o primeiro jogo" é diferente em cada um:
+
+- **Copa** (`bolao/`): bracket fixo desde o deploy (`data.js`), com datas conhecidas anos de
+  antecedência via calendário oficial da FIFA — nunca muda depois de publicado. Um `cutoffIso`
+  estático é correto e suficiente aqui; **não precisa** do mecanismo de auto-cálculo/congelamento
+  dos outros dois apps. `TOURNAMENT_SPECIFIC`, não propagado.
+- **BR2026** (`bolao/br2026/`): temporada contínua com calendário ao vivo via ESPN (jogos podem
+  ser reagendados pela CBF). Um valor estático (`cutoffIso`) ficou defasado silenciosamente em
+  v1.11–v1.30 (bug real, ver `PROJECT_MEMORY.md`). Corrigido em v1.31: `nextUpcomingGame()` calcula
+  o primeiro jogo real ainda não realizado, e o cutoff (1h antes) é **congelado uma única vez** em
+  `s.cutoffAt` assim que o calendário carrega pela primeira vez — sem esse congelamento, o "próximo
+  jogo" avançaria a cada rodada e reabriria entradas já fechadas.
+- **CDB2026** (`bolao/cdb2026/`): mata-mata com fases cadastradas incrementalmente pelo admin
+  conforme cada sorteio real acontece. Corrigido em v3.12: `entryCutoffMs()` calcula 1h antes do
+  kickoff mais cedo conhecido na fase ativa, com `cutoffAt` manual do admin como prioridade quando
+  definido (não existe um "congelamento" separado porque o próprio conjunto de confrontos da fase
+  ativa não muda depois de sorteado — apenas kickoffs específicos que ainda faltam ser conhecidos
+  vão sendo preenchidos, e a fase muda só quando o admin avança para a próxima).
+
+**Decisão: `INTENTIONALLY_DIFFERENT` no mecanismo, `CONSISTENT` na regra de negócio.** Nenhuma
+propagação adicional necessária — cada app já usa o mecanismo certo para sua própria estrutura de
+dados. Lição registrada em `PROJECT_MEMORY.md`: a correção do CDB2026 (mesmo dia, horas antes)
+deveria ter disparado a checagem "essa mesma classe de bug existe nos outros apps?" imediatamente,
+não só depois que Eduardo encontrou o BR2026 quebrado separadamente.
 
 ## Nota manual — fases já concluídas fora do formulário de palpites: `TOURNAMENT_SPECIFIC`, não propagado (2026-07-14, CDB2026 v3.8)
 

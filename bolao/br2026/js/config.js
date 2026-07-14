@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.30",
+  siteVersion: "v1.31",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -8,8 +8,14 @@ window.BR2026_CONFIG = {
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
   adminSessionMinutes: 30,
-  // Prazo: domingo 19/jul às 23h59 BRT (2 dias antes do reinício do BR)
-  cutoffIso: "2026-07-19T23:59:00-03:00",
+  // Cutoff é calculado automaticamente (1h antes do primeiro jogo real do calendário, ver
+  // freezeSeasonCutoff()/nextUpcomingGame() em app.js) e congelado em s.cutoffAt assim que o
+  // calendário da ESPN carrega -- este valor aqui é só o fallback usado antes desse primeiro
+  // congelamento. Corrigido em 2026-07-14 (Eduardo, comparando com o card "Próximo jogo"): o
+  // valor antigo (19/jul 23h59, "2 dias antes do reinício do BR") tinha ficado defasado -- o
+  // primeiro jogo real já era Botafogo x Santos, qui. 16/jul às 19h30 BRT. Fallback atualizado
+  // para bater com isso (1h antes: 18h30).
+  cutoffIso: "2026-07-16T18:30:00-03:00",
   adminEmail: "emferrari@gmail.com",
   paymentMethods: {
     CashApp: "$EduardoFerrari",

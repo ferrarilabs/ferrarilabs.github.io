@@ -1,5 +1,35 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.31 — 2026-07-14
+
+### Fixed — cutoff usava data estática defasada, divergindo do calendário real ("Próximo jogo")
+
+Eduardo reportou (screenshot em produção): "Cutoff do BR2026 está incorreto! Deve ser até 1h
+antes do início do primeiro jogo". `cutoffIso` (config.js) era um valor **estático**, digitado
+manualmente em v1.11 como "domingo 19/jul às 23h59 (2 dias antes do reinício do BR)" — mas nunca
+mais atualizado. O calendário real da ESPN (mesmo usado pelo card "Próximo jogo", que já estava
+correto) já mostrava o primeiro jogo real como Botafogo x Santos, qui. 16/jul às 19h30 — 3 dias
+**antes** do cutoff configurado. As duas informações discordavam na mesma tela.
+
+Mesma classe de bug do CDB2026 v3.12 (ver entrada abaixo/CHANGELOG do CDB2026): um valor calculado
+manualmente uma vez, sem mecanismo para acompanhar a realidade, fica defasado silenciosamente.
+
+Corrigido com o mesmo princípio (auto-cálculo, uma vez):
+
+- `nextUpcomingGame()` — novo helper único (usado tanto pelo cutoff quanto pelo card "Próximo
+  jogo", que passou a chamá-lo em vez de duplicar a mesma busca) — garante que os dois **nunca
+  podem discordar** sobre qual é o próximo jogo.
+- `computeSeasonCutoffIso()` / `freezeSeasonCutoff()` — calcula o cutoff como 1h antes do primeiro
+  jogo real ainda não realizado, e **congela** o resultado em `s.cutoffAt` (estado compartilhado
+  via Supabase) na primeira vez que o calendário carrega. Congelar é necessário: sem isso, o
+  "próximo jogo ainda não realizado" avançaria a cada rodada conforme jogos terminam, o que
+  reabriria as entradas depois de fechadas — inaceitável, dinheiro real depende disso. Testado
+  explicitamente (`test_br_auto_cutoff.js`): o valor não muda mesmo quando um recarregamento
+  posterior do calendário mostra um "próximo jogo" mais distante.
+- `cutoffIso` em config.js agora é só o fallback usado antes do primeiro congelamento — atualizado
+  para o valor real correto (16/jul 18h30) para não mostrar um número errado nesse intervalo.
+- `audit_scoring.py`: 5/5 (cutoff não afeta pontuação).
+
 ## v1.30 — 2026-07-14
 
 ### Fixed — "Próximo jogo" não mostrava contador ao vivo igual à Copa (mesmo achado no CDB2026)
