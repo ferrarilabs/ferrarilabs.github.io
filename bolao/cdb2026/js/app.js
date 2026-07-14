@@ -196,21 +196,38 @@ function showSection(id) {
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
 // Não existe mais um cutoff único global (era um resquício do modelo antigo de bracket fixo —
-// ver CDB2026_RULES_AND_MODEL.md). Cada FASE tem seu próprio cutoffAt, definido pelo admin ao
-// cadastrar os confrontos daquela fase. O único uso "global" que resta é bloquear a CRIAÇÃO de
-// entradas novas e alimentar o contador regressivo do topo — os dois usam o cutoff da fase que
-// está realmente aberta para palpite AGORA (`espnSync.activePhaseId`, hoje "oitavas"), não
-// literalmente "fase-1". Bug real encontrado por Eduardo (2026-07-14): "sumiu o contador,
-// agora fala aguardando sorteio" — a função antiga (fase1CutoffMs) sempre olhava o cutoffAt de
-// fase-1, que NUNCA vai existir (fase-1 é histórico, sem confronto cadastrado desde a v3.6/v3.8) —
-// o contador ficava preso em "aguardando sorteio" para sempre, mesmo com um cutoff real salvo em
-// Oitavas. Editar uma entrada existente continua funcionando fase a fase, cada confronto usa o
-// cutoff da própria fase — isso não muda.
+// ver CDB2026_RULES_AND_MODEL.md). Cada FASE tem seu próprio cutoffAt. O único uso "global" que
+// resta é bloquear a CRIAÇÃO de entradas novas e alimentar o contador regressivo do topo — os
+// dois usam o cutoff da fase que está realmente aberta para palpite AGORA
+// (`espnSync.activePhaseId`, hoje "oitavas").
+//
+// Regra confirmada por Eduardo (2026-07-14): "the cutoff should be until 1 hour before the first
+// game" — igual à Copa/BR2026 (ver rulesCutoffText no i18n). Antes disso dependia do admin
+// CALCULAR e digitar esse valor manualmente em "Fases e confrontos" — passo que nunca tinha sido
+// feito em produção, então o contador ficava preso em "aguardando sorteio" para sempre mesmo com
+// o mecanismo (v3.10) já corrigido para ler a fase certa. Agora é calculado automaticamente: 1h
+// antes do kickoff mais cedo já conhecido entre os confrontos da fase ativa (capturado pela
+// sincronização com a ESPN — ver autoSyncEspn()). `cutoffAt` definido manualmente pelo admin
+// ainda tem prioridade quando existir, para os casos em que ele queira um prazo diferente do
+// automático (ex.: fechar mais cedo por algum motivo).
+function firstKnownKickoffMs(s, phaseId) {
+  let earliest = null;
+  Object.values(s.phases?.[phaseId]?.ties || {}).forEach(tie => {
+    Object.values(tie.matches || {}).forEach(m => {
+      if (!m?.kickoff) return;
+      const ms = new Date(m.kickoff).getTime();
+      if (Number.isFinite(ms) && (earliest === null || ms < earliest)) earliest = ms;
+    });
+  });
+  return earliest;
+}
 function entryCutoffMs() {
   const s = state();
   const phaseId = s.espnSync?.activePhaseId || "fase-1";
-  const c = s.phases?.[phaseId]?.cutoffAt;
-  return c ? new Date(c).getTime() : null;
+  const manual = s.phases?.[phaseId]?.cutoffAt;
+  if (manual) return new Date(manual).getTime();
+  const firstKickoff = firstKnownKickoffMs(s, phaseId);
+  return firstKickoff !== null ? firstKickoff - 3600000 : null;
 }
 function isPastEntryCutoff() {
   const ms = entryCutoffMs();
@@ -1328,7 +1345,7 @@ function seedKnownConfrontos(s) {
     // quando o placar de uma perna específica não pôde ser confirmado por fonte — nesse caso a
     // perna fica sem resultado (mesmo estado de "ainda não jogada"), mas quem avançou
     // (qualifiedTeamId) já é conhecido com confiança e é setado de qualquer forma.
-    ties.forEach(({ teamA, teamB, winner, legs }) => {
+    ties.forEach(({ teamA, teamB, winner, legs, kickoff, venue, city }) => {
       const pairKey = [teamA, teamB].sort().join("|");
       if (existingPairs.has(pairKey)) return;
       const tie = { teamA, teamB, matches: {}, qualifiedTeamId: winner || null };
@@ -1340,6 +1357,13 @@ function seedKnownConfrontos(s) {
           ? { ...emptyMatch(), homeTeam: home, awayTeam: away, goalsHome: score.goalsHome, goalsAway: score.goalsAway, status: "FINAL" }
           : emptyMatch();
       });
+      // kickoff/venue/city de um confronto FUTURO (ex. Oitavas) vão sempre na primeira perna
+      // (ida, ou única em SINGLE_MATCH) -- é o mesmo dado usado pelo card "Próxima partida" e
+      // pelo cutoff automático (ver entryCutoffMs()/firstKnownKickoffMs() em app.js).
+      if (kickoff) {
+        const firstLeg = format === "SINGLE_MATCH" ? "single" : "first";
+        tie.matches[firstLeg] = { ...tie.matches[firstLeg], kickoff, venue: venue || null, city: city || null };
+      }
       s.phases[phaseId].ties[espnTieId(teamA, teamB)] = tie;
       existingPairs.add(pairKey);
       added = true;
@@ -1351,6 +1375,37 @@ function seedKnownConfrontos(s) {
     if (!allResolved && !s.espnSync.activePhaseId) s.espnSync.activePhaseId = phaseId;
   });
   return added;
+}
+
+// Preenche kickoff/venue/city em confrontos JÁ SEMEADOS que ainda não tinham essa informação —
+// diferente de seedKnownConfrontos() (que só CRIA confronto novo, nunca toca um que já existe),
+// esta função só ATUALIZA metadado que ainda estava vazio, sem tocar em placar/qualifiedTeamId/
+// nada que o admin já tenha lançado. Necessário porque a Oitavas já tinha sido semeada (v3.6,
+// antes da CBF divulgar data/hora de cada jogo) — sem isso, DATA.knownConfrontos ganhar kickoff
+// nunca chegaria a quem já tem o app rodando: seedKnownConfrontos() está travada por
+// seededKnownConfrontos (true desde a v3.6) e nunca mais roda. Bug real encontrado por Eduardo
+// (2026-07-14): mesmo com o cutoff automático (kickoff - 1h, ver entryCutoffMs()) corrigido, o
+// contador continuava preso em "aguardando sorteio" em produção porque não havia kickoff nenhum
+// gravado em nenhum confronto da Oitavas. Roda uma única vez (flag própria, separada da de
+// seedKnownConfrontos), nunca reaplica — o admin pode corrigir kickoff/venue depois (quando isso
+// tiver uma UI) sem risco de essa função sobrescrever de volta.
+function backfillOitavasKickoffs(s) {
+  if (s.espnSync?.backfilledOitavasKickoffs) return false;
+  s.espnSync = s.espnSync || {};
+  s.espnSync.backfilledOitavasKickoffs = true;
+  const knownTies = DATA.knownConfrontos?.oitavas || [];
+  let changed = false;
+  Object.values(s.phases?.oitavas?.ties || {}).forEach(tie => {
+    if (!tie.teamA || !tie.teamB) return;
+    const pairKey = [tie.teamA, tie.teamB].sort().join("|");
+    const known = knownTies.find(k => [k.teamA, k.teamB].sort().join("|") === pairKey);
+    if (!known?.kickoff) return;
+    const m = tie.matches?.first;
+    if (!m || m.kickoff) return; // já tem kickoff (ESPN sync ou admin) -- nunca sobrescreve
+    tie.matches.first = { ...m, kickoff: known.kickoff, venue: known.venue || m.venue || null, city: known.city || m.city || null };
+    changed = true;
+  });
+  return changed;
 }
 
 // Faz o trabalho de fato: busca, filtra o que já existe, cria os confrontos novos na fase ativa,
@@ -1924,8 +1979,10 @@ async function init() {
   // seedKnownConfrontos() e docs/bolao/CDB2026_RULES_AND_MODEL.md seção 7 "Confrontos já sorteados".
   const seedState  = state();
   const wasSeeded   = !!seedState.espnSync.seededKnownConfrontos;
+  const wasBackfilled = !!seedState.espnSync.backfilledOitavasKickoffs;
   seedKnownConfrontos(seedState);
-  if (!wasSeeded) saveState(seedState);
+  backfillOitavasKickoffs(seedState);
+  if (!wasSeeded || !wasBackfilled) saveState(seedState);
   renderAll();
 
   if (C.database.enabled) {

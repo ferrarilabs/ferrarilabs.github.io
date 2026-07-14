@@ -81,21 +81,29 @@ window.CDB2026_DATA = {
   // Juventude×Atlético-MG, Remo×Santos, Cruzeiro×Chapecoense, Fortaleza×Palmeiras — mando de
   // campo confirmado cruzando 3+ fontes independentes) — NÃO verificada contra uma chamada direta
   // à API da CBF/ESPN (ambiente de desenvolvimento sem acesso de rede externo, ver
-  // docs/bolao/CDB2026_RULES_AND_MODEL.md seção 7). Datas: ida 1–2/ago/2026, volta 5–6/ago/2026
-  // (data exata de cada jogo ainda não confirmada nas fontes — kickoff fica em aberto, o admin
-  // preenche quando a CBF publicar a tabela detalhada). CONFERIR e corrigir via admin se algo
-  // estiver errado — a UI de "Fases e confrontos" permite remover qualquer confronto sem
-  // resultado lançado.
+  // docs/bolao/CDB2026_RULES_AND_MODEL.md seção 7).
+  //
+  // kickoff/venue/city da IDA (2026-07-14, atualização) — CBF divulgou a tabela detalhada:
+  // ida 1–3/ago/2026, volta 4–6/ago/2026. Só a IDA está preenchida abaixo (é sempre a partida
+  // mais cedo do confronto, o que basta para o cutoff "1h antes do primeiro jogo" — ver
+  // entryCutoffMs() em app.js); a volta ainda não tem horário por partida confirmado nas fontes
+  // (só o intervalo de dias), fica em aberto até a ESPN sync ou o admin preencherem. Confiança
+  // por jogo: Vasco×Fluminense, Palmeiras×Fortaleza e Internacional×Corinthians cruzados em 2+
+  // fontes (data+hora+estádio batendo); os outros 5 confirmados em 1 fonte (Lance!) — Santos×Remo
+  // tem uma discrepância de 30min entre 2 fontes (21h vs 21h30), usado o valor da fonte com a
+  // tabela mais completa. CONFERIR contra a tabela oficial da CBF; corrigível via admin se algo
+  // estiver errado (ver backfillOitavasKickoffs() em app.js — só preenche kickoff/venue que
+  // ainda estava vazio, nunca sobrescreve o que o admin já tiver corrigido).
   knownConfrontos: {
     oitavas: [
-      { teamA: "Vasco",         teamB: "Fluminense"   },
-      { teamA: "Internacional", teamB: "Corinthians"  },
-      { teamA: "Mirassol",      teamB: "Grêmio"       },
-      { teamA: "Athletico-PR",  teamB: "Vitória"      },
-      { teamA: "Atlético-MG",   teamB: "Juventude"    },
-      { teamA: "Santos",        teamB: "Remo"         },
-      { teamA: "Chapecoense",   teamB: "Cruzeiro"     },
-      { teamA: "Palmeiras",     teamB: "Fortaleza"    },
+      { teamA: "Vasco",         teamB: "Fluminense",  kickoff: "2026-08-01T17:30:00-03:00", venue: "Maracanã",     city: "Rio de Janeiro" },
+      { teamA: "Internacional", teamB: "Corinthians", kickoff: "2026-08-02T19:30:00-03:00", venue: "Beira-Rio",    city: "Porto Alegre" },
+      { teamA: "Mirassol",      teamB: "Grêmio",       kickoff: "2026-08-02T18:00:00-03:00" },
+      { teamA: "Athletico-PR",  teamB: "Vitória",      kickoff: "2026-08-03T21:00:00-03:00" },
+      { teamA: "Atlético-MG",   teamB: "Juventude",    kickoff: "2026-08-01T19:30:00-03:00" },
+      { teamA: "Santos",        teamB: "Remo",         kickoff: "2026-08-01T21:00:00-03:00", venue: "Vila Belmiro", city: "Santos" },
+      { teamA: "Chapecoense",   teamB: "Cruzeiro",     kickoff: "2026-08-02T18:30:00-03:00" },
+      { teamA: "Palmeiras",     teamB: "Fortaleza",    kickoff: "2026-08-02T16:00:00-03:00", venue: "Allianz Parque", city: "São Paulo" },
     ],
 
     // 5ª Fase — JÁ CONCLUÍDA (ida 21–23/abr/2026, volta 12–14/maio/2026), diferente das Oitavas

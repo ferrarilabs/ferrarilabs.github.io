@@ -1,5 +1,41 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.12 — 2026-07-14
+
+### Fixed — cutoff automático (1h antes do primeiro jogo) + dados reais da Oitavas em produção
+
+Eduardo, em produção: "ainda esta incorreto... the cutoff should be until 1 hour before the
+first game". A v3.11 corrigiu o MECANISMO de leitura do cutoff mas ainda dependia do admin
+calcular e digitar manualmente o horário em "Fases e confrontos" — passo que nunca tinha sido
+feito, então o contador continuava preso em "aguardando sorteio" mesmo com o mecanismo certo.
+
+Duas mudanças:
+
+1. **`entryCutoffMs()` agora calcula automaticamente**: 1h antes do kickoff mais cedo já
+   conhecido entre os confrontos da fase ativa (mesma regra da Copa/BR2026 — ver
+   `rulesCutoffText`), sem precisar de nenhum cadastro manual. Um `cutoffAt` definido pelo admin
+   continua tendo prioridade quando existir (ex.: se ele quiser fechar mais cedo por algum
+   motivo) — nunca sobrescrito automaticamente.
+
+2. **Dados reais da CBF para a Oitavas**: a CBF divulgou a tabela detalhada da Oitavas (ida
+   1–3/ago, volta 4–6/ago) depois da Oitavas já ter sido semeada (v3.6) — como
+   `seedKnownConfrontos()` só roda uma vez (já rodou em produção) e nunca cria/atualiza confronto
+   que já existe, só atualizar `data.js` não bastava: nunca chegaria a quem já tem o app
+   rodando. Nova função `backfillOitavasKickoffs()` (flag própria, roda uma única vez, nunca
+   sobrescreve `kickoff` que já esteja preenchido — seja por sincronização com a ESPN ou por
+   correção futura do admin) preenche `kickoff`/`venue`/`city` da ida em cada um dos 8 confrontos
+   já semeados. Confiança por jogo documentada em `data.js` (3 confrontos cruzados em 2+ fontes,
+   5 em 1 fonte — Lance!, "CBF divulga datas e horários das oitavas"). Só a ida foi preenchida —
+   a volta ainda não tem horário por partida confirmado nas fontes, fica em aberto.
+
+Com isso, tanto o contador do topo quanto o card "Próxima partida" mostram dado real em produção
+sem nenhuma ação manual do admin — mesmo comportamento "só funciona" da Copa/BR2026.
+
+19 testes automatizados novos, incluindo o cenário exato de produção (confronto já semeado antes
+da tabela existir, sem `cutoffAt` manual, sem kickoff) e confirmando que uma correção manual
+futura do admin nunca é sobrescrita pelo backfill. `node --check`: OK. `audit_scoring.py`: 5/5,
+sem impacto.
+
 ## v3.11 — 2026-07-14
 
 ### Fixed — "Próxima partida" não tinha contador nenhum (mesmo achado no BR2026)

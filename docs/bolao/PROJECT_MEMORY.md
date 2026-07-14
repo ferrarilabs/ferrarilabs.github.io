@@ -950,6 +950,21 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   nesta sessão que uma verificação de "campo/token igual" passou por cima de "componente/
   comportamento igual" — padrão a levar para auditorias futuras: sempre verificar o componente
   inteiro (estrutura + comportamento ao vivo), não só os dados que ele exibe.
+- **CDB2026: cutoff exigia cadastro manual do admin, "aguardando sorteio" preso em produção
+  mesmo com o mecanismo certo (v3.12, 2026-07-14):** Eduardo, testando em produção real: "the
+  cutoff should be until 1 hour before the first game". A v3.11 corrigiu qual campo o contador
+  lê, mas o campo em si (`cutoffAt`) nunca tinha sido preenchido — dependia de o admin calcular
+  manualmente "kickoff - 1h" e digitar em "Fases e confrontos", passo nunca feito.
+  `entryCutoffMs()` passou a calcular isso sozinho a partir do kickoff mais cedo conhecido na
+  fase ativa (mesma regra da Copa/BR2026), com o `cutoffAt` manual do admin como prioridade
+  quando existir. Problema relacionado: a Oitavas já tinha sido semeada (v3.6) ANTES da CBF
+  divulgar a tabela detalhada — como o seed só roda uma vez e nunca atualiza confronto já
+  existente, só editar `data.js` não bastava. Nova função `backfillOitavasKickoffs()` (flag
+  própria, aditiva, nunca sobrescreve kickoff já preenchido) preenche retroativamente os 8
+  confrontos já semeados em produção com os horários reais da ida (fonte: CBF/Lance!, ver
+  `data.js`). Lição: quando um confronto é semeado ANTES de um dado (kickoff, resultado etc.)
+  existir, popular esse dado depois na fonte não basta — é preciso um mecanismo de backfill
+  explícito para alcançar estados já semeados.
 
 ---
 
