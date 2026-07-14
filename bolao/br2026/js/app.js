@@ -20,6 +20,21 @@ const csvEscape = v => {
   return `"${s.replace(/"/g, '""')}"`;
 };
 
+// Mesmo algoritmo (FNV-32, não criptográfico, só identificação) e formato usado na Copa do
+// Mundo e no CDB2026 (hashString/receiptCode em bolao/js/app.js e bolao/cdb2026/js/app.js) —
+// padrão compartilhado da plataforma. Achado em auditoria (2026-07-14, Eduardo: "o email de
+// comprovante do BR2026 é diferente do da CDB2026... tem que ser igual"): este app nunca teve
+// essas duas funções — sendReceipt() usava um formato próprio (`BR2026-${id.slice(0,8)}`),
+// divergente do padrão dos outros dois apps.
+function hashString(str) {
+  let h = 2166136261;
+  for (const cp of str) { h ^= cp.codePointAt(0); h = Math.imul(h, 16777619); }
+  return (h >>> 0).toString(16).padStart(8, "0").toUpperCase();
+}
+function receiptCode(e) {
+  return `BR2026-${hashString(JSON.stringify({ n: e.entryName, t: e.createdAt }))}-${String(e.createdAt || "").slice(0, 10).replace(/-/g, "")}`;
+}
+
 // ─── Toast ──────────────────────────────────────────────────────────────────
 // Mesma implementação da Copa (bolao/js/app.js) — não-bloqueante, substitui alert() em toda
 // confirmação/erro que não seja validação de formulário (essas continuam alert(), de propósito
@@ -1519,6 +1534,18 @@ function renderRanking() {
 }
 
 function renderPickDisplay(entry, detail) {
+  // Achado real (2026-07-14, Eduardo: "ver palpites nao pode estar aberto ate o Brasileirão
+  // iniciar, senao as pessoas podem copiar") -- mesma proteção que a Copa já tem
+  // (hideFuturePicks() em bolao/js/app.js), nunca implementada aqui: nada impedia expandir
+  // "Ver palpites" de qualquer entrada, a qualquer momento, mesmo antes do prazo -- outro
+  // participante podia literalmente copiar o palpite de alguém antes de enviar o seu.
+  if (!isPastCutoff()) return `<p class="muted">${esc(t("picksHiddenUntilCutoff"))}</p>`;
+  // Achado real (2026-07-14, Eduardo: "a visualizacao de ver palpites da CDB tambem esta
+  // inconsistente com a da copa"): esta função usava um card em grid de 2-3 colunas
+  // (.picks-display/.pick-item/.pick-cell), estrutura totalmente diferente da Copa, que usa
+  // <table> dentro de .picks-detail (mesmas classes de CSS: .picks-detail table/th/td, ver
+  // bolao/css/styles.css). Reconstruído para usar a MESMA estrutura de tabela -- só o conteúdo
+  // muda por torneio (posição/time em vez de partida/placar/vencedor).
   const p          = entry.picks || {};
   const g4         = p.g4  || [];
   const sa6        = p.sa6 || [];
@@ -1526,39 +1553,26 @@ function renderPickDisplay(entry, detail) {
   const g4Labels   = ["pos1","pos2","pos3","pos4"].map(t);
   const z4Labels   = ["pos17","pos18","pos19","pos20"].map(t);
 
-  const mkCell = (team, d) => {
-    if (!team) return `<div class="pick-cell pick-empty">—</div>`;
-    const cls   = d ? (d.type === "exact" ? "pick-exact" : d.type === "group" ? "pick-group" : d.type === "hit" ? "pick-exact" : "pick-miss") : "";
-    const badge = d ? `<b class="pick-pts-badge">${d.pts > 0 ? "+" + d.pts : "—"}</b>` : "";
-    return `<div class="pick-cell ${cls}">${esc(team)}${badge}</div>`;
+  const cellClass = d => d ? (d.type === "exact" ? "pick-exact" : d.type === "group" ? "pick-group" : d.type === "hit" ? "pick-exact" : "pick-miss") : "";
+  const ptsCell = d => d
+    ? `<b class="pick-pts${d.pts > 0 ? " pos" : ""}">${d.pts > 0 ? "+" + d.pts : "—"}</b>`
+    : `<span class="muted">—</span>`;
+
+  const groupTable = (title, teams, labels, details) => {
+    const rows = teams.map((team, i) => {
+      const d = details?.[i];
+      return `<tr class="${cellClass(d)}"><td>${esc(labels[i] || String(i + 1))}</td><td><b>${esc(team || "—")}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`;
+    }).join("");
+    return `<h4 style="margin:14px 0 4px">${esc(title)}</h4>
+      <table><thead><tr><th>${esc(t("receiptColPos"))}</th><th>${esc(t("receiptColTeam"))}</th><th style="text-align:center">Pts</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 
-  const g4html = g4.map((team, i) => `
-    <div class="pick-item">
-      <span class="pick-pos-lbl">${esc(g4Labels[i])}</span>
-      ${mkCell(team, detail?.g4?.[i])}
-    </div>`).join("");
-
-  const sa6html = sa6.map((team, i) => `
-    <div class="pick-item">
-      <span class="pick-pos-lbl">SA ${i + 1}</span>
-      ${mkCell(team, detail?.sa6?.[i])}
-    </div>`).join("");
-
-  const z4html = z4.map((team, i) => `
-    <div class="pick-item">
-      <span class="pick-pos-lbl">${esc(z4Labels[i])}</span>
-      ${mkCell(team, detail?.z4?.[i])}
-    </div>`).join("");
-
   const hasSA6 = sa6.some(Boolean);
-  const gridClass = hasSA6 ? "picks-display three-col" : "picks-display";
-
-  return `<div class="${gridClass}">
-    <div class="picks-col"><div class="picks-col-header g4-header-sm">🏆 G4</div>${g4html}</div>
-    ${hasSA6 ? `<div class="picks-col"><div class="picks-col-header sa6-header-sm">🟡 Sul-Am.</div>${sa6html}</div>` : ""}
-    <div class="picks-col"><div class="picks-col-header z4-header-sm">⬇️ Z4</div>${z4html}</div>
-  </div>`;
+  // Sem wrapper próprio -- o container externo (renderRanking(), <div class="card picks-detail">)
+  // já carrega essa classe, igual ao padrão da Copa (picksTable() também não se auto-envolve).
+  return `${groupTable(t("receiptGroupG4"), g4, g4Labels, detail?.g4)}
+    ${hasSA6 ? groupTable(t("receiptGroupSA6"), sa6, sa6.map((_, i) => `SA ${i + 1}`), detail?.sa6) : ""}
+    ${groupTable(t("receiptGroupZ4"), z4, z4Labels, detail?.z4)}`;
 }
 
 // ─── Render: participants ─────────────────────────────────────────────────────
@@ -1876,42 +1890,79 @@ function exportCsv() {
 }
 
 // ─── Email receipt ───────────────────────────────────────────────────────────
+// Mesma estrutura/CSS visual do comprovante da Copa (receiptHtml() em bolao/js/app.js) e do
+// CDB2026 -- achado em auditoria (2026-07-14): os três apps tinham um e-mail de comprovante
+// visualmente diferente entre si (tema escuro/Inter aqui, tabela sem estilo no CDB2026, tema
+// claro/Arial na Copa). Alinhado ao padrão canônico da Copa (tema claro, cartão branco,
+// grade `.meta`, código em monospace, tabela com cabeçalho escuro) -- só o CONTEÚDO muda por
+// torneio (G4/Sul-Americana/Z4 em vez de partidas do bracket), como previsto em
+// PLATFORM_GOVERNANCE.md ("diferenças específicas de torneio devem ser preservadas").
+function receiptHtml(entry) {
+  const g4  = entry.picks?.g4  || [];
+  const sa6 = entry.picks?.sa6 || [];
+  const z4  = entry.picks?.z4  || [];
+  const groupRows = (teams, labels) => teams.map((team, i) =>
+    `<tr><td>${esc(labels[i] || String(i + 1))}</td><td><b>${esc(team || "—")}</b></td></tr>`
+  ).join("");
+  const g4rows  = groupRows(g4,  [t("pos1"), t("pos2"), t("pos3"), t("pos4")]);
+  const sa6rows = groupRows(sa6, sa6.map((_, i) => `Sul-Am. ${i + 1}`));
+  const z4rows  = groupRows(z4,  [t("pos17"), t("pos18"), t("pos19"), t("pos20")]);
+  const groupTable = (title, rows) => `<h3 style="margin:18px 0 6px;color:#07151c">${esc(title)}</h3>
+    <table><thead><tr><th>${esc(t("receiptColPos"))}</th><th>${esc(t("receiptColTeam"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
+<title>${esc(t("receiptTitle"))}</title>
+<style>body{font-family:Arial,sans-serif;background:#f4f7fb;margin:0;color:#111}
+.doc{max-width:900px;margin:24px auto;background:#fff;border-radius:18px;padding:28px;box-shadow:0 8px 40px #0002}
+h1{margin:0 0 4px}.meta{display:grid;grid-template-columns:1fr 1fr;gap:12px;background:#f1f5f9;border-radius:14px;padding:14px;margin:18px 0}
+.code{font-family:monospace;color:#087a35;font-weight:bold}
+table{width:100%;border-collapse:collapse;margin-top:10px}td,th{padding:8px 10px;border-bottom:1px solid #dde}
+th{background:#07151c;color:#fff;text-align:left}
+.notice{background:#fff4cc;border:1px solid #e8c65b;border-radius:12px;padding:12px;margin-top:16px;font-size:13px}
+@media print{body{background:#fff}.doc{box-shadow:none;margin:0;border-radius:0;padding:10px}}</style></head>
+<body><div class="doc">
+<h1>${esc(t("receiptTitle"))}</h1>
+<p>${esc(t("receiptIntro"))}</p>
+<div class="meta">
+<div><b>${esc(t("receiptEntry"))}:</b> ${esc(entry.entryName)}<br>
+<b>${esc(t("receiptResponsible"))}:</b> ${esc(entry.payerName || "")}<br>
+<b>${esc(t("receiptEmail"))}:</b> ${esc(entry.participantEmail)}</div>
+<div><b>${esc(t("receiptPayment"))}:</b> ${esc(entry.paymentMethod || "")}<br>
+<b>${esc(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}<br>
+<b>${esc(t("receiptCode"))}:</b> <span class="code">${esc(receiptCode(entry))}</span></div></div>
+${groupTable(t("receiptGroupG4"), g4rows)}
+${groupTable(t("receiptGroupSA6"), sa6rows)}
+${groupTable(t("receiptGroupZ4"), z4rows)}
+<div class="notice">${esc(t("receiptFooterNote"))}</div>
+</div></body></html>`;
+}
+
 async function sendReceipt(entry) {
   if (!C.emailjs.enabled || !window.emailjs) return;
   const lastSent = Number(sessionStorage.getItem("br2026_emailTs") || 0);
   if (Date.now() - lastSent < C.emailjs.limitRateMs) return;
-  const g4   = entry.picks?.g4  || [];
-  const sa6  = entry.picks?.sa6 || [];
-  const z4   = entry.picks?.z4  || [];
-  const g4rows  = g4.map((team, i)  => `<tr><td style="padding:4px 8px">${[t("pos1"),t("pos2"),t("pos3"),t("pos4")][i]}</td><td style="padding:4px 8px"><b>${esc(team || "—")}</b></td></tr>`).join("");
-  const sa6rows = sa6.map((team, i) => `<tr><td style="padding:4px 8px">Sul-Am. ${i+1}</td><td style="padding:4px 8px"><b>${esc(team || "—")}</b></td></tr>`).join("");
-  const z4rows  = z4.map((team, i)  => `<tr><td style="padding:4px 8px">${[t("pos17"),t("pos18"),t("pos19"),t("pos20")][i]}</td><td style="padding:4px 8px"><b>${esc(team || "—")}</b></td></tr>`).join("");
-  const html = `
-<div style="font-family:Inter,sans-serif;max-width:520px;margin:0 auto;background:#07141b;color:#eef7f1;border-radius:12px;overflow:hidden">
-  <div style="background:linear-gradient(135deg,#155e1e,#14532d);padding:20px;text-align:center">
-    <div style="font-size:24px;font-weight:900">🇧🇷 Bolão Brasileirão 2026</div>
-    <div style="opacity:.75;font-size:13px;margin-top:4px">Comprovante de palpite</div>
-  </div>
-  <div style="padding:20px">
-    <p><b>Entrada:</b> ${esc(entry.entryName)}</p>
-    <p><b>Código:</b> BR2026-${(entry.id || "").slice(0,8).toUpperCase()}</p>
-    <h3 style="color:#2fe56e">🏆 G4 — Libertadores</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;background:#0d2028;border-radius:8px"><tbody>${g4rows}</tbody></table>
-    <h3 style="color:#f59e0b;margin-top:14px">🟡 Sul-Americana</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;background:#0d2028;border-radius:8px"><tbody>${sa6rows}</tbody></table>
-    <h3 style="color:#f87171;margin-top:14px">⬇️ Z4 — Rebaixamento</h3>
-    <table style="width:100%;border-collapse:collapse;font-size:13px;background:#0d2028;border-radius:8px"><tbody>${z4rows}</tbody></table>
-    <p style="margin-top:16px;font-size:11px;opacity:.6">Bolão informal entre amigos. ${new Date().toLocaleString("pt-BR")}</p>
-  </div>
-</div>`;
+  const html = receiptHtml(entry);
+  const code = receiptCode(entry);
   try {
     await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, {
       to_email:     entry.participantEmail,
       entry_name:   `Brasileirão 2026 — ${entry.entryName}`,
-      receipt_code: `BR2026-${(entry.id || "").slice(0, 8).toUpperCase()}`,
+      receipt_code: code,
       html_message: html,
     }, { publicKey: C.emailjs.publicKey });
     sessionStorage.setItem("br2026_emailTs", String(Date.now()));
+    // Cópia para o admin -- mesmo padrão da Copa (mailReceipt(id,"participant") + ("admin") em
+    // toda entrada salva) e do CDB2026 (já enviava cópia ao admin). BR2026 era o único dos 3
+    // apps sem isso -- achado em auditoria, corrigido junto por ser parte do mesmo padrão de
+    // e-mail de comprovante.
+    if (C.adminEmail) {
+      await window.emailjs.send(C.emailjs.serviceId, C.emailjs.adminTemplateId, {
+        to_email:     C.adminEmail,
+        entry_name:   `Nova entrada — ${entry.entryName}`,
+        receipt_code: code,
+        html_message: html,
+      }, { publicKey: C.emailjs.publicKey });
+    }
   } catch (err) {
     console.error("[BR2026] sendReceipt failed:", err);
   }

@@ -355,40 +355,21 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .rank-row .rank-pos .movement { font-size: 11px; }
 .rank-row .points { font-size: 26px; color: var(--green); font-weight: 900; text-align: right; }
 .rank-row .points.prov { color: var(--yellow); }
-.picks-detail { margin-bottom: 10px; }
+/* Mesmas classes/valores da Copa (bolao/css/styles.css) -- achado em auditoria (2026-07-14,
+   Eduardo: "a visualizacao de ver palpites... esta inconsistente com a da copa"). */
+.picks-detail { overflow-x: auto; margin-bottom: 10px; }
+.picks-detail table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.picks-detail th, .picks-detail td { border-bottom: 1px solid var(--border); padding: 7px 8px; text-align: left; }
+.picks-detail th { color: var(--muted); font-weight: 700; }
+.picks-detail tr.pick-exact td   { background: rgba(47,229,110,.08); }
+.picks-detail tr.pick-group td   { background: rgba(250,204,21,.06); }
+.picks-detail tr.pick-miss td    { opacity: .7; }
+.pick-pts { color: var(--muted); }
+.pick-pts.pos { color: var(--green); }
 
 /* Mesmo tratamento visual do .status-chip da Copa — ver DESIGN_SYSTEM.md "Badge / Status indicator". */
 .paid-badge   { background: rgba(47,229,110,.15); color: var(--green); border: 1px solid rgba(47,229,110,.3); font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 .unpaid-badge { background: rgba(248,113,113,.1); color: var(--red); border: 1px solid rgba(248,113,113,.25); font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
-
-/* ── Picks display in ranking ── */
-.picks-display {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
-}
-@media (max-width: 480px) { .picks-display { grid-template-columns: 1fr; } }
-.picks-col { display: flex; flex-direction: column; gap: 4px; }
-.picks-col-header {
-  font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em;
-  padding: 4px 8px; border-radius: 6px; margin-bottom: 2px;
-}
-.picks-col-header.g4-header-sm { background: rgba(47,229,110,.12); color: var(--green); }
-.picks-col-header.z4-header-sm { background: rgba(248,113,113,.12); color: var(--red); }
-
-.pick-item { display: flex; align-items: center; gap: 6px; font-size: 12px; }
-.pick-pos-lbl { color: var(--muted); min-width: 90px; font-size: 11px; }
-.pick-cell {
-  flex: 1; background: var(--bg3); border: 1px solid var(--border2);
-  border-radius: 6px; padding: 4px 8px; font-weight: 600; font-size: 12px;
-  display: flex; justify-content: space-between; align-items: center; gap: 4px;
-}
-.pick-cell.pick-exact { background: rgba(47,229,110,.15); border-color: rgba(47,229,110,.3); }
-.pick-cell.pick-group { background: rgba(250,204,21,.1); border-color: rgba(250,204,21,.25); }
-.pick-cell.pick-miss  { background: rgba(248,113,113,.08); border-color: rgba(248,113,113,.2); opacity: .7; }
-.pick-cell.pick-empty { color: var(--muted); }
-.pick-pts-badge { font-size: 11px; font-weight: 900; }
-.pick-exact .pick-pts-badge { color: var(--green); }
-.pick-group .pick-pts-badge { color: var(--yellow); }
-.pick-miss  .pick-pts-badge { color: var(--muted); }
 
 /* ── Participants ── */
 .participants-stats {
@@ -458,11 +439,6 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pick-group-header.sa6-header { background: linear-gradient(135deg, #92400e, #b45309); color: #fff; border: none; }
 .sa6-badge { background: #f59e0b; color: #78350f; }
 .standings-table tr.sa6-zone { background: rgba(245,158,11,.07); }
-.picks-col-header.sa6-header-sm { background: rgba(245,158,11,.15); color: #f59e0b; }
-
-/* ── Picks display — 3 columns when SA6 present ── */
-.picks-display.three-col { grid-template-columns: 1fr 1fr 1fr; }
-@media (max-width: 600px) { .picks-display.three-col { grid-template-columns: 1fr; } }
 
 /* ── Admin results grid — 3 cols ── */
 .admin-results-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }
@@ -660,16 +636,8 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .count-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
-@media (max-width: 480px) {
-  .picks-display { grid-template-columns: 1fr; }
-}
-
 @media (max-width: 540px) {
   .admin-results-grid { grid-template-columns: 1fr; }
-}
-
-@media (max-width: 600px) {
-  .picks-display.three-col { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 660px) {

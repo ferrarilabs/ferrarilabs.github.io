@@ -1,5 +1,41 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.34 — 2026-07-14
+
+### Fixed — consistência entre apps + bug real de exposição de palpites
+
+Eduardo reportou três problemas em sequência: email de comprovante diferente do CDB2026,
+"Ver palpites" acessível antes do prazo (risco de cópia entre participantes) e "Ver palpites"
+com layout inconsistente com a Copa. Auditados e corrigidos os três:
+
+- **[SEGURANÇA — achado real] "Ver palpites" não era protegido pelo prazo de corte.** Diferente
+  da Copa (que já tem `hideFuturePicks = !isPastCutoff()`), o painel de detalhe do ranking do
+  BR2026 não checava cutoff nenhum — qualquer participante podia expandir o palpite de qualquer
+  outro a qualquer momento, mesmo antes do Brasileirão começar. Corrigido: `renderPickDisplay()`
+  agora retorna um aviso ("os palpites ficam ocultos até o prazo de entrada encerrar") enquanto
+  `!isPastCutoff()`.
+- **"Ver palpites" com estrutura visual inconsistente com a Copa.** O BR2026 usava um grid de
+  cards de 2-3 colunas (`.picks-display`/`.pick-item`/`.pick-cell`), diferente da Copa, que usa
+  `<table>` dentro de `.picks-detail`. Reconstruído para usar a mesma estrutura `<table>` e as
+  mesmas classes CSS da Copa (`.picks-detail table/th/td`, `.pick-pts`/`.pick-pts.pos`). CSS morto
+  removido (`.picks-display`, `.picks-col*`, `.pick-item`, `.pick-cell*`, `.pick-pts-badge`).
+- **Email de comprovante inconsistente com CDB2026/Copa.** Reescrito `sendReceipt()`/nova
+  `receiptHtml()` para usar o mesmo layout HTML (tema claro, `.doc`/`.meta`/`.code`/tabela/
+  `.notice`) e o mesmo formato de código (`hashString()`/`receiptCode()` → `BR2026-XXXXXXXX-
+  YYYYMMDD`) que Copa e CDB2026 já usam. BR2026 também passou a enviar cópia para o admin (Copa e
+  CDB2026 já enviavam; BR2026 era o único que não).
+
+### Testado
+
+- 13 testes Playwright novos (`test_urgent_fixes.js`): reprodução e correção do bug de exposição
+  de palpites, estrutura `<table>` pós-cutoff, formato do código de recibo, envio duplo
+  (participante + admin).
+- Suíte de regressão completa (`test_round2_fixes.js`, `test_live_standings.js`,
+  `test_auto_cutoff.js`, `test_backfill_kickoffs.js`, `test_seed.js`, `test_cutoff_admin_ui.js`,
+  `test_admin_leg_save.js`) — sem regressões.
+- `node --check` em todos os JS alterados.
+- `python3 bolao/scripts/audit_scoring.py` — passou (scoring não foi tocado).
+
 ## v1.33 — 2026-07-14
 
 ### Fixed — auditoria estilo Big Tech, rodada 2: itens que Eduardo autorizou explicitamente após ver o relatório

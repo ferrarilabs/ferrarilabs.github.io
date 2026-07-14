@@ -374,3 +374,34 @@ ver `CDB2026_RULES_AND_MODEL.md`) que simplesmente não existe nos outros dois a
 Nenhum dos dois tem o problema que motivou a feature (fases que a CBF já encerrou antes do bolão
 ir ao ar aparecendo como "aguardando sorteio", enganoso, e abertas a palpite sem terem o que
 apostar). Nada a propagar.
+
+## Nota manual — Item 8/10 resolvidos: "Ver palpites" e comprovante alinhados com a Copa nos 3 apps (2026-07-14, BR2026 v1.34 / CDB2026 v3.15)
+
+Os itens 8 e 10 da matriz automática (linhas 32 e 34 acima) estavam desatualizados: diziam que o
+BR2026 não tinha nenhum sistema de comprovante, o que já não era verdade antes desta sessão (o
+BR2026 já enviava e-mail, só que com layout/formato de código próprio, divergente da Copa e do
+CDB2026). Eduardo reportou isso diretamente ("o email de comprovante do BR2026 é diferente do da
+CDB2026 ... isso está quebrando uma das regras"). Corrigido nos dois apps:
+
+- **Formato do código do comprovante**: BR2026 e CDB2026 agora usam `hashString()`/`receiptCode()`
+  idênticos ao da Copa (FNV-32), só trocando o prefixo (`BR2026-`/`CDB2026-` em vez de `BOLAO-`).
+- **Layout do e-mail**: os dois passaram a usar o mesmo HTML-base da Copa (tema claro, classes
+  `.doc`/`.meta`/`.code`/tabela/`.notice`), com conteúdo específico do torneio dentro da mesma
+  moldura (tabelas G4/SA6/Z4 no BR2026; tabela de confrontos + cartões campeão/vice no CDB2026).
+- **Cópia para o admin**: BR2026 não enviava cópia para o admin (Copa e CDB2026 já enviavam) —
+  agora envia, igual aos outros dois.
+
+**Também descoberto e corrigido no mesmo patch** (não estava catalogado como item separado):
+nem BR2026 nem CDB2026 escondiam o painel "Ver palpites" antes do prazo de corte — qualquer
+participante podia ver o palpite de qualquer outro a qualquer momento (a Copa já tinha essa
+proteção via `hideFuturePicks`). Ver `PROJECT_MEMORY.md`, seção "Consistência de 'Ver palpites' e
+email + bug de cutoff manual travando Oitavas" para o detalhamento completo, incluindo o bug de
+cutoff manual desatualizado que causou dois reports de produção no CDB2026 no mesmo dia.
+
+**Decisão: item 8/10 passam de `NEEDS_REVIEW` para `CONSISTENT`** (formato/layout alinhados nos
+3 apps). A tabela automática acima não foi reescrita manualmente (é substituída inteiramente na
+próxima auditoria automatizada, por design — ver topo do arquivo); esta nota registra a resolução
+até lá. Item 68 (estrutura do card de Ranking) também fica reforçado: a estrutura `.rank-row`/
+`.picks-detail` já estava `CONSISTENT` desde antes, mas o **conteúdo** dentro do detalhe
+(`renderPickDisplay()`) ainda usava cards bespoke em BR2026/CDB2026 — agora usa `<table>` igual à
+Copa nos 3 apps, sem lacuna remanescente.

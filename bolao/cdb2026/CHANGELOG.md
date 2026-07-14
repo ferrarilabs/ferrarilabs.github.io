@@ -1,5 +1,51 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.15 — 2026-07-14
+
+### Fixed — bug em produção ("Oitavas encerrado" incorreto) + consistência com Copa/BR2026
+
+Eduardo reportou (com print de tela) que o formulário de palpites das Oitavas de Final aparecia
+100% travado ("Palpite não enviado — prazo desta fase encerrado") mesmo com a fase claramente
+aberta. Depois de corrigido, reportou o mesmo bug de novo ("mostrando jogos que passaram e não
+mostra mais os jogos atuais"), e também que "Ver palpites" estava inconsistente com a Copa.
+
+- **[BUG EM PRODUÇÃO] `effectivePhaseCutoffMs()` dava prioridade incondicional e silenciosa a um
+  `cutoffAt` manual desatualizado**, sem nenhuma indicação de qual fonte (manual vs. automática)
+  estava valendo. Um valor manual definido durante testes anteriores, no passado, travava TODAS
+  as chaves das Oitavas — o mesmo mecanismo explica os dois reports do Eduardo. Como travar/
+  destravar prazo é uma decisão de admin (não dá para adivinhar o estado real do Supabase de
+  produção), a correção implementada é um diagnóstico + correção de um clique: `renderAdminPhases()`
+  agora mostra explicitamente "Cutoff manual (definido pelo admin): <data>" ou "Cutoff automático",
+  com um botão "Usar cálculo automático" que limpa o override manual na hora.
+- **[SEGURANÇA — achado real] "Ver palpites" não era protegido por prazo nenhum**, igual ao
+  achado no BR2026 — corrigido com o mesmo padrão: `renderPickDisplay()` retorna aviso enquanto
+  `!isPastEntryCutoff()`.
+- **"Ver palpites" com estrutura visual inconsistente com a Copa** (e também diferente do
+  BR2026): usava lista de cards em coluna flex. Reconstruído para `<table>`, mesma estrutura e
+  classes CSS que Copa/BR2026 agora usam. CSS morto removido (`.picks-display.cdb-picks`,
+  `.pick-item`, `.pick-pos-lbl`, `.pick-cell*`, `.pick-pts-badge`).
+- **Email de comprovante inconsistente com Copa/BR2026**: nova `receiptHtml()` (mesmo layout HTML
+  base + card de pódio campeão/vice) e formato de código padronizado (`CDB2026-XXXXXXXX-
+  YYYYMMDD`). De passagem, corrigida a chamada do EmailJS que ainda usava a assinatura antiga
+  (`emailjs.send(sid, tid, params, publicKey)` — 4º argumento como string solta) em vez da forma
+  objeto (`{ publicKey }`) já usada em Copa e BR2026.
+
+### Testado
+
+- 13 testes Playwright novos (`test_urgent_fixes.js`), incluindo reprodução exata do bug
+  reportado (cutoffAt manual no passado → 8 confrontos travados) e confirmação de que o botão de
+  reset destrava.
+- Suíte de regressão completa sem regressões; `node --check`; `python3
+  bolao/scripts/audit_scoring.py` passou (scoring não foi tocado).
+
+### Não implementado nesta versão
+
+- Pergunta do Eduardo sobre remover a atualização manual de resultado do admin: a sincronização
+  de confrontos já é automática (v3.3+), mas travar um RESULTADO (decide pagamento) é uma decisão
+  de design deliberada e documentada em `docs/bolao/CDB2026_RULES_AND_MODEL.md` (seção 7) — nunca
+  foi automatizada de propósito. Aguardando confirmação explícita do Eduardo antes de alterar,
+  por ser regra de negócio que decide pagamento real.
+
 ## v3.14 — 2026-07-14
 
 ### Fixed — auditoria estilo Big Tech, rodada 2: itens que Eduardo autorizou explicitamente após ver o relatório
