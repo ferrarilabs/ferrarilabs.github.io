@@ -1,5 +1,41 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.33 — 2026-07-14
+
+### Fixed — auditoria estilo Big Tech, rodada 2: itens que Eduardo autorizou explicitamente após ver o relatório
+
+Depois do relatório completo da v1.32, Eduardo pediu explicitamente "corrija tudo e implemente".
+Implementado o que não mexe em scoring/regra de negócio nem em comportamento arriscado de
+produção:
+
+- **Formulário de resultado oficial sem proteção contra sync em segundo plano**: `resultsFormIsDirty()`
+  novo, compara os 14 `<select>` contra `s.results` e pula a reconstrução do painel enquanto o
+  admin estiver editando (mesmo princípio de `pickFormIsDirty()`).
+- **Formulário de resultado oficial não checava time duplicado dentro do mesmo grupo**: o
+  formulário de palpite do participante já bloqueia isso; o formulário OFICIAL do admin (que
+  decide a pontuação de todo mundo) não. Adicionada a mesma checagem (`errorDuplicateG4`/`SA6`/`Z4`).
+- **Sem botão "Cancelar" ao editar uma entrada**: `_editingEntry` ficava preso indefinidamente se o
+  admin saísse da edição sem salvar — e enquanto isso, o sync remoto ficava pausado (risco de
+  sobrescrever entrada mais nova de outro dispositivo). Novo banner `#editModeBanner` com botão
+  "Cancelar edição", mesmo padrão que a Copa já tem.
+- **Sem validação entre `DATA.teams` (lista fixa) e o nome ao vivo da ESPN**: se a ESPN renomear um
+  time, quem apostou nele passaria a pontuar zero silenciosamente. Adicionado aviso no console
+  (mínimo necessário, sem travar nada) quando um time da tabela ao vivo não bate com a lista fixa.
+- **Poll da ESPN não engajava backoff em falha parcial**: agora um dos dois endpoints falhando
+  sozinho (não só os dois juntos) já reduz a frequência do poll.
+- **Corte provisório G4/SA6/Z4 sem desempate próprio**: um empate de `rank` vindo da ESPN (comum
+  logo após uma rodada) podia errar a fronteira entre zonas. Desempate determinístico adicionado:
+  saldo de gols → gols pró → nome.
+- **Tabela de probabilidades recalculada a cada resync mesmo fora de tela**: agora só roda quando a
+  aba Probabilidades está ativa.
+- **Alvo de toque mínimo (WCAG) no nav mobile**: `min-height: 44px` — propagado dos 3 apps.
+
+Não implementado nesta rodada (feature-sized, fora do escopo de "corrigir um achado" — fica para
+um pedido dedicado se Eduardo quiser): sistema de código de comprovante (BR2026 é o único dos 3
+apps sem um, item já rastreado em `CONSISTENCY_MATRIX.md` #8).
+
+`node --check`: OK. `audit_scoring.py`: 5/5 — nenhum valor de pontuação tocado.
+
 ## v1.32 — 2026-07-14
 
 ### Fixed — auditoria estilo Big Tech: ranking mostrava rank/medalha errados em empate, deploy podia apagar palpite

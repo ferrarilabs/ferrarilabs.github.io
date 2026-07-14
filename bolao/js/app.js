@@ -1418,39 +1418,40 @@ function buildResultEmailHtml(s, testMode) {
   const th = `style="padding:8px 10px;text-align:left;font-weight:600;color:#374151"`;
 
   function scoreMatchSingle(pick, result, tA, tB) {
-    if (!pick || !result?.advanceSide) return { pts: 0, detPt: "sem palpite", detEn: "no pick" };
+    if (!pick || !result?.advanceSide) return { pts: 0, detPt: "sem palpite", detEn: "no pick", detEs: "sin pronóstico" };
     const pA = parseScore(pick.goalsA), pB = parseScore(pick.goalsB);
-    if (pA === null || pB === null) return { pts: 0, detPt: "palpite inválido", detEn: "invalid pick" };
+    if (pA === null || pB === null) return { pts: 0, detPt: "palpite inválido", detEn: "invalid pick", detEs: "pronóstico inválido" };
     const rA = parseScore(result.goalsA), rB = parseScore(result.goalsB);
-    if (rA === null || rB === null) return { pts: 0, detPt: "resultado inválido", detEn: "invalid result" };
-    let pts = 0; const nPt = [], nEn = [];
+    if (rA === null || rB === null) return { pts: 0, detPt: "resultado inválido", detEn: "invalid result", detEs: "resultado inválido" };
+    let pts = 0; const nPt = [], nEn = [], nEs = [];
     if (pA === rA && pB === rB) {
-      pts += sc.exactScore; nPt.push(`+${sc.exactScore} placar exato`); nEn.push(`+${sc.exactScore} exact score`);
+      pts += sc.exactScore; nPt.push(`+${sc.exactScore} placar exato`); nEn.push(`+${sc.exactScore} exact score`); nEs.push(`+${sc.exactScore} marcador exacto`);
     } else {
-      if (pA === rA) { pts += sc.oneTeamGoals; nPt.push(`+1 acertou gols de ${tA} (${rA})`); nEn.push(`+1 correct goals for ${tA} (${rA})`); }
-      if (pB === rB) { pts += sc.oneTeamGoals; nPt.push(`+1 acertou gols de ${tB} (${rB})`); nEn.push(`+1 correct goals for ${tB} (${rB})`); }
+      if (pA === rA) { pts += sc.oneTeamGoals; nPt.push(`+1 acertou gols de ${tA} (${rA})`); nEn.push(`+1 correct goals for ${tA} (${rA})`); nEs.push(`+1 acertó los goles de ${tA} (${rA})`); }
+      if (pB === rB) { pts += sc.oneTeamGoals; nPt.push(`+1 acertou gols de ${tB} (${rB})`); nEn.push(`+1 correct goals for ${tB} (${rB})`); nEs.push(`+1 acertó los goles de ${tB} (${rB})`); }
     }
     if (pick.advanceSide === result.advanceSide) {
       const w = result.advanceSide === "B" ? tB : tA;
-      pts += sc.advance; nPt.push(`+${sc.advance} ${w} avança`); nEn.push(`+${sc.advance} ${w} advances`);
+      pts += sc.advance; nPt.push(`+${sc.advance} ${w} avança`); nEn.push(`+${sc.advance} ${w} advances`); nEs.push(`+${sc.advance} ${w} avanza`);
     }
-    return { pts, detPt: nPt.join(", ") || "—", detEn: nEn.join(", ") || "—" };
+    return { pts, detPt: nPt.join(", ") || "—", detEn: nEn.join(", ") || "—", detEs: nEs.join(", ") || "—" };
   }
 
   const breakdownScored = lastMid ? scored.map(item => {
     const pick = item.e.picks?.[lastMid];
-    const { pts, detPt, detEn } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB);
+    const { pts, detPt, detEn, detEs } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB);
     const pickStr = pick
       ? `${Number(pick.goalsA)}–${Number(pick.goalsB)} (${pick.advanceSide === "B" ? lastTeamB : lastTeamA})`
       : "—";
-    return { name: item.e.entryName || "?", pts, detPt, detEn, pickStr };
+    return { name: item.e.entryName || "?", pts, detPt, detEn, detEs, pickStr };
   }).sort((a, b) => b.pts - a.pts) : [];
 
-  let breakdownPt = "", breakdownEn = "";
+  let breakdownPt = "", breakdownEn = "", breakdownEs = "";
   for (const row of breakdownScored) {
     const c = ptsColor(row.pts);
     breakdownPt += `<tr><td style="padding:6px 10px">${escapeHtml(row.name)}</td><td style="padding:6px 10px;text-align:center">${escapeHtml(row.pickStr)}</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:${c}">${row.pts}</td><td style="padding:6px 10px;font-size:11px;color:#6b7280">${escapeHtml(row.detPt)}</td></tr>`;
     breakdownEn += `<tr><td style="padding:6px 10px">${escapeHtml(row.name)}</td><td style="padding:6px 10px;text-align:center">${escapeHtml(row.pickStr)}</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:${c}">${row.pts}</td><td style="padding:6px 10px;font-size:11px;color:#6b7280">${escapeHtml(row.detEn)}</td></tr>`;
+    breakdownEs += `<tr><td style="padding:6px 10px">${escapeHtml(row.name)}</td><td style="padding:6px 10px;text-align:center">${escapeHtml(row.pickStr)}</td><td style="padding:6px 10px;text-align:center;font-weight:700;color:${c}">${row.pts}</td><td style="padding:6px 10px;font-size:11px;color:#6b7280">${escapeHtml(row.detEs)}</td></tr>`;
   }
 
   let rankingRows = "", prevKey = null, rank = 0;
@@ -1501,6 +1502,18 @@ function buildResultEmailHtml(s, testMode) {
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Exact score = 10 pts · Correct advance = 5 pts · Exact goals of 1 team = 1 pt <em>(per team, not per goal)</em></div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking (${matchCount} of 32 matches played)</div>
     <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entry</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
+    <div style="height:2px;background:#dbeafe;margin:24px 0"></div>
+    <div style="font-size:15px;font-weight:700;color:#1d4ed8;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #dbeafe">🇲🇽 Español</div>
+    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Último partido (${lastLabel})</div>
+      <div style="font-size:16px;font-weight:700">${escapeHtml(lastResultStr)}</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} avanza</div>
+    </div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Puntuación — Último partido (${lastLabel})</div>
+    <table ${tbl}><thead><tr ${thead}><th ${th}>Entrada</th><th ${th} style="text-align:center">Pronóstico</th><th ${th} style="text-align:center">Pts</th><th ${th}>Detalles</th></tr></thead><tbody>${breakdownEs}</tbody></table>
+    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Marcador exacto = 10 pts · Avance correcto = 5 pts · Goles exactos de 1 equipo = 1 pt <em>(por equipo, no por gol)</em></div>
+    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Clasificación actual (${matchCount} de 32 partidos)</div>
+    <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entrada</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
     <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/</a> · Bolão do Ferrari · Copa 2026</div>
   </div>
@@ -1548,15 +1561,25 @@ async function sendResultEmailFromAdmin(testOnly) {
         if (!byEmail[key]) byEmail[key] = { addr };
       }
       const recipients = Object.values(byEmail);
-      if (!confirm(`Enviar email de resultado para ${recipients.length} participante(s)?`)) return;
+      // emailjs.init() aplica limitRate.throttle GLOBALMENTE à página (não por destinatário) --
+      // bug real encontrado em auditoria (2026-07-14): com um intervalo de 3.5s entre envios
+      // (bem menor que os 30s do throttle), praticamente todo envio depois do primeiro caía
+      // silenciosamente no catch, o admin só via "1 ✓, N erros" sem saber por quê. Corrigido
+      // usando o próprio limitRateMs como intervalo (+ margem), então nenhum envio nunca cai
+      // dentro da própria janela de throttle da página.
+      const gapMs = (CONFIG.emailjs.limitRateMs || 30000) + 500;
+      const etaMin = Math.ceil((recipients.length * gapMs) / 60000);
+      if (!confirm(`Enviar email de resultado para ${recipients.length} participante(s)? Leva cerca de ${etaMin} min (limite do EmailJS).`)) return;
       let sent = 0, errors = 0;
-      for (const { addr } of recipients) {
+      for (let i = 0; i < recipients.length; i++) {
+        const { addr } = recipients[i];
         try {
           await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
             { to_email: addr, entry_name: emailSubject, receipt_code: emailSubject, html_message: html },
             { publicKey: CONFIG.emailjs.publicKey });
           sent++;
-          await new Promise(r => setTimeout(r, 3500));
+          if (btn) btn.textContent = `Enviando... (${i + 1}/${recipients.length})`;
+          if (i < recipients.length - 1) await new Promise(r => setTimeout(r, gapMs));
         } catch (err) {
           console.error("Result email error:", err);
           errors++;
@@ -1692,9 +1715,15 @@ function renderRanking() {
 <button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
-    detail.className = `card picks-detail${_openRankDetails.has(e.id) ? "" : " hidden"}`;
+    const isOpen = _openRankDetails.has(e.id);
+    detail.className = `card picks-detail${isOpen ? "" : " hidden"}`;
     detail.dataset.rankDetail = e.id;
-    detail.innerHTML = picksTable(e);
+    // Perf: picksTable() builds a full 32-match table -- achado em auditoria (2026-07-14), era
+    // recalculado pra TODA entrada em todo render (resync de 30s incluso), mesmo quando o detalhe
+    // está fechado (display:none, jogado fora). Só computa aqui se já estiver aberto; o clique que
+    // abre (ver initEvents(), data-rank-toggle) computa sob demanda na primeira vez.
+    if (isOpen) detail.innerHTML = picksTable(e);
+    else detail.dataset.lazy = "1";
     box.appendChild(detail);
   });
 }
@@ -1970,7 +1999,28 @@ function inferRealWinners(s) {
   return { winners, losers };
 }
 
+// Bug real encontrado em auditoria (2026-07-14): renderAdminResultsManual() reconstrói o painel
+// inteiro (todos os inputs de placar real) toda vez que renderAdmin() roda, inclusive no resync
+// de 30s -- commitRealResult() só grava no estado quando os DOIS campos (gols A e gols B) já
+// estão preenchidos, então um admin digitando o primeiro gol de uma partida podia ter esse valor
+// apagado por um resync que chegasse antes do segundo. Mesmo princípio do pickFormIsDirty() já
+// usado no formulário de palpite do participante, aplicado aqui pela primeira vez.
+function resultsFormIsDirty() {
+  const box = document.getElementById("resultsAdmin");
+  if (!box) return false;
+  const s = state();
+  return [...box.querySelectorAll(".match-card")].some(card => {
+    const mid = card.dataset.realMatch;
+    const r = (s.results || {})[mid] || {};
+    const ga = card.querySelector('[data-real-field="goalsA"]')?.value ?? "";
+    const gb = card.querySelector('[data-real-field="goalsB"]')?.value ?? "";
+    const savedGa = r.goalsA !== undefined && r.goalsA !== null ? String(r.goalsA) : "";
+    const savedGb = r.goalsB !== undefined && r.goalsB !== null ? String(r.goalsB) : "";
+    return ga !== savedGa || gb !== savedGb;
+  });
+}
 function renderAdminResults(s) {
+  if (resultsFormIsDirty()) return;
   renderAdminResultsManual(s);
 }
 
@@ -4029,7 +4079,7 @@ function showMatchEndBanner(matchIds) {
     </div>
     <div class="match-end-banner-actions">
       ${actionHtml}
-      <button type="button" class="banner-btn-dismiss" aria-label="Fechar">✕</button>
+      <button type="button" class="banner-btn-dismiss" aria-label="${escapeHtml(t("close"))}">✕</button>
     </div>
   </div>`;
   banner.classList.remove("hidden");
@@ -4040,12 +4090,6 @@ function showMatchEndBanner(matchIds) {
 /* ============================================================
    Reopen banner (visible while site is past cutoff / closed)
    ============================================================ */
-// renderReopenBanner: M88-specific reopen logic permanently obsolete after
-// July 4, 2026. Deadline countdown is now handled by updateCountdown() which
-// writes directly to #reopenBanner — this function is kept as a no-op for
-// call-site compatibility.
-function renderReopenBanner() {}
-
 // Polls config.js every 60 s while closed; auto-reloads when auto_reopen.py
 // commits the new cutoffIso (2026-07-04T12:00:00-04:00) to GitHub Pages.
 let _reopenPoller = null;
@@ -4184,8 +4228,16 @@ function initEvents() {
       const det = document.querySelector(`[data-rank-detail="${id}"]`);
       if (det) {
         det.classList.toggle("hidden");
-        if (det.classList.contains("hidden")) _openRankDetails.delete(id);
-        else _openRankDetails.add(id);
+        if (det.classList.contains("hidden")) {
+          _openRankDetails.delete(id);
+        } else {
+          _openRankDetails.add(id);
+          if (det.dataset.lazy) {
+            const entry = (state().entries || []).find(x => x.id === id);
+            if (entry) det.innerHTML = picksTable(entry);
+            delete det.dataset.lazy;
+          }
+        }
       }
       return;
     }
@@ -4397,7 +4449,6 @@ async function init() {
   }
 
   restoreDraft();
-  renderReopenBanner();
   startReopenPolling();
   startVersionPolling();
   setTimeout(launchJuly4Fireworks, 400); // brief settle, then launch

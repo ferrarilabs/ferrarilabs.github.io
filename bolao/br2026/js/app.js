@@ -500,7 +500,24 @@ async function fetchStandings() {
         ga:     getStat("pointsAgainst", "goalsAgainst"),
         gd:     getStat("pointDifferential", "goalDifferential"),
       };
-    }).filter(entry => entry.name).sort((a, b) => a.rank - b.rank);
+    // Ordenar só por `rank` da ESPN não é suficiente -- achado em auditoria (2026-07-14): logo
+    // após uma rodada terminar, a ESPN pode devolver ranks empatados por um instante (antes do
+    // desempate deles terminar de aplicar do lado deles), e a classificação PROVISÓRIA (G4/SA6/Z4)
+    // é fatiada por índice fixo direto deste array -- um empate de rank podia errar a fronteira
+    // entre zonas. Desempate próprio e determinístico: saldo de gols → gols pró → nome (nunca hoje
+    // era a fonte oficial de pontuação, que sempre vem do resultado travado pelo admin).
+    }).filter(entry => entry.name).sort((a, b) =>
+      a.rank - b.rank || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name, "pt-BR")
+    );
+    // DATA.teams (lista fixa usada no formulário de palpite) e o nome ao vivo da ESPN (usado pra
+    // pontuar) nunca são checados um contra o outro -- achado em auditoria (2026-07-14). Se a ESPN
+    // mudar o `displayName` de um time, todo mundo que apostou nele passa a pontuar zero
+    // silenciosamente (comparação por igualdade exata de string em scoreEntry()). Aviso no console
+    // é o mínimo pra não deixar isso passar batido -- não é um erro fatal, o time ainda aparece na
+    // tabela normalmente, só não bate com nenhuma opção do formulário.
+    const knownTeams = new Set(DATA.teams || []);
+    const unknown = parsed.filter(tm => !knownTeams.has(tm.name)).map(tm => tm.name);
+    if (unknown.length) console.warn("[BR2026] Time(s) da ESPN sem correspondência em DATA.teams:", unknown);
     return parsed.length ? parsed : null;
   } catch (err) { console.warn("[BR2026] Standings fetch failed", err); return null; }
 }
@@ -538,7 +555,11 @@ async function pollAll() {
   _pollInFlight = true;
   try {
     const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
-    _pollFailed = !standings && matches === null;
+    // Antes exigia os DOIS endpoints falhando ao mesmo tempo pra engajar o backoff -- achado em
+    // auditoria (2026-07-14): um dos dois falhando sozinho, de forma persistente (ex.: tabela 200
+    // mas calendário 5xx), nunca reduzia a frequência do poll, batendo na ESPN a cada 60s
+    // indefinidamente sem nenhum recuo.
+    _pollFailed = !standings || matches === null;
 
     if (matches !== null) {
       const nextLive = matches.filter(m => m.state === "in");
@@ -1665,9 +1686,27 @@ function renderAdminPayments(s) {
   );
 }
 
+// Bug real encontrado em auditoria (2026-07-14): renderAdminResults() reconstrói o painel inteiro
+// (14 <select> de resultado oficial) toda vez que renderAdmin() roda, inclusive no resync de 30s
+// -- sem essa checagem, um admin destravando um resultado pra corrigir e editando alguns campos
+// podia ter tudo revertido pro valor salvo anterior no meio da edição, sem perceber, e salvar por
+// cima sem querer. Mesmo princípio do pickFormIsDirty() já usado no formulário de palpite.
+function resultsFormIsDirty() {
+  const box = document.getElementById("adminResults");
+  if (!box) return false;
+  const r = state().results || {};
+  const savedG4  = r.g4  || ["", "", "", ""];
+  const savedSa6 = r.sa6 || ["", "", "", "", "", ""];
+  const savedZ4  = r.z4  || ["", "", "", ""];
+  const cur = (prefix, n) => [...Array(n)].map((_, i) => box.querySelector(`#adm-${prefix}-${i}`)?.value || "");
+  const g4  = cur("g4", 4), sa6 = cur("sa", 6), z4 = cur("z4", 4);
+  const diff = (a, b) => a.some((v, i) => v !== (b[i] || ""));
+  return diff(g4, savedG4) || diff(sa6, savedSa6) || diff(z4, savedZ4);
+}
 function renderAdminResults(s) {
   const box    = $("adminResults");
   if (!box) return;
+  if (resultsFormIsDirty()) return;
   const r      = s.results;
   const locked = r?.locked;
   const opts   = DATA.teams.sort((a, b) => a.localeCompare(b, "pt-BR"))
@@ -1733,6 +1772,13 @@ function renderAdminResults(s) {
     if (g4.some(v => !v) || sa6.some(v => !v) || z4.some(v => !v)) {
       alert(t("errorResultsIncomplete")); return;
     }
+    // Time duplicado DENTRO do mesmo grupo -- achado em auditoria (2026-07-14): o formulário de
+    // palpite do participante (validatePicks()) já bloqueia isso, o formulário de resultado
+    // OFICIAL do admin nunca checava. Um mis-click travando o mesmo time duas vezes no G4/SA6/Z4
+    // corrompe a pontuação de todo mundo que apostou em qualquer uma das posições envolvidas.
+    if (new Set(g4).size  < g4.length)  { alert(t("errorDuplicateG4"));  return; }
+    if (new Set(sa6).size < sa6.length) { alert(t("errorDuplicateSA6")); return; }
+    if (new Set(z4).size  < z4.length)  { alert(t("errorDuplicateZ4"));  return; }
     const overlap    = g4.filter(v => z4.includes(v));
     if (overlap.length) { alert(t("errorG4Z4Overlap").replace("{teams}", overlap.join(", "))); return; }
     const sa6g4 = sa6.filter(v => v && g4.includes(v));
@@ -1906,6 +1952,11 @@ function renderFooter() {
 function renderProbSection() {
   const box = $("probsContent");
   if (!box) return;
+  // Perf: essa função reconstrói uma tabela de 20 linhas com mini-barras a cada renderAll() (todo
+  // resync de 30s, todo save), mesmo com a aba Probabilidades fora de tela -- achado em auditoria
+  // (2026-07-14). showSection() já chama renderProbSection() explicitamente ao abrir a aba, então
+  // pular aqui quando ela não está ativa não perde nenhuma atualização real.
+  if (!document.getElementById("probs")?.classList.contains("active")) return;
 
   if (_standings.length < 20) {
     box.innerHTML = `<p class="muted">${esc(t("probsNoData"))}</p>`;
@@ -1995,9 +2046,33 @@ function pickFormIsDirty() {
 }
 
 // ─── Render all ──────────────────────────────────────────────────────────────
+// Bug real encontrado em auditoria (2026-07-14): não existia botão "Cancelar" pra sair do modo de
+// edição de uma entrada -- se o admin clicasse "Editar" e navegasse pra outra seção sem salvar,
+// _editingEntry ficava preso pra sempre (só é limpo em saveEntry() bem-sucedido), o que também
+// PARA o sync remoto indefinidamente (reloadRemoteIfVisible() e o poll de 30s checam
+// _editingEntry -- ver linhas 102/2123). Mesmo padrão que a Copa já tem (editByCodeCard/
+// cancelEditMode em bolao/js/app.js).
+function renderEditModeBanner() {
+  const box = $("editModeBanner");
+  if (!box) return;
+  if (!_editingEntry) { box.innerHTML = ""; return; }
+  box.innerHTML = `<div class="edit-mode-banner card">
+    <span>${esc(t("editModeBanner").replace("{name}", _editingEntry.entryName || ""))}</span>
+    <button type="button" id="editCancelBtn" class="secondary small-btn">${esc(t("editCancelBtn"))}</button>
+  </div>`;
+  $("editCancelBtn")?.addEventListener("click", () => {
+    _editingEntry = null;
+    $("entryName").value = "";
+    $("payerName").value = "";
+    $("participantEmail").value = "";
+    $("paymentMethod").value = "";
+    renderAll();
+  });
+}
 function renderAll() {
   applyI18n();
   if (!pickFormIsDirty()) renderPickForm();
+  renderEditModeBanner();
   renderRanking();
   renderParticipants();
   renderPayment();

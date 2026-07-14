@@ -77,6 +77,10 @@ window.CDB2026_I18N = {
     errorPicksIncomplete: "Preencha todos os palpites obrigatórios.",
     errorAdvanceRequired: "Selecione quem se classifica em cada confronto com placar previsto empatado.",
     errorTieTeams: "Informe os dois times (diferentes um do outro).",
+    errorTieDuplicate: "Esse confronto já está cadastrado (nesta ou em outra fase).",
+    errorLegScoreRange: "Placar deve ser entre 0 e 20 gols.",
+    confirmSaveLegOutOfRange: "Placar fora do normal (mais de 10 gols). Confirma que está correto?",
+    confirmEditLeg: "Apagar este placar já salvo? A partida volta a ficar em aberto.",
     // Save feedback
     savedSuccess: "Palpite salvo! Verifique seu e-mail para o comprovante.",
     saveError: "Erro ao salvar. Tente novamente.",
@@ -178,6 +182,7 @@ window.CDB2026_I18N = {
     adminTieAdded: "Confronto adicionado!",
     adminTieHasResults: "já tem resultado lançado",
     confirmRemoveTie: "Remover este confronto? Só é possível antes de qualquer resultado lançado.",
+    confirmRemoveTieWithPicks: "Remover este confronto? {n} entrada(s) já têm palpite salvo para ele — os palpites ficam órfãos, sem aviso ao participante.",
     // Admin — sincronização com ESPN (automática desde v3.3)
     espnSyncTitle: "Sincronizar com a ESPN",
     espnSyncAutoDisclaimer: "Automático: confrontos novos da fase ativa são adicionados sozinhos, sem precisar clicar. Resultados continuam exigindo confirmação manual em \"Resultados\" — isso é o que decide o pagamento.",

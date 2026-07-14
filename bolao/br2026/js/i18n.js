@@ -158,6 +158,8 @@ window.BR2026_I18N = {
     confirmDelete: "Apagar esta entrada permanentemente?",
     edit: "Editar",
     delete: "Apagar",
+    editModeBanner: "Editando a entrada de {name}",
+    editCancelBtn: "Cancelar edição",
     espnFillResultsBtn: "Preencher pelo ESPN",
     forceSyncBtn: "☁️ Sync remoto",
     exportCsvBtn: "📊 CSV",

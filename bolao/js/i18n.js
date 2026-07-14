@@ -1,5 +1,6 @@
 window.BOLAO_I18N = {
   "pt-BR": {
+    close: "Fechar",
     skipToContent: "Pular para o conteúdo",
     navPicks: "Palpites", navRanking: "Ranking", navParticipants: "Participantes",
     navPayment: "Pagamento", navGames: "Jogos", navProbs: "Probabilidades",
@@ -248,6 +249,7 @@ window.BOLAO_I18N = {
   },
 
   "es": {
+    close: "Cerrar",
     skipToContent: "Saltar al contenido",
     navPicks: "Pronósticos", navRanking: "Clasificación", navParticipants: "Participantes",
     navPayment: "Pago", navGames: "Partidos", navProbs: "Probabilidades",
@@ -496,6 +498,7 @@ window.BOLAO_I18N = {
   },
 
   "en-US": {
+    close: "Close",
     skipToContent: "Skip to content",
     navPicks: "Picks", navRanking: "Ranking", navParticipants: "Participants",
     navPayment: "Payment", navGames: "Games", navProbs: "Odds",

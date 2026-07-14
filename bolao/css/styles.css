@@ -153,6 +153,12 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  /* Alvo de toque mínimo (WCAG) -- achado em auditoria (2026-07-14): no breakpoint mais estreito
+     (font-size 11px, padding 8px 4px) o botão ficava com ~30px de altura efetiva. */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .nav button.active {
   background: var(--green);

@@ -1,5 +1,50 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.14 — 2026-07-14
+
+### Fixed — auditoria estilo Big Tech, rodada 2: itens que Eduardo autorizou explicitamente após ver o relatório
+
+Depois do relatório completo da v3.13, Eduardo pediu explicitamente "corrija tudo e implemente".
+Este app tinha a maior concentração de achados por ter o painel de admin mais complexo (fases
+cadastradas incrementalmente) — implementado o que não mexe em scoring/regra de negócio:
+
+- **🔴 Painel do admin ("Fases e confrontos" e "Resultados") sem proteção contra sync em segundo
+  plano**: era o gap de maior severidade do relatório. `adminPhasesFormIsDirty()`/
+  `adminResultsFormIsDirty()` novos, mesmo princípio do `pickFormIsDirty()` já usado no formulário
+  de palpite. **Bug pego pelo próprio teste automatizado antes de chegar em produção**: a primeira
+  versão da correção bloqueava a própria atualização depois de um SALVAMENTO bem-sucedido (o DOM
+  antigo ainda mostrava o campo preenchido no instante em que a checagem de "sujo" rodava) —
+  corrigido limpando os campos antes de `saveState()` nos handlers de `data-save-leg` e
+  `data-add-tie`.
+- **"Adicionar confronto" manual sem checagem de par duplicado**: só a sincronização automática
+  com a ESPN usava `existingPairsAcrossPhases()`. Reaproveitada no cadastro manual.
+- **Nome de time sem normalização**: "corinthians" e "Corinthians" eram tratados como times
+  diferentes em tudo (escudo, força, checagem de duplicata). Normalizado contra a lista conhecida
+  (`DATA.teamLogos`) antes de salvar.
+- **Lançamento de placar real sem limite máximo nem confirmação**: `max="20"` do HTML não bloqueava
+  envio via JS. Adicionado limite real (>20 rejeitado) e confirmação para placares fora do normal
+  (>10 gols).
+- **"Editar" (limpar placar já lançado) sem confirmação**: agora pede confirmação, igual a
+  excluir/travar/destravar confronto.
+- **Excluir confronto não resolvido deixava palpite órfão sem aviso**: o `confirm()` agora conta
+  quantas entradas já têm palpite salvo pro confronto e avisa o admin.
+- **Painel do admin não tratava fases sem confronto por design** (`DATA.phasesConcludedNoData`):
+  mostrava o formulário completo de "Adicionar confronto" mesmo pra fase-1..4, que nunca deveriam
+  ter confronto cadastrado. Agora mostra a mesma nota "já concluída" usada no formulário de
+  palpite/aba Jogos.
+- **Grade de probabilidade recalculada a cada resync mesmo fora de tela**: agora só roda quando a
+  aba Probabilidades está ativa.
+- **`aria-label` ausente nos campos de time/prazo do admin**: já corrigido na rodada 1 (v3.13).
+- **Alvo de toque mínimo (WCAG) no nav mobile**: `min-height: 44px` — propagado dos 3 apps.
+
+Não implementado nesta rodada (feature-sized, fora do escopo de "corrigir um achado"): colapsar
+fases já resolvidas no painel do admin (produto, não correção).
+
+15 testes automatizados novos cobrindo especificamente esta rodada (parte de `test_round2_fixes.js`,
+compartilhado com os outros 2 apps), incluindo o bug do self-blocking pego e corrigido durante o
+próprio desenvolvimento. `node --check`: OK. `audit_scoring.py`: 5/5 — nenhum valor de pontuação
+tocado.
+
 ## v3.13 — 2026-07-14
 
 ### Fixed — auditoria estilo Big Tech: cutoff automático não travava palpite, ranking mostrava rank errado em empate

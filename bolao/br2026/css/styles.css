@@ -112,6 +112,11 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   padding: 8px 6px; font-size: 13px; font-weight: 700;
   border: 1px solid transparent;
   text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* Alvo de toque mínimo (WCAG) -- mesmo achado/correção da Copa (2026-07-14). */
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .nav button.active { background: var(--green); color: var(--green-dk); }
 
@@ -705,4 +710,19 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 @media (max-width: 480px) {
   .bolao-toasts { right: 8px; left: 8px; max-width: none; }
+}
+
+.edit-mode-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  padding: 10px 14px;
+  background: rgba(245, 158, 11, .12);
+  border-left: 4px solid var(--gold);
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--gold);
 }

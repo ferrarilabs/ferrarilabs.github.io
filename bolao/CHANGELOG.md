@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## v4.133 — 2026-07-14
+
+### Fixed — auditoria estilo Big Tech, rodada 2: itens que Eduardo autorizou explicitamente após ver o relatório
+
+Depois do relatório completo da v4.132 (achados sem correção automática), Eduardo pediu
+explicitamente "corrija tudo e implemente". Implementado o que não mexe em scoring/regra de
+negócio nem em comportamento de produção fora do escopo de "patch pequeno e reversível":
+
+- **Envio de e-mail em massa quebrado para 3+ destinatários**: o intervalo entre envios (3.5s) era
+  bem menor que o throttle global do EmailJS (30s), então praticamente todo envio depois do
+  primeiro caía silenciosamente no erro. Corrigido usando o próprio `limitRateMs` como intervalo (+
+  margem), com o admin vendo uma estimativa de tempo e progresso "(N/total)" durante o envio.
+- **Painel de resultado real do admin sem proteção contra sync em segundo plano**: mesmo princípio
+  do `pickFormIsDirty()` já usado no formulário de palpite — `resultsFormIsDirty()` novo, compara
+  os inputs de placar contra `s.results` e pula a reconstrução enquanto houver edição em
+  andamento.
+- **E-mail de resultado sem versão em espanhol**: adicionado bloco 🇲🇽 Español completo (tabela de
+  pontuação da última partida + ranking), espelhando os blocos PT/EN já existentes.
+- **`aria-label` "Fechar" hardcoded em português**: nova chave i18n `close`, adicionada nos 3
+  idiomas.
+- **Código morto removido**: `renderReopenBanner()` era um no-op permanente desde a reabertura
+  automática de julho — removida a função e o call site.
+- **Performance do ranking**: `picksTable()` (tabela completa de 32 partidas) agora só é computada
+  quando o detalhe de uma entrada é expandido, não em todo resync de 30s para todas as entradas.
+- **Alvo de toque mínimo (WCAG) no nav mobile**: `min-height: 44px` — propagado para os 3 apps.
+
+22 testes automatizados novos (`test_round2_fixes.js`), incluindo o envio de e-mail em massa de
+ponta a ponta com EmailJS mockado (confirma o Espanhol presente e o timing correto, sem depender
+de rede real). `node --check`: OK. `audit_scoring.py`: 5/5 — nenhum valor de pontuação tocado.
+
 ## v4.132 — 2026-07-14
 
 ### Fixed — auditoria estilo Big Tech (arquitetura, bugs, UX, QA, segurança, mobile, performance, a11y): deploy podia apagar palpite não salvo

@@ -1009,6 +1009,27 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   para pular a auditoria-antes-de-implementar não é evidência de que ela deixou de ser necessária
   — a auditoria em si confirmou, de novo, bugs reais o suficiente para justificar por que essa
   regra existe.
+- **Rodada 2 da auditoria (2026-07-14, mesmo dia, Copa v4.133 / BR2026 v1.33 / CDB2026 v3.14):**
+  Eduardo viu o relatório completo e respondeu "Corrija tudo e implemente" — autorização explícita
+  item a item, diferente do pedido anterior de bypassar a auditoria inteira. Implementados os 18
+  achados pendentes que não mexiam em scoring/regra de negócio (throttle do EmailJS, dirty-guards
+  nos formulários de admin dos 3 apps, validações/confirmações faltando no admin do CDB2026,
+  normalização de nome de time, bloco em espanhol no e-mail de resultado, botão "Cancelar" de
+  edição no BR2026, alvo de toque mínimo no nav mobile, entre outros). Dois itens genuinamente
+  feature-sized (sistema de comprovante do BR2026, colapsar fases resolvidas no admin do CDB2026)
+  foram deliberadamente deixados de fora — não são "corrigir um achado", são funcionalidade nova, e
+  misturar os dois no mesmo patch é exatamente o que `ENGINEERING_STANDARD.md` pede pra evitar.
+  **Bug real pego pelo próprio processo de teste, nunca chegou a ir para produção:** a primeira
+  versão do dirty-guard do admin do CDB2026 tinha um efeito colateral não previsto — bloqueava a
+  reconstrução do painel logo DEPOIS de um salvamento bem-sucedido (o DOM antigo, ainda não
+  reconstruído no instante em que a checagem de "sujo" rodava, continuava mostrando o valor recém-
+  digitado, então a checagem achava que ainda havia edição em andamento). Corrigido limpando os
+  campos de input antes de `saveState()` nos dois handlers afetados (`data-save-leg`,
+  `data-add-tie`). Lição reforçada: um dirty-guard que compara "valor no DOM" contra "valor salvo"
+  precisa considerar o instante exato em que a própria ação que ele protege atualiza os dois lados
+  — testar só "o campo sobrevive a um resync alheio" não basta, é preciso testar também "o campo
+  se limpa corretamente depois do PRÓPRIO salvamento", porque as duas checagens compartilham a
+  mesma função e podem se contradizer se a ordem das operações não for pensada com cuidado.
 
 ---
 

@@ -1092,6 +1092,11 @@ function tieProbBarsHtml(nameA, nameB, format) {
 function renderProbsSection() {
   const box = $("probsContent");
   if (!box) return;
+  // Perf: recomputava a grade de Poisson/Dixon-Coles inteira (busca binária + grade 81 células,
+  // por confronto TWO_LEG aberto) a cada renderAll() -- todo resync de 30s, todo save -- mesmo com
+  // a aba fora de tela. Achado em auditoria (2026-07-14). showSection() já chama esta função
+  // explicitamente ao abrir a aba (linha ~194), então pular aqui não perde nenhuma atualização.
+  if (!document.getElementById("probs")?.classList.contains("active")) return;
   const s = state();
   let html = "";
   DATA.phases.forEach(phase => {
@@ -1265,12 +1270,38 @@ function renderFooter() {
 }
 
 // ─── Render: admin ───────────────────────────────────────────────────────────
+// Bug real encontrado em auditoria (2026-07-14), classificado CRÍTICO: nem "Fases e confrontos"
+// nem "Resultados" tinham qualquer proteção contra o resync de 30s em segundo plano -- diferente
+// do formulário de palpite do participante (pickFormIsDirty(), já corrigido). Um admin digitando
+// o nome de um time novo, ou lançando o placar real logo após um jogo (sob pressão de tempo, a
+// pior hora pra isso acontecer), podia ter o campo apagado por um resync que não tem nada a ver
+// com essa ação. Os campos de "adicionar confronto"/placar não têm valor salvo pra comparar (ficam
+// sempre em branco depois de salvos com sucesso) -- então "sujo" aqui é simplesmente "tem algo
+// digitado, ainda não enviado".
+function adminPhasesFormIsDirty() {
+  const box = document.getElementById("adminPhases");
+  if (!box) return false;
+  if ([...box.querySelectorAll(".adm-team-a, .adm-team-b")].some(el => el.value.trim() !== "")) return true;
+  const s = state();
+  return [...box.querySelectorAll(".admin-phase-block")].some(block => {
+    const phaseId = block.dataset.phase;
+    const input = block.querySelector(".adm-phase-cutoff");
+    if (!input) return false;
+    const saved = s.phases?.[phaseId]?.cutoffAt ? toLocalDatetimeValue(s.phases[phaseId].cutoffAt) : "";
+    return input.value !== saved;
+  });
+}
+function adminResultsFormIsDirty() {
+  const box = document.getElementById("adminResults");
+  if (!box) return false;
+  return [...box.querySelectorAll(".adm-leg-a, .adm-leg-b")].some(el => el.value.trim() !== "");
+}
 function renderAdmin() {
   if (!isAdminActive()) return;
   const s = state();
   renderAdminEspnSync(s);
-  renderAdminPhases(s);
-  renderAdminResults(s);
+  if (!adminPhasesFormIsDirty()) renderAdminPhases(s);
+  if (!adminResultsFormIsDirty()) renderAdminResults(s);
   renderAdminPayments(s);
   renderAdminEntries(s);
 }
@@ -1552,6 +1583,21 @@ function renderAdminPhases(s) {
   DATA.phases.forEach(phase => {
     const phaseState = s.phases?.[phase.id] || emptyPhaseState();
     const tieCount = Object.keys(phaseState.ties || {}).length;
+    // Fase já concluída ANTES deste bolão existir (DATA.phasesConcludedNoData, v3.8) -- achado em
+    // auditoria (2026-07-14): o formulário de "Adicionar confronto" aparecia normal mesmo assim.
+    // Nada impedia o admin de cadastrar um confronto ali por engano, quebrando silenciosamente o
+    // contrato documentado em data.js ("essas fases não têm o que apostar, de propósito") -- esse
+    // confronto passaria a aparecer no formulário de palpite e em Jogos, contradizendo o design.
+    const concludedNoData = (DATA.phasesConcludedNoData || []).includes(phase.id) && !tieCount;
+    if (concludedNoData) {
+      html += `<div class="admin-phase-block" data-phase="${esc(phase.id)}">
+        <div class="admin-phase-header">
+          <b>${esc(phase.name)}</b>
+          <span class="muted small-text">${esc(t("phaseAlreadyConcluded"))}</span>
+        </div>
+      </div>`;
+      return;
+    }
     html += `<div class="admin-phase-block" data-phase="${esc(phase.id)}">
       <div class="admin-phase-header">
         <b>${esc(phase.name)}</b>
@@ -1595,23 +1641,54 @@ function renderAdminPhases(s) {
     if (!guardAdmin()) return;
     const phaseId = btn.dataset.addTie;
     const block = box.querySelector(`.admin-phase-block[data-phase="${phaseId}"]`);
-    const teamA = block.querySelector(".adm-team-a").value.trim();
-    const teamB = block.querySelector(".adm-team-b").value.trim();
+    // Normalização contra a lista conhecida de times (mesma usada no <datalist>) -- achado em
+    // auditoria (2026-07-14): "corinthians" e "Corinthians" eram tratados como times diferentes
+    // em tudo (escudo, força, checagem de duplicata abaixo), só por causa de caixa/acento.
+    const normalize = raw => {
+      const v = raw.trim();
+      const known = Object.keys(DATA.teamLogos || {});
+      const hit = known.find(name => name.localeCompare(v, "pt-BR", { sensitivity: "base" }) === 0);
+      return hit || v;
+    };
+    const teamA = normalize(block.querySelector(".adm-team-a").value);
+    const teamB = normalize(block.querySelector(".adm-team-b").value);
     if (!teamA || !teamB || teamA === teamB) { alert(t("errorTieTeams")); return; }
+    // Checagem de par duplicado -- achado em auditoria (2026-07-14): só a sincronização automática
+    // com a ESPN usava existingPairsAcrossPhases(); o cadastro manual (typo, clique duplo, admin
+    // esquecendo que já adicionou) podia criar dois confrontos independentes pro mesmo jogo real.
+    const s2 = state();
+    const pairKey = [teamA, teamB].sort().join("|");
+    if (existingPairsAcrossPhases(s2).has(pairKey)) { alert(t("errorTieDuplicate")); return; }
     const format = getPhaseDef(phaseId).format;
     const tie = { teamA, teamB, matches: {}, qualifiedTeamId: null };
     legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
-    const s2 = state();
     s2.phases[phaseId].ties[uuid()] = tie;
+    // Limpa os campos ANTES de salvar -- mesmo motivo do data-save-leg logo abaixo:
+    // adminPhasesFormIsDirty() leria esses inputs ainda preenchidos no DOM antigo e bloquearia a
+    // própria atualização que deveria mostrar o confronto recém-adicionado.
+    block.querySelector(".adm-team-a").value = "";
+    block.querySelector(".adm-team-b").value = "";
     saveState(s2);
     showToast(t("adminTieAdded"), "success");
   }));
 
   box.querySelectorAll("[data-remove-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    if (!confirm(t("confirmRemoveTie"))) return;
+    const tieId = btn.dataset.removeTie;
+    // Excluir um confronto SEM resultado ainda é permitido (hasResults já bloqueia o botão nesse
+    // caso), mas participantes podem já ter salvo palpite pra ele -- achado em auditoria
+    // (2026-07-14): o palpite ficava órfão sem nenhum aviso, o participante só via o confronto
+    // sumir do formulário na próxima vez que abrisse, sem explicação. Conta quantas entradas
+    // referenciam esse tieId e avisa no próprio confirm().
+    const s = state();
+    const deleted = new Set(s.deletedIds || []);
+    const affected = (s.entries || []).filter(e =>
+      !deleted.has(e.id) && (e.picks?.matches?.[tieId] || e.picks?.qualified?.[tieId])
+    ).length;
+    const msg = affected > 0 ? t("confirmRemoveTieWithPicks").replace("{n}", affected) : t("confirmRemoveTie");
+    if (!confirm(msg)) return;
     const s2 = state();
-    delete s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.removeTie];
+    delete s2.phases[btn.dataset.phase]?.ties?.[tieId];
     saveState(s2);
   }));
 }
@@ -1710,16 +1787,31 @@ function renderAdminResults(s) {
     const a = parseInt(row.querySelector(".adm-leg-a").value, 10);
     const b = parseInt(row.querySelector(".adm-leg-b").value, 10);
     if (!Number.isFinite(a) || !Number.isFinite(b) || a < 0 || b < 0) { alert(t("errorLegIncomplete")); return; }
+    // Achado em auditoria (2026-07-14): o atributo HTML max="20" não bloqueia envio via JS, e ao
+    // contrário de excluir/travar/destravar confronto (que já pedem confirm()), lançar um placar
+    // real não pedia nada -- um typo mudava o ranking público na hora, sem nenhuma barreira.
+    if (a > 20 || b > 20) { alert(t("errorLegScoreRange")); return; }
+    if ((a > 10 || b > 10) && !confirm(t("confirmSaveLegOutOfRange"))) return;
     const s2 = state();
     const tie = s2.phases[phaseId].ties[tieId];
     const home = leg === "second" ? tie.teamB : tie.teamA;
     const away = leg === "second" ? tie.teamA : tie.teamB;
     tie.matches[leg] = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL" };
+    // Limpa os campos ANTES de salvar -- saveState() chama renderAll() de forma síncrona, e
+    // adminResultsFormIsDirty() (novo, ver renderAdmin()) leria esses mesmos inputs ainda com "a"/
+    // "b" digitados no DOM antigo (a reconstrução ainda não rodou) e bloquearia a própria
+    // atualização que deveria mostrar o placar recém-salvo. Bug pego pelo teste automatizado
+    // (test_round2_fixes.js) antes de chegar em produção.
+    row.querySelector(".adm-leg-a").value = "";
+    row.querySelector(".adm-leg-b").value = "";
     saveState(s2);
     showToast(t("legResultSaved"), "success");
   }));
   box.querySelectorAll("[data-edit-leg]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
+    // Achado em auditoria (2026-07-14): "Editar" apagava um placar já lançado imediatamente, sem
+    // confirmação -- um mis-click descartava um resultado oficial sem nenhum jeito de desfazer.
+    if (!confirm(t("confirmEditLeg"))) return;
     const s2 = state();
     const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.editLeg];
     if (tie?.matches?.[btn.dataset.leg]) {
