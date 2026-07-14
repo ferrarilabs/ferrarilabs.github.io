@@ -41,22 +41,22 @@
       <option value="/bolao/cdb2026/">🏅 Copa do Brasil</option>
     </select>
   </div>
+  <a id="supportWhatsappBtn" class="whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer" aria-label="Suporte WhatsApp">
+    <img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span>
+  </a>
   <div class="lang-links" aria-label="Idioma / Language">
     <button type="button" class="active" aria-label="Português BR">🇧🇷 PT-BR</button>
     <button type="button" disabled aria-label="Español MX">🇲🇽 ES-MX</button>
     <button type="button" disabled aria-label="English US">🇺🇸 EN-US</button>
   </div>
-  <a id="supportWhatsappBtn" class="whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer" aria-label="Suporte WhatsApp">
-    <img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span>
-  </a>
   <nav class="nav" aria-label="Navegação principal">
     <button type="button" data-section="entry"        data-i18n="navPicks">Palpites</button>
     <button type="button" data-section="ranking"      data-i18n="navRanking">Ranking</button>
+    <button type="button" data-section="participants" data-i18n="navParticipants">Participantes</button>
+    <button type="button" data-section="payment"      data-i18n="navPayment">Pagamento</button>
     <button type="button" data-section="standings"    data-i18n="navStandings">Tabela</button>
     <button type="button" data-section="games"        data-i18n="navGames">Jogos</button>
     <button type="button" data-section="probs"        data-i18n="navProbs">Probabilidades</button>
-    <button type="button" data-section="participants" data-i18n="navParticipants">Participantes</button>
-    <button type="button" data-section="payment"      data-i18n="navPayment">Pagamento</button>
     <button type="button" data-section="rules"        data-i18n="navRules">Regras</button>
     <button type="button" data-section="admin"        data-i18n="navAdmin">Admin</button>
   </nav>
@@ -125,6 +125,23 @@
     <div id="rankingList"></div>
   </section>
 
+  <!-- ── Participantes ── -->
+  <section id="participants" class="page">
+    <div class="section-head">
+      <h2 data-i18n="participantsTitle">Participantes</h2>
+    </div>
+    <div id="participantsList" class="card"></div>
+  </section>
+
+  <!-- ── Pagamento ── -->
+  <section id="payment" class="page">
+    <div class="section-head">
+      <h2 data-i18n="paymentTitle">Pagamento</h2>
+      <p class="muted" data-i18n="paymentSubtitle">Valor da aposta: US$ 5 por entrada.</p>
+    </div>
+    <div id="paymentMethods" class="pay-grid"></div>
+  </section>
+
   <!-- ── Tabela ao vivo ── -->
   <section id="standings" class="page">
     <div class="section-head">
@@ -148,23 +165,6 @@
       <p class="muted" data-i18n="probsSubtitle">Simulação Monte Carlo — 2.000 iterações. Atualiza a cada 5 min.</p>
     </div>
     <div id="probsContent" class="card"></div>
-  </section>
-
-  <!-- ── Participantes ── -->
-  <section id="participants" class="page">
-    <div class="section-head">
-      <h2 data-i18n="participantsTitle">Participantes</h2>
-    </div>
-    <div id="participantsList" class="card"></div>
-  </section>
-
-  <!-- ── Pagamento ── -->
-  <section id="payment" class="page">
-    <div class="section-head">
-      <h2 data-i18n="paymentTitle">Pagamento</h2>
-      <p class="muted" data-i18n="paymentSubtitle">Valor da aposta: US$ 5 por entrada.</p>
-    </div>
-    <div id="paymentMethods" class="pay-grid"></div>
   </section>
 
   <!-- ── Regras ── -->

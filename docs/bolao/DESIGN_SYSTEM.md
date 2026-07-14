@@ -431,9 +431,11 @@ abaixo.
 
 ### High
 
-3. `main` max-width diferente (1140px Copa vs 860px BR2026/CDB2026) — muda a densidade e a
-   proporção de todo o layout desktop. **Não implementado** — mudaria a proporção de toda a
-   Copa em produção, fora do escopo de patch mínimo.
+3. ✅ **Resolvido** (rodada não datada entre as duas auditorias anteriores — esta nota estava
+   desatualizada e contradizia a tabela de mapeamento abaixo, que já mostrava `1140px` nos três
+   apps). Confirmado em 2026-07-14 lendo o CSS atual: `main { max-width: 1140px; }` idêntico nos
+   três (`bolao/css/styles.css:163`, `bolao/br2026/css/styles.css:122`,
+   `bolao/cdb2026/css/styles.css:123`).
 4. ✅ **Resolvido (v4.126).** Input/select com fundo, `border-radius` e comportamento de foco
    diferentes entre Copa e os outros dois apps — Copa migrada para o padrão dos outros dois.
 5. ✅ **Resolvido (v4.126).** Label de formulário com case, cor e tipografia diferentes —
@@ -574,3 +576,62 @@ seção anterior): 320px, 390px e 1440px, com dados mockados de uma janela de pa
 três, Pos/Mov/Time/Pts permanecem visíveis sem scroll horizontal (colunas sticky), o nome do time
 trunca com reticências em vez de empurrar as colunas seguintes, e a seta não quebra o alinhamento
 da linha do ranking.
+
+## Auditoria cosmética completa — screenshots reais nos três apps (2026-07-14)
+
+Eduardo pediu uma varredura visual completa comparando os três apps contra a Copa. Diferente das
+auditorias anteriores (leitura de CSS), esta rodada usou Playwright para capturar screenshots
+reais (`fullPage`) de toda seção de nav × desktop (1440px) e mobile (390px) × os três apps —
+44 screenshots — mais leitura de CSS para confirmar/entender cada divergência visual encontrada.
+
+### Bug real encontrado e corrigido (não é preferência estética)
+
+- **Ícone do Zelle quebrado em BR2026 e CDB2026.** Os dois apps referenciam
+  `assets/zelle.svg` em `PAY_ICON_SVG` (`js/app.js`), mas o arquivo nunca existiu nas pastas
+  `assets/` desses dois apps — só na Copa. Resultado: ícone de imagem quebrado no card de
+  pagamento Zelle, nos dois apps, desde sempre (não é regressão desta sessão). Corrigido
+  copiando `bolao/assets/zelle.svg` para `bolao/br2026/assets/zelle.svg` e
+  `bolao/cdb2026/assets/zelle.svg` — mesmo arquivo, sem alteração de conteúdo.
+
+### Divergências reais encontradas — decisão do Eduardo necessária
+
+Diferente do bug acima, estas duas são escolhas de layout onde "copiar a Copa exatamente" tem um
+trade-off real, não uma correção óbvia:
+
+1. **Estrutura de cards da página Regras.** Copa agrupa em 2 cards (Pontuação+aviso /
+   Regras principais+disclaimer). BR2026 usa **1 card único** com tudo dentro (pontuação,
+   pontuação máxima, premiação, prazo, desempate, disclaimer). CDB2026 usa **7 cards separados**
+   (pontuação, desempate, formato, 2 exemplos, premiação, prazo, transparência). Nenhum dos dois
+   bate com o padrão de 2 cards da Copa. Diferença é parcialmente justificada — CDB2026 tem
+   bem mais conteúdo (exemplos numéricos de ida/volta e partida única que a Copa não tem) — mas o
+   *padrão* (quantos cards, o que agrupa com o quê) diverge nos três. Não alterado nesta rodada
+   sem confirmação — reestruturar isso é uma decisão editorial de conteúdo, não só um reorder de
+   markup.
+2. **Nº de colunas do grid do nav em mobile (menor breakpoint).** Copa usa `repeat(4, 1fr)`.
+   BR2026 e CDB2026 usam `repeat(3, 1fr)`. Isso não é uma cópia incompleta por acaso — BR2026 tem
+   9 botões de nav e CDB2026 tem 8 (contra 6 visíveis na Copa), então 3 colunas trunca menos texto
+   que forçar 4 colunas trocaria. Recomendação: **não** igualar cegamente à Copa aqui — o valor
+   diferente parece uma adaptação deliberada e razoável ao maior número de itens, não drift. Sinalizado
+   para confirmação do Eduardo antes de qualquer mudança.
+
+### Confirmado OK nesta rodada (sem ação necessária)
+
+- `main { max-width: 1140px }` idêntico nos três — a nota antiga do item 3 (acima) estava
+  desatualizada/contraditória com a tabela de mapeamento; corrigida.
+- Ordem dos botões do header (WhatsApp → idioma → seletor de bolão) e do nav (Palpites → Ranking
+  → Participantes → Pagamento → [Tabela, só BR2026] → Jogos → Probabilidades → Regras → Admin) —
+  já corrigida em rodada anterior no mesmo dia, reconfirmada aqui.
+- Empty states de Participantes/Ranking/Jogos/Probabilidades — mensagem consistente
+  ("Nenhuma entrada ainda." / "Aguardando sorteio oficial") no padrão já esperado.
+- Admin: painel do CDB2026 (com as novas seções "Sincronizar com a ESPN" e "Fases e confrontos")
+  segue o mesmo padrão de card/h3 dos outros painéis admin — nenhuma inconsistência visual nova
+  introduzida pelas features desta sessão.
+
+### Fora do escopo desta rodada
+
+- Comparação pixel-a-pixel do card de jogo (`.game-card`) — já auditado e convergido em rodada
+  anterior (ver "Inconsistências" item 1 acima), não re-verificado exaustivamente aqui dado o
+  volume de partidas na tela de Jogos da Copa (17000px de altura, não inspecionado linha a
+  linha).
+- Contraste de cor WCAG, comportamento real em Safari — mesmas limitações já registradas
+  acima, ainda não cobertas.

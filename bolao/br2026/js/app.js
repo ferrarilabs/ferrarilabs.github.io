@@ -10,6 +10,15 @@ const $    = id => document.getElementById(id);
 const $$   = sel => [...document.querySelectorAll(sel)];
 const esc  = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+// CSV/formula injection: a cell starting with =, +, -, @ (or tab/CR) can be read as a formula by
+// Excel/Sheets when the exported file is opened — prefix with an apostrophe so it's always
+// literal text. Real risk: entryName/payerName are free text fully controlled by whoever submits
+// the entry form. Same fix as the Copa (bolao/js/app.js csvEscape()).
+const csvEscape = v => {
+  let s = String(v ?? "");
+  if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+  return `"${s.replace(/"/g, '""')}"`;
+};
 
 // ─── Toast ──────────────────────────────────────────────────────────────────
 // Mesma implementação da Copa (bolao/js/app.js) — não-bloqueante, substitui alert() em toda
@@ -582,7 +591,7 @@ function saveStandingsBaseline() {
   try {
     if (_standingsBaseline) sessionStorage.setItem(STANDINGS_BASELINE_KEY, JSON.stringify(_standingsBaseline));
     else sessionStorage.removeItem(STANDINGS_BASELINE_KEY);
-  } catch {}
+  } catch { /* storage full/unavailable — baseline just won't survive a reload this time */ }
 }
 
 function zoneForPosition(pos) {
@@ -691,7 +700,7 @@ async function fetchSchedule() {
       _scheduleTs = cached.ts;
       return;
     }
-  } catch {}
+  } catch { /* corrupt/unparseable cache entry — fall through and refetch */ }
   try {
     const r = await fetchJson(C.espn.scheduleUrl, { cache: "no-store" });
     if (!r.ok) return;
@@ -1747,7 +1756,7 @@ function exportCsv() {
     const sc = getActiveScore(e, s);
     return [e.entryName, e.payerName || "", e.participantEmail || "", e.paymentMethod || "",
       (s.paid || {})[e.id] ? "Sim" : "Não", ...picks, sc?.total ?? 0]
-      .map(v => `"${String(v || "").replace(/"/g, '""')}"`).join(",");
+      .map(csvEscape).join(",");
   });
   const blob = new Blob([header + "\n" + rows.join("\n")], { type: "text/csv;charset=utf-8;" });
   const a    = document.createElement("a");
@@ -2046,7 +2055,7 @@ if ('serviceWorker' in navigator) {
       const text = await r.text();
       const m = text.match(/siteVersion:\s*"([^"]+)"/);
       if (m && m[1] !== window.BR2026_CONFIG?.siteVersion) location.reload();
-    } catch (e) {}
+    } catch (e) { /* network hiccup — next poll retries, nothing to recover here */ }
   }
   setInterval(checkVersion, 10 * 60 * 1000);
   document.addEventListener("visibilitychange", () => { if (!document.hidden) checkVersion(); });

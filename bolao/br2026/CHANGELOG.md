@@ -1,5 +1,52 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.28 — 2026-07-14
+
+### Fixed — CSV/formula injection no export (segurança)
+
+Mesma varredura/mesmo bug da Copa (ver `bolao/CHANGELOG.md` v4.130): `exportCsv()` só escapava
+aspas duplas, não os caracteres que disparam interpretação como fórmula no Excel/Sheets
+(`=+-@`/tab/CR) em campos de texto livre (`entryName`, `payerName`). Adicionado `csvEscape` (novo
+const, mesmo padrão da Copa) e trocado no `.map()` de `exportCsv()`.
+
+### Fixed — blocos `catch` vazios sem comentário
+
+Três `catch {}`/`catch (e) {}` sem o comentário exigido pelo `CLAUDE.md`. Adicionado comentário
+explicando a razão do silêncio em cada um (cache de sessionStorage corrompido, storage
+indisponível, polling de versão) — sem mudança de comportamento.
+
+Sem mudança de scoring/regras. `audit_scoring.py` (Copa): 5/5.
+
+## v1.27 — 2026-07-14
+
+### Fixed — ordem dos botões do header/nav divergindo da Copa
+
+Eduardo apontou que a ordem dos botões não era a mesma nos três apps. Auditado contra a Copa
+(referência visual canônica): dois desalinhamentos reais no `index.html`.
+
+1. **Header**: Copa tem WhatsApp → idioma (PT-BR/ES-MX/EN-US) → seletor de bolão; este app tinha
+   idioma → WhatsApp, trocados de posição. Corrigido para bater com a Copa.
+2. **Nav**: Copa tem Palpites → Ranking → Participantes → Pagamento → Jogos → Probabilidades →
+   Regras → Admin (Participantes/Pagamento ficam ocultos por CSS na Copa, mas a posição no DOM é
+   essa). Este app tinha Participantes/Pagamento depois de Probabilidades em vez de logo após
+   Ranking. Corrigido — a aba "Tabela" (sem equivalente na Copa) manteve sua posição relativa,
+   logo antes de Jogos.
+
+Apenas reordenação de markup (`index.html`) — nenhuma mudança de `app.js`/CSS necessária (nada
+depende da ordem do DOM; a navegação usa seletores por `data-section`, não índice). Verificado
+via Playwright: zero erros de JS, navegação funcionando normalmente nos três apps depois da
+mudança.
+
+### Fixed — ícone do Zelle quebrado (asset ausente)
+
+Auditoria cosmética completa pedida por Eduardo (44 screenshots via Playwright, 3 apps × desktop
++ mobile × todas as seções) encontrou um bug real, não apenas estético: `assets/zelle.svg` nunca
+existiu neste app (só na Copa), mas `PAY_ICON_SVG` em `js/app.js` já referenciava esse caminho —
+ícone de imagem quebrado no card de pagamento Zelle. Corrigido copiando o SVG da Copa (mesmo
+arquivo, sem alteração de conteúdo). Ver `docs/bolao/DESIGN_SYSTEM.md` "Auditoria cosmética
+completa" para o restante dos achados (dois itens de layout aguardando decisão do Eduardo, não
+implementados nesta rodada).
+
 ## v1.26 — 2026-07-13
 
 ### Fixed — resync forçado ao voltar de uma aba em segundo plano (bfcache)

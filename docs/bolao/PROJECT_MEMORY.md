@@ -779,6 +779,77 @@ handler de troca de fase ativa zerava o guard de intervalo de sincronização *d
 do guard — corrigido invertendo a ordem. Achado só porque havia teste automatizado cobrindo o
 fluxo "selecionar fase → confronto aparece sozinho" ponta a ponta, não só a função isolada.
 
+### CDB2026: população inicial das Oitavas de Final (v3.6, 2026-07-14) — mudança de curso deliberada
+
+Eduardo pediu, pela terceira vez, para os confrontos já sorteados aparecerem prontos para
+palpite ("Você tem que popular tudo que já se sabe"). A ferramenta de sincronização automática
+com a ESPN (v3.3, ver acima) não resolvia isso sozinha: depende do admin acessar o painel e
+escolher a fase ativa, e o ambiente de desenvolvimento não consegue verificar se isso aconteceu
+nem empurrar dados para o Supabase do Eduardo remotamente (sem acesso de rede externo).
+
+Decisão: reverter parcialmente a posição anterior de "nunca hardcode confronto" e semear os 8
+confrontos reais das Oitavas de Final diretamente (`DATA.knownConfrontos` em `data.js`,
+`seedKnownConfrontos()` em `app.js`, rodando uma única vez por estado, nunca reaplicado — admin
+pode corrigir/remover pela UI já existente sem risco de a semente voltar sozinha). Justificativa
+registrada explicitamente: o princípio "não inventar confronto" (seção 3 de
+`CDB2026_RULES_AND_MODEL.md`) existe para não *prever* um sorteio que ainda não aconteceu — estes
+8 confrontos já são fato consumado e público (sorteio da CBF em 26/05/2026), não uma invenção.
+
+**Confiança dos dados, registrada com transparência**: cruzados entre 3+ fontes jornalísticas
+independentes por par, incluindo o site oficial do Corinthians. Uma busca inicial trouxe um
+resultado contraditório (uma notícia mencionando "Corinthians x Palmeiras", que investigação
+posterior mostrou vir de uma matéria de outro ano misturada no resultado de busca) — descartado
+depois que uma busca mais específica confirmou Corinthians×Internacional em 5+ fontes
+consistentes. Mesmo assim, nada foi verificado contra uma chamada direta à API oficial — mesma
+limitação de rede já documentada para a sincronização com ESPN. Eduardo foi instruído a conferir
+contra a tabela oficial da CBF antes do prazo de palpites.
+
+18 testes automatizados cobrindo: semeadura correta (8 pares, mando de campo correto por perna),
+nenhum placar/resultado fabricado, ids determinísticos, sem duplicação em reload, remoção pelo
+admin é definitiva (não reaparece).
+
+### CDB2026: população da 5ª Fase (histórico) + remoção de fases passadas do formulário de palpites (v3.7, 2026-07-14)
+
+Dois pedidos do Eduardo na sequência do acima: popular "os jogos anteriores" do CDB2026 "só para
+referência", e tirar do formulário de palpites as fases que já passaram. Investigação: o torneio
+tem 5 fases antes das Oitavas (126 times, 90+ partidas nas 4 primeiras), todas já concluídas antes
+deste bolão existir.
+
+Apresentado o trade-off esforço/risco a Eduardo antes de pesquisar tudo: 1ª–4ª fase somam 90+
+jogos de times estaduais/regionais menores com fontes esparsas; a 5ª fase (32 times, 16
+confrontos, já é Série A + classificados) tem cobertura de imprensa muito melhor. Eduardo escolheu
+popular só a 5ª fase em detalhe — 1ª–4ª ficam marcadas como concluídas sem placar por partida
+(`DATA.phasesConcludedNoData`).
+
+`seedKnownConfrontos()` foi generalizada para aceitar confrontos já decididos (com `winner` +
+`legs`, placar real de ida e volta), não só confrontos futuros (só `teamA`/`teamB`, como a
+Oitavas). `qualifiedTeamId` é setado direto do `winner` já conhecido, não derivado do placar — 2
+dos 16 confrontos da 5ª fase foram decididos nos pênaltis com agregado empatado.
+
+**Validação cruzada forte**: os 16 vencedores da 5ª fase pesquisados agora batem exatamente com os
+16 times já cadastrados na Oitavas na v3.6 (pesquisa independente, feita numa sessão anterior) —
+nenhum de menos, nenhum a mais, nenhum duplicado. Essa coincidência perfeita entre duas fontes de
+dados pesquisadas separadamente é evidência forte de que ambos os conjuntos estão corretos.
+
+**Confiança dos dados**: 2+ fontes independentes por confronto (site oficial do clube, ge.globo/
+CNN Brasil/ESPN, cobertura local), nenhum dos 16 confrontos ficou sem confirmação. Dois erros de
+busca foram pegos e corrigidos durante a pesquisa, antes de entrar no código: Atlético-MG×Ceará
+(um resumo automático errou o placar da volta) e Flamengo×Vitória (um resumo alucinou o placar da
+ida) — ambos corrigidos cruzando 3+ fontes cada. Mesma limitação de rede de sempre (sem chamada
+direta à API oficial) — Eduardo deve conferir contra a tabela oficial; corrigível via admin, sem
+risco a pontuação (fase nunca esteve aberta a palpite).
+
+Também generalizado `renderPickForm()` para pular qualquer fase 100% decidida
+(`phaseFullyResolved()`, generalização de `fase1Complete()`) ou sem dado
+(`DATA.phasesConcludedNoData`) — cobre a 5ª fase (populada mas decidida) e a 1ª–4ª (sem dado) da
+mesma forma. A aba "Jogos" foi ajustada para mostrar uma nota de "já concluída" em vez de
+"aguardando sorteio" (enganoso) nas fases sem dado.
+
+19 testes automatizados novos (`test_fase5_seed.js`) — contagem de confrontos, placar/vencedor por
+perna, validação cruzada com a Oitavas, `activePhaseId` não sobrescrito pela fase histórica,
+ausência de 1ª–5ª no formulário de palpites, nota de "já concluída" em Jogos, idempotência em
+reload. Ver `docs/bolao/CDB2026_RULES_AND_MODEL.md` seção 7.2 para o relato completo.
+
 ---
 
 ## Bugs históricos
