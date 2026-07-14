@@ -1,5 +1,74 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.9 — 2026-07-14
+
+### Fixed — palpites apagados ao interagir com o formulário (bug crítico)
+
+Eduardo reportou: "quando estou entrando os palpites e clico no time que passa ele apaga tudo
+que entrei". Reproduzido com Playwright: `renderAll()` reconstrói `#pickForm` inteiro toda vez
+que roda — inclusive quando dispara sozinho de um resync em segundo plano (Supabase, a cada 30s
+ou em todo `focus`/`visibilitychange`). Abrir o `<select>` "quem se classifica" causa um ciclo de
+blur/focus da janela em vários navegadores/mobile (o seletor nativo tira e devolve o foco), o que
+dispara esse resync no meio da digitação. A proteção existente (`_editingEntry`) só cobre quando
+o participante carregou uma entrada JÁ salva para editar — uma entrada nova, nunca salva, fica
+sem proteção nenhuma o tempo todo em que está sendo preenchida.
+
+Corrigido: `renderAll()` não reconstrói mais o formulário de palpites enquanto ele tiver algo
+digitado e ainda não salvo (`pickFormIsDirty()`), não importa o motivo do `renderAll()` ter
+rodado. **Mesmo bug e mesma correção aplicados ao BR2026** (mesmo padrão de código) — ver
+changelog do BR2026 v1.29. A Copa não tem esse bug: lá, construir o formulário
+(`renderBracket()`) e atualizar o estado visual a partir dos valores já digitados
+(`updateDynamic()`, chamada em todo `renderAll()`) já são funções separadas desde o início —
+um resync nunca reconstrói os `<input>` que já existem na tela.
+
+Confirmado com Playwright: disparar um evento de `focus` no meio do preenchimento apagava o
+placar digitado ~1s depois (quando o fetch em segundo plano terminava); com a correção, o valor
+sobrevive indefinidamente até o participante salvar.
+
+### Fixed — "Buscar minha entrada" travado para sempre (regressão da v3.8)
+
+A v3.8 (fase-1 sem confronto nenhum, de propósito) quebrou `fase1Complete()`: a função só
+retornava `true` se a fase tivesse confronto cadastrado E todos resolvidos — como fase-1 nunca
+tem confronto nenhum, isso nunca seria `true`, e o card "Buscar minha entrada" (usado para editar
+uma entrada já salva) ficava escondido/travado permanentemente, mesmo a fase já tendo acabado de
+verdade. Corrigido: `fase1Complete()` também retorna `true` quando a fase está em
+`DATA.phasesConcludedNoData` (que é exatamente o caso da fase-1 desde a v3.8).
+
+### Added — card "Próxima partida"
+
+Achado durante a auditoria visual pedida por Eduardo ("próximo jogo mostra dia hora estádio mas
+não está consistente nos 3"): CDB2026 era o único dos três apps sem nenhum card de "próximo
+jogo" — não existia CSS, HTML nem função de render para isso. Adicionado `#nextTieCard`, mesmas
+classes CSS do BR2026 (`.next-game-*`) e mesmo formato de data (`fmtDate()`, idêntico ao
+`brtLongDate()` do BR2026) — mesma aparência exata nos dois apps. Também corrigido em conjunto:
+a Copa não mostrava a data (só hora) no card "Próximo jogo" — agora mostra data + hora nos três
+apps.
+
+Depende de `matches[leg].kickoff` estar preenchido — hoje isso só acontece via sincronização com
+a ESPN, que foi estendida para gravar `kickoff`/`venue`/`city` na primeira perna de um confronto
+novo (antes só gravava placar de partida já finalizada). Ainda não existe um jeito do admin
+cadastrar `kickoff` manualmente para um confronto — o card fica escondido normalmente até isso
+acontecer, mesmo comportamento de "sem próximo jogo" que a Copa/BR2026 já têm quando não há dado.
+Registrado como lacuna conhecida, não corrigida nesta rodada (ver PROJECT_MEMORY.md).
+
+### Fixed — inconsistências visuais entre os três apps
+
+Auditoria "estilo big 4" pedida por Eduardo, token a token nos 3 arquivos CSS:
+- `--red`: CDB2026/BR2026 usavam `#f87171`, a Copa usa `#ff6b6b` para o mesmo tom semântico
+  (badge "ao vivo", não pago, etc.) — alinhado à Copa (referência canônica).
+- `.section-head`: CDB2026/BR2026 tinham `margin-bottom: 16px` + um `h2 { font-size: 22px }`
+  que a Copa não tem (usa o `h2` genérico, 20px/1.25rem) — títulos de seção renderizavam
+  visivelmente maiores nos dois apps. Removida a divergência.
+- `input, select`: faltava `appearance: none` no seletor genérico (a Copa já tinha) — todo
+  `<select>` sem essa regra própria (ex.: método de pagamento, palpite de time) mostrava a seta
+  nativa do navegador em vez do visual limpo já usado em `.bolao-switcher select`/`.lang-links`.
+
+Ver `docs/bolao/DESIGN_SYSTEM.md` para a auditoria completa (o que foi corrigido e o que ficou
+documentado como `TOURNAMENT_SPECIFIC`/`INTENTIONALLY_DIFFERENT`).
+
+19 testes automatizados novos cobrindo os itens acima, todos passando. `node --check`: OK.
+`audit_scoring.py`: 5/5, sem impacto em pontuação.
+
 ## v3.8 — 2026-07-14
 
 ### Added — população da 5ª Fase (histórico, referência) + fases passadas fora dos palpites

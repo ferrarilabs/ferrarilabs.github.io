@@ -26,7 +26,7 @@
   --gold:      #f59e0b;
   --text:      #eef7f1;
   --muted:     #9cb2b9;
-  --red:       #f87171;
+  --red:       #ff6b6b;
   --danger-bg: #3d1520;
   --danger-tx: #ffdbe1;
   --danger-br: #8e2d42;
@@ -181,8 +181,7 @@ h1, h2, h3 { margin: .15em 0 .4em; }
 h2 { font-size: 1.25rem; }
 h3 { font-size: 1.05rem; }
 
-.section-head { margin-bottom: 16px; }
-.section-head h2 { margin: 0 0 4px; font-size: 22px; }
+.section-head { margin-bottom: 14px; }
 
 /* ── Form ── */
 .form-grid {
@@ -196,6 +195,7 @@ input, select {
   background: var(--bg3); border: 1px solid var(--border2);
   color: var(--text); border-radius: 9px; padding: 10px 12px;
   outline: none; transition: border-color .15s; width: 100%;
+  appearance: none; -webkit-appearance: none;
 }
 input:focus, select:focus { border-color: var(--green); }
 input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
@@ -387,6 +387,23 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Payment QR ── */
 .pay-qr { width: 120px; height: 120px; border-radius: 8px; margin-top: 6px; }
+
+/* ── Next tie card — mesmas classes/medidas do BR2026 (.next-game-*, bolao/br2026/css/styles.css)
+   para o card "Próxima partida" mostrar time+data+hora+local com a mesma aparência nos dois
+   apps. Antes não existia nenhum card equivalente aqui — divergência real encontrada por Eduardo
+   (2026-07-14), ver DESIGN_SYSTEM.md. */
+#nextTieCard {
+  background: linear-gradient(135deg, #0a1e2d, #0d2028);
+  border: 1px solid var(--border2);
+  border-radius: 14px; padding: 12px 18px; margin-bottom: 14px;
+}
+#nextTieCard.hidden { display: none; }
+.next-game-card { display: flex; flex-direction: column; gap: 4px; }
+.next-game-label { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.next-game-teams { font-size: 15px; font-weight: 700; }
+.next-game-vs { color: var(--muted); margin: 0 6px; }
+.next-game-info { font-size: 12px; color: var(--muted); }
+.next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
 
 /* ── Pick cell — extra states ── */
 .pick-cell.pick-partial { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.3); }

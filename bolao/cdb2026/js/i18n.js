@@ -42,6 +42,7 @@ window.CDB2026_I18N = {
     pickHintTie:       "10 pts placar exato · 5 pts resultado certo · 1 pt gols de um time certos · +5 classificado certo",
     pickNoOpenTies:    "Nenhum confronto liberado para palpite no momento.",
     gamesTbd:          "Data a definir",
+    nextGameLabel:     "Próxima partida",
     gamesAggregate:    "Agregado",
     gamesAdvances:     "Classificado",
     gamesLeg1: "Jogo de ida",

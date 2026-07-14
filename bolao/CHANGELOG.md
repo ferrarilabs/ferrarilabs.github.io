@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## v4.131 — 2026-07-14
+
+### Fixed — card "Próximo jogo" não mostrava a data
+
+Auditoria de consistência entre os 3 apps pedida por Eduardo ("próximo jogo mostra dia hora
+estádio mas não está consistente nos 3"): o card só mostrava hora (`m.timeET`), sem data — o
+BR2026 já mostrava data+hora. Adicionado `formatDate(m.date)` antes da hora, mesmo padrão usado
+nos cards de partida do bracket. CDB2026 ganhou um card equivalente pela primeira vez (não tinha
+nenhum) — ver changelog do CDB2026 v3.9.
+
+Não é o mesmo bug do CDB2026/BR2026 v3.9 (palpites apagados durante o preenchimento) — a Copa
+não tem essa vulnerabilidade: `renderBracket()` (constrói o formulário) e `updateDynamic()`
+(atualiza o estado visual a partir do que já foi digitado, chamada em todo `renderAll()`) já são
+funções separadas desde o início, então um resync em segundo plano nunca reconstrói os `<input>`
+que já existem na tela.
+
+`node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
 ## v4.130 — 2026-07-14
 
 ### Fixed — CSV/formula injection no export (segurança)
