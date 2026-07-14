@@ -64,7 +64,7 @@ let _editingEntry = null;
 const _openRankDetails = new Set();
 
 function emptyState() {
-  return { entries: [], deletedIds: [], paid: {}, results: null, meta: { updatedAt: null, version: C.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, results: null, cutoffAt: null, meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try { const r = localStorage.getItem(C.storeKey); return r ? Object.assign(emptyState(), JSON.parse(r)) : emptyState(); }
@@ -134,6 +134,9 @@ function mergeStates(local, remote, opts = {}) {
     deletedIds: [...deleted],
     paid,
     results,
+    // Uma vez congelado (freezeSeasonCutoff), nunca deve ser sobrescrito por null vindo de um
+    // cliente mais antigo/desatualizado -- prefere qualquer valor já definido, local ou remoto.
+    cutoffAt: local.cutoffAt || remote.cutoffAt || null,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -166,7 +169,35 @@ function showSection(id) {
 }
 
 // ─── Cutoff ─────────────────────────────────────────────────────────────────
-const cutoffDate = () => new Date(C.cutoffIso);
+// Regra confirmada por Eduardo (2026-07-14, comparando com Copa/CDB2026): "the cutoff should be
+// until 1 hour before the first game". C.cutoffIso (config.js) era um valor ESTÁTICO, digitado
+// manualmente e nunca mais atualizado -- ficou defasado (apontava pra 19/jul 23h59) enquanto o
+// card "Próximo jogo" (que lê o calendário real da ESPN) já mostrava Botafogo x Santos em 16/jul,
+// os dois discordando na mesma tela. Agora o cutoff é calculado a partir do MESMO jogo que o card
+// "Próximo jogo" usa (nextUpcomingGame(), abaixo) assim que o calendário carrega, e então
+// CONGELADO em s.cutoffAt (estado compartilhado via Supabase, nunca recalculado depois de
+// definido) -- sem congelar, o "próximo jogo ainda não realizado" avançaria a cada rodada
+// conforme jogos terminam, o que reabriria as entradas depois de fechadas (inaceitável: dinheiro
+// real). C.cutoffIso continua existindo só como valor de fallback antes do primeiro congelamento
+// (ex.: no instante entre o carregamento da página e o calendário responder).
+function nextUpcomingGame() {
+  const now = Date.now();
+  return _schedule.find(g => g.state === "pre" && !g.postponed && new Date(g.dateISO).getTime() > now - 30 * 60 * 1000) || null;
+}
+function computeSeasonCutoffIso() {
+  const g = nextUpcomingGame();
+  if (!g) return null;
+  const ms = new Date(g.dateISO).getTime();
+  return Number.isFinite(ms) ? new Date(ms - 3600000).toISOString() : null;
+}
+function freezeSeasonCutoff(s) {
+  if (s.cutoffAt) return false;
+  const iso = computeSeasonCutoffIso();
+  if (!iso) return false;
+  s.cutoffAt = iso;
+  return true;
+}
+const cutoffDate = () => new Date(state().cutoffAt || C.cutoffIso);
 const isPastCutoff = () => Date.now() > cutoffDate().getTime();
 
 // ─── UUID ───────────────────────────────────────────────────────────────────
@@ -1077,9 +1108,10 @@ function renderNextGameCard() {
     return;
   }
 
-  // No games today — show next upcoming game
+  // No games today — show next upcoming game (mesma fonte que o cutoff automático, ver
+  // nextUpcomingGame() em "Cutoff" -- os dois nunca podem discordar sobre qual é "o próximo jogo")
   const now  = Date.now();
-  const next = _schedule.find(g => g.state === "pre" && new Date(g.dateISO).getTime() > now - 30 * 60 * 1000);
+  const next = nextUpcomingGame();
   if (!next) { card.classList.add("hidden"); return; }
 
   const timeStr = brtLongDate(next.dateISO) + " BRT";
@@ -2062,7 +2094,12 @@ async function init() {
   }
 
   // Full-season schedule — fetch in background, render when ready
-  fetchSchedule().then(() => { renderGamesSection(); renderNextGameCard(); });
+  fetchSchedule().then(() => {
+    renderGamesSection();
+    renderNextGameCard();
+    const s = state();
+    if (freezeSeasonCutoff(s)) saveState(s);
+  });
 }
 
 // Read-only test hooks — pure functions only, no state mutation exposed. Used by

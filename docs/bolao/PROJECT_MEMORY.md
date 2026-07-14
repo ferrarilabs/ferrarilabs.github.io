@@ -965,6 +965,24 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   `data.js`). Lição: quando um confronto é semeado ANTES de um dado (kickoff, resultado etc.)
   existir, popular esse dado depois na fonte não basta — é preciso um mecanismo de backfill
   explícito para alcançar estados já semeados.
+- **BR2026: cutoff estático (`cutoffIso`) ficou defasado do calendário real, mesma classe de bug
+  do CDB2026 acima (v1.31, 2026-07-14):** Eduardo, comparando screenshots de produção dos 3 apps:
+  "Cutoff do BR2026 está incorreto! Deve ser até 1h antes do início do primeiro jogo". A entrada
+  de v3.12 acima descreveu erroneamente BR2026 como já seguindo "a mesma regra" — na verdade
+  BR2026 só tinha um `cutoffIso` **estático**, digitado manualmente em v1.11 ("2 dias antes do
+  reinício do BR", 19/jul 23h59) e nunca mais atualizado; coincidiu por um tempo, depois o
+  calendário real mudou (primeiro jogo real = Botafogo x Santos, 16/jul 19h30 — 3 dias **antes**
+  do cutoff configurado) e ninguém notou até o card "Próximo jogo" (que lê a ESPN ao vivo) e o
+  contador do topo (que lia o valor estático) discordarem visivelmente na mesma tela. Corrigido
+  com `nextUpcomingGame()` (fonte única, compartilhada com o card "Próximo jogo" — os dois nunca
+  mais podem discordar) + `computeSeasonCutoffIso()`/`freezeSeasonCutoff()`, que calculam 1h antes
+  do primeiro jogo real e **congelam** o resultado em `s.cutoffAt` (estado compartilhado) na
+  primeira vez que o calendário carrega — sem esse congelamento, o "próximo jogo" avançaria a
+  cada rodada conforme jogos terminam, o que reabriria entradas já fechadas (dinheiro real
+  envolvido). `cutoffIso` continua existindo só como fallback pré-congelamento, agora com o valor
+  correto. Lição: um valor calculado manualmente uma única vez, sem mecanismo de verificação
+  contínua contra a fonte real, é estruturalmente idêntico ao problema já resolvido no CDB2026 —
+  a lição da correção anterior deveria ter sido aplicada aos três apps na hora, não só ao CDB2026.
 
 ---
 
