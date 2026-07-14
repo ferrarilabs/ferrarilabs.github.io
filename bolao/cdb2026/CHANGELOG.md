@@ -1,5 +1,76 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.20 — 2026-07-14 (EMERGENCY_HOTFIX, mesmo dia)
+
+### Fixed — "editar entrada" liberado o tempo todo desde a v3.9; devia continuar fechado até a Oitavas terminar
+
+Eduardo trouxe dois pontos no mesmo report: (1) "editar entrada" não precisa estar ativo agora,
+só deve abrir depois que a Oitavas terminar, e deve continuar desabilitando novas entradas depois
+dessa fase; (2) a página padrão deve ser Palpites, a não ser que esteja fechado para palpites (aí
+sempre Ranking) — dizendo que isso tinha sido pedido hoje de manhã e "pelo jeito não foi
+implementado corretamente".
+
+**Ponto 2 (página padrão) — já estava correto, sintoma explicado pelo v3.19**:
+`showSection(isPastEntryCutoff() ? "ranking" : "entry")` já é exatamente essa regra, idêntica nos
+3 apps, e já tinha sido verificada com teste automatizado no v3.17 desta manhã. O motivo de
+parecer errado era efeito colateral direto do bug de confrontos-fantasma corrigido em v3.19 (dos
+112 "confrontos" da fase Oitavas, só 8 eram reais — os outros 104 tinham kickoff no passado e
+arrastavam `isPastEntryCutoff()` para `true` incorretamente, fazendo a página abrir em Ranking).
+Nenhuma mudança de código adicional necessária aqui — resolvido automaticamente pela cura
+automática do v3.19 assim que rodar.
+
+**Ponto 1 (editar entrada) — bug real, separado, não coberto pelo v3.19**: achado ao investigar
+por que o gate de `fase1Complete()` nunca travava nada. Histórico: no modelo antigo (bracket fixo,
+pré-rewrite v3.0), existia `oitavasComplete()` -- "editar minha entrada" só abria depois que os
+confrontos das Oitavas (a primeira fase pickável naquele modelo) tivessem resultado. Na reescrita
+de 2026-07-13 pro modelo real de 9 fases, essa função foi renomeada mecanicamente para
+`fase1Complete()`, checando `fase-1` -- mas no modelo novo `fase-1` é uma fase HISTÓRICA (uma das
+4 primeiras rodadas da Copa do Brasil real, já concluída antes deste bolão existir,
+`DATA.phasesConcludedNoData`), não a Oitavas. Isso quebrou o gate de duas formas ao longo do dia:
+primeiro (v3.8) o gate ficou travado PARA SEMPRE (fase-1 nunca teria confronto cadastrado no app,
+`phaseFullyResolved()` nunca seria `true`); depois (v3.9) a correção para esse travamento
+adicionou `DATA.phasesConcludedNoData.includes("fase-1") → true`, o que tecnicamente resolveu o
+travamento mas fez a checagem virar um no-op permanente -- fase-1 é SEMPRE "concluída" por
+definição, então "editar minha entrada" ficou **liberado o tempo todo desde a v3.9**, quando devia
+continuar fechado até a Oitavas (a fase que o participante realmente palpita primeiro) terminar de
+verdade.
+
+**Correção**: `fase1Complete()` renomeada para `oitavasComplete(s)`, agora checando
+`phaseFullyResolved(s, "oitavas")` -- a fase certa. Card "Buscar minha entrada" (`renderFindEntryCard()`)
+e o handler de clique do botão (`findEntryBtn`) atualizados para usar a função corrigida. Mensagem
+`findEntryLockedMsg` atualizada de "Disponível assim que os jogos da 1ª Fase terminarem." para
+"Disponível assim que os jogos das Oitavas de Final terminarem." (o texto antigo já estava errado
+pro modelo atual desde a reescrita de 13/07, ninguém tinha notado porque o gate nunca disparava).
+
+**Nova criação de entrada** já estava correta e não foi tocada: `saveEntry()` já bloqueia entradas
+novas depois do cutoff da fase ativa (`isPastEntryCutoff() && !_editingEntry`), independente desta
+correção -- essa parte do pedido do Eduardo já funcionava.
+
+**Não é um bypass de trava por fase**: mesmo com o card liberado cedo demais, cada confronto
+individual dentro do formulário já ficava corretamente travado por `isPhaseLocked(s, phase.id)`
+em `renderPickForm()` assim que o cutoff daquela fase específica passava -- isso roda
+independente de `_editingEntry`, então ninguém conseguiria editar um palpite de uma fase já
+fechada através deste bug. O problema real era só de UX/sequenciamento: o card "editar minha
+entrada" ficava visível e utilizável na fase errada do fluxo (o tempo todo, em vez de só depois
+da Oitavas), não uma falha de segurança em cima de picks já travados.
+
+### Verificado
+
+- `audit_scoring.py`: PASSOU (scoring não foi tocado).
+- Balanceamento de chaves/parênteses do arquivo inteiro: 0 antes, 0 depois.
+- **Sem `node`/Playwright neste ambiente** — mesma limitação do v3.19 desta sessão. Verificação
+  manual: único chamador restante de `fase1Complete` é o comentário histórico explicando o bug;
+  os dois pontos de uso real (`renderFindEntryCard`, handler do `findEntryBtn`) foram atualizados
+  para `oitavasComplete`; `phaseFullyResolved` continua definida antes de qualquer render (hoisting
+  de `function` declaration, mesmo padrão já usado no arquivo). Recomendado rodar a suíte completa
+  na próxima sessão com Node disponível.
+
+### Classificação
+
+`EMERGENCY_HOTFIX` — regra de negócio explícita do Eduardo (quando o fluxo de auto-atendimento
+deve ficar disponível) fora do ar desde a v3.9 (mesmo dia), sem trava de fase individual afetada
+(ver nota acima). Reportado por Eduardo como pedido desta manhã não implementado corretamente.
+
 ## v3.19 — 2026-07-14 (EMERGENCY_HOTFIX, causa raiz mais profunda que v3.17/v3.18)
 
 ### Fixed — Eduardo reportou de novo: "100% incorreto", fechado, sem contador, sem jogos das Oitavas

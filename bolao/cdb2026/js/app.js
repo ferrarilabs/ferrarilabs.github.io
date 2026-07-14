@@ -259,15 +259,21 @@ function isPhaseLocked(s, phaseId) {
   const ms = effectivePhaseCutoffMs(s, phaseId);
   return ms !== null && Date.now() > ms;
 }
-// "Fase 1 acabou" tem duas formas de ser verdade: a fase foi rastreada com confrontos e todos
-// resolveram (phaseFullyResolved), OU ela está em DATA.phasesConcludedNoData (v3.8) -- ou seja,
-// já sabemos que acabou antes deste bolão existir, mesmo sem ter confronto cadastrado nenhum.
-// Bug real encontrado por Eduardo (2026-07-14): antes desta correção, "buscar minha entrada"
-// ficava travado PARA SEMPRE, porque fase-1 nunca vai ter confronto/resultado cadastrado (decisão
-// deliberada da v3.8) -- phaseFullyResolved() sozinha nunca seria true.
-function fase1Complete(s) {
-  if ((DATA.phasesConcludedNoData || []).includes("fase-1")) return true;
-  return phaseFullyResolved(s, "fase-1");
+// "Editar minha entrada" só faz sentido depois que a Oitavas (primeira fase que o participante de
+// fato palpita -- fase-1 a fase-4 são histórico já concluído antes do bolão existir, ver
+// DATA.phasesConcludedNoData) termina: antes disso não há nada de novo pra editar, e o card só
+// confunde quem está enviando a entrada pela primeira vez -- mesma intenção original de
+// oitavasComplete() no modelo antigo de bracket fixo (pré-rewrite v3.0, ver git history).
+//
+// v3.20 (2026-07-14, EMERGENCY_HOTFIX, mesmo dia): a v3.9 "corrigiu" um bug real (o card ficava
+// travado PARA SEMPRE porque a checagem antiga usava fase-1, que nunca tem confronto cadastrado
+// no modelo novo) mas checando a fase ERRADA -- fase1Complete() checava fase-1 (sempre
+// "concluída" via DATA.phasesConcludedNoData desde a v3.8), não Oitavas. O efeito colateral nunca
+// percebido: o gate virou um no-op permanente, "editar minha entrada" ficou disponível o tempo
+// todo desde a v3.9, quando devia continuar fechado até a Oitavas terminar de verdade. Renomeado
+// e re-targetado para checar a fase certa.
+function oitavasComplete(s) {
+  return phaseFullyResolved(s, "oitavas");
 }
 // Verdadeiro quando a fase tem confrontos cadastrados e todos já têm resultado (qualifiedTeamId)
 // — usado para tirar fases já decididas do formulário de palpites (nada a apostar) sem depender
@@ -688,7 +694,7 @@ function resultsProgress(s) {
 function renderFindEntryCard() {
   const card = $("findEntryCard");
   if (!card) return;
-  card.classList.toggle("hidden", !fase1Complete(state()));
+  card.classList.toggle("hidden", !oitavasComplete(state()));
 }
 
 // ─── Tiebreaker helpers ──────────────────────────────────────────────────────
@@ -2345,7 +2351,7 @@ async function init() {
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
 
   $("findEntryBtn")?.addEventListener("click", () => {
-    if (!fase1Complete(state())) { showToast(t("findEntryLockedMsg"), "warn"); return; }
+    if (!oitavasComplete(state())) { showToast(t("findEntryLockedMsg"), "warn"); return; }
     const email = $("findEntryEmail")?.value.trim() || "";
     const code  = $("findEntryCode")?.value.trim() || "";
     if (!email || !code) { alert(t("findEntryMissing")); return; }
