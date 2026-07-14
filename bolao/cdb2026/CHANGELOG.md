@@ -1,5 +1,38 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.11 — 2026-07-14
+
+### Fixed — "Próxima partida" não tinha contador nenhum (mesmo achado no BR2026)
+
+Eduardo reportou: "nem próximo jogo br nao mostra countdown do proximo jogo igual copa que
+funciona bem. Isso tem que ser 100% consistente". Investigação mais funda desta vez: o card
+"Próxima partida" (v3.9) tinha um texto de contador só para jogos em menos de 1h, e mesmo esse
+texto não atualizava ao vivo — `renderNextTieCard()` só era chamada de dentro de `renderAll()`
+(salvar entrada, resync a cada 30s), sem nenhum `setInterval` próprio, diferente do contador do
+topo (`renderCountdown()`, que já tinha um tick de 1s). Corrigido: nova função
+`countdownTimerHtml()`, mesmo algoritmo e mesma marcação (`.count-grid` + dias/horas/min/seg em
+caixas, variante de 4 colunas quando há dias) do contador da Copa (`renderNextMatch()` em
+`bolao/js/app.js`) — substituindo o texto inline. `renderNextTieCard()` entrou no mesmo
+`setInterval` de 1s do `renderCountdown()`, então agora atualiza ao vivo.
+
+### Verificado (não era bug) — contador do topo "não aparece"
+
+Eduardo também reportou que o contador do topo (`#cutoffCountdown`) "não aparece ainda". Testado
+de ponta a ponta com Playwright simulando o fluxo real do admin (abrir "Fases e confrontos",
+digitar uma data, clicar "Salvar prazo"): o mecanismo corrigido na v3.10 (`entryCutoffMs()` lendo
+o cutoff da fase ativa) funciona corretamente — assim que um prazo é salvo em Oitavas pelo admin,
+o contador passa a mostrar dígitos reais. A causa mais provável do "não aparece" é que esse prazo
+ainda não foi cadastrado em produção (Admin → Fases e confrontos → Oitavas de Final → Prazo).
+Diferente da Copa/BR2026, que têm um `cutoffIso` único fixo em `config.js` desde o deploy, o
+CDB2026 usa um prazo por fase, definido pelo admin (arquitetura deliberada — ver
+`CDB2026_RULES_AND_MODEL.md` seção 3.4, cada fase abre/fecha em momentos diferentes conforme o
+torneio avança). Isso significa que o contador só aparece depois desse cadastro manual — não é
+automático como nos outros dois apps, e essa diferença de comportamento (não de código) segue sem
+resolver nesta rodada.
+
+14 testes automatizados novos, incluindo o fluxo completo via UI do admin (não só manipulação
+direta de estado). `node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
 ## v3.10 — 2026-07-14
 
 ### Fixed — esquema de cor dourado (não verde) usado neste app inteiro (achado por Eduardo)

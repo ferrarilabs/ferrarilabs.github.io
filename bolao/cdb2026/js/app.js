@@ -1094,6 +1094,27 @@ function fmtDate(dateStr) {
   } catch { return dateStr; }
 }
 
+// Caixa de dígitos ao vivo (dias/horas/min/seg) para o card "Próxima partida" -- mesmo algoritmo
+// e mesma marcação (.count-grid + variante .four quando há dias) do contador da Copa
+// (renderNextMatch() em bolao/js/app.js) e do BR2026 (countdownTimerHtml(), mesmo nome/mesma
+// implementação lá). Ver DESIGN_SYSTEM.md -- antes o card só tinha texto estático de data, sem
+// contador nenhum, divergência real encontrada por Eduardo.
+function countdownTimerHtml(diffMs) {
+  if (diffMs <= 0) return `<span class="next-game-live">${esc(t("matchStarted"))}</span>`;
+  const totalS = Math.floor(diffMs / 1000);
+  const d   = Math.floor(totalS / 86400);
+  const h   = Math.floor((totalS % 86400) / 3600);
+  const min = Math.floor((totalS % 3600) / 60);
+  const sec = totalS % 60;
+  const p2  = n => String(n).padStart(2, "0");
+  const cells = d > 0
+    ? [[d, t("countdownDays")], [p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]]
+    : [[p2(h), t("countdownHours")], [p2(min), t("countdownMin")], [p2(sec), t("countdownSec")]];
+  return `<div class="count-grid next-game-timer${d > 0 ? " four" : ""}">${
+    cells.map(([v, l]) => `<div><b>${v}</b><span>${esc(l)}</span></div>`).join("")
+  }</div>`;
+}
+
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
@@ -1179,18 +1200,19 @@ function renderNextTieCard() {
   if (!next) { card.classList.add("hidden"); return; }
 
   const { m, home, away } = next;
-  const diffMs   = next.kickoffMs - Date.now();
-  let countdown  = "";
-  if (diffMs > 0 && diffMs < 3600000) {
-    const min = Math.floor(diffMs / 60000), sec = Math.floor((diffMs % 60000) / 1000);
-    countdown = ` · ${min}m ${String(sec).padStart(2, "0")}s`;
-  }
+  const diffMs    = next.kickoffMs - Date.now();
+  const timerHtml = countdownTimerHtml(diffMs);
 
   card.innerHTML = `<div class="next-game-card">
     <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
-    <div class="next-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
-    <div class="next-game-info">${esc(fmtDate(m.kickoff))}${countdown}</div>
-    ${m.venue ? `<div class="next-game-venue">${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
+    <div class="next-game-row">
+      <div class="next-game-info-block">
+        <div class="next-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
+        <div class="next-game-info">${esc(fmtDate(m.kickoff))}</div>
+        ${m.venue ? `<div class="next-game-venue">${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
+      </div>
+      ${timerHtml}
+    </div>
   </div>`;
   card.classList.remove("hidden");
 }
@@ -1823,7 +1845,10 @@ async function init() {
   });
 
   renderCountdown();
-  setInterval(() => { if (!document.hidden) renderCountdown(); }, 1000);
+  // Mesmo tick de 1s do BR2026/Copa -- antes renderNextTieCard() só re-renderizava via renderAll()
+  // (save, resync a cada 30s), então o contador do card "Próxima partida" nunca atualizava ao
+  // vivo entre um re-render e outro. Divergência real encontrada por Eduardo (2026-07-14).
+  setInterval(() => { if (!document.hidden) { renderCountdown(); renderNextTieCard(); } }, 1000);
 
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
 

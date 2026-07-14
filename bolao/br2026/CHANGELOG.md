@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.30 — 2026-07-14
+
+### Fixed — "Próximo jogo" não mostrava contador ao vivo igual à Copa (mesmo achado no CDB2026)
+
+Eduardo reportou: "próximo jogo br nao mostra countdown do proximo jogo igual copa que funciona
+bem. Isso tem que ser 100% consistente". O card "Próximo jogo" (fora do caso "jogo hoje") só
+mostrava um texto de contador ("6d 01h 13m") — bem menos visível que a caixa de dígitos grandes
+que a Copa usa. Adicionada `countdownTimerHtml()`, mesmo algoritmo e mesma marcação
+(`.count-grid` + dias/horas/min/seg em caixas, variante de 4 colunas quando há dias) do contador
+da Copa (`renderNextMatch()` em `bolao/js/app.js`), substituindo o texto inline pela caixa —
+`renderNextGameCard()` já tinha um `setInterval` de 1s próprio, então o contador novo já
+atualiza ao vivo sem mudança adicional nesse ponto.
+
+Mesmo achado, mesma correção aplicada ao CDB2026 — ver changelog do CDB2026 v3.11 (lá o gap era
+maior: não só faltava a caixa, o card também não tinha nenhum tick de 1s próprio).
+
+12 testes automatizados novos (caixa de dígitos presente, contador atualizando ao vivo com o
+schedule da ESPN mockado). `node --check`: OK. `audit_scoring.py`: 5/5, sem impacto.
+
 ## v1.29 — 2026-07-14
 
 ### Fixed — palpites apagados ao interagir com o formulário (bug crítico, mesmo achado no CDB2026)

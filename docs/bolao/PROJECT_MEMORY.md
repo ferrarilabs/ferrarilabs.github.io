@@ -942,6 +942,14 @@ prevenção) de cada bug relevante. Resumo dos bugs mais significativos por cate
   BR2026 usam `var(--green)`, visualmente óbvio mas invisível numa comparação só de valores.
   Lição registrada em `DESIGN_SYSTEM.md`: auditoria de cor precisa comparar token-por-elemento,
   não só os valores declarados em `:root`.
+- **"Próximo jogo" sem contador visual de verdade no BR2026/CDB2026 (v1.30/v3.11, 2026-07-14) —
+  mesmo padrão de buraco de metodologia:** a rodada anterior (v3.9) unificou os CAMPOS do card
+  (time/data/hora/local) mas não verificou se o COMPONENTE de contador (caixa de dígitos grandes
+  da Copa) também estava presente — BR2026 tinha só texto inline, CDB2026 tinha um texto ainda
+  mais limitado (só <1h) que nem atualizava ao vivo (sem `setInterval` próprio). Terceira vez
+  nesta sessão que uma verificação de "campo/token igual" passou por cima de "componente/
+  comportamento igual" — padrão a levar para auditorias futuras: sempre verificar o componente
+  inteiro (estrutura + comportamento ao vivo), não só os dados que ele exibe.
 
 ---
 

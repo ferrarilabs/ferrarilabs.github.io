@@ -476,6 +476,20 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .next-game-vs { color: var(--muted); margin: 0 6px; }
 .next-game-info { font-size: 12px; color: var(--muted); }
 .next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
+/* Contador de dígitos ao vivo — mesmo componente visual da Copa (.next-match-timer,
+   bolao/css/styles.css), reaproveitando .count-grid (já usado pelo contador de cutoff). Antes o
+   "próximo jogo" só mostrava texto inline ("6d 01h 13m"), bem menos visível que o contador em
+   caixas grandes da Copa — divergência real encontrada por Eduardo (2026-07-14): "não mostra
+   countdown do próximo jogo igual copa que funciona bem". */
+.next-game-row { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.next-game-info-block { flex: 1; min-width: 160px; }
+.next-game-timer { grid-template-columns: repeat(3, 1fr); flex-shrink: 0; }
+.next-game-timer.four { grid-template-columns: repeat(4, 1fr); }
+.next-game-live { font-size: 13px; font-weight: 700; color: var(--green); }
+@media (max-width: 500px) {
+  .next-game-row { flex-direction: column; align-items: stretch; }
+  .next-game-timer { width: 100%; }
+}
 
 /* ── Today's games (mini list in nextGameCard) ── */
 .today-games-header { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
