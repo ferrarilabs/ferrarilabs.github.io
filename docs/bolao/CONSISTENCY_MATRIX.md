@@ -445,3 +445,35 @@ CDB2026 pontua confronto a confronto conforme os jogos reais acontecem, também 
 tabela externa em progresso. Só o BR2026 pontua com base numa classificação de terceiros
 (Brasileirão inteiro) que só termina no fim da temporada — daí a necessidade única de deixar claro
 que o número exibido durante a temporada é uma projeção, não um resultado.
+
+## Nota manual — Auditoria de governança de plataforma: header/nav, botões, forms, payment, rules (2026-07-14)
+
+Auditoria direcionada (não substitui o bloco `AUTO:CONSISTENCY_MATRIX` completo, que exige
+regeneração automatizada full-scope) pedida por Eduardo para consolidar governança permanente da
+plataforma. Ver `docs/bolao/PLATFORM_DESIGN_SYSTEM.md` (novo), `docs/bolao/PLATFORM_ARCHITECTURE.md`
+(novo), `docs/bolao/UI_REGRESSION_PROTOCOL.md` (novo).
+
+**Status antes → depois:**
+
+| Componente | Antes | Depois | Divergência | Severidade | Próxima ação |
+|---|---|---|---|---|---|
+| Botões (`.secondary`/`.danger`/`.small-btn`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — classes idênticas, mesmos valores CSS nos 3 apps | — | Nenhuma |
+| Payment card (`.pay-grid`/`.pay-card`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — BR2026/CDB2026 têm comentário explícito "mesmo tratamento visual da Copa" | — | Nenhuma |
+| Rules section (`#rules`/`.section-head`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — HTML idêntico nos 3 apps | — | Nenhuma |
+| Form/input (`label`/`input`/`select`) | Não auditado formalmente | `CONSISTENT` | Nenhuma — mesmo padrão, mesmos tokens (ver `PLATFORM_DESIGN_SYSTEM.md`) | — | Nenhuma |
+| Nav — nº de abas visíveis | Não auditado formalmente | `NEEDS_REVIEW` | Copa esconde "Participantes" e "Pagamento" do nav (`style="display:none"` inline) — BR2026/CDB2026 mostram as duas. CSS `.nav` da Copa ainda declara `repeat(8,...)` mas só 6 botões ficam visíveis (renderiza corretamente — grid do navegador colapsa itens `display:none`, confirmado via screenshot Playwright, sem gap visual) | Low (visual correto, mas intenção não documentada) | Perguntar ao Eduardo se é decisão deliberada (ex.: Copa não precisa de aba própria porque o ranking já mostra participante+pago) ou resquício de refatoração — **não alterado nesta tarefa**, por ser decisão de arquitetura de informação, não um patch de token visual |
+
+**Componentes já unificados em sessões anteriores no mesmo dia** (não re-auditados do zero aqui,
+apenas confirmados como ainda válidos): ranking shell (`.rank-row`/`.picks-detail`, item 68),
+comprovante/e-mail (item 8/10), "Ver palpites" como `<table>` (nota de 2026-07-14 acima).
+
+**Diferenças intencionais confirmadas nesta rodada**: nenhuma nova além da já registrada (cutoff
+por mecanismo, fases dinâmicas do CDB2026).
+
+**Risco residual**: item da tabela acima (`NEEDS_REVIEW`) é o único ponto em aberto — baixo risco,
+não bloqueia nada, mas fica registrado para não ser esquecido.
+
+**Regra de propagação aplicada**: mudanças desta rodada foram só documentação (`CLAUDE.md`,
+`docs/bolao/PLATFORM_DESIGN_SYSTEM.md`, `PLATFORM_ARCHITECTURE.md`, `UI_REGRESSION_PROTOCOL.md`,
+`QA_MASTER_CHECKLIST.md`) — nenhum código de app alterado, nada para propagar via changelog de
+app individual.
