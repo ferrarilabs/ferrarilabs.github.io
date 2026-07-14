@@ -1552,8 +1552,57 @@ function healFalseEspnAutoResults(s) {
   return changed;
 }
 
+// Auto-cura de confrontos-fantasma criados pela falta de guarda em autoSyncEspn() -- v3.19,
+// EMERGENCY_HOTFIX, 2026-07-14, mesmo dia do incidente v3.17/v3.18. Achado em produção: dos 112
+// ties gravados na fase Oitavas, só 8 eram os confrontos reais (DATA.knownConfrontos.oitavas); os
+// outros 104 eram jogos de fases anteriores da Copa do Brasil real (fetchEspnCandidates cobre o
+// ano inteiro) confundidos com Oitavas porque o par de nomes de time nunca tinha aparecido em
+// outra fase rastreada por este app. Nove desses fantasmas chegaram a ser travados
+// (lockedBy:"espn-auto") com um kickoff antigo real anexado, o que arrastava
+// firstKnownKickoffMs()/o cutoff automático para o passado -- exatamente os sintomas relatados
+// ("fechado para palpites", "sem contador regressivo", "jogos das oitavas errados"). Roda uma
+// única vez (flag própria), na inicialização, depois do merge com o Supabase e depois de
+// seedKnownConfrontos(). Só remove um tie quando a fase tem uma lista curada de confrontos reais
+// (DATA.knownConfrontos[phaseId]) e o par do tie não está nela -- nunca mexe em fase sem lista
+// curada (nada a validar). Nunca remove um tie que tenha pelo menos um palpite real de
+// participante referenciando-o, mesmo que não devesse acontecer (defesa extra).
+function healPhantomTies(s) {
+  if (s.espnSync?.healedPhantomTies) return false;
+  s.espnSync = s.espnSync || {};
+  s.espnSync.healedPhantomTies = true;
+  let changed = false;
+  const pickedTieIds = new Set();
+  (s.entries || []).forEach(e => {
+    Object.keys(e.picks?.matches || {}).forEach(id => pickedTieIds.add(id));
+    Object.keys(e.picks?.qualified || {}).forEach(id => pickedTieIds.add(id));
+  });
+  Object.entries(s.phases || {}).forEach(([phaseId, phase]) => {
+    const known = DATA.knownConfrontos?.[phaseId];
+    if (!known) return; // sem lista curada para esta fase -- nada a validar, não mexe
+    const knownPairs = new Set(known.map(k => [k.teamA, k.teamB].sort().join("|")));
+    Object.entries(phase.ties || {}).forEach(([tieId, tie]) => {
+      const pairKey = [tie.teamA, tie.teamB].sort().join("|");
+      if (knownPairs.has(pairKey)) return;
+      if (pickedTieIds.has(tieId)) return; // palpite real de participante -- não apaga
+      delete phase.ties[tieId];
+      changed = true;
+    });
+  });
+  return changed;
+}
+
 // Faz o trabalho de fato: busca, filtra o que já existe, cria os confrontos novos na fase ativa,
 // salva uma vez (não uma vez por confronto). Retorna um resumo para o admin ver o que aconteceu.
+//
+// v3.19 (2026-07-14, EMERGENCY_HOTFIX): antes desta correção, QUALQUER par de nomes de time visto
+// no ano inteiro de dados da ESPN (fetchEspnCandidates, dates=20260101-20261231, ~500 jogos de
+// todas as fases) que ainda não existisse em nenhuma fase rastreada virava confronto novo na fase
+// ativa -- sem checar se aquele par É de fato um confronto real desta fase. Restrição: só cria um
+// confronto novo se o par já é um dos confrontos REALMENTE sorteados e conhecidos para esta fase
+// (DATA.knownConfrontos[phaseId], curado manualmente -- ver data.js). Sem essa curadoria para a
+// fase (ex.: Quartas/Semifinal antes do sorteio real acontecer), não cria nada -- confrontos
+// dessas fases continuam exigindo cadastro manual do admin (tela "Fases e confrontos"), que já
+// era o modelo documentado em CDB2026_RULES_AND_MODEL.md antes da automação de ESPN existir.
 async function autoSyncEspn(s) {
   const phaseId = s.espnSync?.activePhaseId;
   if (!phaseId) return { addedCount: 0, added: [], error: false, needsPhase: true };
@@ -1561,6 +1610,7 @@ async function autoSyncEspn(s) {
   const candidates = await fetchEspnCandidates();
   if (candidates === null) return { addedCount: 0, added: [], error: true, needsPhase: false };
 
+  const knownPairs = new Set((DATA.knownConfrontos?.[phaseId] || []).map(k => [k.teamA, k.teamB].sort().join("|")));
   const existingPairs = existingPairsAcrossPhases(s);
   const format = getPhaseDef(phaseId).format;
   const added = [];
@@ -1569,6 +1619,7 @@ async function autoSyncEspn(s) {
   candidates.forEach(ev => {
     const pairKey = [ev.homeTeam, ev.awayTeam].sort().join("|");
     if (existingPairs.has(pairKey)) return;
+    if (!knownPairs.has(pairKey)) return; // não é um confronto real conhecido desta fase -- ignora
     existingPairs.add(pairKey); // evita adicionar o mesmo par duas vezes nesta mesma leva
     const tie = { teamA: ev.homeTeam, teamB: ev.awayTeam, matches: {}, qualifiedTeamId: null };
     legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
@@ -2367,10 +2418,12 @@ async function init() {
   const wasSeeded   = !!seedState.espnSync.seededKnownConfrontos;
   const wasBackfilled = !!seedState.espnSync.backfilledOitavasKickoffs;
   const wasHealed = !!seedState.espnSync.healedFalseAutoResults;
+  const wasHealedPhantoms = !!seedState.espnSync.healedPhantomTies;
   seedKnownConfrontos(seedState);
   backfillOitavasKickoffs(seedState);
   healFalseEspnAutoResults(seedState);
-  if (!wasSeeded || !wasBackfilled || !wasHealed) saveState(seedState, { localOnly: false });
+  healPhantomTies(seedState);
+  if (!wasSeeded || !wasBackfilled || !wasHealed || !wasHealedPhantoms) saveState(seedState, { localOnly: false });
   renderAll();
 
   if (C.database.enabled) {
