@@ -168,9 +168,14 @@ share code (no imports between them) but they are audited together.
 
 **Propagation rule — mandatory:**
 
-> Uma alteração visual, de componente, acessibilidade, segurança, banco, email, receipt,
+> Uma alteração visual, de componente, acessibilidade, segurança, banco, email, receipt, PDF,
 > admin ou infraestrutura feita em um aplicativo deve ser auditada nos demais aplicativos
 > antes do encerramento da tarefa.
+
+**Golden master rule — mandatory:**
+
+> A Copa do Mundo 2026 (`bolao/`) é a referência visual canônica. BR2026 e CDB2026 devem copiar
+> seus padrões visuais, não sua lógica de torneio.
 
 Additional rules:
 
@@ -316,4 +321,26 @@ No BR2026, toda classificação exibida antes do encerramento do Brasileirão de
 projeção. Nunca apresentar pontuação, posição ou vencedor provisório como resultado definitivo.
 Ver `docs/bolao/BR2026_PROJECTION_MODEL.md` para a fórmula, o índice de precisão informativo e a
 linguagem obrigatória na UI.
+
+### Padronização visual — regras adicionais (2026-07-14)
+
+Complementam as seções acima (não substituem — algumas regras abaixo já estavam parcialmente
+cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
+
+- Não alterar scoring ou regra de torneio durante uma tarefa de padronização visual, mesmo que
+  pareça pequeno ou relacionado — padronização visual e mudança de regra de negócio nunca são o
+  mesmo patch.
+- Não corrigir um app quebrando outro. Rodar a suíte de testes do app alterado E confirmar que os
+  outros dois continuam passando antes de considerar a tarefa concluída.
+- Antes de editar um arquivo, registrar (mentalmente ou em nota) o comportamento atual que
+  precisa ser preservado — não só o que vai mudar.
+- Depois do patch, provar que esse comportamento foi preservado (teste automatizado ou
+  verificação manual explícita), não apenas assumir.
+- Não copiar lógica de torneio junto com o visual. Reproduzir tokens/estrutura/CSS da Copa é
+  sempre correto; copiar sua fórmula de scoring, bracket ou regra de avanço para outro app nunca
+  é — cada app preserva sua própria lógica de torneio.
+- Toda regressão encontrada durante a tarefa deve ser reportada, mesmo que fora do escopo
+  original da mudança — nunca corrigida silenciosamente sem menção, nem ignorada.
+- Se um teste falhar, parar e investigar antes de continuar ampliando o diff. Não seguir
+  adicionando mudanças novas em cima de uma suíte vermelha.
 <!-- AUTO:PLATFORM_RULES:END -->
