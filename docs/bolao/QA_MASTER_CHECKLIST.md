@@ -254,6 +254,23 @@ Para cada tela ou componente alterado, contra `docs/bolao/DESIGN_SYSTEM.md`:
 - [ ] Desktop usa largura de maneira adequada.
 - [ ] Componentes equivalentes foram comparados nos três apps.
 - [ ] Diferenças intencionais foram documentadas.
+
+## M. Visual Consistency Gate
+
+Ver `docs/bolao/UI_REGRESSION_PROTOCOL.md` para o protocolo completo por trás deste gate.
+
+- [ ] Golden master localizado (`bolao/` — Copa do Mundo 2026).
+- [ ] Componente equivalente localizado nos três apps.
+- [ ] Tokens comparados (`docs/bolao/PLATFORM_DESIGN_SYSTEM.md`).
+- [ ] Layout comparado (estrutura HTML, não só CSS).
+- [ ] Mobile testado.
+- [ ] Desktop testado.
+- [ ] JS selectors validados (mudança de estrutura HTML não quebrou nenhum `querySelector`).
+- [ ] Funcionalidade anterior preservada.
+- [ ] Consistency Matrix atualizada.
+- [ ] Changelog atualizado.
+- [ ] Diferenças intencionais documentadas.
+- [ ] Nenhuma regressão encontrada.
 <!-- AUTO:QA_MASTER_CHECKLIST:END -->
 
 ## Nota manual — QA da reformulação do CDB2026 (2026-07-13, v3.0)
