@@ -1,5 +1,70 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.19 — 2026-07-14 (EMERGENCY_HOTFIX, causa raiz mais profunda que v3.17/v3.18)
+
+### Fixed — Eduardo reportou de novo: "100% incorreto", fechado, sem contador, sem jogos das Oitavas
+
+Depois do v3.18 ir ao ar, Eduardo reportou que o CDB2026 continuava totalmente quebrado em
+produção: fechado para palpites, sem contador regressivo, sem os jogos das Oitavas para apostar,
+"mostra apenas informação incorreta". Investigação direta no estado de produção (linha
+`id='cdb2026'` no Supabase, leitura via chave `anon` pública, sem alterar nada) confirmou um bug
+ainda não coberto pelas correções anteriores.
+
+**Causa raiz**: `autoSyncEspn()` criava um confronto novo na fase ativa para **qualquer** par de
+nomes de time visto em `fetchEspnCandidates()`, que busca o **ano inteiro** de jogos da Copa do
+Brasil (`dates=20260101-20261231`, ~500 eventos de todas as fases) — sem checar se aquele par é de
+fato um dos confrontos reais sorteados para a fase atual. Como as fases 1–4 são rastreadas
+deliberadamente sem dado nenhum (`DATA.phasesConcludedNoData`), qualquer confronto dessas fases
+antigas (times pequenos como CRB, Sousa EC, Galvez, Anápolis) "parecia novo" e caía dentro da fase
+Oitavas, que era a `activePhaseId`. Confirmado em produção: dos **112 confrontos gravados na fase
+Oitavas, só 8 eram os reais** (`DATA.knownConfrontos.oitavas`); os outros 104 eram lixo de fases
+já disputadas entre fevereiro e maio de 2026. **9 desses fantasmas chegaram a ser travados**
+(`lockedBy: "espn-auto"`) com um kickoff antigo real anexado — e como `firstKnownKickoffMs()` usa
+o kickoff **mais cedo** entre todos os confrontos da fase para calcular o cutoff automático, esses
+kickoffs de abril arrastavam o cutoff para o passado, explicando exatamente os três sintomas
+reportados de uma vez (fechado, sem contador, Oitavas "erradas"). A cura automática do v3.18
+(`healFalseEspnAutoResults`) não pegava este caso porque sua prova de corrupção exige que
+**nenhum** kickoff conhecido do tie já tenha passado — os fantasmas tinham kickoffs reais (de
+partidas de fases anteriores), então passavam nessa checagem sem serem revertidos.
+
+**Correção 1 — `autoSyncEspn()` restringido**: só cria um confronto novo se o par de times já é um
+dos confrontos **realmente sorteados e conhecidos** para aquela fase
+(`DATA.knownConfrontos[phaseId]`, curado manualmente — mesma fonte que já alimentava
+`seedKnownConfrontos()`/`backfillOitavasKickoffs()`). Sem essa curadoria para uma fase (ex.:
+Quartas antes do sorteio real), a função não cria nada — cadastro continua manual pelo admin,
+como já era o modelo antes da automação de ESPN existir.
+
+**Correção 2 — `healPhantomTies()`**: auto-cura de execução única (mesmo padrão de
+`healFalseEspnAutoResults`), roda na inicialização depois do merge com o Supabase. Remove qualquer
+confronto cujo par de times não esteja na lista curada de confrontos reais da sua fase — nunca
+mexe em fase sem lista curada, e nunca remove um confronto que tenha pelo menos um palpite real de
+participante referenciando-o (defesa extra; confirmado manualmente que a única entrada real hoje
+em produção não tem nenhum palpite nos 104 confrontos fantasma).
+
+### Verificado
+
+- Estado de produção lido diretamente do Supabase (leitura, chave `anon` pública, sem escrita) e
+  analisado com script Python ad-hoc: confirmado 112 ties na fase Oitavas contra 8 reais, 9
+  travados incorretamente, 0 palpites de participantes reais afetados.
+- `audit_scoring.py`: PASSOU (scoring não foi tocado — esta correção é só sobre quais confrontos
+  existem/são criados, não sobre como pontos são calculados).
+- **Sem acesso a `node`/Playwright neste ambiente** — não foi possível rodar a suíte automatizada
+  de 89+ testes referenciada em v3.16–v3.18. Verificação manual: releitura completa do diff,
+  checagem de balanceamento de chaves/parênteses do arquivo inteiro (0 antes, 0 depois da
+  correção), e a lógica de `healPhantomTies()`/`autoSyncEspn()` segue exatamente o mesmo padrão já
+  testado de `healFalseEspnAutoResults()`/`withinResultMatchWindow()` (v3.17/v3.18). Recomendado
+  rodar a suíte Playwright completa na próxima sessão com acesso a Node antes de considerar este
+  incidente 100% fechado.
+- A correção do estado de produção acontece automaticamente no próximo carregamento do app por
+  qualquer visitante (mesmo padrão de auto-cura do v3.18) — não foi necessária nem realizada
+  nenhuma escrita manual direta no Supabase.
+
+### Classificação
+
+`EMERGENCY_HOTFIX` — bug em produção bloqueando entrada de palpites reais (dinheiro em jogo),
+reportado por Eduardo como "100% incorreto". Continuação do mesmo incidente do dia (v3.16 → v3.17
+→ v3.18 → v3.19), causa raiz mais profunda que as duas correções anteriores endereçavam.
+
 ## v3.18 — 2026-07-14 (EMERGENCY_HOTFIX, mesmo incidente do v3.17)
 
 ### Fixed — o v3.17 sozinho não bastou; Eduardo continuou sem conseguir cadastrar palpites

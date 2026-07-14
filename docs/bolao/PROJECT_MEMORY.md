@@ -1025,6 +1025,53 @@ corrigir se alguém perceber e clicar".
 único**: sempre ancorar em uma janela de tempo plausível, nunca confiar só em correspondência de
 nome/par em um feed que cobre um período mais amplo do que o evento específico sendo procurado.
 
+### CDB2026: v3.18 ainda não bastou — confrontos-fantasma inundando a fase Oitavas (v3.19, EMERGENCY_HOTFIX, mesmo dia)
+
+Eduardo reportou de novo, ainda no mesmo dia do incidente v3.16–v3.18: "o bolao da copa do brasil
+esta 100% incorreto... mostra apenas informação incorreta." Investigação partiu direto do estado
+de produção (leitura da linha `id='cdb2026'` no Supabase via chave `anon` pública, sem alterar
+nada) em vez de tentar reproduzir localmente. Achado: **causa raiz diferente e mais profunda** que
+v3.17/v3.18 endereçavam — `autoSyncEspn()` (a metade de EMPARELHAMENTO da sincronização ESPN,
+nunca revisada nas correções anteriores, que focaram só na metade de RESULTADO) criava um
+confronto novo na fase ativa para **qualquer** par de nomes de time visto em
+`fetchEspnCandidates()`, que busca o ano inteiro de jogos da Copa do Brasil real
+(`dates=20260101-20261231`), sem checar se aquele par é de fato um dos confrontos sorteados para a
+fase atual. Como fase-1 a fase-4 são rastreadas deliberadamente sem dado nenhum
+(`DATA.phasesConcludedNoData`), qualquer jogo dessas fases antigas (times pequenos, fevereiro–maio
+de 2026) "parecia novo" e caía dentro de Oitavas (`activePhaseId`). Confirmado em produção: **112
+confrontos gravados na fase Oitavas, só 8 reais** (`DATA.knownConfrontos.oitavas`); os outros 104
+eram lixo de fases já disputadas. 9 chegaram a ser travados (`lockedBy: "espn-auto"`) com kickoff
+antigo real anexado — como `firstKnownKickoffMs()` usa o kickoff **mais cedo** entre todos os
+confrontos da fase para calcular o cutoff automático, esses kickoffs de abril arrastavam o cutoff
+inteiro para o passado, explicando de uma vez os três sintomas relatados (fechado, sem contador,
+Oitavas "erradas"). A cura automática do v3.18 (`healFalseEspnAutoResults`) não pegava este caso:
+sua prova de corrupção exige que **nenhum** kickoff conhecido do tie já tenha passado, e os
+fantasmas tinham kickoffs reais (de partidas de fases anteriores de verdade), passando ilesos por
+essa checagem.
+
+Duas correções, mesmo padrão das anteriores: (1) `autoSyncEspn()` só cria um confronto novo se o
+par já está na lista curada de confrontos reais da fase (`DATA.knownConfrontos[phaseId]`) — sem
+essa curadoria para uma fase (ex.: Quartas antes do sorteio real), não cria nada, cadastro
+continua manual pelo admin, modelo original antes da automação de ESPN existir; (2)
+`healPhantomTies()`, migração de execução única no mesmo padrão de `healFalseEspnAutoResults()`,
+remove qualquer confronto cujo par não esteja na lista curada da sua fase — nunca mexe em fase sem
+lista curada, nunca remove um confronto com pelo menos um palpite real de participante
+referenciando-o (confirmado manualmente: a única entrada real em produção não tinha nenhum
+palpite nos 104 confrontos fantasma, cura segura). `audit_scoring.py` passou (scoring não foi
+tocado). **Limitação desta sessão**: sem `node`/Playwright disponíveis no ambiente, não foi
+possível rodar a suíte automatizada de 89+ testes que as correções anteriores do mesmo dia
+adicionaram — verificação foi manual (releitura do diff completo, balanceamento de
+chaves/parênteses do arquivo antes/depois, lógica espelhando exatamente o padrão já testado de
+`healFalseEspnAutoResults()`). Recomendado rodar a suíte completa na próxima sessão com Node
+disponível antes de considerar o incidente do dia 100% fechado.
+
+**Lição consolidada (reforça a do v3.18)**: a mesma automação ESPN tem duas metades —
+emparelhamento (criar confronto) e resultado (preencher placar/travar) — e cada incidente do dia
+corrigiu só uma por vez sem revisar a outra sob a mesma lente. Da próxima vez que uma automação
+por identidade/nome tiver um bug de escopo temporal encontrado em uma metade, a outra metade que
+usa o mesmo feed/mesma falta de filtro de proximidade deve ser auditada junto, não só a que gerou
+o sintoma mais recente.
+
 ---
 
 ## Bugs históricos
