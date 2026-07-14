@@ -1,5 +1,21 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.23 — 2026-07-14
+
+### Fixed — ordenação cronológica também no formulário de Palpites
+
+Eduardo mandou um print mostrando o formulário de Palpites com Santos×Remo antes de
+Mirassol×Grêmio, achando que a ordenação (v3.21) não tinha funcionado. Na verdade nunca foi
+aplicada ali: v3.21 foi deliberadamente restrita à aba "Jogos" (`renderGamesSection()`), a
+pedido explícito de "fix pequeno e pontual" — o formulário de Palpites (`renderPickForm()`)
+continuava na ordem crua de inserção do objeto de estado.
+
+Aplicada a mesma ordenação (`firstLegKickoffMs()`, já existente desde v3.21) também em
+`renderPickForm()` — confrontos sem kickoff conhecido ainda ficam no fim, mesmo comportamento.
+Nenhuma mudança em cutoff, validação ou pontuação.
+
+`audit_scoring.py`: PASSOU (scoring não foi tocado).
+
 ## v3.22 — 2026-07-14
 
 ### Fixed — caixa de placar do formulário de palpites desproporcional ao dígito
