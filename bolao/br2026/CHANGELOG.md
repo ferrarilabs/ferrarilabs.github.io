@@ -1,5 +1,42 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.35 — 2026-07-14
+
+### Added — "Projeção do Bolão": linguagem correta + índice de precisão informativo
+
+Eduardo pediu a transformação completa do ranking numa página de projeção clara ("se o
+Brasileirão terminasse hoje"), com auditoria prévia obrigatória. A auditoria (Fase 1) encontrou
+que o motor de cálculo já existia de sessões anteriores (`getActiveScore()` já reusa a fórmula
+oficial `scoreEntry()` alimentada com a tabela ao vivo; `calculateRankingMovement()` já compara
+contra um baseline estável, nunca inventa movimento) — o trabalho real era linguagem/UI e a
+métrica de precisão que faltava.
+
+- **Título/subtítulo/disclaimer da seção Ranking** trocados para a linguagem exigida: "Projeção do
+  Bolão" / "Se o Brasileirão terminasse hoje" / aviso explícito de que pontuação oficial e
+  vencedores só saem depois do encerramento da competição.
+- **Novo `accuracyMetrics()`**: índice de precisão 0-100% comparando o palpite original contra a
+  tabela atual, posição a posição (G4/Z4) + acerto binário (SA6) — **puramente informativo, nunca
+  usado em ranking/ordenação/desempate/pontuação**. Exibido no painel expandido de cada
+  participante junto com uma lista das 5 maiores divergências (time, posição palpitada, posição
+  atual).
+- **Bug real encontrado escrevendo os testes**: o cálculo de distância posicional inicialmente
+  comparava a posição REAL do time contra 0 fixo, em vez de contra o SLOT que o participante
+  efetivamente escolheu para aquele time — corrigido antes de qualquer teste passar a depender do
+  valor errado.
+- `docs/bolao/BR2026_PROJECTION_MODEL.md` novo — fórmula, índice de precisão, movimento,
+  limitações, estados tratados, linguagem obrigatória.
+- Nova regra permanente em `CLAUDE.md`: toda classificação exibida antes do encerramento do
+  Brasileirão deve ser tratada como projeção.
+
+### Testado
+
+- 17 testes novos (`test_br2026_projection.js`): linguagem da UI, `accuracyMetrics()` via hook de
+  teste exposto (`window.__BR2026_TESTHOOKS__`) — palpite idêntico, posições trocadas em par,
+  palpite invertido, time fora do grupo, SA6 parcial, sem palpite, sem classificação carregada, e
+  confirmação de que `accuracyIndex` nunca aparece no objeto de ranking.
+- Suíte de regressão completa (91 testes entre BR2026 e CDB2026) sem falhas.
+- `node --check`; `python3 bolao/scripts/audit_scoring.py` — passou (fórmula oficial intocada).
+
 ## v1.34 — 2026-07-14
 
 ### Fixed — consistência entre apps + bug real de exposição de palpites

@@ -309,4 +309,11 @@ concluída.
 No BR2026, movimento de clube na classificação e movimento de participante no ranking são
 conceitos distintos. Ambos devem usar baseline estável, não a atualização anterior, e nunca podem
 compartilhar a mesma estrutura de estado por conveniência.
+
+### Projeção do Bolão no BR2026
+
+No BR2026, toda classificação exibida antes do encerramento do Brasileirão deve ser tratada como
+projeção. Nunca apresentar pontuação, posição ou vencedor provisório como resultado definitivo.
+Ver `docs/bolao/BR2026_PROJECTION_MODEL.md` para a fórmula, o índice de precisão informativo e a
+linguagem obrigatória na UI.
 <!-- AUTO:PLATFORM_RULES:END -->
