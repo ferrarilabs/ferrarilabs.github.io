@@ -339,11 +339,18 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 /* Uma linha só: time A + escudo + placar × placar + escudo + time B (era time numa linha,
    placar em outra abaixo — layout pedido pelo Eduardo depois de testar ao vivo). */
 .tie-inputs { display: flex; align-items: center; justify-content: center; gap: 6px; flex-wrap: wrap; }
-/* Mesmo tratamento visual do placar da Copa (.score-inputs input, bolao/css/styles.css) --
-   achado de UX (2026-07-14): a caixa herdava o padding genérico de input (10px 12px), grande
-   demais pro dígito pequeno lá dentro (15px). Reaproveitando o padrão da Copa -- dígito maior e
-   mais grosso preenche a caixa, em vez de aumentar o alvo de toque com espaço vazio. */
-.tie-inputs input[type="number"] { width: 44px; padding: 8px 4px; text-align: center; font-size: 18px; font-weight: 900; flex-shrink: 0; }
+/* Dígito maior e mais grosso preenchendo a caixa -- mesma intenção visual do placar da Copa
+   (.score-inputs input, bolao/css/styles.css). Achado de UX (2026-07-14, revisão):
+   a primeira correção (mesmo dia) copiou o PADDING da Copa (8px verticais) mas não o LAYOUT --
+   o placar da Copa vive num grid de 2 colunas largas (.score-inputs), então 10px vertical não
+   incomoda numa caixa larga. Aqui a caixa divide uma única linha com nome do time + escudo + "×"
+   + a outra caixa (.tie-inputs é flex, não grid), então precisa ser estreita (~40px) -- e
+   manter padding vertical grande numa caixa estreita produz uma caixa quase quadrada e vazia
+   (a queixa real do Eduardo, print em mãos: "tamanho desproporcional ao label"). Corrigido
+   reduzindo o padding vertical bem mais que o horizontal -- caixa vira um retângulo curto,
+   proporcional a um número de 1-2 dígitos, mantendo alvo de toque acima do mínimo AA do WCAG
+   (24×24px) mesmo depois do corte. */
+.tie-inputs input[type="number"] { width: 40px; padding: 4px 3px; text-align: center; font-size: 18px; font-weight: 900; flex-shrink: 0; }
 .tie-team-name { font-weight: 700; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: clamp(60px, 20vw, 120px); }
 .tie-x { color: var(--muted); }
 .tie-advance { margin-top: 8px; width: 100%; }
@@ -372,7 +379,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
   padding: 6px 0 6px 10px; font-size: 13px;
 }
-.admin-leg-row input[type="number"] { width: 44px; padding: 8px 4px; text-align: center; font-size: 18px; font-weight: 900; }
+/* Mesma correção de proporção que .tie-inputs input acima -- consistência interna entre a tela
+   do participante e a do admin (2026-07-14, revisão). */
+.admin-leg-row input[type="number"] { width: 40px; padding: 4px 3px; text-align: center; font-size: 18px; font-weight: 900; }
 .admin-tie-aggregate { border-top: 1px dashed var(--border2); margin-top: 4px; padding-top: 8px; }
 .admin-tie-aggregate select { min-width: 140px; width: auto; }
 .leg-result-saved { color: var(--green); font-weight: 700; font-size: 13px; }

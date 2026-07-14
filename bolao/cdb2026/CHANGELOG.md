@@ -1,5 +1,32 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.24 — 2026-07-14
+
+### Fixed — caixa de placar ainda desproporcional depois da correção de hoje (revisão)
+
+Eduardo mandou print de novo: mesmo depois da correção de padding/font-size mais cedo hoje
+(be9e656), a caixa de placar continuava visivelmente grande/quadrada em relação ao dígito e ao
+nome do time ao lado.
+
+**Causa raiz real**: a correção de hoje cedo copiou o PADDING do placar da Copa (8px vertical)
+sem copiar o LAYOUT que faz aquele padding funcionar lá. Na Copa, o placar vive num grid de 2
+colunas largas (`.score-inputs`), então 10-8px de padding vertical não incomoda numa caixa larga.
+No CDB2026, a caixa divide uma única linha com nome do time + escudo + "×" (`.tie-inputs` é
+flex, não grid), então precisa ser estreita (~40-44px) — manter padding vertical grande numa
+caixa estreita produz uma caixa quase quadrada e vazia, exatamente a queixa do Eduardo.
+
+**Correção**: reduzido o padding vertical bem mais que o horizontal (`8px 4px` → `4px 3px`),
+`width` ajustado de 44px para 40px. Resultado: caixa vira um retângulo curto (~40×31px),
+proporcional a um número de 1-2 dígitos, mantendo alvo de toque acima do mínimo AA do WCAG
+(24×24px). Aplicado nos dois lugares (formulário de palpite do participante e formulário de
+resultado do admin), mesma consistência interna que a correção de hoje cedo já buscava.
+
+Escopo confirmado como específico do CDB2026: BR2026 não tem nenhum input de placar por partida
+(pool de classificação, não mata-mata); a Copa não tem esse problema estruturalmente (layout em
+grid largo, não flex estreito). Nada a propagar.
+
+`audit_scoring.py`: PASSOU (CSS-only, scoring não foi tocado).
+
 ## v3.23 — 2026-07-14
 
 ### Fixed — ordenação cronológica também no formulário de Palpites
