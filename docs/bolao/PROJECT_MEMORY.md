@@ -946,6 +946,38 @@ design deliberada, nunca automatizada de propósito: "isso decide o pagamento").
 
 ---
 
+### CDB2026: automação da captura de RESULTADO, autorizada explicitamente por Eduardo (v3.16, 2026-07-14)
+
+Resposta ao item pendente acima: perguntado diretamente via `AskUserQuestion` (mantendo manual vs.
+automatizar também o resultado, não só o emparelhamento), Eduardo escolheu **automatizar**, mesmo
+depois do risco documentado ter sido apresentado explicitamente (travar resultado decide pagamento;
+casar a perna errada num confronto de ida/volta seria grave). Autorização explícita registrada —
+governança de "nunca alterar regra de negócio sem autorização explícita" satisfeita.
+
+Implementado `autoSyncEspnResults()` no mesmo ciclo de 5 min que já sincronizava confrontos
+(`autoSyncEspn()`), com salvaguardas desenhadas especificamente para mitigar o risco original:
+
+- **Perna certa por identidade do time mandante** (não ordem de data) — ida e volta têm mandantes
+  sempre invertidos entre si por definição de mata-mata, mesmo sinal que a UI manual já usava.
+- **Nunca sobrescreve** uma perna já preenchida nem um confronto já travado, seja por admin ou por
+  um ciclo anterior desta mesma função — corrigir continua exigindo "Destravar" na UI.
+- **Agregado não empatado**: trava automaticamente com a mesma regra que o botão manual já usava
+  (`totalA > totalB ? "A" : "B"`) — nenhuma regra nova, só automatizada.
+- **Agregado empatado** (só decide nos pênaltis, Copa do Brasil não usa gols fora de casa): só
+  trava automaticamente se a ESPN reportar um vencedor explícito (campo `winner` da API); sem esse
+  dado, cai pro fluxo manual existente — nunca adivinha o resultado.
+- Cada placar/travamento automático é marcado (`resultSource`/`lockedBy: "espn-auto"`) com uma
+  etiqueta "(via ESPN)" visível no admin, distinguindo de um lançamento manual do Eduardo.
+
+13 testes Playwright novos (`test_espn_auto_results.js`) cobrem especificamente as 5 salvaguardas
+acima (agregado não empatado trava certo; agregado empatado com vencedor de pênaltis informado
+trava certo; agregado empatado sem essa informação NÃO trava; perna manual nunca é sobrescrita;
+confronto já travado nunca é re-avaliado), todos passando, mais a suíte de regressão completa sem
+falhas reais. `TOURNAMENT_SPECIFIC`, não propagado — Copa não tem sincronização com ESPN (bracket
+fixo) e BR2026 não tem modelo de confronto/resultado por partida (é projeção de classificação).
+
+---
+
 ## Bugs históricos
 
 Ver `docs/bolao/LESSONS_LEARNED.md` para o detalhamento completo (causa raiz, correção,

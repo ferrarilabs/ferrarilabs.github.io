@@ -1,5 +1,57 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.16 — 2026-07-14
+
+### Changed — automação da captura de RESULTADO (não só emparelhamento) — autorizado por Eduardo
+
+Eduardo pediu para "automatizar" a atualização de placar do admin. Eu apresentei o risco
+documentado (travar um resultado decide pagamento; casar a perna errada num confronto de ida/volta
+seria grave — ver `docs/bolao/CDB2026_RULES_AND_MODEL.md` §7) e perguntei explicitamente antes de
+mexer. Eduardo escolheu automatizar mesmo assim. Implementado com o máximo de salvaguarda possível
+sem inventar dado que a ESPN não fornece:
+
+- **Nova `autoSyncEspnResults()`**, chamada no mesmo ciclo de 5 min que já sincronizava confrontos
+  (`autoSyncEspn()`, agora envolvida por `autoSyncEspnFull()`). Preenche o placar de cada perna
+  (ida/volta) automaticamente quando a ESPN reporta o jogo como encerrado, e trava o confronto
+  (`qualifiedTeamId`) sozinha quando o resultado é inequívoco.
+- **Como o risco de "casar a perna errada" foi mitigado**: a identificação de qual evento da ESPN é
+  ida e qual é volta usa a identidade do time MANDANTE (o mesmo sinal que a UI manual já usa —
+  `home = leg === "second" ? tie.teamB : tie.teamA`), nunca ordem de data. Ida e volta têm mandantes
+  sempre invertidos entre si por definição de mata-mata — não há ambiguidade nesse sinal.
+- **Como o risco de travar errado foi mitigado**: (1) nunca sobrescreve uma perna que já tem
+  placar, seja lançada manualmente ou por um ciclo anterior desta mesma função; (2) nunca
+  sobrescreve um confronto já travado (manual ou automático) — corrigir continua exigindo
+  "Destravar" na UI, como sempre exigiu; (3) quando o agregado bate diferente, o vencedor é
+  inequívoco pelo placar (mesma regra que o botão manual já usava, nenhuma regra nova); (4) quando o
+  agregado empata (só decide nos pênaltis — Copa do Brasil não usa gols fora de casa como critério),
+  só trava automaticamente se a ESPN reportar um vencedor explícito (campo `winner` da API, que já
+  reflete o resultado da disputa de pênaltis). Sem esse dado, a função não adivinha — o confronto
+  fica exatamente como ficava antes, esperando o admin escolher manualmente.
+- Cada placar/travamento automático fica marcado (`resultSource`/`lockedBy: "espn-auto"`) e mostra
+  uma etiqueta "(via ESPN)" na UI do admin, para o Eduardo distinguir de um lançamento manual dele
+  a qualquer momento.
+- Texto do painel "Sincronizar com a ESPN" atualizado para descrever o novo comportamento com
+  precisão (antes dizia que resultado "continua exigindo confirmação manual", o que deixou de ser
+  totalmente verdade).
+
+### Não propagado
+
+`TOURNAMENT_SPECIFIC` — Copa não tem sincronização com ESPN (bracket fixo desde o deploy); BR2026
+não tem modelo de confrontos/resultado por partida (é projeção de classificação, não mata-mata).
+Nada a propagar.
+
+### Testado
+
+- 13 testes Playwright novos (`test_espn_auto_results.js`), cobrindo: agregado não empatado (trava
+  correta e inequívoca), agregado empatado com vencedor de pênaltis informado pela ESPN (trava
+  correta), agregado empatado SEM informação de pênaltis (não trava, cai pro fluxo manual), perna
+  lançada manualmente nunca é sobrescrita pela ESPN, confronto já travado nunca é re-travado/alterado
+  mesmo que a ESPN mude o placar depois.
+- Suíte de regressão completa re-executada sem regressões reais (uma falha isolada e não-reproduzível
+  em `test_urgent_fixes.js`, de um teste do BR2026 não relacionado a esta mudança, confirmada como
+  flakiness de timing ao rodar em lote — 13/13 passando ao rodar isolado).
+- `node --check`; `python3 bolao/scripts/audit_scoring.py` — passou.
+
 ## v3.15 — 2026-07-14
 
 ### Fixed — bug em produção ("Oitavas encerrado" incorreto) + consistência com Copa/BR2026

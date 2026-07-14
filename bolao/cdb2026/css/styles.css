@@ -372,6 +372,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .admin-tie-aggregate { border-top: 1px dashed var(--border2); margin-top: 4px; padding-top: 8px; }
 .admin-tie-aggregate select { min-width: 140px; width: auto; }
 .leg-result-saved { color: var(--green); font-weight: 700; font-size: 13px; }
+.espn-auto-tag { color: var(--muted); font-weight: 400; font-size: 11px; }
 
 /* ── Admin — fases e confrontos (cadastro dinâmico, ver CDB2026_RULES_AND_MODEL.md) ── */
 .admin-phase-block { padding: 12px 0; border-bottom: 1px solid var(--border); }

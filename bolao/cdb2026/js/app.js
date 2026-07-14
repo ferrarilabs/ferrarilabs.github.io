@@ -1355,7 +1355,7 @@ function renderAdmin() {
 // etapa continua exigindo o fluxo existente em "Resultados".
 const ESPN_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 let _espnLastAutoSyncAt = 0;
-let _espnLastRunSummary = null; // { addedCount, error, at } | null — só para exibir no admin
+let _espnLastRunSummary = null; // { addedCount, added, lockedCount, locked, filledLegsCount, error, at } | null — só para exibir no admin
 
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
@@ -1380,6 +1380,12 @@ async function fetchEspnCandidates() {
         awayTeam: away?.team?.displayName || "",
         homeScore: evState === "post" && home?.score != null ? parseInt(home.score, 10) : null,
         awayScore: evState === "post" && away?.score != null ? parseInt(away.score, 10) : null,
+        // `winner` é o campo que a própria ESPN usa pra indicar quem passou de fase depois de
+        // pênaltis (o placar normal por si só empata em caso de disputa) -- só confiável quando o
+        // jogo já terminou (evState === "post"); usado em autoSyncEspnResults() para travar um
+        // confronto empatado no agregado sem precisar do admin escolher manualmente.
+        homeWinner: evState === "post" ? home?.winner === true : null,
+        awayWinner: evState === "post" ? away?.winner === true : null,
         venue: comp.venue?.fullName || "",
         city: comp.venue?.address?.city || "",
       };
@@ -1519,15 +1525,16 @@ async function autoSyncEspn(s) {
     legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
     // O evento da ESPN corresponde à primeira perna do confronto (a ida, ou a única partida em
     // SINGLE_MATCH) — kickoff/local vêm do evento mesmo se ainda não jogado (alimenta o card
-    // "próxima partida", ver renderNextTieCard()). Placar só é preenchido se o jogo já terminou
-    // na ESPN — não trava o resultado (isso continua exigindo o clique manual em "Resultados",
-    // que decide o pagamento).
+    // "próxima partida", ver renderNextTieCard()). Placar é preenchido se o jogo já terminou na
+    // ESPN (autoSyncEspnResults(), chamada logo depois desta função no mesmo ciclo, cuida do
+    // avanço/travamento do confronto — aqui só entra o placar bruto da perna, igual ao que já
+    // acontecia antes de v3.16).
     const firstLeg = format === "SINGLE_MATCH" ? "single" : "first";
     tie.matches[firstLeg] = {
       ...tie.matches[firstLeg],
       homeTeam: ev.homeTeam, awayTeam: ev.awayTeam,
       kickoff: ev.dateISO || null, venue: ev.venue || null, city: ev.city || null,
-      ...(ev.homeScore != null ? { goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL" } : {}),
+      ...(ev.homeScore != null ? { goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" } : {}),
     };
     s2.phases[phaseId].ties[espnTieId(ev.homeTeam, ev.awayTeam)] = tie;
     added.push(`${ev.homeTeam} × ${ev.awayTeam}`);
@@ -1535,6 +1542,108 @@ async function autoSyncEspn(s) {
 
   if (added.length) saveState(s2);
   return { addedCount: added.length, added, error: false, needsPhase: false };
+}
+
+// ─── Automação de RESULTADO (não só emparelhamento) — v3.16 ─────────────────────────────────
+// Eduardo autorizou explicitamente em 2026-07-14, depois de eu apresentar o risco documentado em
+// docs/bolao/CDB2026_RULES_AND_MODEL.md §7 (travar resultado decide pagamento; casar a perna
+// errada num confronto de ida/volta seria grave). Decisão registrada em
+// docs/bolao/CONSISTENCY_MATRIX.md e no CHANGELOG desta versão.
+//
+// Como o risco de "casar a perna errada" é mitigado: NÃO se usa ordem de data para decidir se um
+// evento da ESPN é ida ou volta -- usa-se a identidade do time mandante, que é o mesmo sinal que a
+// UI manual já usa (`home = leg === "second" ? tie.teamB : tie.teamA`, ver renderAdminResultsForTie
+// e o handler de data-save-leg). Ida e volta têm mandantes sempre invertidos entre si por definição
+// de mata-mata -- não há ambiguidade nesse sinal.
+//
+// Como o risco de "travar um confronto errado" é mitigado:
+//  1. Nunca sobrescreve uma perna que já tem placar -- nem uma lançada manualmente, nem uma já
+//     preenchida por uma rodada anterior desta mesma função (mesmo guard que a UI manual usa:
+//     `m.goalsHome == null`).
+//  2. Nunca sobrescreve um confronto que já tem `qualifiedTeamId` -- travar de novo por cima de um
+//     resultado já travado (manual ou automático) nunca acontece; corrigir exige "Destravar" na UI
+//     como sempre exigiu.
+//  3. Quando o agregado bate diferente, o vencedor é inequívoco pelo placar (mesma regra que o botão
+//     manual já usava: `totalA > totalB ? "A" : "B"` -- nenhuma regra nova).
+//  4. Quando o agregado empata (só decide nos pênaltis -- a Copa do Brasil não usa gols fora de
+//     casa como critério de desempate), só trava automaticamente se a ESPN reportar um vencedor
+//     explícito (campo `winner` da API, que já reflete o resultado da disputa de pênaltis). Se esse
+//     dado não vier, a função NÃO adivinha -- o confronto fica exatamente como ficava antes:
+//     esperando o admin escolher manualmente no select + "Salvar resultado".
+function aggregateOrSingleTotals(format, matches) {
+  if (format === "TWO_LEG") { const agg = aggregateFromMatches(matches); return [agg.totalA, agg.totalB]; }
+  return [matches.single.goalsHome, matches.single.goalsAway];
+}
+
+async function autoSyncEspnResults(s) {
+  const phaseId = s.espnSync?.activePhaseId;
+  if (!phaseId) return { lockedCount: 0, locked: [], filledLegsCount: 0, error: false };
+
+  const candidates = await fetchEspnCandidates();
+  if (candidates === null) return { lockedCount: 0, locked: [], filledLegsCount: 0, error: true };
+
+  const format = getPhaseDef(phaseId).format;
+  const legs = legsForFormat(format);
+  const s2 = state(); // relê o estado mais recente antes de escrever — outra aba pode ter mudado algo
+  const ties = s2.phases[phaseId]?.ties || {};
+  let filledLegsCount = 0;
+  const locked = [];
+
+  Object.values(ties).forEach(tie => {
+    if (!tie.teamA || !tie.teamB) return;
+
+    legs.forEach(leg => {
+      const m = tie.matches?.[leg];
+      if (!m || m.goalsHome != null) return; // já preenchido (manual ou auto) — nunca sobrescreve
+      const home = leg === "second" ? tie.teamB : tie.teamA;
+      const away = leg === "second" ? tie.teamA : tie.teamB;
+      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away && c.homeScore != null);
+      if (!ev) return;
+      tie.matches[leg] = { ...m, homeTeam: home, awayTeam: away, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" };
+      filledLegsCount++;
+    });
+
+    if (tie.qualifiedTeamId) return; // já travado (manual ou auto) — nunca sobrescreve
+    if (!legs.every(leg => tie.matches?.[leg]?.goalsHome != null)) return; // ainda falta perna
+
+    const [totalA, totalB] = aggregateOrSingleTotals(format, tie.matches);
+    let qualified = null;
+    if (totalA !== totalB) {
+      qualified = totalA > totalB ? "A" : "B";
+    } else {
+      const decisiveLeg  = format === "TWO_LEG" ? "second" : "single";
+      const decisiveHome = decisiveLeg === "second" ? tie.teamB : tie.teamA;
+      const decisiveAway = decisiveLeg === "second" ? tie.teamA : tie.teamB;
+      const ev = candidates.find(c => c.homeTeam === decisiveHome && c.awayTeam === decisiveAway);
+      if (ev?.homeWinner === true) qualified = decisiveHome === tie.teamA ? "A" : "B";
+      else if (ev?.awayWinner === true) qualified = decisiveAway === tie.teamA ? "A" : "B";
+      // Sem sinal de vencedor da ESPN: fica sem travar, cai pro fluxo manual existente.
+    }
+
+    if (!qualified) return;
+    tie.qualifiedTeamId = qualified;
+    tie.lockedAt = new Date().toISOString();
+    tie.lockedBy = "espn-auto";
+    locked.push(`${tie.teamA} × ${tie.teamB}`);
+  });
+
+  if (filledLegsCount || locked.length) saveState(s2);
+  return { lockedCount: locked.length, locked, filledLegsCount, error: false };
+}
+
+// Roda os dois ciclos em sequência (emparelhamento, depois resultado) e funde num resumo único
+// para a UI do admin. autoSyncEspnResults() relê o estado internamente, então já enxerga
+// qualquer confronto novo que autoSyncEspn() acabou de adicionar no mesmo ciclo.
+async function autoSyncEspnFull(s) {
+  const pairSummary = await autoSyncEspn(s);
+  const resultSummary = await autoSyncEspnResults(state());
+  return {
+    addedCount: pairSummary.addedCount, added: pairSummary.added,
+    lockedCount: resultSummary.lockedCount, locked: resultSummary.locked,
+    filledLegsCount: resultSummary.filledLegsCount,
+    error: pairSummary.error || resultSummary.error,
+    needsPhase: pairSummary.needsPhase,
+  };
 }
 
 function renderAdminEspnSync(s) {
@@ -1551,9 +1660,16 @@ function renderAdminEspnSync(s) {
     statusHtml = `<p class="muted small-text">${esc(t("espnSyncError"))}</p>`;
   } else if (_espnLastRunSummary) {
     const when = new Date(_espnLastRunSummary.at).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
-    statusHtml = _espnLastRunSummary.addedCount
-      ? `<p class="small-text">✓ ${_espnLastRunSummary.addedCount} ${esc(t("espnSyncAddedCount"))}: ${esc(_espnLastRunSummary.added.join(", "))} — ${esc(when)}</p>`
-      : `<p class="muted small-text">${esc(t("espnSyncNothingNew"))} — ${esc(when)}</p>`;
+    const lines = [];
+    if (_espnLastRunSummary.addedCount) {
+      lines.push(`<p class="small-text">✓ ${_espnLastRunSummary.addedCount} ${esc(t("espnSyncAddedCount"))}: ${esc(_espnLastRunSummary.added.join(", "))}</p>`);
+    }
+    if (_espnLastRunSummary.lockedCount) {
+      lines.push(`<p class="small-text">✓ ${_espnLastRunSummary.lockedCount} ${esc(t("espnSyncLockedCount"))}: ${esc(_espnLastRunSummary.locked.join(", "))}</p>`);
+    }
+    if (!lines.length) lines.push(`<p class="muted small-text">${esc(t("espnSyncNothingNew"))}</p>`);
+    lines.push(`<p class="muted small-text">${esc(when)}</p>`);
+    statusHtml = lines.join("");
   } else {
     statusHtml = `<p class="muted small-text">${esc(t("espnSyncChecking"))}</p>`;
   }
@@ -1586,19 +1702,24 @@ function renderAdminEspnSync(s) {
     _espnLastAutoSyncAt = Date.now();
     const btn = $("espnSyncNowBtn");
     btn.disabled = true; btn.textContent = t("espnSyncFetching");
-    _espnLastRunSummary = { ...(await autoSyncEspn(state())), at: Date.now() };
+    _espnLastRunSummary = { ...(await autoSyncEspnFull(state())), at: Date.now() };
     if (_espnLastRunSummary.addedCount) showToast(t("espnSyncAddedToast"), "success");
-    renderAdminEspnSync(state());
+    if (_espnLastRunSummary.lockedCount) showToast(t("espnSyncLockedToast"), "success");
+    renderAdmin();
   });
 
   // Auto-sync: roda sozinho quando o painel admin abre (ou a cada 5 min se ele continuar aberto)
   // — sem exigir clique. Guarda por timestamp para não rodar de novo a cada re-render (ex.: depois
-  // de marcar um pagamento como pago, o que também dispara renderAdmin()).
+  // de marcar um pagamento como pago, o que também dispara renderAdmin()). Desde v3.16 também
+  // captura e trava resultado automaticamente (autoSyncEspnFull) -- ver autoSyncEspnResults() para
+  // o racional completo e as salvaguardas.
   if (s.espnSync?.activePhaseId && Date.now() - _espnLastAutoSyncAt > ESPN_AUTO_SYNC_INTERVAL_MS) {
     _espnLastAutoSyncAt = Date.now();
-    autoSyncEspn(s).then(summary => {
+    autoSyncEspnFull(s).then(summary => {
       _espnLastRunSummary = { ...summary, at: Date.now() };
-      if (summary.addedCount) { showToast(t("espnSyncAddedToast"), "success"); renderAdminEspnSync(state()); }
+      if (summary.addedCount) showToast(t("espnSyncAddedToast"), "success");
+      if (summary.lockedCount) showToast(t("espnSyncLockedToast"), "success");
+      if (summary.addedCount || summary.lockedCount || summary.filledLegsCount) renderAdmin();
       else renderAdminEspnSync(state());
     });
   }
@@ -1768,9 +1889,10 @@ function renderAdminResultsForTie(phase, tieId, tie) {
   if (tie.qualifiedTeamId) {
     const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
     const summary = agg ? `${esc(t("gamesAggregate"))}: ${agg.totalA} × ${agg.totalB} — ` : "";
+    const autoTag = tie.lockedBy === "espn-auto" ? ` <span class="espn-auto-tag">${esc(t("espnAutoTag"))}</span>` : "";
     return `<div class="admin-row cdb-admin-tie" data-tie-id="${esc(tieId)}">
       <span class="tie-teams-admin">${esc(tie.teamA)} × ${esc(tie.teamB)}</span>
-      <span class="leg-result-saved">✓ ${summary}${esc(t("gamesAdvances"))}: ${esc(tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB)}</span>
+      <span class="leg-result-saved">✓ ${summary}${esc(t("gamesAdvances"))}: ${esc(tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB)}${autoTag}</span>
       <button type="button" class="secondary small-btn" data-unlock-tie="${esc(tieId)}" data-phase="${esc(phase.id)}">${esc(t("unlockResults"))}</button>
     </div>`;
   }
@@ -1782,10 +1904,11 @@ function renderAdminResultsForTie(phase, tieId, tie) {
     const home = leg === "second" ? tie.teamB : tie.teamA;
     const away = leg === "second" ? tie.teamA : tie.teamB;
     if (m.goalsHome != null) {
+      const autoTag = m.resultSource === "espn-auto" ? ` <span class="espn-auto-tag">${esc(t("espnAutoTag"))}</span>` : "";
       return `<div class="admin-leg-row" data-tie-id="${esc(tieId)}" data-phase="${esc(phase.id)}" data-leg="${leg}">
         ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
         <span class="leg-teams-admin">${esc(home)} × ${esc(away)}</span>
-        <span class="leg-result-saved">✓ ${m.goalsHome} × ${m.goalsAway}</span>
+        <span class="leg-result-saved">✓ ${m.goalsHome} × ${m.goalsAway}${autoTag}</span>
         <button type="button" class="secondary small-btn" data-edit-leg="${esc(tieId)}" data-phase="${esc(phase.id)}" data-leg="${leg}">${esc(t("edit"))}</button>
       </div>`;
     }
@@ -1862,7 +1985,7 @@ function renderAdminResults(s) {
     const tie = s2.phases[phaseId].ties[tieId];
     const home = leg === "second" ? tie.teamB : tie.teamA;
     const away = leg === "second" ? tie.teamA : tie.teamB;
-    tie.matches[leg] = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL" };
+    tie.matches[leg] = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL", resultSource: "admin" };
     // Limpa os campos ANTES de salvar -- saveState() chama renderAll() de forma síncrona, e
     // adminResultsFormIsDirty() (novo, ver renderAdmin()) leria esses mesmos inputs ainda com "a"/
     // "b" digitados no DOM antigo (a reconstrução ainda não rodou) e bloquearia a própria
@@ -1903,6 +2026,7 @@ function renderAdminResults(s) {
     const s2 = state();
     s2.phases[phaseId].ties[tieId].qualifiedTeamId = qualified;
     s2.phases[phaseId].ties[tieId].lockedAt = new Date().toISOString();
+    s2.phases[phaseId].ties[tieId].lockedBy = "admin";
     saveState(s2);
     showToast(t("resultsSaved"), "success");
   }));
@@ -1911,7 +2035,7 @@ function renderAdminResults(s) {
     if (!confirm(t("confirmUnlockResults"))) return;
     const s2 = state();
     const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.unlockTie];
-    if (tie) { delete tie.qualifiedTeamId; delete tie.lockedAt; }
+    if (tie) { delete tie.qualifiedTeamId; delete tie.lockedAt; delete tie.lockedBy; }
     saveState(s2);
   }));
 }
