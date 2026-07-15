@@ -184,6 +184,14 @@ h2 { font-size: 1.25rem; }
 h3 { font-size: 1.05rem; }
 
 .section-head { margin-bottom: 14px; }
+/* Cabeçalho da seção Ranking + caixa do Pot -- mesma estrutura/classes da Copa
+   (bolao/css/styles.css) -- achado em auditoria (2026-07-15, Eduardo: "o pot na copa nao esta
+   igual nos outros dois"). Antes o Pot só aparecia como um dos 3 números da barra de estatísticas
+   de Participantes (sem equivalente na Copa); agora aparece no mesmo lugar que a Copa usa. */
+.section-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.pot-box { text-align: right; flex-shrink: 0; }
+.pot-box span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
+.pot-box strong { display: block; font-size: 26px; font-weight: 800; color: var(--green); line-height: 1.1; }
 
 /* ── Form ── */
 .form-grid {
@@ -383,10 +391,6 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .unpaid-badge { background: var(--bg3); color: var(--muted); border: 1px solid var(--border2); font-size: 11px; font-weight: 900; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
 
 /* ── Participants ── */
-.participants-stats {
-  display: flex; gap: 16px; font-size: 13px; color: var(--muted);
-  margin-bottom: 12px; flex-wrap: wrap;
-}
 
 /* ── Payment — mesmo tratamento visual da Copa (bolao/css/styles.css .pay-card), com ícone
    por método. Era um card empilhado sem ícone, layout/tokens diferentes. */

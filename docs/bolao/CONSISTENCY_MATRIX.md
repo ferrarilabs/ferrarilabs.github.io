@@ -576,3 +576,33 @@ PDF/popup do comprovante).
 esta não é o contexto certo pra reabrir decisões já tomadas deliberadamente.
 
 `audit_scoring.py`: PASSOU nos dois apps em cada etapa — nenhuma mudança tocou scoring.
+
+## Nota manual — item 1 resolvido (audit_scoring.py para BR2026/CDB2026); Pot movido pro lugar certo (2026-07-15, BR2026 v1.39 / CDB2026 v3.28)
+
+Eduardo apontou, depois da correção de Participantes, que o Pot também estava em lugar errado
+("o pot na copa nao esta igual nos outros dois") e deixou claro o padrão geral: **tudo precisa
+permanecer 100% igual à Copa a não ser que não se aplique** (diferença de torneio genuína).
+
+- **Pot**: estava só na barra de estatísticas de Participantes (sem equivalente na Copa). Movido
+  para `.pot-box` no cabeçalho do Ranking (`#potValue`), exatamente onde/como a Copa mostra.
+  A barra de estatísticas inteira (total de entradas/pagas/pot) foi removida nos dois apps — não
+  tinha equivalente na Copa e não era diferença de torneio, só um acréscimo que a rodada anterior
+  desta mesma auditoria erroneamente manteve como "aditivo, não conflita".
+- **Item 1 (audit_scoring.py)**: `bolao/br2026/scripts/audit_scoring.py` e
+  `bolao/cdb2026/scripts/audit_scoring.py` criados — transcrições Python das fórmulas reais de
+  scoring de cada app (G4/Z4/SA6 no BR2026; placar por partida + bônus de confronto/pódio no
+  CDB2026), 5 checagens cada, todas passando. Diferente do script da Copa (que audita
+  `send_result_email.py`, uma reimplementação independente rodando via cron, contra o site — o
+  risco ali é drift entre duas implementações): nem BR2026 nem CDB2026 têm um script server-side
+  equivalente rodando sem supervisão, então não existe "segunda implementação" pra comparar. O
+  valor desses dois scripts novos é ser uma suíte de regressão que precisa ser atualizada à mão
+  junto de qualquer mudança de scoring em `app.js` — registrado explicitamente no docstring de
+  cada script pra próxima sessão não confundir "audita drift" com "audita a própria transcrição".
+
+**Lição consolidada**: ao aplicar uma correção de consistência, reavaliar tudo que foi
+classificado como "aditivo"/"acréscimo aceitável" na MESMA auditoria com mais rigor — a barra de
+estatísticas foi erroneamente aceita como aditiva na rodada anterior (mesma sessão, poucos
+minutos antes) até o Eduardo apontar explicitamente que não deveria existir.
+
+`audit_scoring.py` (Copa): PASSOU. `audit_scoring.py` (BR2026, novo): PASSOU. `audit_scoring.py`
+(CDB2026, novo): PASSOU.

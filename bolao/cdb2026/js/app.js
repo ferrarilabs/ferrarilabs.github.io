@@ -852,6 +852,13 @@ function renderRanking() {
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
 
+  // Mesmo lugar/cálculo da Copa (renderRanking(), bolao/js/app.js) -- achado em auditoria
+  // (2026-07-15): o Pot só aparecia na barra de estatísticas de Participantes, sem equivalente
+  // na Copa, que mostra no cabeçalho do Ranking.
+  const paidCount = entries.filter(e => (s.paid || {})[e.id]).length;
+  const potEl = $("potValue");
+  if (potEl) potEl.textContent = `$${paidCount * (C.entryFee || 5)}`;
+
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
 
   const scored = entries.map(e => {
@@ -968,12 +975,13 @@ function renderPickDisplay(entry, detail) {
 }
 
 // ─── Render: participants ─────────────────────────────────────────────────────
-// Estrutura de linha idêntica à Copa (.rank-row, ícone + nome/pagador/método + chip de status —
+// Estrutura idêntica à Copa (.rank-row, ícone + nome/pagador/método + chip de status —
 // bolao/js/app.js renderParticipants()) -- achado em auditoria (2026-07-15, Eduardo: "as telas
-// de participantes e ranking tem formatos... diferentes da Copa"). Antes usava .participant-row,
-// um componente próprio (sem ícone, sem método de pagamento exibido) nunca alinhado com a Copa.
-// A barra de estatísticas (total/pagas/pot) é um acréscimo -- a Copa não tem equivalente -- mas
-// aditiva, não conflita com as linhas em si estarem exatamente iguais.
+// de participantes e ranking tem formatos... diferentes da Copa" / "tudo precisa permanecer
+// 100% igual a nao ser que nao se aplique"). Antes usava .participant-row (componente próprio,
+// sem ícone, sem método de pagamento) e uma barra de estatísticas (total/pagas/pot) sem
+// equivalente NENHUM na Copa -- removida; o Pot agora vive só no cabeçalho do Ranking
+// (#potValue), igual à Copa.
 function renderParticipants() {
   const box = $("participantsList");
   if (!box) return;
@@ -981,23 +989,14 @@ function renderParticipants() {
   const deleted = new Set(s.deletedIds || []);
   const entries = (s.entries || []).filter(e => !deleted.has(e.id));
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
-  const total = entries.length;
-  const paid  = entries.filter(e => (s.paid || {})[e.id]).length;
-  const pot   = (total * C.entryFee).toFixed(0);
-  box.innerHTML = `
-    <div class="participants-stats">
-      <span>${total} entradas</span>
-      <span>${paid} pagas</span>
-      <span>Pot: US$ ${pot}</span>
-    </div>
-    ${entries.map(e => {
-      const isPaid = (s.paid || {})[e.id];
-      return `<div class="rank-row">
-        <div>👤</div>
-        <div><b>${esc(e.entryName)}</b><br><span class="muted">${esc(e.payerName || "")} · ${esc(e.paymentMethod || "")}</span></div>
-        <span class="${isPaid ? "paid-badge" : "unpaid-badge"}">${esc(isPaid ? t("paid") : t("unpaid"))}</span>
-      </div>`;
-    }).join("")}`;
+  box.innerHTML = entries.map(e => {
+    const isPaid = (s.paid || {})[e.id];
+    return `<div class="rank-row">
+      <div>👤</div>
+      <div><b>${esc(e.entryName)}</b><br><span class="muted">${esc(e.payerName || "")} · ${esc(e.paymentMethod || "")}</span></div>
+      <span class="${isPaid ? "paid-badge" : "unpaid-badge"}">${esc(isPaid ? t("paid") : t("unpaid"))}</span>
+    </div>`;
+  }).join("");
 }
 
 // ─── Render: payment ─────────────────────────────────────────────────────────
