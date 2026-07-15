@@ -506,3 +506,42 @@ Copa já está correta (decisão de 10 dias atrás, ainda válida), BR2026/CDB20
 ou CDB2026 encerrar de verdade (fim da fase de inscrição de cada um), o mesmo padrão da Copa
 (esconder "Participantes"/"Pagamento" da nav, pivotar pra Ranking+Palpites) é o comportamento
 correto a replicar — ligado ao ciclo de vida de CADA torneio, não algo pra fazer hoje.
+
+## Nota manual — item 24 resolvido: jogo ao vivo agora bate com a Copa nos três apps (2026-07-15, BR2026 vX / CDB2026 v3.25)
+
+Auditoria pedida por Eduardo comparando o recurso de "jogo ao vivo" (placar/relógio em tempo
+real) entre os três apps, com o BR2026 se aproximando. Achados (simulação manual com payloads
+reais da ESPN, sem acesso de rede a hosts externos neste ambiente):
+
+- **CDB2026 (achado alto)**: não existia NENHUMA experiência de jogo ao vivo — só sincronização
+  de resultado FINAL a cada 5 min, em segundo plano. Como as Oitavas são mata-mata real (jogo
+  real dia 1º de agosto, prorrogação/pênaltis genuinamente possíveis), era a maior divergência
+  real da plataforma vs. a Copa.
+- **BR2026 (achado médio)**: tinha placar/relógio ao vivo, mas sem nenhuma detecção de intervalo
+  (halftime) nem proteção contra o relógio andar pra trás por lag da ESPN — o filtro de partida
+  ao vivo só olhava `state === "in"`, que a ESPN mantém `"in"` durante o intervalo também (o
+  campo que muda é `type.name`, granular). Sem tratamento, o relógio subia e descia durante o
+  intervalo inteiro (~15min) num "serrote" visual, sem nunca mostrar "Intervalo".
+- **Copa**: referência, mas o próprio Eduardo confirmou que o relógio dela "ainda não está 100%"
+  — aceito como está por enquanto ("até 2030 a gente arruma isso").
+
+**Correção**: portado quase literalmente da Copa (mesmos nomes de função — `formatMatchClock`,
+`mergeLiveClock`, `detectClockPaused`, mesmas constantes de boundary/stoppage) pros dois apps,
+por pedido explícito do Eduardo ("tem que bater exatamente com o da Copa"):
+- BR2026: `fetchScoreboard()`/`pollAll()` ganharam detecção de intervalo/pênaltis + relógio
+  monotônico com cache persistido; `renderLiveCard()`/`renderNextGameCard()` compartilham a
+  mesma função `liveClockDisplay()`.
+- CDB2026: recurso novo do zero — `fetchEspnCandidates()` estendida com campos ao vivo
+  (`state`/`clockSec`/`period`/`isHalftime`/`isPenalties`) sem tocar nos campos que
+  `autoSyncEspn()`/`autoSyncEspnResults()` já usavam; `fetchLiveTies()`/`pollLiveTies()` casam
+  cada perna de cada confronto da fase ativa por identidade de mandante (mesmo padrão de
+  `autoSyncEspnResults`); novo card `#liveTieCard`, poll de 60s separado do sync de resultado
+  final de 5 min (concerns diferentes: exibição em tempo real nunca grava nada no
+  estado/Supabase). Mantido o tratamento COMPLETO de period 3/4/5 (prorrogação/pênaltis) — ao
+  contrário do BR2026 (liga, sem essa possibilidade), aqui é real.
+
+**Decisão: `CONSISTENT`, propagado nos dois apps.** Mesma lógica, mesmos nomes de função, mesmo
+comportamento (incluindo a mesma imperfeição conhecida e aceita da Copa — reset de período pode
+mostrar o relógio brevemente "pausado" por um ciclo de poll até se autocorrigir, não um bug novo
+introduzido aqui). `audit_scoring.py` passou — mudança é só de exibição, nunca grava
+placar/resultado oficial.

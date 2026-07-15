@@ -1,5 +1,57 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.25 — 2026-07-15
+
+### Added — jogo ao vivo (placar + relógio em tempo real), recurso que nunca existiu aqui
+
+Eduardo pediu auditoria comparando o recurso de "jogo ao vivo" entre Copa/BR2026/CDB2026 (com o
+BR2026 se aproximando) e depois pediu correção completa pra bater exatamente com a Copa. Achado
+mais sério da auditoria: CDB2026 nunca teve NENHUMA experiência de jogo ao vivo pro participante
+— só `autoSyncEspnFull()` (sincronização de resultado FINAL a cada 5 min, em segundo plano, nunca
+mostra nada em tela). Como as Oitavas são mata-mata real (primeiro jogo dia 1º de agosto,
+prorrogação/pênaltis genuinamente possíveis), era a maior divergência real da plataforma.
+
+**Portado quase literalmente da Copa** (`bolao/js/app.js`), por pedido explícito ("tem que bater
+exatamente com o da Copa"): `formatMatchClock()` (relógio consciente de period — 1/2 tempo normal,
+3/4 prorrogação, 5 pênaltis — com acréscimo de até 8min e teto pra prorrogação, mesmo fix do bug
+real "120:07 (+1)…" que a Copa pegou ao vivo em Austrália×Egito), `mergeLiveClock()` (monotônico,
+nunca anda pra trás a não ser que a ESPN sinalize um reset de período legítimo),
+`detectClockPaused()` (detecta intervalo/pausa real comparando dois polls crus, funciona mesmo
+quando o texto de status da ESPN não bate com as regras de reconhecimento).
+
+**Novo, específico do modelo de fases do CDB2026** (não existe equivalente na Copa, que usa
+bracket fixo): `fetchEspnCandidates()` estendida com campos ao vivo
+(`state`/`clockSec`/`period`/`isHalftime`/`isPenalties`/`clockStr`), sem tocar nos campos que
+`autoSyncEspn()`/`autoSyncEspnResults()` já dependiam (nenhuma mudança na sincronização de
+resultado existente). `fetchLiveTies()`/`pollLiveTies()` casam cada perna (ida/volta) de cada
+confronto da fase ATIVA por identidade de mandante (mesmo padrão de `autoSyncEspnResults`, nunca
+por ordem de data) contra os eventos "in" da ESPN. Novo card `#liveTieCard` (mesmas classes CSS
+`.live-*` da Copa/BR2026), poll de 60s dedicado — separado do sync de resultado final de 5 min,
+concerns diferentes: exibição em tempo real nunca grava nada no estado/Supabase, só o admin
+travando resultado grava de verdade.
+
+### Testado (simulação manual, sem acesso de rede a hosts externos neste ambiente)
+
+Tracei à mão o ciclo de vida completo de uma partida de mata-mata contra a lógica implementada:
+1º tempo → intervalo (relógio mostra "Intervalo" fixo, não soma segundos através da pausa) → 2º
+tempo (retoma corretamente ao detectar mudança de period) → acréscimo → fim de regulação →
+prorrogação (mesma transição, mesmo "serrote" de um ciclo de poll que a Copa também tem — ver
+nota abaixo) → fim de prorrogação → "Pênaltis" (rótulo fixo, sem relógio). Nenhum caminho testado
+grava placar/resultado oficial — só exibição.
+
+`audit_scoring.py`: PASSOU (mudança é só de exibição ao vivo).
+
+### Limitação conhecida, herdada de propósito da Copa
+
+Uma transição de period (fim de 1º tempo → prorrogação, fim de prorrogação → 2º tempo de
+prorrogação) pode fazer `detectClockPaused()` marcar `clockPaused: true` por UM ciclo de poll
+(60s) só porque o relógio cru caiu de valor — mesmo sendo um reset de period legítimo, não uma
+pausa real. Nesse ciclo o card mostra um relógio estático em vez de continuar contando, e se
+autocorrige no poll seguinte. **Mesmo comportamento exato da Copa** (algoritmo idêntico,
+copiado propositalmente) — o próprio Eduardo confirmou que o relógio da Copa "ainda não está
+100%" e que isso fica pra depois ("até 2030 a gente arruma isso"). Não é uma regressão introduzida
+aqui, é paridade fiel com o que já existia.
+
 ## v3.24 — 2026-07-14
 
 ### Fixed — caixa de placar ainda desproporcional depois da correção de hoje (revisão)

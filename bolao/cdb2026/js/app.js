@@ -1405,6 +1405,208 @@ const ESPN_AUTO_SYNC_INTERVAL_MS = 5 * 60 * 1000;
 let _espnLastAutoSyncAt = 0;
 let _espnLastRunSummary = null; // { addedCount, added, lockedCount, locked, filledLegsCount, error, at } | null — só para exibir no admin
 
+// ─── Live match card (2026-07-15) ────────────────────────────────────────────────────────────
+// Achado em auditoria comparativa Copa/BR2026/CDB2026 (Eduardo, 2026-07-15): CDB2026 nunca teve
+// NENHUMA experiência de "jogo ao vivo" para o participante -- só a sincronização de resultado
+// FINAL a cada 5 min (autoSyncEspnFull, acima), que roda em segundo plano e não mostra nada na
+// tela enquanto o jogo está em andamento. Como as Oitavas são mata-mata real (jogo dia 1º de
+// agosto, com prorrogação/pênaltis genuinamente possíveis), essa era a maior divergência real da
+// plataforma vs. a Copa. Eduardo pediu explicitamente "tem que bater exatamente com o da Copa" --
+// portado quase literalmente (mesmos nomes de função, mesma lógica de relógio/intervalo/pênaltis)
+// de bolao/js/app.js (pollLiveScores/mapEspnToLiveScores/mergeLiveClock/formatMatchClock), ao
+// contrário do BR2026 (liga, sem prorrogação/pênaltis reais), aqui o period 3/4/5 IMPORTA de
+// verdade -- mantido completo, não simplificado.
+const CDB_HALF_BOUNDARIES_MIN = [120, 105, 90, 45];
+const CDB_PERIOD_BOUNDARY_MIN = { 1: 45, 2: 90, 3: 105, 4: 120 };
+const CDB_MAX_STOPPAGE_SECONDS = 8 * 60;
+
+function cdbFmtClock(totalSeconds) {
+  const m = Math.floor(totalSeconds / 60);
+  const s = Math.floor(totalSeconds % 60);
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+function formatMatchClock(totalSeconds, period = null, skipBoundariesUpTo = 0) {
+  const totalMinutes = totalSeconds / 60;
+  if (period === 5) return cdbFmtClock(totalSeconds); // pênaltis — sem conceito de acréscimo
+  const knownBoundary = period != null ? CDB_PERIOD_BOUNDARY_MIN[period] : undefined;
+  if (knownBoundary !== undefined) {
+    if (totalMinutes <= knownBoundary) return cdbFmtClock(totalSeconds);
+    const secsPastBoundary = totalSeconds - knownBoundary * 60;
+    // Prorrogação (period 4): sem estado de relógio real pra crescer depois do próprio limite --
+    // sempre segue direto pra fim de jogo ou pênaltis. Mesmo cap da Copa (bug real que ela
+    // pegou ao vivo: relógio subindo pra sempre "120:07 (+1)…" sem nenhum teto).
+    if (period === 4 && secsPastBoundary > CDB_MAX_STOPPAGE_SECONDS) {
+      return `${cdbFmtClock(knownBoundary * 60 + CDB_MAX_STOPPAGE_SECONDS)} (+${CDB_MAX_STOPPAGE_SECONDS / 60})`;
+    }
+    const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
+    return `${cdbFmtClock(totalSeconds)} (+${stoppageMin})`;
+  }
+  const boundary = CDB_HALF_BOUNDARIES_MIN.find(b => b > skipBoundariesUpTo && totalMinutes > b);
+  if (!boundary) return cdbFmtClock(totalSeconds);
+  const secsPastBoundary = totalSeconds - boundary * 60;
+  if (secsPastBoundary > CDB_MAX_STOPPAGE_SECONDS) return cdbFmtClock(totalSeconds);
+  const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
+  return `${cdbFmtClock(totalSeconds)} (+${stoppageMin})`;
+}
+
+// Monotônico: o relógio nunca anda pra trás, a não ser que a ESPN sinalize um reset de período
+// legítimo (period mudou, ou o clock caiu perto de 0 vindo de perto de um boundary conhecido).
+function mergeLiveClock(fresh, prev) {
+  if (fresh.clockPaused) return fresh;
+  if (!prev || prev.clockSeconds == null || fresh.clockSeconds == null) return fresh;
+  const elapsed = (fresh.pollTime - prev.pollTime) / 1000;
+  if (elapsed <= 0) return fresh;
+  const extrapolated = prev.clockSeconds + elapsed;
+  const behindBy = extrapolated - fresh.clockSeconds;
+  if (behindBy <= 0) return fresh;
+  if (fresh.period != null && prev.period != null) {
+    if (fresh.period !== prev.period) return fresh;
+  } else {
+    const BOUNDARY_S = [45, 90, 105].map(m => m * 60);
+    const nearBoundary = BOUNDARY_S.some(b => prev.clockSeconds >= b - 120);
+    const looksLikePeriodReset = fresh.clockSeconds < 120 && nearBoundary;
+    if (looksLikePeriodReset) return fresh;
+  }
+  return { ...fresh, clockSeconds: extrapolated };
+}
+
+// Detecta um relógio genuinamente pausado (intervalo, pausa longa, VAR, ou o INTERVALO ENTRE
+// PRORROGAÇÃO E PÊNALTIS) a partir de dois polls CRUS -- funciona mesmo quando o texto de status
+// da ESPN não bate com nenhuma das regras de reconhecimento de isHalftime/isPenalties.
+function detectClockPaused(freshRaw, prevRaw) {
+  if (!prevRaw || prevRaw.clockSeconds == null || freshRaw.clockSeconds == null) return false;
+  const realElapsed = (freshRaw.pollTime - prevRaw.pollTime) / 1000;
+  if (realElapsed < 30) return false;
+  const clockDelta = freshRaw.clockSeconds - prevRaw.clockSeconds;
+  return clockDelta < realElapsed * 0.3;
+}
+
+const CDB_LIVE_CLOCK_CACHE_KEY = "cdb2026_live_clock_cache";
+function loadLiveClockCache() {
+  try { return JSON.parse(localStorage.getItem(CDB_LIVE_CLOCK_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+function saveLiveClockCache(scores) {
+  try {
+    const cache = {};
+    for (const [id, ls] of Object.entries(scores)) {
+      if (ls.clockSeconds != null) cache[id] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime, period: ls.period ?? null };
+    }
+    localStorage.setItem(CDB_LIVE_CLOCK_CACHE_KEY, JSON.stringify(cache));
+  } catch { /* storage full/unavailable */ }
+}
+
+const CDB_LIVE_CLOCK_RAW_CACHE_KEY = "cdb2026_live_clock_raw_cache";
+let _cdbRawClockHistory = {};
+function loadRawClockCache() {
+  try { return JSON.parse(localStorage.getItem(CDB_LIVE_CLOCK_RAW_CACHE_KEY) || "{}"); }
+  catch { return {}; }
+}
+function saveRawClockCache(history) {
+  try { localStorage.setItem(CDB_LIVE_CLOCK_RAW_CACHE_KEY, JSON.stringify(history)); }
+  catch { /* storage full/unavailable */ }
+}
+
+let _liveTies = []; // [{ tieId, tie, phaseId, leg, homeTeam, awayTeam, goalsHome, goalsAway, clockSeconds, pollTime, period, isHalftime, isPenalties, clockPaused, clockStr }]
+let _liveTiesLastPollAt = 0;
+const LIVE_TIE_POLL_INTERVAL_MS = 60 * 1000; // mesma cadência da Copa/BR2026 -- rápida o bastante pro relógio parecer "ao vivo"
+
+// Casa cada perna (ida/volta) de cada confronto da fase ATIVA com um evento "in" da ESPN, pela
+// mesma identidade de mandante já usada em autoSyncEspnResults() (nunca por ordem de data).
+// Roda só sobre a fase ativa (s.espnSync.activePhaseId) -- as demais fases não têm jogo "agora".
+async function fetchLiveTies(s) {
+  const phaseId = s.espnSync?.activePhaseId;
+  if (!phaseId) return [];
+  const candidates = await fetchEspnCandidates();
+  if (!candidates) return null;
+  const liveEvents = candidates.filter(c => c.state === "in");
+  if (!liveEvents.length) return [];
+  const format = getPhaseDef(phaseId)?.format;
+  const legs = legsForFormat(format);
+  const ties = s.phases?.[phaseId]?.ties || {};
+  const found = [];
+  Object.entries(ties).forEach(([tieId, tie]) => {
+    if (!tie.teamA || !tie.teamB || tie.qualifiedTeamId) return;
+    legs.forEach(leg => {
+      const m = tie.matches?.[leg];
+      if (!m || m.goalsHome != null) return; // já tem placar (manual ou auto) — não é "ao vivo"
+      const home = leg === "second" ? tie.teamB : tie.teamA;
+      const away = leg === "second" ? tie.teamA : tie.teamB;
+      const ev = liveEvents.find(c => c.homeTeam === home && c.awayTeam === away);
+      if (!ev) return;
+      found.push({ tieId, tie, phaseId, leg, homeTeam: home, awayTeam: away, ev });
+    });
+  });
+  return found;
+}
+
+async function pollLiveTies() {
+  const s = state();
+  const found = await fetchLiveTies(s);
+  if (found === null) return; // fetch falhou — mantém o último estado conhecido na tela
+  const now = Date.now();
+  const prevById = new Map(_liveTies.map(l => [`${l.tieId}:${l.leg}`, l]));
+  const clockCache = loadLiveClockCache();
+  if (!Object.keys(_cdbRawClockHistory).length) _cdbRawClockHistory = loadRawClockCache();
+  const nextRawHistory = {};
+  const nextLive = found.map(({ tieId, tie, phaseId, leg, homeTeam, awayTeam, ev }) => {
+    const key = `${tieId}:${leg}`;
+    const rawFresh = { clockSeconds: ev.clockSec, pollTime: now, period: ev.period };
+    const clockPaused = detectClockPaused(rawFresh, _cdbRawClockHistory[key]);
+    if (ev.clockSec != null) nextRawHistory[key] = { clockSeconds: ev.clockSec, pollTime: now };
+    const prevMerged = prevById.get(key) || clockCache[key];
+    const merged = mergeLiveClock({ clockSeconds: ev.clockSec, pollTime: now, period: ev.period, clockPaused }, prevMerged);
+    return {
+      tieId, tie, phaseId, leg, homeTeam, awayTeam,
+      goalsHome: ev.liveHomeScore, goalsAway: ev.liveAwayScore,
+      clockSeconds: merged.clockSeconds, pollTime: now, period: ev.period,
+      isHalftime: ev.isHalftime, isPenalties: ev.isPenalties, clockPaused,
+      clockStr: ev.clockStr || "",
+    };
+  });
+  _cdbRawClockHistory = nextRawHistory;
+  saveRawClockCache(_cdbRawClockHistory);
+  saveLiveClockCache(Object.fromEntries(nextLive.map(l => [`${l.tieId}:${l.leg}`, l])));
+  _liveTies = nextLive;
+  _liveTiesLastPollAt = now;
+  renderLiveTieCard();
+}
+
+// Mesmo padrão de "runningClock" da Copa/BR2026 (ver liveClockDisplay em bolao/br2026/js/app.js):
+// num intervalo/pênaltis/pausa real, mostra o rótulo fixo em vez de deixar a interpolação local
+// somar segundos através da pausa.
+function liveClockDisplay(l) {
+  const clock = l.isHalftime ? t("liveHalftime")
+    : l.isPenalties ? t("livePenalties")
+    : l.clockPaused ? (l.clockStr || (l.clockSeconds != null ? cdbFmtClock(l.clockSeconds) : ""))
+    : l.clockSeconds != null
+      ? formatMatchClock(l.clockSeconds + Math.floor((Date.now() - (l.pollTime || Date.now())) / 1000), l.period ?? null, 0)
+      : l.clockStr;
+  return clock;
+}
+
+function renderLiveTieCard() {
+  const card = $("liveTieCard");
+  if (!card) return;
+  if (!_liveTies.length) { card.classList.add("hidden"); return; }
+  card.innerHTML = _liveTies.map(l => {
+    const clock = liveClockDisplay(l);
+    return `<div class="live-match">
+      <span class="live-badge">${esc(t("liveNow"))}</span>
+      <div class="live-teams">
+        <span class="live-team-name">${esc(l.homeTeam)}</span>
+        ${teamLogoImg(l.homeTeam)}
+        <span class="live-score">${l.goalsHome ?? 0} – ${l.goalsAway ?? 0}</span>
+        ${teamLogoImg(l.awayTeam)}
+        <span class="live-team-name">${esc(l.awayTeam)}</span>
+      </div>
+      <span class="live-clock">${esc(clock)}</span>
+    </div>`;
+  }).join("");
+  card.classList.remove("hidden");
+}
+
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
@@ -1421,6 +1623,22 @@ async function fetchEspnCandidates() {
       const home  = comps.find(c => c.homeAway === "home") || comps[0];
       const away  = comps.find(c => c.homeAway === "away") || comps[1];
       const evState = comp.status?.type?.state || "pre";
+      // Campos de jogo AO VIVO (2026-07-15, ver CDB2026: recurso de partida ao vivo) --
+      // adicionados sem tocar homeScore/awayScore/homeWinner/awayWinner acima, que
+      // autoSyncEspn()/autoSyncEspnResults() já dependem para decidir "confronto acabou" (só
+      // `state === "post"`). Mesma detecção de intervalo/pênaltis da Copa/BR2026
+      // (mapEspnToLiveScores/fetchScoreboard) -- `state` da ESPN fica "in" durante o intervalo
+      // também, só `type.name`/texto do status muda.
+      const clockSec = typeof comp.status?.clock === "number" ? comp.status.clock : null;
+      const period   = typeof comp.status?.period === "number" ? comp.status.period : null;
+      const statusName = (comp.status?.type?.name || "").toUpperCase();
+      const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""} ${comp.status?.type?.detail || ""}`.toLowerCase();
+      const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
+      const isPenalties = period === 5
+        || statusName.includes("SHOOTOUT")
+        || statusName.includes("PENALT")
+        || statusName.includes("END_OF_EXTRATIME")
+        || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
       return {
         id: ev.id,
         dateISO: comp.date || ev.date || "",
@@ -1436,6 +1654,11 @@ async function fetchEspnCandidates() {
         awayWinner: evState === "post" ? away?.winner === true : null,
         venue: comp.venue?.fullName || "",
         city: comp.venue?.address?.city || "",
+        state: evState,
+        liveHomeScore: evState === "in" && home?.score != null ? parseInt(home.score, 10) : null,
+        liveAwayScore: evState === "in" && away?.score != null ? parseInt(away.score, 10) : null,
+        clockSec, period, isHalftime, isPenalties,
+        clockStr: comp.status?.displayClock || "",
       };
     }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -2351,6 +2574,7 @@ function renderAll() {
   if (!pickFormIsDirty()) renderPickForm();
   renderRanking();
   renderNextTieCard();
+  renderLiveTieCard();
   renderGamesSection();
   renderProbsSection();
   renderParticipants();
@@ -2377,7 +2601,16 @@ async function init() {
   // Mesmo tick de 1s do BR2026/Copa -- antes renderNextTieCard() só re-renderizava via renderAll()
   // (save, resync a cada 30s), então o contador do card "Próxima partida" nunca atualizava ao
   // vivo entre um re-render e outro. Divergência real encontrada por Eduardo (2026-07-14).
-  setInterval(() => { if (!document.hidden) { renderCountdown(); renderNextTieCard(); } }, 1000);
+  // renderLiveTieCard() no mesmo tick: só re-renderiza o relógio já interpolado em memória
+  // (liveClockDisplay), sem rede — o poll de rede real é o setInterval de 60s logo abaixo.
+  setInterval(() => { if (!document.hidden) { renderCountdown(); renderNextTieCard(); renderLiveTieCard(); } }, 1000);
+
+  // Poll de partida ao vivo (2026-07-15) -- mesma cadência de 60s da Copa/BR2026
+  // (pollLiveScores/pollAll), separado do sync de resultado FINAL a cada 5 min
+  // (autoSyncEspnFull, acima) -- concerns diferentes: este é só pra exibição em tempo real
+  // enquanto o jogo está rolando, nunca grava nada no estado/Supabase.
+  pollLiveTies();
+  setInterval(() => { if (!document.hidden) pollLiveTies(); }, LIVE_TIE_POLL_INTERVAL_MS);
 
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
 

@@ -1,5 +1,31 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.36 — 2026-07-15
+
+### Fixed — relógio do card "ao vivo" sem detecção de intervalo, andava pra frente e voltava
+
+Eduardo pediu uma auditoria comparando o recurso de jogo ao vivo entre Copa/BR2026/CDB2026 e,
+depois, para corrigir tudo pra bater exatamente com a Copa. Achado: `pollAll()`/`renderLiveCard()`
+filtravam partida ao vivo só por `state === "in"` — a ESPN mantém esse campo `"in"` durante o
+intervalo também (o campo granular que muda é `type.name`, não `state`). Sem nenhuma detecção de
+intervalo nem proteção contra o relógio andar pra trás por lag da ESPN, o card mostrava o relógio
+subindo até ~46:00 e voltando pra 45:00 a cada poll (60s) durante o intervalo inteiro (~15min),
+sem nunca indicar "Intervalo" — um "serrote" visual confuso.
+
+**Correção**: portado quase literalmente da Copa (`bolao/js/app.js`) — `formatMatchClock()`
+(relógio consciente de period, acréscimo de até 8min), `mergeLiveClock()` (monotônico, nunca anda
+pra trás a não ser que a ESPN sinalize um reset de período legítimo), `detectClockPaused()`
+(detecta pausa real comparando dois polls crus). `fetchScoreboard()` agora também extrai
+`period`/`isHalftime`/`isPenalties`; `renderLiveCard()` e `renderNextGameCard()` passaram a
+compartilhar uma função só (`liveClockDisplay()`) em vez de duplicar a lógica cada um do seu
+jeito. Removida `formatClock()` (função antiga, sem mais chamador depois da correção).
+
+Brasileirão nunca tem prorrogação/pênaltis (liga, não mata-mata), mas o tratamento de period
+3/4/5 foi mantido mesmo assim, por paridade exata com a Copa (pedido explícito do Eduardo) e
+porque não custa nada a mais.
+
+`audit_scoring.py`: PASSOU (mudança é só de exibição ao vivo, nunca grava resultado oficial).
+
 ## v1.35 — 2026-07-14
 
 ### Added — "Projeção do Bolão": linguagem correta + índice de precisão informativo
