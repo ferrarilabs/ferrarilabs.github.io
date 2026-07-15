@@ -1,5 +1,15 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.29 — 2026-07-15
+
+### Added — prévia de pagamento no formulário de entrada (paridade com a Copa)
+
+Mesma correção do BR2026 nesta data. `renderPaymentBox()`/`#paymentBox` portados exatamente da
+Copa — prévia do método de pagamento (handle/QR/link) assim que selecionado, disparado no
+`change` do select e ao carregar uma entrada via "Buscar minha entrada".
+
+`audit_scoring.py`: PASSOU.
+
 ## v3.28 — 2026-07-15
 
 ### Fixed — Pot no lugar errado; barra de estatísticas sem equivalente na Copa removida
