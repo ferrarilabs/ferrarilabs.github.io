@@ -1893,6 +1893,25 @@ function renderPayment() {
   }).join("");
 }
 
+// Prévia do método de pagamento dentro do formulário de entrada (mostra handle/QR assim que o
+// participante seleciona, sem precisar navegar até a aba Pagamento) -- item novo encontrado em
+// auditoria (2026-07-15): a Copa tem esse recurso (renderPaymentBox()/#paymentBox,
+// bolao/js/app.js) desde sempre, nenhum dos outros dois apps tinha. Portado exatamente.
+function renderPaymentBox() {
+  const method = $("paymentMethod")?.value;
+  const box = $("paymentBox");
+  if (!box) return;
+  if (!method) { box.innerHTML = ""; return; }
+  const handle = esc(C.paymentMethods[method] || "");
+  const link = C.paymentLinks?.[method] || "";
+  const qr = method === "Zelle" && C.zelle?.qrImage
+    ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
+  box.innerHTML = `<div class="pay-card">
+    <div class="pay-icon">${payIcon(method)}</div>
+    <div><b>${esc(method)}</b><br><span class="muted">${handle}</span>
+    ${link ? `<br><a href="${esc(link)}" target="_blank" rel="noopener noreferrer">${esc(t("paymentOpenLink"))}</a>` : ""}${qr}</div></div>`;
+}
+
 // ─── Render: rules ───────────────────────────────────────────────────────────
 function renderRules() {
   const box = $("rulesContent");
@@ -2113,6 +2132,7 @@ function renderAdminEntries(s) {
       $("payerName").value          = entry.payerName          || "";
       $("participantEmail").value   = entry.participantEmail   || "";
       $("paymentMethod").value      = entry.paymentMethod      || "";
+      renderPaymentBox();
       renderPickForm();
       showSection("entry");
     })
@@ -2455,6 +2475,7 @@ async function init() {
 
   // Save entry
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
+  $("paymentMethod")?.addEventListener("change", renderPaymentBox);
 
   // Admin login
   $("adminPassword")?.addEventListener("keydown", e => { if (e.key === "Enter") $("adminLoginBtn")?.click(); });

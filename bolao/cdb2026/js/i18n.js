@@ -126,6 +126,7 @@ window.CDB2026_I18N = {
     // Payment
     paymentTitle: "Pagamento",
     paymentSubtitle: "Valor da aposta: US$ 5 por entrada.",
+    paymentOpenLink: "Abrir link de pagamento",
     // Rules
     rulesTitle: "Regras",
     rulesScoring: "Sistema de pontuação",

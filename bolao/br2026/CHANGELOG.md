@@ -1,5 +1,18 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.40 — 2026-07-15
+
+### Added — prévia de pagamento no formulário de entrada (paridade com a Copa)
+
+Continuando a auditoria de consistência (Eduardo: "sem pedir permissao... continue checando
+diferencas"). A Copa mostra uma prévia do método de pagamento (`#paymentBox`) assim que o
+participante seleciona CashApp/Zelle/Venmo no formulário — handle, QR (Zelle) e link, sem
+precisar sair da aba Palpites. BR2026 nunca teve esse recurso. Portado exatamente
+(`renderPaymentBox()`, mesmas classes `.pay-card`/`.pay-icon` já usadas na aba Pagamento),
+disparado no `change` do select e também ao carregar uma entrada existente para editar.
+
+`audit_scoring.py` (Copa + BR2026): PASSOU.
+
 ## v1.39 — 2026-07-15
 
 ### Fixed — Pot no lugar errado; barra de estatísticas sem equivalente na Copa removida
