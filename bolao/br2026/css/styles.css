@@ -406,6 +406,11 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pay-card a { color: var(--green); font-size: 13px; }
 .pay-qr { width: 120px; height: 120px; border-radius: 8px; margin-top: 6px; }
 
+/* ── Receipt box -- mesmas classes da Copa (bolao/css/styles.css) -- item 9 do
+   CONSISTENCY_MATRIX.md (2026-07-15). BR2026 não tinha nenhuma confirmação visual pós-envio. */
+.receipt-code { background: var(--bg3); border: 1px solid var(--border2); border-radius: 6px; padding: 3px 8px; font-size: 13px; }
+.receipt-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
 /* ── Rules table ── */
 .rules-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
 .rules-table th, .rules-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; }

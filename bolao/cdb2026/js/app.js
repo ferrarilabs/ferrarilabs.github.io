@@ -630,6 +630,10 @@ async function saveEntry() {
 }
 
 // ─── Receipt box ────────────────────────────────────────────────────────────
+// Botões "Abrir comprovante"/"Baixar HTML" -- item 9 do CONSISTENCY_MATRIX.md (2026-07-15),
+// mesmo padrão da Copa (.receipt-actions, renderLatestReceipt() em bolao/js/app.js). Botões
+// recriados a cada render, então os listeners são anexados diretamente aqui (sem delegação
+// global) -- mesmo padrão já usado em renderRanking() para data-rank-toggle.
 function renderReceiptBox(entry) {
   const box = $("receiptBox");
   if (!box) return;
@@ -638,7 +642,13 @@ function renderReceiptBox(entry) {
   box.innerHTML = `
     <h3>${esc(t("receiptTitle"))}</h3>
     <p>${esc(t("receiptCodeLabel"))}: <code class="receipt-code">${esc(code)}</code></p>
-    <p class="muted" style="font-size:12px">${esc(t("receiptSaveHint"))}</p>`;
+    <p class="muted" style="font-size:12px">${esc(t("receiptSaveHint"))}</p>
+    <div class="receipt-actions">
+      <button type="button" data-receipt-action="open">${esc(t("openReceipt"))}</button>
+      <button type="button" class="secondary" data-receipt-action="download">${esc(t("downloadHtml"))}</button>
+    </div>`;
+  box.querySelector('[data-receipt-action="open"]')?.addEventListener("click", () => openReceipt(entry.id));
+  box.querySelector('[data-receipt-action="download"]')?.addEventListener("click", () => downloadReceipt(entry.id));
 }
 
 // ─── Scoring ────────────────────────────────────────────────────────────────
@@ -783,6 +793,35 @@ th{background:#07151c;color:#fff;text-align:left}
 <tbody>${rows.join("") || `<tr><td colspan="2">—</td></tr>`}</tbody></table>
 <div class="notice">${esc(t("receiptFooterNote"))}</div>
 </div></body></html>`;
+}
+
+function downloadBlob(filename, content, type) {
+  const blob = new Blob([content], { type: `${type};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Abrir comprovante / baixar HTML — item 9 do CONSISTENCY_MATRIX.md (2026-07-15): a Copa sempre
+// teve esse fluxo (openReceipt()/downloadReceipt(), bolao/js/app.js) via Blob URL, nunca
+// document.write (ver SECURITY.md); CDB2026 só mostrava o código do comprovante em texto, sem
+// jeito de abrir/imprimir/baixar. Reaproveita o mesmo receiptHtml() já usado no e-mail.
+function openReceipt(id) {
+  const e = state().entries.find(x => x.id === id);
+  if (!e) return;
+  const blob = new Blob([receiptHtml(e, state())], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (!w) { URL.revokeObjectURL(url); alert(t("receiptPopupBlocked")); return; }
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+function downloadReceipt(id) {
+  const e = state().entries.find(x => x.id === id);
+  if (!e) return;
+  downloadBlob(`comprovante-${receiptCode(e)}.html`, receiptHtml(e, state()), "text/html");
 }
 
 async function sendReceipt(entry) {
@@ -1047,7 +1086,6 @@ function renderRules() {
     <div class="card">
       <h3>${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
-        <thead><tr><th>${esc(t("rulesAcerto"))}</th><th>${esc(t("rulesPts"))}</th></tr></thead>
         <tbody>
           <tr><td>${esc(t("rulesMatchExact"))}</td><td><b>${sc.match.exact}</b></td></tr>
           <tr><td>${esc(t("rulesMatchResult"))}</td><td><b>${sc.match.result}</b></td></tr>
@@ -1081,7 +1119,6 @@ function renderRules() {
     <div class="card">
       <h3>${esc(t("rulesPrizes"))}</h3>
       <table class="rules-table">
-        <thead><tr><th>Posição</th><th>% do pot</th></tr></thead>
         <tbody>
           <tr><td>🥇 1º</td><td>${Math.round(pr.first * 100)}%</td></tr>
           <tr><td>🥈 2º</td><td>${Math.round(pr.second * 100)}%</td></tr>

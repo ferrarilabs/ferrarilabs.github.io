@@ -182,6 +182,11 @@ window.BR2026_I18N = {
     // igual"), conteúdo adaptado ao formato deste torneio (G4/Sul-Americana/Z4, não bracket).
     receiptTitle: "Comprovante — Bolão Brasileirão 2026",
     receiptIntro: "Este comprovante registra exatamente os palpites enviados.",
+    receiptCodeLabel: "Código do comprovante",
+    receiptSaveHint: "Guarde este código — ele também foi enviado por e-mail.",
+    openReceipt: "Abrir comprovante / salvar PDF",
+    downloadHtml: "Baixar HTML",
+    receiptPopupBlocked: "O navegador bloqueou o popup. Permita pop-ups ou use Baixar HTML.",
     receiptEntry: "Entrada",
     receiptResponsible: "Responsável",
     receiptEmail: "E-mail",
