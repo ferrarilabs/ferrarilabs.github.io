@@ -1,5 +1,25 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.38 — 2026-07-15
+
+### Fixed — tela "Participantes" com layout diferente da Copa
+
+Eduardo apontou que Participantes/Ranking tinham "formatos de look and feel diferentes da
+Copa". Ranking já usava a mesma estrutura (`.rank-row`); Participantes não — usava um
+componente próprio (`.participant-row`, sem ícone, sem método de pagamento visível, spans
+separados) nunca alinhado com a Copa (`.rank-row`: ícone 👤 + nome/pagador/método numa linha só
++ chip de status). Reconstruído pra usar exatamente a mesma marcação/classes da Copa. CSS morta
+de `.participant-row` removida.
+
+Também corrigido: `.unpaid-badge` usava vermelho/alarme (`rgba(248,113,113,.1)`); a Copa trata
+"ainda não pago" como estado neutro (`.status-chip.pending`, cinza) — alinhado.
+
+Mantida como acréscimo intencional (a Copa não tem equivalente, mas não conflita com as linhas
+em si baterem exatamente): a barra de estatísticas (total de entradas/pagas/pot) no topo da
+tela.
+
+`audit_scoring.py`: PASSOU (mudança é só visual).
+
 ## v1.37 — 2026-07-15
 
 ### Added — paridade administrativa com o CDB2026 (itens 7/16/50 do CONSISTENCY_MATRIX.md)
