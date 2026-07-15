@@ -1,0 +1,471 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="description" content="Bolão do Ferrari — Copa 2026 — classificação geral, vivo/eliminado e chances de 1º, 2º e 3º lugar.">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  style-src 'unsafe-inline';
+  img-src 'self' data:;
+  base-uri 'self';
+">
+<link rel="icon" href="data:,">
+<title>Classificação Geral — Bolão do Ferrari — Copa 2026</title>
+<style>
+  :root {
+    --pitch-950: #0a1e15;
+    --pitch-900: #0d2519;
+    --pitch-850: #103023;
+    --pitch-700: #1c4732;
+    --pitch-600: #285940;
+    --gold-400: #f0c14b;
+    --gold-300: #f7d778;
+    --grass-400: #43d17d;
+    --grass-300: #7fe7ac;
+    --red-450: #ef5158;
+    --red-300: #ff8b90;
+    --cream-100: #f6f2e4;
+    --cream-300: #d9dccb;
+    --cream-500: #a3ab9c;
+    --line: rgba(246,242,228,0.10);
+  }
+  :root[data-theme="light"] {
+    --pitch-950: #f3f1e7;
+    --pitch-900: #ffffff;
+    --pitch-850: #ffffff;
+    --pitch-700: #e4e2d3;
+    --pitch-600: #d3d0bd;
+    --cream-100: #17241c;
+    --cream-300: #33453a;
+    --cream-500: #5b6b5f;
+    --line: rgba(23,36,28,0.12);
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --pitch-950: #f3f1e7;
+      --pitch-900: #ffffff;
+      --pitch-850: #ffffff;
+      --pitch-700: #e4e2d3;
+      --pitch-600: #d3d0bd;
+      --cream-100: #17241c;
+      --cream-300: #33453a;
+      --cream-500: #5b6b5f;
+      --line: rgba(23,36,28,0.12);
+    }
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: var(--pitch-950);
+    color: var(--cream-100);
+    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    background-image:
+      radial-gradient(ellipse 900px 500px at 15% -5%, rgba(240,193,75,0.10), transparent 60%),
+      radial-gradient(ellipse 700px 500px at 100% 10%, rgba(67,209,125,0.08), transparent 55%);
+  }
+
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 36px 20px 64px; }
+
+  /* ---------- Header ---------- */
+  header.hero {
+    display: flex; flex-direction: column; gap: 6px;
+    padding-bottom: 22px; margin-bottom: 22px;
+    border-bottom: 1px solid var(--line);
+  }
+  .eyebrow {
+    font-size: 12px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--gold-400); display: flex; align-items: center; gap: 8px;
+  }
+  .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--grass-400); box-shadow: 0 0 0 3px rgba(67,209,125,0.18); }
+  h1 {
+    font-size: clamp(28px, 5vw, 44px); font-weight: 900; letter-spacing: -0.02em;
+    text-transform: uppercase; margin: 4px 0 2px; text-wrap: balance; line-height: 1.02;
+  }
+  h1 .accent { color: var(--gold-400); }
+  .subhead { color: var(--cream-300); font-size: 15px; max-width: 640px; }
+  .subhead b { color: var(--cream-100); }
+
+  .matchup-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+  .matchup {
+    background: var(--pitch-850); border: 1px solid var(--line); border-radius: 10px;
+    padding: 10px 14px; display: flex; align-items: center; gap: 10px; font-size: 14px;
+  }
+  .matchup .tag {
+    font-size: 10px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase;
+    color: var(--pitch-950); background: var(--gold-400); padding: 3px 7px; border-radius: 5px;
+  }
+  .matchup .teams { font-weight: 700; font-variant-numeric: tabular-nums; }
+  .matchup .date { color: var(--cream-500); font-size: 12.5px; }
+
+  /* ---------- Correction callout ---------- */
+  .callout {
+    margin: 22px 0; padding: 16px 18px; border-radius: 12px;
+    background: linear-gradient(180deg, rgba(239,81,88,0.10), rgba(239,81,88,0.03));
+    border: 1px solid rgba(239,81,88,0.28);
+    font-size: 13.5px; color: var(--cream-300);
+  }
+  .callout .title { font-weight: 800; color: var(--red-300); text-transform: uppercase; font-size: 11.5px; letter-spacing: 0.08em; margin-bottom: 6px; }
+  .callout ul { margin: 6px 0 0; padding-left: 18px; }
+  .callout li { margin: 3px 0; }
+  .callout code { background: rgba(246,242,228,0.08); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+
+  /* ---------- Legend strip ---------- */
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 18px; align-items: center;
+    padding: 12px 16px; background: var(--pitch-850); border: 1px solid var(--line);
+    border-radius: 10px; margin: 18px 0 26px; font-size: 12.5px; color: var(--cream-300);
+  }
+  .legend b { color: var(--cream-100); font-variant-numeric: tabular-nums; }
+  .legend .sep { width: 1px; height: 14px; background: var(--line); }
+
+  /* ---------- Table ---------- */
+  .table-scroll { overflow-x: auto; border-radius: 14px; border: 1px solid var(--line); }
+  table { border-collapse: collapse; width: 100%; min-width: 760px; background: var(--pitch-900); }
+  thead th {
+    position: sticky; top: 0; background: var(--pitch-700); color: var(--cream-100);
+    text-align: left; font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 0.07em; padding: 12px 12px; border-bottom: 1px solid var(--line); white-space: nowrap;
+  }
+  thead th.num, td.num { text-align: center; }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--line); font-size: 13.5px; vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr.dead { opacity: 0.55; }
+  tbody tr:hover { background: rgba(246,242,228,0.03); }
+
+  .pos { font-weight: 900; font-size: 15px; font-variant-numeric: tabular-nums; width: 30px; text-align: center; position: relative; }
+  tr.prize .pos { color: var(--pitch-950); }
+  tr.prize td:first-child { position: relative; }
+  tr.prize td:first-child::before {
+    content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--gold-400);
+  }
+  tr.prize .pos-badge {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 7px; background: var(--gold-400); color: var(--pitch-950);
+    font-weight: 900;
+  }
+  tr:not(.prize) .pos-badge { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; color: var(--cream-300); }
+
+  .name-cell { display: flex; align-items: center; gap: 9px; }
+  .name-cell .nm { font-weight: 700; color: var(--cream-100); }
+  .name-cell .champ-pick { font-size: 11.5px; color: var(--cream-500); }
+
+  .status-pill {
+    display: inline-flex; align-items: center; gap: 5px; font-size: 10.5px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: 0.05em; padding: 3px 9px; border-radius: 999px;
+  }
+  .status-pill.alive { background: rgba(67,209,125,0.15); color: var(--grass-300); border: 1px solid rgba(67,209,125,0.35); }
+  .status-pill.dead { background: rgba(239,81,88,0.13); color: var(--red-300); border: 1px solid rgba(239,81,88,0.30); }
+
+  .score { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 14.5px; }
+  .score .sub { font-weight: 500; color: var(--cream-500); font-size: 11.5px; margin-left: 3px;}
+
+  .chance-cell { min-width: 108px; }
+  .chance-bar-wrap { display: flex; align-items: center; gap: 8px; }
+  .chance-track { flex: 1; height: 7px; border-radius: 999px; background: var(--pitch-700); overflow: hidden; min-width: 46px; }
+  .chance-fill { height: 100%; border-radius: 999px; }
+  .chance-fill.g1 { background: linear-gradient(90deg, var(--gold-300), var(--gold-400)); }
+  .chance-fill.g2 { background: linear-gradient(90deg, #c9d6c1, var(--cream-300)); }
+  .chance-fill.g3 { background: linear-gradient(90deg, #c98a4b, #e0a868); }
+  .chance-pct { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 12.5px; width: 40px; text-align: right; }
+  .chance-pct.zero { color: var(--cream-500); font-weight: 500; }
+
+  /* ---------- Footnotes ---------- */
+  .method {
+    margin-top: 26px; padding: 16px 18px; border-radius: 12px;
+    background: var(--pitch-850); border: 1px solid var(--line);
+    font-size: 12.5px; color: var(--cream-500); line-height: 1.6;
+  }
+  .method b { color: var(--cream-300); }
+  .method .title { color: var(--cream-100); font-weight: 800; text-transform: uppercase; font-size: 11px; letter-spacing: 0.08em; margin-bottom: 8px; }
+
+  footer.sig { text-align: center; margin-top: 28px; font-size: 12px; color: var(--cream-500); }
+
+  @media (max-width: 640px) {
+    .wrap { padding: 24px 12px 48px; }
+    .name-cell .champ-pick { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow"><span class="dot"></span>Bolão do Ferrari &middot; Copa do Mundo 2026</div>
+    <h1>Classificação <span class="accent">Geral</span></h1>
+    <p class="subhead">Quem ainda pode ser <b>campeão do bolão</b> — calculado direto do estado real do site (23 entradas, resultados oficiais até a semifinal), com a fórmula de pontuação exata usada para pagar o prêmio.</p>
+    <div class="matchup-row">
+      <div class="matchup"><span class="tag">Final &middot; 19/07</span><span class="teams">🇪🇸 Espanha × Argentina 🇦🇷</span></div>
+      <div class="matchup"><span class="tag">3º lugar &middot; 18/07</span><span class="teams">🇫🇷 França × Inglaterra 🏴󠁧󠁢󠁥󠁮󠁧󠁿</span></div>
+    </div>
+  </header>
+
+  <div class="callout">
+    <div class="title">⚠️ Correção da imagem do ChatGPT de ontem</div>
+    A tabela que circulou tinha a fórmula de pontuação errada e por isso os cálculos de chance não batiam. Os valores reais do site são:
+    <ul>
+      <li><code>10 pts</code> placar exato de cada partida (não 15)</li>
+      <li><code>+5 pts</code> acertar quem avança, <b>somado</b> ao placar — não é "6 pts vencedor certo" isolado</li>
+      <li><code>+1 pt</code> por lado do placar que bater sozinho (até 2 pts se nenhum for exato)</li>
+      <li>Pênaltis <b>não valem nada</b> na pontuação — só os gols do tempo normal + prorrogação contam</li>
+      <li>Bônus de pódio: campeão <code>+25</code>, vice <code>+15</code>, 3º <code>+10</code>, 4º <code>+5</code> — e só é pago se o participante acertou o <b>caminho inteiro do chaveamento</b>, não só o jogo final</li>
+    </ul>
+  </div>
+
+  <div class="legend">
+    <span><b>23</b> entradas na disputa</span>
+    <span class="sep"></span>
+    <span>Restam <b>2</b> jogos: 3º lugar e Final</span>
+    <span class="sep"></span>
+    <span>Prêmio: <b>70%</b> 1º &middot; <b>20%</b> 2º &middot; <b>10%</b> 3º</span>
+    <span class="sep"></span>
+    <span>Empate técnico → desempate por placares exatos, depois pódio certo</span>
+  </div>
+
+  <div class="table-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th class="num">#</th>
+          <th>Participante</th>
+          <th class="num">Pontos</th>
+          <th>Situação</th>
+          <th class="num">Chance 1º</th>
+          <th class="num">Chance 2º</th>
+          <th class="num">Chance 3º</th>
+        </tr>
+      </thead>
+      <tbody id="rows-body">
+        <tr class="prize">
+      <td class="pos"><span class="pos-badge">1</span></td>
+      <td><div class="name-cell"><span class="nm">Simone Hirle #4</span><span class="champ-pick">apostou no 🇦🇷 Argentina</span></div></td>
+      <td class="num score">212</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:99.93%"></div></div><span class="chance-pct">100%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:100.0%"></div></div><span class="chance-pct">100%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:100.0%"></div></div><span class="chance-pct">100%</span></div></td>
+    </tr>
+<tr class="prize">
+      <td class="pos"><span class="pos-badge">2</span></td>
+      <td><div class="name-cell"><span class="nm">Mitch is the best</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">173</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:20.2%"></div></div><span class="chance-pct">20%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:44.2%"></div></div><span class="chance-pct">44%</span></div></td>
+    </tr>
+<tr class="prize">
+      <td class="pos"><span class="pos-badge">3</span></td>
+      <td><div class="name-cell"><span class="nm">Aline</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">171</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:2%"></div></div><span class="chance-pct">0.1%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:22.0%"></div></div><span class="chance-pct">22%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:74.2%"></div></div><span class="chance-pct">74%</span></div></td>
+    </tr>
+<tr class="">
+      <td class="pos"><span class="pos-badge">4</span></td>
+      <td><div class="name-cell"><span class="nm">Eduardo Ferrari</span><span class="champ-pick">apostou no 🇦🇷 Argentina</span></div></td>
+      <td class="num score">169</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:57.73%"></div></div><span class="chance-pct">58%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:57.8%"></div></div><span class="chance-pct">58%</span></div></td>
+    </tr>
+<tr class="">
+      <td class="pos"><span class="pos-badge">5</span></td>
+      <td><div class="name-cell"><span class="nm">Ewerton#1</span><span class="champ-pick">apostou no 🇵🇾 Paraguay</span></div></td>
+      <td class="num score">168</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0.1%</span></div></td>
+    </tr>
+<tr class="">
+      <td class="pos"><span class="pos-badge">6</span></td>
+      <td><div class="name-cell"><span class="nm">Arthur Lopes Huller</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">163</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="">
+      <td class="pos"><span class="pos-badge">7</span></td>
+      <td><div class="name-cell"><span class="nm">Rodrigo Hajj</span><span class="champ-pick">apostou no 🏴󠁧󠁢󠁥󠁮󠁧󠁿 England</span></div></td>
+      <td class="num score">153</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0.3%</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">7</span></td>
+      <td><div class="name-cell"><span class="nm">Marodin</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">153</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="">
+      <td class="pos"><span class="pos-badge">8</span></td>
+      <td><div class="name-cell"><span class="nm">Gabriel Ferrari</span><span class="champ-pick">apostou no 🇦🇷 Argentina</span></div></td>
+      <td class="num score">143</td>
+      <td><span class="status-pill alive">Vivo</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:2%"></div></div><span class="chance-pct">0.1%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:23.4%"></div></div><span class="chance-pct">23%</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">9</span></td>
+      <td><div class="name-cell"><span class="nm">Roberta</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">142</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">10</span></td>
+      <td><div class="name-cell"><span class="nm">Gustavo Ribeiro</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">139</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">11</span></td>
+      <td><div class="name-cell"><span class="nm">Samuel</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">137</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">12</span></td>
+      <td><div class="name-cell"><span class="nm">Nathalia</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">134</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">13</span></td>
+      <td><div class="name-cell"><span class="nm">Simone Hirle #2</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">134</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">14</span></td>
+      <td><div class="name-cell"><span class="nm">Eric</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">131</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">14</span></td>
+      <td><div class="name-cell"><span class="nm">Vinicius</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">131</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">15</span></td>
+      <td><div class="name-cell"><span class="nm">Kisie Krawczyk</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">130</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">16</span></td>
+      <td><div class="name-cell"><span class="nm">Simone Hirle #3</span><span class="champ-pick">apostou no 🇨🇴 Colombia</span></div></td>
+      <td class="num score">121</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">17</span></td>
+      <td><div class="name-cell"><span class="nm">Enrico</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">116</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">18</span></td>
+      <td><div class="name-cell"><span class="nm">Simone Hirle #1</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
+      <td class="num score">105</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">19</span></td>
+      <td><div class="name-cell"><span class="nm">Camila</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">104</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">20</span></td>
+      <td><div class="name-cell"><span class="nm">Gustavo Bossle</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">104</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+<tr class="dead">
+      <td class="pos"><span class="pos-badge">21</span></td>
+      <td><div class="name-cell"><span class="nm">Alan</span><span class="champ-pick">apostou no 🇧🇷 Brazil</span></div></td>
+      <td class="num score">100</td>
+      <td><span class="status-pill dead">Eliminado</span></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+    </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="method">
+    <div class="title">Como foi calculado</div>
+    Pontuação, chaveamento e bônus de pódio replicados <b>função por função</b> a partir do código real do site
+    (<code>scoreEntry</code>, <code>matchPoints</code>, <code>podiumFromResults</code>) contra o estado real salvo no banco
+    (23 entradas, resultados oficiais confirmados até as semifinais — jogos 73 a 102). <b>Vivo/morto</b> é uma checagem exaustiva:
+    para cada participante, testamos todos os placares e lados de classificação relevantes dos 2 jogos que restam (3º lugar e
+    Final) e vimos se existe algum resultado possível — mesmo que improvável — que o coloque em 1º, 2º ou 3º. Se não existe
+    nenhum, está matematicamente eliminado do pódio do bolão. As <b>porcentagens de chance</b> já são uma estimativa: 1.500
+    simulações de Monte Carlo dos 2 jogos restantes, usando a força de cada seleção (mesma tabela de força do site) para gerar
+    placares plausíveis — não é uma garantia, é uma leitura de probabilidade. Esta página é uma <b>foto do momento</b> (não
+    atualiza sozinha) — gerada a partir do estado real em 15/07/2026, com resultados confirmados até a semifinal.
+  </div>
+
+  <footer class="sig">Gerado a partir dos dados reais do site &middot; resultados até a semifinal (15/07/2026)</footer>
+
+</div>
+</body>
+</html>
