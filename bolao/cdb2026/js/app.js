@@ -968,6 +968,12 @@ function renderPickDisplay(entry, detail) {
 }
 
 // ─── Render: participants ─────────────────────────────────────────────────────
+// Estrutura de linha idêntica à Copa (.rank-row, ícone + nome/pagador/método + chip de status —
+// bolao/js/app.js renderParticipants()) -- achado em auditoria (2026-07-15, Eduardo: "as telas
+// de participantes e ranking tem formatos... diferentes da Copa"). Antes usava .participant-row,
+// um componente próprio (sem ícone, sem método de pagamento exibido) nunca alinhado com a Copa.
+// A barra de estatísticas (total/pagas/pot) é um acréscimo -- a Copa não tem equivalente -- mas
+// aditiva, não conflita com as linhas em si estarem exatamente iguais.
 function renderParticipants() {
   const box = $("participantsList");
   if (!box) return;
@@ -986,9 +992,9 @@ function renderParticipants() {
     </div>
     ${entries.map(e => {
       const isPaid = (s.paid || {})[e.id];
-      return `<div class="participant-row">
-        <span>${esc(e.entryName)}</span>
-        <span class="muted">${esc(e.payerName || "")}</span>
+      return `<div class="rank-row">
+        <div>👤</div>
+        <div><b>${esc(e.entryName)}</b><br><span class="muted">${esc(e.payerName || "")} · ${esc(e.paymentMethod || "")}</span></div>
         <span class="${isPaid ? "paid-badge" : "unpaid-badge"}">${esc(isPaid ? t("paid") : t("unpaid"))}</span>
       </div>`;
     }).join("")}`;

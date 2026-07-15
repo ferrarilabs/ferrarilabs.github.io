@@ -1,5 +1,17 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.27 — 2026-07-15
+
+### Fixed — tela "Participantes" com layout diferente da Copa
+
+Mesma correção do BR2026 nesta data (código idêntico entre os dois apps até aqui): trocado
+`.participant-row` (próprio, sem ícone, sem método de pagamento visível) por `.rank-row`
+(ícone 👤 + nome/pagador/método numa linha só + chip de status), igual à Copa. `.unpaid-badge`
+alinhado para cor neutra (era vermelho/alarme) — "ainda não pago" é estado normal durante
+inscrição, mesmo tratamento que a Copa dá. CSS morta removida.
+
+`audit_scoring.py`: PASSOU (mudança é só visual).
+
 ## v3.26 — 2026-07-15
 
 ### Added — status de confronto adiado/cancelado + timeout de rede no Supabase (itens 25/44/50)
