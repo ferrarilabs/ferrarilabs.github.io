@@ -95,12 +95,23 @@ function saveState(s, opts = {}) {
   renderAll();
 }
 
+// AbortController timeout wrapper — item 50 do CONSISTENCY_MATRIX.md (2026-07-15): as chamadas
+// ao Supabase abaixo eram feitas com fetch() cru, sem timeout, diferente de
+// fetchEspnCandidates() (que já usava AbortController) — uma resposta pendurada travaria
+// load/save indefinidamente. Mesmo padrão/nome de bolao/br2026/js/app.js.
+async function fetchJson(url, opts = {}) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), opts.timeoutMs || 10000);
+  try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
+  finally { clearTimeout(timer); }
+}
+
 // ─── Supabase ───────────────────────────────────────────────────────────────
 async function loadRemoteState() {
   if (!C.database.enabled) return;
   try {
     const { url, anonKey, table, stateId } = C.database;
-    const r = await fetch(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, {
+    const r = await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, {
       headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
     });
     if (!r.ok) return;
@@ -127,7 +138,7 @@ function debouncedReload() {
 async function saveRemoteState(s) {
   if (!C.database.enabled) return;
   const { url, anonKey, table, stateId } = C.database;
-  await fetch(`${url}/rest/v1/${table}`, {
+  await fetchJson(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({ id: stateId, state: s })
@@ -1269,10 +1280,14 @@ function renderGamesSection() {
         const scoreOrDate = m.goalsHome != null
           ? `<b>${m.goalsHome} × ${m.goalsAway}</b>`
           : esc(fmtDate(m.kickoff));
+        // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- chip de "Adiado" quando a ESPN
+        // sinaliza a partida como adiada/cancelada (ver isLegPostponed()/fetchLiveTies()).
+        const postponedChip = m.goalsHome == null && isLegPostponed(tieId, leg)
+          ? ` <span class="game-status postponed">${esc(t("gamePostponed"))}</span>` : "";
         return `<div class="leg">
           ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
           <span class="leg-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} × ${teamLogoImg(away, "team-logo")} ${esc(away)}</span>
-          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}</span>
+          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}${postponedChip}</span>
         </div>`;
       };
       const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
@@ -1512,20 +1527,26 @@ let _liveTies = []; // [{ tieId, tie, phaseId, leg, homeTeam, awayTeam, goalsHom
 let _liveTiesLastPollAt = 0;
 const LIVE_TIE_POLL_INTERVAL_MS = 60 * 1000; // mesma cadência da Copa/BR2026 -- rápida o bastante pro relógio parecer "ao vivo"
 
-// Casa cada perna (ida/volta) de cada confronto da fase ATIVA com um evento "in" da ESPN, pela
-// mesma identidade de mandante já usada em autoSyncEspnResults() (nunca por ordem de data).
-// Roda só sobre a fase ativa (s.espnSync.activePhaseId) -- as demais fases não têm jogo "agora".
+// Pernas (ida/volta) atualmente sinalizadas como adiadas/canceladas pela ESPN -- item 25 do
+// CONSISTENCY_MATRIX.md (2026-07-15), portado do BR2026 (fetchSchedule()/`postponed`). Chave
+// "tieId:leg", populada/atualizada no mesmo poll de 60s do card ao vivo (pollLiveTies).
+let _postponedLegKeys = new Set();
+function isLegPostponed(tieId, leg) { return _postponedLegKeys.has(`${tieId}:${leg}`); }
+
+// Casa cada perna (ida/volta) de cada confronto da fase ATIVA com um evento da ESPN, pela mesma
+// identidade de mandante já usada em autoSyncEspnResults() (nunca por ordem de data). Roda só
+// sobre a fase ativa (s.espnSync.activePhaseId) -- as demais fases não têm jogo "agora". Retorna
+// tanto as pernas "in" (ao vivo) quanto as sinalizadas como adiadas/canceladas.
 async function fetchLiveTies(s) {
   const phaseId = s.espnSync?.activePhaseId;
-  if (!phaseId) return [];
+  if (!phaseId) return { live: [], postponedKeys: new Set() };
   const candidates = await fetchEspnCandidates();
   if (!candidates) return null;
-  const liveEvents = candidates.filter(c => c.state === "in");
-  if (!liveEvents.length) return [];
   const format = getPhaseDef(phaseId)?.format;
   const legs = legsForFormat(format);
   const ties = s.phases?.[phaseId]?.ties || {};
   const found = [];
+  const postponedKeys = new Set();
   Object.entries(ties).forEach(([tieId, tie]) => {
     if (!tie.teamA || !tie.teamB || tie.qualifiedTeamId) return;
     legs.forEach(leg => {
@@ -1533,18 +1554,22 @@ async function fetchLiveTies(s) {
       if (!m || m.goalsHome != null) return; // já tem placar (manual ou auto) — não é "ao vivo"
       const home = leg === "second" ? tie.teamB : tie.teamA;
       const away = leg === "second" ? tie.teamA : tie.teamB;
-      const ev = liveEvents.find(c => c.homeTeam === home && c.awayTeam === away);
+      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away);
       if (!ev) return;
+      if (ev.postponed) { postponedKeys.add(`${tieId}:${leg}`); return; }
+      if (ev.state !== "in") return;
       found.push({ tieId, tie, phaseId, leg, homeTeam: home, awayTeam: away, ev });
     });
   });
-  return found;
+  return { live: found, postponedKeys };
 }
 
 async function pollLiveTies() {
   const s = state();
-  const found = await fetchLiveTies(s);
-  if (found === null) return; // fetch falhou — mantém o último estado conhecido na tela
+  const result = await fetchLiveTies(s);
+  if (result === null) return; // fetch falhou — mantém o último estado conhecido na tela
+  const { live: found, postponedKeys } = result;
+  _postponedLegKeys = postponedKeys;
   const now = Date.now();
   const prevById = new Map(_liveTies.map(l => [`${l.tieId}:${l.leg}`, l]));
   const clockCache = loadLiveClockCache();
@@ -1571,6 +1596,10 @@ async function pollLiveTies() {
   _liveTies = nextLive;
   _liveTiesLastPollAt = now;
   renderLiveTieCard();
+  // Re-renderiza Jogos/Palpites pra refletir uma mudança de status de adiado/cancelado -- barato
+  // o bastante (só recomputa HTML a partir do estado já em memória) pra rodar a cada poll de 60s.
+  renderGamesSection();
+  if (!pickFormIsDirty()) renderPickForm();
 }
 
 // Mesmo padrão de "runningClock" da Copa/BR2026 (ver liveClockDisplay em bolao/br2026/js/app.js):
@@ -1639,6 +1668,9 @@ async function fetchEspnCandidates() {
         || statusName.includes("PENALT")
         || statusName.includes("END_OF_EXTRATIME")
         || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
+      // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- CDB2026 não tinha nenhuma forma de
+      // sinalizar jogo adiado/cancelado; portado do BR2026 (fetchSchedule(), mesma checagem).
+      const postponed = statusName === "POSTPONED" || statusName === "CANCELED";
       return {
         id: ev.id,
         dateISO: comp.date || ev.date || "",
@@ -1657,7 +1689,7 @@ async function fetchEspnCandidates() {
         state: evState,
         liveHomeScore: evState === "in" && home?.score != null ? parseInt(home.score, 10) : null,
         liveAwayScore: evState === "in" && away?.score != null ? parseInt(away.score, 10) : null,
-        clockSec, period, isHalftime, isPenalties,
+        clockSec, period, isHalftime, isPenalties, postponed,
         clockStr: comp.status?.displayClock || "",
       };
     }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
@@ -2538,7 +2570,7 @@ async function clearAllData() {
   if (C.database.enabled) {
     try {
       const { url, anonKey, table, stateId } = C.database;
-      await fetch(`${url}/rest/v1/${table}?id=eq.${stateId}`, {
+      await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}`, {
         method: "DELETE",
         headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
       });
@@ -2733,7 +2765,13 @@ if ('serviceWorker' in navigator) {
   async function checkVersion() {
     if (document.hidden || formIsDirty()) return;
     try {
-      const r = await fetch(`js/config.js?nc=${Date.now()}`);
+      // Escopo isolado desta IIFE não enxerga o fetchJson() do módulo principal -- timeout
+      // inline equivalente (item 50 do CONSISTENCY_MATRIX.md, 2026-07-15).
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10000);
+      let r;
+      try { r = await fetch(`js/config.js?nc=${Date.now()}`, { signal: ctrl.signal }); }
+      finally { clearTimeout(timer); }
       const text = await r.text();
       const m = text.match(/siteVersion:\s*"([^"]+)"/);
       if (m && m[1] !== window.CDB2026_CONFIG?.siteVersion) location.reload();

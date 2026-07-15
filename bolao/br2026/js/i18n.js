@@ -196,6 +196,9 @@ window.BR2026_I18N = {
     espnFillResultsBtn: "Preencher pelo ESPN",
     forceSyncBtn: "☁️ Sync remoto",
     exportCsvBtn: "📊 CSV",
+    exportJsonBtn: "💾 JSON",
+    clearDataBtn: "🗑️ Limpar tudo",
+    clearDataConfirm: "⚠️ Limpar TODOS os dados (local + remoto)? Esta ação não pode ser desfeita.",
     syncDone: "Sincronizado!",
     // Live
     liveNow: "AO VIVO",

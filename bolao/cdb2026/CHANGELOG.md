@@ -1,5 +1,26 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.26 — 2026-07-15
+
+### Added — status de confronto adiado/cancelado + timeout de rede no Supabase (itens 25/44/50)
+
+Continuação da rodada de auditoria/correção pedida por Eduardo.
+
+- **Detecção de jogo adiado/cancelado**: `fetchEspnCandidates()` agora também sinaliza
+  `postponed` (mesma checagem do BR2026 — `type.name === "Postponed"/"Canceled"`).
+  `fetchLiveTies()`/`pollLiveTies()` (recurso ao vivo do v3.25) reaproveitados para também casar
+  pernas adiadas por identidade de mandante, não só as "in"; novo `isLegPostponed()` consultado
+  na aba "Jogos" pra mostrar um chip "Adiado" no lugar da data.
+- **Chip de status de jogo** (`.game-status` — `live`/`post`/`pre`/`postponed`): CDB2026 não
+  tinha nenhum, só o `.paid-badge`/`.unpaid-badge` de pagamento. Portado do BR2026, mesmas
+  classes/cores.
+- **Timeout de rede (`AbortController`)** nas chamadas ao Supabase (`loadRemoteState()`/
+  `saveRemoteState()`/`clearAllData()`), que usavam `fetch()` cru sem timeout — só
+  `fetchEspnCandidates()` já tinha. Novo `fetchJson()` genérico (mesmo nome/padrão do BR2026).
+  Também aplicado ao `checkVersion()` da IIFE de auto-reload (escopo isolado).
+
+`audit_scoring.py`: PASSOU (mudança não toca scoring).
+
 ## v3.25 — 2026-07-15
 
 ### Added — jogo ao vivo (placar + relógio em tempo real), recurso que nunca existiu aqui

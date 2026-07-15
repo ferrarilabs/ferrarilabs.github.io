@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.37 — 2026-07-15
+
+### Added — paridade administrativa com o CDB2026 (itens 7/16/50 do CONSISTENCY_MATRIX.md)
+
+Continuação da rodada de auditoria/correção pedida por Eduardo. Verificação contra o código
+real (não só a matriz, que estava desatualizada em vários pontos — comprovante, CSV CRLF,
+listener de `focus` e QR Zelle já tinham sido resolvidos por outra sessão e não precisaram de
+nova correção):
+
+- **Botão "Limpar tudo"** (`clearDataBtn`) e **backup JSON bruto** (`exportJsonBtn`) — portados
+  quase literalmente do CDB2026 (`clearAllData()`/`exportJsonBackup()`), únicos itens de paridade
+  administrativa que faltavam de verdade.
+- **Timeout de rede (`AbortController`)** nas duas chamadas ao Supabase (`loadRemoteState()`/
+  `saveRemoteState()`), que usavam `fetch()` cru sem timeout — só as chamadas à ESPN já passavam
+  por `fetchJson()`. Também aplicado ao `checkVersion()` da IIFE de auto-reload (escopo isolado,
+  sem acesso ao `fetchJson()` do módulo principal — timeout inline equivalente).
+
+`audit_scoring.py`: PASSOU (mudança não toca scoring).
+
 ## v1.36 — 2026-07-15
 
 ### Fixed — relógio do card "ao vivo" sem detecção de intervalo, andava pra frente e voltava

@@ -545,3 +545,34 @@ comportamento (incluindo a mesma imperfeição conhecida e aceita da Copa — re
 mostrar o relógio brevemente "pausado" por um ciclo de poll até se autocorrigir, não um bug novo
 introduzido aqui). `audit_scoring.py` passou — mudança é só de exibição, nunca grava
 placar/resultado oficial.
+
+## Nota manual — itens 7/16/25/44/50 resolvidos; matriz estava desatualizada em vários pontos (2026-07-15, BR2026 v1.37 / CDB2026 v3.26)
+
+Eduardo pediu para implementar tudo que estava `NEEDS_REVIEW`, com pouco tempo disponível.
+Antes de implementar, verifiquei cada item contra o CÓDIGO REAL (não só o texto da matriz, que é
+regenerada por auditoria e pode ficar desatualizada entre uma rodada e outra) — achado: vários
+itens já tinham sido resolvidos por outra sessão em paralelo e não precisavam de nova correção:
+**#8/#10 (comprovante/e-mail do BR2026)**, **#14 (CSV CRLF do BR2026)**, **#23 (listener de
+`focus` do BR2026)** e **#36 (QR Zelle do BR2026)** já estavam implementados no código atual.
+
+Implementados nesta rodada (genuinamente ausentes, confirmado por leitura direta do código):
+- **#7/#16 (BR2026)**: botão "Limpar tudo" + backup JSON bruto, portados do CDB2026.
+- **#25 (CDB2026)**: detecção de jogo adiado/cancelado, portada do BR2026.
+- **#44 (CDB2026)**: chip de status `.game-status` (live/post/pre/postponed), portado do BR2026
+  — resolve de quebra a maior parte do item também para o BR2026, que já tinha o componente mas
+  sem cobertura total (agora os dois batem).
+- **#50 (BR2026 e CDB2026)**: `AbortController`/timeout nas chamadas ao Supabase, que usavam
+  `fetch()` cru sem timeout — só as chamadas à ESPN já tinham. Novo `fetchJson()` genérico nos
+  dois apps (CDB2026 não tinha nenhum wrapper genérico ainda, só o inline em
+  `fetchEspnCandidates()`).
+
+**Ainda pendentes, não implementados nesta rodada** (ver notas separadas abaixo para
+detalhamento e progresso): #1 (audit_scoring.py equivalente para BR2026/CDB2026), #9 (fluxo de
+PDF/popup do comprovante).
+
+**Deliberadamente NÃO tocados**, por já estarem registrados como decisão consciente e não bug:
+#62 (`--red` diferente entre Copa e BR2026/CDB2026 — mudança visual isolada, não patch em lote) e
+#78 (`.admin-row` lista densa vs. card — decisão de UX já documentada). Uma mudança em lote como
+esta não é o contexto certo pra reabrir decisões já tomadas deliberadamente.
+
+`audit_scoring.py`: PASSOU nos dois apps em cada etapa — nenhuma mudança tocou scoring.

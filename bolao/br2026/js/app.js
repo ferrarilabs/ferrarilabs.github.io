@@ -99,7 +99,10 @@ async function loadRemoteState() {
   if (!C.database.enabled) return;
   try {
     const { url, anonKey, table, stateId } = C.database;
-    const r = await fetch(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, {
+    // Timeout de rede (item 50 do CONSISTENCY_MATRIX.md, 2026-07-15) -- este era o único fetch
+    // do arquivo sem AbortController; sem timeout, uma resposta pendurada do Supabase travaria
+    // o load/save indefinidamente, diferente dos fetches da ESPN que já passavam por fetchJson().
+    const r = await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, {
       headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
     });
     if (!r.ok) return;
@@ -127,7 +130,7 @@ function debouncedReload() {
 async function saveRemoteState(s) {
   if (!C.database.enabled) return;
   const { url, anonKey, table, stateId } = C.database;
-  await fetch(`${url}/rest/v1/${table}`, {
+  await fetchJson(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
     body: JSON.stringify({ id: stateId, state: s })
@@ -2152,6 +2155,34 @@ function exportCsv() {
   a.click();
 }
 
+// ─── Export JSON backup / Clear all data (admin) ────────────────────────────
+// Itens 7/16 do CONSISTENCY_MATRIX.md (2026-07-15) -- BR2026 era o único dos três apps sem
+// backup JSON bruto nem botão de limpar dados; portado quase literalmente do CDB2026
+// (exportJsonBackup()/clearAllData(), bolao/cdb2026/js/app.js).
+function exportJsonBackup() {
+  const s    = state();
+  const blob = new Blob([JSON.stringify(s, null, 2)], { type: "application/json" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `br2026_backup_${new Date().toISOString().slice(0,10)}.json`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+async function clearAllData() {
+  if (!confirm(t("clearDataConfirm"))) return;
+  localStorage.removeItem(C.storeKey);
+  if (C.database.enabled) {
+    try {
+      const { url, anonKey, table, stateId } = C.database;
+      await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}`, {
+        method: "DELETE",
+        headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
+      });
+    } catch (err) { console.warn("[BR2026] Clear remote failed", err); }
+  }
+  renderAll();
+}
+
 // ─── Email receipt ───────────────────────────────────────────────────────────
 // Mesma estrutura/CSS visual do comprovante da Copa (receiptHtml() em bolao/js/app.js) e do
 // CDB2026 -- achado em auditoria (2026-07-14): os três apps tinham um e-mail de comprovante
@@ -2456,6 +2487,8 @@ async function init() {
   });
 
   $("exportCsvBtn")?.addEventListener("click", () => { if (guardAdmin()) exportCsv(); });
+  $("exportJsonBtn")?.addEventListener("click", () => { if (guardAdmin()) exportJsonBackup(); });
+  $("clearDataBtn")?.addEventListener("click", () => { if (guardAdmin()) clearAllData(); });
   $("forceSyncBtn")?.addEventListener("click", async () => {
     if (!guardAdmin()) return;
     await loadRemoteState();
@@ -2533,7 +2566,13 @@ if ('serviceWorker' in navigator) {
   async function checkVersion() {
     if (document.hidden || formIsDirty()) return;
     try {
-      const r = await fetch(`js/config.js?nc=${Date.now()}`);
+      // Escopo isolado desta IIFE não enxerga o fetchJson() do módulo principal -- timeout
+      // inline equivalente (item 50 do CONSISTENCY_MATRIX.md, 2026-07-15).
+      const ctrl = new AbortController();
+      const timer = setTimeout(() => ctrl.abort(), 10000);
+      let r;
+      try { r = await fetch(`js/config.js?nc=${Date.now()}`, { signal: ctrl.signal }); }
+      finally { clearTimeout(timer); }
       const text = await r.text();
       const m = text.match(/siteVersion:\s*"([^"]+)"/);
       if (m && m[1] !== window.BR2026_CONFIG?.siteVersion) location.reload();
