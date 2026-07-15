@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.41 — 2026-07-15
+
+### Added — comprovante abrível/baixável (item 9 do CONSISTENCY_MATRIX.md); tabela de regras sem cabeçalho extra
+
+Eduardo: "yes please fix everything." BR2026 não tinha NENHUMA confirmação visual pós-salvamento
+— só um toast e pulava direto pro Ranking, sem mostrar o código do comprovante nem jeito de
+abrir/imprimir/baixar. Portado exatamente da Copa (`openReceipt()`/`downloadReceipt()`, via Blob
+URL, nunca `document.write`) e do padrão já usado no CDB2026 (`renderReceiptBox()`): novo
+`#receiptBox` na aba Palpites, com código + botões "Abrir comprovante / salvar PDF" e "Baixar
+HTML", reaproveitando o `receiptHtml()` já usado no e-mail. Agora, salvar uma **nova** entrada
+mostra esse card em vez de pular direto pro Ranking (editar uma entrada existente continua
+pulando, como sempre foi).
+
+Também alinhada a tabela de pontuação da aba Regras: tinha um `<thead>` que a Copa não tem
+(`.rules-table` da Copa é só `<tbody>`) — removido para bater exatamente.
+
+`audit_scoring.py` (Copa + BR2026): PASSOU (mudança é só de exibição/confirmação, nunca grava
+resultado oficial).
+
 ## v1.40 — 2026-07-15
 
 ### Added — prévia de pagamento no formulário de entrada (paridade com a Copa)

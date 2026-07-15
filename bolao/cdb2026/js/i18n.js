@@ -75,6 +75,9 @@ window.CDB2026_I18N = {
     receiptTitle: "Comprovante — Bolão Copa do Brasil 2026",
     receiptCodeLabel: "Código do comprovante",
     receiptSaveHint: "Guarde este código — ele também foi enviado por e-mail. Você vai precisar dele (junto com seu e-mail) para editar seus palpites conforme novas fases abrirem.",
+    openReceipt: "Abrir comprovante / salvar PDF",
+    downloadHtml: "Baixar HTML",
+    receiptPopupBlocked: "O navegador bloqueou o popup. Permita pop-ups ou use Baixar HTML.",
     // E-mail de comprovante — mesma estrutura/CSS visual da Copa e do BR2026 (achado em
     // auditoria, 2026-07-14: "o email de comprovante do BR2026 é diferente do da CDB2026...
     // tem que ser igual"). Conteúdo adaptado ao formato deste torneio (campeão/vice + placares

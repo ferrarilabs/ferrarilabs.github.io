@@ -375,13 +375,15 @@ async function saveEntry() {
       sendReceipt(entry).catch(err => console.warn("[BR2026] Email failed", err));
     }
 
+    const wasNew = !_editingEntry;
     _editingEntry = null;
     renderPickForm();
     ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
     $("paymentMethod") && ($("paymentMethod").value = "");
 
+    renderReceiptBox(entry);
     showToast(t("savedSuccess"), "success");
-    showSection("ranking");
+    if (!wasNew) showSection("ranking");
   } catch (err) {
     console.error("[BR2026] Save error", err);
     showToast(t("saveError"), "error");
@@ -1924,7 +1926,6 @@ function renderRules() {
     <div class="card">
       <h3>${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
-        <thead><tr><th>${esc(t("rulesAcerto"))}</th><th>${esc(t("rulesPts"))}</th></tr></thead>
         <tbody>
           <tr><td>🥇 1º Lugar (${esc(t("rulesExact"))})</td><td><b>30</b></td></tr>
           <tr><td>🥇 1º Lugar (${esc(t("rulesInG4"))})</td><td>10</td></tr>
@@ -2254,6 +2255,54 @@ ${groupTable(t("receiptGroupSA6"), sa6rows)}
 ${groupTable(t("receiptGroupZ4"), z4rows)}
 <div class="notice">${esc(t("receiptFooterNote"))}</div>
 </div></body></html>`;
+}
+
+function downloadBlob(filename, content, type) {
+  const blob = new Blob([content], { type: `${type};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// Abrir comprovante / baixar HTML — item 9 do CONSISTENCY_MATRIX.md (2026-07-15): a Copa sempre
+// teve esse fluxo (openReceipt()/downloadReceipt(), bolao/js/app.js) via Blob URL, nunca
+// document.write; BR2026 não tinha NENHUMA confirmação visual pós-salvamento (só um toast e
+// pulava direto pro Ranking) -- reaproveita o mesmo receiptHtml() já usado no e-mail.
+function openReceipt(id) {
+  const e = state().entries.find(x => x.id === id);
+  if (!e) return;
+  const blob = new Blob([receiptHtml(e)], { type: "text/html;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const w = window.open(url, "_blank", "noopener,noreferrer");
+  if (!w) { URL.revokeObjectURL(url); alert(t("receiptPopupBlocked")); return; }
+  setTimeout(() => URL.revokeObjectURL(url), 120000);
+}
+
+function downloadReceipt(id) {
+  const e = state().entries.find(x => x.id === id);
+  if (!e) return;
+  downloadBlob(`comprovante-${receiptCode(e)}.html`, receiptHtml(e), "text/html");
+}
+
+// Mesmo padrão do CDB2026 (renderReceiptBox()) -- card de confirmação com código + botões
+// abrir/baixar, chamado logo após salvar. BR2026 não tinha equivalente nenhum antes.
+function renderReceiptBox(entry) {
+  const box = $("receiptBox");
+  if (!box) return;
+  const code = receiptCode(entry);
+  box.classList.remove("hidden");
+  box.innerHTML = `
+    <h3>${esc(t("receiptTitle"))}</h3>
+    <p>${esc(t("receiptCodeLabel"))}: <code class="receipt-code">${esc(code)}</code></p>
+    <p class="muted" style="font-size:12px">${esc(t("receiptSaveHint"))}</p>
+    <div class="receipt-actions">
+      <button type="button" data-receipt-action="open">${esc(t("openReceipt"))}</button>
+      <button type="button" class="secondary" data-receipt-action="download">${esc(t("downloadHtml"))}</button>
+    </div>`;
+  box.querySelector('[data-receipt-action="open"]')?.addEventListener("click", () => openReceipt(entry.id));
+  box.querySelector('[data-receipt-action="download"]')?.addEventListener("click", () => downloadReceipt(entry.id));
 }
 
 async function sendReceipt(entry) {

@@ -1,5 +1,18 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.30 — 2026-07-15
+
+### Added — comprovante abrível/baixável (item 9 do CONSISTENCY_MATRIX.md); tabela de regras sem cabeçalho extra
+
+`#receiptBox` já existia (código + texto), mas sem jeito de abrir/imprimir/baixar. Adicionados
+`openReceipt()`/`downloadReceipt()` (Blob URL, nunca `document.write`, mesmo padrão da Copa) e os
+botões correspondentes, reaproveitando o `receiptHtml()` já usado no e-mail.
+
+Também removido o `<thead>` extra nas duas tabelas da aba Regras (pontuação e prêmios) — a Copa
+usa `.rules-table` só com `<tbody>`.
+
+`audit_scoring.py`: PASSOU (mudança é só de exibição, nunca grava resultado oficial).
+
 ## v3.29 — 2026-07-15
 
 ### Added — prévia de pagamento no formulário de entrada (paridade com a Copa)
