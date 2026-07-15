@@ -1,5 +1,25 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.28 — 2026-07-15
+
+### Fixed — Pot no lugar errado; barra de estatísticas sem equivalente na Copa removida
+
+Mesma correção do BR2026 nesta data (código idêntico entre os dois apps até aqui). Pot movido do
+stats bar de Participantes (sem equivalente na Copa) para `.pot-box` no cabeçalho do Ranking
+(`#potValue`), igual à Copa. Barra de estatísticas removida.
+
+### Added — audit_scoring.py (item 1 do CONSISTENCY_MATRIX.md)
+
+Novo `bolao/cdb2026/scripts/audit_scoring.py` — transcrição em Python da fórmula real de
+`matchPoints()`/`scoreEntry()` (exato/resultado/lado mutuamente exclusivos, bônus de confronto,
+bônus de pódio campeão/vice, cascata de desempate), com 5 checagens. Especialmente relevante
+aqui: Oitavas com jogo real dia 1º de agosto, dinheiro real em jogo, sem proteção nenhuma até
+agora. Mesma ressalva que o BR2026: não existe um script server-side rodando sem supervisão pra
+auditar contra (diferente da Copa/`send_result_email.py`) — o valor é manter esta transcrição
+sincronizada com `app.js` à mão sempre que scoring mudar.
+
+`audit_scoring.py` da Copa: PASSOU. `audit_scoring.py` do CDB2026 (novo): PASSOU.
+
 ## v3.27 — 2026-07-15
 
 ### Fixed — tela "Participantes" com layout diferente da Copa

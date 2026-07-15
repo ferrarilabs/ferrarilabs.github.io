@@ -1,5 +1,35 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.39 — 2026-07-15
+
+### Fixed — Pot no lugar errado; barra de estatísticas sem equivalente na Copa removida
+
+Eduardo: "o pot na copa nao esta igual nos outros dois... tudo precisa permanecer 100% igual a
+nao ser que nao se aplique." Pot só aparecia como 1 de 3 números numa barra de estatísticas em
+Participantes — a Copa não tem essa barra, mostra o Pot num `.pot-box` dedicado no cabeçalho do
+Ranking (`#potValue`, atualizado em `renderRanking()`). Portado exatamente: `.pot-box`/
+`.section-head-row` adicionados ao cabeçalho do Ranking, `#potValue` calculado com a mesma
+fórmula da Copa (pagos × entryFee). A barra de estatísticas (total de entradas/pagas/pot) foi
+**removida** — não tem equivalente na Copa, não era diferença específica de torneio, então não
+se justificava mantê-la depois da correção anterior desta mesma auditoria.
+
+### Added — audit_scoring.py (item 1 do CONSISTENCY_MATRIX.md)
+
+BR2026 movimenta dinheiro real (US$5/entrada) e não tinha nenhuma proteção automatizada contra
+regressão de scoring, ao contrário da Copa (que tem desde o incidente de julho/2026). Novo
+`bolao/br2026/scripts/audit_scoring.py`: transcrição em Python da fórmula real de
+`scoreEntry()`/`rankEntries()` (G4 exato/grupo/errado, Z4 exato/grupo/errado, SA6, cascata de
+desempate), com 5 checagens (mutuamente exclusivo, pick perfeito soma certo, pick em branco não
+pontua falso-positivo, sem resultado retorna `None` em vez de 0/crash, ordem de desempate).
+Diferença importante em relação ao script da Copa: a Copa audita `send_result_email.py` (uma
+reimplementação Python INDEPENDENTE que roda via cron) contra o site — aqui não existe um script
+equivalente rodando sem supervisão, então não há "drift entre duas implementações" pra auditar.
+O valor deste script é outro: garantir que a transcrição Python abaixo continua batendo com
+`app.js` sempre que a fórmula mudar lá — precisa ser atualizado à mão junto de qualquer mudança
+de scoring, mesma disciplina que `send_result_email.py` já exige na Copa.
+
+`audit_scoring.py` da Copa: PASSOU (Copa intocada). `audit_scoring.py` do BR2026 (novo): PASSOU.
+
 ## v1.38 — 2026-07-15
 
 ### Fixed — tela "Participantes" com layout diferente da Copa
