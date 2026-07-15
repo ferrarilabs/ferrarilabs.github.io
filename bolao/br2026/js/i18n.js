@@ -199,6 +199,8 @@ window.BR2026_I18N = {
     syncDone: "Sincronizado!",
     // Live
     liveNow: "AO VIVO",
+    liveHalftime: "Intervalo",
+    livePenalties: "Pênaltis",
     // Language names (kept for compatibility)
     langPt: "PT-BR",
     langEs: "ES",
