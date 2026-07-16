@@ -126,7 +126,11 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
    plataforma, ver DESIGN_SYSTEM.md e CLAUDE.md. Era 860px, divergente. */
 main {
   max-width: 1140px; margin: 0 auto;
-  padding: 16px 14px 80px;
+  /* Bottom padding era 80px (achado 2026-07-16, Eduardo: "muito espaço vazio no final da
+     página") -- sobrava um vão enorme abaixo do botão sticky em toda aba, não só na de
+     palpites. Copa (bolao/css/styles.css) tem a mesma estrutura de botão sticky com padding
+     simétrico (20px), sem folga extra -- alinhado aqui. */
+  padding: 16px 14px;
 }
 
 /* ── Card ── */
@@ -446,6 +450,17 @@ button.live-match-row { cursor: pointer; }
 #adminArea .card { margin-bottom: 14px; }
 #adminArea h3 { margin: 0 0 12px; font-size: 15px; }
 
+/* Audit log — same tokens as Copa (bolao/css/styles.css) */
+.audit-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.audit-row:last-child { border-bottom: none; }
+.audit-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+
 /* ── Misc ── */
 .hidden   { display: none !important; }
 .muted    { color: var(--muted); }
@@ -624,7 +639,7 @@ button:focus-visible, input:focus-visible, select:focus-visible {
 }
 
 @media (max-width: 900px) {
-  main { padding: 12px 10px 80px; }
+  main { padding: 12px 10px; }
   .pay-grid { grid-template-columns: 1fr; }
   /* .brand and .whatsapp-btn both force nowrap on their own text, and
      .bolao-switcher's <select> sizes to its selected option's text —
