@@ -38,7 +38,12 @@
   --red:      #ff6b6b;
 }
 
-html, body { overflow-x: hidden; }
+/* overflow-x: hidden sozinho ainda deixa a Safari do iOS fazer "rubber-band" horizontal
+   (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
+   clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
+   sozinho não resolve. Achado 2026-07-16 (Eduardo, side-scroll voltou no BR2026/CDB2026 mesmo
+   com hidden já presente) -- hidden mantido como fallback para navegadores sem suporte a clip. */
+html, body { overflow-x: hidden; overflow-x: clip; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;

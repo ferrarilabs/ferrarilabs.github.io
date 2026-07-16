@@ -696,3 +696,31 @@ o fim + screenshot antes/depois): `scrollHeight` mobile caiu ~68px em cada app (
 80px→12px), botão sticky sem sobreposição, aba Ranking sem regressão.
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só CSS.
+
+## Nota manual — `saveEntry()` sem validação de responsável/método de pagamento (BR2026/CDB2026), divergente da Copa desde sempre (2026-07-16, BR2026 v1.48 / CDB2026 v3.36)
+
+Eduardo encontrou entradas reais salvas sem responsável e/ou método de pagamento (Matheus,
+Gustavo) na aba Participantes do BR2026 — "This can not happen... doesn't look professional."
+A Copa (`bolao/js/app.js`) sempre validou `payerName` e `paymentMethod` como obrigatórios
+(`requiredPayerName`/`requiredPaymentMethod`); essa checagem nunca foi portada para BR2026 nem
+CDB2026 quando os apps foram construídos — `saveEntry()` neles só validava `entryName` e
+`participantEmail`. `NOT_CONSISTENT` → `CONSISTENT`: os dois apps agora bloqueiam o salvamento
+com o mesmo alerta/posição de checagem que a Copa. Registros já salvos com o campo vazio não
+foram corrigidos retroativamente (Eduardo confirmou que está OK deixar como está).
+
+## Nota manual — `overflow-x: hidden` endurecido para `overflow-x: clip` nos três apps (2026-07-16, Copa v4.138 / BR2026 v1.48 / CDB2026 v3.36)
+
+Eduardo: "the issue with the side scroll is back" — o mesmo sintoma resolvido em 2026-07-16
+(item anterior, `overflow-x: hidden` no `html`/`body` dos três apps) reapareceu no BR2026,
+mesmo com a regra ainda presente no CSS. Não foi possível reproduzir com Chromium no sandbox
+(único engine disponível) em nenhuma largura testada — hipótese fundamentada: `.topbar` usa
+`position: sticky` + `backdrop-filter` nos três apps, uma combinação com bug documentado no
+WebKit onde `overflow-x: hidden` sozinho não impede o "rubber-band" horizontal do iOS Safari.
+Trocado para `overflow-x: clip` (mais rígido, não cria região de scroll programável), com
+`hidden` mantido como fallback na mesma declaração. `CONSISTENT` nos três apps.
+
+**Correção especulativa, não confirmada por reprodução real** — registrado aqui para
+acompanhamento: se o sintoma persistir depois deste patch, a causa é outra e precisa de
+investigação com um dispositivo real ou engine WebKit, que este ambiente não tem disponível.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — nenhuma mudança de scoring/bracket.
