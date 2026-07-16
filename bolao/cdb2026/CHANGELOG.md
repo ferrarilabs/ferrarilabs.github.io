@@ -1,5 +1,19 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.31 — 2026-07-16
+
+### Fixed — badge "Pago" divergente da Copa (checkmark); página podia rolar para o lado no mobile
+
+Mesmo achado do BR2026 v1.42, propagado aqui (mesmo bug, mesmo texto `paid: "✓ Pago"` copiado):
+
+1. Badge "✓ Pago" com checkmark não existia na Copa (referência visual canônica, só "Pago") —
+   glyph de fonte diferente inflava a altura da pílula no mobile. Corrigido: `paid: "Pago"`.
+2. `html`/`body` sem `overflow-x: hidden` — nenhuma rede de segurança contra rolagem horizontal
+   da página inteira. Adicionado, verificado que não quebra `.picks-detail`/scroll interno nem o
+   header sticky.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py`: 5/5.
+
 ## v3.30 — 2026-07-15
 
 ### Added — comprovante abrível/baixável (item 9 do CONSISTENCY_MATRIX.md); tabela de regras sem cabeçalho extra
