@@ -1,11 +1,11 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.139",
+  siteVersion: "v4.140",
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
   storeKey: "bolao_copa_2026_state",
   entryFee: 5,
   // SHA-256 hash of admin password. Never store plaintext here.
-  adminPasswordHash: "a6b9c87326e39cd10daad4de218019396d46e3ab2d89822b926274613138dee6",
+  adminPasswordHash: "2132e264513230629493ac29b4192dbf5c99a203bcbb2b7a01020666fa32156c",
   adminMaxAttempts: 5,
   adminLockMinutes: 15,
   adminSessionMinutes: 30,

@@ -1,5 +1,21 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.50 — 2026-07-16
+
+### Security — senha do admin atualizada
+
+Ver nota completa em `bolao/CHANGELOG.md` v4.140 — mesma troca, propagada aos três apps
+(já compartilhavam o mesmo hash).
+
+### Data — duas entradas renomeadas em produção, a pedido do Eduardo
+
+"Gustavo" → "Gustavo Ferrari", "Matheus" → "Matheus The Client" (ids `bebac118-…` e
+`cafb8261-…`). Atualizado diretamente no Supabase (`bolao_state`, `id="br2026"`), registrado no
+journal (`s.auditLog`, ação `rename-entry`, nome anterior/novo). `payerName`/`paymentMethod`
+não foram tocados (continuam vazios, conforme já confirmado por Eduardo que está OK).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.49 — 2026-07-16
 
 ### Fixed — badge "Pago"/"Pendente" vazando da própria caixa em telas estreitas

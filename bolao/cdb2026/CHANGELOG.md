@@ -1,5 +1,14 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.38 — 2026-07-16
+
+### Security — senha do admin atualizada
+
+Ver nota completa em `bolao/CHANGELOG.md` v4.140 — mesma troca, propagada aos três apps
+(já compartilhavam o mesmo hash).
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.37 — 2026-07-16
 
 ### Fixed — badge "Pago"/"Pendente" vazando da própria caixa em telas estreitas
