@@ -1,5 +1,28 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.42 — 2026-07-16
+
+### Fixed — badge "Pago" divergente da Copa (checkmark); página podia rolar para o lado no mobile
+
+Eduardo, dois achados via screenshot mobile real:
+
+1. **"o look and feel esta um pouco off na Pago e Pendente"**: o badge de pagamento mostrava
+   "✓ Pago" (com checkmark) enquanto "Pendente" não tem prefixo nenhum — a Copa (referência visual
+   canônica) usa só "Pago", sem checkmark (`paymentPaid` em `bolao/js/i18n.js`). O glyph "✓"
+   renderiza com métricas de fonte diferentes do texto latino ao redor (fallback de fonte de
+   símbolo), inflando a altura da pílula de forma perceptível no mobile — CSS das duas pílulas
+   (`.paid-badge`/`.unpaid-badge`) já era idêntico em padding/cor/border-radius, só o texto
+   divergia. Corrigido: `paid: "Pago"` (sem checkmark), igual à Copa, propagado também ao CDB2026
+   (mesmo texto, mesmo bug).
+2. **"ele faz scroll para o lado tambem, corrija em todos"**: nenhum dos 3 apps tinha
+   `overflow-x: hidden` no `html`/`body` — uma rede de segurança padrão da indústria contra
+   qualquer elemento (conhecido ou não) forçar rolagem horizontal da página inteira. Confirmado
+   via Playwright que a mudança não quebra nenhum scroll interno intencional (`.standings-wrap`,
+   `.picks-detail`, `.table-scroll` continuam roláveis normalmente) nem o header sticky.
+   Propagado aos 3 apps (Copa, BR2026, CDB2026) e à página `classificacao-geral.html`.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py`: 5/5.
+
 ## v1.41 — 2026-07-15
 
 ### Added — comprovante abrível/baixável (item 9 do CONSISTENCY_MATRIX.md); tabela de regras sem cabeçalho extra
