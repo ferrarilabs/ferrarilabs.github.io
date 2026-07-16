@@ -1,5 +1,69 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.50 — 2026-07-16
+
+### Security — senha do admin atualizada
+
+Ver nota completa em `bolao/CHANGELOG.md` v4.140 — mesma troca, propagada aos três apps
+(já compartilhavam o mesmo hash).
+
+### Data — duas entradas renomeadas em produção, a pedido do Eduardo
+
+"Gustavo" → "Gustavo Ferrari", "Matheus" → "Matheus The Client" (ids `bebac118-…` e
+`cafb8261-…`). Atualizado diretamente no Supabase (`bolao_state`, `id="br2026"`), registrado no
+journal (`s.auditLog`, ação `rename-entry`, nome anterior/novo). `payerName`/`paymentMethod`
+não foram tocados (continuam vazios, conforme já confirmado por Eduardo que está OK).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v1.49 — 2026-07-16
+
+### Fixed — badge "Pago"/"Pendente" vazando da própria caixa em telas estreitas
+
+Eduardo: "the pago is outside the box. You should be very thorough about these knits." Ver nota
+completa em `bolao/CHANGELOG.md` v4.139 (mesma correção, mesma causa raiz nos três apps).
+`.rank-row` é reaproveitado por `renderRanking()` (4 itens) e `renderParticipants()` (só 3
+itens) — o breakpoint mobile fixava a 3ª coluna em `40px` (dimensionado pro placar do ranking),
+insuficiente pro badge "Pendente" (8 letras, mediu 79px reais de largura). Nova classe
+`.rank-row.participant-row` com `grid-template-columns: 28px 1fr auto;` para a estrutura real
+de 3 itens.
+
+Confirmado com medição de DOM real (`scrollWidth`), não é correção especulativa: badge
+"Pendente" agora mede 79px e cabe com 13px de folga (antes: forçado em 40px).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v1.48 — 2026-07-16
+
+### Fixed — entrada podia ser salva sem responsável pelo pagamento nem método de pagamento
+
+Eduardo encontrou uma entrada real (Matheus) salva com "·" vazio no lugar de responsável e
+método de pagamento na aba Participantes, e outra (Gustavo) sem responsável. "This can not
+happen... doesn't look professional." `saveEntry()` validava `entryName` e `participantEmail`,
+mas nunca `payerName` nem `paymentMethod` — a Copa (`bolao/js/app.js`) sempre validou os quatro
+(`requiredPayerName`/`requiredPaymentMethod`), essa checagem nunca foi portada para o BR2026
+durante a construção do app. Corrigido: `saveEntry()` agora bloqueia o salvamento (com o mesmo
+alerta da Copa) se `payerName` ou `paymentMethod` estiverem vazios, tanto para entrada nova
+quanto para edição.
+
+Registros já salvos com o campo vazio (Matheus, Gustavo) não foram alterados — Eduardo
+confirmou que está OK deixar como está; a correção é só para impedir que aconteça de novo.
+
+Testado com Playwright: tentar salvar com nome+email mas sem responsável bloqueia com
+"Digite o responsável pelo pagamento."; com responsável mas sem método bloqueia com "Selecione
+o método de pagamento."
+
+### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou)
+
+Eduardo: "the issue with the side scroll is back." Ver nota completa em `bolao/CHANGELOG.md`
+v4.138 (mesma correção, propagada aos três apps) — `overflow-x: hidden` sozinho não impede o
+"rubber-band" horizontal do iOS Safari quando um ancestral usa `position: sticky` +
+`backdrop-filter` (o `.topbar`); trocado para `overflow-x: clip` (com `hidden` como fallback).
+Não foi possível reproduzir com Chromium no sandbox — correção especulativa e propagada por
+prudência; acompanhar se o sintoma persistir.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.47 — 2026-07-16
 
 ### Fixed — vão vazio grande no final de toda página (mobile e desktop)

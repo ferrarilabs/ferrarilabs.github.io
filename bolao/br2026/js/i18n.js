@@ -60,7 +60,9 @@ window.BR2026_I18N = {
     saving: "Salvando…",
     // Validation
     errorEntryName: "Informe o nome da entrada.",
+    requiredPayerName: "Digite o responsável pelo pagamento.",
     errorEmail: "Informe um e-mail válido.",
+    requiredPaymentMethod: "Selecione o método de pagamento.",
     errorG4Incomplete: "Preencha todos os 4 times do G4.",
     errorSA6Incomplete: "Preencha todos os 6 times da Sul-Americana.",
     errorZ4Incomplete: "Preencha todos os 4 times do Z4.",

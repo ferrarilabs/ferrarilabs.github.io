@@ -93,7 +93,9 @@ window.CDB2026_I18N = {
     receiptFooterNote: "Bolão informal entre amigos. A pontuação final só é calculada após o encerramento da Copa do Brasil.",
     // Validation
     errorEntryName: "Informe o nome da entrada.",
+    requiredPayerName: "Digite o responsável pelo pagamento.",
     errorEmail: "Informe um e-mail válido.",
+    requiredPaymentMethod: "Selecione o método de pagamento.",
     errorPicksIncomplete: "Preencha todos os palpites obrigatórios.",
     errorAdvanceRequired: "Selecione quem se classifica em cada confronto com placar previsto empatado.",
     errorTieTeams: "Informe os dois times (diferentes um do outro).",
