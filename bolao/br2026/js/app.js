@@ -2623,6 +2623,10 @@ async function init() {
 
   // Navigation
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
+  // Disable "Palpites" nav button only after cutoff; default landing depends on cutoff — same
+  // pattern as Copa (bolao/js/app.js init()).
+  const navEntryBtn = document.querySelector('.nav button[data-section="entry"]');
+  if (navEntryBtn) navEntryBtn.disabled = isPastCutoff();
   showSection(isPastCutoff() ? "ranking" : "entry");
 
   // Bolão switcher

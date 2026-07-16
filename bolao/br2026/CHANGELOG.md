@@ -1,5 +1,23 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.46 — 2026-07-16
+
+### Fixed — "Palpites" continuava clicável depois do prazo; propagado padrão da Copa
+
+Eduardo: "once it cuts disable the palpites button like copa and default to ranking like copa."
+O "default to ranking" já existia (`showSection(isPastCutoff() ? "ranking" : "entry")` desde a
+introdução do cutoff automático); faltava a outra metade do padrão da Copa: desabilitar o botão
+de navegação "Palpites" em si depois do prazo (`init()` da Copa faz
+`navEntryBtn.disabled = isPastCutoff()`, nunca implementado aqui). Adicionado o mesmo trecho —
+o botão fica desabilitado (estilo padrão do navegador para `disabled`, igual à Copa, sem CSS
+extra) sempre que a página carrega depois do prazo.
+
+Mesma limitação da Copa, não nova: computado uma vez no `init()`, não reativamente — se o prazo
+vence com a aba já aberta, o botão só desabilita no próximo carregamento. Comportamento aceito
+na Copa, replicado aqui sem alteração.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.45 — 2026-07-16
 
 ### Fixed — extensão manual do prazo (+45min) e bug de propagação em `mergeStates()`

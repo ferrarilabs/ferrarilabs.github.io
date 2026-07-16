@@ -1,5 +1,22 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.34 — 2026-07-16
+
+### Fixed — "Palpites" continuava clicável depois do prazo da fase ativa; propagado padrão da Copa
+
+Mesmo achado do BR2026 v1.46 (Eduardo: "once it cuts disable the palpites button like copa and
+default to ranking like copa"), propagado aqui por ter a mesma estrutura de `init()`. O "default
+to ranking" já existia (`showSection(isPastEntryCutoff() ? "ranking" : "entry")`); faltava
+desabilitar o botão de navegação "Palpites" em si depois do prazo da fase ativa — adicionado
+`navEntryBtn.disabled = isPastEntryCutoff()`, mesmo padrão da Copa (`init()`,
+`navEntryBtn.disabled = isPastCutoff()`).
+
+Mesma limitação da Copa/BR2026, não nova: computado uma vez no `init()`, não reativamente — se o
+prazo da fase ativa vence com a aba já aberta, ou se uma nova fase começa depois do `init()`, o
+botão só reflete o estado correto no próximo carregamento.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.33 — 2026-07-16
 
 ### Added — triple confirmation + journal de admin + backups automatizados para ações manuais destrutivas
