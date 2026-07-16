@@ -1,5 +1,58 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.51 — 2026-07-16
+
+### Added — email automático de fim de rodada (em vez de por jogo)
+
+Eduardo: "Para os emails apos jogos no br2026 vamos fazer emails apos cada rodada finalizar
+para economizar no envio." BR2026 não tinha nenhum email automatizado por jogo antes disso
+(só o comprovante de inscrição) — a Copa envia um email por partida via
+`bolao/scripts/send_result_email.py`, mas isso só funciona lá porque a Copa tem ~32 partidas
+no total. O Brasileirão tem ~380 jogos na temporada; replicar o mesmo padrão por jogo
+significaria ~380 envios/temporada (× participantes). Construído direto em lote por rodada em
+vez disso (~38 envios/temporada).
+
+**Descoberta real que mudou o design**: a API da ESPN para o Brasileirão não expõe número de
+rodada por jogo. Testado ao vivo (schedule completo de 2026 buscado da ESPN, 382 jogos): nem
+agrupar por proximidade de data nem reconstruir rodadas pela estrutura de turno-returno
+(cada time joga uma vez por rodada) produz um calendário limpo — jogos adiados/remarcados e a
+compressão pós-Copa do Mundo geram "rodadas" de até 39 jogos quando forçado. Sem uma fonte
+oficial rodada-a-rodada pra cadastrar à mão (diferente do CDB2026, onde Eduardo forneceu os
+confrontos reais), Eduardo escolheu a alternativa: uma janela rolante de 7 dias. O "lote atual"
+é formado pelo jogo mais antigo ainda não coberto por um lote anterior + tudo dentro de 7 dias
+dessa data; quando todos os jogos do lote terminam, o email dispara e o lote fecha.
+
+- `bolao/br2026/scripts/send_round_email.py` (novo): mesmo padrão de segurança do
+  `send_result_email.py` da Copa — audit_scoring.py roda antes de qualquer coisa, confirmação
+  de estabilidade (re-checagem da ESPN após 20s), checagem de sanidade (nenhum jogo do lote com
+  data futura, times resolvidos), idempotente (lote só fecha depois de tentar todos os envios).
+  Importa `score_entry()` direto de `audit_scoring.py` (fonte única, sem reimplementação
+  duplicada) — só o desempate final (`rank_entries()`, ordem alfabética reversa do nome) é
+  transcrito à mão aqui, e ganhou seu próprio self-check (`_self_check_rank_entries()`) porque
+  o `check_tiebreak_order()` do audit_scoring.py compartilhado explicitamente não cobre esse
+  último passo (ver docstring dele).
+- Conteúdo do email (aprovado por Eduardo): resultados dos jogos da rodada + classificação
+  G4/Sul-Americana/Z4 atual + seção pessoal "Seu desempenho" (pontos, posição, seta de
+  movimento vs. a rodada anterior). Um email por participante (personalizado), mais um resumo
+  pro admin.
+- `.github/workflows/br2026_round_emails.yml` (novo): cron a cada 30min nos horários típicos de
+  jogo (18h-1h EDT), ano todo — sem restrição de mês como o cron da Copa (que só roda
+  junho/julho, janela da Copa do Mundo). Não faz nada se não houver jogos na janela; seguro
+  rodar fora de temporada.
+- Novo campo de estado `s.roundEmail` (Supabase): `pendingBatch`, `baseline` (G4/Z4/SA6 da
+  última rodada enviada, pra calcular movimento), `sentGameIds`, `sentBatches` (histórico,
+  cap 50). Cada envio também registra uma entrada no journal (`s.auditLog`, ação
+  `round-email-sent`).
+
+Testado: rodado ao vivo contra a ESPN e o Supabase de produção duas vezes (idempotência
+confirmada — segunda chamada não reabre o lote), `rank_entries()`/HTML de email testados com
+dados simulados. **Não testado**: o caminho real de envio de email em si, porque nenhum lote
+chegou a "todos os jogos completos" ainda — só vai disparar de verdade quando a próxima janela
+de 7 dias realmente terminar.
+
+Não altera scoring nem lógica de negócio (reaproveita a fórmula existente). `audit_scoring.py`
+(Copa/BR2026/CDB2026): 5/5.
+
 ## v1.50 — 2026-07-16
 
 ### Security — senha do admin atualizada
