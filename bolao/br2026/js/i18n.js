@@ -210,6 +210,9 @@ window.BR2026_I18N = {
     liveNow: "AO VIVO",
     liveHalftime: "Intervalo",
     livePenalties: "Pênaltis",
+    liveMatchesLabel: "jogos ao vivo agora",
+    liveToggleExpand: "Mostrar probabilidades do jogo",
+    liveToggleCollapse: "Ocultar probabilidades do jogo",
     // Language names (kept for compatibility)
     langPt: "PT-BR",
     langEs: "ES",

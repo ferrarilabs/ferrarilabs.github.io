@@ -921,29 +921,38 @@ function renderRanking() {
   // com o mesmo total mas desempate diferente mostrando o MESMO rank/medalha, mesmo com o array
   // já ordenado corretamente — afeta diretamente quem aparece como 2º lugar (não há 3º na Copa do
   // Brasil, prêmio é só campeão/vice), base do rateio de prêmio.
+  // Pago/Pendente é informação de administração do bolão, não do ranking público -- mesmo
+  // padrão da Copa (renderRanking(), bolao/js/app.js), que nunca mostrou esse badge na linha do
+  // ranking (só existe na aba Participantes). Achado real (2026-07-16, Eduardo: "nao precisa
+  // pago e pendente, so para o admin"). "Ver palpites" só faz sentido depois do prazo da fase
+  // ativa -- antes disso o botão só levava a uma mensagem "escondido até o prazo"
+  // (renderPickDisplay() já protegia o dado, mas o botão continuava visível e clicável sem
+  // fazer nada útil).
+  const canViewPicks = isPastEntryCutoff();
   let rank = 0, prevKey = null;
   box.innerHTML = provNote;
   scored.forEach((item, i) => {
     const key = `${item.total}:${hitChampion(item.detail)}:${hitRunnerUp(item.detail)}:${countExactMatches(item.detail)}`;
     if (key !== prevKey) { rank = i + 1; prevKey = key; }
-    const paid      = (s.paid || {})[item.e.id];
-    const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
-    const paidBadge = paid
-      ? `<span class="paid-badge">${esc(t("paid"))}</span>`
-      : `<span class="unpaid-badge">${esc(t("unpaid"))}</span>`;
+    const medal   = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
+    const viewBtn = canViewPicks
+      ? `<button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`
+      : "";
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
       <div class="rank-pos">${medal}</div>
-      <div><b>${esc(item.e.entryName)}</b> ${paidBadge}</div>
+      <div><b>${esc(item.e.entryName)}</b></div>
       <div class="points">${item.total}<small> pts</small></div>
-      <button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`;
+      ${viewBtn}`;
     box.appendChild(row);
-    const detail = document.createElement("div");
-    detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
-    detail.dataset.rankDetail = item.e.id;
-    detail.innerHTML = renderPickDisplay(item.e, item.detail);
-    box.appendChild(detail);
+    if (canViewPicks) {
+      const detail = document.createElement("div");
+      detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
+      detail.dataset.rankDetail = item.e.id;
+      detail.innerHTML = renderPickDisplay(item.e, item.detail);
+      box.appendChild(detail);
+    }
   });
 
   box.querySelectorAll("[data-rank-toggle]").forEach(btn => btn.addEventListener("click", () => {
