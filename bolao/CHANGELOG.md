@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## v4.136 — 2026-07-16
+
+### Fixed — "Classificação Geral": prova exaustiva de vivo/eliminado testava resultados fisicamente impossíveis
+
+Eduardo pediu para continuar auditando a v4.135 como estatístico ("challenge it and fix") em vez
+de aceitar a correção anterior como definitiva. Achado real, mais sério que os dois da v4.135:
+
+A checagem exaustiva (que decide "Vivo"/"Eliminado" e "Garantido") enumerava, para cada um dos 2
+jogos restantes, todo `placar × placar × lado-que-avança` como se os três fossem independentes.
+Mas não são — `commitRealResult()` em `app.js` (linha ~2083) mostra que o formulário real do
+admin **trava automaticamente** o lado que avança sempre que o placar não é empate
+(`pickWinner(ga, gb)` decide sozinho; o `<select>` manual só é consultado quando `ga === gb`, ou
+seja, só em caso de pênaltis). A enumeração antiga incluía cenários que o admin **fisicamente não
+consegue registrar** — por exemplo 3×1 com o lado B credenciado como avançando — inflando quem
+aparecia como "vivo" e, pior, tornando "Garantido" mais difícil de provar do que deveria (o pior
+caso adversarial testado incluía ataques que não existem de verdade).
+
+**Impacto real, verificado**: de 23 participantes, só **Arthur Lopes Huller** cruzou um limiar de
+exibição — antes aparecia "Vivo" para o 3º lugar com uma chance residual "<0,1%"; com a
+enumeração corrigida (só resultados fisicamente registráveis), seu melhor caso matemático é 4º
+lugar — ele está **matematicamente eliminado** do pódio do bolão, não vivo com chance rara. Os
+demais participantes tiveram pequenos ajustes numéricos no pior/melhor caso interno que não
+cruzaram nenhum limiar 1º/2º/3º, então a tabela visível não muda para eles.
+
+**Correção**: novo script de enumeração restringe `advanceSide` a só os valores que o placar
+permite (`goalsA > goalsB` força A, `goalsB > goalsA` força B, só empate deixa os dois lados
+como opção — replicando `pickWinner()` exatamente). Reduziu o espaço de cenários de 2.000 para
+720 (os 1.280 removidos eram todos fisicamente irregistráveis). As porcentagens de Monte Carlo
+não precisaram de correção — `simulate_match()` já respeitava essa mesma regra desde a v4.134.
+
+Escrito um verificador automatizado que confere as 69 células da tabela (23 participantes × 3
+posições) contra a prova matemática de baixo nível, não só os 2 casos que o Eduardo notou —
+0 inconsistências após a correção. Metodologia atualizada na própria página explicando a regra.
+
+Não altera scoring nem lógica de app em produção — só a análise/exibição desta página isolada.
+`audit_scoring.py`: 5/5 (scoring não tocado).
+
 ## v4.135 — 2026-07-16
 
 ### Fixed — "Classificação Geral": chance exibida como "100%" quando não era garantida; "Vivo" sem nenhuma chance visível
