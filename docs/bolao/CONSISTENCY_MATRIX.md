@@ -777,3 +777,38 @@ para o detalhe completo.
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só um script operacional
 novo, reaproveita a fórmula de scoring já existente sem alterá-la.
+
+## Nota manual — merge de `entries` sempre preferia cache local (BR2026/CDB2026), mesmo padrão do bug de `cutoffAt`; Copa já tinha a correção certa (2026-07-16, BR2026 v1.52 / CDB2026 v3.39)
+
+Eduardo renomeou duas entradas do BR2026 direto no Supabase e reportou "não aparece ainda" —
+confirmado que o banco estava correto, o problema era `mergeStates()`: `entries` em BR2026/
+CDB2026 usava "local sempre vence" incondicional (`byId[e.id] = e`, remoto processado antes,
+local sobrescrevendo por último) — a MESMA classe de bug do `cutoffAt` corrigida mais cedo hoje
+(nota anterior), só que nunca propagada pra `entries`. A Copa (`bolao/js/app.js`) já tinha a
+correção certa desde antes: preferir o registro mais recente por entrada (`updatedAt`/
+`createdAt`), não um lado fixo. `NOT_CONSISTENT` → `CONSISTENT`: portado pra BR2026 e CDB2026.
+
+## Nota manual — Probabilidades do BR2026 com % impossível (Remo 0% de rebaixamento em 18º); dois bugs reais confirmados com dados ao vivo, não propagado ao CDB2026 (2026-07-16, BR2026 v1.52)
+
+Eduardo: "A tabela de probabilidades está bem fora. Mostra Remo por exemplo como 0% de chances
+de rebaixamento!" Diferente das notas de side-scroll/overflow-x desta mesma sessão (aquelas
+especulativas, sem reprodução confirmada), esta teve DOIS bugs reais confirmados investigando
+com dados ao vivo da ESPN (schedule + standings reais, não simulados):
+
+1. Nome de time divergente entre os dois endpoints da ESPN ("Athletico Paranaense" na
+   classificação vs. "Athletico-PR" no calendário) — corrigido com mapa de alias
+   (`ESPN_SCOREBOARD_NAME_ALIASES`), mesmo padrão do `ESPN_ALIASES` já usado em
+   `bolao/scripts/send_result_email.py` (Copa).
+2. O ajuste iterativo Dixon-Coles genuinamente diverge pra alguns times (confirmado: não é
+   ruído, reduzir iterações/adicionar amortecimento não resolve) — mitigado com limite [0.25,3]
+   + encolhimento de 70% em direção à média ingênua de gols/jogo no resultado final.
+
+Verificado com o código REAL extraído de app.js (não uma reimplementação) contra dados ao vivo:
+Remo Z4 0%→9%, Athletico Paranaense Z4 99%→G4 68%, tabela completa dos 20 times conferida.
+
+`INTENTIONALLY_DIFFERENT`, não propagado ao CDB2026: usa Poisson bivariado direto por confronto
+(mata-mata), sem o ajuste iterativo de força de time ao longo de uma temporada — essa classe de
+bug (divergência de ajuste, nome de time entre dois endpoints de temporada) não existe lá.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — só o cálculo informativo de
+probabilidades foi alterado, nenhuma fórmula de pontuação.

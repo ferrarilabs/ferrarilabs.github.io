@@ -1,5 +1,16 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.39 — 2026-07-16
+
+### Fixed — merge de entradas sempre preferia o cache local, escondendo edição de admin
+
+Mesmo achado do BR2026 v1.52 (edição de admin direto no Supabase "não aparecia" em navegador
+com cache antigo), propagado aqui por ter a mesma estrutura de merge. `mergeStates()` agora
+prefere sempre o registro mais recente por entrada (`updatedAt`/`createdAt`), mesmo padrão já
+usado pela Copa, em vez de "local sempre vence".
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.38 — 2026-07-16
 
 ### Security — senha do admin atualizada
