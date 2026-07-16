@@ -649,4 +649,50 @@ raramente tem tantos jogos simultâneos) nem à Copa (grupos no máximo 2-4 simu
 servido pelo grid `flex-wrap` existente) — registrado aqui como `INTENTIONALLY_DIFFERENT` até que
 um dos outros dois apps realmente precise do mesmo tratamento.
 
+## Nota manual — item novo: triple confirmation + journal + backups para ações destrutivas do admin manual (BR2026/CDB2026), propagando padrão já existente na Copa (2026-07-16, BR2026 v1.44 / CDB2026 v3.33)
+
+Contexto: Eduardo pediu para remover os controles manuais de resultado do admin do BR2026/CDB2026
+("essas funções não são necessárias, tudo deve ser automatizado"), depois reverteu antes de
+qualquer código ser tocado ("it doesn't hurt to have and don't want to waste tokens on this") — os
+controles manuais continuam existindo nos dois apps, sem remoção. Em seguida pediu, em vez disso,
+proteção contra mis-click (mobile) e um jeito de reverter: "make sure there's triple confirmation
+if I click incorrectly it can be rolled back easily... what I want to avoid is to fat finger
+something... we need to have a way to journal this so it can be rolled back if needed... the same
+way copa has, this also needs to have backups done."
+
+A Copa já tinha três camadas de proteção que BR2026/CDB2026 não tinham:
+
+| Camada | Copa (antes) | BR2026/CDB2026 (antes) | BR2026/CDB2026 (depois) |
+|---|---|---|---|
+| Confirmação antes de ação destrutiva | `confirm()` único por ação | `confirm()` único por ação | **Triplo**: dois `confirm()` + um `prompt()` exigindo digitar a palavra `CONFIRMAR` — o terceiro passo é o que resiste a mis-click/fat-finger em série, não só repetição de `confirm()` |
+| Journal de ações (`s.auditLog`) | Sim — registra edições de participante (antes/depois), mesclado por timestamp entre dispositivos, exibido no admin (`renderAdminAuditLog`) | Não existia | Sim — novo `appendAdminAuditLog()`, registra as ações destrutivas do admin manual (remover confronto, lançar/editar placar de partida, travar/destravar resultado — CDB2026; travar/destravar resultado — BR2026) com detalhe suficiente para saber o que reverter. Mesmo padrão de merge (`mergeStates`) e mesmo cap de 200 |
+| Backup manual (botão admin, download JSON) | `backupJson()`/`backupCsv()` | `exportJsonBackup()` já existia (equivalente ao JSON da Copa, sem o CSV) | Sem mudança — já cobria isso |
+| Backup automatizado (script + cron) | `bolao/scripts/backup.py` (git tag + snapshot Supabase, uso manual) e `backup_daily.py` (cron 01:00 AM EDT, dedup por hash, retenção de 60 dias) — só cobria `id="main"` | Não cobertos | Os dois scripts agora iteram sobre os três apps (`main`/`br2026`/`cdb2026`) na mesma execução — **o mesmo cron existente passa a cobrir os três sem precisar de entrada nova**. Arquivos prefixados por app em `bolao/backups/` (já no `.gitignore`) |
+
+`INTENTIONALLY_DIFFERENT` preservado: a granularidade do journal da Copa (diff de picks de
+participante) não foi copiada para BR2026/CDB2026 — o journal novo neles é escopado só às ações
+do admin manual (o que o pedido do Eduardo cobria), não a edições de participante, que já têm seu
+próprio fluxo de confirmação por e-mail em cada app. Não é dívida técnica; é escopo deliberado.
+
+Não alterado: lógica de torneio, scoring, bracket, regra de avanço — patch é só de segurança
+operacional do admin, nenhuma fórmula de pontuação foi tocada nos três apps.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — nenhuma mudança de scoring/bracket.
+
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudanças são só de exibição/UX.
+
+## Nota manual — `main` com 80px de padding-bottom sobrando (vão vazio no final de toda página), divergente da Copa (2026-07-16, BR2026 v1.47 / CDB2026 v3.35)
+
+Eduardo: "There's a lot of empty space (non urgent) at the very bottom of the page." BR2026 e
+CDB2026 tinham `main { padding: ...px ...px 80px; }` (base e mobile) — a Copa (referência visual
+canônica) usa `20px` desktop / `12px` mobile, sem valor especial de bottom, apesar de ter a
+mesma estrutura de botão sticky (`.sticky-submit`) no final do formulário de palpites. A folga
+que o botão sticky precisa já vem do próprio `position: sticky`; os 80px extras só sobravam como
+vão morto abaixo do conteúdo em toda aba (não só na de Palpites), porque `padding-bottom` é do
+`<main>` inteiro, compartilhado por todas as seções.
+
+`CONSISTENT` agora — os dois apps alinhados ao valor da Copa. Testado com Playwright (scroll até
+o fim + screenshot antes/depois): `scrollHeight` mobile caiu ~68px em cada app (o delta exato
+80px→12px), botão sticky sem sobreposição, aba Ranking sem regressão.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só CSS.

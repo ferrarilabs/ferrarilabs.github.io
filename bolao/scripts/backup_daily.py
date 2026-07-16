@@ -2,19 +2,26 @@
 """
 backup_daily.py — Backup incremental diário do estado do Bolão.
 
-Roda via cron a 01:00 AM EDT.  Só salva arquivo novo se o estado mudou
-desde o último backup (hash SHA-256 do JSON).  Mantém os últimos 60 dias;
+Cobre os três apps do bolão (mesma tabela Supabase, uma linha por app — ver
+docs/bolao/DATABASE_SETUP_SUPABASE.md "Múltiplos apps na mesma tabela"): Copa do Mundo
+2026 (id="main"), Brasileirão 2026 (id="br2026"), Copa do Brasil 2026 (id="cdb2026").
+Extensão de 2026-07-16 (Eduardo: "the same way copa has, this also needs to have backups
+done") — antes só cobria a Copa; o mesmo cron (01:00 AM EDT) agora cobre os três, sem
+precisar de entradas de cron adicionais.
+
+Roda via cron a 01:00 AM EDT.  Só salva arquivo novo (por app) se o estado daquele app
+mudou desde o último backup (hash SHA-256 do JSON).  Mantém os últimos 60 dias por app;
 apaga os mais antigos automaticamente.
 
 Uso manual:
   python3 bolao/scripts/backup_daily.py
+  python3 bolao/scripts/backup_daily.py --app cdb2026
   python3 bolao/scripts/backup_daily.py --force   # salva mesmo sem mudança
 """
 
 import argparse
 import hashlib
 import json
-import os
 import sys
 import urllib.error
 import urllib.request
@@ -24,12 +31,16 @@ from pathlib import Path
 SUPABASE_URL  = "https://cmhqkkfczotdnssupkni.supabase.co"
 SUPABASE_ANON = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
 TABLE         = "bolao_state"
-STATE_ID      = "main"
+
+APPS = [
+    {"id": "main",    "label": "Copa do Mundo 2026"},
+    {"id": "br2026",  "label": "Brasileirão 2026"},
+    {"id": "cdb2026", "label": "Copa do Brasil 2026"},
+]
 
 SCRIPT_DIR  = Path(__file__).parent
 BACKUP_DIR  = SCRIPT_DIR.parent / "backups"
 LOG_FILE    = BACKUP_DIR / "backup.log"
-HASH_FILE   = BACKUP_DIR / ".last_hash"   # hash do último estado salvo
 RETAIN_DAYS = 60
 
 
@@ -45,8 +56,8 @@ def log(msg):
         pass
 
 
-def fetch_state():
-    url = f"{SUPABASE_URL}/rest/v1/{TABLE}?id=eq.{STATE_ID}&select=state"
+def fetch_state(state_id):
+    url = f"{SUPABASE_URL}/rest/v1/{TABLE}?id=eq.{state_id}&select=state"
     req = urllib.request.Request(url, headers={
         "apikey": SUPABASE_ANON,
         "Authorization": f"Bearer {SUPABASE_ANON}",
@@ -67,24 +78,36 @@ def state_hash(state):
     return hashlib.sha256(canonical.encode()).hexdigest()
 
 
-def load_last_hash():
+def hash_file(app_id):
+    return BACKUP_DIR / f".last_hash_{app_id}"
+
+
+def load_last_hash(app_id):
     try:
-        return HASH_FILE.read_text().strip()
+        return hash_file(app_id).read_text().strip()
     except FileNotFoundError:
+        # Migração do formato antigo (pré-2026-07-16, um único .last_hash para a Copa) —
+        # evita um backup "mudou" espúrio no primeiro run pós-deploy desta versão do script.
+        if app_id == "main":
+            try:
+                return (BACKUP_DIR / ".last_hash").read_text().strip()
+            except FileNotFoundError:
+                return None
         return None
 
 
-def save_hash(h):
+def save_hash(app_id, h):
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    HASH_FILE.write_text(h)
+    hash_file(app_id).write_text(h)
 
 
-def save_backup(state, label="daily"):
+def save_backup(app_id, state, label="daily"):
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    filename = f"backup-{label}-{ts}.json"
+    filename = f"backup-{app_id}-{label}-{ts}.json"
     path = BACKUP_DIR / filename
     payload = {
+        "app": app_id,
         "backupLabel": label,
         "backupAt": datetime.now(timezone.utc).isoformat(),
         "source": "supabase",
@@ -97,18 +120,16 @@ def save_backup(state, label="daily"):
 def summarize(state):
     entries = state.get("entries", [])
     paid    = state.get("paid", {})
-    results = state.get("results", {})
     n_paid  = sum(1 for v in paid.values() if v)
-    n_res   = sum(1 for v in results.values() if isinstance(v, dict) and v.get("advanceSide"))
-    return f"{len(entries)} entrada(s), {n_paid} pago(s), {n_res} resultado(s) knockout"
+    return f"{len(entries)} entrada(s), {n_paid} pago(s)"
 
 
-def prune_old_backups():
+def prune_old_backups(app_id):
     cutoff = datetime.now(timezone.utc) - timedelta(days=RETAIN_DAYS)
     removed = 0
-    for f in BACKUP_DIR.glob("backup-daily-*.json"):
+    for f in BACKUP_DIR.glob(f"backup-{app_id}-daily-*.json"):
         try:
-            # filename format: backup-daily-YYYYMMDDTHHMMSSz.json
+            # filename format: backup-<app>-daily-YYYYMMDDTHHMMSSz.json
             ts_str = f.stem.split("-")[-1]            # e.g. 20260704T010000Z
             ts = datetime.strptime(ts_str, "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
             if ts < cutoff:
@@ -117,46 +138,53 @@ def prune_old_backups():
         except Exception:
             pass
     if removed:
-        log(f"  Limpeza: {removed} backup(s) com mais de {RETAIN_DAYS} dias removido(s)")
+        log(f"  [{app_id}] Limpeza: {removed} backup(s) com mais de {RETAIN_DAYS} dias removido(s)")
+
+
+def backup_one_app(app, force):
+    app_id = app["id"]
+    log(f"--- {app_id} ({app['label']}) ---")
+    try:
+        state = fetch_state(app_id)
+    except RuntimeError as e:
+        log(f"  ERRO ao buscar Supabase para {app_id}: {e}")
+        return False
+
+    if state is None:
+        log(f"  ERRO: estado retornado é null para {app_id}")
+        return False
+
+    current_hash = state_hash(state)
+    last_hash    = load_last_hash(app_id)
+
+    if not force and current_hash == last_hash:
+        log(f"  Sem mudanças desde o último backup ({summarize(state)}) — nenhum arquivo salvo")
+        return True
+
+    path = save_backup(app_id, state)
+    save_hash(app_id, current_hash)
+    log(f"  ✓ Salvo: {path.name}")
+    log(f"    Estado: {summarize(state)}")
+
+    prune_old_backups(app_id)
+    return True
 
 
 def main():
     p = argparse.ArgumentParser()
+    p.add_argument("--app", choices=["main", "br2026", "cdb2026", "all"], default="all")
     p.add_argument("--force", action="store_true", help="Salva mesmo sem mudança")
     args = p.parse_args()
 
+    apps = APPS if args.app == "all" else [a for a in APPS if a["id"] == args.app]
+
     log("=== Backup diário iniciado ===")
-
-    # 1. Buscar estado atual
-    try:
-        state = fetch_state()
-    except RuntimeError as e:
-        log(f"ERRO ao buscar Supabase: {e}")
-        sys.exit(1)
-
-    if state is None:
-        log("ERRO: estado retornado é null")
-        sys.exit(1)
-
-    # 2. Verificar se mudou desde o último backup
-    current_hash = state_hash(state)
-    last_hash    = load_last_hash()
-
-    if not args.force and current_hash == last_hash:
-        log(f"Sem mudanças desde o último backup ({summarize(state)}) — nenhum arquivo salvo")
-        log("=== Backup diário concluído (sem alterações) ===\n")
-        return
-
-    # 3. Salvar
-    path = save_backup(state, label="daily")
-    save_hash(current_hash)
-    log(f"✓ Salvo: {path.name}")
-    log(f"  Estado: {summarize(state)}")
-
-    # 4. Limpar backups antigos
-    prune_old_backups()
-
+    ok = True
+    for app in apps:
+        ok = backup_one_app(app, args.force) and ok
     log("=== Backup diário concluído ===\n")
+    if not ok:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

@@ -1,5 +1,72 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.35 — 2026-07-16
+
+### Fixed — vão vazio grande no final de toda página (mobile e desktop)
+
+Mesmo achado do BR2026 v1.47 (Eduardo: "There's a lot of empty space (non urgent) at the very
+bottom of the page"), propagado aqui por ter a mesma estrutura de `main`/`.sticky-submit`. Root
+cause: `main` tinha `padding-bottom: 80px` (base e mobile), bem maior que o padrão da Copa
+(referência visual canônica) — `20px` desktop / `12px` mobile — apesar de ter a mesma estrutura
+de botão sticky no final do formulário de palpites; a folga do sticky já vem do próprio
+`position: sticky`, os 80px só sobravam como vão morto em toda aba.
+
+- `main { padding: 16px 14px 80px; }` → `padding: 16px 14px;` (desktop)
+- `main { padding: 12px 10px 80px; }` → `padding: 12px 10px;` (mobile, `@media max-width: 900px`)
+
+Confirmado com Playwright (scroll até o fim, screenshot): `scrollHeight` mobile caiu de 4091px
+para 4023px (-68px, os 80px→12px esperados); botão sticky continua funcionando normalmente.
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v3.34 — 2026-07-16
+
+### Fixed — "Palpites" continuava clicável depois do prazo da fase ativa; propagado padrão da Copa
+
+Mesmo achado do BR2026 v1.46 (Eduardo: "once it cuts disable the palpites button like copa and
+default to ranking like copa"), propagado aqui por ter a mesma estrutura de `init()`. O "default
+to ranking" já existia (`showSection(isPastEntryCutoff() ? "ranking" : "entry")`); faltava
+desabilitar o botão de navegação "Palpites" em si depois do prazo da fase ativa — adicionado
+`navEntryBtn.disabled = isPastEntryCutoff()`, mesmo padrão da Copa (`init()`,
+`navEntryBtn.disabled = isPastCutoff()`).
+
+Mesma limitação da Copa/BR2026, não nova: computado uma vez no `init()`, não reativamente — se o
+prazo da fase ativa vence com a aba já aberta, ou se uma nova fase começa depois do `init()`, o
+botão só reflete o estado correto no próximo carregamento.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v3.33 — 2026-07-16
+
+### Added — triple confirmation + journal de admin + backups automatizados para ações manuais destrutivas
+
+Eduardo pediu para remover os controles manuais do admin (deletar confronto, entrar resultado
+manual, marcar resultado real — automatizar tudo via ESPN), depois reverteu antes de qualquer
+código ser tocado ("it doesn't hurt to have and don't want to waste tokens on this") — nada foi
+removido. Em vez disso, pediu proteção contra mis-click mobile e um jeito de reverter: "make sure
+there's triple confirmation if I click incorrectly it can be rolled back easily... what I want to
+avoid is to fat finger something... we need to have a way to journal this so it can be rolled
+back if needed... the same way copa has, this also needs to have backups done." Ver nota completa
+em `docs/bolao/CONSISTENCY_MATRIX.md` (propagação do padrão já existente na Copa).
+
+- **Triple confirmation**: remover confronto (`data-remove-tie`), lançar placar manual
+  (`data-save-leg`), apagar placar para reeditar (`data-edit-leg`), travar/destravar resultado do
+  confronto (`data-lock-tie`/`data-unlock-tie`) agora exigem dois `confirm()` + um `prompt()`
+  digitando a palavra `CONFIRMAR` (`tripleConfirm()`) — o terceiro passo é o que resiste a
+  toques acidentais em sequência, não só repetição de `confirm()`. Cadastrar confronto
+  (`data-add-tie`) não foi alterado — é reversível (basta remover) e não sobrescreve nenhum
+  resultado.
+- **Journal**: novo `s.auditLog` (mesmo padrão da Copa — `appendAdminAuditLog()`, merge por
+  timestamp entre dispositivos, cap de 200, exibido no admin em `renderAdminAuditLog()`)
+  registrando cada uma das cinco ações acima com detalhe suficiente para reverter manualmente se
+  necessário (times, placar, fase, confronto).
+- **Backups**: `exportJsonBackup()` já existia (equivalente ao `backupJson()` da Copa). Novo:
+  `bolao/scripts/backup.py` e `backup_daily.py` agora cobrem os três apps (`main`/`br2026`/
+  `cdb2026`) na mesma execução — o cron diário existente (01:00 AM EDT) passa a fazer backup do
+  CDB2026 também, sem precisar de entrada de cron nova.
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.32 — 2026-07-16
 
 ### Fixed — "Ver palpites" aparecia antes do prazo sem fazer nada útil; Pago/Pendente no ranking público

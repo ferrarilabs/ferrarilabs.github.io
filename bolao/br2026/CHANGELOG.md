@@ -1,5 +1,98 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.47 — 2026-07-16
+
+### Fixed — vão vazio grande no final de toda página (mobile e desktop)
+
+Eduardo: "There's a lot of empty space (non urgent) at the very bottom of the page." Root cause:
+`main` tinha `padding-bottom: 80px` (base e mobile), bem maior que o padrão da Copa (referência
+visual canônica) — `20px` desktop / `12px` mobile, sem valor especial de bottom — apesar da Copa
+ter a mesma estrutura de botão sticky (`.sticky-submit`) no final do formulário de palpites. Os
+80px pareciam existir só pra dar folga ao botão sticky, mas essa folga já é resolvida pelo
+`position: sticky` em si — o valor grande só sobrava como vão morto abaixo do conteúdo em TODA
+aba (Ranking, Tabela, Participantes etc.), não só na de Palpites.
+
+- `main { padding: 16px 14px 80px; }` → `padding: 16px 14px;` (desktop)
+- `main { padding: 12px 10px 80px; }` → `padding: 12px 10px;` (mobile, `@media max-width: 900px`)
+
+Confirmado com Playwright (scroll até o fim, screenshot): `scrollHeight` mobile caiu de 3125px
+para 3057px (-68px, os 80px→12px esperados); botão sticky continua funcionando normalmente sem
+sobrepor conteúdo, aba Ranking sem regressão.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v1.46 — 2026-07-16
+
+### Fixed — "Palpites" continuava clicável depois do prazo; propagado padrão da Copa
+
+Eduardo: "once it cuts disable the palpites button like copa and default to ranking like copa."
+O "default to ranking" já existia (`showSection(isPastCutoff() ? "ranking" : "entry")` desde a
+introdução do cutoff automático); faltava a outra metade do padrão da Copa: desabilitar o botão
+de navegação "Palpites" em si depois do prazo (`init()` da Copa faz
+`navEntryBtn.disabled = isPastCutoff()`, nunca implementado aqui). Adicionado o mesmo trecho —
+o botão fica desabilitado (estilo padrão do navegador para `disabled`, igual à Copa, sem CSS
+extra) sempre que a página carrega depois do prazo.
+
+Mesma limitação da Copa, não nova: computado uma vez no `init()`, não reativamente — se o prazo
+vence com a aba já aberta, o botão só desabilita no próximo carregamento. Comportamento aceito
+na Copa, replicado aqui sem alteração.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v1.45 — 2026-07-16
+
+### Fixed — extensão manual do prazo (+45min) e bug de propagação em `mergeStates()`
+
+Eduardo pediu para estender o prazo em 45 minutos. O prazo (`s.cutoffAt`, congelado 1h antes do
+primeiro jogo real, 18h30 -03:00) já tinha passado há ~2 minutos quando o pedido chegou — ação
+imediata em produção:
+
+- **Intervenção manual em produção**: `s.cutoffAt` atualizado diretamente no Supabase
+  (`bolao_state`, `id="br2026"`) de `2026-07-16T21:30:00.000Z` para `2026-07-16T22:15:00.000Z`
+  (18h30 → 19h15 -03:00), preservando as 9 entradas existentes. Registrado no novo journal
+  (`s.auditLog`, ação `extend-cutoff`, com prazo anterior/novo) — mesmo mecanismo shipado nesta
+  sessão (v1.44).
+- **Bug real encontrado ao investigar a propagação**: `mergeStates()` sempre preferia o
+  `cutoffAt` já em cache local (`local.cutoffAt || remote.cutoffAt`), por design, para impedir
+  que um cliente atrasado resetasse o prazo. Isso também impedia uma extensão manual do admin de
+  chegar a qualquer navegador que já tivesse carregado a página hoje (cutoffAt antigo ficaria
+  preso no `localStorage` para sempre). Corrigido para sempre preferir o valor **mais tarde**
+  entre local e remoto (nunca mais cedo, nunca `null`) — mantém a proteção original e ainda
+  deixa uma extensão manual se propagar de verdade. Testado com 5 casos (local mais velho, local
+  mais novo, remoto nulo, local nulo, ambos nulos).
+- `C.cutoffIso` (fallback, `config.js`) também atualizado para 19h15 -03:00, para consistência —
+  só afeta quem nunca carregou o app hoje (já congelado para quem já visitou).
+
+Não altera scoring nem lógica de pontuação. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v1.44 — 2026-07-16
+
+### Added — triple confirmation + journal de admin + backups automatizados para o resultado oficial
+
+Eduardo pediu para remover os controles manuais de resultado do admin (automatizar tudo via
+ESPN), depois reverteu antes de qualquer código ser tocado ("it doesn't hurt to have and don't
+want to waste tokens on this") — nada foi removido. Em vez disso, pediu proteção contra mis-click
+mobile e um jeito de reverter: "make sure there's triple confirmation if I click incorrectly it
+can be rolled back easily... what I want to avoid is to fat finger something... we need to have a
+way to journal this so it can be rolled back if needed... the same way copa has, this also needs
+to have backups done." Ver nota completa em `docs/bolao/CONSISTENCY_MATRIX.md` (propagação do
+padrão já existente na Copa).
+
+- **Triple confirmation**: travar/destravar o resultado oficial (`saveResultsBtn`/
+  `unlockResultsBtn`) agora exige dois `confirm()` + um `prompt()` digitando a palavra
+  `CONFIRMAR` (`tripleConfirm()`) — o terceiro passo é o que resiste a toques acidentais em
+  sequência, não só repetição de `confirm()`.
+- **Journal**: novo `s.auditLog` (mesmo padrão da Copa — `appendAdminAuditLog()`, merge por
+  timestamp entre dispositivos, cap de 200, exibido no admin em `renderAdminAuditLog()`)
+  registrando `lock-results`/`unlock-results` com o conteúdo antes/depois, o suficiente para
+  reverter manualmente se necessário.
+- **Backups**: `exportJsonBackup()` já existia (equivalente ao `backupJson()` da Copa). Novo:
+  `bolao/scripts/backup.py` e `backup_daily.py` agora cobrem os três apps (`main`/`br2026`/
+  `cdb2026`) na mesma execução — o cron diário existente (01:00 AM EDT) passa a fazer backup do
+  BR2026 também, sem precisar de entrada de cron nova.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.43 — 2026-07-16
 
 ### Added — card "ao vivo" com expandir/colapsar por jogo (rodada final tem até 10 jogos simultâneos)

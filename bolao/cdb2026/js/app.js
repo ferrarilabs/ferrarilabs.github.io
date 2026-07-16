@@ -71,7 +71,7 @@ function emptyState() {
   // partir dos dados da ESPN sem verificação ao vivo (ambiente sem acesso de rede externo).
   // espnSync.seededKnownConfrontos: true depois que seedKnownConfrontos() rodar uma vez — nunca
   // reaplica a população inicial, mesmo que o admin remova um confronto semeado.
-  return { entries: [], deletedIds: [], paid: {}, phases, espnSync: { activePhaseId: null, seededKnownConfrontos: false }, meta: { updatedAt: null, version: C.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, phases, espnSync: { activePhaseId: null, seededKnownConfrontos: false }, auditLog: [], meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try {
@@ -173,12 +173,20 @@ function mergeStates(local, remote, opts = {}) {
     // permanecer true depois do merge em todos, para seedKnownConfrontos() nunca reaplicar.
     seededKnownConfrontos: !!(local.espnSync?.seededKnownConfrontos || remote.espnSync?.seededKnownConfrontos),
   };
+  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200 — same
+  // pattern as Copa (bolao/js/app.js mergeStates()).
+  const auditMap = new Map();
+  for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
+    auditMap.set(entry.ts, entry);
+  }
+  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
     paid,
     phases,
     espnSync,
+    auditLog: mergedAuditLog,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -193,6 +201,27 @@ let _loginLockUntil = Number(sessionStorage.getItem("cdb2026_loginLockUntil") ||
 
 function isAdminActive() { return Number(sessionStorage.getItem("cdb2026_adminUntil") || 0) > Date.now(); }
 function guardAdmin() { if (isAdminActive()) return true; showSection("admin"); return false; }
+
+// ─── Admin action safety: triple confirmation + audit journal ───────────────────────────────
+// Eduardo, 2026-07-16: "make sure there's triple confirmation if I click incorrectly it can be
+// rolled back easily... what I want to avoid is to fat finger something... we need to have a way
+// to journal this so it can be rolled back if needed". ESPN auto-sync covers normal operation —
+// this only matters when Eduardo intervenes manually (delete confronto, enter/edit a leg score,
+// lock/unlock a tie's official result). Two confirm() dialogs alone can be blitzed through with
+// fast taps on mobile; the third step requires typing a fixed word, which an accidental tap
+// sequence cannot produce.
+const ADMIN_CONFIRM_WORD = "CONFIRMAR";
+function tripleConfirm(summaryMsg, detailMsg) {
+  if (!confirm(summaryMsg)) return false;
+  if (!confirm(detailMsg)) return false;
+  const typed = prompt(t("tripleConfirmType").replace("{word}", ADMIN_CONFIRM_WORD));
+  return typed === ADMIN_CONFIRM_WORD;
+}
+function appendAdminAuditLog(s, action, detail) {
+  if (!Array.isArray(s.auditLog)) s.auditLog = [];
+  s.auditLog.unshift({ ts: new Date().toISOString(), action, admin: true, detail });
+  if (s.auditLog.length > 200) s.auditLog.length = 200;
+}
 
 // ─── Sections ───────────────────────────────────────────────────────────────
 function showSection(id) {
@@ -1476,6 +1505,29 @@ function renderAdmin() {
   if (!adminResultsFormIsDirty()) renderAdminResults(s);
   renderAdminPayments(s);
   renderAdminEntries(s);
+  renderAdminAuditLog(s);
+}
+
+function renderAdminAuditLog(s) {
+  const box = $("adminAuditLog");
+  if (!box) return;
+  const log = Array.isArray(s.auditLog) ? s.auditLog : [];
+  box.innerHTML = `<h3>${esc(t("auditLogTitle"))}</h3>`;
+  if (!log.length) { box.innerHTML += `<p class="muted">${esc(t("auditLogEmpty"))}</p>`; return; }
+  const rows = log.slice(0, 100).map(entry => {
+    const ts = new Date(entry.ts).toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" });
+    const d = entry.detail || {};
+    const teams = d.teamA && d.teamB ? `${esc(d.teamA)} × ${esc(d.teamB)}` : "";
+    return `<div class="audit-row">
+      <div class="audit-meta">
+        <span class="muted" style="font-size:11px">${esc(ts)} ET</span>
+        <b>${esc(t(`auditAction_${entry.action.replace(/-/g, "_")}`) || entry.action)}</b>
+        ${teams ? `<span class="muted" style="font-size:12px">${teams}</span>` : ""}
+      </div>
+      <div style="font-size:11px;color:#667;margin-top:2px;word-break:break-all">${esc(JSON.stringify(d))}</div>
+    </div>`;
+  }).join("");
+  box.innerHTML += rows;
 }
 
 // ─── Sincronização com ESPN (automática, sem clique por confronto) ───────────────────────────
@@ -2371,8 +2423,10 @@ function renderAdminPhases(s) {
       !deleted.has(e.id) && (e.picks?.matches?.[tieId] || e.picks?.qualified?.[tieId])
     ).length;
     const msg = affected > 0 ? t("confirmRemoveTieWithPicks").replace("{n}", affected) : t("confirmRemoveTie");
-    if (!confirm(msg)) return;
+    if (!tripleConfirm(msg, t("tripleConfirmDetail"))) return;
     const s2 = state();
+    const removedTie = s2.phases[btn.dataset.phase]?.ties?.[tieId];
+    appendAdminAuditLog(s2, "remove-tie", { phase: btn.dataset.phase, tieId, teamA: removedTie?.teamA, teamB: removedTie?.teamB, removedTie });
     delete s2.phases[btn.dataset.phase]?.ties?.[tieId];
     saveState(s2);
   }));
@@ -2478,12 +2532,15 @@ function renderAdminResults(s) {
     // contrário de excluir/travar/destravar confronto (que já pedem confirm()), lançar um placar
     // real não pedia nada -- um typo mudava o ranking público na hora, sem nenhuma barreira.
     if (a > 20 || b > 20) { alert(t("errorLegScoreRange")); return; }
-    if ((a > 10 || b > 10) && !confirm(t("confirmSaveLegOutOfRange"))) return;
+    // Sempre triple-confirm ao lançar um placar manual — publica na hora, sem passar pelo ESPN
+    // auto-sync (que já é confiável e não passa por aqui). Ver tripleConfirm() acima.
+    if (!tripleConfirm(t("confirmSaveLeg").replace("{a}", a).replace("{b}", b), t("tripleConfirmDetail"))) return;
     const s2 = state();
     const tie = s2.phases[phaseId].ties[tieId];
     const home = leg === "second" ? tie.teamB : tie.teamA;
     const away = leg === "second" ? tie.teamA : tie.teamB;
     tie.matches[leg] = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL", resultSource: "admin" };
+    appendAdminAuditLog(s2, "save-leg", { phase: phaseId, tieId, leg, teamA: home, teamB: away, goalsHome: a, goalsAway: b });
     // Limpa os campos ANTES de salvar -- saveState() chama renderAll() de forma síncrona, e
     // adminResultsFormIsDirty() (novo, ver renderAdmin()) leria esses mesmos inputs ainda com "a"/
     // "b" digitados no DOM antigo (a reconstrução ainda não rodou) e bloquearia a própria
@@ -2498,13 +2555,15 @@ function renderAdminResults(s) {
     if (!guardAdmin()) return;
     // Achado em auditoria (2026-07-14): "Editar" apagava um placar já lançado imediatamente, sem
     // confirmação -- um mis-click descartava um resultado oficial sem nenhum jeito de desfazer.
-    if (!confirm(t("confirmEditLeg"))) return;
+    if (!tripleConfirm(t("confirmEditLeg"), t("tripleConfirmDetail"))) return;
     const s2 = state();
     const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.editLeg];
-    if (tie?.matches?.[btn.dataset.leg]) {
-      tie.matches[btn.dataset.leg].goalsHome = null;
-      tie.matches[btn.dataset.leg].goalsAway = null;
-      tie.matches[btn.dataset.leg].status = "SCHEDULED";
+    const m = tie?.matches?.[btn.dataset.leg];
+    if (m) {
+      appendAdminAuditLog(s2, "edit-leg", { phase: btn.dataset.phase, tieId: btn.dataset.editLeg, leg: btn.dataset.leg, previousGoalsHome: m.goalsHome, previousGoalsAway: m.goalsAway });
+      m.goalsHome = null;
+      m.goalsAway = null;
+      m.status = "SCHEDULED";
     }
     saveState(s2);
   }));
@@ -2520,20 +2579,24 @@ function renderAdminResults(s) {
     } else {
       qualified = totalA > totalB ? "A" : "B";
     }
-    if (!confirm(t("confirmLockResults"))) return;
+    if (!tripleConfirm(t("confirmLockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
     s2.phases[phaseId].ties[tieId].qualifiedTeamId = qualified;
     s2.phases[phaseId].ties[tieId].lockedAt = new Date().toISOString();
     s2.phases[phaseId].ties[tieId].lockedBy = "admin";
+    appendAdminAuditLog(s2, "lock-tie", { phase: phaseId, tieId, qualifiedTeamId: qualified, totalA, totalB });
     saveState(s2);
     showToast(t("resultsSaved"), "success");
   }));
   box.querySelectorAll("[data-unlock-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    if (!confirm(t("confirmUnlockResults"))) return;
+    if (!tripleConfirm(t("confirmUnlockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
     const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.unlockTie];
-    if (tie) { delete tie.qualifiedTeamId; delete tie.lockedAt; delete tie.lockedBy; }
+    if (tie) {
+      appendAdminAuditLog(s2, "unlock-tie", { phase: btn.dataset.phase, tieId: btn.dataset.unlockTie, previousQualifiedTeamId: tie.qualifiedTeamId, previousLockedAt: tie.lockedAt, previousLockedBy: tie.lockedBy });
+      delete tie.qualifiedTeamId; delete tie.lockedAt; delete tie.lockedBy;
+    }
     saveState(s2);
   }));
 }
@@ -2692,6 +2755,10 @@ async function init() {
   if (wa) wa.href = C.whatsappGroup?.link || "#";
 
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
+  // Disable "Palpites" nav button only after the active phase's cutoff; default landing depends
+  // on it — same pattern as Copa (bolao/js/app.js init()), propagated here alongside BR2026.
+  const navEntryBtn = document.querySelector('.nav button[data-section="entry"]');
+  if (navEntryBtn) navEntryBtn.disabled = isPastEntryCutoff();
   showSection(isPastEntryCutoff() ? "ranking" : "entry");
 
   $("bolaoSelect")?.addEventListener("change", e => {
