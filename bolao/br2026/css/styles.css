@@ -33,6 +33,7 @@
   --danger-br: #8e2d42;
 }
 
+html, body { overflow-x: hidden; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;

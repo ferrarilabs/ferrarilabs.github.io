@@ -38,6 +38,7 @@
   --red:      #ff6b6b;
 }
 
+html, body { overflow-x: hidden; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;

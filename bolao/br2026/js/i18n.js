@@ -96,7 +96,7 @@ window.BR2026_I18N = {
     // parte como na Copa (que revela partida a partida conforme cada jogo termina).
     picksHiddenUntilCutoff: "Os palpites ficam ocultos até o prazo de entrada encerrar — evita que participantes copiem uns dos outros.",
     viewPicks: "Ver palpites",
-    paid: "✓ Pago",
+    paid: "Pago",
     unpaid: "Pendente",
     // Ranking — movimento do participante (separado do movimento de clube abaixo; nunca reutilizar
     // estas chaves para a tabela do Brasileirão, e vice-versa — ver BR2026_LIVE_STANDINGS.md)
