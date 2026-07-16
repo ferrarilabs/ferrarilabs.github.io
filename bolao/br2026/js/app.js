@@ -799,6 +799,67 @@ async function fetchStandings() {
   } catch (err) { console.warn("[BR2026] Standings fetch failed", err); return null; }
 }
 
+// Minute-by-minute plays feed (goals/cards/subs) — ported from Copa's extractMatchPlays
+// (bolao/js/app.js), see PLATFORM_ARCHITECTURE.md "Golden master". Same comp.details array
+// already fetched every poll for the live score/clock, no extra network call. side is
+// "home"/"away" here (not Copa's "c0"/"c1"/"A"/"B" — BR2026 has no bracket-slot resolution,
+// homeTeam/awayTeam are always the real team names already). Same "fails soft, never throws"
+// contract: a shape mismatch degrades to an empty array, never breaks the live score/clock.
+const PLAY_ICON = { goal: "⚽", yellow: "🟨", red: "🟥", sub: "🔄" };
+function extractMatchPlays(comp) {
+  try {
+    const details = Array.isArray(comp.details) ? comp.details : [];
+    const [c0, c1] = comp.competitors || [];
+    const home = (comp.competitors || []).find(x => x.homeAway === "home") || c0;
+    const away = (comp.competitors || []).find(x => x.homeAway === "away") || c1;
+    const plays = [];
+    for (const d of details) {
+      if (!d) continue;
+      const typeText = `${d.type?.text || ""} ${d.type?.name || ""}`;
+      const isGoal = d.scoringPlay === true || /goal/i.test(typeText);
+      const isRedCard = /red card|second yellow/i.test(typeText);
+      const isYellowCard = !isRedCard && /yellow card/i.test(typeText);
+      const isSub = /substitution/i.test(typeText);
+      let kind = null;
+      if (isGoal) kind = "goal";
+      else if (isRedCard) kind = "red";
+      else if (isYellowCard) kind = "yellow";
+      else if (isSub) kind = "sub";
+      if (!kind) continue; // not a play type we render — skip silently
+      const teamId = d.team?.id;
+      let side = null;
+      if (teamId != null && home?.team?.id != null && String(teamId) === String(home.team.id)) side = "home";
+      else if (teamId != null && away?.team?.id != null && String(teamId) === String(away.team.id)) side = "away";
+      if (!side) continue;
+      const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
+      const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
+      const names = (d.athletesInvolved || [])
+        .map(a => a?.displayName || a?.shortName)
+        .filter(Boolean);
+      // Substitution: show both names joined, without claiming which is in/out — that
+      // ordering isn't confirmed against a real payload (same caveat as Copa's version).
+      const text = kind === "sub" ? names.slice(0, 2).join(" ↔ ") : (names[0] || "");
+      if (!text && !minute) continue;
+      plays.push({ kind, side, minute, text, order: clockVal ?? 0 });
+    }
+    return plays.sort((a, b) => a.order - b.order);
+  } catch (err) {
+    console.warn("[BR2026] extractMatchPlays failed, skipping plays feed for this match", err);
+    return [];
+  }
+}
+
+function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
+  if (!Array.isArray(plays) || !plays.length) return "";
+  const rows = [...plays].reverse().map(p => `<div class="live-plays-row">
+    <span class="live-plays-minute">${esc(p.minute || "")}</span>
+    <span class="live-plays-icon" aria-hidden="true">${PLAY_ICON[p.kind] || "•"}</span>
+    ${teamLogoImg(p.side === "home" ? homeTeam : awayTeam, "team-logo")}
+    <span class="live-plays-text">${esc(p.text || "")}</span>
+  </div>`).join("");
+  return `<div class="live-plays" data-plays-match="${esc(String(mid ?? ""))}">${rows}</div>`;
+}
+
 async function fetchScoreboard() {
   try {
     const r = await fetchJson(C.espn.scoreboardUrl + "?limit=20");
@@ -831,6 +892,7 @@ async function fetchScoreboard() {
         clockSec,
         clockStr:  comp.status?.displayClock || "",
         period, isHalftime, isPenalties,
+        plays: extractMatchPlays(comp),
       };
     }).filter(Boolean);
   } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
@@ -1392,6 +1454,17 @@ function renderLiveCard() {
   const header = _liveMatches.length > 1
     ? `<div class="live-header">🔴 ${_liveMatches.length} ${esc(t("liveMatchesLabel"))}</div>` : "";
 
+  // Posição atual na tabela + seta de movimento por time, mesma fonte (calculateLiveStandings)
+  // já usada na tabela de classificação — Eduardo pediu explicitamente "mostrar a posicao atual
+  // de cada time com uma seta pra cima ou baixo" no card ao vivo (2026-07-16), não só na tabela.
+  const liveTable = liveStandingsNow();
+  const teamPosHtml = (teamName) => {
+    if (!liveTable) return "";
+    const row = liveTable.find(r => r.teamName === teamName);
+    if (!row) return "";
+    return `<span class="live-team-pos">${row.livePosition}º${standingsMovementHtml(row)}</span>`;
+  };
+
   const rows = _liveMatches.map(m => {
     const { clock, sec } = liveClockDisplay(m);
     const expanded = _liveExpanded.has(m.id);
@@ -1404,10 +1477,15 @@ function renderLiveCard() {
       const { pH, pD, pA } = inPlayProb(lambdaH, lambdaA, minute, m.homeScore, m.awayScore);
       const homeLbl = esc(m.homeTeam.split(" ")[0]);
       const awayLbl = esc(m.awayTeam.split(" ")[0]);
+      const hPct = Math.round(pH * 100), dPct = Math.round(pD * 100), aPct = Math.round(pA * 100);
+      // Mesmo limiar de 12% usado nas outras 3 chamadas de prob-bars deste arquivo (renderGamesSection,
+      // renderNextGameCard, renderRanking) -- faltava aqui, causando o nome do time estourar a fatia
+      // estreita da barra (achado 2026-07-16, ex.: "Palmeiras 12%" cortado pra "neiras").
+      const barLabel = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
       probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
-        <div class="prob-bar home" style="width:${(pH*100).toFixed(0)}%">${homeLbl} ${(pH*100).toFixed(0)}%</div>
-        <div class="prob-bar draw"  style="width:${(pD*100).toFixed(0)}%">Emp ${(pD*100).toFixed(0)}%</div>
-        <div class="prob-bar away"  style="width:${(pA*100).toFixed(0)}%">${awayLbl} ${(pA*100).toFixed(0)}%</div>
+        <div class="prob-bar home" style="width:${hPct}%">${barLabel(hPct, homeLbl)}</div>
+        <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+        <div class="prob-bar away"  style="width:${aPct}%">${barLabel(aPct, awayLbl)}</div>
       </div>`;
     }
     const rowInner = `
@@ -1419,11 +1497,14 @@ function renderLiveCard() {
           ${teamLogoImg(m.awayTeam)}
           <span class="live-team-name">${esc(m.awayTeam)}</span>
         </div>
+        ${liveTable ? `<div class="live-team-positions">${teamPosHtml(m.homeTeam)}${teamPosHtml(m.awayTeam)}</div>` : ""}
         <span class="live-clock">${esc(clock)}</span>`;
+    const playsHtml = livePlaysHtml(m.plays, m.homeTeam, m.awayTeam, m.id);
+    const detailHtml = playsHtml + probBarsHtml;
     // The whole row is the tap target (not just a small chevron) — better mobile touch target
     // than an icon-only button. Only made toggleable when there's actually a detail underneath
-    // (probability bars need standings loaded); otherwise it's a plain, non-interactive row.
-    const row = probBarsHtml
+    // (plays feed and/or probability bars); otherwise it's a plain, non-interactive row.
+    const row = detailHtml
       ? `<button type="button" class="live-match-row" data-live-toggle="${esc(m.id)}"
            aria-expanded="${expanded}" aria-label="${esc(expanded ? t("liveToggleCollapse") : t("liveToggleExpand"))}">
           ${rowInner}
@@ -1432,11 +1513,19 @@ function renderLiveCard() {
       : `<div class="live-match-row">${rowInner}</div>`;
     return `<div class="live-match">
       ${row}
-      ${probBarsHtml ? `<div class="live-match-detail${expanded ? "" : " hidden"}">${probBarsHtml}</div>` : ""}
+      ${detailHtml ? `<div class="live-match-detail${expanded ? "" : " hidden"}">${detailHtml}</div>` : ""}
     </div>`;
   }).join("");
 
+  const savedPlaysScroll = {};
+  card.querySelectorAll(".live-plays[data-plays-match]").forEach(el => {
+    if (el.scrollTop > 0) savedPlaysScroll[el.dataset.playsMatch] = el.scrollTop;
+  });
   card.innerHTML = header + rows;
+  card.querySelectorAll(".live-plays[data-plays-match]").forEach(el => {
+    const s = savedPlaysScroll[el.dataset.playsMatch];
+    if (s) el.scrollTop = s;
+  });
   card.querySelectorAll("[data-live-toggle]").forEach(btn => btn.addEventListener("click", () => {
     const id = btn.dataset.liveToggle;
     if (_liveExpanded.has(id)) _liveExpanded.delete(id); else _liveExpanded.add(id);
@@ -1450,20 +1539,19 @@ function renderNextGameCard() {
   const card = $("nextGameCard");
   if (!card || !_schedule.length) { card?.classList.add("hidden"); return; }
 
-  const todayKey   = brtDateKey(new Date().toISOString());
-  const todayGames = _schedule.filter(g => brtDateKey(g.dateISO) === todayKey);
+  const todayKey    = brtDateKey(new Date().toISOString());
+  // Jogos ao vivo já aparecem no card "🔴 N jogos ao vivo agora" (renderLiveCard()) -- achado
+  // 2026-07-16 (Eduardo: "se ja esta mostrando ao vivo, nao precisa mostrar duas vezes").
+  // Exclui aqui pra não duplicar; jogos "pre" (ainda não começaram) e "post" (já terminaram)
+  // continuam aparecendo normalmente.
+  const liveKeys    = new Set(_liveMatches.map(m => `${m.homeTeam}|${m.awayTeam}`));
+  const todayGames  = _schedule
+    .filter(g => brtDateKey(g.dateISO) === todayKey)
+    .filter(g => !liveKeys.has(`${g.homeTeam}|${g.awayTeam}`));
 
   if (todayGames.length) {
     const items = todayGames.map(g => {
-      const lm = _liveMatches.find(l => l.homeTeam === g.homeTeam && l.awayTeam === g.awayTeam);
-      if (lm) {
-        const { clock } = liveClockDisplay(lm);
-        return `<div class="today-game today-game-live">
-          <span class="live-badge">${esc(t("liveNow"))}</span>
-          <div class="today-game-teams">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <b class="today-score">${lm.homeScore} – ${lm.awayScore}</b> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
-          <span class="today-game-time muted">${esc(clock)}</span>
-        </div>`;
-      } else if (g.state === "post") {
+      if (g.state === "post") {
         return `<div class="today-game today-game-post">
           <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
           <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
