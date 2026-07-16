@@ -446,6 +446,17 @@ button.live-match-row { cursor: pointer; }
 #adminArea .card { margin-bottom: 14px; }
 #adminArea h3 { margin: 0 0 12px; font-size: 15px; }
 
+/* Audit log — same tokens as Copa (bolao/css/styles.css) */
+.audit-row {
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.audit-row:last-child { border-bottom: none; }
+.audit-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
+
 /* ── Misc ── */
 .hidden   { display: none !important; }
 .muted    { color: var(--muted); }

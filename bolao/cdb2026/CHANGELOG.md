@@ -1,5 +1,36 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.33 — 2026-07-16
+
+### Added — triple confirmation + journal de admin + backups automatizados para ações manuais destrutivas
+
+Eduardo pediu para remover os controles manuais do admin (deletar confronto, entrar resultado
+manual, marcar resultado real — automatizar tudo via ESPN), depois reverteu antes de qualquer
+código ser tocado ("it doesn't hurt to have and don't want to waste tokens on this") — nada foi
+removido. Em vez disso, pediu proteção contra mis-click mobile e um jeito de reverter: "make sure
+there's triple confirmation if I click incorrectly it can be rolled back easily... what I want to
+avoid is to fat finger something... we need to have a way to journal this so it can be rolled
+back if needed... the same way copa has, this also needs to have backups done." Ver nota completa
+em `docs/bolao/CONSISTENCY_MATRIX.md` (propagação do padrão já existente na Copa).
+
+- **Triple confirmation**: remover confronto (`data-remove-tie`), lançar placar manual
+  (`data-save-leg`), apagar placar para reeditar (`data-edit-leg`), travar/destravar resultado do
+  confronto (`data-lock-tie`/`data-unlock-tie`) agora exigem dois `confirm()` + um `prompt()`
+  digitando a palavra `CONFIRMAR` (`tripleConfirm()`) — o terceiro passo é o que resiste a
+  toques acidentais em sequência, não só repetição de `confirm()`. Cadastrar confronto
+  (`data-add-tie`) não foi alterado — é reversível (basta remover) e não sobrescreve nenhum
+  resultado.
+- **Journal**: novo `s.auditLog` (mesmo padrão da Copa — `appendAdminAuditLog()`, merge por
+  timestamp entre dispositivos, cap de 200, exibido no admin em `renderAdminAuditLog()`)
+  registrando cada uma das cinco ações acima com detalhe suficiente para reverter manualmente se
+  necessário (times, placar, fase, confronto).
+- **Backups**: `exportJsonBackup()` já existia (equivalente ao `backupJson()` da Copa). Novo:
+  `bolao/scripts/backup.py` e `backup_daily.py` agora cobrem os três apps (`main`/`br2026`/
+  `cdb2026`) na mesma execução — o cron diário existente (01:00 AM EDT) passa a fazer backup do
+  CDB2026 também, sem precisar de entrada de cron nova.
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.32 — 2026-07-16
 
 ### Fixed — "Ver palpites" aparecia antes do prazo sem fazer nada útil; Pago/Pendente no ranking público
