@@ -1,5 +1,64 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.53 — 2026-07-16
+
+### Added — `send_round_email.py --test-send`, envia uma prévia real só pra Eduardo revisar
+
+Eduardo: "Once you are done send a test email to me only so I can proofread." Novo modo, sem
+tocar Supabase: roda o mesmo gate de auto-teste do `--auto` (`audit_scoring.py` +
+`_self_check_rank_entries()`, recusa enviar se falhar), busca os jogos completos mais recentes
+de verdade (com lookback alargado pra 14/60/200 dias, já que o Brasileirão pausou pra Copa do
+Mundo e só retomou em 16/07 — os últimos jogos concluídos de verdade são de antes da pausa),
+monta o email real personalizado pra entrada do Eduardo (`participantEmail == emferrari@gmail.com`)
+com faixa amarela "⚠️ TESTE" no topo, e envia só pra ele. Testado com sucesso contra dados reais.
+
+### Fixed — jogo ao vivo aparecia duas vezes ("🔴 N jogos ao vivo agora" + "Jogos de hoje")
+
+Eduardo: "nos jogos de hoje, se ja esta mostrando ao vivo, nao precisa mostrar duas vezes."
+`renderNextGameCard()` listava TODOS os jogos do dia sem excluir os que já apareciam no card
+"ao vivo" (`renderLiveCard()`), duplicando a mesma partida — mesmo placar, mesmo relógio
+(`liveClockDisplay()`), renderizados duas vezes na página. `todayGames` agora filtra qualquer
+jogo cuja chave `homeTeam|awayTeam` já esteja em `_liveMatches`; jogos "pre" (ainda não
+começaram) e "post" (já terminaram) continuam aparecendo normalmente em "Jogos de hoje".
+
+### Added — minuto a minuto de gols/cartões/substituições no card "ao vivo"
+
+Eduardo: "voce pode tambem adicionar o minuto a minuto de cartoes, gols, substituicoes como
+tem na copa tambem?" Portado da Copa (`extractMatchPlays`/`livePlaysHtml` em `bolao/js/app.js`,
+ver PLATFORM_ARCHITECTURE.md "Golden master"): mesma fonte de dados já buscada a cada poll
+(`comp.details` do endpoint scoreboard da ESPN), sem chamada de rede extra. Aparece dentro do
+detalhe expansível de cada partida ao vivo, junto com as barras de probabilidade já existentes.
+Mesmo contrato "falha silenciosa" da Copa — um formato inesperado da ESPN degrada pra lista
+vazia, nunca quebra o placar/relógio ao vivo.
+
+### Added — posição atual + seta de movimento por time no card "ao vivo"
+
+Eduardo: "precisamos mostrar a posicao atual de cada time com uma seta pra cima ou baixo
+conforme o resultado de acordo com a posicao antes do jogo." Esse cálculo já existia
+(`calculateLiveStandings()`/`standingsMovementHtml()`, shipped em v1.4x pra tabela de
+Classificação) — só não estava exposto no card "ao vivo" em si, onde o Eduardo estava olhando.
+Reaproveita a mesma função e a mesma baseline (`_standingsBaseline`, congelada quando o
+primeiro jogo ao vivo do dia é detectado); mostra "–" em vez de posição/seta quando ainda não
+há uma baseline confiável (ex.: página recém-aberta no meio de uma partida).
+
+### Changed — card "ao vivo" centralizado (era alinhado à esquerda)
+
+Eduardo: "seria ideal centralizar tambem e nao deixar tudo na esquerda." `.live-match-row`
+mudou de linha única (flex-wrap, alinhado à esquerda) pra coluna centralizada — badge, times,
+posições e relógio empilhados e centrados, mesmo em telas largas. O chevron de
+expandir/recolher virou posicionado (`position:absolute`) no canto superior direito da linha
+em vez de empurrado pra lá via `margin-left:auto`, que só funcionava alinhado à esquerda.
+
+### Fixed — barra de probabilidade do card "ao vivo" sem o limiar de 12% pra nome do time
+
+Achado durante o teste do item acima: as barras de probabilidade dentro do card "ao vivo"
+(`renderLiveCard()`) eram a ÚNICA das 4 chamadas de barra de probabilidade deste arquivo sem a
+proteção "esconde o nome do time se a fatia for menor que 12%" — as outras 3
+(`renderGamesSection`, `renderNextGameCard`, `renderRanking`) já tinham. Resultado visível:
+"Palmeiras 12%" estourando a largura da própria fatia. Agora usa o mesmo limiar das outras 3
+chamadas (e da Copa, `probBarsMarkup()`). Não existia em CDB2026 (função de barra própria, já
+com o limiar certo) nem na Copa (função compartilhada única) — bug isolado ao BR2026.
+
 ## v1.52 — 2026-07-16
 
 ### Fixed — nomes renomeados pelo admin "não apareciam" (merge de entradas sempre preferia o cache local)
