@@ -627,3 +627,26 @@ intencional (`.standings-wrap`, `.picks-detail`, `.table-scroll`, verificado via
 o header sticky.
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só CSS/i18n de exibição.
+
+## Nota manual — item 67 revisitado de novo: Pago/Pendente aparecia no ranking público (BR2026/CDB2026), divergente da Copa; "Ver palpites" sem gate de visibilidade (2026-07-16, BR2026 v1.43 / CDB2026 v3.32)
+
+Mesma área do item 67 (badge de pagamento), achado diferente desta vez: a Copa nunca mostrou
+Pago/Pendente na linha do ranking (só na aba Participantes) — BR2026 e CDB2026 tinham divergido,
+mostrando o badge nas duas abas. Eduardo: "nao precisa pago e pendente, so para o admin."
+Removido da linha do ranking nos dois apps; Participantes continua mostrando (transparência
+pública já documentada, sem mudança aí).
+
+Achado relacionado, mesma tela: o botão "Ver palpites" sempre aparecia no ranking, mesmo antes
+do prazo — o conteúdo já estava protegido (`renderPickDisplay()` mostra mensagem "escondido até
+o prazo"), mas o botão em si não tinha gate, virando um toque morto pré-prazo. Corrigido: botão
+e painel de detalhe só renderizam quando o prazo relevante já passou (`isPastCutoff()` no
+BR2026, `isPastEntryCutoff()` no CDB2026 — prazo da fase ativa).
+
+Também nesta sessão: novo recurso de expandir/colapsar por jogo no card "ao vivo" do BR2026
+(`renderLiveCard()`), motivado pelo formato de liga do Brasileirão — a rodada final geralmente
+tem todos os jogos simultâneos (até 10 de uma vez, 20 times). Não propagado ao CDB2026 (mata-mata
+raramente tem tantos jogos simultâneos) nem à Copa (grupos no máximo 2-4 simultâneos, já bem
+servido pelo grid `flex-wrap` existente) — registrado aqui como `INTENTIONALLY_DIFFERENT` até que
+um dos outros dois apps realmente precise do mesmo tratamento.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudanças são só de exibição/UX.

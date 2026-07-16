@@ -1,5 +1,24 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.32 — 2026-07-16
+
+### Fixed — "Ver palpites" aparecia antes do prazo sem fazer nada útil; Pago/Pendente no ranking público
+
+Eduardo, screenshot desta tela: "Ver palpites ainda aparece e so deve aparecer apos o cutoff
+time. E tambem não precisa pago e pendente, só para o admin." Mesmo achado do BR2026 v1.43,
+propagado aqui (estrutura idêntica):
+
+- **"Ver palpites"**: botão sempre visível no ranking, mesmo antes do prazo da fase ativa — só
+  levava a uma mensagem "escondido até o prazo" (`renderPickDisplay()` já protegia o dado, sem
+  vazamento real, mas o botão era um toque morto). Corrigido: botão e painel de detalhe só
+  renderizam quando `isPastEntryCutoff()` (prazo da fase ativa) já passou.
+- **Pago/Pendente no ranking**: a Copa (referência visual canônica) nunca mostrou esse badge na
+  linha do ranking — só existe na aba Participantes. Removido da linha do ranking, igualando à
+  Copa; segue existindo em Participantes (transparência pública de quem já pagou, sem mudança
+  aí).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.31 — 2026-07-16
 
 ### Fixed — badge "Pago" divergente da Copa (checkmark); página podia rolar para o lado no mobile

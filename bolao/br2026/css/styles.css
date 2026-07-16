@@ -248,11 +248,22 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
 }
 #liveMatchCard.hidden { display: none; }
-.live-match { display: flex; flex-direction: column; gap: 6px; }
+.live-header {
+  font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--muted); margin-bottom: 8px;
+}
+.live-match { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
+.live-match + .live-match { border-top: 1px dashed var(--border2); padding-top: 12px; margin-top: 4px; }
+.live-match-row {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  width: 100%; background: none; border: 0; padding: 0; margin: 0;
+  color: inherit; font: inherit; text-align: left;
+}
+button.live-match-row { cursor: pointer; }
 .live-badge {
   display: inline-block; background: var(--green); color: var(--green-dk);
   font-size: 10px; font-weight: 900; letter-spacing: .08em;
-  padding: 3px 8px; border-radius: 4px; align-self: flex-start;
+  padding: 3px 8px; border-radius: 4px; flex-shrink: 0;
 }
 .live-teams { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .live-team-name { font-weight: 700; font-size: 15px; }
@@ -261,6 +272,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   font-variant-numeric: tabular-nums; color: var(--green);
 }
 .live-clock { font-size: 12px; color: var(--muted); }
+.live-chevron { margin-left: auto; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.live-match-detail { margin-top: 8px; }
+.live-match-detail.hidden { display: none; }
 
 /* ── Standings card ── */
 #standingsCard { margin-bottom: 16px; }

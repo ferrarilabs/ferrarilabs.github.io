@@ -525,6 +525,13 @@ function accuracyMetrics(entry, g4Result, z4Result, sa6Result) {
 // ─── ESPN polling ────────────────────────────────────────────────────────────
 let _standings  = [];   // sorted by rank (1st = index 0)
 let _liveMatches = [];  // currently live matches
+// Live-card expand/collapse: a full round often kicks off simultaneously (up to 10 games at
+// once), so a wall of detailed cards with probability bars doesn't scan well. Each match keeps
+// an independent expanded/collapsed state (user's choice always wins); the first time a given
+// match id is seen, default it collapsed once there are more than 2 live games, expanded
+// otherwise (see docs/bolao/BR2026_LIVE_STANDINGS.md).
+let _liveExpanded = new Set(); // match ids currently showing full detail (probability bars)
+let _liveSeenIds  = new Set(); // match ids that already got a default expand/collapse applied
 let _schedule   = [];   // full season events from ESPN
 let _scheduleTs = 0;    // last schedule fetch timestamp
 let _mcResult   = null; // Monte Carlo result cache
@@ -1269,8 +1276,26 @@ function renderLiveCard() {
   const card = $("liveMatchCard");
   if (!card) return;
   if (!_liveMatches.length) { card.classList.add("hidden"); return; }
-  card.innerHTML = _liveMatches.map(m => {
+
+  const liveIds = new Set(_liveMatches.map(m => m.id));
+  // Prune ids for matches no longer live, so the Sets don't grow across a long session.
+  [..._liveSeenIds].forEach(id => { if (!liveIds.has(id)) _liveSeenIds.delete(id); });
+  [..._liveExpanded].forEach(id => { if (!liveIds.has(id)) _liveExpanded.delete(id); });
+  // First time a match id shows up: default expanded when it's just 1-2 games, collapsed once
+  // a full round kicks off together — the user's own toggle always wins after that.
+  const defaultExpanded = _liveMatches.length <= 2;
+  _liveMatches.forEach(m => {
+    if (_liveSeenIds.has(m.id)) return;
+    _liveSeenIds.add(m.id);
+    if (defaultExpanded) _liveExpanded.add(m.id);
+  });
+
+  const header = _liveMatches.length > 1
+    ? `<div class="live-header">🔴 ${_liveMatches.length} ${esc(t("liveMatchesLabel"))}</div>` : "";
+
+  const rows = _liveMatches.map(m => {
     const { clock, sec } = liveClockDisplay(m);
+    const expanded = _liveExpanded.has(m.id);
     // In-play probability bars (only when standings are loaded)
     let probBarsHtml = "";
     if (_standings.length >= 20) {
@@ -1286,19 +1311,38 @@ function renderLiveCard() {
         <div class="prob-bar away"  style="width:${(pA*100).toFixed(0)}%">${awayLbl} ${(pA*100).toFixed(0)}%</div>
       </div>`;
     }
+    const rowInner = `
+        <span class="live-badge">${esc(t("liveNow"))}</span>
+        <div class="live-teams">
+          <span class="live-team-name">${esc(m.homeTeam)}</span>
+          ${teamLogoImg(m.homeTeam)}
+          <span class="live-score">${m.homeScore} – ${m.awayScore}</span>
+          ${teamLogoImg(m.awayTeam)}
+          <span class="live-team-name">${esc(m.awayTeam)}</span>
+        </div>
+        <span class="live-clock">${esc(clock)}</span>`;
+    // The whole row is the tap target (not just a small chevron) — better mobile touch target
+    // than an icon-only button. Only made toggleable when there's actually a detail underneath
+    // (probability bars need standings loaded); otherwise it's a plain, non-interactive row.
+    const row = probBarsHtml
+      ? `<button type="button" class="live-match-row" data-live-toggle="${esc(m.id)}"
+           aria-expanded="${expanded}" aria-label="${esc(expanded ? t("liveToggleCollapse") : t("liveToggleExpand"))}">
+          ${rowInner}
+          <span class="live-chevron" aria-hidden="true">${expanded ? "▲" : "▼"}</span>
+        </button>`
+      : `<div class="live-match-row">${rowInner}</div>`;
     return `<div class="live-match">
-      <span class="live-badge">${esc(t("liveNow"))}</span>
-      <div class="live-teams">
-        <span class="live-team-name">${esc(m.homeTeam)}</span>
-        ${teamLogoImg(m.homeTeam)}
-        <span class="live-score">${m.homeScore} – ${m.awayScore}</span>
-        ${teamLogoImg(m.awayTeam)}
-        <span class="live-team-name">${esc(m.awayTeam)}</span>
-      </div>
-      <span class="live-clock">${esc(clock)}</span>
-      ${probBarsHtml}
+      ${row}
+      ${probBarsHtml ? `<div class="live-match-detail${expanded ? "" : " hidden"}">${probBarsHtml}</div>` : ""}
     </div>`;
   }).join("");
+
+  card.innerHTML = header + rows;
+  card.querySelectorAll("[data-live-toggle]").forEach(btn => btn.addEventListener("click", () => {
+    const id = btn.dataset.liveToggle;
+    if (_liveExpanded.has(id)) _liveExpanded.delete(id); else _liveExpanded.add(id);
+    renderLiveCard();
+  }));
   card.classList.remove("hidden");
 }
 
@@ -1728,29 +1772,38 @@ function renderRanking() {
   // Estrutura densa de 1 linha (.rank-row) + detalhe expansível (.picks-detail) — mesmo padrão
   // da Copa (bolao/js/app.js renderRanking()), ver DESIGN_SYSTEM.md "Ranking — estrutura do
   // card". Cada entrada gera dois elementos irmãos, não um card único empilhado.
+  // Pago/Pendente é informação de administração do bolão, não do ranking público -- mesmo
+  // padrão da Copa (renderRanking(), bolao/js/app.js), que nunca mostrou esse badge na linha do
+  // ranking (só existe na aba Participantes). Achado real (2026-07-16, Eduardo: "nao precisa
+  // pago e pendente, so para o admin"). "Ver palpites" só faz sentido depois do prazo -- antes
+  // disso o botão só levava a uma mensagem "escondido até o prazo" (o dado em si já estava
+  // protegido dentro de renderPickDisplay(), mas o botão continuava visível e clicável sem
+  // fazer nada útil).
+  const canViewPicks = isPastCutoff();
   box.innerHTML = provNote;
   scored.forEach(item => {
     const rank      = item.rank;
-    const paid      = (s.paid || {})[item.e.id];
     const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
-    const paidBadge = paid
-      ? `<span class="paid-badge">${esc(t("paid"))}</span>`
-      : `<span class="unpaid-badge">${esc(t("unpaid"))}</span>`;
     const provFlag  = !isOfficial && item.total > 0;
     const mv        = rankMovement?.get(item.e.id);
+    const viewBtn   = canViewPicks
+      ? `<button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-expanded="${_openRankDetails.has(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`
+      : "";
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
       <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
-      <div><b>${esc(item.e.entryName)}</b> ${paidBadge}</div>
+      <div><b>${esc(item.e.entryName)}</b></div>
       <div class="points${provFlag ? " prov" : ""}">${item.total}<small>${provFlag ? " ↕" : " pts"}</small></div>
-      <button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-expanded="${_openRankDetails.has(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`;
+      ${viewBtn}`;
     box.appendChild(row);
-    const detail = document.createElement("div");
-    detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
-    detail.dataset.rankDetail = item.e.id;
-    detail.innerHTML = renderPickDisplay(item.e, item.detail, { g4: g4cur, z4: z4cur, sa6: sa6cur, isOfficial });
-    box.appendChild(detail);
+    if (canViewPicks) {
+      const detail = document.createElement("div");
+      detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
+      detail.dataset.rankDetail = item.e.id;
+      detail.innerHTML = renderPickDisplay(item.e, item.detail, { g4: g4cur, z4: z4cur, sa6: sa6cur, isOfficial });
+      box.appendChild(detail);
+    }
   });
 
   box.querySelectorAll("[data-rank-toggle]").forEach(btn => btn.addEventListener("click", () => {
