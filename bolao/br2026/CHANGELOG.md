@@ -1,5 +1,31 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.45 — 2026-07-16
+
+### Fixed — extensão manual do prazo (+45min) e bug de propagação em `mergeStates()`
+
+Eduardo pediu para estender o prazo em 45 minutos. O prazo (`s.cutoffAt`, congelado 1h antes do
+primeiro jogo real, 18h30 -03:00) já tinha passado há ~2 minutos quando o pedido chegou — ação
+imediata em produção:
+
+- **Intervenção manual em produção**: `s.cutoffAt` atualizado diretamente no Supabase
+  (`bolao_state`, `id="br2026"`) de `2026-07-16T21:30:00.000Z` para `2026-07-16T22:15:00.000Z`
+  (18h30 → 19h15 -03:00), preservando as 9 entradas existentes. Registrado no novo journal
+  (`s.auditLog`, ação `extend-cutoff`, com prazo anterior/novo) — mesmo mecanismo shipado nesta
+  sessão (v1.44).
+- **Bug real encontrado ao investigar a propagação**: `mergeStates()` sempre preferia o
+  `cutoffAt` já em cache local (`local.cutoffAt || remote.cutoffAt`), por design, para impedir
+  que um cliente atrasado resetasse o prazo. Isso também impedia uma extensão manual do admin de
+  chegar a qualquer navegador que já tivesse carregado a página hoje (cutoffAt antigo ficaria
+  preso no `localStorage` para sempre). Corrigido para sempre preferir o valor **mais tarde**
+  entre local e remoto (nunca mais cedo, nunca `null`) — mantém a proteção original e ainda
+  deixa uma extensão manual se propagar de verdade. Testado com 5 casos (local mais velho, local
+  mais novo, remoto nulo, local nulo, ambos nulos).
+- `C.cutoffIso` (fallback, `config.js`) também atualizado para 19h15 -03:00, para consistência —
+  só afeta quem nunca carregou o app hoje (já congelado para quem já visitou).
+
+Não altera scoring nem lógica de pontuação. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.44 — 2026-07-16
 
 ### Added — triple confirmation + journal de admin + backups automatizados para o resultado oficial

@@ -160,8 +160,17 @@ function mergeStates(local, remote, opts = {}) {
     paid,
     results,
     // Uma vez congelado (freezeSeasonCutoff), nunca deve ser sobrescrito por null vindo de um
-    // cliente mais antigo/desatualizado -- prefere qualquer valor já definido, local ou remoto.
-    cutoffAt: local.cutoffAt || remote.cutoffAt || null,
+    // cliente mais antigo/desatualizado. Achado em 2026-07-16 (extensão manual de prazo pedida
+    // por Eduardo): "local sempre vence" impedia justamente esse caso -- um navegador que já
+    // tinha aberto a página antes da extensão manter o cutoffAt antigo em cache pra sempre,
+    // mesmo depois do admin atualizar o Supabase. Corrigido para sempre preferir o valor MAIS
+    // TARDE entre local e remoto (nunca o mais cedo, nunca null) -- preserva a proteção original
+    // (cutoff nunca anda pra trás/some) e ainda deixa uma extensão manual se propagar de verdade.
+    cutoffAt: (() => {
+      if (!local.cutoffAt) return remote.cutoffAt || null;
+      if (!remote.cutoffAt) return local.cutoffAt;
+      return new Date(remote.cutoffAt).getTime() > new Date(local.cutoffAt).getTime() ? remote.cutoffAt : local.cutoffAt;
+    })(),
     auditLog: mergedAuditLog,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
