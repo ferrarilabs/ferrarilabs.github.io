@@ -138,8 +138,22 @@ async function saveRemoteState(s) {
 }
 function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
+  // Achado 2026-07-16 (Eduardo: renomeou duas entradas direto no Supabase, "não aparece
+  // ainda") -- "local sempre vence" (versão anterior) escondia edições de admin pra sempre em
+  // qualquer navegador que já tivesse a entrada em cache. Mesmo princípio já corrigido pro
+  // cutoffAt no mesmo dia: preferir sempre o mais RECENTE, nunca um lado fixo -- só que aqui
+  // por registro (cada entrada tem seu próprio updatedAt/createdAt), não por um único timestamp
+  // global. Mesmo padrão que a Copa já usa (bolao/js/app.js mergeStates()).
   const byId = {};
-  [...(remote.entries || []), ...(local.entries || [])].forEach(e => { if (!deleted.has(e.id)) byId[e.id] = e; });
+  for (const e of (local.entries || [])) if (!deleted.has(e.id)) byId[e.id] = e;
+  for (const e of (remote.entries || [])) {
+    if (deleted.has(e.id)) continue;
+    const existing = byId[e.id];
+    if (!existing) { byId[e.id] = e; continue; }
+    const remoteTs = e.updatedAt || e.createdAt || "";
+    const localTs  = existing.updatedAt || existing.createdAt || "";
+    if (remoteTs > localTs) byId[e.id] = e;
+  }
   const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
   let results;
   if (opts.preferRemoteResults) {
@@ -714,6 +728,24 @@ async function fetchJson(url, opts = {}) {
   finally { clearTimeout(timer); }
 }
 
+// ESPN's standings endpoint (v2/.../standings) and scoreboard/schedule endpoint
+// (site/v2/.../scoreboard) occasionally disagree on a team's displayName -- found
+// 2026-07-16 (Eduardo: Probabilidades showing Remo/Athletico Paranaense wildly wrong):
+// standings returns "Athletico Paranaense" (matches DATA.teams), scoreboard returns
+// "Athletico-PR". Every function downstream (buildRatings(), runMonteCarlo(), the
+// standings-vs-schedule cross-reference) assumes both feeds use the same name for the
+// same team -- a silent mismatch splits one team's data across two dictionary keys
+// instead of erroring, which is exactly what happened: Athletico's simulated points
+// accumulated under "Athletico-PR" while their starting total stayed frozen under
+// "Athletico Paranaense", making them look relegation-bound despite being 4th place.
+// Same alias-map pattern as bolao/scripts/send_result_email.py's ESPN_ALIASES, just
+// applied client-side. Mirrors bolao/js/i18n.js scoping -- keep in sync by hand if
+// ESPN renames a team.
+const ESPN_SCOREBOARD_NAME_ALIASES = { "Athletico-PR": "Athletico Paranaense" };
+function normalizeEspnTeamName(name) {
+  return ESPN_SCOREBOARD_NAME_ALIASES[name] || name;
+}
+
 async function fetchStandings() {
   try {
     const r = await fetchJson(C.espn.standingsUrl);
@@ -792,8 +824,8 @@ async function fetchScoreboard() {
       return {
         id:        ev.id,
         state:     comp.status?.type?.state,
-        homeTeam:  home?.team?.displayName || "",
-        awayTeam:  away?.team?.displayName || "",
+        homeTeam:  normalizeEspnTeamName(home?.team?.displayName || ""),
+        awayTeam:  normalizeEspnTeamName(away?.team?.displayName || ""),
         homeScore: parseInt(home?.score || "0", 10),
         awayScore: parseInt(away?.score || "0", 10),
         clockSec,
@@ -1072,8 +1104,8 @@ async function fetchSchedule() {
         state:     comp.status?.type?.state || "pre",
         detail:    comp.status?.type?.shortDetail || "",
         postponed: statusName === "Postponed" || statusName === "Canceled",
-        homeTeam:  home?.team?.displayName || "",
-        awayTeam:  away?.team?.displayName || "",
+        homeTeam:  normalizeEspnTeamName(home?.team?.displayName || ""),
+        awayTeam:  normalizeEspnTeamName(away?.team?.displayName || ""),
         homeScore: home?.score != null ? parseInt(home.score, 10) : null,
         awayScore: away?.score != null ? parseInt(away.score, 10) : null,
         venue:     comp.venue?.fullName || "",
@@ -1105,16 +1137,18 @@ function buildRatings() {
   if (_ratingsCache) return _ratingsCache;
   const completed = _schedule.filter(g => g.state === "post" && g.homeScore != null && g.awayScore != null);
 
+  // Naive per-game rating from standings averages -- used as the early-season fallback on its
+  // own, and as a shrinkage anchor for the Dixon-Coles fit below once there's enough data.
+  const LG_AVG = 1.3, MIN_R = 0.3;
+  const naiveRatings = {};
+  _standings.forEach(tm => {
+    const n = Math.max(tm.played || 1, 1);
+    naiveRatings[tm.name] = { atk: Math.max((tm.gf||0)/n/LG_AVG, MIN_R), def: Math.max((tm.ga||0)/n/LG_AVG, MIN_R) };
+  });
+
   if (completed.length < 8) {
-    // Early season: naive Poisson from standings averages
-    const LG_AVG = 1.3, MIN_R = 0.3;
-    const ratings = {};
-    _standings.forEach(tm => {
-      const n = Math.max(tm.played || 1, 1);
-      ratings[tm.name] = { atk: Math.max((tm.gf||0)/n/LG_AVG, MIN_R), def: Math.max((tm.ga||0)/n/LG_AVG, MIN_R) };
-    });
-    _ratingsCache = ratings;
-    return ratings;
+    _ratingsCache = naiveRatings;
+    return naiveRatings;
   }
 
   // Dixon-Coles (1997) iterative proportional fitting with exponential time decay.
@@ -1129,6 +1163,16 @@ function buildRatings() {
   const alpha = {}, beta = {};
   teams.forEach(t => { alpha[t] = 1.0; beta[t] = 1.0; });
 
+  // Clamp bounds for α/β — achado 2026-07-16 (Eduardo: Probabilidades mostrando Remo com 0%
+  // de chance de rebaixamento apesar de estar em 18º). O ajuste multiplicativo iterativo (sem
+  // nenhum amortecimento) pode divergir pra um time com amostra pequena/ruidosa -- Remo tinha
+  // atk=5.93 (quase 6x a força de um time médio) sem nada nos resultados reais dele que
+  // justificasse isso, o que dava a ele um gol esperado de ~10 por partida e zerava sua chance
+  // de rebaixamento em todas as 2000 simulações. [0.25, 3] é generoso o bastante pra refletir
+  // diferença real de força entre o melhor e o pior time da liga sem permitir esse tipo de
+  // explosão numérica.
+  const MIN_RATING = 0.25, MAX_RATING = 3;
+  const clamp = v => Math.min(MAX_RATING, Math.max(MIN_RATING, v));
   for (let iter = 0; iter < 50; iter++) {
     teams.forEach(t => {
       let obs = 0, exp = 0;
@@ -1137,7 +1181,7 @@ function buildRatings() {
         if (m.homeTeam === t) { obs += w * m.homeScore; exp += w * alpha[t] * beta[m.awayTeam] * HOME_ADV; }
         if (m.awayTeam === t) { obs += w * m.awayScore; exp += w * alpha[t] * beta[m.homeTeam]; }
       });
-      if (exp > 0) alpha[t] = alpha[t] * obs / exp;
+      if (exp > 0) alpha[t] = clamp(alpha[t] * obs / exp);
     });
     teams.forEach(t => {
       let obs = 0, exp = 0;
@@ -1146,15 +1190,31 @@ function buildRatings() {
         if (m.homeTeam === t) { obs += w * m.awayScore; exp += w * alpha[m.awayTeam] * beta[t]; }
         if (m.awayTeam === t) { obs += w * m.homeScore; exp += w * alpha[m.homeTeam] * beta[t] * HOME_ADV; }
       });
-      if (exp > 0) beta[t] = beta[t] * obs / exp;
+      if (exp > 0) beta[t] = clamp(beta[t] * obs / exp);
     });
     // Identifiability: set geometric mean of α = 1
     const gm = Math.exp(teams.reduce((s, t) => s + Math.log(Math.max(alpha[t], 1e-9)), 0) / teams.length);
-    teams.forEach(t => { alpha[t] /= gm; beta[t] *= gm; });
+    teams.forEach(t => { alpha[t] = clamp(alpha[t] / gm); beta[t] = clamp(beta[t] * gm); });
   }
 
+  // Shrinkage toward the naive per-game rating -- achado 2026-07-16 (Eduardo: Remo mostrando
+  // 0% de chance de rebaixamento apesar de estar em 18º/20, saldo -8). O clamp acima impede
+  // valores impossíveis, mas não resolve a causa: o ajuste iterativo genuinamente DIVERGE pra
+  // alguns times (Remo, Corinthians) até bater no teto, mesmo depois de reduzir iterações ou
+  // adicionar amortecimento -- confirmado comparando o alpha ajustado contra gols reais/jogo de
+  // cada um dos 20 times com os dados ao vivo da ESPN. Times cujo ajuste diverge ficam presos
+  // no teto/piso independentemente de quantas iterações rodam, então o problema é estrutural
+  // (um loop de realimentação entre pares de times), não falta de convergência. Puxar o
+  // resultado final 70% em direção à média ingênua (gols/jogo) neutraliza a divergência sem
+  // descartar o modelo inteiro -- times realmente fortes/fracos continuam se destacando
+  // (Palmeiras/Flamengo seguem com G4 alto, Chapecoense/Vasco seguem com Z4 alto), só os casos
+  // que davam valores fisicamente implausíveis deixam de zerar uma zona inteira.
+  const SHRINK = 0.7;
   const ratings = { __dixonColes: true };
-  teams.forEach(t => { ratings[t] = { atk: alpha[t], def: beta[t] }; });
+  teams.forEach(t => {
+    const nv = naiveRatings[t] || { atk: 1, def: 1 };
+    ratings[t] = { atk: clamp((1 - SHRINK) * alpha[t] + SHRINK * nv.atk), def: clamp((1 - SHRINK) * beta[t] + SHRINK * nv.def) };
+  });
   _standings.forEach(tm => { if (!ratings[tm.name]) ratings[tm.name] = { atk: 1.0, def: 1.0 }; });
   _ratingsCache = ratings;
   return ratings;

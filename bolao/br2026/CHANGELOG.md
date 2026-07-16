@@ -1,5 +1,60 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.52 — 2026-07-16
+
+### Fixed — nomes renomeados pelo admin "não apareciam" (merge de entradas sempre preferia o cache local)
+
+Eduardo: "Você atualizou o banco com os nomes? Não aparece ainda." Confirmado por leitura
+direta do Supabase: os nomes ("Gustavo Ferrari", "Matheus The Client") estavam corretos no
+banco desde a rodada anterior — o problema era `mergeStates()`: `entries` usava "local sempre
+vence" (`byId[e.id] = e` sobrescrevendo remoto por local incondicionalmente), o mesmo padrão já
+corrigido pro `cutoffAt` mais cedo hoje, só que nunca propagado pra `entries`. Qualquer
+navegador que já tivesse essas duas entradas em cache local (de antes da renomeação) ia manter
+o nome antigo pra sempre, mesmo depois do Supabase já estar certo. A Copa já tinha a correção
+certa (`bolao/js/app.js`): preferir sempre o registro mais RECENTE por entrada
+(`updatedAt`/`createdAt`), não um lado fixo — portada aqui e pro CDB2026 (mesma estrutura de
+merge). Os dois registros já renomeados também tiveram `updatedAt` atualizado direto no
+Supabase pra vencer qualquer cache local já existente assim que essa versão for publicada.
+
+### Fixed — Probabilidades mostrando times com % impossível (Remo 0% de rebaixamento em 18º lugar)
+
+Eduardo: "A tabela de probabilidades está bem fora. Mostra Remo por exemplo como 0% de chances
+de rebaixamento!" Investigado com dados reais da ESPN (não simulado) — dois bugs reais
+confirmados:
+
+1. **Nome de time divergente entre os dois endpoints da ESPN**: o endpoint de classificação
+   devolve "Athletico Paranaense", o de calendário/jogos devolve "Athletico-PR" — o mesmo time,
+   dois nomes. `buildRatings()`/`runMonteCarlo()` cruzam dado dos dois endpoints assumindo que
+   o nome bate; com a divergência, os pontos das partidas restantes do Athletico eram somados
+   sob a chave "Athletico-PR" enquanto o total inicial (30 pts, 4º lugar) ficava congelado sob
+   "Athletico Paranaense" — o time nunca ganhava pontos na simulação, aparecendo como
+   quase-certo de ser rebaixado (99%) apesar de ser o 4º colocado de verdade. Corrigido com um
+   mapa de alias (`ESPN_SCOREBOARD_NAME_ALIASES`, mesmo padrão do `ESPN_ALIASES` do
+   `send_result_email.py` da Copa), normalizando o nome do calendário pro nome da classificação/
+   `DATA.teams` antes de qualquer cruzamento.
+2. **Ajuste iterativo (Dixon-Coles) divergindo pra alguns times**: Remo tinha rating de ataque
+   calculado em 5.93 (quase 6x a força de um time médio), sem nada nos resultados reais dele
+   (~1,17 gols/jogo, nada excepcional) que justificasse isso — dava gol esperado de ~10 por
+   partida, zerando a chance de rebaixamento em todas as 2000 simulações. Confirmado que não é
+   ruído: reduzir iterações ou adicionar amortecimento não resolve, o ajuste converge pro mesmo
+   teto/piso de qualquer forma (loop de realimentação estrutural entre pares de times, não falta
+   de convergência). Adicionado um limite [0,25, 3] pro ajuste (impede valores fisicamente
+   impossíveis) e um encolhimento de 70% em direção à média ingênua (gols/jogo) no resultado
+   final — neutraliza a divergência sem descartar o modelo: times realmente fortes/fracos
+   continuam se destacando (Palmeiras/Flamengo com G4 alto, Chapecoense/Vasco com Z4 alto), só
+   os casos que davam valor implausível deixam de zerar uma zona inteira.
+
+Verificado rodando o código REAL extraído do app.js (não uma reimplementação) contra dados ao
+vivo da ESPN: Remo agora mostra Z4≈9% (era 0%), Athletico Paranaense mostra G4≈68% (era 99%
+Z4) — tabela inteira de 20 times conferida, gradiente coerente do topo ao rebaixamento.
+
+Não propagado ao CDB2026: usa um cálculo de probabilidade diferente (Poisson bivariado direto
+por confronto, sem o mesmo ajuste iterativo de força de time ao longo da temporada) — essa
+classe de bug não se aplica lá.
+
+Não altera scoring nem lógica de pontuação — só o cálculo informativo de probabilidades.
+`audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.51 — 2026-07-16
 
 ### Added — email automático de fim de rodada (em vez de por jogo)
