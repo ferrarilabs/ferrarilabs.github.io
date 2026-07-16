@@ -1,5 +1,42 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.54 — 2026-07-16
+
+### Fixed — Ranking (setas de movimento) só reagia ao placar DEPOIS que a ESPN fechava o jogo
+
+Eduardo, na rodada seguinte de feedback: "nao ta mostrando estilo copa conforme os jogos estao
+ocorrendo qual a posicao no ranking as pessoas estao subindo ou descendo de acordo com as
+projecoes live." Achado real ao investigar: `renderRanking()` calculava a posição/pontuação
+"atual" de cada participante direto de `_standings` — a tabela OFICIAL da ESPN, que só é
+reprocessada depois que a ESPN marca a partida como encerrada — nunca da tabela AJUSTADA pelo
+placar ao vivo (`liveStandingsNow()`, já existente e usada no card "ao vivo" desde a v1.53).
+Resultado: as setas do Ranking ficavam presas na posição de ANTES do jogo começar durante toda
+a partida, só se moviam depois do apito final + ESPN republicar — tarde demais pra ser uma
+"projeção ao vivo" de verdade. Nova função `currentResultSet()` centraliza essa escolha (usa a
+tabela ao vivo quando há jogo em andamento, cai pra `_standings` fora de janela ao vivo) —
+única fonte usada tanto por `renderRanking()` quanto pelo novo hero abaixo. Verificado
+injetando duas entradas de teste com um placar ao vivo real que cruza a fronteira do G4: a que
+acertou o time que assumiu a vaga sobe, a outra desce, exatamente como esperado.
+
+### Added — hero "Ranking ao vivo" logo abaixo do card de jogos, mesmo estilo da Copa
+
+Eduardo: "isso poderia vir num hero logo abaixo dos jogos ao vivo no mesmo estilo da copa, o
+que achas?" Novo card `#liveRankingHero`, mesmo estilo visual do card "ao vivo" (`hero-live-
+points` da Copa como referência), listando só quem está subindo ou descendo agora (até 8,
+ordenado por posição) — reaproveita 100% do cálculo já existente
+(`calculateRankingMovement()`), nenhuma fórmula nova. Fica escondido sem jogo ao vivo, sem
+baseline confiável, ou sem ninguém se movendo (Eduardo: "se ficar ruim ou muito busy deixa de
+fora") — nunca mostra uma tabela parada.
+
+### Fixed — card "ao vivo" ainda parecia fora de centro (feed de lances/barras muito largos)
+
+Eduardo: "esta ainda fora de centro." O card em si já estava centralizado (v1.53), mas o feed
+de lances e as barras de probabilidade dentro do detalhe expansível esticavam pra largura
+inteira do card (sem limite), enquanto o cabeçalho acima (times/placar/posição) ficava
+compacto e centralizado — o contraste entre uma faixa estreita centralizada e uma caixa larga
+colada nas bordas é o que lia como "fora de centro". `.live-match-detail` agora tem
+`max-width: min(520px, 100%)` centralizado, alinhando visualmente com o cabeçalho acima.
+
 ## v1.53 — 2026-07-16
 
 ### Added — `send_round_email.py --test-send`, envia uma prévia real só pra Eduardo revisar
