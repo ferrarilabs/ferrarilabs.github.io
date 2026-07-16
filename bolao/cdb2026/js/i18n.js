@@ -119,7 +119,7 @@ window.CDB2026_I18N = {
     cutoffSourceNone: "Sem cutoff calculável ainda (falta kickoff conhecido nesta fase)",
     adminUseAutoCutoff: "Usar cálculo automático",
     viewPicks: "Ver palpites",
-    paid: "✓ Pago",
+    paid: "Pago",
     unpaid: "Pendente",
     // Pick labels in ranking
     pickLabelChampion: "Campeão",

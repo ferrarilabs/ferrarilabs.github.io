@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v4.137 — 2026-07-16
+
+### Fixed — rede de segurança contra rolagem horizontal da página (propagado de achado no BR2026)
+
+Eduardo reportou, via screenshot mobile real do BR2026, que a página "faz scroll para o lado" —
+pediu para corrigir em todos. Nenhum dos 3 apps tinha `overflow-x: hidden` no `html`/`body`, uma
+rede de segurança padrão contra qualquer elemento (conhecido ou ainda não identificado) forçar
+rolagem horizontal da página inteira. Adicionado aqui (Copa, referência canônica) e na página
+`classificacao-geral.html`; propagado também ao BR2026 (v1.42) e CDB2026 (v3.31) — ver changelog
+de cada app para o achado original (badge "Pago"/checkmark também corrigido nos dois).
+
+Verificado via Playwright que não quebra nenhum scroll horizontal interno intencional
+(`.table-scroll`, `.picks-detail`) nem o header sticky.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py`: 5/5.
+
 ## v4.136 — 2026-07-16
 
 ### Fixed — "Classificação Geral": prova exaustiva de vivo/eliminado testava resultados fisicamente impossíveis

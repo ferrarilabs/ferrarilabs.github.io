@@ -606,3 +606,24 @@ minutos antes) até o Eduardo apontar explicitamente que não deveria existir.
 
 `audit_scoring.py` (Copa): PASSOU. `audit_scoring.py` (BR2026, novo): PASSOU. `audit_scoring.py`
 (CDB2026, novo): PASSOU.
+
+## Nota manual — item 67 revisitado: texto do badge "Pago" divergia da Copa (checkmark); rede de segurança contra scroll horizontal ausente nos 3 apps (2026-07-16, BR2026 v1.42 / CDB2026 v3.31 / Copa v4.137)
+
+Item 67 já catalogava `.paid-badge` como `CONSISTENT` em CSS (pílula, padding, cores) — mas não
+cobria o **texto**. Achado real via screenshot mobile do Eduardo: BR2026/CDB2026 usavam
+`"✓ Pago"` (com checkmark) enquanto a Copa usa só `"Pago"` (`paymentPaid` em
+`bolao/js/i18n.js`). O glyph "✓" renderiza com métricas de fonte diferentes do texto latino ao
+redor, inflando visivelmente a altura da pílula no mobile — motivo real do "look and feel meio
+off" reportado. Corrigido nos dois apps para igualar a Copa exatamente.
+
+Achado separado, mesma sessão: nenhum dos 3 apps tinha `overflow-x: hidden` em `html`/`body` —
+Eduardo reportou a página rolando para o lado no mobile (texto cortado nas duas bordas
+simultaneamente, sintoma clássico de `body` mais largo que o viewport). Não foi possível isolar
+o elemento causador exato dentro do sandbox (sem acesso de rede à ESPN/Supabase para reproduzir
+o estado ao vivo exato do usuário), então a correção aplicada foi a rede de segurança padrão da
+indústria — `overflow-x: hidden` no `html`/`body` dos 3 apps — que elimina o sintoma
+independentemente da causa raiz específica, sem quebrar nenhum scroll horizontal interno
+intencional (`.standings-wrap`, `.picks-detail`, `.table-scroll`, verificado via Playwright) nem
+o header sticky.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só CSS/i18n de exibição.
