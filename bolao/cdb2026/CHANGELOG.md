@@ -1,5 +1,18 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.37 — 2026-07-16
+
+### Fixed — badge "Pago"/"Pendente" vazando da própria caixa em telas estreitas
+
+Mesmo achado do BR2026 v1.49 (Eduardo: "the pago is outside the box"), propagado aqui por ter a
+mesma reutilização de `.rank-row`. Ver nota completa em `bolao/CHANGELOG.md` v4.139. Nova classe
+`.rank-row.participant-row` com `grid-template-columns: 28px 1fr auto;` em `renderParticipants()`.
+
+Confirmado com medição de DOM real: badge "Pendente" agora mede 79px e cabe com 13px de folga
+(antes: forçado em 40px, coluna dimensionada só pro placar de 1-3 dígitos do ranking).
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.36 — 2026-07-16
 
 ### Fixed — entrada podia ser salva sem responsável pelo pagamento nem método de pagamento

@@ -1959,7 +1959,7 @@ function renderParticipants() {
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
   box.innerHTML = entries.map(e => {
       const isPaid = (s.paid || {})[e.id];
-      return `<div class="rank-row">
+      return `<div class="rank-row participant-row">
         <div>👤</div>
         <div><b>${esc(e.entryName)}</b><br><span class="muted">${esc(e.payerName || "")} · ${esc(e.paymentMethod || "")}</span></div>
         <span class="${isPaid ? "paid-badge" : "unpaid-badge"}">${esc(isPaid ? t("paid") : t("unpaid"))}</span>
