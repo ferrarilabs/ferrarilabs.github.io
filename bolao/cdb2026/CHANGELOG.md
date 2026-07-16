@@ -1,5 +1,74 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.40 — 2026-07-16
+
+### Fixed — card "ao vivo" trazido pro mesmo padrão da Copa/BR2026 (estava na pilha vertical antiga)
+
+Eduardo, depois de ver o card "ao vivo" do BR2026 refeito: "aplicou as mesmas alteracoes na
+CDB2026? PRECISAMOS SER CONSISTENTES!" Achado real de consistência (não só um pedido): o
+`renderLiveTieCard()` daqui usava a MESMA pilha vertical que o BR2026 tinha antes de ser
+corrigida (badge, times, placar, relógio cada um numa linha própria) — nunca tinha sido
+atualizado pra estrutura horizontal real da Copa (`hero-live-card`). Refeito copiando a mesma
+estrutura/tokens já portados pro BR2026 (`.live-top/.live-team/.live-score/.live-center`), com
+múltiplos jogos ao vivo lado a lado (`.live-match-grid`) em vez de empilhados. Sem badge de
+posição de tabela (Copa do Brasil é mata-mata, sem classificação de liga) e sem barras de
+probabilidade ao vivo (sem modelo in-play aqui ainda — lacuna registrada, não decisão
+definitiva, em `docs/bolao/CONSISTENCY_MATRIX.md`).
+
+### Added — minuto a minuto de gols/cartões/substituições no card "ao vivo"
+
+Mesma paridade — portado quase literalmente do BR2026 (`extractMatchPlays`/`livePlaysHtml`),
+mesmo `comp.details` já buscado a cada poll do card ao vivo, sem chamada de rede extra.
+
+### Added — Ranking reage ao placar ao vivo + hero "Ranking ao vivo"
+
+Eduardo, sobre posição de time vs. participante: "CDB no need to show up and down for the teams
+as it is knock out, but up and down for the user ranking, yes." Confirmado: sem classificação de
+liga na Copa do Brasil, não faz sentido posição de TIME — mas o Ranking de PARTICIPANTES agora
+reage ao placar ao vivo em tempo real. Nova `liveScoreEntry()` soma os pontos de partidas ao
+vivo (`matchPoints()` sobre o placar em andamento, ainda sem `goalsHome`/`goalsAway` salvo em
+`s.phases[...].matches[leg]`) por cima do total oficial — nunca tenta prever quem se classifica
+ao vivo (depende do agregado das duas pernas + prorrogação/pênaltis, especulativo demais pra uma
+perna em andamento). Setas de movimento (▲/▼) no Ranking exibido normalmente, mesmas classes/
+textos do BR2026 (`rankMovementHtml`). Novo hero `#liveRankingHero` logo abaixo do card "ao
+vivo", mesmo padrão do BR2026 v1.55: mostra TODO MUNDO ordenado por posição (não só quem se
+move), com scroll e cabeçalho fixo, só aparece com tie(s) ao vivo E pelo menos alguém realmente
+subindo/descendo.
+
+`rankEntriesBy()` — única implementação do desempate, extraída de dentro de `renderRanking()` pra
+ser reaproveitada por `calculateRankingMovement()` também, mesmo princípio "fonte única" do
+BR2026 (nunca duas implementações do mesmo cálculo que podem silenciosamente divergir — classe de
+bug do CHANGELOG v4.57 da Copa).
+
+Achado testando (não em produção): a marcação de acessibilidade (`<span class="visually-hidden">`)
+usada pelas setas de movimento não tinha a classe CSS correspondente definida neste app —
+sem ela, o texto do título/tooltip aparecia como texto visível solto na tela em vez de ficar
+escondido. Corrigido antes de publicar (mesma definição do BR2026).
+
+### Fixed — "Próxima partida" mostra todos os jogos do dia seguinte, não só o primeiro
+
+Mesmo achado do BR2026 (Eduardo: "proximo jogo mostra somente um, mas amanha tem mais, mostre
+proximos jogos quando ha mais de um no mesmo dia"). `findNextUpcomingMatch()` continua existindo
+(é só "a partida mais próxima"); nova `findAllUpcomingMatchesOnNextDay()` agrupa por dia em cima
+dela — card mostra a lista quando há mais de uma partida no mesmo dia, mantém o layout rico
+(contador regressivo) quando há só uma.
+
+### Fixed — relógio ao vivo mudava de formato quando pausava
+
+Mesmo bug do BR2026 (Eduardo, screenshot: "Um cronometro mostra só minutos e outro mostra
+minutos e segundos. Fere inconsistência!") — código idêntico aqui, mesma correção: sempre passa
+por `formatMatchClock()` quando `clockSeconds` existe, pausado só significa não somar o tempo
+decorrido desde o último poll.
+
+### Changed — número de posição do Ranking sem ponto sobrando ("2." → "2")
+
+Mesmo ajuste da Copa e do BR2026 no mesmo patch (mesmo trecho de código nos três) — Eduardo:
+"e tira o '.' se a posicao nao muda no ranking, parece sujeira".
+
+`audit_scoring.py`: PASSOU — nenhuma fórmula de pontuação tocada, só apresentação do card ao
+vivo, cálculo de PROJEÇÃO ao vivo (aditivo, nunca sobrescreve o oficial) e o card "próxima
+partida".
+
 ## v3.39 — 2026-07-16
 
 ### Fixed — merge de entradas sempre preferia o cache local, escondendo edição de admin

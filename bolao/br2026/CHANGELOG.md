@@ -1,5 +1,54 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.56 — 2026-07-16
+
+### Fixed — relógio ao vivo mudava de formato quando pausava (achado em screenshot: "51'" vs "52:24")
+
+Eduardo mandou um screenshot: "Um cronometro mostra só minutos e outro mostra minutos e
+segundos. Fere inconsistência!" `liveClockDisplay()` preferia `m.clockStr` (string crua da ESPN,
+só minuto, ex. "51'") quando `clockPaused` era verdadeiro, e só usava o formato calculado
+"MM:SS" (`formatMatchClock()`) quando o relógio estava rodando — dois formatos diferentes pro
+MESMO elemento dependendo de um estado interno que o usuário nem vê. Corrigido pra sempre passar
+por `formatMatchClock()` quando `clockSeconds` existe; pausado só significa não somar o tempo
+decorrido desde o último poll, nunca trocar de formato — mesmo princípio que a Copa sempre teve
+(ela nunca tinha essa bifurcação; só esta cópia introduziu o bug). Mesmo bug/fix propagado ao
+CDB2026 (código idêntico, mesma origem).
+
+### Fixed — "Ranking ao vivo" com espaçamento enorme dos dois lados no desktop
+
+Eduardo: "ranking ao vivo ainda tem muito espacamento para a direita e esquerda... isso no
+desktop, no mobile esta ok." A tabela tinha `max-width: 420px` fixo — no mobile isso já batia em
+100% da largura do card, por isso só aparecia no desktop. Subiu pra 760px e aumentou fonte/
+padding das células pra preencher melhor o espaço em vez de sobrar vazio.
+
+### Changed — pontos do Ranking sempre verdes, sem seta duplicada de "provisório"
+
+Eduardo: "no ranking mostra a pontuacao em amarelo e com uma seta para cima e baixo, deveria ser
+igual copa e copa do brasil." A pontuação provisória (antes de resultados travados) ficava
+amarela e trocava "pts" por "↕" — nem a Copa nem o CDB2026 faziam isso, sempre verde com "pts"
+fixo, confiando só no aviso "↕ projeção provisória" já mostrado no topo da lista. Removido pra
+igualar aos outros dois apps; a seta de movimento de posição (▲/▼) continua, essa foi pedida
+explicitamente e é intencional.
+
+### Changed — número de posição sem ponto sobrando ("4." → "4")
+
+Eduardo: "e tira o '.' se a posicao nao muda no ranking, parece sujeira." Mesmo ajuste
+propagado à Copa e ao CDB2026 no mesmo patch (mesmo trecho de código nos três).
+
+### Added — "Próximos jogos" mostra todos os jogos do dia seguinte, não só o primeiro
+
+Eduardo: "proximo jogo mostra somente um, mas amanha tem mais, mostre proximos jogos quando ha
+mais de um no mesmo dia." Quando não há jogo hoje, o card antes mostrava só o jogo cronologicamente
+mais próximo (`nextUpcomingGame()`, que continua existindo — ainda é a fonte do congelamento do
+cutoff, precisa continuar sendo um único jogo fixo). A exibição agora agrupa por dia: todos os
+jogos que caem no mesmo dia BRT do próximo jogo aparecem juntos, com um subtítulo de data.
+
+### Fixed — CDB2026 trazido pro mesmo padrão do card "ao vivo" (dedupe, plays feed, ranking ao vivo)
+
+Ver `bolao/cdb2026/CHANGELOG.md` v3.40 pro detalhe completo — Eduardo: "aplicou as mesmas
+alteracoes na CDB2026? PRECISAMOS SER CONSISTENTES!" Registrado aqui porque a origem do pedido
+foi uma comparação direta com este app.
+
 ## v1.55 — 2026-07-16
 
 ### Changed — card "ao vivo" refeito do zero copiando a estrutura real da Copa (não só ajustando espaçamento)

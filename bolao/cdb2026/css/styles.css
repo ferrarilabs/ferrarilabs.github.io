@@ -277,8 +277,28 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   padding: 12px;
   margin-bottom: 8px;
 }
-.rank-row .rank-pos { font-size: 22px; text-align: center; }
+.rank-row .rank-pos {
+  font-size: 22px; text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.rank-row .rank-pos .movement { font-size: 11px; }
 .rank-row .points { font-size: 26px; color: var(--green); font-weight: 900; text-align: right; }
+/* Movimento de ranking do participante — mesmas classes/cores do BR2026 (.movement-*,
+   bolao/br2026/css/styles.css) para consistência visual entre os apps. */
+/* Faltava no CDB2026 -- rankMovementHtml() usa <span class="visually-hidden"> pro texto
+   acessível do título/tooltip, sem esta classe ele fica visível como texto solto na tela (achado
+   testando, não em produção -- ver screenshot da bateria de testes 2026-07-16). Mesma definição
+   do BR2026 (.visually-hidden, bolao/br2026/css/styles.css). */
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0;
+}
+.movement { display: inline-block; font-size: 12px; vertical-align: middle; }
+.movement-up { color: var(--green); }
+.movement-down { color: var(--red); }
+.movement-same { color: var(--muted); }
+.movement-unavailable { color: var(--muted); opacity: .6; }
+.movement-n { font-size: .8em; font-weight: 700; margin-left: 1px; }
 /* Mesmas classes/valores da Copa (bolao/css/styles.css) -- achado em auditoria (2026-07-14,
    Eduardo: "a visualizacao de ver palpites da CDB tambem esta inconsistente com a da copa"). */
 .picks-detail { overflow-x: auto; margin-bottom: 10px; }
@@ -444,30 +464,92 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 /* ── Payment QR ── */
 .pay-qr { width: 120px; height: 120px; border-radius: 8px; margin-top: 6px; }
 
-/* ── Live tie card — mesmas classes/medidas da Copa/BR2026 (#liveMatchCard/.live-*,
-   bolao/br2026/css/styles.css) para o card "ao vivo" mostrar placar+relógio com a mesma
-   aparência nos três apps. Antes não existia nenhuma exibição ao vivo aqui — divergência real
-   encontrada em auditoria (2026-07-15), ver PROJECT_MEMORY.md. */
-#liveTieCard {
+/* ── Live ranking hero (quem sobe/desce com o placar ao vivo) — mesmo padrão do BR2026
+   (#liveRankingHero, bolao/br2026/css/styles.css) ── */
+#liveRankingHero {
   background: linear-gradient(135deg, #0a2d1a, #0d2028);
   border: 1px solid rgba(47,229,110,.3);
   border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
 }
+#liveRankingHero.hidden { display: none; }
+#liveRankingHero .live-header { margin-bottom: 8px; text-align: center; }
+/* Mostra todo mundo (não só quem se move), com scroll -- pelo menos 4-5 linhas visíveis sem
+   rolar; 760px de largura máxima pra não sobrar vão vazio em telas largas (mesmo ajuste do
+   BR2026). */
+.live-ranking-scroll {
+  max-width: min(760px, 100%); margin: 0 auto; max-height: 230px; overflow-y: auto;
+}
+.live-ranking-table { width: 100%; border-collapse: collapse; font-size: 15px; }
+.live-ranking-table th {
+  position: sticky; top: 0; background: #0d2721;
+  font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); text-align: left; padding: 8px 10px;
+}
+.live-ranking-table td { padding: 9px 10px; border-top: 1px solid var(--border2); }
+#liveRankingHero .footer-note { text-align: center; }
+
+/* ── Live tie card ── */
+/* Estrutura e tokens copiados da Copa/BR2026 (bolao/br2026/css/styles.css .live-match/.live-top/
+   .live-team/.live-score/.live-center/.live-badge/.live-clock, que por sua vez copia o
+   hero-live-card da Copa) — ver CLAUDE.md "Copa do Mundo 2026 é a referência visual canônica"/
+   PLATFORM_GOVERNANCE.md "Golden master". Antes desta mudança usava a MESMA pilha vertical que
+   o BR2026 tinha antes de ser corrigida (divergência real de consistência, não só estética) —
+   Eduardo: "aplicou as mesmas alteracoes na CDB2026? PRECISAMOS SER CONSISTENTES!" (2026-07-16).
+   Únicas diferenças propositais: sem badge de posição de tabela (Copa do Brasil é mata-mata, sem
+   classificação de liga) e sem barras de probabilidade ao vivo (sem modelo in-play aqui ainda —
+   registrado como lacuna, não decisão definitiva, em CONSISTENCY_MATRIX.md). */
+#liveTieCard { margin-bottom: 14px; }
 #liveTieCard.hidden { display: none; }
-.live-match { display: flex; flex-direction: column; gap: 6px; }
-.live-match + .live-match { margin-top: 12px; padding-top: 12px; border-top: 1px dashed var(--border2); }
-.live-badge {
-  display: inline-block; background: var(--green); color: var(--green-dk);
-  font-size: 10px; font-weight: 900; letter-spacing: .08em;
-  padding: 3px 8px; border-radius: 4px; align-self: flex-start;
+.live-match-grid { display: flex; flex-wrap: wrap; gap: 10px; }
+.live-match {
+  background: linear-gradient(135deg, #0a2d1a, #0d2028);
+  border: 1px solid rgba(47,229,110,.4);
+  border-radius: 14px; padding: 14px 12px;
+  min-width: 260px; flex: 1;
 }
-.live-teams { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.live-team-name { font-weight: 700; font-size: 15px; }
+.live-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; }
+.live-team { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
+.live-team-logo-box {
+  width: 52px; height: 52px; display: flex; align-items: center; justify-content: center;
+  background: var(--bg); border: 1px solid var(--border2); border-radius: 14px;
+}
+.live-team-logo-box img { width: 34px; height: 34px; object-fit: contain; }
+.live-team-name { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.2; }
 .live-score {
-  font-size: 22px; font-weight: 900;
-  font-variant-numeric: tabular-nums; color: var(--green);
+  font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums;
+  color: var(--text); min-width: 28px; text-align: center;
 }
-.live-clock { font-size: 12px; color: var(--muted); }
+.live-center { display: flex; flex-direction: column; align-items: center; gap: 5px; flex-shrink: 0; padding: 0 4px; }
+.live-badge {
+  font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em;
+  color: var(--green); background: rgba(47,229,110,.14);
+  padding: 4px 10px; border-radius: 999px;
+}
+.live-clock {
+  font-size: 13px; font-weight: 800; color: var(--text);
+  border-bottom: 2px solid var(--green); padding-bottom: 1px;
+}
+.live-match-detail { margin-top: 10px; }
+
+/* ── Live plays feed (goals/cards/subs) — ported from Copa/BR2026 ── */
+.live-plays {
+  margin-top: 4px; padding: 2px 10px; background: var(--bg); border: 1px solid var(--border2);
+  border-radius: 10px; max-height: 100px; overflow-y: auto; text-align: left; width: 100%;
+}
+.live-plays-row {
+  display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted);
+  padding: 5px 0; border-bottom: 1px solid var(--border);
+}
+.live-plays-row:last-child { border-bottom: none; }
+.live-plays-minute {
+  flex-shrink: 0; min-width: 26px; font-weight: 700; color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.live-plays-icon, .live-plays-flag { flex-shrink: 0; }
+.live-plays-text {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  color: var(--text); font-weight: 600;
+}
 
 /* ── Next tie card — mesmas classes/medidas do BR2026 (.next-game-*, bolao/br2026/css/styles.css)
    para o card "Próxima partida" mostrar time+data+hora+local com a mesma aparência nos dois
@@ -485,6 +567,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .next-game-vs { color: var(--muted); margin: 0 6px; }
 .next-game-info { font-size: 12px; color: var(--muted); }
 .next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
+/* Múltiplas partidas no mesmo dia -- mesmas classes/medidas do BR2026 (.today-game-*,
+   bolao/br2026/css/styles.css) para consistência visual. Eduardo: "proximo jogo mostra somente
+   um, mas amanha tem mais, mostre proximos jogos quando ha mais de um no mesmo dia" (2026-07-16). */
+.today-games-header { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.today-game { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid var(--border); }
+.today-game:first-of-type { border-top: none; padding-top: 0; }
+.today-game-teams { font-size: 14px; font-weight: 700; }
+.today-game-time { font-size: 11px; }
 /* Contador de dígitos ao vivo — mesmo componente da Copa (.next-match-timer) e do BR2026
    (.next-game-timer, mesmas classes). Divergência real encontrada por Eduardo (2026-07-14):
    "não mostra countdown igual copa que funciona bem" — o card só tinha texto estático de data,

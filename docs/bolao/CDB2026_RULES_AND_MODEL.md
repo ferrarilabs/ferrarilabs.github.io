@@ -475,3 +475,49 @@ a fase ainda vai acontecer), e a 5ª com os cards de confronto normais (placar r
 seedados, placar/vencedor de cada perna, a validação cruzada com a Oitavas, `activePhaseId`
 permanecendo em `oitavas` (não sendo sobrescrito pela 5ª fase histórica), ausência de 1ª–5ª no
 formulário de palpites, presença da nota de "já concluída" em Jogos, e idempotência no reload.
+
+## 8. Card "ao vivo" trazido ao padrão da Copa/BR2026 + projeção de ranking ao vivo (v3.40, 2026-07-16)
+
+Auditoria de consistência disparada por Eduardo ("PRECISAMOS SER CONSISTENTES!") depois do card
+ao vivo do BR2026 ser refeito — ver `docs/bolao/CONSISTENCY_MATRIX.md` nota de 2026-07-16 pro
+detalhe completo. `renderLiveTieCard()` já existia (poll de 60s, relógio, intervalo/pênaltis)
+mas ainda usava a pilha vertical antiga; refeito com a mesma estrutura/tokens já portados pro
+BR2026 (`.live-top/.live-team/.live-score/.live-center`), plays feed (gols/cartões/subs), sem
+badge de posição de tabela (mata-mata, sem classificação de liga).
+
+**Projeção de ranking ao vivo** — diferente do BR2026 (que reage ao placar via a tabela de
+classificação ajustada), o CDB2026 pontua por PARTIDA (`matchPoints()`), não por posição numa
+tabela. `liveScoreEntry(entry, s)` soma os pontos de cada partida ao vivo (`_liveTies`) por cima
+do total oficial (`scoreEntry()`), usando o placar em andamento diretamente — nunca tenta prever
+quem se classifica ao vivo (isso depende do agregado ida+volta, possivelmente + prorrogação/
+pênaltis, especulativo demais enquanto uma perna ainda está rolando). `rankEntriesBy(entries,
+scoreFn)` extraído como única implementação do desempate (antes só existia inline dentro de
+`renderRanking()`), reaproveitado por `calculateRankingMovement()` também — mesmo princípio
+"fonte única" da nota do BR2026 sobre `rankEntries()`.
+
+`calculateRankingMovement(entries, s)`: baseline = `scoreEntry()` puro (sem placar ao vivo);
+"atual" = `liveScoreEntry()` quando há tie(s) ao vivo, senão igual à baseline (sem jogo ao vivo,
+não há "movimento" a calcular — status `"unavailable"`). Setas de movimento (`rankMovementHtml`)
+aparecem no Ranking normal E no novo hero `#liveRankingHero` (mesmas classes CSS/i18n do BR2026,
+namespace `.movement-*` nunca compartilhado com nada de posição de time — que nem existe aqui).
+
+Hero mostra TODAS as entradas ordenadas por posição (não filtra só quem se move — mesmo ajuste
+que o BR2026 precisou fazer depois, aqui já implementado direto no formato final), dentro de uma
+caixa com scroll (`.live-ranking-scroll`, ~4-5 linhas visíveis, cabeçalho fixo). Só aparece com
+tie(s) ao vivo E pelo menos um participante realmente subindo/descendo.
+
+**"Próxima partida" com múltiplos jogos no mesmo dia**: `findNextUpcomingMatch()` continua
+retornando só a partida mais próxima (usado como está em outros lugares); nova
+`findAllUpcomingMatchesOnNextDay(s)` agrupa por dia (`brtDateKey()`, nova função, mesmo formato
+do BR2026) em cima dela. Card mostra lista compacta quando há mais de uma partida no dia, mantém
+o layout rico (contador regressivo) quando há só uma.
+
+**Testado** com estado injetado (duas entradas, um confronto com perna "ao vivo" mockada via
+interceptação da rota da ESPN no Playwright) — confirmado: card ao vivo renderiza corretamente,
+plays feed aparece, hero de ranking aparece com a ordem/pontuação/setas certas, ranking exibido
+reflete o placar ao vivo. `window.__CDB2026_TESTHOOKS__` adicionado (mesmo padrão do
+`__BR2026_TESTHOOKS__`) expondo `rankEntriesBy, calculateRankingMovement, liveScoreEntry,
+scoreEntry, matchPoints, extractMatchPlays` — funções puras, sem mutação de estado.
+
+`audit_scoring.py`: PASSOU (5/5) — toda a mudança é apresentação + uma projeção aditiva que
+nunca sobrescreve o resultado oficial salvo em `s.phases[...].matches[leg]`.
