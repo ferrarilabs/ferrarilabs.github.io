@@ -79,7 +79,7 @@ let _editingEntry = null;
 const _openRankDetails = new Set();
 
 function emptyState() {
-  return { entries: [], deletedIds: [], paid: {}, results: null, cutoffAt: null, meta: { updatedAt: null, version: C.siteVersion } };
+  return { entries: [], deletedIds: [], paid: {}, results: null, cutoffAt: null, auditLog: [], meta: { updatedAt: null, version: C.siteVersion } };
 }
 function state() {
   try { const r = localStorage.getItem(C.storeKey); return r ? Object.assign(emptyState(), JSON.parse(r)) : emptyState(); }
@@ -147,6 +147,13 @@ function mergeStates(local, remote, opts = {}) {
   } else {
     results = local.results?.locked ? local.results : (remote.results?.locked ? remote.results : local.results || remote.results);
   }
+  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200 — same
+  // pattern as Copa (bolao/js/app.js mergeStates()).
+  const auditMap = new Map();
+  for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
+    auditMap.set(entry.ts, entry);
+  }
+  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
   return {
     entries: Object.values(byId),
     deletedIds: [...deleted],
@@ -155,6 +162,7 @@ function mergeStates(local, remote, opts = {}) {
     // Uma vez congelado (freezeSeasonCutoff), nunca deve ser sobrescrito por null vindo de um
     // cliente mais antigo/desatualizado -- prefere qualquer valor já definido, local ou remoto.
     cutoffAt: local.cutoffAt || remote.cutoffAt || null,
+    auditLog: mergedAuditLog,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
 }
@@ -169,6 +177,26 @@ let _loginLockUntil = Number(sessionStorage.getItem("br2026_loginLockUntil") || 
 
 function isAdminActive() { return Number(sessionStorage.getItem("br2026_adminUntil") || 0) > Date.now(); }
 function guardAdmin() { if (isAdminActive()) return true; showSection("admin"); return false; }
+
+// ─── Admin action safety: triple confirmation + audit journal ───────────────────────────────
+// Eduardo, 2026-07-16: "make sure there's triple confirmation if I click incorrectly it can be
+// rolled back easily... what I want to avoid is to fat finger something... we need to have a way
+// to journal this so it can be rolled back if needed". Applies to locking/unlocking the official
+// classification result (real money is paid out from it). Two confirm() dialogs alone can be
+// blitzed through with fast taps on mobile; the third step requires typing a fixed word, which an
+// accidental tap sequence cannot produce.
+const ADMIN_CONFIRM_WORD = "CONFIRMAR";
+function tripleConfirm(summaryMsg, detailMsg) {
+  if (!confirm(summaryMsg)) return false;
+  if (!confirm(detailMsg)) return false;
+  const typed = prompt(t("tripleConfirmType").replace("{word}", ADMIN_CONFIRM_WORD));
+  return typed === ADMIN_CONFIRM_WORD;
+}
+function appendAdminAuditLog(s, action, detail) {
+  if (!Array.isArray(s.auditLog)) s.auditLog = [];
+  s.auditLog.unshift({ ts: new Date().toISOString(), action, admin: true, detail });
+  if (s.auditLog.length > 200) s.auditLog.length = 200;
+}
 
 // ─── Sections ───────────────────────────────────────────────────────────────
 function showSection(id) {
@@ -2013,6 +2041,27 @@ function renderAdmin() {
   renderAdminPayments(s);
   renderAdminResults(s);
   renderAdminEntries(s);
+  renderAdminAuditLog(s);
+}
+
+function renderAdminAuditLog(s) {
+  const box = $("adminAuditLog");
+  if (!box) return;
+  const log = Array.isArray(s.auditLog) ? s.auditLog : [];
+  box.innerHTML = `<h3>${esc(t("auditLogTitle"))}</h3>`;
+  if (!log.length) { box.innerHTML += `<p class="muted">${esc(t("auditLogEmpty"))}</p>`; return; }
+  const rows = log.slice(0, 100).map(entry => {
+    const ts = new Date(entry.ts).toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" });
+    const d = entry.detail || {};
+    return `<div class="audit-row">
+      <div class="audit-meta">
+        <span class="muted" style="font-size:11px">${esc(ts)} ET</span>
+        <b>${esc(t(`auditAction_${entry.action.replace(/-/g, "_")}`) || entry.action)}</b>
+      </div>
+      <div style="font-size:11px;color:#667;margin-top:2px;word-break:break-all">${esc(JSON.stringify(d))}</div>
+    </div>`;
+  }).join("");
+  box.innerHTML += rows;
 }
 
 function renderAdminPayments(s) {
@@ -2144,9 +2193,10 @@ function renderAdminResults(s) {
     if (sa6g4.length || sa6z4.length) {
       alert(t("errorSA6Overlap").replace("{teams}", [...sa6g4, ...sa6z4].join(", "))); return;
     }
-    if (!confirm(t("confirmLockResults"))) return;
+    if (!tripleConfirm(t("confirmLockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
     s2.results = { locked: true, g4, sa6, z4, lockedAt: new Date().toISOString() };
+    appendAdminAuditLog(s2, "lock-results", { g4, sa6, z4 });
     saveState(s2);
     showToast(t("resultsSaved"), "success");
     renderAdmin();
@@ -2154,8 +2204,9 @@ function renderAdminResults(s) {
 
   $("unlockResultsBtn")?.addEventListener("click", () => {
     if (!guardAdmin()) return;
-    if (!confirm(t("confirmUnlockResults"))) return;
+    if (!tripleConfirm(t("confirmUnlockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
+    appendAdminAuditLog(s2, "unlock-results", { previousG4: s2.results?.g4, previousSa6: s2.results?.sa6, previousZ4: s2.results?.z4, previousLockedAt: s2.results?.lockedAt });
     s2.results = { ...s2.results, locked: false };
     saveState(s2);
     renderAdmin();
