@@ -360,17 +360,21 @@ button.live-match-row { cursor: pointer; }
 #liveRankingHero .live-header { margin-bottom: 8px; text-align: center; }
 /* Mostra todo mundo (não só quem se move), com scroll -- mas pelo menos 4-5 linhas visíveis
    sem precisar rolar (Eduardo: "no ranking so aparece da 4 posicao pra baixo, tem que aparecer
-   todos, pode scrolar mas deixa pelo menos 4-5 no topo", 2026-07-16). ~34px por linha + cabeçalho. */
+   todos, pode scrolar mas deixa pelo menos 4-5 no topo", 2026-07-16). ~34px por linha + cabeçalho.
+   420px de largura máxima deixava um vão enorme dos dois lados em telas largas -- Eduardo: "ainda
+   tem muito espacamento para a direita e esquerda... isso no desktop, no mobile esta ok" (mobile
+   já batia em 100% do card de qualquer forma, por isso só aparecia no desktop). Sobe pra 760px e
+   aumenta fonte/espaçamento das células pra realmente preencher a largura em vez de sobrar vazio. */
 .live-ranking-scroll {
-  max-width: min(420px, 100%); margin: 0 auto; max-height: 210px; overflow-y: auto;
+  max-width: min(760px, 100%); margin: 0 auto; max-height: 230px; overflow-y: auto;
 }
-.live-ranking-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.live-ranking-table { width: 100%; border-collapse: collapse; font-size: 15px; }
 .live-ranking-table th {
   position: sticky; top: 0; background: #0d2721;
-  font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em;
-  color: var(--muted); text-align: left; padding: 6px;
+  font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); text-align: left; padding: 8px 10px;
 }
-.live-ranking-table td { padding: 6px; border-top: 1px solid var(--border2); }
+.live-ranking-table td { padding: 9px 10px; border-top: 1px solid var(--border2); }
 #liveRankingHero .footer-note { text-align: center; }
 
 /* ── Standings card ── */
@@ -482,7 +486,6 @@ button.live-match-row { cursor: pointer; }
 }
 .rank-row .rank-pos .movement { font-size: 11px; }
 .rank-row .points { font-size: 26px; color: var(--green); font-weight: 900; text-align: right; }
-.rank-row .points.prov { color: var(--yellow); }
 /* Mesmas classes/valores da Copa (bolao/css/styles.css) -- achado em auditoria (2026-07-14,
    Eduardo: "a visualizacao de ver palpites... esta inconsistente com a da copa"). */
 .picks-detail { overflow-x: auto; margin-bottom: 10px; }

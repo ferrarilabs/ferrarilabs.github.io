@@ -131,6 +131,7 @@ window.BR2026_I18N = {
     // Games
     nextGameLabel: "Próximo jogo",
     todayGamesLabel: "Jogos de hoje",
+    nextGamesLabel: "Próximos jogos",
     nextGameNoGame: "Nenhum jogo agendado",
     nextGameLive: "Jogo em andamento",
     gamesTitle: "Jogos",
