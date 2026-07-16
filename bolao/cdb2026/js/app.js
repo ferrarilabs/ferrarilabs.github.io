@@ -927,6 +927,33 @@ function renderCountdown() {
 }
 
 // ─── Render: ranking ─────────────────────────────────────────────────────────
+// Rank deve avançar sempre que QUALQUER nível do desempate mudar, não só o total — mesmo padrão
+// da Copa (bolao/js/app.js renderRanking(), chave composta `${total}:${exact}:${podiumHits}`).
+// Bug real encontrado em auditoria (2026-07-14): comparar só `item.total` deixava duas entradas
+// com o mesmo total mas desempate diferente mostrando o MESMO rank/medalha, mesmo com o array
+// já ordenado corretamente — afeta diretamente quem aparece como 2º lugar (não há 3º na Copa do
+// Brasil, prêmio é só campeão/vice), base do rateio de prêmio.
+// Única implementação do desempate — usada tanto pelo Ranking exibido quanto por
+// calculateRankingMovement() abaixo, pra baseline-rank e live-rank nunca poderem divergir do que
+// a tela realmente mostra (mesma classe de bug do CHANGELOG v4.57 da Copa, evitada aqui por só
+// ter UM lugar que sabe ordenar entradas).
+function rankEntriesBy(entries, scoreFn) {
+  const scored = entries.map(e => ({ e, ...(scoreFn(e) || { total: 0, detail: null }) }))
+    .sort((a, b) =>
+      b.total - a.total ||
+      hitChampion(b.detail) - hitChampion(a.detail) ||
+      hitRunnerUp(b.detail) - hitRunnerUp(a.detail) ||
+      countExactMatches(b.detail) - countExactMatches(a.detail) ||
+      b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
+    );
+  let rank = 0, prevKey = null;
+  return scored.map((item, i) => {
+    const key = `${item.total}:${hitChampion(item.detail)}:${hitRunnerUp(item.detail)}:${countExactMatches(item.detail)}`;
+    if (key !== prevKey) { rank = i + 1; prevKey = key; }
+    return { ...item, rank };
+  });
+}
+
 function renderRanking() {
   const box = $("rankingList");
   if (!box) return;
@@ -943,27 +970,18 @@ function renderRanking() {
 
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
 
-  const scored = entries.map(e => {
-    const sc = getActiveScore(e, s) || { total: 0, detail: null };
-    return { e, ...sc };
-  }).sort((a, b) =>
-    b.total - a.total ||
-    hitChampion(b.detail) - hitChampion(a.detail) ||
-    hitRunnerUp(b.detail) - hitRunnerUp(a.detail) ||
-    countExactMatches(b.detail) - countExactMatches(a.detail) ||
-    b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
-  );
+  // Durante uma janela ao vivo, o total exibido já soma os pontos da(s) partida(s) em
+  // andamento (liveScoreEntry()) -- mesmo padrão do BR2026 (currentResultSet(), v1.54): antes
+  // disso o Ranking só reagia ao placar DEPOIS que a ESPN marcava o jogo como encerrado, tarde
+  // demais pra ser uma "projeção ao vivo" de verdade. A seta de movimento (rankMovementHtml)
+  // compara contra a posição oficial (sem o placar ao vivo) -- ver calculateRankingMovement().
+  const movement = calculateRankingMovement(entries, s);
+  const scored   = rankEntriesBy(entries, e => (_liveTies.length ? liveScoreEntry(e, s) : getActiveScore(e, s)));
 
   const { done, totalTies } = resultsProgress(s);
   const provNote = totalTies > 0 && done < totalTies
     ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
 
-  // Rank deve avançar sempre que QUALQUER nível do desempate mudar, não só o total — mesmo padrão
-  // da Copa (bolao/js/app.js renderRanking(), chave composta `${total}:${exact}:${podiumHits}`).
-  // Bug real encontrado em auditoria (2026-07-14): comparar só `item.total` deixava duas entradas
-  // com o mesmo total mas desempate diferente mostrando o MESMO rank/medalha, mesmo com o array
-  // já ordenado corretamente — afeta diretamente quem aparece como 2º lugar (não há 3º na Copa do
-  // Brasil, prêmio é só campeão/vice), base do rateio de prêmio.
   // Pago/Pendente é informação de administração do bolão, não do ranking público -- mesmo
   // padrão da Copa (renderRanking(), bolao/js/app.js), que nunca mostrou esse badge na linha do
   // ranking (só existe na aba Participantes). Achado real (2026-07-16, Eduardo: "nao precisa
@@ -972,19 +990,17 @@ function renderRanking() {
   // (renderPickDisplay() já protegia o dado, mas o botão continuava visível e clicável sem
   // fazer nada útil).
   const canViewPicks = isPastEntryCutoff();
-  let rank = 0, prevKey = null;
   box.innerHTML = provNote;
-  scored.forEach((item, i) => {
-    const key = `${item.total}:${hitChampion(item.detail)}:${hitRunnerUp(item.detail)}:${countExactMatches(item.detail)}`;
-    if (key !== prevKey) { rank = i + 1; prevKey = key; }
-    const medal   = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
+  scored.forEach(item => {
+    const medal   = { 1: "🥇", 2: "🥈", 3: "🥉" }[item.rank] || `${item.rank}`;
+    const mv      = movement.get(item.e.id);
     const viewBtn = canViewPicks
       ? `<button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`
       : "";
     const row = document.createElement("div");
     row.className = "rank-row";
     row.innerHTML = `
-      <div class="rank-pos">${medal}</div>
+      <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
       <div><b>${esc(item.e.entryName)}</b></div>
       <div class="points">${item.total}<small> pts</small></div>
       ${viewBtn}`;
@@ -1448,13 +1464,62 @@ function findNextUpcomingMatch(s) {
   return best;
 }
 
+// "YYYY-MM-DD" em BRT, mesmo formato do BR2026 (brtDateKey, bolao/br2026/js/app.js) -- usado só
+// pra agrupar partidas por dia, nunca pra exibir direto (fmtDate() já cuida disso).
+function brtDateKey(isoStr) {
+  const s = new Date(isoStr).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit" });
+  const [dd, mm, yyyy] = s.split("/");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+// Todas as partidas futuras que caem no mesmo dia (BRT) da mais próxima -- achado real
+// (2026-07-16, Eduardo: "proximo jogo mostra somente um, mas amanha tem mais, mostre proximos
+// jogos quando ha mais de um no mesmo dia"). findNextUpcomingMatch() em si não muda (é só "a
+// mais próxima"); esta função agrupa por dia em cima do resultado dela.
+function findAllUpcomingMatchesOnNextDay(s) {
+  const first = findNextUpcomingMatch(s);
+  if (!first) return [];
+  const dayKey = brtDateKey(new Date(first.kickoffMs).toISOString());
+  const all = [];
+  DATA.phases.forEach(phase => {
+    Object.values(s.phases?.[phase.id]?.ties || {}).forEach(tie => {
+      if (!tie.teamA || !tie.teamB) return;
+      legsForFormat(phase.format).forEach(leg => {
+        const m = tie.matches?.[leg];
+        if (!m || !m.kickoff || m.status === "FINAL") return;
+        const kickoffMs = new Date(m.kickoff).getTime();
+        if (!Number.isFinite(kickoffMs) || kickoffMs <= Date.now()) return;
+        if (brtDateKey(m.kickoff) !== dayKey) return;
+        const home = m.homeTeam || (leg === "second" ? tie.teamB : tie.teamA);
+        const away = m.awayTeam || (leg === "second" ? tie.teamA : tie.teamB);
+        all.push({ kickoffMs, m, home, away });
+      });
+    });
+  });
+  return all.sort((a, b) => a.kickoffMs - b.kickoffMs);
+}
+
 function renderNextTieCard() {
   const card = $("nextTieCard");
   if (!card) return;
-  const s    = state();
-  const next = findNextUpcomingMatch(s);
-  if (!next) { card.classList.add("hidden"); return; }
+  const s     = state();
+  const group = findAllUpcomingMatchesOnNextDay(s);
+  if (!group.length) { card.classList.add("hidden"); return; }
 
+  if (group.length > 1) {
+    const items = group.map(({ m, home, away }) => `<div class="today-game">
+      <div class="today-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
+      <span class="today-game-time muted">${esc(fmtDate(m.kickoff))}</span>
+    </div>`).join("");
+    card.innerHTML = `<div class="next-game-card">
+      <div class="today-games-header">${esc(t("nextGamesLabel"))}</div>
+      ${items}
+    </div>`;
+    card.classList.remove("hidden");
+    return;
+  }
+
+  const next = group[0];
   const { m, home, away } = next;
   const diffMs    = next.kickoffMs - Date.now();
   const timerHtml = countdownTimerHtml(diffMs);
@@ -1723,7 +1788,7 @@ async function pollLiveTies() {
       goalsHome: ev.liveHomeScore, goalsAway: ev.liveAwayScore,
       clockSeconds: merged.clockSeconds, pollTime: now, period: ev.period,
       isHalftime: ev.isHalftime, isPenalties: ev.isPenalties, clockPaused,
-      clockStr: ev.clockStr || "",
+      clockStr: ev.clockStr || "", plays: ev.plays || [],
     };
   });
   _cdbRawClockHistory = nextRawHistory;
@@ -1732,6 +1797,8 @@ async function pollLiveTies() {
   _liveTies = nextLive;
   _liveTiesLastPollAt = now;
   renderLiveTieCard();
+  renderLiveRankingHero();
+  renderRanking();
   // Re-renderiza Jogos/Palpites pra refletir uma mudança de status de adiado/cancelado -- barato
   // o bastante (só recomputa HTML a partir do estado já em memória) pra rodar a cada poll de 60s.
   renderGamesSection();
@@ -1741,35 +1808,224 @@ async function pollLiveTies() {
 // Mesmo padrão de "runningClock" da Copa/BR2026 (ver liveClockDisplay em bolao/br2026/js/app.js):
 // num intervalo/pênaltis/pausa real, mostra o rótulo fixo em vez de deixar a interpolação local
 // somar segundos através da pausa.
+// Mesmo bug corrigido no BR2026 (screenshot de Eduardo, 2026-07-16): "um cronometro mostra só
+// minutos e outro mostra minutos e segundos" -- pausado caía pro `l.clockStr` cru da ESPN ("51'",
+// só minuto), rodando usava formatMatchClock() ("MM:SS"). Sempre passa por formatMatchClock()
+// agora quando `clockSeconds` existe -- pausado só significa não somar o tempo decorrido desde o
+// último poll, nunca trocar de formato.
 function liveClockDisplay(l) {
   const clock = l.isHalftime ? t("liveHalftime")
     : l.isPenalties ? t("livePenalties")
-    : l.clockPaused ? (l.clockStr || (l.clockSeconds != null ? cdbFmtClock(l.clockSeconds) : ""))
     : l.clockSeconds != null
-      ? formatMatchClock(l.clockSeconds + Math.floor((Date.now() - (l.pollTime || Date.now())) / 1000), l.period ?? null, 0)
+      ? formatMatchClock(
+          l.clockPaused ? l.clockSeconds : l.clockSeconds + Math.floor((Date.now() - (l.pollTime || Date.now())) / 1000),
+          l.period ?? null, 0)
       : l.clockStr;
   return clock;
 }
+
+// ─── Live ranking movement ───────────────────────────────────────────────────
+// "up and down for the user ranking, yes" (Eduardo, 2026-07-16, depois de confirmar que
+// posição de TIME ao vivo não se aplica ao CDB2026 -- mata-mata, sem classificação de liga).
+// Reaproveita rankEntriesBy() -- única fonte de desempate, usada tanto pelo Ranking exibido
+// quanto por este cálculo, mesmo princípio do BR2026 (calculateRankingMovement() lá).
+//
+// liveScoreEntry() soma os pontos de partidas AO VIVO (ainda sem placar salvo em
+// s.phases[...].matches[leg], por isso scoreEntry() sozinho não os vê) por cima do total
+// oficial -- só pontuação por partida (matchPoints()), nunca tenta prever quem se classifica
+// ao vivo (isso depende do agregado das duas pernas + prorrogação/pênaltis, especulativo demais
+// pra uma perna ainda em andamento). O `detail.matches` injetado mantém countExactMatches()
+// consistente mesmo quando a partida ao vivo bate um placar exato do palpite.
+function liveScoreEntry(entry, s) {
+  const official = scoreEntry(entry, s);
+  if (!_liveTies.length) return official;
+  let extra = 0;
+  const matches = { ...official.detail.matches };
+  _liveTies.forEach(l => {
+    const pick = entry.picks?.matches?.[l.tieId]?.[l.leg];
+    const r = matchPoints(pick, { goalsHome: l.goalsHome, goalsAway: l.goalsAway });
+    if (!r) return;
+    matches[`${l.tieId}:${l.leg}`] = r;
+    extra += r.pts;
+  });
+  return { total: official.total + extra, detail: { ...official.detail, matches } };
+}
+
+function calculateRankingMovement(entries, s) {
+  if (!entries.length) return new Map();
+  const liveRanked = rankEntriesBy(entries, e => (_liveTies.length ? liveScoreEntry(e, s) : getActiveScore(e, s)));
+  if (!_liveTies.length) {
+    return new Map(liveRanked.map(x => [x.e.id, { rank: x.rank, total: x.total, previousRank: null, movement: null, status: "unavailable" }]));
+  }
+  const baseRanked   = rankEntriesBy(entries, e => getActiveScore(e, s));
+  const baseRankById = new Map(baseRanked.map(x => [x.e.id, x.rank]));
+  return new Map(liveRanked.map(x => {
+    const previousRank = baseRankById.has(x.e.id) ? baseRankById.get(x.e.id) : null;
+    const movement = previousRank != null ? previousRank - x.rank : null;
+    const status = movement == null ? "unavailable" : movement > 0 ? "up" : movement < 0 ? "down" : "same";
+    return [x.e.id, { rank: x.rank, total: x.total, previousRank, movement, status }];
+  }));
+}
+
+// Mesmo glifo/classes/i18n do BR2026 (rankMovementHtml, bolao/br2026/js/app.js) -- nunca
+// misturar com o movimento de posição de time (não existe aqui, ver nota acima).
+function rankMovementHtml(mv) {
+  if (!mv || mv.status === "unavailable") {
+    return ` <span class="movement movement-unavailable" title="${esc(t("rankMovementUnavailable"))}"><span class="visually-hidden">${esc(t("rankMovementUnavailable"))}</span>–</span>`;
+  }
+  if (mv.status === "same") {
+    return ` <span class="movement movement-same" title="${esc(t("rankMovementSame"))}"><span class="visually-hidden">${esc(t("rankMovementSame"))}</span>•</span>`;
+  }
+  const n     = Math.abs(mv.movement);
+  const label = (mv.status === "up" ? t("rankMovementUp") : t("rankMovementDown")).replace("{n}", n);
+  const glyph = mv.status === "up" ? "▲" : "▼";
+  return ` <span class="movement movement-${mv.status}" title="${esc(label)}"><span class="visually-hidden">${esc(label)}</span>${glyph}<span class="movement-n" aria-hidden="true">${n}</span></span>`;
+}
+
+// Hero "Ranking ao vivo" -- mesmo padrão visual/UX do BR2026 (#liveRankingHero,
+// renderLiveRankingHero() em bolao/br2026/js/app.js v1.55): mostra TODO MUNDO ordenado por
+// posição (não só quem se move -- v1.54 do BR2026 filtrava e escondia o topo da lista, corrigido
+// depois), dentro de uma caixa com scroll e cabeçalho fixo. Só aparece com tie(s) ao vivo E pelo
+// menos alguém realmente subindo/descendo -- sem isso fica escondido.
+function renderLiveRankingHero() {
+  const card = $("liveRankingHero");
+  if (!card) return;
+  if (!_liveTies.length) { card.classList.add("hidden"); return; }
+
+  const s       = state();
+  const deleted = new Set(s.deletedIds || []);
+  const entries = (s.entries || []).filter(e => !deleted.has(e.id));
+  if (!entries.length) { card.classList.add("hidden"); return; }
+
+  const movement = calculateRankingMovement(entries, s);
+  const scored   = rankEntriesBy(entries, e => liveScoreEntry(e, s));
+  const hasMover = scored.some(item => {
+    const mv = movement.get(item.e.id);
+    return mv && (mv.status === "up" || mv.status === "down");
+  });
+  if (!hasMover) { card.classList.add("hidden"); return; }
+
+  const rows = scored.map(item => {
+    const mv = movement.get(item.e.id);
+    return `<tr>
+    <td style="text-align:center">${item.rank}${rankMovementHtml(mv)}</td>
+    <td>${esc(item.e.entryName)}</td>
+    <td style="text-align:center"><b class="pick-pts pos">${item.total}</b></td>
+  </tr>`;
+  }).join("");
+
+  card.innerHTML = `
+    <div class="live-header">🏆 ${esc(t("liveRankingHeroTitle"))}</div>
+    <div class="live-ranking-scroll">
+      <table class="live-ranking-table">
+        <thead><tr>
+          <th style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
+          <th>${esc(t("liveRankingHeroEntryCol"))}</th>
+          <th style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+    <p class="footer-note" style="margin-top:8px">${esc(t("liveRankingHeroNote"))}</p>`;
+  card.classList.remove("hidden");
+}
+
+// Mesma estrutura horizontal da Copa/BR2026 (hero-live-card/.live-top, ver
+// bolao/br2026/js/app.js renderLiveCard()) -- Eduardo: "aplicou as mesmas alteracoes na
+// CDB2026? PRECISAMOS SER CONSISTENTES!" (2026-07-16). Antes desta mudança o card ao vivo do
+// CDB2026 usava a mesma pilha vertical que o BR2026 tinha antes de ser corrigida (achado de
+// consistência real, não só um pedido -- ver CONSISTENCY_MATRIX.md). Sem posição de tabela (não
+// existe classificação de liga na Copa do Brasil -- mata-mata), sem barras de probabilidade ao
+// vivo (CDB2026 não tem um modelo in-play minuto a minuto, só o pré-jogo em matchProb(); não
+// inventado aqui pra não misturar feature nova com paridade visual).
+const teamColHtml = (teamName) => `<div class="live-team">
+  <div class="live-team-logo-box">${teamLogoImg(teamName)}</div>
+  <span class="live-team-name">${esc(teamName)}</span>
+</div>`;
 
 function renderLiveTieCard() {
   const card = $("liveTieCard");
   if (!card) return;
   if (!_liveTies.length) { card.classList.add("hidden"); return; }
-  card.innerHTML = _liveTies.map(l => {
+  const rows = _liveTies.map(l => {
     const clock = liveClockDisplay(l);
+    const playsHtml = livePlaysHtml(l.plays, l.homeTeam, l.awayTeam, `${l.tieId}:${l.leg}`);
     return `<div class="live-match">
-      <span class="live-badge">${esc(t("liveNow"))}</span>
-      <div class="live-teams">
-        <span class="live-team-name">${esc(l.homeTeam)}</span>
-        ${teamLogoImg(l.homeTeam)}
-        <span class="live-score">${l.goalsHome ?? 0} – ${l.goalsAway ?? 0}</span>
-        ${teamLogoImg(l.awayTeam)}
-        <span class="live-team-name">${esc(l.awayTeam)}</span>
+      <div class="live-top">
+        ${teamColHtml(l.homeTeam)}
+        <div class="live-score">${l.goalsHome ?? 0}</div>
+        <div class="live-center">
+          <span class="live-badge">${esc(t("liveNow"))}</span>
+          <span class="live-clock">${esc(clock)}</span>
+        </div>
+        <div class="live-score">${l.goalsAway ?? 0}</div>
+        ${teamColHtml(l.awayTeam)}
       </div>
-      <span class="live-clock">${esc(clock)}</span>
+      ${playsHtml ? `<div class="live-match-detail">${playsHtml}</div>` : ""}
     </div>`;
   }).join("");
+  card.innerHTML = `<div class="live-match-grid">${rows}</div>`;
   card.classList.remove("hidden");
+}
+
+// Minuto a minuto (gols/cartões/substituições) -- ported from Copa/BR2026 (extractMatchPlays,
+// ver bolao/br2026/js/app.js), mesmo comp.details já buscado a cada poll do card ao vivo.
+// Eduardo: "aplicou as mesmas alteracoes na CDB2026? PRECISAMOS SER CONSISTENTES!" (2026-07-16).
+// side é "home"/"away" (não "c0"/"c1" da Copa nem A/B) -- mesma convenção já usada pelo resto do
+// live-tie code deste arquivo (homeTeam/awayTeam sempre nomes reais, sem resolução de slot de
+// bracket como a Copa precisa). Mesmo contrato "falha silenciosa": formato inesperado da ESPN
+// degrada pra lista vazia, nunca quebra o placar/relógio ao vivo.
+const PLAY_ICON = { goal: "⚽", yellow: "🟨", red: "🟥", sub: "🔄" };
+function extractMatchPlays(comp) {
+  try {
+    const details = Array.isArray(comp.details) ? comp.details : [];
+    const comps = comp.competitors || [];
+    const home = comps.find(c => c.homeAway === "home") || comps[0];
+    const away = comps.find(c => c.homeAway === "away") || comps[1];
+    const plays = [];
+    for (const d of details) {
+      if (!d) continue;
+      const typeText = `${d.type?.text || ""} ${d.type?.name || ""}`;
+      const isGoal = d.scoringPlay === true || /goal/i.test(typeText);
+      const isRedCard = /red card|second yellow/i.test(typeText);
+      const isYellowCard = !isRedCard && /yellow card/i.test(typeText);
+      const isSub = /substitution/i.test(typeText);
+      let kind = null;
+      if (isGoal) kind = "goal";
+      else if (isRedCard) kind = "red";
+      else if (isYellowCard) kind = "yellow";
+      else if (isSub) kind = "sub";
+      if (!kind) continue;
+      const teamId = d.team?.id;
+      let side = null;
+      if (teamId != null && home?.team?.id != null && String(teamId) === String(home.team.id)) side = "home";
+      else if (teamId != null && away?.team?.id != null && String(teamId) === String(away.team.id)) side = "away";
+      if (!side) continue;
+      const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
+      const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
+      const names = (d.athletesInvolved || [])
+        .map(a => a?.displayName || a?.shortName)
+        .filter(Boolean);
+      const text = kind === "sub" ? names.slice(0, 2).join(" ↔ ") : (names[0] || "");
+      if (!text && !minute) continue;
+      plays.push({ kind, side, minute, text, order: clockVal ?? 0 });
+    }
+    return plays.sort((a, b) => a.order - b.order);
+  } catch (err) {
+    console.warn("[CDB2026] extractMatchPlays failed, skipping plays feed for this match", err);
+    return [];
+  }
+}
+
+function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
+  if (!Array.isArray(plays) || !plays.length) return "";
+  const rows = [...plays].reverse().map(p => `<div class="live-plays-row">
+    <span class="live-plays-minute">${esc(p.minute || "")}</span>
+    <span class="live-plays-icon" aria-hidden="true">${PLAY_ICON[p.kind] || "•"}</span>
+    ${teamLogoImg(p.side === "home" ? homeTeam : awayTeam, "team-logo")}
+    <span class="live-plays-text">${esc(p.text || "")}</span>
+  </div>`).join("");
+  return `<div class="live-plays" data-plays-match="${esc(String(mid ?? ""))}">${rows}</div>`;
 }
 
 async function fetchEspnCandidates() {
@@ -1827,6 +2083,7 @@ async function fetchEspnCandidates() {
         liveAwayScore: evState === "in" && away?.score != null ? parseInt(away.score, 10) : null,
         clockSec, period, isHalftime, isPenalties, postponed,
         clockStr: comp.status?.displayClock || "",
+        plays: extractMatchPlays(comp),
       };
     }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
@@ -2754,6 +3011,7 @@ function renderAll() {
   renderRanking();
   renderNextTieCard();
   renderLiveTieCard();
+  renderLiveRankingHero();
   renderGamesSection();
   renderProbsSection();
   renderParticipants();
@@ -2897,6 +3155,10 @@ async function init() {
 }
 
 document.addEventListener("DOMContentLoaded", init);
+
+// Read-only test hooks — pure functions only, no state mutation exposed. Mesmo padrão do BR2026
+// (window.__BR2026_TESTHOOKS__, bolao/br2026/js/app.js).
+window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays };
 })();
 
 if ('serviceWorker' in navigator) {

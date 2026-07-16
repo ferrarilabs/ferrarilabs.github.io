@@ -918,3 +918,44 @@ card ao vivo/polling contínuo lá).
 
 `audit_scoring.py` (Copa/BR2026): PASSOU nos dois — mudança inteira é estrutura/CSS do card ao
 vivo e do hero de ranking, nenhuma fórmula de pontuação tocada.
+
+## Nota manual — auditoria de consistência disparada pelo Eduardo ("PRECISAMOS SER CONSISTENTES!"): CDB2026 trazido ao mesmo padrão do card ao vivo do BR2026; bugs reais achados nos 3 apps (2026-07-16, Copa v4.141 / BR2026 v1.56 / CDB2026 v3.40)
+
+Depois de aprovar o redesenho do card "ao vivo" do BR2026 (v1.55), Eduardo perguntou
+diretamente: "aplicou as mesmas alteracoes na CDB2026? PRECISAMOS SER CONSISTENTES!" Auditando
+CDB2026 de verdade (busca anterior tinha usado nomenclatura do BR2026 — `_liveMatches`/
+`renderLiveCard` — e não encontrou o equivalente do CDB2026, que usa `_liveTies`/
+`renderLiveTieCard`; falha de busca, não de existência): confirmado que o CDB2026 tinha a MESMA
+funcionalidade ao vivo (poll de 60s, relógio, intervalo/pênaltis) só que ainda na pilha vertical
+antiga, nunca atualizada. `NOT_CONSISTENT` → `CONSISTENT`: refeito com a mesma estrutura/tokens
+(`.live-top/.live-team/.live-score/.live-center`) e o mesmo plays feed (gols/cartões/subs).
+
+Também adicionado ao CDB2026 nesta rodada, a pedido explícito: "CDB no need to show up and down
+for the teams as it is knock out, but up and down for the user ranking, yes" — hero "Ranking ao
+vivo" + setas de movimento no Ranking, usando uma projeção ao vivo aditiva (`liveScoreEntry()`)
+específica do modelo de pontuação por partida do CDB2026 (nunca reaproveitando a lógica de G4/Z4/
+SA6 do BR2026 — diferença de torneio preservada, ver `PLATFORM_GOVERNANCE.md`).
+
+Durante essa auditoria dirigida, mais bugs reais confirmados e corrigidos nos 3 apps ao mesmo
+tempo (nenhum inventado — todos com screenshot ou frase específica de Eduardo):
+
+1. **Relógio ao vivo com formato inconsistente** (screenshot: "51'" vs "52:24") — `liveClockDisplay()`
+   trocava de formato ao pausar (string crua da ESPN, só minuto) vs rodando (MM:SS calculado).
+   Mesmo bug em BR2026 e CDB2026 (código idêntico); Copa nunca teve essa bifurcação. Corrigido
+   nos dois apps.
+2. **Ranking com pontuação amarela + "↕"** no BR2026, divergente de Copa/CDB2026 (sempre verde,
+   "pts" fixo) — Eduardo: "deveria ser igual copa e copa do brasil". `NOT_CONSISTENT` →
+   `CONSISTENT`, removido do BR2026.
+3. **"." sobrando no número de posição** (ex. "4.") nos TRÊS apps — Eduardo: "parece sujeira".
+   Corrigido nos três ao mesmo tempo.
+4. **"Próximo jogo" mostrava só 1 partida mesmo com várias no mesmo dia seguinte** — em BR2026 e
+   CDB2026 (Copa não tem esse card no mesmo formato — mata-mata com datas conhecidas com
+   antecedência, sem essa ambiguidade "hoje vs. próximo dia com jogo"). Corrigido nos dois com
+   agrupamento por dia.
+5. **`.visually-hidden` faltando no CSS do CDB2026** — achado testando a própria mudança desta
+   rodada (item novo, hero de ranking), não uma regressão de produção: sem a classe, o texto de
+   acessibilidade das setas de movimento aparecia visível na tela. Corrigido antes de publicar.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — toda a rodada foi apresentação
+(card ao vivo, ranking, relógio, hero) mais uma projeção ao vivo ADITIVA no CDB2026 (nunca
+sobrescreve resultado oficial), nenhuma fórmula de pontuação alterada.
