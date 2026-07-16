@@ -291,14 +291,14 @@
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0,1%</span></div></td>
     </tr>
-<tr class="">
+<tr class="dead">
       <td class="pos"><span class="pos-badge">6</span></td>
       <td><div class="name-cell"><span class="nm">Arthur Lopes Huller</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
       <td class="num score">163</td>
-      <td><span class="status-pill alive">Vivo</span></td>
+      <td><span class="status-pill dead">Eliminado</span></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct rare">&lt;0,1%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
     </tr>
 <tr class="">
       <td class="pos"><span class="pos-badge">7</span></td>
@@ -463,8 +463,11 @@
     (<code>scoreEntry</code>, <code>matchPoints</code>, <code>podiumFromResults</code>) contra o estado real salvo no banco
     (23 entradas, resultados oficiais confirmados até as semifinais — jogos 73 a 102).
     <p style="margin:12px 0 0;"><b>Situação (Vivo/Eliminado)</b> é uma checagem exaustiva — testamos todos os placares e lados
-    de classificação relevantes dos 2 jogos que restam (3º lugar e Final) e vimos se existe algum resultado possível — mesmo
-    que improvável — que coloque o participante em 1º, 2º ou 3º do bolão. Se não existe nenhum, está matematicamente
+    de classificação <b>fisicamente registráveis pelo admin</b> nos 2 jogos que restam (3º lugar e Final) e vimos se existe
+    algum resultado possível — mesmo que improvável — que coloque o participante em 1º, 2º ou 3º do bolão. "Fisicamente
+    registráveis" importa: o placar decide sozinho quem avança sempre que não é empate (o formulário do admin trava isso
+    automaticamente — só em empate no tempo normal + prorrogação o admin escolhe manualmente quem avançou nos pênaltis), e a
+    checagem só considera resultados que respeitam essa regra. Se não existe nenhum resultado válido, está matematicamente
     eliminado do pódio.</p>
     <p style="margin:10px 0 0;">A coluna de chance mistura <b>dois tipos diferentes de resposta</b>, e cada célula mostra o
     tipo certo — nunca os dois misturados como uma porcentagem só:</p>
