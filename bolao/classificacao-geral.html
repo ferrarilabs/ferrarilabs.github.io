@@ -163,7 +163,7 @@
   .score { font-variant-numeric: tabular-nums; font-weight: 800; font-size: 14.5px; }
   .score .sub { font-weight: 500; color: var(--cream-500); font-size: 11.5px; margin-left: 3px;}
 
-  .chance-cell { min-width: 108px; }
+  .chance-cell { min-width: 122px; }
   .chance-bar-wrap { display: flex; align-items: center; gap: 8px; }
   .chance-track { flex: 1; height: 7px; border-radius: 999px; background: var(--pitch-700); overflow: hidden; min-width: 46px; }
   .chance-fill { height: 100%; border-radius: 999px; }
@@ -172,6 +172,12 @@
   .chance-fill.g3 { background: linear-gradient(90deg, #c98a4b, #e0a868); }
   .chance-pct { font-variant-numeric: tabular-nums; font-weight: 700; font-size: 12.5px; width: 40px; text-align: right; }
   .chance-pct.zero { color: var(--cream-500); font-weight: 500; }
+  .chance-pct.rare { color: var(--cream-500); font-weight: 600; font-size: 10.5px; width: 44px; }
+  .chance-fill.guaranteed { background: repeating-linear-gradient(135deg, currentColor 0 4px, transparent 4px 8px); position: relative; }
+  .chance-fill.g1.guaranteed { color: var(--gold-400); background-color: var(--gold-400); background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.35) 0 3px, transparent 3px 7px); }
+  .chance-fill.g2.guaranteed { color: var(--cream-300); background-color: var(--cream-300); background-image: repeating-linear-gradient(135deg, rgba(10,30,21,.20) 0 3px, transparent 3px 7px); }
+  .chance-fill.g3.guaranteed { color: #e0a868; background-color: #e0a868; background-image: repeating-linear-gradient(135deg, rgba(255,255,255,.30) 0 3px, transparent 3px 7px); }
+  .chance-pct.guaranteed-label { color: var(--grass-300); font-weight: 800; font-size: 10.5px; width: 56px; letter-spacing: 0.02em; }
 
   /* ---------- Footnotes ---------- */
   .method {
@@ -240,14 +246,14 @@
         </tr>
       </thead>
       <tbody id="rows-body">
-        <tr class="prize">
+<tr class="prize">
       <td class="pos"><span class="pos-badge">1</span></td>
       <td><div class="name-cell"><span class="nm">Simone Hirle #4</span><span class="champ-pick">apostou no 🇦🇷 Argentina</span></div></td>
       <td class="num score">212</td>
       <td><span class="status-pill alive">Vivo</span></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:99.93%"></div></div><span class="chance-pct">100%</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:100.0%"></div></div><span class="chance-pct">100%</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:100.0%"></div></div><span class="chance-pct">100%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:99.93%"></div></div><span class="chance-pct">99,9%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2 guaranteed" style="width:100%"></div></div><span class="chance-pct guaranteed-label">Garantido</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3 guaranteed" style="width:100%"></div></div><span class="chance-pct guaranteed-label">Garantido</span></div></td>
     </tr>
 <tr class="prize">
       <td class="pos"><span class="pos-badge">2</span></td>
@@ -263,7 +269,7 @@
       <td><div class="name-cell"><span class="nm">Aline</span><span class="champ-pick">apostou no 🇫🇷 France</span></div></td>
       <td class="num score">171</td>
       <td><span class="status-pill alive">Vivo</span></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:2%"></div></div><span class="chance-pct">0.1%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:2%"></div></div><span class="chance-pct">0,1%</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:22.0%"></div></div><span class="chance-pct">22%</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:74.2%"></div></div><span class="chance-pct">74%</span></div></td>
     </tr>
@@ -283,7 +289,7 @@
       <td><span class="status-pill alive">Vivo</span></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0.1%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0,1%</span></div></td>
     </tr>
 <tr class="">
       <td class="pos"><span class="pos-badge">6</span></td>
@@ -292,7 +298,7 @@
       <td><span class="status-pill alive">Vivo</span></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct rare">&lt;0,1%</span></div></td>
     </tr>
 <tr class="">
       <td class="pos"><span class="pos-badge">7</span></td>
@@ -301,7 +307,7 @@
       <td><span class="status-pill alive">Vivo</span></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0.3%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:2%"></div></div><span class="chance-pct">0,3%</span></div></td>
     </tr>
 <tr class="dead">
       <td class="pos"><span class="pos-badge">7</span></td>
@@ -318,7 +324,7 @@
       <td class="num score">143</td>
       <td><span class="status-pill alive">Vivo</span></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g1" style="width:0%"></div></div><span class="chance-pct zero">—</span></div></td>
-      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:2%"></div></div><span class="chance-pct">0.1%</span></div></td>
+      <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g2" style="width:2%"></div></div><span class="chance-pct">0,1%</span></div></td>
       <td class="num chance-cell"><div class="chance-bar-wrap"><div class="chance-track"><div class="chance-fill g3" style="width:23.4%"></div></div><span class="chance-pct">23%</span></div></td>
     </tr>
 <tr class="dead">
@@ -455,13 +461,26 @@
     <div class="title">Como foi calculado</div>
     Pontuação, chaveamento e bônus de pódio replicados <b>função por função</b> a partir do código real do site
     (<code>scoreEntry</code>, <code>matchPoints</code>, <code>podiumFromResults</code>) contra o estado real salvo no banco
-    (23 entradas, resultados oficiais confirmados até as semifinais — jogos 73 a 102). <b>Vivo/morto</b> é uma checagem exaustiva:
-    para cada participante, testamos todos os placares e lados de classificação relevantes dos 2 jogos que restam (3º lugar e
-    Final) e vimos se existe algum resultado possível — mesmo que improvável — que o coloque em 1º, 2º ou 3º. Se não existe
-    nenhum, está matematicamente eliminado do pódio do bolão. As <b>porcentagens de chance</b> já são uma estimativa: 1.500
-    simulações de Monte Carlo dos 2 jogos restantes, usando a força de cada seleção (mesma tabela de força do site) para gerar
-    placares plausíveis — não é uma garantia, é uma leitura de probabilidade. Esta página é uma <b>foto do momento</b> (não
-    atualiza sozinha) — gerada a partir do estado real em 15/07/2026, com resultados confirmados até a semifinal.
+    (23 entradas, resultados oficiais confirmados até as semifinais — jogos 73 a 102).
+    <p style="margin:12px 0 0;"><b>Situação (Vivo/Eliminado)</b> é uma checagem exaustiva — testamos todos os placares e lados
+    de classificação relevantes dos 2 jogos que restam (3º lugar e Final) e vimos se existe algum resultado possível — mesmo
+    que improvável — que coloque o participante em 1º, 2º ou 3º do bolão. Se não existe nenhum, está matematicamente
+    eliminado do pódio.</p>
+    <p style="margin:10px 0 0;">A coluna de chance mistura <b>dois tipos diferentes de resposta</b>, e cada célula mostra o
+    tipo certo — nunca os dois misturados como uma porcentagem só:</p>
+    <ul style="margin:6px 0 0; padding-left:18px;">
+      <li><b style="color:var(--grass-300);">Garantido</b> — prova matemática exaustiva: não existe nenhum resultado possível
+      dos 2 jogos restantes que tire o participante dessa posição ou pior. Não é uma estimativa, é uma certeza.</li>
+      <li><b>Porcentagem</b> — estimativa por simulação (1.500 rodadas de Monte Carlo, usando a força de cada seleção do
+      site para gerar placares plausíveis). Por definição, nunca aparece como "100%" — se fosse 100% garantido, a célula
+      mostraria "Garantido" em vez de um número.</li>
+      <li><b>&lt;0,1%</b> — o participante está matematicamente vivo para essa posição (existe um resultado possível que
+      chega lá), mas o caminho é raro o bastante que as 1.500 simulações realistas não bateram nele nenhuma vez. Vivo não é
+      o mesmo que provável.</li>
+      <li><b>—</b> — matematicamente impossível: nenhum resultado dos jogos restantes chega nessa posição.</li>
+    </ul>
+    <p style="margin:10px 0 0;">Esta página é uma <b>foto do momento</b> (não atualiza sozinha) — gerada a partir do estado
+    real em 15/07/2026, com resultados confirmados até a semifinal.</p>
   </div>
 
   <footer class="sig">Gerado a partir dos dados reais do site &middot; resultados até a semifinal (15/07/2026)</footer>

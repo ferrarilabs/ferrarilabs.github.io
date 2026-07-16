@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## v4.135 — 2026-07-16
+
+### Fixed — "Classificação Geral": chance exibida como "100%" quando não era garantida; "Vivo" sem nenhuma chance visível
+
+Eduardo, dois achados no `classificacao-geral.html` da v4.134, ambos confirmados reais e
+corrigidos:
+
+1. **"chance nao pode ser 100% pois ainda nada é 100%"** — correto, e havia um bug real por trás:
+   Simone Hirle #4 mostrava "100%" de chance de 1º lugar, mas a checagem exaustiva (enumeração de
+   todos os resultados matematicamente possíveis dos 2 jogos restantes, não a simulação) mostra
+   que o pior caso dela é 2º lugar — ou seja, existe um resultado real e possível em que ela NÃO
+   fica em 1º. O valor real da simulação era 99,93%; um arredondamento pra 0 casas decimais
+   (`.toFixed(0)` a partir de 10%) inflou pra "100%" no texto. Corrigido: nenhuma célula não
+   comprovadamente garantida pode mais exibir "100%" — o arredondamento agora nunca ultrapassa
+   99,9% nesses casos.
+2. **"arthur diz vivo mas nao mostra nenhuma chance"** — também correto, causa diferente: Arthur
+   está matematicamente vivo pro 3º lugar (existe um resultado válido que o leva lá — daí "Vivo"
+   estar certo), mas as 1.500 simulações de Monte Carlo (ponderadas pela força real das seleções)
+   nunca bateram nesse resultado específico — é raro, não impossível. A célula mostrava "—"
+   (idêntico ao caso realmente impossível), lendo como contradição direta do "Vivo" ao lado.
+
+**Correção de fundo, não só de arredondamento**: a página misturava dois tipos de resposta
+matemática diferentes — **prova exaustiva** (existe/não existe um resultado possível) e
+**estimativa por simulação** (Monte Carlo) — sob um único número, sem nunca comunicar qual dos
+dois era. Adicionado ao script de geração um segundo cálculo exaustivo (pior caso possível, não
+só o melhor caso já calculado para o Vivo/Eliminado) e uma classificação de 3 estados por célula:
+
+- **Garantido** — pior caso comprovado ≤ posição (prova, não estimativa) — nunca mais um número.
+- **Percentual** — matematicamente possível mas não garantido — estimativa de Monte Carlo, nunca
+  exibida como "100%".
+- **&lt;0,1%** — matematicamente possível (Vivo) mas as simulações reais não bateram nenhuma vez —
+  nunca mais um "—" que contradiz o badge "Vivo".
+- **—** — matematicamente impossível, mantido como estava.
+
+Metodologia explicada na própria página (seção "Como foi calculado"). Não altera scoring nem
+nenhuma lógica de app em produção — só a análise/exibição desta página isolada.
+`audit_scoring.py`: 5/5 (scoring não tocado).
+
 ## v4.134 — 2026-07-15
 
 ### Added — página estática "Classificação Geral" (não linkada na navegação)
