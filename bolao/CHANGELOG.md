@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.140 — 2026-07-16
+
+### Security — senha do admin atualizada
+
+Eduardo pediu para trocar a senha do admin. `adminPasswordHash` (SHA-256) atualizado; a senha
+em texto puro nunca entra no source, como sempre. Mesma senha nos três apps (já compartilhavam
+o mesmo hash antes desta troca).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v4.139 — 2026-07-16
 
 ### Fixed — badge "Pago"/"Pendente" (e botão "Marcar como pago") vazando da própria caixa em telas estreitas
