@@ -1,5 +1,57 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.43 — 2026-07-16
+
+### Added — card "ao vivo" com expandir/colapsar por jogo (rodada final tem até 10 jogos simultâneos)
+
+Eduardo: "the last round generally all the games happen at the same time" — o Brasileirão tem 20
+times, então uma rodada completa pode ter até 10 jogos ao vivo ao mesmo tempo. Antes,
+`renderLiveCard()` já suportava múltiplos jogos simultâneos (um bloco `.live-match` por jogo,
+empilhados), mas cada um sempre mostrava tudo (placar, relógio, barras de probabilidade) — uma
+parede de 10 cards detalhados não se lê bem numa tela de celular.
+
+- Cada jogo ao vivo agora tem estado independente de expandido/colapsado — a linha inteira
+  (placar + times + relógio) é o alvo de toque (não só um ícone pequeno), com um chevron
+  indicando o estado. Primeira vez que um jogo aparece: expandido por padrão se são só 1-2 jogos
+  simultâneos (comportamento igual a antes), colapsado por padrão a partir de 3 — a escolha do
+  usuário sempre prevalece depois disso, mesmo com o poll de 60s atualizando o placar.
+- Cabeçalho "🔴 N jogos ao vivo agora" aparece quando há mais de 1 jogo simultâneo, pra dar
+  contexto de quantos estão rolando.
+- Placar, escudos e relógio sempre visíveis (não fazem parte do que expande/colapsa) — só as
+  barras de probabilidade (que exigem a tabela de classificação carregada) ficam atrás do toggle.
+
+Verificado com dados reais do Supabase (`br2026_state.json`, 4 entradas reais) e cenários
+sintéticos de ESPN via interceptação de rede: 1 jogo ao vivo mantém o comportamento antigo
+(expandido, sem cabeçalho); múltiplos jogos simultâneos testados via leitura de código +
+verificação end-to-end do cenário de 1 jogo (a mesma função, mesmo caminho de código).
+
+### Fixed — "Ver palpites" aparecia antes do prazo sem fazer nada útil; Pago/Pendente no ranking público
+
+Eduardo, screenshot do CDB2026: "Ver palpites ainda aparece e so deve aparecer apos o cutoff
+time. E tambem não precisa pago e pendente, só para o admin." Dois achados reais, propagados
+para os dois apps (BR2026 e CDB2026 têm a mesma estrutura):
+
+- **"Ver palpites"**: o botão sempre aparecia no ranking, mesmo antes do prazo de entrada — só
+  que clicar nele revelava uma mensagem "escondido até o prazo" (o dado em si já estava
+  protegido dentro de `renderPickDisplay()`/`renderPickDisplay()`, sem vazamento real). O botão
+  virou um toque morto, sem função, até o prazo passar. Corrigido: o botão (e o painel de
+  detalhe associado) só é renderizado quando `isPastCutoff()` (BR2026) /
+  `isPastEntryCutoff()` (CDB2026, prazo da fase ativa) já passou — mesmo padrão de proteção,
+  agora também na visibilidade, não só no conteúdo.
+- **Pago/Pendente no ranking**: a Copa (referência visual canônica) nunca mostrou esse badge na
+  linha do ranking — só existe lá na aba Participantes. BR2026 e CDB2026 tinham divergido,
+  mostrando o badge nas duas abas. Removido da linha do ranking nos dois apps, igualando à Copa;
+  segue existindo em Participantes (info pública/transparente sobre quem já pagou, sem mudança
+  aí).
+
+Verificado com estado real (BR2026, 4 entradas reais do Supabase) via Playwright: antes do
+prazo, nenhum botão "Ver palpites" aparece e nenhum texto "Pago"/"Pendente" aparece no ranking;
+depois do prazo (`cutoffAt` no passado), o botão aparece para todas as entradas e o texto
+Pago/Pendente continua ausente.
+
+Não altera scoring nem lógica de negócio de pontuação. `audit_scoring.py` (Copa/BR2026/CDB2026):
+5/5.
+
 ## v1.42 — 2026-07-16
 
 ### Fixed — badge "Pago" divergente da Copa (checkmark); página podia rolar para o lado no mobile
