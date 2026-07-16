@@ -1,5 +1,31 @@
 # CHANGELOG
 
+## v4.138 — 2026-07-16
+
+### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou no BR2026/CDB2026)
+
+Eduardo reportou que o side-scroll horizontal (item já resolvido com `overflow-x: hidden` em
+2026-07-16, v4.137) voltou a aparecer no BR2026, mesmo com o `hidden` ainda presente no CSS.
+Não foi possível reproduzir com Chromium (sandbox só tem esse engine disponível) em nenhuma
+largura testada (390/414/430/440px) — o padrão do bug (screenshot real em iOS Safari, cortando
+consistentemente o lado direito de toda linha de botões) bate com um problema documentado do
+WebKit: `overflow-x: hidden` sozinho não impede o "rubber-band" horizontal do iOS Safari quando
+um ancestral usa `position: sticky` + `backdrop-filter` juntos (exatamente o `.topbar` dos três
+apps) — `hidden` ainda cria uma região de scroll programável que o bounce elástico do iOS
+consegue acionar; `overflow-x: clip` é mais rígido e não cria essa região.
+
+- `html, body { overflow-x: hidden; }` → `html, body { overflow-x: hidden; overflow-x: clip; }`
+  (mesma linha, `hidden` mantido como fallback para navegadores sem suporte a `clip`) — aplicado
+  aos três apps (Copa, BR2026, CDB2026) já que os três compartilham a mesma estrutura de topbar
+  sticky+blur.
+
+Correção especulativa e propagada por prudência (o mesmo topbar existe nos três apps, o mesmo
+bug pode aparecer em qualquer um) — sem uma reprodução real confirmada em WebKit, marcado para
+acompanhamento: se o side-scroll persistir depois deste patch, a causa é outra e precisa de
+investigação com acesso a um dispositivo real ou WebKit.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v4.137 — 2026-07-16
 
 ### Fixed — rede de segurança contra rolagem horizontal da página (propagado de achado no BR2026)

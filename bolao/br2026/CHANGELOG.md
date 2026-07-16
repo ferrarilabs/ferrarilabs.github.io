@@ -1,5 +1,36 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.48 — 2026-07-16
+
+### Fixed — entrada podia ser salva sem responsável pelo pagamento nem método de pagamento
+
+Eduardo encontrou uma entrada real (Matheus) salva com "·" vazio no lugar de responsável e
+método de pagamento na aba Participantes, e outra (Gustavo) sem responsável. "This can not
+happen... doesn't look professional." `saveEntry()` validava `entryName` e `participantEmail`,
+mas nunca `payerName` nem `paymentMethod` — a Copa (`bolao/js/app.js`) sempre validou os quatro
+(`requiredPayerName`/`requiredPaymentMethod`), essa checagem nunca foi portada para o BR2026
+durante a construção do app. Corrigido: `saveEntry()` agora bloqueia o salvamento (com o mesmo
+alerta da Copa) se `payerName` ou `paymentMethod` estiverem vazios, tanto para entrada nova
+quanto para edição.
+
+Registros já salvos com o campo vazio (Matheus, Gustavo) não foram alterados — Eduardo
+confirmou que está OK deixar como está; a correção é só para impedir que aconteça de novo.
+
+Testado com Playwright: tentar salvar com nome+email mas sem responsável bloqueia com
+"Digite o responsável pelo pagamento."; com responsável mas sem método bloqueia com "Selecione
+o método de pagamento."
+
+### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou)
+
+Eduardo: "the issue with the side scroll is back." Ver nota completa em `bolao/CHANGELOG.md`
+v4.138 (mesma correção, propagada aos três apps) — `overflow-x: hidden` sozinho não impede o
+"rubber-band" horizontal do iOS Safari quando um ancestral usa `position: sticky` +
+`backdrop-filter` (o `.topbar`); trocado para `overflow-x: clip` (com `hidden` como fallback).
+Não foi possível reproduzir com Chromium no sandbox — correção especulativa e propagada por
+prudência; acompanhar se o sintoma persistir.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v1.47 — 2026-07-16
 
 ### Fixed — vão vazio grande no final de toda página (mobile e desktop)

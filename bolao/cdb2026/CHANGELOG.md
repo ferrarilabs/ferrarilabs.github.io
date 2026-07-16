@@ -1,5 +1,24 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.36 — 2026-07-16
+
+### Fixed — entrada podia ser salva sem responsável pelo pagamento nem método de pagamento
+
+Mesmo achado do BR2026 v1.48 (Matheus/Gustavo salvos com responsável/método vazio), propagado
+aqui por ter o mesmo `saveEntry()` copiado sem a validação da Copa. Corrigido: `saveEntry()`
+agora bloqueia o salvamento se `payerName` ou `paymentMethod` estiverem vazios, mesmo alerta e
+mesma posição da checagem que a Copa (`bolao/js/app.js`).
+
+### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou no BR2026)
+
+Ver nota completa em `bolao/CHANGELOG.md` v4.138 (mesma correção, propagada aos três apps).
+`overflow-x: hidden` sozinho não impede o "rubber-band" horizontal do iOS Safari quando um
+ancestral usa `position: sticky` + `backdrop-filter` (o `.topbar`, idêntico nos três apps);
+trocado para `overflow-x: clip` (com `hidden` como fallback). Não foi possível reproduzir com
+Chromium no sandbox — correção especulativa e propagada por prudência.
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.35 — 2026-07-16
 
 ### Fixed — vão vazio grande no final de toda página (mobile e desktop)

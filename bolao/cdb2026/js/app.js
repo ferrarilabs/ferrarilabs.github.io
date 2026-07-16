@@ -612,7 +612,9 @@ async function saveEntry() {
   const paymentMethod = $("paymentMethod")?.value || "";
 
   if (!entryName) { alert(t("errorEntryName")); return; }
+  if (!payerName) { alert(t("requiredPayerName")); return; }
   if (!email || !email.includes("@")) { alert(t("errorEmail")); return; }
+  if (!paymentMethod) { alert(t("requiredPaymentMethod")); return; }
 
   const picks  = getPickValues();
   const errors = validatePicks(picks);
