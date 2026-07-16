@@ -115,18 +115,25 @@ exatamente quando "projeção ao vivo" deveria significar algo.
 cai pra `_standings` (tabela oficial) fora de uma janela ativa. `rankingBaselineResultSet()`
 continua intocada — ela já usava a baseline congelada corretamente, o bug era só do lado "atual".
 
-## Hero "Ranking ao vivo" (v1.54)
+## Hero "Ranking ao vivo" (v1.54, ajustado v1.55)
 
 Card `#liveRankingHero`, renderizado logo abaixo do card "ao vivo" (`renderLiveRankingHero()`),
 mesmo estilo visual da Copa (`hero-live-points`). Não introduz cálculo novo: reaproveita
-`calculateRankingMovement()` + `currentResultSet()` + `rankEntries()`, só filtra pra mostrar
-apenas quem está `"up"`/`"down"` agora (até 8, ordenado por posição atual) e decide visibilidade:
+`calculateRankingMovement()` + `currentResultSet()` + `rankEntries()`. Decide visibilidade:
 
 - escondido sem jogo ao vivo (`_liveMatches.length === 0`);
 - escondido sem baseline confiável (mesma regra de `renderLiveCard`'s badges de posição);
 - escondido quando ninguém está subindo/descendo no momento (placar ao vivo ainda não cruzou
   nenhuma fronteira G4/SA6/Z4 que afete alguma entrada) — nunca mostra uma tabela parada sem
   nada de interessante. Pedido explícito de Eduardo: "se ficar ruim ou muito busy deixa de fora".
+
+**v1.54 filtrava a lista pra mostrar só quem estava `"up"`/`"down"` (até 8) — corrigido em v1.55**
+(Eduardo: "no ranking so aparece da 4 posicao para baixo, tem que aparecer todos, pode scrolar
+mas deixa pelo menos 4-5 no topo"): o filtro escondia entradas paradas no topo, dando a impressão
+de que a lista começava do meio da classificação. Agora mostra TODAS as entradas, ordenadas por
+posição, dentro de `.live-ranking-scroll` (`max-height` de ~4-5 linhas, `overflow-y: auto`,
+cabeçalho `position: sticky`) — a condição "esconder o card inteiro sem nenhum mover" continua
+igual, só a lista DENTRO do card deixou de ser filtrada.
 
 ## Identificação de partidas
 

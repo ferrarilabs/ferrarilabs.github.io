@@ -1,5 +1,32 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.55 — 2026-07-16
+
+### Changed — card "ao vivo" refeito do zero copiando a estrutura real da Copa (não só ajustando espaçamento)
+
+Eduardo, olhando o v1.54 já publicado: "ficou horrivel isso! faca igual da copa do mundo tche,
+voce sabe mais que isso." As duas rodadas anteriores (v1.53/v1.54) só ajustaram espaçamento em
+cima de uma pilha vertical inventada (badge, depois times, depois posições, depois relógio, cada
+bloco numa linha própria com bastante vão entre eles) — nunca correspondia à estrutura real do
+`hero-live-card` da Copa, que é uma ÚNICA linha horizontal (escudo+nome+posição de um time |
+placar | badge+relógio centralizados | placar | escudo+nome+posição do outro time). Refeito do
+zero copiando essa estrutura + os tokens de tamanho/espaçamento da Copa quase literalmente
+(`bolao/css/styles.css` `.hero-live-top/.hero-live-team/.hero-live-score/.hero-live-center` →
+`.live-top/.live-team/.live-score/.live-center` aqui). Com múltiplos jogos ao vivo, agora são
+cards lado a lado (`.live-match-grid`, mesmo `flex-wrap` do `.next-match-live-grid` da Copa), não
+mais empilhados numa única caixa com divisórias tracejadas. O placar fica genuinamente no centro
+visual do card agora (Eduardo: "e ainda nao esta centralizado o placar" — resolvido por
+construção, não por CSS de centralização em cima da estrutura errada).
+
+### Fixed — hero "Ranking ao vivo" só mostrava quem estava se movendo, cortando o topo da lista
+
+Eduardo: "e no ranking so aparece da 4 posicao para baixo, tem que aparecer todos, pode scrolar
+mas deixa pelo menos 4-5 no topo." O filtro "só quem está subindo/descendo" (v1.54) fazia sentido
+pra reduzir ruído, mas na prática escondia entradas paradas no topo, dando a impressão de que a
+lista começava do meio. Agora mostra todo mundo, ordenado por posição, dentro de uma caixa com
+scroll (~4-5 linhas visíveis sem rolar, cabeçalho fixo no topo do scroll) — só a condição de
+"esconder o card inteiro sem ninguém se movendo" continua igual.
+
 ## v1.54 — 2026-07-16
 
 ### Fixed — Ranking (setas de movimento) só reagia ao placar DEPOIS que a ESPN fechava o jogo

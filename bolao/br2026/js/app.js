@@ -1491,6 +1491,11 @@ function renderLiveCard() {
     if (!row) return "";
     return `<span class="live-team-pos">${row.livePosition}º${standingsMovementHtml(row)}</span>`;
   };
+  const teamColHtml = (teamName) => `<div class="live-team">
+    <div class="live-team-logo-box">${teamLogoImg(teamName)}</div>
+    <span class="live-team-name">${esc(teamName)}</span>
+    ${teamPosHtml(teamName)}
+  </div>`;
 
   const rows = _liveMatches.map(m => {
     const { clock, sec } = liveClockDisplay(m);
@@ -1515,17 +1520,23 @@ function renderLiveCard() {
         <div class="prob-bar away"  style="width:${aPct}%">${barLabel(aPct, awayLbl)}</div>
       </div>`;
     }
+    // Mesma estrutura horizontal da Copa (hero-live-top: time | placar | badge+relógio | placar |
+    // time, ver bolao/js/app.js renderNextMatch()) -- Eduardo: "faca igual da copa do mundo, voce
+    // sabe mais que isso" (2026-07-16). A pilha vertical anterior (badge/times/posições/relógio
+    // cada um em sua própria linha, com bastante espaço vazio entre elas) não seguia o padrão
+    // visual canônico da plataforma (ver CLAUDE.md "Copa do Mundo 2026 é a referência visual
+    // canônica"/PLATFORM_GOVERNANCE.md "Golden master") -- só a Copa tinha essa estrutura testada.
     const rowInner = `
-        <span class="live-badge">${esc(t("liveNow"))}</span>
-        <div class="live-teams">
-          <span class="live-team-name">${esc(m.homeTeam)}</span>
-          ${teamLogoImg(m.homeTeam)}
-          <span class="live-score">${m.homeScore} – ${m.awayScore}</span>
-          ${teamLogoImg(m.awayTeam)}
-          <span class="live-team-name">${esc(m.awayTeam)}</span>
+      <div class="live-top">
+        ${teamColHtml(m.homeTeam)}
+        <div class="live-score">${m.homeScore}</div>
+        <div class="live-center">
+          <span class="live-badge">${esc(t("liveNow"))}</span>
+          <span class="live-clock">${esc(clock)}</span>
         </div>
-        ${liveTable ? `<div class="live-team-positions">${teamPosHtml(m.homeTeam)}${teamPosHtml(m.awayTeam)}</div>` : ""}
-        <span class="live-clock">${esc(clock)}</span>`;
+        <div class="live-score">${m.awayScore}</div>
+        ${teamColHtml(m.awayTeam)}
+      </div>`;
     const playsHtml = livePlaysHtml(m.plays, m.homeTeam, m.awayTeam, m.id);
     const detailHtml = playsHtml + probBarsHtml;
     // The whole row is the tap target (not just a small chevron) — better mobile touch target
@@ -1548,7 +1559,7 @@ function renderLiveCard() {
   card.querySelectorAll(".live-plays[data-plays-match]").forEach(el => {
     if (el.scrollTop > 0) savedPlaysScroll[el.dataset.playsMatch] = el.scrollTop;
   });
-  card.innerHTML = header + rows;
+  card.innerHTML = header + `<div class="live-match-grid">${rows}</div>`;
   card.querySelectorAll(".live-plays[data-plays-match]").forEach(el => {
     const s = savedPlaysScroll[el.dataset.playsMatch];
     if (s) el.scrollTop = s;
@@ -1585,31 +1596,40 @@ function renderLiveRankingHero() {
 
   const cur = currentResultSet();
   const movement = calculateRankingMovement({ entries, baseline, live: cur });
-  const scored   = rankEntries(entries, cur.g4, cur.z4, cur.sa6);
-  const movers = scored
-    .map(item => ({ item, mv: movement.get(item.e.id) }))
-    .filter(x => x.mv && (x.mv.status === "up" || x.mv.status === "down"))
-    .sort((a, b) => a.item.rank - b.item.rank)
-    .slice(0, 8);
+  const scored   = rankEntries(entries, cur.g4, cur.z4, cur.sa6).sort((a, b) => a.rank - b.rank);
+  const hasMover = scored.some(item => {
+    const mv = movement.get(item.e.id);
+    return mv && (mv.status === "up" || mv.status === "down");
+  });
+  // Só mostra o hero quando há de fato alguém subindo/descendo com o placar atual -- lista
+  // parada, ninguém se mexendo, não é uma "projeção ao vivo" interessante de mostrar (Eduardo:
+  // "se ficar ruim ou muito busy deixa de fora"). Mas UMA VEZ que aparece, mostra TODO MUNDO
+  // (não só quem se move), com scroll -- Eduardo: "no ranking so aparece da 4 posicao pra baixo,
+  // tem que aparecer todos, pode scrolar mas deixa pelo menos 4-5 no topo" (2026-07-16). Filtrar
+  // pra só os movers cortava a lista de um jeito que parecia estar faltando gente do topo.
+  if (!hasMover) { card.classList.add("hidden"); return; }
 
-  if (!movers.length) { card.classList.add("hidden"); return; }
-
-  const rows = movers.map(({ item, mv }) => `<tr>
+  const rows = scored.map(item => {
+    const mv = movement.get(item.e.id);
+    return `<tr>
     <td style="text-align:center">${item.rank}${rankMovementHtml(mv)}</td>
     <td>${esc(item.e.entryName)}</td>
     <td style="text-align:center"><b class="pick-pts${item.total > 0 ? " pos" : ""}">${item.total}</b></td>
-  </tr>`).join("");
+  </tr>`;
+  }).join("");
 
   card.innerHTML = `
     <div class="live-header">🏆 ${esc(t("liveRankingHeroTitle"))}</div>
-    <table class="live-ranking-table">
-      <thead><tr>
-        <th style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
-        <th>${esc(t("liveRankingHeroEntryCol"))}</th>
-        <th style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
+    <div class="live-ranking-scroll">
+      <table class="live-ranking-table">
+        <thead><tr>
+          <th style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
+          <th>${esc(t("liveRankingHeroEntryCol"))}</th>
+          <th style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
     <p class="footer-note" style="margin-top:8px">${esc(t("liveRankingHeroNote"))}</p>`;
   card.classList.remove("hidden");
 }
