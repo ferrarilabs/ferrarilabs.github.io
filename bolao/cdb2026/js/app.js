@@ -2755,6 +2755,10 @@ async function init() {
   if (wa) wa.href = C.whatsappGroup?.link || "#";
 
   $$("[data-section]").forEach(btn => btn.addEventListener("click", () => showSection(btn.dataset.section)));
+  // Disable "Palpites" nav button only after the active phase's cutoff; default landing depends
+  // on it — same pattern as Copa (bolao/js/app.js init()), propagated here alongside BR2026.
+  const navEntryBtn = document.querySelector('.nav button[data-section="entry"]');
+  if (navEntryBtn) navEntryBtn.disabled = isPastEntryCutoff();
   showSection(isPastEntryCutoff() ? "ranking" : "entry");
 
   $("bolaoSelect")?.addEventListener("change", e => {
