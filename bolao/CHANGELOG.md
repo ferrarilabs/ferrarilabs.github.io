@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v4.141 — 2026-07-16
+
+### Fixed — cosmético de ranking, propagado a partir de uma auditoria de consistência disparada pelo BR2026/CDB2026
+
+Eduardo pediu consistência entre os três apps depois de várias rodadas de ajuste no card "ao
+vivo" do BR2026/CDB2026 ("PRECISAMOS SER CONSISTENTES!"). Auditando o Ranking da Copa pra
+comparar, achado real aqui também: o número de posição pra 4º lugar em diante mostrava um ponto
+sobrando ("4.", "5."...) — Eduardo: "e tira o '.' se a posicao nao muda no ranking, parece
+sujeira". Corrigido nos três apps ao mesmo tempo (mesma linha de código, `rankArrowHtml`/medalha
+de posição). Nenhuma fórmula de pontuação tocada — só o texto do número exibido.
+
 ## v4.140 — 2026-07-16
 
 ### Security — senha do admin atualizada

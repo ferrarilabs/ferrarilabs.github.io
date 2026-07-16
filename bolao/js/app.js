@@ -1460,7 +1460,7 @@ function buildResultEmailHtml(s, testMode) {
     const key = `${item.total}:${item.exact}:${item.podiumHits}`;
     if (key !== prevKey) rank = i + 1;
     prevKey = key;
-    const medal = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
+    const medal = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}`;
     const bg = rank <= 3 ? "#fffbe6" : "white";
     rankingRows += `<tr style="background:${bg}"><td style="padding:7px 10px;text-align:center">${medal}</td><td style="padding:7px 10px">${escapeHtml(item.e.entryName || "?")}</td><td style="padding:7px 10px;text-align:center;font-weight:700;color:${ptsColor(item.total)}">${item.total}</td></tr>`;
   }

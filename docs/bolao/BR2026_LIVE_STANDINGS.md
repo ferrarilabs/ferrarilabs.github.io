@@ -230,3 +230,20 @@ estado compartilhado entre abas.
 - O padrão de setas de ranking já existente na Copa (`computeRankArrows`/`_rankArrowState`) —
   identificado como tecnicamente imperfeito nesta auditoria, mas fora de escopo desta mudança;
   registrado como dívida técnica conhecida, não corrigido aqui.
+
+## v1.56 — relógio, hero de ranking, ponto sobrando (2026-07-16)
+
+- **Relógio ao vivo mudando de formato quando pausado** (screenshot de Eduardo: "51'" vs
+  "52:24") — `liveClockDisplay()` preferia a string crua da ESPN (`m.clockStr`, só minuto) ao
+  pausar, e o formato calculado "MM:SS" (`formatMatchClock()`) ao rodar. Corrigido pra sempre
+  passar por `formatMatchClock()` quando `clockSeconds` existe — pausado só significa não somar
+  o tempo decorrido desde o último poll. Mesmo bug/fix propagado ao CDB2026 (código idêntico).
+- **Hero "Ranking ao vivo" com `max-width: 420px`** deixava um vão enorme dos dois lados em
+  telas largas (mobile já batia em 100% do card). Subiu pra 760px + fonte/padding maiores.
+- **Pontos do Ranking normal** (não o hero) deixaram de ficar amarelos com "↕" quando
+  provisórios — nem Copa nem CDB2026 faziam isso; removido pra igualar.
+- **Número de posição sem ponto sobrando** ("4." → "4") — mesmo ajuste na Copa e no CDB2026.
+
+Ver `docs/bolao/CONSISTENCY_MATRIX.md` (nota de 2026-07-16, "PRECISAMOS SER CONSISTENTES!") pro
+contexto completo desta rodada, incluindo o CDB2026 sendo trazido ao mesmo padrão do card ao
+vivo.

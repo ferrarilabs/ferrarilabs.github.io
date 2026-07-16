@@ -1447,12 +1447,20 @@ function scheduleMC() {
 // auditoria 2026-07-15 -- relógio subindo e descendo durante o intervalo inteiro, sem nunca
 // indicar "Intervalo"). Compartilhado entre o card "ao vivo" e o card "próximo jogo" -- os dois
 // mostravam o placar da mesma partida ao vivo, sem motivo pra duplicar a lógica.
+// Achado real (screenshot de Eduardo, 2026-07-16): "um cronometro mostra só minutos e outro
+// mostra minutos e segundos" -- pausado caía pro `m.clockStr` cru da ESPN ("51'", só minuto),
+// rodando usava formatMatchClock() ("MM:SS"). Dois formatos diferentes pro MESMO elemento
+// dependendo de um estado interno que o usuário nem vê. Corrigido pra sempre passar por
+// formatMatchClock() quando `clockSeconds` existe -- pausado só significa não somar o tempo
+// decorrido desde o último poll, nunca trocar de formato (mesmo princípio da Copa, que nunca
+// teve essa bifurcação -- só esta cópia introduziu o bug).
 function liveClockDisplay(m) {
   const clock = m.isHalftime ? t("liveHalftime")
     : m.isPenalties ? t("livePenalties")
-    : m.clockPaused ? (m.clockStr || (m.clockSeconds != null ? brFmtClock(m.clockSeconds) : ""))
     : m.clockSeconds != null
-      ? formatMatchClock(m.clockSeconds + Math.floor((Date.now() - (m.pollTime || Date.now())) / 1000), m.period ?? null, 0)
+      ? formatMatchClock(
+          m.clockPaused ? m.clockSeconds : m.clockSeconds + Math.floor((Date.now() - (m.pollTime || Date.now())) / 1000),
+          m.period ?? null, 0)
       : m.clockStr;
   const sec = m.isHalftime || m.isPenalties || m.clockPaused
     ? m.clockSeconds
@@ -1649,8 +1657,28 @@ function renderNextGameCard() {
     .filter(g => brtDateKey(g.dateISO) === todayKey)
     .filter(g => !liveKeys.has(`${g.homeTeam}|${g.awayTeam}`));
 
-  if (todayGames.length) {
-    const items = todayGames.map(g => {
+  // Sem jogo hoje: mostra TODOS os jogos do próximo dia com jogo, não só o primeiro em ordem
+  // cronológica -- achado real (2026-07-16, Eduardo: "proximo jogo mostra somente um, mas amanha
+  // tem mais, mostre proximos jogos quando ha mais de um no mesmo dia"). nextUpcomingGame() em si
+  // não muda (ainda usado pelo congelamento do cutoff -- precisa continuar sendo um único jogo
+  // fixo); só a exibição aqui passa a agrupar por dia.
+  let groupLabel = "todayGamesLabel";
+  let groupDateLabel = "";
+  let gamesToShow = todayGames;
+  if (!gamesToShow.length) {
+    const next = nextUpcomingGame();
+    if (next) {
+      const nextDayKey = brtDateKey(next.dateISO);
+      gamesToShow = _schedule.filter(g => g.state === "pre" && !g.postponed && brtDateKey(g.dateISO) === nextDayKey);
+      groupLabel = "nextGamesLabel";
+      // Todos os jogos deste grupo são do mesmo dia (filtrado por nextDayKey acima) -- um
+      // subtítulo só, não repetido por linha (cada linha já mostra o horário).
+      groupDateLabel = new Date(next.dateISO).toLocaleDateString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit" });
+    }
+  }
+
+  if (gamesToShow.length) {
+    const items = gamesToShow.map(g => {
       if (g.state === "post") {
         return `<div class="today-game today-game-post">
           <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
@@ -1696,54 +1724,14 @@ function renderNextGameCard() {
     }).join("");
 
     card.innerHTML = `<div class="next-game-card">
-      <div class="today-games-header">${esc(t("todayGamesLabel"))}</div>
+      <div class="today-games-header">${esc(t(groupLabel))}${groupDateLabel ? ` · ${esc(groupDateLabel)}` : ""}</div>
       ${items}
     </div>`;
     card.classList.remove("hidden");
     return;
   }
 
-  // No games today — show next upcoming game (mesma fonte que o cutoff automático, ver
-  // nextUpcomingGame() em "Cutoff" -- os dois nunca podem discordar sobre qual é "o próximo jogo")
-  const now  = Date.now();
-  const next = nextUpcomingGame();
-  if (!next) { card.classList.add("hidden"); return; }
-
-  const timeStr = brtLongDate(next.dateISO) + " BRT";
-  const diffMs  = new Date(next.dateISO).getTime() - now;
-  const timerHtml = countdownTimerHtml(diffMs);
-
-  const mpKeyNext = `${next.homeTeam}|${next.awayTeam}`;
-  if (!_matchProbs[mpKeyNext] && _standings.length >= 20) {
-    const r = buildRatings();
-    const { lambdaH, lambdaA } = expectedGoals(next.homeTeam, next.awayTeam, r);
-    _matchProbs[mpKeyNext] = matchProb(lambdaH, lambdaA);
-  }
-  const mpNext = _matchProbs[mpKeyNext];
-  const nextBars = mpNext ? (() => {
-    const hPct = Math.round(mpNext.pH * 100), dPct = Math.round(mpNext.pD * 100), aPct = Math.round(mpNext.pA * 100);
-    const hLbl = esc(next.homeTeam.length > 12 ? next.homeTeam.slice(0, 12) + "…" : next.homeTeam);
-    const aLbl = esc(next.awayTeam.length > 12 ? next.awayTeam.slice(0, 12) + "…" : next.awayTeam);
-    const bl = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
-    return `<div class="prob-bars" role="group" aria-label="Probabilidades">
-      <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl)}</div>
-      <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
-      <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
-    </div>`;
-  })() : "";
-  card.innerHTML = `<div class="next-game-card">
-    <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
-    <div class="next-game-row">
-      <div class="next-game-info-block">
-        <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>
-        <div class="next-game-info">${esc(timeStr)}</div>
-        ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
-      </div>
-      ${timerHtml}
-    </div>
-    ${nextBars}
-  </div>`;
-  card.classList.remove("hidden");
+  card.classList.add("hidden");
 }
 
 // Club-table movement glyph — separate markup/classes/i18n keys from the participant ranking's
@@ -2069,18 +2057,22 @@ function renderRanking() {
   box.innerHTML = provNote;
   scored.forEach(item => {
     const rank      = item.rank;
-    const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}.`;
-    const provFlag  = !isOfficial && item.total > 0;
+    const medal     = { 1: "🥇", 2: "🥈", 3: "🥉" }[rank] || `${rank}`;
     const mv        = rankMovement?.get(item.e.id);
     const viewBtn   = canViewPicks
       ? `<button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-expanded="${_openRankDetails.has(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`
       : "";
     const row = document.createElement("div");
     row.className = "rank-row";
+    // Pontos sempre no mesmo estilo (verde) e "pts" fixo -- Copa e CDB2026 nunca coloriram de
+    // amarelo/trocaram o rótulo por "↕" pra sinalizar "provisório" (isso já é comunicado pelo
+    // prov-note no topo da lista). Eduardo: "no ranking mostra a pontuacao em amarelo e com uma
+    // seta para cima e baixo, deveria ser igual copa e copa do brasil" (2026-07-16) -- a seta de
+    // movimento (rankMovementHtml) é intencional e fica; só o amarelo/"↕" nos pontos saiu.
     row.innerHTML = `
       <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
       <div><b>${esc(item.e.entryName)}</b></div>
-      <div class="points${provFlag ? " prov" : ""}">${item.total}<small>${provFlag ? " ↕" : " pts"}</small></div>
+      <div class="points">${item.total}<small> pts</small></div>
       ${viewBtn}`;
     box.appendChild(row);
     if (canViewPicks) {
