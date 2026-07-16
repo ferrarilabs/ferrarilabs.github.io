@@ -264,9 +264,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .live-match { display: flex; flex-direction: column; gap: 6px; padding: 6px 0; }
 .live-match + .live-match { border-top: 1px dashed var(--border2); padding-top: 12px; margin-top: 4px; }
 .live-match-row {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  width: 100%; background: none; border: 0; padding: 0; margin: 0;
-  color: inherit; font: inherit; text-align: left;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 100%; background: none; border: 0; padding: 0 26px 0 0; margin: 0;
+  color: inherit; font: inherit; text-align: center; position: relative;
 }
 button.live-match-row { cursor: pointer; }
 .live-badge {
@@ -274,16 +274,64 @@ button.live-match-row { cursor: pointer; }
   font-size: 10px; font-weight: 900; letter-spacing: .08em;
   padding: 3px 8px; border-radius: 4px; flex-shrink: 0;
 }
-.live-teams { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.live-teams { display: flex; align-items: center; justify-content: center; gap: 12px; flex-wrap: wrap; }
 .live-team-name { font-weight: 700; font-size: 15px; }
+.live-team-positions {
+  display: flex; justify-content: space-between; width: 100%; max-width: 340px;
+  font-size: 11px; color: var(--muted);
+}
+.live-team-pos { display: inline-flex; align-items: center; gap: 3px; }
 .live-score {
   font-size: 22px; font-weight: 900;
   font-variant-numeric: tabular-nums; color: var(--green);
 }
 .live-clock { font-size: 12px; color: var(--muted); }
-.live-chevron { margin-left: auto; font-size: 11px; color: var(--muted); flex-shrink: 0; }
+.live-chevron {
+  position: absolute; right: 0; top: 0; font-size: 11px; color: var(--muted); flex-shrink: 0;
+}
 .live-match-detail { margin-top: 8px; }
 .live-match-detail.hidden { display: none; }
+
+/* ── Live plays feed (goals/cards/subs) — ported from Copa (bolao/css/styles.css
+   .live-plays), see PLATFORM_ARCHITECTURE.md "Golden master" ── */
+.live-plays {
+  margin-top: 4px;
+  padding: 2px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  max-height: 100px;
+  overflow-y: auto;
+  text-align: left;
+  width: 100%;
+}
+.live-plays-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: var(--muted);
+  padding: 5px 0;
+  border-bottom: 1px solid var(--border);
+}
+.live-plays-row:last-child { border-bottom: none; }
+.live-plays-minute {
+  flex-shrink: 0;
+  min-width: 26px;
+  font-weight: 700;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+.live-plays-icon, .live-plays-flag { flex-shrink: 0; }
+.live-plays-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 600;
+}
 
 /* ── Standings card ── */
 #standingsCard { margin-bottom: 16px; }

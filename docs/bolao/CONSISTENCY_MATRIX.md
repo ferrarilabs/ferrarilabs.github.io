@@ -812,3 +812,42 @@ bug (divergência de ajuste, nome de time entre dois endpoints de temporada) nã
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — só o cálculo informativo de
 probabilidades foi alterado, nenhuma fórmula de pontuação.
+
+## Nota manual — card "ao vivo" do BR2026: duplicação, plays feed, posição/movimento, centralização, threshold de prob-bar (2026-07-16, BR2026 v1.53)
+
+Eduardo, olhando o card "ao vivo" do Ranking: "se ja esta mostrando ao vivo, nao precisa
+mostrar duas vezes... nao esta mostrando o ranking pra cima ou baixo... adicionar o minuto a
+minuto de cartoes, gols, substituicoes como tem na copa... centralizar... nos minutos do jogo
+mostre o tempo que esta." Cinco itens, tratados juntos por tocarem a mesma função
+(`renderLiveCard()`/`renderNextGameCard()`):
+
+1. **Duplicação** (`todayGames` incluía jogos já ao vivo) — `NOT_CONSISTENT` → `CONSISTENT`:
+   `renderNextGameCard()` agora exclui qualquer jogo cuja chave `homeTeam|awayTeam` já esteja
+   em `_liveMatches`.
+2. **Relógio do jogo** — investigado e descartado como bug separado: os valores estranhos
+   ("13:42"/"11:42") eram a MESMA partida sendo renderizada duas vezes (item 1), não um erro na
+   própria `formatMatchClock()`/`liveClockDisplay()` (essa lógica já foi auditada e portada
+   quase literalmente da Copa em 2026-07-15). Corrigida a duplicação, o relógio já está certo.
+3. **Movimento de posição de clube no card ao vivo** — na verdade já existia
+   (`calculateLiveStandings()`/`standingsMovementHtml()`, shipped v1.4x só na tabela de
+   Classificação); Eduardo não tinha visto lá. Reaproveitado no card "ao vivo" também (mesma
+   baseline `_standingsBaseline`, nenhum cálculo novo).
+4. **Plays feed** (gols/cartões/substituições por partida) — feature nova no BR2026, portada
+   quase literalmente da Copa (`extractMatchPlays`/`livePlaysHtml`, mesmo endpoint já consultado
+   a cada poll, mesmo contrato "falha silenciosa").
+5. **Centralização** — `.live-match-row` mudou de linha única alinhada à esquerda pra coluna
+   centralizada, mesmo em telas largas.
+
+Durante o teste do item 4/5 (screenshot da barra de probabilidade cortando "Palmeiras 12%"),
+achado um SEXTO bug não relacionado ao pedido original: as barras de probabilidade do card "ao
+vivo" eram a única das 4 chamadas desse padrão neste arquivo sem o limiar de 12% pra esconder o
+nome do time em fatias estreitas — corrigido no mesmo patch (ver CHANGELOG v1.53).
+
+`INTENTIONALLY_DIFFERENT`, não propagado ao CDB2026: CDB2026 não tem card "ao vivo" nem polling
+contínuo (mata-mata sincronizado sob demanda pelo admin, ver `bolao/cdb2026/js/config.js`
+"Sincronização com ESPN") — essa classe inteira de bug/feature não existe lá. A Copa já tinha
+plays feed + card centralizado antes do BR2026 (referência canônica, nada a propagar de volta).
+
+`audit_scoring.py` (Copa/BR2026): PASSOU nos dois — mudança é só apresentação do card ao vivo
+(dedupe, feed de lances, badge de posição, CSS, limiar de prob-bar), nenhuma fórmula de
+pontuação tocada.
