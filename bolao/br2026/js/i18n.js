@@ -106,6 +106,14 @@ window.BR2026_I18N = {
     rankMovementDown: "Caiu {n} posições no ranking",
     rankMovementSame: "Permaneceu na mesma posição do ranking",
     rankMovementUnavailable: "Movimento no ranking indisponível até a base de comparação ser carregada",
+    // Hero de ranking ao vivo (logo abaixo do card "ao vivo", mesmo estilo de
+    // hero-live-points da Copa) -- ver renderLiveRankingHero() em app.js.
+    liveRankingHeroTitle: "Ranking ao vivo",
+    liveRankingHeroNote: "Projeção com base nos jogos em andamento — pode mudar até o fim das partidas.",
+    liveRankingHeroEmpty: "Ninguém muda de posição com o placar atual.",
+    liveRankingHeroPosCol: "Pos.",
+    liveRankingHeroEntryCol: "Participante",
+    liveRankingHeroPtsCol: "Pts",
     // Standings
     standingsTitle: "Tabela do Brasileirão 2026",
     standingsSource: "Fonte: ESPN. Atualizada automaticamente.",

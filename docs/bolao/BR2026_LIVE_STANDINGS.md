@@ -99,6 +99,35 @@ falso, porque o número de posição nominal (1) não mudou. Testado explicitame
 Quando os resultados estão oficialmente travados (`s.results.locked`), não há mais "janela ao
 vivo" — o movimento de ranking não é calculado nem exibido.
 
+### `currentResultSet()` — "resultado atual" usa a tabela AO VIVO, não a tabela oficial parada (2026-07-16)
+
+Bug real encontrado em auditoria: `renderRanking()` originalmente montava seu `live: {g4,z4,sa6}`
+direto de `_standings` (a tabela oficial da ESPN, que só é reprocessada depois que a ESPN marca a
+partida como `"post"` e republica) — nunca de `liveStandingsNow()` (a tabela já ajustada pelo
+placar em andamento, existente desde a v1.4x só pro card ao vivo/tabela de classificação). Efeito
+prático: durante o jogo inteiro, as setas do Ranking ficavam presas na posição de ANTES do apito
+inicial, e só se moviam depois do jogo acabar E a ESPN atualizar — nunca durante a partida, que é
+exatamente quando "projeção ao vivo" deveria significar algo.
+
+`currentResultSet()` (em `app.js`, logo após `liveStandingsNow()`) é agora a única fonte de
+"resultado atual" usada tanto por `renderRanking()` quanto pelo hero `renderLiveRankingHero()`
+(v1.54, abaixo): prefere `liveStandingsNow()` quando há uma janela ao vivo com baseline confiável,
+cai pra `_standings` (tabela oficial) fora de uma janela ativa. `rankingBaselineResultSet()`
+continua intocada — ela já usava a baseline congelada corretamente, o bug era só do lado "atual".
+
+## Hero "Ranking ao vivo" (v1.54)
+
+Card `#liveRankingHero`, renderizado logo abaixo do card "ao vivo" (`renderLiveRankingHero()`),
+mesmo estilo visual da Copa (`hero-live-points`). Não introduz cálculo novo: reaproveita
+`calculateRankingMovement()` + `currentResultSet()` + `rankEntries()`, só filtra pra mostrar
+apenas quem está `"up"`/`"down"` agora (até 8, ordenado por posição atual) e decide visibilidade:
+
+- escondido sem jogo ao vivo (`_liveMatches.length === 0`);
+- escondido sem baseline confiável (mesma regra de `renderLiveCard`'s badges de posição);
+- escondido quando ninguém está subindo/descendo no momento (placar ao vivo ainda não cruzou
+  nenhuma fronteira G4/SA6/Z4 que afete alguma entrada) — nunca mostra uma tabela parada sem
+  nada de interessante. Pedido explícito de Eduardo: "se ficar ruim ou muito busy deixa de fora".
+
 ## Identificação de partidas
 
 `pollAll()` casa eventos da ESPN com o cache `_schedule` pelo `id` estável do evento
