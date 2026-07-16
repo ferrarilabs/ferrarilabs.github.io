@@ -1,5 +1,29 @@
 # CHANGELOG
 
+## v4.134 — 2026-07-15
+
+### Added — página estática "Classificação Geral" (não linkada na navegação)
+
+Pedido do Eduardo: uma página compartilhável mostrando vivo/eliminado e chance de 1º/2º/3º lugar
+no bolão, corrigindo uma imagem gerada por ChatGPT que circulou no grupo com a fórmula de
+pontuação errada.
+
+- Novo arquivo `bolao/classificacao-geral.html` — página estática autocontida (sem dependência de
+  `js/app.js`/`config.js`/Supabase em runtime), `noindex,nofollow`, CSP restritiva
+  (`default-src 'none'`). **Não linkada em nenhum nav ou índice** — acesso só por URL direta,
+  conforme pedido ("link escondido").
+- Pontuação, chaveamento e bônus de pódio replicados função por função a partir do código real
+  (`scoreEntry`, `matchPoints`, `podiumFromResults`) contra o estado real do Supabase (23
+  entradas, resultados oficiais até a semifinal — jogos 73–102). "Vivo/eliminado" é uma checagem
+  exaustiva de todos os placares/lados relevantes dos 2 jogos restantes (3º lugar e Final); as
+  porcentagens de chance são uma simulação de Monte Carlo (1.500 iterações) usando a tabela de
+  força de seleções já existente em `data.js`.
+- **É uma foto do momento (15/07/2026), não atualiza sozinha** — precisa ser regerada
+  manualmente se quiser refletir resultados novos.
+- Não altera scoring, regras de negócio, nem nenhum arquivo do app em produção (`app.js`,
+  `config.js` além do bump de versão, `data.js`) — página nova e isolada.
+- `audit_scoring.py`: 5/5 (scoring não tocado).
+
 ## v4.133 — 2026-07-14
 
 ### Fixed — auditoria estilo Big Tech, rodada 2: itens que Eduardo autorizou explicitamente após ver o relatório
