@@ -885,3 +885,36 @@ notar que `liveStandingsNow()` já existia para esse propósito.
 
 `audit_scoring.py` (Copa/BR2026): PASSOU nos dois — `currentResultSet()` escolhe QUAL tabela
 alimenta `rankEntries()`/`scoreEntry()`, não altera a fórmula de pontuação em si.
+
+## Nota manual — card "ao vivo" do BR2026 refeito copiando a estrutura real da Copa; hero de ranking mostra todo mundo (2026-07-16, BR2026 v1.55)
+
+Terceira rodada de feedback sobre o mesmo componente. As duas rodadas anteriores (v1.53/v1.54)
+tinham ficado só em ajuste de espaçamento/centralização de texto em cima de uma pilha vertical
+inventada — nunca correspondiam à estrutura horizontal real do `hero-live-card` da Copa
+(`bolao/css/styles.css`: escudo+nome+posição | placar | badge+relógio | placar |
+escudo+nome+posição, tudo numa linha). Eduardo: "ficou horrivel isso! faca igual da copa do
+mundo tche, voce sabe mais que isso." Refeito do zero copiando a estrutura E os tokens de
+tamanho/espaçamento da Copa (`.hero-live-top/.hero-live-team/.hero-live-score/.hero-live-center`
+→ `.live-top/.live-team/.live-score/.live-center`), não só o efeito visual aproximado. Com
+múltiplos jogos ao vivo, agora são cards lado a lado (`flex-wrap`, mesmo padrão do
+`.next-match-live-grid` da Copa), não mais empilhados numa caixa única.
+
+Diferenças propositais preservadas (`TOURNAMENT_SPECIFIC`, não é falha de reprodução):
+- Times não têm bandeira de país — usa escudo do clube (`teamLogoImg()`), já que BR2026 não tem
+  seleções.
+- Cor de destaque do card/badge/relógio continua o verde de marca já usado no resto da UI do
+  BR2026 (a Copa usa vermelho de urgência para o card "ao vivo" especificamente) — mantido por
+  ser o padrão já estabelecido em todo o resto do app antes desta mudança, não uma nova
+  divergência introduzida agora.
+
+Também corrigido no mesmo patch: o hero "Ranking ao vivo" (novo em v1.54) filtrava a lista pra
+só quem estava subindo/descendo, o que na prática escondia o topo da classificação quando os
+líderes não estavam entre os que se moviam — Eduardo: "no ranking so aparece da 4 posicao para
+baixo, tem que aparecer todos, pode scrolar mas deixa pelo menos 4-5 no topo." Agora mostra
+todas as entradas ordenadas por posição, com scroll e cabeçalho fixo.
+
+`INTENTIONALLY_DIFFERENT`/não propagado ao CDB2026: mesma razão das duas notas anteriores (sem
+card ao vivo/polling contínuo lá).
+
+`audit_scoring.py` (Copa/BR2026): PASSOU nos dois — mudança inteira é estrutura/CSS do card ao
+vivo e do hero de ranking, nenhuma fórmula de pontuação tocada.
