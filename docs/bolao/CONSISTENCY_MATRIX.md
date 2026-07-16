@@ -680,3 +680,19 @@ operacional do admin, nenhuma fórmula de pontuação foi tocada nos três apps.
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — nenhuma mudança de scoring/bracket.
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudanças são só de exibição/UX.
+
+## Nota manual — `main` com 80px de padding-bottom sobrando (vão vazio no final de toda página), divergente da Copa (2026-07-16, BR2026 v1.47 / CDB2026 v3.35)
+
+Eduardo: "There's a lot of empty space (non urgent) at the very bottom of the page." BR2026 e
+CDB2026 tinham `main { padding: ...px ...px 80px; }` (base e mobile) — a Copa (referência visual
+canônica) usa `20px` desktop / `12px` mobile, sem valor especial de bottom, apesar de ter a
+mesma estrutura de botão sticky (`.sticky-submit`) no final do formulário de palpites. A folga
+que o botão sticky precisa já vem do próprio `position: sticky`; os 80px extras só sobravam como
+vão morto abaixo do conteúdo em toda aba (não só na de Palpites), porque `padding-bottom` é do
+`<main>` inteiro, compartilhado por todas as seções.
+
+`CONSISTENT` agora — os dois apps alinhados ao valor da Copa. Testado com Playwright (scroll até
+o fim + screenshot antes/depois): `scrollHeight` mobile caiu ~68px em cada app (o delta exato
+80px→12px), botão sticky sem sobreposição, aba Ranking sem regressão.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só CSS.

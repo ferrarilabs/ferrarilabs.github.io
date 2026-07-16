@@ -1,5 +1,24 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.35 — 2026-07-16
+
+### Fixed — vão vazio grande no final de toda página (mobile e desktop)
+
+Mesmo achado do BR2026 v1.47 (Eduardo: "There's a lot of empty space (non urgent) at the very
+bottom of the page"), propagado aqui por ter a mesma estrutura de `main`/`.sticky-submit`. Root
+cause: `main` tinha `padding-bottom: 80px` (base e mobile), bem maior que o padrão da Copa
+(referência visual canônica) — `20px` desktop / `12px` mobile — apesar de ter a mesma estrutura
+de botão sticky no final do formulário de palpites; a folga do sticky já vem do próprio
+`position: sticky`, os 80px só sobravam como vão morto em toda aba.
+
+- `main { padding: 16px 14px 80px; }` → `padding: 16px 14px;` (desktop)
+- `main { padding: 12px 10px 80px; }` → `padding: 12px 10px;` (mobile, `@media max-width: 900px`)
+
+Confirmado com Playwright (scroll até o fim, screenshot): `scrollHeight` mobile caiu de 4091px
+para 4023px (-68px, os 80px→12px esperados); botão sticky continua funcionando normalmente.
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.34 — 2026-07-16
 
 ### Fixed — "Palpites" continuava clicável depois do prazo da fase ativa; propagado padrão da Copa
