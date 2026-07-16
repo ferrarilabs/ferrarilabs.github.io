@@ -150,8 +150,20 @@ async function saveRemoteState(s) {
 // Copa/BR2026 — o admin/Supabase é fonte de verdade para resultado real).
 function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
+  // Achado 2026-07-16 (mesmo achado do BR2026, propagado aqui por ter a mesma estrutura de
+  // merge): "local sempre vence" escondia edição de admin pra sempre em qualquer navegador que
+  // já tivesse a entrada em cache. Preferir sempre o registro mais RECENTE por entrada
+  // (updatedAt/createdAt), mesmo padrão que a Copa já usa (bolao/js/app.js mergeStates()).
   const byId = {};
-  [...(remote.entries || []), ...(local.entries || [])].forEach(e => { if (!deleted.has(e.id)) byId[e.id] = e; });
+  for (const e of (local.entries || [])) if (!deleted.has(e.id)) byId[e.id] = e;
+  for (const e of (remote.entries || [])) {
+    if (deleted.has(e.id)) continue;
+    const existing = byId[e.id];
+    if (!existing) { byId[e.id] = e; continue; }
+    const remoteTs = e.updatedAt || e.createdAt || "";
+    const localTs  = existing.updatedAt || existing.createdAt || "";
+    if (remoteTs > localTs) byId[e.id] = e;
+  }
   const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
   const phases = {};
   DATA.phases.forEach(p => {
