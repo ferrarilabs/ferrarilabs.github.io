@@ -851,3 +851,37 @@ plays feed + card centralizado antes do BR2026 (referência canônica, nada a pr
 `audit_scoring.py` (Copa/BR2026): PASSOU nos dois — mudança é só apresentação do card ao vivo
 (dedupe, feed de lances, badge de posição, CSS, limiar de prob-bar), nenhuma fórmula de
 pontuação tocada.
+
+## Nota manual — ranking do BR2026 não reagia ao placar ao vivo (bug real); hero "Ranking ao vivo" adicionado; centralização ajustada (2026-07-16, BR2026 v1.54)
+
+Segunda rodada de feedback sobre o mesmo card, depois do v1.53 já estar no ar (Eduardo olhando a
+versão publicada): "esta ainda fora de centro... nao ta mostrando estilo copa conforme os jogos
+estao ocorrendo qual a posicao no ranking as pessoas estao subindo ou descendo... isso poderia
+vir num hero logo abaixo dos jogos ao vivo no mesmo estilo da copa."
+
+1. **Bug real confirmado, não só cosmético**: `renderRanking()` calculava o "resultado atual"
+   (pra pontuação/rank/setas) direto da tabela oficial `_standings`, nunca da tabela ajustada
+   pelo placar ao vivo (`liveStandingsNow()`, que já existia desde antes só pro card ao vivo). As
+   setas do Ranking ficavam presas na posição pré-jogo durante toda a partida. Corrigido com
+   `currentResultSet()`, fonte única compartilhada agora por `renderRanking()` e pelo hero novo.
+   Verificado com duas entradas de teste injetadas e um placar ao vivo real cruzando a fronteira
+   do G4 — a entrada que passou a acertar sobe, a que passou a errar desce, como esperado.
+2. **Hero "Ranking ao vivo"** — novo card, mesmo estilo do `hero-live-points` da Copa, logo
+   abaixo do card "ao vivo". Zero cálculo novo (reaproveita `calculateRankingMovement()`); só
+   aparece quando há alguém de fato subindo/descendo agora, escondido caso contrário (Eduardo
+   autorizou explicitamente deixar de fora se ficasse "ruim ou muito busy" — decisão de design
+   tomada a favor de mostrar, dado que reaproveita 100% de código já testado).
+3. **Centralização**: `.live-match-detail` (feed de lances + barras de probabilidade) ganhou
+   `max-width` centralizado — antes esticava pra largura inteira do card enquanto o cabeçalho
+   acima (times/placar/posição) ficava numa faixa estreita centralizada, o contraste é que lia
+   como "fora de centro", não a ausência de centralização em si (essa parte já tinha sido
+   corrigida na v1.53).
+
+`INTENTIONALLY_DIFFERENT`, não propagado ao CDB2026: mesma razão da nota anterior (sem card ao
+vivo/polling contínuo lá). Não propagado à Copa: Copa já tem o padrão correto
+(`liveMatchPointsTable()` sempre recomputado do zero a partir de dados ao vivo) — o bug era
+exclusivo do BR2026, introduzido quando o Ranking foi construído reaproveitando `_standings` sem
+notar que `liveStandingsNow()` já existia para esse propósito.
+
+`audit_scoring.py` (Copa/BR2026): PASSOU nos dois — `currentResultSet()` escolhe QUAL tabela
+alimenta `rankEntries()`/`scoreEntry()`, não altera a fórmula de pontuação em si.
