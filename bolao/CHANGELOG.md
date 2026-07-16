@@ -1,5 +1,72 @@
 # CHANGELOG
 
+## v4.140 — 2026-07-16
+
+### Security — senha do admin atualizada
+
+Eduardo pediu para trocar a senha do admin. `adminPasswordHash` (SHA-256) atualizado; a senha
+em texto puro nunca entra no source, como sempre. Mesma senha nos três apps (já compartilhavam
+o mesmo hash antes desta troca).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v4.139 — 2026-07-16
+
+### Fixed — badge "Pago"/"Pendente" (e botão "Marcar como pago") vazando da própria caixa em telas estreitas
+
+Eduardo: "the pago is outside the box. You should be very thorough about these knits." Causa
+raiz: `.rank-row` é reaproveitado por `renderRanking()` (4 itens: posição, nome, pontuação,
+botão) E por `renderParticipants()`/`renderAdminPayments()` (só 3 itens: ícone, nome/detalhe,
+badge ou botão) — a mesma classe, duas estruturas diferentes. O breakpoint mobile
+(`max-width:900px`) fixa a 3ª coluna do grid em `40px` (dimensionado só para o placar de 1-3
+dígitos do ranking); ao cair no mesmo template, o badge/botão do Participantes/Pagamentos era
+forçado nesse mesmo espaço de 40px, insuficiente pro texto ("Pendente" tem 8 letras — mediu
+79px de largura real, quase o dobro do espaço alocado).
+
+Não reproduzido com precisão pixel-a-pixel no Chromium do sandbox (o texto "Pago" sozinho
+ficava só ~1px apertado ali, invisível na prática) — mas a causa raiz é sólida e comprovada por
+medição de DOM (`scrollWidth` vs coluna do grid), não é uma correção especulativa: o cálculo do
+CSS Grid genuinely reserva só 40px para um conteúdo que precisa de até 79px.
+
+- Nova classe modificadora `.rank-row.participant-row` (aplicada em `renderParticipants()` e
+  `renderAdminPayments()`) com `grid-template-columns: 28px 1fr auto;` — 3 colunas reais para a
+  estrutura real de 3 itens, badge/botão com largura de conteúdo (`auto`), igual ao desktop
+  (que já usa `auto` na coluna e nunca teve esse problema).
+- `renderRanking()` continua com `.rank-row` puro (sem a nova classe) — 4 colunas, `40px` fixo
+  na pontuação continua correto e intencional ali.
+
+Testado com Playwright: badge "Pendente" mede 79px de largura, cabe com 13px de folga antes da
+borda direita da linha (antes: forçado em 40px). Mesma correção nos três apps — `renderAdminPayments()`
+só existe na Copa com essa estrutura (BR2026/CDB2026 usam `.admin-row`, não afetado).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v4.138 — 2026-07-16
+
+### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou no BR2026/CDB2026)
+
+Eduardo reportou que o side-scroll horizontal (item já resolvido com `overflow-x: hidden` em
+2026-07-16, v4.137) voltou a aparecer no BR2026, mesmo com o `hidden` ainda presente no CSS.
+Não foi possível reproduzir com Chromium (sandbox só tem esse engine disponível) em nenhuma
+largura testada (390/414/430/440px) — o padrão do bug (screenshot real em iOS Safari, cortando
+consistentemente o lado direito de toda linha de botões) bate com um problema documentado do
+WebKit: `overflow-x: hidden` sozinho não impede o "rubber-band" horizontal do iOS Safari quando
+um ancestral usa `position: sticky` + `backdrop-filter` juntos (exatamente o `.topbar` dos três
+apps) — `hidden` ainda cria uma região de scroll programável que o bounce elástico do iOS
+consegue acionar; `overflow-x: clip` é mais rígido e não cria essa região.
+
+- `html, body { overflow-x: hidden; }` → `html, body { overflow-x: hidden; overflow-x: clip; }`
+  (mesma linha, `hidden` mantido como fallback para navegadores sem suporte a `clip`) — aplicado
+  aos três apps (Copa, BR2026, CDB2026) já que os três compartilham a mesma estrutura de topbar
+  sticky+blur.
+
+Correção especulativa e propagada por prudência (o mesmo topbar existe nos três apps, o mesmo
+bug pode aparecer em qualquer um) — sem uma reprodução real confirmada em WebKit, marcado para
+acompanhamento: se o side-scroll persistir depois deste patch, a causa é outra e precisa de
+investigação com acesso a um dispositivo real ou WebKit.
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v4.137 — 2026-07-16
 
 ### Fixed — rede de segurança contra rolagem horizontal da página (propagado de achado no BR2026)

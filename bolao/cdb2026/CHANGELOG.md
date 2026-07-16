@@ -1,5 +1,46 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.38 — 2026-07-16
+
+### Security — senha do admin atualizada
+
+Ver nota completa em `bolao/CHANGELOG.md` v4.140 — mesma troca, propagada aos três apps
+(já compartilhavam o mesmo hash).
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v3.37 — 2026-07-16
+
+### Fixed — badge "Pago"/"Pendente" vazando da própria caixa em telas estreitas
+
+Mesmo achado do BR2026 v1.49 (Eduardo: "the pago is outside the box"), propagado aqui por ter a
+mesma reutilização de `.rank-row`. Ver nota completa em `bolao/CHANGELOG.md` v4.139. Nova classe
+`.rank-row.participant-row` com `grid-template-columns: 28px 1fr auto;` em `renderParticipants()`.
+
+Confirmado com medição de DOM real: badge "Pendente" agora mede 79px e cabe com 13px de folga
+(antes: forçado em 40px, coluna dimensionada só pro placar de 1-3 dígitos do ranking).
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
+## v3.36 — 2026-07-16
+
+### Fixed — entrada podia ser salva sem responsável pelo pagamento nem método de pagamento
+
+Mesmo achado do BR2026 v1.48 (Matheus/Gustavo salvos com responsável/método vazio), propagado
+aqui por ter o mesmo `saveEntry()` copiado sem a validação da Copa. Corrigido: `saveEntry()`
+agora bloqueia o salvamento se `payerName` ou `paymentMethod` estiverem vazios, mesmo alerta e
+mesma posição da checagem que a Copa (`bolao/js/app.js`).
+
+### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou no BR2026)
+
+Ver nota completa em `bolao/CHANGELOG.md` v4.138 (mesma correção, propagada aos três apps).
+`overflow-x: hidden` sozinho não impede o "rubber-band" horizontal do iOS Safari quando um
+ancestral usa `position: sticky` + `backdrop-filter` (o `.topbar`, idêntico nos três apps);
+trocado para `overflow-x: clip` (com `hidden` como fallback). Não foi possível reproduzir com
+Chromium no sandbox — correção especulativa e propagada por prudência.
+
+Não altera scoring, bracket nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v3.35 — 2026-07-16
 
 ### Fixed — vão vazio grande no final de toda página (mobile e desktop)

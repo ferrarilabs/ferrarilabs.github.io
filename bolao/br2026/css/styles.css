@@ -33,7 +33,12 @@
   --danger-br: #8e2d42;
 }
 
-html, body { overflow-x: hidden; }
+/* overflow-x: hidden sozinho ainda deixa a Safari do iOS fazer "rubber-band" horizontal
+   (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
+   clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
+   sozinho não resolve. Achado 2026-07-16 (Eduardo: "the issue with the side scroll is back") --
+   hidden mantido como fallback para navegadores sem suporte a clip. */
+html, body { overflow-x: hidden; overflow-x: clip; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -675,6 +680,12 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
   .rank-row .points { font-size: 17px; text-align: right; }
   .rank-row button { justify-self: end; }
+  /* .rank-row é reaproveitado por renderParticipants() com só 3 itens (ícone, nome/detalhe,
+     badge Pago/Pendente) -- sem essa classe, o badge cai na 3ª coluna do template acima (40px,
+     fixa, pensada só pro placar de 1-3 dígitos do ranking) e o texto vaza pra fora da própria
+     caixa, principalmente "Pendente" (8 letras). Achado 2026-07-16 (Eduardo: "o pago esta fora
+     da caixa"), mesmo padrão da Copa (bolao/css/styles.css). */
+  .rank-row.participant-row { grid-template-columns: 28px 1fr auto; }
 }
 
 @media (max-width: 500px) {

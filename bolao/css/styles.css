@@ -38,7 +38,12 @@
   --red:      #ff6b6b;
 }
 
-html, body { overflow-x: hidden; }
+/* overflow-x: hidden sozinho ainda deixa a Safari do iOS fazer "rubber-band" horizontal
+   (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
+   clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
+   sozinho não resolve. Achado 2026-07-16 (Eduardo, side-scroll voltou no BR2026/CDB2026 mesmo
+   com hidden já presente) -- hidden mantido como fallback para navegadores sem suporte a clip. */
+html, body { overflow-x: hidden; overflow-x: clip; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -873,6 +878,12 @@ input[readonly] {
   .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
   .rank-row .points { font-size: 17px; text-align: right; }
   .rank-row button { justify-self: end; }
+  /* .rank-row é reaproveitado por renderParticipants()/renderAdminPayments() com só 3 itens
+     (ícone, nome/detalhe, badge ou botão) -- sem essa classe, o 3º item cai na 3ª coluna do
+     template acima (40px, fixa, pensada só pro placar de 1-3 dígitos do ranking) e o texto do
+     badge/botão ("Pago"/"Marcar como pago") fica espremido/vazando pra fora da própria caixa.
+     Achado 2026-07-16 (Eduardo: "o pago esta fora da caixa"). */
+  .rank-row.participant-row { grid-template-columns: 28px 1fr auto; }
 }
 
 @media (max-width: 500px) {

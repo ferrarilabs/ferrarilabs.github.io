@@ -612,7 +612,9 @@ async function saveEntry() {
   const paymentMethod = $("paymentMethod")?.value || "";
 
   if (!entryName) { alert(t("errorEntryName")); return; }
+  if (!payerName) { alert(t("requiredPayerName")); return; }
   if (!email || !email.includes("@")) { alert(t("errorEmail")); return; }
+  if (!paymentMethod) { alert(t("requiredPaymentMethod")); return; }
 
   const picks  = getPickValues();
   const errors = validatePicks(picks);
@@ -1068,7 +1070,7 @@ function renderParticipants() {
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
   box.innerHTML = entries.map(e => {
     const isPaid = (s.paid || {})[e.id];
-    return `<div class="rank-row">
+    return `<div class="rank-row participant-row">
       <div>👤</div>
       <div><b>${esc(e.entryName)}</b><br><span class="muted">${esc(e.payerName || "")} · ${esc(e.paymentMethod || "")}</span></div>
       <span class="${isPaid ? "paid-badge" : "unpaid-badge"}">${esc(isPaid ? t("paid") : t("unpaid"))}</span>
