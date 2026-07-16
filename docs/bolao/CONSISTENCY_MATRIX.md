@@ -750,3 +750,30 @@ compartilhado entre Ranking e Participantes/Pagamentos — padrão a vigiar em q
 futuro dessa classe.
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só CSS/estrutura de classe.
+
+## Nota manual — BR2026 ganha email automático de fim de rodada; `TOURNAMENT_SPECIFIC`, não propagado (2026-07-16, BR2026 v1.51)
+
+Eduardo pediu email automático após cada rodada do Brasileirão terminar, "para economizar no
+envio" comparado a um email por jogo. `INTENTIONALLY_DIFFERENT` — não propagado à Copa nem ao
+CDB2026:
+
+- **Copa** (`bolao/scripts/send_result_email.py`) já tem o equivalente por PARTIDA — funciona
+  ali porque a Copa tem só ~32 partidas na vida inteira do torneio. Não faz sentido "agrupar em
+  rodadas" numa fase de grupos com >36 jogos e depois um mata-mata de partida única.
+  Volume baixo o suficiente que emailar por partida nunca foi um problema de custo.
+- **CDB2026** é mata-mata (poucas dezenas de confrontos no total, ida/volta) — mesmo raciocínio
+  da Copa, sem volume que justifique agrupamento.
+- **BR2026** tem ~380 jogos/temporada (liga de pontos corridos, 20 times, turno e returno) — o
+  único dos três apps onde emailar por jogo teria custo real (~380 envios × participantes,
+  vs. ~38 em lote por rodada). É o único caso de uso que motivou essa mudança.
+
+Achado técnico registrado para o futuro (caso outro app precise de algo parecido): a API da
+ESPN não expõe número de rodada para o Brasileirão. Testado ao vivo contra o calendário real de
+2026 (382 jogos) — nem clustering por data nem reconstrução por turno-returno produz rodadas
+limpas (jogos adiados/remarcados e compressão pós-Copa do Mundo geram lotes de até 39 jogos).
+Resolvido com uma janela rolante de 7 dias em vez de um calendário fixo de 38 rodadas
+numeradas — ver `bolao/br2026/scripts/send_round_email.py` e `bolao/br2026/CHANGELOG.md` v1.51
+para o detalhe completo.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só um script operacional
+novo, reaproveita a fórmula de scoring já existente sem alterá-la.

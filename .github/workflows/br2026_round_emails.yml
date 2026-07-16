@@ -1,0 +1,26 @@
+name: Bolão BR2026 — Emails de rodada (auto)
+
+on:
+  schedule:
+    # Every 30 min, 21:00-23:50 UTC = 6:00 PM-8:50 PM EDT (typical BR2026 evening kickoffs)
+    - cron: '*/30 21-23 * * *'
+    # Every 30 min, 00:00-04:50 UTC = 8:00 PM-12:50 AM EDT (covers late kickoffs + completion)
+    - cron: '*/30 0-4 * * *'
+  workflow_dispatch: {}
+
+# Queue rather than cancel — avoids double-sends if jobs overlap
+concurrency:
+  group: br2026-round-emails
+  cancel-in-progress: false
+
+jobs:
+  check-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send round-completion emails (auto ESPN detection)
+        working-directory: bolao/br2026/scripts
+        run: python3 send_round_email.py --auto
