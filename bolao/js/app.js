@@ -1772,7 +1772,7 @@ function renderParticipants() {
   box.innerHTML = "";
   for (const e of s.entries) {
     const div = document.createElement("div");
-    div.className = "rank-row";
+    div.className = "rank-row participant-row";
     const paid = s.paid[e.id];
     div.innerHTML = `<div>👤</div>
 <div><b>${escapeHtml(e.entryName)}</b><br><span class="muted">${escapeHtml(e.payerName)} · ${escapeHtml(e.paymentMethod)}</span></div>
@@ -1977,7 +1977,7 @@ function renderAdminPayments(s) {
   for (const e of s.entries) {
     const id = escapeHtml(e.id);
     const div = document.createElement("div");
-    div.className = "rank-row";
+    div.className = "rank-row participant-row";
     const paid = !!s.paid[e.id];
     div.innerHTML = `<div>💵</div>
 <div><b>${escapeHtml(e.entryName)}</b><br>${escapeHtml(e.paymentMethod)} → ${escapeHtml(e.paymentTo || "")}</div>

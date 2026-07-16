@@ -1,5 +1,36 @@
 # CHANGELOG
 
+## v4.139 — 2026-07-16
+
+### Fixed — badge "Pago"/"Pendente" (e botão "Marcar como pago") vazando da própria caixa em telas estreitas
+
+Eduardo: "the pago is outside the box. You should be very thorough about these knits." Causa
+raiz: `.rank-row` é reaproveitado por `renderRanking()` (4 itens: posição, nome, pontuação,
+botão) E por `renderParticipants()`/`renderAdminPayments()` (só 3 itens: ícone, nome/detalhe,
+badge ou botão) — a mesma classe, duas estruturas diferentes. O breakpoint mobile
+(`max-width:900px`) fixa a 3ª coluna do grid em `40px` (dimensionado só para o placar de 1-3
+dígitos do ranking); ao cair no mesmo template, o badge/botão do Participantes/Pagamentos era
+forçado nesse mesmo espaço de 40px, insuficiente pro texto ("Pendente" tem 8 letras — mediu
+79px de largura real, quase o dobro do espaço alocado).
+
+Não reproduzido com precisão pixel-a-pixel no Chromium do sandbox (o texto "Pago" sozinho
+ficava só ~1px apertado ali, invisível na prática) — mas a causa raiz é sólida e comprovada por
+medição de DOM (`scrollWidth` vs coluna do grid), não é uma correção especulativa: o cálculo do
+CSS Grid genuinely reserva só 40px para um conteúdo que precisa de até 79px.
+
+- Nova classe modificadora `.rank-row.participant-row` (aplicada em `renderParticipants()` e
+  `renderAdminPayments()`) com `grid-template-columns: 28px 1fr auto;` — 3 colunas reais para a
+  estrutura real de 3 itens, badge/botão com largura de conteúdo (`auto`), igual ao desktop
+  (que já usa `auto` na coluna e nunca teve esse problema).
+- `renderRanking()` continua com `.rank-row` puro (sem a nova classe) — 4 colunas, `40px` fixo
+  na pontuação continua correto e intencional ali.
+
+Testado com Playwright: badge "Pendente" mede 79px de largura, cabe com 13px de folga antes da
+borda direita da linha (antes: forçado em 40px). Mesma correção nos três apps — `renderAdminPayments()`
+só existe na Copa com essa estrutura (BR2026/CDB2026 usam `.admin-row`, não afetado).
+
+Não altera scoring nem lógica de negócio. `audit_scoring.py` (Copa/BR2026/CDB2026): 5/5.
+
 ## v4.138 — 2026-07-16
 
 ### Fixed — endurecido `overflow-x: hidden` para `overflow-x: clip` (side-scroll voltou no BR2026/CDB2026)
