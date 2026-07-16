@@ -289,7 +289,9 @@ button.live-match-row { cursor: pointer; }
 .live-chevron {
   position: absolute; right: 0; top: 0; font-size: 11px; color: var(--muted); flex-shrink: 0;
 }
-.live-match-detail { margin-top: 8px; }
+.live-match-detail {
+  margin: 8px auto 0; max-width: min(520px, 100%);
+}
 .live-match-detail.hidden { display: none; }
 
 /* ── Live plays feed (goals/cards/subs) — ported from Copa (bolao/css/styles.css
@@ -332,6 +334,26 @@ button.live-match-row { cursor: pointer; }
   color: var(--text);
   font-weight: 600;
 }
+
+/* ── Live ranking hero (quem sobe/desce com o placar ao vivo, mesmo estilo do
+   card "ao vivo" acima) ── */
+#liveRankingHero {
+  background: linear-gradient(135deg, #0a2d1a, #0d2028);
+  border: 1px solid rgba(47,229,110,.3);
+  border-radius: 14px; padding: 14px 18px; margin-bottom: 14px;
+}
+#liveRankingHero.hidden { display: none; }
+#liveRankingHero .live-header { margin-bottom: 8px; text-align: center; }
+.live-ranking-table {
+  width: 100%; max-width: min(420px, 100%); margin: 0 auto;
+  border-collapse: collapse; font-size: 13px;
+}
+.live-ranking-table th {
+  font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--muted); text-align: left; padding: 0 6px 6px;
+}
+.live-ranking-table td { padding: 6px; border-top: 1px solid var(--border2); }
+#liveRankingHero .footer-note { text-align: center; }
 
 /* ── Standings card ── */
 #standingsCard { margin-bottom: 16px; }

@@ -969,6 +969,7 @@ async function pollAll() {
     }
 
     renderLiveCard();
+    renderLiveRankingHero();
     renderStandingsCard();
     renderRanking();
     if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
@@ -1095,6 +1096,32 @@ function liveStandingsNow() {
     liveMatches: _liveMatches,
     completedMatches: windowCompletedMatches(),
   });
+}
+
+// G4/Z4/SA6 team-name sets for "right now" -- prefers the LIVE-adjusted table
+// (liveStandingsNow(), which folds in-progress match scores into the standings) over the raw
+// ESPN table (_standings, which only updates once ESPN itself marks a match "post" and
+// republishes). Bug found 2026-07-16 (Eduardo: "nao esta mostrando o ranking pra cima ou baixo
+// de cada um baseado no resultado atual da rodada"): renderRanking()'s g4cur/z4cur/sa6cur used
+// _standings directly, so the Ranking tab's provisional rank/movement arrows were frozen at
+// whatever ESPN's table said BEFORE kickoff and only moved once the match fully ended and ESPN
+// republished -- too late to be a live projection. Single source of truth for both
+// renderRanking() and renderLiveRankingHero(), so they can never disagree about "current".
+function currentResultSet() {
+  const live = liveStandingsNow();
+  if (live && live.length >= 20) {
+    const sorted = [...live].sort((a, b) => a.livePosition - b.livePosition);
+    return {
+      g4:  sorted.slice(0, 4).map(r => r.teamName),
+      z4:  sorted.slice(16, 20).map(r => r.teamName),
+      sa6: sorted.slice(6, 12).map(r => r.teamName),
+    };
+  }
+  return {
+    g4:  _standings.length >= 4  ? _standings.slice(0, 4).map(tm => tm.name) : [],
+    z4:  _standings.length >= 20 ? _standings.slice(16, 20).map(tm => tm.name) : [],
+    sa6: _standings.length >= 12 ? _standings.slice(6, 12).map(tm => tm.name) : [],
+  };
 }
 
 // ─── BRT helpers ────────────────────────────────────────────────────────────
@@ -1534,6 +1561,59 @@ function renderLiveCard() {
   card.classList.remove("hidden");
 }
 
+// ─── Render: live ranking hero ────────────────────────────────────────────────
+// "Quem está subindo/descendo no ranking com o placar ao vivo atual" -- Eduardo pediu
+// explicitamente um hero nesse estilo, "mesmo estilo da Copa" (hero-live-points), logo abaixo
+// do card de jogos ao vivo (2026-07-16). Reaproveita o cálculo já usado nas setas do Ranking
+// (calculateRankingMovement — ver docs/bolao/BR2026_LIVE_STANDINGS.md), só muda ONDE é
+// mostrado — nenhum cálculo novo. Só aparece com jogo(s) ao vivo, baseline confiável, e pelo
+// menos um participante realmente subindo/descendo — sem isso fica escondido (Eduardo: "se
+// ficar ruim ou muito busy deixa de fora"), nunca mostra uma tabela parada sem nada relevante.
+function renderLiveRankingHero() {
+  const card = $("liveRankingHero");
+  if (!card) return;
+  if (!_liveMatches.length) { card.classList.add("hidden"); return; }
+
+  const s = state();
+  const deleted = new Set(s.deletedIds || []);
+  const entries = (s.entries || []).filter(e => !deleted.has(e.id));
+  const locked  = s.results?.locked;
+  if (!entries.length || locked || _standings.length < 20) { card.classList.add("hidden"); return; }
+
+  const baseline = rankingBaselineResultSet();
+  if (!baseline) { card.classList.add("hidden"); return; }
+
+  const cur = currentResultSet();
+  const movement = calculateRankingMovement({ entries, baseline, live: cur });
+  const scored   = rankEntries(entries, cur.g4, cur.z4, cur.sa6);
+  const movers = scored
+    .map(item => ({ item, mv: movement.get(item.e.id) }))
+    .filter(x => x.mv && (x.mv.status === "up" || x.mv.status === "down"))
+    .sort((a, b) => a.item.rank - b.item.rank)
+    .slice(0, 8);
+
+  if (!movers.length) { card.classList.add("hidden"); return; }
+
+  const rows = movers.map(({ item, mv }) => `<tr>
+    <td style="text-align:center">${item.rank}${rankMovementHtml(mv)}</td>
+    <td>${esc(item.e.entryName)}</td>
+    <td style="text-align:center"><b class="pick-pts${item.total > 0 ? " pos" : ""}">${item.total}</b></td>
+  </tr>`).join("");
+
+  card.innerHTML = `
+    <div class="live-header">🏆 ${esc(t("liveRankingHeroTitle"))}</div>
+    <table class="live-ranking-table">
+      <thead><tr>
+        <th style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
+        <th>${esc(t("liveRankingHeroEntryCol"))}</th>
+        <th style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="footer-note" style="margin-top:8px">${esc(t("liveRankingHeroNote"))}</p>`;
+  card.classList.remove("hidden");
+}
+
 // ─── Render: next game card ──────────────────────────────────────────────────
 function renderNextGameCard() {
   const card = $("nextGameCard");
@@ -1939,9 +2019,8 @@ function renderRanking() {
   // values to ensure tiebreakers match the final score calculation exactly.
   const locked = s.results?.locked;
   const isOfficial = !!(locked && s.results?.g4 && s.results?.z4);
-  const g4cur  = locked ? (s.results?.g4  || []) : (_standings.length >= 4  ? _standings.slice(0,  4).map(tm => tm.name) : []);
-  const z4cur  = locked ? (s.results?.z4  || []) : (_standings.length >= 20 ? _standings.slice(16, 20).map(tm => tm.name) : []);
-  const sa6cur = locked ? (s.results?.sa6 || []) : (_standings.length >= 12 ? _standings.slice(6,  12).map(tm => tm.name) : []);
+  const cur    = locked ? { g4: s.results?.g4 || [], z4: s.results?.z4 || [], sa6: s.results?.sa6 || [] } : currentResultSet();
+  const g4cur  = cur.g4, z4cur = cur.z4, sa6cur = cur.sa6;
 
   const scored = rankEntries(entries, g4cur, z4cur, sa6cur);
 
