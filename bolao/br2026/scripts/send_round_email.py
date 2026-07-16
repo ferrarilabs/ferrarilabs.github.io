@@ -17,10 +17,14 @@ batch, plus everything within 7 days of that game's date, are treated as "the cu
 round". Once every game in that batch is complete, the batch is emailed and closed.
 
 Usage:
-  python3 send_round_email.py --auto     # the only supported mode — checks ESPN, sends if
-                                          # a batch just completed, idempotent otherwise.
-
-Run via .github/workflows/br2026_round_emails.yml on a cron.
+  python3 send_round_email.py --auto        # checks ESPN, sends if a batch just completed,
+                                             # idempotent otherwise. Run via
+                                             # .github/workflows/br2026_round_emails.yml on a cron.
+  python3 send_round_email.py --test-send   # sends a real preview to the admin only (real
+                                             # recent results + real standings + Eduardo's own
+                                             # entry's actual score/rank), subject line and
+                                             # body both marked [TESTE]. Never touches
+                                             # Supabase state -- safe to run any time.
 """
 
 import json, sys, time, urllib.request
@@ -488,8 +492,84 @@ def run_auto():
     print(f"\n✓ AUTO done: {sent} sent, {len(errors)} errors. Batch closed, baseline updated.")
 
 
+def run_test_send():
+    """Sends a real preview to ADMIN_EMAIL only, so Eduardo can proofread the actual format
+    before it ever reaches participants. Uses real data throughout (recent completed games,
+    real standings, Eduardo's own entry's real score/rank) -- never touches Supabase state."""
+    print("TEST-SEND — running scoring/ranking self-audit before touching anything...")
+    audit_ok, _ = audit_scoring.run_static_audit(verbose=True)
+    ok2, detail2 = _self_check_rank_entries()
+    print(f"  {'✓' if ok2 else '✗ FAIL'} rank_entries() reverse-alpha tiebreak" + (f" — {detail2}" if not ok2 else ""))
+    if not (audit_ok and ok2):
+        print("\n🛑 SELF-AUDIT FAILED — refusing to send even a test email until this is fixed.")
+        sys.exit(1)
+    print("✓ Self-audit passed.\n")
+
+    print("TEST-SEND — fetching Supabase state...")
+    state = sb_fetch()
+
+    now = datetime.now(timezone.utc)
+    # Use the most recently COMPLETED window as sample content -- the real pending batch
+    # (future games) has no results yet, so it wouldn't make a representative preview.
+    # Widened lookback (was 14 days) because the season paused for the 2026 World Cup and
+    # resumed July 16 -- the last real completed games are from before the break.
+    completed = []
+    for lookback_days in (14, 60, 200):
+        fetch_from = (now - timedelta(days=lookback_days)).date()
+        fetch_to = now.date()
+        print(f"TEST-SEND — fetching ESPN scoreboard {fetch_from} .. {fetch_to} for sample results...")
+        games_by_id = fetch_scoreboard_window(fetch_from, fetch_to)
+        completed = sorted([g for g in games_by_id.values() if g["completed"]], key=lambda g: g["date"])
+        if completed:
+            break
+    if not completed:
+        print("No completed games found in ESPN's data at all — nothing to preview with.")
+        sys.exit(1)
+    sample_games = completed[-10:]  # most recent batch-sized slice
+    window_start = sample_games[0]["date"]
+    window_end = sample_games[-1]["date"]
+    print(f"  Using {len(sample_games)} recent game(s) as sample results ({window_start.date()} .. {window_end.date()})")
+
+    standings = fetch_standings()
+    if len(standings) < 20:
+        print(f"🛑 Only {len(standings)} teams in standings (expected 20) — cannot build a real preview.")
+        sys.exit(1)
+    g4 = [t["name"] for t in standings[0:4]]
+    z4 = [t["name"] for t in standings[16:20]]
+    sa6 = [t["name"] for t in standings[6:12]]
+
+    window_label = _fmt_date_range(window_start, window_end) + " (AMOSTRA)"
+    results_html = build_round_results_html(sample_games)
+    standings_html = build_standings_html(g4, z4, sa6)
+
+    deleted_ids = set(state.get("deletedIds") or [])
+    entries = [e for e in state.get("entries", []) if e.get("id") not in deleted_ids]
+    eduardo = next((e for e in entries if (e.get("participantEmail") or "").strip().lower() == ADMIN_EMAIL.lower()), None)
+    if not eduardo:
+        print(f"🛑 No entry found with participantEmail == {ADMIN_EMAIL} — cannot build a personalized preview.")
+        sys.exit(1)
+
+    ranked_now = rank_entries(entries, g4, z4, sa6)
+    r = next((x for x in ranked_now if x["entry"]["id"] == eduardo["id"]), None)
+
+    html = build_participant_email_html(window_label, results_html, standings_html, eduardo,
+                                         {"total": r["total"], "rank": r["rank"], "movement": None})
+    html = (
+        '<div style="background:#f59e0b;color:#000;padding:10px 16px;border-radius:8px;'
+        'font-weight:900;margin-bottom:14px;text-align:center">⚠️ TESTE — não é a rodada real. '
+        'Resultados de amostra (últimos jogos), não do lote pendente.</div>'
+    ) + html
+    subject = f"[TESTE] Rodada {window_label} — resultados e classificação"
+    status = send_email(ADMIN_EMAIL, subject, html)
+    print(f"\n✓ Test email sent to {ADMIN_EMAIL} (HTTP {status}). Supabase untouched.")
+
+
 def main():
-    if "--auto" not in sys.argv[1:]:
+    args = sys.argv[1:]
+    if "--test-send" in args:
+        run_test_send()
+        return
+    if "--auto" not in args:
         print(__doc__)
         sys.exit(1)
     run_auto()
