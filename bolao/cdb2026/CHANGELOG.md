@@ -1,5 +1,17 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.47 — 2026-07-17
+
+### Changed — horário do jogo agora mostra EST/EDT e BRT juntos (EST primeiro)
+
+Mesmo achado da Copa/BR2026 (ver changelog de cada um) — `fmtDate()` (função central,
+compartilhada entre a aba "Jogos" e o card "Próxima partida") agora prefixa o horário BRT com
+`estTimeStr()` (mesmo helper do BR2026, `Intl`/`America/New_York`). Como `fmtDate()` é a única
+função usada nos três lugares que mostram horário de confronto, a mudança propaga automaticamente
+para todos eles sem precisar editar cada um. Formato: `"16:30 (EDT) · sáb., 01/08, 17:30 BRT"`.
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v3.46 — 2026-07-17
 
 ### Fixed — faltava a fase (Oitavas/Quartas/...) no card de próximo confronto, e fase+venue no card ao vivo

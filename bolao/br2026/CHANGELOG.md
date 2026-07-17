@@ -1,5 +1,20 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.63 — 2026-07-17
+
+### Changed — horário do jogo agora mostra EST/EDT e BRT juntos (EST primeiro)
+
+Mesmo achado da Copa (ver changelog dela) — o BR2026 só mostrava BRT em todo lugar (`brtTimeStr`/
+`brtLongDate`), sem EST. Adicionado `estTimeStr()` (usa `Intl`/`America/New_York`, não offset
+fixo — diferente da Copa, o Brasileirão roda o ano inteiro e cruza a virada EDT/EST em novembro).
+Aplicado no card "Próximo jogo" (1 jogo só e lista compacta "Jogos de hoje") e na lista completa
+de jogos. Formato: `"18:30 (EDT) · 19:30 BRT"`.
+
+Timestamps de sistema (sync da ESPN, última rodada de Probabilidades) continuam só em BRT — não
+são horário de jogo, fora do escopo do pedido.
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v1.62 — 2026-07-17
 
 ### Fixed — venue faltava na lista "Jogos de hoje" e no card ao vivo

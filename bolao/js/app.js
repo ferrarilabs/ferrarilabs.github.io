@@ -379,6 +379,17 @@ function parseMatchKickoff(dateStr, timeET) {
   );
 }
 
+// Eduardo: "Seria ideal botar o horário brt e est sendo est primeiro para não confundir o
+// pessoal" (2026-07-17) — a Copa mostra os horários em ET (m.timeET, fonte oficial FIFA), mas o
+// público é majoritariamente brasileiro. Deriva o BRT do mesmo epoch já usado pro countdown
+// (parseMatchKickoff) em vez de fazer conta de fuso na mão — Brasil (America/Sao_Paulo) não tem
+// horário de verão desde 2019, mas usar Intl aqui evita repetir esse tipo de suposição hardcoded.
+function brtTimeFromKickoff(dateStr, timeET) {
+  const ms = parseMatchKickoff(dateStr, timeET);
+  if (ms === null) return "";
+  return new Date(ms).toLocaleTimeString("pt-BR", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit" });
+}
+
 // Knockout matches can run regulation (90) + stoppage (~10) + extra time (30)
 // + a penalty shootout (no fixed length, historically up to ~20-30 min) —
 // well past 135/150 min. A cutoff shorter than that made the UI treat a
@@ -543,7 +554,7 @@ function renderNextMatch() {
         <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
         <div class="next-match-teams">${escapeHtml(tA)} ${escapeHtml(flag(tA))} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
         <div class="hero-next-time">${phaseText}</div>
-        <div class="hero-next-time">${m.date ? escapeHtml(formatDate(m.date)) + " · " : ""}${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
+        <div class="hero-next-time">${m.date ? escapeHtml(formatDate(m.date)) + " · " : ""}${escapeHtml(m.timeET || "")}${m.timeET ? ` · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT` : ""} · M${escapeHtml(String(m.match))}</div>
         ${m.venue && m.venue !== "A confirmar" ? `<div class="hero-next-venue">📍 ${escapeHtml(m.venue)}${m.city ? `, ${escapeHtml(m.city)}` : ""}</div>` : ""}
       </div>
       <div class="next-match-countdown">${timerHtml}</div>
@@ -988,7 +999,7 @@ function renderBracket() {
       </div>
       <div class="match-meta">
         ${m.date ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
-        ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)}</span>` : ""}
+        ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)} · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT</span>` : ""}
         ${venueHtml}
       </div>
       <div class="teams">
@@ -1854,7 +1865,7 @@ function renderGames() {
 </div>
 <div class="game-meta">
   ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
-  ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)}</span>` : ""}
+  ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)} · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT</span>` : ""}
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
 </div>
 <div class="game-teams">
