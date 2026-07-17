@@ -1156,6 +1156,20 @@ function brtLongDate(isoStr) {
   return new Date(isoStr).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
+// Eduardo: "Seria ideal botar o horário brt e est sendo est primeiro para não confundir o
+// pessoal" (2026-07-17) — público inclui brasileiros morando nos EUA (métodos de pagamento são
+// CashApp/Zelle/Venmo). Jogos do Brasileirão são só em BRT hoje; adiciona o horário do leste dos
+// EUA ANTES do BRT em todo lugar que mostra horário de jogo. Usa Intl (America/New_York) em vez
+// de offset fixo -- ao contrário da Copa (sempre EDT, jogo só em jun/jul), o Brasileirão roda o
+// ano inteiro e cruza a virada EDT/EST (novembro).
+function estTimeStr(isoStr) {
+  const d = new Date(isoStr);
+  const time = d.toLocaleTimeString("pt-BR", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit" });
+  const tz = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", timeZoneName: "short" })
+    .formatToParts(d).find(p => p.type === "timeZoneName")?.value || "ET";
+  return `${time} (${tz})`;
+}
+
 // Caixa de dígitos ao vivo (dias/horas/min/seg) para o card "Próximo jogo" -- mesmo algoritmo e
 // mesma marcação (.count-grid + variante .four quando há dias) do contador da Copa
 // (renderNextMatch() em bolao/js/app.js), só trocando a classe .next-match-timer por
@@ -1706,7 +1720,7 @@ function renderNextGameCard() {
   if (groupLabel === "nextGamesLabel" && gamesToShow.length === 1) {
     const next    = gamesToShow[0];
     const now     = Date.now();
-    const timeStr = brtLongDate(next.dateISO) + " BRT";
+    const timeStr = `${estTimeStr(next.dateISO)} · ${brtLongDate(next.dateISO)} BRT`;
     const diffMs  = new Date(next.dateISO).getTime() - now;
     const timerHtml = countdownTimerHtml(diffMs);
 
@@ -1752,7 +1766,7 @@ function renderNextGameCard() {
           <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
         </div>`;
       } else {
-        const timeStr = brtTimeStr(g.dateISO);
+        const timeStr = `${estTimeStr(g.dateISO)} · ${brtTimeStr(g.dateISO)}`;
         const now     = Date.now();
         const diffMs  = new Date(g.dateISO).getTime() - now;
         // Contador em dígitos, mesmo componente exato da Copa (countdownTimerHtml() -> .count-grid)
@@ -1926,6 +1940,7 @@ function renderGamesSection() {
 
     byDate[key].forEach(g => {
       const timeStr = brtTimeStr(g.dateISO);
+      const timeStrFull = `${estTimeStr(g.dateISO)} · ${timeStr}`;
 
       let scoreOrTime, statusHtml;
       if (g.postponed) {
@@ -1938,7 +1953,7 @@ function renderGamesSection() {
         scoreOrTime = `<span class="game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status post">${esc(t("gameFinal"))}</span>`;
       } else {
-        scoreOrTime = `<span class="game-time">${esc(timeStr)}</span>`;
+        scoreOrTime = `<span class="game-time">${esc(timeStrFull)} BRT</span>`;
         statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
       }
 

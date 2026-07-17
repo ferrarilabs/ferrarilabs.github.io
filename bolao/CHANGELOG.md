@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## v4.145 — 2026-07-17
+
+### Changed — horário do jogo agora mostra EST/EDT e BRT juntos (EST primeiro)
+
+Eduardo: "Seria ideal botar o horário brt e est sendo est primeiro para não confundir o
+pessoal." A Copa sempre mostrou o horário só em ET (`m.timeET`, fonte oficial FIFA, ex.
+"17:00 (EDT)") — sem o equivalente em BRT, o que confunde o público brasileiro (inclusive
+brasileiros morando nos EUA, dado que os métodos de pagamento do bolão são CashApp/Zelle/Venmo).
+
+Adicionado `brtTimeFromKickoff()` — deriva o horário BRT do mesmo epoch já usado pelo contador
+regressivo (`parseMatchKickoff()`), sem repetir conta de fuso na mão. Aplicado nos três lugares
+que mostram `m.timeET`: card "Próximo jogo" (hero), pill de horário no formulário de palpites, e
+pill de horário na lista completa de jogos. Formato: `"17:00 (EDT) · 18:00 BRT"` — EST/EDT
+primeiro, como pedido.
+
+Mesmo ajuste no BR2026 e no CDB2026 (que já mostravam só BRT, sem EST) — ver changelog de cada
+app.
+
+`audit_scoring.py`: PASSOU. Presentation-only, nenhuma fórmula de pontuação tocada.
+
 ## v4.144 — 2026-07-17
 
 ### Fixed — "Próximo jogo"/"Ao vivo": faltava a fase do torneio e o local do jogo

@@ -1106,3 +1106,33 @@ Fluminense, Atlético-MG × Juventude, Santos × Remo) mostram fase + venue.
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação (novas
 linhas de texto/CSS reaproveitando dados e helpers já existentes), nenhuma fórmula de pontuação
 tocada.
+
+## Nota manual — horário de jogo mostra EST/EDT + BRT juntos, EST primeiro (2026-07-17, Copa v4.145 / BR2026 v1.63 / CDB2026 v3.47)
+
+Eduardo: "Seria ideal botar o horário brt e est sendo est primeiro para não confundir o pessoal."
+Pedido confirmado como aplicável aos três apps (pergunta feita ao Eduardo antes de implementar,
+dado que mudava o escopo de forma relevante — Copa só mostrava ET, BR2026/CDB2026 só mostravam
+BRT, então "adicionar o outro fuso" significa coisas diferentes em cada app).
+
+- **Copa**: já mostrava só ET (`m.timeET`, dado oficial FIFA, ex. "17:00 (EDT)"). Adicionado BRT
+  depois, derivado do mesmo epoch do contador (`parseMatchKickoff`) via novo helper
+  `brtTimeFromKickoff()` — sem repetir conta de fuso na mão.
+- **BR2026/CDB2026**: já mostravam só BRT. Adicionado EST/EDT ANTES do BRT via novo helper
+  `estTimeStr()` (usa `Intl`/`America/New_York`, não offset fixo — diferente da Copa, essas duas
+  ligas rodam o ano inteiro e cruzam a virada EDT/EST em novembro, a Copa é só jun/jul, sempre
+  EDT).
+
+Formato final igual nos três: `"HH:MM (EDT/EST) · HH:MM BRT"` (ou, no caso do BR2026/CDB2026,
+`"HH:MM (EDT/EST) · <data por extenso>, HH:MM BRT"` quando a data completa também aparece).
+
+`NOT_CONSISTENT` → `CONSISTENT`: os três apps agora mostram os dois fusos, na mesma ordem, em
+todo lugar que mostra horário de partida (card "próximo jogo", lista de jogos, formulário de
+palpites na Copa). Timestamps de SISTEMA (sync da ESPN, última rodada de Probabilidades, log de
+auditoria) ficaram de fora de propósito — não são horário de jogo, fora do escopo do pedido.
+
+Verificado com dados reais de produção (Supabase + ESPN) nos três apps via Playwright — Copa:
+M103 mostra "17:00 (EDT) · 18:00 BRT". BR2026: jogos reais de hoje mostram "18:30 (EDT) · 19:30
+BRT" etc. CDB2026: Oitavas de Final reais mostram "16:30 (EDT) · sáb., 01/08, 17:30 BRT" etc.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação (novo
+helper de formatação de horário), nenhuma fórmula de pontuação tocada.

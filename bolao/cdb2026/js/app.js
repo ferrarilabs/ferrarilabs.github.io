@@ -1341,13 +1341,26 @@ function renderProbsSection() {
 // abreviado + data + hora, fuso America/Sao_Paulo. Compartilhado entre a aba "Jogos" e o card
 // "Próxima partida" (renderNextTieCard()) para o mesmo confronto aparecer com a mesma data nos
 // dois lugares.
+// Eduardo: "Seria ideal botar o horário brt e est sendo est primeiro para não confundir o
+// pessoal" (2026-07-17) — mesmo ajuste do BR2026 (estTimeStr, bolao/br2026/js/app.js): público
+// inclui brasileiros morando nos EUA. Usa Intl (America/New_York) em vez de offset fixo -- a
+// Copa do Brasil roda o ano inteiro e cruza a virada EDT/EST (novembro).
+function estTimeStr(dateStr) {
+  const d = new Date(dateStr);
+  const time = d.toLocaleTimeString("pt-BR", { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit" });
+  const tz = new Intl.DateTimeFormat("en-US", { timeZone: "America/New_York", timeZoneName: "short" })
+    .formatToParts(d).find(p => p.type === "timeZoneName")?.value || "ET";
+  return `${time} (${tz})`;
+}
+
 function fmtDate(dateStr) {
   if (!dateStr) return t("gamesTbd");
   try {
-    return new Date(dateStr).toLocaleString("pt-BR", {
+    const brt = new Date(dateStr).toLocaleString("pt-BR", {
       timeZone: "America/Sao_Paulo",
       weekday: "short", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit"
     }) + " BRT";
+    return `${estTimeStr(dateStr)} · ${brt}`;
   } catch { return dateStr; }
 }
 
