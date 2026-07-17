@@ -275,12 +275,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   border-radius: 14px; padding: 14px 12px;
   min-width: 260px; flex: 1;
 }
-.live-match-row {
-  display: flex; align-items: center; gap: 4px; width: 100%;
-  background: none; border: 0; padding: 0; margin: 0;
-  color: inherit; font: inherit; text-align: left;
-}
-button.live-match-row { cursor: pointer; }
+.live-match-row { display: flex; align-items: center; gap: 4px; width: 100%; }
 .live-top { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex: 1; min-width: 0; }
 .live-team { display: flex; flex-direction: column; align-items: center; gap: 6px; flex: 1; min-width: 0; }
 .live-team-logo-box {
@@ -304,9 +299,7 @@ button.live-match-row { cursor: pointer; }
   font-size: 13px; font-weight: 800; color: var(--text);
   border-bottom: 2px solid var(--green); padding-bottom: 1px;
 }
-.live-chevron { font-size: 11px; color: var(--muted); flex-shrink: 0; }
 .live-match-detail { margin-top: 10px; }
-.live-match-detail.hidden { display: none; }
 
 /* ── Live plays feed (goals/cards/subs) — ported from Copa (bolao/css/styles.css
    .live-plays), see PLATFORM_ARCHITECTURE.md "Golden master" ── */

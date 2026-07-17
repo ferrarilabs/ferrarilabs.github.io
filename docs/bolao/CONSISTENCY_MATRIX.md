@@ -1213,3 +1213,25 @@ tem o mesmo padrão de bug. Não propagado por não se aplicar.
 
 `audit_scoring.py` (BR2026): PASSOU — bug era de timing/ordem de execução, não de fórmula de
 pontuação (a conta em si sempre esteve certa).
+
+## Nota manual — cards ao vivo do BR2026 sempre abertos, igual a Copa (2026-07-17, BR2026 v1.68)
+
+Eduardo: "Outra coisa que percebi sumiu os lances: cartoes, gols, substituição." Investigado com
+dados reais (3 jogos ao vivo simultâneos) — os lances nunca sumiram, sempre estiveram no HTML.
+O que mudava era o recolhimento automático dos cards quando 3+ jogos ficam ao vivo ao mesmo tempo
+(decisão antiga do BR2026, de antes desta sessão, para não "poluir a tela" numa rodada cheia —
+comentário original: "First time a match id shows up: default expanded when it's just 1-2 games,
+collapsed once a full round kicks off together"). A Copa nunca teve esse comportamento — sempre
+mostra os lances abertos, independente de quantos jogos estão ao vivo.
+
+Perguntado ao Eduardo antes de reverter (decisão de design antiga, não um bug meu) — confirmado:
+sempre aberto, igual à Copa. `NOT_CONSISTENT` → `CONSISTENT`: removida toda a lógica de
+expand/collapse do card ao vivo do BR2026 (`_liveExpanded`, `_liveSeenIds`, `defaultExpanded`, o
+botão/chevron ▲▼, o listener de clique, a chave i18n `liveToggleExpand`/`liveToggleCollapse`, a
+classe CSS `.live-chevron`) — o card agora tem a mesma estrutura da Copa/CDB2026 (sempre mostra
+lances + probabilidades, sem toggle).
+
+Verificado com os 3 jogos reais ao vivo de hoje via Playwright — os três cards mostram os lances
+sem precisar clicar.
+
+`audit_scoring.py` (BR2026): PASSOU — presentation-only, nenhuma fórmula de pontuação tocada.

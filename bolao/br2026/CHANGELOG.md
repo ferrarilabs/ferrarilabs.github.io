@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.68 — 2026-07-17
+
+### Changed — cards ao vivo sempre abertos (lances/probabilidades), igual a Copa
+
+Eduardo: "Outra coisa que percebi sumiu os lances: cartoes, gols, substituição." Investigado com
+dados reais (3 jogos ao vivo simultâneos hoje) — os lances nunca sumiram, continuavam no HTML
+normalmente (gols, cartão amarelo, tudo certo). O que mudou: com 3+ jogos ao vivo ao mesmo tempo,
+os cards do BR2026 recolhem automaticamente por padrão (comportamento antigo, de antes desta
+sessão — "First time a match id shows up: default expanded when it's just 1-2 games, collapsed
+once a full round kicks off together"), exigindo clicar numa setinha pra abrir. A Copa nunca teve
+esse recolhimento — sempre mostra os lances direto.
+
+Confirmado com o Eduardo (pergunta feita antes de mexer, já que reverte uma decisão de design
+antiga): remover o recolhimento automático — os cards ao vivo do BR2026 agora sempre mostram os
+lances e as barras de probabilidade abertos, igual à Copa, mesmo com vários jogos rolando ao mesmo
+tempo. Removida toda a lógica de expand/collapse (`_liveExpanded`, `_liveSeenIds`,
+`defaultExpanded`, o botão/chevron ▲▼ e o listener de clique) — código morto depois da mudança,
+junto com a chave i18n `liveToggleExpand`/`liveToggleCollapse` e a classe CSS `.live-chevron`,
+sem uso restante.
+
+Verificado com os 3 jogos reais ao vivo de hoje via Playwright — os três cards mostram os lances
+sem precisar clicar em nada.
+
+`audit_scoring.py`: PASSOU. Presentation-only, nenhuma fórmula de pontuação tocada.
+
 ## v1.67 — 2026-07-17
 
 ### Fixed — Ranking ao vivo/setas de movimento ficavam mudas no primeiro minuto de qualquer jogo ao vivo
