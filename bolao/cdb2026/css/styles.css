@@ -562,18 +562,22 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 #nextTieCard.hidden { display: none; }
 .next-game-card { display: flex; flex-direction: column; gap: 4px; }
-.next-game-label { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+/* Cor verde igual à Copa (.hero-next-label, bolao/css/styles.css) -- estava cinza (var(--muted)),
+   divergência real encontrada por Eduardo (2026-07-17, screenshot da Copa): "olha como esta a
+   copa faca igual em todos". */
+.next-game-label { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--green); }
 .next-game-teams { font-size: 15px; font-weight: 700; }
 .next-game-vs { color: var(--muted); margin: 0 6px; }
 .next-game-info { font-size: 12px; color: var(--muted); }
 .next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
 /* Múltiplas partidas no mesmo dia -- mesmas classes/medidas do BR2026 (.today-game-*,
    bolao/br2026/css/styles.css) para consistência visual. Eduardo: "proximo jogo mostra somente
-   um, mas amanha tem mais, mostre proximos jogos quando ha mais de um no mesmo dia" (2026-07-16). */
-/* Centralizado, mesmo padrão do card "ao vivo" (v3.40) -- mesmo ajuste do BR2026, Eduardo,
-   screenshot, 2026-07-17: "o alinhamento é esse tudo para a esquerda". */
-.today-games-header { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; text-align: center; }
-.today-game { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 0; border-top: 1px solid var(--border); text-align: center; }
+   um, mas amanha tem mais, mostre proximos jogos quando ha mais de um no mesmo dia" (2026-07-16).
+   Revertido de centralizado pra alinhado à esquerda -- Eduardo, screenshot da Copa, 2026-07-17:
+   "olha como esta a copa faca igual em todos. Isso não deveria nem ser questionado." O card de
+   referência real da Copa é alinhado à esquerda, com rótulo VERDE (não cinza). */
+.today-games-header { font-size: 10px; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; color: var(--green); margin-bottom: 4px; }
+.today-game { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; border-top: 1px solid var(--border); }
 .today-game:first-of-type { border-top: none; padding-top: 0; }
 .today-game-teams { font-size: 14px; font-weight: 700; }
 .today-game-time { font-size: 11px; }
