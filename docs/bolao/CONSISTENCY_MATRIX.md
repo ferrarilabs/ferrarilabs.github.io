@@ -1188,3 +1188,28 @@ ao vivo no momento — Bahia × Chapecoense, Fluminense × Bragantino, Mirassol 
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — presentation-only, nenhuma fórmula de
 pontuação tocada.
+
+## Nota manual — bug real: Ranking ao vivo mudo no primeiro minuto de qualquer jogo (2026-07-17, BR2026 v1.67)
+
+Eduardo, olhando o "Ranking ao vivo" durante os 3 jogos reais de hoje: "E no ranking também
+ninguém mexeu, verifique se isso é correto." Investigado reproduzindo a PÁGINA INTEIRA (não só a
+função pura) com dados reais — `calculateRankingMovement()`/`calculateLiveStandings()` chamadas
+isoladamente com os mesmos dados davam movimento correto (8 de 11 participantes com seta), mas a
+página real, recém carregada, mostrava "–" pra todo mundo. Isolado o bug: em `pollAll()`, o bloco
+que atualiza a variável `_standings` com os dados frescos da ESPN rodava DEPOIS do bloco que
+decide capturar a baseline de comparação (`captureStandingsBaseline()`, que lê `_standings`, não
+os dados recém-buscados) — na primeira vez que um jogo fica ao vivo numa sessão nova, a captura
+rodava sobre uma tabela ainda vazia (valor inicial `[]`), falhava silenciosamente, e só se
+corrigia no poll seguinte (60s depois).
+
+Corrigido: bloco de atualização de `_standings` movido pra ANTES do bloco de captura de baseline,
+mesma ordem lógica em que os dados já deveriam ter sido usados. Verificado com dados reais de
+produção nos dois cenários (antes/depois do fix, mesmo timing de um poll único) — confirma o
+atraso de 60s eliminado.
+
+Bug é específico do BR2026 (arquitetura própria: baseline de classificação de clube + recálculo ao
+vivo em cima dela) — CDB2026 usa `_liveTies` direto, sem esse tipo de baseline em duas etapas, não
+tem o mesmo padrão de bug. Não propagado por não se aplicar.
+
+`audit_scoring.py` (BR2026): PASSOU — bug era de timing/ordem de execução, não de fórmula de
+pontuação (a conta em si sempre esteve certa).

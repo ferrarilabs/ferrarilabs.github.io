@@ -912,6 +912,25 @@ async function pollAll() {
     // indefinidamente sem nenhum recuo.
     _pollFailed = !standings || matches === null;
 
+    // _standings must be updated BEFORE captureStandingsBaseline() runs below -- that function
+    // reads the _standings module variable, not the `standings` local just fetched. Achado real
+    // (2026-07-17, Eduardo: "no ranking também ninguém mexeu"): com esses dois blocos na ordem
+    // trocada (como estava antes), a PRIMEIRA vez que um jogo ficava ao vivo (página recém
+    // carregada, _standings ainda `[]` do valor inicial) capturava a baseline com `_standings`
+    // vazio -- captureStandingsBaseline() via `_standings.length < 20`, guarda `null` de novo e
+    // desiste sem quebrar nada -- só que o `_standings = standings` que preencheria os 20 times
+    // só rodava DEPOIS, tarde demais pra esse poll. A baseline só se estabelecia no poll SEGUINTE
+    // (mais 60s depois, usando os dados que ESTE poll deveria ter usado desde o início). Efeito:
+    // "Ranking ao vivo"/setas de movimento ficavam mudos ("–") no primeiro minuto de qualquer
+    // jogo ao vivo, sempre — não permanente, mas um atraso real e evitável.
+    if (standings) {
+      _standings    = standings;
+      _matchProbs   = {};
+      _ratingsCache = null;
+      _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([,v]) => v));
+      scheduleMC();
+    }
+
     if (matches !== null) {
       const rawLive = matches.filter(m => m.state === "in");
       // Window state machine keyed off baseline presence (not _liveMatches, which resets to []
