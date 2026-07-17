@@ -1750,20 +1750,11 @@ function renderNextGameCard() {
         const timeStr = brtTimeStr(g.dateISO);
         const now     = Date.now();
         const diffMs  = new Date(g.dateISO).getTime() - now;
-        // Antes só mostrava contagem regressiva na última hora ("· 12m 34s"), nada antes disso --
-        // um dia com vários jogos (ex. 3 jogos às 19h/20h) ficava sem nenhuma pista de quanto
-        // faltava a manhã inteira. Eduardo: "contador era dos proximos jogos" (2026-07-17, depois
-        // de confirmar que "sumiu" era essa contagem, não a do prazo de entrada). Agora sempre
-        // mostra alguma contagem quando o jogo é hoje e ainda não começou -- h+min quando falta
-        // mais de 1h (não precisa de segundos a essa distância), min+seg na última hora.
-        let countdown = "";
-        if (diffMs > 0 && diffMs < 3600000) {
-          const m = Math.floor(diffMs / 60000), s = Math.floor((diffMs % 60000) / 1000);
-          countdown = ` · ${m}m ${String(s).padStart(2, "0")}s`;
-        } else if (diffMs >= 3600000) {
-          const h = Math.floor(diffMs / 3600000), m = Math.floor((diffMs % 3600000) / 60000);
-          countdown = ` · em ${h}h ${String(m).padStart(2, "0")}m`;
-        }
+        // Contador em dígitos, mesmo componente exato da Copa (countdownTimerHtml() -> .count-grid)
+        // -- não texto solto. Eduardo: "A contagem regressiva tem que ser igual copa meu!"
+        // (2026-07-17), depois de uma primeira tentativa em texto inline ("· em 10h 05m") que não
+        // era o mesmo widget visual da Copa, só um resumo em palavras.
+        const timerHtml = countdownTimerHtml(diffMs);
         const mpKey = `${g.homeTeam}|${g.awayTeam}`;
         if (!_matchProbs[mpKey] && _standings.length >= 20) {
           const r = buildRatings();
@@ -1787,8 +1778,13 @@ function renderNextGameCard() {
           </div>`;
         })() : "";
         return `<div class="today-game">
-          <div class="today-game-teams">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
-          <span class="today-game-time muted">${esc(timeStr)} BRT${esc(countdown)}</span>
+          <div class="next-game-row">
+            <div class="next-game-info-block">
+              <div class="today-game-teams">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
+              <span class="today-game-time muted">${esc(timeStr)} BRT</span>
+            </div>
+            ${timerHtml}
+          </div>
           ${heroBars}
         </div>`;
       }

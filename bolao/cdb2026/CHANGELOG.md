@@ -1,5 +1,12 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.45 — 2026-07-17
+
+### Changed — "Próximos jogos": contador em texto trocado pelo widget de dígitos da Copa
+
+Mesmo achado do BR2026 (ver changelog dele) — trocado o resumo em texto por
+`countdownTimerHtml()`, o mesmo widget de caixas em dígitos já usado no card de 1 partida só.
+
 ## v3.44 — 2026-07-17
 
 ### Fixed — "Próximos jogos"/"Próxima partida": rótulo cinza (devia ser verde) + centralização revertida
