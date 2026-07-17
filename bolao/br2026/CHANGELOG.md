@@ -1,5 +1,29 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.65 — 2026-07-17
+
+### Changed — "Ranking ao vivo" agora aparece sempre que há jogo ao vivo
+
+Eduardo, durante um jogo real ao vivo (Bahia 1×0 Chapecoense, 21'): "onde está o ranking
+provisório? Você remove funcionalidades." Investigado: o hero não tinha sido removido, mas
+ficava escondido por design sempre que ninguém ainda tinha cruzado uma fronteira de classificação
+G4/Z4 desde a última base salva (`hasMover`, decisão do Eduardo em 2026-07-16: "se ficar ruim ou
+muito busy deixa de fora"). Com 1 gol isolado aos 21' de 1 dos 3 jogos do dia, ninguém tinha se
+mexido ainda — a caixa sumia bem na hora que fazia mais sentido mostrar algo.
+
+Confirmado com o Eduardo (pergunta feita antes de reverter a decisão anterior): agora
+`renderLiveRankingHero()` mostra a lista sempre que há jogo(s) ao vivo, com participantes que
+ainda não tiveram sua posição comparada mostrando "–" (mesmo indicador neutro já usado quando a
+baseline ainda não carregou) em vez de a caixa inteira sumir.
+
+Verificado com o jogo real ao vivo (Bahia × Chapecoense) via Playwright — ranking aparece
+corretamente.
+
+Mesmo ajuste no CDB2026 (mesmo padrão de código, mesma decisão de produto — sem tie ao vivo pra
+testar agora, Oitavas só começa 1º/ago).
+
+`audit_scoring.py`: PASSOU. Presentation-only, nenhuma fórmula de pontuação tocada.
+
 ## v1.64 — 2026-07-17
 
 ### Fixed — local do jogo espremido no card ao vivo (bug real, não da Copa)

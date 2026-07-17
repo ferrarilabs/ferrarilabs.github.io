@@ -1151,13 +1151,16 @@ jogo real ao vivo via Playwright.
 
 Também investigado no mesmo turno: "onde está o ranking provisório?" — o hero "🏆 Ranking ao
 vivo" do BR2026 (`renderLiveRankingHero()`) estava de fato oculto durante esse jogo real, mas por
-design, não por bug: só aparece quando pelo menos um participante já mudou de posição desde a
-baseline (`hasMover`), decisão explícita do Eduardo em 2026-07-16 ("se ficar ruim ou muito busy
-deixa de fora"). Com Bahia 1×0 aos 21' (1 gol, 1 dos 3 jogos simultâneos), ninguém tinha cruzado
-uma fronteira de classificação G4/Z4 ainda — comportamento OK dado o critério existente, mas
-gerando a impressão de "sumiu" bem no momento em que mais faz sentido mostrar algo. Não alterado
-sem confirmação — pergunta feita ao Eduardo antes de reverter uma decisão de produto explícita
-dele (ver conversa).
+design, não por bug: só aparecia quando pelo menos um participante já tinha mudado de posição
+desde a baseline (`hasMover`), decisão explícita do Eduardo em 2026-07-16 ("se ficar ruim ou
+muito busy deixa de fora"). Com Bahia 1×0 aos 21' (1 gol, 1 dos 3 jogos simultâneos), ninguém
+tinha cruzado uma fronteira de classificação G4/Z4 ainda — comportamento OK dado o critério
+existente, mas gerando a impressão de "sumiu" bem no momento em que mais faz sentido mostrar
+algo. Perguntado ao Eduardo antes de reverter a decisão de produto anterior (`AskUserQuestion`) —
+confirmado: mostrar sempre que há jogo ao vivo, mesmo sem ninguém se mexendo ainda (setas
+neutras "–" em vez da caixa inteira sumir). Implementado em `renderLiveRankingHero()`
+(BR2026 v1.65) e propagado ao CDB2026 (v3.48, mesmo padrão de código/decisão, sem tie ao vivo pra
+testar agora).
 
-`audit_scoring.py` (BR2026): PASSOU — bug era só de layout/CSS, nenhuma fórmula de pontuação
-tocada.
+`audit_scoring.py` (BR2026/CDB2026): PASSOU nos dois — mudanças são só layout/CSS e visibilidade
+de um componente já existente, nenhuma fórmula de pontuação tocada.
