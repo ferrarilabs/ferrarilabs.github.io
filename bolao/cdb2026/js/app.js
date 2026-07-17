@@ -1500,7 +1500,7 @@ function findAllUpcomingMatchesOnNextDay(s) {
         if (brtDateKey(m.kickoff) !== dayKey) return;
         const home = m.homeTeam || (leg === "second" ? tie.teamB : tie.teamA);
         const away = m.awayTeam || (leg === "second" ? tie.teamA : tie.teamB);
-        all.push({ kickoffMs, m, home, away });
+        all.push({ kickoffMs, m, home, away, phaseName: phase.name });
       });
     });
   });
@@ -1518,14 +1518,15 @@ function renderNextTieCard() {
     // Contador em dígitos, mesmo componente exato da Copa (countdownTimerHtml() -> .count-grid)
     // -- não texto solto. Eduardo: "A contagem regressiva tem que ser igual copa meu!"
     // (2026-07-17), mesmo ajuste do BR2026.
-    const items = group.map(({ m, home, away, kickoffMs }) => {
+    const items = group.map(({ m, home, away, kickoffMs, phaseName }) => {
       const diffMs   = kickoffMs - Date.now();
       const timerHtml = countdownTimerHtml(diffMs);
       return `<div class="today-game">
       <div class="next-game-row">
         <div class="next-game-info-block">
           <div class="today-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
-          <span class="today-game-time muted">${esc(fmtDate(m.kickoff))}</span>
+          <div class="today-game-time muted">${phaseName ? esc(phaseName) + " · " : ""}${esc(fmtDate(m.kickoff))}</div>
+          ${m.venue ? `<div class="next-game-venue">📍 ${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
         </div>
         ${timerHtml}
       </div>
@@ -1540,7 +1541,7 @@ function renderNextTieCard() {
   }
 
   const next = group[0];
-  const { m, home, away } = next;
+  const { m, home, away, phaseName } = next;
   const diffMs    = next.kickoffMs - Date.now();
   const timerHtml = countdownTimerHtml(diffMs);
 
@@ -1549,6 +1550,7 @@ function renderNextTieCard() {
     <div class="next-game-row">
       <div class="next-game-info-block">
         <div class="next-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
+        ${phaseName ? `<div class="next-game-info">${esc(phaseName)}</div>` : ""}
         <div class="next-game-info">${esc(fmtDate(m.kickoff))}</div>
         ${m.venue ? `<div class="next-game-venue">${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
       </div>
@@ -1981,6 +1983,13 @@ function renderLiveTieCard() {
   const rows = _liveTies.map(l => {
     const clock = liveClockDisplay(l);
     const playsHtml = livePlaysHtml(l.plays, l.homeTeam, l.awayTeam, `${l.tieId}:${l.leg}`);
+    const phaseName = getPhaseDef(l.phaseId)?.name || "";
+    const m = l.tie?.matches?.[l.leg];
+    const venue = m?.venue ? `${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}` : "";
+    const metaHtml = (phaseName || venue) ? `<div class="live-match-meta">
+      ${phaseName ? `<span>${esc(phaseName)}</span>` : ""}
+      ${venue ? `<span>📍 ${venue}</span>` : ""}
+    </div>` : "";
     return `<div class="live-match">
       <div class="live-top">
         ${teamColHtml(l.homeTeam)}
@@ -1992,6 +2001,7 @@ function renderLiveTieCard() {
         <div class="live-score">${l.goalsAway ?? 0}</div>
         ${teamColHtml(l.awayTeam)}
       </div>
+      ${metaHtml}
       ${playsHtml ? `<div class="live-match-detail">${playsHtml}</div>` : ""}
     </div>`;
   }).join("");

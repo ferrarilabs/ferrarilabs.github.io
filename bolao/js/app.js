@@ -443,6 +443,13 @@ function renderNextMatch() {
       const probBlock = m ? liveProbBarsHtml(m, ls) : "";
       const scorersBlock = goalScorersHtml(ls, tA, tB);
       const playsBlock = livePlaysHtml(ls, tA, tB, mid);
+      const livePhaseText = m ? escapeHtml(phaseLabel(m.phase || "Fase de grupos")) +
+        (m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : "") : "";
+      const liveVenue = m && m.venue && m.venue !== "A confirmar" ? m.venue : "";
+      const liveMetaBlock = (livePhaseText || liveVenue) ? `<div class="hero-live-meta">
+        ${livePhaseText ? `<span>${livePhaseText}${m ? ` · M${escapeHtml(String(m.match))}` : ""}</span>` : ""}
+        ${liveVenue ? `<span>📍 ${escapeHtml(liveVenue)}</span>` : ""}
+      </div>` : "";
       // A real break in play (halftime, penalties — no running clock exists
       // once regulation/extra time ends — or any other stoppage clockPaused
       // picked up from the clock's own behavior) isn't more elapsed play
@@ -469,6 +476,7 @@ function renderNextMatch() {
           <span class="hero-live-team-name">${escapeHtml(tB)}</span>
         </div>
       </div>
+      ${liveMetaBlock}
       ${scorersBlock}
       ${playsBlock}
       ${probBlock}
@@ -490,6 +498,8 @@ function renderNextMatch() {
   const { winners, losers } = officialWinnersMap(state());
   const tA = resolveSlot(m.teamA, winners, losers);
   const tB = resolveSlot(m.teamB, winners, losers);
+  const phaseText = escapeHtml(phaseLabel(m.phase || "Fase de grupos")) +
+    (m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : "");
 
   if (postponed) {
     card.innerHTML = `
@@ -497,7 +507,8 @@ function renderNextMatch() {
         <div class="next-match-info">
           <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
           <div class="next-match-teams">${escapeHtml(tA)} ${escapeHtml(flag(tA))} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
-          <div class="hero-next-time"><span class="hero-next-live">${escapeHtml(t("matchPostponed"))}</span>${label ? " — " + escapeHtml(label) : ""} · M${escapeHtml(String(m.match))}</div>
+          <div class="hero-next-time">${phaseText} · M${escapeHtml(String(m.match))}</div>
+          <div class="hero-next-time"><span class="hero-next-live">${escapeHtml(t("matchPostponed"))}</span>${label ? " — " + escapeHtml(label) : ""}</div>
           ${m.venue && m.venue !== "A confirmar" ? `<div class="hero-next-venue">📍 ${escapeHtml(m.venue)}${m.city ? `, ${escapeHtml(m.city)}` : ""}</div>` : ""}
         </div>
       </div>`;
@@ -531,6 +542,7 @@ function renderNextMatch() {
       <div class="next-match-info">
         <div class="hero-next-label">${escapeHtml(t("heroNextMatch"))}</div>
         <div class="next-match-teams">${escapeHtml(tA)} ${escapeHtml(flag(tA))} <span class="muted">×</span> ${escapeHtml(flag(tB))} ${escapeHtml(tB)}</div>
+        <div class="hero-next-time">${phaseText}</div>
         <div class="hero-next-time">${m.date ? escapeHtml(formatDate(m.date)) + " · " : ""}${escapeHtml(m.timeET || "")} · M${escapeHtml(String(m.match))}</div>
         ${m.venue && m.venue !== "A confirmar" ? `<div class="hero-next-venue">📍 ${escapeHtml(m.venue)}${m.city ? `, ${escapeHtml(m.city)}` : ""}</div>` : ""}
       </div>
