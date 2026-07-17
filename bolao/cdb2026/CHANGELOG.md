@@ -1,5 +1,16 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.48 — 2026-07-17
+
+### Changed — "Ranking ao vivo" agora aparece sempre que há confronto ao vivo
+
+Mesmo achado/decisão do BR2026 (ver changelog dele) — removida a condição `hasMover` de
+`renderLiveRankingHero()`, que escondia o hero inteiro sempre que ninguém ainda tinha subido ou
+descido de posição. Propagado aqui mesmo sem tie ao vivo pra testar agora (Oitavas só começa
+1º/ago) — mesmo padrão de código, mesma decisão de produto.
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v3.47 — 2026-07-17
 
 ### Changed — horário do jogo agora mostra EST/EDT e BRT juntos (EST primeiro)

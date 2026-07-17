@@ -1625,9 +1625,17 @@ function renderLiveCard() {
 // explicitamente um hero nesse estilo, "mesmo estilo da Copa" (hero-live-points), logo abaixo
 // do card de jogos ao vivo (2026-07-16). Reaproveita o cálculo já usado nas setas do Ranking
 // (calculateRankingMovement — ver docs/bolao/BR2026_LIVE_STANDINGS.md), só muda ONDE é
-// mostrado — nenhum cálculo novo. Só aparece com jogo(s) ao vivo, baseline confiável, e pelo
-// menos um participante realmente subindo/descendo — sem isso fica escondido (Eduardo: "se
-// ficar ruim ou muito busy deixa de fora"), nunca mostra uma tabela parada sem nada relevante.
+// mostrado — nenhum cálculo novo.
+//
+// Antes (2026-07-16) só aparecia com pelo menos um participante realmente subindo/descendo
+// ("se ficar ruim ou muito busy deixa de fora"). Revertido em 2026-07-17 (Eduardo, durante um
+// jogo real ao vivo: "onde está o ranking provisório? Você remove funcionalidades") -- confirmado
+// com o Eduardo que o comportamento certo é mostrar sempre que há jogo ao vivo, mesmo que ainda
+// ninguém tenha cruzado uma fronteira de classificação (ex.: 1 gol isolado aos 21' de um dos 3
+// jogos do dia raramente já move alguém) -- a caixa sumir justo durante o jogo, quando faz mais
+// sentido mostrar algo, era pior que mostrar uma lista com setas neutras ("–"/"•"). Mesma lógica
+// pra baseline ausente (ex.: página carregada no meio do jogo): calculateRankingMovement() já
+// trata isso como "unavailable" por entrada (não esconde o hero inteiro).
 function renderLiveRankingHero() {
   const card = $("liveRankingHero");
   if (!card) return;
@@ -1640,22 +1648,13 @@ function renderLiveRankingHero() {
   if (!entries.length || locked || _standings.length < 20) { card.classList.add("hidden"); return; }
 
   const baseline = rankingBaselineResultSet();
-  if (!baseline) { card.classList.add("hidden"); return; }
-
   const cur = currentResultSet();
   const movement = calculateRankingMovement({ entries, baseline, live: cur });
-  const scored   = rankEntries(entries, cur.g4, cur.z4, cur.sa6).sort((a, b) => a.rank - b.rank);
-  const hasMover = scored.some(item => {
-    const mv = movement.get(item.e.id);
-    return mv && (mv.status === "up" || mv.status === "down");
-  });
-  // Só mostra o hero quando há de fato alguém subindo/descendo com o placar atual -- lista
-  // parada, ninguém se mexendo, não é uma "projeção ao vivo" interessante de mostrar (Eduardo:
-  // "se ficar ruim ou muito busy deixa de fora"). Mas UMA VEZ que aparece, mostra TODO MUNDO
-  // (não só quem se move), com scroll -- Eduardo: "no ranking so aparece da 4 posicao pra baixo,
-  // tem que aparecer todos, pode scrolar mas deixa pelo menos 4-5 no topo" (2026-07-16). Filtrar
-  // pra só os movers cortava a lista de um jeito que parecia estar faltando gente do topo.
-  if (!hasMover) { card.classList.add("hidden"); return; }
+  // Mostra TODO MUNDO (não só quem se move), com scroll -- Eduardo: "no ranking so aparece da 4
+  // posicao pra baixo, tem que aparecer todos, pode scrolar mas deixa pelo menos 4-5 no topo"
+  // (2026-07-16). Filtrar pra só os movers cortava a lista de um jeito que parecia estar
+  // faltando gente do topo.
+  const scored = rankEntries(entries, cur.g4, cur.z4, cur.sa6).sort((a, b) => a.rank - b.rank);
 
   const rows = scored.map(item => {
     const mv = movement.get(item.e.id);

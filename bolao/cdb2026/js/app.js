@@ -1931,8 +1931,14 @@ function rankMovementHtml(mv) {
 // Hero "Ranking ao vivo" -- mesmo padrão visual/UX do BR2026 (#liveRankingHero,
 // renderLiveRankingHero() em bolao/br2026/js/app.js v1.55): mostra TODO MUNDO ordenado por
 // posição (não só quem se move -- v1.54 do BR2026 filtrava e escondia o topo da lista, corrigido
-// depois), dentro de uma caixa com scroll e cabeçalho fixo. Só aparece com tie(s) ao vivo E pelo
-// menos alguém realmente subindo/descendo -- sem isso fica escondido.
+// depois), dentro de uma caixa com scroll e cabeçalho fixo.
+//
+// Antes só aparecia com tie(s) ao vivo E pelo menos alguém realmente subindo/descendo. Removido
+// em 2026-07-17 (mesmo ajuste do BR2026 v1.65, ver changelog dele — Eduardo, durante um jogo real
+// ao vivo do BR2026: "onde está o ranking provisório? Você remove funcionalidades"): a caixa
+// sumir bem na hora que tem jogo rolando, só porque ainda ninguém cruzou fronteira nenhuma, era
+// pior que mostrar a lista com setas neutras ("–"). Propagado aqui mesmo sem CDB2026 ter tie(s)
+// ao vivo agora (Oitavas só começa 1º/ago) -- mesmo padrão de código, mesma decisão de produto.
 function renderLiveRankingHero() {
   const card = $("liveRankingHero");
   if (!card) return;
@@ -1945,11 +1951,6 @@ function renderLiveRankingHero() {
 
   const movement = calculateRankingMovement(entries, s);
   const scored   = rankEntriesBy(entries, e => liveScoreEntry(e, s));
-  const hasMover = scored.some(item => {
-    const mv = movement.get(item.e.id);
-    return mv && (mv.status === "up" || mv.status === "down");
-  });
-  if (!hasMover) { card.classList.add("hidden"); return; }
 
   const rows = scored.map(item => {
     const mv = movement.get(item.e.id);
