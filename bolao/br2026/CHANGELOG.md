@@ -1,5 +1,34 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.67 — 2026-07-17
+
+### Fixed — Ranking ao vivo/setas de movimento ficavam mudas no primeiro minuto de qualquer jogo ao vivo
+
+Eduardo: "E no ranking também ninguém mexeu, verifique se isso é correto." Investigado com dados
+reais de produção (entradas do Supabase + ESPN ao vivo) reproduzindo a página inteira, não só a
+função de cálculo isolada — achado confirmado como bug real, não confusão de dados.
+
+Causa: em `pollAll()`, o bloco que atualiza `_standings` com os dados recém-buscados da ESPN
+rodava DEPOIS do bloco que decide se captura a baseline (`captureStandingsBaseline()`), mas essa
+função lê a variável `_standings` (não os dados frescos que acabaram de chegar). Na PRIMEIRA vez
+que um jogo fica ao vivo numa sessão nova (página recém carregada, `_standings` ainda vazio do
+valor inicial), a captura da baseline rodava sobre uma tabela vazia, falhava silenciosamente
+(guarda `null`, sem erro) — e só se corrigia no poll SEGUINTE, 60s depois, usando dados que já
+deveriam estar disponíveis desde o início.
+
+Efeito visível: no primeiro minuto de qualquer rodada ao vivo, tanto as setas de movimento no
+Ranking quanto o hero "🏆 Ranking ao vivo" mostravam "–" (indisponível) pra todo mundo, mesmo
+quando o resultado dos jogos já deveria ter mudado a posição de vários participantes.
+
+Corrigido: `_standings` agora é atualizado ANTES do bloco que decide capturar a baseline, na mesma
+chamada de `pollAll()`. Verificado com dados reais de produção — antes do fix, uma página recém
+carregada com jogo ao vivo mostrava 11/11 participantes com "–"; depois do fix, no mesmo cenário
+(mesmo timing, mesmo poll único), 8/11 já mostram seta real (▲/▼) no primeiro poll.
+
+`audit_scoring.py`: PASSOU. O bug era de timing/estado, não de fórmula de pontuação — a conta em
+si sempre esteve certa (confirmado chamando `calculateRankingMovement()`/`calculateLiveStandings()`
+isoladamente antes de achar o bug de ordem).
+
 ## v1.66 — 2026-07-17
 
 ### Changed — local do jogo removido do card ao vivo
