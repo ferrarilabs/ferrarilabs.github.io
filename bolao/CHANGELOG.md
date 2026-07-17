@@ -1,5 +1,17 @@
 # CHANGELOG
 
+## v4.142 — 2026-07-17
+
+### Fixed — caixa de foco feia ao redor do título ao trocar de aba
+
+Eduardo, screenshot: uma caixa azul aparecia em volta de "Projeção do Bolão" (BR2026) depois de
+trocar de aba. `showSection()` dá `tabindex="-1"` + `.focus()` no `<h2>`/`<h3>` da seção a cada
+troca de aba, de propósito — pra leitor de tela saber que a página mudou — mas o anel de foco
+padrão do navegador ficava visível como uma caixa ao redor do texto. Como esse elemento nunca é
+alcançado por navegação real via Tab, esconder o anel visual não perde nada de acessibilidade de
+verdade (o foco continua movendo pra leitores de tela, só o desenho do anel some). Mesmo
+`showSection()` existe nos três apps — corrigido nos três ao mesmo tempo.
+
 ## v4.141 — 2026-07-16
 
 ### Fixed — cosmético de ranking, propagado a partir de uma auditoria de consistência disparada pelo BR2026/CDB2026

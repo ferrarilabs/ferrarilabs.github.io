@@ -1,5 +1,40 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.57 — 2026-07-17
+
+### Fixed — caixa de foco feia ao redor do título "Projeção do Bolão"
+
+Eduardo, screenshot: uma caixa azul aparecia em volta de "Projeção do Bolão" depois de trocar de
+aba pro Ranking. É o anel de foco padrão do navegador em cima do `<h2>` que `showSection()`
+foca de propósito a cada troca de aba (pra leitor de tela saber que a página mudou) — nunca
+alcançado por navegação real via Tab, então esconder o anel visual não perde acessibilidade de
+verdade. Mesmo padrão corrigido na Copa e no CDB2026 (ver changelogs deles).
+
+### Fixed — caixa da contagem regressiva ficava vazia e visível depois do prazo encerrar
+
+Eduardo, screenshot: a caixa "Encerrado" no topo continuava ocupando o mesmo espaço grande da
+contagem regressiva mesmo depois do prazo — "Pode esconder isso". Mesmo padrão que a Copa sempre
+teve (`updateCountdown()`, esconde a caixa inteira quando `diff <= 0`) — o BR2026 tinha divergido
+mostrando "Encerrado" solto dentro da caixa em vez de escondê-la. Corrigido pra esconder a caixa
+inteira, igual à Copa. Mesmo ajuste no CDB2026 (por fase ativa, não pelo fim do torneio inteiro).
+
+### Fixed — pontos do Ranking quebrando em duas linhas ("170" / "pts")
+
+Eduardo: "Deixe tudo da entrada em uma linha e sem crlf." A coluna de pontos no mobile tem
+largura FIXA de 40px (pra o botão "Ver palpites" nunca deslocar conforme o placar tem 1-3
+dígitos) — dimensionada só pros dígitos, exatamente como a Copa. O sufixo " pts" (que a Copa
+nunca mostrou aqui) não cabia nessa largura e quebrava linha. Removido, mesmo padrão da Copa
+(número puro, sem rótulo).
+
+### Fixed — contador regressivo do "Próximo jogo" tinha sumido
+
+Eduardo: "A contagem regressiva dos próximos jogos sumiu." Regressão da v1.56: ao agrupar por
+dia pra mostrar múltiplos jogos no mesmo dia seguinte (pedido anterior do Eduardo), o branch que
+tratava "só 1 jogo no próximo dia" foi substituído pelo item compacto de "jogos de hoje" (sem o
+contador em dígitos grandes) em vez de manter o layout rico original. Restaurado: quando há
+exatamente 1 jogo no próximo dia com jogo, volta o card rico com contador em dígitos + local;
+quando há mais de 1, continua a lista compacta (pedido original preservado).
+
 ## v1.56 — 2026-07-16
 
 ### Fixed — relógio ao vivo mudava de formato quando pausava (achado em screenshot: "51'" vs "52:24")

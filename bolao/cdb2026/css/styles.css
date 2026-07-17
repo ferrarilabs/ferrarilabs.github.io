@@ -646,6 +646,11 @@ button:focus-visible, input:focus-visible, select:focus-visible {
   outline: 2px solid #2fe56e;
   outline-offset: 3px;
 }
+/* showSection() gives the new section's heading tabindex="-1" + .focus() on every tab switch, so
+   screen readers land on it -- the browser's default focus ring showed as an ugly box around the
+   heading text (Eduardo, screenshot, 2026-07-16: "Remova essa caixa ao redor da projeção").
+   Same fix in Copa/BR2026 (identical showSection() pattern in all three). */
+h2:focus, h3:focus { outline: none; }
 
 /* ── Responsive ── */
 @media (min-width: 901px) {
