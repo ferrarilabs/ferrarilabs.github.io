@@ -3973,6 +3973,16 @@ function detectClockPaused(freshRaw, prevRaw) {
   return clockDelta < realElapsed * 0.3;
 }
 
+// Vários elementos (card ao vivo, próximo jogo) aparecem/somem dinamicamente a cada poll --
+// mesmo achado do BR2026/CDB2026 (Eduardo, screenshot, 2026-07-17: "Ainda tem bastante areas em
+// branco ao final da pagina, isso tinha sido corrigido"): quando o conteúdo ENCOLHE enquanto a
+// página está rolada perto do final, o Safari no iOS é conhecido por não recalcular a área
+// rolável até uma interação nova. `scrollBy(0, 0)` não move a página, só força o WebKit a
+// recalcular os limites de rolagem.
+function nudgeScrollReflow() {
+  requestAnimationFrame(() => { if (window.scrollY > 0) window.scrollBy(0, 0); });
+}
+
 async function pollLiveScores() {
   const prevIds = new Set(Object.keys(_liveScores));
   const events = await fetchEspnFixtures();
@@ -4005,6 +4015,7 @@ async function pollLiveScores() {
 
   renderGames();
   renderNextMatch();
+  nudgeScrollReflow();
 
   // Best-effort: try ESPN's own win-probability model for each live match,
   // once per poll cycle. Fire-and-forget — renders already happened above
@@ -4195,6 +4206,7 @@ function renderAll() {
   updateDynamic();
   renderFooterBar();
   if (isAdminActive() && !$("#adminArea")?.classList.contains("hidden")) renderAdmin();
+  nudgeScrollReflow();
 }
 
 /* ============================================================

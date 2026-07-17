@@ -1,5 +1,15 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.42 — 2026-07-17
+
+### Fixed — vão em branco no final da página no iOS (hipótese: reflow de rolagem do WebKit)
+
+Mesmo achado/mecanismo do BR2026 (ver changelog dele pro detalhe completo) — cards que
+aparecem/somem dinamicamente a cada poll de 60s (ao vivo, ranking ao vivo, próxima partida,
+contagem regressiva) podem encolher o conteúdo enquanto a página está rolada perto do final,
+deixando um vão vazio no Safari do iOS. `nudgeScrollReflow()` aplicada depois de cada ciclo de
+renderização (`pollLiveTies()` e `renderAll()`).
+
 ## v3.41 — 2026-07-17
 
 ### Fixed — caixa de foco feia ao redor do título ao trocar de aba
