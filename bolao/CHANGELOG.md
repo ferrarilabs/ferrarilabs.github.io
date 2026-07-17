@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## v4.146 — 2026-07-17
+
+### Changed — local do jogo removido do card ao vivo
+
+Eduardo: "Não precisa mostrar a localização no live mode." O card ao vivo (`hero-live-card`)
+ganhou fase+local na rodada anterior (v4.144) — o local (📍) volta a ficar de fora enquanto o jogo
+está rolando. A fase (ex. "Disputa do 3º lugar") continua, útil pra saber "que jogo é esse"
+durante a partida. O local continua aparecendo normalmente no card "Próximo jogo" (pré-live).
+
+Mesmo ajuste no BR2026 (removida a única linha de meta que existia lá, já que BR2026 não tem
+"fase") e no CDB2026 (mantida a fase, removido só o local).
+
+`audit_scoring.py`: PASSOU. Presentation-only, nenhuma fórmula de pontuação tocada.
+
 ## v4.145 — 2026-07-17
 
 ### Changed — horário do jogo agora mostra EST/EDT e BRT juntos (EST primeiro)

@@ -1,5 +1,15 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.49 — 2026-07-17
+
+### Changed — local do jogo removido do card ao vivo
+
+Mesmo pedido da Copa/BR2026 (ver changelog de cada um) — Eduardo: "Não precisa mostrar a
+localização no live mode." Removido o local (📍) de `renderLiveTieCard()`; a fase (ex. "Oitavas
+de Final") continua. Local continua aparecendo normalmente no card "Próximos jogos" (pré-live).
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v3.48 — 2026-07-17
 
 ### Changed — "Ranking ao vivo" agora aparece sempre que há confronto ao vivo
