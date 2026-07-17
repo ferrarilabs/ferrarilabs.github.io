@@ -1677,6 +1677,54 @@ function renderNextGameCard() {
     }
   }
 
+  // Sem jogo hoje e só 1 jogo no próximo dia: mantém o layout rico de sempre (contador regressivo
+  // em dígitos grandes, local do jogo) em vez da lista compacta -- essa é a experiência original
+  // de "próximo jogo", só perdida quando o agrupamento por dia (acima) passou a reaproveitar o
+  // mesmo item compacto do "jogos de hoje" pra todo mundo. Eduardo: "A contagem regressiva dos
+  // próximos jogos sumiu" (2026-07-16). Lista compacta (sem contador em dígitos) continua só
+  // quando há hoje, ou mais de um jogo no próximo dia -- mesmo comportamento de antes desta
+  // rodada de mudanças pro caso "hoje".
+  if (groupLabel === "nextGamesLabel" && gamesToShow.length === 1) {
+    const next    = gamesToShow[0];
+    const now     = Date.now();
+    const timeStr = brtLongDate(next.dateISO) + " BRT";
+    const diffMs  = new Date(next.dateISO).getTime() - now;
+    const timerHtml = countdownTimerHtml(diffMs);
+
+    const mpKeyNext = `${next.homeTeam}|${next.awayTeam}`;
+    if (!_matchProbs[mpKeyNext] && _standings.length >= 20) {
+      const r = buildRatings();
+      const { lambdaH, lambdaA } = expectedGoals(next.homeTeam, next.awayTeam, r);
+      _matchProbs[mpKeyNext] = matchProb(lambdaH, lambdaA);
+    }
+    const mpNext = _matchProbs[mpKeyNext];
+    const nextBars = mpNext ? (() => {
+      const hPct = Math.round(mpNext.pH * 100), dPct = Math.round(mpNext.pD * 100), aPct = Math.round(mpNext.pA * 100);
+      const hLbl = esc(next.homeTeam.length > 12 ? next.homeTeam.slice(0, 12) + "…" : next.homeTeam);
+      const aLbl = esc(next.awayTeam.length > 12 ? next.awayTeam.slice(0, 12) + "…" : next.awayTeam);
+      const bl = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+      return `<div class="prob-bars" role="group" aria-label="Probabilidades">
+        <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl)}</div>
+        <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+        <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
+      </div>`;
+    })() : "";
+    card.innerHTML = `<div class="next-game-card">
+      <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
+      <div class="next-game-row">
+        <div class="next-game-info-block">
+          <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>
+          <div class="next-game-info">${esc(timeStr)}</div>
+          ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
+        </div>
+        ${timerHtml}
+      </div>
+      ${nextBars}
+    </div>`;
+    card.classList.remove("hidden");
+    return;
+  }
+
   if (gamesToShow.length) {
     const items = gamesToShow.map(g => {
       if (g.state === "post") {
@@ -2064,15 +2112,20 @@ function renderRanking() {
       : "";
     const row = document.createElement("div");
     row.className = "rank-row";
-    // Pontos sempre no mesmo estilo (verde) e "pts" fixo -- Copa e CDB2026 nunca coloriram de
-    // amarelo/trocaram o rótulo por "↕" pra sinalizar "provisório" (isso já é comunicado pelo
-    // prov-note no topo da lista). Eduardo: "no ranking mostra a pontuacao em amarelo e com uma
-    // seta para cima e baixo, deveria ser igual copa e copa do brasil" (2026-07-16) -- a seta de
-    // movimento (rankMovementHtml) é intencional e fica; só o amarelo/"↕" nos pontos saiu.
+    // Pontos sempre no mesmo estilo (verde, número puro sem "pts") -- Copa e CDB2026 nunca
+    // coloriram de amarelo/trocaram o rótulo por "↕" pra sinalizar "provisório" (isso já é
+    // comunicado pelo prov-note no topo da lista). Eduardo: "no ranking mostra a pontuacao em
+    // amarelo e com uma seta para cima e baixo, deveria ser igual copa e copa do brasil"
+    // (2026-07-16) -- a seta de movimento (rankMovementHtml) é intencional e fica; só o
+    // amarelo/"↕" nos pontos saiu. O sufixo " pts" saiu depois (mesmo dia): a coluna de pontos
+    // no mobile tem largura FIXA de 40px (pra o botão "Ver palpites" nunca deslocar conforme o
+    // placar tem 1-3 dígitos, ver CSS) -- dimensionada só pros dígitos, igual a Copa (que também
+    // nunca mostrou "pts" aqui). Com o sufixo, "170 pts" não cabia numa linha só e quebrava --
+    // Eduardo: "Deixe tudo da entrada em uma linha e sem crlf".
     row.innerHTML = `
       <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
       <div><b>${esc(item.e.entryName)}</b></div>
-      <div class="points">${item.total}<small> pts</small></div>
+      <div class="points">${item.total}</div>
       ${viewBtn}`;
     box.appendChild(row);
     if (canViewPicks) {
@@ -2694,8 +2747,13 @@ async function sendReceipt(entry) {
 function renderCountdown() {
   const el = $("cutoffCountdown");
   if (!el) return;
+  const card = el.closest(".count-card");
   const diff = cutoffDate() - Date.now();
-  if (diff <= 0) { el.innerHTML = `<strong>${esc(t("closedLabel"))}</strong>`; return; }
+  // Mesmo padrão da Copa (updateCountdown(), bolao/js/app.js): esconde a caixa inteira depois
+  // do prazo, não deixa um "Encerrado" solto ocupando o mesmo espaço vazio da contagem
+  // regressiva. Eduardo, screenshot do hero pós-prazo: "Pode esconder isso" (2026-07-16).
+  if (diff <= 0) { card?.classList.add("hidden"); return; }
+  card?.classList.remove("hidden");
   const p2       = n => String(n).padStart(2, "0");
   const totalSec = Math.floor(diff / 1000);
   const d = Math.floor(totalSec / 86400);
