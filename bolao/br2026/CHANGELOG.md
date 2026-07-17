@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.64 — 2026-07-17
+
+### Fixed — local do jogo espremido no card ao vivo (bug real, não da Copa)
+
+Eduardo, durante um jogo real ao vivo (Bahia 1×0 Chapecoense, 21'): "Ta feio isso nao ta igual a
+copa." Bug real introduzido na v1.62 (PR #82, fase+venue no card ao vivo): `.live-match-meta`
+(a linha com 📍 local do jogo) tinha sido colocada DENTRO de `.live-match-row` — só no BR2026 essa
+div é um `<button>` `display:flex` (todo o card é clicável pra expandir/colapsar, com um ▲/▼ no
+canto), então o novo bloco de local virava mais um item do flex HORIZONTAL em vez de cair pra
+linha de baixo. Resultado: o local aparecia espremido no canto superior direito, por cima do
+chevron, em vez de aparecer centralizado embaixo do placar (como na Copa/CDB2026, que não têm
+esse wrapper extra). Corrigido movendo `.live-match-meta` pra fora de `.live-match-row` — agora é
+irmão do `row`, dentro de `.live-match`, igual ao padrão da Copa/CDB2026.
+
+Verificado com o jogo real ao vivo (Bahia × Chapecoense) via Playwright — local agora aparece na
+própria linha, centralizado, igual à Copa.
+
+`audit_scoring.py`: PASSOU. Bug era só de layout/CSS, nenhuma fórmula de pontuação tocada.
+
 ## v1.63 — 2026-07-17
 
 ### Changed — horário do jogo agora mostra EST/EDT e BRT juntos (EST primeiro)

@@ -1136,3 +1136,28 @@ BRT" etc. CDB2026: Oitavas de Final reais mostram "16:30 (EDT) · sáb., 01/08, 
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação (novo
 helper de formatação de horário), nenhuma fórmula de pontuação tocada.
+
+## Nota manual — bug real: local do jogo espremido no card ao vivo do BR2026 (2026-07-17, BR2026 v1.64)
+
+Eduardo, durante um jogo real ao vivo (Bahia 1×0 Chapecoense, 21'): "Ta feio isso nao ta igual a
+copa." Auditado e CONFIRMADO como bug real (não mal-entendido) introduzido pela própria mudança
+de fase+venue no card ao vivo (v1.62/PR #82): `.live-match-meta` tinha sido colocada dentro de
+`.live-match-row`, que só no BR2026 é um `<button>` `display:flex` (o card inteiro é clicável pra
+expandir/colapsar plays+probabilidades, com um chevron ▲/▼ no canto) — a Copa e o CDB2026 não têm
+esse wrapper extra, então a mesma estrutura de código funcionou neles mas quebrou só no BR2026.
+Corrigido: `.live-match-meta` movida pra fora de `.live-match-row`, como irmã do `row` dentro de
+`.live-match` — mesmo padrão da Copa/CDB2026. `NOT_CONSISTENT` → `CONSISTENT`, confirmado com o
+jogo real ao vivo via Playwright.
+
+Também investigado no mesmo turno: "onde está o ranking provisório?" — o hero "🏆 Ranking ao
+vivo" do BR2026 (`renderLiveRankingHero()`) estava de fato oculto durante esse jogo real, mas por
+design, não por bug: só aparece quando pelo menos um participante já mudou de posição desde a
+baseline (`hasMover`), decisão explícita do Eduardo em 2026-07-16 ("se ficar ruim ou muito busy
+deixa de fora"). Com Bahia 1×0 aos 21' (1 gol, 1 dos 3 jogos simultâneos), ninguém tinha cruzado
+uma fronteira de classificação G4/Z4 ainda — comportamento OK dado o critério existente, mas
+gerando a impressão de "sumiu" bem no momento em que mais faz sentido mostrar algo. Não alterado
+sem confirmação — pergunta feita ao Eduardo antes de reverter uma decisão de produto explícita
+dele (ver conversa).
+
+`audit_scoring.py` (BR2026): PASSOU — bug era só de layout/CSS, nenhuma fórmula de pontuação
+tocada.

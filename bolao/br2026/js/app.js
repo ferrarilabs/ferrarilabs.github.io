@@ -1565,6 +1565,13 @@ function renderLiveCard() {
     // visual canônico da plataforma (ver CLAUDE.md "Copa do Mundo 2026 é a referência visual
     // canônica"/PLATFORM_GOVERNANCE.md "Golden master") -- só a Copa tinha essa estrutura testada.
     const liveVenue = m.venue ? `${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}` : "";
+    // .live-match-meta must be a sibling of .live-top/.live-match-row, never nested inside it --
+    // .live-match-row is `display:flex` (the whole row is the click target for expand/collapse,
+    // ver comentário abaixo), então um <div> extra ali dentro vira mais um item de flex na
+    // HORIZONTAL em vez de cair pra linha de baixo -- achado real (2026-07-18, Eduardo: "Ta feio
+    // isso nao ta igual a copa"): o local do jogo aparecia espremido no canto superior direito,
+    // por cima do ▲, em vez de aparecer embaixo do placar como na Copa/CDB2026 (que não têm esse
+    // wrapper extra).
     const liveMetaHtml = liveVenue ? `<div class="live-match-meta"><span>📍 ${liveVenue}</span></div>` : "";
     const rowInner = `
       <div class="live-top">
@@ -1576,8 +1583,7 @@ function renderLiveCard() {
         </div>
         <div class="live-score">${m.awayScore}</div>
         ${teamColHtml(m.awayTeam)}
-      </div>
-      ${liveMetaHtml}`;
+      </div>`;
     const playsHtml = livePlaysHtml(m.plays, m.homeTeam, m.awayTeam, m.id);
     const detailHtml = playsHtml + probBarsHtml;
     // The whole row is the tap target (not just a small chevron) — better mobile touch target
@@ -1592,6 +1598,7 @@ function renderLiveCard() {
       : `<div class="live-match-row">${rowInner}</div>`;
     return `<div class="live-match">
       ${row}
+      ${liveMetaHtml}
       ${detailHtml ? `<div class="live-match-detail${expanded ? "" : " hidden"}">${detailHtml}</div>` : ""}
     </div>`;
   }).join("");
