@@ -1997,13 +1997,11 @@ function renderLiveTieCard() {
   const rows = _liveTies.map(l => {
     const clock = liveClockDisplay(l);
     const playsHtml = livePlaysHtml(l.plays, l.homeTeam, l.awayTeam, `${l.tieId}:${l.leg}`);
+    // Local do jogo (venue) removido do modo ao vivo -- Eduardo: "Não precisa mostrar a
+    // localização no live mode" (2026-07-17). Fase continua (útil pra saber "que confronto é
+    // esse" durante o jogo) -- venue continua aparecendo normalmente no card pré-live.
     const phaseName = getPhaseDef(l.phaseId)?.name || "";
-    const m = l.tie?.matches?.[l.leg];
-    const venue = m?.venue ? `${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}` : "";
-    const metaHtml = (phaseName || venue) ? `<div class="live-match-meta">
-      ${phaseName ? `<span>${esc(phaseName)}</span>` : ""}
-      ${venue ? `<span>📍 ${venue}</span>` : ""}
-    </div>` : "";
+    const metaHtml = phaseName ? `<div class="live-match-meta"><span>${esc(phaseName)}</span></div>` : "";
     return `<div class="live-match">
       <div class="live-top">
         ${teamColHtml(l.homeTeam)}

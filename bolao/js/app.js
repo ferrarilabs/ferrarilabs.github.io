@@ -456,10 +456,11 @@ function renderNextMatch() {
       const playsBlock = livePlaysHtml(ls, tA, tB, mid);
       const livePhaseText = m ? escapeHtml(phaseLabel(m.phase || "Fase de grupos")) +
         (m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : "") : "";
-      const liveVenue = m && m.venue && m.venue !== "A confirmar" ? m.venue : "";
-      const liveMetaBlock = (livePhaseText || liveVenue) ? `<div class="hero-live-meta">
-        ${livePhaseText ? `<span>${livePhaseText}${m ? ` · M${escapeHtml(String(m.match))}` : ""}</span>` : ""}
-        ${liveVenue ? `<span>📍 ${escapeHtml(liveVenue)}</span>` : ""}
+      // Eduardo: "Não precisa mostrar a localização no live mode" (2026-07-17) — só a fase
+      // (útil pra saber "que jogo é esse" durante o jogo) fica; o local (📍) some no modo ao
+      // vivo. Continua aparecendo normalmente no card "Próximo jogo" pré-live.
+      const liveMetaBlock = livePhaseText ? `<div class="hero-live-meta">
+        <span>${livePhaseText}${m ? ` · M${escapeHtml(String(m.match))}` : ""}</span>
       </div>` : "";
       // A real break in play (halftime, penalties — no running clock exists
       // once regulation/extra time ends — or any other stoppage clockPaused

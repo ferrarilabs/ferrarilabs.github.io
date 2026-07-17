@@ -1,5 +1,22 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.66 — 2026-07-17
+
+### Changed — local do jogo removido do card ao vivo
+
+Mesmo pedido da Copa (ver changelog dela) — Eduardo: "Não precisa mostrar a localização no live
+mode." BR2026 não tem "fase" (liga de pontos corridos), então a única coisa que `.live-match-meta`
+mostrava era o local — removida a linha inteira do card ao vivo (`renderLiveCard()`). Limpeza:
+também removida a extração de `comp.venue`/`comp.venue.address.city` em `fetchScoreboard()` (só
+existia pra alimentar essa linha, agora código morto) e a classe CSS `.live-match-meta` (agora sem
+uso no BR2026). Local continua aparecendo normalmente no card "Jogos de hoje"/"Próximo jogo"
+(pré-live) e na lista completa de jogos — só o card AO VIVO não mostra mais.
+
+Verificado com os 3 jogos reais ao vivo agora (Bahia × Chapecoense, Fluminense × Bragantino,
+Mirassol × Grêmio) via Playwright.
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v1.65 — 2026-07-17
 
 ### Changed — "Ranking ao vivo" agora aparece sempre que há jogo ao vivo

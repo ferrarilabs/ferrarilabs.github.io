@@ -1164,3 +1164,27 @@ testar agora).
 
 `audit_scoring.py` (BR2026/CDB2026): PASSOU nos dois — mudanças são só layout/CSS e visibilidade
 de um componente já existente, nenhuma fórmula de pontuação tocada.
+
+## Nota manual — local do jogo removido do card ao vivo (2026-07-17, Copa v4.146 / BR2026 v1.66 / CDB2026 v3.49)
+
+Eduardo: "Não precisa mostrar a localização no live mode. Ou mostra em outro local logo abaixo dos
+times talvez." Interpretado como: remover o local (📍) do card AO VIVO (não do card "próximo
+jogo" pré-live, que continua mostrando normalmente) — a alternativa ("logo abaixo dos times") foi
+oferecida com "talvez", então a instrução principal (remover) prevaleceu.
+
+- **Copa**: `hero-live-meta` mantém só a fase, local removido.
+- **BR2026**: `.live-match-meta` só mostrava local (BR2026 não tem "fase") — bloco removido por
+  inteiro do card ao vivo, junto com a extração `comp.venue`/`comp.venue.address.city` em
+  `fetchScoreboard()` (só existia pra alimentar essa linha, virou código morto) e a classe CSS
+  `.live-match-meta` (sem uso restante no BR2026).
+- **CDB2026**: `.live-match-meta` mantém só a fase, local removido.
+
+Local continua aparecendo normalmente no card "Próximo jogo"/"Jogos de hoje"/"Próximos jogos"
+(pré-live) nos três apps — só o card AO VIVO deixou de mostrar.
+
+Verificado nos três: Copa (M103 ao vivo simulado com payload real da ESPN), BR2026 (3 jogos reais
+ao vivo no momento — Bahia × Chapecoense, Fluminense × Bragantino, Mirassol × Grêmio), CDB2026
+(revisão de código, sem tie ao vivo pra testar agora).
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — presentation-only, nenhuma fórmula de
+pontuação tocada.
