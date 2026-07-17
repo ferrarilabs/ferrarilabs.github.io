@@ -973,9 +973,23 @@ async function pollAll() {
     renderStandingsCard();
     renderRanking();
     if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
+    nudgeScrollReflow();
   } finally {
     _pollInFlight = false;
   }
+}
+
+// Vários cards (ao vivo, ranking ao vivo, próximo jogo, contagem regressiva) agora aparecem/somem
+// dinamicamente a cada poll de 60s -- quando o conteúdo ENCOLHE (ex.: um jogo termina e o card
+// "ao vivo" vira `.hidden`) enquanto a página está rolada perto do final, o Safari no iOS é
+// conhecido por não recalcular a área rolável até uma interação nova, deixando um vão vazio
+// "fantasma" abaixo do conteúdo real (Eduardo, screenshot, 2026-07-17: "Ainda tem bastante areas
+// em branco ao final da pagina, isso tinha sido corrigido"). `scrollBy(0, 0)` não move a página
+// (imperceptível), mas força o WebKit a recalcular os limites de rolagem -- correção padrão
+// documentada pra esse bug específico do iOS. Roda só se já houver rolagem (sem custo/efeito
+// quando a página está no topo).
+function nudgeScrollReflow() {
+  requestAnimationFrame(() => { if (window.scrollY > 0) window.scrollBy(0, 0); });
 }
 
 // Self-scheduling loop (not setInterval) so a slow poll can't overlap the next tick, and so a
@@ -2913,6 +2927,7 @@ function renderAll() {
   if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
   if (isAdminActive()) renderAdmin();
   renderProbSection();
+  nudgeScrollReflow();
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────

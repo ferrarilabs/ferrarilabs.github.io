@@ -984,3 +984,30 @@ nenhum inventado:
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — toda a rodada é CSS/apresentação,
 nenhuma fórmula de pontuação tocada.
+
+## Nota manual — vão em branco no final da página (iOS), correção especulativa aplicada nos 3 apps por consistência (2026-07-17, Copa v4.143 / BR2026 v1.58 / CDB2026 v3.42)
+
+Eduardo, screenshot: "Ainda tem bastante areas em branco ao final da pagina, isso tinha sido
+corrigido." Investigação: reproduzido localmente com o estado REAL do Supabase do BR2026 (11
+entradas, não dados fictícios) — nenhuma sobra de espaço encontrada no Chromium, rodapé
+exatamente no fim da página em todas as abas. HTML/CSS de produção conferido byte a byte contra
+o checkout local — idênticos. Sem acesso a um navegador WebKit/Safari real neste ambiente, não
+foi possível confirmar a causa raiz com certeza.
+
+Hipótese de trabalho, não confirmada: os três apps agora têm múltiplos cards que aparecem/somem
+dinamicamente a cada poll de 60s (ao vivo, ranking ao vivo, próximo jogo/próxima partida,
+contagem regressiva) — bug conhecido do WebKit no iOS faz a área rolável não ser recalculada
+quando o conteúdo encolhe com a página rolada perto do final, deixando um vão "fantasma".
+Aplicada `nudgeScrollReflow()` (um `scrollBy(0, 0)` imperceptível que força o WebKit a
+recalcular) depois de cada ciclo de renderização nos três apps — correção padrão documentada
+pra essa classe de bug, sem custo/efeito quando a página não está rolada. Propagada aos três
+proativamente (não só onde o bug foi visto) porque o mecanismo — cards dinâmicos + poll
+periódico — é idêntico nos três, incluindo a Copa (já tinha esse padrão antes desta sessão).
+
+Se a correção não resolver, o próximo passo seria pedir a Eduardo pra testar se rolar
+manualmente a página faz o vão desaparecer (confirmaria/descartaria a hipótese) — pergunta já
+feita, sem resposta ainda quando esta correção foi aplicada (Eduardo pediu pra colocar em
+produção direto).
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só uma chamada de
+`scrollBy(0,0)` depois de renderizar, nenhuma fórmula de pontuação tocada.

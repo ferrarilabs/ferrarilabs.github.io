@@ -1811,6 +1811,17 @@ async function pollLiveTies() {
   // o bastante (só recomputa HTML a partir do estado já em memória) pra rodar a cada poll de 60s.
   renderGamesSection();
   if (!pickFormIsDirty()) renderPickForm();
+  nudgeScrollReflow();
+}
+
+// Vários cards (ao vivo, ranking ao vivo, próxima partida, contagem regressiva) aparecem/somem
+// dinamicamente a cada poll de 60s -- mesmo achado do BR2026 (Eduardo, screenshot, 2026-07-17:
+// "Ainda tem bastante areas em branco ao final da pagina, isso tinha sido corrigido"): quando o
+// conteúdo ENCOLHE enquanto a página está rolada perto do final, o Safari no iOS é conhecido por
+// não recalcular a área rolável até uma interação nova. `scrollBy(0, 0)` não move a página, só
+// força o WebKit a recalcular os limites de rolagem.
+function nudgeScrollReflow() {
+  requestAnimationFrame(() => { if (window.scrollY > 0) window.scrollBy(0, 0); });
 }
 
 // Mesmo padrão de "runningClock" da Copa/BR2026 (ver liveClockDisplay em bolao/br2026/js/app.js):
@@ -3027,6 +3038,7 @@ function renderAll() {
   renderRules();
   renderFooter();
   if (isAdminActive()) renderAdmin();
+  nudgeScrollReflow();
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
