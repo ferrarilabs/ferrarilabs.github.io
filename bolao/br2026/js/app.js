@@ -1750,10 +1750,19 @@ function renderNextGameCard() {
         const timeStr = brtTimeStr(g.dateISO);
         const now     = Date.now();
         const diffMs  = new Date(g.dateISO).getTime() - now;
+        // Antes só mostrava contagem regressiva na última hora ("· 12m 34s"), nada antes disso --
+        // um dia com vários jogos (ex. 3 jogos às 19h/20h) ficava sem nenhuma pista de quanto
+        // faltava a manhã inteira. Eduardo: "contador era dos proximos jogos" (2026-07-17, depois
+        // de confirmar que "sumiu" era essa contagem, não a do prazo de entrada). Agora sempre
+        // mostra alguma contagem quando o jogo é hoje e ainda não começou -- h+min quando falta
+        // mais de 1h (não precisa de segundos a essa distância), min+seg na última hora.
         let countdown = "";
         if (diffMs > 0 && diffMs < 3600000) {
           const m = Math.floor(diffMs / 60000), s = Math.floor((diffMs % 60000) / 1000);
           countdown = ` · ${m}m ${String(s).padStart(2, "0")}s`;
+        } else if (diffMs >= 3600000) {
+          const h = Math.floor(diffMs / 3600000), m = Math.floor((diffMs % 3600000) / 60000);
+          countdown = ` · em ${h}h ${String(m).padStart(2, "0")}m`;
         }
         const mpKey = `${g.homeTeam}|${g.awayTeam}`;
         if (!_matchProbs[mpKey] && _standings.length >= 20) {
