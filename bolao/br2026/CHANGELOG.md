@@ -1,5 +1,23 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.60 — 2026-07-17
+
+### Fixed — "Jogos de hoje"/"Próximo jogo": rótulo cinza (devia ser verde) + centralização revertida
+
+Eduardo mandou screenshot da Copa (card "PRÓXIMO JOGO"): "olha como esta a copa faca igual em
+todos. Isso não deveria nem ser questionado." Dois achados reais comparando com o CSS de
+verdade da Copa (`bolao/css/styles.css`):
+
+1. **Rótulo cinza, devia ser verde** — `.hero-next-label` da Copa é `color: var(--green)`;
+   `.next-game-label`/`.today-games-header` aqui usavam `var(--muted)` (cinza). Corrigido.
+2. **Centralização da v1.59 revertida** — a lista "Jogos de hoje" tinha sido centralizada ontem
+   em cima de um pedido verbal vago ("tudo para a esquerda"), sem checar o padrão real da Copa.
+   O card de referência (`.next-match-info`/`.hero-next-*`) é alinhado à esquerda, com o
+   contador de dígitos preenchendo o lado direito — não centralizado. Revertido pra alinhado à
+   esquerda, igual à Copa.
+
+Mesmos dois ajustes no CDB2026.
+
 ## v1.59 — 2026-07-17
 
 ### Fixed — "Jogos de hoje" sem contagem regressiva, alinhado à esquerda
