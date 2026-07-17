@@ -899,18 +899,22 @@ async function sendReceipt(entry) {
 
 // ─── Countdown ───────────────────────────────────────────────────────────────
 function renderCountdown() {
-  const box = $("cutoffCountdown");
+  const box  = $("cutoffCountdown");
   if (!box) return;
-  const ms = entryCutoffMs();
+  const card = box.closest(".count-card");
+  const ms   = entryCutoffMs();
   if (ms === null) {
+    card?.classList.remove("hidden");
     box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t("waitingDraw"))}</span>`;
     return;
   }
   const diff = ms - Date.now();
-  if (diff <= 0) {
-    box.innerHTML = `<span class="count-closed">${esc(t("closedLabel"))}</span>`;
-    return;
-  }
+  // Mesmo padrão da Copa (updateCountdown(), bolao/js/app.js) e do BR2026 (v1.56): esconde a
+  // caixa inteira depois do prazo em vez de deixar "Encerrado" solto ocupando o mesmo espaço
+  // vazio da contagem regressiva. Eduardo, screenshot do hero pós-prazo: "Pode esconder isso"
+  // (2026-07-16, mesmo achado do BR2026 propagado aqui).
+  if (diff <= 0) { card?.classList.add("hidden"); return; }
+  card?.classList.remove("hidden");
   const d  = Math.floor(diff / 86400000);
   const h  = Math.floor((diff % 86400000) / 3600000);
   const m  = Math.floor((diff % 3600000) / 60000);
@@ -999,10 +1003,14 @@ function renderRanking() {
       : "";
     const row = document.createElement("div");
     row.className = "rank-row";
+    // Número puro, sem sufixo " pts" -- mesmo padrão da Copa. A coluna de pontos no mobile tem
+    // largura FIXA de 40px (pra o botão "Ver palpites" nunca deslocar conforme o placar tem
+    // 1-3 dígitos, ver CSS), dimensionada só pros dígitos. Com "170 pts" a linha quebrava --
+    // Eduardo: "Deixe tudo da entrada em uma linha e sem crlf" (2026-07-16, mesmo ajuste no BR2026).
     row.innerHTML = `
       <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
       <div><b>${esc(item.e.entryName)}</b></div>
-      <div class="points">${item.total}<small> pts</small></div>
+      <div class="points">${item.total}</div>
       ${viewBtn}`;
     box.appendChild(row);
     if (canViewPicks) {

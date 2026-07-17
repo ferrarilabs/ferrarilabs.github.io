@@ -974,6 +974,14 @@ select:focus-visible {
   outline: 2px solid #2fe56e;
   outline-offset: 3px;
 }
+/* showSection() gives the new section's heading tabindex="-1" + .focus() on every tab switch,
+   so screen readers land on it -- the browser's default focus ring then showed as an ugly box
+   around the heading text (Eduardo, screenshot, 2026-07-16: "Remova essa caixa ao redor da
+   projeção"). This heading is never reached by real keyboard Tab navigation (not normally
+   focusable), so hiding the ring loses nothing for sighted keyboard users -- the actual
+   accessibility benefit (focus moving for screen readers) doesn't depend on the ring being
+   visible. Same fix in BR2026/CDB2026 (identical showSection() pattern in all three). */
+h2:focus, h3:focus { outline: none; }
 
 /* Demo entry badge in ranking */
 .demo-badge {

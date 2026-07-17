@@ -959,3 +959,28 @@ tempo (nenhum inventado — todos com screenshot ou frase específica de Eduardo
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — toda a rodada foi apresentação
 (card ao vivo, ranking, relógio, hero) mais uma projeção ao vivo ADITIVA no CDB2026 (nunca
 sobrescreve resultado oficial), nenhuma fórmula de pontuação alterada.
+
+## Nota manual — pequenos bugs reais de UI achados por screenshot, corrigidos nos 3 apps: foco visível, contagem regressiva presa, ranking quebrando linha, contador do próximo jogo sumido (2026-07-17, Copa v4.142 / BR2026 v1.57 / CDB2026 v3.41)
+
+Quatro achados pontuais na mesma rodada, todos com screenshot ou frase específica de Eduardo,
+nenhum inventado:
+
+1. **Caixa de foco visível ao redor do `<h2>`** ao trocar de aba — `showSection()` (idêntico nos
+   3 apps) dá `tabindex="-1"` + `.focus()` no título da seção de propósito, pra leitor de tela.
+   O anel de foco padrão do navegador ficava visível como uma caixa feia. `NOT_CONSISTENT` (nenhum
+   dos 3 apps suprimia isso) → `CONSISTENT`: `h2:focus, h3:focus { outline: none; }` nos três.
+2. **Caixa "Encerrado" ocupando o espaço vazio da contagem regressiva** — a Copa sempre escondeu
+   a caixa inteira quando o prazo passa (`updateCountdown()`); BR2026 e CDB2026 tinham divergido,
+   mostrando texto solto dentro da mesma caixa grande. `NOT_CONSISTENT` → `CONSISTENT`.
+3. **Pontos do Ranking quebrando em 2 linhas** ("170" / "pts") no mobile — a coluna de pontos tem
+   largura fixa de 40px (dimensionada só pros dígitos, pra o botão "Ver palpites" nunca deslocar
+   conforme 1-3 dígitos), igual à Copa desde sempre. BR2026/CDB2026 tinham adicionado um sufixo
+   " pts" que a Copa nunca mostrou ali, e que não cabia nessa largura. Removido dos dois.
+4. **Contador regressivo do "Próximo jogo" sumiu no BR2026** — regressão real da v1.56 (nota
+   anterior desta mesma matriz): ao agrupar jogos por dia, o caso "só 1 jogo no próximo dia"
+   perdeu o layout rico (contador em dígitos + local) e passou a usar o item compacto de "jogos
+   de hoje". Restaurado — layout rico quando há só 1 jogo, lista compacta quando há mais de 1
+   (CDB2026 nunca teve essa regressão, foi construído já com os dois casos corretos).
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — toda a rodada é CSS/apresentação,
+nenhuma fórmula de pontuação tocada.
