@@ -1,5 +1,20 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.59 — 2026-07-17
+
+### Fixed — "Jogos de hoje" sem contagem regressiva, alinhado à esquerda
+
+Eduardo, screenshot com dados reais de produção (3 jogos hoje): "contador era dos proximos
+jogos... o alinhamento é esse tudo para a esquerda." Investigado com o calendário real da ESPN —
+confirmado que não era bug de dados, era design: a lista compacta "Jogos de hoje" (usada quando
+há mais de um jogo no dia) só mostrava contagem regressiva na última hora antes do jogo ("· 12m
+34s"), nada antes disso — num dia com jogos às 19h/20h, a manhã inteira ficava sem nenhuma pista
+de quanto faltava. Agora sempre mostra alguma contagem quando o jogo é hoje e ainda não começou:
+"· em 10h 13m" quando falta mais de 1h, "· 12m 34s" na última hora (sem trocar formato o tempo
+todo — direto ao segundo só quando já importa). Também centralizado (cabeçalho, times, horário),
+mesmo padrão do card "ao vivo" (v1.55) — antes tudo ficava alinhado à esquerda. Mesmo ajuste no
+CDB2026.
+
 ## v1.58 — 2026-07-17
 
 ### Fixed — vão em branco no final da página no iOS (hipótese: reflow de rolagem do WebKit)

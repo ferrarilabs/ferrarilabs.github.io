@@ -1,5 +1,13 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.43 — 2026-07-17
+
+### Fixed — "Próximos jogos" (múltiplas partidas no dia) sem contagem regressiva, alinhado à esquerda
+
+Mesmo achado do BR2026 (ver changelog dele) — a lista compacta de múltiplas partidas no mesmo
+dia não mostrava contagem regressiva nenhuma (só data/hora fixa), e ficava alinhada à esquerda.
+Agora mostra "· em Xh Ym" / "· Xm Ys" igual ao BR2026, e está centralizada.
+
 ## v3.42 — 2026-07-17
 
 ### Fixed — vão em branco no final da página no iOS (hipótese: reflow de rolagem do WebKit)

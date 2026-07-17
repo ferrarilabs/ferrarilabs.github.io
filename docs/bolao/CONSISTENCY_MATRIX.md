@@ -1011,3 +1011,22 @@ produção direto).
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só uma chamada de
 `scrollBy(0,0)` depois de renderizar, nenhuma fórmula de pontuação tocada.
+
+## Nota manual — "Jogos de hoje" sem contagem regressiva antes da última hora + alinhado à esquerda (2026-07-17, BR2026 v1.59 / CDB2026 v3.43)
+
+Eduardo mandou screenshot com dados reais de produção (3 jogos hoje no BR2026) dizendo que a
+contagem regressiva "sumiu" e o alinhamento estava errado. Investigado com o calendário real da
+ESPN (não dados fictícios) — confirmado que não era regressão de bug, era comportamento por
+design nunca notado antes: a lista compacta "Jogos de hoje"/"Próximos jogos" (usada quando há
+mais de um jogo no mesmo dia) só mostrava contagem regressiva na última hora antes do jogo,
+nada antes disso. Corrigido pra sempre mostrar alguma contagem (h+min quando falta mais de 1h,
+min+seg na última hora). Também alinhamento: a lista inteira estava à esquerda, divergente do
+padrão centralizado já estabelecido no card "ao vivo" (v1.55) — centralizado agora, nos dois
+apps.
+
+`INTENTIONALLY_DIFFERENT`, não propagado à Copa: a Copa não tem esse conceito de "lista compacta
+de múltiplos jogos no mesmo dia" (mata-mata com calendário conhecido com antecedência, sem essa
+ambiguidade "hoje vs. próximo dia com jogo" que motivou essa feature no BR2026/CDB2026).
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação, nenhuma
+fórmula de pontuação tocada.
