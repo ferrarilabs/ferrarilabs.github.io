@@ -1515,21 +1515,20 @@ function renderNextTieCard() {
   if (!group.length) { card.classList.add("hidden"); return; }
 
   if (group.length > 1) {
-    // Mesmo ajuste do BR2026 (2026-07-17, Eduardo: "contador era dos proximos jogos") -- mostra
-    // quanto falta pra cada partida, não só a data/hora fixa.
+    // Contador em dígitos, mesmo componente exato da Copa (countdownTimerHtml() -> .count-grid)
+    // -- não texto solto. Eduardo: "A contagem regressiva tem que ser igual copa meu!"
+    // (2026-07-17), mesmo ajuste do BR2026.
     const items = group.map(({ m, home, away, kickoffMs }) => {
-      const diffMs = kickoffMs - Date.now();
-      let countdown = "";
-      if (diffMs > 0 && diffMs < 3600000) {
-        const min = Math.floor(diffMs / 60000), sec = Math.floor((diffMs % 60000) / 1000);
-        countdown = ` · ${min}m ${String(sec).padStart(2, "0")}s`;
-      } else if (diffMs >= 3600000) {
-        const h = Math.floor(diffMs / 3600000), min = Math.floor((diffMs % 3600000) / 60000);
-        countdown = ` · em ${h}h ${String(min).padStart(2, "0")}m`;
-      }
+      const diffMs   = kickoffMs - Date.now();
+      const timerHtml = countdownTimerHtml(diffMs);
       return `<div class="today-game">
-      <div class="today-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
-      <span class="today-game-time muted">${esc(fmtDate(m.kickoff))}${esc(countdown)}</span>
+      <div class="next-game-row">
+        <div class="next-game-info-block">
+          <div class="today-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
+          <span class="today-game-time muted">${esc(fmtDate(m.kickoff))}</span>
+        </div>
+        ${timerHtml}
+      </div>
     </div>`;
     }).join("");
     card.innerHTML = `<div class="next-game-card">

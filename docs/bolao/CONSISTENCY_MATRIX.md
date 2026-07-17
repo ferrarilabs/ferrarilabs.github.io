@@ -1054,3 +1054,17 @@ não foi seguida à risca na mudança de ontem.
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só cor/alinhamento CSS,
 nenhuma fórmula de pontuação tocada.
+
+## Nota manual — "Jogos de hoje": widget de contagem regressiva trocado pelo componente exato da Copa, não só cor/alinhamento (2026-07-17, BR2026 v1.61 / CDB2026 v3.45)
+
+Eduardo, depois da correção de cor/alinhamento: "A contagem regressiva tem que ser igual copa
+meu!" — a correção anterior (nota acima, mesma data) tinha corrigido cor do rótulo e
+alinhamento, mas a contagem em si continuava sendo um resumo em texto ("· em 10h 05m"), não o
+MESMO componente visual da Copa (`countdownTimerHtml()`/`.count-grid`, caixas grandes em
+dígitos). `NOT_CONSISTENT` → `CONSISTENT`: cada jogo da lista "Jogos de hoje"/"Próximos jogos"
+agora usa o widget de dígitos completo (mesma função já usada no card de 1 jogo só), incluindo o
+mesmo comportamento responsivo no mobile (empilha em vez de ficar lado a lado, herdado
+automaticamente por reaproveitar a mesma classe CSS `.next-game-row`/`.next-game-timer`).
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação (reaproveita
+uma função já existente), nenhuma fórmula de pontuação tocada.

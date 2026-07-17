@@ -1,5 +1,17 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.61 — 2026-07-17
+
+### Changed — "Jogos de hoje": contador em texto trocado pelo widget de dígitos da Copa
+
+Eduardo: "A contagem regressiva tem que ser igual copa meu!" O ajuste anterior (v1.59/v1.60)
+corrigiu cor e alinhamento, mas a contagem em si continuava um resumo em texto ("· em 10h 05m"),
+não o mesmo componente visual da Copa. Trocado por `countdownTimerHtml()` — o MESMO widget de
+caixas grandes em dígitos (H/MIN/S, ou D/H/MIN/S com mais de 1 dia) já usado no card "Próximo
+jogo" de 1 partida só, reaproveitado aqui por partida dentro da lista de múltiplos jogos do dia.
+Mesmo comportamento responsivo da Copa no mobile (empilha em vez de ficar lado a lado). Mesmo
+ajuste no CDB2026.
+
 ## v1.60 — 2026-07-17
 
 ### Fixed — "Jogos de hoje"/"Próximo jogo": rótulo cinza (devia ser verde) + centralização revertida
