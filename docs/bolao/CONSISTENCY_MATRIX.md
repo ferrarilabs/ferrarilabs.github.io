@@ -1068,3 +1068,41 @@ automaticamente por reaproveitar a mesma classe CSS `.next-game-row`/`.next-game
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação (reaproveita
 uma função já existente), nenhuma fórmula de pontuação tocada.
+
+## Nota manual — "Próximo jogo"/"Ao vivo": faltava fase do torneio e local do jogo em todos os três apps (2026-07-17, Copa v4.144 / BR2026 v1.62 / CDB2026 v3.46)
+
+Eduardo, screenshot do card real "Próximo jogo" da Copa (France × England, disputa do 3º lugar,
+M103, Hard Rock Stadium — jogo real de amanhã 18/jul): "Falta a localização do jogo e qual
+rodada estamos." Auditado o componente equivalente nos três apps (regra "toda vez que um
+componente visual for alterado, localizar todas as ocorrências"):
+
+- **Copa**: local (`m.venue`) já aparecia no card pré-live, mas a FASE do torneio
+  (`phaseLabel(m.phase)`, ex. "Disputa do 3º lugar") nunca aparecia em nenhum estado do hero — só
+  o número cru "M103". No card AO VIVO faltavam os dois (nem fase, nem local).
+- **BR2026**: venue já aparecia no card rico de 1 jogo só, mas faltava na lista compacta "Jogos
+  de hoje" (vários jogos no mesmo dia) e no card ao vivo (`fetchScoreboard()` nunca extraía
+  `comp.venue` da ESPN, diferente de `fetchSchedule()` que já extraía).
+- **CDB2026**: venue já aparecia no card de 1 confronto só, mas a FASE (`Oitavas de Final` etc.)
+  nunca aparecia em nenhum formato, e venue também faltava na lista compacta e no card ao vivo.
+
+`NOT_CONSISTENT` → `CONSISTENT` nos três: fase (Copa/CDB2026) e venue (BR2026/CDB2026, lista
+compacta + ao vivo) agora aparecem em todo estado do card "próximo jogo"/"ao vivo", reaproveitando
+helpers já existentes (`phaseLabel()`/`t("groupLabel")` na Copa, `phase.name`/`getPhaseDef()` no
+CDB2026) — nenhuma lógica de torneio nova criada.
+
+**Divergência preservada como `TOURNAMENT_SPECIFIC`**: BR2026 não tem conceito de "fase" (liga de
+pontos corridos, não mata-mata) — "qual rodada estamos" não se aplica da mesma forma que na Copa
+(fases de bracket) ou no CDB2026 (fases de eliminatória). Um número de rodada (matchday) do
+Brasileirão seria um dado NOVO (não extraído hoje de lugar nenhum), não uma correção de
+inconsistência — não implementado nesta rodada de mudanças por estar fora do escopo do pedido
+original (local do jogo); registrado aqui como possível item de backlog, não como bug.
+
+Verificado com estado real de produção (Supabase) nos três apps — Copa: M103 (França × Inglaterra,
+3º lugar, Hard Rock Stadium) mostra fase + local corretamente, inclusive simulado ao vivo com
+payload real da ESPN. BR2026: jogos reais de hoje (Bahia × Chapecoense, Fluminense × Bragantino,
+Mirassol × Grêmio) mostram venue na lista compacta. CDB2026: Oitavas de Final reais (Vasco ×
+Fluminense, Atlético-MG × Juventude, Santos × Remo) mostram fase + venue.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação (novas
+linhas de texto/CSS reaproveitando dados e helpers já existentes), nenhuma fórmula de pontuação
+tocada.

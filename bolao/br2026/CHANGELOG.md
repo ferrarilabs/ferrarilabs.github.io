@@ -1,5 +1,28 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.62 — 2026-07-17
+
+### Fixed — venue faltava na lista "Jogos de hoje" e no card ao vivo
+
+Mesmo achado da Copa (ver changelog dela, "Falta a localização do jogo e qual rodada estamos") —
+o card rico de "próximo jogo" (1 jogo só) já mostrava `next-game-venue`, mas a lista compacta
+"Jogos de hoje"/"Próximos jogos" (`renderNextGameCard()`, vários jogos no mesmo dia) e o card ao
+vivo (`renderLiveCard()`) nunca mostravam o local do jogo.
+
+Adicionado `<div class="next-game-venue">` em cada item da lista compacta (reaproveita a mesma
+classe já usada no card de 1 jogo só). No card ao vivo, `fetchScoreboard()` agora extrai
+`comp.venue?.fullName`/`comp.venue?.address?.city` (o mesmo padrão já usado em `fetchSchedule()`
+para a lista completa de jogos) e `renderLiveCard()` mostra num novo bloco `.live-match-meta`.
+
+BR2026 não tem conceito de "fase" equivalente ao da Copa (é liga de pontos corridos, não
+mata-mata) — "qual rodada estamos" não se aplica da mesma forma aqui; não generalizado
+(`TOURNAMENT_SPECIFIC`, ver `docs/bolao/CONSISTENCY_MATRIX.md`).
+
+Verificado com calendário real da ESPN (mockado via Playwright) — jogos de hoje (Bahia ×
+Chapecoense, Fluminense × Bragantino, Mirassol × Grêmio) mostram o estádio corretamente.
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v1.61 — 2026-07-17
 
 ### Changed — "Jogos de hoje": contador em texto trocado pelo widget de dígitos da Copa

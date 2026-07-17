@@ -893,6 +893,8 @@ async function fetchScoreboard() {
         clockStr:  comp.status?.displayClock || "",
         period, isHalftime, isPenalties,
         plays: extractMatchPlays(comp),
+        venue: comp.venue?.fullName || "",
+        city:  comp.venue?.address?.city || "",
       };
     }).filter(Boolean);
   } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
@@ -1548,6 +1550,8 @@ function renderLiveCard() {
     // cada um em sua própria linha, com bastante espaço vazio entre elas) não seguia o padrão
     // visual canônico da plataforma (ver CLAUDE.md "Copa do Mundo 2026 é a referência visual
     // canônica"/PLATFORM_GOVERNANCE.md "Golden master") -- só a Copa tinha essa estrutura testada.
+    const liveVenue = m.venue ? `${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}` : "";
+    const liveMetaHtml = liveVenue ? `<div class="live-match-meta"><span>📍 ${liveVenue}</span></div>` : "";
     const rowInner = `
       <div class="live-top">
         ${teamColHtml(m.homeTeam)}
@@ -1558,7 +1562,8 @@ function renderLiveCard() {
         </div>
         <div class="live-score">${m.awayScore}</div>
         ${teamColHtml(m.awayTeam)}
-      </div>`;
+      </div>
+      ${liveMetaHtml}`;
     const playsHtml = livePlaysHtml(m.plays, m.homeTeam, m.awayTeam, m.id);
     const detailHtml = playsHtml + probBarsHtml;
     // The whole row is the tap target (not just a small chevron) — better mobile touch target
@@ -1781,7 +1786,8 @@ function renderNextGameCard() {
           <div class="next-game-row">
             <div class="next-game-info-block">
               <div class="today-game-teams">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
-              <span class="today-game-time muted">${esc(timeStr)} BRT</span>
+              <div class="today-game-time muted">${esc(timeStr)} BRT</div>
+              ${g.venue ? `<div class="next-game-venue">📍 ${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
             </div>
             ${timerHtml}
           </div>

@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## v4.144 — 2026-07-17
+
+### Fixed — "Próximo jogo"/"Ao vivo": faltava a fase do torneio e o local do jogo
+
+Eduardo, screenshot do card "Próximo jogo" real (France × England, disputa do 3º lugar, M103,
+Hard Rock Stadium — jogo real de amanhã 18/jul): "Falta a localização do jogo e qual rodada
+estamos." O local (`m.venue`) já aparecia no card de "próximo jogo" pré-live, mas a FASE do
+torneio ("Disputa do 3º lugar") nunca aparecia em lugar nenhum do hero — só o número cru "M103".
+No card AO VIVO (`hero-live-card`) faltavam os dois: nem fase, nem local, em nenhum estado.
+
+Corrigido `renderNextMatch()`: adicionada uma linha com `phaseLabel(m.phase)` (+ grupo, na fase de
+grupos) acima da linha de data/hora, no card "próximo jogo" (normal e adiado). Adicionado um novo
+bloco `.hero-live-meta` no card ao vivo, mostrando fase + local (`m.venue`) — nenhum dos dois
+existia ali antes. Reaproveita o mesmo helper `phaseLabel()`/`t("groupLabel")` já usado na lista
+completa de jogos (`renderGamesSection()`), sem introduzir lógica nova.
+
+Verificado com o estado real de produção (Supabase) — M103 (França × Inglaterra, 3º lugar,
+18/jul, Hard Rock Stadium) renderiza corretamente "Disputa do 3º lugar" + local no card
+pré-live, e o mesmo no card ao vivo simulado com dados reais da ESPN mockados.
+
+Mesmo achado no BR2026 (venue faltava na lista compacta "Jogos de hoje" e no card ao vivo) e no
+CDB2026 (fase faltava no card de próximo confronto, e fase+venue faltavam no card ao vivo) — ver
+changelog de cada app.
+
+`audit_scoring.py`: PASSOU. Mudança é só apresentação (nova linha de texto/CSS), nenhuma fórmula
+de pontuação tocada.
+
 ## v4.143 — 2026-07-17
 
 ### Fixed — vão em branco no final da página no iOS (hipótese: reflow de rolagem do WebKit)

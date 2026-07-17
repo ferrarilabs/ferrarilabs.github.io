@@ -236,6 +236,16 @@ h3 { font-size: 1.05rem; }
   justify-content: space-between;
   gap: 6px;
 }
+.hero-live-meta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 10px;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+}
 .hero-live-points {
   margin-top: 12px;
   padding-top: 10px;

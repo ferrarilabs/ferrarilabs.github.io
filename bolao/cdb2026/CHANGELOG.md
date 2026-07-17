@@ -1,5 +1,30 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.46 — 2026-07-17
+
+### Fixed — faltava a fase (Oitavas/Quartas/...) no card de próximo confronto, e fase+venue no card ao vivo
+
+Mesmo achado da Copa (ver changelog dela, "Falta a localização do jogo e qual rodada estamos") —
+`renderNextTieCard()` já mostrava venue no card de 1 confronto só, mas nunca mostrava a FASE
+(`DATA.phases[].name`, ex. "Oitavas de Final") em nenhum dos dois formatos (card rico ou lista
+compacta), e a lista compacta também não mostrava venue. `renderLiveTieCard()` não mostrava nem
+fase nem venue.
+
+Corrigido: `findAllUpcomingMatchesOnNextDay()` agora carrega `phase.name` junto com cada jogo;
+`renderNextTieCard()` mostra a fase (e venue, na lista compacta) em ambos os formatos.
+`renderLiveTieCard()` ganhou um novo bloco `.live-match-meta` com fase (via `getPhaseDef()`) +
+venue (lido de `l.tie.matches[l.leg]`).
+
+CDB2026 não precisa mostrar setas de posição de time no card ao vivo (mata-mata, não tem
+"posição na tabela" — só o ranking de participantes tem movimento, já implementado antes) —
+mantido como está, `TOURNAMENT_SPECIFIC`.
+
+Verificado com o estado real de produção (Supabase) — Oitavas de Final (Vasco × Fluminense,
+Atlético-MG × Juventude, Santos × Remo) mostram fase + venue corretamente na lista de próximos
+jogos.
+
+`audit_scoring.py`: PASSOU. Presentation-only.
+
 ## v3.45 — 2026-07-17
 
 ### Changed — "Próximos jogos": contador em texto trocado pelo widget de dígitos da Copa
