@@ -1,5 +1,22 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.58 — 2026-07-17
+
+### Fixed — vão em branco no final da página no iOS (hipótese: reflow de rolagem do WebKit)
+
+Eduardo, screenshot: "Ainda tem bastante areas em branco ao final da pagina, isso tinha sido
+corrigido." Investigação a fundo: peguei o estado real do Supabase (11 entradas) e reproduzi
+localmente — o rodapé fica exatamente coincidindo com o fim da página, sem sobra nenhuma, em
+todas as abas, no Chromium. Comparado byte a byte com produção: idêntico. Sem conseguir
+reproduzir num navegador WebKit real (não disponível neste ambiente), a hipótese de trabalho é
+um bug conhecido do Safari no iOS: vários cards (ao vivo, ranking ao vivo, próximo jogo, contagem
+regressiva) agora aparecem/somem dinamicamente a cada poll de 60s — quando o conteúdo ENCOLHE
+enquanto a página está rolada perto do final, o WebKit às vezes não recalcula a área rolável até
+uma interação nova, deixando um vão vazio "fantasma". `nudgeScrollReflow()` (um `scrollBy(0, 0)`
+imperceptível) roda depois de cada ciclo de renderização (`pollAll()` e `renderAll()`) — correção
+padrão documentada pra esse bug específico, sem custo/efeito quando a página não está rolada.
+Mesmo ajuste no CDB2026 e na Copa (mesmo mecanismo de cards dinâmicos nos três).
+
 ## v1.57 — 2026-07-17
 
 ### Fixed — caixa de foco feia ao redor do título "Projeção do Bolão"

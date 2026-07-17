@@ -1,5 +1,20 @@
 # CHANGELOG
 
+## v4.143 — 2026-07-17
+
+### Fixed — vão em branco no final da página no iOS (hipótese: reflow de rolagem do WebKit)
+
+Eduardo, screenshot: "Ainda tem bastante areas em branco ao final da pagina, isso tinha sido
+corrigido." Investigado a fundo — reproduzido localmente com o estado real do Supabase (11
+entradas do BR2026) e comparado byte a byte com produção: nenhuma sobra encontrada no Chromium.
+Hipótese de trabalho (não confirmada, sem acesso a Safari/iOS real neste ambiente): cards que
+aparecem/somem dinamicamente a cada poll de 60s (ao vivo, próximo jogo) fazem o conteúdo
+ENCOLHER enquanto a página pode estar rolada perto do final — o Safari no iOS é conhecido por
+não recalcular a área rolável até uma interação nova, deixando um vão vazio "fantasma". Aplicado
+`nudgeScrollReflow()` (um `scrollBy(0, 0)` imperceptível, força o WebKit a recalcular) depois de
+cada ciclo de renderização nos três apps — correção padrão documentada pra esse bug específico,
+sem custo/efeito quando a página não está rolada.
+
 ## v4.142 — 2026-07-17
 
 ### Fixed — caixa de foco feia ao redor do título ao trocar de aba
