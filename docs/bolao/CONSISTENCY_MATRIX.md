@@ -1030,3 +1030,27 @@ ambiguidade "hoje vs. próximo dia com jogo" que motivou essa feature no BR2026/
 
 `audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só apresentação, nenhuma
 fórmula de pontuação tocada.
+
+## Nota manual — "Jogos de hoje"/"Próximo jogo": rótulo cinza (devia ser verde) + centralização da v1.59 revertida (2026-07-17, BR2026 v1.60 / CDB2026 v3.44)
+
+Eduardo mandou screenshot da Copa (card "PRÓXIMO JOGO" real) e disse: "Mais uma vez erro de
+consistência, olha como esta a copa faca igual em todos. Isso não deveria nem ser questionado."
+Comparado direto contra o CSS real da Copa (`bolao/css/styles.css`), dois achados concretos:
+
+1. **Rótulo cinza, devia ser verde** — `.hero-next-label` da Copa usa `color: var(--green)`;
+   `.next-game-label`/`.today-games-header` no BR2026/CDB2026 usavam `var(--muted)` (cinza).
+   `NOT_CONSISTENT` → `CONSISTENT`.
+2. **Centralização introduzida ontem (v1.59) estava errada** — a nota anterior desta mesma
+   matriz (2026-07-17, item "Jogos de hoje") centralizou a lista em cima de um pedido verbal
+   vago ("tudo para a esquerda"), sem checar contra o padrão real da Copa. O componente
+   equivalente real da Copa (`.next-match-info`/`.hero-next-*`) é alinhado à esquerda, com o
+   contador de dígitos ocupando o lado direito da linha — nunca centralizado. Revertido.
+
+Lição registrada para sessões futuras: ao receber um pedido verbal de ajuste visual (sem
+screenshot do componente de referência da Copa), verificar o CSS real da Copa ANTES de
+implementar, não depois — evita reverter trabalho no dia seguinte. A regra já existe em
+CLAUDE.md ("Copa do Mundo 2026 é a referência visual canônica... reproduzir seus tokens"), mas
+não foi seguida à risca na mudança de ontem.
+
+`audit_scoring.py` (Copa/BR2026/CDB2026): PASSOU nos três — mudança é só cor/alinhamento CSS,
+nenhuma fórmula de pontuação tocada.

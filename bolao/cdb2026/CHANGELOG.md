@@ -1,5 +1,13 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.44 — 2026-07-17
+
+### Fixed — "Próximos jogos"/"Próxima partida": rótulo cinza (devia ser verde) + centralização revertida
+
+Mesmo achado do BR2026 (ver changelog dele pro detalhe completo) — rótulo corrigido pra verde
+(`.hero-next-label` da Copa) e a lista de múltiplas partidas revertida de centralizada pra
+alinhada à esquerda, igual ao card de referência real da Copa.
+
 ## v3.43 — 2026-07-17
 
 ### Fixed — "Próximos jogos" (múltiplas partidas no dia) sem contagem regressiva, alinhado à esquerda
