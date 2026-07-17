@@ -1,5 +1,26 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.41 — 2026-07-17
+
+### Fixed — caixa de foco feia ao redor do título ao trocar de aba
+
+Mesmo achado do BR2026 (Eduardo, screenshot) — `showSection()` foca o `<h2>`/`<h3>` da seção a
+cada troca de aba (pra leitor de tela), o anel de foco padrão do navegador ficava visível como
+uma caixa. Escondido, mesmo ajuste na Copa e no BR2026.
+
+### Fixed — caixa da contagem regressiva ficava vazia e visível depois do prazo da fase encerrar
+
+Mesmo achado do BR2026 (Eduardo: "Pode esconder isso") — a caixa "Encerrado" continuava ocupando
+o mesmo espaço grande da contagem regressiva. Corrigido pra esconder a caixa inteira quando o
+prazo da fase ativa passa, mesmo padrão da Copa/BR2026 — reaparece sozinha quando o admin avança
+pra uma fase com prazo futuro (não é "fim do torneio", é "fim do prazo da fase atual").
+
+### Fixed — pontos do Ranking quebrando em duas linhas ("170" / "pts")
+
+Mesmo achado do BR2026 (Eduardo: "Deixe tudo da entrada em uma linha e sem crlf") — removido o
+sufixo " pts" do Ranking, mesmo padrão da Copa (número puro, sem rótulo, cabe na coluna de
+largura fixa de 40px no mobile).
+
 ## v3.40 — 2026-07-16
 
 ### Fixed — card "ao vivo" trazido pro mesmo padrão da Copa/BR2026 (estava na pilha vertical antiga)
