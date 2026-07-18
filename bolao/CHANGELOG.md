@@ -1,5 +1,61 @@
 # CHANGELOG
 
+## v4.148 — 2026-07-18
+
+### Added — prêmio em dinheiro do pódio: banner no site + bloco no email de resultado
+
+Eduardo, com a Final marcada para o dia seguinte: "Isso tem que estar no email também que será
+enviado após os dois jogos! Precisamos pensar num email para o campeão, vice e terceiro lugar com
+o valor recebido e uma tela especial para apos o fim do jogo de amanhã com o valor pago para cada
+um e também com um agradecimento pela participação! Veja o placar atual para não ter nenhuma
+duvida."
+
+Investigado antes de implementar: `CONFIG.prizes` (`{ first: 0.70, second: 0.20, third: 0.10 }`)
+já existia em `config.js` desde antes desta sessão, mas nunca era usado em lugar nenhum — nem no
+site, nem no email automático, nem no manual. Não havia cálculo de prêmio em dinheiro implementado
+em lugar algum do código, apesar da regra de divisão 70/20/10 já estar documentada na aba Regras.
+
+Importante não confundir dois "pódios" diferentes que já existiam antes: (A) `podiumFromResults()`
+/`finalPodiumForEntry()` — qual SELEÇÃO fica campeã/vice/3ª/4ª, usado só para o bônus de PONTOS
+(`CONFIG.bonus`, ver v4.147 acima); (B) o novo `finalPodiumPayouts()` — qual ENTRADA do bolão
+(participante) fica em 1º/2º/3º no ranking geral de pontos, usado para o prêmio em DINHEIRO
+(`CONFIG.prizes`). São conceitos independentes; a implementação abaixo só toca o (B).
+
+Confirmado com Eduardo via 3 perguntas antes de implementar: destinatários = todos os
+participantes; base do cálculo do prêmio = pote atual (`pagantes × entryFee`), sem ressalva de
+"pote pode crescer" (não há mais pagamentos esperados nesta altura do torneio); local da tela no
+site = substitui o topo da aba Ranking assim que a Final travar.
+
+**Site (`bolao/index.html`, `bolao/js/app.js`, `bolao/js/i18n.js`, `bolao/css/styles.css`):**
+novo `#podiumBanner` no topo da aba Ranking. `finalPodiumPayouts(s)` só retorna resultado quando
+M103 (3º lugar) E M104 (Final) estão travados pelo admin — antes disso o pódio do bolão ainda não
+existe. Calcula o ranking geral (mesmo critério de desempate de `renderRanking()`: total → exato →
+pódio, sem o desempate por nome que é só de exibição), agrupa por chave `total:exato:pódio` (não
+pelo nome) para detectar empates reais, e divide o valor daquela colocação entre os empatados —
+seguindo a regra já documentada na aba Regras ("a posição e o prêmio daquela colocação são
+divididos entre os empatados"), que nunca tinha sido codificada até agora. Verificado com dados
+reais de produção (23 entradas pagas, pote $115): 🥇 Simone Hirle #4 $80.50 · 🥈 Mitch is the best
+$23 · 🥉 Aline $11.50 — e confirmado que o banner some corretamente enquanto M103/M104 não estão
+travados (estado real de produção no momento da implementação).
+
+**Email automático (`bolao/scripts/send_result_email.py`):** `compute_final_payouts()` (espelha
+`finalPodiumPayouts()` exatamente, incluindo o mesmo agrupamento de empate) e
+`build_podium_html()` (bloco bilíngue PT/EN com os 3 cartões de prêmio + agradecimento aos
+participantes) — disparado dentro de `run_auto()` só quando `mid == "104"` E M103 já está salvo,
+prependendo o bloco ao email normal e trocando o assunto para "🏆 Resultado Final do Bolão! · Final
+Bolão Result!". Testado isoladamente com os mesmos dados reais usados no teste do site — os
+valores batem exatamente ($80.50/$23/$11.50, pote $115).
+
+**Email manual do admin (`buildPodiumEmailHtml()`, `sendResultEmailFromAdmin()` em `app.js`):**
+mesmo bloco (agora trilíngue PT/EN/ES, consistente com o resto do email manual, que já é trilíngue
+onde o automático é bilíngue), acionado pela mesma condição (`finalPodiumPayouts()` não-nulo), com
+o mesmo assunto especial — mantendo os dois caminhos de email em paridade, como já vinha sendo
+feito nesta sessão (ver v4.57 no histórico sobre o risco de esses dois caminhos divergirem).
+
+Não altera pontuação nem regra de negócio — só adiciona a exibição/cálculo do prêmio em dinheiro
+que já estava documentado nas Regras mas nunca tinha sido implementado. `audit_scoring.py` passa
+sem alteração nos três apps.
+
 ## v4.147 — 2026-07-18
 
 ### Fixed — pontuação provisória do M103/M104 não incluía o bônus de pódio (real money bug)

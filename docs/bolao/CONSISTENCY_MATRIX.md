@@ -1269,3 +1269,32 @@ isso corretamente.
 
 `audit_scoring.py` (Copa): PASSOU — a suíte cobre a pontuação oficial/pipeline de e-mail, não a
 exibição ao vivo no navegador (verificado manualmente com dados reais via Playwright).
+
+## Nota manual — prêmio em dinheiro do pódio: banner + email (2026-07-18, Copa v4.148) — COPA APENAS, feature nova sem equivalente em BR2026/CDB2026
+
+Eduardo, com a Final marcada pro dia seguinte: pediu um email especial para campeão/vice/3º lugar
+com o valor recebido, e uma tela especial no site após o fim da Final mostrando o valor pago para
+cada um + agradecimento pela participação. Investigação prévia confirmou que `CONFIG.prizes`
+(70/20/10%) existia em `config.js` desde antes desta sessão mas nunca era usado em lugar nenhum —
+não havia cálculo de prêmio em dinheiro implementado, nem no site nem nos dois caminhos de email.
+
+Implementado só na Copa (`bolao/`): `finalPodiumPayouts()` (JS, site) / `compute_final_payouts()`
+(Python, email automático) / `buildPodiumEmailHtml()` (JS, email manual do admin) — as três
+espelham exatamente a mesma lógica (ranking geral por total→exato→pódio, agrupamento de empate
+real via chave `total:exato:pódio`, divisão do valor da colocação entre empatados, conforme regra
+já documentada na aba Regras mas nunca codificada). Só ativa quando M103 E M104 estão travados
+pelo admin. Verificado com dados reais de produção (23 entradas pagas, pote $115): os três
+caminhos (banner do site, email automático, email manual) produzem exatamente os mesmos valores
+($80.50/$23/$11.50).
+
+**Por que não propagado para BR2026/CDB2026 nesta rodada**: este é um conceito de "pódio do BOLÃO"
+(top-3 participantes por pontos, prêmio em dinheiro) — diferente do "pódio do TORNEIO" (que
+seleção fica campeã) que já existe nos três apps para o bônus de pontos. BR2026 não tem uma
+condição de "torneio decidido" única e discreta como M103+M104 da Copa (o Brasileirão termina numa
+rodada só, sem partida final dedicada) — precisaria de um trigger de fim de temporada próprio, não
+uma cópia direta. CDB2026 tem uma Final única (like Copa) e é o candidato mais próximo para portar
+esta feature, mas isso não foi pedido nesta rodada e fica registrado como trabalho futuro, não como
+lacuna esquecida — ver `ROADMAP.md`.
+
+`audit_scoring.py`: PASSOU nos três apps (Copa, BR2026, CDB2026) sem alteração — feature nova é
+puramente aditiva (cálculo de prêmio em dinheiro), não toca pontuação nem regra de negócio.

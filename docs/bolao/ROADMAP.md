@@ -21,6 +21,20 @@ Currently sync happens only on page focus and visibility change. A Supabase chan
 ### M-03 — Japanese (ja) language
 CLAUDE.md historically mentioned `ja` as a fourth language, but `i18n.js` only has pt-BR, es, en-US. If Japanese participants join, add a `ja` object and a 🇯🇵 button.
 
+### M-05 — Port podium prize-payout banner/email to CDB2026
+
+Copa (v4.148) shipped `finalPodiumPayouts()`/`compute_final_payouts()`/`buildPodiumEmailHtml()` —
+a site banner + email block showing which bolão entries (not which team) finish 1st/2nd/3rd in
+points, with the real $ prize amount from `CONFIG.prizes`, once the tournament's two deciding
+matches are both locked. CDB2026 also has a single decisive Final (unlike BR2026, which ends on a
+season round with no dedicated final match), making it the natural next candidate — but this was
+not requested and must not be copied automatically. If Eduardo asks for it: reuse the same
+tie-splitting logic (group by `total:champion:runnerUp:exact` or whatever CDB2026's own tiebreak
+key is — do not reuse Copa's `total:exact:podium` key verbatim), keep CDB2026's own tournament
+logic (`CONFIG.prizes` may differ), and treat this as `TOURNAMENT_SPECIFIC` even though the visual
+banner should copy Copa's CSS tokens per the golden-master rule. See
+`docs/bolao/CONSISTENCY_MATRIX.md` (2026-07-18 note) for the decision not to propagate this round.
+
 ### M-04 — Visual bracket tree
 Replace the linear match-card list in the picks form with an actual bracket diagram showing the progression tree. Would improve UX for participants who want to see how their bracket connects.
 
