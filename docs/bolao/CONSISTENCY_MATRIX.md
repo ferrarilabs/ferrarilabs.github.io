@@ -1366,3 +1366,28 @@ ainda se aplica — confirmado que falha contra a lógica antiga e passa com a c
 uma única partida Final (sem uma partida separada de 3º lugar decidindo parte do pódio de forma
 independente, como o M103/M104 da Copa) — não há um "gate" equivalente para quebrar dessa forma.
 BR2026 não tem conceito de bônus de pódio. Nenhuma ação necessária nos outros apps.
+
+## Nota manual — bônus de pódio nunca aparecia na quebra por partida, só no total (2026-07-19, Copa v4.152) — gap de exibição, não de cálculo
+
+Eduardo, logo após o e-mail de correção do v4.151: "Email foi mais uma vez incorreto sem o bonus."
+Investigado antes de qualquer alteração: confirmado que o site JÁ EM PRODUÇÃO (`app.js?v=e06ccef`)
+já tinha a correção do v4.151 — `score_entry_total()`/`scoreEntry()` retornavam 227/158
+corretamente para Simone Hirle #4/Gabriel Ferrari, verificado direto contra dados reais antes de
+tocar em qualquer código.
+
+Causa real: a tabela de quebra por partida do M103 — presente em TRÊS lugares (e-mail automático,
+e-mail manual do admin, painel "Ver palpites" do site) — sempre mostrou só os pontos base
+(exato/gols/avanço, no máximo 15), nunca o bônus de pódio, mesmo o TOTAL agregado (tabela de
+ranking, badge de bônus) sempre tendo incluído corretamente. Alguém lendo "M103: 5 pts, +5
+England avança" (o primeiro número que aparece no e-mail) razoavelmente concluiria que o bônus
+ainda estava faltando, sem necessariamente conectar isso ao total correto várias linhas abaixo.
+Essa mesma lacuna existia de forma independente nos três lugares — muito provavelmente a causa
+real dos três relatos de "sem o bônus", não uma repetição do bug de cálculo do v4.151.
+
+Corrigido dobrando o bônus de pódio nos pontos EXIBIDOS por partida para M103/M104 especificamente
+(mesmo padrão já usado pela prévia ao vivo, `liveMatchPoints()`), com nota explícita onde há coluna
+de detalhe, e tooltip no "Ver palpites" (que não tem coluna de detalhe). Não toca a lógica do total
+agregado (`scoreEntry()`/`score_entry_total()`), que já estava correta e continua sendo a fonte da
+verdade — só torna a exibição por partida consistente com o que o total já dizia.
+
+`audit_scoring.py`: PASSOU, sem alteração — fix é de exibição apenas.

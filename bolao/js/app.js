@@ -1211,6 +1211,46 @@ function podiumFromResults(s) {
   return { champion, runnerUp, third: thirdPlace, fourth };
 }
 
+// Podium bonus contributed by exactly ONE match (M103 -> third+fourth, M104 -> champion+
+// runnerUp), plus a human-readable note -- used ONLY to itemize a per-match breakdown row
+// (admin result email, "Ver palpites" panel). Never for the aggregate total; scoreEntry()'s
+// bonus block on the whole entry stays the single source of truth for that.
+//
+// Eduardo, 2026-07-19, after the correction email: "Email foi mais uma vez incorreto sem o
+// bonus." The ranking TOTAL was already correct -- but the per-match breakdown row for M103 only
+// ever showed the base 5 pts ("+5 England avança"), with the +10 podium bonus folded silently
+// into the total with nothing connecting the two. Reasonable to read that table and conclude the
+// bonus was still missing. Mirrors the fold-into-displayed-points design already used by the
+// live/provisional preview (liveMatchPoints()), for consistency.
+function matchPodiumBonus(entry, mid, s) {
+  if (mid !== "103" && mid !== "104") return { pts: 0, notePt: "", noteEn: "", noteEs: "" };
+  const realPod = podiumFromResults(s);
+  if (!realPod) return { pts: 0, notePt: "", noteEn: "", noteEs: "" };
+  const pred = finalPodiumForEntry(entry);
+  let pts = 0;
+  const notesPt = [], notesEn = [], notesEs = [];
+  if (mid === "103") {
+    if (pred.third && realPod.third && pred.third === realPod.third) {
+      pts += CONFIG.bonus.third;
+      notesPt.push(`+${CONFIG.bonus.third} bônus 3º lugar`); notesEn.push(`+${CONFIG.bonus.third} 3rd place bonus`); notesEs.push(`+${CONFIG.bonus.third} bono 3er lugar`);
+    }
+    if (pred.fourth && realPod.fourth && pred.fourth === realPod.fourth) {
+      pts += CONFIG.bonus.fourth;
+      notesPt.push(`+${CONFIG.bonus.fourth} bônus 4º lugar`); notesEn.push(`+${CONFIG.bonus.fourth} 4th place bonus`); notesEs.push(`+${CONFIG.bonus.fourth} bono 4º lugar`);
+    }
+  } else {
+    if (pred.champion && pred.champion === realPod.champion) {
+      pts += CONFIG.bonus.champion;
+      notesPt.push(`+${CONFIG.bonus.champion} bônus campeão`); notesEn.push(`+${CONFIG.bonus.champion} champion bonus`); notesEs.push(`+${CONFIG.bonus.champion} bono campeón`);
+    }
+    if (pred.runnerUp && pred.runnerUp === realPod.runnerUp) {
+      pts += CONFIG.bonus.runnerUp;
+      notesPt.push(`+${CONFIG.bonus.runnerUp} bônus vice-campeão`); notesEn.push(`+${CONFIG.bonus.runnerUp} runner-up bonus`); notesEs.push(`+${CONFIG.bonus.runnerUp} bono subcampeón`);
+    }
+  }
+  return { pts, notePt: notesPt.join(", "), noteEn: notesEn.join(", "), noteEs: notesEs.join(", ") };
+}
+
 // Points for a single knockout match pick vs its real result.
 // Returns null when the match can't be scored yet (no pick, or no finalized result).
 function matchPoints(p, r) {
@@ -1479,7 +1519,16 @@ function buildResultEmailHtml(s, testMode) {
 
   const breakdownScored = lastMid ? scored.map(item => {
     const pick = item.e.picks?.[lastMid];
-    const { pts, detPt, detEn, detEs } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB);
+    let { pts, detPt, detEn, detEs } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB);
+    if (pick) {
+      const bonus = matchPodiumBonus(item.e, lastMid, s);
+      if (bonus.pts) {
+        pts += bonus.pts;
+        detPt = detPt !== "—" ? `${detPt}, ${bonus.notePt}` : bonus.notePt;
+        detEn = detEn !== "—" ? `${detEn}, ${bonus.noteEn}` : bonus.noteEn;
+        detEs = detEs !== "—" ? `${detEs}, ${bonus.noteEs}` : bonus.noteEs;
+      }
+    }
     const pickStr = pick
       ? `${Number(pick.goalsA)}–${Number(pick.goalsB)} (${pick.advanceSide === "B" ? lastTeamB : lastTeamA})`
       : "—";
@@ -1922,9 +1971,10 @@ function renderRanking() {
 }
 
 function picksTable(entry) {
-  const { winners: officialWinners, losers: officialLosers } = officialWinnersMap(state());
+  const s = state();
+  const { winners: officialWinners, losers: officialLosers } = officialWinnersMap(s);
   const r = resolvedTeamsForEntryDisplay(entry, officialWinners, officialLosers);
-  const results = (state().results) || {};
+  const results = s.results || {};
   // Hide picks for any unplayed match while the entry window is still open.
   // Prevents participants from copying each other's future-round picks.
   // Uses isPastCutoff() so this stays correct regardless of which window phase we're in.
@@ -1938,15 +1988,25 @@ function picksTable(entry) {
     const hasRealScore = result?.goalsA !== undefined && result?.goalsB !== undefined;
     const realScore = hasRealScore ? `${result.goalsA}–${result.goalsB}` : "—";
     const mp = matchPoints(p, result);
-    const pts = result?.advanceSide ? (mp ? mp.pts : 0) : null;
+    let pts = result?.advanceSide ? (mp ? mp.pts : 0) : null;
+    // M103/M104 also carry a podium bonus (3rd/4th, champion/runner-up) that scoreEntry() folds
+    // into the entry's overall total -- fold it into THIS row's points too, so the number shown
+    // per match actually matches what that match contributed. Eduardo, 2026-07-19: without this,
+    // the row showed only the base 5 pts while the bonus appeared silently in the total further
+    // up, reasonably read as "o bônus ainda está faltando".
+    let bonusNote = "";
+    if (pts !== null) {
+      const bonus = matchPodiumBonus(entry, String(m.match), s);
+      if (bonus.pts) { pts += bonus.pts; bonusNote = ` title="${escapeHtml(bonus[currentLang === "en-US" ? "noteEn" : currentLang === "es" ? "noteEs" : "notePt"])}"`; }
+    }
     const ptsCell = pts === null
       ? `<span class="muted">—</span>`
-      : `<b class="pick-pts${pts > 0 ? " pos" : ""}">${pts}</b>`;
+      : `<b class="pick-pts${pts > 0 ? " pos" : ""}"${bonusNote}>${pts}</b>`;
     return `<tr><td>M${escapeHtml(String(m.match))}</td><td>${escapeHtml(rr.displayA||"")}</td><td><b>${p.goalsA}×${p.goalsB}</b></td><td>${escapeHtml(rr.displayB||"")}</td><td>${escapeHtml(w||"")}</td><td>${escapeHtml(realScore)}</td><td style="text-align:center">${ptsCell}</td></tr>`;
   }).join("");
   // Same count used for the standings tiebreaker — lets people see why they're
   // ranked above/below a tied entry without having to do the math themselves.
-  const exactCount = exactMatchCount(entry, state());
+  const exactCount = exactMatchCount(entry, s);
   const pod = isPastCutoff() ? finalPodiumForEntry(entry) : {};
   const podHtml = (pod.champion || pod.runnerUp || pod.third)
     ? `<div class="picks-podium">

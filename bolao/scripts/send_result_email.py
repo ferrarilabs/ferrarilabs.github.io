@@ -492,6 +492,48 @@ def podium_bonus_points(entry, results):
     return pts
 
 
+def match_podium_bonus_note(entry, mid, results):
+    """Podium bonus contributed by exactly ONE match (M103 -> third+fourth, M104 -> champion+
+    runnerUp), plus a human-readable note -- used ONLY to itemize the per-match breakdown row
+    shown in build_html() (never for the aggregate total; podium_bonus_points() on the whole
+    entry stays the single source of truth for that).
+
+    Eduardo, 2026-07-19, after the correction email: "Email foi mais uma vez incorreto sem o
+    bonus." The total in the ranking table WAS already correct (score_entry_total() includes
+    podium_bonus_points()) -- but the per-match breakdown row for M103 only ever showed the base
+    5 pts ("+5 England avança"), with the +10 podium bonus folded silently into the total further
+    down the email with no line connecting the two. Reasonable to read that first table and
+    conclude the bonus was still missing. Mirrors the same fold-into-displayed-points design
+    already used for the live/provisional preview (liveMatchPoints()), for consistency."""
+    if mid not in ("103", "104"):
+        return 0, "", ""
+    real_pod = _podium_from_results(results)
+    if not real_pod:
+        return 0, "", ""
+    pred = _entry_predicted_podium(entry)
+    pts = 0
+    notes_pt, notes_en = [], []
+    if mid == "103":
+        if pred["third"] and real_pod["third"] and pred["third"] == real_pod["third"]:
+            pts += BONUS["third"]
+            notes_pt.append(f"+{BONUS['third']} bônus 3º lugar")
+            notes_en.append(f"+{BONUS['third']} 3rd place bonus")
+        if pred["fourth"] and real_pod["fourth"] and pred["fourth"] == real_pod["fourth"]:
+            pts += BONUS["fourth"]
+            notes_pt.append(f"+{BONUS['fourth']} bônus 4º lugar")
+            notes_en.append(f"+{BONUS['fourth']} 4th place bonus")
+    else:
+        if pred["champion"] and pred["champion"] == real_pod["champion"]:
+            pts += BONUS["champion"]
+            notes_pt.append(f"+{BONUS['champion']} bônus campeão")
+            notes_en.append(f"+{BONUS['champion']} champion bonus")
+        if pred["runnerUp"] and pred["runnerUp"] == real_pod["runnerUp"]:
+            pts += BONUS["runnerUp"]
+            notes_pt.append(f"+{BONUS['runnerUp']} bônus vice-campeão")
+            notes_en.append(f"+{BONUS['runnerUp']} runner-up bonus")
+    return pts, ", ".join(notes_pt), ", ".join(notes_en)
+
+
 # Prêmio do BOLÃO (quem ganha dinheiro) — mirrors finalPodiumPayouts() in app.js exactly.
 # Eduardo: "Isso tem que estar no email também que será enviado após os dois jogos!"
 # (2026-07-18). Do NOT confuse with BONUS/_podium_from_results() above (campeão/vice/3º/4º do
@@ -678,7 +720,7 @@ def build_html(state, focus_mid=None):
         result_str         = f'{last_tA} {last_result["goalsA"]}–{last_result["goalsB"]} {last_tB}'
 
         breakdown_scored = sorted(
-            [{"name": item["e"].get("entryName", "?"),
+            [{"name": item["e"].get("entryName", "?"), "entry": item["e"],
               "pick": (item["e"].get("picks") or {}).get(last_mid)}
              for item in scored],
             key=lambda x: -(score_match(x["pick"] or {}, last_result,
@@ -689,6 +731,11 @@ def build_html(state, focus_mid=None):
             p = row["pick"]
             if p:
                 pts, det_pt, det_en = score_match(p, last_result, teamA=last_tA, teamB=last_tB)
+                bonus_pts, bonus_pt, bonus_en = match_podium_bonus_note(row["entry"], last_mid, results)
+                if bonus_pts:
+                    pts += bonus_pts
+                    det_pt = f"{det_pt}, {bonus_pt}" if det_pt != "—" else bonus_pt
+                    det_en = f"{det_en}, {bonus_en}" if det_en != "—" else bonus_en
                 pick_team = last_tB if p.get("advanceSide") == "B" else last_tA
                 pick_str  = f'{int(p["goalsA"])}–{int(p["goalsB"])} ({pick_team})'
             else:
