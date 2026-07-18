@@ -1,5 +1,45 @@
 # CHANGELOG
 
+## v4.152 — 2026-07-19
+
+### Fixed — podium bonus never itemized in the per-match breakdown (display-only gap, not a computation bug)
+
+Eduardo, after the corrective email for v4.151 went out: "Email foi mais uma vez incorreto sem o
+bonus." Investigated thoroughly before touching anything:
+
+- Confirmed the LIVE deployed site (`ferrarilabs.github.io/bolao/`, served `app.js?v=e06ccef`)
+  already had the v4.151 fix — `score_entry_total()`/`scoreEntry()` correctly return 227/158 for
+  Simone Hirle #4/Gabriel Ferrari, verified fresh against production data right before making any
+  change.
+- The actual root cause: the per-match breakdown table shown for M103 in **every** result view
+  (automated email, admin manual email, and the site's own "Ver palpites" panel) only ever
+  displayed the base match points (exact/goals/advance — max 15) and never itemized the podium
+  bonus anywhere in that row, even though the AGGREGATE total further down (ranking table,
+  ranking list) always correctly included it. A reasonable reader scanning "M103: 5 pts, +5
+  England avança" — the first, most prominent number in the email — would conclude the bonus was
+  still missing, without necessarily connecting it to the correct total several rows further down.
+  This exact same gap existed independently in three places, so this was very likely the real
+  cause of all three "sem o bônus" reports, not a repeat of the v4.151 computation bug.
+
+Fixed by folding the podium bonus into the *displayed* per-match points for M103/M104 specifically
+(mirroring the same "fold bonus into displayed pts" design already used by the live/provisional
+preview, `liveMatchPoints()`), with an explicit note (e.g. "+5 England avança, +10 bônus 3º
+lugar") wherever the match has a detail column, and a tooltip on the site's "Ver palpites" points
+cell (which has no detail column). New shared helper: `match_podium_bonus_note()` (Python) /
+`matchPodiumBonus()` (JS) — used by `send_result_email.py`'s `build_html()`, `app.js`'s
+`buildResultEmailHtml()` (admin manual email), and `app.js`'s `picksTable()` (site's per-entry
+picks panel). Does **not** touch `score_entry_total()`/`scoreEntry()`'s aggregate total logic at
+all — those were already correct and remain the single source of truth; this only makes the
+per-match display consistent with what the total already said.
+
+Verified against real production data across all three surfaces: Simone Hirle #4 and Gabriel
+Ferrari now show 15 pts (with the bonus itemized) at M103 in the Python email builder, the JS
+admin email builder, and the site's picks panel; Mitch is the best (predicted the wrong team,
+correctly gets no bonus) stays at 5 pts everywhere, unchanged.
+
+`audit_scoring.py`: PASSED, unchanged — display-only fix, doesn't touch the aggregate scoring
+functions the suite covers.
+
 ## v4.151 — 2026-07-19
 
 ### Fixed — 3rd-place bonus withheld from OFFICIAL scoring until the Final was also decided (real money bug, already-sent email affected)
