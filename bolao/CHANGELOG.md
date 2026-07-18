@@ -1,5 +1,53 @@
 # CHANGELOG
 
+## v4.150 — 2026-07-18
+
+### Added — trilingual technical audit report, published on-site before the Final
+
+Eduardo, the day before the Final (M104): "Antes dos resultados finais fazer uma auditoria
+automática com relatório estilo kpmg, big 4 e adicionar no site como um pdf ou html e colocar um
+link para visualização. Colocar o máximo de detalhes possíveis! A auditoria precisa ser nas 3
+linguagens só para deixar claro."
+
+New `bolao/scripts/generate_audit_report.py` fetches the live production Supabase state and
+generates `bolao/audit-report.html` — a professional-structure audit report (scope, methodology,
+independent recomputation, findings, opinion, sign-off), fully trilingual (pt-BR/en-US/es) with a
+language-toggle bar matching the site's own switcher, and print/PDF-friendly (the site has no
+build step and no PDF library, so HTML was chosen — the report itself was explicit that either was
+acceptable: "um pdf ou html"). Explicitly NOT branded as or affiliated with KPMG or any other
+accounting firm — the header says so plainly; "Big 4 style" here means the report's structure and
+rigor, not the branding.
+
+Checks performed, all against real production data (23 real entries, 30 locked results as of
+publication):
+- **A.** Scoring formula constants (exact/goals/advance/bonus/prize %) cross-checked against
+  independently-declared expected values — catches the exact class of "silent drift" bug from the
+  July 2026 incident (CHANGELOG v4.57).
+- **B.** Bracket structure integrity — all 32 knockout matches present, no broken slot references.
+- **C.** Locked result data integrity — winning side matches the recorded score (accounting for
+  penalty-shootout draws, which are expected and not flagged).
+- **D.** Entry/payment data integrity — no duplicate IDs, no orphan picks, paid-count reconciled.
+- **E.** Independent score recomputation for **every one of the 23 real entries** — points
+  recalculated from raw picks + raw results in code deliberately kept separate from
+  `score_entry_total()`, diffed against the official value. All 23 matched exactly.
+- **F.** Ranking/tiebreak order verification (total → exact → podium hits) via the same
+  independent recompute.
+- **G.** Prize/pot mechanism verification (pot = paid × entry fee, 70/20/10% split).
+- **H.** Full disclosure of the two bugs found and fixed earlier today (v4.147, v4.149), with the
+  real before/after numbers, as a "findings identified and remediated" section — transparency
+  about what went wrong is itself part of what was asked for.
+- **I.** Embeds `audit_scoring.py`'s static self-test suite results.
+
+A discreet "🔍 Ver Relatório de Auditoria da Pontuação" link was added to the top of the Ranking
+tab (`bolao/index.html`), opening the report in a new tab. Report can be regenerated any time by
+re-running the script — not wired into any automated cron, generated on demand.
+
+Copa-only this round — BR2026/CDB2026 have no Final imminent, so this wasn't propagated; see
+`docs/bolao/CONSISTENCY_MATRIX.md`.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — this adds a new read-only reporting script,
+doesn't touch scoring or business logic anywhere.
+
 ## v4.149 — 2026-07-18
 
 ### Fixed — live podium-bonus preview awarded bonus by bracket SIDE instead of TEAM (real money bug, M103 live)
