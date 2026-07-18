@@ -38,10 +38,14 @@ independent from-scratch recomputation exactly.
   totals and its own independent-recompute logic updated to match (same bug existed in
   `generate_audit_report.py`'s `independent_real_podium()` — fixed in the same commit so the
   report's own cross-check doesn't false-flag against the corrected official score).
-- The **M103 result email already sent** to participants keeps the stale total (missing the
-  bonus) — it cannot be recalled. The next email (sent after the Final concludes) will show the
-  fully correct total for everyone, including this bonus. Whether a standalone corrective email
-  should also go out now is Eduardo's call, not something sent automatically by this fix.
+- The **M103 result email already sent** to participants kept the stale total (missing the
+  bonus) — it cannot be recalled. **Update, same day**: Eduardo asked for a standalone corrective
+  email for transparency — sent to all 18 real recipients (23 entries, deduplicated by email),
+  explaining the bug plainly (bilingual PT/EN), naming the 2 affected entries and their corrected
+  totals, linking the public audit report, and including the full up-to-date ranking table
+  (`build_html(state, focus_mid="103")`, already reflecting the fix). 18/18 delivered, 0 errors.
+  Sent via a one-off script (not committed to the repo — not a reusable feature, just this
+  specific correction).
 
 Also added a permanent regression test to `bolao/scripts/audit_scoring.py`
 (`check_partial_podium_bonus`) that locks only through M103 (leaving M104 undecided) and asserts
