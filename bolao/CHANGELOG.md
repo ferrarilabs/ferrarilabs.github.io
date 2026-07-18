@@ -1,5 +1,56 @@
 # CHANGELOG
 
+## v4.149 — 2026-07-18
+
+### Fixed — live podium-bonus preview awarded bonus by bracket SIDE instead of TEAM (real money bug, M103 live)
+
+Eduardo, with M103 (3rd place, França × Inglaterra) still live: "Score tem um problema: somente
+quem selecionou a Inglaterra lá no início deve receber o bonus, não o time que passou. Entendeu?"
+
+Confirmed as a real bug in the live-preview podium bonus shipped in v4.147 earlier today.
+`liveMatchPoints()` only compared the entry's bracket-slot pick (`pick.advanceSide === liveAdvance`,
+just the letter "A"/"B") against the currently-leading side — it never checked WHICH team the
+entry's own bracket picks actually traced through to that slot. Verified against real production
+data: of 21 real entries that picked side B for M103, only 2 (Simone Hirle #4, Gabriel Ferrari)
+had actually predicted "England" specifically by tracing their own picks through the bracket
+(`resolvedTeamsForEntry()`); the other 19 predicted entirely different teams (Mexico, Argentina,
+Colombia, Brazil, Switzerland...) that only happened to land on the same bracket side because this
+preview never checked team identity. All 21 would have shown the podium bonus live, even though
+only 2 would ever actually receive it once the match locks.
+
+Important: this bug was confined to the LIVE PREVIEW only (`liveMatchPointsTable()`, the "Pontos
+(provisório)" table in the live match card) — the OFFICIAL scoring (`scoreEntry()`, via
+`finalPodiumForEntry()`/`podiumFromResults()`) already compared by actual team name, never by side
+alone, and was never wrong. `send_result_email.py` and the new prize-payout feature (v4.148) both
+rely exclusively on official scoring and were also unaffected. No participant was ever paid or
+scored incorrectly — this only affected what the live "what-if" preview displayed before a result
+locked.
+
+Fixed: `liveMatchPoints()` now takes the entry's own bracket-resolved team for that podium slot
+(`entryPredictedTeam`, from `resolvedTeamsForEntry()`) and the real team names for both sides of
+the match (`realTeamA`/`realTeamB`, from the existing `officialWinnersMap()`/`resolveSlot()`
+already used by `liveMatchPointsTable()`), and only awards the bonus when the entry's own predicted
+team matches the real team currently leading — mirroring `scoreEntry()`'s logic exactly.
+Re-verified against the same real M103 data: with the fix, only the 2 entries that actually
+predicted England now show the bonus; the other 19 correctly do not.
+
+### Added — creative "parabéns" line for the top-3 in the podium/prize email
+
+Eduardo: "Na descrição do email fale algo assim para os 3 primeiros: parabens [usuário] assim
+como [time] você também é [campeão, vice, terceiro lugar], algo criativo assim." Added to each
+top-3 card in the podium/prize email (both `send_result_email.py`'s automated builder and
+`app.js`'s admin manual-send builder): a line pairing the real World Cup podium (which TEAM
+finished champion/runner-up/3rd) with the bolão's own money podium (which ENTRY finished
+1st/2nd/3rd) — e.g. "Parabéns, Simone Hirle #4! Assim como Spain, você também é Campeão — só que
+do nosso bolão! 🏆" — verified with the real M104 result (Spain champion, Argentina runner-up,
+England 3rd) producing matching text in both builders, in all languages each already supports
+(PT/EN for the automated email, PT/EN/ES for the admin manual email). Purely cosmetic copy —
+does not touch payouts, scoring, or the site banner (not requested; email only, per Eduardo's
+wording).
+
+`audit_scoring.py` (all 3 apps): PASSED, unchanged — this is a live-preview-only fix plus cosmetic
+email copy; the official scoring pipeline the suite covers was never wrong.
+
 ## v4.148 — 2026-07-18
 
 ### Added — prêmio em dinheiro do pódio: banner no site + bloco no email de resultado
