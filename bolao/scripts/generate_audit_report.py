@@ -95,19 +95,28 @@ def independent_match_points(pick, result):
 
 
 def independent_real_podium(results):
+    """Champion/runnerUp (once M104 is decided) and/or third/fourth (once M103 is decided),
+    independently -- NOT gated on both being known. Mirrors the fix in
+    send_result_email.py's _podium_from_results()/app.js's podiumFromResults() (2026-07-19):
+    requiring both before returning anything meant a real M103-only bonus (Simone Hirle #4,
+    Gabriel Ferrari) was silently withheld. Kept this independent copy in sync with that same
+    fix so the audit's own recomputation doesn't flag a false mismatch against the corrected
+    official score."""
     cache = {}
+    champion = runner_up = None
     fin = results.get("104")
-    if not fin or not fin.get("advanceSide"):
-        return None
-    fA_raw, fB_raw = sre.MATCH_TEAMS["104"]
-    a, b = _resolve_slot_indep(fA_raw, results, cache), _resolve_slot_indep(fB_raw, results, cache)
-    champion, runner_up = (b, a) if fin["advanceSide"] == "B" else (a, b)
+    if fin and fin.get("advanceSide"):
+        fA_raw, fB_raw = sre.MATCH_TEAMS["104"]
+        a, b = _resolve_slot_indep(fA_raw, results, cache), _resolve_slot_indep(fB_raw, results, cache)
+        champion, runner_up = (b, a) if fin["advanceSide"] == "B" else (a, b)
     third = fourth = None
     trd = results.get("103")
     if trd and trd.get("advanceSide"):
         tA_raw, tB_raw = sre.MATCH_TEAMS["103"]
         ta, tb = _resolve_slot_indep(tA_raw, results, cache), _resolve_slot_indep(tB_raw, results, cache)
         third, fourth = (tb, ta) if trd["advanceSide"] == "B" else (ta, tb)
+    if not champion and not third:
+        return None
     return {"champion": champion, "runnerUp": runner_up, "third": third, "fourth": fourth}
 
 
@@ -375,24 +384,27 @@ def run_checks(state):
         "remediated-issues", "remediated",
         {"pt": "H. Achados identificados e corrigidos durante o período de auditoria", "en": "H. Findings identified and remediated during the audit period", "es": "H. Hallazgos identificados y corregidos durante el período de auditoría"},
         {
-            "pt": """Dois problemas foram identificados e corrigidos no dia 18/07/2026, antes da publicação deste relatório:
+            "pt": """Três problemas foram identificados e corrigidos nos dias 18–19/07/2026, antes da publicação deste relatório:
               <ol>
               <li><b>Prévia ao vivo sem bônus de pódio (v4.147).</b> A tabela "Pontos (provisório)" exibida durante uma partida ao vivo não incluía o bônus de campeão/vice/3º/4º para M103 e M104, mesmo quando o palpite de avanço já era o vencedor no placar ao vivo. Não afetava a pontuação oficial nem os pagamentos — apenas a prévia exibida durante a partida. Corrigido no mesmo dia.</li>
               <li><b>Prévia ao vivo comparando lado do bracket em vez de time real (v4.149).</b> A correção acima comparava apenas o lado (A/B) escolhido no palpite contra o lado vencedor ao vivo — não o TIME que o próprio bracket da entrada efetivamente previa para aquela posição. Testado com dados reais de produção: das 21 entradas que escolheram o lado B do M103, apenas 2 (Simone Hirle #4, Gabriel Ferrari) haviam de fato previsto "Inglaterra" ao rastrear o próprio bracket — as outras 19 previram times completamente diferentes que só coincidiam no mesmo lado. As 21 exibiam o bônus incorretamente na prévia ao vivo. <b>Importante: a pontuação OFICIAL (<code>scoreEntry()</code>/<code>score_entry_total()</code>) sempre comparou pelo nome do time, nunca pelo lado — nunca esteve incorreta, e nenhum participante foi pontuado ou pago de forma errada em nenhum momento.</b> Corrigido no mesmo dia, verificado com os mesmos dados reais.</li>
+              <li><b>Bônus do 3º lugar retido até a Final também estar decidida (v4.151) — este SIM afetava a pontuação oficial.</b> Ao contrário dos dois itens acima, este afetava <code>scoreEntry()</code>/<code>score_entry_total()</code> diretamente: a função que calcula o pódio real (<code>podiumFromResults()</code>/<code>_podium_from_results()</code>) só retornava um resultado quando M103 <b>e</b> M104 estavam AMBOS decididos — mesmo o M103 já estando totalmente resolvido (Inglaterra 3º lugar, confirmado em 19/07). Isso zerou o bônus de 3º/4º lugar de todo mundo, incluindo as 2 entradas que realmente previram a Inglaterra (Simone Hirle #4, Gabriel Ferrari) — cada uma perdendo 10 pts na exibição do ranking e no e-mail enviado logo após o M103. Corrigido para que campeão/vice (M104) e 3º/4º lugar (M103) sejam calculados de forma independente, cada um assim que sua respectiva partida trava. O ranking do site já reflete o valor correto automaticamente (não é armazenado, é recalculado a cada carregamento); o e-mail que já foi enviado após o M103 permanece com o valor antigo (sem o bônus) — o próximo e-mail (após a Final) mostrará o total já correto para todos.</li>
               </ol>
-              Ambas as correções foram publicadas e verificadas antes deste relatório ser gerado — ver <code>bolao/CHANGELOG.md</code> v4.147–v4.149 para o histórico completo.""",
-            "en": """Two issues were identified and fixed on 2026-07-18, before this report was published:
+              As três correções foram publicadas e verificadas antes deste relatório ser gerado — ver <code>bolao/CHANGELOG.md</code> v4.147–v4.151 para o histórico completo.""",
+            "en": """Three issues were identified and fixed on 2026-07-18/19, before this report was published:
               <ol>
               <li><b>Live preview missing podium bonus (v4.147).</b> The "Points (provisional)" table shown during a live match did not include the champion/runner-up/3rd/4th bonus for M103 and M104, even when the advance pick was already the leading side in the live score. Did not affect official scoring or payouts — only the preview shown during the match. Fixed the same day.</li>
               <li><b>Live preview comparing bracket side instead of the real team (v4.149).</b> The fix above only compared the bracket side (A/B) chosen in a pick against the currently-leading side — not which TEAM the entry's own bracket picks actually predicted for that slot. Tested against real production data: of 21 entries that picked side B for M103, only 2 (Simone Hirle #4, Gabriel Ferrari) had actually predicted "England" specifically by tracing their own bracket — the other 19 predicted entirely different teams that just happened to land on the same side. All 21 wrongly showed the bonus in the live preview. <b>Important: OFFICIAL scoring (<code>scoreEntry()</code>/<code>score_entry_total()</code>) always compared by team name, never by side — it was never incorrect, and no participant was ever scored or paid incorrectly at any point.</b> Fixed the same day, verified against the same real data.</li>
+              <li><b>3rd-place bonus withheld until the Final was also decided (v4.151) — this one DID affect official scoring.</b> Unlike the two items above, this one hit <code>scoreEntry()</code>/<code>score_entry_total()</code> directly: the function that computes the real podium (<code>podiumFromResults()</code>/<code>_podium_from_results()</code>) only returned a result once BOTH M103 and M104 were decided — even though M103 was already fully resolved (England 3rd, confirmed 2026-07-19). This zeroed out the 3rd/4th place bonus for everyone, including the 2 entries who had actually predicted England (Simone Hirle #4, Gabriel Ferrari) — each missing 10 pts in the ranking display and in the email sent right after M103. Fixed so champion/runner-up (M104) and 3rd/4th place (M103) are computed independently, each as soon as its own match locks. The site's ranking already reflects the correct value automatically (it's recomputed on every load, never cached); the email already sent after M103 keeps the old value (no bonus) — the next email (after the Final) will show the correct total for everyone.</li>
               </ol>
-              Both fixes were shipped and verified before this report was generated — see <code>bolao/CHANGELOG.md</code> v4.147–v4.149 for the full history.""",
-            "es": """Se identificaron y corrigieron dos problemas el 18/07/2026, antes de la publicación de este informe:
+              All three fixes were shipped and verified before this report was generated — see <code>bolao/CHANGELOG.md</code> v4.147–v4.151 for the full history.""",
+            "es": """Se identificaron y corrigieron tres problemas el 18–19/07/2026, antes de la publicación de este informe:
               <ol>
               <li><b>Vista previa en vivo sin bono de podio (v4.147).</b> La tabla "Puntos (provisorio)" mostrada durante un partido en vivo no incluía el bono de campeón/subcampeón/3º/4º para M103 y M104, incluso cuando el pronóstico de avance ya era el lado que iba ganando en el marcador en vivo. No afectaba la puntuación oficial ni los pagos — solo la vista previa mostrada durante el partido. Corregido el mismo día.</li>
               <li><b>Vista previa en vivo comparando el lado del cuadro en vez del equipo real (v4.149).</b> La corrección anterior solo comparaba el lado (A/B) elegido en el pronóstico contra el lado que iba ganando en vivo — no el EQUIPO que el propio cuadro de la entrada realmente predecía para esa posición. Probado con datos reales de producción: de las 21 entradas que eligieron el lado B del M103, solo 2 (Simone Hirle #4, Gabriel Ferrari) habían predicho realmente "Inglaterra" al rastrear su propio cuadro — las otras 19 predijeron equipos completamente distintos que solo coincidían en el mismo lado. Las 21 mostraban el bono incorrectamente en la vista previa en vivo. <b>Importante: la puntuación OFICIAL (<code>scoreEntry()</code>/<code>score_entry_total()</code>) siempre comparó por nombre del equipo, nunca por lado — nunca estuvo incorrecta, y ningún participante fue puntuado o pagado de forma errónea en ningún momento.</b> Corregido el mismo día, verificado con los mismos datos reales.</li>
+              <li><b>Bono de 3er lugar retenido hasta que la Final también estuviera decidida (v4.151) — este SÍ afectaba la puntuación oficial.</b> A diferencia de los dos anteriores, este afectaba directamente <code>scoreEntry()</code>/<code>score_entry_total()</code>: la función que calcula el podio real (<code>podiumFromResults()</code>/<code>_podium_from_results()</code>) solo devolvía un resultado cuando M103 Y M104 estaban AMBOS decididos — aunque M103 ya estaba totalmente resuelto (Inglaterra 3º lugar, confirmado el 19/07). Esto anuló el bono de 3º/4º lugar de todos, incluidas las 2 entradas que realmente predijeron Inglaterra (Simone Hirle #4, Gabriel Ferrari) — cada una perdiendo 10 pts en el ranking mostrado y en el correo enviado justo después del M103. Corregido para que campeón/subcampeón (M104) y 3º/4º lugar (M103) se calculen de forma independiente, cada uno en cuanto se bloquea su propio partido. El ranking del sitio ya refleja el valor correcto automáticamente (se recalcula en cada carga, nunca se almacena); el correo ya enviado después del M103 mantiene el valor anterior (sin el bono) — el próximo correo (después de la Final) mostrará el total correcto para todos.</li>
               </ol>
-              Ambas correcciones se publicaron y verificaron antes de generar este informe — ver <code>bolao/CHANGELOG.md</code> v4.147–v4.149 para el historial completo.""",
+              Las tres correcciones se publicaron y verificaron antes de generar este informe — ver <code>bolao/CHANGELOG.md</code> v4.147–v4.151 para el historial completo.""",
         },
     ))
 

@@ -389,7 +389,20 @@ def exact_match_count(entry, results):
 
 
 def _podium_from_results(results):
-    """Real champion/runner-up/3rd/4th once M104 (final) and M103 (3rd place) are decided."""
+    """Real champion/runner-up (once M104 is decided) and/or 3rd/4th (once M103 is decided) --
+    the two halves are independent of each other, since a participant can earn the 3rd-place
+    bonus without the champion being known yet, and vice versa.
+
+    Eduardo, 2026-07-19: "O email pos jogo foi enviado sem o bonus do 3 lugar por que" -- M103
+    concluded (real result: France 4x6 England) but M104 (Final) hadn't been played yet. This
+    function used to require BOTH champion (from M104) AND third (from M103) to be known before
+    returning anything at all -- so with only M103 decided, it returned None, and
+    podium_bonus_points()/podium_hits() silently paid out ZERO bonus to everyone, including the
+    2 real entries (Simone Hirle #4, Gabriel Ferrari) who had correctly predicted England for 3rd.
+    Fixed to return as soon as EITHER half is known, with the still-undecided half left as None --
+    podium_bonus_points()/podium_hits() already check each of champion/runnerUp/third/fourth
+    independently, so a partial result here was always safe to consume, only the gate above was
+    wrong."""
     fin, trd = results.get("104"), results.get("103")
     champion = runner_up = third = fourth = None
     if fin and fin.get("advanceSide"):
@@ -398,7 +411,7 @@ def _podium_from_results(results):
     if trd and trd.get("advanceSide"):
         tA, tB = _real_teams("103", results)
         third, fourth = (tB, tA) if trd["advanceSide"] == "B" else (tA, tB)
-    if champion and third:
+    if champion or third:
         return {"champion": champion, "runnerUp": runner_up, "third": third, "fourth": fourth}
     return None
 

@@ -133,6 +133,36 @@ def check_bonus_and_fourth_present(mod):
     return True, ""
 
 
+def check_partial_podium_bonus(mod):
+    """Guards against the bug found 2026-07-19: 3rd-place bonus withheld until the Final was
+    ALSO decided, even though M103 alone was already fully resolved. Eduardo: "O email pos jogo
+    foi enviado sem o bonus do 3 lugar por que" -- real entries (Simone Hirle #4, Gabriel
+    Ferrari) each missed 10 pts because _podium_from_results() required BOTH champion (M104) AND
+    third (M103) before returning anything at all. The existing check_bonus_and_fourth_present()
+    above always locks the WHOLE bracket (M73-M104) at once, so it never exercised this partial
+    state -- this check specifically locks only through M103, leaving M104 undecided."""
+    only_up_to_103 = {mid: {"goalsA": 1, "goalsB": 0, "advanceSide": "A"}
+                       for mid in mod.MATCH_TEAMS if int(mid) <= 103}
+    picks = {mid: {"goalsA": 1, "goalsB": 0, "advanceSide": "A"} for mid in mod.MATCH_TEAMS}
+    entry = {"id": "audit-partial", "entryName": "Audit Partial", "picks": picks}
+
+    real_pod = mod._podium_from_results(only_up_to_103)
+    if not real_pod:
+        return False, "_podium_from_results returned nothing with only M103 decided (M104 still pending) — 3rd/4th bonus would be silently withheld"
+    if real_pod.get("third") is None:
+        return False, f"_podium_from_results has no 'third' even though M103 is locked: {real_pod}"
+
+    without_bonus = sum(
+        mod.score_match(picks[mid], only_up_to_103[mid])[0]
+        for mid in mod.MATCH_TEAMS if mid in only_up_to_103
+    )
+    with_bonus = mod.score_entry_total(entry, only_up_to_103)
+    if with_bonus <= without_bonus:
+        return False, (f"score_entry_total ({with_bonus}) should exceed raw match points "
+                        f"({without_bonus}) once M103 alone is decided — 3rd/4th bonus not applied independently of M104")
+    return True, ""
+
+
 def check_parse_bounds(mod):
     """Score parser must reject exactly what the browser's parseScore() rejects."""
     cases = [
@@ -194,6 +224,7 @@ def run_static_audit(mod, verbose=True):
         ("Bracket mirrors data.js", lambda: check_bracket_matches_datajs(mod.MATCH_TEAMS)),
         ("Perfect-bracket simulation resolves end-to-end", lambda: check_perfect_bracket_simulation(mod)),
         ("Bonus points + 4th place present and applied", lambda: check_bonus_and_fourth_present(mod)),
+        ("Partial podium (M103 only) still applies its own bonus", lambda: check_partial_podium_bonus(mod)),
         ("Score parser bounds match the site's", lambda: check_parse_bounds(mod)),
         ("Tiebreak sort order (total, exact, podium)", lambda: check_tiebreak_order(mod)),
     ]

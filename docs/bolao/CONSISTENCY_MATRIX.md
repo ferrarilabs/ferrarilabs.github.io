@@ -1345,3 +1345,24 @@ trabalho futuro em `ROADMAP.md`, não como lacuna esquecida.
 `audit_scoring.py`: PASSOU nos três apps (Copa, BR2026, CDB2026) sem alteração — o script novo é
 somente leitura (gera um relatório HTML estático), não toca pontuação nem regra de negócio em
 nenhum app.
+
+## Nota manual — bônus do 3º lugar zerado até a Final também estar decidida (2026-07-19, Copa v4.151) — este SIM afetava a pontuação OFICIAL
+
+Eduardo, logo após o M103 concluir e o e-mail automático ser enviado: "O email pos jogo foi
+enviado sem o bonus do 3 lugar por que." Diferente dos dois achados anteriores (v4.147, v4.149,
+ambos confinados à prévia ao vivo no navegador), este afetava `scoreEntry()`/`score_entry_total()`
+diretamente — `_podium_from_results()`/`podiumFromResults()` só retornavam um resultado quando
+M103 **e** M104 estavam AMBOS decididos, mesmo M103 já estando totalmente resolvido (Inglaterra
+3º lugar). Isso zerou o bônus de 3º/4º lugar de todo mundo, incluindo as 2 entradas reais que
+realmente previram a Inglaterra (Simone Hirle #4, Gabriel Ferrari) — cada uma perdendo 10 pts no
+ranking do site e no e-mail já enviado. Corrigido para que campeão/vice (M104) e 3º/4º lugar
+(M103) sejam calculados de forma independente. Ranking do site já correto automaticamente
+(recalculado a cada carregamento, nunca armazenado); e-mail já enviado permanece com o valor
+antigo — próximo e-mail (pós-Final) já sai correto. Adicionado teste de regressão permanente em
+`audit_scoring.py` (`check_partial_podium_bonus`) que trava só até M103 e confere que o bônus
+ainda se aplica — confirmado que falha contra a lógica antiga e passa com a correção.
+
+**Verificado nos outros dois apps — não aplicável a nenhum**: CDB2026 tem campeão+vice vindos de
+uma única partida Final (sem uma partida separada de 3º lugar decidindo parte do pódio de forma
+independente, como o M103/M104 da Copa) — não há um "gate" equivalente para quebrar dessa forma.
+BR2026 não tem conceito de bônus de pódio. Nenhuma ação necessária nos outros apps.
