@@ -35,6 +35,19 @@ logic (`CONFIG.prizes` may differ), and treat this as `TOURNAMENT_SPECIFIC` even
 banner should copy Copa's CSS tokens per the golden-master rule. See
 `docs/bolao/CONSISTENCY_MATRIX.md` (2026-07-18 note) for the decision not to propagate this round.
 
+### M-06 — Port trilingual audit report to CDB2026 (and adapt for BR2026)
+
+Copa (v4.150) shipped `generate_audit_report.py` — an independent-recomputation, trilingual,
+Big4-structured (not Big4-branded) HTML audit report published on-site before the Final, covering
+scoring integrity, data integrity, per-entry score reconciliation, ranking/tiebreak verification,
+and prize mechanism verification. CDB2026 has a single decisive Final (like Copa) and is the
+natural next candidate once its own knockout stage nears completion (Oitavas starts Aug 1) — but
+this requires rewriting the independent recomputation logic for CDB2026's own scoring formula
+(per-match points + tie bonus + podium bonus), not a copy of Copa's. BR2026 has no single decisive
+"final result" moment (the season just ends on the last round) — would need its own report concept
+built around G4/Z4/SA6 scoring and a season-end trigger, not a direct port. See
+`docs/bolao/CONSISTENCY_MATRIX.md` (2026-07-18 note) for the decision not to propagate this round.
+
 ### M-04 — Visual bracket tree
 Replace the linear match-card list in the picks form with an actual bracket diagram showing the progression tree. Would improve UX for participants who want to see how their bracket connects.
 

@@ -1319,3 +1319,29 @@ lacuna esquecida — ver `ROADMAP.md`.
 
 `audit_scoring.py`: PASSOU nos três apps (Copa, BR2026, CDB2026) sem alteração — feature nova é
 puramente aditiva (cálculo de prêmio em dinheiro), não toca pontuação nem regra de negócio.
+
+## Nota manual — relatório de auditoria trilíngue publicado no site (2026-07-18, Copa v4.150) — COPA APENAS
+
+Eduardo, na véspera da Final: pediu uma auditoria automática com relatório estilo "big 4", nas 3
+línguas, com o máximo de detalhes, publicada no site com link antes do resultado final ser
+conhecido — um gesto de transparência antes do dinheiro ser distribuído amanhã.
+
+Implementado só na Copa: `bolao/scripts/generate_audit_report.py` gera `bolao/audit-report.html`
+a partir de dados reais de produção — recalcula a pontuação de TODAS as entradas reais de forma
+independente (código separado do `score_entry_total()` oficial), verifica integridade de dados,
+fórmula de pontuação, mecanismo de prêmio, critérios de desempate, e divulga com transparência os
+dois bugs achados e corrigidos hoje (v4.147, v4.149). Link discreto adicionado no topo da aba
+Ranking. Não usa nome/marca de nenhuma empresa de auditoria real — o relatório deixa isso explícito
+no cabeçalho, "big 4 style" aqui significa a estrutura/rigor do documento, não a marca.
+
+**Por que não propagado para BR2026/CDB2026 nesta rodada**: pedido explicitamente no contexto da
+Final da Copa de amanhã — nenhum dos outros dois apps tem uma partida decisiva iminente agora.
+O script (`generate_audit_report.py`) foi escrito de forma específica para o bracket/scoring da
+Copa (`MATCH_TEAMS`, `SCORING`, `BONUS`, `PRIZES` de `send_result_email.py`) — portar exigiria
+reescrever a lógica de recálculo independente para a fórmula de cada app (G4/Z4/SA6 no BR2026;
+pontos por partida + bônus de confronto/pódio no CDB2026), não uma cópia direta. Registrado como
+trabalho futuro em `ROADMAP.md`, não como lacuna esquecida.
+
+`audit_scoring.py`: PASSOU nos três apps (Copa, BR2026, CDB2026) sem alteração — o script novo é
+somente leitura (gera um relatório HTML estático), não toca pontuação nem regra de negócio em
+nenhum app.

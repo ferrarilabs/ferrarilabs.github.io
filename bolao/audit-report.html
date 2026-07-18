@@ -1,0 +1,277 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Relatório de Auditoria — Bolão do Ferrari</title>
+<style>
+  :root { --green:#0d7a3f; --gold:#b45309; --border:#dde3e8; --bg:#f4f7fb; --bad:#b91c1c; }
+  * { box-sizing:border-box; }
+  body { font-family:Georgia,'Times New Roman',serif; background:var(--bg); color:#161b1f; margin:0; padding:0 16px 60px; }
+  .doc { max-width:900px; margin:0 auto; }
+  .lang-bar { position:sticky; top:0; background:#fff; border-bottom:1px solid var(--border); padding:12px 8px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; z-index:10; }
+  .lang-bar button { font-family:Arial,sans-serif; font-size:13px; font-weight:700; padding:8px 16px; border-radius:20px; border:1px solid var(--border); background:#fff; cursor:pointer; white-space:nowrap; }
+  .lang-bar button.active { background:var(--green); color:#fff; border-color:var(--green); }
+  .print-btn { font-family:Arial,sans-serif; font-size:13px; font-weight:700; padding:8px 16px; border-radius:20px; border:1px solid var(--border); background:#fff; cursor:pointer; white-space:nowrap; }
+  @media (max-width:420px) { .lang-bar button, .print-btn { font-size:12px; padding:8px 12px; } }
+  .audit-header { background:#fff; border:1px solid var(--border); border-radius:14px; padding:28px 32px; margin:16px 0 20px; box-shadow:0 4px 24px #0001; }
+  .audit-kicker { font-family:Arial,sans-serif; font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--green); margin-bottom:8px; }
+  .audit-header h1 { margin:0 0 16px; font-size:26px; }
+  .audit-meta { font-family:Arial,sans-serif; font-size:13px; display:grid; grid-template-columns:1fr 1fr; gap:6px 24px; background:var(--bg); border-radius:10px; padding:14px 16px; }
+  .audit-disclaimer { font-family:Arial,sans-serif; font-size:11px; color:#6b7280; margin:16px 0 0; line-height:1.5; }
+  .audit-section { background:#fff; border:1px solid var(--border); border-radius:14px; padding:22px 28px; margin-bottom:16px; box-shadow:0 2px 12px #0001; }
+  .audit-section h2 { font-size:18px; margin:0 0 12px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .badge { font-family:Arial,sans-serif; font-size:10px; font-weight:800; letter-spacing:.04em; padding:4px 10px; border-radius:20px; }
+  .badge-pass { background:#d1fae5; color:#065f46; }
+  .badge-remediated { background:#fef3c7; color:#92400e; }
+  .badge-info { background:#fee2e2; color:var(--bad); }
+  .section-body { font-size:14.5px; line-height:1.65; }
+  .section-body ul, .section-body ol { padding-left:22px; }
+  .section-body code { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:.9em; }
+  .exec-summary { border-left:4px solid var(--green); }
+  .signoff { border-left:4px solid var(--gold); }
+  .signoff-name { font-style:italic; margin-top:18px; }
+  .audit-table { width:100%; border-collapse:collapse; font-family:Arial,sans-serif; font-size:12.5px; margin-top:10px; }
+  .audit-table th { background:#f1f5f9; text-align:left; padding:7px 10px; border-bottom:2px solid var(--border); }
+  .audit-table td { padding:6px 10px; border-bottom:1px solid var(--border); }
+  .audit-table td.num { text-align:center; font-weight:700; }
+  .audit-table .row-bad { background:#fee2e2; }
+  @media (max-width:640px) { .audit-meta { grid-template-columns:1fr; } .audit-header, .audit-section { padding:18px; } }
+  @media print { .lang-bar { display:none; } body { background:#fff; } .audit-header, .audit-section { box-shadow:none; border:1px solid #ccc; } [data-lang]:not(.lang-active) { display:none !important; } }
+  [data-lang] { display:none; }
+  [data-lang].lang-active { display:block; }
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="lang-bar">
+    <button data-setlang="pt" class="active">🇧🇷 Português</button>
+    <button data-setlang="en">🇺🇸 English</button>
+    <button data-setlang="es">🇲🇽 Español</button>
+    <button class="print-btn" onclick="window.print()">🖨️ Print / PDF</button>
+  </div>
+  <div data-lang="pt" class="lang-active">
+    <header class="audit-header">
+      <div class="audit-kicker">Bolão do Ferrari · Auditoria Técnica Independente Automatizada</div>
+      <h1>Relatório de Auditoria — Integridade de Pontuação e Premiação</h1>
+      <div class="audit-meta">
+        <div><b>Escopo:</b> Copa do Mundo 2026 — pontuação, ranking e mecanismo de premiação</div>
+        <div><b>Data/hora de geração:</b> 18/07/2026 23:04 UTC</div>
+        <div><b>Entradas reais auditadas:</b> 23</div>
+        <div><b>Partidas travadas auditadas:</b> 31 de 32</div>
+        <div><b>Pote atual:</b> $115</div>
+        <div><b>Opinião:</b> sem exceções não corrigidas</div>
+      </div>
+      <p class="audit-disclaimer">Este relatório é gerado por um sistema de verificação automatizada próprio do Bolão do Ferrari. Não é produzido, revisado ou endossado por nenhuma empresa de auditoria (KPMG, Deloitte, EY, PwC ou qualquer outra) — o formato segue a estrutura de um relatório de auditoria profissional (escopo, metodologia, recálculo independente, achados, opinião) apenas como referência de rigor e clareza.</p>
+    </header><section class="audit-section exec-summary">
+      <h2>Sumário executivo</h2>
+      <p>Esta auditoria recalculou de forma independente a pontuação de todas as 23 entradas reais do bolão, com base nos dados reais de produção (Supabase), sem reutilizar a lógica de pontuação do site ou do pipeline de e-mail — apenas os dados brutos (palpites, resultados, estrutura do bracket). Também verificou a integridade dos dados, a fórmula de pontuação, o mecanismo de premiação e os critérios de desempate documentados.</p>
+      <p><b>Nenhuma divergência foi encontrada</b> entre o recálculo independente e a pontuação oficial em nenhuma das 23 entradas auditadas. Dois problemas foram identificados e corrigidos no dia de hoje, antes deste relatório (seção H) — ambos afetavam apenas uma prévia exibida durante partidas ao vivo, nunca a pontuação oficial nem os pagamentos.</p>
+      <p>Esta auditoria é publicada antes do resultado da Final (M104), como um compromisso de transparência: o mecanismo que vai decidir o pódio final e os valores em dinheiro amanhã já pode ser conferido hoje.</p>
+    </section><section class="audit-section">
+              <h2>A. Integridade da fórmula de pontuação <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">Valores usados pelo pipeline de e-mail (<code>send_result_email.py</code>) comparados contra os valores esperados, cadastrados de forma independente neste script de auditoria (não copiados de <code>config.js</code> diretamente):
+              <ul><li>Placar exato: 10 pts (esperado 10) — OK</li>
+              <li>Gols de 1 time: 1 pt (esperado 1) — OK</li>
+              <li>Avanço correto: 5 pts (esperado 5) — OK</li>
+              <li>Bônus campeão/vice/3º/4º: 25/15/10/5 pts (esperado 25/15/10/5) — OK</li>
+              <li>Divisão do prêmio: 70% / 20% / 10% (esperado 70%/20%/10%, soma = 100%) — OK</li></ul>
+              Esta verificação existe porque uma auditoria anterior (julho de 2026, ver CHANGELOG v4.57) encontrou o pipeline de e-mail com valores de pontuação diferentes dos usados pelo site — o risco de "drift" silencioso entre as duas implementações é conhecido e monitorado desde então.</div>
+            </section>
+<section class="audit-section">
+              <h2>B. Integridade da estrutura do mata-mata <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">32 partidas do mata-mata cadastradas (esperado 32) — OK. Todas as referências de vaga (ex.: "W101" = vencedor da partida 101, "L102" = perdedor da 102) apontam para partidas que realmente existem no bracket — OK, nenhuma referência quebrada.</div>
+            </section>
+<section class="audit-section">
+              <h2>C. Integridade dos resultados travados <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">31 partidas travadas pelo admin, recontadas de forma independente: quando o placar tem um vencedor claro (gols diferentes), o lado marcado como <code>advanceSide</code> foi comparado contra o placar (<code>goalsA</code>/<code>goalsB</code>). Empates no tempo normal (4 desta rodada) são esperados em mata-mata — o time avança nos pênaltis, e <code>advanceSide</code> é a fonte da verdade nesse caso, já que o placar de pênaltis não é armazenado separadamente. Nenhuma inconsistência encontrada — em todas as 31 partidas com dados completos, o lado vencedor bate com o placar registrado (ou o empate foi corretamente decidido nos pênaltis).</div>
+            </section>
+<section class="audit-section">
+              <h2>D. Integridade dos dados de participantes e pagamentos <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">23 entradas totais no banco, 8 removidas (soft-delete), 0 de demonstração, restando <b>23 entradas reais válidas</b> para o ranking. IDs duplicados: nenhum — OK. Palpites órfãos (referenciando uma partida que não existe no bracket): nenhum — OK. 23 de 23 entradas marcadas como pagas.</div>
+            </section>
+<section class="audit-section">
+              <h2>E. Recálculo independente da pontuação — todas as entradas reais <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">Para cada uma das 23 entradas reais, a pontuação foi recalculada do zero (bracket + palpites + resultados brutos), em código separado do site e do pipeline de e-mail, e comparada contra o valor "oficial" produzido por <code>score_entry_total()</code>. <b>Resultado: as 23 entradas conferem exatamente — nenhuma divergência encontrada.</b><br><br><table class='audit-table'><thead><tr><th>Entrada</th><th>Pontos (oficial)</th><th>Pontos (recálculo independente)</th><th>Confere?</th></tr></thead><tbody><tr class=""><td>Simone Hirle #4</td><td class="num">217</td><td class="num">217</td><td>✓ sim</td></tr><tr class=""><td>Mitch is the best</td><td class="num">178</td><td class="num">178</td><td>✓ sim</td></tr><tr class=""><td>Ewerton#1</td><td class="num">173</td><td class="num">173</td><td>✓ sim</td></tr><tr class=""><td>Aline</td><td class="num">171</td><td class="num">171</td><td>✓ sim</td></tr><tr class=""><td>Eduardo Ferrari</td><td class="num">169</td><td class="num">169</td><td>✓ sim</td></tr><tr class=""><td>Arthur Lopes Huller</td><td class="num">168</td><td class="num">168</td><td>✓ sim</td></tr><tr class=""><td>Marodin</td><td class="num">158</td><td class="num">158</td><td>✓ sim</td></tr><tr class=""><td>Rodrigo Hajj</td><td class="num">153</td><td class="num">153</td><td>✓ sim</td></tr><tr class=""><td>Gabriel Ferrari</td><td class="num">148</td><td class="num">148</td><td>✓ sim</td></tr><tr class=""><td>Roberta</td><td class="num">147</td><td class="num">147</td><td>✓ sim</td></tr><tr class=""><td>Samuel</td><td class="num">142</td><td class="num">142</td><td>✓ sim</td></tr><tr class=""><td>Simone Hirle #2</td><td class="num">139</td><td class="num">139</td><td>✓ sim</td></tr><tr class=""><td>Gustavo Ribeiro</td><td class="num">139</td><td class="num">139</td><td>✓ sim</td></tr><tr class=""><td>Eric</td><td class="num">136</td><td class="num">136</td><td>✓ sim</td></tr><tr class=""><td>Vinicius</td><td class="num">136</td><td class="num">136</td><td>✓ sim</td></tr><tr class=""><td>Nathalia</td><td class="num">134</td><td class="num">134</td><td>✓ sim</td></tr><tr class=""><td>Kisie Krawczyk</td><td class="num">130</td><td class="num">130</td><td>✓ sim</td></tr><tr class=""><td>Simone Hirle #3</td><td class="num">126</td><td class="num">126</td><td>✓ sim</td></tr><tr class=""><td>Enrico</td><td class="num">121</td><td class="num">121</td><td>✓ sim</td></tr><tr class=""><td>Simone Hirle #1</td><td class="num">110</td><td class="num">110</td><td>✓ sim</td></tr><tr class=""><td>Camila</td><td class="num">109</td><td class="num">109</td><td>✓ sim</td></tr><tr class=""><td>Alan</td><td class="num">105</td><td class="num">105</td><td>✓ sim</td></tr><tr class=""><td>Gustavo Bossle</td><td class="num">104</td><td class="num">104</td><td>✓ sim</td></tr></tbody></table></div>
+            </section>
+<section class="audit-section">
+              <h2>F. Verificação do ranking e critérios de desempate <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">Critério de desempate documentado: total de pontos → nº de placares exatos → acertos de pódio (campeão/vice/3º). A ordem de classificação produzida pelo recálculo independente foi comparada contra a ordem oficial — OK, ordens idênticas. Top 3 provisório atual (antes da Final): 1º Simone Hirle #4 (217 pts), 2º Mitch is the best (178 pts), 3º Ewerton#1 (173 pts). <i>Este ranking ainda é provisório — M104 (Final) decide o pódio final e os prêmios.</i></div>
+            </section>
+<section class="audit-section">
+              <h2>G. Verificação do mecanismo de premiação <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">Pote atual: 23 entradas pagas × $5 = <b>$115</b>. Divisão: 70% / 20% / 10% para 1º / 2º / 3º lugar do ranking geral (por pontos), com empates reais divididos proporcionalmente entre os empatados (regra já documentada na aba Regras do site). O torneio ainda não está decidido (M103 e/ou M104 pendentes) — o pódio final e os valores exatos de premiação serão calculados automaticamente assim que a Final terminar e for travada pelo admin.</div>
+            </section>
+<section class="audit-section">
+              <h2>H. Achados identificados e corrigidos durante o período de auditoria <span class="badge badge-remediated">⚠ CORRIGIDO</span></h2>
+              <div class="section-body">Dois problemas foram identificados e corrigidos no dia 18/07/2026, antes da publicação deste relatório:
+              <ol>
+              <li><b>Prévia ao vivo sem bônus de pódio (v4.147).</b> A tabela "Pontos (provisório)" exibida durante uma partida ao vivo não incluía o bônus de campeão/vice/3º/4º para M103 e M104, mesmo quando o palpite de avanço já era o vencedor no placar ao vivo. Não afetava a pontuação oficial nem os pagamentos — apenas a prévia exibida durante a partida. Corrigido no mesmo dia.</li>
+              <li><b>Prévia ao vivo comparando lado do bracket em vez de time real (v4.149).</b> A correção acima comparava apenas o lado (A/B) escolhido no palpite contra o lado vencedor ao vivo — não o TIME que o próprio bracket da entrada efetivamente previa para aquela posição. Testado com dados reais de produção: das 21 entradas que escolheram o lado B do M103, apenas 2 (Simone Hirle #4, Gabriel Ferrari) haviam de fato previsto "Inglaterra" ao rastrear o próprio bracket — as outras 19 previram times completamente diferentes que só coincidiam no mesmo lado. As 21 exibiam o bônus incorretamente na prévia ao vivo. <b>Importante: a pontuação OFICIAL (<code>scoreEntry()</code>/<code>score_entry_total()</code>) sempre comparou pelo nome do time, nunca pelo lado — nunca esteve incorreta, e nenhum participante foi pontuado ou pago de forma errada em nenhum momento.</b> Corrigido no mesmo dia, verificado com os mesmos dados reais.</li>
+              </ol>
+              Ambas as correções foram publicadas e verificadas antes deste relatório ser gerado — ver <code>bolao/CHANGELOG.md</code> v4.147–v4.149 para o histórico completo.</div>
+            </section>
+<section class="audit-section">
+              <h2>I. Suíte de autoteste estática (audit_scoring.py) <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
+              <div class="section-body">Suíte de testes que roda automaticamente antes de qualquer envio de e-mail (<code>send_result_email.py --auto</code> se recusa a rodar se esta suíte falhar). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
+            </section><section class="audit-section signoff">
+      <h2>Certificação</h2>
+      <p>Certifico que os procedimentos descritos neste relatório foram executados de forma automatizada em 18/07/2026 23:04 UTC, contra os dados de produção do Bolão do Ferrari, e que os resultados apresentados refletem fielmente o recálculo obtido. Este relatório pode ser regenerado a qualquer momento executando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p class="signoff-name">Sistema de Auditoria Automatizada — Bolão do Ferrari</p>
+    </section></div>
+  <div data-lang="en">
+    <header class="audit-header">
+      <div class="audit-kicker">Bolão do Ferrari · Automated Independent Technical Audit</div>
+      <h1>Audit Report — Scoring &amp; Prize Payout Integrity</h1>
+      <div class="audit-meta">
+        <div><b>Scope:</b> 2026 World Cup — scoring, ranking, and prize mechanism</div>
+        <div><b>Generated at:</b> July 18, 2026 23:04 UTC</div>
+        <div><b>Real entries audited:</b> 23</div>
+        <div><b>Locked matches audited:</b> 31 of 32</div>
+        <div><b>Current pot:</b> $115</div>
+        <div><b>Opinion:</b> with no unremediated exceptions</div>
+      </div>
+      <p class="audit-disclaimer">This report is generated by Bolão do Ferrari's own automated verification system. It is not produced, reviewed, or endorsed by any audit firm (KPMG, Deloitte, EY, PwC, or otherwise) — the format follows the structure of a professional audit report (scope, methodology, independent recomputation, findings, opinion) only as a reference for rigor and clarity.</p>
+    </header><section class="audit-section exec-summary">
+      <h2>Executive summary</h2>
+      <p>This audit independently recomputed the score of all 23 real bolão entries, based on real production data (Supabase), without reusing the site's or the email pipeline's own scoring logic — only raw data (picks, results, bracket structure). It also verified data integrity, the scoring formula, the prize mechanism, and the documented tiebreak rules.</p>
+      <p><b>No discrepancies were found</b> between the independent recomputation and the official score for any of the 23 entries audited. Two issues were identified and fixed today, before this report (section H) — both only affected a preview shown during live matches, never official scoring or payouts.</p>
+      <p>This audit is published before the Final's (M104) result, as a transparency commitment: the mechanism that will decide tomorrow's final podium and dollar amounts can already be checked today.</p>
+    </section><section class="audit-section">
+              <h2>A. Scoring formula integrity <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">Values used by the email pipeline (<code>send_result_email.py</code>) compared against expected values, declared independently in this audit script (not copied straight from <code>config.js</code>):
+              <ul><li>Exact score: 10 pts (expected 10) — OK</li>
+              <li>One team's goals: 1 pt (expected 1) — OK</li>
+              <li>Correct advance: 5 pts (expected 5) — OK</li>
+              <li>Champion/runner-up/3rd/4th bonus: 25/15/10/5 pts (expected 25/15/10/5) — OK</li>
+              <li>Prize split: 70% / 20% / 10% (expected 70%/20%/10%, sums to 100%) — OK</li></ul>
+              This check exists because an earlier audit (July 2026, see CHANGELOG v4.57) found the email pipeline using different scoring values than the site itself — the risk of silent drift between the two implementations has been monitored ever since.</div>
+            </section>
+<section class="audit-section">
+              <h2>B. Bracket structure integrity <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">32 knockout matches registered (expected 32) — OK. Every slot reference (e.g. "W101" = winner of match 101, "L102" = loser of match 102) points to a match that actually exists in the bracket — OK, no broken references.</div>
+            </section>
+<section class="audit-section">
+              <h2>C. Locked result data integrity <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">31 matches locked by the admin, independently recomputed: whenever the score has a clear winner (different goal counts), the side marked as <code>advanceSide</code> was checked against the score (<code>goalsA</code>/<code>goalsB</code>). Regulation-time draws (4 in this round) are expected in knockout football — the team advances on penalties, and <code>advanceSide</code> is the source of truth in that case, since the penalty shootout score isn't stored separately. No inconsistencies found — in all 31 matches with complete data, the winning side matches the recorded score (or the draw was correctly decided on penalties).</div>
+            </section>
+<section class="audit-section">
+              <h2>D. Entry and payment data integrity <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">23 total entries in the database, 8 soft-deleted, 0 demo entries, leaving <b>23 valid real entries</b> for the ranking. Duplicate IDs: none — OK. Orphan picks (referencing a match that doesn't exist in the bracket): none — OK. 23 of 23 entries marked as paid.</div>
+            </section>
+<section class="audit-section">
+              <h2>E. Independent score recomputation — all real entries <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">For each of the 23 real entries, the score was recomputed from scratch (bracket + picks + raw results), in code kept separate from the site and the email pipeline, and compared against the "official" value produced by <code>score_entry_total()</code>. <b>Result: all 23 entries match exactly — no discrepancies found.</b><br><br><table class='audit-table'><thead><tr><th>Entry</th><th>Points (official)</th><th>Points (independent recompute)</th><th>Match?</th></tr></thead><tbody><tr class=""><td>Simone Hirle #4</td><td class="num">217</td><td class="num">217</td><td>✓ yes</td></tr><tr class=""><td>Mitch is the best</td><td class="num">178</td><td class="num">178</td><td>✓ yes</td></tr><tr class=""><td>Ewerton#1</td><td class="num">173</td><td class="num">173</td><td>✓ yes</td></tr><tr class=""><td>Aline</td><td class="num">171</td><td class="num">171</td><td>✓ yes</td></tr><tr class=""><td>Eduardo Ferrari</td><td class="num">169</td><td class="num">169</td><td>✓ yes</td></tr><tr class=""><td>Arthur Lopes Huller</td><td class="num">168</td><td class="num">168</td><td>✓ yes</td></tr><tr class=""><td>Marodin</td><td class="num">158</td><td class="num">158</td><td>✓ yes</td></tr><tr class=""><td>Rodrigo Hajj</td><td class="num">153</td><td class="num">153</td><td>✓ yes</td></tr><tr class=""><td>Gabriel Ferrari</td><td class="num">148</td><td class="num">148</td><td>✓ yes</td></tr><tr class=""><td>Roberta</td><td class="num">147</td><td class="num">147</td><td>✓ yes</td></tr><tr class=""><td>Samuel</td><td class="num">142</td><td class="num">142</td><td>✓ yes</td></tr><tr class=""><td>Simone Hirle #2</td><td class="num">139</td><td class="num">139</td><td>✓ yes</td></tr><tr class=""><td>Gustavo Ribeiro</td><td class="num">139</td><td class="num">139</td><td>✓ yes</td></tr><tr class=""><td>Eric</td><td class="num">136</td><td class="num">136</td><td>✓ yes</td></tr><tr class=""><td>Vinicius</td><td class="num">136</td><td class="num">136</td><td>✓ yes</td></tr><tr class=""><td>Nathalia</td><td class="num">134</td><td class="num">134</td><td>✓ yes</td></tr><tr class=""><td>Kisie Krawczyk</td><td class="num">130</td><td class="num">130</td><td>✓ yes</td></tr><tr class=""><td>Simone Hirle #3</td><td class="num">126</td><td class="num">126</td><td>✓ yes</td></tr><tr class=""><td>Enrico</td><td class="num">121</td><td class="num">121</td><td>✓ yes</td></tr><tr class=""><td>Simone Hirle #1</td><td class="num">110</td><td class="num">110</td><td>✓ yes</td></tr><tr class=""><td>Camila</td><td class="num">109</td><td class="num">109</td><td>✓ yes</td></tr><tr class=""><td>Alan</td><td class="num">105</td><td class="num">105</td><td>✓ yes</td></tr><tr class=""><td>Gustavo Bossle</td><td class="num">104</td><td class="num">104</td><td>✓ yes</td></tr></tbody></table></div>
+            </section>
+<section class="audit-section">
+              <h2>F. Ranking and tiebreak verification <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">Documented tiebreak rule: total points → number of exact scores → podium hits (champion/runner-up/3rd). The ranking order produced by the independent recompute was compared against the official order — OK, identical order. Current provisional top 3 (before the Final): 1 Simone Hirle #4 (217 pts), 2 Mitch is the best (178 pts), 3 Ewerton#1 (173 pts). <i>This ranking is still provisional — M104 (the Final) decides the final podium and prizes.</i></div>
+            </section>
+<section class="audit-section">
+              <h2>G. Prize mechanism verification <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">Current pot: 23 paid entries × $5 = <b>$115</b>. Split: 70% / 20% / 10% for 1st / 2nd / 3rd place in the overall points ranking, with genuine ties split proportionally among tied entries (rule already documented in the site's own Rules tab). The tournament is not yet decided (M103 and/or M104 still pending) — the final podium and exact prize amounts will be computed automatically once the Final concludes and is locked by the admin.</div>
+            </section>
+<section class="audit-section">
+              <h2>H. Findings identified and remediated during the audit period <span class="badge badge-remediated">⚠ REMEDIATED</span></h2>
+              <div class="section-body">Two issues were identified and fixed on 2026-07-18, before this report was published:
+              <ol>
+              <li><b>Live preview missing podium bonus (v4.147).</b> The "Points (provisional)" table shown during a live match did not include the champion/runner-up/3rd/4th bonus for M103 and M104, even when the advance pick was already the leading side in the live score. Did not affect official scoring or payouts — only the preview shown during the match. Fixed the same day.</li>
+              <li><b>Live preview comparing bracket side instead of the real team (v4.149).</b> The fix above only compared the bracket side (A/B) chosen in a pick against the currently-leading side — not which TEAM the entry's own bracket picks actually predicted for that slot. Tested against real production data: of 21 entries that picked side B for M103, only 2 (Simone Hirle #4, Gabriel Ferrari) had actually predicted "England" specifically by tracing their own bracket — the other 19 predicted entirely different teams that just happened to land on the same side. All 21 wrongly showed the bonus in the live preview. <b>Important: OFFICIAL scoring (<code>scoreEntry()</code>/<code>score_entry_total()</code>) always compared by team name, never by side — it was never incorrect, and no participant was ever scored or paid incorrectly at any point.</b> Fixed the same day, verified against the same real data.</li>
+              </ol>
+              Both fixes were shipped and verified before this report was generated — see <code>bolao/CHANGELOG.md</code> v4.147–v4.149 for the full history.</div>
+            </section>
+<section class="audit-section">
+              <h2>I. Static self-test suite (audit_scoring.py) <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
+              <div class="section-body">Test suite that runs automatically before any email send (<code>send_result_email.py --auto</code> refuses to run if this suite fails). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
+            </section><section class="audit-section signoff">
+      <h2>Certification</h2>
+      <p>I certify that the procedures described in this report were executed automatically at July 18, 2026 23:04 UTC, against Bolão do Ferrari's production data, and that the results shown faithfully reflect the recomputation obtained. This report can be regenerated at any time by running <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p class="signoff-name">Automated Audit System — Bolão do Ferrari</p>
+    </section></div>
+  <div data-lang="es">
+    <header class="audit-header">
+      <div class="audit-kicker">Bolão do Ferrari · Auditoría Técnica Independiente Automatizada</div>
+      <h1>Informe de Auditoría — Integridad de Puntuación y Premiación</h1>
+      <div class="audit-meta">
+        <div><b>Alcance:</b> Copa del Mundo 2026 — puntuación, ranking y mecanismo de premiación</div>
+        <div><b>Fecha/hora de generación:</b> 18/07/2026 23:04 UTC</div>
+        <div><b>Entradas reales auditadas:</b> 23</div>
+        <div><b>Partidos bloqueados auditados:</b> 31 de 32</div>
+        <div><b>Bolsa actual:</b> $115</div>
+        <div><b>Opinión:</b> sin excepciones sin corregir</div>
+      </div>
+      <p class="audit-disclaimer">Este informe es generado por un sistema de verificación automatizada propio de Bolão do Ferrari. No es producido, revisado ni avalado por ninguna firma de auditoría (KPMG, Deloitte, EY, PwC u otra) — el formato sigue la estructura de un informe de auditoría profesional (alcance, metodología, recálculo independiente, hallazgos, opinión) solo como referencia de rigor y claridad.</p>
+    </header><section class="audit-section exec-summary">
+      <h2>Resumen ejecutivo</h2>
+      <p>Esta auditoría recalculó de forma independiente la puntuación de las 23 entradas reales del bolão, con base en datos reales de producción (Supabase), sin reutilizar la lógica de puntuación del sitio ni del pipeline de correo — solo datos brutos (pronósticos, resultados, estructura del cuadro). También verificó la integridad de los datos, la fórmula de puntuación, el mecanismo de premiación y los criterios de desempate documentados.</p>
+      <p><b>No se encontraron discrepancias</b> entre el recálculo independiente y la puntuación oficial en ninguna de las 23 entradas auditadas. Se identificaron y corrigieron dos problemas hoy, antes de este informe (sección H) — ambos afectaban solo una vista previa mostrada durante partidos en vivo, nunca la puntuación oficial ni los pagos.</p>
+      <p>Esta auditoría se publica antes del resultado de la Final (M104), como un compromiso de transparencia: el mecanismo que decidirá el podio final y los montos en dinero mañana ya puede verificarse hoy.</p>
+    </section><section class="audit-section">
+              <h2>A. Integridad de la fórmula de puntuación <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">Valores usados por el pipeline de correo (<code>send_result_email.py</code>) comparados contra los valores esperados, declarados de forma independiente en este script de auditoría (no copiados directamente de <code>config.js</code>):
+              <ul><li>Marcador exacto: 10 pts (esperado 10) — OK</li>
+              <li>Goles de 1 equipo: 1 pt (esperado 1) — OK</li>
+              <li>Avance correcto: 5 pts (esperado 5) — OK</li>
+              <li>Bono campeón/subcampeón/3º/4º: 25/15/10/5 pts (esperado 25/15/10/5) — OK</li>
+              <li>División del premio: 70% / 20% / 10% (esperado 70%/20%/10%, suma 100%) — OK</li></ul>
+              Esta verificación existe porque una auditoría anterior (julio de 2026, ver CHANGELOG v4.57) encontró el pipeline de correo con valores de puntuación distintos a los del sitio — el riesgo de "drift" silencioso entre las dos implementaciones se monitorea desde entonces.</div>
+            </section>
+<section class="audit-section">
+              <h2>B. Integridad de la estructura de eliminación <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">32 partidos de eliminación registrados (esperado 32) — OK. Todas las referencias de cupo (ej.: "W101" = ganador del partido 101, "L102" = perdedor del 102) apuntan a partidos que realmente existen en el cuadro — OK, ninguna referencia rota.</div>
+            </section>
+<section class="audit-section">
+              <h2>C. Integridad de los resultados bloqueados <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">31 partidos bloqueados por el admin, recalculados de forma independiente: cuando el marcador tiene un ganador claro (goles distintos), el lado marcado como <code>advanceSide</code> se comparó contra el marcador (<code>goalsA</code>/<code>goalsB</code>). Los empates en tiempo reglamentario (4 en esta ronda) son esperados en fútbol de eliminación — el equipo avanza por penales, y <code>advanceSide</code> es la fuente de verdad en ese caso, ya que el marcador de penales no se almacena por separado. No se encontraron inconsistencias — en los 31 partidos con datos completos, el lado ganador coincide con el marcador registrado (o el empate se decidió correctamente por penales).</div>
+            </section>
+<section class="audit-section">
+              <h2>D. Integridad de los datos de participantes y pagos <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">23 entradas totales en la base de datos, 8 eliminadas (soft-delete), 0 de demostración, quedando <b>23 entradas reales válidas</b> para el ranking. IDs duplicados: ninguno — OK. Pronósticos huérfanos (referenciando un partido que no existe en el cuadro): ninguno — OK. 23 de 23 entradas marcadas como pagadas.</div>
+            </section>
+<section class="audit-section">
+              <h2>E. Recálculo independiente de puntuación — todas las entradas reales <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">Para cada una de las 23 entradas reales, la puntuación se recalculó desde cero (cuadro + pronósticos + resultados brutos), en código separado del sitio y del pipeline de correo, y se comparó contra el valor "oficial" producido por <code>score_entry_total()</code>. <b>Resultado: las 23 entradas coinciden exactamente — no se encontraron discrepancias.</b><br><br><table class='audit-table'><thead><tr><th>Entrada</th><th>Puntos (oficial)</th><th>Puntos (recálculo independiente)</th><th>¿Coincide?</th></tr></thead><tbody><tr class=""><td>Simone Hirle #4</td><td class="num">217</td><td class="num">217</td><td>✓ sí</td></tr><tr class=""><td>Mitch is the best</td><td class="num">178</td><td class="num">178</td><td>✓ sí</td></tr><tr class=""><td>Ewerton#1</td><td class="num">173</td><td class="num">173</td><td>✓ sí</td></tr><tr class=""><td>Aline</td><td class="num">171</td><td class="num">171</td><td>✓ sí</td></tr><tr class=""><td>Eduardo Ferrari</td><td class="num">169</td><td class="num">169</td><td>✓ sí</td></tr><tr class=""><td>Arthur Lopes Huller</td><td class="num">168</td><td class="num">168</td><td>✓ sí</td></tr><tr class=""><td>Marodin</td><td class="num">158</td><td class="num">158</td><td>✓ sí</td></tr><tr class=""><td>Rodrigo Hajj</td><td class="num">153</td><td class="num">153</td><td>✓ sí</td></tr><tr class=""><td>Gabriel Ferrari</td><td class="num">148</td><td class="num">148</td><td>✓ sí</td></tr><tr class=""><td>Roberta</td><td class="num">147</td><td class="num">147</td><td>✓ sí</td></tr><tr class=""><td>Samuel</td><td class="num">142</td><td class="num">142</td><td>✓ sí</td></tr><tr class=""><td>Simone Hirle #2</td><td class="num">139</td><td class="num">139</td><td>✓ sí</td></tr><tr class=""><td>Gustavo Ribeiro</td><td class="num">139</td><td class="num">139</td><td>✓ sí</td></tr><tr class=""><td>Eric</td><td class="num">136</td><td class="num">136</td><td>✓ sí</td></tr><tr class=""><td>Vinicius</td><td class="num">136</td><td class="num">136</td><td>✓ sí</td></tr><tr class=""><td>Nathalia</td><td class="num">134</td><td class="num">134</td><td>✓ sí</td></tr><tr class=""><td>Kisie Krawczyk</td><td class="num">130</td><td class="num">130</td><td>✓ sí</td></tr><tr class=""><td>Simone Hirle #3</td><td class="num">126</td><td class="num">126</td><td>✓ sí</td></tr><tr class=""><td>Enrico</td><td class="num">121</td><td class="num">121</td><td>✓ sí</td></tr><tr class=""><td>Simone Hirle #1</td><td class="num">110</td><td class="num">110</td><td>✓ sí</td></tr><tr class=""><td>Camila</td><td class="num">109</td><td class="num">109</td><td>✓ sí</td></tr><tr class=""><td>Alan</td><td class="num">105</td><td class="num">105</td><td>✓ sí</td></tr><tr class=""><td>Gustavo Bossle</td><td class="num">104</td><td class="num">104</td><td>✓ sí</td></tr></tbody></table></div>
+            </section>
+<section class="audit-section">
+              <h2>F. Verificación del ranking y criterios de desempate <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">Criterio de desempate documentado: total de puntos → nº de marcadores exactos → aciertos de podio (campeón/subcampeón/3º). El orden de clasificación producido por el recálculo independiente se comparó contra el orden oficial — OK, órdenes idénticos. Top 3 provisional actual (antes de la Final): 1º Simone Hirle #4 (217 pts), 2º Mitch is the best (178 pts), 3º Ewerton#1 (173 pts). <i>Este ranking sigue siendo provisional — M104 (la Final) decide el podio final y los premios.</i></div>
+            </section>
+<section class="audit-section">
+              <h2>G. Verificación del mecanismo de premiación <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">Bolsa actual: 23 entradas pagadas × $5 = <b>$115</b>. División: 70% / 20% / 10% para 1º / 2º / 3º lugar del ranking general (por puntos), con empates reales divididos proporcionalmente entre los empatados (regla ya documentada en la pestaña Reglas del sitio). El torneo aún no está decidido (M103 y/o M104 pendientes) — el podio final y los montos exactos de premiación se calcularán automáticamente en cuanto termine la Final y sea bloqueada por el admin.</div>
+            </section>
+<section class="audit-section">
+              <h2>H. Hallazgos identificados y corregidos durante el período de auditoría <span class="badge badge-remediated">⚠ CORREGIDO</span></h2>
+              <div class="section-body">Se identificaron y corrigieron dos problemas el 18/07/2026, antes de la publicación de este informe:
+              <ol>
+              <li><b>Vista previa en vivo sin bono de podio (v4.147).</b> La tabla "Puntos (provisorio)" mostrada durante un partido en vivo no incluía el bono de campeón/subcampeón/3º/4º para M103 y M104, incluso cuando el pronóstico de avance ya era el lado que iba ganando en el marcador en vivo. No afectaba la puntuación oficial ni los pagos — solo la vista previa mostrada durante el partido. Corregido el mismo día.</li>
+              <li><b>Vista previa en vivo comparando el lado del cuadro en vez del equipo real (v4.149).</b> La corrección anterior solo comparaba el lado (A/B) elegido en el pronóstico contra el lado que iba ganando en vivo — no el EQUIPO que el propio cuadro de la entrada realmente predecía para esa posición. Probado con datos reales de producción: de las 21 entradas que eligieron el lado B del M103, solo 2 (Simone Hirle #4, Gabriel Ferrari) habían predicho realmente "Inglaterra" al rastrear su propio cuadro — las otras 19 predijeron equipos completamente distintos que solo coincidían en el mismo lado. Las 21 mostraban el bono incorrectamente en la vista previa en vivo. <b>Importante: la puntuación OFICIAL (<code>scoreEntry()</code>/<code>score_entry_total()</code>) siempre comparó por nombre del equipo, nunca por lado — nunca estuvo incorrecta, y ningún participante fue puntuado o pagado de forma errónea en ningún momento.</b> Corregido el mismo día, verificado con los mismos datos reales.</li>
+              </ol>
+              Ambas correcciones se publicaron y verificaron antes de generar este informe — ver <code>bolao/CHANGELOG.md</code> v4.147–v4.149 para el historial completo.</div>
+            </section>
+<section class="audit-section">
+              <h2>I. Suite de autopruebas estática (audit_scoring.py) <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
+              <div class="section-body">Suite de pruebas que se ejecuta automáticamente antes de cualquier envío de correo (<code>send_result_email.py --auto</code> se niega a ejecutarse si esta suite falla). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
+            </section><section class="audit-section signoff">
+      <h2>Certificación</h2>
+      <p>Certifico que los procedimientos descritos en este informe se ejecutaron de forma automatizada el 18/07/2026 23:04 UTC, contra los datos de producción de Bolão do Ferrari, y que los resultados presentados reflejan fielmente el recálculo obtenido. Este informe puede regenerarse en cualquier momento ejecutando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p class="signoff-name">Sistema de Auditoría Automatizada — Bolão do Ferrari</p>
+    </section></div>
+</div>
+<script>
+(function() {
+  var buttons = document.querySelectorAll('[data-setlang]');
+  buttons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var lang = btn.getAttribute('data-setlang');
+      document.querySelectorAll('[data-lang]').forEach(function(el) {
+        el.classList.toggle('lang-active', el.getAttribute('data-lang') === lang);
+      });
+      buttons.forEach(function(b) { b.classList.toggle('active', b === btn); });
+      document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es' : 'en-US';
+    });
+  });
+})();
+</script>
+</body>
+</html>
