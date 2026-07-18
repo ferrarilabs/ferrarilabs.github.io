@@ -1270,6 +1270,27 @@ isso corretamente.
 `audit_scoring.py` (Copa): PASSOU — a suíte cobre a pontuação oficial/pipeline de e-mail, não a
 exibição ao vivo no navegador (verificado manualmente com dados reais via Playwright).
 
+**Atualização 2026-07-18 (Copa v4.149) — a correção acima (SIDE vs TEAM) tinha o MESMO problema, e a severidade real foi confirmada**: a correção do bônus de pódio ao vivo feita em v4.147 (linhas
+acima) comparava apenas o LADO do bracket (`pick.advanceSide === liveAdvance`), não o TIME
+realmente previsto pelo próprio bracket da entrada — Eduardo pegou isso ao vivo ainda durante o
+M103: "somente quem selecionou a Inglaterra lá no início deve receber o bonus, não o time que
+passou." Confirmado com dados reais: de 21 entradas que escolheram o lado B do M103, só 2 (Simone
+Hirle #4, Gabriel Ferrari) tinham de fato rastreado "Inglaterra" pelo próprio bracket — as outras
+19 previram times completamente diferentes (México, Argentina, Colômbia, Brasil, Suíça...) que só
+coincidiram no mesmo lado. Corrigido em v4.149 comparando o time resolvido pelo próprio bracket da
+entrada (`resolvedTeamsForEntry()`) contra o time real que está liderando (`officialWinnersMap()`),
+mesma lógica que `scoreEntry()`/`finalPodiumForEntry()` já usava corretamente. **Importante**: essa
+falha era exclusiva do preview ao vivo no navegador — a pontuação OFICIAL (`scoreEntry()`),
+`send_result_email.py` e o prêmio em dinheiro (v4.148) sempre compararam por nome do time, nunca
+por lado, e nunca estiveram errados; nenhum participante foi pago ou pontuado incorretamente.
+
+Isso eleva a prioridade do achado paralelo no CDB2026 registrado logo acima (`liveScoreEntry()` com
+a mesma lacuna de bônus de pódio ao vivo) — se o CDB2026 replicar esse padrão de comparação por
+lado quando for implementado/testado, o mesmo bug (super-contagem massiva do bônus ao vivo) deve se
+repetir. Ainda não corrigido no CDB2026 nesta rodada (mesma decisão de adiar já registrada acima —
+sem tie ao vivo pra testar até 1º/ago), mas ao revisitar antes das Oitavas, tratar como prioridade
+alta, não apenas um "nice to have".
+
 ## Nota manual — prêmio em dinheiro do pódio: banner + email (2026-07-18, Copa v4.148) — COPA APENAS, feature nova sem equivalente em BR2026/CDB2026
 
 Eduardo, com a Final marcada pro dia seguinte: pediu um email especial para campeão/vice/3º lugar

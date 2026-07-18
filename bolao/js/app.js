@@ -1544,22 +1544,37 @@ function buildResultEmailHtml(s, testMode) {
 </div>`;
 }
 
-function buildPodiumEmailHtml(info) {
+function buildPodiumEmailHtml(info, s) {
   const medal = { 1: "🥇", 2: "🥈", 3: "🥉" };
   const labelPt = { 1: "Campeão", 2: "Vice-campeão", 3: "3º lugar" };
   const labelEn = { 1: "Champion", 2: "Runner-up", 3: "3rd place" };
   const labelEs = { 1: "Campeón", 2: "Subcampeón", 3: "3er lugar" };
   const amt = a => `$${a.toFixed(2).replace(/\.00$/, "")}`;
-  const card = (p, labels, tiedNote) => `<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">
+  // Real World Cup podium (which TEAM finished champion/runnerUp/third) -- used only for the
+  // "Assim como <time>..." congrats line (Eduardo, 2026-07-18), a creative pairing between the
+  // real podium and the bolão's own money podium. Cosmetic copy only, never affects payouts.
+  const realPod = podiumFromResults(s) || {};
+  const teamForRank = { 1: realPod.champion, 2: realPod.runnerUp, 3: realPod.third };
+  const congrats = (p, lang) => {
+    const team = teamForRank[p.rank];
+    if (!team) return "";
+    const name = escapeHtml(p.entryName), t2 = escapeHtml(team);
+    const text = lang === "pt" ? `Parabéns, ${name}! Assim como ${t2}, você também é ${labelPt[p.rank]} — só que do nosso bolão! 🏆`
+      : lang === "en" ? `Congrats, ${name}! Just like ${t2}, you're also the ${labelEn[p.rank]} — of our bolão! 🏆`
+      : `¡Felicidades, ${name}! Así como ${t2}, tú también eres ${labelEs[p.rank]} — ¡de nuestro bolão! 🏆`;
+    return `<div style="font-size:11px;color:#374151;margin-top:6px;font-style:italic">${text}</div>`;
+  };
+  const card = (p, labels, tiedNote, lang) => `<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">
       <div style="font-size:30px;line-height:1;margin-bottom:6px">${medal[p.rank]}</div>
       <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px">${labels[p.rank]}</div>
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">${escapeHtml(p.entryName)}</div>
       <div style="font-size:22px;font-weight:900;color:#16a34a">${amt(p.amount)}</div>
       ${p.tied ? `<div style="font-size:11px;color:#9ca3af;margin-top:4px">${tiedNote}</div>` : ""}
+      ${congrats(p, lang)}
     </div>`;
-  const cardsPt = info.payouts.map(p => card(p, labelPt, "Empate — valor dividido entre os empatados")).join("");
-  const cardsEn = info.payouts.map(p => card(p, labelEn, "Tied — amount split between tied entries")).join("");
-  const cardsEs = info.payouts.map(p => card(p, labelEs, "Empate — monto dividido entre los empatados")).join("");
+  const cardsPt = info.payouts.map(p => card(p, labelPt, "Empate — valor dividido entre os empatados", "pt")).join("");
+  const cardsEn = info.payouts.map(p => card(p, labelEn, "Tied — amount split between tied entries", "en")).join("");
+  const cardsEs = info.payouts.map(p => card(p, labelEs, "Empate — monto dividido entre los empatados", "es")).join("");
   return `
   <div style="background:linear-gradient(135deg,#78350f,#451a03);border:2px solid #f59e0b;border-radius:14px;padding:22px 18px;margin-bottom:22px;text-align:center">
     <div style="font-size:20px;font-weight:900;color:white;margin-bottom:16px">🏆 Resultado Final do Bolão! · Final Bolão Result! · ¡Resultado Final del Bolão!</div>
@@ -1608,7 +1623,7 @@ async function sendResultEmailFromAdmin(testOnly) {
       ? `🏆 Resultado Final do Bolão! · Final Bolão Result! — ${lastResultStr}`
       : `Resultado Parcial — M${lastMid}: ${lastResultStr}`;
 
-    const html = (podiumInfo ? buildPodiumEmailHtml(podiumInfo) : "") + buildResultEmailHtml(s, testOnly);
+    const html = (podiumInfo ? buildPodiumEmailHtml(podiumInfo, s) : "") + buildResultEmailHtml(s, testOnly);
     const deleted = new Set(s.deletedIds || []);
 
     if (testOnly) {
@@ -3707,7 +3722,7 @@ function saveConfirmedBoundary() {
 // score isn't a draw (pickWinner returns "" on a tie). Never touches
 // state().results — purely a live preview, official points still require
 // the admin to confirm the result.
-function liveMatchPoints(pick, liveGoalsA, liveGoalsB, matchId) {
+function liveMatchPoints(pick, liveGoalsA, liveGoalsB, matchId, entryPredictedTeam, realTeamA, realTeamB) {
   if (!pick) return null;
   const pA = parseScore(pick.goalsA), pB = parseScore(pick.goalsB);
   if (pA === null || pB === null) return null;
@@ -3723,19 +3738,27 @@ function liveMatchPoints(pick, liveGoalsA, liveGoalsB, matchId) {
   if (advanceCorrect) pts += CONFIG.scoring.advance;
   // M103 (3rd place) and M104 (Final) are the only two matches whose winner/loser directly
   // decides a podium bonus (champion/runner-up/3rd/4th) — see scoreEntry()'s bonus block, which
-  // only ever applies once the admin locks results. Eduardo: "O ranking parcial ... não mostra o
-  // bonus pelo 3o lugar. Deveria mostrar assim como amanhã deve mostrar o bonus do primeiro e
-  // segundo. Isso é específico somente desses dois jogos!" (2026-07-18) — the live/provisional
-  // points table (liveMatchPointsTable(), the only place live points are shown for the Copa)
-  // never projected this, so a correct pick for these two matches under-counted its live total by
-  // 15 (3rd+4th) or 40 (champion+runnerUp) versus what scoreEntry() will actually award once
-  // locked. A single advanceSide pick on these matches predicts BOTH podium slots at once (3rd
-  // AND 4th are two sides of the same M103 result; champion AND runnerUp of the same M104
-  // result) — same all-or-nothing logic as podiumFromResults()/finalPodiumForEntry(), so both
-  // bonuses are added together, never independently.
-  if (advanceCorrect) {
-    if (matchId === "103") pts += CONFIG.bonus.third + CONFIG.bonus.fourth;
-    else if (matchId === "104") pts += CONFIG.bonus.champion + CONFIG.bonus.runnerUp;
+  // only ever applies once the admin locks results.
+  //
+  // Eduardo, 2026-07-18: "Score tem um problema: somente quem selecionou a Inglaterra lá no
+  // início deve receber o bonus, não o time que passou." Confirmed against real data: comparing
+  // just the bracket SIDE letter (pick.advanceSide === liveAdvance) is NOT enough — of 21 real
+  // entries that picked side B for M103, only 2 (Simone Hirle #4, Gabriel Ferrari) actually
+  // traced their OWN bracket picks through to "England" specifically; the other 19 predicted
+  // entirely different teams (Mexico, Argentina, Colombia...) that happened to land on the same
+  // side only because THIS live preview never checked team identity. scoreEntry()'s official bonus
+  // (via finalPodiumForEntry()/podiumFromResults()) already compares by actual team name, never by
+  // side alone — this mirrors that exactly, using the entry's own bracket-resolved team
+  // (entryPredictedTeam, from resolvedTeamsForEntry()) against the real team currently leading.
+  if (advanceCorrect && (matchId === "103" || matchId === "104")) {
+    const realLeadingTeam = liveAdvance === "A" ? realTeamA : realTeamB;
+    if (entryPredictedTeam && isRealTeamName(entryPredictedTeam) && entryPredictedTeam === realLeadingTeam) {
+      // A single advanceSide pick on these matches predicts BOTH podium slots at once (3rd AND
+      // 4th are two sides of the same M103 result; champion AND runnerUp of the same M104
+      // result) — same all-or-nothing logic as podiumFromResults()/finalPodiumForEntry().
+      if (matchId === "103") pts += CONFIG.bonus.third + CONFIG.bonus.fourth;
+      else pts += CONFIG.bonus.champion + CONFIG.bonus.runnerUp;
+    }
   }
   return pts;
 }
@@ -3766,9 +3789,17 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
     .sort((a, b) => (officialScore[b.id] || 0) - (officialScore[a.id] || 0))
     .forEach((e, i) => { officialRank[e.id] = i; });
 
-  // Points this live match would add for each entry (null = no pick for it)
+  // Points this live match would add for each entry (null = no pick for it).
+  // For M103/M104, the podium bonus must compare the entry's OWN bracket-traced team (not just
+  // the bracket side) against the real team currently leading — see liveMatchPoints() comment.
+  const realTeamA = pickTeamName("A"), realTeamB = pickTeamName("B");
   const livePtsRaw = {};
-  entries.forEach(e => { livePtsRaw[e.id] = liveMatchPoints(e.picks?.[matchId], liveGoalsA, liveGoalsB, String(matchId)); });
+  entries.forEach(e => {
+    const pick = e.picks?.[matchId];
+    const predicted = resolvedTeamsForEntry(e)[matchId];
+    const entryPredictedTeam = pick?.advanceSide === "A" ? predicted?.displayA : pick?.advanceSide === "B" ? predicted?.displayB : null;
+    livePtsRaw[e.id] = liveMatchPoints(pick, liveGoalsA, liveGoalsB, String(matchId), entryPredictedTeam, realTeamA, realTeamB);
+  });
 
   // Provisional rank: add live match pts to every entry, re-rank all entries.
   // Tie-broken by this match's own live points so the assigned "Pos." always

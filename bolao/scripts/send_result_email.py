@@ -536,20 +536,37 @@ def compute_final_payouts(state, results):
     return {"pot": pot, "payouts": payouts}
 
 
-def build_podium_html(payouts_info):
+def build_podium_html(payouts_info, real_podium=None):
     """Bilingual PT/EN podium reveal block — prepended to the M104 email only once
     compute_final_payouts() confirms the tournament is fully decided. Kept as a separate
     function (not folded into build_html()) so a normal per-match email is never accidentally
-    affected."""
+    affected.
+
+    real_podium: _podium_from_results(saved) — the real champion/runnerUp/third TEAMS (not
+    picks). Used only for the "Assim como <time>..." congrats line (Eduardo, 2026-07-18): a
+    creative pairing between the real World Cup podium and the bolão's own money podium, purely
+    cosmetic copy, does not affect payouts/scoring in any way."""
     medal   = {1: "🥇", 2: "🥈", 3: "🥉"}
     label_pt = {1: "Campeão", 2: "Vice-campeão", 3: "3º lugar"}
     label_en = {1: "Champion", 2: "Runner-up", 3: "3rd place"}
+    team_for_rank = {1: (real_podium or {}).get("champion"), 2: (real_podium or {}).get("runnerUp"), 3: (real_podium or {}).get("third")}
 
     def _amount(a):
         s = f"{a:.2f}"
         return s[:-3] if s.endswith(".00") else s
 
-    def _card(item, lang_label, tied_note):
+    def _congrats(item, lang):
+        team = team_for_rank.get(item["rank"])
+        if not team:
+            return ""
+        name = item["entryName"]
+        if lang == "pt":
+            text = f"Parabéns, {name}! Assim como {team}, você também é {label_pt[item['rank']]} — só que do nosso bolão! 🏆"
+        else:
+            text = f"Congrats, {name}! Just like {team}, you're also the {label_en[item['rank']]} — of our bolão! 🏆"
+        return f'<div style="font-size:11px;color:#374151;margin-top:6px;font-style:italic">{text}</div>'
+
+    def _card(item, lang_label, tied_note, lang):
         note = f'<div style="font-size:11px;color:#9ca3af;margin-top:4px">{tied_note}</div>' if item["tied"] else ""
         return f"""<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">
       <div style="font-size:30px;line-height:1;margin-bottom:6px">{medal[item['rank']]}</div>
@@ -557,10 +574,11 @@ def build_podium_html(payouts_info):
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">{item['entryName']}</div>
       <div style="font-size:22px;font-weight:900;color:#16a34a">${_amount(item['amount'])}</div>
       {note}
+      {_congrats(item, lang)}
     </div>"""
 
-    cards_pt = "".join(_card(p, label_pt, "Empate — valor dividido entre os empatados") for p in payouts_info["payouts"])
-    cards_en = "".join(_card(p, label_en, "Tied — amount split between tied entries") for p in payouts_info["payouts"])
+    cards_pt = "".join(_card(p, label_pt, "Empate — valor dividido entre os empatados", "pt") for p in payouts_info["payouts"])
+    cards_en = "".join(_card(p, label_en, "Tied — amount split between tied entries", "en") for p in payouts_info["payouts"])
 
     return f"""
   <div style="background:linear-gradient(135deg,#78350f,#451a03);border:2px solid #f59e0b;border-radius:14px;padding:22px 18px;margin-bottom:22px;text-align:center">
@@ -988,7 +1006,8 @@ def run_auto():
         if mid == "104":
             payouts_info = compute_final_payouts(state, saved)
             if payouts_info:
-                html = build_podium_html(payouts_info) + html
+                real_podium = _podium_from_results(saved)
+                html = build_podium_html(payouts_info, real_podium) + html
                 subj = f"🏆 Resultado Final do Bolão! · Final Bolão Result! — {tA} {r['goalsA']}–{r['goalsB']} {tB}"
                 print(f"  🏆 Tournament complete — including podium/prize block ({len(payouts_info['payouts'])} payouts, pot ${payouts_info['pot']})")
 
