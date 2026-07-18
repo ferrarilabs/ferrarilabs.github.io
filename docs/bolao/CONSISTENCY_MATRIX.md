@@ -1235,3 +1235,37 @@ Verificado com os 3 jogos reais ao vivo de hoje via Playwright — os três card
 sem precisar clicar.
 
 `audit_scoring.py` (BR2026): PASSOU — presentation-only, nenhuma fórmula de pontuação tocada.
+
+## Nota manual — pontuação ao vivo do M103/M104 não incluía bônus de pódio (2026-07-18, Copa v4.147) — CORRIGIDA, achado paralelo no CDB2026 NÃO corrigido
+
+Eduardo, durante o jogo real da disputa do 3º lugar (M103): "O ranking parcial ... não mostra o
+bonus pelo 3o lugar. Deveria mostrar assim como amanhã deve mostrar o bonus do primeiro e
+segundo. Isso é específico somente desses dois jogos!" Confirmado como bug real (categoria
+SCORING, real money) — `liveMatchPoints()`, usada só pela tabela "Pontos (provisório)" do card ao
+vivo da Copa, nunca incluía `CONFIG.bonus` (champion/runnerUp/third/fourth), que na pontuação
+OFICIAL só é aplicado quando o admin trava o resultado. M103 (3º lugar) e M104 (Final) são as
+DUAS únicas partidas cujo vencedor/perdedor decide diretamente um bônus de pódio — as outras
+partidas do mata-mata não têm esse bônus associado, por isso "específico só desses dois jogos".
+
+Corrigido (Copa, v4.147): `liveMatchPoints()` agora recebe `matchId` e soma o bônus de pódio
+projetado (3º+4º = 15 pts, ou campeão+vice = 40 pts) quando o palpite de avanço da entrada bate
+com o lado ganhando ao vivo NESSES DOIS jogos especificamente. Não altera a pontuação oficial
+(`scoreEntry()`), só a projeção ao vivo. Verificado com o jogo real (França × Inglaterra) via
+Playwright — palpite exato foi de 15 pts pra 30 pts (bônus incluído corretamente).
+
+**Achado paralelo no CDB2026, NÃO corrigido nesta rodada**: `liveScoreEntry()` tem exatamente a
+mesma lacuna — a Final do CDB2026 (campeão/vice) também não projeta esse bônus ao vivo. Não
+corrigido agora porque: (1) as ties do CDB2026 têm formato ida+volta com classificação agregada
+(possivelmente com critério de desempate) — replicar "quem está classificando agora" ao vivo é
+mais arriscado de acertar do que o caso da Copa (mata-mata de jogo único); (2) não há nenhuma tie
+ao vivo pra testar agora (Oitavas só começa 1º/ago), então não há urgência real. Decisão de
+implementar ou não fica pendente de confirmação do Eduardo antes das Oitavas começarem — não é
+uma diferença TOURNAMENT_SPECIFIC intencional, é uma lacuna real ainda não corrigida.
+
+BR2026 não tem esse padrão de bug — não usa um "bônus de pódio" separado dos pontos de posição
+(G4 exato/Z4 exato JÁ é a pontuação, não uma camada adicional sobre um "avanço correto" como na
+Copa/CDB2026), e sua projeção ao vivo (`calculateLiveStandings()`/`currentResultSet()`) já reflete
+isso corretamente.
+
+`audit_scoring.py` (Copa): PASSOU — a suíte cobre a pontuação oficial/pipeline de e-mail, não a
+exibição ao vivo no navegador (verificado manualmente com dados reais via Playwright).

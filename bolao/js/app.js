@@ -3569,7 +3569,7 @@ function saveConfirmedBoundary() {
 // score isn't a draw (pickWinner returns "" on a tie). Never touches
 // state().results — purely a live preview, official points still require
 // the admin to confirm the result.
-function liveMatchPoints(pick, liveGoalsA, liveGoalsB) {
+function liveMatchPoints(pick, liveGoalsA, liveGoalsB, matchId) {
   if (!pick) return null;
   const pA = parseScore(pick.goalsA), pB = parseScore(pick.goalsB);
   if (pA === null || pB === null) return null;
@@ -3581,7 +3581,24 @@ function liveMatchPoints(pick, liveGoalsA, liveGoalsB) {
     if (pB === liveGoalsB) pts += CONFIG.scoring.oneTeamGoals;
   }
   const liveAdvance = pickWinner(liveGoalsA, liveGoalsB);
-  if (liveAdvance && pick.advanceSide === liveAdvance) pts += CONFIG.scoring.advance;
+  const advanceCorrect = liveAdvance && pick.advanceSide === liveAdvance;
+  if (advanceCorrect) pts += CONFIG.scoring.advance;
+  // M103 (3rd place) and M104 (Final) are the only two matches whose winner/loser directly
+  // decides a podium bonus (champion/runner-up/3rd/4th) — see scoreEntry()'s bonus block, which
+  // only ever applies once the admin locks results. Eduardo: "O ranking parcial ... não mostra o
+  // bonus pelo 3o lugar. Deveria mostrar assim como amanhã deve mostrar o bonus do primeiro e
+  // segundo. Isso é específico somente desses dois jogos!" (2026-07-18) — the live/provisional
+  // points table (liveMatchPointsTable(), the only place live points are shown for the Copa)
+  // never projected this, so a correct pick for these two matches under-counted its live total by
+  // 15 (3rd+4th) or 40 (champion+runnerUp) versus what scoreEntry() will actually award once
+  // locked. A single advanceSide pick on these matches predicts BOTH podium slots at once (3rd
+  // AND 4th are two sides of the same M103 result; champion AND runnerUp of the same M104
+  // result) — same all-or-nothing logic as podiumFromResults()/finalPodiumForEntry(), so both
+  // bonuses are added together, never independently.
+  if (advanceCorrect) {
+    if (matchId === "103") pts += CONFIG.bonus.third + CONFIG.bonus.fourth;
+    else if (matchId === "104") pts += CONFIG.bonus.champion + CONFIG.bonus.runnerUp;
+  }
   return pts;
 }
 
@@ -3613,7 +3630,7 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
 
   // Points this live match would add for each entry (null = no pick for it)
   const livePtsRaw = {};
-  entries.forEach(e => { livePtsRaw[e.id] = liveMatchPoints(e.picks?.[matchId], liveGoalsA, liveGoalsB); });
+  entries.forEach(e => { livePtsRaw[e.id] = liveMatchPoints(e.picks?.[matchId], liveGoalsA, liveGoalsB, String(matchId)); });
 
   // Provisional rank: add live match pts to every entry, re-rank all entries.
   // Tie-broken by this match's own live points so the assigned "Pos." always
