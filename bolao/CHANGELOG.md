@@ -1,5 +1,43 @@
 # CHANGELOG
 
+## v4.147 — 2026-07-18
+
+### Fixed — pontuação provisória do M103/M104 não incluía o bônus de pódio (real money bug)
+
+Eduardo, durante o jogo real da disputa do 3º lugar (M103, França × Inglaterra): "O ranking
+parcial onde calculamos os pontos de acordo com o resultado não mostra o bônus pelo 3º lugar.
+Deveria mostrar assim como amanhã deve mostrar o bônus do primeiro e segundo. Isso é específico
+somente desses dois jogos!"
+
+Confirmado como bug real. `liveMatchPoints()` (usada só pela tabela "Pontos (provisório)" dentro
+do card ao vivo, `liveMatchPointsTable()`) sempre calculou apenas os pontos de partida (placar
+exato/gols de um time/avanço correto) — nunca incluiu o bônus de pódio (`CONFIG.bonus`), que na
+pontuação OFICIAL (`scoreEntry()`) só é aplicado depois que o admin trava o resultado. Para a
+imensa maioria dos jogos do mata-mata isso está certo (não há bônus de pódio associado). Mas M103
+(disputa do 3º lugar) e M104 (Final) são diferentes: o vencedor/perdedor dessas duas partidas
+especificamente DEFINE quem é campeão/vice/3º/4º — o placar ao vivo já permite projetar esse
+bônus, e a tabela provisória deveria refletir isso, mas não refletia.
+
+Corrigido: `liveMatchPoints()` agora recebe o `matchId` e, quando for exatamente "103" ou "104" E
+o palpite de avanço da entrada bater com o lado que está ganhando ao vivo, soma também o bônus de
+pódio correspondente (3º+4º = 15 pts pro M103; campeão+vice = 40 pts pro M104) — um único palpite
+de avanço nesses dois jogos sempre prevê os dois lugares do pódio ao mesmo tempo (mesma lógica
+"tudo ou nada" de `podiumFromResults()`/`finalPodiumForEntry()`, nunca os dois bônus
+separadamente). Confirmado com o jogo real (França 2×1 Inglaterra simulado): quem acertou o
+placar exato E o lado vencedor foi de 15 pts (10 exato + 5 avanço) para 30 pts (10+5+15 bônus).
+
+Não altera a pontuação OFICIAL (`scoreEntry()`/`matchPoints()`) — só a projeção ao vivo, que já
+deveria ter incluído esse bônus desde que o card "Pontos (provisório)" existe.
+
+`audit_scoring.py`: PASSOU (a suíte cobre a pontuação oficial/e-mail, não a exibição ao vivo no
+navegador — verificação manual feita com dados reais via Playwright, ver acima).
+
+Achado o mesmo tipo de lacuna no CDB2026 (bônus de campeão/vice não entra na pontuação ao vivo da
+Final) — não corrigido nesta rodada: lá as chaves têm formato ida+volta com classificação
+agregada, mais arriscado de replicar corretamente ao vivo, e não há nenhuma chave ao vivo pra
+testar agora (Oitavas só começa 1º/ago). Registrado em `docs/bolao/CONSISTENCY_MATRIX.md` pra
+decisão do Eduardo.
+
 ## v4.146 — 2026-07-17
 
 ### Changed — local do jogo removido do card ao vivo
