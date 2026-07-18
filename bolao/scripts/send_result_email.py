@@ -479,6 +479,109 @@ def podium_bonus_points(entry, results):
     return pts
 
 
+# Prêmio do BOLÃO (quem ganha dinheiro) — mirrors finalPodiumPayouts() in app.js exactly.
+# Eduardo: "Isso tem que estar no email também que será enviado após os dois jogos!"
+# (2026-07-18). Do NOT confuse with BONUS/_podium_from_results() above (campeão/vice/3º/4º do
+# MUNDIAL, used only for score bonus points) — this is about the top-3 finishers of the BOLÃO's
+# own ranking (people, by total points), which had never been computed anywhere before. Prizes
+# config mirrors CONFIG.prizes in config.js (70/20/10%); pot is entries paid so far × entryFee
+# (Eduardo confirmed 2026-07-18: no more payments expected at this point in the tournament).
+PRIZES     = {"first": 0.70, "second": 0.20, "third": 0.10}
+ENTRY_FEE  = 5
+
+
+def compute_final_payouts(state, results):
+    """Only returns a result once M103 (3rd place) AND M104 (Final) are both locked -- before
+    that the bolão's own final standings don't exist yet. Groups genuine ties (same
+    total/exact/podium -- NOT the name-based display tiebreak used to order who's listed first
+    within a tied group) and splits that position's prize evenly, per the site's own documented
+    rule ("a posição e o prêmio daquela colocação são divididos entre os empatados")."""
+    if not (results.get("103", {}).get("advanceSide") and results.get("104", {}).get("advanceSide")):
+        return None
+    deleted  = set(state.get("deletedIds", []))
+    entries  = [e for e in state.get("entries", [])
+                if e.get("id") not in deleted and not (e.get("diagnostics") or {}).get("demo")]
+    if not entries:
+        return None
+    paid_count = sum(1 for e in state.get("entries", []) if state.get("paid", {}).get(e.get("id")))
+    pot = paid_count * ENTRY_FEE
+    if not pot:
+        return None
+
+    scored = sorted(
+        [{"e": e, "total": score_entry_total(e, results), "exact": exact_match_count(e, results),
+          "podium": podium_hits(e, results)} for e in entries],
+        key=lambda x: (-x["total"], -x["exact"], -x["podium"]),
+    )
+
+    by_rank = {1: [], 2: [], 3: []}
+    rank, prev_key = 0, None
+    for i, item in enumerate(scored):
+        key = (item["total"], item["exact"], item["podium"])
+        if key != prev_key:
+            rank = i + 1
+        prev_key = key
+        if rank in by_rank:
+            by_rank[rank].append(item)
+
+    payouts = []
+    for r, pct_key in ((1, "first"), (2, "second"), (3, "third")):
+        group = by_rank[r]
+        if not group:
+            continue
+        amount = (pot * PRIZES[pct_key]) / len(group)
+        for item in group:
+            payouts.append({"entryName": item["e"].get("entryName", "?"), "rank": r,
+                             "amount": amount, "tied": len(group) > 1})
+    return {"pot": pot, "payouts": payouts}
+
+
+def build_podium_html(payouts_info):
+    """Bilingual PT/EN podium reveal block — prepended to the M104 email only once
+    compute_final_payouts() confirms the tournament is fully decided. Kept as a separate
+    function (not folded into build_html()) so a normal per-match email is never accidentally
+    affected."""
+    medal   = {1: "🥇", 2: "🥈", 3: "🥉"}
+    label_pt = {1: "Campeão", 2: "Vice-campeão", 3: "3º lugar"}
+    label_en = {1: "Champion", 2: "Runner-up", 3: "3rd place"}
+
+    def _amount(a):
+        s = f"{a:.2f}"
+        return s[:-3] if s.endswith(".00") else s
+
+    def _card(item, lang_label, tied_note):
+        note = f'<div style="font-size:11px;color:#9ca3af;margin-top:4px">{tied_note}</div>' if item["tied"] else ""
+        return f"""<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:30px;line-height:1;margin-bottom:6px">{medal[item['rank']]}</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px">{lang_label[item['rank']]}</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">{item['entryName']}</div>
+      <div style="font-size:22px;font-weight:900;color:#16a34a">${_amount(item['amount'])}</div>
+      {note}
+    </div>"""
+
+    cards_pt = "".join(_card(p, label_pt, "Empate — valor dividido entre os empatados") for p in payouts_info["payouts"])
+    cards_en = "".join(_card(p, label_en, "Tied — amount split between tied entries") for p in payouts_info["payouts"])
+
+    return f"""
+  <div style="background:linear-gradient(135deg,#78350f,#451a03);border:2px solid #f59e0b;border-radius:14px;padding:22px 18px;margin-bottom:22px;text-align:center">
+    <div style="font-size:20px;font-weight:900;color:white;margin-bottom:16px">🏆 Resultado Final do Bolão! · 🏆 Final Bolão Result!</div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">Português</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
+      {cards_pt}
+    </div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">English</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
+      {cards_en}
+    </div>
+    <div style="font-size:13px;color:#fde68a;margin-bottom:14px">
+      Obrigado a todos que participaram! Foi um prazer acompanhar a Copa com vocês.<br>
+      Thanks to everyone who played! It was a pleasure following the World Cup with you all.
+    </div>
+    <div style="font-size:11px;color:#fbbf2480">Pote total / Total pot: ${_amount(payouts_info['pot'])}</div>
+  </div>
+"""
+
+
 # ── Email HTML builder ────────────────────────────────────────────────────────
 def pts_color(pts):
     if pts >= 10: return "#16a34a"
@@ -879,6 +982,15 @@ def run_auto():
         saved  = {k: v for k, v in state.get("results", {}).items() if v.get("advanceSide")}
         html   = build_html(state, focus_mid=mid)
         subj   = f"Resultado Parcial — M{mid}: {tA} {r['goalsA']}–{r['goalsB']} {tB}"
+
+        # M104 (Final) is only the bolão's true final result once M103 (3rd place) is
+        # also locked -- compute_final_payouts() enforces that itself. Eduardo, 2026-07-18.
+        if mid == "104":
+            payouts_info = compute_final_payouts(state, saved)
+            if payouts_info:
+                html = build_podium_html(payouts_info) + html
+                subj = f"🏆 Resultado Final do Bolão! · Final Bolão Result! — {tA} {r['goalsA']}–{r['goalsB']} {tB}"
+                print(f"  🏆 Tournament complete — including podium/prize block ({len(payouts_info['payouts'])} payouts, pot ${payouts_info['pot']})")
 
         sent, errors = _send_to_all(state, html, subj)
         print(f"  → {sent} sent, {len(errors)} errors")

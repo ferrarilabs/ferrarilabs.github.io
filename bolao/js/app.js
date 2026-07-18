@@ -1544,6 +1544,41 @@ function buildResultEmailHtml(s, testMode) {
 </div>`;
 }
 
+function buildPodiumEmailHtml(info) {
+  const medal = { 1: "🥇", 2: "🥈", 3: "🥉" };
+  const labelPt = { 1: "Campeão", 2: "Vice-campeão", 3: "3º lugar" };
+  const labelEn = { 1: "Champion", 2: "Runner-up", 3: "3rd place" };
+  const labelEs = { 1: "Campeón", 2: "Subcampeón", 3: "3er lugar" };
+  const amt = a => `$${a.toFixed(2).replace(/\.00$/, "")}`;
+  const card = (p, labels, tiedNote) => `<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">
+      <div style="font-size:30px;line-height:1;margin-bottom:6px">${medal[p.rank]}</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px">${labels[p.rank]}</div>
+      <div style="font-size:15px;font-weight:700;margin-bottom:4px">${escapeHtml(p.entryName)}</div>
+      <div style="font-size:22px;font-weight:900;color:#16a34a">${amt(p.amount)}</div>
+      ${p.tied ? `<div style="font-size:11px;color:#9ca3af;margin-top:4px">${tiedNote}</div>` : ""}
+    </div>`;
+  const cardsPt = info.payouts.map(p => card(p, labelPt, "Empate — valor dividido entre os empatados")).join("");
+  const cardsEn = info.payouts.map(p => card(p, labelEn, "Tied — amount split between tied entries")).join("");
+  const cardsEs = info.payouts.map(p => card(p, labelEs, "Empate — monto dividido entre los empatados")).join("");
+  return `
+  <div style="background:linear-gradient(135deg,#78350f,#451a03);border:2px solid #f59e0b;border-radius:14px;padding:22px 18px;margin-bottom:22px;text-align:center">
+    <div style="font-size:20px;font-weight:900;color:white;margin-bottom:16px">🏆 Resultado Final do Bolão! · Final Bolão Result! · ¡Resultado Final del Bolão!</div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">Português</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">${cardsPt}</div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">English</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">${cardsEn}</div>
+    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">Español</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">${cardsEs}</div>
+    <div style="font-size:13px;color:#fde68a;margin-bottom:14px">
+      Obrigado a todos que participaram! Foi um prazer acompanhar a Copa com vocês.<br>
+      Thanks to everyone who played! It was a pleasure following the World Cup with you all.<br>
+      ¡Gracias a todos los que participaron! Fue un placer acompañar la Copa con ustedes.
+    </div>
+    <div style="font-size:11px;color:#fbbf2480">Pote total / Total pot: ${amt(info.pot)}</div>
+  </div>
+`;
+}
+
 async function sendResultEmailFromAdmin(testOnly) {
   if (!guardAdmin()) return;
   if (!window.emailjs) { showToast(t("emailjsNotLoaded"), "error"); return; }
@@ -1565,9 +1600,15 @@ async function sendResultEmailFromAdmin(testOnly) {
     const lastTeamA = teamNames[lastMid]?.displayA || "Team A";
     const lastTeamB = teamNames[lastMid]?.displayB || "Team B";
     const lastResultStr = `${lastTeamA} ${lastResult.goalsA}–${lastResult.goalsB} ${lastTeamB}`;
-    const emailSubject = `Resultado Parcial — M${lastMid}: ${lastResultStr}`;
 
-    const html = buildResultEmailHtml(s, testOnly);
+    // Tournament fully decided (M103 + M104 both locked) -- prepend podium/prize block and
+    // use the special final subject line instead of the generic "Resultado Parcial" one.
+    const podiumInfo = finalPodiumPayouts(s);
+    const emailSubject = podiumInfo
+      ? `🏆 Resultado Final do Bolão! · Final Bolão Result! — ${lastResultStr}`
+      : `Resultado Parcial — M${lastMid}: ${lastResultStr}`;
+
+    const html = (podiumInfo ? buildPodiumEmailHtml(podiumInfo) : "") + buildResultEmailHtml(s, testOnly);
     const deleted = new Set(s.deletedIds || []);
 
     if (testOnly) {
@@ -1690,8 +1731,105 @@ function rankArrowHtml(arrow, delta) {
   return "";
 }
 
+// Eduardo: "Precisamos pensar num email para o campeão, vice e terceiro lugar com o valor
+// recebido... e também uma tela especial para apos o fim do jogo de amanhã com o valor pago
+// para cada um" (2026-07-18). Prêmio do BOLÃO (quem ganha dinheiro) nunca tinha sido calculado
+// em lugar nenhum antes — CONFIG.prizes existia no config.js mas nunca era lido. Não confundir
+// com podiumFromResults()/finalPodiumForEntry() (campeão/vice/3º/4º do MUNDIAL, usado só pro
+// bônus de pontos) — aqui é sobre os 3 primeiros colocados do RANKING DO BOLÃO (por pontuação
+// total), que são pessoas, não seleções.
+//
+// Só retorna algo quando M103 (3º lugar) E M104 (Final) estiverem travados pelo admin — antes
+// disso o "resultado final" do bolão ainda não existe. Mesmo critério de pontuação/desempate já
+// usado em renderRanking() (total → exact → podiumHits), reaproveitado aqui pra nunca divergir:
+// dois desempates idênticos empatam de verdade (mesma chave `${total}:${exact}:${podiumHits}`
+// usada pra agrupar rank na tela) e dividem o prêmio daquela colocação entre si — mesma regra já
+// documentada na aba Regras ("a posição e o prêmio daquela colocação são divididos entre os
+// empatados"), nunca implementada até agora. Eduardo confirmou (2026-07-18): pote é o valor JÁ
+// pago agora (ninguém mais vai pagar depois do prazo).
+function finalPodiumPayouts(s) {
+  if (!(s.results?.["103"]?.advanceSide && s.results?.["104"]?.advanceSide)) return null;
+  const deleted = new Set(s.deletedIds || []);
+  const realEntries = (s.entries || []).filter(e => !deleted.has(e.id) && !e.diagnostics?.demo);
+  if (!realEntries.length) return null;
+
+  const paidCount = (s.entries || []).filter(e => s.paid[e.id]).length;
+  const pot = paidCount * (CONFIG.entryFee || 5);
+  if (!pot) return null;
+
+  const scored = realEntries
+    .map(e => { const sc = scoreEntry(e, s); return { e, total: sc.total, exact: exactMatchCount(e, s), podiumHits: sc.bonus.podiumHits }; })
+    .sort((a, b) => {
+      if (b.total !== a.total) return b.total - a.total;
+      if (b.exact !== a.exact) return b.exact - a.exact;
+      if (b.podiumHits !== a.podiumHits) return b.podiumHits - a.podiumHits;
+      const aName = (a.e.entryName || "").toUpperCase();
+      const bName = (b.e.entryName || "").toUpperCase();
+      // Display-only stable order for genuinely-tied entries (same total/exact/podiumHits) —
+      // never used to decide the money split below, only which name appears first in a group.
+      if (aName < bName) return 1;
+      if (aName > bName) return -1;
+      return 0;
+    });
+
+  const byRank = { 1: [], 2: [], 3: [] };
+  let rank = 0, prevKey = null;
+  scored.forEach((item, i) => {
+    const key = `${item.total}:${item.exact}:${item.podiumHits}`;
+    if (key !== prevKey) rank = i + 1;
+    prevKey = key;
+    if (byRank[rank]) byRank[rank].push(item);
+  });
+
+  const pct = { 1: CONFIG.prizes.first, 2: CONFIG.prizes.second, 3: CONFIG.prizes.third };
+  const payouts = [];
+  [1, 2, 3].forEach(r => {
+    const group = byRank[r];
+    if (!group.length) return;
+    const amount = (pot * pct[r]) / group.length;
+    group.forEach(item => payouts.push({
+      id: item.e.id, entryName: item.e.entryName || "?", rank: r,
+      amount, tied: group.length > 1,
+    }));
+  });
+  return { pot, payouts };
+}
+
+function renderPodiumBanner() {
+  const el = $("#podiumBanner");
+  if (!el) return;
+  const s = state();
+  const info = finalPodiumPayouts(s);
+  if (!info) { el.classList.add("hidden"); el.innerHTML = ""; return; }
+
+  const rankMeta = {
+    1: { medal: "🥇", labelKey: "podiumChampion" },
+    2: { medal: "🥈", labelKey: "podiumRunnerUp" },
+    3: { medal: "🥉", labelKey: "podiumThird" },
+  };
+  const cards = info.payouts.map(p => {
+    const meta = rankMeta[p.rank];
+    const tiedNote = p.tied ? `<div class="podium-tied-note">${escapeHtml(t("podiumTiedNote"))}</div>` : "";
+    return `<div class="podium-card">
+      <div class="podium-medal">${meta.medal}</div>
+      <div class="podium-place">${escapeHtml(t(meta.labelKey))}</div>
+      <div class="podium-name">${escapeHtml(p.entryName)}</div>
+      <div class="podium-amount">$${p.amount.toFixed(2).replace(/\.00$/, "")}</div>
+      ${tiedNote}
+    </div>`;
+  }).join("");
+
+  el.innerHTML = `
+    <div class="podium-title">${escapeHtml(t("podiumTitle"))}</div>
+    <div class="podium-grid">${cards}</div>
+    <div class="podium-thanks">${escapeHtml(t("podiumThanks"))}</div>
+  `;
+  el.classList.remove("hidden");
+}
+
 function renderRanking() {
   const s = state(), box = $("#rankingList");
+  renderPodiumBanner();
   if (!box) return;
   const paidCount = s.entries.filter(e => s.paid[e.id]).length;
   const potEl = $("#potValue");
