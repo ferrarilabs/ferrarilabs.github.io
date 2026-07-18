@@ -1168,6 +1168,19 @@ async function readEntryFromForm() {
 /* ============================================================
    Scoring
    ============================================================ */
+// Real champion/runner-up (once M104 is decided) and/or 3rd/4th (once M103 is decided) -- the
+// two halves are independent, since a participant can earn the 3rd-place bonus without the
+// champion being known yet, and vice versa.
+//
+// Eduardo, 2026-07-19: "O email pos jogo foi enviado sem o bonus do 3 lugar por que" -- M103
+// concluded (France 4x6 England) but M104 hadn't been played yet. This function used to return
+// null entirely unless M104 specifically was locked (`if (!rFin?.advanceSide) return null`),
+// completely ignoring M103 -- so with only M103 decided, scoreEntry()'s bonus block never ran at
+// all, silently paying zero bonus to everyone, including the real entries that had correctly
+// predicted England for 3rd. Fixed to resolve champion/runnerUp and third/fourth independently;
+// scoreEntry() already checks each of the four fields independently against the entry's own
+// pick, so a partial podium (one half still "") was always safe to consume -- only the early
+// return above was wrong.
 function podiumFromResults(s) {
   const winners = {}, losers = {};
   for (const m of DATA.knockoutMatches) {
@@ -1182,16 +1195,19 @@ function podiumFromResults(s) {
   const trd = DATA.knockoutMatches.find(m => m.match === "103");
   const rFin = fin && (s.results || {})[fin.match];
   const rTrd = trd && (s.results || {})[trd.match];
-  if (!rFin?.advanceSide) return null;
-  const fA = resolveSlot(fin.teamA, winners, losers), fB = resolveSlot(fin.teamB, winners, losers);
-  const champion = rFin.advanceSide === "A" ? fA : fB;
-  const runnerUp = rFin.advanceSide === "A" ? fB : fA;
+  let champion = "", runnerUp = "";
+  if (rFin?.advanceSide) {
+    const fA = resolveSlot(fin.teamA, winners, losers), fB = resolveSlot(fin.teamB, winners, losers);
+    champion = rFin.advanceSide === "A" ? fA : fB;
+    runnerUp = rFin.advanceSide === "A" ? fB : fA;
+  }
   let thirdPlace = "", fourth = "";
   if (rTrd?.advanceSide) {
     const tA = resolveSlot(trd.teamA, winners, losers), tB = resolveSlot(trd.teamB, winners, losers);
     thirdPlace = rTrd.advanceSide === "A" ? tA : tB;
     fourth     = rTrd.advanceSide === "A" ? tB : tA;
   }
+  if (!champion && !thirdPlace) return null;
   return { champion, runnerUp, third: thirdPlace, fourth };
 }
 

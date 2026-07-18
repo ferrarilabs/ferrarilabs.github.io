@@ -1,5 +1,62 @@
 # CHANGELOG
 
+## v4.151 — 2026-07-19
+
+### Fixed — 3rd-place bonus withheld from OFFICIAL scoring until the Final was also decided (real money bug, already-sent email affected)
+
+Eduardo, after M103 (3rd place) concluded and the automated result email went out: "O email pos
+jogo foi enviado sem o bonus do 3 lugar por que."
+
+Confirmed as a real bug — and unlike the two live-preview-only bugs fixed yesterday (v4.147,
+v4.149), **this one hit official scoring directly.** `_podium_from_results()`
+(`send_result_email.py`) and `podiumFromResults()` (`app.js`) — the functions
+`score_entry_total()`/`scoreEntry()` actually use to award the champion/runner-up/3rd/4th bonus —
+only returned a result once **both** M104 (Final) **and** M103 (3rd place) were decided. Real M103
+concluded 2026-07-19 (France 4×6 England, England 3rd), but M104 hadn't been played yet — so
+`_podium_from_results()`/`podiumFromResults()` returned `None`/`null` entirely, and every entry's
+3rd/4th place bonus was silently zeroed, including the 2 real entries (Simone Hirle #4, Gabriel
+Ferrari) who had actually predicted England for 3rd through their own bracket. Each was missing 10
+points — in the site's live Ranking tab, and in the automated result email already sent right after
+M103.
+
+Root cause: the two positions (champion/runner-up from M104, 3rd/4th from M103) are independent
+achievements — a participant can earn one without the other being known yet — but the gating logic
+required both, treating the podium as one atomic all-or-nothing object.
+
+Fixed: `_podium_from_results()`/`podiumFromResults()` now resolve champion/runner-up and 3rd/4th
+independently, returning as soon as *either* half is known. `podium_bonus_points()`/
+`podium_hits()`/`scoreEntry()`'s bonus block already checked each of the four positions
+independently against the entry's own prediction — they only ever needed the upstream gate fixed,
+not touched themselves. Verified with real production data: `score_entry_total()`/`scoreEntry()`
+now correctly award +10 to Simone Hirle #4 (217→227) and Gabriel Ferrari (148→158), matching an
+independent from-scratch recomputation exactly.
+
+**Impact and what's already fixed vs. what's stale:**
+- The site's **Ranking tab is already correct** — `scoreEntry()` recomputes on every page load,
+  nothing was stored with the wrong value.
+- The **audit report** (`bolao/audit-report.html`, v4.150) has been regenerated with the corrected
+  totals and its own independent-recompute logic updated to match (same bug existed in
+  `generate_audit_report.py`'s `independent_real_podium()` — fixed in the same commit so the
+  report's own cross-check doesn't false-flag against the corrected official score).
+- The **M103 result email already sent** to participants keeps the stale total (missing the
+  bonus) — it cannot be recalled. The next email (sent after the Final concludes) will show the
+  fully correct total for everyone, including this bonus. Whether a standalone corrective email
+  should also go out now is Eduardo's call, not something sent automatically by this fix.
+
+Also added a permanent regression test to `bolao/scripts/audit_scoring.py`
+(`check_partial_podium_bonus`) that locks only through M103 (leaving M104 undecided) and asserts
+the bonus still applies — confirmed it fails against the old buggy logic and passes with the fix.
+The pre-existing `check_bonus_and_fourth_present` never caught this because it always locks the
+*entire* bracket (M73-M104) at once in its test fixture, so it never exercised the partial-podium
+state where this bug actually lived.
+
+Checked BR2026/CDB2026 for the same pattern: not applicable to either — CDB2026's champion+runnerUp
+both come from a single Final match (no separate 3rd-place match splitting the podium into two
+independently-timed events like Copa's M103/M104), so there's no equivalent gate to get wrong;
+BR2026 has no podium-bonus concept at all.
+
+`audit_scoring.py`: now includes the new regression check above and passes on all 3 apps.
+
 ## v4.150 — 2026-07-18
 
 ### Added — trilingual technical audit report, published on-site before the Final
