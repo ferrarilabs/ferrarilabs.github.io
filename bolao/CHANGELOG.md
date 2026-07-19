@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## v4.156 — 2026-07-19
+
+### Fixed — substitutions missing from the live "lances" feed (cards/goals still showed, subs never did)
+
+Eduardo, live during the World Cup Final: "As substituições sumiram do lugar onde tem os lances
+cartões e gols." Investigated with real live data (event 760517, Spain × Argentina, 79th minute):
+confirmed ESPN's scoreboard endpoint (`comp.details`, the field `extractMatchPlays()` reads) only
+ever returned the 2 yellow cards for this match — 11 real substitutions had already happened by
+minute 75, and none of them ever appeared in `comp.details`. Not a regression from a code change
+on our side (this exact code hasn't changed since v4.119, and its own comment already flagged
+substitutions as "unconfirmed against a real match" pre-ship) — it's ESPN's scoreboard endpoint
+never carrying substitution events at all, discovered only now because this is the first live
+match with real subs since the feature shipped.
+
+**Fix**: ESPN's separate per-event `summary` endpoint (`.../summary?event=<id>`) has a richer
+`keyEvents` array that DOES include substitutions (confirmed live: same match, 9 real subs, all
+with correct player names and side). New `fetchEspnEventSummary(eventId)`, called only for
+matches currently live (`pollLiveScores()`), fetched in parallel via `Promise.all` so a normal
+poll with nothing in progress never adds extra network calls. `extractMatchPlays(comp, keyEvents)`
+now prefers this richer source when available and falls back to `comp.details` alone if the extra
+fetch fails — cards/goals never regress even if the summary call is down. The two sources use
+different athlete-name fields (`athletesInvolved` vs `participants[].athlete`) — both now
+supported. Verified end-to-end against the real live Final: without the fix, only 3 yellow cards
+showed; with it, all 9 real substitutions appear too, correctly ordered, alongside the cards.
+
+**Propagated same-day to BR2026 and CDB2026** (`bolao/br2026/js/app.js`,
+`bolao/cdb2026/js/app.js`) — both had ported this exact `extractMatchPlays()`/scoreboard-only
+pattern from Copa and had the identical bug. Same fix applied: `fetchEspnEventSummary()` per app
+(deriving the summary URL from each app's own `C.espn.scoreboardUrl`), wired into their own
+polling functions (`fetchScoreboard()` for BR2026, `fetchEspnCandidates()` for CDB2026). Verified
+the derived summary URL and endpoint against real ESPN data for both leagues (`bra.1`,
+`bra.copa_do_brazil`) — reachable, correct shape, no live match right now to show real
+substitutions but the endpoint itself confirmed working.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — presentation-only fix (an additional ESPN
+fetch and a richer plays-list source), no scoring, bracket, or business rule touched.
+
 ## v4.155 — 2026-07-19
 
 ### Added — Copa do Brasil 2026 invite appended to the true final-result email

@@ -3710,6 +3710,34 @@ async function fetchEspnFixtures() {
   }
 }
 
+// Supplements the scoreboard's `comp.details` (used by extractMatchPlays) with ESPN's richer
+// per-event summary endpoint. Confirmed live during the World Cup Final (2026-07-19, Eduardo:
+// "As substituições sumiram do lugar onde tem os lances cartões e gols"): comp.details only ever
+// carries goals and cards for this match -- 11 real substitutions had happened by the 79th
+// minute, comp.details still showed just the 2 yellow cards, nothing more. The summary endpoint's
+// keyEvents array has the same goals/cards PLUS substitutions. Only called for matches currently
+// live (see pollLiveScores) so this never adds load on a normal poll with nothing in progress.
+// Fails soft like every other ESPN fetch here: any error just means this cycle falls back to
+// comp.details alone (cards/goals keep working, subs silently stay missing until the next poll).
+async function fetchEspnEventSummary(eventId) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const res = await fetch(
+      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
+      { signal: ctrl.signal }
+    );
+    clearTimeout(timer);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return Array.isArray(json?.keyEvents) ? json.keyEvents : null;
+  } catch (err) {
+    clearTimeout(timer);
+    console.warn(`ESPN event summary fetch failed for event ${eventId}`, err);
+    return null;
+  }
+}
+
 function mapEspnToMatches(events) {
   if (!Array.isArray(events) || !events.length) return [];
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
@@ -4053,26 +4081,30 @@ function extractGoalEvents(comp) {
 }
 
 // Built for the "últimos lances" minute-by-minute feed (July 2026).
-// Generalizes extractGoalEvents to capture cards and substitutions from the
-// exact same comp.details array — no extra network call, same endpoint
-// already polled every 60s for the live score/clock. This is ESPN's data,
-// not a broadcaster commentary feed: only discrete events (goal/card/sub)
-// are available, never prose-style play-by-play like a TV broadcaster's
-// live text (e.g. ge.globo) — that data source isn't available to this site.
+// Generalizes extractGoalEvents to capture cards and substitutions, primarily from comp.details
+// (no extra network call, same scoreboard endpoint already polled every 60s) but falling back to
+// the richer per-event summary endpoint's keyEvents for live matches (see
+// fetchEspnEventSummary) since comp.details alone never carries substitutions. This is ESPN's
+// data, not a broadcaster commentary feed: only discrete events (goal/card/sub) are available,
+// never prose-style play-by-play like a TV broadcaster's live text (e.g. ge.globo) — that data
+// source isn't available to this site.
 //
-// Verified pre-ship against a hand-built mock matching ESPN's typical API
-// conventions (not a real live payload — see PR #41's QA notes). The exact
-// type.text/type.name strings ESPN uses for yellow/red cards and
-// substitutions, and whether a substitution's athletesInvolved lists
-// [in, out] or [out, in], are still unconfirmed against a real match —
-// order is deliberately NOT asserted below (see extractMatchPlays' sub
-// handling). Same "fails soft, never throws" contract as extractGoalEvents:
-// this runs inline inside mapEspnToLiveScores() on every poll, so a shape
-// mismatch must degrade to an empty array, never break the live score/clock
-// for every match.
-function extractMatchPlays(comp) {
+// Confirmed against a REAL live match (World Cup Final, 2026-07-19, event 760517): type.text is
+// exactly "Yellow Card"/"Substitution" as assumed, and a substitution's participant order is
+// [athlete in, athlete out] (keyEvents shape — comp.details' athletesInvolved order still
+// unconfirmed, since real subs never appeared there to check). Same "fails soft, never throws"
+// contract as extractGoalEvents: this runs inline inside mapEspnToLiveScores() on every poll, so
+// a shape mismatch must degrade to an empty array, never break the live score/clock for every
+// match.
+function extractMatchPlays(comp, keyEvents) {
   try {
-    const details = Array.isArray(comp.details) ? comp.details : [];
+    // Prefer the richer summary-endpoint keyEvents when available — comp.details is missing
+    // substitutions entirely (confirmed live, World Cup Final, 2026-07-19 — see
+    // fetchEspnEventSummary). Falls back to comp.details when the extra fetch wasn't provided or
+    // failed, so goals/cards never regress even if the summary call is down.
+    const details = Array.isArray(keyEvents) && keyEvents.length
+      ? keyEvents
+      : (Array.isArray(comp.details) ? comp.details : []);
     const [c0, c1] = comp.competitors || [];
     const plays = [];
     for (const d of details) {
@@ -4095,7 +4127,11 @@ function extractMatchPlays(comp) {
       if (!side) continue;
       const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
       const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
-      const names = (d.athletesInvolved || [])
+      // comp.details lists athletes in athletesInvolved[]; the summary endpoint's keyEvents uses
+      // participants[].athlete instead — support both shapes so switching source never silently
+      // drops names. Confirmed via a real substitution keyEvent: participants order is
+      // [athlete in, athlete out].
+      const names = (d.athletesInvolved || (d.participants || []).map(p => p?.athlete))
         .map(a => a?.displayName || a?.shortName)
         .filter(Boolean);
       // Substitution: show both names joined, without claiming which is
@@ -4112,8 +4148,9 @@ function extractMatchPlays(comp) {
   }
 }
 
-function mapEspnToLiveScores(events) {
+function mapEspnToLiveScores(events, keyEventsById) {
   if (!Array.isArray(events) || !events.length) return {};
+  keyEventsById = keyEventsById || {};
   const all = [...(DATA.groupMatches || []), ...(DATA.knockoutMatches || [])];
   const s = state();
   const out = {};
@@ -4198,7 +4235,7 @@ function mapEspnToLiveScores(events) {
             : (comp.status?.type?.shortDetail || "");
       const eventId = ev.id, competitionId = comp.id || ev.id;
       const goalEvents = extractGoalEvents(comp);
-      const matchPlays = extractMatchPlays(comp);
+      const matchPlays = extractMatchPlays(comp, keyEventsById[eventId]);
       if (n0 === normA && n1 === normB) {
         const scorers = goalEvents.map(g => ({ side: g.side === "c0" ? "A" : "B", scorer: g.scorer, minute: g.minute }));
         const plays = matchPlays.map(p => ({ ...p, side: p.side === "c0" ? "A" : "B" }));
@@ -4361,7 +4398,19 @@ async function pollLiveScores() {
   const events = await fetchEspnFixtures();
   if (!events) return;
   extractEspnOdds(events); // reads DraftKings lines already in the same payload
-  const fresh = mapEspnToLiveScores(events);
+  // Fetch the richer per-event summary (keyEvents, includes substitutions — see
+  // fetchEspnEventSummary) only for matches currently live, so a normal poll with nothing in
+  // progress never adds extra network calls.
+  const liveEventIds = events
+    .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
+    .map(ev => ev.id)
+    .filter(Boolean);
+  const keyEventsById = {};
+  if (liveEventIds.length) {
+    const summaries = await Promise.all(liveEventIds.map(id => fetchEspnEventSummary(id)));
+    liveEventIds.forEach((id, i) => { if (summaries[i]) keyEventsById[id] = summaries[i]; });
+  }
+  const fresh = mapEspnToLiveScores(events, keyEventsById);
   _matchStatusHints = computeMatchStatusHints(events);
   const cache = loadLiveClockCache();
   if (!Object.keys(_rawClockHistory).length) _rawClockHistory = loadRawClockCache();

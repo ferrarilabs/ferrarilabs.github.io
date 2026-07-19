@@ -1,5 +1,25 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.50 — 2026-07-19
+
+### Fixed — substituições nunca apareciam nos lances ao vivo (mesmo bug da Copa, propagado no mesmo dia)
+
+Achado real na Copa durante a Final ao vivo (Eduardo: "As substituições sumiram do lugar onde tem
+os lances cartões e gols") — o endpoint de scoreboard da ESPN (`comp.details`, usado por
+`extractMatchPlays()`) nunca inclui eventos de substituição, só gols e cartões. O CDB2026 tinha
+exatamente o mesmo padrão de código (porta direta da Copa/BR2026, `comp.details`-only,
+`fetchEspnCandidates()`) — mesmo bug.
+
+Correção idêntica à da Copa/BR2026: novo `fetchEspnEventSummary(eventId)` busca o endpoint de
+summary por evento da ESPN (mesma liga `bra.copa_do_brazil` do scoreboard, URL derivada de
+`C.espn.scoreboardUrl`), que tem um `keyEvents` mais completo incluindo substituições — só chamado
+para confrontos ao vivo no momento. `extractMatchPlays(comp, keyEvents)` prefere essa fonte quando
+disponível, com fallback para `comp.details` se a busca extra falhar. Verificado que o endpoint de
+summary responde corretamente para a liga `bra.copa_do_brazil` com dado real da ESPN.
+
+`audit_scoring.py`: PASSOU, sem alteração — mudança somente de apresentação, nenhuma
+pontuação/regra tocada.
+
 ## 2026-07-19 — Publicado (sem bump de versão — mudança de documentação, não de código)
 
 Eduardo pediu para convidar todos os participantes do bolão por e-mail, já que o BR2026 fechou

@@ -1555,3 +1555,21 @@ Copa tem). Isso está de acordo com `PLATFORM_GOVERNANCE.md` — "diferenças es
 (scoring, bracket, regras) devem ser preservadas — não generalizar entre apps." Nenhuma alteração
 de código foi feita no BR2026 ou CDB2026 como resultado desta auditoria porque nenhuma foi
 necessária; `audit_scoring.py` continua passando nos três apps sem alteração.
+
+## Nota manual — bug real propagado nos três apps: substituições sumidas dos lances ao vivo (2026-07-19, Copa v4.156 / BR2026 v1.69 / CDB2026 v3.50)
+
+Ao contrário da nota anterior (nenhuma propagação necessária), este achado É um `PLATFORM_SHARED`
+real: `extractMatchPlays()` foi copiado (porta direta) da Copa para o BR2026 e o CDB2026 quando o
+recurso de lances ao vivo foi construído — mesmo bug nos três, porque os três liam só
+`comp.details` do endpoint de scoreboard da ESPN, que nunca inclui substituições (confirmado ao
+vivo, Final da Copa do Mundo, 79º minuto, 11 substituições reais, zero apareceram em
+`comp.details`, só os 2 cartões amarelos).
+
+Corrigido nos três no mesmo dia: `fetchEspnEventSummary(eventId)` busca o endpoint de summary por
+evento da ESPN (`keyEvents`, inclui substituições), só para partidas ao vivo no momento (sem custo
+extra em polls normais), com fallback para `comp.details` se a busca falhar. Mesma função,
+adaptada à URL/liga de cada app (`fifa.world` na Copa, `bra.1` no BR2026, `bra.copa_do_brazil` no
+CDB2026) e ao ponto de chamada de cada um (`pollLiveScores()`/`fetchScoreboard()`/
+`fetchEspnCandidates()`). Verificado com dado real da ESPN para as três ligas antes de shippar.
+
+`audit_scoring.py`: PASSOU nos três apps, sem alteração — mudança de apresentação apenas.
