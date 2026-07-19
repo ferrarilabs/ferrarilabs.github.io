@@ -1474,3 +1474,29 @@ da Copa. Registrado como trabalho futuro em `ROADMAP.md` (mesma entrada M-06).
 `audit_scoring.py`: PASSOU nos três apps, sem alteração — mudanças de wording, exibição de IP e um
 novo gerador de relatório somente-leitura; nenhuma fórmula de pontuação, bracket ou regra de negócio
 foi alterada.
+
+## Nota manual — CDB2026 publicado (2026-07-19) — decisão de plataforma, não Copa apenas
+
+Eduardo pediu para convidar todos os participantes para o bolão da Copa do Brasil por e-mail, "já
+que o BR2026 já fechou" (entradas do BR2026 fechadas desde `cutoffIso` 2026-07-16). Confirmado
+explicitamente com Eduardo antes de agir: CDB2026 está pronto para abrir de verdade hoje (não é
+um teste) — Supabase habilitado (`stateId: cdb2026`), EmailJS configurado, métodos de pagamento
+reais, 3 entradas reais já existentes (Eduardo Ferrari, Gabriel Ferrari, REDACTED_PARTICIPANT), fase
+5 (oitavas de final atual, nomeada `fase-5` no estado) já com resultados reais via sync ESPN, e a
+próxima fase (`oitavas`, Rodada de 16) com jogos reais agendados a partir de 01/08/2026 — ou seja,
+cutoff real ainda no futuro, não uma corrida contra um prazo já vencido.
+
+**O que mudou com a publicação**: só a documentação (`CLAUDE.md`, `PROJECT_MEMORY.md`,
+`PLATFORM_GOVERNANCE.md`, `PROJECT_CONTEXT.md`) — removida a marcação "não publicado" para
+CDB2026. Nenhum código do app mudou (CDB2026 já estava tecnicamente acessível via
+`bolao-switcher` desde que foi construído; "publicar" aqui significa apenas ser oficialmente
+anunciado/divulgado aos participantes, não uma mudança técnica). Não foi adicionado link no site
+pessoal principal (`ferrarilabs.github.io/index.html`) — divulgação é só pelo e-mail/grupo de
+participantes, mesma forma como o Copa do Mundo e o BR2026 já circulam.
+
+**BR2026 não afetado por esta mudança** — continua "não publicado" no `CLAUDE.md`, entradas
+fechadas, nenhuma alteração de status ou de link solicitada ou feita para ele nesta rodada.
+
+Classificado como decisão de plataforma (não `TOURNAMENT_SPECIFIC`) porque altera o status de
+publicação de um app inteiro, não uma regra de torneio — por isso registrado aqui, além do
+changelog do próprio CDB2026.

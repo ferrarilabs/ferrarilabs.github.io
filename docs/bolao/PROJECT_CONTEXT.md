@@ -67,7 +67,7 @@ one of three bolão apps in this repo:
 |---|---|---|
 | Copa do Mundo 2026 | `bolao/` | Em produção |
 | Brasileirão 2026 | `bolao/br2026/` | Não publicado |
-| Copa do Brasil 2026 | `bolao/cdb2026/` | Não publicado |
+| Copa do Brasil 2026 | `bolao/cdb2026/` | Publicado 2026-07-19, em produção |
 
 The three apps share the same design system, admin auth pattern, EmailJS/Supabase
 integration style, and general product shape (entry → picks → ranking → admin), but each has
