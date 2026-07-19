@@ -1426,3 +1426,51 @@ equivalente, `MATCH_TEAMS`) é específica do bracket da Copa. Registrado como t
 `ROADMAP.md` (mesma entrada M-06, ampliada).
 
 `audit_scoring.py`: PASSOU nos três apps, sem alteração — ambas as adições são somente leitura.
+
+## Nota manual — correção de semântica "avança", IP completo na auditoria, geração real da Classificação Geral (2026-07-19, Copa v4.154) — COPA APENAS
+
+Eduardo pediu, revisando o site antes da Final: (1) a página que ele queria dizer com
+"probabilidades" era `classificacao-geral.html` (não a aba Probabilidades do v4.153) — pediu
+atualização com o mesmo rigor de auditoria; (2) IP completo (não mascarado) na página de governança
+de auditoria; (3) "+5 {time} avança" está semanticamente errado nos jogos M103 (3º lugar) e M104
+(Final) — "questão apenas de semântica", pontuação inalterada; (4) varredura completa confirmando
+que os 15 pontos do Gabriel Ferrari no M103 já incluem o bônus de 10 do 3º lugar, sem duplicação.
+
+**Reversão de política — IP não mais mascarado em `audit-detail-governance.html`**: no v4.153, IP
+era mostrado com o último octeto mascarado (`xxx`) como precaução de privacidade. Eduardo pediu
+explicitamente IP completo desta vez — `_mask_ip()` removida do `generate_audit_report.py`, texto
+descritivo da página atualizado. E-mails de participantes continuam fora (política inalterada).
+Isso é uma decisão explícita do dono do produto que substitui a decisão de privacidade anterior —
+registrado aqui porque reverte algo já documentado, não porque é dúvida em aberto.
+
+**"avança" → wording correto por partida**: `score_match()` (Python) e `scoreMatchSingle()` (JS)
+agora recebem o `mid` da partida; M103 mostra "vence a disputa de 3º lugar"/"wins the 3rd place
+match", M104 mostra "vence a Final"/"wins the Final", as demais partidas mantêm "avança"/"advances"
+sem alteração. Pontuação (+5) idêntica nos três casos — verificado com dado real (M103: France 4×6
+England) em Python e Node.
+
+**Gabriel Ferrari (15 pontos, M103) — confirmado correto, não é bug**: varredura das 23 entradas
+reais somando cada um dos 32 pontos por partida exibidos (já com bônus de pódio embutido, regra do
+v4.152) contra `score_entry_total()` — zero divergências. 15 = 5 (acerto de lado) + 10 (bônus 3º
+lugar), embutido uma única vez.
+
+**`classificacao-geral.html` — primeira geração real, com script novo** (`generate_classificacao_geral.py`):
+a página existia desde v4.134 (15/07) sem nenhum gerador, escrita à mão uma vez, com dados só até
+as semifinais. Agora regenerada a partir do estado real do Supabase, reusando as mesmas funções de
+pontuação/desempate de `send_result_email.py` (nunca pode divergir da pontuação oficial). Como só
+falta o M104, a checagem Vivo/Eliminado virou uma enumeração exata (56 cenários — todo placar
+0×0–6×6, empate contando os dois lados de pênaltis), e as porcentagens de chance usam um modelo
+Poisson bivariado calibrado pelas odds ao vivo do Polymarket para os dois finalistas (modelo novo e
+divulgado na própria página — o motor de Monte Carlo do `app.js` é só-JS e não é portável para
+Python). Bug pego e corrigido antes de publicar: a primeira versão ordenava as linhas só pelo total
+de pontos, o que colocava empates na ordem visual errada quando o desempate (placares exatos/pódio)
+importava — corrigido para ordenar pela posição já calculada com desempate; reverificado com dado
+real (Gabriel Ferrari vs. Marodin, Gustavo Ribeiro vs. Simone Hirle #2).
+
+**Por que não propagado para BR2026/CDB2026**: mesma razão das notas anteriores desta seção —
+pedido no contexto específico da Final da Copa de hoje, e a lógica de recálculo/bracket é específica
+da Copa. Registrado como trabalho futuro em `ROADMAP.md` (mesma entrada M-06).
+
+`audit_scoring.py`: PASSOU nos três apps, sem alteração — mudanças de wording, exibição de IP e um
+novo gerador de relatório somente-leitura; nenhuma fórmula de pontuação, bracket ou regra de negócio
+foi alterada.
