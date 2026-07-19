@@ -1500,3 +1500,58 @@ fechadas, nenhuma alteração de status ou de link solicitada ou feita para ele 
 Classificado como decisão de plataforma (não `TOURNAMENT_SPECIFIC`) porque altera o status de
 publicação de um app inteiro, não uma regra de torneio — por isso registrado aqui, além do
 changelog do próprio CDB2026.
+
+## Nota manual — auditoria de propagação do v4.154 para BR2026/CDB2026 (2026-07-19)
+
+Eduardo pediu, explicitamente, para confirmar que os fixes do v4.154 (e os fixes de pódio de
+v4.151/v4.152) também foram aplicados ao BR2026 e ao CDB2026 — "very important and should be
+thoroughly done". Auditoria feita lendo o código real dos dois apps (não assumida), item por item:
+
+**1. Wording "avança" (v4.154)** — grep em `bolao/br2026/js/`, `bolao/br2026/scripts/`,
+`bolao/cdb2026/js/`, `bolao/cdb2026/scripts/` não encontra a string em nenhum contexto de
+pontuação/e-mail (os únicos 2 hits são comentários de código sobre `rank` avançar de posição, sem
+relação). **CDB2026 nunca teve esse bug**: `matchPoints()`/`scoreEntry()` retornam só
+`{pts, type}` sem texto livre — a UI já usa `"quem se classifica"` (`i18n.js:40-41,113,167`) em vez
+de "avança", desde que o app foi reescrito (v3.x). **BR2026 não tem conceito de chaveamento/avanço
+nenhum** (é pick de classificação G4/Z4 de liga, não mata-mata) — não há "quem avança" pra
+nomear certo ou errado. Nada a propagar.
+
+**2. IP completo na auditoria de governança (v4.154)** — a captura de IP
+(`fetch("https://api.ipify.org?...")`, `bolao/js/app.js:3128`) e o fluxo de auto-edição do
+participante (`editByCodeCard`) só existem na Copa. Confirmado via grep: nenhuma das duas
+strings aparece em `bolao/br2026/js/app.js` nem `bolao/cdb2026/js/app.js` fora de UM comentário
+no BR2026 (linha 2905) que só *referencia* o padrão da Copa por nome, sem implementá-lo — o que
+existe no BR2026/CDB2026 é edição pelo ADMIN (`_editingEntry`), sem captura de IP/dispositivo.
+Nenhum dos dois apps tem um gerador de relatório de auditoria (`generate_audit_report.py`
+equivalente) nem uma página `audit-detail-governance.html` equivalente. Não há IP nenhum
+mascarado ou desmascarado para propagar — a feature simplesmente não existe fora da Copa.
+
+**3. `classificacao-geral.html` (v4.154)** — página standalone específica da Copa (histórico
+de ter existido sem gerador desde v4.134). BR2026 e CDB2026 não precisam de uma página
+equivalente porque já têm a mesma informação **dentro do próprio app**: BR2026 tem "Projeção do
+Bolão" (Fases 2-9, já implementado), CDB2026 tem a aba "Probabilidades". Arquitetura
+intencionalmente diferente, não uma lacuna — ver `BR2026_PROJECTION_MODEL.md`.
+
+**4. Bug de pódio retido até TODAS as partidas decididas (v4.151)** — verificado
+estruturalmente: `officialPodium(s)` no CDB2026 (`bolao/cdb2026/js/app.js:422-430`) deriva
+campeão E vice do MESMO `qualifiedTeamId` de uma única partida Final (CDB2026 não tem disputa de
+3º lugar, por regra do próprio torneio — `scoring.bonus` só tem `champion`/`runnerUp`). Não existe
+uma segunda partida separada (equivalente ao M103 da Copa) cujo resultado poderia gatear os dois
+bônus artificialmente — o bug do v4.151 dependia estruturalmente de DUAS partidas separadas
+alimentando o mesmo pódio, o que não existe no modelo do CDB2026. BR2026 não tem bônus de pódio
+(sem `champion`/`bonus` em `bolao/br2026/js/config.js`) — nada a checar.
+
+**5. Bônus de pódio não itemizado no detalhamento por partida (v4.152)** — verificado com o
+código real: `bonusRow()` em `bolao/cdb2026/js/app.js:1080-1087` já renderiza `detail.champion` e
+`detail.runnerUp` como LINHAS PRÓPRIAS na tabela "Ver palpites"/comprovante, com os pontos
+(`ptsCell(d)`) mostrados separadamente de cada partida — nunca teve o gap do v4.152 (onde o total
+agregado estava certo mas o detalhamento por partida omitia o bônus). BR2026 não tem bônus de
+pódio, nada a itemizar.
+
+**Conclusão**: os 5 fixes auditados não têm equivalente no BR2026/CDB2026 porque os bugs
+dependiam de estruturas específicas da Copa (chaveamento com 3º lugar + Final como duas partidas
+separadas, wording "avança" herdado do chaveamento, e uma feature de auto-edição com IP que só a
+Copa tem). Isso está de acordo com `PLATFORM_GOVERNANCE.md` — "diferenças específicas de torneio
+(scoring, bracket, regras) devem ser preservadas — não generalizar entre apps." Nenhuma alteração
+de código foi feita no BR2026 ou CDB2026 como resultado desta auditoria porque nenhuma foi
+necessária; `audit_scoring.py` continua passando nos três apps sem alteração.
