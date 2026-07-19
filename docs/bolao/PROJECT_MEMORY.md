@@ -185,9 +185,11 @@ independentes que seguem a mesma convenção de arquivo e o mesmo design system 
   regras do Brasileirão.
 - Toolbar admin: apenas 2 botões (CSV, Sync).
 
-### CDB2026 (`bolao/cdb2026/`) — não publicado
+### CDB2026 (`bolao/cdb2026/`) — publicado 2026-07-19, em produção
 
-- URL: `ferrarilabs.github.io/bolao/cdb2026/` (sem link do site principal).
+- URL: `ferrarilabs.github.io/bolao/cdb2026/`. Lançado por e-mail convite (BR2026 já com entradas
+  fechadas desde 16/07) — sem link do site principal pessoal (`ferrarilabs.github.io/index.html`),
+  divulgação só pelo grupo/e-mail dos participantes.
 - **Reformulado do zero em v3.0 (2026-07-13)** — fonte oficial do modelo:
   `docs/bolao/CDB2026_RULES_AND_MODEL.md`. Até v2.9 o app copiava a estrutura de mata-mata fixo
   da Copa do Mundo (16 times, 15 confrontos definidos em `data.js` desde o início, ida+volta em

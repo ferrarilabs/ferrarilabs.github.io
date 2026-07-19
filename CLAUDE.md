@@ -9,7 +9,7 @@ No build step. Push to `main` and GitHub Pages auto-deploys to `ferrarilabs.gith
 - Main site: `ferrarilabs.github.io`
 - Copa do Mundo 2026: `ferrarilabs.github.io/bolao/`
 - Brasileirão 2026: `ferrarilabs.github.io/bolao/br2026/` (not published yet)
-- Copa do Brasil 2026: `ferrarilabs.github.io/bolao/cdb2026/` (not published yet)
+- Copa do Brasil 2026: `ferrarilabs.github.io/bolao/cdb2026/` (published 2026-07-19, in production)
 - Old URL redirect: `ferrarilabs.github.io/bolao/` → `/bolao/`
 
 To preview locally:
@@ -28,7 +28,7 @@ Three independent sub-projects:
 
 **Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/br2026/`.
 
-**Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/cdb2026/`.
+**Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Published 2026-07-19 (in production, invited by email). URL: `ferrarilabs.github.io/bolao/cdb2026/`.
 
 ## Bolão app — quick reference
 
@@ -163,8 +163,9 @@ Also see `bolao/docs/` for low-level setup guides (Supabase SQL, API-Football, d
 
 This repo runs **three independent bolão apps** that share one design system and one set of
 conventions: `bolao/` (Copa do Mundo 2026, **in production**), `bolao/br2026/` (Brasileirão
-2026, not published), and `bolao/cdb2026/` (Copa do Brasil 2026, not published). They do not
-share code (no imports between them) but they are audited together.
+2026, not published — entries closed 2026-07-16), and `bolao/cdb2026/` (Copa do Brasil 2026,
+**published 2026-07-19, in production**). They do not share code (no imports between them) but
+they are audited together.
 
 **Propagation rule — mandatory:**
 

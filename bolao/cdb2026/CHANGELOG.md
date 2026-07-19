@@ -1,5 +1,17 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## 2026-07-19 — Publicado (sem bump de versão — mudança de documentação, não de código)
+
+Eduardo pediu para convidar todos os participantes do bolão por e-mail, já que o BR2026 fechou
+entradas em 16/07. Confirmado que o CDB2026 estava pronto para abrir de verdade: Supabase e
+EmailJS habilitados, pagamento configurado, 3 entradas reais já existentes, fase 5 (oitavas de
+final) já com resultados reais, próxima fase (Rodada de 16) com jogos reais agendados a partir de
+01/08/2026. Removida a marcação "não publicado" de `CLAUDE.md` e da documentação da plataforma
+(ver `docs/bolao/CONSISTENCY_MATRIX.md`, nota de 2026-07-19). Nenhum código do app mudou — o app
+já estava tecnicamente acessível via `bolao-switcher`; "publicar" aqui é o anúncio oficial aos
+participantes por e-mail, não uma alteração técnica. Sem link no site pessoal principal — só
+divulgação por e-mail/grupo.
+
 ## v3.49 — 2026-07-17
 
 ### Changed — local do jogo removido do card ao vivo

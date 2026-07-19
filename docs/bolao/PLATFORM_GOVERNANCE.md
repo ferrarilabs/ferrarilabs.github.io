@@ -10,7 +10,7 @@ si é substituído inteiramente a cada auditoria de governança.
 |---|---|---|---|
 | Copa do Mundo 2026 | `bolao/` | `ferrarilabs.github.io/bolao/` | **Em produção — dinheiro real em jogo** |
 | Brasileirão 2026 | `bolao/br2026/` | `ferrarilabs.github.io/bolao/br2026/` | Não publicado (sem link do site principal) |
-| Copa do Brasil 2026 | `bolao/cdb2026/` | `ferrarilabs.github.io/bolao/cdb2026/` | Não publicado (sem link do site principal) |
+| Copa do Brasil 2026 | `bolao/cdb2026/` | `ferrarilabs.github.io/bolao/cdb2026/` | Publicado 2026-07-19, em produção (convite por e-mail; sem link do site principal pessoal) |
 
 Os três são aplicativos **independentes** (sem imports/módulos compartilhados) que seguem o
 mesmo padrão de arquivos (`index.html`, `css/styles.css`, `js/config.js`, `js/data.js`,
