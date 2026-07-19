@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## v4.155 — 2026-07-19
+
+### Added — Copa do Brasil 2026 invite appended to the true final-result email
+
+Eduardo, after reviewing the test preview: "The email is much better now... just send at the end
+of the last match on the same format with the winner, runner up and 3 place like you did
+yesterday. Just add the invite to the new bolao." Also confirmed it's fine to share the CDB2026
+public URL directly ("You can put the public link, no problem") — no code change needed there,
+the invite already used the real URL.
+
+**`build_cdb_invite_html()`** (`send_result_email.py`): new bilingual PT/EN invite block for the
+Copa do Brasil 2026 bolão (CDB2026), styled to match the existing podium-reveal block. Wired into
+`run_auto()`'s M104 branch, appended **only** when `compute_final_payouts()` confirms the
+tournament is truly over (both M103 and M104 locked) — the exact same gate that already decides
+whether to prepend the champion/runner-up/3rd-place podium block. A normal per-match email
+(`build_html()` on its own) is never affected; verified structurally (`build_cdb_invite_html()`
+is called from exactly one place in the file) and with a real dry run (real M103 data + an
+in-memory-only simulated M104 result, never written to Supabase) confirming the invite block
+renders once, after the podium block, with the correct link.
+
+No email was sent by this change — per Eduardo's explicit instruction ("Don't send anything
+now"), this only prepares the automated pipeline to include the invite when the real Final
+concludes and `--auto` (or a manual final send) fires as usual.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — additive-only change to the email builder,
+gated behind the existing tournament-complete check; no scoring, bracket, or business rule
+touched.
+
 ## v4.154 — 2026-07-19
 
 ### Fixed — "avança" wording on the last two matches; full IP disclosure on the governance audit page; regenerated "Classificação Geral" (who's still alive) report from real data with a real generator script
