@@ -793,15 +793,21 @@ async function fetchStandings() {
 }
 
 // Minute-by-minute plays feed (goals/cards/subs) — ported from Copa's extractMatchPlays
-// (bolao/js/app.js), see PLATFORM_ARCHITECTURE.md "Golden master". Same comp.details array
-// already fetched every poll for the live score/clock, no extra network call. side is
-// "home"/"away" here (not Copa's "c0"/"c1"/"A"/"B" — BR2026 has no bracket-slot resolution,
-// homeTeam/awayTeam are always the real team names already). Same "fails soft, never throws"
-// contract: a shape mismatch degrades to an empty array, never breaks the live score/clock.
+// (bolao/js/app.js), see PLATFORM_ARCHITECTURE.md "Golden master". Prefers comp.details (no
+// extra network call) but falls back to the richer per-event summary endpoint's keyEvents for
+// live matches (see fetchEspnEventSummary) since comp.details never carries substitutions —
+// confirmed live (Copa World Cup Final, 2026-07-19, propagated here same day per Eduardo's
+// standing "PRECISAMOS SER CONSISTENTES" instruction, see fetchEspnEventSummary above
+// fetchScoreboard). side is "home"/"away" here (not Copa's "c0"/"c1"/"A"/"B" — BR2026 has no
+// bracket-slot resolution, homeTeam/awayTeam are always the real team names already). Same
+// "fails soft, never throws" contract: a shape mismatch degrades to an empty array, never breaks
+// the live score/clock.
 const PLAY_ICON = { goal: "⚽", yellow: "🟨", red: "🟥", sub: "🔄" };
-function extractMatchPlays(comp) {
+function extractMatchPlays(comp, keyEvents) {
   try {
-    const details = Array.isArray(comp.details) ? comp.details : [];
+    const details = Array.isArray(keyEvents) && keyEvents.length
+      ? keyEvents
+      : (Array.isArray(comp.details) ? comp.details : []);
     const [c0, c1] = comp.competitors || [];
     const home = (comp.competitors || []).find(x => x.homeAway === "home") || c0;
     const away = (comp.competitors || []).find(x => x.homeAway === "away") || c1;
@@ -826,11 +832,13 @@ function extractMatchPlays(comp) {
       if (!side) continue;
       const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
       const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
-      const names = (d.athletesInvolved || [])
+      // comp.details lists athletes in athletesInvolved[]; the summary endpoint's keyEvents uses
+      // participants[].athlete instead — support both shapes (same as Copa's version).
+      const names = (d.athletesInvolved || (d.participants || []).map(p => p?.athlete))
         .map(a => a?.displayName || a?.shortName)
         .filter(Boolean);
-      // Substitution: show both names joined, without claiming which is in/out — that
-      // ordering isn't confirmed against a real payload (same caveat as Copa's version).
+      // Substitution: show both names joined, without claiming which is in/out — confirmed via
+      // keyEvents (Copa fix) that participant order is [athlete in, athlete out].
       const text = kind === "sub" ? names.slice(0, 2).join(" ↔ ") : (names[0] || "");
       if (!text && !minute) continue;
       plays.push({ kind, side, minute, text, order: clockVal ?? 0 });
@@ -853,11 +861,38 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
   return `<div class="live-plays" data-plays-match="${esc(String(mid ?? ""))}">${rows}</div>`;
 }
 
+// Supplements comp.details with ESPN's richer per-event summary endpoint (keyEvents, includes
+// substitutions — see extractMatchPlays). Same fix as Copa (bolao/js/app.js), propagated here
+// same day. Only called for matches currently live, so a normal poll with nothing in progress
+// never adds extra network calls. Fails soft: any error just means this cycle falls back to
+// comp.details alone.
+async function fetchEspnEventSummary(eventId) {
+  try {
+    const summaryUrl = C.espn.scoreboardUrl.replace(/\/scoreboard(\?.*)?$/, "/summary");
+    const r = await fetchJson(`${summaryUrl}?event=${eventId}`);
+    const data = await r.json();
+    return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
+  } catch (err) {
+    console.warn(`[BR2026] ESPN event summary fetch failed for event ${eventId}`, err);
+    return null;
+  }
+}
+
 async function fetchScoreboard() {
   try {
     const r = await fetchJson(C.espn.scoreboardUrl + "?limit=20");
     const data = await r.json();
-    return (data?.events || []).map(ev => {
+    const events = data?.events || [];
+    const liveEventIds = events
+      .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
+      .map(ev => ev.id)
+      .filter(Boolean);
+    const keyEventsById = {};
+    if (liveEventIds.length) {
+      const summaries = await Promise.all(liveEventIds.map(id => fetchEspnEventSummary(id)));
+      liveEventIds.forEach((id, i) => { if (summaries[i]) keyEventsById[id] = summaries[i]; });
+    }
+    return events.map(ev => {
       const comp = ev.competitions?.[0];
       if (!comp) return null;
       const c    = comp.competitors || [];
@@ -885,7 +920,7 @@ async function fetchScoreboard() {
         clockSec,
         clockStr:  comp.status?.displayClock || "",
         period, isHalftime, isPenalties,
-        plays: extractMatchPlays(comp),
+        plays: extractMatchPlays(comp, keyEventsById[ev.id]),
       };
     }).filter(Boolean);
   } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }

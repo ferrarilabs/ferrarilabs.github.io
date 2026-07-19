@@ -2022,16 +2022,21 @@ function renderLiveTieCard() {
 }
 
 // Minuto a minuto (gols/cartões/substituições) -- ported from Copa/BR2026 (extractMatchPlays,
-// ver bolao/br2026/js/app.js), mesmo comp.details já buscado a cada poll do card ao vivo.
-// Eduardo: "aplicou as mesmas alteracoes na CDB2026? PRECISAMOS SER CONSISTENTES!" (2026-07-16).
+// ver bolao/br2026/js/app.js), mesmo comp.details já buscado a cada poll do card ao vivo, com
+// fallback para o endpoint de summary por evento (keyEvents, inclui substituições -- ver
+// fetchEspnEventSummary) em partidas ao vivo, já que comp.details nunca traz substituições
+// (confirmado ao vivo, Final da Copa do Mundo, 2026-07-19, propagado aqui no mesmo dia -- Eduardo:
+// "aplicou as mesmas alteracoes na CDB2026? PRECISAMOS SER CONSISTENTES!", 2026-07-16).
 // side é "home"/"away" (não "c0"/"c1" da Copa nem A/B) -- mesma convenção já usada pelo resto do
 // live-tie code deste arquivo (homeTeam/awayTeam sempre nomes reais, sem resolução de slot de
 // bracket como a Copa precisa). Mesmo contrato "falha silenciosa": formato inesperado da ESPN
 // degrada pra lista vazia, nunca quebra o placar/relógio ao vivo.
 const PLAY_ICON = { goal: "⚽", yellow: "🟨", red: "🟥", sub: "🔄" };
-function extractMatchPlays(comp) {
+function extractMatchPlays(comp, keyEvents) {
   try {
-    const details = Array.isArray(comp.details) ? comp.details : [];
+    const details = Array.isArray(keyEvents) && keyEvents.length
+      ? keyEvents
+      : (Array.isArray(comp.details) ? comp.details : []);
     const comps = comp.competitors || [];
     const home = comps.find(c => c.homeAway === "home") || comps[0];
     const away = comps.find(c => c.homeAway === "away") || comps[1];
@@ -2056,7 +2061,9 @@ function extractMatchPlays(comp) {
       if (!side) continue;
       const clockVal = typeof d.clock?.value === "number" ? d.clock.value : null;
       const minute = d.clock?.displayValue || (clockVal != null ? `${Math.floor(clockVal / 60)}'` : "");
-      const names = (d.athletesInvolved || [])
+      // comp.details lista atletas em athletesInvolved[]; o endpoint de summary usa
+      // participants[].athlete -- suporta os dois formatos (mesmo padrão da Copa/BR2026).
+      const names = (d.athletesInvolved || (d.participants || []).map(p => p?.athlete))
         .map(a => a?.displayName || a?.shortName)
         .filter(Boolean);
       const text = kind === "sub" ? names.slice(0, 2).join(" ↔ ") : (names[0] || "");
@@ -2081,6 +2088,29 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
   return `<div class="live-plays" data-plays-match="${esc(String(mid ?? ""))}">${rows}</div>`;
 }
 
+// Supplements comp.details with ESPN's richer per-event summary endpoint (keyEvents, includes
+// substitutions — see extractMatchPlays). Same fix as Copa/BR2026, propagated here same day
+// (Eduardo: "PRECISAMOS SER CONSISTENTES"). Only called for matches currently live, so a normal
+// poll with nothing in progress never adds extra network calls. Fails soft: any error just means
+// this cycle falls back to comp.details alone.
+async function fetchEspnEventSummary(eventId) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), 10000);
+  try {
+    const summaryUrl = (C.espn?.scoreboardUrl || "").replace(/\/scoreboard(\?.*)?$/, "/summary");
+    if (!summaryUrl) return null;
+    const r = await fetch(`${summaryUrl}?event=${eventId}`, { signal: ctrl.signal });
+    if (!r.ok) return null;
+    const data = await r.json();
+    return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
+  } catch (err) {
+    console.warn(`[CDB2026] ESPN event summary fetch failed for event ${eventId}`, err);
+    return null;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
@@ -2090,7 +2120,17 @@ async function fetchEspnCandidates() {
     const r = await fetch(url, { signal: ctrl.signal });
     if (!r.ok) return null;
     const data = await r.json();
-    return (data.events || []).map(ev => {
+    const events = data.events || [];
+    const liveEventIds = events
+      .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
+      .map(ev => ev.id)
+      .filter(Boolean);
+    const keyEventsById = {};
+    if (liveEventIds.length) {
+      const summaries = await Promise.all(liveEventIds.map(id => fetchEspnEventSummary(id)));
+      liveEventIds.forEach((id, i) => { if (summaries[i]) keyEventsById[id] = summaries[i]; });
+    }
+    return events.map(ev => {
       const comp = ev.competitions?.[0];
       if (!comp) return null;
       const comps = comp.competitors || [];
@@ -2136,7 +2176,7 @@ async function fetchEspnCandidates() {
         liveAwayScore: evState === "in" && away?.score != null ? parseInt(away.score, 10) : null,
         clockSec, period, isHalftime, isPenalties, postponed,
         clockStr: comp.status?.displayClock || "",
-        plays: extractMatchPlays(comp),
+        plays: extractMatchPlays(comp, keyEventsById[ev.id]),
       };
     }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));

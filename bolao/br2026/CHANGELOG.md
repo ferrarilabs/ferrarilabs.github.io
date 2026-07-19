@@ -1,5 +1,28 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.69 — 2026-07-19
+
+### Fixed — substituições nunca apareciam nos lances ao vivo (mesmo bug da Copa, propagado no mesmo dia)
+
+Achado real na Copa durante a Final ao vivo (Eduardo: "As substituições sumiram do lugar onde tem
+os lances cartões e gols") — investigado com dado real e confirmado: o endpoint de scoreboard da
+ESPN (`comp.details`, usado por `extractMatchPlays()`) nunca inclui eventos de substituição, só
+gols e cartões. O BR2026 tinha exatamente o mesmo padrão de código (porta direta da Copa,
+`comp.details`-only) — mesmo bug, nunca detectado antes por falta de um jogo ao vivo com
+substituições reais durante os testes.
+
+Correção idêntica à da Copa: novo `fetchEspnEventSummary(eventId)` busca o endpoint de summary por
+evento da ESPN (`.../summary?event=<id>`, mesma liga `bra.1` do scoreboard), que tem um
+`keyEvents` mais completo incluindo substituições — só chamado para partidas ao vivo no momento,
+sem custo extra de rede em polls normais. `extractMatchPlays(comp, keyEvents)` prefere essa fonte
+quando disponível, com fallback para `comp.details` se a busca extra falhar — gols/cartões nunca
+regridem. Verificado que o endpoint de summary responde corretamente para a liga `bra.1` com dado
+real da ESPN (sem partida ao vivo no momento da correção pra confirmar substituições reais, mas
+estrutura/URL confirmadas).
+
+`audit_scoring.py`: PASSOU, sem alteração — mudança somente de apresentação (busca extra da ESPN),
+nenhuma pontuação/regra tocada.
+
 ## v1.68 — 2026-07-17
 
 ### Changed — cards ao vivo sempre abertos (lances/probabilidades), igual a Copa
