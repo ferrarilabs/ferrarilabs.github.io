@@ -2865,6 +2865,78 @@ function recalcMC() {
   scheduleMC();
 }
 
+// Once M103 is decided but M104 (Final) is not, models the bolão's own money outcome under both
+// possible Final winners, weighted by live market odds (Polymarket) for those two teams --
+// reuses finalPodiumPayouts() itself (already validated all session) against two minimal, neutral
+// placeholder scorelines (1-0 / 0-1) so the modeling is driven only by WHO WINS the Final, never a
+// guessed final score. Eduardo, 2026-07-19: wanted the probability of winning the whole bolão
+// shown, not just team-level World Cup odds ("probabilities of somebody winning the full part").
+function computeMoneyProbabilities(s) {
+  const fin = DATA.knockoutMatches.find(m => m.match === "104");
+  if (!fin) return null;
+  if (s.results?.["104"]?.advanceSide) return null; // already decided -- nothing to model
+  const { winners, losers } = officialWinnersMap(s);
+  const tA = resolveSlot(fin.teamA, winners, losers), tB = resolveSlot(fin.teamB, winners, losers);
+  if (!isRealTeamName(tA) || !isRealTeamName(tB)) return null; // semifinals not both decided yet
+
+  const poly = _polyCache?.data;
+  let pA = 0.5, pB = 0.5;
+  if (poly) {
+    const rawA = poly[tA] ?? 0, rawB = poly[tB] ?? 0;
+    const sum = rawA + rawB;
+    if (sum > 0) { pA = rawA / sum; pB = rawB / sum; }
+  }
+
+  const withResult = side => {
+    const clone = JSON.parse(JSON.stringify(s));
+    clone.results = clone.results || {};
+    clone.results["104"] = side === "A" ? { goalsA: 1, goalsB: 0, advanceSide: "A" } : { goalsA: 0, goalsB: 1, advanceSide: "B" };
+    return clone;
+  };
+  const payoutsA = finalPodiumPayouts(withResult("A"));
+  const payoutsB = finalPodiumPayouts(withResult("B"));
+  if (!payoutsA || !payoutsB) return null;
+
+  const byIdA = {}, byIdB = {};
+  payoutsA.payouts.forEach(p => { byIdA[p.id] = p; });
+  payoutsB.payouts.forEach(p => { byIdB[p.id] = p; });
+
+  const deleted = new Set(s.deletedIds || []);
+  const entries = (s.entries || []).filter(e => !deleted.has(e.id) && !e.diagnostics?.demo);
+  const rows = entries.map(e => {
+    const inA = byIdA[e.id], inB = byIdB[e.id];
+    const pMoney = (inA ? pA : 0) + (inB ? pB : 0);
+    const expected = (inA ? pA * inA.amount : 0) + (inB ? pB * inB.amount : 0);
+    return { id: e.id, entryName: e.entryName, pMoney, expected };
+  }).filter(r => r.pMoney > 0.001);
+  rows.sort((a, b) => b.expected - a.expected);
+  return { teamA: tA, teamB: tB, pA, pB, pot: payoutsA.pot, rows };
+}
+
+function moneyProbHtml(info) {
+  if (!info || !info.rows.length) return "";
+  const rows = info.rows.map(r => {
+    const pct = Math.round(r.pMoney * 100);
+    return `<tr>
+      <td>${escapeHtml(r.entryName)}</td>
+      <td class="prob-pct-champ">${pct}%</td>
+      <td>$${r.expected.toFixed(2).replace(/\.00$/, "")}</td>
+    </tr>`;
+  }).join("");
+  const subtitle = t("moneyProbSubtitle")
+    .replace("{teamA}", info.teamA).replace("{pA}", Math.round(info.pA * 100))
+    .replace("{teamB}", info.teamB).replace("{pB}", Math.round(info.pB * 100));
+  return `<div class="card money-prob-card">
+    <h3>${escapeHtml(t("moneyProbTitle"))}</h3>
+    <p class="muted" style="font-size:12px;margin-bottom:10px">${escapeHtml(subtitle)}</p>
+    <table class="prob-table">
+      <thead><tr><th>${escapeHtml(t("moneyProbEntry"))}</th><th>${escapeHtml(t("moneyProbChance"))}</th><th>${escapeHtml(t("moneyProbExpected"))}</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <p class="prob-disclaimer">${escapeHtml(t("moneyProbDisclaimer"))}</p>
+  </div>`;
+}
+
 function renderProbs() {
   const box = $("#probsContent");
   if (!box) return;
@@ -2978,6 +3050,7 @@ function renderProbs() {
   const polyHeader = hasPoly ? `<th title="Preços ao vivo do Polymarket">📈 Mercado</th>` : "";
 
   box.innerHTML = `
+${moneyProbHtml(computeMoneyProbabilities(state()))}
 <p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}${polyNote}${oddsNote}</p>
 <table class="prob-table">
   <thead><tr>

@@ -1391,3 +1391,38 @@ agregado (`scoreEntry()`/`score_entry_total()`), que já estava correta e contin
 verdade — só torna a exibição por partida consistente com o que o total já dizia.
 
 `audit_scoring.py`: PASSOU, sem alteração — fix é de exibição apenas.
+
+## Nota manual — probabilidade de ganhar o bolão + auditoria completa de rastreabilidade (2026-07-19, Copa v4.153) — COPA APENAS
+
+Eduardo pediu: (1) atualizar a aba Probabilidades para mostrar a chance de cada entrada ganhar o
+bolão (não só as odds do time no Mundial), e (2) uma auditoria completa "de nível de auditoria de
+loteria" — cada resultado de cada jogo no palpite de cada pessoa, com data/hora de criação e
+modificação de cada entrada, estruturada como resumo executivo + links para detalhe (inclusive
+código), não uma página só gigante.
+
+**Aba Probabilidades**: nova seção "💰 Chance de ganhar o bolão" (`computeMoneyProbabilities()`) —
+reutiliza `finalPodiumPayouts()` (já validado) contra dois placares mínimos (1-0/0-1) para as duas
+equipes que restam na Final, ponderado pelas odds ao vivo do Polymarket entre essas duas equipes
+especificamente. Só aparece quando M103 está decidido e M104 ainda não — desaparece sozinho quando
+a Final terminar de verdade (o banner de pódio já existente assume nesse momento).
+
+**Auditoria de rastreabilidade**: `audit-report.html` virou um resumo executivo de verdade (texto
+condensado + seção de links), com duas páginas novas: `audit-detail-picks.html` (palpite, resultado
+real e pontos de cada uma das 32 partidas, para cada uma das 23 entradas reais, com índice
+navegável) e `audit-detail-governance.html` (criação/última atualização de cada entrada + histórico
+completo de edições já capturado pelo `auditLog` do site — antes/depois de cada palpite alterado,
+IP mascarado, dispositivo, horário). Achado divulgado com transparência: 11 das 23 entradas têm
+`updatedAt` diferente de `createdAt` SEM um registro correspondente no `auditLog` — não é uma edição
+real (o fluxo "editar por código" sempre grava um registro), provavelmente uma operação
+administrativa/migração anterior a esta auditoria, causa exata não estabelecida. E-mails de
+participantes não aparecem em nenhuma página pública de auditoria (mesma política do resto do
+site). Ambas as páginas novas: trilíngues no cabeçalho/estrutura, mas com notas por linha só em
+português (limitação de escala reconhecida — 736 linhas de dado bruto — números/nomes de times/
+horários já são iguais em qualquer idioma).
+
+**Por que não propagado para BR2026/CDB2026 nesta rodada**: mesma razão do v4.150/v4.151 — pedido
+no contexto específico da Final da Copa de amanhã, e a lógica de recálculo (`compute_final_payouts`
+equivalente, `MATCH_TEAMS`) é específica do bracket da Copa. Registrado como trabalho futuro em
+`ROADMAP.md` (mesma entrada M-06, ampliada).
+
+`audit_scoring.py`: PASSOU nos três apps, sem alteração — ambas as adições são somente leitura.

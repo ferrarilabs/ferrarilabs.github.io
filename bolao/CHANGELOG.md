@@ -1,5 +1,54 @@
 # CHANGELOG
 
+## v4.153 — 2026-07-19
+
+### Added — "chance of winning the bolão" on the Probabilidades tab, and full lottery-audit-grade traceability report
+
+Eduardo: wanted the Probabilidades tab updated to show the probability of winning the whole
+bolão (money), not just team-level World Cup odds, plus a full audit — "every single result of
+every single game in every single person's pick," with creation/modification timestamps and
+before/after values, structured as an executive summary with links to detail (including code)
+rather than one giant page — "like a lottery audit."
+
+**Probabilidades tab — "💰 Chance de ganhar o bolão"** (`computeMoneyProbabilities()` /
+`moneyProbHtml()` in `app.js`): once M103 is decided and M104 (the Final) is not, models the
+bolão's own money outcome under both possible Final winners, weighted by live market odds
+(Polymarket) for those two teams specifically (renormalized to sum to 100%, since only 2 teams
+remain). Reuses `finalPodiumPayouts()` itself — already shipped and validated — against two
+minimal placeholder scorelines (1-0 / 0-1), so the model is driven only by *who wins*, never a
+guessed final score; disclaimer text makes this explicit. Verified against real production data:
+numbers match hand-traced math exactly (e.g. an entry that only wins money in one of the two
+scenarios shows exactly half its scenario payout as "expected value" and 50% "prize chance").
+Gracefully falls back to 50/50 if Polymarket hasn't loaded yet.
+
+**Full traceability audit, restructured as summary + detail pages** (`generate_audit_report.py`):
+- `bolao/audit-report.html` (existing) is now a true executive summary: trimmed narrative, with a
+  new "🔍 Auditoria detalhada e transparência de código" section linking to the two pages below
+  plus direct GitHub links to the actual scoring/email/audit source files (repo confirmed public).
+- **NEW** `bolao/audit-detail-picks.html` — for every one of the 23 real entries, every one of the
+  32 knockout matches: the pick, the real result, and the exact points earned (base + podium
+  bonus, itemized per v4.152), collapsible per entry with a navigable index. This is the raw,
+  unsummarized data behind every number in the executive summary.
+- **NEW** `bolao/audit-detail-governance.html` — creation/last-update timestamp for every entry,
+  plus the complete real edit history already captured by the site's own "editar por código" flow
+  (`state.auditLog`): exact before/after value for every changed pick, timestamp, partially-masked
+  IP, device/browser, per edit event. **Important finding disclosed, not hidden**: 11 of the 23
+  entries have `updatedAt` differing from `createdAt` with NO matching audit log record — this
+  does not correspond to a participant edit (the site's edit flow always logs one) and most likely
+  reflects an administrative or data-migration operation that predates this audit; the exact cause
+  was not established and is reported as such rather than mischaracterized as a verified edit.
+  Participant emails are not shown on this public page, consistent with the rest of the site
+  (Participantes tab is admin-only).
+
+Both new pages are `noindex,nofollow` (matching the main site) and use masked IPs — no participant
+email addresses are exposed on any audit page. Given the scale (23×32 = 736 match rows), the two
+detail pages use trilingual chrome/headers but Portuguese-only per-row notes (numbers, team names,
+and timestamps are already language-neutral) — a deliberate, disclosed scope tradeoff from the
+fully trilingual executive summary, to keep the pages generatable and usable.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — both additions are read-only (new reporting
+script output + a client-side probability display), no scoring or business logic touched.
+
 ## v4.152 — 2026-07-19
 
 ### Fixed — podium bonus never itemized in the per-match breakdown (display-only gap, not a computation bug)
