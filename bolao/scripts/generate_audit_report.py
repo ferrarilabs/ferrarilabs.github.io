@@ -42,6 +42,91 @@ import audit_scoring
 
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
 OUT_PATH = os.path.join(REPO_ROOT, "bolao", "audit-report.html")
+PICKS_DETAIL_PATH = os.path.join(REPO_ROOT, "bolao", "audit-detail-picks.html")
+GOVERNANCE_DETAIL_PATH = os.path.join(REPO_ROOT, "bolao", "audit-detail-governance.html")
+GITHUB_REPO_URL = "https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main"
+
+PHASE_LABELS = {
+    "Round of 32":  {"pt": "Oitavas de Final",       "en": "Round of 32",     "es": "Octavos de Final"},
+    "Round of 16":  {"pt": "Rodada de 16",           "en": "Round of 16",     "es": "Ronda de 16"},
+    "Quarterfinal": {"pt": "Quartas de Final",       "en": "Quarterfinal",    "es": "Cuartos de Final"},
+    "Semifinal":    {"pt": "Semifinal",              "en": "Semifinal",       "es": "Semifinal"},
+    "3rd Place":    {"pt": "Disputa de 3º Lugar",    "en": "3rd Place Match", "es": "Partido por el 3er Lugar"},
+    "Final":        {"pt": "Final",                  "en": "Final",           "es": "Final"},
+}
+
+
+def _phase_for_mid(mid):
+    m = int(mid)
+    if 73 <= m <= 88:
+        return "Round of 32"
+    if 89 <= m <= 96:
+        return "Round of 16"
+    if 97 <= m <= 100:
+        return "Quarterfinal"
+    if 101 <= m <= 102:
+        return "Semifinal"
+    if m == 103:
+        return "3rd Place"
+    return "Final"
+
+
+def _mask_ip(ip):
+    if not ip or ip == "unknown":
+        return "—"
+    parts = ip.split(".")
+    if len(parts) == 4:
+        return f"{parts[0]}.{parts[1]}.{parts[2]}.xxx"
+    return (ip[:8] + "…") if len(ip) > 8 else ip
+
+
+DETAIL_PAGE_STYLE = """
+  :root { --green:#0d7a3f; --gold:#b45309; --border:#dde3e8; --bg:#f4f7fb; --bad:#b91c1c; }
+  * { box-sizing:border-box; }
+  body { font-family:Arial,Helvetica,sans-serif; background:var(--bg); color:#161b1f; margin:0; padding:0 12px 60px; }
+  .doc { max-width:1200px; margin:0 auto; }
+  .lang-bar { position:sticky; top:0; background:#fff; border-bottom:1px solid var(--border); padding:12px 8px; margin-bottom:8px; display:flex; gap:8px; flex-wrap:wrap; justify-content:center; z-index:10; }
+  .lang-bar button, .lang-bar a.backlink { font-family:Arial,sans-serif; font-size:13px; font-weight:700; padding:8px 16px; border-radius:20px; border:1px solid var(--border); background:#fff; cursor:pointer; white-space:nowrap; text-decoration:none; color:#161b1f; }
+  .lang-bar button.active { background:var(--green); color:#fff; border-color:var(--green); }
+  @media (max-width:420px) { .lang-bar button, .lang-bar a.backlink { font-size:12px; padding:8px 12px; } }
+  .page-header { background:#fff; border:1px solid var(--border); border-radius:14px; padding:22px 26px; margin:16px 0 20px; box-shadow:0 4px 24px #0001; }
+  .page-header h1 { margin:0 0 8px; font-size:22px; }
+  .page-header p { font-size:13px; color:#444; margin:4px 0; }
+  .entry-block { background:#fff; border:1px solid var(--border); border-radius:12px; margin-bottom:12px; box-shadow:0 2px 10px #0001; }
+  .entry-block summary { cursor:pointer; padding:14px 18px; font-weight:700; font-size:14.5px; display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; list-style:none; }
+  .entry-block summary::-webkit-details-marker { display:none; }
+  .entry-block summary::before { content:"▶"; font-size:11px; margin-right:8px; color:#888; }
+  .entry-block[open] summary::before { content:"▼"; }
+  .entry-badge { font-size:12px; font-weight:800; background:#d1fae5; color:#065f46; padding:3px 10px; border-radius:20px; }
+  .entry-badge.warn { background:#fee2e2; color:var(--bad); }
+  .entry-body { padding:0 18px 16px; }
+  .table-scroll { overflow-x:auto; }
+  table.detail-table { width:100%; min-width:640px; border-collapse:collapse; font-size:12.5px; }
+  table.detail-table th { background:#f1f5f9; text-align:left; padding:6px 8px; border-bottom:2px solid var(--border); position:sticky; top:52px; }
+  table.detail-table td { padding:5px 8px; border-bottom:1px solid #eef1f4; }
+  table.detail-table td.num { text-align:center; font-weight:700; }
+  .idx-list { columns:2; gap:24px; font-size:13px; }
+  @media (max-width:640px) { .idx-list { columns:1; } }
+  .idx-list a { color:#0d7a3f; text-decoration:none; }
+  .anomaly-box { background:#fef3c7; border:1px solid #f59e0b; border-radius:10px; padding:12px 16px; margin-bottom:16px; font-size:13px; }
+  code.small { background:#f1f5f9; padding:1px 5px; border-radius:4px; font-size:.92em; }
+"""
+
+DETAIL_PAGE_SCRIPT = """
+(function() {
+  var buttons = document.querySelectorAll('[data-setlang]');
+  buttons.forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var lang = btn.getAttribute('data-setlang');
+      document.querySelectorAll('[data-lang]').forEach(function(el) {
+        el.classList.toggle('lang-active', el.getAttribute('data-lang') === lang);
+      });
+      buttons.forEach(function(b) { b.classList.toggle('active', b === btn); });
+      document.documentElement.lang = lang === 'pt' ? 'pt-BR' : lang === 'es' ? 'es' : 'en-US';
+    });
+  });
+})();
+"""
 
 
 # ── Independent recomputation (fresh code, not reusing sre's scoring logic) ───────────────────
@@ -435,6 +520,246 @@ def run_checks(state):
     return findings, meta
 
 
+# ── Full per-pick traceability (detail page) ───────────────────────────────────────────────────
+
+def compute_picks_traceability(state, results):
+    """Every real entry × every one of the 32 knockout matches: pick, real result, points
+    earned (base + podium bonus, matching the same per-match itemization shipped in v4.152),
+    sorted by current official total. This is the raw material for "audit every single result of
+    every single game in every single person's pick" (Eduardo, 2026-07-19)."""
+    deleted = set(state.get("deletedIds", []))
+    entries = [e for e in state.get("entries", [])
+               if e.get("id") not in deleted and not (e.get("diagnostics") or {}).get("demo")]
+    out = []
+    for e in entries:
+        rows = []
+        for mid in sorted(sre.MATCH_TEAMS.keys(), key=int):
+            pick = (e.get("picks") or {}).get(mid)
+            result = results.get(mid)
+            tA, tB = sre._real_teams(mid, results)
+            pts, note = 0, "—"
+            if pick and result:
+                pts, note, _ = sre.score_match(pick, result, teamA=tA, teamB=tB)
+                bonus_pts, bonus_note, _ = sre.match_podium_bonus_note(e, mid, results)
+                if bonus_pts:
+                    pts += bonus_pts
+                    note = f"{note}, {bonus_note}" if note != "—" else bonus_note
+            def _fmt(p, side_field="advanceSide"):
+                if not p:
+                    return "—"
+                team = tB if p.get(side_field) == "B" else tA
+                return f'{p.get("goalsA")}–{p.get("goalsB")} ({team})'
+            rows.append({
+                "mid": mid, "phase": _phase_for_mid(mid), "teamA": tA, "teamB": tB,
+                "pick": _fmt(pick), "result": _fmt(result) if result else "—",
+                "pts": pts, "note": note,
+            })
+        out.append({
+            "name": e.get("entryName", "?"), "id": e.get("id"),
+            "total": sre.score_entry_total(e, results), "rows": rows,
+        })
+    out.sort(key=lambda x: -x["total"])
+    return out
+
+
+def render_picks_detail(traceability, meta):
+    idx_links = "".join(
+        f'<a href="#entry-{i}">{i+1}. {esc(item["name"])} ({item["total"]} pts)</a><br>'
+        for i, item in enumerate(traceability)
+    )
+    blocks = []
+    for i, item in enumerate(traceability):
+        rows_html = "".join(
+            f'<tr><td>M{esc(r["mid"])}</td><td>{esc(PHASE_LABELS[r["phase"]]["pt"])}</td>'
+            f'<td>{esc(r["teamA"])}</td><td>{esc(r["teamB"])}</td>'
+            f'<td>{esc(r["pick"])}</td><td>{esc(r["result"])}</td>'
+            f'<td class="num">{r["pts"]}</td><td>{esc(r["note"])}</td></tr>'
+            for r in item["rows"]
+        )
+        blocks.append(f"""<details class="entry-block" id="entry-{i}">
+  <summary>{i+1}. {esc(item['name'])} <span class="entry-badge">{item['total']} pts</span></summary>
+  <div class="entry-body">
+    <div class="table-scroll">
+    <table class="detail-table">
+      <thead><tr><th>Partida</th><th>Fase</th><th>Time A</th><th>Time B</th><th>Palpite</th><th>Resultado real</th><th>Pts</th><th>Detalhe</th></tr></thead>
+      <tbody>{rows_html}</tbody>
+    </table>
+    </div>
+  </div>
+</details>""")
+
+    now = meta["generated_at"]
+    ts = now.strftime("%d/%m/%Y %H:%M UTC")
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Auditoria Detalhada — Palpites e Pontuação — Bolão do Ferrari</title>
+<style>{DETAIL_PAGE_STYLE}
+[data-lang] {{ display:none; }} [data-lang].lang-active {{ display:block; }}
+</style>
+</head>
+<body>
+<div class="doc">
+  <div class="lang-bar">
+    <a class="backlink" href="audit-report.html">← Resumo executivo / Executive summary</a>
+    <button data-setlang="pt" class="active">🇧🇷 Português</button>
+    <button data-setlang="en">🇺🇸 English</button>
+    <button data-setlang="es">🇲🇽 Español</button>
+  </div>
+  <div data-lang="pt" class="lang-active">
+    <div class="page-header">
+      <h1>🔍 Auditoria Detalhada — Cada Palpite, Cada Partida, Cada Ponto</h1>
+      <p><b>Gerado em:</b> {ts} · <b>Entradas:</b> {len(traceability)} · <b>Partidas por entrada:</b> 32</p>
+      <p>Esta página lista, para cada uma das {len(traceability)} entradas reais do bolão, o palpite dado e o resultado real de todas as 32 partidas do mata-mata, com a pontuação exata ganha em cada uma (incluindo o bônus de pódio, quando aplicável). Clique no nome de uma entrada para expandir os detalhes.</p>
+      <p style="font-size:12px;color:#6b7280">Nota: os detalhes por partida (coluna "Detalhe") são mostrados em português para manter esta página gerenciável — os nomes dos times e os números de pontos são iguais em qualquer idioma. O <a href="audit-report.html">resumo executivo</a> está disponível nas 3 línguas.</p>
+    </div>
+    <div class="entry-block" style="padding:14px 18px"><b>Índice</b><div class="idx-list" style="margin-top:8px">{idx_links}</div></div>
+    {"".join(blocks)}
+  </div>
+  <div data-lang="en">
+    <div class="page-header">
+      <h1>🔍 Detailed Audit — Every Pick, Every Match, Every Point</h1>
+      <p><b>Generated at:</b> {ts} · <b>Entries:</b> {len(traceability)} · <b>Matches per entry:</b> 32</p>
+      <p>This page lists, for each of the {len(traceability)} real bolão entries, the pick made and the real result for all 32 knockout matches, with the exact points earned on each (including the podium bonus, when applicable). Click an entry's name to expand its details.</p>
+      <p style="font-size:12px;color:#6b7280">Note: per-match details (the "Detalhe" column) are shown in Portuguese to keep this page manageable — team names and point numbers are the same in any language. The <a href="audit-report.html">executive summary</a> is available in all 3 languages.</p>
+    </div>
+    <div class="entry-block" style="padding:14px 18px"><b>Index</b><div class="idx-list" style="margin-top:8px">{idx_links}</div></div>
+    {"".join(blocks)}
+  </div>
+  <div data-lang="es">
+    <div class="page-header">
+      <h1>🔍 Auditoría Detallada — Cada Pronóstico, Cada Partido, Cada Punto</h1>
+      <p><b>Generado el:</b> {ts} · <b>Entradas:</b> {len(traceability)} · <b>Partidos por entrada:</b> 32</p>
+      <p>Esta página lista, para cada una de las {len(traceability)} entradas reales del bolão, el pronóstico dado y el resultado real de los 32 partidos de eliminación, con la puntuación exacta obtenida en cada uno (incluyendo el bono de podio, cuando aplica). Haz clic en el nombre de una entrada para expandir los detalles.</p>
+      <p style="font-size:12px;color:#6b7280">Nota: los detalles por partido (columna "Detalhe") se muestran en portugués para mantener esta página manejable — los nombres de los equipos y los números de puntos son iguales en cualquier idioma. El <a href="audit-report.html">resumen ejecutivo</a> está disponible en los 3 idiomas.</p>
+    </div>
+    <div class="entry-block" style="padding:14px 18px"><b>Índice</b><div class="idx-list" style="margin-top:8px">{idx_links}</div></div>
+    {"".join(blocks)}
+  </div>
+</div>
+<script>{DETAIL_PAGE_SCRIPT}</script>
+</body>
+</html>"""
+
+
+# ── Governance / edit-trail traceability (detail page) ─────────────────────────────────────────
+
+def compute_governance_trail(state):
+    """createdAt/updatedAt per entry, plus the real auditLog (before/after pick changes, IP,
+    device) already captured by the site's own "editar por código" flow. Flags entries whose
+    updatedAt differs from createdAt but have NO matching auditLog record as an anomaly to
+    disclose, rather than silently presenting them as verified participant edits — see
+    CONSISTENCY_MATRIX.md for why (predates this audit, cause not established)."""
+    deleted = set(state.get("deletedIds", []))
+    entries = [e for e in state.get("entries", [])
+               if e.get("id") not in deleted and not (e.get("diagnostics") or {}).get("demo")]
+    audit_log = state.get("auditLog") or []
+    by_entry_id = {}
+    for rec in audit_log:
+        by_entry_id.setdefault(rec.get("entryId"), []).append(rec)
+
+    rows, anomalies = [], []
+    for e in entries:
+        created, updated = e.get("createdAt"), e.get("updatedAt")
+        modified = bool(updated and updated != created)
+        records = sorted(by_entry_id.get(e.get("id"), []), key=lambda r: r.get("ts", ""))
+        real_changes = [r for r in records if r.get("changeCount", 0) > 0]
+        if modified and not records:
+            anomalies.append(e.get("entryName", "?"))
+        rows.append({
+            "name": e.get("entryName", "?"), "created": created, "updated": updated,
+            "modified": modified, "records": records, "hasRealChanges": bool(real_changes),
+        })
+    rows.sort(key=lambda r: (not r["modified"], r["name"]))
+    return {"rows": rows, "anomalies": anomalies, "totalAuditLogRecords": len(audit_log)}
+
+
+def render_governance_detail(gov, meta):
+    def fmt_ts(ts):
+        if not ts:
+            return "—"
+        try:
+            return datetime.fromisoformat(ts.replace("Z", "+00:00")).strftime("%d/%m/%Y %H:%M UTC")
+        except ValueError:
+            return ts
+
+    rows_html = []
+    for r in gov["rows"]:
+        badge = ('<span class="entry-badge">criada apenas</span>' if not r["modified"]
+                  else '<span class="entry-badge warn">modificada, sem registro</span>' if not r["records"]
+                  else f'<span class="entry-badge">{len(r["records"])} evento(s) registrado(s)</span>')
+        records_html = ""
+        if r["records"]:
+            recs = []
+            for rec in r["records"]:
+                changes = rec.get("changes") or []
+                if changes:
+                    ch_rows = "".join(
+                        f'<tr><td>M{esc(c.get("match"))}</td>'
+                        f'<td>{esc(c["before"].get("goalsA"))}–{esc(c["before"].get("goalsB"))} ({esc(c["before"].get("advanceSide"))})</td>'
+                        f'<td>{esc(c["after"].get("goalsA"))}–{esc(c["after"].get("goalsB"))} ({esc(c["after"].get("advanceSide"))})</td></tr>'
+                        for c in changes if c.get("before") and c.get("after")
+                    )
+                    ch_table = f'<div class="table-scroll"><table class="detail-table"><thead><tr><th>Partida</th><th>Antes</th><th>Depois</th></tr></thead><tbody>{ch_rows}</tbody></table></div>' if ch_rows else "<p style='font-size:12px;color:#6b7280'>Sem mudança de palpite neste evento (outro campo alterado).</p>"
+                else:
+                    ch_table = "<p style='font-size:12px;color:#6b7280'>Sem mudanças registradas neste evento.</p>"
+                recs.append(f"""<div style="margin:10px 0;padding:10px 12px;background:#f8fafc;border-radius:8px;font-size:12.5px">
+                  <b>{fmt_ts(rec.get('ts'))}</b> · {rec.get('changeCount', 0)} mudança(s) · IP {esc(_mask_ip(rec.get('ip')))} · {esc(rec.get('platform', '—'))} · tela {esc(rec.get('screen', '—'))}
+                  {ch_table}
+                </div>""")
+            records_html = "".join(recs)
+        rows_html.append(f"""<details class="entry-block">
+  <summary>{esc(r['name'])} {badge}</summary>
+  <div class="entry-body">
+    <p style="font-size:13px"><b>Criada em:</b> {fmt_ts(r['created'])} &nbsp;·&nbsp; <b>Última atualização:</b> {fmt_ts(r['updated'])}</p>
+    {records_html}
+  </div>
+</details>""")
+
+    anomaly_html = ""
+    if gov["anomalies"]:
+        names = ", ".join(esc(n) for n in gov["anomalies"])
+        anomaly_html = f"""<div class="anomaly-box">
+          <b>⚠ Achado a divulgar:</b> {len(gov['anomalies'])} entrada(s) têm <code class="small">updatedAt</code> diferente de
+          <code class="small">createdAt</code> mas SEM um registro correspondente no log de auditoria: {names}.
+          Isso não corresponde a uma edição feita pela função "editar por código" do site (que sempre grava um registro) —
+          provavelmente reflete uma operação administrativa ou de migração de dados anterior a esta auditoria, cuja causa
+          exata não foi estabelecida. Nenhuma mudança de palpite foi registrada para essas entradas; o valor de
+          <code class="small">updatedAt</code> por si só não deve ser interpretado como "o participante alterou os palpites".
+        </div>"""
+
+    now = meta["generated_at"]
+    ts_now = now.strftime("%d/%m/%Y %H:%M UTC")
+    modified_count = sum(1 for r in gov["rows"] if r["modified"])
+    return f"""<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Auditoria Detalhada — Governança e Histórico de Edições — Bolão do Ferrari</title>
+<style>{DETAIL_PAGE_STYLE}</style>
+</head>
+<body>
+<div class="doc">
+  <div class="lang-bar">
+    <a class="backlink" href="audit-report.html">← Resumo executivo / Executive summary</a>
+  </div>
+  <div class="page-header">
+    <h1>📋 Auditoria Detalhada — Governança e Histórico de Edições</h1>
+    <p><b>Gerado em:</b> {ts_now} · <b>Entradas:</b> {len(gov['rows'])} · <b>Modificadas:</b> {modified_count} · <b>Eventos no log de auditoria:</b> {gov['totalAuditLogRecords']}</p>
+    <p>Data/hora de criação (<code class="small">createdAt</code>) e da última atualização (<code class="small">updatedAt</code>) de cada entrada, mais o histórico completo de edições feitas pela função "editar por código" do site — com o valor antes/depois de cada palpite alterado, IP (parcialmente mascarado), dispositivo e horário. E-mails de participantes não são exibidos nesta página pública, seguindo a mesma política de privacidade já aplicada no restante do site (aba Participantes é restrita ao admin).</p>
+  </div>
+  {anomaly_html}
+  {"".join(rows_html)}
+</div>
+</body>
+</html>"""
+
+
 # ── HTML rendering ──────────────────────────────────────────────────────────────────────────
 
 STATUS_LABEL = {
@@ -513,20 +838,48 @@ def render_report(findings, meta, state):
     exec_summary_pt = f"""<section class="audit-section exec-summary">
       <h2>Sumário executivo</h2>
       <p>Esta auditoria recalculou de forma independente a pontuação de todas as {meta['entry_count']} entradas reais do bolão, com base nos dados reais de produção (Supabase), sem reutilizar a lógica de pontuação do site ou do pipeline de e-mail — apenas os dados brutos (palpites, resultados, estrutura do bracket). Também verificou a integridade dos dados, a fórmula de pontuação, o mecanismo de premiação e os critérios de desempate documentados.</p>
-      <p>{'<b>Nenhuma divergência foi encontrada</b> entre o recálculo independente e a pontuação oficial em nenhuma das ' + str(meta['entry_count']) + ' entradas auditadas.' if meta['all_pass'] else 'Foram encontrados itens que precisam de revisão — ver seções abaixo.'} Dois problemas foram identificados e corrigidos no dia de hoje, antes deste relatório (seção H) — ambos afetavam apenas uma prévia exibida durante partidas ao vivo, nunca a pontuação oficial nem os pagamentos.</p>
+      <p>{'<b>Nenhuma divergência foi encontrada</b> entre o recálculo independente e a pontuação oficial em nenhuma das ' + str(meta['entry_count']) + ' entradas auditadas.' if meta['all_pass'] else 'Foram encontrados itens que precisam de revisão — ver seções abaixo.'} Três problemas foram identificados e corrigidos nos últimos dias, antes deste relatório (seção H) — dois afetavam apenas uma prévia exibida durante partidas ao vivo (nunca a pontuação oficial), o terceiro afetava a pontuação oficial diretamente e já foi corrigido e comunicado aos participantes.</p>
       <p>Esta auditoria é publicada antes do resultado da Final (M104), como um compromisso de transparência: o mecanismo que vai decidir o pódio final e os valores em dinheiro amanhã já pode ser conferido hoje.</p>
     </section>"""
     exec_summary_en = f"""<section class="audit-section exec-summary">
       <h2>Executive summary</h2>
       <p>This audit independently recomputed the score of all {meta['entry_count']} real bolão entries, based on real production data (Supabase), without reusing the site's or the email pipeline's own scoring logic — only raw data (picks, results, bracket structure). It also verified data integrity, the scoring formula, the prize mechanism, and the documented tiebreak rules.</p>
-      <p>{'<b>No discrepancies were found</b> between the independent recomputation and the official score for any of the ' + str(meta['entry_count']) + ' entries audited.' if meta['all_pass'] else 'Items requiring review were found — see the sections below.'} Two issues were identified and fixed today, before this report (section H) — both only affected a preview shown during live matches, never official scoring or payouts.</p>
+      <p>{'<b>No discrepancies were found</b> between the independent recomputation and the official score for any of the ' + str(meta['entry_count']) + ' entries audited.' if meta['all_pass'] else 'Items requiring review were found — see the sections below.'} Three issues were identified and fixed over the past few days, before this report (section H) — two only affected a preview shown during live matches (never official scoring), the third affected official scoring directly and has already been fixed and communicated to participants.</p>
       <p>This audit is published before the Final's (M104) result, as a transparency commitment: the mechanism that will decide tomorrow's final podium and dollar amounts can already be checked today.</p>
     </section>"""
     exec_summary_es = f"""<section class="audit-section exec-summary">
       <h2>Resumen ejecutivo</h2>
       <p>Esta auditoría recalculó de forma independiente la puntuación de las {meta['entry_count']} entradas reales del bolão, con base en datos reales de producción (Supabase), sin reutilizar la lógica de puntuación del sitio ni del pipeline de correo — solo datos brutos (pronósticos, resultados, estructura del cuadro). También verificó la integridad de los datos, la fórmula de puntuación, el mecanismo de premiación y los criterios de desempate documentados.</p>
-      <p>{'<b>No se encontraron discrepancias</b> entre el recálculo independiente y la puntuación oficial en ninguna de las ' + str(meta['entry_count']) + ' entradas auditadas.' if meta['all_pass'] else 'Se encontraron puntos que requieren revisión — ver las secciones a continuación.'} Se identificaron y corrigieron dos problemas hoy, antes de este informe (sección H) — ambos afectaban solo una vista previa mostrada durante partidos en vivo, nunca la puntuación oficial ni los pagos.</p>
+      <p>{'<b>No se encontraron discrepancias</b> entre el recálculo independiente y la puntuación oficial en ninguna de las ' + str(meta['entry_count']) + ' entradas auditadas.' if meta['all_pass'] else 'Se encontraron puntos que requieren revisión — ver las secciones a continuación.'} Se identificaron y corrigieron tres problemas en los últimos días, antes de este informe (sección H) — dos afectaban solo una vista previa mostrada durante partidos en vivo (nunca la puntuación oficial), el tercero afectaba la puntuación oficial directamente y ya fue corregido y comunicado a los participantes.</p>
       <p>Esta auditoría se publica antes del resultado de la Final (M104), como un compromiso de transparencia: el mecanismo que decidirá el podio final y los montos en dinero mañana ya puede verificarse hoy.</p>
+    </section>"""
+
+    detail_links_pt = f"""<section class="audit-section" style="border-left:4px solid #2563eb">
+      <h2>🔍 Auditoria detalhada e transparência de código</h2>
+      <p>Este resumo executivo tem propósito de leitura rápida. Para o nível de detalhe completo — cada palpite, cada partida, cada ponto — e o histórico completo de criação/edição de cada entrada, use os links abaixo:</p>
+      <ul>
+        <li><a href="audit-detail-picks.html"><b>📊 Auditoria por partida e por entrada</b></a> — palpite, resultado real e pontos ganhos em cada uma das 32 partidas, para cada uma das {meta['entry_count']} entradas reais (não é resumido — é o dado bruto completo, com índice navegável).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Governança e histórico de edições</b></a> — data/hora de criação e última atualização de cada entrada, mais o histórico completo de mudanças (antes/depois de cada palpite alterado, IP parcialmente mascarado, dispositivo, horário).</li>
+        <li><b>Código-fonte:</b> este relatório e toda a lógica de pontuação são <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">código aberto no GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">pontuação/e-mail</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">lógica do site</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">suíte de autoteste</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">histórico completo de mudanças</a>.</li>
+      </ul>
+    </section>"""
+    detail_links_en = f"""<section class="audit-section" style="border-left:4px solid #2563eb">
+      <h2>🔍 Detailed audit and code transparency</h2>
+      <p>This executive summary is meant for a quick read. For the full level of detail — every pick, every match, every point — and the complete creation/edit history of every entry, use the links below:</p>
+      <ul>
+        <li><a href="audit-detail-picks.html"><b>📊 Per-match, per-entry audit</b></a> — pick, real result, and points earned on each of the 32 matches, for each of the {meta['entry_count']} real entries (not summarized — the full raw data, with a navigable index).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Governance and edit history</b></a> — creation date/time and last update for each entry, plus the complete change history (before/after for every changed pick, partially masked IP, device, timestamp).</li>
+        <li><b>Source code:</b> this report and all the scoring logic are <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">open source on GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">scoring/email</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">site logic</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">self-test suite</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">full change history</a>.</li>
+      </ul>
+    </section>"""
+    detail_links_es = f"""<section class="audit-section" style="border-left:4px solid #2563eb">
+      <h2>🔍 Auditoría detallada y transparencia de código</h2>
+      <p>Este resumen ejecutivo es para una lectura rápida. Para el nivel de detalle completo — cada pronóstico, cada partido, cada punto — y el historial completo de creación/edición de cada entrada, usa los enlaces a continuación:</p>
+      <ul>
+        <li><a href="audit-detail-picks.html"><b>📊 Auditoría por partido y por entrada</b></a> — pronóstico, resultado real y puntos ganados en cada uno de los 32 partidos, para cada una de las {meta['entry_count']} entradas reales (no resumido — el dato bruto completo, con índice navegable).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Gobernanza e historial de ediciones</b></a> — fecha/hora de creación y última actualización de cada entrada, más el historial completo de cambios (antes/después de cada pronóstico modificado, IP parcialmente enmascarada, dispositivo, horario).</li>
+        <li><b>Código fuente:</b> este informe y toda la lógica de puntuación son <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">código abierto en GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">puntuación/correo</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">lógica del sitio</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">suite de autopruebas</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">historial completo de cambios</a>.</li>
+      </ul>
     </section>"""
 
     signoff_pt = f"""<section class="audit-section signoff">
@@ -545,15 +898,16 @@ def render_report(findings, meta, state):
       <p class="signoff-name">Sistema de Auditoría Automatizada — Bolão do Ferrari</p>
     </section>"""
 
-    body_pt = header_pt + exec_summary_pt + sections_html("pt") + signoff_pt
-    body_en = header_en + exec_summary_en + sections_html("en") + signoff_en
-    body_es = header_es + exec_summary_es + sections_html("es") + signoff_es
+    body_pt = header_pt + exec_summary_pt + detail_links_pt + sections_html("pt") + signoff_pt
+    body_en = header_en + exec_summary_en + detail_links_en + sections_html("en") + signoff_en
+    body_es = header_es + exec_summary_es + detail_links_es + sections_html("es") + signoff_es
 
     return f"""<!doctype html>
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <title>Relatório de Auditoria — Bolão do Ferrari</title>
 <style>
   :root {{ --green:#0d7a3f; --gold:#b45309; --border:#dde3e8; --bg:#f4f7fb; --bad:#b91c1c; }}
@@ -627,17 +981,37 @@ def render_report(findings, meta, state):
 def main():
     print("Fetching live production state from Supabase...")
     state = sre.sb_fetch()
-    print(f"  {len(state.get('entries', []))} entries, {len([v for v in (state.get('results') or {}).values() if v and v.get('advanceSide')])} locked results")
+    locked_results = {k: v for k, v in (state.get("results") or {}).items() if v and v.get("advanceSide")}
+    print(f"  {len(state.get('entries', []))} entries, {len(locked_results)} locked results")
     print("Running audit checks...")
     findings, meta = run_checks(state)
     for f in findings:
         print(f"  [{f.status.upper():10s}] {f.title['pt']}")
-    print("Rendering trilingual report...")
+
+    print("Computing full picks traceability...")
+    traceability = compute_picks_traceability(state, locked_results)
+    print("Computing governance/edit-trail...")
+    gov = compute_governance_trail(state)
+    if gov["anomalies"]:
+        print(f"  ⚠ {len(gov['anomalies'])} entries flagged: updatedAt differs from createdAt with no matching audit log record")
+
+    print("Rendering trilingual executive summary...")
     html = render_report(findings, meta, state)
     with open(OUT_PATH, "w", encoding="utf-8") as fh:
         fh.write(html)
-    print(f"\n✓ Written to {OUT_PATH}")
-    print(f"  All checks passed: {meta['all_pass']}")
+    print(f"✓ Written to {OUT_PATH}")
+
+    print("Rendering picks detail page...")
+    with open(PICKS_DETAIL_PATH, "w", encoding="utf-8") as fh:
+        fh.write(render_picks_detail(traceability, meta))
+    print(f"✓ Written to {PICKS_DETAIL_PATH}")
+
+    print("Rendering governance detail page...")
+    with open(GOVERNANCE_DETAIL_PATH, "w", encoding="utf-8") as fh:
+        fh.write(render_governance_detail(gov, meta))
+    print(f"✓ Written to {GOVERNANCE_DETAIL_PATH}")
+
+    print(f"\n  All checks passed: {meta['all_pass']}")
 
 
 if __name__ == "__main__":

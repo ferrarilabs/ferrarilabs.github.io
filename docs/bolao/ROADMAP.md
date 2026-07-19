@@ -37,10 +37,12 @@ banner should copy Copa's CSS tokens per the golden-master rule. See
 
 ### M-06 — Port trilingual audit report to CDB2026 (and adapt for BR2026)
 
-Copa (v4.150) shipped `generate_audit_report.py` — an independent-recomputation, trilingual,
+Copa (v4.150, expanded v4.153) shipped `generate_audit_report.py` — an independent-recomputation,
 Big4-structured (not Big4-branded) HTML audit report published on-site before the Final, covering
 scoring integrity, data integrity, per-entry score reconciliation, ranking/tiebreak verification,
-and prize mechanism verification. CDB2026 has a single decisive Final (like Copa) and is the
+prize mechanism verification, and (v4.153) full per-match/per-entry traceability plus a real
+creation/edit-history governance page, structured as an executive summary + detail pages + code
+links. CDB2026 has a single decisive Final (like Copa) and is the
 natural next candidate once its own knockout stage nears completion (Oitavas starts Aug 1) — but
 this requires rewriting the independent recomputation logic for CDB2026's own scoring formula
 (per-match points + tie bonus + podium bonus), not a copy of Copa's. BR2026 has no single decisive
