@@ -31,6 +31,8 @@ EMAILJS_KEY   = "GBZFujsJBET6modve"
 EMAILJS_SVC   = "service_o4hyzxr"
 EMAILJS_TMPL  = "template_xq7yzzb"
 ADMIN_EMAIL   = "emferrari@gmail.com"
+CDB_INVITE_URL    = "https://ferrarilabs.github.io/bolao/cdb2026/"
+CDB_WHATSAPP_URL  = "https://chat.whatsapp.com/JF7lLG6HNjLIvC8p3Z8EVi?mode=gi_t"
 
 EMAILJS_HEADERS = {
     "Content-Type": "application/json",
@@ -668,6 +670,50 @@ def build_podium_html(payouts_info, real_podium=None):
 """
 
 
+def build_cdb_invite_html():
+    """Bilingual PT/EN invite block for the Copa do Brasil 2026 bolão (CDB2026) — appended ONLY
+    to the true final email (both M103 and M104 locked, tournament fully decided), right after
+    the podium reveal. Eduardo, 2026-07-19: "just send at the end of the last match ... add the
+    invite to the new bolao" — same email as the final result, not a separate send. CDB2026 is a
+    real, already-open product (not a teaser): real entries, real Supabase/EmailJS, real upcoming
+    cutoff (Round of 16 kicks off 2026-08-01) — see CONSISTENCY_MATRIX.md 2026-07-19 publish note.
+    Public URL confirmed OK to share directly (Eduardo, 2026-07-19: "You can put the public
+    link, no problem")."""
+    return f"""
+  <div style="max-width:640px;margin:0 auto 22px;background:#ffffff;border:2px solid #059669;border-radius:14px;padding:22px 24px;font-family:-apple-system,'Segoe UI',Roboto,Arial,sans-serif">
+    <div style="font-size:13px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:#059669;margin-bottom:6px">
+      &#127941; Novo bol&atilde;o &middot; New bol&atilde;o
+    </div>
+    <h2 style="margin:0 0 10px;font-size:20px;color:#111827">Entre no Bol&atilde;o da Copa do Brasil! &middot; Join the Copa do Brasil bol&atilde;o!</h2>
+    <p style="margin:0 0 10px;font-size:14px;line-height:1.6;color:#374151">
+      Como o Brasileir&atilde;o 2026 j&aacute; fechou as entradas, abrimos o <b>Bol&atilde;o da Copa
+      do Brasil 2026</b> &mdash; mesmo formato de mata-mata desta Copa, com times reais do futebol
+      brasileiro. J&aacute; estamos nas Oitavas de Final, com os primeiros jogos a partir de
+      <b>01/08/2026</b> &mdash; ainda d&aacute; tempo de entrar!
+    </p>
+    <p style="margin:0 0 14px;font-size:13px;line-height:1.6;color:#6b7280">
+      Since BR2026 already closed entries, we opened the <b>Copa do Brasil 2026 bol&atilde;o</b>
+      &mdash; same knockout format as this one, with real Brazilian club teams. We're already in
+      the Round of 16, with the first games starting <b>Aug 1, 2026</b> &mdash; still time to join!
+    </p>
+    <ul style="margin:0 0 14px;padding-left:18px;font-size:13.5px;line-height:1.7;color:#374151">
+      <li>Entrada / Entry: <b>US$5</b> &mdash; mesmo Cash App / Zelle / Venmo de sempre</li>
+      <li>Premia&ccedil;&atilde;o / Prizes: 70% 1&ordm; &middot; 20% 2&ordm; &middot; 10% 3&ordm;</li>
+    </ul>
+    <div style="text-align:center;margin:16px 0 6px">
+      <a href="{CDB_INVITE_URL}" style="display:inline-block;background:#059669;color:#ffffff;font-weight:800;font-size:14.5px;text-decoration:none;padding:12px 26px;border-radius:9px">
+        Fazer meu palpite &middot; Make my picks &rarr;
+      </a>
+    </div>
+    <div style="text-align:center;font-size:12px;color:#9ca3af">
+      <a href="{CDB_INVITE_URL}" style="color:#059669;text-decoration:none">ferrarilabs.github.io/bolao/cdb2026/</a>
+      &nbsp;&middot;&nbsp;
+      <a href="{CDB_WHATSAPP_URL}" style="color:#059669;text-decoration:none">Grupo do WhatsApp</a>
+    </div>
+  </div>
+"""
+
+
 # ── Email HTML builder ────────────────────────────────────────────────────────
 def pts_color(pts):
     if pts >= 10: return "#16a34a"
@@ -1083,9 +1129,10 @@ def run_auto():
             payouts_info = compute_final_payouts(state, saved)
             if payouts_info:
                 real_podium = _podium_from_results(saved)
-                html = build_podium_html(payouts_info, real_podium) + html
+                html = build_podium_html(payouts_info, real_podium) + html + build_cdb_invite_html()
                 subj = f"🏆 Resultado Final do Bolão! · Final Bolão Result! — {tA} {r['goalsA']}–{r['goalsB']} {tB}"
                 print(f"  🏆 Tournament complete — including podium/prize block ({len(payouts_info['payouts'])} payouts, pot ${payouts_info['pot']})")
+                print(f"  🏅 Also including Copa do Brasil 2026 (CDB2026) invite block")
 
         sent, errors = _send_to_all(state, html, subj)
         print(f"  → {sent} sent, {len(errors)} errors")
