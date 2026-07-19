@@ -71,15 +71,6 @@ def _phase_for_mid(mid):
     return "Final"
 
 
-def _mask_ip(ip):
-    if not ip or ip == "unknown":
-        return "—"
-    parts = ip.split(".")
-    if len(parts) == 4:
-        return f"{parts[0]}.{parts[1]}.{parts[2]}.xxx"
-    return (ip[:8] + "…") if len(ip) > 8 else ip
-
-
 DETAIL_PAGE_STYLE = """
   :root { --green:#0d7a3f; --gold:#b45309; --border:#dde3e8; --bg:#f4f7fb; --bad:#b91c1c; }
   * { box-sizing:border-box; }
@@ -539,7 +530,7 @@ def compute_picks_traceability(state, results):
             tA, tB = sre._real_teams(mid, results)
             pts, note = 0, "—"
             if pick and result:
-                pts, note, _ = sre.score_match(pick, result, teamA=tA, teamB=tB)
+                pts, note, _ = sre.score_match(pick, result, teamA=tA, teamB=tB, mid=mid)
                 bonus_pts, bonus_note, _ = sre.match_podium_bonus_note(e, mid, results)
                 if bonus_pts:
                     pts += bonus_pts
@@ -707,7 +698,7 @@ def render_governance_detail(gov, meta):
                 else:
                     ch_table = "<p style='font-size:12px;color:#6b7280'>Sem mudanças registradas neste evento.</p>"
                 recs.append(f"""<div style="margin:10px 0;padding:10px 12px;background:#f8fafc;border-radius:8px;font-size:12.5px">
-                  <b>{fmt_ts(rec.get('ts'))}</b> · {rec.get('changeCount', 0)} mudança(s) · IP {esc(_mask_ip(rec.get('ip')))} · {esc(rec.get('platform', '—'))} · tela {esc(rec.get('screen', '—'))}
+                  <b>{fmt_ts(rec.get('ts'))}</b> · {rec.get('changeCount', 0)} mudança(s) · IP {esc(rec.get('ip', '—') or '—')} · {esc(rec.get('platform', '—') or '—')} · tela {esc(rec.get('screen', '—') or '—')} · idioma do navegador {esc(rec.get('lang', '—') or '—')}
                   {ch_table}
                 </div>""")
             records_html = "".join(recs)
@@ -751,7 +742,7 @@ def render_governance_detail(gov, meta):
   <div class="page-header">
     <h1>📋 Auditoria Detalhada — Governança e Histórico de Edições</h1>
     <p><b>Gerado em:</b> {ts_now} · <b>Entradas:</b> {len(gov['rows'])} · <b>Modificadas:</b> {modified_count} · <b>Eventos no log de auditoria:</b> {gov['totalAuditLogRecords']}</p>
-    <p>Data/hora de criação (<code class="small">createdAt</code>) e da última atualização (<code class="small">updatedAt</code>) de cada entrada, mais o histórico completo de edições feitas pela função "editar por código" do site — com o valor antes/depois de cada palpite alterado, IP (parcialmente mascarado), dispositivo e horário. E-mails de participantes não são exibidos nesta página pública, seguindo a mesma política de privacidade já aplicada no restante do site (aba Participantes é restrita ao admin).</p>
+    <p>Data/hora de criação (<code class="small">createdAt</code>) e da última atualização (<code class="small">updatedAt</code>) de cada entrada, mais o histórico completo de edições feitas pela função "editar por código" do site — com o valor antes/depois de cada palpite alterado, endereço IP completo, dispositivo, tamanho de tela e idioma do navegador, exatamente como capturado pelo próprio site no momento da edição. E-mails de participantes não são exibidos nesta página, seguindo a mesma política de privacidade já aplicada no restante do site (aba Participantes é restrita ao admin).</p>
   </div>
   {anomaly_html}
   {"".join(rows_html)}
@@ -859,7 +850,7 @@ def render_report(findings, meta, state):
       <p>Este resumo executivo tem propósito de leitura rápida. Para o nível de detalhe completo — cada palpite, cada partida, cada ponto — e o histórico completo de criação/edição de cada entrada, use os links abaixo:</p>
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Auditoria por partida e por entrada</b></a> — palpite, resultado real e pontos ganhos em cada uma das 32 partidas, para cada uma das {meta['entry_count']} entradas reais (não é resumido — é o dado bruto completo, com índice navegável).</li>
-        <li><a href="audit-detail-governance.html"><b>📋 Governança e histórico de edições</b></a> — data/hora de criação e última atualização de cada entrada, mais o histórico completo de mudanças (antes/depois de cada palpite alterado, IP parcialmente mascarado, dispositivo, horário).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Governança e histórico de edições</b></a> — data/hora de criação e última atualização de cada entrada, mais o histórico completo de mudanças (antes/depois de cada palpite alterado, IP completo, dispositivo, horário).</li>
         <li><b>Código-fonte:</b> este relatório e toda a lógica de pontuação são <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">código aberto no GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">pontuação/e-mail</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">lógica do site</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">suíte de autoteste</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">histórico completo de mudanças</a>.</li>
       </ul>
     </section>"""
@@ -868,7 +859,7 @@ def render_report(findings, meta, state):
       <p>This executive summary is meant for a quick read. For the full level of detail — every pick, every match, every point — and the complete creation/edit history of every entry, use the links below:</p>
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Per-match, per-entry audit</b></a> — pick, real result, and points earned on each of the 32 matches, for each of the {meta['entry_count']} real entries (not summarized — the full raw data, with a navigable index).</li>
-        <li><a href="audit-detail-governance.html"><b>📋 Governance and edit history</b></a> — creation date/time and last update for each entry, plus the complete change history (before/after for every changed pick, partially masked IP, device, timestamp).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Governance and edit history</b></a> — creation date/time and last update for each entry, plus the complete change history (before/after for every changed pick, full IP, device, timestamp).</li>
         <li><b>Source code:</b> this report and all the scoring logic are <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">open source on GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">scoring/email</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">site logic</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">self-test suite</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">full change history</a>.</li>
       </ul>
     </section>"""
@@ -877,7 +868,7 @@ def render_report(findings, meta, state):
       <p>Este resumen ejecutivo es para una lectura rápida. Para el nivel de detalle completo — cada pronóstico, cada partido, cada punto — y el historial completo de creación/edición de cada entrada, usa los enlaces a continuación:</p>
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Auditoría por partido y por entrada</b></a> — pronóstico, resultado real y puntos ganados en cada uno de los 32 partidos, para cada una de las {meta['entry_count']} entradas reales (no resumido — el dato bruto completo, con índice navegable).</li>
-        <li><a href="audit-detail-governance.html"><b>📋 Gobernanza e historial de ediciones</b></a> — fecha/hora de creación y última actualización de cada entrada, más el historial completo de cambios (antes/después de cada pronóstico modificado, IP parcialmente enmascarada, dispositivo, horario).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Gobernanza e historial de ediciones</b></a> — fecha/hora de creación y última actualización de cada entrada, más el historial completo de cambios (antes/después de cada pronóstico modificado, IP completa, dispositivo, horario).</li>
         <li><b>Código fuente:</b> este informe y toda la lógica de puntuación son <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">código abierto en GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">puntuación/correo</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">lógica del sitio</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">suite de autopruebas</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">historial completo de cambios</a>.</li>
       </ul>
     </section>"""

@@ -1497,7 +1497,10 @@ function buildResultEmailHtml(s, testMode) {
   const thead = `style="background:#f1f5f9"`;
   const th = `style="padding:8px 10px;text-align:left;font-weight:600;color:#374151"`;
 
-  function scoreMatchSingle(pick, result, tA, tB) {
+  // mid: when "103" or "104", the +5 "advance" note uses match-appropriate wording instead of
+  // "avança"/"advances"/"avanza" -- Eduardo, 2026-07-19: nobody "advances" from the 3rd place
+  // match or the Final, those are the last matches of the bracket for that side. Wording only.
+  function scoreMatchSingle(pick, result, tA, tB, mid) {
     if (!pick || !result?.advanceSide) return { pts: 0, detPt: "sem palpite", detEn: "no pick", detEs: "sin pronóstico" };
     const pA = parseScore(pick.goalsA), pB = parseScore(pick.goalsB);
     if (pA === null || pB === null) return { pts: 0, detPt: "palpite inválido", detEn: "invalid pick", detEs: "pronóstico inválido" };
@@ -1512,14 +1515,21 @@ function buildResultEmailHtml(s, testMode) {
     }
     if (pick.advanceSide === result.advanceSide) {
       const w = result.advanceSide === "B" ? tB : tA;
-      pts += sc.advance; nPt.push(`+${sc.advance} ${w} avança`); nEn.push(`+${sc.advance} ${w} advances`); nEs.push(`+${sc.advance} ${w} avanza`);
+      pts += sc.advance;
+      if (String(mid) === "103") {
+        nPt.push(`+${sc.advance} ${w} vence a disputa de 3º lugar`); nEn.push(`+${sc.advance} ${w} wins the 3rd place match`); nEs.push(`+${sc.advance} ${w} gana el partido por el 3er lugar`);
+      } else if (String(mid) === "104") {
+        nPt.push(`+${sc.advance} ${w} vence a Final`); nEn.push(`+${sc.advance} ${w} wins the Final`); nEs.push(`+${sc.advance} ${w} gana la Final`);
+      } else {
+        nPt.push(`+${sc.advance} ${w} avança`); nEn.push(`+${sc.advance} ${w} advances`); nEs.push(`+${sc.advance} ${w} avanza`);
+      }
     }
     return { pts, detPt: nPt.join(", ") || "—", detEn: nEn.join(", ") || "—", detEs: nEs.join(", ") || "—" };
   }
 
   const breakdownScored = lastMid ? scored.map(item => {
     const pick = item.e.picks?.[lastMid];
-    let { pts, detPt, detEn, detEs } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB);
+    let { pts, detPt, detEn, detEs } = scoreMatchSingle(pick, lastResult, lastTeamA, lastTeamB, lastMid);
     if (pick) {
       const bonus = matchPodiumBonus(item.e, lastMid, s);
       if (bonus.pts) {
@@ -1557,6 +1567,10 @@ function buildResultEmailHtml(s, testMode) {
   const matchCount = sortedMids.length;
   const lastLabel = lastMid ? `M${lastMid}` : "";
   const lastResultStr = lastResult ? `${lastTeamA} ${lastResult.goalsA}–${lastResult.goalsB} ${lastTeamB}` : "—";
+  // Eduardo, 2026-07-19: nobody "advances" from M103/M104, those are the bracket's last matches.
+  const lastWinnerVerbPt = String(lastMid) === "103" ? "vence a disputa de 3º lugar" : String(lastMid) === "104" ? "vence a Final" : "avança";
+  const lastWinnerVerbEn = String(lastMid) === "103" ? "wins the 3rd place match" : String(lastMid) === "104" ? "wins the Final" : "advances";
+  const lastWinnerVerbEs = String(lastMid) === "103" ? "gana el partido por el 3er lugar" : String(lastMid) === "104" ? "gana la Final" : "avanza";
   const testBanner = testMode
     ? `<div style="background:#fef3c7;border:2px dashed #f59e0b;padding:12px;border-radius:8px;text-align:center;margin-bottom:16px;font-weight:700">⚠️ EMAIL DE TESTE / TEST EMAIL</div>`
     : "";
@@ -1572,7 +1586,7 @@ function buildResultEmailHtml(s, testMode) {
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Último jogo (${lastLabel})</div>
       <div style="font-size:16px;font-weight:700">${escapeHtml(lastResultStr)}</div>
-      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} avança</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} ${lastWinnerVerbPt}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Pontuação — Último jogo (${lastLabel})</div>
     <table ${tbl}><thead><tr ${thead}><th ${th}>Entrada</th><th ${th} style="text-align:center">Palpite</th><th ${th} style="text-align:center">Pts</th><th ${th}>Detalhes</th></tr></thead><tbody>${breakdownPt}</tbody></table>
@@ -1584,7 +1598,7 @@ function buildResultEmailHtml(s, testMode) {
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Latest match (${lastLabel})</div>
       <div style="font-size:16px;font-weight:700">${escapeHtml(lastResultStr)}</div>
-      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} advances</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} ${lastWinnerVerbEn}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Scoring — Latest match (${lastLabel})</div>
     <table ${tbl}><thead><tr ${thead}><th ${th}>Entry</th><th ${th} style="text-align:center">Pick</th><th ${th} style="text-align:center">Pts</th><th ${th}>Details</th></tr></thead><tbody>${breakdownEn}</tbody></table>
@@ -1596,7 +1610,7 @@ function buildResultEmailHtml(s, testMode) {
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">Último partido (${lastLabel})</div>
       <div style="font-size:16px;font-weight:700">${escapeHtml(lastResultStr)}</div>
-      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} avanza</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} ${lastWinnerVerbEs}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Puntuación — Último partido (${lastLabel})</div>
     <table ${tbl}><thead><tr ${thead}><th ${th}>Entrada</th><th ${th} style="text-align:center">Pronóstico</th><th ${th} style="text-align:center">Pts</th><th ${th}>Detalles</th></tr></thead><tbody>${breakdownEs}</tbody></table>

@@ -1,5 +1,67 @@
 # CHANGELOG
 
+## v4.154 — 2026-07-19
+
+### Fixed — "avança" wording on the last two matches; full IP disclosure on the governance audit page; regenerated "Classificação Geral" (who's still alive) report from real data with a real generator script
+
+Eduardo, reviewing the site ahead of the Final: (1) "classificacao-geral.html" — not the
+Probabilidades tab built in v4.153 — was the page he meant by "probabilities" and needed a full
+audit-grade refresh; (2) the audit governance page should show full IP details, not masked; (3)
+the "+5 {team} avança" wording is wrong for M103 (3rd place match) and M104 (Final) — "purely a
+semantic issue, not a scoring change," since nobody "advances" from the tournament's last two
+matches; (4) requested a full scan confirming Gabriel Ferrari's 15 points on M103 already folds
+in the 10-point 3rd-place bonus once, not twice.
+
+**"avança" wording fix** (`score_match()` in `send_result_email.py`, `scoreMatchSingle()` in
+`app.js`, both call sites in `build_html()`/`buildResultEmailHtml()` and
+`generate_audit_report.py`'s traceability computation): the +5 "correct side" bonus note and the
+"Último jogo" callout line are now match-ID-aware — M103 says "vence a disputa de 3º lugar" / "wins
+the 3rd place match", M104 says "vence a Final" / "wins the Final", every other match keeps
+"avança" / "advances" unchanged. Points math is untouched — verified in Node and Python with real
+M103 data (France 4×6 England) that all three match types still award exactly 5 points, only the
+displayed text differs.
+
+**Gabriel Ferrari's 15-point M103 total — verified correct, not a bug.** Full scan: for all 23 real
+entries, summed every one of the 32 individual per-match displayed points (each already folding in
+any podium bonus, per the v4.152 fix) and compared against the official `score_entry_total()`.
+Zero mismatches. Gabriel's 15 = 5 (base advance points, England correctly picked) + 10 (3rd-place
+podium bonus), folded in exactly once — confirmed identical to the official total everywhere.
+
+**Full IP disclosure on `audit-detail-governance.html`** (`generate_audit_report.py`): per
+Eduardo's explicit instruction, IPs are no longer masked (`_mask_ip()` removed entirely) — the page
+now shows the complete IP address, plus a previously-uncaptured `lang` (browser language) field,
+alongside the existing timestamp/device/platform/change-diff data. This reverses the masking
+decision made in v4.153 at Eduardo's direct request; participant email addresses remain excluded
+(unchanged policy). Description text on the governance page and the executive summary's audit
+links section updated to say "full IP" instead of "partially masked."
+
+**`classificacao-geral.html` regenerated from real data, now with a real generator script**
+(**NEW** `bolao/scripts/generate_classificacao_geral.py` — the page previously had no generator,
+just a hand-written one-off from v4.134/2026-07-15, stale since the semifinals). With M103 now
+locked and only M104 (the Final) outstanding, the "Vivo/Eliminado" (alive/eliminated) check is now
+an **exact enumeration** (all 56 realistic M104 outcomes: every scoreline 0×0–6×6, ties split
+across both possible penalty-shootout winners) rather than a sample, and the "chance" percentages
+use a disclosed bivariate-Poisson model (independent Poisson goals for each finalist, combined
+expected goals fixed at 2.4, split solved by bisection to reproduce the live Polymarket
+market-implied win probability for the two remaining teams) instead of app.js's JS-only
+team-strength Monte Carlo engine, which isn't portable to Python. Same "Garantido" (guaranteed
+at-least-this-position)/percentage/"<0,1%"/"—" (impossible) cell semantics and CSS as the original
+page. Ranking/tiebreak cascade (`total → exact → podium hits`) reuses `send_result_email.py`'s own
+functions, so it can never drift from the official scoring.
+
+Caught and fixed during review, before shipping: the first draft sorted table rows by total score
+only, which put ties in the wrong visual order relative to their own displayed rank number
+whenever the tiebreak (exact scores / podium hits) mattered — e.g. Marodin's row appeared above
+Gabriel Ferrari's despite Gabriel's badge correctly reading a better rank (7 vs 8). Fixed by
+sorting rows by the already-correctly-computed tiebreak rank instead of re-deriving order from
+total alone; re-verified against real data that both Gabriel-vs-Marodin (podium hits break the
+tie) and Gustavo Ribeiro-vs-Simone Hirle #2 (exact-score count breaks the tie) now display in the
+right order.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — every change this release is wording,
+display, or a new read-only report generator; no scoring formula, bracket, or business rule was
+touched.
+
 ## v4.153 — 2026-07-19
 
 ### Added — "chance of winning the bolão" on the Probabilidades tab, and full lottery-audit-grade traceability report

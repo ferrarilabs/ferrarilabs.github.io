@@ -324,8 +324,14 @@ def _parse(v):
     return n if 0 <= n <= 20 else None
 
 
-def score_match(pick, result, teamA="Time A", teamB="Time B"):
-    """Returns (pts, detail_pt, detail_en) for one match."""
+def score_match(pick, result, teamA="Time A", teamB="Time B", mid=None):
+    """Returns (pts, detail_pt, detail_en) for one match.
+
+    mid: when "103" or "104", the +5 "advance" note uses match-appropriate wording instead of
+    "avança"/"advances" -- Eduardo, 2026-07-19: "fala 'time xyz avança', mas nos dois últimos
+    jogos isso não existe (avançar) — a pontuação sim, mas é uma questão apenas de semântica."
+    M103 (3rd place) and M104 (Final) are the last matches of the bracket for that side; nobody
+    "advances" anywhere from them. Wording only -- the +5 points themselves are unchanged."""
     pA = _parse(pick.get("goalsA"))
     pB = _parse(pick.get("goalsB"))
     pS = pick.get("advanceSide", "")
@@ -354,8 +360,15 @@ def score_match(pick, result, teamA="Time A", teamB="Time B"):
 
     if pS == rS:
         pts += SCORING["advance"]
-        notes_pt.append(f"+{SCORING['advance']} {winner} avança")
-        notes_en.append(f"+{SCORING['advance']} {winner} advances")
+        if str(mid) == "103":
+            notes_pt.append(f"+{SCORING['advance']} {winner} vence a disputa de 3º lugar")
+            notes_en.append(f"+{SCORING['advance']} {winner} wins the 3rd place match")
+        elif str(mid) == "104":
+            notes_pt.append(f"+{SCORING['advance']} {winner} vence a Final")
+            notes_en.append(f"+{SCORING['advance']} {winner} wins the Final")
+        else:
+            notes_pt.append(f"+{SCORING['advance']} {winner} avança")
+            notes_en.append(f"+{SCORING['advance']} {winner} advances")
 
     return pts, (", ".join(notes_pt) or "—"), (", ".join(notes_en) or "—")
 
@@ -724,13 +737,13 @@ def build_html(state, focus_mid=None):
               "pick": (item["e"].get("picks") or {}).get(last_mid)}
              for item in scored],
             key=lambda x: -(score_match(x["pick"] or {}, last_result,
-                                        teamA=last_tA, teamB=last_tB)[0]
+                                        teamA=last_tA, teamB=last_tB, mid=last_mid)[0]
                             if x["pick"] else 0)
         )
         for row in breakdown_scored:
             p = row["pick"]
             if p:
-                pts, det_pt, det_en = score_match(p, last_result, teamA=last_tA, teamB=last_tB)
+                pts, det_pt, det_en = score_match(p, last_result, teamA=last_tA, teamB=last_tB, mid=last_mid)
                 bonus_pts, bonus_pt, bonus_en = match_podium_bonus_note(row["entry"], last_mid, results)
                 if bonus_pts:
                     pts += bonus_pts
@@ -773,6 +786,9 @@ def build_html(state, focus_mid=None):
     matches_played = len(results)
     label_pt = f"Último jogo (M{last_mid})" if last_mid else ""
     label_en = f"Latest match (M{last_mid})" if last_mid else ""
+    # Eduardo, 2026-07-19: nobody "advances" from M103/M104, those are the bracket's last matches.
+    winner_verb_pt = "vence a disputa de 3º lugar" if str(last_mid) == "103" else "vence a Final" if str(last_mid) == "104" else "avança"
+    winner_verb_en = "wins the 3rd place match" if str(last_mid) == "103" else "wins the Final" if str(last_mid) == "104" else "advances"
 
     thead_style = 'style="background:#f1f5f9"'
     th  = 'style="padding:8px 10px;text-align:left;font-weight:600;color:#374151"'
@@ -801,7 +817,7 @@ def build_html(state, focus_mid=None):
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{label_pt}</div>
       <div style="font-size:16px;font-weight:700">{result_str}</div>
-      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ {winner_name + " avança" if winner_name else ""}</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ {winner_name + " " + winner_verb_pt if winner_name else ""}</div>
     </div>
 
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Pontuação — {label_pt}</div>
@@ -838,7 +854,7 @@ def build_html(state, focus_mid=None):
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{label_en}</div>
       <div style="font-size:16px;font-weight:700">{result_str}</div>
-      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ {winner_name + " advances" if winner_name else ""}</div>
+      <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ {winner_name + " " + winner_verb_en if winner_name else ""}</div>
     </div>
 
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Scoring — {label_en}</div>

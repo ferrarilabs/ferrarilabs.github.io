@@ -57,7 +57,7 @@
       <h1>Relatório de Auditoria — Integridade de Pontuação e Premiação</h1>
       <div class="audit-meta">
         <div><b>Escopo:</b> Copa do Mundo 2026 — pontuação, ranking e mecanismo de premiação</div>
-        <div><b>Data/hora de geração:</b> 19/07/2026 01:31 UTC</div>
+        <div><b>Data/hora de geração:</b> 19/07/2026 11:42 UTC</div>
         <div><b>Entradas reais auditadas:</b> 23</div>
         <div><b>Partidas travadas auditadas:</b> 31 de 32</div>
         <div><b>Pote atual:</b> $115</div>
@@ -74,7 +74,7 @@
       <p>Este resumo executivo tem propósito de leitura rápida. Para o nível de detalhe completo — cada palpite, cada partida, cada ponto — e o histórico completo de criação/edição de cada entrada, use os links abaixo:</p>
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Auditoria por partida e por entrada</b></a> — palpite, resultado real e pontos ganhos em cada uma das 32 partidas, para cada uma das 23 entradas reais (não é resumido — é o dado bruto completo, com índice navegável).</li>
-        <li><a href="audit-detail-governance.html"><b>📋 Governança e histórico de edições</b></a> — data/hora de criação e última atualização de cada entrada, mais o histórico completo de mudanças (antes/depois de cada palpite alterado, IP parcialmente mascarado, dispositivo, horário).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Governança e histórico de edições</b></a> — data/hora de criação e última atualização de cada entrada, mais o histórico completo de mudanças (antes/depois de cada palpite alterado, IP completo, dispositivo, horário).</li>
         <li><b>Código-fonte:</b> este relatório e toda a lógica de pontuação são <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/generate_audit_report.py">código aberto no GitHub</a> — <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/send_result_email.py">pontuação/e-mail</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/js/app.js">lógica do site</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/audit_scoring.py">suíte de autoteste</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/CHANGELOG.md">histórico completo de mudanças</a>.</li>
       </ul>
     </section><section class="audit-section">
@@ -126,7 +126,7 @@
               <div class="section-body">Suíte de testes que roda automaticamente antes de qualquer envio de e-mail (<code>send_result_email.py --auto</code> se recusa a rodar se esta suíte falhar). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Partial podium (M103 only) still applies its own bonus</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
             </section><section class="audit-section signoff">
       <h2>Certificação</h2>
-      <p>Certifico que os procedimentos descritos neste relatório foram executados de forma automatizada em 19/07/2026 01:31 UTC, contra os dados de produção do Bolão do Ferrari, e que os resultados apresentados refletem fielmente o recálculo obtido. Este relatório pode ser regenerado a qualquer momento executando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p>Certifico que os procedimentos descritos neste relatório foram executados de forma automatizada em 19/07/2026 11:42 UTC, contra os dados de produção do Bolão do Ferrari, e que os resultados apresentados refletem fielmente o recálculo obtido. Este relatório pode ser regenerado a qualquer momento executando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
       <p class="signoff-name">Sistema de Auditoria Automatizada — Bolão do Ferrari</p>
     </section></div>
   <div data-lang="en">
@@ -135,7 +135,7 @@
       <h1>Audit Report — Scoring &amp; Prize Payout Integrity</h1>
       <div class="audit-meta">
         <div><b>Scope:</b> 2026 World Cup — scoring, ranking, and prize mechanism</div>
-        <div><b>Generated at:</b> July 19, 2026 01:31 UTC</div>
+        <div><b>Generated at:</b> July 19, 2026 11:42 UTC</div>
         <div><b>Real entries audited:</b> 23</div>
         <div><b>Locked matches audited:</b> 31 of 32</div>
         <div><b>Current pot:</b> $115</div>
@@ -152,7 +152,7 @@
       <p>This executive summary is meant for a quick read. For the full level of detail — every pick, every match, every point — and the complete creation/edit history of every entry, use the links below:</p>
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Per-match, per-entry audit</b></a> — pick, real result, and points earned on each of the 32 matches, for each of the 23 real entries (not summarized — the full raw data, with a navigable index).</li>
-        <li><a href="audit-detail-governance.html"><b>📋 Governance and edit history</b></a> — creation date/time and last update for each entry, plus the complete change history (before/after for every changed pick, partially masked IP, device, timestamp).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Governance and edit history</b></a> — creation date/time and last update for each entry, plus the complete change history (before/after for every changed pick, full IP, device, timestamp).</li>
         <li><b>Source code:</b> this report and all the scoring logic are <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/generate_audit_report.py">open source on GitHub</a> — <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/send_result_email.py">scoring/email</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/js/app.js">site logic</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/audit_scoring.py">self-test suite</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/CHANGELOG.md">full change history</a>.</li>
       </ul>
     </section><section class="audit-section">
@@ -204,7 +204,7 @@
               <div class="section-body">Test suite that runs automatically before any email send (<code>send_result_email.py --auto</code> refuses to run if this suite fails). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Partial podium (M103 only) still applies its own bonus</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
             </section><section class="audit-section signoff">
       <h2>Certification</h2>
-      <p>I certify that the procedures described in this report were executed automatically at July 19, 2026 01:31 UTC, against Bolão do Ferrari's production data, and that the results shown faithfully reflect the recomputation obtained. This report can be regenerated at any time by running <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p>I certify that the procedures described in this report were executed automatically at July 19, 2026 11:42 UTC, against Bolão do Ferrari's production data, and that the results shown faithfully reflect the recomputation obtained. This report can be regenerated at any time by running <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
       <p class="signoff-name">Automated Audit System — Bolão do Ferrari</p>
     </section></div>
   <div data-lang="es">
@@ -213,7 +213,7 @@
       <h1>Informe de Auditoría — Integridad de Puntuación y Premiación</h1>
       <div class="audit-meta">
         <div><b>Alcance:</b> Copa del Mundo 2026 — puntuación, ranking y mecanismo de premiación</div>
-        <div><b>Fecha/hora de generación:</b> 19/07/2026 01:31 UTC</div>
+        <div><b>Fecha/hora de generación:</b> 19/07/2026 11:42 UTC</div>
         <div><b>Entradas reales auditadas:</b> 23</div>
         <div><b>Partidos bloqueados auditados:</b> 31 de 32</div>
         <div><b>Bolsa actual:</b> $115</div>
@@ -230,7 +230,7 @@
       <p>Este resumen ejecutivo es para una lectura rápida. Para el nivel de detalle completo — cada pronóstico, cada partido, cada punto — y el historial completo de creación/edición de cada entrada, usa los enlaces a continuación:</p>
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Auditoría por partido y por entrada</b></a> — pronóstico, resultado real y puntos ganados en cada uno de los 32 partidos, para cada una de las 23 entradas reales (no resumido — el dato bruto completo, con índice navegable).</li>
-        <li><a href="audit-detail-governance.html"><b>📋 Gobernanza e historial de ediciones</b></a> — fecha/hora de creación y última actualización de cada entrada, más el historial completo de cambios (antes/después de cada pronóstico modificado, IP parcialmente enmascarada, dispositivo, horario).</li>
+        <li><a href="audit-detail-governance.html"><b>📋 Gobernanza e historial de ediciones</b></a> — fecha/hora de creación y última actualización de cada entrada, más el historial completo de cambios (antes/después de cada pronóstico modificado, IP completa, dispositivo, horario).</li>
         <li><b>Código fuente:</b> este informe y toda la lógica de puntuación son <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/generate_audit_report.py">código abierto en GitHub</a> — <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/send_result_email.py">puntuación/correo</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/js/app.js">lógica del sitio</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/scripts/audit_scoring.py">suite de autopruebas</a>, <a href="https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/bolao/CHANGELOG.md">historial completo de cambios</a>.</li>
       </ul>
     </section><section class="audit-section">
@@ -282,7 +282,7 @@
               <div class="section-body">Suite de pruebas que se ejecuta automáticamente antes de cualquier envío de correo (<code>send_result_email.py --auto</code> se niega a ejecutarse si esta suite falla). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Partial podium (M103 only) still applies its own bonus</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
             </section><section class="audit-section signoff">
       <h2>Certificación</h2>
-      <p>Certifico que los procedimientos descritos en este informe se ejecutaron de forma automatizada el 19/07/2026 01:31 UTC, contra los datos de producción de Bolão do Ferrari, y que los resultados presentados reflejan fielmente el recálculo obtenido. Este informe puede regenerarse en cualquier momento ejecutando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p>Certifico que los procedimientos descritos en este informe se ejecutaron de forma automatizada el 19/07/2026 11:42 UTC, contra los datos de producción de Bolão do Ferrari, y que los resultados presentados reflejan fielmente el recálculo obtenido. Este informe puede regenerarse en cualquier momento ejecutando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
       <p class="signoff-name">Sistema de Auditoría Automatizada — Bolão do Ferrari</p>
     </section></div>
 </div>
