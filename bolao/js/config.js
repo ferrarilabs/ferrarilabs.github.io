@@ -1,5 +1,12 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.156",
+  siteVersion: "v4.157",
+  // Tournament fully decided (2026-07-19, Spain champion) -- Eduardo: "Copa do mundo finalizada!
+  // ... Desabilitar os botões todos, deixar só o vencedor, auditoria e os palpites." When true,
+  // hides the entry/games/probs/rules nav buttons and the Admin nav button (still reachable —
+  // see renderFooterBar's small "Admin" link — admin itself stays password-gated regardless), and
+  // the Ranking tab (already the only default landing section since cutoff) becomes the sole
+  // reachable section. One flag, trivially reversible — flip back to false to reopen the site.
+  archived: true,
   appName: "Bolão do Ferrari",
   subtitle: "Copa do Mundo 2026",
   storeKey: "bolao_copa_2026_state",

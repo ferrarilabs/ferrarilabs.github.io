@@ -1573,3 +1573,27 @@ CDB2026) e ao ponto de chamada de cada um (`pollLiveScores()`/`fetchScoreboard()
 `fetchEspnCandidates()`). Verificado com dado real da ESPN para as três ligas antes de shippar.
 
 `audit_scoring.py`: PASSOU nos três apps, sem alteração — mudança de apresentação apenas.
+
+## Nota manual — modo arquivo da Copa (2026-07-19, Copa v4.157) — COPA APENAS, template pra quando BR2026/CDB2026 encerrarem
+
+Copa do Mundo 2026 encerrada (Espanha campeã). Eduardo: "Desabilitar os botões todos, deixar só o
+vencedor, auditoria e os palpites." Novo `CONFIG.archived` (`bolao/js/config.js`) — flag única,
+reversível — esconde os botões de nav Palpites/Jogos/Probabilidades/Regras/Admin e trava a aba
+Ranking como única seção alcançável (`applyArchiveMode()` em `app.js`). Nenhuma página nova: o
+Ranking já reunia pódio/vencedor, link de auditoria e "Ver palpites" por entrada — só precisava
+tirar o ruído de navegação ao redor. Admin continua acessível (nunca foi removido, só escondido do
+header) via link discreto no rodapé — a proteção de verdade sempre foi o `guardAdmin()` com senha.
+
+Também decidido nesta conversa: **não mover** `bolao/` para `bolao/copa2026/` — a URL atual está
+espalhada em e-mails reais já enviados, no relatório de auditoria e no switcher dos outros dois
+apps; mover quebraria tudo isso sem necessidade. `bolao/` fica congelado como o arquivo permanente
+da Copa 2026; a Copa 2030 (daqui a 4 anos) vira uma pasta nova irmã (`bolao/copa2030/`), mesmo
+padrão do BR2026/CDB2026, quando chegar a hora.
+
+**Por que não propagado**: BR2026 e CDB2026 ainda estão em andamento (BR2026 com entradas
+fechadas mas temporada rolando; CDB2026 recém-publicado, oitavas começam 01/08/2026). Modo
+arquivo não faz sentido até cada torneio de fato terminar. Esta nota serve de referência/template
+para quando chegar a vez de cada um — mesmo flag `archived`, mesma função `applyArchiveMode()`,
+adaptada à estrutura de nav de cada app.
+
+`audit_scoring.py`: PASSOU, sem alteração — mudança de navegação apenas.
