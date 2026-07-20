@@ -628,6 +628,23 @@ function showSection(id) {
   if (heading) { heading.setAttribute("tabindex", "-1"); heading.focus({ preventScroll: true }); }
 }
 
+// Tournament fully decided (CONFIG.archived, see config.js) -- Eduardo, 2026-07-19: "Copa do
+// mundo finalizada! ... Desabilitar os botões todos, deixar só o vencedor, auditoria e os
+// palpites." The Ranking tab already contains all three (podium banner, audit-report-link, and
+// the "Ver palpites" per-entry detail panel) -- see index.html's #ranking section -- so archive
+// mode just needs to hide every other nav button and force Ranking as the only reachable
+// section. Admin is hidden from the header too but stays reachable via the small footer link
+// (renderFooterBar) since guardAdmin()'s password gate is the real protection, not UI hiding.
+// Called once from init(); nav buttons are never removed from the DOM, just hidden, so nothing
+// here is destructive — flipping CONFIG.archived back to false and reloading fully restores them.
+function applyArchiveMode() {
+  if (!CONFIG.archived) return;
+  ["entry", "games", "probs", "rules", "admin"].forEach(section => {
+    document.querySelector(`.nav button[data-section="${section}"]`)?.classList.add("hidden");
+  });
+  showSection("ranking");
+}
+
 /* ============================================================
    Bracket helpers
    ============================================================ */
@@ -4605,9 +4622,15 @@ function renderFooterBar() {
   const syncAt = s.meta?.updatedAt
     ? new Date(s.meta.updatedAt).toLocaleString("pt-BR", { timeZone: "America/New_York", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" })
     : null;
-  el.innerHTML = syncAt
+  const versionLine = syncAt
     ? `${escapeHtml(CONFIG.siteVersion)} · sync ${escapeHtml(syncAt)} ET`
     : escapeHtml(CONFIG.siteVersion);
+  // Archive mode hides the Admin nav button (see applyArchiveMode) -- this small, low-contrast
+  // link keeps admin one click away for Eduardo without cluttering the header for everyone else.
+  // Admin itself stays password-gated (guardAdmin()) regardless of how this section is reached.
+  el.innerHTML = CONFIG.archived
+    ? `${versionLine} &nbsp;·&nbsp; <button type="button" class="footer-admin-link" data-action="show-admin">Admin</button>`
+    : versionLine;
 }
 
 function renderAll() {
@@ -4645,6 +4668,9 @@ function initEvents() {
   document.addEventListener("click", e => {
     const nav = e.target.closest(".nav button[data-section]");
     if (nav) { showSection(nav.dataset.section); return; }
+
+    const adminLink = e.target.closest('[data-action="show-admin"]');
+    if (adminLink) { showSection("admin"); return; }
 
     const lang = e.target.closest("[data-lang]");
     if (lang) { setLang(lang.dataset.lang); return; }
@@ -4873,6 +4899,7 @@ async function init() {
   await loadRemoteState();
   renderAll();
   initEvents();
+  applyArchiveMode();
 
   // Restore admin session if still valid
   if (isAdminActive()) {

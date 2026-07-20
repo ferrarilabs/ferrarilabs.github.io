@@ -1,5 +1,41 @@
 # CHANGELOG
 
+## v4.157 — 2026-07-19
+
+### Added — archive mode: tournament over, site simplified to Ranking + audit + picks
+
+Eduardo, after the Final concluded (Spain champion): "Copa do mundo finalizada! ... Desabilitar
+os botões todos, deixar só o vencedor, auditoria e os palpites." Discussed the "move to
+`copa2026/`" idea too — recommended against it (18+ real emails, the audit report, and the
+BR2026/CDB2026 switcher all already point at `/bolao/`; moving would break every one of those
+links for no real benefit) in favor of freezing `/bolao/` in place as the permanent 2026 archive
+and building Copa 2030 as a new sibling folder when the time comes — Eduardo agreed.
+
+**New `CONFIG.archived` flag** (`config.js`, currently `true`): a single, trivially-reversible
+switch. When on, `applyArchiveMode()` (`app.js`) hides the Palpites/Jogos/Probabilidades/Regras
+and Admin nav buttons and forces Ranking as the only reachable section. No new page was built —
+Ranking already contains the podium/winner banner, the audit report link, and the "Ver palpites"
+per-entry detail panel (click any entry to see their picks), so it already was "vencedor +
+auditoria + palpites" in one place once the nav noise around it is gone.
+
+Admin stays reachable (not deleted or actually locked out — `guardAdmin()`'s password gate is
+the real protection, always was) via a small, low-contrast text link added to the footer version
+line, only rendered when archived — declutters the header for everyone else without blocking
+Eduardo from doing an occasional post-tournament correction.
+
+Verified structurally with Playwright (real Supabase reads aren't reachable from this sandbox's
+browser context, but the nav-hiding logic doesn't depend on entry data): all 5 buttons hidden,
+Ranking active by default, footer admin link renders and correctly switches to the Admin section
+when clicked, both desktop and mobile.
+
+**Not propagated to BR2026/CDB2026** — both tournaments are still in progress (BR2026 entries
+closed but the season is still being played; CDB2026 just opened, Round of 16 starts 2026-08-01).
+Archive mode is meaningless until each of those tournaments actually finishes; noted for when
+that day comes.
+
+`audit_scoring.py`: PASSED, unchanged — this only hides navigation, no scoring/business rule
+touched.
+
 ## v4.156 — 2026-07-19
 
 ### Fixed — substitutions missing from the live "lances" feed (cards/goals still showed, subs never did)

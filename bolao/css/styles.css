@@ -1068,6 +1068,12 @@ h2:focus, h3:focus { outline: none; }
 }
 .site-footer-bar a { color: inherit; text-decoration: none; }
 .site-footer-bar a:hover { text-decoration: underline; }
+/* Archive mode's discreet admin link (renderFooterBar, CONFIG.archived) — a real <button>
+   for keyboard/AT access, styled to read as plain footer text, not a UI control. */
+.footer-admin-link {
+  background: none; border: none; padding: 0; margin: 0;
+  font: inherit; color: inherit; cursor: pointer; text-decoration: underline;
+}
 
 /* ── Probability bars (live match card) ── */
 .prob-bars {
