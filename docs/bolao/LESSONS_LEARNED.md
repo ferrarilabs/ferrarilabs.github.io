@@ -790,7 +790,7 @@ Formalização progressiva de processo:
 1. `docs/bolao/QA_CHECKLIST.md` — checklist funcional específico da Copa, incluindo uma seção
    dedicada "Scoring/ranking parity — run before ANY PR, always, no exceptions" desde o
    incidente de julho de 2026.
-2. `bolao/scripts/audit_scoring.py` — auditoria automatizada que roda antes de qualquer e-mail
+2. `bolao/copa2026/scripts/audit_scoring.py` — auditoria automatizada que roda antes de qualquer e-mail
    automático e é exigida após qualquer mudança no repositório.
 3. `docs/bolao/QA_MASTER_CHECKLIST.md` — checklist cross-app (pre-change, static checks,
    funcional, visual, cross-app, post-change) para mudanças `PLATFORM_SHARED`, `SECURITY` ou
@@ -805,7 +805,8 @@ Formalização progressiva de processo:
   bug relatado com um teste automatizado (Playwright ou equivalente) antes de declarar a
   correção verificada, especialmente para bugs de timing/estado (relógio, sync, race
   condition).
-- Rodar `python3 bolao/scripts/audit_scoring.py` e reportar o resultado é **obrigatório** após
+- Rodar `python3 bolao/copa2026/scripts/audit_scoring.py` (e o equivalente de cada app afetado) e
+  reportar o resultado é **obrigatório** após
   qualquer mudança no repositório, relacionada a scoring ou não — dois dos bugs mais graves já
   encontrados (bônus não somado, 4º lugar descartado) estavam em código que ninguém suspeitava
   ser "relacionado a scoring" no momento em que foi escrito.

@@ -2,7 +2,7 @@
 
 Este documento é a memória permanente do projeto. Ele existe para que qualquer IA ou pessoa
 que retome o trabalho aqui não precise reconstruir o contexto do zero. Todo o conteúdo abaixo
-foi extraído da documentação existente (`docs/bolao/*.md`, `bolao/docs/*.md`, `CLAUDE.md`,
+foi extraído da documentação existente (`docs/bolao/*.md`, `bolao/copa2026/docs/*.md`, `CLAUDE.md`,
 changelogs) e do código-fonte real. Nada aqui é especulação.
 
 Ver também: `docs/bolao/LESSONS_LEARNED.md` (bugs históricos em formato causa-raiz/correção/
@@ -23,8 +23,8 @@ em **2026-06-27**, o projeto passou por um **rebuild completo do zero**, batizad
 A partir de v4.0-clean, o desenvolvimento passou a ser guiado por um ciclo de feedback direto
 com Eduardo (majoritariamente via WhatsApp, com screenshots de bugs reais e de referências
 visuais como o placar ao vivo do Google) e por sessões de Claude Code operando diretamente no
-repositório. O app da Copa chegou à versão **v4.125** (ver `bolao/js/config.js`), com mais de
-120 iterações registradas em `bolao/CHANGELOG.md`.
+repositório. O app da Copa chegou à versão **v4.125** (ver `bolao/copa2026/js/config.js`), com
+mais de 120 iterações registradas em `bolao/copa2026/CHANGELOG.md`.
 
 Em julho de 2026, a plataforma cresceu de um app único para **três aplicativos bolão
 independentes**:
@@ -43,7 +43,7 @@ after uma participante (Aline) ficou confusa com uma mudança de posição no ra
 "auditoria estilo big 4" nos resultados e no ranking. A auditoria encontrou drift real entre o
 site (`app.js`) e o script de e-mail automático (`send_result_email.py`) — ver seção
 "Auditorias realizadas" e `docs/bolao/LESSONS_LEARNED.md`. Esse incidente gerou a regra
-permanente (hoje em `CLAUDE.md`) de rodar `bolao/scripts/audit_scoring.py` após **qualquer**
+permanente (hoje em `CLAUDE.md`) de rodar `bolao/copa2026/scripts/audit_scoring.py` após **qualquer**
 mudança no repositório, relacionada a scoring ou não.
 
 Mais recentemente (2026-07-12), o projeto entrou em uma fase de **governança de plataforma**:
@@ -113,7 +113,7 @@ deletadas "ressuscitando" via sync (ver `LESSONS_LEARNED.md`).
    teste desatualizado em outro dispositivo nunca deve sobrescrever um resultado real.
 5. Falha do Supabase degrada graciosamente para `localStorage` apenas (local-first).
 
-### Funções-chave (Copa, `bolao/js/app.js`, ~4400 linhas)
+### Funções-chave (Copa, `bolao/copa2026/js/app.js`, ~4400 linhas)
 
 | Função | Propósito |
 |---|---|
@@ -250,10 +250,11 @@ visuais (cores, padding, border-radius, breakpoints 900/500/480px).
 - **GitHub Pages** — hospedagem estática, deploy automático no push para `main`. Sem etapa de
   build.
 - **GitHub Actions** — `sync_version.yml` (cache-busting automático do `?v=` em `index.html`,
-  hoje disparado por qualquer mudança em `bolao/js/**.js` ou `bolao/css/**.css`, usando o SHA
-  curto do commit em vez de uma string de versão mantida manualmente) e um workflow agendado
-  que roda `send_result_email.py --auto`.
-- **Python** (`bolao/scripts/*.py`) — scripts operacionais fora do runtime do browser:
+  hoje disparado por qualquer mudança em `bolao/{copa2026,br2026,cdb2026}/js/**.js` ou
+  `bolao/{copa2026,br2026,cdb2026}/css/**.css`, usando o SHA curto do commit em vez de uma
+  string de versão mantida manualmente, e regravando os três `index.html`) e um workflow
+  agendado que roda `send_result_email.py --auto`.
+- **Python** (`bolao/copa2026/scripts/*.py`) — scripts operacionais fora do runtime do browser:
   `audit_scoring.py` (auto-teste de scoring/bracket), `send_result_email.py` (e-mail
   automático de resultado, reimplementa a lógica de scoring em Python), `backup.py` /
   `backup_daily.py` / `backup_watch_m88.py`, `auto_reopen.py`, `reopen_after_r32.py`,
@@ -386,7 +387,7 @@ visuais (cores, padding, border-radius, breakpoints 900/500/480px).
   (`adminTemplateId`).
 - **Conteúdo:** sempre o output de `receiptHtml()`/gerador equivalente, que aplica
   `escapeHtml()`/`esc()` em todo dado de usuário antes de montar a string HTML.
-- **Fora do browser:** `bolao/scripts/send_result_email.py` (Python) envia e-mails
+- **Fora do browser:** `bolao/copa2026/scripts/send_result_email.py` (Python) envia e-mails
   automaticamente via cron/GitHub Actions quando uma partida termina — reimplementa a lógica de
   scoring/bracket de forma independente do `app.js` (não pode importar JS do site), o que é a
   origem estrutural do incidente de julho de 2026 (ver "Auditorias realizadas"). Desde então,
@@ -448,7 +449,7 @@ apps (`PLATFORM_GOVERNANCE.md`: diferenças de torneio devem ser preservadas).
 - `scoreEntry(entry, state)` é a única fonte de verdade no site da Copa — chamada uma vez por
   entrada por render, usada em ranking, CSV, master export e e-mail manual do admin.
 - `matchPoints(pick, result)` foi extraída de `scoreEntry` para reuso sem duplicação.
-- `bolao/scripts/audit_scoring.py` é uma suíte de 5 checagens estáticas, executável isolada
+- `bolao/copa2026/scripts/audit_scoring.py` é uma suíte de 5 checagens estáticas, executável isolada
   (`python3 audit_scoring.py`) ou importada por `send_result_email.py`:
   1. Bracket do script Python (`MATCH_TEAMS`) bate com `data.js`.
   2. Simulação de torneio completo com bracket "perfeito" — campeão resolve corretamente
@@ -584,7 +585,7 @@ por padrão), responsabilidade legal (o app é explicitamente informal).
 - **API-Football:** chave desabilitada por padrão; se habilitada, ficaria visível no
   código-fonte — recomendação explícita de usar um proxy (Supabase Edge Function) em produção,
   ainda não implementado (item de roadmap `L-03`, e há um `TODO` correspondente em
-  `bolao/js/app.js:3001`).
+  `bolao/copa2026/js/app.js:3001`).
 - **Admin:** hash SHA-256 (nunca senha em texto puro em lugar nenhum), lockout, sessão curta,
   `guardAdmin()` em toda ação — aceito como best-effort client-side, não autenticação real
   (ver "Decisões arquiteturais" e roadmap `L-02`).
@@ -624,7 +625,7 @@ porque reimplementa a mesma lógica de forma independente:
 
 Todas corrigidas e verificadas com testes automatizados (diff programático entre `MATCH_TEAMS`
 e `data.js`; simulação completa de torneio com bracket perfeito). Consequência permanente: essa
-auditoria foi empacotada em `bolao/scripts/audit_scoring.py`, hoje rodada automaticamente antes
+auditoria foi empacotada em `bolao/copa2026/scripts/audit_scoring.py`, hoje rodada automaticamente antes
 de qualquer e-mail (`send_result_email.py --auto`) e como regra obrigatória em `CLAUDE.md` para
 qualquer mudança no repositório.
 
@@ -761,9 +762,13 @@ worker "network-first"; (3) bfcache do WebKit restaurando uma aba sem disparar
   remoto) — **já corrigida nos três apps** desde as versões anteriores, confirmado lendo o
   código de `mergeStates`/`loadRemoteState` de BR2026 e CDB2026 antes de assumir que precisava
   de correção.
-- Cache HTTP de `index.html`/assets estáticos — `bolao/sw.js` é **compartilhado pelos três apps**
-  (todos registram o mesmo `/bolao/sw.js`) e já usa `fetch(e.request, { cache: 'no-store' })` —
-  o fix da Copa (v4.111) já cobre BR2026/CDB2026 automaticamente, sem trabalho adicional.
+- Cache HTTP de `index.html`/assets estáticos — `bolao/sw.js` já usa
+  `fetch(e.request, { cache: 'no-store' })` — o fix da Copa (v4.111) já cobre BR2026/CDB2026
+  automaticamente, sem trabalho adicional. Desde a mudança de pasta da Copa (v4.159,
+  2026-07-19), BR2026 e CDB2026 continuam registrando o `/bolao/sw.js` compartilhado, mas a
+  Copa passou a registrar sua própria cópia em `/bolao/copa2026/sw.js` (mesmo conteúdo,
+  genérico, sem paths específicos do app) — `bolao/sw.js` continua no lugar apenas como rede de
+  segurança para navegadores com o service worker antigo `/bolao/`-scoped ainda registrado.
 - Listener de `pageshow`/`event.persisted` (bfcache) — **este sim estava faltando** em
   BR2026/CDB2026 (só a Copa tinha, desde v4.111) — gap já catalogado em
   `CONSISTENCY_MATRIX.md` item 23, nunca corrigido até agora. Esta era a peça real ainda
@@ -1293,7 +1298,7 @@ Padrões de correção que se repetem e valem a pena reconhecer em bugs futuros:
   corrigido.
 - Sem Supabase Realtime — sync depende de polling/foco de aba, não é instantâneo entre
   dispositivos abertos simultaneamente (roadmap `M-02`).
-- API-Football sem proxy de produção (`TODO` em `bolao/js/app.js:3001`) — chave ficaria exposta
+- API-Football sem proxy de produção (`TODO` em `bolao/copa2026/js/app.js:3001`) — chave ficaria exposta
   se algum dia fosse habilitada com um plano pago.
 - Suporte a japonês (`ja`) mencionado historicamente mas nunca implementado (roadmap `M-03`).
 

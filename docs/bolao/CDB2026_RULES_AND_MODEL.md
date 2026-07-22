@@ -325,10 +325,10 @@ precisa de confirmação explícita antes de decidir a estratégia de migração
 23. Classificado decidido nos pênaltis refletido corretamente no ranking.
 24. Final em partida única (não ida+volta).
 
-`node --check` obrigatório em todo `.js` alterado. `python3 bolao/scripts/audit_scoring.py`
+`node --check` obrigatório em todo `.js` alterado. `python3 bolao/copa2026/scripts/audit_scoring.py`
 continua sendo rodado e reportado (não afeta CDB2026 hoje, mas é regra permanente do
-repositório — confirmar que nenhuma mudança vazou para `bolao/js/data.js` ou
-`bolao/js/config.js`).
+repositório — confirmar que nenhuma mudança vazou para `bolao/copa2026/js/data.js` ou
+`bolao/copa2026/js/config.js`).
 
 ## 7. Sincronização com ESPN (v3.1 → v3.3, 2026-07-13)
 

@@ -1,5 +1,38 @@
 # CHANGELOG
 
+## 2026-07-22 — Full-repo path audit after the GitHub Actions fix (no siteVersion bump — docs/security config only)
+
+Eduardo, on seeing the workflow-path fix: "You should have been through everywhere." Correct —
+the 2026-07-19 post-move audit grepped inside `bolao/` and missed everything outside it. Did a
+full-repo sweep this time (`grep -rn "bolao/"` across the whole tree, not just the app folders)
+and found more real gaps from the same move:
+
+- **Security-relevant:** `.gitignore` only had `bolao/backups/`. `backup.py`/`backup_daily.py`
+  resolve their output directory relative to their own script location, so after the move they
+  silently started writing participant PII (names, emails, payment methods, pulled from
+  Supabase) to `bolao/copa2026/backups/` — a path `.gitignore` no longer covered. Confirmed via
+  `git log` that no backup file was ever actually committed (no leak occurred — no CI workflow
+  runs the backup scripts), but the gap was real. Fixed by adding all three apps' `backups/`
+  paths to `.gitignore`.
+- `CHATGPT.md` at repo root — turned out to be even more stale than the move itself (still
+  described a single pre-BR2026/CDB2026 app, dated 2026-06-27). Replaced with a short pointer to
+  `CLAUDE.md` instead of re-syncing a second full copy, since the duplication was the actual
+  root cause of the drift.
+- Six operational docs (`QA_CHECKLIST.md`, `QA_MASTER_CHECKLIST.md`, `UI_REGRESSION_PROTOCOL.md`,
+  `CDB2026_RULES_AND_MODEL.md`, `PROJECT_MEMORY.md`, `ARCHITECTURE.md`, `LESSONS_LEARNED.md`)
+  had actionable instructions (not historical log entries) pointing at
+  `bolao/scripts/audit_scoring.py` and similar paths that no longer exist. Fixed all of them.
+- `PROJECT_MEMORY.md` also had a factual claim that went stale with the move: it said all three
+  apps register the same `/bolao/sw.js`. Since v4.159 the Copa registers its own
+  `/bolao/copa2026/sw.js`; BR2026/CDB2026 still share `/bolao/sw.js`. Corrected.
+- Left untouched, intentionally: dated changelog/design-doc entries that cite the old
+  `bolao/js/...` paths as historical record of a real state on the date they were written
+  (rewriting those would be revisionist, not a correction).
+
+Full detail in `docs/bolao/CONSISTENCY_MATRIX.md`, "Follow-up (mesmo dia, 2026-07-22)" note.
+`audit_scoring.py` re-run on all three apps after this pass — 5/5 on each, unaffected (docs and
+`.gitignore` only, no app code touched).
+
 ## 2026-07-22 — GitHub Actions workflow paths fixed (no siteVersion bump — CI config only)
 
 Eduardo: "I got a workflow error about email send." Checked the actual failed run

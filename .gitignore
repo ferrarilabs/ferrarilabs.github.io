@@ -1,4 +1,7 @@
 .DS_Store
 bolao/backups/
+bolao/copa2026/backups/
+bolao/br2026/backups/
+bolao/cdb2026/backups/
 __pycache__/
 *.pyc

@@ -122,15 +122,16 @@ The site itself can't internally disagree with itself (one `scoreEntry()` used
 everywhere), but the standalone Python email script re-implements the same logic and has
 no way to catch drift automatically without an explicit check.
 
-- [ ] Run `python3 bolao/scripts/audit_scoring.py` — exit code 0 and all 5 checks pass.
+- [ ] Run `python3 bolao/copa2026/scripts/audit_scoring.py` — exit code 0 and all 5 checks pass.
       `send_result_email.py --auto` also runs this automatically before every send and
       refuses to email anyone if it fails, but run it by hand too before opening a PR.
 - [ ] State explicitly in the PR/summary that this was run, even if the change looks
       unrelated to scoring — say so either way ("audit re-run, still passes" or the
       specific failure and fix). Two real bugs were found this way in code nobody thought
       was scoring-related at the time.
-- [ ] If you touched `bolao/js/data.js`'s bracket, `bolao/js/config.js`'s `scoring`/`bonus`
-      values, or anything in `bolao/scripts/send_result_email.py`, also manually re-check
+- [ ] If you touched `bolao/copa2026/js/data.js`'s bracket, `bolao/copa2026/js/config.js`'s
+      `scoring`/`bonus` values, or anything in `bolao/copa2026/scripts/send_result_email.py`,
+      also manually re-check
       the tiebreak cascade (total → exact scores → podium hits) still matches across the
       website ranking, the admin's manual email builder, and the auto-email script — the
       audit script covers the Python side's internal correctness and its parity with

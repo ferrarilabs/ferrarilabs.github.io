@@ -1657,6 +1657,46 @@ agora apontam para `bolao/copa2026/`. Verificado que `send_result_email.py --aut
 execuções agendadas este mês só vão reportar "nada a fazer" e sair, sem risco de e-mail
 duplicado) antes de considerar a correção de caminho suficiente por si só.
 
+**Follow-up (mesmo dia, 2026-07-22):** Eduardo, ao ver o fix do workflow: "You should have been
+through everywhere" — correto, o grep original da auditoria de 2026-07-19 rodou dentro de
+`bolao/` e não cobriu o resto do repositório. Varredura completa no repo inteiro (`grep -rn
+"bolao/"` excluindo `.git` e os três diretórios de app) encontrou mais gaps reais, todos
+corrigidos nesta rodada:
+
+- **Security-relevant, o mais sério dos achados:** `.gitignore` só tinha `bolao/backups/`.
+  `backup.py`/`backup_daily.py` resolvem `BACKUP_DIR` relativo à própria localização do script
+  (`Path(__file__).parent / "backups"`) — depois do move do v4.159, isso passou a resolver para
+  `bolao/copa2026/backups/`, que o `.gitignore` **não cobre mais**. Esses backups contêm dados
+  reais de participante (nome, e-mail, método de pagamento) vindos do Supabase. Confirmado via
+  `git log --all --diff-filter=A -- "*backups*"` que nenhum arquivo de backup chegou a ser
+  commitado (nenhum vazamento real ocorreu — não há workflow de CI que rode backup e commite o
+  resultado), mas o gap era real e permanente até este fix. Corrigido adicionando
+  `bolao/copa2026/backups/`, `bolao/br2026/backups/` e `bolao/cdb2026/backups/` ao `.gitignore`
+  (mantendo a entrada antiga `bolao/backups/` por segurança).
+- `CHATGPT.md` (raiz do repo) — muito mais desatualizado que o próprio move: ainda descrevia um
+  único app em `bolao/` (pré-BR2026/CDB2026), datado de 2026-06-27. Reescrito como um ponteiro
+  compacto para `CLAUDE.md` (que é mantido a cada sessão) em vez de duplicar conteúdo — a
+  duplicação foi a causa raiz do drift, não só o move.
+- Referências de path desatualizadas em seis docs operacionais que instruem sessões futuras a
+  rodar comandos — `QA_CHECKLIST.md`, `QA_MASTER_CHECKLIST.md`, `UI_REGRESSION_PROTOCOL.md`,
+  `CDB2026_RULES_AND_MODEL.md`, `PROJECT_MEMORY.md`, `ARCHITECTURE.md`, `LESSONS_LEARNED.md`
+  (`bolao/scripts/audit_scoring.py` → `bolao/copa2026/scripts/audit_scoring.py`, etc.). Essas
+  eram instruções acionáveis (não registro histórico) — deixadas erradas, uma sessão futura
+  seguindo o checklist ao pé da letra rodaria um comando inexistente.
+- `PROJECT_MEMORY.md` também tinha uma afirmação factual que ficou errada com o move: dizia que
+  os três apps registram o mesmo `/bolao/sw.js`. Depois do v4.159 a Copa passou a registrar sua
+  própria cópia em `/bolao/copa2026/sw.js`; BR2026/CDB2026 continuam no `/bolao/sw.js`
+  compartilhado. Corrigido para descrever o estado real.
+- **Deixado como está, intencionalmente:** entradas de changelog e docs datados (`docs/bolao/CHANGELOG.md`,
+  `BR2026_LIVE_STANDINGS.md`, e as entradas históricas de `CONSISTENCY_MATRIX.md` acima desta
+  nota) que citam `bolao/js/...` — são registro histórico de um estado real na data em que foram
+  escritas, reescrever isso seria revisionismo, não correção.
+
+Lição adicional: "auditar tudo" depois de mover uma pasta não pode significar "grep dentro da
+pasta nova" — precisa incluir todo o repositório, porque referências ao path antigo sobrevivem
+em lugares que não são intuitivamente "sobre" o app (workflows do CI, `.gitignore`, docs de AI
+assistant na raiz do repo, docs de processo/checklist).
+
 **Lição para a próxima vez que um app mover de pasta**: adicionar `.github/workflows/*.yml` à
 lista de lugares a auditar por padrão — não é intuitivo que workflows de CI fiquem fora do
 grep normal de "bolao/" porque vivem em `.github/`, fora da árvore `bolao/`.
