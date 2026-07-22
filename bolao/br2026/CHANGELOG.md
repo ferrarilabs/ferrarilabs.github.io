@@ -1,5 +1,17 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.71 — 2026-07-19
+
+### Changed — hid Participantes/Pagamento nav buttons
+
+Eduardo: "Pode esconder os botões participantes, pagamento do br2026 nesse momento também" —
+same treatment Copa already had (`bolao/copa2026/index.html`'s nav has had these two hidden via
+`style="display:none"` since the app existed). Confirmed neither button was ever dynamically
+un-hidden by `app.js` (no `"participants"`/`"payment"` references there) — same dead-nav pattern
+as Copa, safe to hide with a one-line change per button, no JS logic touched.
+
+`audit_scoring.py`: PASSED, unchanged — nav visibility only.
+
 ## v1.70 — 2026-07-19
 
 ### Changed — switcher's "Copa do Mundo" option now points at bolao/copa2026/
