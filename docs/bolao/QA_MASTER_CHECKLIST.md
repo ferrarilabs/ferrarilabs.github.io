@@ -103,7 +103,7 @@ ou `EMERGENCY_HOTFIX` (ver `PLATFORM_GOVERNANCE.md`). Para mudanças `TOURNAMENT
       componente compartilhado por engano.
 - [ ] Atualizar `docs/bolao/CONSISTENCY_MATRIX.md` se a mudança resolve, cria ou altera uma
       divergência já catalogada.
-- [ ] Atualizar o `CHANGELOG.md` do(s) app(s) alterado(s) (`bolao/CHANGELOG.md`,
+- [ ] Atualizar o `CHANGELOG.md` do(s) app(s) alterado(s) (`bolao/copa2026/CHANGELOG.md`,
       `bolao/br2026/CHANGELOG.md`, `bolao/cdb2026/CHANGELOG.md`).
 
 ## F. Post-change
@@ -116,12 +116,14 @@ ou `EMERGENCY_HOTFIX` (ver `PLATFORM_GOVERNANCE.md`). Para mudanças `TOURNAMENT
 - [ ] Changelog(s) atualizado(s).
 - [ ] Riscos restantes documentados (o que ficou como dívida técnica ou risco aceito).
 - [ ] Plano de rollback confirmado e funcional (`git revert HEAD && git push`, ou restauração
-      seletiva de `bolao/`, `bolao/br2026/` ou `bolao/cdb2026/`).
-- [ ] Se a mudança tocou `bolao/js/data.js` (bracket), scoring/bonus em `bolao/js/config.js`,
-      ou `bolao/scripts/send_result_email.py`: `python3 bolao/scripts/audit_scoring.py` foi
-      executado e o resultado (passou ou falhou) foi relatado — esta etapa é obrigatória por
-      regra do `CLAUDE.md` e não pode ser pulada mesmo que a mudança pareça não relacionada a
-      scoring.
+      seletiva de `bolao/copa2026/`, `bolao/br2026/` ou `bolao/cdb2026/`).
+- [ ] Se a mudança tocou `bolao/copa2026/js/data.js` (bracket), scoring/bonus em
+      `bolao/copa2026/js/config.js`, ou `bolao/copa2026/scripts/send_result_email.py`:
+      `python3 bolao/copa2026/scripts/audit_scoring.py` foi executado e o resultado (passou ou
+      falhou) foi relatado — esta etapa é obrigatória por regra do `CLAUDE.md` e não pode ser
+      pulada mesmo que a mudança pareça não relacionada a scoring. Se a mudança afetou mais de
+      um app, rodar também o `audit_scoring.py` de cada app afetado (`bolao/br2026/scripts/`,
+      `bolao/cdb2026/scripts/`).
 
 ## G. Definition of Done
 
@@ -129,7 +131,7 @@ Uma tarefa só termina quando **todos** os itens abaixo forem verdadeiros — n�
 código "funciona":
 
 - [ ] QA completo (seções A–F relevantes à categoria da mudança já rodadas).
-- [ ] Changelog atualizado (`bolao/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md` e/ou
+- [ ] Changelog atualizado (`bolao/copa2026/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md` e/ou
       `bolao/cdb2026/CHANGELOG.md`, conforme o(s) app(s) alterado(s)).
 - [ ] `docs/bolao/CONSISTENCY_MATRIX.md` atualizada (reflete o novo estado ou foi explicitamente
       marcada como não afetada).

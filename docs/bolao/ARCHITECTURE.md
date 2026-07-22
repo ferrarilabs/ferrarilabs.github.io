@@ -429,6 +429,6 @@ codebases — there is no shared module, import, or build step linking them. Eac
 
 See `docs/bolao/CONSISTENCY_MATRIX.md` for the full area-by-area audit. The largest
 architectural gaps as of the last audit: BR2026/CDB2026 have no receipt-generation system, no
-scoring self-audit script equivalent to `bolao/scripts/audit_scoring.py`, and no `assets/`
+scoring self-audit script equivalent to `bolao/copa2026/scripts/audit_scoring.py`, and no `assets/`
 folder for payment QR codes or a WhatsApp support button.
 <!-- AUTO:MULTI_APP_ARCHITECTURE:END -->

@@ -107,7 +107,8 @@ componentes corrigidos, divergências restantes, risco, próxima ação. Nunca m
 ## 10. Como validar que uma mudança em um app não quebrou outro
 
 1. Rodar `node --check` em todos os `.js` dos três apps (não só o alterado).
-2. Rodar `python3 bolao/scripts/audit_scoring.py` (obrigatório em toda mudança, mesmo não
+2. Rodar `python3 bolao/copa2026/scripts/audit_scoring.py`, `python3 bolao/br2026/scripts/audit_scoring.py`
+   e `python3 bolao/cdb2026/scripts/audit_scoring.py` (obrigatório em toda mudança, mesmo não
    relacionada a scoring — regra do `CLAUDE.md`).
 3. Rodar a suíte de testes Playwright completa dos apps que compartilham o componente alterado
    (não só o app onde a mudança foi feita).
