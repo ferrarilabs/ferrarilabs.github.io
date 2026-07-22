@@ -1,5 +1,29 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.72 — 2026-07-22
+
+### Fixed — "próximo jogo" card got stuck on an already-finished game instead of showing the next upcoming one
+
+Eduardo: "Proximos jogos do br2026 sumiu." Investigated with real ESPN schedule data before
+touching anything — confirmed the real cause: right now (22:xx BRT, still July 21 in Brazil
+time), the only match dated "today" (BRT) was Atlético-MG × Bahia, which had already finished
+(19h30 kickoff, already in "post" state). `renderNextGameCard()`'s `todayGames` filter matched on
+date only, never excluding already-finished matches, so the card got stuck rendering today's
+stale final score instead of falling through to look ahead — even though the real next match
+(Coritiba × Palmeiras, tomorrow) was sitting right there in the schedule the whole time.
+
+Fixed: added `hasUpcomingToday` (true only if at least one of today's games is not yet "post")
+to decide whether to fall through to `nextUpcomingGame()`'s next-day lookup, instead of the old
+"any game dated today, finished or not" check. Verified against the real live schedule (382
+events fetched from ESPN) that the old logic got stuck on the finished match while the fixed
+logic correctly falls through to Coritiba × Palmeiras with the full countdown treatment.
+
+Not propagated to Copa or CDB2026 — both use a different next-match architecture (`nextScheduledMatch()`/
+`renderNextTieCard()`, single fixed bracket matches) without BR2026's "group all of today's games
+together" feature, so this exact bug pattern doesn't exist there.
+
+`audit_scoring.py`: PASSED, unchanged — display logic only, no scoring touched.
+
 ## v1.71 — 2026-07-19
 
 ### Changed — hid Participantes/Pagamento nav buttons
