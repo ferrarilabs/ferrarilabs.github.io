@@ -40,10 +40,10 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import send_result_email as sre
 import audit_scoring
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-OUT_PATH = os.path.join(REPO_ROOT, "bolao", "audit-report.html")
-PICKS_DETAIL_PATH = os.path.join(REPO_ROOT, "bolao", "audit-detail-picks.html")
-GOVERNANCE_DETAIL_PATH = os.path.join(REPO_ROOT, "bolao", "audit-detail-governance.html")
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+OUT_PATH = os.path.join(REPO_ROOT, "bolao", "copa2026", "audit-report.html")
+PICKS_DETAIL_PATH = os.path.join(REPO_ROOT, "bolao", "copa2026", "audit-detail-picks.html")
+GOVERNANCE_DETAIL_PATH = os.path.join(REPO_ROOT, "bolao", "copa2026", "audit-detail-governance.html")
 GITHUB_REPO_URL = "https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main"
 
 PHASE_LABELS = {
@@ -851,7 +851,7 @@ def render_report(findings, meta, state):
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Auditoria por partida e por entrada</b></a> — palpite, resultado real e pontos ganhos em cada uma das 32 partidas, para cada uma das {meta['entry_count']} entradas reais (não é resumido — é o dado bruto completo, com índice navegável).</li>
         <li><a href="audit-detail-governance.html"><b>📋 Governança e histórico de edições</b></a> — data/hora de criação e última atualização de cada entrada, mais o histórico completo de mudanças (antes/depois de cada palpite alterado, IP completo, dispositivo, horário).</li>
-        <li><b>Código-fonte:</b> este relatório e toda a lógica de pontuação são <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">código aberto no GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">pontuação/e-mail</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">lógica do site</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">suíte de autoteste</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">histórico completo de mudanças</a>.</li>
+        <li><b>Código-fonte:</b> este relatório e toda a lógica de pontuação são <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/generate_audit_report.py">código aberto no GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/send_result_email.py">pontuação/e-mail</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/js/app.js">lógica do site</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/audit_scoring.py">suíte de autoteste</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/CHANGELOG.md">histórico completo de mudanças</a>.</li>
       </ul>
     </section>"""
     detail_links_en = f"""<section class="audit-section" style="border-left:4px solid #2563eb">
@@ -860,7 +860,7 @@ def render_report(findings, meta, state):
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Per-match, per-entry audit</b></a> — pick, real result, and points earned on each of the 32 matches, for each of the {meta['entry_count']} real entries (not summarized — the full raw data, with a navigable index).</li>
         <li><a href="audit-detail-governance.html"><b>📋 Governance and edit history</b></a> — creation date/time and last update for each entry, plus the complete change history (before/after for every changed pick, full IP, device, timestamp).</li>
-        <li><b>Source code:</b> this report and all the scoring logic are <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">open source on GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">scoring/email</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">site logic</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">self-test suite</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">full change history</a>.</li>
+        <li><b>Source code:</b> this report and all the scoring logic are <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/generate_audit_report.py">open source on GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/send_result_email.py">scoring/email</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/js/app.js">site logic</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/audit_scoring.py">self-test suite</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/CHANGELOG.md">full change history</a>.</li>
       </ul>
     </section>"""
     detail_links_es = f"""<section class="audit-section" style="border-left:4px solid #2563eb">
@@ -869,7 +869,7 @@ def render_report(findings, meta, state):
       <ul>
         <li><a href="audit-detail-picks.html"><b>📊 Auditoría por partido y por entrada</b></a> — pronóstico, resultado real y puntos ganados en cada uno de los 32 partidos, para cada una de las {meta['entry_count']} entradas reales (no resumido — el dato bruto completo, con índice navegable).</li>
         <li><a href="audit-detail-governance.html"><b>📋 Gobernanza e historial de ediciones</b></a> — fecha/hora de creación y última actualización de cada entrada, más el historial completo de cambios (antes/después de cada pronóstico modificado, IP completa, dispositivo, horario).</li>
-        <li><b>Código fuente:</b> este informe y toda la lógica de puntuación son <a href="{GITHUB_REPO_URL}/bolao/scripts/generate_audit_report.py">código abierto en GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/scripts/send_result_email.py">puntuación/correo</a>, <a href="{GITHUB_REPO_URL}/bolao/js/app.js">lógica del sitio</a>, <a href="{GITHUB_REPO_URL}/bolao/scripts/audit_scoring.py">suite de autopruebas</a>, <a href="{GITHUB_REPO_URL}/bolao/CHANGELOG.md">historial completo de cambios</a>.</li>
+        <li><b>Código fuente:</b> este informe y toda la lógica de puntuación son <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/generate_audit_report.py">código abierto en GitHub</a> — <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/send_result_email.py">puntuación/correo</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/js/app.js">lógica del sitio</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/scripts/audit_scoring.py">suite de autopruebas</a>, <a href="{GITHUB_REPO_URL}/bolao/copa2026/CHANGELOG.md">historial completo de cambios</a>.</li>
       </ul>
     </section>"""
 

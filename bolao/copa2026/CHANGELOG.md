@@ -1,5 +1,53 @@
 # CHANGELOG
 
+## v4.159 — 2026-07-19
+
+### Changed — Copa moved from `bolao/` to `bolao/copa2026/`; `/bolao/` now redirects to Brasileirão
+
+Eduardo, after v4.158 (which only changed the switcher's default selected option): "O drop down
+aparece mas a pagina não redireciona" — he expected an actual redirect. Confirmed the full plan
+before touching anything: move the entire Copa app (previously directly under `bolao/`) to
+`bolao/copa2026/`, matching the folder pattern already used by `bolao/br2026/`/`bolao/cdb2026/`,
+so `bolao/index.html` could become a real redirect without leaving the v4.157 archived Ranking
+(podium/audit link/"Ver palpites") with no URL of its own anywhere.
+
+**Moved** (via `git mv`, history preserved): `index.html`, `js/`, `css/`, `assets/`, `scripts/`,
+`docs/`, `preview/`, `audit-report.html`, `audit-detail-picks.html`,
+`audit-detail-governance.html`, `classificacao-geral.html`, `CHANGELOG.md`, `README.md`/`.txt` —
+all now live under `bolao/copa2026/` instead of directly under `bolao/`.
+
+**`bolao/index.html`** is now a redirect (meta refresh + `location.replace`) to `/bolao/br2026/`.
+**`bolao/audit-report.html`, `audit-detail-picks.html`, `audit-detail-governance.html`, and
+`classificacao-geral.html`** are now small redirect stubs at the old paths pointing into
+`bolao/copa2026/` — these links were already emailed to real participants before the move and
+had to keep resolving. **`bolao/sw.js`** was left in place unchanged (identical copy) at the old
+path as a safety net for any browser that still has the old `/bolao/`-scoped service worker
+registered; the live app now registers its own copy at `bolao/copa2026/sw.js`.
+
+**Fixed absolute references** that assumed the old location: canonical link; the "Copa do Mundo"
+option in all three apps' "Alternar bolão" switcher (pointing it at `/bolao/` now would create an
+infinite redirect loop); the switcher's `allowed` array in all three apps; the service worker
+registration path; the footer links inside emails (`send_result_email.py`,
+`send_bracket_correction_email.py`); and the GitHub source-code links inside the audit report
+(`generate_audit_report.py`). `generate_audit_report.py`'s and
+`generate_classificacao_geral.py`'s `REPO_ROOT`/`OUT_PATH` computations got one extra `".."` for
+the new nesting level. Regenerated the audit report pages with the fixed scripts to confirm.
+
+**Verification**: `node --check` on all 3 apps, `python3 -m py_compile` on the Copa scripts,
+`audit_scoring.py` PASSED on all 3 apps (run from the new Copa location). The full redirect chain
+was tested end-to-end with Playwright (`/bolao/` → `/bolao/br2026/`,
+`/bolao/audit-report.html` → `/bolao/copa2026/audit-report.html`, and the other 3 stubs) — all
+confirmed working. Full visual verification of the moved page (`bolao/copa2026/`) itself was
+limited by a sandbox network instability (the synchronous CDN scripts — emailjs, supabase-js —
+hung in the headless browser; confirmed not a regression from this change since BR2026, untouched
+in this respect, showed the identical hang in the same test) — direct HTML inspection confirms
+the values are correct, and the nav/switcher rendering logic itself wasn't touched by this
+change, only the path values. A quick manual visual check in production after deploy is
+recommended.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — structural/path change only, no scoring,
+bracket, or business rule touched.
+
 ## v4.158 — 2026-07-19
 
 ### Changed — archived Copa page's bolão switcher now defaults to Brasileirão

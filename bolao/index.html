@@ -1,270 +1,35 @@
 <!doctype html>
 <html lang="pt-BR">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="robots" content="noindex,nofollow">
-  <meta name="description" content="Bolão Copa 2026 entre amigos — palpites, ranking, comprovante e administração.">
-  <link rel="canonical" href="https://ferrarilabs.github.io/bolao/">
-  <meta http-equiv="Content-Security-Policy" content="
-    default-src 'self';
-    script-src 'self' https://cdn.jsdelivr.net;
-    connect-src 'self' https://api.emailjs.com https://gamma-api.polymarket.com https://*.supabase.co https://v3.football.api-sports.io https://site.api.espn.com https://sports.core.api.espn.com https://api.ipify.org;
-    img-src 'self' data:;
-    style-src 'self' 'unsafe-inline';
-    worker-src 'self';
-    base-uri 'self';
-    frame-ancestors 'none';
-  ">
-  <link rel="icon" href="data:,">
-  <title>Bolão do Ferrari — Copa 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=5b4e335">
-  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
-          integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
-          crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
-          integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
-          crossorigin="anonymous"></script>
-  <script src="js/config.js?v=5b4e335"></script>
-  <script src="js/data.js?v=5b4e335"></script>
-  <script src="js/i18n.js?v=5b4e335"></script>
-  <script defer src="js/app.js?v=5b4e335"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta http-equiv="refresh" content="0; url=/bolao/br2026/">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'none';
+  script-src 'unsafe-inline';
+  base-uri 'self';
+">
+<link rel="canonical" href="https://ferrarilabs.github.io/bolao/br2026/">
+<title>Bolão do Ferrari</title>
+<script>location.replace("/bolao/br2026/");</script>
 </head>
 <body>
-<a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
+<!--
+  Copa do Mundo 2026 encerrada (Espanha campeã). Eduardo: "Deixe o default do site como o
+  Brasileiro agora" -- confirmado que queria um redirect de verdade, não só o dropdown mudando de
+  opção (v4.158 tinha feito só isso). Para isso sem derrubar o Ranking arquivado da Copa (pódio +
+  auditoria + "Ver palpites", v4.157), o app inteiro da Copa foi movido para bolao/copa2026/
+  (v4.159) -- esta página passou a ser só um redirect.
 
-<header class="topbar">
-  <div class="brand">🏆 <strong>Bolão do Ferrari</strong> <span>Copa 2026</span></div>
-  <div class="bolao-switcher">
-    <!-- Copa 2026 encerrada e arquivada (v4.157) — Eduardo: "Deixe o default do site como o
-         Brasileiro agora". Só a página arquivada da Copa tem o default do seletor trocado pra
-         Brasileirão (bolão ativo agora); BR2026 e CDB2026 continuam com o próprio app
-         pré-selecionado em cada switcher deles, sem alteração. Nenhum redirect, nenhum arquivo
-         movido — os links já enviados por e-mail (audit-report.html etc.) continuam intactos. -->
-    <select id="bolaoSelect" aria-label="Alternar bolão">
-      <option value="/bolao/">🏆 Copa do Mundo</option>
-      <option value="/bolao/br2026/" selected>🇧🇷 Brasileirão</option>
-      <option value="/bolao/cdb2026/">🏅 Copa do Brasil</option>
-    </select>
-  </div>
-  <a id="supportWhatsappBtn" class="whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer" aria-label="Suporte WhatsApp">
-    <img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span>
-  </a>
-  <div class="lang-links" aria-label="Idioma / Language">
-    <button type="button" data-lang="pt-BR" aria-label="Português BR">🇧🇷 PT-BR</button>
-    <button type="button" data-lang="es" aria-label="Español MX">🇲🇽 ES-MX</button>
-    <button type="button" data-lang="en-US" aria-label="English US">🇺🇸 EN-US</button>
-  </div>
-  <nav class="nav" aria-label="Navegação principal">
-    <button type="button" data-section="entry" data-i18n="navPicks">Palpites</button>
-    <button type="button" data-section="ranking" data-i18n="navRanking">Ranking</button>
-    <button type="button" data-section="participants" data-i18n="navParticipants" style="display:none">Participantes</button>
-    <button type="button" data-section="payment" data-i18n="navPayment" style="display:none">Pagamento</button>
-    <button type="button" data-section="games" data-i18n="navGames">Jogos</button>
-    <button type="button" data-section="probs" data-i18n="navProbs">Probabilidades</button>
-    <button type="button" data-section="rules" data-i18n="navRules">Regras</button>
-    <button type="button" data-section="admin" data-i18n="navAdmin">Admin</button>
-  </nav>
-</header>
+  Links já enviados por e-mail continuam funcionando: audit-report.html, audit-detail-picks.html,
+  audit-detail-governance.html e classificacao-geral.html têm stubs de redirect próprios nesta
+  mesma pasta, apontando para bolao/copa2026/. Só a raiz /bolao/ (esta página) muda de
+  comportamento.
 
-<main>
-  <!-- Hero -->
-  <section id="heroCard" class="hero card">
-    <button id="heroToggle" class="hero-toggle" aria-label="toggle hero">▼</button>
-    <div id="heroBody">
-      <div>
-        <div class="eyebrow" data-i18n="heroEyebrow">Bolão Copa 2026</div>
-        <h1 data-i18n="heroTitle">Preencha seu bracket e participe.</h1>
-        <p data-i18n="heroText">Valor: US$ 5 por entrada.</p>
-        <div class="america250-badge" title="America's 250th Anniversary — July 4, 2026">
-          <img src="assets/america250-logo.png" alt="America250 — the official celebration of America's 250th anniversary">
-        </div>
-      </div>
-      <div class="count-card">
-        <div id="countdown" aria-live="polite"></div>
-        <small id="cutoffLabel"></small>
-      </div>
-    </div>
-  </section>
-
-  <div id="reopenBanner" class="hidden" role="status" aria-live="polite"></div>
-  <div id="nextMatchCard" class="card hidden"></div>
-  <div id="matchEndBanner" class="match-end-banner hidden" role="alert" aria-live="assertive"></div>
-
-  <!-- ── Palpites ── -->
-  <section id="entry" class="page">
-    <div id="editByCodeCard" class="card hidden"></div>
-    <div id="entryFormCard" class="card">
-      <h2 data-i18n="entryTitle">Nova entrada</h2>
-      <div class="form-grid">
-        <label>
-          <span data-i18n="entryName">Nome da entrada</span>
-          <input id="entryName" type="text" autocomplete="name" placeholder="Eduardo #1" maxlength="80">
-        </label>
-        <label>
-          <span data-i18n="payerName">Responsável pelo pagamento</span>
-          <input id="payerName" type="text" autocomplete="name" placeholder="Eduardo" maxlength="80">
-        </label>
-        <label>
-          <span data-i18n="emailLabel">E-mail para comprovante</span>
-          <input id="participantEmail" type="email" autocomplete="email" placeholder="nome@email.com" required>
-        </label>
-        <label>
-          <span data-i18n="paymentMethod">Método de pagamento</span>
-          <select id="paymentMethod">
-            <option value="" data-i18n="selectOption">Selecione</option>
-            <option>CashApp</option>
-            <option>Zelle</option>
-            <option>Venmo</option>
-          </select>
-        </label>
-        <label>
-          <span data-i18n="amount">Valor</span>
-          <input id="amountField" type="text" value="US$ 5 por entrada" disabled aria-hidden="true">
-        </label>
-      </div>
-      <div id="paymentBox"></div>
-    </div>
-
-    <div class="card simulator">
-      <h3 data-i18n="simulatorTitle">Como funcionam os simuladores?</h3>
-      <p><strong data-i18n="simulateSmart">⚡ Simular automático</strong>: <span data-i18n="autoSimulatorText"></span></p>
-      <p><strong data-i18n="simulateRandom">🎲 Simular maluco</strong>: <span data-i18n="randomSimulatorText"></span></p>
-      <div class="button-row">
-        <button id="smartPick" type="button" data-i18n="simulateSmart">⚡ Simular automático</button>
-        <button id="randomPick" type="button" class="secondary" data-i18n="simulateRandom">🎲 Simular maluco</button>
-      </div>
-    </div>
-
-    <div id="entryProgressCard" class="card progress">
-      <strong id="progressText">0/0</strong>
-      <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-        <span id="progressBar"></span>
-      </div>
-    </div>
-
-    <form id="bracketForm" class="bracket" aria-label="Bracket de palpites" novalidate></form>
-
-    <div class="sticky-submit">
-      <button id="saveEntry" type="button" data-i18n="saveEntry">Salvar entrada</button>
-    </div>
-
-    <div id="latestReceiptBox" class="card receipt-ready hidden"></div>
-  </section>
-
-  <!-- ── Ranking ── -->
-  <section id="ranking" class="page active">
-    <div id="podiumBanner" class="hidden"></div>
-    <div class="section-head section-head-row">
-      <div>
-        <h2 data-i18n="rankingTitle">Ranking</h2>
-        <p class="muted" data-i18n="rankingSubtitle">Clique em uma entrada para ver os palpites.</p>
-      </div>
-      <div class="pot-box">
-        <span class="muted">Pot</span>
-        <strong id="potValue">$0</strong>
-      </div>
-    </div>
-    <a class="audit-report-link" href="audit-report.html" target="_blank" rel="noopener" data-i18n="auditReportLink">🔍 Ver Relatório de Auditoria da Pontuação</a>
-    <div id="rankingList"></div>
-  </section>
-
-  <!-- ── Participantes ── -->
-  <section id="participants" class="page">
-    <div class="section-head">
-      <h2 data-i18n="participantsTitle">Participantes</h2>
-    </div>
-    <div id="participantsList"></div>
-  </section>
-
-  <!-- ── Pagamento ── -->
-  <section id="payment" class="page">
-    <div class="section-head">
-      <h2 data-i18n="paymentTitle">Pagamento</h2>
-      <p class="muted" data-i18n="paymentSubtitle">Valor da aposta: US$ 5 por entrada.</p>
-    </div>
-    <div id="paymentMethods" class="pay-grid"></div>
-  </section>
-
-  <!-- ── Jogos ── -->
-  <section id="games" class="page">
-    <div class="section-head">
-      <h2 data-i18n="gamesTitle">Jogos e resultados</h2>
-      <p class="muted" id="gamesUpdatedLabel"></p>
-      <p class="muted" style="font-size:12px" data-i18n="gamesLiveNote"></p>
-    </div>
-    <div id="gamesList"></div>
-  </section>
-
-  <!-- ── Probabilidades ── -->
-  <section id="probs" class="page">
-    <div class="section-head">
-      <h2 data-i18n="probsTitle">Probabilidades</h2>
-      <p class="muted" data-i18n="probsSubtitle">Simulação Monte Carlo da Copa do Mundo 2026.</p>
-    </div>
-    <div id="probsContent" class="card"></div>
-  </section>
-
-  <!-- ── Regras ── -->
-  <section id="rules" class="page">
-    <div class="section-head">
-      <h2 data-i18n="rulesTitle">Regras</h2>
-    </div>
-    <div id="rulesContent"></div>
-  </section>
-
-  <!-- ── Admin ── -->
-  <section id="admin" class="page">
-    <h2 data-i18n="adminTitle">Admin</h2>
-
-    <!-- Login -->
-    <div id="adminLogin" class="card">
-      <label>
-        <span data-i18n="adminPassword">Senha do admin</span>
-        <input id="adminPassword" type="password" autocomplete="current-password">
-      </label>
-      <div class="button-row" style="margin-top:12px">
-        <button id="adminLoginBtn" type="button" data-i18n="adminEnter">Entrar no admin</button>
-      </div>
-    </div>
-
-    <!-- Admin area (hidden until login) -->
-    <div id="adminArea" class="hidden">
-      <div class="card">
-        <div class="admin-toolbar">
-          <button id="adminLogoutBtn" type="button" class="secondary" data-i18n="logout">Sair</button>
-          <button id="backupCsv" type="button" class="secondary small-btn" data-i18n="adminCsvFull">📊 CSV completo</button>
-          <button id="masterCsv" type="button" class="secondary small-btn" data-i18n="adminMasterCsv">📋 Master CSV</button>
-          <button id="masterHtml" type="button" class="secondary small-btn" data-i18n="adminMasterHtml">📄 Master HTML</button>
-          <button id="backupJson" type="button" class="secondary small-btn" data-i18n="adminJsonBackup">💾 JSON backup</button>
-          <button id="loadDemoData" type="button" class="secondary small-btn" data-i18n="adminDemoData">Demo</button>
-          <button id="refreshFootballApi" type="button" class="secondary small-btn" data-i18n="adminRefreshFootball">API-Football</button>
-          <button id="apiFetchResults" type="button" class="secondary small-btn" data-i18n="apiFootballRefreshResults">Atualizar resultados</button>
-          <button id="espnSync" type="button" class="secondary small-btn">⚽ ESPN</button>
-          <button id="sendResultEmailTest" type="button" class="secondary small-btn">📧 Teste (admin)</button>
-          <button id="sendResultEmailAll" type="button" class="secondary small-btn">📧 Email a todos</button>
-          <button id="forceSync" type="button" class="secondary small-btn" data-i18n="forceSyncBtn">☁️ Sync remoto</button>
-          <button id="clearData" type="button" class="danger small-btn">🗑 Limpar tudo</button>
-        </div>
-        <div id="apiStatusBar" class="hidden" style="padding:4px 2px;margin-top:4px"></div>
-      </div>
-
-      <!-- Receipts / delete -->
-      <div id="adminReceipts" class="card"></div>
-
-      <!-- Payments -->
-      <div id="paymentsAdmin" class="card"></div>
-
-      <!-- Real results -->
-      <div id="resultsAdmin" class="card"></div>
-
-      <!-- Audit log -->
-      <div id="adminAuditLog" class="card"></div>
-    </div>
-  </section>
-</main>
-
-<footer id="siteFooterBar" class="site-footer-bar"></footer>
-
+  Reversível: para reabrir a Copa como destino padrão, troque a URL acima (meta refresh + script)
+  de volta para /bolao/copa2026/.
+-->
+<p><a href="/bolao/br2026/">Redirecionando para o Bolão do Brasileirão…</a></p>
 </body>
 </html>

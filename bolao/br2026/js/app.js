@@ -2987,7 +2987,7 @@ async function init() {
 
   // Bolão switcher
   $("bolaoSelect")?.addEventListener("change", e => {
-    const allowed = ["/bolao/", "/bolao/br2026/", "/bolao/cdb2026/"];
+    const allowed = ["/bolao/copa2026/", "/bolao/br2026/", "/bolao/cdb2026/"];
     if (allowed.includes(e.target.value)) location.href = e.target.value;
   });
 

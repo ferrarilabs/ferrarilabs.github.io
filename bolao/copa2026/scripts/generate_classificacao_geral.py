@@ -30,8 +30,8 @@ from datetime import datetime, timezone
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import send_result_email as sre
 
-REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".."))
-OUT_PATH = os.path.join(REPO_ROOT, "bolao", "classificacao-geral.html")
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", ".."))
+OUT_PATH = os.path.join(REPO_ROOT, "bolao", "copa2026", "classificacao-geral.html")
 
 MAX_GOALS = 6
 TOTAL_LAMBDA = 2.4  # expected combined goals in a World Cup final — disclosed assumption

@@ -41,7 +41,7 @@ EMAILJS_HEADERS = {
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     ),
     "Origin":  "https://ferrarilabs.github.io",
-    "Referer": "https://ferrarilabs.github.io/bolao/",
+    "Referer": "https://ferrarilabs.github.io/bolao/copa2026/",
 }
 
 SCORING = {"exactScore": 10, "advance": 5, "oneTeamGoals": 1}
@@ -929,7 +929,7 @@ def build_html(state, focus_mid=None):
 
     <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
     <div style="text-align:center;font-size:12px;color:#9ca3af">
-      <a href="https://ferrarilabs.github.io/bolao/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/</a>
+      <a href="https://ferrarilabs.github.io/bolao/copa2026/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/copa2026/</a>
       &nbsp;·&nbsp; Bolão do Ferrari · Copa 2026
     </div>
 

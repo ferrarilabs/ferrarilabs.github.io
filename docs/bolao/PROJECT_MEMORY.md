@@ -29,7 +29,9 @@ repositório. O app da Copa chegou à versão **v4.125** (ver `bolao/js/config.j
 Em julho de 2026, a plataforma cresceu de um app único para **três aplicativos bolão
 independentes**:
 
-1. **Copa do Mundo 2026** (`bolao/`) — o original, em produção, dinheiro real em jogo.
+1. **Copa do Mundo 2026** (`bolao/copa2026/`, movido de `bolao/` em 2026-07-19, v4.159) — o
+   original. Torneio encerrado (Espanha campeã) e arquivado — `/bolao/` agora redireciona para o
+   Brasileirão; a Copa continua acessível em `bolao/copa2026/`, dinheiro real já pago.
 2. **Brasileirão 2026** (`bolao/br2026/`) — picks de classificação G4/Z4 com standings ao vivo
    via ESPN, criado como segundo produto reaproveitando o design system da Copa. Não publicado
    (sem link do site principal). Versão atual: `v1.13`.
@@ -128,7 +130,7 @@ deletadas "ressuscitando" via sync (ver `LESSONS_LEARNED.md`).
 
 ### Multi-app: tabela de equivalência de caminhos
 
-| Propósito | Copa (`bolao/`) | BR2026 (`bolao/br2026/`) | CDB2026 (`bolao/cdb2026/`) |
+| Propósito | Copa (`bolao/copa2026/`) | BR2026 (`bolao/br2026/`) | CDB2026 (`bolao/cdb2026/`) |
 |---|---|---|---|
 | Config global | `window.BOLAO_CONFIG` | `window.BR2026_CONFIG` | `window.CDB2026_CONFIG` |
 | i18n | pt-BR, es, en-US completos (~735 chaves) | apenas pt-BR (~145 chaves) | apenas pt-BR (~101 chaves) |
@@ -144,9 +146,9 @@ independentes que seguem a mesma convenção de arquivo e o mesmo design system 
 
 ## Estrutura dos aplicativos
 
-### Copa (`bolao/`) — em produção
+### Copa (`bolao/copa2026/`) — encerrada e arquivada (2026-07-19)
 
-- URL: `ferrarilabs.github.io/bolao/`
+- URL: `ferrarilabs.github.io/bolao/copa2026/` (`/bolao/` agora redireciona para o Brasileirão, v4.159).
 - Torneio: Copa do Mundo 2026 (FIFA), sede EUA/Canadá/México.
 - 72 jogos de fase de grupos (12 grupos, A–L) + 32 jogos de mata-mata (73–104).
 - Final: partida 104, 19 de julho de 2026, MetLife Stadium.
