@@ -1711,10 +1711,19 @@ function renderNextGameCard() {
   // tem mais, mostre proximos jogos quando ha mais de um no mesmo dia"). nextUpcomingGame() em si
   // não muda (ainda usado pelo congelamento do cutoff -- precisa continuar sendo um único jogo
   // fixo); só a exibição aqui passa a agrupar por dia.
+  //
+  // Bug real (2026-07-22, Eduardo: "Proximos jogos do br2026 sumiu"): quando o(s) único(s) jogo(s)
+  // de hoje já tinham terminado (ex.: 22h BRT, jogo das 19h30 já no estado "post"), todayGames
+  // continuava não-vazio (o filtro acima nunca excluía "post") -- então o card ficava preso
+  // mostrando só o resultado de hoje já encerrado, sem cair no fallback de "próximo dia com jogo"
+  // e sem contador nenhum. hasUpcomingToday distingue "tem jogo hoje" de "tem jogo hoje que ainda
+  // vale a pena mostrar como próximo" -- só cai no fallback do próximo dia quando não sobra nenhum
+  // jogo de hoje que ainda não terminou.
+  const hasUpcomingToday = todayGames.some(g => g.state !== "post");
   let groupLabel = "todayGamesLabel";
   let groupDateLabel = "";
   let gamesToShow = todayGames;
-  if (!gamesToShow.length) {
+  if (!hasUpcomingToday) {
     const next = nextUpcomingGame();
     if (next) {
       const nextDayKey = brtDateKey(next.dateISO);
