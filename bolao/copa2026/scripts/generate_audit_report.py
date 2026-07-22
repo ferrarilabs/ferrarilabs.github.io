@@ -431,20 +431,28 @@ def run_checks(state):
     official_order = sorted(official_ranked_keys, key=lambda k: (-k[1], -k[2]))
     order_match = [k[0] for k in indep_order] == [k[0] for k in official_order]
     top3 = ranked[:3]
+    # tournament_decided also drives finding G below (prize mechanism) -- computed here so both
+    # findings agree on tournament state instead of each re-deriving it independently.
+    payouts_info = sre.compute_final_payouts(state, locked_results)
+    tournament_decided = payouts_info is not None
+    top3_label_pt = "Top 3 final" if tournament_decided else "Top 3 provisório atual (antes da Final)"
+    top3_label_en = "Final top 3" if tournament_decided else "Current provisional top 3 (before the Final)"
+    top3_label_es = "Top 3 final" if tournament_decided else "Top 3 provisional actual (antes de la Final)"
+    top3_note_pt = "Torneio encerrado — este ranking é definitivo." if tournament_decided else "<i>Este ranking ainda é provisório — M104 (Final) decide o pódio final e os prêmios.</i>"
+    top3_note_en = "Tournament concluded — this ranking is final." if tournament_decided else "<i>This ranking is still provisional — M104 (the Final) decides the final podium and prizes.</i>"
+    top3_note_es = "Torneo concluido — este ranking es definitivo." if tournament_decided else "<i>Este ranking sigue siendo provisional — M104 (la Final) decide el podio final y los premios.</i>"
     findings.append(Finding(
         "ranking-tiebreak", "pass" if order_match else "info",
         {"pt": "F. Verificação do ranking e critérios de desempate", "en": "F. Ranking and tiebreak verification", "es": "F. Verificación del ranking y criterios de desempate"},
         {
-            "pt": f"""Critério de desempate documentado: total de pontos → nº de placares exatos → acertos de pódio (campeão/vice/3º). A ordem de classificação produzida pelo recálculo independente foi comparada contra a ordem oficial — {'OK, ordens idênticas.' if order_match else 'DIVERGENTE — as ordens não batem.'} Top 3 provisório atual (antes da Final): {', '.join(f'{i+1}º {e.get("entryName")} ({sre.score_entry_total(e, locked_results)} pts)' for i, e in enumerate(top3))}. <i>Este ranking ainda é provisório — M104 (Final) decide o pódio final e os prêmios.</i>""",
-            "en": f"""Documented tiebreak rule: total points → number of exact scores → podium hits (champion/runner-up/3rd). The ranking order produced by the independent recompute was compared against the official order — {'OK, identical order.' if order_match else 'MISMATCH — orders do not agree.'} Current provisional top 3 (before the Final): {', '.join(f'{i+1} {e.get("entryName")} ({sre.score_entry_total(e, locked_results)} pts)' for i, e in enumerate(top3))}. <i>This ranking is still provisional — M104 (the Final) decides the final podium and prizes.</i>""",
-            "es": f"""Criterio de desempate documentado: total de puntos → nº de marcadores exactos → aciertos de podio (campeón/subcampeón/3º). El orden de clasificación producido por el recálculo independiente se comparó contra el orden oficial — {'OK, órdenes idénticos.' if order_match else 'DIVERGENTE — los órdenes no coinciden.'} Top 3 provisional actual (antes de la Final): {', '.join(f'{i+1}º {e.get("entryName")} ({sre.score_entry_total(e, locked_results)} pts)' for i, e in enumerate(top3))}. <i>Este ranking sigue siendo provisional — M104 (la Final) decide el podio final y los premios.</i>""",
+            "pt": f"""Critério de desempate documentado: total de pontos → nº de placares exatos → acertos de pódio (campeão/vice/3º). A ordem de classificação produzida pelo recálculo independente foi comparada contra a ordem oficial — {'OK, ordens idênticas.' if order_match else 'DIVERGENTE — as ordens não batem.'} {top3_label_pt}: {', '.join(f'{i+1}º {e.get("entryName")} ({sre.score_entry_total(e, locked_results)} pts)' for i, e in enumerate(top3))}. {top3_note_pt}""",
+            "en": f"""Documented tiebreak rule: total points → number of exact scores → podium hits (champion/runner-up/3rd). The ranking order produced by the independent recompute was compared against the official order — {'OK, identical order.' if order_match else 'MISMATCH — orders do not agree.'} {top3_label_en}: {', '.join(f'{i+1} {e.get("entryName")} ({sre.score_entry_total(e, locked_results)} pts)' for i, e in enumerate(top3))}. {top3_note_en}""",
+            "es": f"""Criterio de desempate documentado: total de puntos → nº de marcadores exactos → aciertos de podio (campeón/subcampeón/3º). El orden de clasificación producido por el recálculo independiente se comparó contra el orden oficial — {'OK, órdenes idénticos.' if order_match else 'DIVERGENTE — los órdenes no coinciden.'} {top3_label_es}: {', '.join(f'{i+1}º {e.get("entryName")} ({sre.score_entry_total(e, locked_results)} pts)' for i, e in enumerate(top3))}. {top3_note_es}""",
         },
     ))
 
     # G — Prize/pot mechanism verification
     pot = paid_count * sre.ENTRY_FEE
-    payouts_info = sre.compute_final_payouts(state, locked_results)
-    tournament_decided = payouts_info is not None
     findings.append(Finding(
         "prize-mechanism", "pass",
         {"pt": "G. Verificação do mecanismo de premiação", "en": "G. Prize mechanism verification", "es": "G. Verificación del mecanismo de premiación"},
@@ -830,19 +838,19 @@ def render_report(findings, meta, state):
       <h2>Sumário executivo</h2>
       <p>Esta auditoria recalculou de forma independente a pontuação de todas as {meta['entry_count']} entradas reais do bolão, com base nos dados reais de produção (Supabase), sem reutilizar a lógica de pontuação do site ou do pipeline de e-mail — apenas os dados brutos (palpites, resultados, estrutura do bracket). Também verificou a integridade dos dados, a fórmula de pontuação, o mecanismo de premiação e os critérios de desempate documentados.</p>
       <p>{'<b>Nenhuma divergência foi encontrada</b> entre o recálculo independente e a pontuação oficial em nenhuma das ' + str(meta['entry_count']) + ' entradas auditadas.' if meta['all_pass'] else 'Foram encontrados itens que precisam de revisão — ver seções abaixo.'} Três problemas foram identificados e corrigidos nos últimos dias, antes deste relatório (seção H) — dois afetavam apenas uma prévia exibida durante partidas ao vivo (nunca a pontuação oficial), o terceiro afetava a pontuação oficial diretamente e já foi corrigido e comunicado aos participantes.</p>
-      <p>Esta auditoria é publicada antes do resultado da Final (M104), como um compromisso de transparência: o mecanismo que vai decidir o pódio final e os valores em dinheiro amanhã já pode ser conferido hoje.</p>
+      <p>{'Esta auditoria foi publicada antes do resultado da Final (M104), como um compromisso de transparência — o mecanismo que decidiu o pódio final e os valores em dinheiro já podia ser conferido antes do resultado sair. O torneio está encerrado; este relatório reflete o resultado final.' if meta['tournament_decided'] else 'Esta auditoria é publicada antes do resultado da Final (M104), como um compromisso de transparência: o mecanismo que vai decidir o pódio final e os valores em dinheiro já pode ser conferido hoje.'}</p>
     </section>"""
     exec_summary_en = f"""<section class="audit-section exec-summary">
       <h2>Executive summary</h2>
       <p>This audit independently recomputed the score of all {meta['entry_count']} real bolão entries, based on real production data (Supabase), without reusing the site's or the email pipeline's own scoring logic — only raw data (picks, results, bracket structure). It also verified data integrity, the scoring formula, the prize mechanism, and the documented tiebreak rules.</p>
       <p>{'<b>No discrepancies were found</b> between the independent recomputation and the official score for any of the ' + str(meta['entry_count']) + ' entries audited.' if meta['all_pass'] else 'Items requiring review were found — see the sections below.'} Three issues were identified and fixed over the past few days, before this report (section H) — two only affected a preview shown during live matches (never official scoring), the third affected official scoring directly and has already been fixed and communicated to participants.</p>
-      <p>This audit is published before the Final's (M104) result, as a transparency commitment: the mechanism that will decide tomorrow's final podium and dollar amounts can already be checked today.</p>
+      <p>{"This audit was published before the Final's (M104) result, as a transparency commitment — the mechanism that decided the final podium and dollar amounts could already be checked before the result came in. The tournament has concluded; this report reflects the final result." if meta['tournament_decided'] else "This audit is published before the Final's (M104) result, as a transparency commitment: the mechanism that will decide the final podium and dollar amounts can already be checked today."}</p>
     </section>"""
     exec_summary_es = f"""<section class="audit-section exec-summary">
       <h2>Resumen ejecutivo</h2>
       <p>Esta auditoría recalculó de forma independiente la puntuación de las {meta['entry_count']} entradas reales del bolão, con base en datos reales de producción (Supabase), sin reutilizar la lógica de puntuación del sitio ni del pipeline de correo — solo datos brutos (pronósticos, resultados, estructura del cuadro). También verificó la integridad de los datos, la fórmula de puntuación, el mecanismo de premiación y los criterios de desempate documentados.</p>
       <p>{'<b>No se encontraron discrepancias</b> entre el recálculo independiente y la puntuación oficial en ninguna de las ' + str(meta['entry_count']) + ' entradas auditadas.' if meta['all_pass'] else 'Se encontraron puntos que requieren revisión — ver las secciones a continuación.'} Se identificaron y corrigieron tres problemas en los últimos días, antes de este informe (sección H) — dos afectaban solo una vista previa mostrada durante partidos en vivo (nunca la puntuación oficial), el tercero afectaba la puntuación oficial directamente y ya fue corregido y comunicado a los participantes.</p>
-      <p>Esta auditoría se publica antes del resultado de la Final (M104), como un compromiso de transparencia: el mecanismo que decidirá el podio final y los montos en dinero mañana ya puede verificarse hoy.</p>
+      <p>{'Esta auditoría fue publicada antes del resultado de la Final (M104), como un compromiso de transparencia — el mecanismo que decidió el podio final y los montos en dinero ya podía verificarse antes de que saliera el resultado. El torneo está concluido; este informe refleja el resultado final.' if meta['tournament_decided'] else 'Esta auditoría se publica antes del resultado de la Final (M104), como un compromiso de transparencia: el mecanismo que decidirá el podio final y los montos en dinero ya puede verificarse hoy.'}</p>
     </section>"""
 
     detail_links_pt = f"""<section class="audit-section" style="border-left:4px solid #2563eb">
