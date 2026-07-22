@@ -57,7 +57,7 @@
       <h1>Relatório de Auditoria — Integridade de Pontuação e Premiação</h1>
       <div class="audit-meta">
         <div><b>Escopo:</b> Copa do Mundo 2026 — pontuação, ranking e mecanismo de premiação</div>
-        <div><b>Data/hora de geração:</b> 22/07/2026 00:36 UTC</div>
+        <div><b>Data/hora de geração:</b> 22/07/2026 00:57 UTC</div>
         <div><b>Entradas reais auditadas:</b> 23</div>
         <div><b>Partidas travadas auditadas:</b> 32 de 32</div>
         <div><b>Pote atual:</b> $115</div>
@@ -68,7 +68,7 @@
       <h2>Sumário executivo</h2>
       <p>Esta auditoria recalculou de forma independente a pontuação de todas as 23 entradas reais do bolão, com base nos dados reais de produção (Supabase), sem reutilizar a lógica de pontuação do site ou do pipeline de e-mail — apenas os dados brutos (palpites, resultados, estrutura do bracket). Também verificou a integridade dos dados, a fórmula de pontuação, o mecanismo de premiação e os critérios de desempate documentados.</p>
       <p><b>Nenhuma divergência foi encontrada</b> entre o recálculo independente e a pontuação oficial em nenhuma das 23 entradas auditadas. Três problemas foram identificados e corrigidos nos últimos dias, antes deste relatório (seção H) — dois afetavam apenas uma prévia exibida durante partidas ao vivo (nunca a pontuação oficial), o terceiro afetava a pontuação oficial diretamente e já foi corrigido e comunicado aos participantes.</p>
-      <p>Esta auditoria é publicada antes do resultado da Final (M104), como um compromisso de transparência: o mecanismo que vai decidir o pódio final e os valores em dinheiro amanhã já pode ser conferido hoje.</p>
+      <p>Esta auditoria foi publicada antes do resultado da Final (M104), como um compromisso de transparência — o mecanismo que decidiu o pódio final e os valores em dinheiro já podia ser conferido antes do resultado sair. O torneio está encerrado; este relatório reflete o resultado final.</p>
     </section><section class="audit-section" style="border-left:4px solid #2563eb">
       <h2>🔍 Auditoria detalhada e transparência de código</h2>
       <p>Este resumo executivo tem propósito de leitura rápida. Para o nível de detalhe completo — cada palpite, cada partida, cada ponto — e o histórico completo de criação/edição de cada entrada, use os links abaixo:</p>
@@ -105,7 +105,7 @@
             </section>
 <section class="audit-section">
               <h2>F. Verificação do ranking e critérios de desempate <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
-              <div class="section-body">Critério de desempate documentado: total de pontos → nº de placares exatos → acertos de pódio (campeão/vice/3º). A ordem de classificação produzida pelo recálculo independente foi comparada contra a ordem oficial — OK, ordens idênticas. Top 3 provisório atual (antes da Final): 1º Simone Hirle #4 (227 pts), 2º Mitch is the best (208 pts), 3º Aline (191 pts). <i>Este ranking ainda é provisório — M104 (Final) decide o pódio final e os prêmios.</i></div>
+              <div class="section-body">Critério de desempate documentado: total de pontos → nº de placares exatos → acertos de pódio (campeão/vice/3º). A ordem de classificação produzida pelo recálculo independente foi comparada contra a ordem oficial — OK, ordens idênticas. Top 3 final: 1º Simone Hirle #4 (227 pts), 2º Mitch is the best (208 pts), 3º Aline (191 pts). Torneio encerrado — este ranking é definitivo.</div>
             </section>
 <section class="audit-section">
               <h2>G. Verificação do mecanismo de premiação <span class="badge badge-pass">✓ SEM EXCEÇÕES</span></h2>
@@ -126,7 +126,7 @@
               <div class="section-body">Suíte de testes que roda automaticamente antes de qualquer envio de e-mail (<code>send_result_email.py --auto</code> se recusa a rodar se esta suíte falhar). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Partial podium (M103 only) still applies its own bonus</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
             </section><section class="audit-section signoff">
       <h2>Certificação</h2>
-      <p>Certifico que os procedimentos descritos neste relatório foram executados de forma automatizada em 22/07/2026 00:36 UTC, contra os dados de produção do Bolão do Ferrari, e que os resultados apresentados refletem fielmente o recálculo obtido. Este relatório pode ser regenerado a qualquer momento executando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p>Certifico que os procedimentos descritos neste relatório foram executados de forma automatizada em 22/07/2026 00:57 UTC, contra os dados de produção do Bolão do Ferrari, e que os resultados apresentados refletem fielmente o recálculo obtido. Este relatório pode ser regenerado a qualquer momento executando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
       <p class="signoff-name">Sistema de Auditoria Automatizada — Bolão do Ferrari</p>
     </section></div>
   <div data-lang="en">
@@ -135,7 +135,7 @@
       <h1>Audit Report — Scoring &amp; Prize Payout Integrity</h1>
       <div class="audit-meta">
         <div><b>Scope:</b> 2026 World Cup — scoring, ranking, and prize mechanism</div>
-        <div><b>Generated at:</b> July 22, 2026 00:36 UTC</div>
+        <div><b>Generated at:</b> July 22, 2026 00:57 UTC</div>
         <div><b>Real entries audited:</b> 23</div>
         <div><b>Locked matches audited:</b> 32 of 32</div>
         <div><b>Current pot:</b> $115</div>
@@ -146,7 +146,7 @@
       <h2>Executive summary</h2>
       <p>This audit independently recomputed the score of all 23 real bolão entries, based on real production data (Supabase), without reusing the site's or the email pipeline's own scoring logic — only raw data (picks, results, bracket structure). It also verified data integrity, the scoring formula, the prize mechanism, and the documented tiebreak rules.</p>
       <p><b>No discrepancies were found</b> between the independent recomputation and the official score for any of the 23 entries audited. Three issues were identified and fixed over the past few days, before this report (section H) — two only affected a preview shown during live matches (never official scoring), the third affected official scoring directly and has already been fixed and communicated to participants.</p>
-      <p>This audit is published before the Final's (M104) result, as a transparency commitment: the mechanism that will decide tomorrow's final podium and dollar amounts can already be checked today.</p>
+      <p>This audit was published before the Final's (M104) result, as a transparency commitment — the mechanism that decided the final podium and dollar amounts could already be checked before the result came in. The tournament has concluded; this report reflects the final result.</p>
     </section><section class="audit-section" style="border-left:4px solid #2563eb">
       <h2>🔍 Detailed audit and code transparency</h2>
       <p>This executive summary is meant for a quick read. For the full level of detail — every pick, every match, every point — and the complete creation/edit history of every entry, use the links below:</p>
@@ -183,7 +183,7 @@
             </section>
 <section class="audit-section">
               <h2>F. Ranking and tiebreak verification <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
-              <div class="section-body">Documented tiebreak rule: total points → number of exact scores → podium hits (champion/runner-up/3rd). The ranking order produced by the independent recompute was compared against the official order — OK, identical order. Current provisional top 3 (before the Final): 1 Simone Hirle #4 (227 pts), 2 Mitch is the best (208 pts), 3 Aline (191 pts). <i>This ranking is still provisional — M104 (the Final) decides the final podium and prizes.</i></div>
+              <div class="section-body">Documented tiebreak rule: total points → number of exact scores → podium hits (champion/runner-up/3rd). The ranking order produced by the independent recompute was compared against the official order — OK, identical order. Final top 3: 1 Simone Hirle #4 (227 pts), 2 Mitch is the best (208 pts), 3 Aline (191 pts). Tournament concluded — this ranking is final.</div>
             </section>
 <section class="audit-section">
               <h2>G. Prize mechanism verification <span class="badge badge-pass">✓ NO EXCEPTIONS</span></h2>
@@ -204,7 +204,7 @@
               <div class="section-body">Test suite that runs automatically before any email send (<code>send_result_email.py --auto</code> refuses to run if this suite fails). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Partial podium (M103 only) still applies its own bonus</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
             </section><section class="audit-section signoff">
       <h2>Certification</h2>
-      <p>I certify that the procedures described in this report were executed automatically at July 22, 2026 00:36 UTC, against Bolão do Ferrari's production data, and that the results shown faithfully reflect the recomputation obtained. This report can be regenerated at any time by running <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p>I certify that the procedures described in this report were executed automatically at July 22, 2026 00:57 UTC, against Bolão do Ferrari's production data, and that the results shown faithfully reflect the recomputation obtained. This report can be regenerated at any time by running <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
       <p class="signoff-name">Automated Audit System — Bolão do Ferrari</p>
     </section></div>
   <div data-lang="es">
@@ -213,7 +213,7 @@
       <h1>Informe de Auditoría — Integridad de Puntuación y Premiación</h1>
       <div class="audit-meta">
         <div><b>Alcance:</b> Copa del Mundo 2026 — puntuación, ranking y mecanismo de premiación</div>
-        <div><b>Fecha/hora de generación:</b> 22/07/2026 00:36 UTC</div>
+        <div><b>Fecha/hora de generación:</b> 22/07/2026 00:57 UTC</div>
         <div><b>Entradas reales auditadas:</b> 23</div>
         <div><b>Partidos bloqueados auditados:</b> 32 de 32</div>
         <div><b>Bolsa actual:</b> $115</div>
@@ -224,7 +224,7 @@
       <h2>Resumen ejecutivo</h2>
       <p>Esta auditoría recalculó de forma independiente la puntuación de las 23 entradas reales del bolão, con base en datos reales de producción (Supabase), sin reutilizar la lógica de puntuación del sitio ni del pipeline de correo — solo datos brutos (pronósticos, resultados, estructura del cuadro). También verificó la integridad de los datos, la fórmula de puntuación, el mecanismo de premiación y los criterios de desempate documentados.</p>
       <p><b>No se encontraron discrepancias</b> entre el recálculo independiente y la puntuación oficial en ninguna de las 23 entradas auditadas. Se identificaron y corrigieron tres problemas en los últimos días, antes de este informe (sección H) — dos afectaban solo una vista previa mostrada durante partidos en vivo (nunca la puntuación oficial), el tercero afectaba la puntuación oficial directamente y ya fue corregido y comunicado a los participantes.</p>
-      <p>Esta auditoría se publica antes del resultado de la Final (M104), como un compromiso de transparencia: el mecanismo que decidirá el podio final y los montos en dinero mañana ya puede verificarse hoy.</p>
+      <p>Esta auditoría fue publicada antes del resultado de la Final (M104), como un compromiso de transparencia — el mecanismo que decidió el podio final y los montos en dinero ya podía verificarse antes de que saliera el resultado. El torneo está concluido; este informe refleja el resultado final.</p>
     </section><section class="audit-section" style="border-left:4px solid #2563eb">
       <h2>🔍 Auditoría detallada y transparencia de código</h2>
       <p>Este resumen ejecutivo es para una lectura rápida. Para el nivel de detalle completo — cada pronóstico, cada partido, cada punto — y el historial completo de creación/edición de cada entrada, usa los enlaces a continuación:</p>
@@ -261,7 +261,7 @@
             </section>
 <section class="audit-section">
               <h2>F. Verificación del ranking y criterios de desempate <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
-              <div class="section-body">Criterio de desempate documentado: total de puntos → nº de marcadores exactos → aciertos de podio (campeón/subcampeón/3º). El orden de clasificación producido por el recálculo independiente se comparó contra el orden oficial — OK, órdenes idénticos. Top 3 provisional actual (antes de la Final): 1º Simone Hirle #4 (227 pts), 2º Mitch is the best (208 pts), 3º Aline (191 pts). <i>Este ranking sigue siendo provisional — M104 (la Final) decide el podio final y los premios.</i></div>
+              <div class="section-body">Criterio de desempate documentado: total de puntos → nº de marcadores exactos → aciertos de podio (campeón/subcampeón/3º). El orden de clasificación producido por el recálculo independiente se comparó contra el orden oficial — OK, órdenes idénticos. Top 3 final: 1º Simone Hirle #4 (227 pts), 2º Mitch is the best (208 pts), 3º Aline (191 pts). Torneo concluido — este ranking es definitivo.</div>
             </section>
 <section class="audit-section">
               <h2>G. Verificación del mecanismo de premiación <span class="badge badge-pass">✓ SIN EXCEPCIONES</span></h2>
@@ -282,7 +282,7 @@
               <div class="section-body">Suite de pruebas que se ejecuta automáticamente antes de cualquier envío de correo (<code>send_result_email.py --auto</code> se niega a ejecutarse si esta suite falla). <ul><li>✓ Bracket mirrors data.js</li><li>✓ Perfect-bracket simulation resolves end-to-end</li><li>✓ Bonus points + 4th place present and applied</li><li>✓ Partial podium (M103 only) still applies its own bonus</li><li>✓ Score parser bounds match the site's</li><li>✓ Tiebreak sort order (total, exact, podium)</li></ul></div>
             </section><section class="audit-section signoff">
       <h2>Certificación</h2>
-      <p>Certifico que los procedimientos descritos en este informe se ejecutaron de forma automatizada el 22/07/2026 00:36 UTC, contra los datos de producción de Bolão do Ferrari, y que los resultados presentados reflejan fielmente el recálculo obtenido. Este informe puede regenerarse en cualquier momento ejecutando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
+      <p>Certifico que los procedimientos descritos en este informe se ejecutaron de forma automatizada el 22/07/2026 00:57 UTC, contra los datos de producción de Bolão do Ferrari, y que los resultados presentados reflejan fielmente el recálculo obtenido. Este informe puede regenerarse en cualquier momento ejecutando <code>python3 bolao/scripts/generate_audit_report.py</code>.</p>
       <p class="signoff-name">Sistema de Auditoría Automatizada — Bolão do Ferrari</p>
     </section></div>
 </div>

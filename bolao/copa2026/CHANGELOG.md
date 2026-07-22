@@ -1,5 +1,34 @@
 # CHANGELOG
 
+## v4.160 — 2026-07-19
+
+### Fixed — audit report said "provisional, before the Final" even though the tournament had concluded
+
+Eduardo asked for a full post-move audit ("ensure absolutely nothing got broken"). Verified the
+whole platform end-to-end against the real production URLs (not just local): the `/bolao/`
+redirect, all 4 emailed-link stubs, the Copa/BR2026/CDB2026 switchers, the service worker path,
+and the CDN scripts — all confirmed correct in production. Found one real issue while checking
+the audit report's actual rendered content: `generate_audit_report.py` had **hardcoded**
+"Top 3 provisório atual (antes da Final)" / "This audit is published before the Final's (M104)
+result... tomorrow" text in two places (the ranking-tiebreak finding and the executive summary's
+closing paragraph) that never became conditional on whether the tournament was actually decided
+— unlike the prize-mechanism finding right next to it, which already correctly branched on
+`tournament_decided`. Since M104 has been locked in production since earlier today, the live
+audit report was showing "provisional... decided tomorrow" language on a tournament that had
+already concluded (Spain champion) — confusing, though **not a scoring or payout bug**: the
+underlying totals (`score_entry_total()`) were already fully correct, verified independently
+earlier today (Aline's 191 pts, Simone Hirle #4's 227 pts — unchanged before/after this fix,
+confirming the math was never wrong, only the prose describing it).
+
+Fixed both spots to branch on the same `tournament_decided` flag the prize-mechanism finding
+already used: now says "Top 3 final" / "Tournament concluded — this ranking is final" and "This
+audit was published before the Final's result... the tournament has concluded, this report
+reflects the final result" in all 3 languages. Regenerated the audit report and both detail
+pages to confirm — only the intended text and generation timestamp changed, nothing else.
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — narrative-text fix only, the scoring
+computation itself was never wrong.
+
 ## v4.159 — 2026-07-19
 
 ### Changed — Copa moved from `bolao/` to `bolao/copa2026/`; `/bolao/` now redirects to Brasileirão
