@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## 2026-07-22 — GitHub Actions workflow paths fixed (no siteVersion bump — CI config only)
+
+Eduardo: "I got a workflow error about email send." Checked the actual failed run
+(`.github/workflows/auto_results.yml`, run 29883861333) — confirmed the exact cause:
+`##[error]An error occurred trying to start process '/usr/bin/bash' with working directory
+'.../bolao/scripts'. No such file or directory`. The v4.159 Copa move (`bolao/` →
+`bolao/copa2026/`) updated every in-repo path reference except the GitHub Actions workflow
+files — missed entirely during that audit.
+
+Fixed `auto_results.yml`'s two `working-directory: bolao/scripts` steps and the
+`git add bolao/js/config.js` line to point at `bolao/copa2026/scripts` and
+`bolao/copa2026/js/config.js`. Also fixed `sync_version.yml` (the cache-bust bot), which had the
+same gap two ways: its path *trigger* still watched the now-nonexistent `bolao/js/**`/`bolao/css/**`
+(so it would silently never fire again for future Copa edits), and its `index.html` sync loop
+never included `bolao/copa2026/index.html` (so even a manually-triggered run wouldn't have bumped
+Copa's real cache-bust version, though the harmless `bolao/index.html` redirect stub was still in
+the loop, always a no-op since it has no `?v=` query strings).
+
+Verified `--auto`'s idempotency before assuming the fix alone was enough: `run_auto()` only sends
+anything for match IDs not already in Supabase — since all 32 knockout matches (through M104) are
+already locked, the fixed workflow will just report "nothing to do" and exit cleanly on every
+remaining scheduled run this month, no risk of a duplicate email. The workflow's own `cron:`
+schedule is scoped to months 6–7 only, so it stops firing on its own once August starts — left
+as-is rather than also disabling it, since disabling a schedule Eduardo set up wasn't part of the
+reported problem.
+
+`br2026_round_emails.yml` was unaffected (references `bolao/br2026/scripts`, never moved).
+
+`audit_scoring.py`: PASSED on all 3 apps, unchanged — CI configuration only, no app code touched.
+
 ## v4.160 — 2026-07-19
 
 ### Fixed — audit report said "provisional, before the Final" even though the tournament had concluded
