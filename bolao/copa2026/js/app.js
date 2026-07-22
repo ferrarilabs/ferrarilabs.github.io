@@ -1635,7 +1635,7 @@ function buildResultEmailHtml(s, testMode) {
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Clasificación actual (${matchCount} de 32 partidos)</div>
     <table ${tbl}><thead><tr ${thead}><th ${th} style="text-align:center">#</th><th ${th}>Entrada</th><th ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
-    <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/</a> · Bolão do Ferrari · Copa 2026</div>
+    <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao/copa2026/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/copa2026/</a> · Bolão do Ferrari · Copa 2026</div>
   </div>
 </div>`;
 }
@@ -4660,7 +4660,7 @@ function renderAll() {
 function initEvents() {
   // bolão switcher
   document.getElementById("bolaoSelect")?.addEventListener("change", e => {
-    const allowed = ["/bolao/", "/bolao/br2026/", "/bolao/cdb2026/"];
+    const allowed = ["/bolao/copa2026/", "/bolao/br2026/", "/bolao/cdb2026/"];
     if (allowed.includes(e.target.value)) location.href = e.target.value;
   });
 
@@ -4953,5 +4953,5 @@ window.Bolao = { openReceipt, downloadReceipt, showSection };
 })();
 
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/bolao/sw.js').catch(() => {});
+  navigator.serviceWorker.register('/bolao/copa2026/sw.js').catch(() => {});
 }

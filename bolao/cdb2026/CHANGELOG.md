@@ -1,5 +1,16 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.51 — 2026-07-19
+
+### Changed — switcher's "Copa do Mundo" option now points at bolao/copa2026/
+
+Copa 2026 moved from `bolao/` to `bolao/copa2026/` this same day — see `bolao/copa2026/CHANGELOG.md`
+v4.159. Updated this app's own "Alternar bolão" switcher option value and the `allowed` array in
+its change handler so selecting "Copa do Mundo" here lands on the new location instead of the
+now-redirecting `/bolao/` (which would otherwise bounce back here — an infinite loop).
+
+`audit_scoring.py`: PASSED, unchanged — one link value updated, no app logic touched.
+
 ## v3.50 — 2026-07-19
 
 ### Fixed — substituições nunca apareciam nos lances ao vivo (mesmo bug da Copa, propagado no mesmo dia)

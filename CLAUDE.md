@@ -7,15 +7,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 No build step. Push to `main` and GitHub Pages auto-deploys to `ferrarilabs.github.io`.
 
 - Main site: `ferrarilabs.github.io`
-- Copa do Mundo 2026: `ferrarilabs.github.io/bolao/`
+- Bolão root: `ferrarilabs.github.io/bolao/` — redirects to Brasileirão (see below)
+- Copa do Mundo 2026: `ferrarilabs.github.io/bolao/copa2026/` (moved here 2026-07-19, v4.159 — see "Copa do Mundo 2026 archive" below)
 - Brasileirão 2026: `ferrarilabs.github.io/bolao/br2026/` (not published yet)
 - Copa do Brasil 2026: `ferrarilabs.github.io/bolao/cdb2026/` (published 2026-07-19, in production)
-- Old URL redirect: `ferrarilabs.github.io/bolao/` → `/bolao/`
 
 To preview locally:
 ```bash
 python3 -m http.server 8080
-# Open: http://localhost:8080/bolao/
+# Open: http://localhost:8080/bolao/br2026/
 ```
 
 ## Repository structure
@@ -24,11 +24,34 @@ Three independent sub-projects:
 
 **Main site** (`index.html`, `index.pt.html`, `index.es.html`, `index.jp.html`, `styles.css`) — static multilingual personal site about Eduardo Ferrari's work in financial crime/AML/AI compliance. Contact form uses Formspree + Cloudflare Turnstile (keys must be set manually in the HTML).
 
-**Copa do Mundo 2026** (`bolao/`) — bracket pool. Vanilla JS, no framework, no build system. URL: `ferrarilabs.github.io/bolao/`.
+**Copa do Mundo 2026** (`bolao/copa2026/`) — bracket pool, tournament concluded (Spain champion, 2026-07-19) and archived. Vanilla JS, no framework, no build system. URL: `ferrarilabs.github.io/bolao/copa2026/`. See "Copa do Mundo 2026 archive" below.
 
 **Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/br2026/`.
 
 **Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Published 2026-07-19 (in production, invited by email). URL: `ferrarilabs.github.io/bolao/cdb2026/`.
+
+## Copa do Mundo 2026 archive (v4.157–v4.159, 2026-07-19)
+
+Eduardo, after the Final concluded: "Copa do mundo finalizada! ... Desabilitar os botões todos,
+deixar só o vencedor, auditoria e os palpites" (v4.157 — `CONFIG.archived` in `js/config.js`
+hides every nav button except Ranking, which already has the podium banner, audit report link,
+and "Ver palpites" per-entry detail), then "Deixe o default do site como o Brasileiro agora" —
+confirmed he wanted a real redirect, not just the switcher's default option changing (v4.158 had
+only done the latter). A real redirect at `bolao/index.html` required moving the whole app so the
+archived Ranking would still have a URL of its own — so the entire Copa app (was directly under
+`bolao/`) moved to `bolao/copa2026/` (v4.159), matching the `br2026/`/`cdb2026/` folder pattern.
+
+- `bolao/index.html` is now a redirect (meta refresh + JS `location.replace`) to `/bolao/br2026/`.
+- `bolao/audit-report.html`, `audit-detail-picks.html`, `audit-detail-governance.html`, and
+  `classificacao-geral.html` are redirect stubs pointing into `bolao/copa2026/` — these paths
+  were already emailed to real participants before the move and must keep resolving.
+- `bolao/sw.js` is left in place unchanged (harmless, generic — no app-specific paths) as a
+  safety net for any browser that still has the old `/bolao/`-scoped service worker registered;
+  the live app now registers its own copy at `bolao/copa2026/sw.js`.
+- The "Copa do Mundo" option in all three apps' "Alternar bolão" switcher now points at
+  `/bolao/copa2026/`, not `/bolao/` (pointing at `/bolao/` would loop back to the redirect).
+- Reversible: to make Copa the default again, edit `bolao/index.html`'s redirect target back to
+  `/bolao/copa2026/` and flip `CONFIG.archived` to `false` in `bolao/copa2026/js/config.js`.
 
 ## Bolão app — quick reference
 
@@ -76,15 +99,16 @@ silently drifted from the site's own scoring logic — see CHANGELOG v4.57):
   touching anything, and refuses to send any email if it fails. It also re-validates each
   individual match at runtime (event date not in the future, teams fully resolved, result
   shape sane) right before trusting it enough to save + email — see `check_match_is_real()`
-  and `check_result_shape()` in `bolao/scripts/audit_scoring.py`.
+  and `check_result_shape()` in `bolao/copa2026/scripts/audit_scoring.py`.
 - **After every change you make to this repo — whether or not it looks scoring-related —
-  run `python3 bolao/scripts/audit_scoring.py` and say so in your summary to Eduardo, even
+  run `python3 bolao/copa2026/scripts/audit_scoring.py`, `python3 bolao/br2026/scripts/audit_scoring.py`,
+  and `python3 bolao/cdb2026/scripts/audit_scoring.py`, and say so in your summary to Eduardo, even
   if the answer is just "scoring untouched, audit still passes."** Don't assume a change is
   unrelated; the two bugs found in the July 2026 audit were both in code that looked
   unrelated to whatever was being worked on at the time.
-- If you change the bracket (`bolao/js/data.js`'s `knockoutMatches`), the scoring formula,
-  the tiebreak cascade, or anything in `bolao/scripts/send_result_email.py`, treat
-  `audit_scoring.py` failing as a hard blocker — fix it before opening a PR, not after.
+- If you change the bracket (`bolao/copa2026/js/data.js`'s `knockoutMatches`), the scoring
+  formula, the tiebreak cascade, or anything in `bolao/copa2026/scripts/send_result_email.py`,
+  treat `audit_scoring.py` failing as a hard blocker — fix it before opening a PR, not after.
 
 ### Admin
 
@@ -121,13 +145,13 @@ When adding a new key, add it to all three objects. Default fallback is `pt-BR`.
 - Only anon key used — never the service_role key.
 - RLS restricts all operations to `id = 'main'`.
 - Merge strategy: union entries, local wins for paid/results.
-- See `bolao/docs/DATABASE_SETUP_SUPABASE.md` for SQL setup.
+- See `bolao/copa2026/docs/DATABASE_SETUP_SUPABASE.md` for SQL setup.
 
 ### Release process
 
-1. Edit files under `bolao/`.
-2. Bump `siteVersion` in `js/config.js`.
-3. Add a CHANGELOG entry in `bolao/CHANGELOG.md`.
+1. Edit files under `bolao/copa2026/` (or `bolao/br2026/`, `bolao/cdb2026/` for those apps).
+2. Bump `siteVersion` in that app's `js/config.js`.
+3. Add a CHANGELOG entry in that app's `CHANGELOG.md` (e.g. `bolao/copa2026/CHANGELOG.md`).
 4. Commit and push to `main`.
 5. Run QA checklist from `docs/bolao/QA_CHECKLIST.md`.
 
@@ -156,14 +180,16 @@ All extended documentation is in `docs/bolao/`:
 - `PROJECT_MEMORY.md` — permanent project memory: history, architecture, decisions, limitations, bugs, tech debt
 - `LESSONS_LEARNED.md` — historical bugs in problem/root-cause/fix/prevention format
 
-Also see `bolao/docs/` for low-level setup guides (Supabase SQL, API-Football, deploy steps).
+Also see `bolao/copa2026/docs/` for low-level setup guides (Supabase SQL, API-Football, deploy steps).
 
 <!-- AUTO:PLATFORM_RULES:START -->
 ## Platform governance (three apps)
 
 This repo runs **three independent bolão apps** that share one design system and one set of
-conventions: `bolao/` (Copa do Mundo 2026, **in production**), `bolao/br2026/` (Brasileirão
-2026, not published — entries closed 2026-07-16), and `bolao/cdb2026/` (Copa do Brasil 2026,
+conventions: `bolao/copa2026/` (Copa do Mundo 2026, **concluded and archived** 2026-07-19 —
+no longer the default `/bolao/` destination, see "Copa do Mundo 2026 archive" above),
+`bolao/br2026/` (Brasileirão 2026, not published — entries closed 2026-07-16, now the default
+`/bolao/` destination), and `bolao/cdb2026/` (Copa do Brasil 2026,
 **published 2026-07-19, in production**). They do not share code (no imports between them) but
 they are audited together.
 
@@ -175,7 +201,7 @@ they are audited together.
 
 **Golden master rule — mandatory:**
 
-> A Copa do Mundo 2026 (`bolao/`) é a referência visual canônica. BR2026 e CDB2026 devem copiar
+> A Copa do Mundo 2026 (`bolao/copa2026/`) é a referência visual canônica. BR2026 e CDB2026 devem copiar
 > seus padrões visuais, não sua lógica de torneio.
 
 Additional rules:
@@ -229,13 +255,13 @@ justification for skipping validation.
 3. `docs/bolao/PLATFORM_GOVERNANCE.md`
 4. `docs/bolao/CONSISTENCY_MATRIX.md`
 5. `docs/bolao/QA_MASTER_CHECKLIST.md`
-6. `bolao/CHANGELOG.md` (e o `CHANGELOG.md` de cada app afetado)
+6. `CHANGELOG.md` de cada app afetado (`bolao/copa2026/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md`, `bolao/cdb2026/CHANGELOG.md`)
 
 ### Antes de modificar qualquer arquivo
 
 - Identificar a categoria da mudança (`PLATFORM_SHARED` / `TOURNAMENT_SPECIFIC` / `DATA_ONLY` /
   `SECURITY` / `EMERGENCY_HOTFIX` — ver `PLATFORM_GOVERNANCE.md`).
-- Identificar quais dos três aplicativos (`bolao/`, `bolao/br2026/`, `bolao/cdb2026/`) são
+- Identificar quais dos três aplicativos (`bolao/copa2026/`, `bolao/br2026/`, `bolao/cdb2026/`) são
   afetados.
 - Verificar a necessidade de propagação para os demais aplicativos.
 - Analisar riscos antes de editar (ver seção "Risk Assessment" em `QA_MASTER_CHECKLIST.md`).
@@ -301,7 +327,7 @@ aplicar `docs/bolao/AUDIT_PROTOCOL.md`.
 
 ### Copa do Mundo 2026 é a referência visual canônica
 
-A Copa do Mundo 2026 (`bolao/`) é a referência visual canônica da plataforma. Todo novo
+A Copa do Mundo 2026 (`bolao/copa2026/`) é a referência visual canônica da plataforma. Todo novo
 componente ou alteração visual em BR2026 ou CDB2026 deve primeiro localizar o componente
 equivalente na Copa e reproduzir seus tokens, dimensões, alinhamento, espaçamento e
 responsividade, salvo diferença explicitamente documentada como `TOURNAMENT_SPECIFIC`.

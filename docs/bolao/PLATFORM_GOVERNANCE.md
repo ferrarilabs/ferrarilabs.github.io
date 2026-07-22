@@ -8,7 +8,7 @@ si é substituído inteiramente a cada auditoria de governança.
 
 | App | Pasta | URL | Status |
 |---|---|---|---|
-| Copa do Mundo 2026 | `bolao/` | `ferrarilabs.github.io/bolao/` | **Em produção — dinheiro real em jogo** |
+| Copa do Mundo 2026 | `bolao/copa2026/` | `ferrarilabs.github.io/bolao/copa2026/` | **Encerrada e arquivada 2026-07-19 (Espanha campeã) — `/bolao/` redireciona para o Brasileirão** |
 | Brasileirão 2026 | `bolao/br2026/` | `ferrarilabs.github.io/bolao/br2026/` | Não publicado (sem link do site principal) |
 | Copa do Brasil 2026 | `bolao/cdb2026/` | `ferrarilabs.github.io/bolao/cdb2026/` | Publicado 2026-07-19, em produção (convite por e-mail; sem link do site principal pessoal) |
 
@@ -49,7 +49,7 @@ ser implementada:
   scoring, formato de bracket, ou textos de regras entre apps — cada torneio tem sua própria
   estrutura e isso é intencional (ver `CONSISTENCY_MATRIX.md`, coluna "Deve ser igual?").
 - **Quando uma alteração não for propagada, o motivo deve ser registrado** — no changelog do
-  app onde a mudança foi feita (`bolao/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md` ou
+  app onde a mudança foi feita (`bolao/copa2026/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md` ou
   `bolao/cdb2026/CHANGELOG.md`) e, se for uma decisão de plataforma, também na coluna "Ação
   recomendada" da linha correspondente em `CONSISTENCY_MATRIX.md`.
 - **Nunca alterar scoring ou regras de negócio sem autorização explícita** do Eduardo — isso

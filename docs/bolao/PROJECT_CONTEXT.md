@@ -60,12 +60,12 @@ On a draw, the participant selects who advances (the "advanceSide" field).
 <!-- AUTO:PLATFORM_CONTEXT:START -->
 ## Platform context (three apps)
 
-This product vision document describes **Copa do Mundo 2026** (`bolao/`) specifically. It is
+This product vision document describes **Copa do Mundo 2026** (`bolao/copa2026/`) specifically. It is
 one of three bolão apps in this repo:
 
 | App | Pasta | Status |
 |---|---|---|
-| Copa do Mundo 2026 | `bolao/` | Em produção |
+| Copa do Mundo 2026 | `bolao/copa2026/` | Encerrada e arquivada 2026-07-19 (Espanha campeã) |
 | Brasileirão 2026 | `bolao/br2026/` | Não publicado |
 | Copa do Brasil 2026 | `bolao/cdb2026/` | Publicado 2026-07-19, em produção |
 

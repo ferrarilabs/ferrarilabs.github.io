@@ -1597,3 +1597,46 @@ para quando chegar a vez de cada um — mesmo flag `archived`, mesma função `a
 adaptada à estrutura de nav de cada app.
 
 `audit_scoring.py`: PASSOU, sem alteração — mudança de navegação apenas.
+
+## Nota manual — Copa movida para bolao/copa2026/, /bolao/ agora redireciona para o Brasileirão (2026-07-19, Copa v4.159 / BR2026 v1.70 / CDB2026 v3.51)
+
+Eduardo, depois do v4.158 (que só trocava a opção padrão do seletor): "O drop down aparece mas a
+pagina não redireciona" — esperava um redirect de verdade. Confirmado o plano completo antes de
+mexer: mover o app inteiro da Copa (era direto em `bolao/`) para `bolao/copa2026/`, igual ao
+padrão já usado por `bolao/br2026/`/`bolao/cdb2026/`, para que `bolao/index.html` pudesse virar um
+redirect real sem deixar o Ranking arquivado (pódio/auditoria/"Ver palpites", v4.157) sem
+nenhuma URL própria.
+
+**O que mudou**: `bolao/index.html`, `js/`, `css/`, `assets/`, `scripts/`, `docs/`, `preview/`,
+`audit-report.html`, `audit-detail-picks.html`, `audit-detail-governance.html`,
+`classificacao-geral.html`, `CHANGELOG.md`, `README.md`/`README.txt` moveram (via `git mv`,
+histórico preservado) para `bolao/copa2026/`. `bolao/index.html` agora é um redirect (meta
+refresh + `location.replace`) para `/bolao/br2026/`. Os 4 links já enviados por e-mail a
+participantes reais (`audit-report.html` e os 3 outros) ganharam stubs de redirect próprios em
+`bolao/` apontando para `bolao/copa2026/...` — nada que já foi enviado quebra. `bolao/sw.js` foi
+mantido (cópia idêntica, inalterada) no caminho antigo como rede de segurança para qualquer
+navegador que ainda tenha o service worker antigo (escopo `/bolao/`) registrado.
+
+Referências absolutas corrigidas: canonical link, opção "Copa do Mundo" do seletor (nos 3 apps —
+apontar pra `/bolao/` criaria loop infinito agora), array `allowed` do handler do seletor (nos 3
+apps), registro do service worker, links de rodapé nos e-mails (`send_result_email.py`,
+`send_bracket_correction_email.py`), e os links de código-fonte no relatório de auditoria
+(`generate_audit_report.py`) — `REPO_ROOT`/`OUT_PATH` dos dois scripts geradores
+(`generate_audit_report.py`, `generate_classificacao_geral.py`) ganharam um nível extra de
+`os.path.join(..., "..")` pela pasta nova. Relatórios de auditoria regenerados com os scripts já
+corrigidos para confirmar.
+
+**Verificação**: `node --check` nos 3 apps, `python3 -m py_compile` nos scripts da Copa,
+`audit_scoring.py` PASSOU nos 3 apps (rodado a partir do novo caminho pra Copa). Cadeia de
+redirect testada de ponta a ponta com Playwright (`/bolao/` → `/bolao/br2026/`,
+`/bolao/audit-report.html` → `/bolao/copa2026/audit-report.html`, idem para os outros 3 stubs) —
+todos confirmados funcionando. A verificação visual completa da página movida
+(`bolao/copa2026/`) via Playwright ficou limitada por uma instabilidade de rede do sandbox
+(scripts síncronos do CDN — emailjs/supabase-js — travando o carregamento no navegador headless;
+confirmado que não é regressão do code, já que o BR2026, intocado nesse aspecto, apresentou o
+mesmo travamento no mesmo teste) — a inspeção direta do HTML gerado confirma que os valores estão
+corretos, e a lógica de nav/switcher em si não foi alterada nesta mudança (só os valores/paths).
+Recomenda-se uma checagem visual manual rápida em produção depois do deploy.
+
+`audit_scoring.py`: PASSOU nos 3 apps, sem alteração — mudança estrutural/de caminho apenas,
+nenhuma fórmula de pontuação, bracket ou regra de negócio tocada.
