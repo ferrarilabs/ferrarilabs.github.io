@@ -16,8 +16,8 @@ on:
   push:
     branches: [main]
     paths:
-      - 'bolao/js/**.js'
-      - 'bolao/css/**.css'
+      - 'bolao/copa2026/js/**.js'
+      - 'bolao/copa2026/css/**.css'
       - 'bolao/br2026/js/**.js'
       - 'bolao/br2026/css/**.css'
       - 'bolao/cdb2026/js/**.js'
@@ -42,7 +42,7 @@ jobs:
           echo "Cache-bust value: $VERSION"
           CHANGED=false
 
-          for INDEX in bolao/index.html bolao/br2026/index.html bolao/cdb2026/index.html; do
+          for INDEX in bolao/copa2026/index.html bolao/br2026/index.html bolao/cdb2026/index.html; do
             if [ ! -f "$INDEX" ]; then
               echo "$INDEX not found — skipping"
               continue
@@ -65,6 +65,6 @@ jobs:
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
-          git add bolao/index.html bolao/br2026/index.html bolao/cdb2026/index.html
+          git add bolao/copa2026/index.html bolao/br2026/index.html bolao/cdb2026/index.html
           git commit -m "chore: bump cache-bust version in index.html [skip ci]"
           git push

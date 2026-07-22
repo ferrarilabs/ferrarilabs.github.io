@@ -1640,3 +1640,25 @@ Recomenda-se uma checagem visual manual rápida em produção depois do deploy.
 
 `audit_scoring.py`: PASSOU nos 3 apps, sem alteração — mudança estrutural/de caminho apenas,
 nenhuma fórmula de pontuação, bracket ou regra de negócio tocada.
+
+## Nota manual — GitHub Actions quebrado pela mudança da Copa, gap real na auditoria pós-move (2026-07-22)
+
+Eduardo: "I got a workflow error about email send." A auditoria pós-move (2026-07-19) cobriu HTML,
+JS, Python e docs, mas **não verificou `.github/workflows/`** — gap real. `auto_results.yml` tinha
+duas etapas com `working-directory: bolao/scripts` (não existe mais desde o v4.159) e um
+`git add bolao/js/config.js`; `sync_version.yml` (bot de cache-bust) tinha o path de trigger
+observando `bolao/js/**`/`bolao/css/**` (não existe mais) e nunca incluía
+`bolao/copa2026/index.html` no loop de sync. Confirmado via log real do run que falhou (GitHub
+Actions run 29883861333) antes de mexer em qualquer coisa.
+
+Corrigido: os dois `working-directory`, o `git add`, o path de trigger, e o loop de sync — todos
+agora apontam para `bolao/copa2026/`. Verificado que `send_result_email.py --auto` já é idempotente
+(só age em match IDs ainda não salvos no Supabase — como M104 já está travado, o restante das
+execuções agendadas este mês só vão reportar "nada a fazer" e sair, sem risco de e-mail
+duplicado) antes de considerar a correção de caminho suficiente por si só.
+
+**Lição para a próxima vez que um app mover de pasta**: adicionar `.github/workflows/*.yml` à
+lista de lugares a auditar por padrão — não é intuitivo que workflows de CI fiquem fora do
+grep normal de "bolao/" porque vivem em `.github/`, fora da árvore `bolao/`.
+
+`audit_scoring.py`: PASSOU nos 3 apps, sem alteração — configuração de CI apenas.
