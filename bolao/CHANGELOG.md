@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## v4.158 — 2026-07-19
+
+### Changed — archived Copa page's bolão switcher now defaults to Brasileirão
+
+Eduardo: "Deixe o default do site como o Brasileiro agora." Clarified in conversation what
+"default" should mean before touching anything — first considered redirecting `/bolao/` to
+`/bolao/br2026/`, which would have required moving the entire archived Copa app to a new
+`bolao/copa2026/` folder to keep it reachable at all (its Ranking tab, with the podium/audit
+link/"Ver palpites" panel set up in v4.157, otherwise has no other home). Eduardo asked for the
+simplest option that achieves the same nudge without that risk: just flip which option is
+pre-selected in the "Alternar bolão" `<select>` on the archived Copa page itself.
+
+One HTML change (`bolao/index.html`): the switcher's `selected` attribute moved from "🏆 Copa do
+Mundo" to "🇧🇷 Brasileirão". Purely cosmetic — confirmed the only JS reference to `#bolaoSelect`
+is its `change` listener (navigates only when the user manually picks a different option), so
+this doesn't trigger any navigation on load and doesn't touch anything else on the page. BR2026's
+and CDB2026's own switchers are unchanged, still correctly pre-selecting their own app. No files
+moved, no redirect added — every link already emailed to real participants (`/bolao/`,
+`audit-report.html`, `audit-detail-*.html`) keeps working exactly as before.
+
+Verified with Playwright: switcher shows "Brasileirão" selected on load, page content is still
+the full archived Copa Ranking underneath it, unaffected.
+
+`audit_scoring.py`: PASSED, unchanged — one attribute moved on one page, no app logic touched.
+
 ## v4.157 — 2026-07-19
 
 ### Added — archive mode: tournament over, site simplified to Ranking + audit + picks

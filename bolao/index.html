@@ -36,9 +36,14 @@
 <header class="topbar">
   <div class="brand">🏆 <strong>Bolão do Ferrari</strong> <span>Copa 2026</span></div>
   <div class="bolao-switcher">
+    <!-- Copa 2026 encerrada e arquivada (v4.157) — Eduardo: "Deixe o default do site como o
+         Brasileiro agora". Só a página arquivada da Copa tem o default do seletor trocado pra
+         Brasileirão (bolão ativo agora); BR2026 e CDB2026 continuam com o próprio app
+         pré-selecionado em cada switcher deles, sem alteração. Nenhum redirect, nenhum arquivo
+         movido — os links já enviados por e-mail (audit-report.html etc.) continuam intactos. -->
     <select id="bolaoSelect" aria-label="Alternar bolão">
-      <option value="/bolao/" selected>🏆 Copa do Mundo</option>
-      <option value="/bolao/br2026/">🇧🇷 Brasileirão</option>
+      <option value="/bolao/">🏆 Copa do Mundo</option>
+      <option value="/bolao/br2026/" selected>🇧🇷 Brasileirão</option>
       <option value="/bolao/cdb2026/">🏅 Copa do Brasil</option>
     </select>
   </div>
