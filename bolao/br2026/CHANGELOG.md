@@ -1,5 +1,31 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-07-24 — Round-email subject showed literal "&#x2F;" instead of "/" (no siteVersion bump — Python script only)
+
+Eduardo: screenshots of both the participant round-result email and the admin round-summary
+email showing subjects like "Rodada 16&#x2F;07–23&#x2F;07 — resultados e classificação"
+instead of "Rodada 16/07–23/07 — ...".
+
+Root cause: `send_round_email.py` sends both emails through EmailJS's `template_xq7yzzb` (the
+same template used for normal entry receipts), repurposing its `entry_name`/`receipt_code`
+template fields to carry the round-email subject text (`send_email()`, no separate "subject"
+param exists in the EmailJS payload). That template's **body** correctly uses `{{{html_message}}}`
+(triple braces = raw) per the standing rule in `CLAUDE.md`, but its **Subject** field (configured
+on EmailJS's dashboard, outside this repo) still references `entry_name`/`receipt_code` with
+plain `{{}}` — which HTML-escapes the value, turning "/" into "&#x2F;". That was always true, but
+never visible before: normal entry names never contain "/". BR2026's round-email feature
+(added 2026-07-16) was the first thing to put a "/"-containing string (a date range) into that
+field.
+
+Fixed in code rather than requiring an EmailJS dashboard edit: added `_fmt_date_range_subject()`
+in `send_round_email.py`, identical to `_fmt_date_range()` but using "." instead of "/" between
+day and month. Used only for the three subject-line f-strings (participant, admin summary,
+`--test-send`); the HTML body keeps the "/" format via the original `_fmt_date_range()` —
+unaffected, since it goes through `{{{html_message}}}`.
+
+`python3 bolao/br2026/scripts/audit_scoring.py` run after — 5/5, unaffected (subject-line
+formatting only, no scoring/ranking logic touched).
+
 ## v1.72 — 2026-07-22
 
 ### Fixed — "próximo jogo" card got stuck on an already-finished game instead of showing the next upcoming one

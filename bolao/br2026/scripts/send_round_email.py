@@ -232,6 +232,19 @@ def _fmt_date_range(start, end):
     return f"{start.strftime('%d/%m')}–{end.strftime('%d/%m')}"
 
 
+def _fmt_date_range_subject(start, end):
+    # Subject-only variant: no "/" (the EmailJS template's Subject field renders entry_name/
+    # receipt_code through double-brace {{}} interpolation — unlike the body, which correctly
+    # uses {{{html_message}}} — so it HTML-escapes "/" to "&#x2F;". A subject line is plain
+    # text, never HTML-decoded by mail clients, so the escaped entity showed up literally
+    # (Eduardo, 2026-07-24). Using "." instead of "/" sidesteps it without touching the
+    # EmailJS dashboard template. Body text keeps the "/" format via _fmt_date_range — HTML
+    # rendering there is unaffected.
+    if start.date() == end.date():
+        return start.strftime("%d.%m")
+    return f"{start.strftime('%d.%m')}–{end.strftime('%d.%m')}"
+
+
 def build_round_results_html(batch_games):
     rows = ""
     for g in sorted(batch_games, key=lambda x: x["date"]):
@@ -426,6 +439,7 @@ def run_auto():
     sa6 = [t["name"] for t in standings[6:12]]
 
     window_label = _fmt_date_range(win_start, win_end)
+    window_label_subject = _fmt_date_range_subject(win_start, win_end)
     results_html = build_round_results_html(batch_games)
     standings_html = build_standings_html(g4, z4, sa6)
 
@@ -456,7 +470,7 @@ def run_auto():
             movement = prev_rank_by_id[e["id"]] - r["rank"]
         html = build_participant_email_html(window_label, results_html, standings_html, e,
                                              {"total": r["total"], "rank": r["rank"], "movement": movement})
-        subject = f"Rodada {window_label} — resultados e classificação"
+        subject = f"Rodada {window_label_subject} — resultados e classificação"
         try:
             status = send_email(addr, subject, html)
             print(f"  OK {status} → {addr}")
@@ -468,7 +482,7 @@ def run_auto():
 
     try:
         admin_html = build_admin_summary_html(window_label, results_html, standings_html, sent)
-        send_email(ADMIN_EMAIL, f"[BR2026] Rodada {window_label} — email de rodada enviado", admin_html)
+        send_email(ADMIN_EMAIL, f"[BR2026] Rodada {window_label_subject} — email de rodada enviado", admin_html)
     except Exception as ex:
         print(f"  WARN: admin summary email failed: {ex}")
 
@@ -539,6 +553,7 @@ def run_test_send():
     sa6 = [t["name"] for t in standings[6:12]]
 
     window_label = _fmt_date_range(window_start, window_end) + " (AMOSTRA)"
+    window_label_subject = _fmt_date_range_subject(window_start, window_end) + " (AMOSTRA)"
     results_html = build_round_results_html(sample_games)
     standings_html = build_standings_html(g4, z4, sa6)
 
@@ -559,7 +574,7 @@ def run_test_send():
         'font-weight:900;margin-bottom:14px;text-align:center">⚠️ TESTE — não é a rodada real. '
         'Resultados de amostra (últimos jogos), não do lote pendente.</div>'
     ) + html
-    subject = f"[TESTE] Rodada {window_label} — resultados e classificação"
+    subject = f"[TESTE] Rodada {window_label_subject} — resultados e classificação"
     status = send_email(ADMIN_EMAIL, subject, html)
     print(f"\n✓ Test email sent to {ADMIN_EMAIL} (HTTP {status}). Supabase untouched.")
 
