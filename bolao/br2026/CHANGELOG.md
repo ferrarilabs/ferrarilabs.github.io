@@ -1,5 +1,15 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.73 — 2026-07-24 — Entry-name email subjects hardened against the same "/" → "&#x2F;" bug
+
+Follow-up to the round-email subject fix below (same day). The round-email fix covered dates;
+this covers the other live source of "/" in a subject — free-typed entry names. Added
+`emailSubjectSafe()` next to `receiptCode()` in `app.js` and applied it to `entry_name` in both
+the participant confirmation email and the admin "Nova entrada" notification. Propagated
+platform-wide (Copa + CDB2026 got the identical fix in the same patch — see
+`bolao/copa2026/CHANGELOG.md` v4.161 for the full root-cause writeup). `audit_scoring.py` — 5/5,
+unaffected. `node --check` clean.
+
 ## 2026-07-24 — Round-email subject showed literal "&#x2F;" instead of "/" (no siteVersion bump — Python script only)
 
 Eduardo: screenshots of both the participant round-result email and the admin round-summary

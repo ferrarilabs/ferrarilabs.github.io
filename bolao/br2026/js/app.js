@@ -35,6 +35,16 @@ function receiptCode(e) {
   return `BR2026-${hashString(JSON.stringify({ n: e.entryName, t: e.createdAt }))}-${String(e.createdAt || "").slice(0, 10).replace(/-/g, "")}`;
 }
 
+// The EmailJS template's Subject field interpolates entry_name/receipt_code with plain {{}}
+// (HTML-escaped) rather than {{{}}} like the body -- "/" comes out as the literal "&#x2F;" in
+// the subject header, which is plain text and never HTML-decodes it back (Eduardo, 2026-07-24,
+// saw this on the round-email date ranges -- same platform-wide gap, hardened here for
+// free-typed entry names too). Same helper as Copa/CDB2026, kept local per app per platform
+// convention (no shared imports between the three apps).
+function emailSubjectSafe(s) {
+  return String(s ?? "").replace(/\//g, "-");
+}
+
 // ─── Toast ──────────────────────────────────────────────────────────────────
 // Mesma implementação da Copa (bolao/js/app.js) — não-bloqueante, substitui alert() em toda
 // confirmação/erro que não seja validação de formulário (essas continuam alert(), de propósito
@@ -2786,7 +2796,7 @@ async function sendReceipt(entry) {
   try {
     await window.emailjs.send(C.emailjs.serviceId, C.emailjs.participantTemplateId, {
       to_email:     entry.participantEmail,
-      entry_name:   `Brasileirão 2026 — ${entry.entryName}`,
+      entry_name:   `Brasileirão 2026 — ${emailSubjectSafe(entry.entryName)}`,
       receipt_code: code,
       html_message: html,
     }, { publicKey: C.emailjs.publicKey });
@@ -2798,7 +2808,7 @@ async function sendReceipt(entry) {
     if (C.adminEmail) {
       await window.emailjs.send(C.emailjs.serviceId, C.emailjs.adminTemplateId, {
         to_email:     C.adminEmail,
-        entry_name:   `Nova entrada — ${entry.entryName}`,
+        entry_name:   `Nova entrada — ${emailSubjectSafe(entry.entryName)}`,
         receipt_code: code,
         html_message: html,
       }, { publicKey: C.emailjs.publicKey });

@@ -58,6 +58,15 @@ function receiptCode(e) {
   return `BOLAO-${hashString(JSON.stringify({ n: e.entryName, t: e.createdAt }))}-${String(e.createdAt || "").slice(0, 10).replace(/-/g, "")}`;
 }
 
+// The EmailJS template's Subject field interpolates entry_name/receipt_code with plain {{}}
+// (HTML-escaped) rather than {{{}}} like the body -- "/" comes out as the literal "&#x2F;" in
+// the subject header, which is plain text and never HTML-decodes it back (Eduardo, 2026-07-24,
+// saw this on BR2026's round-email date ranges). Free-typed entry names can contain "/" too, so
+// strip it here before anything is used to build an entry_name/subject value for EmailJS.
+function emailSubjectSafe(s) {
+  return String(s ?? "").replace(/\//g, "-");
+}
+
 function downloadBlob(filename, content, type) {
   const blob = new Blob([content], { type: `${type};charset=utf-8` });
   const url = URL.createObjectURL(blob);
@@ -1451,7 +1460,7 @@ async function mailReceipt(id, target) {
   const template = target === "admin" ? CONFIG.emailjs.adminTemplateId : CONFIG.emailjs.participantTemplateId;
   try {
     await emailjs.send(CONFIG.emailjs.serviceId, template, {
-      to_email: to, entry_name: e.entryName, receipt_code: receiptCode(e), html_message: receiptHtml(e)
+      to_email: to, entry_name: emailSubjectSafe(e.entryName), receipt_code: receiptCode(e), html_message: receiptHtml(e)
     }, { publicKey: CONFIG.emailjs.publicKey });
     showToast(t("emailSent"), "success");
   } catch (err) {
@@ -1470,7 +1479,7 @@ ${reason ? `<p><b>${escapeHtml(t("deleteReasonPrompt"))}</b> ${escapeHtml(reason
 <p>${escapeHtml(t("removalEmailContact"))}</p></div>`;
   try {
     await emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId, {
-      to_email: e.participantEmail, entry_name: `REMOVIDA — ${e.entryName}`,
+      to_email: e.participantEmail, entry_name: `REMOVIDA — ${emailSubjectSafe(e.entryName)}`,
       receipt_code: receiptCode(e), html_message: html
     }, { publicKey: CONFIG.emailjs.publicKey });
   } catch (err) { console.warn("Removal email failed", err); }
@@ -1715,9 +1724,9 @@ async function sendResultEmailFromAdmin(testOnly) {
     // Tournament fully decided (M103 + M104 both locked) -- prepend podium/prize block and
     // use the special final subject line instead of the generic "Resultado Parcial" one.
     const podiumInfo = finalPodiumPayouts(s);
-    const emailSubject = podiumInfo
+    const emailSubject = emailSubjectSafe(podiumInfo
       ? `🏆 Resultado Final do Bolão! · Final Bolão Result! — ${lastResultStr}`
-      : `Resultado Parcial — M${lastMid}: ${lastResultStr}`;
+      : `Resultado Parcial — M${lastMid}: ${lastResultStr}`);
 
     const html = (podiumInfo ? buildPodiumEmailHtml(podiumInfo, s) : "") + buildResultEmailHtml(s, testOnly);
     const deleted = new Set(s.deletedIds || []);
@@ -3258,7 +3267,7 @@ async function saveEntry() {
       const toEmail = updatedEntry.participantEmail;
       if (isValidEmail(toEmail) && window.emailjs && CONFIG.emailjs?.enabled) {
         const html = buildEditEmailHtml(beforeEntry, updatedEntry, changes);
-        const subject = `Palpites atualizados — ${beforeEntry.entryName}`;
+        const subject = `Palpites atualizados — ${emailSubjectSafe(beforeEntry.entryName)}`;
         emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
           { to_email: toEmail, entry_name: subject, receipt_code: receiptCode(beforeEntry), html_message: html },
           { publicKey: CONFIG.emailjs.publicKey }
