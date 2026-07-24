@@ -343,6 +343,15 @@ function hashString(str) {
   for (const cp of str) { h ^= cp.codePointAt(0); h = Math.imul(h, 16777619); }
   return (h >>> 0).toString(16).padStart(8, "0").toUpperCase();
 }
+// The EmailJS template's Subject field interpolates entry_name/receipt_code with plain {{}}
+// (HTML-escaped) rather than {{{}}} like the body -- "/" comes out as the literal "&#x2F;" in
+// the subject header, which is plain text and never HTML-decodes it back (Eduardo, 2026-07-24,
+// saw this on BR2026's round-email date ranges -- same platform-wide gap, hardened here for
+// free-typed entry names too). Same helper as Copa/BR2026, kept local per app per platform
+// convention (no shared imports between the three apps).
+function emailSubjectSafe(s) {
+  return String(s ?? "").replace(/\//g, "-");
+}
 function receiptCode(e) {
   return `CDB2026-${hashString(JSON.stringify({ n: e.entryName, t: e.createdAt }))}-${String(e.createdAt || "").slice(0, 10).replace(/-/g, "")}`;
 }
@@ -877,7 +886,7 @@ async function sendReceipt(entry) {
   const code = receiptCode(entry);
   const params = {
     to_email:     entry.participantEmail,
-    entry_name:   `Copa do Brasil 2026 — ${entry.entryName}`,
+    entry_name:   `Copa do Brasil 2026 — ${emailSubjectSafe(entry.entryName)}`,
     receipt_code: code,
     html_message: html,
   };
@@ -889,7 +898,7 @@ async function sendReceipt(entry) {
       await window.emailjs.send(C.emailjs.serviceId, C.emailjs.adminTemplateId, {
         ...params,
         to_email: C.adminEmail,
-        entry_name: `Nova entrada — ${entry.entryName}`,
+        entry_name: `Nova entrada — ${emailSubjectSafe(entry.entryName)}`,
       }, { publicKey: C.emailjs.publicKey });
     }
   } catch (err) {

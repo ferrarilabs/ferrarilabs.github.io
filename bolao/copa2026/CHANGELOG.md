@@ -1,5 +1,30 @@
 # CHANGELOG
 
+## v4.161 — 2026-07-24 — Entry-name email subjects hardened against the "/" → "&#x2F;" escaping bug
+
+Follow-up to BR2026's round-email subject fix (same day). Eduardo asked "Fixed for everything
+that exists now and the future?" — the round-email fix was, but digging further found the same
+underlying defect has one more live exposure this repo didn't cover yet: the regular entry-
+confirmation emails (sent whenever anyone submits/edits picks, or when they're removed) put the
+participant's raw, free-typed entry name directly into the same subject-carrying EmailJS field
+(`entry_name`). If a participant ever types "/" into their entry name, the receipt subject — and
+the admin's copy — would show the same `&#x2F;` garbling that the round-email date ranges showed.
+Pre-existing across all three apps, unrelated to the recent Copa move, just never triggered
+because nobody had typed a "/" into an entry name yet.
+
+Added `emailSubjectSafe(s)` (returns `s` with "/" replaced by "-") next to `receiptCode()` in
+each app's `app.js` and applied it at every place a participant-entered string feeds an
+`entry_name` value: the initial confirmation + admin-copy emails, the removal-notice email, the
+result-email subject (defensive — team names are controlled data, not user input, but cheap to
+cover), and the edit-confirmation email. Does not touch `receiptCode()` itself (already safe —
+hex hash + digits only, no user text). HTML bodies are untouched — they render through
+`{{{html_message}}}`, already immune.
+
+Propagated to BR2026 and CDB2026 in the same patch (`PLATFORM_SHARED` classification — all
+three apps share this exact EmailJS template pattern). `audit_scoring.py` re-run on all three
+after — 5/5 each, unaffected (email-subject string handling only, no scoring/ranking logic
+touched). `node --check` clean on all three `app.js`.
+
 ## 2026-07-22 — Full-repo path audit after the GitHub Actions fix (no siteVersion bump — docs/security config only)
 
 Eduardo, on seeing the workflow-path fix: "You should have been through everywhere." Correct —

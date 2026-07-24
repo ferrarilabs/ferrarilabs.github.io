@@ -1702,3 +1702,44 @@ lista de lugares a auditar por padrão — não é intuitivo que workflows de CI
 grep normal de "bolao/" porque vivem em `.github/`, fora da árvore `bolao/`.
 
 `audit_scoring.py`: PASSOU nos 3 apps, sem alteração — configuração de CI apenas.
+
+## Nota manual — assunto de e-mail com "&#x2F;" literal em vez de "/" (2026-07-24, PLATFORM_SHARED)
+
+Eduardo enviou screenshots do e-mail de rodada do BR2026 mostrando o assunto
+`Rodada 16&#x2F;07–23&#x2F;07 — resultados e classificação` em vez de `Rodada 16/07–23/07 — ...`.
+
+**Causa raiz**: `send_round_email.py` (BR2026) reaproveita o template de comprovante padrão do
+EmailJS (`template_xq7yzzb`, compartilhado com Copa/CDB2026), colocando o texto do assunto nos
+campos `entry_name`/`receipt_code` (não existe campo "subject" dedicado no payload do EmailJS).
+O **corpo** desse template já usa `{{{html_message}}}` (chave tripla = sem escape) conforme regra
+já documentada no `CLAUDE.md`. Mas o campo **Subject** do template, configurado no dashboard do
+EmailJS (fora deste repositório), ainda referencia esses campos com `{{}}` simples — que faz
+escape de HTML, transformando "/" em "&#x2F;". Isso sempre foi verdade desse template, só nunca
+apareceu antes: nomes de entrada normais nunca continham "/". A funcionalidade de e-mail de
+rodada do BR2026 (2026-07-16) foi a primeira coisa a colocar uma string com "/" (um intervalo de
+datas) nesse campo.
+
+**Fix 1 (mesmo dia)**: corrigido em código em vez de exigir edição no dashboard do EmailJS —
+`_fmt_date_range_subject()` em `send_round_email.py`, formata com "." em vez de "/" só nas três
+linhas de assunto (participante, resumo admin, `--test-send`). Corpo HTML mantém "/" via
+`_fmt_date_range()` original — não afetado, passa por `{{{html_message}}}`.
+
+**Follow-up (mesmo dia)**: Eduardo perguntou "Fixed for everything that exists now and the
+future?" — o fix acima cobria só as datas. Investigação adicional achou a mesma classe de bug
+com outra fonte viva: os e-mails normais de confirmação de entrada (Copa, BR2026, CDB2026 — os
+três) colocam o nome da entrada, digitado livremente pelo participante, direto no campo
+`entry_name`. Se algum participante já tiver digitado "/" no nome da entrada (ex.: "João/Maria"),
+o assunto do comprovante — e a cópia enviada ao admin — teriam o mesmo problema. Pré-existente
+nos três apps, não relacionado à mudança de pasta da Copa, baixa probabilidade mas real.
+
+Corrigido nos três apps (autorizado por Eduardo via pergunta direta): `emailSubjectSafe(s)`
+(troca "/" por "-") adicionada ao lado de `receiptCode()` em cada `app.js`, aplicada em todo
+lugar onde uma string digitada pelo participante alimenta `entry_name` — confirmação inicial +
+cópia ao admin, e-mail de remoção, assunto do e-mail de resultado (defensivo — nomes de time são
+dado controlado, não input de usuário, mas barato de cobrir), e-mail de confirmação de edição.
+`receiptCode()` não precisou de alteração (hash hex + dígitos, sem risco). Detalhe completo em
+`bolao/copa2026/CHANGELOG.md` v4.161, `bolao/br2026/CHANGELOG.md` v1.73,
+`bolao/cdb2026/CHANGELOG.md` v3.52.
+
+`audit_scoring.py`: PASSOU nos 3 apps, sem alteração — manipulação de string de assunto de
+e-mail apenas, lógica de scoring/ranking intocada. `node --check` limpo nos 3 `app.js`.

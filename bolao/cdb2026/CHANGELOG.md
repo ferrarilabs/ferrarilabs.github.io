@@ -1,5 +1,14 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.52 — 2026-07-24 — Entry-name email subjects hardened against "/" → "&#x2F;" escaping bug
+
+Platform-wide fix (see `bolao/copa2026/CHANGELOG.md` v4.161 for the full root-cause writeup —
+found while answering Eduardo's "fixed for everything that exists now and the future?" after the
+BR2026 round-email subject fix). Added `emailSubjectSafe()` next to `receiptCode()` in `app.js`
+and applied it to `entry_name` in both the participant confirmation email and the admin "Nova
+entrada" notification — CDB2026 never had a round-email feature, so this app's only exposure was
+free-typed entry names. `audit_scoring.py` — 5/5, unaffected. `node --check` clean.
+
 ## v3.51 — 2026-07-19
 
 ### Changed — switcher's "Copa do Mundo" option now points at bolao/copa2026/
