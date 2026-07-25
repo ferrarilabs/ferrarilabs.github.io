@@ -1,6 +1,46 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
-## v1.73 — 2026-07-24 — Entry-name email subjects hardened against the same "/" → "&#x2F;" bug
+## v1.74 — 2026-07-25 — Live score/clock went stale after backgrounding the tab; needed a manual refresh
+
+Eduardo, after confirming the earlier "placar ao vivo sumiu" report was just a stale browser
+cache: "Still doesn't seem to be working as well as copa was. I have to refresh to get an
+updated score and the clocks are not in sync with the actual game time. Something is off. Do a
+deep research."
+
+**Root cause**, found by comparing BR2026's `init()` against Copa's line by line: Copa's
+`focus`/`pageshow`/`visibilitychange` handlers all call `startLiveScorePolling()`, which does an
+immediate ESPN poll and (re)arms the polling loop — added to Copa after a real past incident
+where a backgrounded-tab restore left the page stuck on stale in-memory state (see
+`docs/bolao/LESSONS_LEARNED.md` "Safari" / bfcache). BR2026 already had the identical `pageshow`/
+`focus` handlers (with the same code comment explaining the bfcache issue!) but they only called
+`debouncedReload()` (Supabase entries/results resync) — the ESPN live-score poll (`pollAll()`/
+`schedulePoll()`) was never re-triggered on resume. So: background the tab (lock the phone,
+switch apps) during a live match, come back, and the score/clock stay frozen at whatever they
+were when the tab was backgrounded until a manual reload forces a fresh poll — exactly "have to
+refresh to get an updated score" and "clocks not in sync," since the on-screen clock keeps
+ticking forward in memory from an increasingly stale base with no new poll to correct it.
+
+Verified this was the actual mechanism (not a guess) by rebuilding the page locally with real
+ESPN data for today's two live Brasileirão matches and confirming: before the fix, dispatching a
+simulated bfcache-restore `pageshow` event triggered zero new ESPN requests; after the fix, it
+triggers an immediate one.
+
+**Fix**: `schedulePoll()`'s self-rescheduling `setTimeout` chain now carries a generation token
+so a resume can safely restart it without risking a second parallel chain if the old one turns
+out to still be alive. Added a `resumeLivePolling()` helper (`pollAll(); schedulePoll();`) called
+from `focus`, `pageshow` (bfcache restore), and `visibilitychange` — moved out from inside the
+`if (C.database.enabled)` block since live ESPN polling doesn't depend on Supabase being on. The
+existing Supabase resync handlers are untouched, just now joined by this second listener on the
+same events.
+
+`audit_scoring.py` — 5/5, unaffected (poll-scheduling/event-listener change only, no scoring
+logic touched). Same fix applied to CDB2026 in the same patch — see
+`bolao/cdb2026/CHANGELOG.md` v3.53 — since it had the identical gap (its `pollLiveTies()` 60s
+`setInterval` was never explicitly re-kicked on resume either, just relying on the interval's
+own natural cadence, which real testing showed still doesn't get retriggered promptly on a
+bfcache restore).
+
+
 
 Follow-up to the round-email subject fix below (same day). The round-email fix covered dates;
 this covers the other live source of "/" in a subject — free-typed entry names. Added

@@ -1743,3 +1743,46 @@ dado controlado, não input de usuário, mas barato de cobrir), e-mail de confir
 
 `audit_scoring.py`: PASSOU nos 3 apps, sem alteração — manipulação de string de assunto de
 e-mail apenas, lógica de scoring/ranking intocada. `node --check` limpo nos 3 `app.js`.
+
+## Nota manual — poll de placar ao vivo não retomava após segundo plano (2026-07-25, PLATFORM_SHARED)
+
+Eduardo, depois de confirmar que "placar ao vivo sumiu" (nota anterior) era só cache do navegador:
+"Still doesn't seem to be working as well as copa was. I have to refresh to get an updated score
+and the clocks are not in sync with the actual game time. Something is off. Do a deep research."
+
+**Causa raiz**: comparando `init()` do BR2026 linha a linha contra o da Copa — a Copa já chama
+`startLiveScorePolling()` (poll imediato + rearma o loop) nos três eventos de retomada
+(`focus`, `pageshow`, `visibilitychange`), correção feita depois de um incidente real anterior em
+que uma aba retomada do segundo plano ficava presa no estado antigo em memória (ver
+`docs/bolao/LESSONS_LEARNED.md` "Safari" / bfcache). O BR2026 já tinha os mesmos handlers
+`pageshow`/`focus` — com o mesmo comentário explicando o problema do bfcache! — mas eles só
+chamavam `debouncedReload()` (resync do Supabase), nunca `pollAll()`/`schedulePoll()` (poll de
+placar/relógio da ESPN). Resultado: travar o celular ou trocar de app durante um jogo ao vivo e
+voltar deixava placar e relógio congelados no último poll até um reload manual forçar um poll
+novo — exatamente "tenho que atualizar pra pegar o placar" e "relógio fora de sincronia", já que
+o relógio na tela continua interpolando pra frente a partir de uma base cada vez mais antiga sem
+nenhum poll novo pra corrigir.
+
+Confirmado como o mecanismo real (não suposição): reconstruído o BR2026 localmente com dados reais
+da ESPN dos dois jogos do Brasileirão ao vivo hoje, e verificado que, antes do fix, um `pageshow`
+simulando restauração de bfcache não disparava nenhuma requisição nova à ESPN; depois do fix,
+dispara uma imediatamente.
+
+**Fix (BR2026)**: `schedulePoll()` ganhou um token de geração — permite que uma retomada reinicie
+a cadeia com segurança mesmo que a cadeia antiga ainda esteja viva em algum lugar (evita duas
+cadeias de poll paralelas). Novo `resumeLivePolling()` (`pollAll(); schedulePoll();`) chamado em
+`focus`, `pageshow` e `visibilitychange` — movido pra fora do bloco `if (C.database.enabled)`, já
+que o poll de placar da ESPN não depende do Supabase estar ligado.
+
+**Fix (CDB2026)**: mesmo achado, gap idêntico — `pollLiveTies()` usa `setInterval` simples (não a
+cadeia auto-reagendada do BR2026), mas também nunca era rechamado explicitamente em
+`focus`/`pageshow`/`visibilitychange`, só o resync do Supabase. Adicionados os mesmos três
+listeners chamando `pollLiveTies()` diretamente. Nenhum jogo do CDB2026 está ao vivo hoje, então
+isso não podia ter sido observado ainda na prática — mas é o mesmo padrão de plataforma, e a
+Copa já resolve isso do mesmo jeito nos mesmos três eventos. Verificado da mesma forma
+(pageshow simulado -> 0 requisições antes do fix, 1 depois).
+
+Detalhe completo em `bolao/br2026/CHANGELOG.md` v1.74 e `bolao/cdb2026/CHANGELOG.md` v3.53.
+
+`audit_scoring.py`: PASSOU nos 3 apps, sem alteração — mudança de agendamento de poll/listener de
+evento apenas, lógica de scoring intocada. `node --check` limpo nos dois `app.js` alterados.

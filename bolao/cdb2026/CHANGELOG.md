@@ -1,6 +1,24 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
-## v3.52 — 2026-07-24 — Entry-name email subjects hardened against "/" → "&#x2F;" escaping bug
+## v3.53 — 2026-07-25 — Live-tie poll not reliably re-triggered after backgrounding the tab
+
+Same root cause and fix as `bolao/br2026/CHANGELOG.md` v1.74 (found auditing BR2026's identical
+gap after Eduardo reported stale live scores/clock there). CDB2026's `pollLiveTies()` uses a
+plain 60s `setInterval` rather than BR2026's self-rescheduling chain, but shared the same
+underlying gap: `focus`/`pageshow`/`visibilitychange` only resynced Supabase (`debouncedReload()`),
+never re-triggered `pollLiveTies()` on resume. No CDB2026 match is live today so this couldn't
+have been directly observed yet, but it's the identical platform-wide pattern — Copa already
+solves it via `startLiveScorePolling()` on the same three events.
+
+**Fix**: added unconditional `focus`/`pageshow`/`visibilitychange` listeners that call
+`pollLiveTies()` immediately (outside the `if (C.database.enabled)` block, since live ESPN
+polling doesn't depend on Supabase). Verified locally: before the fix, a simulated bfcache-restore
+`pageshow` event triggered zero new ESPN requests; after, it triggers one immediately.
+
+`audit_scoring.py` — 5/5, unaffected (poll-scheduling/event-listener change only, no scoring
+logic touched).
+
+
 
 Platform-wide fix (see `bolao/copa2026/CHANGELOG.md` v4.161 for the full root-cause writeup —
 found while answering Eduardo's "fixed for everything that exists now and the future?" after the
