@@ -376,6 +376,16 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .standings-wrap { overflow-x: auto; }
 .standings-table {
   width: 100%; border-collapse: collapse; font-size: 13px;
+  /* table-layout: auto (the default) recomputes column widths from content across every row,
+     which does NOT reliably match the widths this file assumes -- the sticky offsets below
+     (td-mov's left:32px, td-team's left:72px, td-pts's left:200px) are hardcoded sums of the
+     preceding columns' declared widths. Measured real bug (Eduardo, screenshot, 2026-07-25:
+     "ta truncando o numero de jogos"): with auto layout, td-team rendered at 108px instead of
+     its declared 128px, so td-pts's sticky box landed ~12px into the very next (J) column's
+     space and its solid background painted over that column's leading digit -- "19" showed as
+     just "9". Fixed layout makes the declared widths authoritative, so the sticky offsets are
+     guaranteed to match the real boxes instead of drifting with content. */
+  table-layout: fixed;
 }
 .standings-table th, .standings-table td {
   padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border);
@@ -384,7 +394,10 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .standings-table .td-pos { width: 32px; color: var(--muted); text-align: center; }
 .standings-table .td-mov { width: 40px; text-align: center; }
 .standings-table .td-pts { width: 44px; text-align: right; font-weight: 700; }
-.standings-table th:nth-child(n+5), .standings-table td:nth-child(n+5) { text-align: center; width: 30px; }
+/* Slightly wider + tighter side padding than the other columns -- J/GP/GC routinely hit two
+   digits mid-season (e.g. "19", "20" games played), and 30px with 8px side padding left only
+   ~14px for content, too tight even without the sticky-overlap bug above. */
+.standings-table th:nth-child(n+5), .standings-table td:nth-child(n+5) { text-align: center; width: 32px; padding-left: 4px; padding-right: 4px; }
 .standings-table .g4-zone { background: rgba(47,229,110,.07); }
 .standings-table .z4-zone { background: rgba(248,113,113,.07); }
 /* Pos/Mov/Time/Pts are the four columns that must never scroll out of view on narrow screens

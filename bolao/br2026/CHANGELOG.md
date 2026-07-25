@@ -1,5 +1,39 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.75 — 2026-07-25 — Tabela: "J" (games played) and other stat columns were truncating on mobile
+
+Eduardo, screenshot: "A visualização da tabela no mobile ta meia ruim, ta truncando o numero de
+jogos, tem que mexer pro lado e mesmo assim fica ruim."
+
+**Root cause**, confirmed by measuring the real rendered layout (not guessed): `.standings-table`
+uses `position: sticky` for the Pos/Mov/Time/Pts columns so they stay pinned while J/V/E/D/GP/GC/SG
+scroll underneath, with each sticky column's `left` offset hardcoded as the sum of the preceding
+columns' declared widths (e.g. `.td-pts { left: 200px; }` assumes 32+40+128). The table never set
+`table-layout`, so it defaulted to `auto`, which recomputes column widths from content across
+every row in the table — those widths don't reliably match the declared ones the offsets assumed.
+Measured via `getBoundingClientRect()` on the real page: `.td-team` rendered at 108px instead of
+its declared 128px, which pushed `.td-pts`'s sticky box to end 12px into the very next column's
+(J's) space. Since the sticky Pts cell paints a solid background, those 12px of the J column's
+leading edge were covered by it — a two-digit value like "19" only showed its last digit, "9",
+matching the screenshot exactly (and explaining why some rows looked like "0" too: values in the
+10-20 range with the leading "1"/"2" clipped).
+
+**Fix**: added `table-layout: fixed` to `.standings-table`, which makes the declared widths
+authoritative instead of content-dependent, guaranteeing the sticky offsets match the real boxes.
+Also widened J/V/E/D/GP/GC/SG from 30px to 32px with tighter side padding (8px → 4px) — comfortably
+fits two-digit values (routine mid-season, e.g. "19"/"20"/"21" games played) with margin to spare,
+which also makes fewer columns of the same content group visually cramped and slightly reduces how
+far you have to scroll for the rest, addressing "mesmo assim fica ruim" from the same report.
+
+Verified with real ESPN standings data at both 430px and 375px viewport widths, unscrolled and
+scrolled all the way to the last column — measured zero column overlap after the fix (every
+cell's right edge now lands exactly on the next cell's left edge) where before there was a 12px
+overlap.
+
+TOURNAMENT_SPECIFIC / no cross-app propagation: Copa and CDB2026 are knockout-bracket formats
+with no ongoing points table, so neither has an equivalent sticky-column standings component to
+check. `audit_scoring.py` — 5/5, unaffected (CSS-only change). No app-code (`app.js`) touched.
+
 ## v1.74 — 2026-07-25 — Live score/clock went stale after backgrounding the tab; needed a manual refresh
 
 Eduardo, after confirming the earlier "placar ao vivo sumiu" report was just a stale browser
