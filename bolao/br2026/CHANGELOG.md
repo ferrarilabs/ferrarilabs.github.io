@@ -1,5 +1,25 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.76 — 2026-07-25 — Tabela: long team names wrapped the zone badge to a second line on mobile
+
+Eduardo, follow-up to v1.75: "Não deveria ter pulo de linha pelo tamanho do nome do time. Ideal
+abreviar um pouco mais no mobile."
+
+`.td-team-name`'s truncation width (92px, ellipsis + ' overflow: hidden') was sized only against
+the 128px mobile column width, without accounting for the G4/SA/Z4 zone badge that sits right
+after it in the same cell — for teams whose name is long enough to actually hit that 92px cap
+(e.g. "Athletico Paranaense", "Vasco da Gama"), name + badge together (~92px + ~29px) exceeded
+the 112px of content room the 128px cell has after padding, so the badge wrapped to its own line
+instead of sitting inline.
+
+Fixed by tightening the truncation width from 92px to 76px, leaving enough room (76 + ~29 = 105px
+< 112px) for the badge to always stay on the same line as the name. Verified against every real
+team name currently in the table, including the longest ones with a badge (Athletico Paranaense,
+Fluminense, Vasco da Gama, Chapecoense) — no wrap on any row, at both 430px and 375px viewports.
+Desktop (900px+) truncation width is untouched (`max-width: 190px`, plenty of room there).
+
+`audit_scoring.py` — 5/5, unaffected (CSS-only change).
+
 ## v1.75 — 2026-07-25 — Tabela: "J" (games played) and other stat columns were truncating on mobile
 
 Eduardo, screenshot: "A visualização da tabela no mobile ta meia ruim, ta truncando o numero de

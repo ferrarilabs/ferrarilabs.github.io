@@ -413,7 +413,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .standings-table .td-mov  { left: 32px; }
 .standings-table .td-team { left: 72px; width: 128px; }
 .standings-table .td-team-name {
-  display: inline-block; max-width: 92px; overflow: hidden; text-overflow: ellipsis;
+  display: inline-block; max-width: 76px; overflow: hidden; text-overflow: ellipsis;
   white-space: nowrap; vertical-align: middle;
 }
 .standings-table .td-pts { left: 200px; } /* 72 (team's left) + 128 (team's width) */
