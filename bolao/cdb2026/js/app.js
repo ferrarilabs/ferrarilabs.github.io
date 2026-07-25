@@ -3242,6 +3242,18 @@ async function init() {
   if (!wasSeeded || !wasBackfilled || !wasHealed || !wasHealedPhantoms) saveState(seedState, { localOnly: false });
   renderAll();
 
+  // Resume live-tie polling right away on focus/visible/bfcache-restore instead of waiting out
+  // whatever's left of the current 60s cycle -- unconditional (not gated on C.database.enabled),
+  // since ESPN live scores/clock work independently of Supabase. Same class of gap as the
+  // Supabase resync below (see its comment): Copa already re-triggers its own live-score poll
+  // from focus/pageshow (startLiveScorePolling()) after a real past incident; this app's
+  // handlers only resynced Supabase, leaving the live-tie card free to go stale until a manual
+  // reload -- found auditing BR2026's identical gap (Eduardo, 2026-07-25: "have to refresh to
+  // get an updated score and clocks are not in sync with the actual game time").
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) pollLiveTies(); });
+  window.addEventListener("focus", pollLiveTies);
+  window.addEventListener("pageshow", e => { if (e.persisted) pollLiveTies(); });
+
   if (C.database.enabled) {
     setInterval(() => { if (!document.hidden && !_editingEntry) debouncedReload(); }, 30000);
     document.addEventListener("visibilitychange", () => { if (!document.hidden) debouncedReload(); });

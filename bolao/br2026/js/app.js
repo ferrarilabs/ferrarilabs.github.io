@@ -1054,11 +1054,32 @@ function nudgeScrollReflow() {
 // does not add a second/parallel polling path.
 let _pollBackoffMs = 0;
 let _pollFailed    = false;
+// Bumped every time schedulePoll() (re)starts the chain -- lets a resume (see
+// resumeLivePolling() below) safely supersede whatever link is currently pending instead of
+// running two overlapping poll chains if the old one turns out to still be alive.
+let _pollChainToken = 0;
 function schedulePoll() {
+  const myToken = ++_pollChainToken;
   const base  = C.espn.pollIntervalMs;
   const delay = _pollFailed ? Math.min(base * 4, base + _pollBackoffMs) : base;
   _pollBackoffMs = _pollFailed ? Math.min(_pollBackoffMs + base, base * 4) : 0;
-  setTimeout(async () => { await pollAll(); schedulePoll(); }, delay);
+  setTimeout(async () => {
+    if (myToken !== _pollChainToken) return; // superseded by a fresher chain -- stop here
+    await pollAll();
+    schedulePoll();
+  }, delay);
+}
+
+// Re-arm ESPN polling right away on resume (tab focus, becoming visible, or restored from
+// bfcache) instead of waiting out whatever's left of the current 60s cycle -- or forever, if the
+// pending setTimeout link didn't survive an iOS Safari bfcache freeze at all. Copa already has
+// this exact fix for its own poll loop (startLiveScorePolling(), called from focus/pageshow
+// after a real past incident); BR2026's focus/pageshow handlers only resynced Supabase, leaving
+// ESPN scores/clock free to go stale until a manual reload. Eduardo, 2026-07-25: "have to
+// refresh to get an updated score and clocks are not in sync with the actual game time."
+function resumeLivePolling() {
+  pollAll();
+  schedulePoll();
 }
 
 // ─── Live club-standings movement ────────────────────────────────────────────
@@ -3077,7 +3098,12 @@ async function init() {
   pollAll();
   schedulePoll();
   // Resume promptly on focus instead of waiting out the rest of a paused interval
-  document.addEventListener("visibilitychange", () => { if (!document.hidden) { pollAll(); debouncedReload(); } });
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { resumeLivePolling(); debouncedReload(); } });
+  window.addEventListener("focus", resumeLivePolling);
+  // Same bfcache caveat as the Supabase resync below (see its comment) applies to the ESPN poll
+  // loop too -- restore it here rather than only inside the `if (C.database.enabled)` block,
+  // since live scores/clock work independently of whether Supabase is on.
+  window.addEventListener("pageshow", e => { if (e.persisted) resumeLivePolling(); });
 
   // 1s ticker for running clock + next game countdown (skip when tab is hidden)
   setInterval(() => { if (!document.hidden) { renderLiveCard(); renderNextGameCard(); } }, 1000);
