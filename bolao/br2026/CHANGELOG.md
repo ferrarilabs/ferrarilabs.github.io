@@ -1,5 +1,25 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.77 — 2026-07-25 — Tabela: G4/SA/Z4 zone badges now line up in a straight column
+
+Eduardo, follow-up to v1.76: "Poderia deixar alinhado o Z4, G4, SA tambem."
+
+`.td-team-name` used `max-width` (a cap, not a fixed size), so its actual rendered width tracked
+each row's real name length up to that cap — a short name like "Bahia" left the badge sitting
+right after it near the left edge, while a name that hit the cap (truncated with an ellipsis)
+pushed the badge much further right. Every row's badge landed at a different x position.
+
+Changed `max-width` to `width` (with `flex-shrink: 0`) and made `.td-team` a flex container, so
+the name box now always occupies exactly the same horizontal space regardless of content —
+short names get padded with empty space instead of letting the badge creep left. Badges for
+every row now start at the identical x position. `flex-shrink: 0` also added to keep the name
+box from being the one squeezed instead, now that it's competing for space with the badge as a
+flex sibling.
+
+Verified with real ESPN standings data at 430px and 375px — checked every row, badges align in a
+straight vertical line, and both earlier fixes (v1.75's no-overlap stat columns, v1.76's no-wrap)
+still hold. `audit_scoring.py` — 5/5, unaffected (CSS-only change).
+
 ## v1.76 — 2026-07-25 — Tabela: long team names wrapped the zone badge to a second line on mobile
 
 Eduardo, follow-up to v1.75: "Não deveria ter pulo de linha pelo tamanho do nome do time. Ideal
