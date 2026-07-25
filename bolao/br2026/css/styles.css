@@ -411,20 +411,25 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 .standings-table .td-pos  { left: 0; }
 .standings-table .td-mov  { left: 32px; }
-.standings-table .td-team { left: 72px; width: 128px; }
+.standings-table .td-team { left: 72px; width: 128px; display: flex; align-items: center; }
 .standings-table .td-team-name {
-  display: inline-block; max-width: 76px; overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap; vertical-align: middle;
+  /* Fixed width (not just max-width) so every row's name box occupies exactly the same horizontal
+     space regardless of how long/short the actual name is -- otherwise the G4/SA/Z4 badge right
+     after it lands at a different x per row (short name → badge further left, long/truncated
+     name → badge further right). Eduardo, 2026-07-25: "Poderia deixar alinhado o Z4, G4, SA
+     tambem." flex-shrink:0 keeps it from being squeezed by the badge under flex. */
+  display: inline-block; width: 76px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .standings-table .td-pts { left: 200px; } /* 72 (team's left) + 128 (team's width) */
 .standings-table th.td-pos, .standings-table th.td-mov, .standings-table th.td-team, .standings-table th.td-pts {
   z-index: 1;
 }
 @media (min-width: 900px) {
-  /* Desktop has room for full team names — the 92px mobile truncation width only exists to keep
+  /* Desktop has room for full team names — the 76px mobile truncation width only exists to keep
      Pos/Mov/Time/Pts on-screen at 320–414px without horizontal scroll. */
   .standings-table .td-team { width: 220px; }
-  .standings-table .td-team-name { max-width: 190px; }
+  .standings-table .td-team-name { width: 190px; }
   .standings-table .td-pts { left: 292px; } /* 72 (team's left) + 220 (team's width) */
 }
 .standings-table tr.g4-zone .td-pos, .standings-table tr.g4-zone .td-mov, .standings-table tr.g4-zone .td-team, .standings-table tr.g4-zone .td-pts { background: #0d1f14; }
