@@ -2163,8 +2163,14 @@ async function fetchEspnCandidates() {
         || statusName.includes("END_OF_EXTRATIME")
         || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
       // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- CDB2026 não tinha nenhuma forma de
-      // sinalizar jogo adiado/cancelado; portado do BR2026 (fetchSchedule(), mesma checagem).
-      const postponed = statusName === "POSTPONED" || statusName === "CANCELED";
+      // sinalizar jogo adiado/cancelado; portado do BR2026 (fetchSchedule(), mesma checagem) --
+      // só que o BR2026 original tinha um bug real nessa checagem, herdado aqui junto: o `name`
+      // da ESPN para um jogo adiado é a constante "STATUS_POSTPONED"/"STATUS_CANCELED", nunca o
+      // texto "POSTPONED"/"CANCELED" comparado aqui, então essa comparação nunca batia. Corrigido
+      // junto com o BR2026 (Eduardo, 2026-07-26, achado auditando dados da tabela do BR2026:
+      // "outros sites mostra pontuacao diferentes") -- usa state==="post" + completed===false,
+      // que é o sinal real e confiável (verificado contra dados reais da ESPN).
+      const postponed = evState === "post" && comp.status?.type?.completed === false;
       return {
         id: ev.id,
         dateISO: comp.date || ev.date || "",

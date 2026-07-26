@@ -1,5 +1,40 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.78 — 2026-07-26 — Postponed matches were being counted as real 0-0 results, inflating up to 8 teams' live points/games
+
+Eduardo: "Verifique se os dados da tabela estão corretas em outros sites mostra pontuação
+diferentes." (table data correctness check, after other sites showed different points.)
+
+**Investigation** (not a guess — independently reconstructed the full table from raw ESPN match
+results in Python and cross-checked against ESPN's own official standings endpoint): found ESPN's
+official aggregate is internally consistent with its own schedule feed once postponed matches are
+correctly excluded (0 mismatches across all 20 teams). So the discrepancy wasn't upstream data —
+it was in how this app classifies a match as postponed.
+
+**Root cause**, confirmed live on the actual production page: `fetchSchedule()`'s `postponed`
+flag compared ESPN's machine status constant (`status.type.name`, e.g. `"STATUS_POSTPONED"`)
+against the human-readable string `"Postponed"` — which never matches (the human string lives in
+`status.type.description`, a different field). So `postponed` was always `false`, and 4 real
+rescheduled matches (dated 2026-07-29, `state:"post"` but `completed:false`) got treated as
+finished 0-0 draws by `windowCompletedMatches()`/`calculateLiveStandings()` — the exact functions
+behind the live Tabela and the G4/Z4/SA6 zones used everywhere (Ranking, Projeção do Bolão).
+Verified via the page's own exposed test hooks with real ESPN data: before the fix, 8 teams
+(Red Bull Bragantino, Botafogo, São Paulo, Atlético-MG, Santos, Grêmio, Vasco da Gama,
+Chapecoense) showed +1 point and +1 game played beyond their correct values; after the fix, all
+20 teams match ESPN's official standings exactly.
+
+**Fix**: `postponed` is now `state === "post" && completed === false` — the actual reliable
+signal (verified against real data: 191 real full-time results all have `completed:true`, the 7
+postponed/canceled ones all have `completed:false`, zero ambiguous cases).
+
+Same bug, same fix, in `bolao/cdb2026/CHANGELOG.md` v3.54 — CDB2026 explicitly ported this exact
+check from BR2026 (with the exact same string-mismatch bug baked in) for its own postponed-leg
+badge. Copa doesn't have an equivalent standings/postponed-detection component — no propagation
+needed there.
+
+`audit_scoring.py` — 5/5 on all three apps, unaffected (this fixes ESPN-status parsing feeding
+the *live projection*, not the bolão's own scoring formula, which was never touched).
+
 ## v1.77 — 2026-07-25 — Tabela: G4/SA/Z4 zone badges now line up in a straight column
 
 Eduardo, follow-up to v1.76: "Poderia deixar alinhado o Z4, G4, SA tambem."

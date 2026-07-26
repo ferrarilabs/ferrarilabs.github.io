@@ -1292,13 +1292,25 @@ async function fetchSchedule() {
       const comps = comp.competitors || [];
       const home  = comps.find(c => c.homeAway === "home") || comps[0];
       const away  = comps.find(c => c.homeAway === "away") || comps[1];
-      const statusName = comp.status?.type?.name || "";
+      const espnState = comp.status?.type?.state || "pre";
+      // ESPN's own event-status enum for a postponed/canceled game is state:"post" with
+      // completed:false (name is the machine constant "STATUS_POSTPONED"/"STATUS_CANCELED", NOT
+      // the human string "Postponed"/"Canceled" this used to compare against -- that comparison
+      // never matched, so postponed games were silently counted as real 0-0 results everywhere
+      // this flag gates: windowCompletedMatches() (live standings), calculateLiveStandings(),
+      // and the "Adiado" badge in the games list. Verified against real ESPN data (2026-07-26,
+      // Eduardo: "Verifique se os dados da tabela estao corretas... outros sites mostra
+      // pontuacao diferentes") -- 4 rescheduled matches this way inflated 8 teams' live points/
+      // played by +1 each on the actual production page. `completed` is reliable either way
+      // (false for both postponed and not-yet-played "pre" games, but this flag is only ever
+      // consulted alongside state==="post" checks, so that ambiguity never matters in practice).
+      const postponed = espnState === "post" && comp.status?.type?.completed === false;
       return {
         id:        ev.id,
         dateISO:   comp.date || ev.date || "",
-        state:     comp.status?.type?.state || "pre",
+        state:     espnState,
         detail:    comp.status?.type?.shortDetail || "",
-        postponed: statusName === "Postponed" || statusName === "Canceled",
+        postponed,
         homeTeam:  normalizeEspnTeamName(home?.team?.displayName || ""),
         awayTeam:  normalizeEspnTeamName(away?.team?.displayName || ""),
         homeScore: home?.score != null ? parseInt(home.score, 10) : null,
