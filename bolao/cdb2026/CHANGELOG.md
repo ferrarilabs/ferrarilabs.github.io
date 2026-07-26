@@ -1,5 +1,19 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.54 — 2026-07-26 — Postponed-leg detection never actually matched (same bug as BR2026)
+
+Same root cause and fix as `bolao/br2026/CHANGELOG.md` v1.78, found auditing BR2026's live
+standings after Eduardo reported table data looking wrong there. CDB2026's `postponed` flag
+(added 2026-07-15, explicitly ported from BR2026's `fetchSchedule()`) compared ESPN's status
+constant against `"POSTPONED"`/`"CANCELED"` — but the real value is `"STATUS_POSTPONED"`/
+`"STATUS_CANCELED"`, so the comparison never matched and the flag was always `false`. Used by
+`isLegPostponed()` to gate the "Adiado" chip and to exclude postponed legs from the live-tie
+poll (`fetchLiveTies()`).
+
+Fixed to `state === "post" && completed === false` — the reliable signal, matching BR2026's fix.
+
+`audit_scoring.py` — 5/5, unaffected.
+
 ## v3.53 — 2026-07-25 — Live-tie poll not reliably re-triggered after backgrounding the tab
 
 Same root cause and fix as `bolao/br2026/CHANGELOG.md` v1.74 (found auditing BR2026's identical

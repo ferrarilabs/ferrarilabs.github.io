@@ -1786,3 +1786,40 @@ Detalhe completo em `bolao/br2026/CHANGELOG.md` v1.74 e `bolao/cdb2026/CHANGELOG
 
 `audit_scoring.py`: PASSOU nos 3 apps, sem alteração — mudança de agendamento de poll/listener de
 evento apenas, lógica de scoring intocada. `node --check` limpo nos dois `app.js` alterados.
+
+## Nota manual — jogos adiados contados como resultado real 0-0 na tabela ao vivo (2026-07-26, PLATFORM_SHARED)
+
+Eduardo: "Verifique se os dados da tabela estão corretas em outros sites mostra pontuação
+diferentes."
+
+**Investigação**: reconstruída a tabela inteira do zero a partir dos resultados brutos da ESPN
+(Python, independente do código do app) e comparada contra o endpoint oficial de standings da
+própria ESPN — 0 divergências nas 20 equipes, uma vez excluídos corretamente os jogos adiados.
+Ou seja, o feed da ESPN é internamente consistente; a divergência estava em como este app
+classifica um jogo como adiado.
+
+**Causa raiz**, confirmada rodando o código real da página com dados reais: `fetchSchedule()`
+(BR2026) comparava a constante de máquina da ESPN (`status.type.name`, ex.:
+`"STATUS_POSTPONED"`) contra o texto humano `"Postponed"` — nunca batia (o texto humano vive em
+`status.type.description`, campo diferente). `postponed` ficava sempre `false`, e 4 jogos
+remarcados reais (`state:"post"` mas `completed:false`) eram tratados como empates 0-0
+encerrados por `windowCompletedMatches()`/`calculateLiveStandings()` — as mesmas funções por
+trás da Tabela ao vivo e das zonas G4/Z4/SA6 usadas em todo lugar (Ranking, Projeção do Bolão).
+Verificado via os test hooks já expostos da página com dados reais da ESPN: antes do fix, 8
+equipes (Red Bull Bragantino, Botafogo, São Paulo, Atlético-MG, Santos, Grêmio, Vasco da Gama,
+Chapecoense) apareciam com +1 ponto e +1 jogo além do valor correto; depois do fix, as 20
+equipes batem exatamente com o standings oficial da ESPN.
+
+**Fix**: `postponed` agora é `state === "post" && completed === false` — o sinal real e
+confiável (verificado contra dados reais: os 191 resultados reais de fim de jogo têm
+`completed:true`; os 7 adiados/cancelados têm `completed:false`; zero casos ambíguos).
+
+Mesmo bug, mesmo fix, no CDB2026 (`isLegPostponed()`/`fetchLiveTies()`) — o comentário original
+do código já dizia "portado do BR2026", e o bug veio junto na cópia (`"POSTPONED"` em vez de
+`"STATUS_POSTPONED"`). Copa não tem componente equivalente de standings/detecção de jogo adiado
+— sem propagação necessária lá.
+
+Detalhe completo em `bolao/br2026/CHANGELOG.md` v1.78 e `bolao/cdb2026/CHANGELOG.md` v3.54.
+
+`audit_scoring.py`: PASSOU nos 3 apps, sem alteração — corrige o parsing do status da ESPN que
+alimenta a *projeção ao vivo*, não a fórmula de scoring do bolão em si, que não foi tocada.
