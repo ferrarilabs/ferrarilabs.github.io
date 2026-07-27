@@ -1,5 +1,41 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-07-26 — Round-completion email stuck: batch window bundled two rounds together (no siteVersion bump — Python script only)
+
+Eduardo: "A rodada acabou hoje e o email não foi enviado."
+
+**Root cause**, confirmed against real GitHub Actions logs and real Supabase state (not
+guessed): `send_round_email.py`'s batching opens a window of `BATCH_WINDOW_DAYS` (was 7) past
+the earliest not-yet-covered game, and won't send until every game in that window is finished.
+The round that finished 2026-07-25/26 (10 games) opened a batch reaching to 2026-08-01 — wide
+enough to also sweep in the *next* round's 10 games (kicking off just ~3 days after the
+previous round ended) plus 4 rescheduled/postponed games dated the same week. The batch was
+correctly waiting for all 20 — including 6 games that hadn't been played yet — before sending
+anything, so the round that had already finished never got its email. Verified this was the
+actual mechanism by pulling the real `roundEmail.pendingBatch` from Supabase (20 gameIds,
+window 2026-07-25→2026-08-01) and the real ESPN schedule for each of those IDs, and by reading
+the real job log ("Batch not complete yet — 10/20 game(s) still pending").
+
+Separately confirmed the batch-completion check itself was NOT the bug — `send_round_email.py`
+already correctly uses `status.type.completed` (not the string-name comparison that was broken
+in `app.js`, see the postponed-match fix above), so the 4 rescheduled games were correctly
+recognized as unplayed. The only problem was the window being wide enough to reach the next
+round at all.
+
+**Fix**: measured the real 2026 schedule end-to-end (all 41 rounds, not just this one) —
+worst-case within-round span is 52 hours, tightest real gap from one round's first game to the
+next round's first game is 69 hours. `BATCH_WINDOW_DAYS` changed from 7 to 2.5 (60 hours),
+which sits safely inside that margin on both sides. Dry-run against the real current pending
+games confirms this reopens a clean 10-game batch (just the finished round) instead of 20.
+
+**Also cleared the stuck batch directly in Supabase** (`roundEmail.pendingBatch` → null) so the
+next scheduled run (the workflow already polls every 30 min in the evening/night window) opens
+a fresh, correctly-sized batch with the fix in place, rather than staying stuck on the old
+20-game window until this code change merged. `sentGameIds`/`sentBatches` untouched — no
+already-sent email history was altered.
+
+`audit_scoring.py` — 5/5, unaffected (batching-window constant only, no scoring logic touched).
+
 ## v1.78 — 2026-07-26 — Postponed matches were being counted as real 0-0 results, inflating up to 8 teams' live points/games
 
 Eduardo: "Verifique se os dados da tabela estão corretas em outros sites mostra pontuação
