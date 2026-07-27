@@ -6,15 +6,26 @@ Sends ONE batched email per round instead of one per game (BR2026 has ~380 games
 to ~38). Requested by Eduardo, 2026-07-16 ("vamos fazer emails apos cada rodada finalizar
 para economizar no envio").
 
-Why "round" here means a 7-day window, not a numbered rodada 1-38: ESPN's site API for
+Why "round" here means a rolling window, not a numbered rodada 1-38: ESPN's site API for
 bra.1 does not expose a round/week number per event, and real testing (fetching the full
 2026 schedule and trying to reconstruct rounds by date-clustering AND by round-robin
 structure) showed the actual calendar is too irregular to trust either approach — postponed
 games, mid-week catch-up fixtures around the 2026 World Cup break, etc. produced clusters as
-large as 39 games. Eduardo confirmed (2026-07-16) to use a rolling 7-day window instead of a
+large as 39 games. Eduardo confirmed (2026-07-16) to use a rolling window instead of a
 hardcoded round calendar: whichever games are the earliest not-yet-covered by a previous
-batch, plus everything within 7 days of that game's date, are treated as "the current
-round". Once every game in that batch is complete, the batch is emailed and closed.
+batch, plus everything within BATCH_WINDOW_DAYS of that game's date, are treated as "the
+current round". Once every game in that batch is complete, the batch is emailed and closed.
+
+BATCH_WINDOW_DAYS was originally 7 -- too wide once the season's actual fixture density is
+accounted for. Real incident (2026-07-26, Eduardo: "a rodada acabou hoje e o email não foi
+enviado"): the round that finished 2026-07-25/26 (10 games) opened a batch with a 7-day
+window reaching to 2026-08-01, which also swept in the *next* round's 10 games (2026-07-29,
+only ~3 days after the previous round ended) plus 4 rescheduled/postponed games dated the
+same week -- so the batch needed all 20 to finish, holding the already-completed round's
+email hostage to games that hadn't been played yet. Measured against the entire real 2026
+schedule (not guessed): worst-case within-round span across all 41 rounds is 52 hours;
+tightest real gap from one round's first game to the next round's first game is 69 hours.
+2.5 days (60 hours) sits safely between both with margin on each side.
 
 Usage:
   python3 send_round_email.py --auto        # checks ESPN, sends if a batch just completed,
@@ -57,7 +68,7 @@ EMAILJS_HEADERS = {
     "Referer": "https://ferrarilabs.github.io/bolao/br2026/",
 }
 
-BATCH_WINDOW_DAYS = 7   # how far past the earliest uncovered game a "round" batch extends
+BATCH_WINDOW_DAYS = 2.5   # how far past the earliest uncovered game a "round" batch extends -- see module docstring
 FETCH_LOOKBACK_DAYS = 3
 FETCH_LOOKAHEAD_DAYS = 14
 
