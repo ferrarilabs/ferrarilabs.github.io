@@ -1,5 +1,32 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.79 — 2026-07-29 — "Jogos de hoje" showed postponed matches as finished 0-0 results
+
+Eduardo, once today's 4 rescheduled matches (from the earlier postponed-detection fix, #116)
+actually landed on today's date: "Nos jogos de hoje aparece jogos que terminaram mas nem foram
+jogados ainda, foram adiados pelo jeito."
+
+**Root cause**: `renderNextGameCard()`'s "Jogos de hoje" card checked only `g.state === "post"`
+to decide whether to show a game as a finished result — the same class of gap `renderGamesSection()`
+(the full "Jogos" tab) already guards against correctly (it checks `g.postponed` first). ESPN
+uses `state:"post"` for both a real final result and a postponed/canceled game (only
+`completed:false` + the `postponed` flag — fixed in #116 — tell them apart), so all 4 matches
+postponed to today rendered as "Encerrado 0 – 0" instead of "Adiado". `postponed` itself was
+already correct since #116; this card just never consulted it.
+
+Verified with real ESPN data for today (2 genuinely live matches, 4 postponed, 2 upcoming) via
+the page's own exposed test hooks: before the fix, all 4 postponed matches showed as finished
+0-0s; after, they show "Adiado" with no score, matching how the full Jogos tab already displays
+them. Also re-verified the live-match card itself renders correctly with today's 2 live games —
+could not reproduce a separate "live games not showing" issue from the same report; most likely
+explained by the same confusing postponed-as-finished display crowding it out visually.
+
+CDB2026 checked for the same gap — its equivalent card (`renderNextTieCard()`) only ever shows
+future kickoffs, never past/decided results, so it has no equivalent vulnerable code path. No
+propagation needed there.
+
+`audit_scoring.py` — 5/5, unaffected (game-list display logic only, no scoring touched).
+
 ## 2026-07-26 — Round-completion email stuck: batch window bundled two rounds together (no siteVersion bump — Python script only)
 
 Eduardo: "A rodada acabou hoje e o email não foi enviado."
