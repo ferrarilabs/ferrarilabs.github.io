@@ -1828,7 +1828,19 @@ function renderNextGameCard() {
 
   if (gamesToShow.length) {
     const items = gamesToShow.map(g => {
-      if (g.state === "post") {
+      // Must come before the state==="post" check -- ESPN uses state:"post" for BOTH a real
+      // final result AND a postponed/canceled game (only completed:false + the postponed flag
+      // itself, set from that in fetchSchedule(), tell them apart). Missed here even after the
+      // flag itself was fixed elsewhere (renderGamesSection() already checked it correctly) --
+      // real bug, Eduardo screenshot 2026-07-29: "aparece jogos que terminaram mas nem foram
+      // jogados ainda, foram adiados pelo jeito" -- the 4 rescheduled games due today showed as
+      // "Encerrado 0-0" in "Jogos de hoje" instead of "Adiado".
+      if (g.postponed) {
+        return `<div class="today-game today-game-post">
+          <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>—</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
+          <span class="today-game-time muted">${esc(t("gamePostponed"))}</span>
+        </div>`;
+      } else if (g.state === "post") {
         return `<div class="today-game today-game-post">
           <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
           <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
