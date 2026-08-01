@@ -1,5 +1,59 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.62 — 2026-08-01 — Bug real de pontuação: tier "resultado certo" removido; e-mail sem versão em inglês; ordenação de "Ver palpites" corrigida
+
+Eduardo, ao ver o primeiro e-mail de resultado real (Vasco 0x0 Fluminense): "Isso está
+incorreto!!! O resultado foi 0x0. Por que pontuou por placar exato? Verifique contra as regras
+da copa do mundo. O resultado foi 0x0 verifique as regras novamente."
+
+**Bug real confirmado — scoring, dinheiro real:** `matchPoints()` tinha um terceiro tier,
+"resultado certo" (5 pts por acertar só o sinal vitória/empate/derrota, mesmo com placar
+errado), que **nunca existiu** no `matchPoints()` real da Copa do Mundo (só tem placar exato +
+gols de um time, dois tiers). Era uma divergência real do `CDB2026_RULES_AND_MODEL.md` (aprovado
+2026-07-13) — o documento dizia "mesmos valores da Copa do Mundo" mas nunca foi checado contra o
+código real da Copa. Efeito real: no primeiro jogo real (Vasco 0x0 Fluminense), 6 dos 12
+participantes com palpite de empate (2x2, 1x1) receberam 5 pts cada por esse tier inexistente —
+nenhum placar exato de verdade, nenhum gol de um time batendo.
+
+**Corrigido em TODOS os lugares onde o tier existia (3 transcrições + UI):**
+- `js/config.js`: `scoring.match.result` removido — só `exact: 10` e `side: 1`.
+- `js/app.js`: `matchPoints()` — removido o branch de sinal (pickSign/realSign); `explainScore()`
+  — removida a entrada `result` do dicionário de explicações; `renderRules()` — removida a linha
+  da tabela de regras; `receiptHtml()`/`renderPickDisplay()`/`exportCsv()` — sem mudança de
+  fórmula (só ordenação, ver abaixo), mas dependem do mesmo `matchPoints()` corrigido.
+- `js/i18n.js`: removida a chave `rulesMatchResult`; `rulesScoreNote` atualizado.
+- `scripts/audit_scoring.py`: `MATCH_SCORING` sem `result`; `match_points()` sem o branch de
+  sinal; testes atualizados (`check_match_points_mutually_exclusive` agora prova que sinal-certo-
+  placar-errado-sem-gol-batendo pontua 0, não 5 — o bug exato encontrado ao vivo).
+- `scripts/audit_integrity.py`: mesma correção na sua própria transcrição independente — achado
+  ao corrigir: o self-test deste arquivo **continuava passando com o valor antigo** porque o
+  fixture golden_state.json não expunha a divergência da forma como o teste comparava (lição:
+  "self-test passa" não é prova de que uma transcrição está sincronizada, só que o fixture atual
+  não expõe uma divergência específica).
+- `scripts/audit_golden_master.mjs`: valores esperados atualizados (`e-bravo`: 15→0 pts, muda de
+  rank exclusivo 3 para empatado em rank 3 com `e-charlie`) — cada valor novo conferido contra o
+  motor real extraído de `app.js` (`--print`) antes de atualizar, não "só para passar".
+- `docs/bolao/CDB2026_RULES_AND_MODEL.md` §3.3: nota de correção datada adicionada, texto
+  original mantido riscado como registro histórico (não reescrito).
+
+**E-mail já enviado com o bug (Vasco 0x0 Fluminense, ida) foi corrigido** com um reenvio de
+correção aos 12 participantes reais, mesmo padrão do `send_bracket_correction_email.py` da Copa.
+
+**Não precisa versão em inglês** (Eduardo, mesma mensagem): `send_result_email.py` — removida a
+metade em inglês de `build_html()` e `build_podium_html()`; e-mail agora só em português.
+
+**Ordenação de "Ver palpites" corrigida** (Eduardo: "Ajuste a ordenação dos ver palpites, tem
+que ser na ordem cronológica dos jogos. Esta em uma ordem estranha agora."):
+`renderPickDisplay()` (o detalhe "Ver palpites" no Ranking), `receiptHtml()` (comprovante por
+e-mail) e `exportCsv()` (exportação do admin) listavam os confrontos na ordem crua de inserção
+(`Object.entries()`, ordem em que o admin/ESPN sync cadastrou cada um) em vez da ordem
+cronológica de kickoff — `renderGamesSection()`/`renderPickForm()` já ordenavam corretamente por
+`firstLegKickoffMs()`; as três telas que faltavam agora usam o mesmo critério.
+
+`audit_scoring.py` das 3 apps, `audit_state_merge.mjs`, `audit_golden_master.mjs`,
+`audit_integrity.py --self-test` re-rodados — todos passando (valores do golden master
+atualizados deliberadamente, não "só para passar" — ver acima).
+
 ## v3.61 — 2026-08-01 — E-mail automático de resultado por partida (scripts/send_result_email.py)
 
 Eduardo: "Cdb2026 está configurado para enviar email apos cada jogo assim como a copa? ... tem que

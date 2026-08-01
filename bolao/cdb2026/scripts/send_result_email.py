@@ -377,58 +377,48 @@ def compute_final_payouts(state):
 
 
 def build_podium_html(payouts_info):
-    """Bilingual PT/EN podium reveal — same visual treatment as Copa's build_podium_html(), minus
-    the 3rd/4th-place team congrats (CDB2026 has no 3rd-place match, only champion/runnerUp)."""
+    """PT-only podium reveal — same visual treatment as Copa's build_podium_html(), minus the
+    3rd/4th-place team congrats (CDB2026 has no 3rd-place match, only champion/runnerUp) and
+    minus the English half (Eduardo, 2026-08-01: "Não precisa versão em inglês")."""
     medal = {1: "🥇", 2: "🥈", 3: "🥉"}
     label_pt = {1: "Campeão", 2: "Vice-campeão", 3: "3º lugar"}
-    label_en = {1: "Champion", 2: "Runner-up", 3: "3rd place"}
     team_for_rank = {1: payouts_info["podium"].get("champion"), 2: payouts_info["podium"].get("runnerUp"), 3: None}
 
     def _amount(a):
         s = f"{a:.2f}"
         return s[:-3] if s.endswith(".00") else s
 
-    def _congrats(item, lang):
+    def _congrats(item):
         team = team_for_rank.get(item["rank"])
         if not team:
             return ""
         name = item["entryName"]
-        if lang == "pt":
-            text = f"Parabéns, {name}! Assim como {team}, você também é {label_pt[item['rank']]} — só que do nosso bolão! 🏆"
-        else:
-            text = f"Congrats, {name}! Just like {team}, you're also the {label_en[item['rank']]} — of our bolão! 🏆"
+        text = f"Parabéns, {name}! Assim como {team}, você também é {label_pt[item['rank']]} — só que do nosso bolão! 🏆"
         return f'<div style="font-size:11px;color:#374151;margin-top:6px;font-style:italic">{text}</div>'
 
-    def _card(item, lang_label, tied_note, lang):
-        note = f'<div style="font-size:11px;color:#9ca3af;margin-top:4px">{tied_note}</div>' if item["tied"] else ""
+    def _card(item):
+        note = '<div style="font-size:11px;color:#9ca3af;margin-top:4px">Empate — valor dividido entre os empatados</div>' if item["tied"] else ""
         return f"""<div style="background:white;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center">
       <div style="font-size:30px;line-height:1;margin-bottom:6px">{medal[item['rank']]}</div>
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px">{lang_label[item['rank']]}</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px">{label_pt[item['rank']]}</div>
       <div style="font-size:15px;font-weight:700;margin-bottom:4px">{item['entryName']}</div>
       <div style="font-size:22px;font-weight:900;color:#16a34a">${_amount(item['amount'])}</div>
       {note}
-      {_congrats(item, lang)}
+      {_congrats(item)}
     </div>"""
 
-    cards_pt = "".join(_card(p, label_pt, "Empate — valor dividido entre os empatados", "pt") for p in payouts_info["payouts"])
-    cards_en = "".join(_card(p, label_en, "Tied — amount split between tied entries", "en") for p in payouts_info["payouts"])
+    cards_pt = "".join(_card(p) for p in payouts_info["payouts"])
 
     return f"""
   <div style="background:linear-gradient(135deg,#78350f,#451a03);border:2px solid #f59e0b;border-radius:14px;padding:22px 18px;margin-bottom:22px;text-align:center">
-    <div style="font-size:20px;font-weight:900;color:white;margin-bottom:16px">🏆 Resultado Final do Bolão! · 🏆 Final Bolão Result!</div>
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">Português</div>
+    <div style="font-size:20px;font-weight:900;color:white;margin-bottom:16px">🏆 Resultado Final do Bolão!</div>
     <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">
       {cards_pt}
     </div>
-    <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#fde68a;margin-bottom:8px">English</div>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px">
-      {cards_en}
-    </div>
     <div style="font-size:13px;color:#fde68a;margin-bottom:14px">
-      Obrigado a todos que participaram! Foi um prazer acompanhar a Copa do Brasil com vocês.<br>
-      Thanks to everyone who played! It was a pleasure following the Copa do Brasil with you all.
+      Obrigado a todos que participaram! Foi um prazer acompanhar a Copa do Brasil com vocês.
     </div>
-    <div style="font-size:11px;color:#fbbf2480">Pote total / Total pot: ${_amount(payouts_info['pot'])}</div>
+    <div style="font-size:11px;color:#fbbf2480">Pote total: ${_amount(payouts_info['pot'])}</div>
   </div>
 """
 
@@ -445,7 +435,11 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     """Builds the result email HTML for one leg's completion. tie_just_decided: True when this
     same leg's completion also resolved the tie's qualifiedTeamId THIS run -- folds the tie
     bonus into the per-entry breakdown row, mirroring Copa's match_podium_bonus_note() fold-in
-    for M103/M104."""
+    for M103/M104.
+
+    PT-only — Eduardo, 2026-08-01: "Não precisa versão em inglês" (unlike the Copa's script,
+    which stays bilingual PT/EN by its own design — this is a CDB2026-specific choice, not a
+    platform-wide one)."""
     entries = state.get("entries", [])
     deleted_ids = set(state.get("deletedIds", []))
     real_entries = [e for e in entries if e.get("id") not in deleted_ids]
@@ -475,15 +469,15 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     away = tie["teamA"] if leg == "second" else tie["teamB"]
     result_str = f'{home} {match["goalsHome"]}–{match["goalsAway"]} {away}'
     leg_label_pt = "" if leg == "single" else " (ida)" if leg == "first" else " (volta)"
-    leg_label_en = "" if leg == "single" else " (leg 1)" if leg == "first" else " (leg 2)"
 
     winner_name = ""
     if tie_just_decided:
         winner_name = tie["teamA"] if tie["qualifiedTeamId"] == "A" else tie["teamB"]
 
     # ── Per-entry breakdown for this leg ──────────────────────────────────────
+    # No "result" (correct W/D/L sign, wrong score) tier — matches audit_scoring.match_points()
+    # exactly, which only ever returns "exact"/"side"/"miss" (see that module's 2026-08-01 fix).
     breakdown_rows_pt = ""
-    breakdown_rows_en = ""
     for item in scored:
         entry = item["e"]
         pick = (entry.get("picks") or {}).get("matches", {}).get(tie_id, {}).get(leg)
@@ -492,20 +486,13 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
         pts = r["pts"] if r else 0
         if r:
             det_pt = {
-                "exact":  f"+{audit_scoring.MATCH_SCORING['exact']} placar exato",
-                "result": f"+{audit_scoring.MATCH_SCORING['result']} resultado certo",
-                "side":   f"+{pts} gols de 1 time certos",
-                "miss":   "—",
-            }[r["type"]]
-            det_en = {
-                "exact":  f"+{audit_scoring.MATCH_SCORING['exact']} exact score",
-                "result": f"+{audit_scoring.MATCH_SCORING['result']} correct result",
-                "side":   f"+{pts} correct goals for 1 team",
-                "miss":   "—",
+                "exact": f"+{audit_scoring.MATCH_SCORING['exact']} placar exato",
+                "side":  f"+{pts} gols de 1 time certos",
+                "miss":  "—",
             }[r["type"]]
             pick_str = f'{pick["goalsHome"]}–{pick["goalsAway"]}'
         else:
-            det_pt, det_en, pick_str = "sem palpite", "no pick", "—"
+            det_pt, pick_str = "sem palpite", "—"
 
         if tie_just_decided:
             qual_pick = (entry.get("picks") or {}).get("qualified", {}).get(tie_id)
@@ -514,9 +501,7 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
                 bonus_pts = audit_scoring.TIE_BONUS if hit else 0
                 pts += bonus_pts
                 bonus_pt = f"+{audit_scoring.TIE_BONUS} acertou quem avança" if hit else "errou quem avança"
-                bonus_en = f"+{audit_scoring.TIE_BONUS} correctly picked who advances" if hit else "missed who advances"
                 det_pt = f"{det_pt}, {bonus_pt}" if det_pt != "—" else bonus_pt
-                det_en = f"{det_en}, {bonus_en}" if det_en != "—" else bonus_en
 
         color = pts_color(pts)
         name = entry.get("entryName", "?")
@@ -525,12 +510,6 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
             f'<td style="padding:6px 10px;text-align:center">{pick_str}</td>'
             f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{pts}</td>'
             f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{det_pt}</td></tr>'
-        )
-        breakdown_rows_en += (
-            f'<tr><td style="padding:6px 10px">{name}</td>'
-            f'<td style="padding:6px 10px;text-align:center">{pick_str}</td>'
-            f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{pts}</td>'
-            f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{det_en}</td></tr>'
         )
 
     # ── Ranking ───────────────────────────────────────────────────────────────
@@ -554,9 +533,7 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     matches_played = sum(1 for t in all_ties.values() for m in t.get("matches", {}).values() if m.get("goalsHome") is not None)
     phase_name = PHASE_BY_ID[phase_id]["name"]
     label_pt = f"{phase_name} — {tie['teamA']} × {tie['teamB']}{leg_label_pt}"
-    label_en = f"{phase_name} — {tie['teamA']} x {tie['teamB']}{leg_label_en}"
     winner_line_pt = f'✓ {winner_name} avança' if winner_name else ""
-    winner_line_en = f'✓ {winner_name} advances' if winner_name else ""
 
     thead_style = 'style="background:#f1f5f9"'
     th = 'style="padding:8px 10px;text-align:left;font-weight:600;color:#374151"'
@@ -568,15 +545,10 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
   <!-- Header -->
   <div style="background:linear-gradient(135deg,#059669,#065f46);color:white;padding:24px;border-radius:12px 12px 0 0;text-align:center">
     <div style="font-size:26px;font-weight:700;margin-bottom:4px">🏅 Bolão do Ferrari — Copa do Brasil 2026</div>
-    <div style="opacity:.8;font-size:13px">Atualização de resultados · Results update</div>
+    <div style="opacity:.8;font-size:13px">Atualização de resultados</div>
   </div>
 
   <div style="background:#f8fafc;padding:20px 24px;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px">
-
-    <!-- ══════════ PORTUGUÊS ══════════ -->
-    <div style="font-size:15px;font-weight:700;color:#059669;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #d1fae5">
-      🇧🇷 Português
-    </div>
 
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
       <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{label_pt}</div>
@@ -595,7 +567,7 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
       <tbody>{breakdown_rows_pt}</tbody>
     </table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">
-      Placar exato = {audit_scoring.MATCH_SCORING['exact']} pts &nbsp;·&nbsp; Resultado certo = {audit_scoring.MATCH_SCORING['result']} pts &nbsp;·&nbsp;
+      Placar exato = {audit_scoring.MATCH_SCORING['exact']} pts &nbsp;·&nbsp;
       Gols exatos de 1 time = {audit_scoring.MATCH_SCORING['side']} pt <em>(por time, não por gol)</em> &nbsp;·&nbsp;
       Quem avança = {audit_scoring.TIE_BONUS} pts &nbsp;·&nbsp; Campeão = {audit_scoring.PODIUM_BONUS['champion']} pts &nbsp;·&nbsp; Vice = {audit_scoring.PODIUM_BONUS['runnerUp']} pts
     </div>
@@ -605,45 +577,6 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
       <thead><tr {thead_style}>
         <th {th} style="text-align:center">#</th>
         <th {th}>Entrada</th>
-        <th {th} style="text-align:center">Total</th>
-      </tr></thead>
-      <tbody>{ranking_rows}</tbody>
-    </table>
-
-    <div style="height:2px;background:#d1fae5;margin:24px 0"></div>
-
-    <!-- ══════════ ENGLISH ══════════ -->
-    <div style="font-size:15px;font-weight:700;color:#059669;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #d1fae5">
-      🇺🇸 English
-    </div>
-
-    <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
-      <div style="font-size:11px;color:#6b7280;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">{label_en}</div>
-      <div style="font-size:16px;font-weight:700">{result_str}</div>
-      <div style="font-size:13px;color:#16a34a;margin-top:4px">{winner_line_en}</div>
-    </div>
-
-    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Scoring — {label_en}</div>
-    <table {tbl}>
-      <thead><tr {thead_style}>
-        <th {th}>Entry</th>
-        <th {th} style="text-align:center">Pick</th>
-        <th {th} style="text-align:center">Pts</th>
-        <th {th}>Details</th>
-      </tr></thead>
-      <tbody>{breakdown_rows_en}</tbody>
-    </table>
-    <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">
-      Exact score = {audit_scoring.MATCH_SCORING['exact']} pts &nbsp;·&nbsp; Correct result = {audit_scoring.MATCH_SCORING['result']} pts &nbsp;·&nbsp;
-      Exact goals of 1 team = {audit_scoring.MATCH_SCORING['side']} pt <em>(per team, not per goal)</em> &nbsp;·&nbsp;
-      Who advances = {audit_scoring.TIE_BONUS} pts &nbsp;·&nbsp; Champion = {audit_scoring.PODIUM_BONUS['champion']} pts &nbsp;·&nbsp; Runner-up = {audit_scoring.PODIUM_BONUS['runnerUp']} pts
-    </div>
-
-    <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking ({matches_played} matches played)</div>
-    <table {tbl}>
-      <thead><tr {thead_style}>
-        <th {th} style="text-align:center">#</th>
-        <th {th}>Entry</th>
         <th {th} style="text-align:center">Total</th>
       </tr></thead>
       <tbody>{ranking_rows}</tbody>

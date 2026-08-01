@@ -56,8 +56,14 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_FIXTURE = os.path.join(SCRIPT_DIR, "fixtures", "golden_state.json")
 
 # Transcribed from bolao/cdb2026/js/config.js `scoring` block — same constants audit_scoring.py
-# uses, kept in sync by hand for the same reason documented there.
-MATCH_SCORING = {"exact": 10, "result": 5, "side": 1}
+# uses, kept in sync by hand for the same reason documented there. No "result" tier (correct
+# W/D/L sign, wrong score) — removed 2026-08-01 across all three hand-transcriptions
+# (audit_scoring.py, audit_integrity.py, app.js's own matchPoints()) after a real incident: it
+# never existed in the Copa's matchPoints() and was undetected drift. This file's self-test
+# happened to still pass with the stale value only because golden_state.json's fixture picks
+# don't happen to exercise that branch — a reminder that "self-test passes" isn't proof a
+# transcription is in sync, only that the fixture doesn't expose a given divergence.
+MATCH_SCORING = {"exact": 10, "side": 1}
 TIE_BONUS = 5
 PODIUM_BONUS = {"champion": 30, "runnerUp": 20}
 
@@ -109,21 +115,16 @@ def parse_iso(s):
         return None
 
 
-def sign(n):
-    return (n > 0) - (n < 0)
-
-
 def match_points(pick, result):
-    """Transcribed from matchPoints() in app.js:812-825 — mutually exclusive exact/result/side,
-    never summed across types. Kept in sync by hand with the same discipline audit_scoring.py's
-    own copy of this function documents; verified against the golden master below at import time
-    (see check_recompute_matches_golden_master), not just asserted correct."""
+    """Transcribed from matchPoints() in app.js — mutually exclusive exact/side, never summed
+    across types, no "correct sign, wrong score" tier. Kept in sync by hand with the same
+    discipline audit_scoring.py's own copy of this function documents; verified against the
+    golden master below at import time (see check_recompute_matches_golden_master), not just
+    asserted correct."""
     if not pick or not result or result.get("goalsHome") is None or result.get("goalsAway") is None:
         return None
     if pick.get("goalsHome") == result["goalsHome"] and pick.get("goalsAway") == result["goalsAway"]:
         return MATCH_SCORING["exact"]
-    if sign(pick.get("goalsHome", 0) - pick.get("goalsAway", 0)) == sign(result["goalsHome"] - result["goalsAway"]):
-        return MATCH_SCORING["result"]
     pts = 0
     if pick.get("goalsHome") == result["goalsHome"]:
         pts += MATCH_SCORING["side"]
@@ -178,7 +179,10 @@ def check_recompute_matches_golden_master():
     fixture_path = os.path.join(SCRIPT_DIR, "fixtures", "golden_state.json")
     with open(fixture_path, encoding="utf-8") as f:
         fixture = json.load(f)
-    expected = {"e-alpha": 105, "e-bravo": 15, "e-charlie": 0, "e-delta": 105}
+    # e-bravo: 15 -> 0 after the "result" tier removal (2026-08-01) — same value
+    # audit_golden_master.mjs's "scoreEntry totals" check now expects, both cross-checked against
+    # the real extracted engine before updating.
+    expected = {"e-alpha": 105, "e-bravo": 0, "e-charlie": 0, "e-delta": 105}
     by_id = {e["id"]: e for e in fixture["entries"]}
     for eid, want in expected.items():
         got = recompute_entry_total(by_id[eid], fixture["phases"])
