@@ -24,7 +24,7 @@ cada campo encontrados no arquivo.
 | Campo | Tipo | Fonte | Notas |
 |---|---|---|---|
 | `id` | `string` (uuid) | `uuid()`, `app.js:442` | Chave primária lógica dentro do array |
-| `entryName` | `string` | formulário | Nome da ENTRADA (pode haver múltiplas por participante — ex. "REDACTED_PARTICIPANT #1"/"#2", ver `CHANGELOG` 2026-08-01) |
+| `entryName` | `string` | formulário | Nome da ENTRADA (pode haver múltiplas por participante — ex. "Participante A #1"/"#2", ver `CHANGELOG` 2026-08-01) |
 | `payerName` | `string` | formulário | Nome de quem pagou (pode diferir do participante) |
 | `participantEmail` | `string` | formulário | Único campo de contato — recibo e busca de entrada usam este e-mail |
 | `paymentMethod` | `"CashApp"\|"Zelle"\|"Venmo"` | formulário | Chave em `C.paymentMethods`/`C.paymentLinks` |
