@@ -266,7 +266,15 @@ function mergeStates(local, remote, opts = {}) {
     const cutoffAt = opts.preferRemoteResults
       ? (remoteP.cutoffAt ?? localP.cutoffAt)
       : (localP.cutoffAt ?? remoteP.cutoffAt);
-    phases[p.id] = { cutoffAt, ties };
+    // 2026-08-01, EMERGENCY_HOTFIX: cutoffOffsetMs (override pontual de janela cutoff->kickoff,
+    // ver effectivePhaseCutoffMs) estava sendo silenciosamente descartado aqui -- phases[p.id]
+    // só reconstruía {cutoffAt, ties}, igual ao bug do AUDIT-01 (espnSync flags), só que desta
+    // vez no campo que tinha acabado de reabrir a entrada da Oitavas: qualquer sync de qualquer
+    // dispositivo apagava o override de volta para o padrão de 1h. Mesma precedência de cutoffAt.
+    const cutoffOffsetMs = opts.preferRemoteResults
+      ? (remoteP.cutoffOffsetMs ?? localP.cutoffOffsetMs)
+      : (localP.cutoffOffsetMs ?? remoteP.cutoffOffsetMs);
+    phases[p.id] = { cutoffAt, cutoffOffsetMs, ties };
   });
   // TODOS os flags de migração "roda uma vez" precisam estar listados aqui. Este objeto é
   // reconstruído do zero (não é spread), então qualquer flag esquecido é DESCARTADO a cada
@@ -321,7 +329,12 @@ function applyMutationOverRemote(local, remote, mutation) {
   const phases = {};
   DATA.phases.forEach(p => {
     const remoteP = remote.phases?.[p.id] || emptyPhaseState();
-    phases[p.id] = { cutoffAt: remoteP.cutoffAt ?? null, ties: { ...(remoteP.ties || {}) } };
+    // cutoffOffsetMs (hotfix pontual, ver effectivePhaseCutoffMs) precisa sobreviver aqui igual
+    // sobrevive em mergeStates() -- sem isto, QUALQUER mutação administrativa (marcar pagamento,
+    // travar um confronto, etc., em qualquer fase) apagaria silenciosamente o override de
+    // reabertura de cutoff de toda fase que o tivesse, reintroduzindo exatamente o bug que
+    // f2f8512 corrigiu, só que pelo caminho de mutação dirigida em vez do merge de snapshot.
+    phases[p.id] = { cutoffAt: remoteP.cutoffAt ?? null, cutoffOffsetMs: remoteP.cutoffOffsetMs, ties: { ...(remoteP.ties || {}) } };
   });
   const base = {
     entries, deletedIds, auditLog,
@@ -511,9 +524,17 @@ function firstKnownKickoffMs(s, phaseId) {
 // vez. O campo manual (`cutoffAt`) continua existindo só como fallback para quando NENHUM kickoff é
 // conhecido ainda (ex.: antes do sorteio real de uma fase), igual sempre foi seu propósito original
 // antes do auto-cálculo existir.
+// `cutoffOffsetMs` (2026-08-01, hotfix pontual): janela entre o cutoff e o 1º kickoff, opcional
+// por fase. Default 3600000 (1h, o valor fixo original) preserva o comportamento de sempre em
+// toda fase que não definir o campo -- Eduardo pediu para reabrir entrada nas Oitavas até 15min
+// antes do jogo (não 1h), então só `s.phases.oitavas.cutoffOffsetMs = 900000` foi setado, direto
+// no estado, sem mexer em nenhuma outra fase.
 function effectivePhaseCutoffMs(s, phaseId) {
   const firstKickoff = firstKnownKickoffMs(s, phaseId);
-  if (firstKickoff !== null) return firstKickoff - 3600000;
+  if (firstKickoff !== null) {
+    const offsetMs = s.phases?.[phaseId]?.cutoffOffsetMs ?? 3600000;
+    return firstKickoff - offsetMs;
+  }
   const manual = s.phases?.[phaseId]?.cutoffAt;
   return manual ? new Date(manual).getTime() : null;
 }

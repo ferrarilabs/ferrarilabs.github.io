@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow,noarchive">
+<meta name="description" content="Bolão Powerball — acompanhamento privado de cotas e sorteio.">
+<meta http-equiv="Content-Security-Policy" content="
+  default-src 'self';
+  script-src 'self';
+  style-src 'self' 'unsafe-inline';
+  img-src 'self' data:;
+  connect-src 'self' https://data.ny.gov;
+  base-uri 'self';
+  frame-ancestors 'none';
+">
+<link rel="icon" href="data:,">
+<title>Bolão Powerball — Ferrari</title>
+<link rel="stylesheet" href="css/styles.css?v=f2f8512">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand"><span id="pbLogo" aria-hidden="true">🎟️</span> <h1>Bolão do Ferrari</h1></div>
+  <div class="bolao-switcher">
+    <select id="pbDrawSelect" aria-label="Escolher sorteio"></select>
+  </div>
+  <a class="whatsapp-btn js-share-whatsapp" href="#" target="_blank" rel="noopener noreferrer" aria-label="Compartilhar no WhatsApp">
+    <img src="assets/whatsapp.svg" alt="" width="18" height="18"> <span>WhatsApp</span>
+  </a>
+</header>
+
+<main>
+  <section class="card pb-hero">
+    <div class="pb-hero-grid">
+      <div>
+        <span class="pb-status-badge" id="pbStatusBadge">ATIVO</span>
+        <div class="pb-jackpot">
+          <span id="pbJackpot">$707M</span>
+          <small>Jackpot estimado — Sorteio <span id="pbDrawDate"></span></small>
+        </div>
+      </div>
+      <div class="pb-countdown">
+        <div class="pb-countdown-label">Tempo até o sorteio</div>
+        <div class="pb-countdown-nums" id="pbCountdownNums" aria-hidden="true"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Resumo financeiro</h2>
+    <div class="pb-summary-grid" id="pbSummary"></div>
+    <div class="pb-actions">
+      <a class="whatsapp-btn js-share-whatsapp" href="#" target="_blank" rel="noopener noreferrer">
+        <img src="assets/whatsapp.svg" alt="" width="18" height="18"> <span>Compartilhar no WhatsApp</span>
+      </a>
+      <a class="secondary" id="pbPreviousResultsLink" href="https://www.powerball.com/previous-results" target="_blank" rel="noopener noreferrer">🕐 Sorteios anteriores (site oficial)</a>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Participantes</h2>
+    <div class="pb-table-wrap">
+      <table class="pb-table">
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Valor</th>
+            <th>Método</th>
+            <th>Data / Hora</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="pbParticipantsBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Tickets do bolão</h2>
+    <p class="pb-modal-sub" id="pbTicketsMeta"></p>
+    <div id="pbTicketsBody"></div>
+    <p class="pb-pending">Compra única com o fundo do bolão — todos os participantes concorrem aos mesmos tickets.</p>
+  </section>
+
+  <section class="card">
+    <h2 class="section-title">Resultado do sorteio</h2>
+
+    <div id="pbResultDisplay" style="display:none">
+      <p class="pb-result-numbers" id="pbResultNumbers"></p>
+      <p class="pb-modal-sub" id="pbResultChecked"></p>
+      <p id="pbResultProfit"></p>
+    </div>
+
+    <div id="pbResultPending">
+      <p class="pb-modal-sub" id="pbResultPendingMsg">Ainda não realizado.</p>
+      <button type="button" class="secondary" id="pbResultRetryBtn" style="display:none">↻ Tentar buscar novamente</button>
+    </div>
+    <p class="pb-pending">Resultado e prêmio são buscados e calculados automaticamente na fonte oficial (NY Open Data) — sem digitação manual.</p>
+  </section>
+
+  <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
+</main>
+
+<script src="js/data.js?v=f2f8512"></script>
+<script src="js/app.js?v=f2f8512"></script>
+</body>
+</html>
