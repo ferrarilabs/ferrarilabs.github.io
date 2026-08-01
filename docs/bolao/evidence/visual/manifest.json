@@ -1,0 +1,842 @@
+[
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:15.070Z",
+    "file": "copa2026_Ranking_320x568.png"
+  },
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:16.660Z",
+    "file": "copa2026_Ranking_375x667.png"
+  },
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:18.267Z",
+    "file": "copa2026_Ranking_390x844.png"
+  },
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:19.810Z",
+    "file": "copa2026_Ranking_414x896.png"
+  },
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:21.369Z",
+    "file": "copa2026_Ranking_768x1024.png"
+  },
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:22.903Z",
+    "file": "copa2026_Ranking_1024x768.png"
+  },
+  {
+    "app": "copa2026",
+    "route": "/bolao/copa2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:24.506Z",
+    "file": "copa2026_Ranking_1440x900.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:26.991Z",
+    "file": "br2026_Palpites_320x568.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:27.527Z",
+    "file": "br2026_Ranking_320x568.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:28.061Z",
+    "file": "br2026_Jogos_320x568.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:28.627Z",
+    "file": "br2026_Regras_320x568.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:29.118Z",
+    "file": "br2026_Admin_320x568.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:31.582Z",
+    "file": "br2026_Palpites_375x667.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:32.116Z",
+    "file": "br2026_Ranking_375x667.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:32.660Z",
+    "file": "br2026_Jogos_375x667.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:33.236Z",
+    "file": "br2026_Regras_375x667.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:33.768Z",
+    "file": "br2026_Admin_375x667.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:36.212Z",
+    "file": "br2026_Palpites_390x844.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:36.719Z",
+    "file": "br2026_Ranking_390x844.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:37.220Z",
+    "file": "br2026_Jogos_390x844.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:37.801Z",
+    "file": "br2026_Regras_390x844.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:38.332Z",
+    "file": "br2026_Admin_390x844.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:40.782Z",
+    "file": "br2026_Palpites_414x896.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:41.307Z",
+    "file": "br2026_Ranking_414x896.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:41.809Z",
+    "file": "br2026_Jogos_414x896.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:42.365Z",
+    "file": "br2026_Regras_414x896.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:42.863Z",
+    "file": "br2026_Admin_414x896.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:45.299Z",
+    "file": "br2026_Palpites_768x1024.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:45.833Z",
+    "file": "br2026_Ranking_768x1024.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:46.365Z",
+    "file": "br2026_Jogos_768x1024.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:46.971Z",
+    "file": "br2026_Regras_768x1024.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:47.504Z",
+    "file": "br2026_Admin_768x1024.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:49.945Z",
+    "file": "br2026_Palpites_1024x768.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:50.474Z",
+    "file": "br2026_Ranking_1024x768.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:51.006Z",
+    "file": "br2026_Jogos_1024x768.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:51.602Z",
+    "file": "br2026_Regras_1024x768.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:52.124Z",
+    "file": "br2026_Admin_1024x768.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:54.588Z",
+    "file": "br2026_Palpites_1440x900.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:55.153Z",
+    "file": "br2026_Ranking_1440x900.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:55.713Z",
+    "file": "br2026_Jogos_1440x900.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:56.345Z",
+    "file": "br2026_Regras_1440x900.png"
+  },
+  {
+    "app": "br2026",
+    "route": "/bolao/br2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:56.922Z",
+    "file": "br2026_Admin_1440x900.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:24:59.456Z",
+    "file": "cdb2026_Palpites_320x568.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:00.042Z",
+    "file": "cdb2026_Ranking_320x568.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:01.001Z",
+    "file": "cdb2026_Jogos_320x568.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:01.559Z",
+    "file": "cdb2026_Pagamento_320x568.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:02.196Z",
+    "file": "cdb2026_Regras_320x568.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "320x568",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:02.751Z",
+    "file": "cdb2026_Admin_320x568.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:05.276Z",
+    "file": "cdb2026_Palpites_375x667.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:05.837Z",
+    "file": "cdb2026_Ranking_375x667.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:06.744Z",
+    "file": "cdb2026_Jogos_375x667.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:07.290Z",
+    "file": "cdb2026_Pagamento_375x667.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:07.918Z",
+    "file": "cdb2026_Regras_375x667.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "375x667",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:08.466Z",
+    "file": "cdb2026_Admin_375x667.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:11.011Z",
+    "file": "cdb2026_Palpites_390x844.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:11.599Z",
+    "file": "cdb2026_Ranking_390x844.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:12.514Z",
+    "file": "cdb2026_Jogos_390x844.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:13.080Z",
+    "file": "cdb2026_Pagamento_390x844.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:13.730Z",
+    "file": "cdb2026_Regras_390x844.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "390x844",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:14.298Z",
+    "file": "cdb2026_Admin_390x844.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:16.879Z",
+    "file": "cdb2026_Palpites_414x896.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:17.459Z",
+    "file": "cdb2026_Ranking_414x896.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:18.377Z",
+    "file": "cdb2026_Jogos_414x896.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:18.937Z",
+    "file": "cdb2026_Pagamento_414x896.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:19.577Z",
+    "file": "cdb2026_Regras_414x896.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "414x896",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:20.130Z",
+    "file": "cdb2026_Admin_414x896.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:22.729Z",
+    "file": "cdb2026_Palpites_768x1024.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:23.330Z",
+    "file": "cdb2026_Ranking_768x1024.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:24.362Z",
+    "file": "cdb2026_Jogos_768x1024.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:24.990Z",
+    "file": "cdb2026_Pagamento_768x1024.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:25.638Z",
+    "file": "cdb2026_Regras_768x1024.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "768x1024",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:26.191Z",
+    "file": "cdb2026_Admin_768x1024.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:28.782Z",
+    "file": "cdb2026_Palpites_1024x768.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:29.400Z",
+    "file": "cdb2026_Ranking_1024x768.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:30.493Z",
+    "file": "cdb2026_Jogos_1024x768.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:31.088Z",
+    "file": "cdb2026_Pagamento_1024x768.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:31.800Z",
+    "file": "cdb2026_Regras_1024x768.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "1024x768",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:32.406Z",
+    "file": "cdb2026_Admin_1024x768.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Palpites",
+    "dataSection": "entry",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:35.023Z",
+    "file": "cdb2026_Palpites_1440x900.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Ranking",
+    "dataSection": "ranking",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:35.610Z",
+    "file": "cdb2026_Ranking_1440x900.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Jogos",
+    "dataSection": "games",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:36.870Z",
+    "file": "cdb2026_Jogos_1440x900.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Pagamento",
+    "dataSection": "payment",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:37.507Z",
+    "file": "cdb2026_Pagamento_1440x900.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Regras",
+    "dataSection": "rules",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:38.277Z",
+    "file": "cdb2026_Regras_1440x900.png"
+  },
+  {
+    "app": "cdb2026",
+    "route": "/bolao/cdb2026/",
+    "section": "Admin",
+    "dataSection": "admin",
+    "viewport": "1440x900",
+    "commit": "66c1e67",
+    "timestamp": "2026-08-01T20:25:38.944Z",
+    "file": "cdb2026_Admin_1440x900.png"
+  }
+]
