@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v4.163 — 2026-08-01 — Live clock stoppage-time cap missing for regular-time periods (propagated from CDB2026)
+
+Real live incident (CDB2026, Vasco×Fluminense, Oitavas, 2026-08-01): the live clock kept climbing
+past halftime ("58:11 (+14)" and still rising) because `formatMatchClock()`'s stoppage-time cap
+only applied to `period===4` (extra time) — the same gap Copa's own comment already described
+fixing once for extra time, on the assumption periods 1-3 would always get a fresh isHalftime
+signal in time. They don't, if a single 60s poll doesn't land right when the match pauses.
+
+Fixed here too: the cap now applies to any known period, not just 4. Also added a companion cap
+in the `runningClock` interpolation itself (hero-live-card) — 3x the 60s poll interval — so even
+a poll that's stuck for several minutes can't make the display run away indefinitely.
+`audit_scoring.py` re-run, passing — scoring untouched.
+
 ## v4.162 — 2026-08-01 — `.sticky-submit` CTA overlap fixed (propagated from CDB2026 Fase 2.2)
 
 An independent review of CDB2026's "Salvar entrada" button found it visually covering the "Nova

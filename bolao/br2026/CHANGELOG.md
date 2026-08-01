@@ -1,5 +1,16 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.81 — 2026-08-01 — Live clock stoppage-time cap missing for regular-time periods (propagated from CDB2026)
+
+Same defect class found live in CDB2026 (Vasco×Fluminense, Oitavas, 2026-08-01): the live clock's
+"(+N)" stoppage display and the underlying interpolated clock had no ceiling for periods 1-3
+(regular time) — only period 4 (extra time) was capped. If a single 60s poll doesn't land right
+when a match pauses, the display can climb indefinitely instead of stopping.
+
+Fixed: `formatMatchClock()`'s cap now applies to any known period. Added a companion cap in
+`liveClockDisplay()`'s interpolation itself (3x the poll interval) so even a stuck poll can't make
+the display run away. `audit_scoring.py` re-run, passing — scoring/G4-Z4 tiebreaks untouched.
+
 ## v1.80 — 2026-08-01 — `.sticky-submit` CTA overlap fixed (propagated from CDB2026 Fase 2.2)
 
 Same defect class found and fixed in CDB2026 (its "Salvar entrada" button visually covering the

@@ -2078,10 +2078,15 @@ function formatMatchClock(totalSeconds, period = null, skipBoundariesUpTo = 0) {
   if (knownBoundary !== undefined) {
     if (totalMinutes <= knownBoundary) return cdbFmtClock(totalSeconds);
     const secsPastBoundary = totalSeconds - knownBoundary * 60;
-    // Prorrogação (period 4): sem estado de relógio real pra crescer depois do próprio limite --
-    // sempre segue direto pra fim de jogo ou pênaltis. Mesmo cap da Copa (bug real que ela
-    // pegou ao vivo: relógio subindo pra sempre "120:07 (+1)…" sem nenhum teto).
-    if (period === 4 && secsPastBoundary > CDB_MAX_STOPPAGE_SECONDS) {
+    // Sem estado de relógio real pra crescer indefinidamente depois do próprio limite do período
+    // -- sempre segue direto pro fim do período (intervalo/fim de jogo/pênaltis). Cap real
+    // encontrado ao vivo (2026-08-01, Vasco×Fluminense, Oitavas): este teto só existia pra
+    // period===4 (prorrogação, bug que a Copa já tinha pegado antes: "120:07 (+1)…" sem fim).
+    // O MESMO bug existia sem teto nenhum pros períodos 1/2/3 (tempo normal) -- o relógio ao
+    // vivo do CDB2026 mostrou "58:11 (+14)" e continuava subindo DURANTE o intervalo real do
+    // jogo, porque nada limitava period===1 do mesmo jeito. Corrigido igual pra qualquer period
+    // conhecido, não só o 4.
+    if (secsPastBoundary > CDB_MAX_STOPPAGE_SECONDS) {
       return `${cdbFmtClock(knownBoundary * 60 + CDB_MAX_STOPPAGE_SECONDS)} (+${CDB_MAX_STOPPAGE_SECONDS / 60})`;
     }
     const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
@@ -2252,12 +2257,21 @@ function nudgeScrollReflow() {
 // só minuto), rodando usava formatMatchClock() ("MM:SS"). Sempre passa por formatMatchClock()
 // agora quando `clockSeconds` existe -- pausado só significa não somar o tempo decorrido desde o
 // último poll, nunca trocar de formato.
+// Teto pra interpolação local em segundos decorridos desde o último poll bem-sucedido -- 3x o
+// intervalo normal de poll (60s), folga suficiente pra jitter de rede normal. Sem isso, se UM
+// poll de 60s falhar/atrasar silenciosamente (rede, aba em segundo plano, o próprio backend da
+// ESPN engasgar) bem no instante em que o jogo entra no intervalo real, `l.isHalftime` fica
+// desatualizado (false) indefinidamente e o tick de 1s deste relógio (que só interpola em
+// memória, nunca faz rede -- ver o setInterval em init()) soma o tempo decorrido sem limite,
+// mesmo com o jogo genuinamente parado. Visto ao vivo (2026-08-01, Vasco×Fluminense): relógio
+// "58:11 (+14)" e crescendo, jogo já no intervalo real havia minutos.
+const CDB_MAX_INTERPOLATION_MS = 3 * LIVE_TIE_POLL_INTERVAL_MS;
 function liveClockDisplay(l) {
   const clock = l.isHalftime ? t("liveHalftime")
     : l.isPenalties ? t("livePenalties")
     : l.clockSeconds != null
       ? formatMatchClock(
-          l.clockPaused ? l.clockSeconds : l.clockSeconds + Math.floor((Date.now() - (l.pollTime || Date.now())) / 1000),
+          l.clockPaused ? l.clockSeconds : l.clockSeconds + Math.floor(Math.min(Date.now() - (l.pollTime || Date.now()), CDB_MAX_INTERPOLATION_MS) / 1000),
           l.period ?? null, 0)
       : l.clockStr;
   return clock;

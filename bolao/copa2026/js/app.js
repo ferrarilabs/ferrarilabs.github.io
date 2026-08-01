@@ -475,10 +475,20 @@ function renderNextMatch() {
       // once regulation/extra time ends — or any other stoppage clockPaused
       // picked up from the clock's own behavior) isn't more elapsed play
       // time — don't let the interpolation below keep ticking through it.
+      //
+      // MAX_INTERPOLATION_MS caps how far this local interpolation can run ahead of the last
+      // successful poll — 3x the 60s poll interval, generous slack for normal jitter. Without
+      // this, if a single poll doesn't land right as the match hits halftime, `isHalftime` stays
+      // stale (false) and this display just keeps adding real elapsed seconds forever with
+      // nothing to stop it, even though the match is genuinely stopped. Confirmed live in
+      // CDB2026 (2026-08-01, Vasco×Fluminense): clock showed "58:11 (+14)" and kept climbing
+      // during the real halftime break. Propagated here as defense-in-depth alongside the
+      // formatMatchClock() stoppage cap above.
+      const clockElapsedMs = Math.min(Date.now() - (ls.pollTime || Date.now()), 3 * 60000);
       const runningClock = ls.isHalftime || ls.isPenalties || ls.clockPaused
         ? ls.clock
         : ls.clockSeconds !== null
-          ? formatMatchClock(ls.clockSeconds + Math.floor((Date.now() - (ls.pollTime || Date.now())) / 1000), ls.period ?? null, ls.pastBoundary || 0)
+          ? formatMatchClock(ls.clockSeconds + Math.floor(clockElapsedMs / 1000), ls.period ?? null, ls.pastBoundary || 0)
           : ls.clock;
       return `<div class="hero-live-card">
       <div class="hero-live-top">
@@ -3883,17 +3893,18 @@ function formatMatchClock(totalSeconds, period = null, skipBoundariesUpTo = 0) {
   if (knownBoundary !== undefined) {
     if (totalMinutes <= knownBoundary) return fmtClock(totalSeconds);
     const secsPastBoundary = totalSeconds - knownBoundary * 60;
-    // Extra time's 2nd period (period 4) has no legitimate next real-clock
-    // state to numerically grow into — it's always followed by either
-    // full-time or a shootout with no running clock at all. Once its own
-    // cap is passed, freeze here for good instead of letting the display
-    // keep climbing. This is the actual fix for the runaway "120:07 (+1)…"
-    // Eduardo caught live during Australia x Egypt's shootout: ESPN briefly
-    // reported a status this app's text matching didn't recognize as
-    // "penalties," and this branch (period known) had NO cap at all, so
-    // local interpolation just kept adding seconds forever with nothing to
-    // stop it — unlike the fallback branch below, which always had one.
-    if (period === 4 && secsPastBoundary > MAX_STOPPAGE_SECONDS) {
+    // No known period has a legitimate next real-clock state to numerically grow into once its
+    // own boundary + a realistic stoppage window has passed — it's always followed by either the
+    // next period, halftime, full-time, or a shootout, never more running clock. Once that cap is
+    // passed, freeze here for good instead of letting the display keep climbing. This used to
+    // only apply to period===4 (the actual fix for the runaway "120:07 (+1)…" Eduardo caught live
+    // during Australia x Egypt's shootout), on the theory that periods 1-3 would always get a
+    // fresh isHalftime/period-change signal before running away — but CDB2026 hit the SAME
+    // unbounded-growth bug live on period 1 (2026-08-01, Vasco×Fluminense: "58:11 (+14)" and
+    // still climbing, well into the real halftime break) when one poll cycle didn't land in time
+    // to flip isHalftime. Propagated the fix here to close the same gap for every known period,
+    // not just 4.
+    if (secsPastBoundary > MAX_STOPPAGE_SECONDS) {
       return `${fmtClock(knownBoundary * 60 + MAX_STOPPAGE_SECONDS)} (+${MAX_STOPPAGE_SECONDS / 60})`;
     }
     const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
