@@ -642,16 +642,21 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .score-inputs input { text-align: center; font-size: 20px; font-weight: 900; }
 .auto-note { margin-top: 7px; color: var(--muted); font-size: 12px; min-height: 1.2em; }
 
-/* ── Sticky submit ── */
+/* ── Sticky submit ──
+   Was `position: sticky` with `pointer-events: none` on the container (clicks pass through to
+   whatever's underneath, only the button itself is clickable) -- that makes the button
+   clickable, but does nothing about VISUAL overlap: a sticky-positioned box still occupies
+   screen space on top of normal-flow siblings scrolled underneath it. Confirmed via an
+   automated cross-app audit (2026-08, propagating the CDB2026 Fase 2.2 fix): this exact
+   pattern visually covered form content (headings, labels, selects) at several viewport/scroll
+   combinations, same defect class CDB2026 had. Fixed the same way: normal document flow, no
+   floating position at all -- structurally impossible to overlap a sibling. */
 .sticky-submit {
-  position: sticky;
-  bottom: 12px;
-  z-index: 6;
-  text-align: right;
-  pointer-events: none;
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 0 4px;
 }
 .sticky-submit button {
-  pointer-events: auto;
   min-width: 200px;
   box-shadow: 0 4px 24px rgba(47,229,110,.35);
   font-size: 16px;

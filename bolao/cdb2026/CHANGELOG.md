@@ -1,6 +1,19 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
-## v3.59 — 2026-08-01 — Fase 2.2: correção final do CTA "Salvar entrada" + evidência visual real (NÃO deployado — apenas commit local, por instrução do Eduardo)
+## v3.59 — 2026-08-01 — Fase 2.2: correção final do CTA "Salvar entrada" + evidência visual real
+
+**Atualização:** Eduardo aprovou o deploy logo em seguida ("Approved to push") — este commit foi
+para produção (`main`) no mesmo dia. O texto original desta entrada (abaixo) foi escrito antes
+dessa aprovação e descrevia um estado "apenas local"; mantido como estava por ser o registro
+histórico da fase, mas o status real é: **deployado**.
+
+**Propagação (mesmo dia, após o deploy):** o mesmo defeito de overlap do CTA foi auditado nos
+outros dois apps por exigência da regra de propagação da plataforma — confirmado presente em
+**ambos**, incluindo na própria Copa do Mundo (`bolao/copa2026/`, referência visual canônica) e
+no BR2026. Corrigido da mesma forma (fluxo normal do documento, sem `position: sticky`) em
+`bolao/copa2026/css/styles.css` (v4.162) e `bolao/br2026/css/styles.css` (v1.80) — ver os
+CHANGELOG de cada app para o detalhamento e a evidência (77 achados em Copa, 57 em BR2026, 0
+achados após o fix em ambos).
 
 Revisão independente da Fase 2.1 encontrou que o CTA "Salvar entrada" ainda cobria o título
 `<h2>` "Nova entrada" em mobile (390×844) — o teste da Fase 2.1 só checava interseção contra
