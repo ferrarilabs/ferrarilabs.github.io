@@ -194,6 +194,64 @@ console.log("Running CDB2026 state-merge / display-orientation audit...\n");
   check("offline pre-read still saves the local entry", postedOffline?.state.entries[0].id === "z");
 }
 
+// ── Fase 2 §4: TRUE concurrent writes are NOT fully resolved by read-merge-write ────────────
+// AUDIT-03's read-merge-write fix eliminates the SEQUENTIAL case (client B saves after client
+// A's write is already visible remotely — B's pre-read sees it, mergeStates keeps it). It does
+// NOT eliminate a genuine RACE: two clients whose pre-save read both happen before either
+// client's write is visible. Each client only merges against what IT read, so a client that
+// read before the other wrote has no way to know about that other write and will overwrite it.
+// This is not a regression to "fix" here — there is no revision number, compare-and-swap,
+// optimistic-locking column, or transactional RPC in this schema (plain upsert-by-id on the
+// whole `state` JSON column) to make a true CAS possible. This test PROVES the residual risk
+// so it is characterized honestly instead of assumed away. See
+// docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md for the classification and the
+// architectural recommendation (RPC with row version / optimistic concurrency) — NOT
+// implemented automatically, per explicit instruction.
+{
+  const saveRemoteStateFactory = (() => {
+    const body = `
+      const DATA = { phases: [{ id: "oitavas" }] };
+      function emptyPhaseState() { return { cutoffAt: null, ties: {} }; }
+      const C = { siteVersion: "test", storeKey: "k",
+        database: { enabled: true, url: "http://x", anonKey: "a", table: "t", stateId: "cdb2026" } };
+      const localStorage = { setItem: () => {}, getItem: () => null };
+      const console = { warn: () => {} };
+      async function fetchJson(u, o) { return fetchImpl(u, o); }
+      ${extractFn("mergeStates")}
+      ${extractFn("saveRemoteState")}
+      return saveRemoteState;`;
+    return fetchImpl => new Function("fetchImpl", body)(fetchImpl);
+  })();
+
+  // Server starts at V0. Both clients' pre-save reads are served V0 — neither has seen the
+  // other's write when it reads, which is what makes this a genuine race and not staleness.
+  let server = { entries: [{ id: "X", entryName: "Original", updatedAt: "2026-08-01T10:00:00Z" }], paid: {} };
+  const V0 = JSON.parse(JSON.stringify(server));
+
+  const saveA = saveRemoteStateFactory(async (url, opts) => {
+    if (!opts || opts.method !== "POST") return { ok: true, json: async () => [{ state: V0 }] };
+    server = JSON.parse(opts.body).state; // A's write lands first
+    return { ok: true, text: async () => "" };
+  });
+  await saveA({ entries: [{ id: "X", entryName: "Renamed by A", updatedAt: "2026-08-01T10:00:05Z" }], paid: {} });
+  check("client A's write lands", server.entries[0].entryName === "Renamed by A", `got ${server.entries[0].entryName}`);
+
+  // B's pre-save read is served V0 too (it happened before A's write, in this race) — B never
+  // sees "Renamed by A" at all, so its own merge has no way to preserve it.
+  const saveB = saveRemoteStateFactory(async (url, opts) => {
+    if (!opts || opts.method !== "POST") return { ok: true, json: async () => [{ state: V0 }] };
+    server = JSON.parse(opts.body).state;
+    return { ok: true, text: async () => "" };
+  });
+  await saveB({ entries: [{ id: "X", entryName: "Renamed by B", updatedAt: "2026-08-01T10:00:06Z" }], paid: {} });
+
+  check(
+    "NÃO COMPLETAMENTE RESOLVIDA PARA ESCRITAS SIMULTÂNEAS: B's race write silently discards A's change (expected/documented residual risk, not a regression)",
+    server.entries[0].entryName === "Renamed by B",
+    `got ${server.entries[0].entryName}`
+  );
+}
+
 // ── AUDIT-05: second-leg home/away orientation ──────────────────────────────────────────────
 // Regression: receipt / ranking detail / CSV printed a fixed `teamA × teamB`, so a leg-2 pick of
 // "Fluminense 3 × 0 Vasco" was rendered "Vasco 3 × 0 Fluminense" — an inversion of the bet.
