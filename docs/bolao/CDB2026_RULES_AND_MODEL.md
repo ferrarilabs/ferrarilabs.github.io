@@ -521,3 +521,37 @@ scoreEntry, matchPoints, extractMatchPlays` — funções puras, sem mutação d
 
 `audit_scoring.py`: PASSOU (5/5) — toda a mudança é apresentação + uma projeção aditiva que
 nunca sobrescreve o resultado oficial salvo em `s.phases[...].matches[leg]`.
+
+---
+
+## Auditoria de código — 2026-08 (v3.54 → v3.55)
+
+Relatório completo: `docs/bolao/CDB2026_CODE_AUDIT_2026-08.md`.
+
+**O modelo de torneio e a pontuação NÃO mudaram.** Nenhum valor de pontuação, regra de
+classificação, bônus de pódio (30/20), formato de fase ou dado esportivo foi alterado. O motor
+oficial (`scoreEntry()`/`matchPoints()`) foi auditado e estava **correto**.
+
+Confirmações relevantes para este documento:
+
+- **Projeção ao vivo (§ "Projeção de ranking ao vivo") está correta como documentada.** Foi
+  levantada a hipótese de que faltaria o bônus de campeão/vice no ranking ao vivo durante a
+  final. Investigado: `liveScoreEntry()` soma apenas pontos de partida e **nunca** projeta pódio,
+  exatamente como este documento já descrevia — decisão deliberada e conservadora (projetar quem
+  se classifica depende do agregado ida+volta, possivelmente prorrogação/pênaltis). **Nada
+  alterado.** Registrada como lacuna de teste: `liveScoreEntry()` não tem espelho no
+  `audit_scoring.py`, então essa invariante ("nunca fabrica bônus enquanto o jogo rola") não está
+  protegida contra uma refatoração futura.
+- **Campeão/vice + pênaltis:** `officialPodium()` resolve só a partir de `tie.qualifiedTeamId`,
+  que exige lock manual (com escolha explícita obrigatória em caso de empate no agregado) ou o
+  sinal `homeWinner`/`awayWinner` da ESPN pós-pênaltis. Empate sem sinal **não** resolve vencedor.
+  Correto nos quatro cenários testados.
+- **Orientação mandante/visitante:** `goalsHome`/`goalsAway` são sempre relativos ao mandante
+  **real da perna** (na volta, `teamB`). A partir da v3.55 existe uma função única,
+  `legTeams(tie, leg, match)`, que **deve** ser usada em qualquer superfície nova que exiba um
+  placar de perna — o comprovante, o detalhe do ranking e o CSV imprimiam `teamA × teamB` fixo e
+  invertiam o placar da volta.
+- **Sincronização ESPN grava sozinha.** Um comentário em `config.js` afirmava que a sync "nunca
+  grava nada sem confirmação humana" — falso desde a v3.16: `autoSyncEspn()` cria confrontos e
+  `autoSyncEspnResults()` preenche placares e chega a travar a classificação automaticamente.
+  Comentário corrigido.

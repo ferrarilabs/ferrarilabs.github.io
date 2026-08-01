@@ -108,6 +108,12 @@ deletadas "ressuscitando" via sync (ver `LESSONS_LEARNED.md`).
    removidas tanto local quanto remoto.
 3. `paid`: **any-true-wins** (`local[k] || remote[k]`) — um pagamento marcado em qualquer
    dispositivo nunca é perdido.
+   > **Correção de 2026-08:** esta descrição valia para a **Copa**, mas BR2026 e CDB2026 estavam
+   > usando `{ ...remote.paid, ...local.paid }` (spread = local sempre vence), então um `false`
+   > local antigo APAGAVA um `true` remoto do admin. Corrigido no CDB2026 na v3.55; **BR2026
+   > ainda tem o spread** — ver `docs/bolao/CONSISTENCY_MATRIX.md`, nota "auditoria CDB2026 de
+   > 2026-08". O item 1 acima (ler o remoto antes de gravar) também só passou a valer no CDB2026
+   > a partir da v3.55; antes disso a gravação substituía a linha inteira.
 4. `results`: **remote-wins** por padrão desde v4.1 (`preferRemoteResults` desde v4.108 reforça
    isso no `loadRemoteState`) — o admin/Supabase é a fonte de verdade, um `localStorage` de
    teste desatualizado em outro dispositivo nunca deve sobrescrever um resultado real.

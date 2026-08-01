@@ -9,11 +9,33 @@ o bloco em si é substituído inteiramente a cada auditoria.
 
 Comparação feita entre os três aplicativos reais no estado de código correspondente a:
 
+> **ATENÇÃO (atualizado em 2026-08):** a tabela abaixo e os itens numerados desta matriz foram
+> escritos em versões MUITO anteriores às atuais e várias afirmações já não descrevem o código.
+> A auditoria de 2026-08 (`docs/bolao/CDB2026_CODE_AUDIT_2026-08.md`) confirmou, lendo o código,
+> que pelo menos estas afirmações da matriz estão **erradas hoje**: que o CDB2026 não teria
+> detecção de jogo adiado (item 25 — existe desde a v3.54: `postponed`, `isLegPostponed`, i18n
+> `gamePostponed`) e que não teria auditor de pontuação (`bolao/cdb2026/scripts/audit_scoring.py`
+> existe e passa 5/5). **Antes de usar qualquer linha desta matriz como lista de trabalho,
+> confirme contra o código atual** — a ordem de fonte de verdade é: código > testes > estado
+> persistido > UI publicada > documentação recente > documentação histórica. As linhas antigas
+> foram mantidas de propósito como registro histórico, não como pendências.
+
+| App | Pasta | siteVersion (2026-08) | Status |
+|---|---|---|---|
+| Copa do Mundo 2026 | `bolao/copa2026/` | v4.161 | **Encerrada e arquivada** (movida de `bolao/` em 2026-07-19; `/bolao/` redireciona para o BR2026) |
+| Brasileirão 2026 | `bolao/br2026/` | v1.79 | **Em produção** |
+| Copa do Brasil 2026 | `bolao/cdb2026/` | v3.55 | **Em produção** |
+
+<details>
+<summary>Estado no momento em que esta matriz foi originalmente escrita (histórico)</summary>
+
 | App | Pasta | siteVersion | Status |
 |---|---|---|---|
-| Copa do Mundo 2026 | `bolao/` | v4.125 | **Em produção** |
+| Copa do Mundo 2026 | `bolao/` | v4.125 | Em produção |
 | Brasileirão 2026 | `bolao/br2026/` | v1.14 | Não publicado |
 | Copa do Brasil 2026 | `bolao/cdb2026/` | v2.0 | Não publicado |
+
+</details>
 
 Status possíveis: `CONSISTENT`, `INTENTIONALLY_DIFFERENT`, `MISSING`, `OUTDATED`, `NEEDS_REVIEW`, `CRITICAL_DIVERGENCE`.
 Severidades: `Critical`, `High`, `Medium`, `Low`.
@@ -46,7 +68,7 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 22 | Estratégia de merge (local-first) | `mergeStates()` — union de entries, local-wins em paid/results | `mergeStates()` equivalente | `mergeStates()` equivalente | Sim | CONSISTENT | Implementações independentes (copiadas), mas logicamente equivalentes | — | — |
 | 23 | Sincronização multi-tab | `visibilitychange` **e** `focus` | apenas `visibilitychange` (dispara `checkVersion()`) | apenas `visibilitychange` (dispara `checkVersion()`) | Sim | NEEDS_REVIEW | BR2026/CDB2026 não re-sincronizam ao focar a aba, só ao trocar de visibilidade | Low | Adicionar listener de `focus` para paridade, se o padrão da Copa for considerado o correto |
 | 24 | Live scores / API externa | ESPN (site/sports API) + API-Football (desabilitado) + Polymarket | ESPN (standings/scoreboard/schedule, poll 60s) | **Nenhuma API externa** — dados estáticos em `js/data.js` | Não necessariamente (depende do formato do torneio) | INTENTIONALLY_DIFFERENT | CDB2026 é mata-mata com poucos jogos; pode não precisar de polling ao vivo ainda | Low | Avaliar se Oitavas/Quartas/Semis precisarão de atualização ao vivo antes da publicação |
-| 25 | Detecção de jogo adiado (postponed) | Implementado (`postponed` hint + i18n `matchPostponed`) | Implementado (`.game-status.postponed`, i18n `gamePostponed`) desde v1.13 | **Não implementado** — sem CSS, sem i18n, sem lógica | Sim, mata-mata é sensível a adiamentos | NEEDS_REVIEW | CDB2026 não tem nenhuma forma de sinalizar jogo adiado | Medium | Portar a lógica de BR2026 (v1.13) para CDB2026 antes de publicar |
+| 25 | Detecção de jogo adiado (postponed) | Implementado (`postponed` hint + i18n `matchPostponed`) | Implementado (`.game-status.postponed`, i18n `gamePostponed`) desde v1.13 | ~~**Não implementado**~~ → **DESATUALIZADO: implementado desde v3.54** (`postponed`, `isLegPostponed()`, i18n `gamePostponed`). A v3.55 ainda estendeu a guarda para o caminho de ESCRITA da sincronização ESPN (AUDIT-06) | Sim, mata-mata é sensível a adiamentos | NEEDS_REVIEW | CDB2026 não tem nenhuma forma de sinalizar jogo adiado | Medium | Portar a lógica de BR2026 (v1.13) para CDB2026 antes de publicar |
 | 26 | Cache de API externa | `localStorage["bolao_api_football_cache"]`, TTL 60min | cache implícito via poll 60s (não persistido) | N/A (sem API) | Não necessariamente | INTENTIONALLY_DIFFERENT | Estratégias diferentes por natureza da fonte de dados | — | — |
 | 27 | Cutoff — enforcement | Client-side, `isPastCutoff()` | idêntico padrão | idêntico padrão | Sim | CONSISTENT | Nenhuma | — | — |
 | 27b | Cutoff — fonte do valor | `cutoffIso` estático em `data.js` (bracket fixo, datas conhecidas com anos de antecedência via calendário oficial FIFA) | `s.cutoffAt` auto-calculado (1h antes do 1º jogo real do calendário ESPN) e **congelado** uma vez (v1.31) — `cutoffIso` só fallback pré-congelamento | `cutoffAt` por fase, auto-calculado (1h antes do 1º kickoff conhecido na fase ativa, v3.12), `cutoffAt` manual do admin como prioridade | Não — mecanismos diferentes por design (ver nota abaixo), mas a REGRA de negócio ("1h antes do primeiro jogo") é a mesma nos 3 | INTENTIONALLY_DIFFERENT | Ver nota "Cutoff — fonte do valor" abaixo | — | — |
@@ -1823,3 +1845,26 @@ Detalhe completo em `bolao/br2026/CHANGELOG.md` v1.78 e `bolao/cdb2026/CHANGELOG
 
 `audit_scoring.py`: PASSOU nos 3 apps, sem alteração — corrige o parsing do status da ESPN que
 alimenta a *projeção ao vivo*, não a fórmula de scoring do bolão em si, que não foi tocada.
+
+## Nota manual — auditoria CDB2026 de 2026-08: dois achados são PLATFORM_SHARED (BR2026 também afetado)
+
+Auditoria completa: `docs/bolao/CDB2026_CODE_AUDIT_2026-08.md`. Dois dos problemas confirmados no
+CDB2026 existem, **com o mesmo código**, no BR2026 — foram corrigidos **apenas no CDB2026** (escopo
+explícito da tarefa). Registrado aqui para não se perder, conforme a regra de propagação.
+
+| Achado | Copa (`copa2026`) | BR2026 | CDB2026 | Status |
+|---|---|---|---|---|
+| Gravação remota sem read-merge-write (lost update: pagamento revertido / entrada concorrente apagada) | Usa o cliente Supabase e um merge próprio — **não** compartilha este caminho | **AFETADO** (`br2026/js/app.js` `saveRemoteState`, mesmo POST de estado inteiro) | **Corrigido** na v3.55 (read-merge-write) | `NEEDS_REVIEW` — propagar para BR2026 |
+| `paid` mesclado por spread (local vence) em vez de any-true-wins | Correto (`mergedPaid[k] = !!(local \|\| remote)`) | **AFETADO** (`br2026/js/app.js`, spread idêntico) | **Corrigido** na v3.55 | `NEEDS_REVIEW` — propagar para BR2026 |
+| Falha de gravação no Supabase tratada como sucesso (`.catch(() => {})`, sem checar `response.ok`) | Parcial: loga o erro, mas sem indicador para o usuário | **AFETADO** (mesmo padrão) | **Corrigido** na v3.55 (lança em `!r.ok` + toast `syncFailed`) | `NEEDS_REVIEW` — propagar para BR2026 |
+
+**Por que não foi propagado agora:** a tarefa delimitou o escopo ao CDB2026 e pediu correções
+cirúrgicas e reversíveis, com regressão explícita de que BR2026 e Copa **não** fossem tocados. As
+correções acima são pequenas e diretamente transplantáveis, mas mexem no caminho de gravação de um
+app em produção com dinheiro real — merecem sua própria rodada de teste/QA, não um efeito colateral
+desta auditoria. **Risco enquanto não for propagado:** no BR2026, um participante com a aba aberta
+há algum tempo pode reverter uma marcação de pagamento do admin ou apagar a entrada recém-criada de
+outro participante ao salvar a sua.
+
+Também corrigido só no CDB2026 (não existe equivalente no BR2026, que não usa este modelo de
+confrontos): descarte dos flags de migração `espnSync` no merge.
