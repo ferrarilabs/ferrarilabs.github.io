@@ -175,7 +175,15 @@ function mergeStates(local, remote, opts = {}) {
     const cutoffAt = opts.preferRemoteResults
       ? (remoteP.cutoffAt ?? localP.cutoffAt)
       : (localP.cutoffAt ?? remoteP.cutoffAt);
-    phases[p.id] = { cutoffAt, ties };
+    // 2026-08-01, EMERGENCY_HOTFIX: cutoffOffsetMs (override pontual de janela cutoff->kickoff,
+    // ver effectivePhaseCutoffMs) estava sendo silenciosamente descartado aqui -- phases[p.id]
+    // só reconstruía {cutoffAt, ties}, igual ao bug do AUDIT-01 (espnSync flags), só que desta
+    // vez no campo que tinha acabado de reabrir a entrada da Oitavas: qualquer sync de qualquer
+    // dispositivo apagava o override de volta para o padrão de 1h. Mesma precedência de cutoffAt.
+    const cutoffOffsetMs = opts.preferRemoteResults
+      ? (remoteP.cutoffOffsetMs ?? localP.cutoffOffsetMs)
+      : (localP.cutoffOffsetMs ?? remoteP.cutoffOffsetMs);
+    phases[p.id] = { cutoffAt, cutoffOffsetMs, ties };
   });
   const espnSync = {
     activePhaseId: opts.preferRemoteResults
