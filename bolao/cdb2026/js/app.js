@@ -461,6 +461,11 @@ function payIcon(method) {
   const src = PAY_ICON_SVG[method];
   return src ? `<img src="${esc(src)}" alt="${esc(method)}" class="pay-method-icon">` : "💳";
 }
+// Consolidado Fase 2 §5 -- markup idêntico duplicado em renderPayment()/renderPaymentBox().
+function zelleQrHtml(method) {
+  return method === "Zelle" && C.zelle?.qrImage
+    ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
+}
 
 // ─── Phase / tie / match helpers ────────────────────────────────────────────
 function getPhaseDef(phaseId) { return DATA.phases.find(p => p.id === phaseId); }
@@ -481,6 +486,13 @@ function legTeams(tie, leg, match) {
     home: match?.homeTeam || (leg === "second" ? tie.teamB : tie.teamA),
     away: match?.awayTeam || (leg === "second" ? tie.teamA : tie.teamB),
   };
+}
+
+// Timestamp BRT (America/Sao_Paulo) para exibições administrativas/comprovante que usam
+// SOMENTE horário do Brasil (recibo, rodapé de sync, rótulo de cutoff, CSV). Não usar para
+// horário de partida/cutoff mostrado ao participante -- esse é dual ET+BRT, ver fmtDate().
+function formatBrtTimestamp(dateStr, opts = {}) {
+  return new Date(dateStr).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", ...opts });
 }
 
 // Agregado de um confronto de ida+volta a partir das duas partidas — null se alguma ainda não
@@ -1023,7 +1035,7 @@ th{background:#07151c;color:#fff;text-align:left}
 <b>${esc(t("receiptResponsible"))}:</b> ${esc(entry.payerName || "")}<br>
 <b>${esc(t("receiptEmail"))}:</b> ${esc(entry.participantEmail)}</div>
 <div><b>${esc(t("receiptPayment"))}:</b> ${esc(entry.paymentMethod || "")}<br>
-<b>${esc(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} (BRT)<br>
+<b>${esc(t("receiptSentAt"))}:</b> ${formatBrtTimestamp(entry.createdAt)} (BRT)<br>
 <b>${esc(t("receiptCodeLabel"))}:</b> <span class="code">${esc(receiptCode(entry))}</span></div></div>
 <div class="pod"><h2>${esc(t("pickHintTie") ? "🏆 Palpite final do participante" : "")}</h2><div class="podgrid">
 <div class="podcard champ"><div>🥇 ${esc(t("pickLabelChampion"))}</div><div class="team-name">${esc(predicted.champion || "—")}</div></div>
@@ -1334,8 +1346,7 @@ function renderPayment() {
   if (!box) return;
   box.innerHTML = Object.entries(C.paymentMethods).map(([method, handle]) => {
     const link = C.paymentLinks?.[method];
-    const qr   = method === "Zelle" && C.zelle?.qrImage
-      ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
+    const qr   = zelleQrHtml(method);
     return `<div class="card pay-card">
       <div class="pay-icon">${payIcon(method)}</div>
       <div>
@@ -1358,8 +1369,7 @@ function renderPaymentBox() {
   if (!method) { box.innerHTML = ""; return; }
   const handle = esc(C.paymentMethods[method] || "");
   const link = C.paymentLinks?.[method] || "";
-  const qr = method === "Zelle" && C.zelle?.qrImage
-    ? `<img src="${esc(C.zelle.qrImage)}" alt="QR Zelle" class="pay-qr">` : "";
+  const qr = zelleQrHtml(method);
   box.innerHTML = `<div class="pay-card">
     <div class="pay-icon">${payIcon(method)}</div>
     <div><b>${esc(method)}</b><br><span class="muted">${handle}</span>
@@ -1793,7 +1803,7 @@ function renderFooter() {
   if (!el) return;
   const s  = state();
   const ts = s.meta?.updatedAt
-    ? new Date(s.meta.updatedAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
+    ? formatBrtTimestamp(s.meta.updatedAt, { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })
     : null;
   el.textContent = ts ? `${C.siteVersion} · sync ${ts} BRT` : C.siteVersion;
 }
@@ -1947,34 +1957,34 @@ function detectClockPaused(freshRaw, prevRaw) {
   return clockDelta < realElapsed * 0.3;
 }
 
-const CDB_LIVE_CLOCK_CACHE_KEY = "cdb2026_live_clock_cache";
-function loadLiveClockCache() {
-  try { return JSON.parse(localStorage.getItem(CDB_LIVE_CLOCK_CACHE_KEY) || "{}"); }
+// Consolidado Fase 2 §5 -- os dois pares de cache abaixo (live clock / raw clock history)
+// repetiam o mesmo "try JSON.parse(localStorage.getItem(key)||'{}') catch {}" / "try
+// localStorage.setItem(...) catch {}"; só a chave e o valor mudavam entre os dois.
+function safeLocalStorageGetJson(key) {
+  try { return JSON.parse(localStorage.getItem(key) || "{}"); }
   catch { return {}; }
 }
+function safeLocalStorageSetJson(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch { /* storage full/unavailable */ }
+}
+
+const CDB_LIVE_CLOCK_CACHE_KEY = "cdb2026_live_clock_cache";
+function loadLiveClockCache() { return safeLocalStorageGetJson(CDB_LIVE_CLOCK_CACHE_KEY); }
 function saveLiveClockCache(scores) {
-  try {
-    const cache = {};
-    for (const [id, ls] of Object.entries(scores)) {
-      if (ls.clockSeconds != null) cache[id] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime, period: ls.period ?? null };
-    }
-    localStorage.setItem(CDB_LIVE_CLOCK_CACHE_KEY, JSON.stringify(cache));
-  } catch { /* storage full/unavailable */ }
+  const cache = {};
+  for (const [id, ls] of Object.entries(scores)) {
+    if (ls.clockSeconds != null) cache[id] = { clockSeconds: ls.clockSeconds, pollTime: ls.pollTime, period: ls.period ?? null };
+  }
+  safeLocalStorageSetJson(CDB_LIVE_CLOCK_CACHE_KEY, cache);
 }
 
 const CDB_LIVE_CLOCK_RAW_CACHE_KEY = "cdb2026_live_clock_raw_cache";
 let _cdbRawClockHistory = {};
-function loadRawClockCache() {
-  try { return JSON.parse(localStorage.getItem(CDB_LIVE_CLOCK_RAW_CACHE_KEY) || "{}"); }
-  catch { return {}; }
-}
-function saveRawClockCache(history) {
-  try { localStorage.setItem(CDB_LIVE_CLOCK_RAW_CACHE_KEY, JSON.stringify(history)); }
-  catch { /* storage full/unavailable */ }
-}
+function loadRawClockCache() { return safeLocalStorageGetJson(CDB_LIVE_CLOCK_RAW_CACHE_KEY); }
+function saveRawClockCache(history) { safeLocalStorageSetJson(CDB_LIVE_CLOCK_RAW_CACHE_KEY, history); }
 
 let _liveTies = []; // [{ tieId, tie, phaseId, leg, homeTeam, awayTeam, goalsHome, goalsAway, clockSeconds, pollTime, period, isHalftime, isPenalties, clockPaused, clockStr }]
-let _liveTiesLastPollAt = 0;
 const LIVE_TIE_POLL_INTERVAL_MS = 60 * 1000; // mesma cadência da Copa/BR2026 -- rápida o bastante pro relógio parecer "ao vivo"
 
 // Pernas (ida/volta) atualmente sinalizadas como adiadas/canceladas pela ESPN -- item 25 do
@@ -2044,7 +2054,6 @@ async function pollLiveTies() {
   saveRawClockCache(_cdbRawClockHistory);
   saveLiveClockCache(Object.fromEntries(nextLive.map(l => [`${l.tieId}:${l.leg}`, l])));
   _liveTies = nextLive;
-  _liveTiesLastPollAt = now;
   renderLiveTieCard();
   renderLiveRankingHero();
   renderRanking();
@@ -2307,31 +2316,29 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
 // (Eduardo: "PRECISAMOS SER CONSISTENTES"). Only called for matches currently live, so a normal
 // poll with nothing in progress never adds extra network calls. Fails soft: any error just means
 // this cycle falls back to comp.details alone.
+// fetchJson() (acima) já generaliza AbortController+timeout — os dois fetches ESPN abaixo
+// usavam sua própria cópia manual (mesmo timeout de 10000ms) antes de fetchJson() existir.
+// Consolidado Fase 2 §5: mesmo comportamento (mesmo timeout, mesmo catch-e-retorna-null), só a
+// duplicação de scaffolding removida.
 async function fetchEspnEventSummary(eventId) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
     const summaryUrl = (C.espn?.scoreboardUrl || "").replace(/\/scoreboard(\?.*)?$/, "/summary");
     if (!summaryUrl) return null;
-    const r = await fetch(`${summaryUrl}?event=${eventId}`, { signal: ctrl.signal });
+    const r = await fetchJson(`${summaryUrl}?event=${eventId}`);
     if (!r.ok) return null;
     const data = await r.json();
     return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
   } catch (err) {
     console.warn(`[CDB2026] ESPN event summary fetch failed for event ${eventId}`, err);
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const r = await fetch(url, { signal: ctrl.signal });
+    const r = await fetchJson(url);
     if (!r.ok) return null;
     const data = await r.json();
     const events = data.events || [];
@@ -2412,8 +2419,6 @@ async function fetchEspnCandidates() {
   } catch (err) {
     console.warn("[CDB2026] ESPN fetch failed", err);
     return null;
-  } finally {
-    clearTimeout(timer);
   }
 }
 
@@ -2919,7 +2924,7 @@ function renderAdminPhases(s) {
         let label;
         if (effMs === null) label = t("cutoffSourceNone");
         else {
-          const dateStr = new Date(effMs).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" });
+          const dateStr = formatBrtTimestamp(effMs);
           if (manualInEffect) label = `${t("cutoffSourceManual")}: ${dateStr} BRT`;
           else if (hasManual) label = `${t("cutoffSourceAuto")}: ${dateStr} BRT — ${t("cutoffSourceManualIgnored")}`;
           else label = `${t("cutoffSourceAuto")}: ${dateStr} BRT`;
@@ -3288,7 +3293,7 @@ function exportCsv() {
       e.entryName, e.payerName || "", e.participantEmail || "", e.paymentMethod || "",
       predicted.champion || "", predicted.runnerUp || "",
       (s.paid || {})[e.id] ? "Sim" : "Não",
-      e.createdAt ? new Date(e.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" }) : "",
+      e.createdAt ? formatBrtTimestamp(e.createdAt) : "",
       lines.join(" | ")
     ]);
   });
@@ -3514,7 +3519,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 // Read-only test hooks — pure functions only, no state mutation exposed. Mesmo padrão do BR2026
 // (window.__BR2026_TESTHOOKS__, bolao/br2026/js/app.js).
-window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays, explainScore, legTeams, SCORING_RULE_VERSION };
+window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays, explainScore, legTeams, formatBrtTimestamp, SCORING_RULE_VERSION };
 })();
 
 if ('serviceWorker' in navigator) {
