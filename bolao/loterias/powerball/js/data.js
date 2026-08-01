@@ -73,8 +73,8 @@ window.POWERBALL_DRAWS = [
     drawing: {
       name: "Powerball Jackpot",
       jackpot: 707000000,
-      drawDateIso: "2026-08-03T22:59:00-04:00",
-      drawDateLabel: "03/08/2026 22:59 ET"
+      drawDateIso: "2026-08-01T22:59:00-04:00",
+      drawDateLabel: "01/08/2026 22:59 ET"
     },
 
     // 14 participantes, 1 cota = US$20 cada. Eduardo é o organizador: fundo já
