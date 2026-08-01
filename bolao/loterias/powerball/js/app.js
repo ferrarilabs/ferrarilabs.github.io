@@ -107,10 +107,11 @@
           (s.qtd > s.numeros.length ? '<li class="pb-pending">+ ' + (s.qtd - s.numeros.length) + " ticket(s) desse serial ainda não cadastrado(s)</li>" : "") +
           "</ul>"
         : '<div class="pb-pending">Números individuais deste serial ainda não cadastrados.</div>';
-      var precoUnit = s.valorTotal ? s.valorTotal / s.qtd : t.valorPorTicket;
+      var total = s.valorTotal || (s.qtd * t.valorPorTicket);
+      var precoUnit = total / s.qtd;
       return '<div class="pb-ticket-block">' +
         '<div class="serial">Serial: ' + s.serial + (s.jogos ? " · Jogos " + s.jogos : "") + (s.compradoEm ? " · " + s.compradoEm : "") + '</div>' +
-        '<div class="qtd">' + s.qtd + " ticket(s) · " + fmtUsd(precoUnit) + "/ticket" + (s.valorTotal ? " · total " + fmtUsd(s.valorTotal) : "") + "</div>" +
+        '<div class="qtd">' + s.qtd + " ticket(s) · " + fmtUsd(precoUnit) + "/ticket · total " + fmtUsd(total) + "</div>" +
         numsHtml +
         "</div>";
     }).join("");
