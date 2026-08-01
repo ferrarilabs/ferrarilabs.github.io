@@ -113,7 +113,12 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
 .lang-links button.active { background: var(--green); color: var(--green-dk); border-color: var(--green); }
 
 /* ── Nav ── */
-.nav { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; width: 100%; }
+/* 6 colunas (não 8): Fase 2.1 §7 -- Participantes/Pagamento saíram da barra principal para o
+   .nav-secondary abaixo, igual ao padrão de densidade de Copa/BR2026 (6-7 abas primárias visíveis
+   + o que não é navegação de 1a linha acessível por outro caminho). Contagem de colunas casada
+   com a contagem real de botões visíveis -- diferente de deixar um grid de 8 colunas com só 6
+   filhos, que sobra espaço morto no fim da linha. */
+.nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; width: 100%; }
 .nav button {
   background: var(--bg3); color: var(--text);
   padding: 8px 6px; font-size: 13px; font-weight: 700;
@@ -126,6 +131,18 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   justify-content: center;
 }
 .nav button.active { background: var(--green); color: var(--green-dk); }
+
+/* Linha secundária compacta -- Participantes/Pagamento continuam com 1 clique de distância do
+   topo, sem ocupar duas vagas permanentes na barra principal (Fase 2.1 §7). Bem mais baixa que
+   um botão de nav normal (sem min-height:44px -- não é a navegação primária, não precisa do
+   mesmo alvo de toque grande) para não devolver a altura que a barra principal acabou de perder. */
+.nav-secondary { display: flex; gap: 14px; width: 100%; padding: 2px 2px 0; }
+.nav-secondary-link {
+  background: none; border: none; color: var(--muted);
+  font-size: 12px; font-weight: 600; text-decoration: underline; text-underline-offset: 2px;
+  padding: 4px 2px; cursor: pointer;
+}
+.nav-secondary-link:hover, .nav-secondary-link:focus-visible { color: var(--text); }
 
 /* ── Main layout ── */
 /* max-width igual à Copa (bolao/css/styles.css) — Copa é a referência visual canônica da
@@ -245,11 +262,27 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pick-pts-hint  { font-size: 11px; color: var(--muted); min-width: 0; }
 
 /* ── Sticky submit ── */
+/* Fase 2.1 §7: o botão fica `position: sticky` sobre o conteúdo enquanto a página rola -- sem
+   espaço reservado, o último campo do formulário (ou a última linha de palpite) fica exatamente
+   onde o botão gruda ao chegar no fim do scroll, e o botão cobre esse campo. #entry reserva
+   espaço no fluxo (padding-bottom) do tamanho aproximado do botão + folga, então sempre existe
+   scroll suficiente para o último conteúdo passar por baixo do botão antes do fim da página.
+   env(safe-area-inset-bottom) soma a faixa de gesto/notch em iPhones com tela sem borda -- sem
+   isso, o botão ficava colado embaixo demais nesses aparelhos. Verificado em 320/375/390/414px. */
+#entry { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
+/* Fase 2.1 §7: paridade com o componente canônico da Copa (bolao/copa2026/css/styles.css) --
+   `pointer-events: none` no wrapper (só o BOTÃO em si intercepta clique/toque, nunca o espaço
+   vazio ao redor dele) + `text-align: right` (botão ocupa só a própria largura, alinhado à
+   direita, não a linha inteira) juntos reduzem muito a área que de fato bloqueia campo -- restava
+   ainda uma faixa vertical coberta pelo botão em si sobre a última linha de palpite visível
+   durante o scroll, por isso o padding-bottom acima (não presente na Copa -- CDB2026 tem mais
+   linhas de palpite por página que a Copa, então essa reserva extra é TOURNAMENT_SPECIFIC, não
+   uma divergência não-intencional do componente). */
 .sticky-submit {
-  position: sticky; bottom: 14px; z-index: 10;
-  display: flex; justify-content: center; padding-top: 8px;
+  position: sticky; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 10;
+  text-align: right; pointer-events: none; padding-top: 8px;
 }
-.sticky-submit button { min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
+.sticky-submit button { pointer-events: auto; min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
 
 /* ── Provisional note ── */
 .prov-note {
