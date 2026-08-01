@@ -430,7 +430,12 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .tie-team-name { font-weight: 700; font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: clamp(60px, 20vw, 120px); }
 .tie-x { color: var(--muted); }
 .tie-locked-note { font-size: 12px; }
-.tie-locked-score { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; }
+/* Mesmo peso de fonte que .tie-team-name (700) -- achado real (Eduardo, 2026-08-01: "alguns
+   jogos estão em bold e outros não no display"): nome de time ficava em negrito só na linha
+   ABERTA pra palpite (.tie-team-name), sem nenhum font-weight aqui, então a mesma informação
+   (nome do time) mudava de peso visual dependendo só de o confronto já ter passado do cutoff ou
+   não -- inconsistência sem motivo, já que o conteúdo é o mesmo tipo de dado nos dois casos. */
+.tie-locked-score { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; font-weight: 700; }
 
 /* ── Games section rounds ── */
 .games-round-header, .admin-round-header {
