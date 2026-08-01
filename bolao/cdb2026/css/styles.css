@@ -262,27 +262,21 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pick-pts-hint  { font-size: 11px; color: var(--muted); min-width: 0; }
 
 /* ── Sticky submit ── */
-/* Fase 2.1 §7: o botão fica `position: sticky` sobre o conteúdo enquanto a página rola -- sem
-   espaço reservado, o último campo do formulário (ou a última linha de palpite) fica exatamente
-   onde o botão gruda ao chegar no fim do scroll, e o botão cobre esse campo. #entry reserva
-   espaço no fluxo (padding-bottom) do tamanho aproximado do botão + folga, então sempre existe
-   scroll suficiente para o último conteúdo passar por baixo do botão antes do fim da página.
-   env(safe-area-inset-bottom) soma a faixa de gesto/notch em iPhones com tela sem borda -- sem
-   isso, o botão ficava colado embaixo demais nesses aparelhos. Verificado em 320/375/390/414px. */
-#entry { padding-bottom: calc(92px + env(safe-area-inset-bottom, 0px)); }
-/* Fase 2.1 §7: paridade com o componente canônico da Copa (bolao/copa2026/css/styles.css) --
-   `pointer-events: none` no wrapper (só o BOTÃO em si intercepta clique/toque, nunca o espaço
-   vazio ao redor dele) + `text-align: right` (botão ocupa só a própria largura, alinhado à
-   direita, não a linha inteira) juntos reduzem muito a área que de fato bloqueia campo -- restava
-   ainda uma faixa vertical coberta pelo botão em si sobre a última linha de palpite visível
-   durante o scroll, por isso o padding-bottom acima (não presente na Copa -- CDB2026 tem mais
-   linhas de palpite por página que a Copa, então essa reserva extra é TOURNAMENT_SPECIFIC, não
-   uma divergência não-intencional do componente). */
+/* Fase 2.2 §1/§2: removido `position: sticky`/`fixed` de propósito. Um CTA flutuante SEMPRE tem
+   uma janela em que seu retângulo coincide na tela com algum conteúdo que ainda está passando
+   por baixo dele durante o scroll -- isso ficou provado pelo próprio teste de overlap ampliado
+   (check_sticky_overlap.mjs) mesmo depois de adotar o padrão pointer-events/text-align da Copa e
+   reservar espaço extra no fluxo (tentativas da Fase 2.1). Em vez de perseguir um "zero overlap"
+   que a técnica sticky não garante por construção, o botão agora vive no fluxo normal do
+   documento -- exatamente onde já estava no HTML (depois de #pickForm, fim de .card) -- sem
+   nenhum `position` especial. Continua visualmente destacado (verde, sombra, texto grande) por
+   ser .button-row-like, só não flutua mais sobre nada. Nome da classe mantido (`.sticky-submit`)
+   para não precisar tocar no HTML/JS que a referenciam -- o nome ficou historicamente impreciso,
+   registrado aqui, não uma prioridade trocar agora (custo/risco não justifica nesta fase). */
 .sticky-submit {
-  position: sticky; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); z-index: 10;
-  text-align: right; pointer-events: none; padding-top: 8px;
+  display: flex; justify-content: center; padding: 16px 0 4px;
 }
-.sticky-submit button { pointer-events: auto; min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
+.sticky-submit button { min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
 
 /* ── Provisional note ── */
 .prov-note {

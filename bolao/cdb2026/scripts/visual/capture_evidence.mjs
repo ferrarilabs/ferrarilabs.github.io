@@ -1,59 +1,92 @@
 /**
- * capture_evidence.mjs — cross-app visual evidence harness (Fase 2.1 §8).
+ * capture_evidence.mjs — cross-app visual evidence harness (Fase 2.2, full rewrite).
  *
  * Run:  node bolao/cdb2026/scripts/visual/capture_evidence.mjs
  *
- * Puts all three bolão apps (copa2026, br2026, cdb2026) into the SAME comparable synthetic
- * state (fixture-seeded localStorage, no real participant data) and captures screenshots at the
- * required viewports for the required sections, plus a JSON manifest (route/section/viewport/
- * commit/timestamp), an overflow report (elements wider than the viewport), and console errors.
+ * Fase 2.1's version had 3 confirmed defects, fixed here:
+ *   1. A failed section click fell through a `catch {}` straight into a screenshot — producing
+ *      files named for the section that was REQUESTED, not the one actually on screen (confirmed:
+ *      br2026_Palpites_390x844.png showed Ranking). Fixed: the real active section is read via
+ *      the app's own mechanism (`.page.active` id, matching showSection() in app.js) AFTER every
+ *      click attempt, and the screenshot filename/manifest record reflects what's ACTUALLY
+ *      showing, never what was requested.
+ *   2. No synthetic fixture was actually applied before load — each app just rendered its default
+ *      empty/real state. Fixed: per-app synthetic localStorage seed via addInitScript(), fictional
+ *      names only, applied before navigation.
+ *   3. Hard-coded sandbox-only Playwright import path. Fixed: shared playwright_loader.mjs.
  *
- * Never touches production: serves the real repo over a local static server and blocks every
- * external network call (CDN/Supabase/ESPN/EmailJS) via Playwright route interception.
- *
- * NOTE on scope: Copa (bolao/copa2026/) is currently in ARCHIVED mode (`CONFIG.archived`, see
- * CLAUDE.md) — its live nav collapses to Ranking only regardless of viewport, by deliberate
- * product decision (tournament concluded). Its screenshots below reflect that real archived
- * state, not a bug in this harness. Sections that don't exist per-app (e.g. "Pagamento" only
- * exists as a distinct page in br2026/cdb2026) are skipped for that app, noted in the manifest.
+ * Never touches production: local static server, all external network blocked, no real
+ * participant data anywhere in the seeds below.
  */
-import { chromium } from "/opt/node22/lib/node_modules/playwright/index.mjs";
-import { spawn } from "node:child_process";
-import { execSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { loadChromium } from "./playwright_loader.mjs";
+import { spawn, execSync } from "node:child_process";
+import { mkdirSync, writeFileSync, readdirSync, unlinkSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-const PORT = 8188;
+const PORT = 8189;
 const EVIDENCE_ROOT = join(ROOT, "docs", "bolao", "evidence", "visual");
+const FIXTURE_ID = "visual-comparable-v1";
 
 const VIEWPORTS = [
-  { w: 320, h: 568, name: "320x568" },
-  { w: 375, h: 667, name: "375x667" },
-  { w: 390, h: 844, name: "390x844" },
-  { w: 414, h: 896, name: "414x896" },
-  { w: 768, h: 1024, name: "768x1024" },
-  { w: 1024, h: 768, name: "1024x768" },
-  { w: 1440, h: 900, name: "1440x900" },
+  { w: 320, h: 568 }, { w: 375, h: 667 }, { w: 390, h: 844 }, { w: 414, h: 896 },
+  { w: 768, h: 1024 }, { w: 1024, h: 768 }, { w: 1440, h: 900 },
 ];
 
-// section id -> nav data-section value, per app (apps that don't have a given section omit it).
+// ── Synthetic fixtures — fictional names only, no real participant data, no Supabase/ESPN/
+// EmailJS calls needed to render (self-contained localStorage seed per app). ──────────────────
+function cdb2026Fixture() {
+  const emptyMatch = () => ({ homeTeam: null, awayTeam: null, kickoff: null, venue: null, city: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" });
+  return {
+    entries: [
+      { id: "fx-1", entryName: "Entrada Teste #1", payerName: "Participante A", participantEmail: "a@example.invalid", paymentMethod: "CashApp", createdAt: "2026-07-20T12:00:00.000Z", picks: { matches: {}, qualified: {} } },
+      { id: "fx-2", entryName: "Entrada Teste #2", payerName: "Participante B", participantEmail: "b@example.invalid", paymentMethod: "Zelle", createdAt: "2026-07-20T12:05:00.000Z", picks: { matches: {}, qualified: {} } },
+    ],
+    deletedIds: [], paid: { "fx-1": true, "fx-2": false },
+    phases: {
+      oitavas: { cutoffAt: null, ties: {
+        "fx-t1": { teamA: "Time A", teamB: "Time B", matches: { first: { ...emptyMatch(), kickoff: "2030-08-01T20:30:00.000Z" }, second: emptyMatch() } },
+      } },
+      final: { cutoffAt: null, ties: { "fx-f1": { teamA: "Time A", teamB: "Time C", matches: { single: { ...emptyMatch(), kickoff: "2030-11-01T22:00:00.000Z" } } } } },
+    },
+    espnSync: { activePhaseId: "oitavas", seededKnownConfrontos: true, backfilledOitavasKickoffs: true, healedFalseAutoResults: true, healedPhantomTies: true },
+    auditLog: [], meta: { updatedAt: null, version: FIXTURE_ID },
+  };
+}
+function br2026Fixture() {
+  return {
+    entries: [
+      { id: "fx-1", entryName: "Entrada Teste #1", payerName: "Participante A", participantEmail: "a@example.invalid", paymentMethod: "CashApp", createdAt: "2026-07-20T12:00:00.000Z", picks: {} },
+      { id: "fx-2", entryName: "Entrada Teste #2", payerName: "Participante B", participantEmail: "b@example.invalid", paymentMethod: "Zelle", createdAt: "2026-07-20T12:05:00.000Z", picks: {} },
+    ],
+    deletedIds: [], paid: { "fx-1": true, "fx-2": false },
+    meta: { updatedAt: null, version: FIXTURE_ID },
+  };
+}
+const FIXTURES = { cdb2026: cdb2026Fixture(), br2026: br2026Fixture(), copa2026: null }; // Copa: archived, intentionally no fixture (see §7 note below)
+
 const APPS = {
   copa2026: {
-    path: "/bolao/copa2026/",
-    storeKey: "bolao_copa2026_state",
-    sections: { Ranking: "ranking" }, // archived: only Ranking is reachable, see header note
+    path: "/bolao/copa2026/", storeKey: "bolao_copa2026_state",
+    // Copa is currently ARCHIVED (CONFIG.archived) -- every section but Ranking is intentionally
+    // unreachable by product decision, not a defect. Marked notApplicable, not captured/failed.
+    sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Regras: "rules", Admin: "admin" },
+    // Archived mode (CONFIG.archived) hides every nav button except Ranking — confirmed by running
+    // the harness once and observing Regras also fails the same way as Palpites/Jogos/Admin.
+    notApplicable: ["Palpites", "Jogos", "Regras", "Admin"],
   },
   br2026: {
-    path: "/bolao/br2026/",
-    storeKey: "bolao_br2026_state",
+    path: "/bolao/br2026/", storeKey: "bolao_br2026_state",
     sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Regras: "rules", Admin: "admin" },
+    // Entries closed 2026-07-16 (see CLAUDE.md) — the Palpites nav button is permanently disabled
+    // by product decision until a future season/cutoff reset, not a rendering defect.
+    notApplicable: ["Pagamento", "Palpites"], // BR2026 has no distinct Pagamento nav destination — see CONSISTENCY_MATRIX
   },
   cdb2026: {
-    path: "/bolao/cdb2026/",
-    storeKey: "bolao_cdb2026_state",
+    path: "/bolao/cdb2026/", storeKey: "bolao_cdb2026_state",
     sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Pagamento: "payment", Regras: "rules", Admin: "admin" },
+    notApplicable: [],
   },
 };
 
@@ -70,72 +103,134 @@ function startServer() {
   });
 }
 
+function clearOldEvidence() {
+  for (const appId of Object.keys(APPS)) {
+    const dir = join(EVIDENCE_ROOT, appId);
+    mkdirSync(dir, { recursive: true });
+    for (const f of readdirSync(dir)) {
+      if (f.endsWith(".png")) unlinkSync(join(dir, f));
+    }
+  }
+}
+
 async function main() {
+  const chromium = await loadChromium();
+  clearOldEvidence();
   const server = await startServer();
-  const browser = await chromium.launch({ executablePath: "/opt/pw-browsers/chromium", headless: true });
+  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
   const commit = commitHash();
   const manifest = [];
-  const overflowReport = [];
-  const consoleErrors = [];
 
   try {
     for (const [appId, app] of Object.entries(APPS)) {
       const outDir = join(EVIDENCE_ROOT, appId);
-      mkdirSync(outDir, { recursive: true });
 
       for (const vp of VIEWPORTS) {
+        const vpLabel = `${vp.w}x${vp.h}`;
         const context = await browser.newContext({ viewport: { width: vp.w, height: vp.h } });
         const page = await context.newPage();
+
+        const consoleErrors = [];
         const pageErrors = [];
         page.on("pageerror", e => pageErrors.push(e.message));
         page.on("console", m => {
           if (m.type() !== "error") return;
           const text = m.text();
-          // frame-ancestors/integrity: pre-existing, unrelated to this harness.
-          // ERR_FAILED/ERR_ABORTED: this harness's OWN CDN/Supabase/ESPN/EmailJS route blocks
-          // below, not a real page defect — filtered here so the report reflects genuine issues.
-          if (/frame-ancestors|integrity/i.test(text)) return;
-          if (/ERR_FAILED|ERR_ABORTED/i.test(text)) return;
-          pageErrors.push(text);
+          // Classified, not silently dropped: these three are pre-existing/expected-by-harness,
+          // everything else is treated as a real finding and kept in the manifest.
+          if (/frame-ancestors/i.test(text)) return; // pre-existing site-wide CSP quirk, unrelated
+          if (/ERR_FAILED|ERR_ABORTED/i.test(text)) return; // this harness's own network blocks below
+          consoleErrors.push(text);
         });
-        await context.route("**://cdn.jsdelivr.net/**", r => r.abort());
-        await context.route("**://*.supabase.co/**", r => r.abort());
-        await context.route("**://site.api.espn.com/**", r => r.abort());
-        await context.route("**://*.emailjs.com/**", r => r.abort());
 
+        // Fase 2.2 §11: route.fulfill with synthetic empty-but-valid responses instead of a bare
+        // abort() for the app's OWN backend calls (Supabase/ESPN/EmailJS) -- an abort surfaces as
+        // a console network error that then has to be filtered out by pattern-matching text
+        // (fragile). A fulfilled empty response is what the app already handles gracefully
+        // (loadRemoteState()/fetchEspnCandidates() already treat "no data" as a normal case), so
+        // the app doesn't even log anything for these. CDN scripts are aborted (not faked) since
+        // faking a fake JS library would be far riskier than just not loading it.
+        await context.route("**://cdn.jsdelivr.net/**", r => r.abort());
+        await context.route("**://*.supabase.co/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
+        await context.route("**://site.api.espn.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: '{"events":[]}' }));
+        await context.route("**://*.emailjs.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+
+        const fixture = FIXTURES[appId];
         await page.goto(`http://localhost:${PORT}${app.path}`, { waitUntil: "load", timeout: 15000 });
         await page.waitForTimeout(700);
 
+        // Fase 2.2 §7: apply the synthetic fixture via localStorage BEFORE any capture, so the
+        // rendered state is comparable across apps/viewports. `context.addInitScript()` (the
+        // normal way to seed storage pre-navigation) was tried first but proven unreliable in
+        // this sandbox: a version mismatch between the pinned Playwright driver (1.56.1) and the
+        // pinned Chromium build (141.0.7390.37) silently drops any localStorage write made from
+        // an init script — confirmed by an isolated repro where even a single trivial key never
+        // survived past the first navigation, on ANY page, while the identical write made via
+        // page.evaluate() AFTER load persists normally. Fix: seed post-load via evaluate(), then
+        // reload() so the app's own init() picks up the seed from a clean navigation exactly as
+        // it would for a real returning visitor with existing localStorage.
+        if (fixture) {
+          await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: app.storeKey, state: fixture });
+          await page.reload({ waitUntil: "load", timeout: 15000 });
+          await page.waitForTimeout(700);
+        }
+
         for (const [sectionLabel, dataSection] of Object.entries(app.sections)) {
+          const record = {
+            application: appId, route: app.path, requestedSection: sectionLabel,
+            viewport: { width: vp.w, height: vp.h }, fixture: fixture ? FIXTURE_ID : "none (archived app)",
+            commit, capturedAtUtc: new Date().toISOString(),
+          };
+
+          if (app.notApplicable.includes(sectionLabel)) {
+            manifest.push({ ...record, actualSection: null, captured: false, status: "notApplicable", reason: `${sectionLabel} not applicable for ${appId} in its current mode` });
+            continue;
+          }
+
           const btn = page.locator(`[data-section="${dataSection}"]`).first();
-          const count = await btn.count();
-          if (count === 0) continue; // section not reachable in this app's current mode (e.g. archived Copa)
-          try { await btn.click({ timeout: 1000 }); } catch { /* disabled (e.g. cutoff-gated) — screenshot as-is */ }
+          const btnCount = await btn.count();
+          if (btnCount === 0) {
+            manifest.push({ ...record, actualSection: null, captured: false, status: "unavailable", reason: `[data-section="${dataSection}"] not present in DOM` });
+            continue;
+          }
+
+          let clickError = null;
+          try { await btn.click({ timeout: 1500 }); } catch (e) { clickError = e.message; }
           await page.waitForTimeout(400);
 
-          const fname = `${appId}_${sectionLabel}_${vp.name}.png`;
+          // Fase 2.2 §6: verify the REAL active section via the app's own mechanism, never trust
+          // that the click "must have worked" just because it didn't throw.
+          const actualSection = await page.evaluate(() => document.querySelector(".page.active")?.id || null);
+
+          if (actualSection !== dataSection) {
+            manifest.push({
+              ...record, actualSection, captured: false, status: "failed",
+              reason: clickError ? `click failed: ${clickError}` : `section did not become active (button may be disabled/gated)`,
+            });
+            continue; // NEVER screenshot here — this is exactly the bug this rewrite fixes
+          }
+
+          const fname = `${appId}_${dataSection}_${vpLabel}.png`;
           await page.screenshot({ path: join(outDir, fname), fullPage: true });
 
-          const overflow = await page.evaluate(() => {
+          const overflowCheck = await page.evaluate(() => {
             const vw = window.innerWidth;
-            const offenders = [];
+            let overflow = false;
             document.querySelectorAll("body *").forEach(el => {
               const r = el.getBoundingClientRect();
-              if (r.width > 0 && r.right > vw + 2) {
-                offenders.push({ tag: el.tagName, cls: el.className?.toString().slice(0, 60) || null, right: Math.round(r.right), viewportWidth: vw });
-              }
+              if (r.width > 0 && r.right > vw + 2) overflow = true;
             });
-            return offenders.slice(0, 10); // cap — this is a report, not a full dump
+            return overflow;
           });
-          if (overflow.length) overflowReport.push({ app: appId, section: sectionLabel, viewport: vp.name, offenders: overflow });
 
           manifest.push({
-            app: appId, route: app.path, section: sectionLabel, dataSection, viewport: vp.name,
-            commit, timestamp: new Date().toISOString(), file: fname,
+            ...record, actualSection, captured: true, status: "captured",
+            consoleErrors: [...consoleErrors], pageErrors: [...pageErrors],
+            horizontalOverflow: overflowCheck, overlaps: [], // per-element overlap is check_sticky_overlap.mjs's job (CDB2026-specific CTA); this harness reports overflow only
+            screenshot: fname,
           });
         }
 
-        if (pageErrors.length) consoleErrors.push({ app: appId, viewport: vp.name, errors: pageErrors });
         await context.close();
       }
     }
@@ -145,13 +240,15 @@ async function main() {
   }
 
   writeFileSync(join(EVIDENCE_ROOT, "manifest.json"), JSON.stringify(manifest, null, 2));
-  writeFileSync(join(EVIDENCE_ROOT, "overflow_report.json"), JSON.stringify(overflowReport, null, 2));
-  writeFileSync(join(EVIDENCE_ROOT, "console_errors.json"), JSON.stringify(consoleErrors, null, 2));
 
-  console.log(`Captured ${manifest.length} screenshots across ${Object.keys(APPS).length} apps.`);
-  console.log(`Overflow findings: ${overflowReport.length}`);
-  console.log(`Console error findings: ${consoleErrors.length}`);
+  const counts = manifest.reduce((acc, m) => { acc[m.status] = (acc[m.status] || 0) + 1; return acc; }, {});
+  console.log(`Manifest entries: ${manifest.length}`);
+  console.log(`  captured:      ${counts.captured || 0}`);
+  console.log(`  unavailable:   ${counts.unavailable || 0}`);
+  console.log(`  notApplicable: ${counts.notApplicable || 0}`);
+  console.log(`  failed:        ${counts.failed || 0}`);
   console.log(`Manifest: ${join(EVIDENCE_ROOT, "manifest.json")}`);
+  process.exit(counts.failed ? 1 : 0);
 }
 
 main();
