@@ -1,5 +1,29 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.55 — 2026-08-01 — EMERGENCY_HOTFIX: reabrir entrada das Oitavas até 15min antes do 1º jogo
+
+Eduardo, ~20 min antes do 1º jogo da Oitavas (Fluminense × Vasco, 17:30 BRT): "abra o site da
+copa do brasil para entrar palpites por mais 15 minutos, deixe aberto até 15 minutos antes do
+primeiro jogo comecar". O cutoff automático (1h antes do 1º kickoff conhecido da fase) já tinha
+fechado a entrada ~7 minutos antes deste pedido.
+
+Em vez de mexer na fórmula de `effectivePhaseCutoffMs()` para todo mundo (o comentário do
+próprio código já registra que essa função foi causa raiz de pelo menos 3 incidentes de produção
+em 2026-07-14 quando mexida sem cuidado — v3.18, também EMERGENCY_HOTFIX), a janela virou
+configurável por fase (`s.phases[id].cutoffOffsetMs`, opcional), com default 3600000 (1h) —
+**comportamento idêntico ao de sempre em toda fase que não define o campo**. Só
+`s.phases.oitavas.cutoffOffsetMs = 900000` foi setado, direto no estado de produção (Supabase),
+escopado exclusivamente à fase Oitavas de hoje — Quartas/Semifinal/Final continuam em 1h sem
+nenhuma mudança de código adicional quando chegar a vez delas.
+
+Autoexpira sozinho: não há necessidade de reverter nada às 20:15 UTC (15min antes do jogo) — a
+mesma fórmula (`kickoff - offsetMs`) volta a bloquear entrada sozinha assim que o horário passar,
+exatamente como pedido.
+
+Verificado (extração da função real, não uma cópia): comportamento padrão inalterado quando o
+campo está ausente; override produz exatamente `kickoff - 15min`; outras fases não afetadas pelo
+override da Oitavas. `node --check` em todos os `.js` de `bolao/`, `audit_scoring.py` passando.
+
 ## v3.54 — 2026-07-26 — Postponed-leg detection never actually matched (same bug as BR2026)
 
 Same root cause and fix as `bolao/br2026/CHANGELOG.md` v1.78, found auditing BR2026's live
