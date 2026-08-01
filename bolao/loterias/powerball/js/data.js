@@ -3,9 +3,73 @@
 // que o sorteio sair — isso dá histórico automático (lucro, resultados anteriores etc.)
 // sem precisar reestruturar nada. `window.POWERBALL_DATA` sempre aponta para o mais
 // recente (o sorteio ativo/exibido na página principal).
+// Configuração visual/textual de cada loteria. Jogamos em ambas dependendo da situação —
+// cada sorteio (`draws[i]`) declara `gameType: "powerball" | "megamillions"` e a página
+// troca cor, logo e o nome da bola especial automaticamente.
+window.LOTTERY_GAME_TYPES = {
+  powerball: {
+    label: "Powerball",
+    icon: "🔴",
+    specialBallLabel: "Powerball",
+    accent: "#CE1141",
+    accent2: "#003DA5",
+    previousResultsUrl: "https://www.powerball.com/previous-results",
+    // NY Open Data (Socrata, CORS liberado) — fonte oficial dos sorteios.
+    resultsApi: "https://data.ny.gov/resource/d6yy-54nr.json",
+    // winning_numbers vem como "n1 n2 n3 n4 n5 PB" (a Powerball é o último número).
+    parseResult: function (row) {
+      var parts = row.winning_numbers.trim().split(/\s+/).map(Number);
+      return { numbers: parts.slice(0, 5), special: parts[5], multiplier: Number(row.multiplier) || 1 };
+    },
+    // Tabela oficial de prêmios (Power Play sempre SIM nos nossos tickets).
+    // Multiplicador não se aplica ao jackpot; no acerto de 5 sem PB o prêmio via
+    // Power Play é sempre fixo em $2M, não escala com o multiplicador sorteado.
+    prizeTable: function (mainMatches, specialMatch, multiplier) {
+      if (mainMatches === 5 && specialMatch) return { label: "JACKPOT", amount: null };
+      if (mainMatches === 5) return { label: "5 acertos", amount: 2000000 };
+      if (mainMatches === 4 && specialMatch) return { label: "4 + Powerball", amount: 50000 * multiplier };
+      if (mainMatches === 4) return { label: "4 acertos", amount: 100 * multiplier };
+      if (mainMatches === 3 && specialMatch) return { label: "3 + Powerball", amount: 100 * multiplier };
+      if (mainMatches === 3) return { label: "3 acertos", amount: 7 * multiplier };
+      if (mainMatches === 2 && specialMatch) return { label: "2 + Powerball", amount: 7 * multiplier };
+      if (mainMatches === 1 && specialMatch) return { label: "1 + Powerball", amount: 4 * multiplier };
+      if (mainMatches === 0 && specialMatch) return { label: "Powerball", amount: 4 * multiplier };
+      return null;
+    }
+  },
+  megamillions: {
+    label: "Mega Millions",
+    icon: "🟡",
+    specialBallLabel: "Mega Ball",
+    accent: "#1c75bc",
+    accent2: "#ffc72c",
+    previousResultsUrl: "https://www.megamillions.com/Winning-Numbers.aspx",
+    resultsApi: "https://data.ny.gov/resource/5xaw-6ayf.json",
+    parseResult: function (row) {
+      var parts = row.winning_numbers.trim().split(/\s+/).map(Number);
+      return { numbers: parts.slice(0, 5), special: Number(row.mega_ball), multiplier: Number(row.multiplier) || 1 };
+    },
+    // Tabela oficial simplificada (Megaplier); confirmar valor exato no site oficial
+    // quando o prêmio for relevante — multiplicadores/tiers mudam de tempos em tempos.
+    prizeTable: function (mainMatches, specialMatch, multiplier) {
+      if (mainMatches === 5 && specialMatch) return { label: "JACKPOT", amount: null };
+      if (mainMatches === 5) return { label: "5 acertos", amount: 1000000 };
+      if (mainMatches === 4 && specialMatch) return { label: "4 + Mega Ball", amount: 10000 * multiplier };
+      if (mainMatches === 4) return { label: "4 acertos", amount: 500 * multiplier };
+      if (mainMatches === 3 && specialMatch) return { label: "3 + Mega Ball", amount: 200 * multiplier };
+      if (mainMatches === 3) return { label: "3 acertos", amount: 10 * multiplier };
+      if (mainMatches === 2 && specialMatch) return { label: "2 + Mega Ball", amount: 10 * multiplier };
+      if (mainMatches === 1 && specialMatch) return { label: "1 + Mega Ball", amount: 4 * multiplier };
+      if (mainMatches === 0 && specialMatch) return { label: "Mega Ball", amount: 2 * multiplier };
+      return null;
+    }
+  }
+};
+
 window.POWERBALL_DRAWS = [
   {
     id: "2026-08-03",
+    gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
       jackpot: 707000000,
@@ -18,7 +82,7 @@ window.POWERBALL_DRAWS = [
     // Os tickets são comprados de uma vez só com o fundo do bolão e são coletivos —
     // todos os participantes concorrem aos mesmos números (ver `sharedTickets` abaixo).
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Fundo próprio (organizador)", data: "31/07/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Fundo próprio (organizador)", data: "31/07/2026", hora: "3:59:00 PM", txId: "—", status: "organizador" },
       { name: "Gustavo Bossle", cotas: 1, valor: 20, metodo: "Zelle", data: "31/07/2026", hora: "4:52:51 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
       { name: "Tatiana Bossle", cotas: 1, valor: 20, metodo: "Zelle (depósito de Gustavo Bossle)", data: "01/08/2026", hora: "11:57:41 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
       { name: "Marcelo Moreira", cotas: 1, valor: 20, metodo: "Zelle", data: "31/07/2026", hora: "4:39:47 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
