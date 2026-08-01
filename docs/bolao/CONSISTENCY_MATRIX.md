@@ -1894,3 +1894,24 @@ tocam consistência entre apps e ficam registrados aqui:
   REST API do Supabase via `fetch()` puro, não via este SDK (confirmado por grep, zero chamadas
   `window.supabase.*`). Candidato a remoção do `<script>`, não removido nesta fase — ver
   `CDB2026_DEPENDENCY_INVENTORY.md`.
+
+## Nota manual — "Ver palpites" do Ranking: destaque de linha por acerto/erro não existe na Copa (2026-08-01, CDB2026 v3.65)
+
+`renderPickDisplay()` (CDB2026) e o equivalente `renderPickDisplay()`/`.pick-group` em BR2026
+aplicavam uma classe de linha (`pick-exact`/`pick-partial`(CDB)/`pick-group`(BR)/`pick-miss`) que
+dá fundo verde/amarelo às linhas certas e `opacity: .7` às erradas, na tabela "Ver palpites" do
+Ranking. **A Copa (`picksTable()`, referência visual canônica) nunca fez isso** — suas linhas são
+sempre `<tr>` plana, só a célula de Pts muda de cor (`.pick-pts.pos` verde vs. `<span
+class="muted">—</span>`). Achado a partir da reclamação do Eduardo ("Negrito e não negrito
+continua... tem que ser exatamente com o mesmo formato e ux da copa do mundo") — investigação de
+código não achou diferença de `font-weight`, mas reprodução visual com Playwright + dado real de
+produção mostrou que a `opacity: .7` das linhas erradas, ao lado de linhas com fundo colorido em
+opacidade cheia, lê como "não negrito" vs. "negrito" mesmo sem diferença real de peso de fonte.
+
+- **CDB2026**: corrigido nesta versão — `renderPickDisplay()` não aplica mais classe de linha;
+  regras CSS `.picks-detail tr.pick-exact/.pick-partial/.pick-miss` removidas de
+  `bolao/cdb2026/css/styles.css`. Agora 100% igual à Copa (`<tr>` sempre plana).
+- **BR2026**: mesmo padrão ainda presente (`pick-group`/`pick-exact`/`pick-miss` em
+  `bolao/br2026/js/app.js` e `bolao/br2026/css/styles.css`), **não alterado** nesta tarefa — não
+  foi pedido e BR2026 ainda não está publicado (ver `CLAUDE.md`). Registrado aqui como divergência
+  conhecida da Copa, a avaliar/decidir separadamente antes de propagar.

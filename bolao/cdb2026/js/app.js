@@ -1490,23 +1490,21 @@ function renderPickDisplay(entry, detail) {
         if (!pick) return;
         const d = detail?.matches?.[`${tieId}:${leg}`];
         const legLabel = leg === "single" ? "" : ` (${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))})`;
-        const cls = d ? (d.type === "exact" ? "pick-exact" : d.type === "miss" ? "pick-miss" : "pick-partial") : "";
         const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
-        rows.push(`<tr class="${cls}"><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       });
       const pickQual = entry.picks?.qualified?.[tieId];
       if (tie.qualifiedTeamId && pickQual) {
         const d = detail?.ties?.[tieId];
         const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
-        const cls = d?.type === "hit" ? "pick-exact" : "pick-miss";
-        rows.push(`<tr class="${cls}"><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td><b>${esc(teamName)}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        rows.push(`<tr><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
     });
   });
 
   const predicted = predictedPodium(entry, s);
   const bonusRow = (label, team, d) => team
-    ? `<tr class="${d ? (d.type === "exact" ? "pick-exact" : "pick-miss") : ""}"><td>${esc(label)}</td><td><b>${esc(team)}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`
+    ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
 
   return `<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th><th style="text-align:center">Pts</th></tr></thead>

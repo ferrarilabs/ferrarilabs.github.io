@@ -1,5 +1,45 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.65 — 2026-08-01 — Negrito inconsistente no "Ver palpites" do Ranking: alvo real era o destaque de linha por acerto/erro, não .tie-locked-score
+
+Eduardo, depois da v3.64 (que só tocou `.tie-locked-score`, do formulário de palpites):
+"Negrito e não negrito continua. Essa parte ai do ranking tem que ser exatamente com o mesmo
+formato e ux da copa do mundo. Já discutimos isso. Verifique 100%!" — com print da tabela
+"Confronto | Placar palpitado | Pts" do Ranking → "Ver palpites", que é `renderPickDisplay()`,
+uma função **diferente** da que a v3.64 mexeu.
+
+**Achado real (via reprodução visual com dados reais de produção, Playwright, não só leitura de
+código):** comparação linha a linha entre `renderPickDisplay()` (CDB2026) e `picksTable()` (Copa,
+referência visual canônica) mostrou que a estrutura de negrito já era idêntica nas duas (nome do
+time em `<td>` simples, só o placar palpitado em `<b>`) — isso não era a causa. A causa real:
+`renderPickDisplay()` também aplicava uma classe de linha (`pick-exact`/`pick-partial`/
+`pick-miss`) que dá fundo verde/amarelo às linhas já pontuadas e `opacity: .7` às linhas erradas
+— um padrão que existe no BR2026 (`.pick-group`) mas **não existe na Copa**, cujo `picksTable()`
+nunca aplica classe nenhuma nas linhas (`<tr>` sempre plana, só a célula de Pts muda de cor).
+Numa tela real (Playwright + estado real de produção via Supabase), linhas com `opacity: .7`
+ficam visivelmente mais claras/fracas ao lado de linhas com fundo colorido e opacidade cheia —
+o efeito lido como "não negrito" vs. "negrito" por quem está olhando o print, mesmo sem diferença
+de `font-weight` nenhuma no código.
+
+Corrigido — `renderPickDisplay()` não aplica mais classe de linha (`<tr>` sempre plana, igual à
+Copa); a célula "Classificado" (nome do time avançando) e as linhas de bônus previsto de
+campeão/vice também deixaram de usar `<b>` no nome do time — só o placar numérico fica em negrito
+em toda a tabela, igual à Copa em 100%. Removidas as regras CSS `.picks-detail tr.pick-exact`/
+`.pick-partial`/`.pick-miss` de `bolao/cdb2026/css/styles.css` (ficaram sem uso).
+`.tie-locked-score` (v3.64, formulário de palpites — componente diferente) não foi revertido,
+continua correto para o que resolvia.
+
+**BR2026 tem o mesmo padrão de linha colorida** (`.pick-group`/`.pick-exact`/`.pick-miss` em
+`bolao/br2026/js/app.js`/`css/styles.css`) — não alterado nesta tarefa (não pedido, BR2026 ainda
+não publicado); registrar em `docs/bolao/CONSISTENCY_MATRIX.md` como divergência conhecida da
+Copa a avaliar separadamente.
+
+Reproduzido visualmente com o estado real de produção (Supabase, entrada "REDACTED_PARTICIPANT
+#1") via Playwright antes e depois da correção — HTML da tabela confirmado sem nenhuma classe de
+linha e sem `<b>` fora da coluna de placar. `node --check`: OK. `audit_scoring.py` das 3 apps
+(5/5 cada), `audit_golden_master.mjs` (37/37) e `audit_integrity.py` (0 erro) re-rodados —
+scoring não tocado, só marcação/CSS de exibição.
+
 ## v3.64 — 2026-08-01 — Nav Participantes/Pagamento escondidos (paridade com BR2026); nome de time em negrito consistente
 
 Eduardo, mesma mensagem: confirmou a tabela de regras (já correta desde a v3.63, sem mudança de
