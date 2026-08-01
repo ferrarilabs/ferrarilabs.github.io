@@ -1,5 +1,77 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.59 — 2026-08-01 — Fase 2.2: correção final do CTA "Salvar entrada" + evidência visual real (NÃO deployado — apenas commit local, por instrução do Eduardo)
+
+Revisão independente da Fase 2.1 encontrou que o CTA "Salvar entrada" ainda cobria o título
+`<h2>` "Nova entrada" em mobile (390×844) — o teste da Fase 2.1 só checava interseção contra
+`#entry input, select, button`, nunca contra headings/texto/cards. Também confirmou que o
+harness de evidência da Fase 2.1 podia salvar um screenshot com o nome da seção ERRADA quando o
+clique na navegação falhava silenciosamente (exemplo real: `br2026_Palpites_390x844.png`
+mostrava Ranking).
+
+**Corrigido:**
+- `.sticky-submit` (`css/styles.css`): removida toda a lógica de posicionamento flutuante
+  (`position: sticky`, `pointer-events`, `text-align`, `env(safe-area-inset-bottom)`). O botão
+  agora vive no fluxo normal do documento — estrutural e definitivamente impossível de sobrepor
+  qualquer irmão na página, não apenas "testado e não encontrado overlap hoje".
+- `scripts/visual/check_sticky_overlap.mjs`: reescrito para checar `h1-h4, p, label, small,
+  span, input, select, textarea, button, a, .card, .form-group, .notice, .alert, .receipt` (não
+  só controles focáveis) nos 7 viewports exigidos × 5 posições de scroll. Verificado nos dois
+  sentidos: 0 achados com o fix; 60 achados (incluindo exatamente o `<h2>` "Nova entrada") ao
+  reintroduzir `position: sticky` temporariamente para confirmar que o teste discrimina de verdade.
+- `scripts/visual/capture_evidence.mjs`: reescrito. Nunca mais salva um screenshot sem antes
+  confirmar a seção realmente ativa (`document.querySelector(".page.active")?.id`, o mesmo
+  mecanismo de `showSection()`) — se não bate com a seção pedida, o registro vai para o manifest
+  como `status: "failed"` e nenhum arquivo é gravado. Fixtures sintéticas (nomes fictícios, sem
+  PII) aplicadas via `localStorage` + reload. Chamadas a Supabase/ESPN/EmailJS respondidas com
+  `route.fulfill()` (JSON vazio válido) em vez de `.abort()` — o app já trata "sem dados" como
+  caso normal, então não há mais erro de rede a filtrar por texto. Screenshots antigos (com nomes
+  de seção incorretos, herdados da Fase 2.1) removidos antes de recapturar.
+- `scripts/visual/playwright_loader.mjs` (novo): resolução portável do Playwright —
+  `import("playwright")` primeiro, depois `PLAYWRIGHT_PATH`, com fallback documentado só para
+  este sandbox.
+- `scripts/visual/check_manifest.mjs` (novo): valida `docs/bolao/evidence/visual/manifest.json`
+  — falha se `captured=true` com seção errada, screenshot ausente, erro de console/página não
+  classificado, `horizontalOverflow=true`, ou `overlaps` não vazio.
+
+**Bug real adicional encontrado e corrigido durante esta fase (fora do escopo original, mas não
+poderia ser ignorado por instrução permanente do projeto):** `context.addInitScript()` — a forma
+padrão de semear `localStorage` antes da navegação no Playwright — está silenciosamente quebrada
+neste sandbox: um valor gravado por um init script nunca sobrevive à navegação (confirmado com um
+repro isolado, chave trivial, página estática qualquer), provavelmente por incompatibilidade de
+versão entre o driver Playwright (1.56.1) fixado no ambiente e o binário Chromium (141.0.7390.37)
+também fixado nele. Como consequência, TODAS as fixtures sintéticas da Fase 2.1
+(`check_sticky_overlap.mjs` e a primeira versão desta reescrita de `capture_evidence.mjs`) nunca
+foram de fato aplicadas — as capturas rodavam sobre o estado vazio/default do app, não sobre a
+fixture pretendida. Corrigido em ambos os scripts trocando `addInitScript()` por
+`page.evaluate()` (grava o `localStorage` depois do primeiro load) seguido de `page.reload()` —
+confirmado funcionando (Ranking do CDB2026 agora mostra as duas entradas fictícias e o pote
+correto, `$5`, em vez de "Nenhuma entrada ainda"). Isso não afetou a validade do teste de overlap
+em si (que não depende de conteúdo de `entries`, só da posição do CTA), mas SIGNIFICA que a
+evidência visual da Fase 2.1 (84 screenshots) não era comparável/representativa como alegado —
+capturava o app vazio, não o estado sintético descrito na documentação daquela fase.
+
+**Limitação de evidência conhecida (não é bug do app):** screenshots `fullPage` de páginas com
+`.topbar { position: sticky }` mostram uma faixa duplicada/fantasma do cabeçalho no topo — artefato
+confirmado da técnica de montagem (stitching) de screenshots em página inteira do Playwright
+quando há elementos sticky, não um problema de renderização real (a página ao vivo renderiza
+corretamente; só a captura automatizada tem esse artefato). Registrado aqui para não ser
+confundido com uma regressão visual real.
+
+**Validado nesta fase (sem alteração):** `audit_scoring.py` das 3 apps, `audit_state_merge.mjs`,
+`audit_golden_master.mjs`, `audit_integrity.py --self-test`, `check_cachebust.mjs` (regenerado
+após a mudança de CSS) — todos passando. Escore, ranking, critérios de desempate, mutações
+administrativas, confrontos, cutoffs e Supabase/ESPN/EmailJS não foram tocados nesta fase.
+
+**Não aplicado nesta fase (trabalho restante, não bloqueante para o fix do CTA):** comparação
+visual formal ponto-a-ponto contra a Copa (tipografia/cards/modais/toasts), validação completa de
+navegação (foco/hover/teclado) nos 3 apps, atualização dos 4 documentos de plataforma
+(MODERNIZATION_REPORT, TRACEABILITY_MATRIX, OPERATIONS_RUNBOOK, RISK_CONTROL_MATRIX) e empacotamento
+final (ZIP/bundle/hashes). Ver mensagem de entrega ao Eduardo para o detalhamento completo.
+
+Nenhum push, deploy, ou escrita em produção nesta fase — apenas commits locais, por instrução
+explícita do Eduardo.
+
 ## v3.58 — 2026-08-01 — Merge da Fase 2.1 em produção + 2 bugs reais corrigidos ao vivo
 
 Eduardo aprovou a Fase 2.1 (mutação administrativa dirigida, paridade visual, cache-bust,
