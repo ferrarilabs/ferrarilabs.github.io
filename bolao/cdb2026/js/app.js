@@ -292,9 +292,17 @@ function firstKnownKickoffMs(s, phaseId) {
 // vez. O campo manual (`cutoffAt`) continua existindo só como fallback para quando NENHUM kickoff é
 // conhecido ainda (ex.: antes do sorteio real de uma fase), igual sempre foi seu propósito original
 // antes do auto-cálculo existir.
+// `cutoffOffsetMs` (2026-08-01, hotfix pontual): janela entre o cutoff e o 1º kickoff, opcional
+// por fase. Default 3600000 (1h, o valor fixo original) preserva o comportamento de sempre em
+// toda fase que não definir o campo -- Eduardo pediu para reabrir entrada nas Oitavas até 15min
+// antes do jogo (não 1h), então só `s.phases.oitavas.cutoffOffsetMs = 900000` foi setado, direto
+// no estado, sem mexer em nenhuma outra fase.
 function effectivePhaseCutoffMs(s, phaseId) {
   const firstKickoff = firstKnownKickoffMs(s, phaseId);
-  if (firstKickoff !== null) return firstKickoff - 3600000;
+  if (firstKickoff !== null) {
+    const offsetMs = s.phases?.[phaseId]?.cutoffOffsetMs ?? 3600000;
+    return firstKickoff - offsetMs;
+  }
   const manual = s.phases?.[phaseId]?.cutoffAt;
   return manual ? new Date(manual).getTime() : null;
 }
