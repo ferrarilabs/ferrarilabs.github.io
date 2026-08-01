@@ -86,6 +86,12 @@ function state() {
     return s;
   } catch { return emptyState(); }
 }
+// `opts.mutation` (Fase 2.1 §2): quando o CHAMADOR sabe exatamente qual mudança administrativa
+// está fazendo (marcar pagamento, travar/destravar confronto, trocar fase ativa da ESPN, etc.),
+// passa um descritor `{type, ...payload}` aqui -- ver applyAdminMutation() para os tipos
+// suportados. Sem `opts.mutation`, o caminho antigo (mergeStates com preferRemoteResults) é
+// usado -- correto para o fluxo de PARTICIPANTE (saveEntry), onde "remoto vence" é a proteção
+// certa contra cache velho, não uma mutação dirigida.
 function saveState(s, opts = {}) {
   s.meta = s.meta || {};
   s.meta.updatedAt = new Date().toISOString();
@@ -96,7 +102,7 @@ function saveState(s, opts = {}) {
     // e o participante/admin via a mesma mensagem de sucesso de sempre, sem saber que nada foi
     // sincronizado. Achado na auditoria de 2026-08 (AUDIT-04). O dado local já está gravado
     // acima, então a falha remota nunca perde a entrada -- só precisa ser VISÍVEL.
-    saveRemoteState(s).catch(err => {
+    saveRemoteState(s, { mutation: opts.mutation }).catch(err => {
       console.warn("[CDB2026] Supabase save failed", err);
       showToast(t("syncFailed"), "warn", 8000);
     });
@@ -153,7 +159,10 @@ function debouncedReload() {
 // simultâneas de dois participantes (lost update) -- justamente no pico de envios perto do prazo.
 // `preferRemoteResults: true` mantém a regra já usada no load: resultado/tie oficial do admin
 // (remoto) vence o cache local; entradas continuam união por mais recente e `paid` é any-true-wins.
-async function saveRemoteState(s) {
+//
+// Fase 2.1 §2: `opts.mutation` desvia deste merge campo-a-campo para applyMutationOverRemote() —
+// ver esse comentário para o porquê. Sem `opts.mutation`, comportamento idêntico a antes.
+async function saveRemoteState(s, opts = {}) {
   if (!C.database.enabled) return { ok: false, skipped: true };
   const { url, anonKey, table, stateId } = C.database;
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
@@ -164,7 +173,9 @@ async function saveRemoteState(s) {
       const rows = await cur.json();
       const remote = rows?.[0]?.state;
       if (remote) {
-        payload = mergeStates(s, remote, { preferRemoteResults: true });
+        payload = opts.mutation
+          ? applyMutationOverRemote(s, remote, opts.mutation)
+          : mergeStates(s, remote, { preferRemoteResults: true });
         payload.meta = { ...(s.meta || {}), updatedAt: new Date().toISOString(), version: C.siteVersion };
         localStorage.setItem(C.storeKey, JSON.stringify(payload));
       }
@@ -187,11 +198,12 @@ async function saveRemoteState(s) {
   }
   return { ok: true };
 }
-// Merge de fases: para cada fase, cutoffAt e ties são mesclados independentemente — união de
-// ties por id (nunca perde um confronto cadastrado em qualquer lado), remote-wins em cutoffAt e
-// no conteúdo de cada tie já existente por padrão (mesma regra dos resultados oficiais na
-// Copa/BR2026 — o admin/Supabase é fonte de verdade para resultado real).
-function mergeStates(local, remote, opts = {}) {
+// Peças de merge compartilhadas entre mergeStates() (participante/ESPN, snapshot inteiro) e
+// applyMutationOverRemote() (mutação administrativa dirigida, Fase 2.1 §2) — entries, tombstones
+// e audit log seguem a MESMA regra de reconciliação nos dois caminhos; só phases/paid/espnSync
+// divergem (mergeStates funde os dois lados campo a campo; a mutação começa 100% do remoto e
+// aplica só a mudança pedida por cima, ver applyAdminMutation).
+function mergeEntriesTombstonesAuditLog(local, remote) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   // Achado 2026-07-16 (mesmo achado do BR2026, propagado aqui por ter a mesma estrutura de
   // merge): "local sempre vence" escondia edição de admin pra sempre em qualquer navegador que
@@ -207,13 +219,39 @@ function mergeStates(local, remote, opts = {}) {
     const localTs  = existing.updatedAt || existing.createdAt || "";
     if (remoteTs > localTs) byId[e.id] = e;
   }
+  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200 — same
+  // pattern as Copa (bolao/js/app.js mergeStates()).
+  const auditMap = new Map();
+  for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
+    auditMap.set(entry.ts, entry);
+  }
+  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+  return { entries: Object.values(byId), deletedIds: [...deleted], auditLog: mergedAuditLog };
+}
+
+// Merge de fases: para cada fase, cutoffAt e ties são mesclados independentemente — união de
+// ties por id (nunca perde um confronto cadastrado em qualquer lado), remote-wins em cutoffAt e
+// no conteúdo de cada tie já existente por padrão (mesma regra dos resultados oficiais na
+// Copa/BR2026 — o admin/Supabase é fonte de verdade para resultado real).
+//
+// USADO POR: sincronização de participante (saveEntry -> saveState sem `opts.mutation`) e carga
+// inicial (loadRemoteState). NÃO é mais usado por mutação administrativa explícita — ver
+// applyMutationOverRemote()/applyAdminMutation() e a nota da Fase 2.1 abaixo: rodar este merge
+// para uma ação de admin é exatamente o bug que causava `paid: true->false` e outras mutações
+// intencionais não persistirem (o merge campo-a-campo "ganha" com regras pensadas para proteger
+// resultado oficial contra cache velho de PARTICIPANTE, não para representar uma decisão explícita
+// do admin sobre um registro específico).
+function mergeStates(local, remote, opts = {}) {
+  const { entries, deletedIds, auditLog } = mergeEntriesTombstonesAuditLog(local, remote);
   // any-true-wins por chave (união das chaves dos dois lados), NUNCA spread — um spread
   // (`{...remote.paid, ...local.paid}`) faz "local sempre vence", então um `false` local velho
   // sobrescrevia um `true` remoto mais novo do admin. Achado na auditoria de 2026-08 (AUDIT-02):
   // `docs/bolao/PROJECT_MEMORY.md` já DESCREVIA este merge como any-true-wins e a Copa
   // (`bolao/copa2026/js/app.js` mergedPaid) já implementava assim de verdade — só CDB2026/BR2026
-  // tinham o spread. Pagamento só é desmarcado por ação explícita do admin (que grava remoto e
-  // vira o lado mais novo), nunca por cache velho de participante.
+  // tinham o spread. LIMITAÇÃO CONHECIDA (Fase 2.1): any-true-wins protege contra reversão
+  // acidental de cache velho, mas por isso mesmo NUNCA permite `true -> false` por este caminho
+  // — pagamento desmarcado pelo admin precisa passar por applyAdminMutation() (set-payment), que
+  // aplica o valor explicitamente, não por aqui.
   const paid = {};
   for (const k of new Set([...Object.keys(remote.paid || {}), ...Object.keys(local.paid || {})])) {
     paid[k] = !!(local.paid?.[k] || remote.paid?.[k]);
@@ -255,22 +293,133 @@ function mergeStates(local, remote, opts = {}) {
   for (const f of ESPN_SYNC_ONCE_FLAGS) {
     espnSync[f] = !!(local.espnSync?.[f] || remote.espnSync?.[f]);
   }
-  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200 — same
-  // pattern as Copa (bolao/js/app.js mergeStates()).
-  const auditMap = new Map();
-  for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
-    auditMap.set(entry.ts, entry);
-  }
-  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
   return {
-    entries: Object.values(byId),
-    deletedIds: [...deleted],
-    paid,
-    phases,
-    espnSync,
-    auditLog: mergedAuditLog,
+    entries, deletedIds, paid, phases, espnSync, auditLog,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
+}
+
+// ─── Mutação administrativa dirigida (Fase 2.1 §2) ───────────────────────────────────────────
+// Por que este caminho existe, separado de mergeStates(): mergeStates() com
+// `preferRemoteResults: true` foi desenhado para proteger RESULTADO OFICIAL contra o cache velho
+// de um PARTICIPANTE que salva sua entrada -- "remoto vence" é a regra certa nesse caso (o
+// participante nunca deveria conseguir reverter um resultado já lançado só porque carregou a
+// página antes). Mas essa MESMA regra, aplicada a uma ação do PRÓPRIO ADMIN, trava exatamente o
+// oposto do que ele está tentando fazer: `paid: true -> false` nunca persiste (any-true-wins
+// sempre resgata o `true` antigo do remoto); destravar um confronto, limpar um placar errado, ou
+// trocar a fase ativa da ESPN sofrem do mesmo problema -- o merge não distingue "essa mudança é
+// uma correção intencional" de "esse é só um cache desatualizado".
+//
+// applyMutationOverRemote() resolve isso separando as DUAS coisas que precisam acontecer numa
+// gravação de admin: (1) preservar qualquer mudança remota não relacionada (nova entrada de
+// participante, outro pagamento, eventos de audit log de outro dispositivo) -- conseguido
+// começando a reconstrução a partir do PRÓPRIO remoto, não de um merge campo-a-campo; (2) aplicar
+// a mutação pedida de forma explícita e determinística por cima desse remoto, via
+// applyAdminMutation() -- nunca por comparação implícita de snapshots.
+function applyMutationOverRemote(local, remote, mutation) {
+  const { entries, deletedIds, auditLog } = mergeEntriesTombstonesAuditLog(local, remote);
+  const phases = {};
+  DATA.phases.forEach(p => {
+    const remoteP = remote.phases?.[p.id] || emptyPhaseState();
+    phases[p.id] = { cutoffAt: remoteP.cutoffAt ?? null, ties: { ...(remoteP.ties || {}) } };
+  });
+  const base = {
+    entries, deletedIds, auditLog,
+    paid: { ...(remote.paid || {}) },
+    phases,
+    espnSync: { ...(remote.espnSync || {}) },
+    meta: remote.meta,
+  };
+  return applyAdminMutation(base, mutation);
+}
+
+// Único ponto que sabe como aplicar cada TIPO de mutação administrativa — puro (nunca modifica
+// `state` recebido), determinístico, sem depender de comparação entre snapshots inteiros. Cobre
+// as 12 operações listadas na Fase 2.1 §2. `type: "batch"` aplica uma lista em sequência (usada
+// por autoSyncEspn()/autoSyncEspnResults(), que legitimamente mudam vários confrontos numa só
+// gravação -- uma chamada de rede por ciclo, não uma por confronto).
+function applyAdminMutation(state, mutation) {
+  if (mutation.type === "batch") {
+    return mutation.mutations.reduce((acc, m) => applyAdminMutation(acc, m), state);
+  }
+  const s = {
+    ...state,
+    paid: { ...(state.paid || {}) },
+    phases: Object.fromEntries(Object.entries(state.phases || {}).map(([k, v]) => [k, { ...v, ties: { ...(v.ties || {}) } }])),
+    espnSync: { ...(state.espnSync || {}) },
+  };
+  const phaseOf = phaseId => s.phases[phaseId] || (s.phases[phaseId] = emptyPhaseState());
+  switch (mutation.type) {
+    case "upsert-entry": {
+      const idx = (s.entries || []).findIndex(e => e.id === mutation.entry.id);
+      s.entries = idx >= 0 ? s.entries.map((e, i) => i === idx ? mutation.entry : e) : [...(s.entries || []), mutation.entry];
+      break;
+    }
+    case "delete-entry": {
+      s.deletedIds = [...new Set([...(s.deletedIds || []), mutation.entryId])];
+      break;
+    }
+    case "set-payment": {
+      s.paid[mutation.entryId] = !!mutation.value;
+      break;
+    }
+    case "set-cutoff": {
+      const ph = phaseOf(mutation.phaseId);
+      s.phases[mutation.phaseId] = { ...ph, cutoffAt: mutation.cutoffAt ?? null };
+      break;
+    }
+    case "add-tie":
+    case "espn-add-tie": {
+      const ph = phaseOf(mutation.phaseId);
+      s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: mutation.tie } };
+      break;
+    }
+    case "remove-tie": {
+      const ph = phaseOf(mutation.phaseId);
+      const ties = { ...ph.ties };
+      delete ties[mutation.tieId];
+      s.phases[mutation.phaseId] = { ...ph, ties };
+      break;
+    }
+    case "save-leg":
+    case "espn-save-result": {
+      const ph = phaseOf(mutation.phaseId);
+      const tie = ph.ties[mutation.tieId] || {};
+      const newTie = { ...tie, matches: { ...(tie.matches || {}), [mutation.leg]: mutation.match } };
+      s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: newTie } };
+      break;
+    }
+    case "clear-leg": {
+      const ph = phaseOf(mutation.phaseId);
+      const tie = ph.ties[mutation.tieId] || {};
+      const prevMatch = tie.matches?.[mutation.leg] || {};
+      const clearedMatch = { ...prevMatch, goalsHome: null, goalsAway: null, status: "SCHEDULED" };
+      const newTie = { ...tie, matches: { ...(tie.matches || {}), [mutation.leg]: clearedMatch } };
+      s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: newTie } };
+      break;
+    }
+    case "lock-tie": {
+      const ph = phaseOf(mutation.phaseId);
+      const tie = ph.ties[mutation.tieId] || {};
+      const newTie = { ...tie, qualifiedTeamId: mutation.qualifiedTeamId, lockedAt: mutation.lockedAt, lockedBy: mutation.lockedBy };
+      s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: newTie } };
+      break;
+    }
+    case "unlock-tie": {
+      const ph = phaseOf(mutation.phaseId);
+      const tie = { ...(ph.ties[mutation.tieId] || {}) };
+      delete tie.qualifiedTeamId; delete tie.lockedAt; delete tie.lockedBy;
+      s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: tie } };
+      break;
+    }
+    case "set-active-phase": {
+      s.espnSync.activePhaseId = mutation.phaseId;
+      break;
+    }
+    default:
+      throw new Error(`applyAdminMutation: tipo de mutação desconhecido: ${mutation.type}`);
+  }
+  return s;
 }
 
 // ─── Admin auth ─────────────────────────────────────────────────────────────
@@ -2626,6 +2775,7 @@ async function autoSyncEspn(s) {
   const existingPairs = existingPairsAcrossPhases(s);
   const format = getPhaseDef(phaseId).format;
   const added = [];
+  const mutations = [];
   const s2 = state(); // relê o estado mais recente antes de escrever — outra aba pode ter mudado algo
 
   candidates.forEach(ev => {
@@ -2648,11 +2798,17 @@ async function autoSyncEspn(s) {
       kickoff: ev.dateISO || null, venue: ev.venue || null, city: ev.city || null,
       ...(ev.homeScore != null ? { goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" } : {}),
     };
-    s2.phases[phaseId].ties[espnTieId(ev.homeTeam, ev.awayTeam)] = tie;
+    const tieId = espnTieId(ev.homeTeam, ev.awayTeam);
+    s2.phases[phaseId].ties[tieId] = tie;
     added.push(`${ev.homeTeam} × ${ev.awayTeam}`);
+    mutations.push({ type: "espn-add-tie", phaseId, tieId, tie });
   });
 
-  if (added.length) saveState(s2);
+  // Fase 2.1 §2: cada confronto novo vira uma mutação `espn-add-tie` dirigida, aplicada como um
+  // `batch` numa gravação só (uma chamada de rede por ciclo, não uma por confronto) -- não mais
+  // um merge de snapshot inteiro, que arriscava conflitar com uma mutação administrativa feita
+  // por outro dispositivo entre a leitura e a gravação deste ciclo.
+  if (mutations.length) saveState(s2, { mutation: { type: "batch", mutations } });
   return { addedCount: added.length, added, error: false, needsPhase: false };
 }
 
@@ -2719,8 +2875,9 @@ async function autoSyncEspnResults(s) {
   const ties = s2.phases[phaseId]?.ties || {};
   let filledLegsCount = 0;
   const locked = [];
+  const mutations = [];
 
-  Object.values(ties).forEach(tie => {
+  Object.entries(ties).forEach(([tieId, tie]) => {
     if (!tie.teamA || !tie.teamB) return;
 
     // Âncora de data pro tie inteiro: a perna sendo checada pode ainda não ter kickoff conhecido
@@ -2737,8 +2894,10 @@ async function autoSyncEspnResults(s) {
       const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away && c.homeScore != null
         && withinResultMatchWindow(c.dateISO, m.kickoff || tieKickoffAnchor));
       if (!ev) return;
-      tie.matches[leg] = { ...m, homeTeam: home, awayTeam: away, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" };
+      const match = { ...m, homeTeam: home, awayTeam: away, goalsHome: ev.homeScore, goalsAway: ev.awayScore, status: "FINAL", resultSource: "espn-auto" };
+      tie.matches[leg] = match;
       filledLegsCount++;
+      mutations.push({ type: "espn-save-result", phaseId, tieId, leg, match });
     });
 
     if (tie.qualifiedTeamId) return; // já travado (manual ou auto) — nunca sobrescreve
@@ -2760,13 +2919,17 @@ async function autoSyncEspnResults(s) {
     }
 
     if (!qualified) return;
+    const lockedAt = new Date().toISOString();
     tie.qualifiedTeamId = qualified;
-    tie.lockedAt = new Date().toISOString();
+    tie.lockedAt = lockedAt;
     tie.lockedBy = "espn-auto";
     locked.push(`${tie.teamA} × ${tie.teamB}`);
+    mutations.push({ type: "lock-tie", phaseId, tieId, qualifiedTeamId: qualified, lockedAt, lockedBy: "espn-auto" });
   });
 
-  if (filledLegsCount || locked.length) saveState(s2);
+  // Fase 2.1 §2: mesmo raciocínio de autoSyncEspn() acima -- cada perna preenchida/confronto
+  // travado vira sua própria mutação dirigida, todas aplicadas como um `batch` numa gravação só.
+  if (mutations.length) saveState(s2, { mutation: { type: "batch", mutations } });
   return { lockedCount: locked.length, locked, filledLegsCount, error: false };
 }
 
@@ -2832,8 +2995,9 @@ function renderAdminEspnSync(s) {
     _espnLastAutoSyncAt = 0; // força a próxima renderização a sincronizar de novo com a fase nova
     const s2 = state();
     s2.espnSync = s2.espnSync || {};
-    s2.espnSync.activePhaseId = e.target.value || null;
-    saveState(s2);
+    const phaseId = e.target.value || null;
+    s2.espnSync.activePhaseId = phaseId;
+    saveState(s2, { mutation: { type: "set-active-phase", phaseId } });
   });
 
   $("espnSyncNowBtn")?.addEventListener("click", async () => {
@@ -2958,8 +3122,9 @@ function renderAdminPhases(s) {
     const input = box.querySelector(`.admin-phase-block[data-phase="${phaseId}"] .adm-phase-cutoff`);
     const val = input.value;
     const s2 = state();
-    s2.phases[phaseId].cutoffAt = val ? new Date(val).toISOString() : null;
-    saveState(s2);
+    const cutoffAt = val ? new Date(val).toISOString() : null;
+    s2.phases[phaseId].cutoffAt = cutoffAt;
+    saveState(s2, { mutation: { type: "set-cutoff", phaseId, cutoffAt } });
     showToast(t("adminCutoffSaved"), "success");
   }));
 
@@ -2968,7 +3133,7 @@ function renderAdminPhases(s) {
     const phaseId = btn.dataset.clearCutoff;
     const s2 = state();
     s2.phases[phaseId].cutoffAt = null;
-    saveState(s2);
+    saveState(s2, { mutation: { type: "set-cutoff", phaseId, cutoffAt: null } });
     showToast(t("adminCutoffSaved"), "success");
   }));
 
@@ -2997,13 +3162,14 @@ function renderAdminPhases(s) {
     const format = getPhaseDef(phaseId).format;
     const tie = { teamA, teamB, matches: {}, qualifiedTeamId: null };
     legsForFormat(format).forEach(leg => { tie.matches[leg] = emptyMatch(); });
-    s2.phases[phaseId].ties[uuid()] = tie;
+    const newTieId = uuid();
+    s2.phases[phaseId].ties[newTieId] = tie;
     // Limpa os campos ANTES de salvar -- mesmo motivo do data-save-leg logo abaixo:
     // adminPhasesFormIsDirty() leria esses inputs ainda preenchidos no DOM antigo e bloquearia a
     // própria atualização que deveria mostrar o confronto recém-adicionado.
     block.querySelector(".adm-team-a").value = "";
     block.querySelector(".adm-team-b").value = "";
-    saveState(s2);
+    saveState(s2, { mutation: { type: "add-tie", phaseId, tieId: newTieId, tie } });
     showToast(t("adminTieAdded"), "success");
   }));
 
@@ -3023,10 +3189,11 @@ function renderAdminPhases(s) {
     const msg = affected > 0 ? t("confirmRemoveTieWithPicks").replace("{n}", affected) : t("confirmRemoveTie");
     if (!tripleConfirm(msg, t("tripleConfirmDetail"))) return;
     const s2 = state();
-    const removedTie = s2.phases[btn.dataset.phase]?.ties?.[tieId];
-    appendAdminAuditLog(s2, "remove-tie", { phase: btn.dataset.phase, tieId, teamA: removedTie?.teamA, teamB: removedTie?.teamB, removedTie });
-    delete s2.phases[btn.dataset.phase]?.ties?.[tieId];
-    saveState(s2);
+    const phaseId = btn.dataset.phase;
+    const removedTie = s2.phases[phaseId]?.ties?.[tieId];
+    appendAdminAuditLog(s2, "remove-tie", { phase: phaseId, tieId, teamA: removedTie?.teamA, teamB: removedTie?.teamB, removedTie });
+    delete s2.phases[phaseId]?.ties?.[tieId];
+    saveState(s2, { mutation: { type: "remove-tie", phaseId, tieId } });
   }));
 }
 
@@ -3137,7 +3304,8 @@ function renderAdminResults(s) {
     const tie = s2.phases[phaseId].ties[tieId];
     const home = leg === "second" ? tie.teamB : tie.teamA;
     const away = leg === "second" ? tie.teamA : tie.teamB;
-    tie.matches[leg] = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL", resultSource: "admin" };
+    const match = { ...(tie.matches[leg] || emptyMatch()), homeTeam: home, awayTeam: away, goalsHome: a, goalsAway: b, status: "FINAL", resultSource: "admin" };
+    tie.matches[leg] = match;
     appendAdminAuditLog(s2, "save-leg", { phase: phaseId, tieId, leg, teamA: home, teamB: away, goalsHome: a, goalsAway: b });
     // Limpa os campos ANTES de salvar -- saveState() chama renderAll() de forma síncrona, e
     // adminResultsFormIsDirty() (novo, ver renderAdmin()) leria esses mesmos inputs ainda com "a"/
@@ -3146,7 +3314,7 @@ function renderAdminResults(s) {
     // (test_round2_fixes.js) antes de chegar em produção.
     row.querySelector(".adm-leg-a").value = "";
     row.querySelector(".adm-leg-b").value = "";
-    saveState(s2);
+    saveState(s2, { mutation: { type: "save-leg", phaseId, tieId, leg, match } });
     showToast(t("legResultSaved"), "success");
   }));
   box.querySelectorAll("[data-edit-leg]").forEach(btn => btn.addEventListener("click", () => {
@@ -3155,15 +3323,18 @@ function renderAdminResults(s) {
     // confirmação -- um mis-click descartava um resultado oficial sem nenhum jeito de desfazer.
     if (!tripleConfirm(t("confirmEditLeg"), t("tripleConfirmDetail"))) return;
     const s2 = state();
-    const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.editLeg];
-    const m = tie?.matches?.[btn.dataset.leg];
+    const phaseId = btn.dataset.phase, tieId = btn.dataset.editLeg, leg = btn.dataset.leg;
+    const tie = s2.phases[phaseId]?.ties?.[tieId];
+    const m = tie?.matches?.[leg];
     if (m) {
-      appendAdminAuditLog(s2, "edit-leg", { phase: btn.dataset.phase, tieId: btn.dataset.editLeg, leg: btn.dataset.leg, previousGoalsHome: m.goalsHome, previousGoalsAway: m.goalsAway });
+      appendAdminAuditLog(s2, "edit-leg", { phase: phaseId, tieId, leg, previousGoalsHome: m.goalsHome, previousGoalsAway: m.goalsAway });
       m.goalsHome = null;
       m.goalsAway = null;
       m.status = "SCHEDULED";
+      saveState(s2, { mutation: { type: "clear-leg", phaseId, tieId, leg } });
+    } else {
+      saveState(s2);
     }
-    saveState(s2);
   }));
   box.querySelectorAll("[data-lock-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
@@ -3179,23 +3350,25 @@ function renderAdminResults(s) {
     }
     if (!tripleConfirm(t("confirmLockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
+    const lockedAt = new Date().toISOString();
     s2.phases[phaseId].ties[tieId].qualifiedTeamId = qualified;
-    s2.phases[phaseId].ties[tieId].lockedAt = new Date().toISOString();
+    s2.phases[phaseId].ties[tieId].lockedAt = lockedAt;
     s2.phases[phaseId].ties[tieId].lockedBy = "admin";
     appendAdminAuditLog(s2, "lock-tie", { phase: phaseId, tieId, qualifiedTeamId: qualified, totalA, totalB });
-    saveState(s2);
+    saveState(s2, { mutation: { type: "lock-tie", phaseId, tieId, qualifiedTeamId: qualified, lockedAt, lockedBy: "admin" } });
     showToast(t("resultsSaved"), "success");
   }));
   box.querySelectorAll("[data-unlock-tie]").forEach(btn => btn.addEventListener("click", () => {
     if (!guardAdmin()) return;
     if (!tripleConfirm(t("confirmUnlockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
-    const tie = s2.phases[btn.dataset.phase]?.ties?.[btn.dataset.unlockTie];
+    const phaseId = btn.dataset.phase, tieId = btn.dataset.unlockTie;
+    const tie = s2.phases[phaseId]?.ties?.[tieId];
     if (tie) {
-      appendAdminAuditLog(s2, "unlock-tie", { phase: btn.dataset.phase, tieId: btn.dataset.unlockTie, previousQualifiedTeamId: tie.qualifiedTeamId, previousLockedAt: tie.lockedAt, previousLockedBy: tie.lockedBy });
+      appendAdminAuditLog(s2, "unlock-tie", { phase: phaseId, tieId, previousQualifiedTeamId: tie.qualifiedTeamId, previousLockedAt: tie.lockedAt, previousLockedBy: tie.lockedBy });
       delete tie.qualifiedTeamId; delete tie.lockedAt; delete tie.lockedBy;
     }
-    saveState(s2);
+    saveState(s2, { mutation: { type: "unlock-tie", phaseId, tieId } });
   }));
 }
 
@@ -3228,7 +3401,7 @@ function renderAdminPayments(s) {
       entryName: (s2.entries || []).find(e => e.id === id)?.entryName || null,
       from: before, to: !before,
     });
-    saveState(s2, { localOnly: false });
+    saveState(s2, { localOnly: false, mutation: { type: "set-payment", entryId: id, value: !before } });
   }));
 }
 
@@ -3261,7 +3434,7 @@ function renderAdminEntries(s) {
       participantEmail: delEntry?.participantEmail || null,
       wasPaid: !!s2.paid?.[delId],
     });
-    saveState(s2);
+    saveState(s2, { mutation: { type: "delete-entry", entryId: delId } });
   }));
 }
 
