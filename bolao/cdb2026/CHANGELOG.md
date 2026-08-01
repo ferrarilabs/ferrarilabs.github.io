@@ -1,6 +1,57 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.63 — 2026-08-01 — REVERSÃO da v3.62: tier "resultado certo" restaurado (não era um bug); texto do e-mail mais claro; tiebreak Z→A removido (era só cosmético)
+
+**A v3.62 (abaixo) estava errada.** Eduardo colou a tabela de regras completa do site e pediu
+auditoria: "Sistema de pontuação ... Resultado certo (vitória/derrota/empate), placar não exato
+5 ... Audite isso de acordo com o email enviado e o ranking atual." A remoção do tier `result`
+na v3.62 partiu de uma comparação com a fórmula da Copa do Mundo (que só tem placar exato + gols
+de um time) e concluiu, **incorretamente**, que isso era uma divergência a corrigir. Não é: o
+CDB2026 sempre teve 3 tiers de pontuação por partida, documentados desde 2026-07-13 em
+`CDB2026_RULES_AND_MODEL.md` §3.3 e nunca contestados por Eduardo até a v3.62 remover o tier —
+"mesmos valores da Copa do Mundo" é sobre os VALORES em pontos (10/5/1), não sobre quais
+categorias existem. CDB2026 e Copa do Mundo não precisam ter os mesmos tiers de pontuação.
+
+**Revertido em todos os lugares que a v3.62 tinha alterado:**
+- `js/config.js`, `js/app.js` (`matchPoints()`/`explainScore()`/`renderRules()`), `js/i18n.js` —
+  restaurados a partir do commit anterior à v3.62 (`git show` do parent, não retype manual, pra
+  eliminar risco de erro de transcrição).
+- `scripts/audit_scoring.py`, `scripts/audit_integrity.py` — mesma restauração; ambos ganharam
+  uma nota no docstring documentando os dois incidentes (a remoção errada e a reversão), sem
+  reescrever silenciosamente.
+- `scripts/audit_golden_master.mjs` — valores voltam a bater com o golden master original
+  (`e-bravo`: 0→15 pts de novo) — mais o ajuste da remoção do tiebreak Z→A (ver abaixo).
+- `docs/bolao/CDB2026_RULES_AND_MODEL.md` §3.3 — a nota de correção da v3.62 (que dizia o tier
+  ter sido removido) foi por sua vez corrigida, explicando que a remoção foi revertida; a tabela
+  original (nunca errada) permanece intacta.
+
+**Texto do e-mail mais claro** (Eduardo: "Talvez precise ficar mais claro no email qual foi a
+pontuação e por que pontuou"): a linha de detalhe do palpite agora diz explicitamente
+"+5 resultado certo (vitória/empate/derrota) — placar não exato" em vez de só "+5 resultado
+certo" — mesma mudança em `app.js`'s `explainScore()` e em `send_result_email.py`. Uma
+**segunda correção foi enviada aos 12 participantes reais** deixando claro que a categoria
+"resultado certo" É válida (a v3.62 tinha, por engano, dito o contrário no e-mail de correção
+anterior) e mostrando a pontuação certa, mais clara, do mesmo jogo (Vasco 0–0 Fluminense).
+
+**Tiebreak por nome (Z→A) removido — não é critério de desempate, era só cosmético** (Eduardo:
+"O sort z-a não é critério de desempate favor remover, é só cosmético"): `rankEntriesBy()`
+nunca usava o nome pra decidir o RANK (a chave de rank já só considera total/campeão/vice/
+placares exatos) — só decidia qual entrada genuinamente empatada aparecia primeiro na lista.
+Removido o comparador; `Array.sort` (estável) preserva a ordem original entre empatados agora.
+Removida também a linha "4º desempate: nome da entrada Z→A" da página de Regras (`i18n.js`
+`tbAlpha`, `app.js`'s `renderRules()`) — só ficam os 3 critérios reais.
+
+`audit_scoring.py` das 3 apps, `audit_state_merge.mjs`, `audit_golden_master.mjs`,
+`audit_integrity.py --self-test` re-rodados — todos passando (golden master atualizado de novo,
+cada valor conferido contra o motor real via `--print` antes de editar).
+
 ## v3.62 — 2026-08-01 — Bug real de pontuação: tier "resultado certo" removido; e-mail sem versão em inglês; ordenação de "Ver palpites" corrigida
+
+> **⚠️ REVERTIDO pela v3.63 (acima) no mesmo dia.** A remoção do tier "resultado certo" descrita
+> abaixo estava errada — não era um bug, é uma regra real do CDB2026. Mantido aqui sem edição
+> como registro histórico do que foi feito e por quê; ver v3.63 para a correção completa. As
+> outras duas mudanças desta entrada (e-mail sem inglês, ordenação de "Ver palpites") **continuam
+> válidas**, não foram revertidas.
 
 Eduardo, ao ver o primeiro e-mail de resultado real (Vasco 0x0 Fluminense): "Isso está
 incorreto!!! O resultado foi 0x0. Por que pontuou por placar exato? Verifique contra as regras

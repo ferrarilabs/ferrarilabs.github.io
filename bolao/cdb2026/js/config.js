@@ -1,5 +1,5 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.62",
+  siteVersion: "v3.63",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -36,18 +36,19 @@ window.CDB2026_CONFIG = {
   // aprovada por Eduardo em 2026-07-13). Pontuação é POR PARTIDA (não por confronto agregado
   // digitado direto — isso era o modelo antigo, incorreto para a Copa do Brasil real).
   scoring: {
-    // Por partida individual — mutuamente exclusivo (nunca soma exact+side na mesma partida),
-    // EXATAMENTE os mesmos valores/critérios da Copa do Mundo (bolao/copa2026/js/config.js:
-    // matchPoints() lá só tem exact + side, sem nenhum tier de "resultado certo"). Eduardo,
-    // 2026-08-01, ao ver o primeiro e-mail de resultado real (Vasco 0x0 Fluminense, palpites de
-    // 2x2/1x1 pontuando 5 pts por "resultado certo"): "Isso está incorreto!!! ... Verifique
-    // contra as regras da copa do mundo" -- o tier `result` (5 pts por acertar só o sinal
-    // vitória/empate/derrota, sem o placar exato) nunca existiu na Copa; era uma divergência real
-    // do CDB2026_RULES_AND_MODEL.md (aprovado 2026-07-13) que nunca foi checada contra o
-    // matchPoints() real da Copa até este incidente. Removido -- ver CHANGELOG.md para o
-    // detalhamento completo e docs/bolao/CDB2026_RULES_AND_MODEL.md §3.3 para a nota de correção.
+    // Por partida individual — mutuamente exclusivo (nunca soma exact+result+side na mesma
+    // partida). CORREÇÃO 2026-08-01 (revertendo uma remoção errada feita mais cedo no mesmo dia):
+    // `result` (5 pts por acertar vitória/empate/derrota mesmo com placar diferente) É uma regra
+    // real do CDB2026 -- confirmado por Eduardo diretamente, colando a tabela de regras completa
+    // e pedindo auditoria: "Sistema de pontuação ... Resultado certo (vitória/derrota/empate),
+    // placar não exato 5". A comparação com a Copa do Mundo (que só tem exact+side, sem esse
+    // tier) NÃO se aplica aqui -- CDB2026_RULES_AND_MODEL.md sempre documentou os 3 tiers, e o
+    // "mesmos valores da Copa do Mundo" no comentário original era sobre os VALORES em pontos
+    // (10/5/1), não sobre quais categorias existem. Ver CHANGELOG.md para o histórico completo
+    // (a remoção e a reversão, ambas registradas, nenhuma reescrita silenciosa).
     match: {
       exact: 10,   // placar exato da partida
+      result: 5,   // resultado certo (vitória/derrota/empate), placar não exato
       side: 1,     // gols de um dos dois times batem exatamente, mesmo com resultado errado
     },
     // Bônus por confronto — acertar quem se classifica, independente do placar de cada perna.
