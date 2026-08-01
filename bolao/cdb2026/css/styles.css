@@ -326,9 +326,6 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .picks-detail table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .picks-detail th, .picks-detail td { border-bottom: 1px solid var(--border); padding: 7px 8px; text-align: left; }
 .picks-detail th { color: var(--muted); font-weight: 700; }
-.picks-detail tr.pick-exact td   { background: rgba(47,229,110,.08); }
-.picks-detail tr.pick-partial td { background: rgba(245,158,11,.08); }
-.picks-detail tr.pick-miss td    { opacity: .7; }
 .pick-pts { color: var(--muted); }
 .pick-pts.pos { color: var(--green); }
 
