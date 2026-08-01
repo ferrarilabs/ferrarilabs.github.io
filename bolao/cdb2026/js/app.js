@@ -91,7 +91,16 @@ function saveState(s, opts = {}) {
   s.meta.updatedAt = new Date().toISOString();
   s.meta.version = C.siteVersion;
   localStorage.setItem(C.storeKey, JSON.stringify(s));
-  if (C.database.enabled && !opts.localOnly) saveRemoteState(s).catch(() => {});
+  if (C.database.enabled && !opts.localOnly) {
+    // Nunca engolir a falha em silêncio (era `.catch(() => {})`): o estado fica só no navegador
+    // e o participante/admin via a mesma mensagem de sucesso de sempre, sem saber que nada foi
+    // sincronizado. Achado na auditoria de 2026-08 (AUDIT-04). O dado local já está gravado
+    // acima, então a falha remota nunca perde a entrada -- só precisa ser VISÍVEL.
+    saveRemoteState(s).catch(err => {
+      console.warn("[CDB2026] Supabase save failed", err);
+      showToast(t("syncFailed"), "warn", 8000);
+    });
+  }
   renderAll();
 }
 
@@ -135,14 +144,48 @@ function debouncedReload() {
   clearTimeout(_reloadTimer);
   _reloadTimer = setTimeout(() => reloadRemoteIfVisible().catch(err => console.warn("[CDB2026] Reload failed", err)), 60);
 }
+// Lê o estado remoto atual e mescla ANTES de gravar (read-merge-write). Sem isto, cada gravação
+// substituía a coluna `state` inteira pelo snapshot local de quem gravou -- `Prefer:
+// resolution=merge-duplicates` resolve conflito de LINHA no upsert, não mescla o JSON. Achado na
+// auditoria de 2026-08 (AUDIT-03, perda de dados confirmada): admin marca X como pago; um
+// participante que carregou a página antes disso salva uma entrada nova; o POST dele reescrevia a
+// linha toda com o cache velho e X voltava a "não pago". Mesmo mecanismo apagava entradas novas
+// simultâneas de dois participantes (lost update) -- justamente no pico de envios perto do prazo.
+// `preferRemoteResults: true` mantém a regra já usada no load: resultado/tie oficial do admin
+// (remoto) vence o cache local; entradas continuam união por mais recente e `paid` é any-true-wins.
 async function saveRemoteState(s) {
-  if (!C.database.enabled) return;
+  if (!C.database.enabled) return { ok: false, skipped: true };
   const { url, anonKey, table, stateId } = C.database;
-  await fetchJson(`${url}/rest/v1/${table}`, {
+  const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
+  let payload = s;
+  try {
+    const cur = await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, { headers });
+    if (cur.ok) {
+      const rows = await cur.json();
+      const remote = rows?.[0]?.state;
+      if (remote) {
+        payload = mergeStates(s, remote, { preferRemoteResults: true });
+        payload.meta = { ...(s.meta || {}), updatedAt: new Date().toISOString(), version: C.siteVersion };
+        localStorage.setItem(C.storeKey, JSON.stringify(payload));
+      }
+    }
+  } catch (err) {
+    // Pré-leitura falhou (rede/timeout): grava o snapshot local mesmo assim -- é melhor que
+    // perder a entrada do participante. O risco de sobrescrita volta só neste caso degradado.
+    console.warn("[CDB2026] pre-save remote read failed, saving local snapshot as-is", err);
+  }
+  const r = await fetchJson(`${url}/rest/v1/${table}`, {
     method: "POST",
-    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({ id: stateId, state: s })
+    headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
+    body: JSON.stringify({ id: stateId, state: payload })
   });
+  // `await fetch()` NÃO rejeita em 4xx/5xx -- sem esta checagem, um 401/403 (RLS), 400 ou 500
+  // era tratado como sucesso e o participante via "salvo" com o dado só no navegador dele.
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`Supabase respondeu ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+  }
+  return { ok: true };
 }
 // Merge de fases: para cada fase, cutoffAt e ties são mesclados independentemente — união de
 // ties por id (nunca perde um confronto cadastrado em qualquer lado), remote-wins em cutoffAt e
@@ -164,7 +207,17 @@ function mergeStates(local, remote, opts = {}) {
     const localTs  = existing.updatedAt || existing.createdAt || "";
     if (remoteTs > localTs) byId[e.id] = e;
   }
-  const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
+  // any-true-wins por chave (união das chaves dos dois lados), NUNCA spread — um spread
+  // (`{...remote.paid, ...local.paid}`) faz "local sempre vence", então um `false` local velho
+  // sobrescrevia um `true` remoto mais novo do admin. Achado na auditoria de 2026-08 (AUDIT-02):
+  // `docs/bolao/PROJECT_MEMORY.md` já DESCREVIA este merge como any-true-wins e a Copa
+  // (`bolao/copa2026/js/app.js` mergedPaid) já implementava assim de verdade — só CDB2026/BR2026
+  // tinham o spread. Pagamento só é desmarcado por ação explícita do admin (que grava remoto e
+  // vira o lado mais novo), nunca por cache velho de participante.
+  const paid = {};
+  for (const k of new Set([...Object.keys(remote.paid || {}), ...Object.keys(local.paid || {})])) {
+    paid[k] = !!(local.paid?.[k] || remote.paid?.[k]);
+  }
   const phases = {};
   DATA.phases.forEach(p => {
     const localP  = local.phases?.[p.id]  || emptyPhaseState();
@@ -177,14 +230,31 @@ function mergeStates(local, remote, opts = {}) {
       : (localP.cutoffAt ?? remoteP.cutoffAt);
     phases[p.id] = { cutoffAt, ties };
   });
+  // TODOS os flags de migração "roda uma vez" precisam estar listados aqui. Este objeto é
+  // reconstruído do zero (não é spread), então qualquer flag esquecido é DESCARTADO a cada
+  // merge -- e como loadRemoteState() substitui o localStorage pelo resultado do merge, o flag
+  // sumia em todo sync remoto, fazendo as rotinas "roda uma vez" rodarem de novo em toda carga.
+  // Achado na auditoria de 2026-08 (AUDIT-01): 5 flags eram escritos, só 2 sobreviviam ao merge.
+  // Risco concreto do que voltava a rodar: healPhantomTies() apaga ties fora da lista curada de
+  // DATA.knownConfrontos -- um confronto adicionado à mão pelo admin numa fase curada, antes de
+  // qualquer palpite referenciá-lo, era silenciosamente removido na carga seguinte.
+  // Ao adicionar um flag novo de migração, adicione também nesta lista.
+  const ESPN_SYNC_ONCE_FLAGS = [
+    "seededKnownConfrontos",
+    "backfilledOitavasKickoffs",
+    "healedFalseAutoResults",
+    "healedPhantomTies",
+  ];
   const espnSync = {
     activePhaseId: opts.preferRemoteResults
       ? (remote.espnSync?.activePhaseId ?? local.espnSync?.activePhaseId ?? null)
       : (local.espnSync?.activePhaseId ?? remote.espnSync?.activePhaseId ?? null),
-    // OR, não remote-wins/local-wins — uma vez semeado em QUALQUER dispositivo, o flag deve
-    // permanecer true depois do merge em todos, para seedKnownConfrontos() nunca reaplicar.
-    seededKnownConfrontos: !!(local.espnSync?.seededKnownConfrontos || remote.espnSync?.seededKnownConfrontos),
   };
+  // OR, não remote-wins/local-wins — uma vez executada a migração em QUALQUER dispositivo, o
+  // flag deve permanecer true depois do merge em todos, para a rotina nunca reaplicar.
+  for (const f of ESPN_SYNC_ONCE_FLAGS) {
+    espnSync[f] = !!(local.espnSync?.[f] || remote.espnSync?.[f]);
+  }
   // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200 — same
   // pattern as Copa (bolao/js/app.js mergeStates()).
   const auditMap = new Map();
@@ -396,6 +466,22 @@ function payIcon(method) {
 function getPhaseDef(phaseId) { return DATA.phases.find(p => p.id === phaseId); }
 function legsForFormat(format) { return format === "TWO_LEG" ? ["first", "second"] : ["single"]; }
 function emptyMatch() { return { homeTeam: null, awayTeam: null, kickoff: null, venue: null, city: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" }; }
+
+// Fonte única de "quem é mandante nesta perna". No mata-mata de ida e volta o mandante se
+// inverte na volta, e `goalsHome`/`goalsAway` (tanto de palpite quanto de resultado) são SEMPRE
+// relativos ao mandante REAL daquela perna -- é assim que o formulário coleta (renderPickForm) e
+// como a aba Jogos/o admin já exibiam. Achado na auditoria de 2026-08 (AUDIT-05): o comprovante,
+// o detalhe "Ver palpites" do ranking e o CSV imprimiam `teamA × teamB` fixo com
+// `goalsHome × goalsAway`, invertendo o placar da VOLTA -- um palpite "Fluminense 3 × 0 Vasco"
+// aparecia como "Vasco 3 × 0 Fluminense" nesses três documentos. Não afetava pontuação
+// (matchPoints compara palpite e resultado na mesma orientação), só os documentos que provam o
+// que o participante apostou. Use SEMPRE esta função ao exibir uma perna.
+function legTeams(tie, leg, match) {
+  return {
+    home: match?.homeTeam || (leg === "second" ? tie.teamB : tie.teamA),
+    away: match?.awayTeam || (leg === "second" ? tie.teamA : tie.teamB),
+  };
+}
 
 // Agregado de um confronto de ida+volta a partir das duas partidas — null se alguma ainda não
 // tem placar. O mandante se inverte na volta (regra real do mata-mata): teamA soma seus gols
@@ -662,7 +748,7 @@ async function saveEntry() {
     saveState(s);
 
     if (C.emailjs.enabled && window.emailjs) {
-      sendReceipt(entry).catch(err => console.warn("[CDB2026] Email failed", err));
+      queueReceipt(entry);
     }
 
     _editingEntry = null;
@@ -808,7 +894,8 @@ function receiptHtml(entry, s) {
         const pick = pickMatches[leg];
         if (!pick) return;
         const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
-        rows.push(`<tr><td>${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
+        const { home: rHome, away: rAway } = legTeams(tie, leg, tie.matches?.[leg]);
+        rows.push(`<tr><td>${esc(rHome)} × ${esc(rAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
       });
     });
   });
@@ -835,7 +922,7 @@ th{background:#07151c;color:#fff;text-align:left}
 <b>${esc(t("receiptResponsible"))}:</b> ${esc(entry.payerName || "")}<br>
 <b>${esc(t("receiptEmail"))}:</b> ${esc(entry.participantEmail)}</div>
 <div><b>${esc(t("receiptPayment"))}:</b> ${esc(entry.paymentMethod || "")}<br>
-<b>${esc(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR")}<br>
+<b>${esc(t("receiptSentAt"))}:</b> ${new Date(entry.createdAt).toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })} (BRT)<br>
 <b>${esc(t("receiptCodeLabel"))}:</b> <span class="code">${esc(receiptCode(entry))}</span></div></div>
 <div class="pod"><h2>${esc(t("pickHintTie") ? "🏆 Palpite final do participante" : "")}</h2><div class="podgrid">
 <div class="podcard champ"><div>🥇 ${esc(t("pickLabelChampion"))}</div><div class="team-name">${esc(predicted.champion || "—")}</div></div>
@@ -876,10 +963,26 @@ function downloadReceipt(id) {
   downloadBlob(`comprovante-${receiptCode(e)}.html`, receiptHtml(e, state()), "text/html");
 }
 
+// Fila serial com espaçamento mínimo entre envios. Antes: `if (now - _lastEmailTs <
+// limitRateMs) return;` DESCARTAVA o e-mail em silêncio -- e como `_lastEmailTs` é global (não
+// por participante), a 2ª entrada salva dentro de 30s (mesmo de outra pessoa) nunca recebia
+// comprovante, nem o admin recebia a cópia, enquanto o participante via
+// "Palpite salvo! Verifique seu e-mail para o comprovante." Achado na auditoria de 2026-08
+// (AUDIT-07). O rate limit continua existindo (proteção de cota do EmailJS, exigida) -- só que
+// agora ele ESPERA a janela em vez de jogar o e-mail fora, então a mensagem ao participante
+// passa a ser verdadeira. Serial: cada envio só começa quando o anterior terminou.
+let _emailQueue = Promise.resolve();
+function queueReceipt(entry) {
+  _emailQueue = _emailQueue.then(async () => {
+    const wait = C.emailjs.limitRateMs - (Date.now() - _lastEmailTs);
+    if (wait > 0) await new Promise(r => setTimeout(r, wait));
+    return sendReceipt(entry);
+  }).catch(err => console.warn("[CDB2026] queued receipt failed", err));
+  return _emailQueue;
+}
+
 async function sendReceipt(entry) {
   if (!C.emailjs.enabled || !window.emailjs) return;
-  const now = Date.now();
-  if (now - _lastEmailTs < C.emailjs.limitRateMs) return;
 
   const s = state();
   const html = receiptHtml(entry, s);
@@ -1073,7 +1176,8 @@ function renderPickDisplay(entry, detail) {
         const d = detail?.matches?.[`${tieId}:${leg}`];
         const legLabel = leg === "single" ? "" : ` (${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))})`;
         const cls = d ? (d.type === "exact" ? "pick-exact" : d.type === "miss" ? "pick-miss" : "pick-partial") : "";
-        rows.push(`<tr class="${cls}"><td>${esc(tie.teamA)} × ${esc(tie.teamB)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
+        rows.push(`<tr class="${cls}"><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       });
       const pickQual = entry.picks?.qualified?.[tieId];
       if (tie.qualifiedTeamId && pickQual) {
@@ -2176,14 +2280,23 @@ async function fetchEspnCandidates() {
         dateISO: comp.date || ev.date || "",
         homeTeam: home?.team?.displayName || "",
         awayTeam: away?.team?.displayName || "",
-        homeScore: evState === "post" && home?.score != null ? parseInt(home.score, 10) : null,
-        awayScore: evState === "post" && away?.score != null ? parseInt(away.score, 10) : null,
+        // `!postponed` é obrigatório aqui, não só no chip de "Adiado": a ESPN devolve um jogo
+        // adiado como state:"post" COM score "0" (verificado em dados reais de 2026-07-29 na
+        // bra.1) -- sem esta guarda, `homeScore` virava 0 (não null) e autoSyncEspn()/
+        // autoSyncEspnResults() gravavam a perna como FINAL 0-0 de um jogo nunca disputado.
+        // Pior: `if (m.goalsHome != null) return` mais abaixo faz o placar falso BLOQUEAR para
+        // sempre o preenchimento automático do resultado real. Achado na auditoria de 2026-08
+        // (AUDIT-06) -- latente hoje (nenhum jogo da Copa do Brasil está adiado), mas a Copa do
+        // Brasil adia jogos com frequência e o bolão paga dinheiro real.
+        homeScore: evState === "post" && !postponed && home?.score != null ? parseInt(home.score, 10) : null,
+        awayScore: evState === "post" && !postponed && away?.score != null ? parseInt(away.score, 10) : null,
         // `winner` é o campo que a própria ESPN usa pra indicar quem passou de fase depois de
         // pênaltis (o placar normal por si só empata em caso de disputa) -- só confiável quando o
         // jogo já terminou (evState === "post"); usado em autoSyncEspnResults() para travar um
         // confronto empatado no agregado sem precisar do admin escolher manualmente.
-        homeWinner: evState === "post" ? home?.winner === true : null,
-        awayWinner: evState === "post" ? away?.winner === true : null,
+        // Mesma guarda `!postponed` (ver homeScore acima): um jogo adiado nunca tem vencedor.
+        homeWinner: evState === "post" && !postponed ? home?.winner === true : null,
+        awayWinner: evState === "post" && !postponed ? away?.winner === true : null,
         venue: comp.venue?.fullName || "",
         city: comp.venue?.address?.city || "",
         state: evState,
@@ -2999,7 +3112,16 @@ function renderAdminPayments(s) {
     const id = btn.dataset.togglePaid;
     const s2 = state();
     s2.paid = s2.paid || {};
-    s2.paid[id] = !s2.paid[id];
+    const before = !!s2.paid[id];
+    s2.paid[id] = !before;
+    // Pagamento é dinheiro real e era a única ação de admin que mexia em dinheiro sem deixar
+    // rastro nenhum no audit log (achado da auditoria de 2026-08, AUDIT-08). Guarda antes/depois
+    // para reconstruir quem estava pago em qualquer momento.
+    appendAdminAuditLog(s2, "toggle-paid", {
+      entryId: id,
+      entryName: (s2.entries || []).find(e => e.id === id)?.entryName || null,
+      from: before, to: !before,
+    });
     saveState(s2, { localOnly: false });
   }));
 }
@@ -3021,7 +3143,18 @@ function renderAdminEntries(s) {
     if (!confirm(t("confirmDelete"))) return;
     const s2 = state();
     s2.deletedIds = s2.deletedIds || [];
-    s2.deletedIds.push(btn.dataset.deleteEntry);
+    const delId = btn.dataset.deleteEntry;
+    s2.deletedIds.push(delId);
+    // Exclusão de entrada é soft-delete (o objeto continua em `entries`, só entra na tombstone
+    // list), mas não deixava NENHUM rastro de quem/quando -- numa disputa por dinheiro real esse
+    // é exatamente o registro que faz falta. Achado da auditoria de 2026-08 (AUDIT-08).
+    const delEntry = (s2.entries || []).find(e => e.id === delId);
+    appendAdminAuditLog(s2, "delete-entry", {
+      entryId: delId,
+      entryName: delEntry?.entryName || null,
+      participantEmail: delEntry?.participantEmail || null,
+      wasPaid: !!s2.paid?.[delId],
+    });
     saveState(s2);
   }));
 }
@@ -3045,7 +3178,8 @@ function exportCsv() {
           const pick = pickMatches[leg];
           if (!pick) return;
           const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
-          lines.push(`${tie.teamA} ${pick.goalsHome}x${pick.goalsAway} ${tie.teamB}${legLabel}`);
+          const { home: cHome, away: cAway } = legTeams(tie, leg, tie.matches?.[leg]);
+          lines.push(`${cHome} ${pick.goalsHome}x${pick.goalsAway} ${cAway}${legLabel}`);
         });
       });
     });

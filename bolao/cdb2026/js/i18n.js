@@ -125,9 +125,12 @@ window.CDB2026_I18N = {
     auditAction_edit_leg: "Placar de partida apagado para reedição",
     auditAction_lock_tie: "Resultado do confronto travado",
     auditAction_unlock_tie: "Resultado do confronto destravado",
+    auditAction_toggle_paid: "Status de pagamento alterado",
+    auditAction_delete_entry: "Entrada excluída",
     // Save feedback
     savedSuccess: "Palpite salvo! Verifique seu e-mail para o comprovante.",
     saveError: "Erro ao salvar. Tente novamente.",
+    syncFailed: "Salvo neste dispositivo, mas a sincronização com o servidor falhou. Seus dados não estão perdidos — mantenha esta aba aberta e avise o organizador.",
     closed: "Prazo encerrado. Não é mais possível enviar palpites.",
     // Ranking
     rankingTitle: "Ranking",

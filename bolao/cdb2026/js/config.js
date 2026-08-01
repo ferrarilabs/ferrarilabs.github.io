@@ -1,5 +1,5 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.54",
+  siteVersion: "v3.55",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -74,11 +74,15 @@ window.CDB2026_CONFIG = {
     stateId: "cdb2026",
     localFallback: true
   },
-  // Sincronização com a ESPN — só busca sob demanda (botão no admin), nunca grava nada sem
-  // confirmação humana. Diferente do BR2026 (polling automático de uma tabela de liga), a Copa
-  // do Brasil é mata-mata sem "ao vivo" contínuo — ver docs/bolao/CDB2026_RULES_AND_MODEL.md
-  // "Sincronização com ESPN". Slug encontrado via busca pública, não verificado com uma chamada
-  // direta (ambiente sem acesso de rede a hosts externos) — testar no primeiro uso real.
+  // Sincronização com a ESPN — ver docs/bolao/CDB2026_RULES_AND_MODEL.md "Sincronização com ESPN".
+  //
+  // ATENÇÃO: este comentário dizia "só busca sob demanda (botão no admin), nunca grava nada sem
+  // confirmação humana" e isso NÃO é mais verdade desde a automação de sync (v3.16+). Corrigido
+  // na auditoria de 2026-08: `autoSyncEspn()` cria confrontos e `autoSyncEspnResults()` preenche
+  // placares e chega a TRAVAR a classificação de um confronto automaticamente
+  // (`resultSource: "espn-auto"`, `lockedBy: "espn-auto"`), sem clique do admin. Também existe
+  // poll de 60s do card ao vivo (`pollLiveTies()`), que é só exibição e nunca grava estado.
+  // Slug verificado contra a API real em 2026-08 (142 jogos retornados).
   espn: {
     leagueSlug: "bra.copa_do_brazil",
     scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard?dates=20260101-20261231&limit=500",

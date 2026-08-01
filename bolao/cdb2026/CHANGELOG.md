@@ -1,5 +1,73 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.55 — 2026-08 — Auditoria de código: 1 P0 + 4 P1 + 3 P2 corrigidos
+
+Auditoria técnica completa pedida pelo Eduardo (relatório integral em
+`docs/bolao/CDB2026_CODE_AUDIT_2026-08.md`, com evidência e reprodução de cada item). Todos os
+problemas foram **reproduzidos antes de corrigir**. A pontuação oficial estava **correta** e não
+foi tocada — os achados se concentraram em persistência concorrente e nos documentos que provam
+o que o participante apostou.
+
+**P0 — perda de dados por gravação concorrente (AUDIT-03).** `saveRemoteState()` gravava a coluna
+`state` inteira com o snapshot local de quem salvou (`Prefer: resolution=merge-duplicates` resolve
+conflito de LINHA no upsert, não mescla o JSON), sem reler o remoto antes. Reproduzido contra a
+função real: um participante com cache anterior salvando sua entrada **revertia** a marcação de
+pagamento feita pelo admin e **apagava** a entrada de outro participante. Agora faz
+read-merge-write via `mergeStates()`; se a pré-leitura falhar (offline), grava o snapshot local
+mesmo assim (nunca perder a entrada) e registra o aviso.
+
+**P1 — flags de migração descartadas (AUDIT-01).** `mergeStates()` reconstruía `espnSync` com
+apenas 2 dos 5 flags; os outros 3 sumiam em todo sync remoto, fazendo rotinas "roda uma vez"
+rodarem de novo a cada carga — inclusive `healPhantomTies()`, que **apaga** ties fora da lista
+curada (um confronto criado à mão pelo admin, ainda sem palpites, era removido silenciosamente).
+Agora há lista explícita `ESPN_SYNC_ONCE_FLAGS` com merge OR.
+
+**P1 — `paid` sobrescrito por cache velho (AUDIT-02).** O merge usava spread (local sempre vence),
+então um `false` local antigo apagava um `true` remoto do admin — apesar de o `PROJECT_MEMORY.md`
+já descrever este merge como any-true-wins e a Copa já implementar assim. Corrigido para OR por
+chave, com união das chaves dos dois lados.
+
+**P1 — falha de gravação tratada como sucesso (AUDIT-04).** `await fetch()` não rejeita em 4xx/5xx
+e não havia checagem de `response.ok`; o call site tinha `.catch(() => {})` vazio. Um 403 de RLS
+resultava em toast de sucesso normal com o dado só no navegador. Agora lança em `!r.ok` e mostra
+o novo toast `syncFailed`, que separa "salvo neste dispositivo" de "sincronizado".
+
+**P1 — placar da VOLTA invertido no comprovante, no ranking e no CSV (AUDIT-05).** Essas três
+superfícies imprimiam `teamA × teamB` fixo, enquanto `goalsHome/goalsAway` são relativos ao
+mandante real da perna (na volta, `teamB`). Um palpite "Fluminense 3 × 0 Vasco" aparecia como
+"Vasco 3 × 0 Fluminense". **Não afetava pontuação** (`matchPoints()` compara na mesma orientação),
+mas invertia justamente os documentos que provam a aposta. Nova função única
+`legTeams(tie, leg, match)` usada nas três.
+
+**P1 (latente) — jogo adiado virando FINAL 0-0 (AUDIT-06).** O flag `postponed` era calculado mas
+não consultado no caminho de ESCRITA: `homeScore`/`awayScore`/`homeWinner`/`awayWinner` só
+checavam `state === "post"`, e a ESPN reporta jogo adiado como `post` **com `score:"0"`**. Gravaria
+um FINAL 0-0 de jogo nunca disputado — e o placar falso **bloquearia para sempre** o resultado real
+(`if (m.goalsHome != null) return`). Sem exposição hoje (0 jogos adiados na Copa do Brasil,
+verificado na API real), mas corrigido com `&& !postponed`.
+
+**P2 — comprovante prometido e não enviado (AUDIT-07).** `_lastEmailTs` é global, não por
+participante: a 2ª entrada salva em menos de 30s (mesmo de outra pessoa) tinha o e-mail
+**descartado em silêncio**, enquanto o toast dizia "Verifique seu e-mail". Agora há fila serial
+(`queueReceipt()`) que **espera** a janela em vez de descartar — o rate limit continua existindo.
+
+**P2 — ações de dinheiro sem audit log (AUDIT-08).** Marcação de pagamento e exclusão de entrada
+não deixavam rastro. Agora registram antes/depois.
+
+**P2 — fuso implícito no comprovante (AUDIT-09).** Único `toLocaleString("pt-BR")` sem `timeZone`;
+agora `America/Sao_Paulo` + sufixo `(BRT)`, alinhado ao CSV. Nenhuma data histórica alterada.
+
+**Novo:** `bolao/cdb2026/scripts/audit_state_merge.mjs` — 21 checagens de merge/persistência/
+orientação, sem dependências, que **extraem as funções reais** de `app.js` (não uma transcrição à
+mão). Validado que falha contra o código pré-correção e passa depois.
+
+Não corrigidos de propósito (decisão do proprietário): privacidade da página de participantes e
+política de exclusão de entrada. Limitação arquitetural registrada: autorização de admin real
+exige backend.
+
+`audit_scoring.py`: 5/5 no CDB2026, 5/5 no BR2026, 6/6 na Copa — nenhum tocado. Nenhum arquivo de
+BR2026 ou Copa do Mundo modificado.
+
 ## v3.54 — 2026-07-26 — Postponed-leg detection never actually matched (same bug as BR2026)
 
 Same root cause and fix as `bolao/br2026/CHANGELOG.md` v1.78, found auditing BR2026's live
