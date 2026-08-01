@@ -123,7 +123,7 @@ window.CDB2026_I18N = {
     auditAction_toggle_paid: "Status de pagamento alterado",
     auditAction_delete_entry: "Entrada excluída",
     // Save feedback
-    savedSuccess: "Palpite salvo! Verifique seu e-mail para o comprovante.",
+    savedSuccess: "Palpite salvo! O comprovante também fica disponível aqui na página — o envio por e-mail pode levar alguns instantes.",
     saveError: "Erro ao salvar. Tente novamente.",
     syncFailed: "Salvo neste dispositivo, mas a sincronização com o servidor falhou. Seus dados não estão perdidos — mantenha esta aba aberta e avise o organizador.",
     closed: "Prazo encerrado. Não é mais possível enviar palpites.",
