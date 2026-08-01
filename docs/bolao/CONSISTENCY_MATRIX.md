@@ -1868,3 +1868,28 @@ outro participante ao salvar a sua.
 
 Também corrigido só no CDB2026 (não existe equivalente no BR2026, que não usa este modelo de
 confrontos): descarte dos flags de migração `espnSync` no merge.
+
+## Nota manual — Fase 2 (modernização) do CDB2026, 2026-08: i18n de idioma único é intencional, `localFallback` é padrão compartilhado
+
+Relatório completo: `docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md`. Dois achados desta fase
+tocam consistência entre apps e ficam registrados aqui:
+
+- **`bolao/cdb2026/js/i18n.js` só define `pt-BR`** — confirmado por leitura direta do arquivo
+  (`window.CDB2026_I18N = { "pt-BR": {...} }`, nenhum objeto `es`/`en-US`), diferente da regra de
+  3 idiomas documentada para a Copa em `CLAUDE.md`. **`INTENTIONALLY_DIFFERENT`** — a Copa do
+  Brasil é uma competição doméstica (participantes brasileiros), diferente da Copa do Mundo. Não
+  estava registrado como intencional antes desta auditoria; agora está.
+- **`C.database.provider`/`C.espn.leagueSlug`/`C.database.localFallback`** em `config.js` não são
+  lidos por nenhum código de `app.js` no CDB2026 (confirmado por grep). `localFallback` é
+  compartilhado com os outros dois apps (mencionado em `PROJECT_MEMORY.md` como presente "nos
+  três"); `provider`/`leagueSlug` seguem o mesmo padrão de schema com BR2026 (que tem ambos) e
+  Copa (que tem `provider`). Não removidos unilateralmente do CDB2026 — mudar um padrão de schema
+  compartilhado exige avaliação cross-app, fora do escopo de um patch de um app só.
+- **Timezone do audit log admin (`America/New_York`, "ET") é inconsistente** com todos os outros
+  timestamps administrativos do CDB2026 (recibo/rodapé/cutoff/CSV, todos BRT) — sem justificativa
+  documentada encontrada. Não corrigido (mudaria o horário civil exibido, não é só formatação) —
+  registrado em `CDB2026_RISK_CONTROL_MATRIX.md` para decisão do Eduardo.
+- **`@supabase/supabase-js` é carregado via CDN no CDB2026 mas não usado** — `app.js` fala com a
+  REST API do Supabase via `fetch()` puro, não via este SDK (confirmado por grep, zero chamadas
+  `window.supabase.*`). Candidato a remoção do `<script>`, não removido nesta fase — ver
+  `CDB2026_DEPENDENCY_INVENTORY.md`.

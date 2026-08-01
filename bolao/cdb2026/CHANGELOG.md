@@ -1,5 +1,77 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.56 — 2026-08 — Fase 2: modernização controlada, limpeza técnica, preparação para auditoria
+
+Continuação da auditoria de código (v3.55) pedida pelo Eduardo — desta vez modernização
+controlada em cima de um golden master fixado antes de qualquer mudança (hash de comportamento
+verificado **inalterado** do início ao fim). Relatório completo:
+`docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md`. Novos documentos de plataforma:
+`CDB2026_CODE_INVENTORY.md`, `CDB2026_DATA_DICTIONARY.md`,
+`CDB2026_REQUIREMENTS_TRACEABILITY_MATRIX.md`, `CDB2026_DATA_LINEAGE.md`,
+`CDB2026_RISK_CONTROL_MATRIX.md`, `CDB2026_DEPENDENCY_INVENTORY.md`,
+`CDB2026_BACKUP_AND_RECOVERY.md`, `CDB2026_OPERATIONS_RUNBOOK.md`, `docs/bolao/adr/ADR-001..005`.
+
+**Explicabilidade de pontuação (`explainScore()`).** Nova função que decompõe o total de uma
+entrada item a item, derivada exclusivamente do `detail` que `scoreEntry()` já devolve — nunca
+recalcula. Reconcilia exatamente com o total oficial nas 4 entradas de teste, inclusive uma
+entrada sem nenhum palpite (zero linhas, sem fabricar dado). Exposta via
+`window.__CDB2026_TESTHOOKS__`.
+
+**Auditor de integridade somente-leitura (`audit_integrity.py`, novo).** Detecta IDs/entradas
+duplicadas, entrada sem participante, pagamento sem entrada, resultado sem confronto, partida
+FINAL sem placar, campeão incompatível com o placar da Final, timestamps inválidos, flags de
+migração inválidas, eventos de audit log malformados, referências quebradas. Trabalha por padrão
+só com a fixture anonimizada; nunca acessa produção. Self-teste próprio recomputa a pontuação da
+fixture com a mesma fórmula transcrita em `audit_scoring.py` e se recusa a rodar se divergir do
+golden master (achado durante a escrita: a primeira versão do recompute esquecia o bônus de
+vice-campeão — pego pelo próprio self-teste antes de qualquer uso real, nunca chegou a produção).
+
+**Consolidação de duplicidade (baixo risco, comportamento idêntico, verificado pelo golden
+master antes/depois):** timestamp BRT (4 sites → `formatBrtTimestamp()`); cache de relógio ao
+vivo (2 pares → `safeLocalStorageGetJson`/`safeLocalStorageSetJson`); scaffolding de
+fetch+timeout duplicado em 2 chamadas ESPN (consolidado sobre `fetchJson()`, já existente);
+markup do QR do Zelle (2 sites → `zelleQrHtml()`). Achados de maior risco (travessia de picks
+triplicada em recibo/ranking/CSV; 4 sites de escrita direta de `localStorage` do estado
+principal) foram deliberadamente **não** consolidados — a regra em cada site só é
+*aparentemente* igual, não é seguro fundir sem uma reformulação maior.
+
+**Código morto removido (evidência verificada individualmente, ver relatório):** variável
+`_liveTiesLastPollAt` (nunca lida); 7 regras CSS sem nenhuma referência estática ou dinâmica
+(`.cdb-results-grid`, `.pick-group-note`, `.pick-pos-label`, `.pick-select`, `.tie-advance`,
+`.tie-vs`, `.tie-teams-pending`). Campos de config aparentemente não-lidos
+(`provider`/`leagueSlug`/`localFallback`) **não** foram removidos — são um padrão compartilhado
+com BR2026/Copa, fora do escopo de um patch de um app só.
+
+**Timezone do audit log inconsistente (achado, não corrigido).** Recibo/rodapé/CSV/cutoff usam
+BRT; o audit log admin usa ET, sem justificativa documentada — mudar isso muda o horário civil
+mostrado, não é só formatação, então ficou registrado para decisão do Eduardo em vez de alterado
+silenciosamente.
+
+**Mensagem de confirmação de e-mail corrigida (era otimista demais).** "Verifique seu e-mail
+para o comprovante" prometia entrega antes do envio de fato acontecer (a fila é em memória, sem
+retry, sem persistência entre reloads). Agora aponta para o comprovante em-página, que É síncrono
+e sempre disponível: "O comprovante também fica disponível aqui na página — o envio por e-mail
+pode levar alguns instantes."
+
+**Concorrência real (caracterizada, não implementada).** Novo teste em `audit_state_merge.mjs`
+prova que o read-merge-write (v3.55/AUDIT-03) resolve staleness sequencial mas NÃO uma corrida
+verdadeira entre duas escritas quase simultâneas — classificação formal e recomendação
+arquitetural em `docs/bolao/adr/ADR-002-state-merge-strategy.md`. Nenhum backend novo
+implementado (fora de escopo, mudança de arquitetura).
+
+**`paid` any-true-wins (reavaliado).** Evita reversão acidental, mas também impede correção
+legítima de um pagamento marcado errado — modelo futuro com `reason`/`updatedBy`/`operationId`
+proposto em `CDB2026_MODERNIZATION_REPORT_2026-08.md` §5, não implementado (muda o formato do
+dado, exige decisão do Eduardo).
+
+**Regressão:** `python3 bolao/cdb2026/scripts/audit_scoring.py`, `python3
+bolao/br2026/scripts/audit_scoring.py`, `python3 bolao/copa2026/scripts/audit_scoring.py`, `node
+bolao/cdb2026/scripts/audit_state_merge.mjs`, `node
+bolao/cdb2026/scripts/audit_golden_master.mjs`, `python3
+bolao/cdb2026/scripts/audit_integrity.py` — todos passando. QA de navegador real (Playwright,
+Supabase/ESPN/EmailJS/CDN bloqueados) nas 4 rotas do bolão, desktop e mobile — sem erro real de
+console.
+
 ## v3.55 — 2026-08 — Auditoria de código: 1 P0 + 4 P1 + 3 P2 corrigidos
 
 Auditoria técnica completa pedida pelo Eduardo (relatório integral em
