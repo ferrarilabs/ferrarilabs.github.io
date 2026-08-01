@@ -1491,27 +1491,30 @@ function renderPickDisplay(entry, detail) {
         const d = detail?.matches?.[`${tieId}:${leg}`];
         const legLabel = leg === "single" ? "" : ` (${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))})`;
         const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
-        rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        const rm = tie.matches?.[leg];
+        const realScore = (rm && rm.goalsHome != null && rm.goalsAway != null) ? `${rm.goalsHome} × ${rm.goalsAway}` : "—";
+        rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       });
       const pickQual = entry.picks?.qualified?.[tieId];
       if (tie.qualifiedTeamId && pickQual) {
         const d = detail?.ties?.[tieId];
         const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
-        rows.push(`<tr><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        const realQualified = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
+        rows.push(`<tr><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
     });
   });
 
   const predicted = predictedPodium(entry, s);
   const bonusRow = (label, team, d) => team
-    ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
+    ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td>—</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
 
-  return `<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th><th style="text-align:center">Pts</th></tr></thead>
+  return `<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th><th>${esc(t("receiptColReal"))}</th><th style="text-align:center">Pts</th></tr></thead>
     <tbody>
       ${bonusRow("🏆 " + t("pickLabelChampion"), predicted.champion, detail?.champion)}
       ${bonusRow("🥈 " + t("pickLabelRunnerUp"), predicted.runnerUp, detail?.runnerUp)}
-      ${rows.join("") || `<tr><td colspan="3">${esc(t("pickNoOpenTies"))}</td></tr>`}
+      ${rows.join("") || `<tr><td colspan="4">${esc(t("pickNoOpenTies"))}</td></tr>`}
     </tbody></table>`;
 }
 

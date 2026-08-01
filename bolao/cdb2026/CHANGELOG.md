@@ -1,5 +1,27 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.66 — 2026-08-01 — "Ver palpites" ganha coluna de resultado real (paridade estrutural com a Copa)
+
+Eduardo, depois da v3.65: "The format needs to match 100% Copa do Mundo." Auditoria de estrutura
+(não só peso de fonte desta vez): a tabela `picksTable()` da Copa sempre mostra o placar
+palpitado **e** o resultado real lado a lado (colunas "Placar"/"Real"), pra quem está olhando
+poder comparar os dois sem sair da tela. `renderPickDisplay()` do CDB2026 só mostrava o placar
+palpitado — sem coluna nenhuma pro que realmente aconteceu em campo. Gap real, não só cosmético.
+
+Adicionada coluna "Resultado real" (`receiptColReal`, novo em `i18n.js`) entre "Placar palpitado"
+e "Pts", lendo `tie.matches[leg].goalsHome/goalsAway` (mesma orientação de casa/fora já usada por
+`matchPoints()` — nenhum dado novo, só exposição do que já existe no estado). "—" quando o jogo
+ainda não tem resultado, igual ao padrão da Copa (`hasRealScore ? ... : "—"`). Linha de
+"Classificado" também ganhou a mesma coluna, mostrando quem realmente avançou (só depois de
+`tie.qualifiedTeamId` setado). Linhas de campeão/vice previsto mostram "—" no lugar (não existe
+"resultado real" pra bônus de pódio ainda não decidido).
+
+Reproduzido visualmente com estado real de produção (Playwright + Supabase, entrada "Marcelo
+<participant> #1"): confirmado que Vasco × Fluminense (jogo já disputado, 0×0) agora mostra "0 × 0"
+na coluna Real ao lado do palpite "1 × 1", igual à Copa mostraria. `node --check`: OK.
+`audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
+`audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só exibição.
+
 ## v3.65 — 2026-08-01 — Negrito inconsistente no "Ver palpites" do Ranking: alvo real era o destaque de linha por acerto/erro, não .tie-locked-score
 
 Eduardo, depois da v3.64 (que só tocou `.tie-locked-score`, do formulário de palpites):
