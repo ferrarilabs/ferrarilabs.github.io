@@ -84,8 +84,8 @@
           "teamB": "Fluminense",
           "qualifiedTeamId": "A",
           "matches": {
-            "first":  { "homeTeam": "Vasco", "awayTeam": "Fluminense", "goalsHome": 2, "goalsAway": 1, "status": "FINAL", "kickoff": "2026-08-01T20:30:00.000Z" },
-            "second": { "homeTeam": "Fluminense", "awayTeam": "Vasco", "goalsHome": 0, "goalsAway": 0, "status": "FINAL", "kickoff": "2026-08-08T20:30:00.000Z" }
+            "first":  { "homeTeam": "Vasco", "awayTeam": "Fluminense", "goalsHome": 2, "goalsAway": 1, "status": "FINAL", "kickoff": "2026-07-18T20:30:00.000Z" },
+            "second": { "homeTeam": "Fluminense", "awayTeam": "Vasco", "goalsHome": 0, "goalsAway": 0, "status": "FINAL", "kickoff": "2026-07-25T20:30:00.000Z" }
           }
         },
         "t-oit-2": {

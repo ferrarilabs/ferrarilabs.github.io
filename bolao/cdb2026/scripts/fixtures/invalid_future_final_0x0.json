@@ -1,0 +1,30 @@
+{
+  "_comment": [
+    "Fixture NEGATIVA (Fase 2.1 §10) — reproduz o caso que antes vivia dentro de golden_state.json:",
+    "uma perna marcada FINAL 0x0 com kickoff no futuro, o padrão real que a ESPN retorna para um",
+    "jogo adiado/cancelado antes do fix de AUDIT-06 (bolao/cdb2026/js/app.js, fetchEspnCandidates()).",
+    "audit_integrity.py deve reportar WARNING 'suspicious-0x0-future-kickoff' para t-oit-1.second.",
+    "Movida para cá para que golden_state.json rode sem nenhum WARNING/ERROR/CRITICAL (Fase 2.1 §10)."
+  ],
+  "entries": [],
+  "deletedIds": [],
+  "paid": {},
+  "phases": {
+    "oitavas": {
+      "cutoffAt": "2026-08-01T20:30:00.000Z",
+      "ties": {
+        "t-oit-1": {
+          "teamA": "Vasco",
+          "teamB": "Fluminense",
+          "matches": {
+            "first":  { "homeTeam": "Vasco", "awayTeam": "Fluminense", "goalsHome": 2, "goalsAway": 1, "status": "FINAL", "kickoff": "2026-07-18T20:30:00.000Z" },
+            "second": { "homeTeam": "Fluminense", "awayTeam": "Vasco", "goalsHome": 0, "goalsAway": 0, "status": "FINAL", "kickoff": "2099-08-08T20:30:00.000Z" }
+          }
+        }
+      }
+    }
+  },
+  "espnSync": { "activePhaseId": "oitavas" },
+  "auditLog": [],
+  "meta": { "updatedAt": "2026-07-20T12:15:00.000Z", "version": "fixture" }
+}

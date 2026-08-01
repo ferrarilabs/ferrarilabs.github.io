@@ -187,6 +187,61 @@ def check_recompute_matches_golden_master():
     return True, ""
 
 
+def check_golden_fixture_is_clean():
+    """Fase 2.1 §10: golden_state.json must represent a VALID state — no WARNING/ERROR/CRITICAL.
+    The one case that used to violate this (a FINAL 0x0 leg with a future kickoff) was moved to
+    its own negative fixture (invalid_future_final_0x0.json) specifically so this holds."""
+    fixture_path = os.path.join(SCRIPT_DIR, "fixtures", "golden_state.json")
+    with open(fixture_path, encoding="utf-8") as f:
+        state = json.load(f)
+    findings = run_checks(state)
+    bad = [f for f in findings if f.level != "INFO"]
+    if bad:
+        return False, f"golden_state.json has {len(bad)} non-INFO finding(s): {[f.code for f in bad]}"
+    return True, ""
+
+
+# Fase 2.1 §10: each negative fixture must trip the SPECIFIC finding it exists to demonstrate —
+# proves the auditor actually detects these problems, not just that it runs without crashing.
+NEGATIVE_FIXTURES = [
+    ("invalid_future_final_0x0.json", "suspicious-0x0-future-kickoff", "WARNING"),
+    ("invalid_duplicate_entry.json", "duplicate-entry-id", "CRITICAL"),
+    ("invalid_orphan_pick.json", "pick-references-unknown-tie", "ERROR"),
+]
+
+
+def check_negative_fixtures_are_caught():
+    for filename, expected_code, expected_level in NEGATIVE_FIXTURES:
+        path = os.path.join(SCRIPT_DIR, "fixtures", filename)
+        with open(path, encoding="utf-8") as f:
+            state = json.load(f)
+        findings = run_checks(state)
+        hit = [f for f in findings if f.code == expected_code and f.level == expected_level]
+        if not hit:
+            got = [(f.code, f.level) for f in findings]
+            return False, f"{filename}: expected {expected_level} '{expected_code}' not found — got {got}"
+    return True, ""
+
+
+def run_self_tests():
+    """--self-test: runs all built-in self-tests (recompute transcription, golden fixture
+    cleanliness, negative fixtures caught) and reports pass/fail for each — same spirit as
+    audit_scoring.py's run_static_audit(), for a script that otherwise has no test runner."""
+    checks = [
+        ("recompute matches golden master", check_recompute_matches_golden_master),
+        ("golden_state.json has no WARNING/ERROR/CRITICAL", check_golden_fixture_is_clean),
+        ("negative fixtures are each caught", check_negative_fixtures_are_caught),
+    ]
+    failures = 0
+    for name, fn in checks:
+        ok, detail = fn()
+        print(f"  {'✓' if ok else '✗ FAIL'} {name}{f' — {detail}' if not ok and detail else ''}")
+        if not ok:
+            failures += 1
+    print("\n" + ("✓ ALL SELF-TESTS PASSED" if failures == 0 else f"✗ {failures} SELF-TEST(S) FAILED"))
+    return failures == 0
+
+
 def run_checks(state):
     findings = []
 
@@ -214,7 +269,7 @@ def run_checks(state):
         seen_ids[eid] = seen_ids.get(eid, 0) + 1
 
     # Duplicate *content* (same participant email registered twice) is only ever WARNING — a
-    # real participant is allowed to submit a second entry (see REDACTED_PARTICIPANT #1/#2,
+    # real participant is allowed to submit a second entry (see "Participante A #1/#2",
     # 2026-08-01 — this is expected product behavior, not a defect).
     by_email = {}
     for e in entries:
@@ -390,7 +445,13 @@ def main():
     parser.add_argument("--json", action="store_true", help="Saída em JSON em vez de texto")
     parser.add_argument("--min-level", default="INFO", choices=LEVELS,
                          help="Nível mínimo a exibir (padrão: INFO, mostra tudo)")
+    parser.add_argument("--self-test", action="store_true",
+                         help="Roda a suíte de self-tests embutida (transcrição vs. golden master, "
+                              "golden_state.json limpo, fixtures negativas detectadas) e sai — não lê --file")
     args = parser.parse_args()
+
+    if args.self_test:
+        return 0 if run_self_tests() else 1
 
     ok, detail = check_recompute_matches_golden_master()
     if not ok:
