@@ -1,0 +1,133 @@
+{
+  "_comment": [
+    "Fixture ANONIMIZADA de caracterização (golden master) do CDB2026 — auditoria 2026-08.",
+    "Nenhum dado real de participante. Nomes e e-mails são sintéticos ('Participante A',",
+    "'a@example.invalid'). Times são reais porque a orientação mandante/visitante e o bônus de",
+    "pódio dependem de identidade de time, não de dado pessoal.",
+    "",
+    "Esta fixture existe para CONGELAR o comportamento atual das áreas protegidas antes de",
+    "qualquer modernização. Se um teste que a usa passar a falhar, a diferença deve ser",
+    "investigada — NUNCA atualize o hash esperado só para o teste voltar a passar.",
+    "",
+    "Cobre de propósito: partida única e ida-e-volta; placar exato, resultado certo, um-lado e",
+    "erro completo; 0-0 legítimo; perna sem resultado; classificado certo e errado; empate no",
+    "agregado resolvido por pênaltis (qualifiedTeamId explícito); campeão e vice; entrada sem",
+    "nenhum palpite; empate de pontuação para exercitar TODO o desempate."
+  ],
+  "entries": [
+    {
+      "id": "e-alpha",
+      "entryName": "Participante A",
+      "payerName": "Pagador A",
+      "participantEmail": "a@example.invalid",
+      "paymentMethod": "CashApp",
+      "createdAt": "2026-07-20T12:00:00.000Z",
+      "picks": {
+        "matches": {
+          "t-oit-1": { "first": { "goalsHome": 2, "goalsAway": 1 }, "second": { "goalsHome": 0, "goalsAway": 0 } },
+          "t-oit-2": { "first": { "goalsHome": 1, "goalsAway": 1 }, "second": { "goalsHome": 3, "goalsAway": 0 } },
+          "t-fin-1": { "single": { "goalsHome": 2, "goalsAway": 0 } }
+        },
+        "qualified": { "t-oit-1": "A", "t-oit-2": "B", "t-fin-1": "A" }
+      }
+    },
+    {
+      "id": "e-bravo",
+      "entryName": "Participante B",
+      "payerName": "Pagador B",
+      "participantEmail": "b@example.invalid",
+      "paymentMethod": "Zelle",
+      "createdAt": "2026-07-20T12:05:00.000Z",
+      "picks": {
+        "matches": {
+          "t-oit-1": { "first": { "goalsHome": 1, "goalsAway": 0 }, "second": { "goalsHome": 1, "goalsAway": 2 } },
+          "t-oit-2": { "first": { "goalsHome": 0, "goalsAway": 0 }, "second": { "goalsHome": 2, "goalsAway": 2 } },
+          "t-fin-1": { "single": { "goalsHome": 0, "goalsAway": 1 } }
+        },
+        "qualified": { "t-oit-1": "B", "t-oit-2": "A", "t-fin-1": "B" }
+      }
+    },
+    {
+      "id": "e-charlie",
+      "entryName": "Participante C",
+      "payerName": "Pagador C",
+      "participantEmail": "c@example.invalid",
+      "paymentMethod": "Venmo",
+      "createdAt": "2026-07-20T12:10:00.000Z",
+      "picks": { "matches": {}, "qualified": {} }
+    },
+    {
+      "id": "e-delta",
+      "entryName": "Participante D",
+      "payerName": "Pagador D",
+      "participantEmail": "d@example.invalid",
+      "paymentMethod": "CashApp",
+      "createdAt": "2026-07-20T12:15:00.000Z",
+      "picks": {
+        "matches": {
+          "t-oit-1": { "first": { "goalsHome": 2, "goalsAway": 1 }, "second": { "goalsHome": 0, "goalsAway": 0 } },
+          "t-oit-2": { "first": { "goalsHome": 1, "goalsAway": 1 }, "second": { "goalsHome": 3, "goalsAway": 0 } },
+          "t-fin-1": { "single": { "goalsHome": 2, "goalsAway": 0 } }
+        },
+        "qualified": { "t-oit-1": "A", "t-oit-2": "B", "t-fin-1": "A" }
+      }
+    }
+  ],
+  "deletedIds": [],
+  "paid": { "e-alpha": true, "e-bravo": false },
+  "phases": {
+    "oitavas": {
+      "cutoffAt": "2026-08-01T20:30:00.000Z",
+      "ties": {
+        "t-oit-1": {
+          "teamA": "Vasco",
+          "teamB": "Fluminense",
+          "qualifiedTeamId": "A",
+          "matches": {
+            "first":  { "homeTeam": "Vasco", "awayTeam": "Fluminense", "goalsHome": 2, "goalsAway": 1, "status": "FINAL", "kickoff": "2026-08-01T20:30:00.000Z" },
+            "second": { "homeTeam": "Fluminense", "awayTeam": "Vasco", "goalsHome": 0, "goalsAway": 0, "status": "FINAL", "kickoff": "2026-08-08T20:30:00.000Z" }
+          }
+        },
+        "t-oit-2": {
+          "teamA": "Corinthians",
+          "teamB": "Grêmio",
+          "qualifiedTeamId": "B",
+          "matches": {
+            "first":  { "homeTeam": "Corinthians", "awayTeam": "Grêmio", "goalsHome": 1, "goalsAway": 1, "status": "FINAL", "kickoff": "2026-08-02T22:30:00.000Z" },
+            "second": { "homeTeam": "Grêmio", "awayTeam": "Corinthians", "goalsHome": 1, "goalsAway": 1, "status": "FINAL", "kickoff": "2026-08-09T22:30:00.000Z" }
+          }
+        },
+        "t-oit-3": {
+          "teamA": "Santos",
+          "teamB": "Bahia",
+          "matches": {
+            "first":  { "homeTeam": "Santos", "awayTeam": "Bahia", "goalsHome": null, "goalsAway": null, "status": "SCHEDULED", "kickoff": "2026-08-03T22:30:00.000Z" },
+            "second": { "homeTeam": "Bahia", "awayTeam": "Santos", "goalsHome": null, "goalsAway": null, "status": "SCHEDULED", "kickoff": "2026-08-10T22:30:00.000Z" }
+          }
+        }
+      }
+    },
+    "final": {
+      "cutoffAt": "2026-11-01T22:00:00.000Z",
+      "ties": {
+        "t-fin-1": {
+          "teamA": "Vasco",
+          "teamB": "Grêmio",
+          "qualifiedTeamId": "A",
+          "matches": {
+            "single": { "homeTeam": "Vasco", "awayTeam": "Grêmio", "goalsHome": 2, "goalsAway": 0, "status": "FINAL", "kickoff": "2026-11-01T22:00:00.000Z" }
+          }
+        }
+      }
+    }
+  },
+  "espnSync": {
+    "activePhaseId": "oitavas",
+    "seededKnownConfrontos": true,
+    "backfilledOitavasKickoffs": true,
+    "healedFalseAutoResults": true,
+    "healedPhantomTies": true
+  },
+  "auditLog": [],
+  "meta": { "updatedAt": "2026-07-20T12:15:00.000Z", "version": "fixture" }
+}

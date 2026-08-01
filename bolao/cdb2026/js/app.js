@@ -790,6 +790,15 @@ function renderReceiptBox(entry) {
 }
 
 // ─── Scoring ────────────────────────────────────────────────────────────────
+// Versão da REGRA de pontuação (não do site). Serve para uma auditoria conseguir dizer "esta
+// entrada foi pontuada sob qual regra" -- ver docs/bolao/adr/ADR-005 e a matriz de
+// rastreabilidade. Só muda quando a REGRA muda (valores em config.scoring, critério de
+// desempate, ou o que conta como acerto), nunca em refactor. Ao mudar: registre motivo,
+// aprovação, impacto e recálculo no CHANGELOG, e atualize o golden master conscientemente.
+//   rules-2026-07-13 — modelo por PARTIDA aprovado por Eduardo (10/5/1, tie 5, pódio 30/20),
+//                      vigente desde a v3.0 e inalterado por toda a auditoria de 2026-08.
+const SCORING_RULE_VERSION = "rules-2026-07-13";
+
 // Pontuação por partida, mutuamente exclusiva (nunca soma exact+result+side na mesma partida) —
 // mesmo espírito da Copa do Mundo (matchPoints/scoreEntry em bolao/js/app.js), aplicada aqui a
 // cada partida individual (não a um agregado digitado direto — ver CDB2026_RULES_AND_MODEL.md).
@@ -851,6 +860,98 @@ function scoreEntry(entry, s) {
   return { total, detail };
 }
 function getActiveScore(entry, s) { return scoreEntry(entry, s); }
+
+/**
+ * Explicabilidade da pontuação (auditoria 2026-08, fase 2 §19).
+ *
+ * Produz a decomposição auditável de UMA entrada: por que cada ponto foi dado, item a item.
+ * Um revisor independente precisa conseguir reproduzir um total sem ler o código do motor.
+ *
+ * REGRA DE OURO: esta função NÃO recalcula nada. Ela consome o `detail` que o próprio
+ * `scoreEntry()` já devolve e apenas o traduz para uma forma legível. Uma segunda implementação
+ * do cálculo — mesmo "equivalente" — poderia divergir com o tempo, que é exatamente o incidente
+ * histórico que originou o `audit_scoring.py` da Copa. Por construção, `total` aqui é o total
+ * oficial e a soma de `breakdown[].points` reconcilia com ele (garantido por `reconciles`).
+ *
+ * @param {object} entry  entrada do participante
+ * @param {object} s      estado da competição
+ * @returns {{total:number, reconciles:boolean, ruleVersion:string, breakdown:Array<{
+ *            ruleId:string, entityType:string, entityId:string, label:string,
+ *            expected:(string|null), actual:(string|null), points:number, explanation:string}>}}
+ */
+function explainScore(entry, s) {
+  const { total, detail } = scoreEntry(entry, s);
+  const sc = C.scoring;
+  const breakdown = [];
+  const fmt = m => (m && m.goalsHome != null ? `${m.goalsHome}–${m.goalsAway}` : null);
+
+  DATA.phases.forEach(phase => {
+    Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+      legsForFormat(phase.format).forEach(leg => {
+        const d = detail.matches?.[`${tieId}:${leg}`];
+        if (!d) return; // sem palpite ou sem resultado -> não pontua e não entra na explicação
+        const { home, away } = legTeams(tie, leg, tie.matches?.[leg]);
+        const legName = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
+        breakdown.push({
+          ruleId: `match.${d.type}`,
+          entityType: "match",
+          entityId: `${tieId}:${leg}`,
+          label: `${home} × ${away}${legName}`,
+          expected: fmt(entry.picks?.matches?.[tieId]?.[leg]),
+          actual: fmt(tie.matches?.[leg]),
+          points: d.pts,
+          explanation: {
+            exact:  `Placar exato — ${sc.match.exact} pts`,
+            result: `Resultado certo (vencedor/empate), placar diferente — ${sc.match.result} pts`,
+            side:   `Gols de um dos times certos — ${sc.match.side} pt por time acertado`,
+            miss:   "Nenhum critério atingido — 0 pt",
+          }[d.type] || d.type,
+        });
+      });
+      const dt = detail.ties?.[tieId];
+      if (dt) {
+        const pick = entry.picks?.qualified?.[tieId];
+        const nameOf = side => (side === "A" ? tie.teamA : tie.teamB);
+        breakdown.push({
+          ruleId: `tie.qualified.${dt.type}`,
+          entityType: "tie",
+          entityId: tieId,
+          label: `Classificado — ${tie.teamA} × ${tie.teamB}`,
+          expected: pick ? nameOf(pick) : null,
+          actual: nameOf(tie.qualifiedTeamId),
+          points: dt.pts,
+          explanation: dt.type === "hit"
+            ? `Acertou quem se classificou — ${sc.tieBonus} pts`
+            : "Errou quem se classificou — 0 pt",
+        });
+      }
+    });
+  });
+
+  const official = officialPodium(s);
+  const predicted = predictedPodium(entry, s);
+  [["champion", "Campeão", sc.bonus.champion], ["runnerUp", "Vice-campeão", sc.bonus.runnerUp]]
+    .forEach(([k, label, pts]) => {
+      const d = detail[k];
+      if (!d) return;
+      breakdown.push({
+        ruleId: `podium.${k}.${d.type}`,
+        entityType: "podium",
+        entityId: k,
+        label,
+        expected: predicted[k],
+        actual: official[k],
+        points: d.pts,
+        explanation: d.type === "exact" ? `Acertou o ${label.toLowerCase()} — ${pts} pts`
+                                        : `Errou o ${label.toLowerCase()} — 0 pt`,
+      });
+    });
+
+  const sum = breakdown.reduce((a, b) => a + b.points, 0);
+  // Se isto ficar false, a explicação e o total oficial divergiram -- sinal de bug, não de
+  // arredondamento. O chamador deve tratar como erro de integridade, nunca "quase certo".
+  return { total, reconciles: sum === total, ruleVersion: SCORING_RULE_VERSION, breakdown };
+}
 
 function resultsProgress(s) {
   let done = 0, totalTies = 0;
@@ -3413,7 +3514,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 // Read-only test hooks — pure functions only, no state mutation exposed. Mesmo padrão do BR2026
 // (window.__BR2026_TESTHOOKS__, bolao/br2026/js/app.js).
-window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays };
+window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays, explainScore, legTeams, SCORING_RULE_VERSION };
 })();
 
 if ('serviceWorker' in navigator) {
