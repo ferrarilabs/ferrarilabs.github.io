@@ -2483,6 +2483,16 @@ async function fetchEspnEventSummary(eventId) {
   }
 }
 
+// A ESPN às vezes nomeia um time diferente do nome curado usado em DATA.knownConfrontos/data.js
+// -- sem normalizar, TODO casamento por nome (fetchLiveTies, autoSyncEspn, autoSyncEspnResults)
+// falha silenciosamente para esse time: nunca aparece "ao vivo", nunca trava resultado
+// automaticamente. Achado em produção (2026-08-01, jogo real Vasco×Fluminense ao vivo não
+// aparecendo): ESPN devolve "Vasco da Gama", nosso confronto usa "Vasco". Mesmo padrão da
+// BR2026 (ESPN_SCOREBOARD_NAME_ALIASES/normalizeEspnTeamName, bolao/br2026/js/app.js) --
+// mantido em sincronia à mão se a ESPN mudar/adicionar outro apelido.
+const CDB_ESPN_NAME_ALIASES = { "Vasco da Gama": "Vasco" };
+function normalizeEspnTeamName(name) { return CDB_ESPN_NAME_ALIASES[name] || name; }
+
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
@@ -2535,8 +2545,8 @@ async function fetchEspnCandidates() {
       return {
         id: ev.id,
         dateISO: comp.date || ev.date || "",
-        homeTeam: home?.team?.displayName || "",
-        awayTeam: away?.team?.displayName || "",
+        homeTeam: normalizeEspnTeamName(home?.team?.displayName || ""),
+        awayTeam: normalizeEspnTeamName(away?.team?.displayName || ""),
         // `!postponed` é obrigatório aqui, não só no chip de "Adiado": a ESPN devolve um jogo
         // adiado como state:"post" COM score "0" (verificado em dados reais de 2026-07-29 na
         // bra.1) -- sem esta guarda, `homeScore` virava 0 (não null) e autoSyncEspn()/
@@ -3566,7 +3576,15 @@ async function init() {
   // vivo entre um re-render e outro. Divergência real encontrada por Eduardo (2026-07-14).
   // renderLiveTieCard() no mesmo tick: só re-renderiza o relógio já interpolado em memória
   // (liveClockDisplay), sem rede — o poll de rede real é o setInterval de 60s logo abaixo.
-  setInterval(() => { if (!document.hidden) { renderCountdown(); renderNextTieCard(); renderLiveTieCard(); } }, 1000);
+  // navEntryBtn.disabled (linha ~3555/~3671) só era decidido no load -- uma sessão aberta desde
+  // antes do cutoff continuava mostrando "Palpites" habilitado depois do prazo passar de verdade,
+  // até um F5. Reavalia no mesmo tick de 1s (mesmo timer do countdown, que já teria zerado nesse
+  // momento) -- direção fechado->aberto já tratada em showSection() logo abaixo; aqui só o botão.
+  setInterval(() => {
+    if (document.hidden) return;
+    renderCountdown(); renderNextTieCard(); renderLiveTieCard();
+    if (navEntryBtn) navEntryBtn.disabled = isPastEntryCutoff();
+  }, 1000);
 
   // Poll de partida ao vivo (2026-07-15) -- mesma cadência de 60s da Copa/BR2026
   // (pollLiveScores/pollAll), separado do sync de resultado FINAL a cada 5 min
