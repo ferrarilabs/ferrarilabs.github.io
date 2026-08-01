@@ -101,24 +101,16 @@ console.log("Running CDB2026 golden-master (characterization) suite...\n");
 const api = ENGINE(C, DATA, []);
 
 // ── Scoring constants pinned (a rule change must be a deliberate, reviewed act) ──────────────
-// 2026-08-01: `result` (5 pts for correct win/draw/loss sign, wrong score) removed — Eduardo,
-// on seeing the first real result email (Vasco 0x0 Fluminense) score a 2x2 pick 5 pts: "Isso
-// está incorreto!!! ... Verifique contra as regras da copa do mundo" — that tier never existed
-// in the Copa's own matchPoints() (bolao/copa2026/js/app.js: only exact + side), and was a real,
-// undetected drift from CDB2026_RULES_AND_MODEL.md's own "mesmos valores da Copa do Mundo"
-// claim. See CHANGELOG.md for the full incident writeup.
 expect("scoring constants (match/tie/podium)",
   { m: C.scoring.match, tie: C.scoring.tieBonus, bonus: C.scoring.bonus },
-  { m: { exact: 10, side: 1 }, tie: 5, bonus: { champion: 30, runnerUp: 20 } });
+  { m: { exact: 10, result: 5, side: 1 }, tie: 5, bonus: { champion: 30, runnerUp: 20 } });
 
 // ── matchPoints: every branch, mutually exclusive ────────────────────────────────────────────
 const mp = (ph, pa, rh, ra) => api.matchPoints({ goalsHome: ph, goalsAway: pa }, { goalsHome: rh, goalsAway: ra });
 expect("matchPoints exact",              mp(2, 1, 2, 1), { pts: 10, type: "exact" });
 expect("matchPoints exact 0-0",          mp(0, 0, 0, 0), { pts: 10, type: "exact" });
-// Correct win/draw/loss sign but wrong score, no side goals matching either — must score 0
-// ("miss"), not the old, now-removed 5pt "result" tier. This is the exact bug Eduardo caught.
-expect("matchPoints correct sign, no side goals match", mp(3, 1, 2, 0), { pts: 0,  type: "miss" });
-expect("matchPoints correct draw sign, no side goals match", mp(1, 1, 2, 2), { pts: 0,  type: "miss" });
+expect("matchPoints correct result",     mp(3, 1, 2, 0), { pts: 5,  type: "result" });
+expect("matchPoints correct draw",       mp(1, 1, 2, 2), { pts: 5,  type: "result" });
 expect("matchPoints one side (home)",    mp(2, 3, 2, 0), { pts: 1,  type: "side" });
 expect("matchPoints one side (away)",    mp(3, 1, 0, 1), { pts: 1,  type: "side" });
 expect("matchPoints complete miss",      mp(3, 0, 0, 2), { pts: 0,  type: "miss" });
@@ -138,15 +130,12 @@ expect("predictedPodium (B picked)",    api.predictedPodium(state.entries[1], st
 expect("predictedPodium no pick",       api.predictedPodium(state.entries[2], state), { champion: null, runnerUp: null });
 
 // ── scoreEntry totals (the numbers that pay real money) ──────────────────────────────────────
-// e-bravo: 15 -> 0 after the "result" tier removal (2026-08-01) — its picks in the fixture only
-// ever had the correct W/D/L sign, never an exact score or a matching side goal count, so it
-// legitimately drops to 0. Confirmed via --print before updating this expectation.
 const totals = Object.fromEntries(state.entries.map(e => [e.id, api.scoreEntry(e, state).total]));
-expect("scoreEntry totals", totals, { "e-alpha": 105, "e-bravo": 0, "e-charlie": 0, "e-delta": 105 });
+expect("scoreEntry totals", totals, { "e-alpha": 105, "e-bravo": 15, "e-charlie": 0, "e-delta": 105 });
 
 // Per-entry detail hash — catches a changed breakdown even when the total happens to match.
 expect("scoreEntry detail hash (e-alpha)", sha(api.scoreEntry(state.entries[0], state).detail), "dadc32e2f50ddc80");
-expect("scoreEntry detail hash (e-bravo)", sha(api.scoreEntry(state.entries[1], state).detail), "d27b2f346414828c");
+expect("scoreEntry detail hash (e-bravo)", sha(api.scoreEntry(state.entries[1], state).detail), "39659e81abd3fd54");
 
 // ── Determinism: same input, repeated, must give the identical result ────────────────────────
 {
@@ -164,14 +153,15 @@ expect("scoreEntry detail hash (e-bravo)", sha(api.scoreEntry(state.entries[1], 
 
 // ── Ranking order + full tiebreak cascade ────────────────────────────────────────────────────
 // e-alpha and e-delta are byte-identical picks (same total, champion, runner-up, exact count) —
-// they must tie on rank and be ordered by the documented reverse-alpha entryName tiebreak.
+// they must tie on rank. 2026-08-01: the reverse-alpha entryName ordering between fully-tied
+// entries was removed (Eduardo: "O sort z-a não é critério de desempate favor remover, é só
+// cosmético" — it never affected the rank NUMBER, only which tied entry listed first). Order
+// between ties is now whatever Array.sort's stable ordering preserves from `state.entries`.
 {
-  // e-bravo and e-charlie now tie at 0 (post 2026-08-01 "result" tier removal) and share rank 3
-  // — e-charlie sorts first between them under the documented reverse-alpha display tiebreak.
   const ranked = api.rankEntriesBy(state.entries, e => api.scoreEntry(e, state));
-  expect("ranking order (ids)", ranked.map(r => r.e.id), ["e-delta", "e-alpha", "e-charlie", "e-bravo"]);
-  expect("ranking ranks",       ranked.map(r => r.rank), [1, 1, 3, 3]);
-  expect("ranking totals",      ranked.map(r => r.total), [105, 105, 0, 0]);
+  expect("ranking order (ids)", ranked.map(r => r.e.id), ["e-alpha", "e-delta", "e-bravo", "e-charlie"]);
+  expect("ranking ranks",       ranked.map(r => r.rank), [1, 1, 3, 4]);
+  expect("ranking totals",      ranked.map(r => r.total), [105, 105, 15, 0]);
   expect("identical entries share rank 1", ranked[0].rank === ranked[1].rank, true);
 }
 
@@ -231,9 +221,10 @@ expect("scoreEntry detail hash (e-bravo)", sha(api.scoreEntry(state.entries[1], 
     ranking: api.rankEntriesBy(state.entries, e => api.scoreEntry(e, state)).map(r => [r.e.id, r.rank, r.total]),
     podium: api.officialPodium(state),
   };
-  // 2026-08-01: hash moves because e-bravo's total legitimately changed (15 -> 0, "result" tier
-  // removal) — see the scoring-constants/totals/ranking expectations above for the full trail.
-  expect("full behavioural snapshot hash", sha(snapshot), "d8d1f15f48120deb");
+  // 2026-08-01: hash moves only because ranking ORDER between e-alpha/e-delta changed (the
+  // reverse-alpha name tiebreak was removed, see the comment above) — totals/ranks/podium/scoring
+  // are all otherwise identical to the original golden master.
+  expect("full behavioural snapshot hash", sha(snapshot), "f013dbc96d2537e2");
 }
 
 console.log("\n" + (failures === 0 ? "✓ ALL CHECKS PASSED" : `✗ GOLDEN MASTER FAILED — ${failures} check(s)`));

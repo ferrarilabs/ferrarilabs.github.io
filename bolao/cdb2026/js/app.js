@@ -990,6 +990,9 @@ function matchPoints(pick, result) {
   if (pick.goalsHome === result.goalsHome && pick.goalsAway === result.goalsAway) {
     return { pts: sc.exact, type: "exact" };
   }
+  const pickSign = Math.sign(pick.goalsHome - pick.goalsAway);
+  const realSign = Math.sign(result.goalsHome - result.goalsAway);
+  if (pickSign === realSign) return { pts: sc.result, type: "result" };
   let pts = 0;
   if (pick.goalsHome === result.goalsHome) pts += sc.side;
   if (pick.goalsAway === result.goalsAway) pts += sc.side;
@@ -1081,6 +1084,7 @@ function explainScore(entry, s) {
           points: d.pts,
           explanation: {
             exact:  `Placar exato — ${sc.match.exact} pts`,
+            result: `Resultado certo (vitória/empate/derrota), placar não exato — ${sc.match.result} pts`,
             side:   `Gols de um dos times certos — ${sc.match.side} pt por time acertado`,
             miss:   "Nenhum critério atingido — 0 pt",
           }[d.type] || d.type,
@@ -1346,13 +1350,17 @@ function renderCountdown() {
 // a tela realmente mostra (mesma classe de bug do CHANGELOG v4.57 da Copa, evitada aqui por só
 // ter UM lugar que sabe ordenar entradas).
 function rankEntriesBy(entries, scoreFn) {
+  // Sem tiebreak por nome (Z→A) -- Eduardo, 2026-08-01: "O sort z-a não é critério de desempate
+  // favor remover, é só cosmético". Nunca afetava o RANK em si (a chave de rank abaixo já só usa
+  // total/campeão/vice/placares exatos) -- só decidia qual das entradas genuinamente empatadas
+  // aparecia primeiro na lista. Sem esse comparador, Array.sort (estável em JS moderno) preserva
+  // a ordem relativa original entre empatados.
   const scored = entries.map(e => ({ e, ...(scoreFn(e) || { total: 0, detail: null }) }))
     .sort((a, b) =>
       b.total - a.total ||
       hitChampion(b.detail) - hitChampion(a.detail) ||
       hitRunnerUp(b.detail) - hitRunnerUp(a.detail) ||
-      countExactMatches(b.detail) - countExactMatches(a.detail) ||
-      b.e.entryName.localeCompare(a.e.entryName, "pt-BR")
+      countExactMatches(b.detail) - countExactMatches(a.detail)
     );
   let rank = 0, prevKey = null;
   return scored.map((item, i) => {
@@ -1582,6 +1590,7 @@ function renderRules() {
       <table class="rules-table">
         <tbody>
           <tr><td>${esc(t("rulesMatchExact"))}</td><td><b>${sc.match.exact}</b></td></tr>
+          <tr><td>${esc(t("rulesMatchResult"))}</td><td><b>${sc.match.result}</b></td></tr>
           <tr><td>${esc(t("rulesMatchSide"))}</td><td><b>${sc.match.side}</b> por lado</td></tr>
           <tr><td>${esc(t("rulesTieBonus"))}</td><td><b>${sc.tieBonus}</b></td></tr>
           <tr><td>🏆 Campeão</td><td><b>${sc.bonus.champion}</b></td></tr>
@@ -1594,7 +1603,6 @@ function renderRules() {
         <li>${esc(t("tbChampion"))}</li>
         <li>${esc(t("tbRunnerUp"))}</li>
         <li>${esc(t("tbExactTies"))}</li>
-        <li>${esc(t("tbAlpha"))}</li>
       </ol>
     </div>
     <div class="card">

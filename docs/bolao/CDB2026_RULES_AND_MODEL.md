@@ -185,21 +185,22 @@ ParticipantPick
 
 ### 3.3 Pontuação proposta
 
-> **CORREÇÃO — 2026-08-01:** a linha "Resultado da partida certo (V/D/E) — 5 pts" abaixo foi
-> **removida** do sistema real. Eduardo, ao ver o primeiro e-mail de resultado real (Vasco 0x0
-> Fluminense) pontuar um palpite de 2x2 com 5 pts por essa categoria: "Isso está incorreto!!! ...
-> Verifique contra as regras da copa do mundo." Esse tier nunca existiu no `matchPoints()` real
-> da Copa do Mundo (só tem placar exato + gols de um time) — era uma divergência real desta
-> proposta original (abaixo, mantida como registro histórico do que foi documentado em
-> 2026-07-13) que nunca foi checada contra o código real da Copa até este incidente. A tabela
-> abaixo NÃO reflete mais o comportamento real — ver `config.js`'s `scoring.match` (só `exact` e
-> `side`) e `CHANGELOG.md` (v3.61) para o estado atual e o detalhamento completo.
+> **CORREÇÃO — 2026-08-01, revertida no mesmo dia:** uma nota anterior aqui dizia que a linha
+> "Resultado da partida certo (V/D/E) — 5 pts" tinha sido removida do sistema real, por engano —
+> comparando a fórmula do CDB2026 com a da Copa do Mundo (que só tem placar exato + gols de um
+> time, sem esse tier) e concluindo, incorretamente, que essa era uma divergência a corrigir.
+> Eduardo confirmou diretamente, colando a tabela de regras completa e pedindo auditoria, que
+> **este tier de 5 pts é uma regra real e intencional do CDB2026** — a tabela abaixo está correta
+> como está e reflete o comportamento real do sistema. O "mesmos valores da Copa do Mundo" citado
+> na seção 3.1 é sobre os VALORES em pontos (10/5/1), não sobre quais categorias de pontuação
+> existem — CDB2026 e Copa do Mundo não precisam ter os mesmos tiers. Ver `CHANGELOG.md` para o
+> histórico completo dos dois incidentes (a remoção errada e a reversão), ambos registrados.
 
 | Evento | Pontos | Observação |
 |---|---|---|
 | Placar exato de uma partida | 10 | Substitui os demais — nunca soma com os itens abaixo na mesma partida |
-| ~~Resultado da partida certo (V/D/E)~~ | ~~5~~ | **Removido 2026-08-01 — nunca existiu na Copa do Mundo, ver correção acima** |
-| Gols de um dos dois times exatos | 1 por lado | Só conta se o placar não bateu |
+| Resultado da partida certo (V/D/E) | 5 | Só conta se o placar não foi exato |
+| Gols de um dos dois times exatos | 1 por lado | Só conta se nem o placar nem o resultado bateram |
 | Classificado do confronto certo | 5 | Bônus **por confronto**, separado da pontuação de partida — soma independentemente do placar de cada perna |
 | Campeão | 30 | **Confirmado — mantém o valor atual, não muda para 25** |
 | Vice-campeão | 20 | **Confirmado — mantém o valor atual, não muda para 15** |

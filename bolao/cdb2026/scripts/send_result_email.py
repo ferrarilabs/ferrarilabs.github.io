@@ -485,10 +485,14 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
         r = audit_scoring.match_points(pick, result) if pick else None
         pts = r["pts"] if r else 0
         if r:
+            # Texto explícito o bastante pra nunca parecer um erro à primeira vista — achado real
+            # (Eduardo, 2026-08-01, sobre "+5 resultado certo" sozinho): "Talvez precise ficar
+            # mais claro no email qual foi a pontuação e por que pontuou."
             det_pt = {
-                "exact": f"+{audit_scoring.MATCH_SCORING['exact']} placar exato",
-                "side":  f"+{pts} gols de 1 time certos",
-                "miss":  "—",
+                "exact":  f"+{audit_scoring.MATCH_SCORING['exact']} placar exato",
+                "result": f"+{audit_scoring.MATCH_SCORING['result']} resultado certo (vitória/empate/derrota) — placar não exato",
+                "side":   f"+{pts} gols de 1 time certos — placar e resultado diferentes",
+                "miss":   "—",
             }[r["type"]]
             pick_str = f'{pick["goalsHome"]}–{pick["goalsAway"]}'
         else:
@@ -568,7 +572,8 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     </table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">
       Placar exato = {audit_scoring.MATCH_SCORING['exact']} pts &nbsp;·&nbsp;
-      Gols exatos de 1 time = {audit_scoring.MATCH_SCORING['side']} pt <em>(por time, não por gol)</em> &nbsp;·&nbsp;
+      Resultado certo (V/E/D), placar não exato = {audit_scoring.MATCH_SCORING['result']} pts &nbsp;·&nbsp;
+      Gols exatos de 1 time = {audit_scoring.MATCH_SCORING['side']} pt <em>(por time, não por gol — só conta se nem o placar nem o resultado bateram)</em> &nbsp;·&nbsp;
       Quem avança = {audit_scoring.TIE_BONUS} pts &nbsp;·&nbsp; Campeão = {audit_scoring.PODIUM_BONUS['champion']} pts &nbsp;·&nbsp; Vice = {audit_scoring.PODIUM_BONUS['runnerUp']} pts
     </div>
 
