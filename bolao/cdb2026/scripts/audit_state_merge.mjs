@@ -396,5 +396,28 @@ console.log("Running CDB2026 state-merge / display-orientation audit...\n");
   check("batch: segunda mutação aplicada", applied.phases.oitavas.ties.t2.teamA === "C");
 }
 
+// ── Merge da Fase 2.1 (2026-08-01): cutoffOffsetMs sobrevive a uma mutação administrativa ────
+// O hotfix ao vivo (f2f8512) só protegeu mergeStates() -- applyMutationOverRemote(), escrito
+// DEPOIS naquele hotfix numa branch separada, reconstruía phases sem carregar cutoffOffsetMs
+// junto, reintroduzindo o mesmo bug pelo caminho de mutação dirigida. Pego antes do deploy.
+{
+  const remote = {
+    phases: {
+      oitavas: { cutoffOffsetMs: 900000, ties: { t1: { teamA: "Vasco", teamB: "Fluminense", matches: {} } } },
+      quartas: { cutoffOffsetMs: 1800000, ties: {} },
+    },
+  };
+  // Mutação numa fase DIFERENTE de onde o override vive -- prova que a preservação não depende
+  // de coincidência com o que está sendo mutado.
+  const applied = applyMutationOverRemote({}, remote, { type: "set-active-phase", phaseId: "quartas" });
+  check("mutação em outra fase preserva cutoffOffsetMs da fase não tocada", applied.phases.oitavas.cutoffOffsetMs === 900000, `got ${applied.phases.oitavas.cutoffOffsetMs}`);
+  check("cutoffOffsetMs de mais de uma fase sobrevive simultaneamente", applied.phases.quartas.cutoffOffsetMs === 1800000, `got ${applied.phases.quartas.cutoffOffsetMs}`);
+
+  // Mutação NA MESMA fase onde o override vive (ex.: travar um confronto da própria Oitavas).
+  const applied2 = applyMutationOverRemote({}, remote, { type: "lock-tie", phaseId: "oitavas", tieId: "t1", qualifiedTeamId: "A", lockedAt: "x", lockedBy: "admin" });
+  check("mutação na MESMA fase do override preserva cutoffOffsetMs", applied2.phases.oitavas.cutoffOffsetMs === 900000, `got ${applied2.phases.oitavas.cutoffOffsetMs}`);
+  check("a mutação em si também foi aplicada (não é um no-op)", applied2.phases.oitavas.ties.t1.qualifiedTeamId === "A");
+}
+
 console.log("\n" + (failures === 0 ? "✓ ALL CHECKS PASSED" : `✗ AUDIT FAILED — ${failures} check(s)`));
 process.exit(failures === 0 ? 0 : 1);

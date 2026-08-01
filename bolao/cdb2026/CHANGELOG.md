@@ -1,5 +1,30 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.58 — 2026-08-01 — Merge da Fase 2.1 em produção + 2 bugs reais corrigidos ao vivo
+
+Eduardo aprovou a Fase 2.1 (mutação administrativa dirigida, paridade visual, cache-bust,
+fixtures, docs — ver `v3.57` abaixo) para produção durante o jogo real Vasco×Fluminense (Oitavas,
+2026-08-01). Esta branch precisou primeiro incorporar o hotfix de emergência que já estava em
+produção (`v3.55` abaixo, cutoff reaberto + fix do merge de `cutoffOffsetMs`) antes de poder ir
+ao ar, para não regredir essa reabertura ao mesclar.
+
+Dois bugs reais adicionais, encontrados pelo Eduardo olhando o jogo ao vivo:
+
+**Jogo ao vivo com ranking parcial não aparecia.** A ESPN nomeia o time como "Vasco da Gama"; o
+confronto curado em `data.js`/criado pela sincronização usa "Vasco". Todo casamento por nome
+exato (`fetchLiveTies()`, `autoSyncEspn()`, `autoSyncEspnResults()`) falhava silenciosamente para
+esse time — o card ao vivo nunca aparecia, e o resultado final também nunca teria sido travado
+automaticamente. Verificado contra o endpoint real da ESPN: única divergência de nome entre os 8
+confrontos das Oitavas. Corrigido com o mesmo padrão que o BR2026 já usa
+(`ESPN_SCOREBOARD_NAME_ALIASES`/`normalizeEspnTeamName`) — `CDB_ESPN_NAME_ALIASES` aplicado onde
+`fetchEspnCandidates()` monta `homeTeam`/`awayTeam`.
+
+**Botão "Palpites" continuava habilitado depois do prazo passar de verdade.** O estado
+`disabled` do botão só era avaliado uma vez, logo após o carregamento da página. Uma sessão
+aberta desde antes do cutoff continuava mostrando o botão habilitado muito depois do prazo real
+ter passado, até um F5. Corrigido: reavaliado a cada 1s, no mesmo timer que já atualiza o
+countdown.
+
 ## v3.57 — 2026-08 — Fase 2.1: correções bloqueadoras e paridade visual profissional
 
 Revisão independente da Fase 2 confirmou 6 bloqueadores reais. Relatório completo:
@@ -190,6 +215,37 @@ exige backend.
 
 `audit_scoring.py`: 5/5 no CDB2026, 5/5 no BR2026, 6/6 na Copa — nenhum tocado. Nenhum arquivo de
 BR2026 ou Copa do Mundo modificado.
+
+> **Nota sobre numeração de versão:** a entrada abaixo (também "v3.55") foi deployada direto em
+> produção, num hotfix de emergência feito numa branch separada, antes desta branch (Fase 1/2/2.1)
+> ser mesclada de volta em `main`. As duas linhas de desenvolvimento chegaram em v3.55
+> independentemente. Mantidas as duas entradas, sem renumerar retroativamente — a ordem
+> cronológica real de deploy em produção foi: v3.54 → v3.55 (hotfix, abaixo) → v3.56/v3.57/v3.58
+> (esta branch, mesclada depois).
+
+## v3.55 — 2026-08-01 — EMERGENCY_HOTFIX: reabrir entrada das Oitavas até 15min antes do 1º jogo
+
+Eduardo, ~20 min antes do 1º jogo da Oitavas (Fluminense × Vasco, 17:30 BRT): "abra o site da
+copa do brasil para entrar palpites por mais 15 minutos, deixe aberto até 15 minutos antes do
+primeiro jogo comecar". O cutoff automático (1h antes do 1º kickoff conhecido da fase) já tinha
+fechado a entrada ~7 minutos antes deste pedido.
+
+Em vez de mexer na fórmula de `effectivePhaseCutoffMs()` para todo mundo (o comentário do
+próprio código já registra que essa função foi causa raiz de pelo menos 3 incidentes de produção
+em 2026-07-14 quando mexida sem cuidado — v3.18, também EMERGENCY_HOTFIX), a janela virou
+configurável por fase (`s.phases[id].cutoffOffsetMs`, opcional), com default 3600000 (1h) —
+**comportamento idêntico ao de sempre em toda fase que não define o campo**. Só
+`s.phases.oitavas.cutoffOffsetMs = 900000` foi setado, direto no estado de produção (Supabase),
+escopado exclusivamente à fase Oitavas de hoje — Quartas/Semifinal/Final continuam em 1h sem
+nenhuma mudança de código adicional quando chegar a vez delas.
+
+Autoexpira sozinho: não há necessidade de reverter nada às 20:15 UTC (15min antes do jogo) — a
+mesma fórmula (`kickoff - offsetMs`) volta a bloquear entrada sozinha assim que o horário passar,
+exatamente como pedido.
+
+Verificado (extração da função real, não uma cópia): comportamento padrão inalterado quando o
+campo está ausente; override produz exatamente `kickoff - 15min`; outras fases não afetadas pelo
+override da Oitavas. `node --check` em todos os `.js` de `bolao/`, `audit_scoring.py` passando.
 
 ## v3.54 — 2026-07-26 — Postponed-leg detection never actually matched (same bug as BR2026)
 
