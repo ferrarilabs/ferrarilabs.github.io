@@ -10,7 +10,7 @@
   script-src 'self';
   style-src 'self' 'unsafe-inline';
   img-src 'self' data:;
-  connect-src 'none';
+  connect-src 'self' https://data.ny.gov;
   base-uri 'self';
   frame-ancestors 'none';
 ">
@@ -21,11 +21,13 @@
 <body>
 
 <header class="topbar">
-  <div class="pb-logo">PB</div>
-  <div class="brand">
-    Bolão do Ferrari
-    <span>Powerball</span>
+  <div class="brand"><span id="pbLogo" aria-hidden="true">🎟️</span> <h1>Bolão do Ferrari</h1></div>
+  <div class="bolao-switcher">
+    <select id="pbDrawSelect" aria-label="Escolher sorteio"></select>
   </div>
+  <a class="whatsapp-btn js-share-whatsapp" href="#" target="_blank" rel="noopener noreferrer" aria-label="Compartilhar no WhatsApp">
+    <img src="assets/whatsapp.svg" alt=""> <span>WhatsApp</span>
+  </a>
 </header>
 
 <main>
@@ -40,7 +42,7 @@
       </div>
       <div class="pb-countdown">
         <div class="pb-countdown-label">Tempo até o sorteio</div>
-        <div class="pb-countdown-nums" id="pbCountdownNums"></div>
+        <div class="pb-countdown-nums" id="pbCountdownNums" aria-hidden="true"></div>
       </div>
     </div>
   </section>
@@ -49,8 +51,10 @@
     <h2 class="section-title">Resumo financeiro</h2>
     <div class="pb-summary-grid" id="pbSummary"></div>
     <div class="pb-actions">
-      <button class="whatsapp-btn" id="pbShareBtn">📱 Compartilhar no WhatsApp</button>
-      <a class="secondary" href="https://www.powerball.com/previous-results" target="_blank" rel="noopener noreferrer">🕐 Sorteios anteriores</a>
+      <a class="whatsapp-btn js-share-whatsapp" href="#" target="_blank" rel="noopener noreferrer">
+        <img src="assets/whatsapp.svg" alt=""> <span>Compartilhar no WhatsApp</span>
+      </a>
+      <a class="secondary" id="pbPreviousResultsLink" href="https://www.powerball.com/previous-results" target="_blank" rel="noopener noreferrer">🕐 Sorteios anteriores (site oficial)</a>
     </div>
   </section>
 
@@ -81,7 +85,18 @@
 
   <section class="card">
     <h2 class="section-title">Resultado do sorteio</h2>
-    <p id="pbResultPlaceholder">Ainda não realizado. Os números vencedores e a análise de tickets premiados serão adicionados manualmente após 03/08/2026 22:59 ET.</p>
+
+    <div id="pbResultDisplay" style="display:none">
+      <p class="pb-result-numbers" id="pbResultNumbers"></p>
+      <p class="pb-modal-sub" id="pbResultChecked"></p>
+      <p id="pbResultProfit"></p>
+    </div>
+
+    <div id="pbResultPending">
+      <p class="pb-modal-sub" id="pbResultPendingMsg">Ainda não realizado.</p>
+      <button type="button" class="secondary" id="pbResultRetryBtn" style="display:none">↻ Tentar buscar novamente</button>
+    </div>
+    <p class="pb-pending">Resultado e prêmio são buscados e calculados automaticamente na fonte oficial (NY Open Data) — sem digitação manual.</p>
   </section>
 
   <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
