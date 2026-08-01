@@ -990,9 +990,6 @@ function matchPoints(pick, result) {
   if (pick.goalsHome === result.goalsHome && pick.goalsAway === result.goalsAway) {
     return { pts: sc.exact, type: "exact" };
   }
-  const pickSign = Math.sign(pick.goalsHome - pick.goalsAway);
-  const realSign = Math.sign(result.goalsHome - result.goalsAway);
-  if (pickSign === realSign) return { pts: sc.result, type: "result" };
   let pts = 0;
   if (pick.goalsHome === result.goalsHome) pts += sc.side;
   if (pick.goalsAway === result.goalsAway) pts += sc.side;
@@ -1084,7 +1081,6 @@ function explainScore(entry, s) {
           points: d.pts,
           explanation: {
             exact:  `Placar exato — ${sc.match.exact} pts`,
-            result: `Resultado certo (vencedor/empate), placar diferente — ${sc.match.result} pts`,
             side:   `Gols de um dos times certos — ${sc.match.side} pt por time acertado`,
             miss:   "Nenhum critério atingido — 0 pt",
           }[d.type] || d.type,
@@ -1169,7 +1165,20 @@ let _lastEmailTs = 0;
 function receiptHtml(entry, s) {
   const rows = [];
   DATA.phases.forEach(phase => {
-    Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+    // Mesma ordenação cronológica de renderGamesSection()/renderPickForm()/renderPickDisplay()
+    // (firstLegKickoffMs) -- mesmo achado real do "ver palpites" (Eduardo, 2026-08-01), mesmo
+    // padrão de bug: esta também listava na ordem crua de inserção, não na ordem em que os jogos
+    // realmente acontecem.
+    const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
+    ties.sort(([, tieA], [, tieB]) => {
+      const msA = firstLegKickoffMs(tieA, phase.format);
+      const msB = firstLegKickoffMs(tieB, phase.format);
+      if (msA === null && msB === null) return 0;
+      if (msA === null) return 1;
+      if (msB === null) return -1;
+      return msA - msB;
+    });
+    ties.forEach(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return;
       const pickMatches = entry.picks?.matches?.[tieId];
       if (!pickMatches) return;
@@ -1449,7 +1458,22 @@ function renderPickDisplay(entry, detail) {
     : `<span class="muted">—</span>`;
   const rows = [];
   DATA.phases.forEach(phase => {
-    Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+    // Mesma ordenação cronológica de renderGamesSection()/renderPickForm() (firstLegKickoffMs)
+    // -- achado real (Eduardo, 2026-08-01: "ordenação dos ver palpites... em uma ordem
+    // estranha"): esta era a única das telas de palpite que ainda listava os confrontos na ordem
+    // crua de inserção (Object.entries(), ordem em que o admin/ESPN sync cadastrou cada um), não
+    // a ordem em que os jogos realmente acontecem. Confrontos sem kickoff conhecido ainda ficam
+    // no fim, mesmo critério das outras telas.
+    const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
+    ties.sort(([, tieA], [, tieB]) => {
+      const msA = firstLegKickoffMs(tieA, phase.format);
+      const msB = firstLegKickoffMs(tieB, phase.format);
+      if (msA === null && msB === null) return 0;
+      if (msA === null) return 1;
+      if (msB === null) return -1;
+      return msA - msB;
+    });
+    ties.forEach(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return;
       const pickMatches = entry.picks?.matches?.[tieId];
       if (!pickMatches) return;
@@ -1558,7 +1582,6 @@ function renderRules() {
       <table class="rules-table">
         <tbody>
           <tr><td>${esc(t("rulesMatchExact"))}</td><td><b>${sc.match.exact}</b></td></tr>
-          <tr><td>${esc(t("rulesMatchResult"))}</td><td><b>${sc.match.result}</b></td></tr>
           <tr><td>${esc(t("rulesMatchSide"))}</td><td><b>${sc.match.side}</b> por lado</td></tr>
           <tr><td>${esc(t("rulesTieBonus"))}</td><td><b>${sc.tieBonus}</b></td></tr>
           <tr><td>🏆 Campeão</td><td><b>${sc.bonus.champion}</b></td></tr>
@@ -3494,7 +3517,18 @@ function exportCsv() {
     const predicted = predictedPodium(e, s);
     const lines = [];
     DATA.phases.forEach(phase => {
-      Object.entries(s.phases?.[phase.id]?.ties || {}).forEach(([tieId, tie]) => {
+      // Mesma ordenação cronológica das telas de palpite (firstLegKickoffMs) -- mesmo achado do
+      // "ver palpites" (Eduardo, 2026-08-01), mesmo padrão de bug nesta exportação.
+      const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
+      ties.sort(([, tieA], [, tieB]) => {
+        const msA = firstLegKickoffMs(tieA, phase.format);
+        const msB = firstLegKickoffMs(tieB, phase.format);
+        if (msA === null && msB === null) return 0;
+        if (msA === null) return 1;
+        if (msB === null) return -1;
+        return msA - msB;
+      });
+      ties.forEach(([tieId, tie]) => {
         if (!tie.teamA || !tie.teamB) return;
         const pickMatches = e.picks?.matches?.[tieId];
         if (!pickMatches) return;

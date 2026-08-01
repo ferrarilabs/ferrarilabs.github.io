@@ -38,33 +38,28 @@ import sys
 from datetime import datetime, timezone
 
 # Transcribed from bolao/cdb2026/js/config.js `scoring` block — keep in sync by hand.
-MATCH_SCORING = {"exact": 10, "result": 5, "side": 1}
+# No "result" (correct W/D/L sign, wrong score) tier -- removed 2026-08-01, see CHANGELOG.md:
+# it never existed in the Copa's matchPoints() and was a real drift from "mesmos valores da
+# Copa do Mundo" that went live before anyone checked it against the Copa's actual code.
+MATCH_SCORING = {"exact": 10, "side": 1}
 TIE_BONUS = 5
 PODIUM_BONUS = {"champion": 30, "runnerUp": 20}
 
 
 def match_points(pick, result):
-    """Mirrors matchPoints() in bolao/cdb2026/js/app.js — mutually exclusive:
-    exact score beats correct result (by goal-difference sign) beats one
-    side's goal count correct, never summed."""
+    """Mirrors matchPoints() in bolao/cdb2026/js/app.js — mutually exclusive: exact score beats
+    one side's goal count correct, never summed. No "correct W/D/L sign" tier, matching the
+    Copa's matchPoints() exactly."""
     if not pick or not result or result.get("goalsHome") is None or result.get("goalsAway") is None:
         return None
     if pick["goalsHome"] == result["goalsHome"] and pick["goalsAway"] == result["goalsAway"]:
         return {"pts": MATCH_SCORING["exact"], "type": "exact"}
-    pick_sign = _sign(pick["goalsHome"] - pick["goalsAway"])
-    real_sign = _sign(result["goalsHome"] - result["goalsAway"])
-    if pick_sign == real_sign:
-        return {"pts": MATCH_SCORING["result"], "type": "result"}
     pts = 0
     if pick["goalsHome"] == result["goalsHome"]:
         pts += MATCH_SCORING["side"]
     if pick["goalsAway"] == result["goalsAway"]:
         pts += MATCH_SCORING["side"]
     return {"pts": pts, "type": "side" if pts > 0 else "miss"}
-
-
-def _sign(n):
-    return (n > 0) - (n < 0)
 
 
 def score_entry(entry, ties, podium):
@@ -118,11 +113,16 @@ def count_exact_matches(detail):
 # ─── Checks ──────────────────────────────────────────────────────────────────
 
 def check_match_points_mutually_exclusive():
-    """Exact, result, and side points must never sum on the same match."""
+    """Exact and side points must never sum on the same match. No "correct W/D/L sign, wrong
+    score" tier exists — removed 2026-08-01 (real incident: Eduardo caught a 2x2 pick scoring 5
+    pts against a real 0x0 result; that tier never existed in the Copa's own matchPoints() and
+    was a real drift from "mesmos valores da Copa do Mundo" — see CHANGELOG.md). The 3rd case
+    below is exactly that bug: same winner sign as the real result, wrong score, no side goals
+    matching either — must score 0, not 5."""
     cases = [
         ({"goalsHome": 2, "goalsAway": 1}, {"goalsHome": 2, "goalsAway": 1}, "exact", 10),
         ({"goalsHome": 2, "goalsAway": 3}, {"goalsHome": 2, "goalsAway": 1}, "side", 1),   # opposite winner, home goals match only
-        ({"goalsHome": 2, "goalsAway": 0}, {"goalsHome": 1, "goalsAway": 0}, "result", 5),  # same winner sign, wrong score
+        ({"goalsHome": 3, "goalsAway": 1}, {"goalsHome": 1, "goalsAway": 0}, "miss", 0),   # same winner sign, wrong score, no side goals match either — must NOT score
         ({"goalsHome": 1, "goalsAway": 1}, {"goalsHome": 2, "goalsAway": 0}, "miss", 0),    # predicted draw, real win
         ({"goalsHome": 2, "goalsAway": 2}, {"goalsHome": 2, "goalsAway": 2}, "exact", 10),  # draw predicted exactly
     ]
@@ -244,7 +244,7 @@ def check_result_shape(result):
 
 def run_static_audit(verbose=True):
     checks = [
-        ("Match points mutually exclusive (exact/result/side/miss)", check_match_points_mutually_exclusive),
+        ("Match points mutually exclusive (exact/side/miss, no result tier)", check_match_points_mutually_exclusive),
         ("Tie bonus + podium bonus applied and summed", check_tie_bonus_and_podium_applied),
         ("Wrong qualifier pick scores no tie bonus", check_wrong_tie_pick_no_bonus),
         ("Unresolved match/tie scores nothing (no crash)", check_no_result_yet_scores_nothing),

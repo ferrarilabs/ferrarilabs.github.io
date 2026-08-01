@@ -185,11 +185,21 @@ ParticipantPick
 
 ### 3.3 Pontuação proposta
 
+> **CORREÇÃO — 2026-08-01:** a linha "Resultado da partida certo (V/D/E) — 5 pts" abaixo foi
+> **removida** do sistema real. Eduardo, ao ver o primeiro e-mail de resultado real (Vasco 0x0
+> Fluminense) pontuar um palpite de 2x2 com 5 pts por essa categoria: "Isso está incorreto!!! ...
+> Verifique contra as regras da copa do mundo." Esse tier nunca existiu no `matchPoints()` real
+> da Copa do Mundo (só tem placar exato + gols de um time) — era uma divergência real desta
+> proposta original (abaixo, mantida como registro histórico do que foi documentado em
+> 2026-07-13) que nunca foi checada contra o código real da Copa até este incidente. A tabela
+> abaixo NÃO reflete mais o comportamento real — ver `config.js`'s `scoring.match` (só `exact` e
+> `side`) e `CHANGELOG.md` (v3.61) para o estado atual e o detalhamento completo.
+
 | Evento | Pontos | Observação |
 |---|---|---|
 | Placar exato de uma partida | 10 | Substitui os demais — nunca soma com os itens abaixo na mesma partida |
-| Resultado da partida certo (V/D/E) | 5 | Só conta se o placar não foi exato |
-| Gols de um dos dois times exatos | 1 por lado | Só conta se nem o placar nem o resultado bateram |
+| ~~Resultado da partida certo (V/D/E)~~ | ~~5~~ | **Removido 2026-08-01 — nunca existiu na Copa do Mundo, ver correção acima** |
+| Gols de um dos dois times exatos | 1 por lado | Só conta se o placar não bateu |
 | Classificado do confronto certo | 5 | Bônus **por confronto**, separado da pontuação de partida — soma independentemente do placar de cada perna |
 | Campeão | 30 | **Confirmado — mantém o valor atual, não muda para 25** |
 | Vice-campeão | 20 | **Confirmado — mantém o valor atual, não muda para 15** |
