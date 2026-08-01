@@ -1,5 +1,36 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.64 — 2026-08-01 — Nav Participantes/Pagamento escondidos (paridade com BR2026); nome de time em negrito consistente
+
+Eduardo, mesma mensagem: confirmou a tabela de regras (já correta desde a v3.63, sem mudança de
+código aqui — só confirmação) e pediu três ajustes de UI:
+
+- **Nav Participantes/Pagamento escondidos**: "Deixe aparecer somente os mesmos botões que estão
+  disponíveis no br2026 nesse momento agora que a competição começou." BR2026 e Copa já escondem
+  esses dois botões (`style="display:none"`, ver `bolao/br2026/index.html` #106) — CDB2026 ainda
+  os mostrava no nav secundário. Mesmo tratamento aplicado aqui: um `style="display:none"` por
+  botão, nenhuma lógica JS tocada, as seções `#participants`/`#payment` continuam existindo e
+  renderizando normalmente (só não têm mais botão de nav apontando pra elas) — mesmo padrão
+  "dead nav" seguro já usado nos outros dois apps.
+- **Nome de time em negrito inconsistente**: "Nos palpites alguns jogos estão em bold e outros
+  não no display." Achado: `.tie-team-name` (linha de palpite ainda ABERTA, antes do cutoff da
+  fase) tinha `font-weight: 700`, mas `.tie-locked-score` (linha já TRAVADA — confronto decidido
+  ou fase com cutoff vencido) não tinha peso de fonte nenhum, então o mesmo tipo de informação
+  (nome do time) mudava de peso visual só por causa do estado do cutoff. Corrigido —
+  `.tie-locked-score` agora tem o mesmo `font-weight: 700`.
+- **Regras confirmadas, sem mudança**: a tabela de pontuação e os 3 critérios de desempate já
+  batiam com o que Eduardo colou (idêntico ao estado deixado pela v3.63) — nada a corrigir aqui,
+  só confirmação de que está certo.
+
+Sem e-mail enviado (Eduardo: "Esse é a regra correta, não precisa mandar novo email só ajusta
+para o próximo e atualiza o ranking e o site" / "No need to send!!") — ranking e site já
+refletem a fórmula certa automaticamente (`scoreEntry()` sempre calcula ao vivo a partir de
+`config.js`, nunca há um total armazenado que precisasse ser recalculado à parte).
+
+`audit_scoring.py` das 3 apps, `audit_state_merge.mjs`, `audit_golden_master.mjs`,
+`audit_integrity.py --self-test`, `check_sticky_overlap.mjs` re-rodados — todos passando
+(mudança só de nav/CSS, scoring não tocado).
+
 ## v3.63 — 2026-08-01 — REVERSÃO da v3.62: tier "resultado certo" restaurado (não era um bug); texto do e-mail mais claro; tiebreak Z→A removido (era só cosmético)
 
 **A v3.62 (abaixo) estava errada.** Eduardo colou a tabela de regras completa do site e pediu
