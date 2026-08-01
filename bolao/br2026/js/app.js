@@ -626,7 +626,12 @@ function formatMatchClock(totalSeconds, period = null, skipBoundariesUpTo = 0) {
   if (knownBoundary !== undefined) {
     if (totalMinutes <= knownBoundary) return brFmtClock(totalSeconds);
     const secsPastBoundary = totalSeconds - knownBoundary * 60;
-    if (period === 4 && secsPastBoundary > BR_MAX_STOPPAGE_SECONDS) {
+    // Teto pra qualquer período conhecido, não só o 4 (prorrogação) -- sem estado de relógio
+    // real pra crescer indefinidamente depois do próprio limite do período, seja qual for.
+    // Achado ao vivo (2026-08-01, CDB2026, Vasco×Fluminense): o mesmo bug sem teto existia pro
+    // period===1 (tempo normal) -- o relógio mostrou "58:11 (+14)" e continuava subindo DURANTE
+    // o intervalo real do jogo. Propagado aqui por paridade (mesma lógica portada da Copa).
+    if (secsPastBoundary > BR_MAX_STOPPAGE_SECONDS) {
       return `${brFmtClock(knownBoundary * 60 + BR_MAX_STOPPAGE_SECONDS)} (+${BR_MAX_STOPPAGE_SECONDS / 60})`;
     }
     const stoppageMin = Math.max(1, Math.ceil(secsPastBoundary / 60));
@@ -1572,17 +1577,27 @@ function scheduleMC() {
 // formatMatchClock() quando `clockSeconds` existe -- pausado só significa não somar o tempo
 // decorrido desde o último poll, nunca trocar de formato (mesmo princípio da Copa, que nunca
 // teve essa bifurcação -- só esta cópia introduziu o bug).
+// Teto pra interpolação local em ms decorridos desde o último poll bem-sucedido -- 3x o
+// intervalo normal de poll (C.espn.pollIntervalMs, 60s), folga suficiente pra jitter de rede
+// normal e pro backoff de schedulePoll() (até 4x em caso de falha repetida). Sem isso, se um
+// poll não chegar bem no instante em que o jogo entra no intervalo real, `m.isHalftime` fica
+// desatualizado (false) indefinidamente e este relógio (que só interpola em memória a cada tick
+// de 1s -- ver o setInterval em init()) soma o tempo decorrido sem limite algum, mesmo com o
+// jogo genuinamente parado. Mesmo bug encontrado ao vivo no CDB2026 (2026-08-01,
+// Vasco×Fluminense): relógio "58:11 (+14)" e crescendo, jogo já no intervalo real.
+const BR_MAX_INTERPOLATION_MS = 3 * (C.espn?.pollIntervalMs || 60000);
 function liveClockDisplay(m) {
+  const elapsedMs = Math.min(Date.now() - (m.pollTime || Date.now()), BR_MAX_INTERPOLATION_MS);
   const clock = m.isHalftime ? t("liveHalftime")
     : m.isPenalties ? t("livePenalties")
     : m.clockSeconds != null
       ? formatMatchClock(
-          m.clockPaused ? m.clockSeconds : m.clockSeconds + Math.floor((Date.now() - (m.pollTime || Date.now())) / 1000),
+          m.clockPaused ? m.clockSeconds : m.clockSeconds + Math.floor(elapsedMs / 1000),
           m.period ?? null, 0)
       : m.clockStr;
   const sec = m.isHalftime || m.isPenalties || m.clockPaused
     ? m.clockSeconds
-    : m.clockSeconds != null ? m.clockSeconds + Math.floor((Date.now() - (m.pollTime || Date.now())) / 1000) : null;
+    : m.clockSeconds != null ? m.clockSeconds + Math.floor(elapsedMs / 1000) : null;
   return { clock, sec };
 }
 

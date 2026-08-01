@@ -1,5 +1,64 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## Incidente operacional — 2026-08-01 — Entrada de Matheus Ferrari salva com palpites vazios
+
+A entrada "Matheus Ferrari" (criada 2026-08-01T20:46:17Z, `payerName: "Eduardo"`) foi salva com
+`picks.matches`/`picks.qualified` vazios — nenhum palpite foi persistido, sem nenhum erro exibido
+no momento do envio. Eduardo passou os 8 palpites das Oitavas manualmente por texto; salvos
+diretamente no Supabase de produção nesta entrada (apenas nela — nenhum outro dado alterado).
+
+**Nota de processo:** a primeira leitura desta mensagem por Claude tratou os dados como se fossem
+os RESULTADOS OFICIAIS das Oitavas (não os palpites do Matheus) e chegou a travar as 8 fases com
+`qualifiedTeamId` fictício em produção por alguns minutos — revertido integralmente antes de
+qualquer outra escrita, usando uma cópia do estado lida momentos antes da escrita incorreta.
+Nenhum resultado oficial de fato ficou incorreto em produção (a fase Oitavas nunca teve nenhum
+resultado real travado neste dia). Registrado aqui porque é exatamente o tipo de erro que as
+regras deste repositório (`CLAUDE.md`, seção de scoring) existem para prevenir — mesmo não tendo
+sido um bug de código, foi um erro de leitura de instrução em uma escrita de produção de alto
+risco.
+
+**Causa raiz suspeita (não confirmada, não investigada a fundo ainda):** o horário de criação da
+entrada (20:46:17Z) é ~31 min DEPOIS do cutoff calculado pra Oitavas nesse momento (kickoff
+20:30Z − `cutoffOffsetMs` de 15 min = 20:15Z) — `saveEntry()` deveria ter bloqueado a criação da
+entrada inteira (`isPastEntryCutoff()` checado antes de qualquer coisa), não só deixar os
+palpites vazios. Hipótese mais provável: o navegador que enviou tinha uma visão local/desatualizada
+do confronto (sem o kickoff ainda populado), fazendo `effectivePhaseCutoffMs()` cair pro fallback
+`cutoffAt` manual (também nulo) e `isPastEntryCutoff()` retornar `false` mesmo com o prazo real já
+vencido — o que também explicaria os blocos de palpite não terem renderizado campos pra
+preencher (mesma falta de dado local), resultando num envio "vazio" que passa por
+`validatePicks()` sem erro (que só valida blocos com classe `.tie-pick-block.open`, presentes só
+quando o confronto é conhecido localmente). Não confirmado — requer investigação futura antes de
+declarar corrigido.
+
+## v3.60 — 2026-08-01 — Relógio ao vivo sem teto durante o tempo normal (period 1-3)
+
+Achado ao vivo por Eduardo durante o intervalo real de Vasco×Fluminense (Oitavas, 2026-08-01): o
+relógio do card "ao vivo" mostrou "58:11 (+14)" e continuava subindo minuto a minuto, mesmo com o
+jogo genuinamente parado no intervalo.
+
+`formatMatchClock()` já tinha um teto (`CDB_MAX_STOPPAGE_SECONDS`, 8 min) pra acréscimo — mas só
+aplicado a `period === 4` (prorrogação), copiado de um bug real que a própria Copa já tinha
+pegado ao vivo antes ("120:07 (+1)…" sem fim). Os períodos 1/2/3 (tempo normal) nunca tiveram
+esse teto — se um poll de 60s não chegasse bem na hora em que o jogo entrava no intervalo (rede,
+aba em segundo plano, ESPN engasgar), `isHalftime` ficava desatualizado e a interpolação local
+somava o tempo real decorrido sem limite nenhum.
+
+Dois fixes, ambos como defesa em profundidade (um não substitui o outro):
+1. `formatMatchClock()`: teto de 8 min de acréscimo aplicado a QUALQUER período conhecido, não só
+   o 4.
+2. `liveClockDisplay()`: teto de 3× o intervalo de poll (180s) no tempo interpolado desde o
+   último poll bem-sucedido — mesmo se o poll ficar preso por vários minutos, o relógio para de
+   subir em vez de continuar somando indefinidamente.
+
+Verificado (extração isolada de `formatMatchClock`): `formatMatchClock(58*60+11, 1, 0)` agora
+retorna `"53:00 (+8)"` (teto aplicado) em vez de continuar mostrando o valor cru crescente;
+comportamento do `period === 4` (já testado antes) inalterado.
+
+**Propagado nos 3 apps** (mesmo bug, mesma correção — `bolao/copa2026/js/app.js`,
+`bolao/br2026/js/app.js`, `bolao/cdb2026/js/app.js`) por exigência da regra de propagação da
+plataforma. `audit_scoring.py` das 3 apps re-rodado, passando — escore/ranking/desempate não
+tocados.
+
 ## v3.59 — 2026-08-01 — Fase 2.2: correção final do CTA "Salvar entrada" + evidência visual real
 
 **Atualização:** Eduardo aprovou o deploy logo em seguida ("Approved to push") — este commit foi
