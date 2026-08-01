@@ -2,7 +2,8 @@
 
 **Status:** Aceito com limitação conhecida e documentada (não "resolvido").
 **Data:** 2026-08 (Fase 1 introduziu o fix de read-merge-write — AUDIT-03; Fase 2 caracteriza
-formalmente o que ele NÃO resolve).
+formalmente o que ele NÃO resolve; Fase 2.1 corrige a semântica de mutação administrativa —
+ver `applyAdminMutation()`/`applyMutationOverRemote()` em `app.js` e a seção nova abaixo).
 **Aplica-se a:** `bolao/cdb2026/` (mecanismo específico desta app; BR2026 tem uma implementação
 paralela não idêntica — ver `CONSISTENCY_MATRIX.md`).
 
@@ -41,9 +42,28 @@ em `audit_state_merge.mjs` ("Fase 2 §4: TRUE concurrent writes are NOT fully re
 read-merge-write") que reproduz exatamente esse cenário e confirma o resultado indesejado
 acontece.
 
-**Classificação exigida pelo mega-prompt da Fase 2:**
-- MITIGADA PARA CLIENTES DESATUALIZADOS SEQUENCIAIS.
-- NÃO COMPLETAMENTE RESOLVIDA PARA ESCRITAS SIMULTÂNEAS.
+**Classificação exigida pelo mega-prompt da Fase 2.1 (três categorias, não duas):**
+- **Clientes sequenciais desatualizados: MITIGADO.** Read-merge-write (AUDIT-03) resolve este
+  caso — coberto por `audit_state_merge.mjs`.
+- **Mutações explícitas: CORRIGIDAS por operação direcionada.** Esta era, na prática, a queixa
+  real por trás de "o P0 de concorrência não está resolvido": `mergeStates()` com
+  `preferRemoteResults: true` protege resultado oficial contra cache de PARTICIPANTE, mas a
+  mesma regra aplicada a uma ação do próprio ADMIN impedia `paid: true -> false`, destravar um
+  confronto, limpar um placar errado, etc. — não porque houvesse uma corrida, mas porque o merge
+  campo-a-campo não sabia distinguir "correção intencional do admin" de "cache desatualizado".
+  Fase 2.1 §2 resolve isso com `applyAdminMutation()`/`applyMutationOverRemote()`: toda ação
+  administrativa agora declara explicitamente QUAL mudança está fazendo (`set-payment`,
+  `lock-tie`, `set-cutoff`, etc.), aplicada de forma determinística sobre o remoto mais recente,
+  nunca por comparação implícita de snapshots. Coberto pelos testes "Fase 2.1 §3" em
+  `audit_state_merge.mjs` (11 mutações administrativas + preservação de alteração remota
+  independente + batch de mutações ESPN).
+- **Gravações simultâneas reais: limitação arquitetural restante.** Ver seção abaixo — nem
+  read-merge-write nem a mutação dirigida eliminam a janela de corrida entre duas leituras
+  pré-gravação que acontecem antes de qualquer uma das duas escritas ficar visível. A mutação
+  dirigida FECHA a janela de corrida especificamente no campo/tie que ela está mudando (dois
+  admins mudando O MESMO campo ao mesmo tempo ainda têm last-write-wins nesse campo específico),
+  mas não introduz nenhum mecanismo de CAS/revisão que eliminaria a corrida por completo — ver
+  "O que isso NÃO resolve" acima, que continua válido sem alteração.
 
 ## Por que não foi resolvido nesta modernização
 
