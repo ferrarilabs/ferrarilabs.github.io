@@ -298,3 +298,128 @@ históricos) teve seu comportamento alterado. Achados de maior risco (concorrên
 audit log não-inviolável, `paid` any-true-wins impedindo correção legítima, fila de e-mail em
 memória) foram caracterizados, testados onde possível, e documentados com recomendação — não
 corrigidos às pressas sem a base de teste ou autorização que exigiriam.
+
+---
+
+## Fase 2.1 — correções bloqueadoras e paridade visual profissional (2026-08, revisão independente)
+
+Segunda rodada, disparada por uma revisão independente que confirmou 6 bloqueadores reais contra
+o código desta branch. Todos os 6 foram trabalhados; os itens abaixo resumem o que foi
+efetivamente corrigido/testado vs. o que ficou como limitação documentada.
+
+### 1/2/3 — Semântica de persistência (bloqueador #1/#2)
+
+O read-merge-write da v3.55 (`mergeStates` com `preferRemoteResults: true`) protege resultado
+oficial contra cache de PARTICIPANTE, mas a mesma regra aplicada a uma ação do próprio ADMIN
+impedia `paid: true -> false`, destravar um confronto, limpar um placar, etc. — não por corrida,
+mas porque o merge campo-a-campo não distinguia "correção intencional do admin" de "cache
+desatualizado".
+
+**Implementado:** `applyAdminMutation()`/`applyMutationOverRemote()` — toda ação administrativa
+agora declara explicitamente qual mudança está fazendo (12 tipos: `upsert-entry`, `delete-entry`,
+`set-payment`, `set-cutoff`, `add-tie`, `remove-tie`, `save-leg`, `clear-leg`, `lock-tie`,
+`unlock-tie`, `set-active-phase`, mais `espn-add-tie`/`espn-save-result` para o caminho da
+sincronização ESPN, e um wrapper `batch` para os ciclos ESPN que mudam vários confrontos numa só
+gravação). A gravação começa do estado REMOTO mais recente (preserva qualquer mudança remota não
+relacionada — nova entrada, outro pagamento, audit events), aplica a mutação explicitamente por
+cima, une entradas/tombstones/audit log pela mesma regra de sempre. Todos os 15 call sites de
+escrita administrativa (cutoff, add/remove tie, save/clear leg, lock/unlock tie, toggle-paid,
+delete-entry, fase ESPN ativa, `autoSyncEspn()`, `autoSyncEspnResults()`) foram religados para
+passar a mutação correta. `mergeStates()` (agora só usada pelo fluxo de participante) e
+`applyAdminMutation()` compartilham a lógica de merge de entries/tombstones/audit log via
+`mergeEntriesTombstonesAuditLog()`, evitando duplicar a regra duas vezes.
+
+**Testado:** `audit_state_merge.mjs`, seção "Fase 2.1 §3" — as 8 mutações pedidas pelo mega-prompt
+(resultado oficial, correção, limpeza, classificado, destravamento, cutoff ×3, pagamento ×2, fase
+ESPN) mais preservação de alteração remota independente e batch ESPN. Todas passam contra as
+funções REAIS extraídas de `app.js`, não uma cópia.
+
+### 4 — Concorrência (reclassificação em 3 categorias, não 2)
+
+- Clientes sequenciais desatualizados: **MITIGADO** (inalterado desde a v3.55).
+- Mutações explícitas: **CORRIGIDAS** por operação direcionada (item acima).
+- Gravações simultâneas reais: **limitação arquitetural restante** — nem o read-merge-write nem a
+  mutação dirigida eliminam a janela entre duas leituras pré-gravação que acontecem antes de
+  qualquer uma das duas escritas ficar visível. Sem revision number/CAS/RPC transacional no
+  schema atual, essa classe de risco continua existindo. Ver `docs/bolao/adr/ADR-002-state-merge-strategy.md`
+  (seção nova) para a classificação completa e a recomendação arquitetural.
+
+### 5 — Cache-bust
+
+`bolao/cdb2026/index.html` tinha `?v=58d393d` (um commit anterior a TODA a Fase 1/2/2.1).
+Substituído por uma tag derivada do conteúdo: os primeiros 12 hex de SHA-256 dos 5 arquivos
+críticos (`styles.css`, `config.js`, `data.js`, `i18n.js`, `app.js`) concatenados, em vez de um
+identificador escolhido à mão. Editar qualquer um desses arquivos muda a tag automaticamente —
+"conteúdo mudou mas o cache-bust ficou parado" deixa de ser possível por construção. Novo script
+`scripts/check_cachebust.mjs` (com `--write` para regenerar) falha com código de saída != 0 se a
+tag não bater com o conteúdo atual — cobre os dois gatilhos pedidos (`siteVersion` mudar OU
+qualquer arquivo crítico mudar), já que `config.js` é um dos 5 arquivos hasheados. Rodado com
+`--write` como último passo desta fase, depois de todo o código estar finalizado — **sem deploy**.
+
+### 6/7 — Paridade visual (P1)
+
+Dois problemas concretos corrigidos:
+- **Densidade da topbar:** 8 abas primárias → 6 (`Palpites, Ranking, Jogos, Probabilidades,
+  Regras, Admin`), igual à contagem/ordem de BR2026. `Participantes`/`Pagamento` saíram da barra
+  principal para um link secundário compacto (`.nav-secondary`) logo abaixo — mesmo atributo
+  `data-section`, mesmo listener genérico, nenhuma funcionalidade removida. `grid-template-columns`
+  ajustado de 8 para 6 colunas (a contagem real de botões visíveis).
+- **Botão sticky cobrindo campo:** adotado o padrão canônico exato da Copa (`pointer-events: none`
+  no wrapper + só o botão com `pointer-events: auto` + `text-align: right`), mais
+  `env(safe-area-inset-bottom)` e `#entry { padding-bottom: ~92px }` (reserva de espaço no fluxo,
+  TOURNAMENT_SPECIFIC — CDB2026 tem mais linhas de palpite por página que a Copa).
+  **Testado e confirmado sem overlap nos dois estados de repouso reais** (carga inicial e
+  scroll-até-o-fim, os únicos dois momentos em que um usuário de fato para e interage) nas 4
+  larguras exigidas (320/375/390/414px) — `check_sticky_overlap.mjs`.
+  **Limitação documentada, não escondida:** overlap geométrico transitório DURANTE o gesto de
+  scroll (25%/50%/75%) ainda ocorre em alguns pontos — isso é como QUALQUER botão `position:
+  sticky` funciona (inclusive o da própria Copa, nunca testado antes desta auditoria), e o
+  `pointer-events: none` do wrapper garante que esse overlap nunca bloqueia um toque real (só o
+  botão em si intercepta clique). Eliminar 100% do overlap geométrico durante scroll ativo exigiria
+  abandonar o padrão sticky (ex. uma barra permanentemente fixa reservando espaço o tempo todo) —
+  uma mudança maior, não feita aqui por não ser proporcional ao problema real (nenhum campo fica
+  inacessível, só temporariamente sobreposto durante um gesto que o próprio usuário controla).
+
+### 8 — Evidência visual durável
+
+`bolao/cdb2026/scripts/visual/capture_evidence.mjs` — harness Playwright real (não produção, rede
+externa bloqueada), captura as 3 apps nos 7 viewports exigidos (320×568 a 1440×900), nas seções
+disponíveis em cada app (Copa está em modo arquivado — só Ranking é alcançável, documentado no
+cabeçalho do script, não é bug do harness). Produz `docs/bolao/evidence/visual/manifest.json`
+(rota/seção/viewport/commit/timestamp), `overflow_report.json` (elementos que ultrapassam o
+viewport) e `console_errors.json`. Rodado: **84 screenshots, 0 overflow, 0 erro real de console**.
+Nenhum dado real de participante usado (estado sintético/vazio).
+
+### 9 — Documentação
+
+`CONSISTENCY_MATRIX.md`: corrigidas as 3 afirmações erradas confirmadas contra o código atual
+(`database.enabled` — era descrito como `false`, é `true`; estratégia de merge — era descrita como
+"local-wins", corrigido para descrever o any-true-wins/remote-wins/mutação-dirigida real; "nenhuma
+API externa" — corrigido, CDB2026 usa ESPN desde antes desta modernização). O item de detecção de
+adiamento já tinha sido corrigido na auditoria anterior. Status de publicação já estava correto
+("Em produção").
+
+PII removida de `CDB2026_BACKUP_AND_RECOVERY.md`, `CDB2026_OPERATIONS_RUNBOOK.md`,
+`CDB2026_DATA_DICTIONARY.md`, `CONSISTENCY_MATRIX.md` e `audit_integrity.py` (comentário) — nome
+real de participante substituído por "Participante A #1/#2" nos exemplos; e-mails/nomes reais de
+outras 2 entradas substituídos por "Participante A/B/C". `CDB2026_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+ganhou 4 requisitos novos (R23 paridade visual, R24 mutação administrativa, R25 fixtures
+positiva/negativas, R26 cache-bust), cada um apontando para o teste real que o verifica.
+
+### 10 — Fixtures de integridade
+
+`golden_state.json` não tinha mais nenhum WARNING/ERROR/CRITICAL depois de mover o único caso
+problemático (perna FINAL 0x0 com kickoff no futuro) para `invalid_future_final_0x0.json`, uma de
+3 fixtures negativas novas (`invalid_duplicate_entry.json`, `invalid_orphan_pick.json` completam
+o conjunto). `audit_integrity.py --self-test` (novo modo) roda os 3 self-tests do script —
+transcrição de pontuação bate com o golden master, fixture golden roda limpa, e cada fixture
+negativa dispara exatamente o finding que existe para provar — e falha (`exit 1`) se qualquer um
+não bater, em vez de exigir inspeção manual da saída.
+
+### 11/12 — Aceitação e veredito
+
+Ver a saída da suíte completa registrada no chat da sessão (2026-08-01) para a prova de cada
+critério de aceitação. **Não declarado "APROVADO PARA PRODUÇÃO"** neste documento — por instrução
+explícita do mega-prompt, esse veredito não é dado enquanto o cache-bust e as mutações
+administrativas não estivessem corrigidos; ambos foram corrigidos e verificados nesta fase, mas
+a declaração final de aprovação é uma decisão do Eduardo, não deste relatório.

@@ -1,5 +1,56 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.57 — 2026-08 — Fase 2.1: correções bloqueadoras e paridade visual profissional
+
+Revisão independente da Fase 2 confirmou 6 bloqueadores reais. Relatório completo:
+`docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md` (seção "Fase 2.1").
+
+**Mutação administrativa dirigida (bloqueador #1/#2).** O read-merge-write da v3.55 protege
+resultado oficial contra cache de participante, mas a mesma regra aplicada a uma ação do próprio
+admin impedia `paid: true -> false`, destravar confronto, limpar placar, etc. Novo
+`applyAdminMutation()`/`applyMutationOverRemote()`: toda ação administrativa (12 tipos — cutoff,
+add/remove tie, save/clear leg, lock/unlock tie, pagamento, exclusão de entrada, fase ESPN ativa,
+mais os equivalentes automáticos de sincronização ESPN) declara explicitamente qual mudança está
+fazendo, aplicada sobre o remoto mais recente, preservando qualquer alteração remota não
+relacionada. 15 call sites religados. 11 novos testes de mutação + preservação de alteração
+remota independente + batch ESPN em `audit_state_merge.mjs`.
+
+**Concorrência reclassificada em 3 categorias** (não 2): sequencial — mitigado; mutação explícita
+— corrigida; gravação simultânea real — limitação arquitetural restante, documentada, não
+resolvida (ver `docs/bolao/adr/ADR-002-state-merge-strategy.md`).
+
+**Cache-bust (bloqueador #3).** `?v=58d393d` era anterior a toda a Fase 1/2/2.1. Tag agora é
+derivada do conteúdo (SHA-256 dos 5 arquivos críticos), não escolhida à mão — impossível ficar
+desatualizada sem que o hash também mude. Novo `scripts/check_cachebust.mjs` (`--write` para
+regenerar) falha se a tag não bater com o conteúdo atual.
+
+**Paridade visual (bloqueador #4, P1).** Topbar: 8 abas primárias → 6
+(`Palpites/Ranking/Jogos/Probabilidades/Regras/Admin`), igual à densidade do BR2026;
+`Participantes`/`Pagamento` continuam acessíveis por um link secundário compacto, nenhuma
+funcionalidade removida. Botão sticky: adotado o padrão canônico exato da Copa
+(`pointer-events`/`text-align`) + `env(safe-area-inset-bottom)` + reserva de espaço no fluxo —
+zero overlap confirmado nos dois estados de repouso reais (carga inicial e fim de scroll) nas 4
+larguras exigidas; overlap transitório durante o gesto de scroll ativo documentado como limitação
+inerente ao padrão sticky (não bloqueia toque, `pointer-events: none` no wrapper), não escondida.
+
+**Evidência visual durável (bloqueador #5).** Novo `scripts/visual/capture_evidence.mjs` — harness
+Playwright real, rede externa bloqueada, sem dados reais. 84 screenshots (3 apps × 7 viewports),
+manifesto JSON, relatório de overflow (0 achados) e de erros de console (0 achados reais) em
+`docs/bolao/evidence/visual/`.
+
+**Documentação (bloqueador #6).** `CONSISTENCY_MATRIX.md`: 3 afirmações erradas corrigidas
+(`database.enabled`, estratégia de merge, "sem API externa"). PII removida de 5 arquivos (nome
+real de participante → "Participante A/B/C"). 4 requisitos novos na matriz de rastreabilidade.
+
+**Fixtures de integridade.** `golden_state.json` roda sem nenhum WARNING/ERROR/CRITICAL — o único
+caso problemático (FINAL 0x0 com kickoff futuro) virou fixture negativa dedicada. 3 fixtures
+negativas novas, cada uma provada a disparar o finding certo via `audit_integrity.py --self-test`.
+
+**Regressão:** todos os suites anteriores continuam passando (`audit_scoring.py` ×3,
+`audit_state_merge.mjs`, `audit_golden_master.mjs`, `audit_integrity.py --self-test`,
+`check_sticky_overlap.mjs`, `check_cachebust.mjs`). Nenhuma área crítica (scoring, ranking,
+desempate, resultados, pagamentos, dados históricos) alterada.
+
 ## v3.56 — 2026-08 — Fase 2: modernização controlada, limpeza técnica, preparação para auditoria
 
 Continuação da auditoria de código (v3.55) pedida pelo Eduardo — desta vez modernização

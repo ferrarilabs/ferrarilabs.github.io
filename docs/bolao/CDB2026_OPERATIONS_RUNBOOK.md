@@ -67,8 +67,8 @@ motivo e sem confirmação extra (diferente de excluir uma entrada, que usa `tri
 
 ## Preciso renomear/corrigir uma entrada existente (ex.: participante criou uma 2ª entrada)
 
-**Precedente real:** REDACTED_PARTICIPANT, 2026-08-01 — entrada de 2026-07-16 renomeada para
-"REDACTED_PARTICIPANT #1", nova entrada de 2026-08-01 para "REDACTED_PARTICIPANT #2".
+**Precedente real (anonimizado):** um participante, 2026-08-01 — entrada de 2026-07-16 renomeada
+para "Participante A #1", nova entrada de 2026-08-01 para "Participante A #2".
 
 **Ação (procedimento seguido nesse caso real, seguro e reversível):**
 1. Ler o estado remoto (read-only, ver `CDB2026_BACKUP_AND_RECOVERY.md` para o comando `curl`).

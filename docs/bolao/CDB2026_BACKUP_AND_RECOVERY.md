@@ -50,8 +50,8 @@ scoring autorizada):
      -H "Authorization: Bearer <anon key de config.js>" \
      -o backup_$(date +%Y%m%dT%H%M%S).json
    ```
-   Este é exatamente o padrão usado nesta sessão para o backup antes da renomeação das entradas
-   do REDACTED_PARTICIPANT (2026-08-01) — leitura pura, sem escrita, sem `service_role`.
+   Este é exatamente o padrão usado nesta sessão para o backup antes da renomeação de entradas de
+   um participante real (2026-08-01) — leitura pura, sem escrita, sem `service_role`.
 3. Guardar o arquivo fora do repositório (nunca commitar — contém e-mails e nomes reais).
 4. **Nunca reter o arquivo além do necessário** — se guardado em `/tmp` ou scratchpad de uma
    sessão de agente, ele é efêmero por design; não tratar isso como um backup duradouro (ver
@@ -76,7 +76,7 @@ Este é o mesmo padrão de "ler → validar → escrever → verificar" já usad
 única escrita de produção real feita durante esta auditoria/modernização (renomeação de duas
 entradas, autorizada explicitamente por Eduardo, fora do escopo de scoring/regras).
 
-## Sobre o backup feito durante a sessão de 2026-08-01 (renomeação REDACTED_PARTICIPANT)
+## Sobre o backup feito durante a sessão de 2026-08-01 (renomeação de entradas de participante)
 
 Um backup foi salvo no diretório de scratchpad da sessão do agente antes da escrita autorizada.
 Por instrução explícita do usuário, este documento **não** lista caminho, tamanho ou conteúdo
