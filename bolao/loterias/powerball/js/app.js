@@ -43,13 +43,13 @@
 
     document.getElementById("pbTicketsBody").innerHTML = t.series.map(function (s) {
       var numsHtml = s.numeros && s.numeros.length
-        ? "<ul>" + s.numeros.map(function (n, i) { return "<li>Ticket " + (i + 1) + ": " + n + "</li>"; }).join("") +
+        ? "<ul>" + s.numeros.map(function (n, i) { return "<li>Jogo " + (i + 1) + ": " + n + "</li>"; }).join("") +
           (s.qtd > s.numeros.length ? '<li class="pb-pending">+ ' + (s.qtd - s.numeros.length) + " ticket(s) desse serial ainda não cadastrado(s)</li>" : "") +
           "</ul>"
         : '<div class="pb-pending">Números individuais deste serial ainda não cadastrados.</div>';
       return '<div class="pb-ticket-block">' +
-        '<div class="serial">Serial: ' + s.serial + '</div>' +
-        '<div class="qtd">' + s.qtd + " ticket(s)</div>" +
+        '<div class="serial">Serial: ' + s.serial + (s.jogos ? " · Jogos " + s.jogos : "") + (s.compradoEm ? " · " + s.compradoEm : "") + '</div>' +
+        '<div class="qtd">' + s.qtd + " ticket(s)" + (s.valorTotal ? " · " + fmtUsd(s.valorTotal) : "") + "</div>" +
         numsHtml +
         "</div>";
     }).join("");
