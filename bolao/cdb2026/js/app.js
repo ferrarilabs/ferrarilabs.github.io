@@ -3256,6 +3256,19 @@ async function init() {
   if (!wasSeeded || !wasBackfilled || !wasHealed || !wasHealedPhantoms) saveState(seedState, { localOnly: false });
   renderAll();
 
+  // 2026-08-01, hotfix: navEntryBtn.disabled/showSection acima (linha ~3382) decidem uma vez só,
+  // a partir do localStorage local, ANTES do merge com o Supabase. Um participante que já tinha a
+  // Oitavas em cache local como "cutoff passado" continuava vendo o botão "Palpites" desabilitado
+  // mesmo depois do merge trazer um cutoffOffsetMs novo que reabre a entrada -- nada reavaliava
+  // essa decisão depois do loadRemoteState() acima. Reavalia aqui, e só força a aba de volta para
+  // "entry" na direção fechado→aberto (a direção aberto→fechado não precisa: saveEntry() já
+  // rejeita o envio se o cutoff passar enquanto o formulário está aberto).
+  if (navEntryBtn) {
+    const stillPastCutoff = isPastEntryCutoff();
+    if (navEntryBtn.disabled && !stillPastCutoff) showSection("entry");
+    navEntryBtn.disabled = stillPastCutoff;
+  }
+
   // Resume live-tie polling right away on focus/visible/bfcache-restore instead of waiting out
   // whatever's left of the current 60s cycle -- unconditional (not gated on C.database.enabled),
   // since ESPN live scores/clock work independently of Supabase. Same class of gap as the
