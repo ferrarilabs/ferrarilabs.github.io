@@ -243,10 +243,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pick-pts-hint  { font-size: 11px; color: var(--muted); min-width: 0; }
 .pick-select    { min-width: 0; }
 
-/* ── Sticky submit ── */
+/* ── Sticky submit ──
+   Was `position: sticky` -- confirmed via an automated cross-app audit (2026-08, propagating
+   the CDB2026 Fase 2.2 fix) to visually cover form content (including the "Nova entrada" h2
+   itself) at several viewport/scroll combinations, same defect class as CDB2026 and Copa2026.
+   Fixed the same way: normal document flow, no floating position -- structurally impossible to
+   overlap a sibling. */
 .sticky-submit {
-  position: sticky; bottom: 14px; z-index: 10;
-  display: flex; justify-content: center; padding-top: 8px;
+  display: flex; justify-content: center; padding: 16px 0 4px;
 }
 .sticky-submit button { min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
 

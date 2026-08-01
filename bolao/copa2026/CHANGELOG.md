@@ -1,5 +1,21 @@
 # CHANGELOG
 
+## v4.162 — 2026-08-01 — `.sticky-submit` CTA overlap fixed (propagated from CDB2026 Fase 2.2)
+
+An independent review of CDB2026's "Salvar entrada" button found it visually covering the "Nova
+entrada" `<h2>` on mobile — CDB2026's own overlap test only checked focusable controls, never
+headings/text/cards. Per the platform propagation rule, the same `.sticky-submit` pattern was
+audited here (the canonical/golden-master copy of it) with a comprehensive check across all 7
+required viewports (headings, labels, selects, inputs, cards — not just focusable controls):
+confirmed the SAME defect, 77 overlap findings across viewports/scroll positions (the entry
+section is unreachable in production right now — `CONFIG.archived` hides it — but the CSS/DOM
+still has the bug, and this file is what BR2026/CDB2026 copy their visual patterns from).
+
+Fixed the same way as CDB2026: removed `position: sticky`/`pointer-events` from `.sticky-submit`,
+button now lives in normal document flow — structurally unable to overlap a sibling, not just
+"tested and not found today." Re-ran the comprehensive check after the fix: 0 findings across all
+7 viewports. `audit_scoring.py` re-run, still passing (scoring/ranking/tiebreaks untouched).
+
 ## v4.161 — 2026-07-24 — Entry-name email subjects hardened against the "/" → "&#x2F;" escaping bug
 
 Follow-up to BR2026's round-email subject fix (same day). Eduardo asked "Fixed for everything

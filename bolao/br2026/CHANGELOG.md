@@ -1,5 +1,19 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.80 — 2026-08-01 — `.sticky-submit` CTA overlap fixed (propagated from CDB2026 Fase 2.2)
+
+Same defect class found and fixed in CDB2026 (its "Salvar entrada" button visually covering the
+"Nova entrada" `<h2>` on mobile) was confirmed here too via a comprehensive cross-app audit — 57
+overlap findings across viewports/scroll positions, including the exact same `<h2>` "Nova
+entrada" case at 320×568 (entries are closed since 2026-07-16, so the Palpites nav is currently
+disabled in production, but the CSS/DOM still has the bug and this page will reopen for a future
+cutoff).
+
+Fixed the same way: removed `position: sticky` from `.sticky-submit`, button now lives in normal
+document flow — structurally unable to overlap a sibling. Re-ran the check after the fix: 0
+findings across all 7 viewports. `audit_scoring.py` re-run, still passing (scoring/ranking/G4-Z4
+tiebreaks untouched).
+
 ## v1.79 — 2026-07-29 — "Jogos de hoje" showed postponed matches as finished 0-0 results
 
 Eduardo, once today's 4 rescheduled matches (from the earlier postponed-detection fix, #116)
