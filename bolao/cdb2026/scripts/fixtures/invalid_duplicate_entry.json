@@ -1,0 +1,16 @@
+{
+  "_comment": [
+    "Fixture NEGATIVA (Fase 2.1 §10) — dois registros de entrada com o mesmo id.",
+    "audit_integrity.py deve reportar CRITICAL 'duplicate-entry-id' para o id 'e-dup'."
+  ],
+  "entries": [
+    { "id": "e-dup", "entryName": "Participante A", "payerName": "Pagador A", "participantEmail": "a@example.invalid", "paymentMethod": "CashApp", "createdAt": "2026-07-20T12:00:00.000Z", "picks": { "matches": {}, "qualified": {} } },
+    { "id": "e-dup", "entryName": "Participante A (duplicada)", "payerName": "Pagador A", "participantEmail": "a@example.invalid", "paymentMethod": "CashApp", "createdAt": "2026-07-20T12:05:00.000Z", "picks": { "matches": {}, "qualified": {} } }
+  ],
+  "deletedIds": [],
+  "paid": {},
+  "phases": { "oitavas": { "cutoffAt": null, "ties": {} } },
+  "espnSync": { "activePhaseId": "oitavas" },
+  "auditLog": [],
+  "meta": { "updatedAt": "2026-07-20T12:15:00.000Z", "version": "fixture" }
+}

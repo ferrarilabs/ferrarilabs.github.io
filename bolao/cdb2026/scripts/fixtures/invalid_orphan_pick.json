@@ -1,0 +1,18 @@
+{
+  "_comment": [
+    "Fixture NEGATIVA (Fase 2.1 §10) — uma entrada com palpite referenciando um tieId que não",
+    "existe em nenhuma fase do estado (confronto excluído depois do palpite ter sido salvo, ou",
+    "corrupção de dado).",
+    "audit_integrity.py deve reportar ERROR 'pick-references-unknown-tie' para 'e-orphan'."
+  ],
+  "entries": [
+    { "id": "e-orphan", "entryName": "Participante A", "payerName": "Pagador A", "participantEmail": "a@example.invalid", "paymentMethod": "CashApp", "createdAt": "2026-07-20T12:00:00.000Z",
+      "picks": { "matches": { "t-nao-existe": { "single": { "goalsHome": 1, "goalsAway": 0 } } }, "qualified": { "t-nao-existe": "A" } } }
+  ],
+  "deletedIds": [],
+  "paid": {},
+  "phases": { "oitavas": { "cutoffAt": null, "ties": {} } },
+  "espnSync": { "activePhaseId": "oitavas" },
+  "auditLog": [],
+  "meta": { "updatedAt": "2026-07-20T12:15:00.000Z", "version": "fixture" }
+}
