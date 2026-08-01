@@ -555,3 +555,23 @@ Confirmações relevantes para este documento:
   grava nada sem confirmação humana" — falso desde a v3.16: `autoSyncEspn()` cria confrontos e
   `autoSyncEspnResults()` preenche placares e chega a travar a classificação automaticamente.
   Comentário corrigido.
+
+## Fase 2 — modernização controlada (2026-08)
+
+Relatório completo: `docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md`. Resumo do que interessa
+a este documento (regras/modelo):
+
+- **Nenhuma constante de scoring, critério de desempate, ou regra de avanço mudou.** Confirmado
+  pelo golden master (`bolao/cdb2026/scripts/audit_golden_master.mjs`) — hash de comportamento
+  completo idêntico do início ao fim da fase.
+- **`explainScore(entry, s)` (novo)** decompõe o total oficial item a item, derivado
+  exclusivamente do `detail` que `scoreEntry()` já produz — nunca uma segunda implementação da
+  fórmula. Reconciliação exata verificada nas 4 entradas de teste, incluindo uma entrada vazia.
+  Inclui `ruleVersion` (`SCORING_RULE_VERSION`, nova constante — só muda quando a REGRA muda, não
+  em refactor, ver `docs/bolao/adr/ADR-005-scoring-rule-versioning.md`).
+- **Read-merge-write (v3.55) não resolve concorrência verdadeira** — caracterizado formalmente
+  com um teste que prova o limite, não apenas o afirma. Ver
+  `docs/bolao/adr/ADR-002-state-merge-strategy.md`.
+- **`liveScoreEntry()` nunca fabrica bônus de pódio** — comportamento já correto, agora com um
+  ADR dedicado (`docs/bolao/adr/ADR-003-official-vs-provisional-results.md`) documentando por que
+  isso é uma garantia deliberada, não um acidente de implementação.

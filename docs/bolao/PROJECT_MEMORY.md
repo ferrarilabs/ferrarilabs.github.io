@@ -1331,3 +1331,27 @@ Ver `docs/bolao/ROADMAP.md` para a lista completa e priorizada. Resumo:
   `CONSISTENCY_MATRIX.md` — auditoria de scoring, sistema de comprovante, CSV CRLF,
   `AbortController`, botão "Limpar dados", backup JSON, `assets/` (QR codes de pagamento),
   botão de suporte via WhatsApp, badge de status de jogo, detecção de jogo adiado (CDB2026).
+
+## CDB2026 — Fase 2, modernização controlada (2026-08)
+
+Depois da auditoria/correção cirúrgica (v3.55), uma segunda rodada modernizou a estrutura ao
+redor da regra sem alterar o resultado que ela produz — golden master fixado ANTES de qualquer
+limpeza, hash de comportamento confirmado idêntico do início ao fim. Relatório completo:
+`docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md`; documentação de plataforma nova:
+`CDB2026_CODE_INVENTORY.md`, `CDB2026_DATA_DICTIONARY.md`,
+`CDB2026_REQUIREMENTS_TRACEABILITY_MATRIX.md`, `CDB2026_DATA_LINEAGE.md`,
+`CDB2026_RISK_CONTROL_MATRIX.md`, `CDB2026_DEPENDENCY_INVENTORY.md`,
+`CDB2026_BACKUP_AND_RECOVERY.md`, `CDB2026_OPERATIONS_RUNBOOK.md`, 5 ADRs em `docs/bolao/adr/`.
+
+Achados de maior risco foram **caracterizados e testados, não corrigidos às pressas**: um teste
+novo prova (não apenas afirma) que o read-merge-write da v3.55 não resolve escrita concorrente
+verdadeira (só o caso sequencial) — ver `ADR-002`; o `paid` any-true-wins evita reversão
+acidental mas também impede correção legítima de um pagamento marcado errado — modelo futuro
+proposto, não implementado (muda o contrato de dado); a fila de e-mail é só em memória, sem
+retry nem persistência entre reloads — a mensagem de sucesso na UI foi corrigida para não
+prometer entrega que ainda não aconteceu; o audit log admin usa fuso ET, inconsistente com o
+resto do app que usa BRT, sem justificativa encontrada — registrado para decisão, não alterado.
+
+Nesta fase também nasceu `explainScore()` — decomposição auditável da pontuação, derivada
+exclusivamente do motor oficial (nunca uma segunda implementação da fórmula) — e
+`audit_integrity.py`, um reconciliador somente-leitura que nunca toca produção por padrão.
