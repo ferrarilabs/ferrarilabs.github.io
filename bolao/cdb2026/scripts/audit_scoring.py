@@ -12,22 +12,30 @@ bolao/scripts/audit_scoring.py and bolao/CHANGELOG.md v4.57). CDB2026 moves
 real money (US$5/entry) with real games starting 2026-08-01 and had no
 equivalent protection at all.
 
-Important difference from the Copa's script: the Copa's audits
-send_result_email.py, an INDEPENDENT Python reimplementation of scoring
-that runs unattended via cron — the actual risk there is drift between two
-codebases. CDB2026 has no such script (results are entered by the admin
-directly in the browser, never emailed automatically), so there is nothing
-to audit for drift *against*. What this script protects against instead:
-this Python transcription of app.js's scoring formula (matchPoints/
-scoreEntry/tiebreak in bolao/cdb2026/js/app.js) is transcribed by hand
-below and must be kept in sync manually whenever that formula changes in
-app.js — exactly the same discipline the Copa's script already requires
-for send_result_email.py, just with app.js itself as the source of truth
-instead of a second script. If you change scoring in app.js, update
-MATCH_SCORING/TIE_BONUS/PODIUM_BONUS below in the same patch, or this audit
-will keep passing while silently testing the wrong formula.
+This Python transcription of app.js's scoring formula (matchPoints/scoreEntry/tiebreak in
+bolao/cdb2026/js/app.js) is transcribed by hand below and must be kept in sync manually whenever
+that formula changes in app.js. If you change scoring in app.js, update
+MATCH_SCORING/TIE_BONUS/PODIUM_BONUS below in the same patch, or this audit will keep passing
+while silently testing the wrong formula.
+
+2026-08-01: send_result_email.py (added alongside this comment) now exists and IMPORTS this
+module's match_points()/score_entry() directly rather than reimplementing them a second time —
+unlike the Copa's script (a truly independent reimplementation, where drift between the audit and
+the email script is the actual risk being guarded against), there is only ONE Python
+transcription of the scoring formula here, so drift between "the audit" and "the email script"
+can't happen by construction. The risk that remains — this file vs. app.js itself — is exactly
+what run_static_audit() below already guards, and is why send_result_email.py --auto still runs
+it before touching anything.
+Also runtime-checked by send_result_email.py --auto: check_match_is_real() and
+check_result_shape() below, mirroring the exact same two functions in the Copa's
+audit_scoring.py (CLAUDE.md's standing rule: any auto-email script must re-validate each
+individual leg result at runtime -- event date not in the future, teams resolved, result shape
+sane -- right before trusting it enough to save + email) — added 2026-08-01 alongside
+send_result_email.py itself.
 """
+import re
 import sys
+from datetime import datetime, timezone
 
 # Transcribed from bolao/cdb2026/js/config.js `scoring` block — keep in sync by hand.
 MATCH_SCORING = {"exact": 10, "result": 5, "side": 1}
@@ -201,6 +209,37 @@ def check_tiebreak_order():
     if order != ["C", "A", "B"]:
         return False, f"expected order [C, A, B] (highest total first, then champion hit breaks the 50-50 tie), got {order}"
     return True, ""
+
+
+def check_match_is_real(event_date_str, team_a, team_b):
+    """
+    Runtime, per-leg check right before a result is trusted enough to save + email. Catches the
+    historical failure mode (Copa's audit_scoring.py docstring): a result appearing for a match
+    that hasn't actually been played (stale cache, test data, an ESPN glitch, a timezone bug).
+    No W/L slot check needed here (unlike Copa's bracket) -- CDB2026 ties always carry real team
+    names from the moment they're drawn/created, never a placeholder.
+    """
+    problems = []
+    ev_date = None
+    try:
+        ev_date = datetime.strptime((event_date_str or "")[:10], "%Y-%m-%d").replace(tzinfo=timezone.utc)
+    except ValueError:
+        problems.append(f"unparseable event date {event_date_str!r}")
+    if ev_date and ev_date.date() > datetime.now(timezone.utc).date():
+        problems.append(f"event date {event_date_str} is in the future — match can't have finished yet")
+    if not team_a or not team_b or team_a == team_b:
+        problems.append(f"invalid team pairing: {team_a!r} vs {team_b!r}")
+    return (not problems), "; ".join(problems)
+
+
+def check_result_shape(result):
+    """The result dict itself must be well-formed before it's trusted."""
+    problems = []
+    for k in ("goalsHome", "goalsAway"):
+        v = result.get(k)
+        if not isinstance(v, int) or isinstance(v, bool) or v < 0 or v > 20:
+            problems.append(f"{k}={v!r} out of range/invalid")
+    return (not problems), "; ".join(problems)
 
 
 def run_static_audit(verbose=True):

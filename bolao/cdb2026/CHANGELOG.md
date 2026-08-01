@@ -1,5 +1,47 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.61 — 2026-08-01 — E-mail automático de resultado por partida (scripts/send_result_email.py)
+
+Eduardo: "Cdb2026 está configurado para enviar email apos cada jogo assim como a copa? ... tem que
+implementar isso! E logo já acabou o Primeiro jogo. Tem que ser EXATAMENTE igual copa do mundo!"
+
+CDB2026 nunca teve esse recurso — só a Copa (`send_result_email.py` + workflow
+`auto_results.yml`) e o BR2026 (`send_round_email.py` + `br2026_round_emails.yml`) tinham.
+Implementado agora, mesma arquitetura da Copa (mesmo mecanismo EmailJS, mesmo layout bilíngue
+PT/EN, mesmos gates de segurança — auto-audit antes de qualquer envio, dupla checagem de
+estabilidade do resultado na ESPN com 20s de intervalo, validação de sanidade por partida antes
+de confiar nela). Única diferença real é o MODELO DE DADOS: a Copa tem chaveamento fixo conhecido
+de antemão; o CDB2026 é mata-mata de ida e volta com confrontos sorteados fase a fase — o script
+lê os confrontos direto de `state.phases[fase].ties` e casa cada perna com a ESPN por NOME DE
+TIME (mesmo mecanismo de `autoSyncEspnResults()` em `app.js`), não por bracket fixo.
+
+- `scripts/send_result_email.py` (novo): `--auto` detecta pernas (ida/volta) da fase ativa ainda
+  não salvas, salva no Supabase e envia e-mail a todos os participantes com a pontuação daquela
+  perna; quando a 2ª perna de um confronto decide a classificação, o bônus de "quem avança" entra
+  no mesmo e-mail (mesma técnica da Copa ao dobrar o bônus de pódio no e-mail de M103/M104).
+  Quando a Final é decidida, inclui o bloco de pódio/premiação do bolão (1º/2º/3º lugar em
+  dinheiro, 70/20/10% do pote) — sem 3º/4º lugar de time (a Copa do Brasil não tem disputa de 3º
+  lugar). Reaproveita `audit_scoring.py` DIRETAMENTE (`match_points()`/`score_entry()`) em vez de
+  reimplementar a fórmula uma segunda vez — elimina por construção o tipo de drift que o
+  equivalente da Copa (uma reimplementação Python verdadeiramente independente) precisa se
+  proteger contra.
+- `scripts/audit_scoring.py`: adicionadas `check_match_is_real()`/`check_result_shape()`
+  (mesmo par de funções da Copa), chamadas em runtime pelo `--auto` antes de confiar em cada
+  resultado individual o bastante pra salvar + enviar.
+- `.github/workflows/cdb2026_result_emails.yml` (novo): roda `--auto` a cada 10 min (mesma
+  cadência da Copa), sem restrição de mês (a Copa do Brasil roda de agosto a novembro/dezembro,
+  ao contrário da janela curta e fixa da Copa do Mundo).
+
+**Primeiro envio real, testado e confirmado em produção no mesmo dia:** Vasco 0–0 Fluminense
+(Oitavas, jogo de ida, 2026-08-01) — detectado, salvo e e-mail enviado aos 12 participantes reais
+com sucesso (`--auto`, verificado leg a leg antes de rodar: detecção correta, sanidade OK,
+preview do HTML renderizado e conferido antes do primeiro envio real).
+
+`audit_scoring.py` das 3 apps, `audit_state_merge.mjs`, `audit_golden_master.mjs`,
+`audit_integrity.py --self-test`, `check_cachebust.mjs` re-rodados — todos passando. Scoring,
+ranking e critérios de desempate não foram tocados (o novo script só CONSOME `score_entry()`, não
+o reimplementa).
+
 ## Incidente operacional — 2026-08-01 — Entrada de Matheus Ferrari salva com palpites vazios
 
 A entrada "Matheus Ferrari" (criada 2026-08-01T20:46:17Z, `payerName: "Eduardo"`) foi salva com

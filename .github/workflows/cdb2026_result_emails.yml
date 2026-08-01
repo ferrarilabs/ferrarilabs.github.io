@@ -1,0 +1,65 @@
+name: Bolão CDB2026 — Emails de resultado (auto)
+
+# Mesma arquitetura do workflow da Copa (auto_results.yml) -- Eduardo, 2026-08-01: "Tem que ser
+# EXATAMENTE igual copa do mundo!" Sem restrição de mês (a Copa do Brasil roda de agosto a
+# novembro/dezembro, ao contrário da Copa do Mundo, que tem uma janela fixa curta conhecida de
+# antemão) -- mesma janela de horário da Copa (jogos tipicamente à noite, horário do Brasil).
+
+on:
+  schedule:
+    # Every 10 min, 16:00-23:50 UTC = 1:00 PM–8:50 PM EDT / 12:00 PM-7:50 PM BRT-ish window
+    - cron: '*/10 16-23 * * *'
+    # Every 10 min, 00:00-05:50 UTC = 9:00 PM–2:50 AM EDT (covers late kickoffs + completion)
+    - cron: '*/10 0-5 * * *'
+  workflow_dispatch:
+    inputs:
+      tie_id:
+        description: "tieId (vazio = modo auto ESPN)"
+        required: false
+        type: string
+        default: ""
+      leg:
+        description: "leg (first|second|single) — só se tie_id fornecido"
+        required: false
+        type: string
+        default: ""
+      goals_home:
+        description: "Gols mandante — só se tie_id fornecido"
+        required: false
+        type: string
+        default: ""
+      goals_away:
+        description: "Gols visitante — só se tie_id fornecido"
+        required: false
+        type: string
+        default: ""
+
+# Queue rather than cancel — avoids double-sends if jobs overlap
+concurrency:
+  group: cdb2026-result-emails
+  cancel-in-progress: false
+
+jobs:
+  check-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Send result emails
+        working-directory: bolao/cdb2026/scripts
+        run: |
+          TIE="${{ github.event.inputs.tie_id }}"
+          if [ -n "$TIE" ]; then
+            echo "Manual mode: updating $TIE"
+            python3 send_result_email.py \
+              --update "$TIE" \
+                       "${{ github.event.inputs.leg }}" \
+                       "${{ github.event.inputs.goals_home }}" \
+                       "${{ github.event.inputs.goals_away }}"
+            python3 send_result_email.py
+          else
+            echo "Auto mode: checking ESPN for new results"
+            python3 send_result_email.py --auto
+          fi
