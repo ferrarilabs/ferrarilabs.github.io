@@ -166,6 +166,47 @@ window.POWERBALL_DRAWS = [
       premiosGanhos: null,
       lucro: null
     }
+  },
+  {
+    id: "2026-08-05",
+    gameType: "powerball",
+    drawing: {
+      name: "Powerball Jackpot",
+      jackpot: 315000000,
+      drawDateIso: "2026-08-05T22:59:00-04:00",
+      drawDateLabel: "05/08/2026 22:59 ET"
+    },
+
+    // Sorteio aberto para novas cotas — saldo do sorteio anterior é reciclado.
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" }
+    ],
+
+    // Sem tickets comprados ainda — aguardando confirmação de participantes.
+    sharedTickets: {
+      compradoPor: "—",
+      dataComprovante: "—",
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 20,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 20
+    },
+
+    result: {
+      numbers: null,
+      special: null,
+      multiplier: null,
+      checkedAt: null
+    },
+
+    profit: {
+      premiosGanhos: null,
+      lucro: null
+    }
   }
 ];
 
