@@ -68,7 +68,7 @@ window.LOTTERY_GAME_TYPES = {
 
 window.POWERBALL_DRAWS = [
   {
-    id: "2026-08-03",
+    id: "2026-08-01",
     gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
