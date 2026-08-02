@@ -1,5 +1,36 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.67 — 2026-08-02 — "Ver palpites" fora de ordem cronológica de novo: era ordenado por CONFRONTO, não por PERNA
+
+Eduardo, print do Ranking → Ver palpites: "Mais um ajuste cirúrgico os jogos precisam ser em
+ordem cronológica aqui." A v3.65 já tinha corrigido a ordenação de "crua/insersão" para
+"cronológica", mas só no nível do CONFRONTO: `firstLegKickoffMs()` ordenava as TIES pela data da
+ida e depois listava ida+volta daquele confronto sempre juntas, mesmo quando a volta ainda nem
+tem data marcada (`null`) ou quando a volta de um confronto acontece antes da ida de outro. No
+print, a volta (ainda sem data, `kickoff: null`) do Vasco × Fluminense aparecia logo depois da
+ida do Vasco, na frente da ida do Atlético-MG × Juventude (que JÁ tem data e acontece antes) —
+essa é a ordem "por confronto", não a ordem real dos jogos.
+
+Corrigido com uma função nova, `flatLegsChronological(s, phase)`: em vez de ordenar confrontos e
+listar as duas pernas de cada um juntas, agora monta uma lista achatada de TODAS as pernas de
+todos os confrontos da fase e ordena essa lista pela data real de CADA perna individualmente
+(pernas sem data ainda ficam no fim, na ordem em que já estavam — mesmo critério de antes).
+Aplicada nas 3 telas que listam pernas numa tabela linear — as mesmas que ganharam o fix da v3.65
+com o mesmo comentário de achado: `renderPickDisplay()` (Ver palpites do Ranking), `receiptHtml()`
+(comprovante por e-mail) e `exportCsv()` (exportação do admin). A linha "Classificado" (aparece
+quando o confronto já foi decidido) passou a ser emitida logo após a perna decisiva (a volta, ou
+a única partida em fase de jogo único) em vez de sempre logo após a ida, acompanhando a nova
+ordem. `renderPickForm()` (formulário de palpites) e `renderGamesSection()` (aba Jogos) **não**
+foram alterados — cada um é propositalmente um cartão por confronto inteiro (ida e volta juntas),
+não uma lista linear de jogos, então não tinham esse bug.
+
+Reproduzido com estado real de produção (Playwright + Supabase): confirmado que as 8 idas
+conhecidas agora aparecem em ordem real de horário (Vasco 01/08 17h30 → Atlético-MG 19h30 →
+Santos 21h → Palmeiras 02/08 16h → Mirassol 18h → Chapecoense 18h30 → Internacional 19h30 →
+Athletico-PR 03/08 21h), com as 8 voltas (ainda sem data) depois, em vez de intercaladas por
+confronto. `node --check`: OK. `audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs`
+(37/37) e `audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só ordenação de exibição.
+
 ## v3.66 — 2026-08-01 — "Ver palpites" ganha coluna de resultado real (paridade estrutural com a Copa)
 
 Eduardo, depois da v3.65: "The format needs to match 100% Copa do Mundo." Auditoria de estrutura
