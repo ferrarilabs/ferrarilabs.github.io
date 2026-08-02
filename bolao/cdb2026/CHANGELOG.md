@@ -1,5 +1,42 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.72 — 2026-08-02 — Side-scroll continuava permanente: contenção adicionada direto em .topbar e main
+
+Eduardo, novo print (mesmo bug da v3.70/v3.71): "Still the same." Perguntei os detalhes que
+faltavam pra não continuar chutando às cegas: confirmou que a rolagem horizontal é **permanente**
+(a tela realmente fica mais larga, dá pra arrastar de um lado pro outro à vontade — não é um
+solavanco que volta sozinho) e acontece **já ao carregar a página/trocar de aba**, não só ao
+rolar. Isso descarta o diagnóstico de "bounce elástico" das duas versões anteriores — é overflow
+REAL de algum elemento, e `overflow-x: clip`/`overscroll-behavior-x` em `html, body` não estavam
+resolvendo porque não é (só) sobre o comportamento elástico do WebKit.
+
+Não foi possível reproduzir no Chromium do sandbox mesmo simulando uma partida ao vivo real
+(Santos × Remo com gol, cartão amarelo do Neymar e duas substituições, dados idênticos ao print)
+contra o estado real de produção — `document.documentElement.scrollWidth` sempre igual a
+`window.innerWidth`, nenhum elemento com `getBoundingClientRect()` ultrapassando a viewport.
+Suspeita não confirmada (sem acesso a um dispositivo iOS real pra inspecionar): `.topbar` é o
+único elemento `position: sticky` da página, e o comentário original da v3.36 já registrava que
+`overflow-x: clip` em `html, body` pode não impedir um ancestral sticky de vazar overflow
+horizontal em alguns motores.
+
+Adicionada uma camada de contenção defensiva direto nos dois elementos mais próximos do
+provável vazamento, já que não dá pra confirmar a causa exata sem o dispositivo real:
+- `.topbar { width: 100%; overflow-x: hidden; overflow-y: visible; }`
+- `main { overflow-x: hidden; overflow-y: visible; }` (o `overflow-y: visible` explícito é
+  obrigatório nos dois — especificar só `overflow-x` faz o `overflow-y` computado virar `auto`
+  pela regra do CSS2.1, o que transformaria esses elementos em scroll containers próprios e
+  quebraria o `.sticky-submit` do formulário de palpites, corrigido na Fase 2.2).
+
+Verificado com Playwright (estado real de produção + partida ao vivo simulada): página renderiza
+igual, sem overflow detectável, `main`/`.topbar` mantêm o comportamento visual normal. **Ainda
+não é uma confirmação de que isso resolve no dispositivo real do Eduardo** — sem um iPhone pra
+testar, meu próximo passo se "still the same" persistir é pedir uma GRAVAÇÃO DE TELA (não só
+print) pra ver o exato instante em que acontece.
+
+`node --check`: OK (mudança só de CSS). `audit_scoring.py` das 3 apps (5/5 cada),
+`audit_golden_master.mjs` (37/37) e `audit_integrity.py` (0 erro) re-rodados — scoring não
+tocado.
+
 ## v3.71 — 2026-08-02 — Correção de diagnóstico: v3.70 dizia "Safari", era Chrome no iPhone
 
 Eduardo: "This was on chrome not safari." A v3.70 (abaixo) atribuiu o side-scroll ao bounce
