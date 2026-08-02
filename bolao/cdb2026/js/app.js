@@ -1169,30 +1169,17 @@ let _lastEmailTs = 0;
 function receiptHtml(entry, s) {
   const rows = [];
   DATA.phases.forEach(phase => {
-    // Mesma ordenação cronológica de renderGamesSection()/renderPickForm()/renderPickDisplay()
-    // (firstLegKickoffMs) -- mesmo achado real do "ver palpites" (Eduardo, 2026-08-01), mesmo
-    // padrão de bug: esta também listava na ordem crua de inserção, não na ordem em que os jogos
-    // realmente acontecem.
-    const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
-    ties.sort(([, tieA], [, tieB]) => {
-      const msA = firstLegKickoffMs(tieA, phase.format);
-      const msB = firstLegKickoffMs(tieB, phase.format);
-      if (msA === null && msB === null) return 0;
-      if (msA === null) return 1;
-      if (msB === null) return -1;
-      return msA - msB;
-    });
-    ties.forEach(([tieId, tie]) => {
-      if (!tie.teamA || !tie.teamB) return;
+    // Ordem cronológica real POR PERNA -- ver flatLegsChronological() (achado por Eduardo,
+    // 2026-08-02: agrupar ida+volta de um confronto sempre juntas descola da ordem real quando a
+    // volta de um confronto acontece antes da ida de outro).
+    flatLegsChronological(s, phase).forEach(({ tieId, tie, leg }) => {
       const pickMatches = entry.picks?.matches?.[tieId];
       if (!pickMatches) return;
-      legsForFormat(phase.format).forEach(leg => {
-        const pick = pickMatches[leg];
-        if (!pick) return;
-        const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
-        const { home: rHome, away: rAway } = legTeams(tie, leg, tie.matches?.[leg]);
-        rows.push(`<tr><td>${esc(rHome)} × ${esc(rAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
-      });
+      const pick = pickMatches[leg];
+      if (!pick) return;
+      const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
+      const { home: rHome, away: rAway } = legTeams(tie, leg, tie.matches?.[leg]);
+      rows.push(`<tr><td>${esc(rHome)} × ${esc(rAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
     });
   });
   const predicted = predictedPodium(entry, s);
@@ -1466,41 +1453,33 @@ function renderPickDisplay(entry, detail) {
     : `<span class="muted">—</span>`;
   const rows = [];
   DATA.phases.forEach(phase => {
-    // Mesma ordenação cronológica de renderGamesSection()/renderPickForm() (firstLegKickoffMs)
-    // -- achado real (Eduardo, 2026-08-01: "ordenação dos ver palpites... em uma ordem
-    // estranha"): esta era a única das telas de palpite que ainda listava os confrontos na ordem
-    // crua de inserção (Object.entries(), ordem em que o admin/ESPN sync cadastrou cada um), não
-    // a ordem em que os jogos realmente acontecem. Confrontos sem kickoff conhecido ainda ficam
-    // no fim, mesmo critério das outras telas.
-    const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
-    ties.sort(([, tieA], [, tieB]) => {
-      const msA = firstLegKickoffMs(tieA, phase.format);
-      const msB = firstLegKickoffMs(tieB, phase.format);
-      if (msA === null && msB === null) return 0;
-      if (msA === null) return 1;
-      if (msB === null) return -1;
-      return msA - msB;
-    });
-    ties.forEach(([tieId, tie]) => {
-      if (!tie.teamA || !tie.teamB) return;
+    // Ordem cronológica real POR PERNA, não por confronto -- ver flatLegsChronological() (achado
+    // por Eduardo, 2026-08-02: agrupar ida+volta de um confronto sempre juntas descolava da ordem
+    // real quando a volta de um confronto acontece antes da ida de outro).
+    const legs = legsForFormat(phase.format);
+    const lastLeg = legs[legs.length - 1];
+    const qualifiedTiesEmitted = new Set();
+    flatLegsChronological(s, phase).forEach(({ tieId, tie, leg }) => {
       const pickMatches = entry.picks?.matches?.[tieId];
       if (!pickMatches) return;
-      legsForFormat(phase.format).forEach(leg => {
-        const pick = pickMatches[leg];
-        if (!pick) return;
+      const pick = pickMatches[leg];
+      if (pick) {
         const d = detail?.matches?.[`${tieId}:${leg}`];
         const legLabel = leg === "single" ? "" : ` (${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))})`;
         const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
         const rm = tie.matches?.[leg];
         const realScore = (rm && rm.goalsHome != null && rm.goalsAway != null) ? `${rm.goalsHome} × ${rm.goalsAway}` : "—";
         rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
-      });
-      const pickQual = entry.picks?.qualified?.[tieId];
-      if (tie.qualifiedTeamId && pickQual) {
-        const d = detail?.ties?.[tieId];
-        const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
-        const realQualified = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
-        rows.push(`<tr><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+      }
+      if (leg === lastLeg && !qualifiedTiesEmitted.has(tieId)) {
+        const pickQual = entry.picks?.qualified?.[tieId];
+        if (tie.qualifiedTeamId && pickQual) {
+          qualifiedTiesEmitted.add(tieId);
+          const d = detail?.ties?.[tieId];
+          const teamName = pickQual === "A" ? tie.teamA : tie.teamB;
+          const realQualified = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
+          rows.push(`<tr><td>${esc(t("pickQualifiedLabel"))}: ${esc(tie.teamA)} × ${esc(tie.teamB)}</td><td>${esc(teamName)}</td><td>${esc(realQualified)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        }
       }
     });
   });
@@ -1818,6 +1797,38 @@ function firstLegKickoffMs(tie, format) {
   const firstLeg = legsForFormat(format)[0];
   const ms = tie.matches?.[firstLeg]?.kickoff ? new Date(tie.matches[firstLeg].kickoff).getTime() : NaN;
   return Number.isFinite(ms) ? ms : null;
+}
+
+// Kickoff de UMA perna específica (não sempre a ida, ao contrário de firstLegKickoffMs acima).
+function legKickoffMs(tie, leg) {
+  const ms = tie.matches?.[leg]?.kickoff ? new Date(tie.matches[leg].kickoff).getTime() : NaN;
+  return Number.isFinite(ms) ? ms : null;
+}
+
+// Lista achatada de {tieId, tie, leg} de todos os confrontos de uma fase, em ordem cronológica
+// real POR PERNA (não por confronto) -- achado por Eduardo (2026-08-02, print do "Ver palpites"):
+// agrupar ida+volta de um mesmo confronto sempre juntas (como firstLegKickoffMs() faz) descola da
+// ordem real sempre que a volta de um confronto acontece antes da ida de outro -- comum em
+// mata-mata, onde todas as idas de uma rodada costumam sair antes de qualquer volta começar.
+// Usada pelas 3 telas que listam pernas individuais como uma tabela linear (Ver palpites do
+// Ranking, comprovante por e-mail, exportação CSV do admin). `renderPickForm()` e
+// `renderGamesSection()` continuam agrupadas por confronto de propósito (cada uma é um cartão do
+// confronto inteiro, ida e volta juntas por design) -- não têm esse bug, não usam esta função.
+function flatLegsChronological(s, phase) {
+  const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
+  const legs = legsForFormat(phase.format);
+  const flat = [];
+  ties.forEach(([tieId, tie]) => {
+    if (!tie.teamA || !tie.teamB) return;
+    legs.forEach(leg => flat.push({ tieId, tie, leg, ms: legKickoffMs(tie, leg) }));
+  });
+  flat.sort((a, b) => {
+    if (a.ms === null && b.ms === null) return 0;
+    if (a.ms === null) return 1;
+    if (b.ms === null) return -1;
+    return a.ms - b.ms;
+  });
+  return flat;
 }
 
 function renderGamesSection() {
@@ -3526,28 +3537,17 @@ function exportCsv() {
     const predicted = predictedPodium(e, s);
     const lines = [];
     DATA.phases.forEach(phase => {
-      // Mesma ordenação cronológica das telas de palpite (firstLegKickoffMs) -- mesmo achado do
-      // "ver palpites" (Eduardo, 2026-08-01), mesmo padrão de bug nesta exportação.
-      const ties = Object.entries(s.phases?.[phase.id]?.ties || {});
-      ties.sort(([, tieA], [, tieB]) => {
-        const msA = firstLegKickoffMs(tieA, phase.format);
-        const msB = firstLegKickoffMs(tieB, phase.format);
-        if (msA === null && msB === null) return 0;
-        if (msA === null) return 1;
-        if (msB === null) return -1;
-        return msA - msB;
-      });
-      ties.forEach(([tieId, tie]) => {
-        if (!tie.teamA || !tie.teamB) return;
+      // Ordem cronológica real POR PERNA -- ver flatLegsChronological() (achado por Eduardo,
+      // 2026-08-02: agrupar ida+volta de um confronto sempre juntas descola da ordem real quando
+      // a volta de um confronto acontece antes da ida de outro).
+      flatLegsChronological(s, phase).forEach(({ tieId, tie, leg }) => {
         const pickMatches = e.picks?.matches?.[tieId];
         if (!pickMatches) return;
-        legsForFormat(phase.format).forEach(leg => {
-          const pick = pickMatches[leg];
-          if (!pick) return;
-          const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
-          const { home: cHome, away: cAway } = legTeams(tie, leg, tie.matches?.[leg]);
-          lines.push(`${cHome} ${pick.goalsHome}x${pick.goalsAway} ${cAway}${legLabel}`);
-        });
+        const pick = pickMatches[leg];
+        if (!pick) return;
+        const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
+        const { home: cHome, away: cAway } = legTeams(tie, leg, tie.matches?.[leg]);
+        lines.push(`${cHome} ${pick.goalsHome}x${pick.goalsAway} ${cAway}${legLabel}`);
       });
     });
     rows.push([
