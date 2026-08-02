@@ -122,34 +122,53 @@ encontrada que não estivesse já resolvida. Arquivos criados/atualizados:
   e os PNGs em `docs/bolao/evidence/visual/{copa2026,br2026,cdb2026}/`, capturados via
   Playwright em 2026-08-01, cobrindo Palpites/Ranking/Jogos/Regras/Admin em 7 viewports. A
   captura do CDB2026 é anterior ao commit `ef7f2c4` (Jogos tab parity, 2026-08-02) — portanto
-  **está desatualizada para a seção Jogos do CDB2026** e não foi usada como confirmação
-  daquele componente; foi usada apenas como confirmação adicional para seções não tocadas
-  desde 2026-08-01 (Palpites, Ranking, Regras, Admin).
-  - **Screenshots/`getComputedStyle` novos nesta sessão**: nenhum. `node`/`npx` não existem
-    nesta máquina (`which node npx` vazio; busca em `find / -maxdepth 4 -iname node` vazia) —
-    o harness Playwright (`bolao/cdb2026/scripts/visual/capture_evidence.mjs`,
-    `playwright_loader.mjs`, `check_manifest.mjs`, `check_sticky_overlap.mjs`) não pôde ser
-    executado. Isto é uma limitação de ambiente, registrada honestamente, não uma verificação
-    pulada por escolha.
-  - Nenhum teste de overflow/sobreposição/contraste/console foi rodado ao vivo nesta sessão.
-- **Acessibilidade**: nenhuma medição de contraste WCAG foi feita (mesma limitação já
-  registrada em `DESIGN_SYSTEM.md`); a ausência de `aria-current`/`aria-selected` foi
-  confirmada por `grep` (ausência real, não inferida).
-- **Regressão de scoring**: `python3 bolao/copa2026/scripts/audit_scoring.py`,
-  `python3 bolao/br2026/scripts/audit_scoring.py`, `python3 bolao/cdb2026/scripts/audit_scoring.py`
-  — **todos passaram (6/6, 5/5, 5/5)** antes e depois desta sessão (nenhum código foi
-  modificado, então o resultado é idêntico; rodado mesmo assim, por regra permanente do
-  `CLAUDE.md`, independentemente da mudança ser ou não relacionada a scoring).
+  **estava desatualizada para a seção Jogos do CDB2026** — corrigido pela recaptura abaixo.
+
+### Atualização — verificação Playwright real (sessão de acompanhamento, mesmo dia)
+
+O ambiente não tinha `node`/`npx` (confirmado por `which` e `find`). Instalado via `nvm`
+(`~/.nvm`, sem sudo, sem tocar configuração de sistema) e Playwright + Chromium via `npm install`
+**fora do repositório**, em `/private/tmp/.../scratchpad/pw` — o repo não ganhou `package.json`
+nem `node_modules` (confirmado: `git status` limpo para esses caminhos). O harness existente
+(`capture_evidence.mjs`) já previa exatamente esse cenário via as variáveis `PLAYWRIGHT_PATH` e
+`PLAYWRIGHT_CHROMIUM_PATH` (comentário no próprio `playwright_loader.mjs`), então nenhuma edição
+de script foi necessária — só as env vars apontando para a instalação no scratchpad.
+
+Resultado da execução real (`node bolao/cdb2026/scripts/visual/capture_evidence.mjs`):
+
+- **112 entradas no manifest**: 70 capturadas, 35 `notApplicable` (seção não existe naquele app),
+  7 `failed`.
+- **`overflow_report.json` e `console_errors.json`: ambos `[]`** — zero overflow horizontal e
+  zero erro de console em qualquer viewport/seção capturada.
+- As 7 falhas são todas `cdb2026 Pagamento` (todos os 7 viewports): o botão
+  `[data-section="payment"]` existe com `style="display:none"` — **idêntico nos três apps**
+  (confirmado por grep em `index.html` dos três) — e só fica visível condicionalmente via JS.
+  Não é uma divergência entre os apps, é uma limitação do harness (clica antes do botão ficar
+  visível) que afeta igualmente qualquer app se o harness tentasse a mesma seção neles.
+- **Achado novo, não é bug do app**: a screenshot `cdb2026_games_1440x900.png` mostra o topbar
+  sticky duplicado (aparece uma vez no topo e de novo mais abaixo na imagem). Confirmado como
+  artefato conhecido de `page.screenshot({ fullPage: true })` do Playwright com elementos
+  `position: sticky` em páginas longas (o composite de página inteira re-renderiza o elemento
+  fixo em cada segmento capturado) — **não** um bug de renderização real do app. Registrado aqui
+  para que ninguém persiga isso como defeito; `cdb2026_ranking_1440x900.png` (mesma sessão,
+  mesmo app) confirma o header renderizando uma única vez normalmente.
+- Screenshots atualizados e commitados para os três apps (substituindo a evidência de
+  2026-08-01); a seção Jogos do CDB2026 agora reflete o estado pós-`ef7f2c4`.
+- **Acessibilidade**: nenhuma medição de contraste WCAG foi feita ainda (ferramenta de contraste
+  não fazia parte deste harness). A ausência de `aria-current`/`aria-selected` foi confirmada por
+  `grep` e **corrigida nesta sessão** (ver abaixo) — `aria-selected` não foi adicionado de
+  propósito: os botões de nav são `<button>` simples, não um par `role="tab"`/`role="tablist"`,
+  então `aria-current="page"` é o padrão ARIA correto aqui.
+- **Regressão de scoring**: `audit_scoring.py` rodado novamente após a mudança de
+  `aria-current` — **6/6 (copa2026), 5/5 (br2026), 5/5 (cdb2026)**, sem alteração de resultado
+  (a mudança não toca scoring/ranking/entries).
 
 ## Pendências (nada foi corrigido silenciosamente — tudo abaixo está genuinamente em aberto)
 
-1. **`aria-current`/`aria-selected` nas tabs de navegação (H-3, P2)** — nenhum dos três apps
-   marca semanticamente a aba ativa para leitores de tela. Corrigir exige tocar a função de
-   troca de seção (`showSection()`/equivalente) em `app.js` dos três apps — uma mudança
-   `PLATFORM_SHARED` de acessibilidade real, mas que toca lógica de renderização, não é um
-   patch CSS puro, e precisa de teste funcional (não só visual) em cada app antes de aceitar.
-   Não implementada nesta rodada por ser maior que um "ajuste menor" e por prudência de escopo
-   (a tarefa pede não misturar categorias de mudança no mesmo patch).
+1. ~~**`aria-current`/`aria-selected` nas tabs de navegação (H-3, P2)**~~ — **RESOLVIDO**
+   nesta sessão de acompanhamento: `showSection()` em `app.js` dos três apps agora toggla
+   `aria-current="page"` no botão de nav ativo (removido dos demais). Commit local (ver abaixo),
+   `audit_scoring.py` 6/6, 5/5, 5/5 após a mudança.
 2. **Estrutura de cards da página Regras (H-2, P3)** — Copa (2 cards) / BR2026 (1 card) /
    CDB2026 (7 cards) divergem em padrão de agrupamento. Decisão editorial do Eduardo necessária
    antes de reestruturar — sinalizado desde 2026-07-14, ainda sem resposta registrada.
@@ -158,12 +177,14 @@ encontrada que não estivesse já resolvida. Arquivos criados/atualizados:
 4. **Recibo/comprovante ausente em BR2026/CDB2026 (H-6)** — gap de feature de longa data,
    fora do escopo de uma fase declarada como "visual/estrutural" (implementar comprovante é uma
    feature nova grande, não uma padronização).
-5. **Validação visual real (Playwright, `getComputedStyle`, screenshots multi-viewport)** —
-   não executada nesta sessão por ausência de `node`/`npx` no ambiente. A evidência de
-   2026-08-01 cobre a maior parte dos componentes mas está desatualizada para a aba Jogos do
-   CDB2026 (mudou hoje). Recomendado: rodar `capture_evidence.mjs` numa máquina com Node
-   assim que disponível, para fechar definitivamente H-3 (após implementação) e revalidar a
-   aba Jogos do CDB2026 contra a nova evidência.
+5. ~~**Validação visual real (Playwright, `getComputedStyle`, screenshots multi-viewport)**~~ —
+   **PARCIALMENTE RESOLVIDO**: Node instalado via `nvm` e Playwright executado de fato (ver
+   seção "Atualização" acima) — 70 screenshots recapturados, `overflow_report.json` e
+   `console_errors.json` ambos vazios. `getComputedStyle` estruturado (JSON/Markdown
+   classificado IGUAL/EQUIVALENTE/JUSTIFICADA/DIVERGENTE, por componente) ainda **não** foi
+   produzido — o harness atual captura screenshots e overflow/console, não um diff de estilo
+   computado por componente. Ficou para uma tarefa separada em andamento
+   (CORREÇÃO FINAL, branch dedicada).
 6. **Admin toolbar — densidade de ações (H-5)** — não é uma pendência de padronização visual
    (o componente é idêntico); é uma lacuna de feature já registrada em
    `CONSISTENCY_MATRIX.md`, mantida fora do escopo desta fase por decisão de categoria
@@ -176,5 +197,15 @@ Ver mensagens de commit para o hash exato — resumo:
    — os dois documentos acima, sem nenhuma alteração de código (`bolao/copa2026`,
    `bolao/br2026`, `bolao/cdb2026` inalterados).
 
-Nenhum outro commit foi necessário — não houve implementação de P1/P2/P3 porque a auditoria
-não encontrou nenhum item corrigível de baixo risco que já não estivesse resolvido.
+### Sessão de acompanhamento (mesmo dia, Node instalado)
+
+2. `5dd80aa` — `Add aria-current="page" to active tab nav button (Copa/BR2026/CDB2026)` —
+   `app.js` dos três apps (`showSection()`), `js/config.js` (`siteVersion` bump: copa2026
+   v4.164, br2026 v1.82, cdb2026 v3.75), e os três `CHANGELOG.md`. `audit_scoring.py` 6/6, 5/5,
+   5/5 após a mudança.
+3. (próximo commit) — recaptura de `docs/bolao/evidence/visual/` via Playwright real (Node
+   instalado via `nvm`, Playwright/Chromium fora do repo) e atualização deste relatório com os
+   resultados. Sem alteração de código de app.
+
+Não houve push. Trabalho segue local em `main`, aguardando revisão do Eduardo antes de
+qualquer publicação — conforme instrução explícita da tarefa original.
