@@ -1,5 +1,12 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.75 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
+
+Propagated from Copa (v4.164) per the Fase 2.2 visual/accessibility audit
+(`docs/bolao/VISUAL_PARITY_MATRIX.md`): `showSection()` now toggles `aria-current="page"` on the
+active `.nav button[data-section]` (removed on the rest), same shape as Copa/BR2026. No visual
+change, no scoring/logic touched. `audit_scoring.py`: 5/5.
+
 ## v3.74 — 2026-08-02 — Aba "Jogos" alinhada 100% ao look and feel/comportamento da Copa: chips de status, placar ao vivo, auto-scroll pro próximo jogo
 
 Eduardo: "A tab jogos da cdb e brasileirão devem funcionar da mesma maneira que copa do mundo e
