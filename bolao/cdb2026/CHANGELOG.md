@@ -1,5 +1,23 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.76 — 2026-08-02 — Fix: per-match result email breakdown table wasn't sorted by its own points
+
+Eduardo pasted a sent email as evidence: the "Entrada | Palpite | Pts | Detalhes" table for a
+single leg's result wasn't ordered by its own "Pts" column at all (10/5/5/10/10/5/5/5/5/5/5/5, no
+visible pattern). Root cause: `build_html()`'s breakdown loop reused `scored`'s order, which is
+the SEASON-TOTAL ranking (`score_entry_total()` across every match played so far) — a completely
+different sort key from what a given entry earned on *this* leg. Copa's equivalent script already
+avoids this (`breakdown_scored`, its own separate sort distinct from the season-ranking `scored`)
+— CDB2026 was the one that had skipped that separation, not a platform-wide bug; BR2026 has no
+equivalent per-match breakdown table to check.
+
+Fixed: the breakdown is now built as its own list, sorted by (this leg's points, descending),
+then (entry name, alphabetical) as Eduardo asked — computed after any tie-qualification bonus is
+folded in, since that's part of "this game's" score too. Sort verified against the exact pasted
+data (10-pt entries first, alphabetical among ties; then all 5-pt entries, alphabetical).
+`audit_scoring.py`: 5/5 (score/ranking computation itself untouched — this only reordered how one
+already-correct number is displayed).
+
 ## v3.75 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
 
 Propagated from Copa (v4.164) per the Fase 2.2 visual/accessibility audit

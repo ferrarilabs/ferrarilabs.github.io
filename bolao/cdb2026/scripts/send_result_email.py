@@ -477,7 +477,17 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     # ── Per-entry breakdown for this leg ──────────────────────────────────────
     # No "result" (correct W/D/L sign, wrong score) tier — matches audit_scoring.match_points()
     # exactly, which only ever returns "exact"/"side"/"miss" (see that module's 2026-08-01 fix).
+    #
+    # Eduardo, 2026-08-02, pasting a sent email as evidence: this table wasn't sorted by its own
+    # "Pts" column at all — it inherited `scored`'s order, which is the SEASON-TOTAL ranking
+    # (score_entry_total across every match so far), a different key entirely from the points a
+    # given entry earned on THIS leg. Fixed by building a fresh list keyed on this leg's own
+    # points (descending) with entry name (A→Z) as the tiebreak, computed as its own pass instead
+    # of reusing `scored`'s order. Matches the pattern Copa's build_html() already uses
+    # (`breakdown_scored`, a separate sort from its own season-ranking `scored`) — CDB2026 was the
+    # one that had skipped that separation, not a platform-wide bug.
     breakdown_rows_pt = ""
+    breakdown_items = []
     for item in scored:
         entry = item["e"]
         pick = (entry.get("picks") or {}).get("matches", {}).get(tie_id, {}).get(leg)
@@ -507,13 +517,17 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
                 bonus_pt = f"+{audit_scoring.TIE_BONUS} acertou quem avança" if hit else "errou quem avança"
                 det_pt = f"{det_pt}, {bonus_pt}" if det_pt != "—" else bonus_pt
 
-        color = pts_color(pts)
         name = entry.get("entryName", "?")
+        breakdown_items.append({"name": name, "pts": pts, "pick_str": pick_str, "det_pt": det_pt})
+
+    breakdown_items.sort(key=lambda x: (-x["pts"], x["name"].upper()))
+    for b in breakdown_items:
+        color = pts_color(b["pts"])
         breakdown_rows_pt += (
-            f'<tr><td style="padding:6px 10px">{name}</td>'
-            f'<td style="padding:6px 10px;text-align:center">{pick_str}</td>'
-            f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{pts}</td>'
-            f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{det_pt}</td></tr>'
+            f'<tr><td style="padding:6px 10px">{b["name"]}</td>'
+            f'<td style="padding:6px 10px;text-align:center">{b["pick_str"]}</td>'
+            f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{b["pts"]}</td>'
+            f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{b["det_pt"]}</td></tr>'
         )
 
     # ── Ranking ───────────────────────────────────────────────────────────────
