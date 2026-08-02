@@ -68,7 +68,7 @@ window.LOTTERY_GAME_TYPES = {
 
 window.POWERBALL_DRAWS = [
   {
-    id: "2026-08-03",
+    id: "2026-08-01",
     gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
@@ -152,16 +152,66 @@ window.POWERBALL_DRAWS = [
       valorGuardadoProximoSorteio: 142
     },
 
-    // Preenchido manualmente após o sorteio de 03/08/2026.
+    // Preenchido manualmente após o sorteio de 01/08/2026.
     result: {
-      numbers: null,       // ex: [12, 24, 33, 47, 61]
-      powerball: null,     // ex: 9
-      powerPlay: null,     // ex: 3
-      checkedAt: null
+      numbers: [6, 17, 27, 48, 50],
+      special: 5,
+      multiplier: 3,
+      checkedAt: "01/08/2026 23:59 ET",
+      premiosGanhos: 24,
+      jackpotHit: false,
+      breakdown: ["1 + Powerball ($12)", "Powerball ($12)"]
     },
+
+    // Bilhetes que acertaram — renderizados em negrito
+    winningTickets: [
+      "06-15-26-34-37 — PB 05",
+      "24-28-45-53-54 — PB 05"
+    ],
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
     // profit = prêmios ganhos - valorUtilizado (não conta o valor guardado, que é reciclado).
+    profit: {
+      premiosGanhos: null,
+      lucro: null
+    }
+  },
+  {
+    id: "2026-08-03",
+    gameType: "powerball",
+    drawing: {
+      name: "Powerball Jackpot",
+      jackpot: 748000000,
+      drawDateIso: "2026-08-03T22:59:00-04:00",
+      drawDateLabel: "03/08/2026 22:59 ET"
+    },
+
+    // Sorteio aberto para novas cotas — saldo do sorteio anterior é reciclado.
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" }
+    ],
+
+    // Sem tickets comprados ainda — aguardando confirmação de participantes.
+    sharedTickets: {
+      compradoPor: "—",
+      dataComprovante: "—",
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 142,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 142
+    },
+
+    result: {
+      numbers: null,
+      special: null,
+      multiplier: null,
+      checkedAt: null
+    },
+
     profit: {
       premiosGanhos: null,
       lucro: null
