@@ -1,5 +1,30 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.69 — 2026-08-02 — Card ao vivo (gols/cartões/substituições) puxava a rolagem pra cima sozinho a cada segundo
+
+Eduardo: "Quando mexo no drop down onde mostra cartões substituição e gols ele fica voltando para
+cima, rolo para baixo e fica puxando para cima. Isso foi corrigido na copa do mundo." A caixa
+`.live-plays` (lista de gols/cartões/substituições do jogo ao vivo, `max-height:100px;
+overflow-y:auto` — o "dropdown" rolável a que ele se refere) já tinha sido portada da Copa com a
+CSS certa, mas SEM a parte de JS que preserva o `scrollTop` -- `renderLiveTieCard()` roda a cada
+tick de 1s do relógio ao vivo (`setInterval` em `init()`) e reconstrói `card.innerHTML` inteiro
+toda vez, recriando a caixa `.live-plays` do zero e zerando a rolagem dela. No meio de rolar pra
+baixo pra ler cartões/substituições mais antigos, a caixa "puxa pra cima" sozinha a cada segundo.
+
+Mesmo bug e mesmo fix já existente na Copa (`captureLivePlaysScroll`/`restoreLivePlaysScroll`,
+`bolao/copa2026/js/app.js`) e no BR2026 (mesma lógica inline em `renderLiveTieCard()`,
+`bolao/br2026/js/app.js` ~L1679-1687) — só faltava aqui. Portadas as duas funções e chamadas ao
+redor do `card.innerHTML = ...` de `renderLiveTieCard()`: captura o `scrollTop` de cada caixa
+`.live-plays[data-plays-match]` antes de reconstruir o HTML, restaura depois.
+
+Sem jogo ao vivo no momento da mudança (Vasco × Fluminense já encerrado) para reproduzir com
+Playwright contra um evento ao vivo real — verificado por leitura de código e comparação
+funcional linha a linha contra a implementação já comprovada da Copa (mesmo padrão exato:
+capturar antes do `innerHTML =`, restaurar depois, mesma chave `data-plays-match`). `node
+--check`: OK. `audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
+`audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só rolagem de um widget de
+exibição.
+
 ## v3.68 — 2026-08-02 — Removido rótulo "(Jogo de ida)"/"(Jogo de volta)" do Ver palpites e do comprovante
 
 Eduardo: "Pode tirar jogo de ida e volta, as pessoas sabem disso pois a ordem do time está

@@ -2465,7 +2465,9 @@ function renderLiveTieCard() {
       ${playsHtml ? `<div class="live-match-detail">${playsHtml}</div>` : ""}
     </div>`;
   }).join("");
+  const savedPlaysScroll = captureLivePlaysScroll(card);
   card.innerHTML = `<div class="live-match-grid">${rows}</div>`;
+  restoreLivePlaysScroll(card, savedPlaysScroll);
   card.classList.remove("hidden");
 }
 
@@ -2523,6 +2525,27 @@ function extractMatchPlays(comp, keyEvents) {
     console.warn("[CDB2026] extractMatchPlays failed, skipping plays feed for this match", err);
     return [];
   }
+}
+
+// A full innerHTML rebuild (o tick de 1s do relógio ao vivo em renderLiveTieCard()) recria cada
+// caixa .live-plays do zero, zerando o scrollTop dela -- no meio de uma rolagem isso lê como a
+// caixa "puxando pra cima" sozinha, a cada segundo. Mesmo bug e mesmo fix da Copa do Mundo
+// (captureLivePlaysScroll/restoreLivePlaysScroll em bolao/copa2026/js/app.js) -- portado aqui
+// (Eduardo, 2026-08-02: "Isso foi corrigido na copa do mundo"). A CSS scrollável (.live-plays,
+// max-height:100px, overflow-y:auto) já tinha sido portada antes; só faltava isto.
+function captureLivePlaysScroll(root) {
+  const saved = {};
+  root?.querySelectorAll?.(".live-plays[data-plays-match]").forEach(el => {
+    if (el.scrollTop > 0) saved[el.dataset.playsMatch] = el.scrollTop;
+  });
+  return saved;
+}
+function restoreLivePlaysScroll(root, saved) {
+  if (!saved || !Object.keys(saved).length) return;
+  root?.querySelectorAll?.(".live-plays[data-plays-match]").forEach(el => {
+    const s = saved[el.dataset.playsMatch];
+    if (s) el.scrollTop = s;
+  });
 }
 
 function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
