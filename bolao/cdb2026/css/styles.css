@@ -669,6 +669,10 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   display: grid; grid-template-columns: auto 1fr auto;
   align-items: center; gap: 10px;
 }
+/* Mesmo destaque de borda vermelha da Copa pro jogo ao vivo (.game-card.is-live,
+   bolao/css/styles.css) -- Eduardo, 2026-08-02: "devem funcionar da mesma maneira que copa do
+   mundo e ter o mesmo look and feel". */
+.leg.live { border-color: var(--red); }
 .leg-label {
   font-size: 11px; font-weight: 700; color: var(--muted);
   text-transform: uppercase; letter-spacing: .05em;

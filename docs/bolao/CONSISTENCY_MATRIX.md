@@ -1936,3 +1936,38 @@ v3.36 — bounce é específico do WebKit/iOS Safari).
 `overscroll-behavior-x`** — candidatos ao mesmo reforço preventivo, não aplicados aqui (não
 reportado nos outros dois; Copa é produção e só recebe patches avaliados individualmente por
 `PLATFORM_GOVERNANCE.md`). Registrado aqui para decisão do Eduardo.
+
+## Nota manual — Aba "Jogos" do CDB2026 alinhada ao "look and feel" da Copa/BR2026: chips de status, placar ao vivo, auto-scroll pro próximo jogo (2026-08-02, CDB2026 v3.74)
+
+Eduardo: "A tab jogos da cdb e brasileirão devem funcionar da mesma maneira que copa do mundo e
+ter o mesmo look and feel. E por default deve ir automaticamente para o próximo jogo. verifique
+isso 100% sem retirar informações ou funcionalidades." BR2026 já tinha esse comportamento
+(`.game-card.pre`/`showSection()`, código idêntico ao padrão da Copa
+`.game-card[data-state="pre"]`) — só o CDB2026 estava sem. Auditado e corrigido:
+
+- **Chip de status por perna** (`.game-status pre/live/post/postponed`): CDB2026 só mostrava a
+  data OU o placar, sem nenhum rótulo — Copa/BR2026 sempre mostram um chip (Ao vivo/Encerrado/
+  Agendado/Adiado). Adicionado em toda perna, reaproveitando as classes/cores CSS que já existiam
+  desde a v3.26 (portadas mas nunca usadas fora do chip de "Adiado").
+- **Placar/relógio ao vivo na aba Jogos**: antes só aparecia no card `#liveTieCard` isolado do
+  topo; uma perna em andamento na aba Jogos continuava mostrando só a data antiga, como se ainda
+  não tivesse começado. Agora consulta `_liveTies` (mesma fonte do card do topo) e mostra placar
+  + relógio ao vivo (usando `liveClockDisplay()`, já reconciliado pelo fix da v3.73) direto na
+  perna correspondente, com destaque de borda vermelha igual ao `.game-card.is-live` da Copa.
+- **Auto-scroll pro próximo jogo**: `showSection("games")` agora rola automaticamente pra próxima
+  perna ainda não iniciada ao abrir a aba, mesmo comportamento de Copa/BR2026. Implementado com
+  `nextUpcomingLegKey()`, que reusa `flatLegsChronological()` (o helper de ordem cronológica real
+  por PERNA, não por confronto, já usado por "Ver palpites"/comprovante/CSV desde a v3.67) — o
+  simples "primeira `.pre` em ordem de DOM" que Copa/BR2026 usam não bastaria aqui: como um
+  confronto do CDB2026 agrupa ida+volta no mesmo card, a volta (ainda sem data) de um confronto já
+  iniciado poderia aparecer ANTES da ida de outro confronto com data mais próxima na ordem de DOM
+  agrupada por confronto. Exclui pernas já ao vivo (mesmo critério de Copa/BR2026 — o jogo ao vivo
+  já tem destaque próprio no card do topo).
+
+**Estrutura de card por CONFRONTO (ida+volta agrupadas), com linha de agregado/"quem avança", NÃO
+foi alterada** — é `TOURNAMENT_SPECIFIC` (mata-mata de duas pernas, sem equivalente na Copa/
+BR2026) e nenhuma informação existente foi removida (venue, agregado, classificado, rótulo de
+ida/volta, chip de adiado — todos preservados, só ganharam companhia do chip de status novo).
+Verificado com Playwright + estado real de produção + partida ao vivo simulada (mesmo mock da
+v3.73): confronto-cards, agregados e "quem avança" continuam idênticos ao antes; chip/placar ao
+vivo e auto-scroll confirmados funcionando.

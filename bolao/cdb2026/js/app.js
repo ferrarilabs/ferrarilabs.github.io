@@ -474,7 +474,18 @@ function showSection(id) {
   const h = document.querySelector(`#${id} h2, #${id} h3`);
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: false }); }
   if (id === "admin") renderAdmin();
-  if (id === "games") renderGamesSection();
+  if (id === "games") {
+    renderGamesSection();
+    // Rola pra próxima perna automaticamente ao abrir a aba -- mesmo comportamento da Copa
+    // (.game-card[data-state="pre"], showSection() em bolao/js/app.js) e do BR2026
+    // (.game-card.pre, showSection() em bolao/br2026/js/app.js). Eduardo, 2026-08-02: "por
+    // default deve ir automaticamente para o próximo jogo." data-next-leg é calculado em
+    // renderGamesSection() via nextUpcomingLegKey() -- ordem cronológica real por perna, não por
+    // confronto (a mesma perna que "Ver palpites"/comprovante/CSV já usam desde a v3.67).
+    setTimeout(() => {
+      document.querySelector('[data-next-leg="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }
   if (id === "probs") renderProbsSection();
 }
 
@@ -1829,10 +1840,48 @@ function flatLegsChronological(s, phase) {
   return flat;
 }
 
+// Chave "tieId:leg" da PRÓXIMA perna ainda não iniciada, em ordem cronológica real (não por
+// confronto) -- mesma lógica de flatLegsChronological() (usada por "Ver palpites"/comprovante/
+// CSV): sem isso, a primeira perna com classe "pre" em ordem de DOM poderia ser a volta de um
+// confronto já iniciado (ida jogada, volta ainda sem data) aparecendo ANTES da ida de outro
+// confronto que já tem data mais próxima -- mesmo bug de agrupar por confronto em vez de por
+// jogo já corrigido em flatLegsChronological(). Exclui pernas já AO VIVO (_liveTies) mesmo que
+// `m.goalsHome` ainda esteja null no estado persistido (só é preenchido quando o jogo termina) --
+// igual à Copa (`.game-card[data-state="pre"]` nunca inclui `"in"`) e ao BR2026
+// (`.game-card.pre`): o jogo ao vivo já tem destaque próprio no card #liveTieCard do topo, "o
+// próximo jogo" aqui é sobre o que ainda não começou. Retorna null se não houver nenhuma perna
+// futura conhecida (torneio esperando sorteio, ou todas as fases já decididas).
+function nextUpcomingLegKey(s) {
+  for (const phase of DATA.phases) {
+    const upcoming = flatLegsChronological(s, phase).find(({ tieId, tie, leg }) => {
+      const m = tie.matches?.[leg];
+      if (!m || !m.kickoff || m.goalsHome != null || isLegPostponed(tieId, leg)) return false;
+      return !_liveTies.some(l => l.tieId === tieId && l.leg === leg);
+    });
+    if (upcoming) return `${upcoming.tieId}:${upcoming.leg}`;
+  }
+  return null;
+}
+
+// Aba "Jogos" -- estrutura de card por CONFRONTO (ida+volta juntas) é intencional e
+// TOURNAMENT_SPECIFIC (mata-mata de duas pernas, ao contrário do bracket de partida única da
+// Copa/liga do BR2026) — preservada. O que faltava pra bater "look and feel" com a Copa/BR2026
+// (Eduardo, 2026-08-02: "devem funcionar da mesma maneira que copa do mundo e ter o mesmo look
+// and feel... por default deve ir automaticamente para o próximo jogo"), sem tirar nenhuma
+// informação já existente (venue, placar, agregado, "quem avança", chip de adiado):
+// 1. Chip de status (.game-status pre/live/post/postponed) em TODA perna, não só nas adiadas --
+//    Copa/BR2026 sempre mostram um chip; aqui só o placar/data aparecia, sem rótulo.
+// 2. Placar AO VIVO (via _liveTies, populado por pollLiveTies()) refletido aqui também -- antes
+//    só a data ficava visível numa perna em andamento, igual a Copa/BR2026 mostram no card do
+//    jogo, não só no card "ao vivo" isolado do topo.
+// 3. showSection() rola pra próxima perna automaticamente ao abrir a aba (ver nextUpcomingLegKey
+//    acima e o `data-next-leg` abaixo) -- mesmo comportamento de "próximo jogo" que Copa
+//    (.game-card[data-state="pre"]) e BR2026 (.game-card.pre) já têm.
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
   const s = state();
+  const nextKey = nextUpcomingLegKey(s);
 
   let html = "";
   DATA.phases.forEach(phase => {
@@ -1862,17 +1911,26 @@ function renderGamesSection() {
         const home = leg === "second" ? tie.teamB : tie.teamA;
         const away = leg === "second" ? tie.teamA : tie.teamB;
         const label = leg === "single" ? "" : leg === "first" ? t("gamesLeg1") : t("gamesLeg2");
-        const scoreOrDate = m.goalsHome != null
-          ? `<b>${m.goalsHome} × ${m.goalsAway}</b>`
-          : esc(fmtDate(m.kickoff));
+        const live = _liveTies.find(l => l.tieId === tieId && l.leg === leg);
         // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- chip de "Adiado" quando a ESPN
         // sinaliza a partida como adiada/cancelada (ver isLegPostponed()/fetchLiveTies()).
-        const postponedChip = m.goalsHome == null && isLegPostponed(tieId, leg)
-          ? ` <span class="game-status postponed">${esc(t("gamePostponed"))}</span>` : "";
-        return `<div class="leg">
+        const postponed = m.goalsHome == null && isLegPostponed(tieId, leg);
+        const state = postponed ? "postponed" : live ? "live" : m.goalsHome != null ? "post" : "pre";
+        const scoreOrDate = live
+          ? `<b>${live.goalsHome ?? 0} × ${live.goalsAway ?? 0}</b>`
+          : m.goalsHome != null
+            ? `<b>${m.goalsHome} × ${m.goalsAway}</b>`
+            : esc(fmtDate(m.kickoff));
+        const statusLabel = state === "postponed" ? t("gamePostponed")
+          : state === "live" ? `${t("gameLive")}${live ? " · " + liveClockDisplay(live) : ""}`
+          : state === "post" ? t("gameFinal")
+          : t("gamePending");
+        const statusChip = ` <span class="game-status ${state}">${esc(statusLabel)}</span>`;
+        const isNext = `${tieId}:${leg}` === nextKey;
+        return `<div class="leg ${state}"${isNext ? ' data-next-leg="true"' : ""}>
           ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
           <span class="leg-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} × ${teamLogoImg(away, "team-logo")} ${esc(away)}</span>
-          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}${postponedChip}</span>
+          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}${statusChip}</span>
         </div>`;
       };
       const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;

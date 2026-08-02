@@ -1,5 +1,42 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.74 — 2026-08-02 — Aba "Jogos" alinhada 100% ao look and feel/comportamento da Copa: chips de status, placar ao vivo, auto-scroll pro próximo jogo
+
+Eduardo: "A tab jogos da cdb e brasileirão devem funcionar da mesma maneira que copa do mundo e
+ter o mesmo look and feel. E por default deve ir automaticamente para o próximo jogo. verifique
+isso 100% sem retirar informações ou funcionalidades." Auditoria confirmou: BR2026 já tinha esse
+comportamento (código idêntico ao padrão da Copa) — só faltava no CDB2026. Três gaps reais
+encontrados e corrigidos, nenhuma informação existente removida:
+
+1. **Chip de status por perna** (`.game-status pre/live/post/postponed`) — CDB2026 só mostrava a
+   data OU o placar cru, sem rótulo nenhum; Copa/BR2026 sempre mostram um chip colorido. Aplicado
+   a toda perna, reaproveitando o CSS já portado (e nunca usado fora de "Adiado") desde a v3.26.
+2. **Placar/relógio ao vivo dentro da aba Jogos** — uma perna em andamento continuava mostrando
+   só a data antiga na lista de jogos, como se ainda não tivesse começado (só o card `#liveTieCard`
+   isolado do topo mostrava o placar real). Agora consulta `_liveTies` e mostra placar + relógio
+   ao vivo (já reconciliado pelo fix da v3.73) direto na perna, com borda vermelha igual ao
+   `.game-card.is-live` da Copa.
+3. **Auto-scroll pro próximo jogo ao abrir a aba** — não existia. Novo `nextUpcomingLegKey()`,
+   que reusa `flatLegsChronological()` (ordem cronológica real por PERNA, não por confronto, já
+   usado por "Ver palpites"/comprovante/CSV desde a v3.67) em vez do "primeiro `.pre` em ordem de
+   DOM" que basta pra Copa/BR2026 — como o CDB2026 agrupa ida+volta no mesmo card por confronto, a
+   volta (ainda sem data) de um confronto já iniciado apareceria ANTES da ida de outro confronto
+   com data mais próxima se só a ordem de DOM fosse usada. Exclui pernas já ao vivo (mesmo
+   critério de Copa/BR2026 — o jogo ao vivo já tem destaque próprio no topo).
+
+**Estrutura de card por CONFRONTO (ida+volta agrupadas, com agregado/"quem avança") preservada
+integralmente** — é `TOURNAMENT_SPECIFIC` (mata-mata de duas pernas, sem equivalente na Copa/
+BR2026), não uma divergência a remover. Nenhuma informação existente foi tirada (venue, agregado,
+classificado, rótulo ida/volta, chip de adiado — todos continuam, só ganharam o chip de status
+novo ao lado).
+
+Verificado com Playwright contra estado real de produção + partida ao vivo simulada (mesmo mock
+Santos × Remo da v3.73): confronto-cards/agregados/"quem avança" idênticos a antes; chip de status
+em toda perna confirmado; placar+relógio ao vivo com borda vermelha confirmado na perna ao vivo;
+auto-scroll confirmado levando à perna correta (excluindo a que já está ao vivo). `node --check`:
+OK. `audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
+`audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só exibição/navegação da aba Jogos.
+
 ## v3.73 — 2026-08-02 — Relógio ao vivo mostrava acréscimo menor do que um lance já listado abaixo dele
 
 Eduardo, print do card ao vivo: "O cronometro esta errado, veja que mostra +1 mas logo abaixo
