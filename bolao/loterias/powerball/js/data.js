@@ -186,23 +186,43 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "03/08/2026 22:59 ET"
     },
 
-    // Sorteio aberto para novas cotas — saldo do sorteio anterior é reciclado.
+    // Todos os 14 participantes do sorteio anterior seguem para este — sem depósito
+    // novo, o dinheiro é 100% saldo reciclado (sobra do sorteio anterior + prêmio
+    // ganho), por isso não há valor individual por pessoa (ver `finance` abaixo).
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" }
+      { name: "Eduardo Ferrari", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Gustavo Bossle", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Tatiana Bossle", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Marcelo Moreira", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Leandro Augustineli", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Alan Rech", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Ewerton Gruba Silva", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Simone Hirle da Costa", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Camila Ribeiro", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Marcus Steffenon", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Samuel Huller", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Amanda Quaresma", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Rodrigo Hajj", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Nathalia Galeazzi Nedel", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" }
     ],
 
-    // Sem tickets comprados ainda — aguardando confirmação de participantes.
+    // Sem tickets comprados ainda — aguardando compra. Orçamento disponível
+    // (ver `finance`) dá para 55 tickets a US$3/ticket (Power Play).
     sharedTickets: {
       compradoPor: "—",
       dataComprovante: "—",
       valorPorTicket: 3,
+      ticketsRecomendados: 55, // floor(166 / 3)
       series: []
     },
 
+    // totalArrecadado = US$142 (sobra do sorteio de 01/08) + US$24 (prêmio ganho
+    // nesse mesmo sorteio) = US$166. Nada foi gasto em tickets ainda; ao comprar,
+    // valorUtilizado deve virar 165 (55 tickets x US$3) e valorGuardadoProximoSorteio 1.
     finance: {
-      totalArrecadado: 142,
+      totalArrecadado: 166,
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 142
+      valorGuardadoProximoSorteio: 166
     },
 
     result: {
