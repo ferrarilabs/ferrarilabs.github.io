@@ -32,19 +32,25 @@
   --danger-br: #8e2d42;
 }
 
-/* overflow-x: hidden sozinho ainda deixa a Safari do iOS fazer "rubber-band" horizontal
-   (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
-   clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
-   sozinho não resolve. Achado 2026-07-16 (Eduardo: "the issue with the side scroll is back") --
-   hidden mantido como fallback para navegadores sem suporte a clip.
+/* overflow-x: hidden sozinho ainda deixa o iOS fazer "rubber-band" horizontal (bounce) quando um
+   ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x: clip é mais rígido
+   (não cria uma região de scroll programável) e resolve isso quando hidden sozinho não resolve.
+   Achado 2026-07-16 (Eduardo: "the issue with the side scroll is back") -- hidden mantido como
+   fallback para navegadores sem suporte a clip.
    VOLTOU 2026-08-02 (Eduardo, print: "O dimensionamento da tela voltou a ter esse problema de
-   scroll vertical") mesmo com overflow-x: clip já presente -- clip impede rolagem PROGRAMÁVEL da
-   página, mas não impede o "glow"/bounce elástico nativo do iOS Safari na borda, que fica mais
-   visível quanto mais largo um elemento na página (a tabela "Ver palpites" ganhou uma 4ª coluna
-   na v3.66, mais provável de disparar o bounce ao arrastar dentro dela). overscroll-behavior-x é
-   o mecanismo mais recente e mais direto pra isso -- desliga o bounce elástico horizontal do
-   navegador em vez de só recortar seu efeito visual. Não reproduzido no Chromium do sandbox
-   (mesma limitação já registrada na v3.36 -- esse bounce é específico do WebKit/iOS Safari). */
+   scroll vertical") -- correção original desta nota dizia "Safari", CORRIGIDO: Eduardo confirmou
+   que viu no Chrome do iPhone, não Safari. Não muda o motor real: todo navegador no iOS (Chrome,
+   Firefox, etc.) é obrigado pela Apple a rodar sobre o WKWebView -- o mesmo motor de renderização
+   do Safari, com o mesmo bounce elástico nativo. "Chrome no iOS" só troca a UI em volta da
+   página, não o motor que decide o bounce -- o mesmo fix se aplica igual, independente de qual
+   navegador iOS está sendo usado. mesmo com overflow-x: clip já presente -- clip impede rolagem
+   PROGRAMÁVEL da página, mas não impede o "glow"/bounce elástico nativo do WKWebView na borda,
+   que fica mais visível quanto mais largo um elemento na página (a tabela "Ver palpites" ganhou
+   uma 4ª coluna na v3.66, mais provável de disparar o bounce ao arrastar dentro dela).
+   overscroll-behavior-x é o mecanismo mais recente e mais direto pra isso -- desliga o bounce
+   elástico horizontal do navegador em vez de só recortar seu efeito visual. Não reproduzido no
+   Chromium do sandbox (mesma limitação já registrada na v3.36 -- esse bounce é específico do
+   WKWebView/iOS, presente em QUALQUER navegador iOS, não só Safari). */
 html, body { overflow-x: hidden; overflow-x: clip; overscroll-behavior-x: none; }
 body {
   margin: 0;

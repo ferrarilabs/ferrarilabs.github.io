@@ -1,5 +1,21 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.71 — 2026-08-02 — Correção de diagnóstico: v3.70 dizia "Safari", era Chrome no iPhone
+
+Eduardo: "This was on chrome not safari." A v3.70 (abaixo) atribuiu o side-scroll ao bounce
+elástico do "iOS Safari" — impreciso. Confirmado com Eduardo: era Chrome no iPhone, não Safari.
+**Isso não muda o motor real nem o fix**: a Apple obriga todo navegador no iOS (Chrome, Firefox,
+etc.) a rodar sobre o WKWebView — o MESMO motor de renderização do Safari, com o mesmo bounce
+elástico nativo. "Chrome no iOS" troca só a UI em volta da página (barra de endereço, abas), não
+o motor que decide o bounce horizontal. O fix da v3.70 (`overscroll-behavior-x: none`/`contain`)
+se aplica igual, independente de qual navegador iOS está sendo usado — nenhuma mudança de código
+nesta versão, só correção da nota/comentário que dizia "Safari" especificamente (agora "iOS" /
+"WKWebView", cobrindo qualquer navegador da plataforma). Comentário em
+`bolao/cdb2026/css/styles.css` atualizado para registrar o histórico completo (diagnóstico
+original + correção), em vez de reescrever silenciosamente.
+
+`node --check`: OK (nenhum código tocado). `audit_scoring.py` das 3 apps: 5/5 cada, sem impacto.
+
 ## v3.70 — 2026-08-02 — Side-scroll horizontal (rubber-band do iOS Safari) voltou; reforçado com overscroll-behavior-x
 
 Eduardo, print do Ranking: "O dimensionamento da tela voltou a ter esse problema de scroll
