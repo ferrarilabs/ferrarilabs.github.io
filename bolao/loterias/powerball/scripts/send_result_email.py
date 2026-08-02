@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
 """
-send_result_email.py — Bolão Ferrari Powerball
-Sends bilingual (PT/EN) result email to all participants after lottery drawing.
+send_result_email.py — Bolão Ferrari Lotteries (Powerball / Mega Millions)
+Sends result email (PT only) to all participants after lottery drawing.
+
+Supports multiple game types via gameType parameter in draw data:
+  - "powerball": Powerball (red ball 1-35)
+  - "megamillions": Mega Millions (gold ball 1-25)
 
 Usage:
-  python3 send_result_email.py --test-send    # preview to admin only (review before broadcast)
-  python3 send_result_email.py --send-all     # send to all participants (after admin approves)
-  python3 send_result_email.py --check-data   # verify data consistency before any send
+  python3 send_result_email.py --test-send [gameType]    # preview to admin (default: powerball)
+  python3 send_result_email.py --send-all [gameType]     # broadcast to all participants
+  python3 send_result_email.py --check-data [gameType]   # validate data before send
 
 Email is sent ONLY if the draw has a completed result with winning tickets and prizes.
+Business rule: only play next drawing if jackpot accumulates (configured per draw).
 """
 
 import json, sys, time, urllib.request
@@ -35,45 +40,78 @@ EMAILJS_HEADERS = {
 # ── Hardcoded draw data (mirrors data.js exactly) ──────────────────────────────
 # This is intentionally copied from data.js to ensure no drift between site and email.
 # If you change data.js, update this too — this is the single source of truth for emails.
-DRAW = {
-    "id": "2026-08-01",  # NOTE: data.js has "2026-08-03" but date is "01/08/2026" — should be fixed
-    "gameType": "powerball",
-    "drawing": {
-        "name": "Powerball Jackpot",
-        "jackpot": 707000000,
-        "drawDateIso": "2026-08-01T22:59:00-04:00",
-        "drawDateLabel": "01/08/2026 22:59 ET"
-    },
-    "participants": [
-        {"name": "Eduardo Ferrari", "email": "emferrari@gmail.com"},
-        {"name": "Gustavo Bossle", "email": "REDACTED_EMAIL"},
-        {"name": "Tatiana Bossle", "email": ""},  # Sent via Gustavo per data.js
-        {"name": "Marcelo Moreira", "email": "REDACTED_EMAIL"},  # Updated per user
-        {"name": "Leandro Augustineli", "email": ""},  # MISSING — user will provide
-        {"name": "Alan Rech", "email": "REDACTED_EMAIL"},
-        {"name": "Ewerton Gruba Silva", "email": "REDACTED_EMAIL"},
-        {"name": "Simone Hirle da Costa", "email": "REDACTED_EMAIL"},
-        {"name": "Camila Ribeiro", "email": "REDACTED_EMAIL"},
-        {"name": "Marcus Steffenon", "email": "REDACTED_EMAIL"},
-        {"name": "Samuel Huller", "email": "REDACTED_EMAIL"},
-        {"name": "Amanda Quaresma", "email": "REDACTED_EMAIL"},
-        {"name": "Rodrigo Hajj", "email": "REDACTED_EMAIL"},
-        {"name": "Nathalia Galeazzi Nedel", "email": "REDACTED_EMAIL"},
+# Structure: {gameType: [draws]} to support Powerball, Mega Millions, etc.
+
+PARTICIPANTS = [
+    {"name": "Eduardo Ferrari", "email": "emferrari@gmail.com"},
+    {"name": "Gustavo Bossle", "email": "REDACTED_EMAIL"},
+    {"name": "Tatiana Bossle", "email": ""},  # Sent via Gustavo per data.js
+    {"name": "Marcelo Moreira", "email": "REDACTED_EMAIL"},
+    {"name": "Leandro Augustineli", "email": ""},  # MISSING — user will provide
+    {"name": "Alan Rech", "email": "REDACTED_EMAIL"},
+    {"name": "Ewerton Gruba Silva", "email": "REDACTED_EMAIL"},
+    {"name": "Simone Hirle da Costa", "email": "REDACTED_EMAIL"},
+    {"name": "Camila Ribeiro", "email": "REDACTED_EMAIL"},
+    {"name": "Marcus Steffenon", "email": "REDACTED_EMAIL"},
+    {"name": "Samuel Huller", "email": "REDACTED_EMAIL"},
+    {"name": "Amanda Quaresma", "email": "REDACTED_EMAIL"},
+    {"name": "Rodrigo Hajj", "email": "REDACTED_EMAIL"},
+    {"name": "Nathalia Galeazzi Nedel", "email": "REDACTED_EMAIL"},
+]
+
+DRAWS = {
+    "powerball": [
+        # Completed draw — 01/08/2026
+        {
+            "id": "2026-08-01",
+            "gameType": "powerball",
+            "drawing": {
+                "name": "Powerball Jackpot",
+                "jackpot": 707000000,
+                "drawDateIso": "2026-08-01T22:59:00-04:00",
+                "drawDateLabel": "01/08/2026 22:59 ET"
+            },
+            "result": {
+                "numbers": [6, 17, 27, 48, 50],
+                "special": 5,
+                "multiplier": 3,
+                "checkedAt": "01/08/2026 23:59 ET",
+                "premiosGanhos": 24,
+                "jackpotHit": False,
+                "breakdown": ["1 + Powerball ($12)", "Powerball ($12)"]
+            },
+            "winningTickets": [
+                "06-15-26-34-37 — PB 05",
+                "24-28-45-53-54 — PB 05"
+            ]
+        },
+        # Next draw — 03/08/2026 (conditional: only play if 01/08 jackpot doesn't hit)
+        {
+            "id": "2026-08-03",
+            "gameType": "powerball",
+            "drawing": {
+                "name": "Powerball Jackpot",
+                "jackpot": 748000000,
+                "drawDateIso": "2026-08-03T22:59:00-04:00",
+                "drawDateLabel": "03/08/2026 22:59 ET"
+            },
+            "playNextIfAccumulates": True,  # Business rule: only play if 01/08 has no jackpot
+            "result": None,  # Not yet drawn
+            "winningTickets": []
+        }
     ],
-    "result": {
-        "numbers": [6, 17, 27, 48, 50],
-        "special": 5,
-        "multiplier": 3,
-        "checkedAt": "01/08/2026 23:59 ET",
-        "premiosGanhos": 24,  # 2 x $12
-        "jackpotHit": False,
-        "breakdown": ["1 + Powerball ($12)", "Powerball ($12)"]
-    },
-    "winningTickets": [
-        "06-15-26-34-37 — PB 05",
-        "24-28-45-53-54 — PB 05"
+    "megamillions": [
+        # Placeholder for future Mega Millions draws
     ]
 }
+
+def get_active_draw(gameType="powerball"):
+    """Get the latest completed draw for the given game type."""
+    draws = DRAWS.get(gameType, [])
+    for draw in reversed(draws):
+        if draw.get("result") and draw["result"].get("numbers"):
+            return draw
+    return None
 
 # Prize table (mirrors prizeTable in data.js exactly)
 def get_prize(mainMatches, specialMatch, multiplier):
@@ -98,21 +136,24 @@ def get_prize(mainMatches, specialMatch, multiplier):
     return None
 
 
-def validate_data():
+def validate_data(draw):
     """Verify data consistency before any send."""
+    if not draw:
+        return ["❌ No completed draw found"]
+
     errors = []
 
-    if not DRAW.get("result", {}).get("numbers"):
+    if not draw.get("result", {}).get("numbers"):
         errors.append("❌ Result numbers not found")
 
-    if not DRAW.get("winningTickets"):
+    if not draw.get("winningTickets"):
         errors.append("⚠ No winning tickets marked")
 
-    missing_emails = [p["name"] for p in DRAW["participants"] if not p["email"]]
+    missing_emails = [p["name"] for p in PARTICIPANTS if not p["email"]]
     if missing_emails:
         errors.append(f"❌ MISSING EMAILS: {', '.join(missing_emails)}")
 
-    if DRAW["result"]["premiosGanhos"] == 0:
+    if draw.get("result", {}).get("premiosGanhos") == 0:
         errors.append("⚠ Prêmios ganhos = $0 (verify calculation)")
 
     return errors
@@ -124,46 +165,34 @@ def fmtUsd(n):
     return f"${n:,.0f}" if n >= 1000 else f"${n}"
 
 
-def build_html(lang="pt"):
-    """Build result email in Portuguese (pt) or English (en)."""
-    is_en = lang == "en"
+def build_html(draw):
+    """Build result email in Portuguese (PT only)."""
+    r = draw["result"]
+    game_icon = "🔴" if draw["gameType"] == "powerball" else "🟡"
+    game_label = "Powerball" if draw["gameType"] == "powerball" else "Mega Millions"
 
-    r = DRAW["result"]
     nums_sorted = sorted(r["numbers"])
-    result_line = f'{"-".join(str(n) for n in nums_sorted)}  ·  Powerball {r["special"]}  ·  Power Play {r["multiplier"]}x'
+    special_label = "Powerball" if draw["gameType"] == "powerball" else "Mega Ball"
+    result_line = f'{"-".join(str(n) for n in nums_sorted)}  ·  {special_label} {r["special"]}  ·  Power Play {r["multiplier"]}x'
 
-    if is_en:
-        header_title = "🎟️ Powerball Lottery — Drawing Result"
-        header_date = DRAW["drawing"]["drawDateLabel"]
-        intro_p1 = f"<p>The <strong>{DRAW['drawing']['drawDateLabel']}</strong> drawing has been completed. Here are the official results and your summary:</p>"
-        result_label = "Official Result"
-        winning_label = "Winning Tickets"
-        prize_section = f"""<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 14px;margin:16px 0;font-size:13px;line-height:1.6">
-          <strong style="color:#16a34a">Prize Summary</strong><br>
-          Total won: <strong>{fmtUsd(r["premiosGanhos"])}</strong><br>
-          {f"Breakdown: {', '.join(r['breakdown'])}" if r.get("breakdown") else ""}
-        </div>"""
-        no_prize = "No prize this drawing · Better luck next time!"
-        link_text = "Open the lottery page"
-    else:
-        header_title = "🎟️ Loteria Powerball — Resultado do Sorteio"
-        header_date = DRAW["drawing"]["drawDateLabel"]
-        intro_p1 = f"<p>O sorteio de <strong>{DRAW['drawing']['drawDateLabel']}</strong> foi finalizado. Confira o resultado oficial e seu resumo:</p>"
-        result_label = "Resultado Oficial"
-        winning_label = "Bilhetes Premiados"
-        prize_section = f"""<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 14px;margin:16px 0;font-size:13px;line-height:1.6">
-          <strong style="color:#16a34a">Resumo dos Prêmios</strong><br>
-          Total ganho: <strong>{fmtUsd(r["premiosGanhos"])}</strong><br>
-          {f"Detalhes: {', '.join(r['breakdown'])}" if r.get("breakdown") else ""}
-        </div>"""
-        no_prize = "Sem prêmios neste sorteio · Boa sorte na próxima!"
-        link_text = "Abrir página da loteria"
+    header_title = f"{game_icon} Loteria {game_label} — Resultado do Sorteio"
+    header_date = draw["drawing"]["drawDateLabel"]
+    intro_p1 = f"<p>O sorteio de <strong>{draw['drawing']['drawDateLabel']}</strong> foi finalizado. Confira o resultado oficial e seu resumo:</p>"
+    result_label = "Resultado Oficial"
+    winning_label = "Bilhetes Premiados"
+
+    prize_section = f"""<div style="background:#f0fdf4;border-left:4px solid #16a34a;padding:12px 14px;margin:16px 0;font-size:13px;line-height:1.6">
+      <strong style="color:#16a34a">Resumo dos Prêmios</strong><br>
+      Total ganho: <strong>{fmtUsd(r["premiosGanhos"])}</strong><br>
+      {f"Detalhes: {', '.join(r['breakdown'])}" if r.get("breakdown") else ""}
+    </div>"""
+    no_prize = "Sem prêmios neste sorteio · Boa sorte na próxima!"
 
     winning_tickets_html = ""
-    if DRAW.get("winningTickets"):
+    if draw.get("winningTickets"):
         winning_tickets_html = "<ul>" + "".join(
             f'<li style="color:#16a34a;font-weight:bold">{t}</li>'
-            for t in DRAW["winningTickets"]
+            for t in draw["winningTickets"]
         ) + "</ul>"
 
     return f"""<!DOCTYPE html>
@@ -185,7 +214,7 @@ def build_html(lang="pt"):
   <div style="font-size:18px;font-weight:bold;font-family:monospace;letter-spacing:2px">{result_line}</div>
 </div>
 
-{"" if not DRAW.get("winningTickets") else f'''<div style="background:white;border:1px solid #cbd5e1;border-radius:6px;padding:14px;margin:16px 0">
+{"" if not draw.get("winningTickets") else f'''<div style="background:white;border:1px solid #cbd5e1;border-radius:6px;padding:14px;margin:16px 0">
   <div style="font-size:11px;color:#666;text-transform:uppercase;margin-bottom:8px">{winning_label}</div>
   {winning_tickets_html}
 </div>'''}
@@ -195,12 +224,12 @@ def build_html(lang="pt"):
 <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
 
 <p style="font-size:12px;color:#666">
-  <a href="{SITE_URL}" style="color:#1a237e;font-weight:bold">{link_text}</a> para ver todos os detalhes, histórico de sorteios e suas cotas.
+  <a href="{SITE_URL}" style="color:#1a237e;font-weight:bold">Abrir página da loteria</a> para ver todos os detalhes, histórico de sorteios e suas cotas.
 </p>
 
 <p style="font-size:11px;color:#999;margin-top:20px;border-top:1px solid #e2e8f0;padding-top:10px">
-Ferrari Lotteries · Powerball<br>
-Result checked: {r["checkedAt"]}
+Ferrari Lotteries · {game_label}<br>
+Resultado conferido: {r["checkedAt"]}
 </p>
 
 </div>
@@ -208,8 +237,8 @@ Result checked: {r["checkedAt"]}
 </html>"""
 
 
-def send_email(addr, subject, html_pt, html_en):
-    """Send via EmailJS using both language versions in template params."""
+def send_email(addr, subject, html):
+    """Send via EmailJS. Subject uses "." instead of "/" to avoid HTML escaping in EmailJS template."""
     addr = addr.strip()
     if not addr or "@" not in addr:
         return False, f"Invalid email: {addr}"
@@ -222,7 +251,7 @@ def send_email(addr, subject, html_pt, html_en):
             "to_email": addr,
             "entry_name": subject,
             "receipt_code": subject,
-            "html_message": html_pt,  # Primary is Portuguese
+            "html_message": html,
         }
     }).encode()
 
@@ -234,61 +263,70 @@ def send_email(addr, subject, html_pt, html_en):
         return False, str(e)
 
 
-def run_test_send():
+def run_test_send(gameType="powerball"):
     """Send preview to admin only — review before broadcast."""
+    draw = get_active_draw(gameType)
+    game_label = "Powerball" if gameType == "powerball" else "Mega Millions"
+
     print("\n" + "="*60)
-    print("POWERBALL RESULT EMAIL — PREVIEW TO ADMIN")
+    print(f"{game_label.upper()} RESULT EMAIL — PREVIEW TO ADMIN")
     print("="*60)
 
-    errors = validate_data()
+    errors = validate_data(draw)
     if errors:
         print("\n⚠️  DATA ISSUES FOUND:\n")
         for err in errors:
             print(f"  {err}")
-        print("\n⚠️  Review data in /bolao/loterias/powerball/js/data.js before sending to participants.\n")
+        print("\n⚠️  Review data in /bolao/loterias/powerball/scripts/send_result_email.py\n")
 
-    print("\n📧 SENDING PREVIEW TO ADMIN: " + ADMIN_EMAIL)
-    print("   Subject: [TEST] Powerball Result — 01/08/2026")
+    if not draw:
+        print("❌ No completed draw found for " + gameType)
+        sys.exit(1)
+
+    print(f"\n📧 SENDING PREVIEW TO ADMIN: {ADMIN_EMAIL}")
+    print(f"   Draw: {draw['drawing']['drawDateLabel']}")
+    print(f"   Jackpot: ${draw['drawing']['jackpot']:,}")
     print()
 
-    html_pt = build_html("pt")
-    html_en = build_html("en")
+    html = build_html(draw)
+    subject = f"[TESTE] {game_label} — {draw['drawing']['drawDateLabel'].replace('/', '.')} — NÃO ENCAMINHAR"
 
-    subject = "[TEST PREVIEW] Powerball Result — 01/08/2026 — DO NOT FORWARD"
-
-    # Combine both languages in preview
     preview = f"""<div style="background:#fff3cd;border:2px solid #ffc107;padding:14px;border-radius:6px;margin-bottom:20px;font-weight:bold;color:#856404">
-    ⚠️ TEST PREVIEW — This email was sent to the admin for review before broadcast to all participants.
-    If you received this, it's meant for you to review and APPROVE before the real send.
+    ⚠️ TESTE — Este email foi enviado ao administrador para revisão antes de enviar para todos.
+    Se você recebeu, é para REVISAR E APROVAR antes do envio real.
     </div>
-    {html_pt}
-    <hr style="margin:30px 0">
-    <h3>English Version Preview:</h3>
-    {html_en}
+    {html}
     """
 
-    ok, msg = send_email(ADMIN_EMAIL, subject, preview, html_en)
+    ok, msg = send_email(ADMIN_EMAIL, subject, preview)
 
     if ok:
-        print(f"✓ Preview sent successfully ({msg})")
-        print(f"\n📋 Next steps:")
-        print(f"   1. Check your email at {ADMIN_EMAIL}")
-        print(f"   2. Review the result, winning tickets, and prize calculations")
-        print(f"   3. If everything looks correct, run:")
-        print(f"      python3 send_result_email.py --send-all")
-        print(f"   4. If there are errors, fix data.js and try again\n")
+        print(f"✓ Preview enviado com sucesso ({msg})")
+        print(f"\n📋 Próximos passos:")
+        print(f"   1. Confira seu email em {ADMIN_EMAIL}")
+        print(f"   2. Revise o resultado, bilhetes premiados e cálculo de prêmios")
+        print(f"   3. Se estiver correto, execute:")
+        print(f"      python3 send_result_email.py --send-all {gameType}")
+        print(f"   4. Se houver erros, corrija os dados e tente novamente\n")
     else:
-        print(f"✗ Failed to send preview: {msg}\n")
+        print(f"✗ Falha ao enviar preview: {msg}\n")
         sys.exit(1)
 
 
-def run_send_all():
+def run_send_all(gameType="powerball"):
     """Send to all participants."""
+    draw = get_active_draw(gameType)
+    game_label = "Powerball" if gameType == "powerball" else "Mega Millions"
+
     print("\n" + "="*60)
-    print("POWERBALL RESULT EMAIL — BROADCAST TO ALL PARTICIPANTS")
+    print(f"{game_label.upper()} RESULT EMAIL — BROADCAST TO ALL PARTICIPANTS")
     print("="*60)
 
-    errors = validate_data()
+    if not draw:
+        print("❌ No completed draw found for " + gameType)
+        sys.exit(1)
+
+    errors = validate_data(draw)
     if errors:
         print("\n❌ CANNOT SEND — DATA ISSUES FOUND:\n")
         for err in errors:
@@ -297,23 +335,22 @@ def run_send_all():
         sys.exit(1)
 
     # Filter to participants with valid emails
-    recipients = [p for p in DRAW["participants"] if p["email"]]
+    recipients = [p for p in PARTICIPANTS if p["email"]]
 
     if not recipients:
         print("❌ No valid email addresses found. Cannot send.\n")
         sys.exit(1)
 
-    print(f"\n📧 SENDING TO {len(recipients)} PARTICIPANTS:")
+    print(f"\n📧 ENVIANDO PARA {len(recipients)} PARTICIPANTES:")
     print()
 
-    html_pt = build_html("pt")
-    html_en = build_html("en")
-    subject = f'⚽ Powerball Lottery Result — {DRAW["drawing"]["drawDateLabel"]}'
+    html = build_html(draw)
+    subject = f"⚽ Resultado {game_label} — {draw['drawing']['drawDateLabel'].replace('/', '.')}"
 
     sent, failed = 0, []
     for p in recipients:
         name, email = p["name"], p["email"]
-        ok, msg = send_email(email, subject, html_pt, html_en)
+        ok, msg = send_email(email, subject, html)
         status = "✓" if ok else "✗"
         print(f"  {status} {name:<30} {email}")
 
@@ -324,36 +361,46 @@ def run_send_all():
             failed.append((name, email, msg))
 
     print(f"\n{'='*60}")
-    print(f"✓ {sent} sent, {len(failed)} failed")
+    print(f"✓ {sent} enviados, {len(failed)} falharam")
     if failed:
-        print(f"\nFailed sends:")
+        print(f"\nFalhas:")
         for name, email, msg in failed:
             print(f"  ✗ {name} ({email}): {msg}")
     print()
 
 
-def run_check_data():
+def run_check_data(gameType="powerball"):
     """Validate data before any send."""
-    print("\nDATA VALIDATION:")
-    errors = validate_data()
+    draw = get_active_draw(gameType)
+    print(f"\nDATA VALIDATION ({gameType}):")
+    errors = validate_data(draw)
     if errors:
-        print("\n❌ Issues found:\n")
+        print("\n❌ Problemas encontrados:\n")
         for err in errors:
             print(f"  {err}")
     else:
-        print("✓ All data looks good")
+        print("✓ Todos os dados estão OK")
     print()
 
 
 def main():
     args = sys.argv[1:]
 
+    # Extract gameType from args (default: powerball)
+    gameType = "powerball"
+    if len(args) > 1:
+        gameType = args[1]
+    if gameType not in DRAWS:
+        print(f"❌ Unknown game type: {gameType}")
+        print(f"Available: {', '.join(DRAWS.keys())}\n")
+        sys.exit(1)
+
     if "--test-send" in args:
-        run_test_send()
+        run_test_send(gameType)
     elif "--send-all" in args:
-        run_send_all()
+        run_send_all(gameType)
     elif "--check-data" in args:
-        run_check_data()
+        run_check_data(gameType)
     else:
         print(__doc__)
         sys.exit(1)
