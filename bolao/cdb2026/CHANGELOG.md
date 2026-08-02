@@ -1,5 +1,25 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.68 — 2026-08-02 — Removido rótulo "(Jogo de ida)"/"(Jogo de volta)" do Ver palpites e do comprovante
+
+Eduardo: "Pode tirar jogo de ida e volta, as pessoas sabem disso pois a ordem do time está
+correta." A ordem casa/fora dos nomes de time já identifica a perna (ex.: "Vasco × Fluminense"
+é a ida, "Fluminense × Vasco" é a volta) — o sufixo era redundante nas duas telas
+participante-facing que listam pernas: `renderPickDisplay()` (Ver palpites do Ranking) e
+`receiptHtml()` (comprovante por e-mail). Removido dos dois.
+
+`exportCsv()` (exportação do admin) **não** foi alterado — é ferramenta interna do Eduardo, não
+"as pessoas" a quem a mensagem se refere, e o rótulo ajuda a escanear várias entradas numa linha
+só sem precisar decorar a orientação casa/fora de cada confronto. `renderPickForm()`/
+`renderGamesSection()` também não foram tocados — continuam com "(Jogo de ida)"/"(Jogo de volta)"
+como cabeçalho de cada linha do cartão do confronto, onde o rótulo orienta qual perna aquele
+campo/linha é (função diferente do "Ver palpites", que já lista os dois placares separados).
+
+Reproduzido com estado real de produção (Playwright): confirmado que as linhas do Ver palpites
+não têm mais o sufixo, mantendo a ordem cronológica da v3.67. `node --check`: OK.
+`audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
+`audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só rótulo de exibição.
+
 ## v3.67 — 2026-08-02 — "Ver palpites" fora de ordem cronológica de novo: era ordenado por CONFRONTO, não por PERNA
 
 Eduardo, print do Ranking → Ver palpites: "Mais um ajuste cirúrgico os jogos precisam ser em
