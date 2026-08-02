@@ -152,12 +152,15 @@ window.POWERBALL_DRAWS = [
       valorGuardadoProximoSorteio: 142
     },
 
-    // Preenchido manualmente após o sorteio de 03/08/2026.
+    // Preenchido manualmente após o sorteio de 01/08/2026.
     result: {
-      numbers: null,       // ex: [12, 24, 33, 47, 61]
-      powerball: null,     // ex: 9
-      powerPlay: null,     // ex: 3
-      checkedAt: null
+      numbers: [6, 17, 27, 48, 50],
+      special: 5,
+      multiplier: 3,
+      checkedAt: "01/08/2026 23:59 ET",
+      premiosGanhos: 0,
+      jackpotHit: false,
+      breakdown: []
     },
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
