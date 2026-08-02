@@ -237,8 +237,8 @@ ainda não tem resultado, igual ao padrão da Copa (`hasRealScore ? ... : "—"`
 `tie.qualifiedTeamId` setado). Linhas de campeão/vice previsto mostram "—" no lugar (não existe
 "resultado real" pra bônus de pódio ainda não decidido).
 
-Reproduzido visualmente com estado real de produção (Playwright + Supabase, entrada "Marcelo
-<participant> #1"): confirmado que Vasco × Fluminense (jogo já disputado, 0×0) agora mostra "0 × 0"
+Reproduzido visualmente com estado real de produção (Playwright + Supabase, uma entrada real):
+confirmado que Vasco × Fluminense (jogo já disputado, 0×0) agora mostra "0 × 0"
 na coluna Real ao lado do palpite "1 × 1", igual à Copa mostraria. `node --check`: OK.
 `audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
 `audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só exibição.
@@ -277,8 +277,8 @@ continua correto para o que resolvia.
 não publicado); registrar em `docs/bolao/CONSISTENCY_MATRIX.md` como divergência conhecida da
 Copa a avaliar separadamente.
 
-Reproduzido visualmente com o estado real de produção (Supabase, entrada "REDACTED_PARTICIPANT
-#1") via Playwright antes e depois da correção — HTML da tabela confirmado sem nenhuma classe de
+Reproduzido visualmente com o estado real de produção (Supabase, uma entrada real) via Playwright
+antes e depois da correção — HTML da tabela confirmado sem nenhuma classe de
 linha e sem `<b>` fora da coluna de placar. `node --check`: OK. `audit_scoring.py` das 3 apps
 (5/5 cada), `audit_golden_master.mjs` (37/37) e `audit_integrity.py` (0 erro) re-rodados —
 scoring não tocado, só marcação/CSS de exibição.
