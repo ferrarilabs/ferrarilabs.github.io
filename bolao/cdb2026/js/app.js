@@ -1177,9 +1177,8 @@ function receiptHtml(entry, s) {
       if (!pickMatches) return;
       const pick = pickMatches[leg];
       if (!pick) return;
-      const legLabel = leg === "single" ? "" : leg === "first" ? " (ida)" : " (volta)";
       const { home: rHome, away: rAway } = legTeams(tie, leg, tie.matches?.[leg]);
-      rows.push(`<tr><td>${esc(rHome)} × ${esc(rAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
+      rows.push(`<tr><td>${esc(rHome)} × ${esc(rAway)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td></tr>`);
     });
   });
   const predicted = predictedPodium(entry, s);
@@ -1465,11 +1464,10 @@ function renderPickDisplay(entry, detail) {
       const pick = pickMatches[leg];
       if (pick) {
         const d = detail?.matches?.[`${tieId}:${leg}`];
-        const legLabel = leg === "single" ? "" : ` (${leg === "first" ? esc(t("gamesLeg1")) : esc(t("gamesLeg2"))})`;
         const { home: pHome, away: pAway } = legTeams(tie, leg, tie.matches?.[leg]);
         const rm = tie.matches?.[leg];
         const realScore = (rm && rm.goalsHome != null && rm.goalsAway != null) ? `${rm.goalsHome} × ${rm.goalsAway}` : "—";
-        rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}${legLabel}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
+        rows.push(`<tr><td>${esc(pHome)} × ${esc(pAway)}</td><td><b>${pick.goalsHome} × ${pick.goalsAway}</b></td><td>${esc(realScore)}</td><td style="text-align:center">${ptsCell(d)}</td></tr>`);
       }
       if (leg === lastLeg && !qualifiedTiesEmitted.has(tieId)) {
         const pickQual = entry.picks?.qualified?.[tieId];
