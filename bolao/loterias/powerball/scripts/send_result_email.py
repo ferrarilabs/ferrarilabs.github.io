@@ -45,9 +45,9 @@ EMAILJS_HEADERS = {
 PARTICIPANTS = [
     {"name": "Eduardo Ferrari", "email": "emferrari@gmail.com"},
     {"name": "Gustavo Bossle", "email": "REDACTED_EMAIL"},
-    {"name": "Tatiana Bossle", "email": ""},  # Sent via Gustavo per data.js
+    {"name": "Tatiana Bossle", "email": "REDACTED_EMAIL"},  # Sent via Gustavo per data.js
     {"name": "Marcelo Moreira", "email": "REDACTED_EMAIL"},
-    {"name": "Leandro Augustineli", "email": ""},  # MISSING — user will provide
+    {"name": "Leandro Augustineli", "email": "REDACTED_EMAIL"},
     {"name": "Alan Rech", "email": "REDACTED_EMAIL"},
     {"name": "Ewerton Gruba Silva", "email": "REDACTED_EMAIL"},
     {"name": "Simone Hirle da Costa", "email": "REDACTED_EMAIL"},
