@@ -38,9 +38,8 @@
     var sel = document.getElementById("pbDrawSelect");
     sel.innerHTML = DRAWS.map(function (d, i) {
       var gt = GAME_TYPES[d.gameType] || GAME_TYPES.powerball;
-      var hasResult = getEffectiveDraw(d).result.numbers ? "✓ " : "";
       return '<option value="' + i + '"' + (i === currentIdx ? " selected" : "") + '>' +
-        hasResult + gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
+        gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
     }).join("");
   }
 
@@ -103,7 +102,10 @@
 
     document.getElementById("pbTicketsBody").innerHTML = t.series.map(function (s) {
       var numsHtml = s.numeros && s.numeros.length
-        ? "<ul>" + s.numeros.map(function (n, i) { return "<li>Jogo " + (i + 1) + ": " + n + "</li>"; }).join("") +
+        ? "<ul>" + s.numeros.map(function (n, i) {
+            var isWinner = draw.winningTickets && draw.winningTickets.indexOf(n) !== -1;
+            return "<li" + (isWinner ? ' style="font-weight: bold; color: #CE1141;"' : "") + ">Jogo " + (i + 1) + ": " + n + "</li>";
+          }).join("") +
           (s.qtd > s.numeros.length ? '<li class="pb-pending">+ ' + (s.qtd - s.numeros.length) + " ticket(s) desse serial ainda não cadastrado(s)</li>" : "") +
           "</ul>"
         : '<div class="pb-pending">Números individuais deste serial ainda não cadastrados.</div>';
