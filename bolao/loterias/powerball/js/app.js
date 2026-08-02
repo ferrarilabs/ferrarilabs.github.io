@@ -55,15 +55,21 @@
 
   function renderSummary(draw) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
+    var hasIndividualValor = draw.participants.some(function (p) { return p.valor != null; });
     var el = document.getElementById("pbSummary");
-    el.innerHTML = [
-      [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"],
-      [totalCotas, "Cotas (US$20 cada)"],
-      [draw.participants.length, "Participantes"],
-      [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
-      [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
-      ["$" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M", "Jackpot"]
-    ].map(function (row) {
+    var rows = [
+      [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"]
+    ];
+    if (hasIndividualValor) rows.push([totalCotas, "Cotas (US$20 cada)"]);
+    rows.push([draw.participants.length, "Participantes"]);
+    rows.push([fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"]);
+    rows.push([fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"]);
+    if (!draw.sharedTickets.series.length && draw.sharedTickets.ticketsRecomendados) {
+      rows.push([draw.sharedTickets.ticketsRecomendados, "Tickets recomendados (a US$" + draw.sharedTickets.valorPorTicket + ")"]);
+    }
+    rows.push(["$" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M", "Jackpot"]);
+
+    el.innerHTML = rows.map(function (row) {
       return '<div class="pb-summary-item"><div class="v">' + row[0] + '</div><div class="l">' + row[1] + "</div></div>";
     }).join("");
   }
@@ -83,8 +89,8 @@
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
     tbody.innerHTML = sorted.map(function (p) {
-      var statusClass = p.status === "organizador" ? "organizador" : "verificado";
-      var statusLabel = p.status === "organizador" ? "Organizador" : "✓ Verificado";
+      var statusClass = p.status === "organizador" ? "organizador" : (p.status === "recorrente" ? "recorrente" : "verificado");
+      var statusLabel = p.status === "organizador" ? "Organizador" : (p.status === "recorrente" ? "↻ Saldo reciclado" : "✓ Verificado");
       return "<tr>" +
         "<td>" + p.name + "</td>" +
         "<td>" + fmtUsd(p.valor) + "</td>" +
@@ -97,8 +103,14 @@
 
   function renderSharedTickets(draw) {
     var t = draw.sharedTickets;
-    document.getElementById("pbTicketsMeta").textContent =
-      "Comprado por " + t.compradoPor + " · " + t.dataComprovante + " · US$" + t.valorPorTicket + "/ticket (Power Play)";
+    var metaEl = document.getElementById("pbTicketsMeta");
+    if (!t.series.length) {
+      metaEl.textContent = t.ticketsRecomendados
+        ? "Ainda não comprado — orçamento disponível dá para " + t.ticketsRecomendados + " tickets a US$" + t.valorPorTicket + "/ticket (Power Play)."
+        : "Ainda não comprado.";
+    } else {
+      metaEl.textContent = "Comprado por " + t.compradoPor + " · " + t.dataComprovante + " · US$" + t.valorPorTicket + "/ticket (Power Play)";
+    }
 
     document.getElementById("pbTicketsBody").innerHTML = t.series.map(function (s) {
       var numsHtml = s.numeros && s.numeros.length
