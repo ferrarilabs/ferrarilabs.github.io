@@ -168,13 +168,13 @@ window.POWERBALL_DRAWS = [
     }
   },
   {
-    id: "2026-08-05",
+    id: "2026-08-03",
     gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
-      jackpot: 315000000,
-      drawDateIso: "2026-08-05T22:59:00-04:00",
-      drawDateLabel: "05/08/2026 22:59 ET"
+      jackpot: 748000000,
+      drawDateIso: "2026-08-03T22:59:00-04:00",
+      drawDateLabel: "03/08/2026 22:59 ET"
     },
 
     // Sorteio aberto para novas cotas — saldo do sorteio anterior é reciclado.
