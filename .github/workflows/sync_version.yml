@@ -12,10 +12,17 @@ name: Bolão — Sync cache-bust version in index.html
 #     index.html files to ?v=<commit-sha> — guaranteed unique, no manual
 #     coordination needed. index.html files excluded from path trigger so
 #     the bot's own commit doesn't retrigger itself.
-# v4 (current): added bolao/loterias/powerball — same stale-cache issue hit
+# v4: added bolao/loterias/powerball — same stale-cache issue hit
 #     it (manually-bumped ?v=3 left a browser stuck on old CSS/JS after a
 #     fix shipped, Eduardo saw broken WhatsApp icons/dropdown). Folded into
 #     the same bot instead of a second manual-bump convention.
+# v5 (current, Fase 2.2-correção): the old sed pattern (`s/?v=[^"' >]*/...) could only REPLACE
+#     an existing `?v=` — it silently no-op'd on an asset that had no query at all. Found in
+#     production: all three bolão index.html files reference the five critical assets
+#     (styles.css/config.js/data.js/i18n.js/app.js) with no `?v=` whatsoever. Replaced with a
+#     per-file sed pass matching the quoted attribute value (`"css/styles.css"` or
+#     `"css/styles.css?v=old"`) and rewriting it to `"css/styles.css?v=<sha>"` either way — same
+#     insert-or-replace fix applied to `bolao/cdb2026/scripts/check_cachebust.mjs`.
 on:
   push:
     branches: [main]
@@ -48,13 +55,21 @@ jobs:
           echo "Cache-bust value: $VERSION"
           CHANGED=false
 
+          # Each of these is matched as the exact quoted attribute value (preceded by " or '),
+          # with an OPTIONAL existing "?v=..." query — so it inserts the tag when absent and
+          # replaces it when stale, instead of only handling the replace case.
+          CRITICAL_ASSETS=(css/styles.css js/config.js js/data.js js/i18n.js js/app.js)
+
           for INDEX in bolao/copa2026/index.html bolao/br2026/index.html bolao/cdb2026/index.html bolao/loterias/powerball/index.html; do
             if [ ! -f "$INDEX" ]; then
               echo "$INDEX not found — skipping"
               continue
             fi
             BEFORE=$(md5sum "$INDEX" | cut -d' ' -f1)
-            sed -i "s/?v=[^\"' >]*/\?v=$VERSION/g" "$INDEX"
+            for REL in "${CRITICAL_ASSETS[@]}"; do
+              ESCAPED_REL=$(printf '%s' "$REL" | sed 's/[.]/\\./g')
+              sed -i -E "s#([\"'])${ESCAPED_REL}(\?v=[^\"' >]*)?#\1${REL}?v=${VERSION}#g" "$INDEX"
+            done
             AFTER=$(md5sum "$INDEX" | cut -d' ' -f1)
             if [ "$BEFORE" = "$AFTER" ]; then
               echo "$INDEX already at $VERSION — no change"

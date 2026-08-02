@@ -24,6 +24,18 @@
  *
  * No dependencies beyond Node's stdlib. Exit code 0 = tag matches content, 1 = stale (must be
  * regenerated with --write before any deploy).
+ *
+ * Fase 2.2-correção fix (2026-08): the original `currentTags()`/`--write` regexes only matched
+ * when a `?v=` query was ALREADY present (`app\.js\?v=([a-f0-9]+)`) — they could replace an old
+ * tag but could not insert a missing one. Found in production: all three apps' `index.html`
+ * (Copa, BR2026, CDB2026) currently reference the five critical assets with NO `?v=` at all, and
+ * both this script and `sync_version.yml`'s `sed` silently no-op on that shape (sed's pattern is
+ * sed's original pattern only matched `?v=[^"' >]` followed by a literal `?v=` that already
+ * exists in the file). This file now
+ * exports/uses `tagRegex()`, which matches the bare filename with an OPTIONAL `?v=<hex>` suffix,
+ * anchored on the following quote so it only matches the real attribute value — so it handles
+ * both `styles.css` (no query) and `styles.css?v=abc` (stale query) as input, and always
+ * produces `styles.css?v=<current-hash>` as output.
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { createHash } from "node:crypto";
@@ -37,20 +49,48 @@ const INDEX_HTML = join(ROOT, "index.html");
 // tag becomes stale (that's fine, it's just a one-time re-tag, not a correctness issue).
 const CRITICAL_FILES = ["css/styles.css", "js/config.js", "js/data.js", "js/i18n.js", "js/app.js"];
 
-function computeTag() {
+function computeTagFromFiles(root, files) {
   const hash = createHash("sha256");
-  for (const rel of CRITICAL_FILES) hash.update(readFileSync(join(ROOT, rel)));
+  for (const rel of files) hash.update(readFileSync(join(root, rel)));
   return hash.digest("hex").slice(0, 12);
 }
 
-function currentTags(html) {
+function computeTag() {
+  return computeTagFromFiles(ROOT, CRITICAL_FILES);
+}
+
+function escapeRe(s) {
+  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+// Matches the FULL relative path (e.g. "js/config.js"), anchored between the surrounding quote
+// characters (lookbehind/lookahead, not consumed) so it only matches a real attribute value
+// (href="css/styles.css" or href="css/styles.css?v=abc"), optionally followed by `?v=<hex>`.
+// Matching the full path (not just the basename) avoids false positives like "config.js" matching
+// inside a hypothetical "app-config.js" reference. Group 2 is the existing hex tag, or undefined
+// if there was no query at all.
+function tagRegex(rel) {
+  return new RegExp(`(?<=["'])${escapeRe(rel)}(\\?v=([a-f0-9]+))?(?=["'])`, "g");
+}
+
+function currentTags(html, files = CRITICAL_FILES) {
   const tags = {};
-  for (const rel of CRITICAL_FILES) {
-    const base = rel.split("/").pop();
-    const m = html.match(new RegExp(`${base.replace(".", "\\.")}\\?v=([a-f0-9]+)`));
-    tags[rel] = m ? m[1] : null;
+  for (const rel of files) {
+    const re = tagRegex(rel);
+    const m = re.exec(html);
+    tags[rel] = m && m[2] ? m[2] : null;
   }
   return tags;
+}
+
+// Rewrites every critical asset reference to `<rel>?v=<tag>` — works whether the input had no
+// query, a stale query, or (idempotently) the already-correct query.
+function rewriteTags(html, tag, files = CRITICAL_FILES) {
+  let updated = html;
+  for (const rel of files) {
+    updated = updated.replace(tagRegex(rel), `${rel}?v=${tag}`);
+  }
+  return updated;
 }
 
 function main() {
@@ -66,13 +106,25 @@ function main() {
   }
 
   if (write) {
-    let updated = html;
-    for (const rel of CRITICAL_FILES) {
-      const base = rel.split("/").pop();
-      updated = updated.replace(new RegExp(`(${base.replace(".", "\\.")}\\?v=)[a-f0-9]+`), `$1${expected}`);
-    }
+    const updated = rewriteTags(html, expected);
     writeFileSync(INDEX_HTML, updated);
-    console.log(`✓ cache-bust rewritten to ${expected} in index.html (was stale for: ${staleFiles.join(", ")})`);
+
+    // --write may only announce success after: (1) writing the file, (2) re-reading it back
+    // from disk independently (not reusing the in-memory `updated` string), (3) re-running the
+    // same validation this script uses in check mode, and (4) confirming all five critical
+    // assets carry the expected tag. This is deliberately paranoid: a write that "looks right"
+    // in memory but didn't actually land (disk full, permission error swallowed elsewhere,
+    // regex edge case) must not be reported as success.
+    const rewrittenHtml = readFileSync(INDEX_HTML, "utf8");
+    const verifyTags = currentTags(rewrittenHtml);
+    const stillStale = CRITICAL_FILES.filter(f => verifyTags[f] !== expected);
+    if (stillStale.length) {
+      console.error(`✗ --write FAILED post-write verification — after writing and re-reading index.html from disk, these assets still don't carry tag ${expected}: ${stillStale.join(", ")}`);
+      for (const f of stillStale) console.error(`  ${f}: has ${verifyTags[f] ?? "(no ?v= found)"}`);
+      return 1;
+    }
+
+    console.log(`✓ cache-bust written and verified: ${expected} in index.html (was stale/missing for: ${staleFiles.join(", ")})`);
     return 0;
   }
 
@@ -83,4 +135,10 @@ function main() {
   return 1;
 }
 
-process.exit(main());
+// Exported for the test suite (check_cachebust.test.mjs) — pure functions, no I/O, so they can
+// be unit-tested against synthetic HTML fixtures without touching the real index.html.
+export { tagRegex, currentTags, rewriteTags, computeTagFromFiles };
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  process.exit(main());
+}

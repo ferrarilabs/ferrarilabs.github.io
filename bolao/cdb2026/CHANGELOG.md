@@ -1,5 +1,48 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.77 — 2026-08 — Fase 2.2-correção item 1: cache-bust tooling agora insere `?v=` ausente (não só substitui)
+
+Achado real em produção durante a rodada de correção da Fase 2.2: os três `index.html`
+(Copa, BR2026, CDB2026) hoje referenciam os cinco assets críticos (`styles.css`, `config.js`,
+`data.js`, `i18n.js`, `app.js`) **sem nenhum `?v=`** — nem uma query antiga nem a atual. Tanto
+`bolao/cdb2026/scripts/check_cachebust.mjs` quanto o `sed` do workflow `sync_version.yml` só
+sabiam SUBSTITUIR uma query já existente; nenhum dos dois conseguia INSERIR uma ausente, então
+ambos ficavam silenciosamente sem efeito nesse estado — o cache-bust está de fato quebrado hoje
+nos três apps (bug de infraestrutura, não de scoring/regra de negócio).
+
+- `check_cachebust.mjs`: `tagRegex()` agora casa o caminho relativo completo do asset
+  (`js/config.js`), ancorado nas aspas ao redor (lookbehind/lookahead), com uma query `?v=<hex>`
+  OPCIONAL — cobre `"js/config.js"` (sem query) e `"js/config.js?v=abc"` (query antiga) com a
+  mesma expressão, sempre produzindo `"js/config.js?v=<hash-atual>"`.
+- `--write` só anuncia sucesso depois de: (1) escrever o arquivo; (2) reler do disco de forma
+  independente; (3) rodar a mesma validação do modo de checagem; (4) confirmar que os cinco
+  assets têm a tag esperada — antes só assumia que a escrita em memória tinha funcionado.
+- Novo `check_cachebust.test.mjs` (Node `node:test`, sem dependência nova) cobre: query ausente,
+  query antiga, query já correta (idempotência), múltiplos assets misturados, e duas execuções
+  consecutivas de `rewriteTags()` produzindo o mesmo resultado.
+- `sync_version.yml`: o `sed` global (`s/?v=[^"' >]*/.../g`, que também exigia uma query já
+  existente) foi trocado por um laço por asset que casa o valor do atributo entre aspas
+  (`(["'])REL(\?v=...)?`) e sempre reescreve para `REL?v=<sha>` — mesma correção
+  inserir-ou-substituir aplicada ao script Node. Testado manualmente (fora do CI) simulando o novo
+  `sed` sobre uma cópia de `bolao/cdb2026/index.html`: insere corretamente quando a query está
+  ausente, substitui corretamente quando está desatualizada, e é idempotente numa segunda
+  execução.
+
+**Escopo desta mudança**: só a ferramenta (script + workflow). `index.html` dos três apps **não**
+foi editado à mão nesta rodada — por instrução explícita de Eduardo (bot `sync_version.yml` é
+quem deve tocar o `?v=`, edição manual já causou conflito de janela de deploy antes). O
+`?v=` ausente nos três `index.html` continua ausente até o próximo push real em `main` que toque
+JS/CSS de algum dos apps, quando o workflow corrigido vai preencher os cinco assets dos quatro
+apps cobertos (Copa, BR2026, CDB2026, Powerball) de uma vez.
+
+Categoria: `PLATFORM_SHARED` (tooling de infraestrutura, não específico de torneio). Afeta os
+quatro apps que o workflow cobre; só o `check_cachebust.mjs` (específico do CDB2026) teve
+`siteVersion` bumped aqui porque foi o único arquivo de app tocado nesta rodada — Copa e BR2026
+não tiveram nenhum arquivo alterado, então não recebem bump de versão por esta mudança isolada de
+workflow compartilhado.
+
+`python3 bolao/cdb2026/scripts/audit_scoring.py` rodado após a mudança — scoring não tocado.
+
 ## v3.76 — 2026-08-02 — Fix: per-match result email breakdown table wasn't sorted by its own points
 
 Eduardo pasted a sent email as evidence: the "Entrada | Palpite | Pts | Detalhes" table for a
