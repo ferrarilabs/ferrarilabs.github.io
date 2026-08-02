@@ -1,5 +1,32 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.73 — 2026-08-02 — Relógio ao vivo mostrava acréscimo menor do que um lance já listado abaixo dele
+
+Eduardo, print do card ao vivo: "O cronometro esta errado, veja que mostra +1 mas logo abaixo
+teve lances bem depois desse tempo." Confirmado: relógio mostrava "90:11 (+1)" com um lance já
+listado logo abaixo em "90'+5'" — 5 minutos de acréscimo já confirmado, mas o relógio ainda dizia
+só 1. Causa: o relógio usa `comp.status.clock` da ESPN (via `formatMatchClock()`), enquanto a
+lista de lances usa `details[].clock.value`/`keyEvents[].clock.value` de cada evento
+(`extractMatchPlays()`) — dois campos DIFERENTES da mesma resposta da ESPN, que às vezes vêm fora
+de sincronia entre si (o campo do relógio geral atrasado em relação ao timestamp de um evento já
+confirmado), principalmente perto do fim do tempo normal/acréscimos. Não é bug de polling nem de
+interpolação local daqui — é a própria ESPN reportando os dois campos com valores diferentes na
+mesma resposta.
+
+Corrigido em `pollLiveTies()`: depois de calcular o relógio mesclado (`mergeLiveClock()`), compara
+com o `clock.value` mais recente entre os lances já extraídos (`ev.plays`) e usa o maior dos dois
+— o relógio exibido nunca mostra menos tempo decorrido do que um lance que já está listado abaixo
+dele. Só ajusta o número usado no relógio; não mexe em `clockPaused`/`isHalftime`/`isPenalties`
+nem na lógica de detecção de pausa (`detectClockPaused()`), que tem histórico próprio de ajuste
+fino (ver v3.6x) e não fazia parte do problema reportado aqui.
+
+Reproduzido com Playwright + mock de partida ao vivo (Santos × Remo, `status.clock` propositalmente
+atrasado em relação ao `clock.value` dos 3 lances do print, mesmos textos/times/minutos):
+relógio ia de "90:11 (+1)" pra "95:03 (+6)" depois da correção, batendo com o lance mais recente
+("90'+5'") em vez de ficar atrás dele. `node --check`: OK. `audit_scoring.py` das 3 apps (5/5
+cada), `audit_golden_master.mjs` (37/37, não testa este caminho — relógio ao vivo não afeta
+`matchPoints()`/`scoreEntry()`) e `audit_integrity.py` (0 erro) re-rodados — scoring não tocado.
+
 ## v3.72 — 2026-08-02 — Side-scroll continuava permanente: contenção adicionada direto em .topbar e main
 
 Eduardo, novo print (mesmo bug da v3.70/v3.71): "Still the same." Perguntei os detalhes que

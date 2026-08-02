@@ -2258,10 +2258,23 @@ async function pollLiveTies() {
     if (ev.clockSec != null) nextRawHistory[key] = { clockSeconds: ev.clockSec, pollTime: now };
     const prevMerged = prevById.get(key) || clockCache[key];
     const merged = mergeLiveClock({ clockSeconds: ev.clockSec, pollTime: now, period: ev.period, clockPaused }, prevMerged);
+    // Achado por Eduardo (2026-08-02, print): relógio mostrava "90:11 (+1)" com um evento já
+    // listado logo abaixo em "90'+5'" -- a ESPN às vezes devolve `status.clock` (usado pro
+    // relógio) atrasado em relação ao `clock.value` de cada evento em `details`/`keyEvents`
+    // (usado pela lista de lances, extractMatchPlays() acima), mesmo dentro da MESMA resposta —
+    // não é um bug de polling/interpolação daqui, é a própria ESPN reportando os dois campos
+    // fora de sincronia perto do fim do tempo normal/acréscimos. Sem isso, o relógio dava a
+    // entender que um lance "ainda não tinha acontecido" quando ele já estava listado abaixo.
+    // Reconciliado: o relógio nunca mostra menos tempo decorrido do que o lance mais recente já
+    // confirmado -- só ajusta o número exibido, não mexe em clockPaused/isHalftime/isPenalties.
+    const latestPlaySec = (ev.plays && ev.plays.length) ? Math.max(...ev.plays.map(p => p.order || 0)) : null;
+    const clockSeconds = (latestPlaySec != null && merged.clockSeconds != null)
+      ? Math.max(merged.clockSeconds, latestPlaySec)
+      : merged.clockSeconds;
     return {
       tieId, tie, phaseId, leg, homeTeam, awayTeam,
       goalsHome: ev.liveHomeScore, goalsAway: ev.liveAwayScore,
-      clockSeconds: merged.clockSeconds, pollTime: now, period: ev.period,
+      clockSeconds, pollTime: now, period: ev.period,
       isHalftime: ev.isHalftime, isPenalties: ev.isPenalties, clockPaused,
       clockStr: ev.clockStr || "", plays: ev.plays || [],
     };
