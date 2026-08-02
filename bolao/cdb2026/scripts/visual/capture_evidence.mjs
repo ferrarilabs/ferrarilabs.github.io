@@ -88,11 +88,19 @@ const APPS = {
     sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Pagamento: "payment", Regras: "rules", Admin: "admin" },
     // Participantes/Pagamento saíram do nav principal (display:none, mesmo padrão do BR2026/Copa
     // -- Eduardo, 2026-08-01: "Deixe aparecer somente os mesmos botões que estão disponíveis no
-    // br2026") -- não é mais alcançável clicando no nav, por decisão de produto, não defeito de
-    // renderização. #payment continua existindo/renderizando normalmente, só sem botão apontando
-    // pra ela (ver bolao/cdb2026/index.html). Esta lista não tinha sido atualizada quando o nav
-    // mudou -- achado ao rodar o harness pro pacote de revisão (2026-08-02): 7 "failed" (timeout
-    // clicando um botão display:none em todos os 7 viewports), não um bug real.
+    // br2026") -- não é mais alcançável clicando no nav, por decisão de produto (commit b8080aa,
+    // "Hide CDB2026 Participantes/Pagamento nav (match BR2026)"), não defeito de renderização.
+    // #payment continua existindo/renderizando normalmente, só sem botão apontando pra ela (ver
+    // bolao/cdb2026/index.html). Nenhum JS reabilita esse elemento (grepped app.js -- nada
+    // alterna seu display), então nenhuma mudança de fixture o tornaria clicável; classificar
+    // como qualquer coisa além de notApplicable reportaria uma decisão de produto permanente e
+    // intencional como bug. Mirrors BR2026's `notApplicable: ["Pagamento", ...]` above, que
+    // documenta o mesmo tipo de caso pelo mesmo motivo.
+    //
+    // Nota de resolução de rebase (fase2.2-correcao-final sobre origin/main atual, 2026-08-03):
+    // duas sessões independentes chegaram à MESMA correção funcional (`notApplicable:
+    // ["Pagamento"]`) de forma independente, só com comentários redigidos diferente. Nenhum
+    // conflito de lógica -- texto acima combina o detalhe de ambas as versões.
     notApplicable: ["Pagamento"],
   },
 };
@@ -218,6 +226,24 @@ async function main() {
           }
 
           const fname = `${appId}_${dataSection}_${vpLabel}.png`;
+          // Fase 2.2-correção: fullPage:true screenshots of a tall page were rendering `.topbar`
+          // TWICE — once in its normal document-flow position, and again lower down where it
+          // "stuck" during Chromium's full-page capture pass (position:sticky computing its
+          // stuck offset against an intermediate scroll position while the page is being resized
+          // to full height for capture — a known Chromium/Playwright quirk with sticky elements
+          // and fullPage screenshots, not an app bug: production scrolling behaves correctly,
+          // only this specific capture mode double-renders it). Confirmed reproducible on
+          // cdb2026_games_320x568.png before this fix (full topbar+nav block appearing again
+          // mid-page, between the countdown card and the confronto list). Fix: neutralize
+          // `.topbar`'s `position: sticky` to `position: static` via an injected stylesheet,
+          // scoped to THIS screenshot only — never touches the actual app CSS files, so
+          // production sticky behavior (real users scrolling) is completely unaffected. Other
+          // `position: sticky` elements in these apps (e.g. table-row headers inside a scrollable
+          // `.standings-wrap`/`.picks-detail` container) are out of scope: they weren't observed
+          // duplicating (bound to a small internal scroll container, not the viewport), so
+          // neutralizing them isn't needed and would risk changing what a targeted future repro
+          // could look like.
+          await page.addStyleTag({ content: ".topbar { position: static !important; }" });
           await page.screenshot({ path: join(outDir, fname), fullPage: true });
 
           const overflowCheck = await page.evaluate(() => {

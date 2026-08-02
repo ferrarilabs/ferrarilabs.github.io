@@ -4,12 +4,21 @@ Este documento registra o estado real desta rodada de correção. Ele **não sub
 `docs/bolao/CONSISTENCY_MATRIX.md`/`PLATFORM_GOVERNANCE.md`/`QA_MASTER_CHECKLIST.md` — é um
 relatório de progresso específico desta branch, seguindo o formato "pendências" pedido.
 
-**Nota sobre pré-condição do pedido**: a tarefa original citava `docs/bolao/
-VISUAL_STANDARDIZATION_REPORT.md`, `VISUAL_PARITY_MATRIX.md` e uma auditoria Playwright completa
-já rodada "hoje" como base para este trabalho. Esses artefatos **não existem nesta branch** —
-existem apenas em `main` local (fora de `origin/main`, commits `b834bc9`/`5dd80aa`/`7c2bcec`),
-porque `fase2.2-correcao-final` foi criada a partir de `origin/main@fb36b66`, que é anterior a
-esse trabalho. Este relatório reflete o estado real da branch, não a premissa do pedido.
+**Correção (2ª rodada desta mesma sessão)**: a versão anterior deste documento afirmava que o
+harness Playwright (`bolao/cdb2026/scripts/visual/capture_evidence.mjs`,
+`check_manifest.mjs`) e a evidência (`docs/bolao/evidence/visual/`) "não existem nesta branch".
+**Isso estava errado** — ambos já estavam commitados nesta branch (`f0ea5ab`, ancestral de
+`origin/main@fb36b66`, então presente desde a criação da branch); eu simplesmente não tinha
+rodado `ls`/`git log` sobre `bolao/cdb2026/scripts/visual/` nem `docs/bolao/evidence/` antes de
+escrever essa afirmação na rodada anterior — um erro de verificação, não uma mentira deliberada,
+mas ainda assim uma afirmação factualmente errada que fica registrada aqui para transparência em
+vez de silenciosamente reescrita sem nota. Corrigido nesta rodada: o harness foi de fato rodado
+(ver seção abaixo), o que também tornou possível concluir os itens 1/2/5 originalmente marcados
+como pendentes.
+
+`docs/bolao/VISUAL_STANDARDIZATION_REPORT.md` e `VISUAL_PARITY_MATRIX.md` continuam **não
+existindo** nesta branch (existem só em `main` local, fora de `origin/main`, commits
+`b834bc9`/`5dd80aa`/`7c2bcec` — essa parte da nota original estava correta).
 
 ## Branch / estado do git no início desta rodada
 
@@ -75,20 +84,62 @@ elementos são `<button>` simples, não `role="tab"`. O que **não foi feito** n
 suíte de testes Playwright pedida explicitamente (único item ativo, atributo correto no
 ativo/inativos, navegação por teclado, ausência de regressão visual) — ver pendências abaixo.
 
+### 2. Overflow real em CDB2026/Jogos@320x568 (item 2) — CONCLUÍDO E VERIFICADO
+
+Commit seguinte a `cec1b0d` (ver `git log` para o hash exato) — rodei
+`capture_evidence.mjs` de verdade pela primeira vez nesta branch e confirmei exatamente o
+achado que o Eduardo reportou: `cdb2026 Jogos@320x568` com `horizontalOverflow: true`, e 7
+capturas "Pagamento" com `status: "failed"`.
+
+- **Causa raiz do overflow**: `.leg-info` (CSS) concatena texto de data/local + o badge
+  `.game-status` num único `<span>` com `white-space: nowrap` (`app.js`:
+  `${scoreOrDate}${statusChip}`). Em 320px essa string combinada é mais larga que o card — o
+  badge "Agendado" era empurrado pra fora da área visível, mascarado (não corrigido) por
+  `html,body{overflow-x:clip}` já presente no CSS.
+- **Fix**: no breakpoint `max-width:600px` já existente, `.leg-info` ganhou
+  `white-space: normal` (permite quebra entre texto e badge — o badge continua nowrap
+  internamente) e `min-width: 0` em `.leg-teams`/`.leg-info` (grid items default pra
+  `min-width:auto`, que sozinho já estourava a largura mesmo com `white-space:normal` —
+  confirmado testando as duas mudanças separadamente). **Não** usei `overflow-x:hidden` como
+  correção — o conteúdo agora cabe de verdade (visualmente confirmado: badge quebra pra
+  linha própria, nada cortado).
+- **7 capturas "Pagamento" reclassificadas** de `failed` para `notApplicable`: o botão de nav
+  correspondente tem `style="display:none"` permanente desde o commit `b8080aa` ("Hide CDB2026
+  Participantes/Pagamento nav (match BR2026)") — decisão de produto já tomada, confirmado por
+  grep que nenhum JS reativa esse botão. `capture_evidence.mjs` ganhou `notApplicable:
+  ["Pagamento"]` na config do CDB2026.
+- **Artefato de topbar duplicado** (achado ao inspecionar a evidência, não estava na lista
+  original mas é uma correção de harness pura): `fullPage:true` renderizava `.topbar` duas
+  vezes em páginas altas (quirk conhecido do Chromium com `position:sticky` + captura de
+  página inteira). Corrigido injetando `.topbar{position:static!important}` via
+  `page.addStyleTag()` só no momento da captura — CSS real dos apps não foi tocado.
+- **Resultado após recaptura**: `capture_evidence.mjs` → 112 entradas, 0 failed (era 7).
+  `check_manifest.mjs` → **0 violações** (era 1). Evidência (`docs/bolao/evidence/visual/`,
+  80 PNGs + `manifest.json` + `overflow_report.json` + `console_errors.json`) recapturada e
+  commitada, refletindo o commit exato no momento da captura.
+- Verificação visual manual: screenshot antes/depois de `cdb2026_games_320x568.png` comparado
+  lado a lado (Read tool, não só o booleano do manifest) — badge "Agendado" visivelmente
+  quebra pra linha própria depois do fix, topbar aparece uma vez só.
+
 ## Testes de regressão executados nesta rodada
 
 ```
-find bolao -name "*.js" -print0 | xargs -0 -n1 node --check   → limpo, 0 erros (todos os apps)
-python3 bolao/copa2026/scripts/audit_scoring.py                → ✓ ALL CHECKS PASSED
-python3 bolao/br2026/scripts/audit_scoring.py                  → ✓ ALL CHECKS PASSED
-python3 bolao/cdb2026/scripts/audit_scoring.py                 → ✓ ALL CHECKS PASSED
-node bolao/cdb2026/scripts/check_cachebust.test.mjs (8 testes)  → 8/8 passando
+find bolao -name "*.js" -print0 | xargs -0 -n1 node --check     → limpo, 0 erros (todos os apps)
+python3 bolao/copa2026/scripts/audit_scoring.py                  → ✓ ALL CHECKS PASSED
+python3 bolao/br2026/scripts/audit_scoring.py                    → ✓ ALL CHECKS PASSED
+python3 bolao/cdb2026/scripts/audit_scoring.py                   → ✓ ALL CHECKS PASSED
+node bolao/cdb2026/scripts/check_cachebust.test.mjs (8 testes)   → 8/8 passando
+node bolao/cdb2026/scripts/visual/capture_evidence.mjs           → 112 entries, 0 failed, 0 overflow
+node bolao/cdb2026/scripts/visual/check_manifest.mjs             → ✓ ALL CHECKS PASSED, 0 violações
 ```
 
-Não executados nesta rodada (não existem nesta branch / não foram criados por falta de tempo —
-ver pendências): `audit_state_merge.mjs`, `audit_golden_master.mjs`,
-`bolao/cdb2026/scripts/visual/check_manifest.mjs` (harness de evidência visual não recapturado
-nesta branch), `bolao/scripts/audit_visual_consistency.mjs` (não existe — não foi criado).
+Repetido após CADA bloco de mudança de código nesta rodada (não só uma vez no final), conforme
+pedido.
+
+Ainda não executados/não existem nesta branch (ver pendências): `audit_state_merge.mjs`,
+`audit_golden_master.mjs`, `bolao/scripts/audit_visual_consistency.mjs` (não existe — não foi
+criado), `check_sticky_overlap.mjs` (existe, não rodado nesta rodada — item separado do overflow
+de `.leg-info` corrigido acima).
 
 ## Pendências reais (nada abaixo foi fingido como concluído)
 
@@ -103,24 +154,24 @@ de código). Registrando explicitamente, sem inventar evidência:
 
 | # | Item | Status | Motivo |
 |---|---|---|---|
-| 2 | Corrigir overflow confirmado (`cdb2026 Jogos@320x568`) | **NÃO INICIADO** | Requer capturar via Playwright para reproduzir e depois confirmar correção — não reproduzido nesta rodada |
+| 2 | Corrigir overflow confirmado (`cdb2026 Jogos@320x568`) | **CONCLUÍDO** | Ver seção dedicada acima — `check_manifest.mjs` confirma 0 overflow em 112 entradas |
 | 3 | Padronizar tabs (desktop grid, mobile pattern) entre os 3 apps | **NÃO INICIADO** | Requer comparação real de contagem de botões visíveis + CSS grid nos três apps; não auditado nesta rodada |
-| 4 | Capturar Copa arquivada como template via harness local | **NÃO INICIADO** | Depende do harness Playwright existente, não executado nesta rodada |
-| 5 | Fixtures visuais representativas (BR2026/CDB2026/Copa) | **NÃO INICIADO** | Fixtures de jogos por app não criadas |
-| 6 | Admin autenticado (sessionStorage sintético, 15 subtelas) | **NÃO INICIADO** | Não implementado |
+| 4 | Capturar Copa arquivada como template via harness local | **JÁ FUNCIONAVA** | O harness já cobre Copa arquivada via `notApplicable`/`FIXTURES.copa2026=null` (ver `capture_evidence.mjs` `APPS.copa2026`) — Ranking é capturado normalmente, as demais seções corretamente `notApplicable` (modo arquivado é decisão de produto, não bug). Não precisou de trabalho novo nesta rodada. |
+| 5 | Fixtures visuais representativas (BR2026/CDB2026/Copa) | **JÁ EXISTIAM** | `capture_evidence.mjs` já tem `cdb2026Fixture()`/`br2026Fixture()` com nomes fictícios, seedados via localStorage antes da captura — confirmado funcionando (screenshots mostram "Time A × Time B", "Entrada Teste #1", etc.). Não recriado do zero nesta rodada, só usado. |
+| 6 | Admin autenticado (sessionStorage sintético, 15 subtelas) | **NÃO INICIADO** | Não implementado — o harness atual só captura a tela de LOGIN do admin, não uma sessão autenticada |
 | 7 | `bolao/scripts/audit_visual_consistency.mjs` (getComputedStyle) | **NÃO CRIADO** | Script cross-app novo, não escrito nesta rodada |
 | 8 | Alinhar divergências já confirmadas (padding, form-grid, inputs, headings, rules table, nav vazio) | **NÃO VERIFICADO** | Não re-auditado contra o código atual nesta rodada |
-| 9 | Evidência lado a lado (montagens Copa\|BR2026\|CDB2026, 7 viewports) | **NÃO GERADO** | Depende dos itens 4-6 |
-| 10 | Critérios de aceitação (`check_manifest.mjs` zero violações, etc.) | **NÃO ATINGIDO** | Consequência direta dos itens acima não concluídos |
-| Coord. #1 | Classificação CAPTURED/NOT_APPLICABLE/FAILED para as 7 capturas de Pagamento | **NÃO APLICÁVEL AINDA** | O manifesto/harness referenciado (`docs/bolao/evidence/`) não existe nesta branch |
+| 9 | Evidência lado a lado (montagens Copa\|BR2026\|CDB2026, 7 viewports) | **NÃO GERADO** | Screenshots individuais por app/seção/viewport existem (`docs/bolao/evidence/visual/`); montagens comparativas lado a lado (composição de 3 imagens numa só) não foram geradas |
+| 10 | Critérios de aceitação (`check_manifest.mjs` zero violações, etc.) | **PARCIAL** | `check_manifest.mjs` zero violações ✓, sem overflow ✓ — mas itens 3/6/7/8/9 ainda pendentes, então o critério de aceitação completo não foi atingido |
+| Coord. #1 | Reclassificar as 7 capturas "Pagamento" de `failed` para `notApplicable` | **CONCLUÍDO** | Ver seção dedicada acima |
 | Coord. #2 | `bolao/scripts/audit_visual_consistency.mjs` completo (26+ componentes, JSON+MD) | **NÃO CRIADO** | Ver item 7 acima |
 | Coord. #3 | Testes Playwright para a decisão ARIA | **NÃO CRIADO** | Ver nota na seção de cherry-pick acima |
 | Coord. #4 | Admin autenticado (15 subtelas, 3 apps) | **NÃO CRIADO** | Ver item 6 |
-| Coord. #5 | Corrigir artefato de sticky header em screenshots | **NÃO APLICÁVEL** | Nenhum screenshot foi gerado nesta branch ainda |
+| Coord. #5 | Corrigir artefato de sticky header em screenshots | **CONCLUÍDO** | Ver seção dedicada acima — `.topbar{position:static!important}` injetado só no momento da captura |
 | Coord. #6 | Montagens lado a lado (9 telas × 4 viewports) | **NÃO GERADO** | Ver item 9 |
-| Coord. #7 | Revisão de divergências P1 reais (não só overflow) | **NÃO FEITO** | Requer captura visual real, não feita |
-| Coord. #8 | Suíte completa de regressão (inclui scripts inexistentes nesta branch) | **PARCIAL** | Rodado o que existe (ver seção acima); `audit_state_merge.mjs`, `audit_golden_master.mjs`, `check_manifest.mjs`, `audit_visual_consistency.mjs` não existem nesta branch ou não foram criados |
-| Coord. #9 | Atualizar `DESIGN_SYSTEM.md`, `VISUAL_PARITY_MATRIX.md`, `VISUAL_STANDARDIZATION_REPORT.md`, `CONSISTENCY_MATRIX.md`, `UI_REGRESSION_PROTOCOL.md` | **PARCIAL** | Só este relatório novo foi criado; os documentos citados (exceto `CONSISTENCY_MATRIX.md`, que já existe mas não foi reauditado) não existem nesta branch |
+| Coord. #7 | Revisão de divergências P1 reais (não só overflow) | **NÃO FEITO** | Requer comparação visual sistemática entre os três apps além do overflow já corrigido |
+| Coord. #8 | Suíte completa de regressão (inclui scripts inexistentes nesta branch) | **PARCIAL** | Rodado tudo que existe nesta branch, incluindo agora `capture_evidence.mjs`/`check_manifest.mjs` (ver seção de testes); `audit_state_merge.mjs`, `audit_golden_master.mjs`, `audit_visual_consistency.mjs` não existem nesta branch ou não foram criados; `check_sticky_overlap.mjs` existe mas não foi rodado nesta rodada |
+| Coord. #9 | Atualizar `DESIGN_SYSTEM.md`, `VISUAL_PARITY_MATRIX.md`, `VISUAL_STANDARDIZATION_REPORT.md`, `CONSISTENCY_MATRIX.md`, `UI_REGRESSION_PROTOCOL.md` | **PARCIAL** | Só este relatório e o CHANGELOG do CDB2026 foram atualizados; `DESIGN_SYSTEM.md`/`CONSISTENCY_MATRIX.md`/`UI_REGRESSION_PROTOCOL.md` já existem nesta branch mas não foram reauditados/atualizados; `VISUAL_PARITY_MATRIX.md`/`VISUAL_STANDARDIZATION_REPORT.md` continuam não existindo nesta branch |
 | Coord. #10 | Não fazer push/deploy | **RESPEITADO** | Nenhum push, merge, deploy, ou escrita em produção foi feito |
 
 **Por que não foi "empurrado" para parecer completo**: gerar screenshots falsos, um

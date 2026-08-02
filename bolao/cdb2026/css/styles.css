@@ -668,6 +668,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   border-radius: 12px; padding: 12px 14px;
   display: grid; grid-template-columns: auto 1fr auto;
   align-items: center; gap: 10px;
+  max-width: 100%;
 }
 /* Mesmo destaque de borda vermelha da Copa pro jogo ao vivo (.game-card.is-live,
    bolao/css/styles.css) -- Eduardo, 2026-08-02: "devem funcionar da mesma maneira que copa do
@@ -680,13 +681,34 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 .leg-teams {
   font-size: 14px; font-weight: 700;
+  /* Grid items default to min-width:auto (content-based), which can force the track -- and the
+     whole card -- wider than its container when team names are long. min-width:0 lets this cell
+     actually shrink to the track's real width instead of blowing the layout out. */
+  min-width: 0; overflow-wrap: break-word;
 }
 .leg-info {
   font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap;
+  min-width: 0;
 }
+/* Fase 2.2-correção item 2: real, confirmed overflow at cdb2026 Jogos@320x568 (manifest.json,
+   capture_evidence.mjs) -- `.leg-info` concatenates the venue/date text AND the `.game-status`
+   badge into ONE `<span>` (app.js: `${scoreOrDate}${statusChip}`) and forced the whole thing onto
+   a single non-wrapping line with `white-space: nowrap`. On a narrow viewport that combined
+   string is wider than the card, and the badge on the right edge gets pushed past the viewport
+   boundary -- masked by `html,body{overflow-x:clip}` (so no visible horizontal scrollbar) but
+   genuinely NOT rendering inside the visible area, which is the real defect (content not fitting,
+   not just a scrollbar being hidden). Fix: below 600px the container already reflows `.leg` into
+   two grid rows with `.leg-info` spanning the full width (`grid-column: 1 / -1`) -- this only
+   needs `white-space: normal` so the date text and the status badge (itself still
+   `white-space: nowrap` internally, so the badge's OWN text never breaks mid-word) can wrap onto
+   their own line instead of being forced into one that doesn't fit. `min-width: 0` is needed on
+   both grid cells above because grid items default to `min-width: auto` (content-sized), which
+   silently overrides `max-width: 100%`/wrapping and blows out the card width -- confirmed by
+   testing: without `min-width: 0` the wrap rule alone was not sufficient, the grid track still
+   sized itself to the unwrapped content's width first. */
 @media (max-width: 600px) {
   .leg { grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 4px 8px; }
-  .leg-info { grid-column: 1 / -1; text-align: left; }
+  .leg-info { grid-column: 1 / -1; text-align: left; white-space: normal; overflow-wrap: break-word; }
 }
 
 /* ── Probabilidades (barra 2 vias — sem empate, mesmo componente visual dos outros apps) ── */
