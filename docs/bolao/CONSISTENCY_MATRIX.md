@@ -1915,3 +1915,24 @@ opacidade cheia, lê como "não negrito" vs. "negrito" mesmo sem diferença real
   `bolao/br2026/js/app.js` e `bolao/br2026/css/styles.css`), **não alterado** nesta tarefa — não
   foi pedido e BR2026 ainda não está publicado (ver `CLAUDE.md`). Registrado aqui como divergência
   conhecida da Copa, a avaliar/decidir separadamente antes de propagar.
+
+## Nota manual — side-scroll do iOS Safari voltou no CDB2026; overscroll-behavior-x adicionado só lá (2026-08-02, CDB2026 v3.70)
+
+Eduardo, print do Ranking: "O dimensionamento da tela voltou a ter esse problema de scroll
+vertical [sic, visualmente é horizontal — conteúdo alinhado à esquerda cortado, ex. 'Ranking'
+aparecendo como 'anking']." Mesma classe de bug já documentada em `CHANGELOG.md` v3.31/v3.36
+(rubber-band horizontal do iOS Safari por causa do `.topbar` com `position: sticky` +
+`backdrop-filter`) — `overflow-x: clip` (já presente nos 3 apps) reduz mas não elimina 100% esse
+bounce elástico nativo, e a tabela "Ver palpites" ficou mais larga depois da 4ª coluna adicionada
+na v3.66, tornando o bounce mais perceptível ao arrastar dentro dela.
+
+Adicionado só no CDB2026 (onde foi reportado): `overscroll-behavior-x: none` em `html, body`
+(desliga o bounce elástico horizontal do navegador, em vez de só recortar seu efeito visual) e
+`overscroll-behavior-x: contain` em `.picks-detail` (evita que um arraste até a borda da tabela
+"encadeie" pro scroll da página). Não reproduzido no Chromium do sandbox (mesma limitação da
+v3.36 — bounce é específico do WebKit/iOS Safari).
+
+**Copa e BR2026 têm o mesmo `.topbar` sticky+backdrop-filter e o mesmo `overflow-x: clip` sem
+`overscroll-behavior-x`** — candidatos ao mesmo reforço preventivo, não aplicados aqui (não
+reportado nos outros dois; Copa é produção e só recebe patches avaliados individualmente por
+`PLATFORM_GOVERNANCE.md`). Registrado aqui para decisão do Eduardo.
