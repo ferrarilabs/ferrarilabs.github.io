@@ -1,5 +1,23 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.79 — 2026-08 — Fase 2.2-correção item 3: desktop nav column count fixed (repeat(8)→repeat(6))
+
+CDB2026's base `.nav` rule was already correct (`repeat(6, ...)`, matching its 6 real visible
+buttons — Participantes/Pagamento live in a separate `.nav-secondary` container, not inside
+`.nav`), but the `min-width:901px` desktop override had drifted to `repeat(8, ...)` (apparently
+copied from Copa's own — then also stale — desktop rule). Fixed to `repeat(6, ...)`. Verified
+visually at 1024px (Claude Browser): 6 equal-width columns, no dead space.
+
+Added the same defensive last-row-orphan rule as Copa/BR2026 for consistency
+(`:nth-child(3n+1):nth-last-child(1)` — the un-offset formula, since CDB2026 has no hidden
+siblings inside `.nav` to account for). Currently inert (6 buttons = 2 full rows, no orphan
+today) but keeps the three files' patterns aligned and protects against a future 7th nav button
+silently reintroducing the same bug fixed in BR2026 this round.
+
+Propagated across all three apps in the same round — see `bolao/copa2026/CHANGELOG.md` and
+`bolao/br2026/CHANGELOG.md` for the full cross-app rationale. `audit_scoring.py`: 5/5
+(unaffected).
+
 ## v3.78 — 2026-08 — Fase 2.2-correção itens 1/2/5: overflow real corrigido, harness de evidência recapturado com 0 failed/0 overflow
 
 Rodada de correção depois de efetivamente RODAR o harness Playwright existente

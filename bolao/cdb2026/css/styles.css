@@ -754,7 +754,12 @@ h2:focus, h3:focus { outline: none; }
   .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; }
   .lang-links     { grid-column: 3; grid-row: 1; align-self: center; }
   .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
-  .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; }
+  /* Fase 2.2-correção item 3: was repeat(8, ...) copied from Copa's desktop rule, but CDB2026
+     only ever has 6 real `.nav` children (Participantes/Pagamento live in the separate
+     `.nav-secondary` container, not inside `.nav` at all -- see the base .nav rule above,
+     already correctly repeat(6)). This desktop override had drifted from that and needed the
+     same fix, not a new one. */
+  .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
   .nav button     { font-size: 13px; padding: 8px 6px; }
 }
 
@@ -782,6 +787,15 @@ h2:focus, h3:focus { outline: none; }
   .lang-links     { grid-column: 1 / -1; grid-row: 3; }
   .nav            { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }
+  /* Fase 2.2-correção item 3: same defensive rule as Copa/BR2026 (their CSS files have the full
+     rationale) for a lone last-row button when the visible count isn't divisible by 3. Currently
+     inert here (6 buttons = 2 full rows, no orphan today), but kept for cross-app consistency and
+     so a future 7th nav button doesn't silently reintroduce the orphan bug fixed elsewhere.
+     Uses the UN-offset formula (nth-child(3n+1), not (3n)) because CDB2026 keeps
+     Participantes/Pagamento in a separate `.nav-secondary` container outside `.nav` -- so unlike
+     Copa/BR2026, `.nav`'s DOM child count already equals its rendered grid position, no hidden
+     siblings to account for. */
+  .nav button:nth-child(3n+1):nth-last-child(1) { grid-column: 1 / -1; }
   .pick-row label { flex-direction: column; align-items: flex-start; }
   /* Ranking compacta em 1 linha — mesmo tratamento da Copa (bolao/css/styles.css). Coluna de
      pontos com largura fixa (40px) pra o botão nunca deslocar conforme o placar tem 1-3 dígitos. */
