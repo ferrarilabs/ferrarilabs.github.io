@@ -200,9 +200,9 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 20,
+      totalArrecadado: 142,
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 20
+      valorGuardadoProximoSorteio: 142
     },
 
     result: {
