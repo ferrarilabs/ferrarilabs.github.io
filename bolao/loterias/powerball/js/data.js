@@ -113,7 +113,7 @@ window.POWERBALL_DRAWS = [
             "02-23-25-61-66 — PB 25", "03-04-38-65-68 — PB 26", "03-24-29-57-66 — PB 04",
             "04-08-48-51-55 — PB 16", "04-09-11-43-56 — PB 01", "04-26-47-61-62 — PB 17",
             "05-08-12-35-45 — PB 08", "05-14-30-41-46 — PB 18", "06-12-41-50-69 — PB 11",
-            "**06-15-26-34-37 — PB 05**", "06-20-35-49-58 — PB 03", "07-12-22-51-52 — PB 07",
+            "06-15-26-34-37 — PB 05", "06-20-35-49-58 — PB 03", "07-12-22-51-52 — PB 07",
             "07-20-30-36-39 — PB 24", "07-31-42-63-68 — PB 09"
           ]
         },
@@ -131,7 +131,7 @@ window.POWERBALL_DRAWS = [
           numeros: [
             "15-28-48-62-65 — PB 11", "16-25-39-55-56 — PB 06", "17-20-31-44-54 — PB 03",
             "17-29-42-50-62 — PB 21", "18-22-23-60-67 — PB 13", "19-35-44-46-56 — PB 10",
-            "20-27-32-59-68 — PB 14", "**24-28-45-53-54 — PB 05**"
+            "20-27-32-59-68 — PB 14", "24-28-45-53-54 — PB 05"
           ]
         },
         {
@@ -162,6 +162,12 @@ window.POWERBALL_DRAWS = [
       jackpotHit: false,
       breakdown: ["1 + Powerball ($12)", "Powerball ($12)"]
     },
+
+    // Bilhetes que acertaram — renderizados em negrito
+    winningTickets: [
+      "06-15-26-34-37 — PB 05",
+      "24-28-45-53-54 — PB 05"
+    ],
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
     // profit = prêmios ganhos - valorUtilizado (não conta o valor guardado, que é reciclado).
