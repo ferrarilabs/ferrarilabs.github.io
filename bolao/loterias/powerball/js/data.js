@@ -157,7 +157,10 @@ window.POWERBALL_DRAWS = [
       numbers: [6, 17, 27, 48, 50],
       special: 5,
       multiplier: 3,
-      checkedAt: "01/08/2026 23:59 ET"
+      checkedAt: "01/08/2026 23:59 ET",
+      premiosGanhos: 24,
+      jackpotHit: false,
+      breakdown: ["1 + Powerball ($12)", "Powerball ($12)"]
     },
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
