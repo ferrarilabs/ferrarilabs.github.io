@@ -1,5 +1,23 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.83 — 2026-08 — Fase 2.2-correção item 3: tab nav column counts fixed, mobile orphan-row fix
+
+Desktop `.nav` had `repeat(9, ...)` columns (base rule and the `min-width:901px` override) but
+only 7 buttons are ever visible (Palpites/Ranking/Tabela/Jogos/Probabilidades/Regras/Admin —
+Participantes/Pagamento permanently `display:none`) — 2 dead desktop columns. Fixed to
+`repeat(7, ...)` in both places. Verified visually at 1024px (Claude Browser): 7 equal-width
+columns, no dead space.
+
+Mobile (already 3 columns, unchanged) had a real, visible defect: 7 buttons / 3 columns = 3+3+1,
+so "Admin" sat alone in the final row at 1/3 width, left-aligned, two empty cells beside it —
+confirmed with a real 320px screenshot before this fix. Added
+`:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1 }` so the lone last button spans the full
+row instead. Re-verified at 320px after the fix: Admin now spans full width. Same accounting
+applied to Copa (`bolao/copa2026/CHANGELOG.md`), which has the identical DOM structure (two
+hidden nav buttons inside `.nav`).
+
+Propagated across all three apps in the same round. `audit_scoring.py`: 5/5 (unaffected).
+
 ## v1.82 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
 
 Propagated from Copa (v4.164) per the Fase 2.2 visual/accessibility audit

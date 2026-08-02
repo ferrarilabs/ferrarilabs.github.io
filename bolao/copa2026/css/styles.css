@@ -147,7 +147,11 @@ button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white
   border-color: var(--green);
 }
 
-.nav { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 5px; width: 100%; }
+/* Base rule — always overridden by the max-width:900px or min-width:901px media queries below
+   (together they cover every viewport width), kept here only as the pre-JS/no-media-query
+   fallback and for correctness if that ever changes. See the min-width:901px block for the
+   real desktop column-count rationale (6, matching actual visible button count). */
+.nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; width: 100%; }
 .nav button {
   background: var(--bg3);
   color: var(--text);
@@ -922,8 +926,32 @@ input[readonly] {
   .bolao-switcher { grid-column: 1 / -1; grid-row: 2; }
   .bolao-switcher select { width: 100%; }
   .lang-links { grid-column: 1 / -1; grid-row: 3; }
-  .nav { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
+  /* Fase 2.2-correção item 3: mobile nav standardized to 3 columns across all three apps
+     (BR2026/CDB2026 already used 3 — this was the odd one out at 4). Was NOT just "match the
+     majority" for its own sake: with 4 columns and Copa's 6 real buttons, the last row only had
+     2 of 4 slots filled (uneven, visually lopsided). 3 columns gives Copa exactly 2 full rows
+     (3+3) — a strict improvement for Copa's own layout, not only cross-app consistency. Verified
+     with a real 320px viewport (Claude Browser resize_window + screenshot, not just CSS reading)
+     against BR2026 (7 buttons, 3 cols) and CDB2026 (6 buttons, 3 cols) before applying here:
+     "Probabilidades" (longest label) renders in full at 11px, no ellipsis truncation. */
+  .nav { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
   .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
+  /* A lone button left alone in the final row (visible item count not divisible by 3) sits at
+     1/3 width, left-aligned, with two empty cells beside it -- confirmed visually on BR2026
+     (7 visible buttons: 3+3+1, "Admin" orphaned) before this rule existed. Intent: select an
+     item that is BOTH "first of its (grid) row" AND the actual last DOM child -- true only when
+     it's alone in the final row.
+     IMPORTANT: `:nth-child` counts ALL DOM children, including the two `display:none` buttons
+     (Participantes/Pagamento) that sit INSIDE `.nav` at DOM positions 3-4 in this app's markup
+     -- they don't occupy a grid cell (display:none is removed from the box tree), but they DO
+     shift every subsequent element's `:nth-child` count by 2 versus its actual rendered grid
+     position. So "first of row" in DOM terms is `nth-child(3n)`, not the naive `nth-child(3n+1)`
+     you'd write if every `.nav` child were actually visible (that's what CDB2026's own CSS
+     uses below, correctly, because CDB2026 keeps its hidden nav buttons in a separate
+     `.nav-secondary` container outside `.nav` entirely, so no such offset exists there). Admin
+     is DOM position 8 here (8 mod 3 = 2) -- doesn't match today (6 visible items, 2 full rows,
+     no orphan), by design, not by accident. */
+  .nav button:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1; }
   .sticky-submit button { width: 100%; }
   .receipt-actions button { flex: 1 0 auto; }
   /* Compact ranking card, all on one row: position, name, points and the
@@ -1025,7 +1053,12 @@ input[readonly] {
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
-    grid-template-columns: repeat(8, minmax(0, 1fr));
+    /* Fase 2.2-correção item 3: was repeat(8, ...) but only 6 nav buttons are ever visible
+       (Palpites/Ranking/Jogos/Probabilidades/Regras/Admin — Participantes/Pagamento are
+       permanently style="display:none" in index.html, see index.html comments). 8 columns for
+       6 items left 2 empty tracks stretching the row on desktop. Column count now matches the
+       real visible button count for THIS app, not copied from another app or left stale. */
+    grid-template-columns: repeat(6, minmax(0, 1fr));
     gap: 5px;
   }
   .nav button { font-size: 13px; padding: 8px 6px; }

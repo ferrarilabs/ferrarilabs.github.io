@@ -1,5 +1,32 @@
 # CHANGELOG
 
+## v4.165 — 2026-08 — Fase 2.2-correção item 3: tab nav standardized across all three apps (desktop column count, mobile 3-col pattern)
+
+Verified against the ACTUAL current CSS/HTML (not the possibly-stale numbers in the original
+task prompt) that Copa's desktop `.nav` grid still had `repeat(8, ...)` columns while only 6
+buttons are ever visible (Participantes/Pagamento are permanently `display:none`) — 2 dead
+columns stretching the row. Fixed to `repeat(6, ...)`, matching the real visible count, in both
+the base rule and the `min-width:901px` override (both were stale).
+
+Mobile nav standardized to **3 columns** across Copa/BR2026/CDB2026 (was 4 for Copa only,
+3 for the other two already). Not picked "because 2 of 3 already do it" — verified it's a real
+improvement for Copa's own layout too: 6 buttons / 4 columns was 4+2 (uneven last row); 6 buttons
+/ 3 columns is 3+3 (two full rows). Verified with a real 320px viewport (Claude Browser
+resize_window + screenshot, temporarily un-hiding the archived nav via a client-side-only debug
+script — CONFIG.archived/applyArchiveMode() itself was NOT touched) that the longest label,
+"Probabilidades", still renders in full at 11px with no ellipsis truncation.
+
+Added a defensive rule for a button left alone in the final mobile row when the visible count
+isn't divisible by 3 (`:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1 }` — the `3n`
+instead of the more obvious `3n+1` accounts for the two `display:none` Participantes/Pagamento
+buttons living INSIDE `.nav`, which `:nth-child` counts even though they don't occupy a grid
+cell; full accounting in the CSS comment). Currently inert for Copa (6 items, 2 full rows, no
+orphan) but matches the equivalent fix in BR2026 (which DOES have an orphan today — 7 items) and
+keeps the three files' patterns consistent for whoever edits nav items next.
+
+Propagated to all three apps in the same round — see `bolao/br2026/CHANGELOG.md` and
+`bolao/cdb2026/CHANGELOG.md`. `audit_scoring.py`: 6/6 (unaffected, no scoring/logic touched).
+
 ## v4.164 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
 
 Fase 2.2 visual/accessibility audit (`docs/bolao/VISUAL_PARITY_MATRIX.md`) flagged that the main
