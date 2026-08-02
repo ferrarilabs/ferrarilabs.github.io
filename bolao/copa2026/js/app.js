@@ -632,7 +632,11 @@ function extendAdmin() {
    ============================================================ */
 function showSection(id) {
   $$(".page").forEach(p => p.classList.toggle("active", p.id === id));
-  $$(".nav button[data-section]").forEach(b => b.classList.toggle("active", b.dataset.section === id));
+  $$(".nav button[data-section]").forEach(b => {
+    const active = b.dataset.section === id;
+    b.classList.toggle("active", active);
+    if (active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
   if (id === "admin") renderAdmin();
   if (id === "probs") scheduleMC();
   // Ranking always fetches fresh from Supabase so scores are never stale

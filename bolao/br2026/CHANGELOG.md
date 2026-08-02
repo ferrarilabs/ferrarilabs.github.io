@@ -1,5 +1,12 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.82 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
+
+Propagated from Copa (v4.164) per the Fase 2.2 visual/accessibility audit
+(`docs/bolao/VISUAL_PARITY_MATRIX.md`): `showSection()` now toggles `aria-current="page"` on the
+active `.nav button[data-section]` (removed on the rest), same shape as Copa/CDB2026. No visual
+change, no scoring/logic touched. `audit_scoring.py`: 5/5.
+
 ## v1.81 — 2026-08-01 — Live clock stoppage-time cap missing for regular-time periods (propagated from CDB2026)
 
 Same defect class found live in CDB2026 (Vasco×Fluminense, Oitavas, 2026-08-01): the live clock's

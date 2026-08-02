@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## v4.164 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
+
+Fase 2.2 visual/accessibility audit (`docs/bolao/VISUAL_PARITY_MATRIX.md`) flagged that the main
+nav buttons only signaled the active tab via a `.active` CSS class, invisible to screen readers.
+`showSection()` now also toggles `aria-current="page"` on the matching `.nav button[data-section]`
+(removed on the rest). Not `aria-selected` — these are plain `<button>` elements, not a
+`role="tab"`/`role="tablist"` pair, so `aria-current` is the correct ARIA pattern here rather than
+adding a tab role without its full required structure. Same fix propagated to BR2026 and CDB2026
+(same `showSection()` shape in all three). No visual change, no scoring/logic touched.
+`audit_scoring.py`: 6/6.
+
 ## v4.163 — 2026-08-01 — Live clock stoppage-time cap missing for regular-time periods (propagated from CDB2026)
 
 Real live incident (CDB2026, Vasco×Fluminense, Oitavas, 2026-08-01): the live clock kept climbing
