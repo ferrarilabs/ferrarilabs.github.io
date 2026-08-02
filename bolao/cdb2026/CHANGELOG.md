@@ -1,5 +1,48 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.78 — 2026-08 — Fase 2.2-correção itens 1/2/5: overflow real corrigido, harness de evidência recapturado com 0 failed/0 overflow
+
+Rodada de correção depois de efetivamente RODAR o harness Playwright existente
+(`bolao/cdb2026/scripts/visual/capture_evidence.mjs` + `check_manifest.mjs`) — a rodada anterior
+desta mesma branch tinha documentado (incorretamente) que esse harness "não existe nesta branch";
+ele existe e já estava commitado (`f0ea5ab`), só não tinha sido executado. Rodar de verdade contra
+o código atual confirmou exatamente os dois achados que o Eduardo apontou:
+
+1. **Overflow real em `cdb2026 Jogos@320x568`** (`.leg-info`, item 2): `.leg-info` concatena o
+   texto de data/local E o badge `.game-status` (`${scoreOrDate}${statusChip}`) num único
+   `<span>` com `white-space: nowrap`. Em telas estreitas essa string combinada é mais larga que o
+   card, e o badge "Agendado" ficava empurrado pra fora da área visível — mascarado por
+   `html,body{overflow-x:clip}` (sem barra de rolagem visível), mas genuinamente não renderizado
+   dentro da área visível. Corrigido SEM usar `overflow-x:hidden` como solução única: no breakpoint
+   `max-width:600px` já existente, `.leg-info` ganhou `white-space: normal` (permite quebrar entre
+   o texto e o badge — o badge continua `white-space:nowrap` internamente, então o texto do próprio
+   badge nunca quebra no meio) e `.leg-teams`/`.leg-info` ganharam `min-width: 0` (itens de grid
+   default pra `min-width:auto`, que sozinho já anula qualquer regra de quebra/`max-width` e estoura
+   a largura do card — confirmado testando que o `white-space:normal` sozinho não bastava).
+   Verificado via `check_manifest.mjs`: `horizontalOverflow` zerado nas 112 entradas do manifesto,
+   nos três apps, não só no caso que motivou a correção.
+2. **7 capturas "Pagamento" reclassificadas de `failed` para `notApplicable`** (item 1): o botão de
+   nav do CDB2026 pra essa seção tem `style="display:none"` PERMANENTE desde o commit `b8080aa`
+   ("Hide CDB2026 Participantes/Pagamento nav (match BR2026)") — decisão de produto já tomada, não
+   um defeito de renderização. Nenhum JS em `app.js` reativa esse botão (grep confirmou), então
+   nenhuma fixture poderia torná-lo clicável. `capture_evidence.mjs` ganhou `notApplicable:
+   ["Pagamento"]` na config do CDB2026, mesmo padrão já usado pra casos equivalentes do BR2026.
+3. **Artefato de topbar duplicado nas screenshots** (item adicional, achado ao inspecionar a
+   evidência): `fullPage:true` em páginas altas renderizava `.topbar` DUAS VEZES (posição normal
+   no topo + de novo mais abaixo, onde "grudou" durante a captura de página inteira — quirk
+   conhecido do Chromium/Playwright com `position:sticky` em screenshots `fullPage`, não um bug do
+   app: rolagem real de usuário funciona normalmente). Corrigido injetando
+   `.topbar{position:static!important}` via `page.addStyleTag()` só no momento da captura — nunca
+   toca o CSS real dos apps, comportamento sticky em produção continua intacto.
+
+**Resultado após recaptura completa**: `capture_evidence.mjs` → 112 entradas, 70 captured, 42
+notApplicable, **0 failed** (era 7). `check_manifest.mjs` → **0 violações** (era 1: overflow do
+CDB2026 Jogos). Evidência (`docs/bolao/evidence/visual/`) recapturada e commitada nesta mesma
+rodada, refletindo o código atual (commit no momento da captura, não mais de 2026-08-01).
+
+`python3 bolao/{copa2026,br2026,cdb2026}/scripts/audit_scoring.py` — os três passaram 5/5/5 depois
+da mudança. `node --check` limpo em todos os `.js` dos três apps.
+
 ## v3.77 — 2026-08 — Fase 2.2-correção item 1: cache-bust tooling agora insere `?v=` ausente (não só substitui)
 
 Achado real em produção durante a rodada de correção da Fase 2.2: os três `index.html`
