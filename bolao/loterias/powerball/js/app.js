@@ -278,7 +278,8 @@
         '<div><div class="n">' + m + '</div><div class="u">min</div></div>' +
         '<div><div class="n">' + s + '</div><div class="u">seg</div></div>';
 
-      statusBadge.textContent = gt.icon + " " + gt.label.toUpperCase() + " · ATIVO — Sorteio em " + h + "h " + m + "min";
+      var etaLabel = (d > 0 ? d + "d " : "") + h + "h " + m + "min";
+      statusBadge.textContent = gt.icon + " " + gt.label.toUpperCase() + " · ATIVO — Sorteio em " + etaLabel;
     }
     step();
     countdownTimer = setInterval(step, 1000);
