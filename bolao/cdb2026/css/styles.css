@@ -36,8 +36,16 @@
    (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
    clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
    sozinho não resolve. Achado 2026-07-16 (Eduardo: "the issue with the side scroll is back") --
-   hidden mantido como fallback para navegadores sem suporte a clip. */
-html, body { overflow-x: hidden; overflow-x: clip; }
+   hidden mantido como fallback para navegadores sem suporte a clip.
+   VOLTOU 2026-08-02 (Eduardo, print: "O dimensionamento da tela voltou a ter esse problema de
+   scroll vertical") mesmo com overflow-x: clip já presente -- clip impede rolagem PROGRAMÁVEL da
+   página, mas não impede o "glow"/bounce elástico nativo do iOS Safari na borda, que fica mais
+   visível quanto mais largo um elemento na página (a tabela "Ver palpites" ganhou uma 4ª coluna
+   na v3.66, mais provável de disparar o bounce ao arrastar dentro dela). overscroll-behavior-x é
+   o mecanismo mais recente e mais direto pra isso -- desliga o bounce elástico horizontal do
+   navegador em vez de só recortar seu efeito visual. Não reproduzido no Chromium do sandbox
+   (mesma limitação já registrada na v3.36 -- esse bounce é específico do WebKit/iOS Safari). */
+html, body { overflow-x: hidden; overflow-x: clip; overscroll-behavior-x: none; }
 body {
   margin: 0;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
@@ -322,7 +330,7 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .movement-n { font-size: .8em; font-weight: 700; margin-left: 1px; }
 /* Mesmas classes/valores da Copa (bolao/css/styles.css) -- achado em auditoria (2026-07-14,
    Eduardo: "a visualizacao de ver palpites da CDB tambem esta inconsistente com a da copa"). */
-.picks-detail { overflow-x: auto; margin-bottom: 10px; }
+.picks-detail { overflow-x: auto; margin-bottom: 10px; overscroll-behavior-x: contain; }
 .picks-detail table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .picks-detail th, .picks-detail td { border-bottom: 1px solid var(--border); padding: 7px 8px; text-align: left; }
 .picks-detail th { color: var(--muted); font-weight: 700; }

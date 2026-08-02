@@ -1,5 +1,33 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.70 — 2026-08-02 — Side-scroll horizontal (rubber-band do iOS Safari) voltou; reforçado com overscroll-behavior-x
+
+Eduardo, print do Ranking: "O dimensionamento da tela voltou a ter esse problema de scroll
+vertical" (visualmente é rolagem HORIZONTAL — texto alinhado à esquerda cortado, "Ranking"
+aparecendo como "anking", "Pontuação" como "ontuação", conteúdo à direita como "POT $60" e a
+tabela intactos). Mesma classe de bug já documentada e supostamente resolvida em v3.31/v3.36:
+o `.topbar` (sticky + `backdrop-filter`, idêntico nos 3 apps) deixa o iOS Safari fazer um bounce
+elástico horizontal na borda da página que `overflow-x: hidden`/`clip` sozinho não elimina 100%,
+só reduz. A tabela "Ver palpites" ficou mais larga na v3.66 (4ª coluna, "Resultado real"), o que
+deixa esse bounce mais perceptível ao arrastar dentro dela.
+
+Reforçado com `overscroll-behavior-x` (mecanismo mais novo e mais direto — desliga o bounce
+elástico do navegador em vez de só recortar seu efeito visual):
+- `html, body { overscroll-behavior-x: none; }` (além do `overflow-x: clip` já existente).
+- `.picks-detail { overscroll-behavior-x: contain; }` — impede que arrastar até a borda da
+  tabela "encadeie" pro scroll da página inteira.
+
+Não reproduzido no Chromium do sandbox (mesma limitação já registrada na v3.36 — esse bounce
+elástico é específico do WebKit/iOS Safari, sem equivalente no Chromium). Copa e BR2026 têm o
+mesmo `.topbar` e o mesmo `overflow-x: clip` sem `overscroll-behavior-x` — registrado em
+`CONSISTENCY_MATRIX.md` como candidato ao mesmo reforço preventivo, não aplicado lá nesta tarefa
+(não reportado nos outros dois apps; Copa é produção, só recebe patches avaliados
+individualmente).
+
+`node --check`: OK (mudança só de CSS). `audit_scoring.py` das 3 apps (5/5 cada),
+`audit_golden_master.mjs` (37/37) e `audit_integrity.py` (0 erro) re-rodados — scoring não
+tocado.
+
 ## v3.69 — 2026-08-02 — Card ao vivo (gols/cartões/substituições) puxava a rolagem pra cima sozinho a cada segundo
 
 Eduardo: "Quando mexo no drop down onde mostra cartões substituição e gols ele fica voltando para
