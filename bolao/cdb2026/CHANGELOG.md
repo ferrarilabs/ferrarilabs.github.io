@@ -1,5 +1,41 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.83 — 2026-08 — Fase 2.2-correção coord.#3: Playwright test suite validating aria-current="page"
+
+New `bolao/scripts/test_aria_current_nav.mjs` (top-level, cross-app). Validates the
+`aria-current="page"` nav decision (cherry-picked from `main` earlier in this branch) actually
+works end-to-end in a real browser, for both mouse and keyboard, in all three apps — not just
+that the source line exists.
+
+Verified against the real `showSection()` implementation (read in all three `app.js` files
+first, identical shape) before writing any assertion: `aria-current="page"` is set on the
+matching `[data-section]` button and removed from every other one on every navigation, no
+`aria-selected` anywhere in any of the three codebases (confirmed by grep — no mixed tab-widget
+semantics to worry about, these are plain `<button>` elements, not `role="tab"`).
+
+Checks per app: exactly one `aria-current="page"` on load; no `aria-selected` anywhere; a real
+mouse click moves `aria-current` to exactly the clicked section and off the previous one; the
+same transition works via keyboard alone (Tab-focus + Enter, not just a mouse click); the
+`.active` CSS class and the `aria-current` attribute always point at the same element (proves the
+visual indicator and the accessibility attribute can't drift apart); no horizontal overflow is
+introduced by any navigation click.
+
+**One test-authoring bug found and fixed while writing this** (worth noting for the same reason
+as the two selector bugs found in item 7): the first version asserted "aria-current moved off the
+previous section" unconditionally, which failed for BR2026 — its default active section is
+already `ranking` (Palpites is disabled since entries closed), so clicking "Ranking" first is a
+legitimate no-op with nothing to move away from. Not an app bug; the test assertion was too
+strict for that case. Fixed to only run that specific check when the click is an actual
+transition.
+
+Copa: only "Ranking" is reachable via nav in archived mode (matches the harness's existing
+treatment elsewhere in this branch), so its keyboard-activation test is skipped with an explicit
+reason logged, not silently omitted.
+
+Result: **all checks pass** across all three apps (initial state, 4 click transitions each for
+BR2026/CDB2026, 1 for Copa, plus a keyboard-only transition for BR2026/CDB2026).
+`audit_scoring.py`: 6/6, 5/5, 5/5 (unaffected).
+
 ## v3.82 — 2026-08 — Fase 2.2-correção item 9/coord.#6: side-by-side comparison montages (Copa | BR2026 | CDB2026)
 
 New `bolao/scripts/make_visual_comparison_montages.mjs` (top-level, cross-app). Pure composition
