@@ -16,13 +16,30 @@ name: Bolão — Sync cache-bust version in index.html
 #     it (manually-bumped ?v=3 left a browser stuck on old CSS/JS after a
 #     fix shipped, Eduardo saw broken WhatsApp icons/dropdown). Folded into
 #     the same bot instead of a second manual-bump convention.
-# v5 (current, Fase 2.2-correção): the old sed pattern (`s/?v=[^"' >]*/...) could only REPLACE
+# v5 (Fase 2.2-correção): the old sed pattern (`s/?v=[^"' >]*/...) could only REPLACE
 #     an existing `?v=` — it silently no-op'd on an asset that had no query at all. Found in
 #     production: all three bolão index.html files reference the five critical assets
 #     (styles.css/config.js/data.js/i18n.js/app.js) with no `?v=` whatsoever. Replaced with a
 #     per-file sed pass matching the quoted attribute value (`"css/styles.css"` or
 #     `"css/styles.css?v=old"`) and rewriting it to `"css/styles.css?v=<sha>"` either way — same
 #     insert-or-replace fix applied to `bolao/cdb2026/scripts/check_cachebust.mjs`.
+# v6 (PR120-final review item 2): v5 fixed insert-or-replace, but left TWO independent sources of
+#     truth for what the tag should BE — this workflow used `git rev-parse --short HEAD` (changes
+#     on every commit) while `bolao/cdb2026/scripts/check_cachebust.mjs` used a SHA-256 content
+#     hash of the five critical files (changes only when content changes). A workflow-applied
+#     commit-SHA tag would immediately fail the checker's own definition of "up to date", and vice
+#     versa. Fixed: this workflow no longer computes or applies a tag itself for the three bolão
+#     apps — it calls `node bolao/scripts/cachebust.mjs write`, the exact same shared module the
+#     local checker (`bolao/cdb2026/scripts/check_cachebust.mjs`) imports from. One function
+#     computes the tag, one script writes it, both the CI workflow and any developer running the
+#     checker locally agree on the answer by construction. See `bolao/scripts/cachebust.mjs`'s
+#     header comment and `bolao/scripts/cachebust.integration.test.mjs` for the proof.
+#
+#     Powerball (`bolao/loterias/powerball/`) is NOT part of this change — it is explicitly out of
+#     scope for the branch that made this fix (separate, already-registered PII findings freeze
+#     that directory; see docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md) — so its cache-bust step
+#     below is untouched from v5 (still commit-SHA + sed), kept as its own separate step so the
+#     three-bolão-app fix above doesn't ripple into a directory this branch must not touch.
 on:
   push:
     branches: [main]
@@ -48,44 +65,36 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - name: Sync ?v= in all bolão index.html files to this commit's SHA
-        id: sync
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Sync ?v= for copa2026/br2026/cdb2026 via the shared content-hash script
+        run: node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026
+
+      - name: Sync ?v= for Powerball (out of scope for the shared script — see header note)
         run: |
           VERSION=$(git rev-parse --short HEAD)
-          echo "Cache-bust value: $VERSION"
-          CHANGED=false
-
-          # Each of these is matched as the exact quoted attribute value (preceded by " or '),
-          # with an OPTIONAL existing "?v=..." query — so it inserts the tag when absent and
-          # replaces it when stale, instead of only handling the replace case.
+          echo "Powerball cache-bust value: $VERSION"
           CRITICAL_ASSETS=(css/styles.css js/config.js js/data.js js/i18n.js js/app.js)
-
-          for INDEX in bolao/copa2026/index.html bolao/br2026/index.html bolao/cdb2026/index.html bolao/loterias/powerball/index.html; do
-            if [ ! -f "$INDEX" ]; then
-              echo "$INDEX not found — skipping"
-              continue
-            fi
-            BEFORE=$(md5sum "$INDEX" | cut -d' ' -f1)
+          INDEX=bolao/loterias/powerball/index.html
+          if [ -f "$INDEX" ]; then
             for REL in "${CRITICAL_ASSETS[@]}"; do
               ESCAPED_REL=$(printf '%s' "$REL" | sed 's/[.]/\\./g')
               sed -i -E "s#([\"'])${ESCAPED_REL}(\?v=[^\"' >]*)?#\1${REL}?v=${VERSION}#g" "$INDEX"
             done
-            AFTER=$(md5sum "$INDEX" | cut -d' ' -f1)
-            if [ "$BEFORE" = "$AFTER" ]; then
-              echo "$INDEX already at $VERSION — no change"
-            else
-              echo "Updated $INDEX to $VERSION"
-              CHANGED=true
-            fi
-          done
+          else
+            echo "$INDEX not found — skipping"
+          fi
 
-          echo "changed=$CHANGED" >> "$GITHUB_OUTPUT"
-
-      - name: Commit updated index.html files
-        if: steps.sync.outputs.changed == 'true'
+      - name: Commit updated index.html files (if any changed)
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           git add bolao/copa2026/index.html bolao/br2026/index.html bolao/cdb2026/index.html bolao/loterias/powerball/index.html
-          git commit -m "chore: bump cache-bust version in index.html [skip ci]"
-          git push
+          if git diff --cached --quiet; then
+            echo "No index.html changes — nothing to commit"
+          else
+            git commit -m "chore: bump cache-bust version in index.html [skip ci]"
+            git push
+          fi

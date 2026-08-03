@@ -1,5 +1,58 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.85 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
+
+**Bug found by independent PR120 review**: two incompatible sources of truth for the `?v=`
+cache-bust tag. `bolao/cdb2026/scripts/check_cachebust.mjs` computed a SHA-256 content hash of
+the five critical files (css/styles.css, js/config.js, js/data.js, js/i18n.js, js/app.js);
+`.github/workflows/sync_version.yml` independently used `git rev-parse --short HEAD` — a value
+that changes on every commit regardless of whether it touched any of those five files, and is
+never equal to the content hash. A workflow-applied tag would immediately fail the local
+checker's own definition of "up to date", and vice versa.
+
+**Fix — single shared source of truth**: new `bolao/scripts/cachebust.mjs` (top-level, cross-app,
+same convention as `bolao/scripts/audit_visual_consistency.mjs`) owns the tag computation
+(`computeTagFromFiles`/`computeAppTag`) and the insert-or-replace `?v=` rewrite
+(`tagRegex`/`currentTags`/`rewriteTags`), plus a `checkApp(app, {write})` entry point and a CLI
+(`node bolao/scripts/cachebust.mjs check|write [--app=...] [--root=...]`).
+
+- `bolao/cdb2026/scripts/check_cachebust.mjs` no longer defines its own copy of any of this — it
+  is now a thin CDB2026-scoped CLI wrapper that imports every function from the shared module and
+  calls `checkApp("cdb2026", {write})`. Kept as its own file (not deleted) because the review's
+  acceptance criterion is the literal command `node bolao/cdb2026/scripts/check_cachebust.mjs`
+  (no `--write`) passing, and because `check_cachebust.test.mjs` imports `tagRegex`/`currentTags`/
+  `rewriteTags` from this exact path — both keep working unchanged.
+- `.github/workflows/sync_version.yml` no longer computes a commit-SHA tag for copa2026/br2026/
+  cdb2026 — it calls `node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026`, the
+  exact same code path the local checker imports from, not a bash/sed re-implementation.
+  Powerball (`bolao/loterias/powerball/`) is explicitly out of scope for this branch (separate,
+  already-registered PII findings — see `docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`), so its
+  cache-bust step is untouched (still commit-SHA + sed), kept as its own separate workflow step so
+  this fix doesn't ripple into a directory this branch must not touch.
+- New `bolao/scripts/cachebust.integration.test.mjs` (8 tests, all passing) proves the full chain
+  end to end against a throwaway fixture directory: index with no `?v=` → `checkApp({write:true})`
+  inserts it → `checkApp({write:false})` (the checker) passes against that same file → a second
+  write is byte-for-byte idempotent → the real CLI subprocess (the same invocation
+  `sync_version.yml` uses) produces output byte-identical to calling the function directly → the
+  workflow file is grepped for the literal `cachebust.mjs write --app=copa2026,br2026,cdb2026`
+  invocation and for the absence of a live (non-comment, non-Powerball) `git rev-parse --short
+  HEAD`, so a future edit that quietly reintroduces a second implementation fails this test
+  instead of silently drifting apart again.
+- **The five critical assets are now up to date in this commit** (not left to depend solely on
+  the next CI run, per the review's explicit requirement): ran
+  `node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026` locally and committed the
+  resulting `index.html` changes for all three apps (copa2026 `?v=9bf6932b24fb`, br2026
+  `?v=5032d96b0455`, cdb2026 `?v=5665a312bc80` — hashes as of this commit; they will change again
+  the next time any of the five files change, by design).
+- `node bolao/cdb2026/scripts/check_cachebust.mjs` (no `--write`) now exits 0 — the required
+  acceptance criterion for this item.
+
+No scoring/ranking/entry logic touched. `siteVersion` bumped in all three apps
+(`v4.166→v4.167` Copa, `v1.85→v1.86` BR2026, `v3.84→v3.85` CDB2026) because their `index.html`
+files all changed (new `?v=` tags) — see `bolao/copa2026/CHANGELOG.md` and
+`bolao/br2026/CHANGELOG.md` for the brief cross-reference entries (full detail kept here, same
+convention as the v3.80/v7-item audits).
+
 ## v3.84 — 2026-08 — Fase 2.2-correção item 8: `main` padding + `.form-grid` aligned to Copa
 
 **Explicitly authorized by Eduardo** (previously deliberately left unapplied pending exactly this

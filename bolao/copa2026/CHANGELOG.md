@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.167 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
+
+Same platform-shared fix documented in full in `bolao/cdb2026/CHANGELOG.md` v3.84 (new
+`bolao/scripts/cachebust.mjs` is the single source of truth for the `?v=` tag; the workflow
+`.github/workflows/sync_version.yml` and the local checker now compute/apply the exact same
+content hash instead of two incompatible values). This app's `index.html` was rewritten to
+`?v=9bf6932b24fb` (matches the current content hash of its own five critical files) as part of
+that same commit — Copa's own bump, not shared with the other two apps' hashes (each app's tag is
+independently computed from its own files). No scoring/bracket/tiebreak logic touched.
+
 ## v4.166 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
 
 New `bolao/scripts/audit_visual_consistency.mjs` (top-level, cross-app — not under any single
