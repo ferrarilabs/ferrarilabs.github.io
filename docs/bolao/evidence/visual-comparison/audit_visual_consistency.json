@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-03T17:40:19.090Z",
-  "commit": "8a61443",
+  "generatedAtUtc": "2026-08-03T18:18:01.283Z",
+  "commit": "43df3d9",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -1992,9 +1992,9 @@
       "id": "form-grid",
       "label": "Form grid (.form-grid)",
       "selectors": {
-        "copa2026": ".form-grid",
-        "br2026": ".form-grid",
-        "cdb2026": ".form-grid"
+        "copa2026": "[data-visual-audit=\"form-grid\"]",
+        "br2026": "[data-visual-audit=\"form-grid\"]",
+        "cdb2026": "[data-visual-audit=\"form-grid\"]"
       },
       "note": null,
       "values": {
@@ -2042,9 +2042,9 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "147px",
           "minHeight": "0px",
-          "gridTemplateColumns": "repeat(2, minmax(0px, 1fr))"
+          "gridTemplateColumns": "527px 527px"
         }
       },
       "properties": [
@@ -2105,8 +2105,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "`.form-grid` CSS itself is now byte-identical in all three apps (display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px — verified by diffing the three stylesheets directly; gridTemplateColumns resolves to the same `527px 527px` in all three post the item-7 selector fix above). The remaining height gap (Copa 226.5px vs BR2026/CDB2026 147px) is a field-COUNT difference, not a token: Copa's entry form has 5 fields (entryName, payerName, participantEmail, paymentMethod, and a static disabled 'Valor' field showing the fixed US$5 entry price) = 3 grid rows; BR2026/CDB2026 have 4 fields (no 'Valor' field — their entry price is shown elsewhere, not in the form itself) = 2 grid rows. Verified by reading each app's index.html entry-form markup directly. [docRef: bolao/copa2026/index.html vs bolao/br2026/index.html vs bolao/cdb2026/index.html (entry form field lists, verbatim); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -2115,7 +2115,7 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         }
       ]
@@ -2369,8 +2369,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "`.small-btn`/`button` base CSS is byte-identical in all three apps (padding:7px 11px; font-size:12px; border-radius:9px for .small-btn; padding:11px 18px for the plain 'Sair'/logout button — verified by diffing the three stylesheets directly). `.admin-toolbar` uses `display:flex; flex-wrap:wrap` with the default `align-items:stretch`, so every button on the SAME wrapped row stretches to match the tallest sibling in that row. Copa's toolbar has 13 buttons (see the already-approved admin-toolbar entry above) that wrap onto 2 rows at 1280px — the measured forceSync button lands on the SECOND row, which has no full-size sibling, so it renders at its own natural 34px. BR2026/CDB2026's toolbar has only 5 buttons, all fitting on ONE row alongside the full-size 'Sair' button, so it stretches to match it (46.5px). Verified empirically (Playwright probe reading each button's boundingClientRect `top`/`height`): Copa's forceSync is at a different `top` than its own 'Sair' button (different row); BR2026/CDB2026's forceSync shares the exact same `top` as their 'Sair' button (same row, stretched). This is the same admin-tool-count difference already documented for `admin-toolbar:height` above, cascading down to its individual buttons — item 6 explicitly names this failure mode: 'diferenças de funcionalidade devem ser NOT_APPLICABLE ou JUSTIFIED, não comparadas como altura total'. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar entry above (same root cause); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -2501,8 +2501,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "`.danger`/`.small-btn`/`button` base CSS is byte-identical in all three apps (padding:7px 11px; font-size:12px; border-radius:9px for .small-btn; padding:11px 18px for the plain 'Sair'/logout button — verified by diffing the three stylesheets directly). Same root cause as `button-small:height` above: `.admin-toolbar`'s default `align-items:stretch` stretches every button on a wrapped flex row to match its tallest sibling. Copa's 13-button toolbar wraps the measured clearData button onto a row with no full-size sibling (34px, natural height); BR2026/CDB2026's 5-button toolbar puts clearData on the SAME row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via Playwright probe (boundingClientRect `top`/`height` per button, same technique as button-small). [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar/button-small entries above (same root cause); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -2730,8 +2730,8 @@
         },
         {
           "property": "gap",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "BR2026's `.game-card` is its own internal `display:flex; flex-direction:column; gap:4px` layout, spacing 2 real stacked children (`.game-matchup`, `.game-meta`) — already flagged in `bolao/br2026/css/styles.css`'s own comment as 'BR2026's own internal flex layout, Copa's .game-card isn't a flex container at all — structural difference, not in [item 4]'s authorized scope'. Copa's `.game-card` (block layout, 3 children: `.game-top`/`.game-meta`/`.game-teams`) and CDB2026's `.confronto-card` (block layout, 2 children: `.confronto-header`/`.confronto-legs`, a deliberately different ida+volta component per CONSISTENCY_MATRIX item 72) are not flex containers, so `gap` computes to `normal` for both — matching their own child-spacing approach (margins, not flex gap). Verified via Playwright probe reading each card's `display`/`gap`/child list directly. Aligning this would mean restructuring BR2026's internal game-card layout, out of this task's authorized scope (item 4 covered padding/border-radius/margin-bottom only, explicitly not this). [docRef: bolao/br2026/css/styles.css .game-card comment (verbatim); docs/bolao/CONSISTENCY_MATRIX.md item 72; owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "borderRadius",
@@ -2750,8 +2750,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "Padding/border-radius/margin-bottom are already token-aligned across all three (item 4, prior commit). The remaining height gap is structure/content-driven, not a token: Copa's `.game-card` has 3 stacked children (`.game-top`/`.game-meta`/`.game-teams`); BR2026's has 2 (`.game-matchup`/`.game-meta`) with its own internal 4px gap (see the `game-card:gap` entry above); CDB2026's `.confronto-card` is a deliberately different ida+volta component (`.confronto-header`/`.confronto-legs`, 2 legs' worth of content) per CONSISTENCY_MATRIX item 72, INTENTIONALLY_DIFFERENT — not the same structural component as Copa/BR2026's `.game-card` at all. Verified via Playwright probe reading each card's actual child element list. Same class of exclusion already applied to `main:height`/`card-base:height` above (content length, not a fixed design token, with no CSS fix possible without restructuring a tournament-specific component). [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT); ALLOWLIST.json main/card-base entries above (same exclusion class); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -2862,8 +2862,8 @@
         },
         {
           "property": "gap",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "`gap` only has a visible effect with 2+ flex children to space apart. Confirmed by reading each app's renderer (bolao/{app}/js/app.js, the template literals that build the 'encerrado'/'post'/'done' badge): all three produce a single `<span>` with ONLY a text node inside (no separate icon element) — verified live via Playwright probe (`childElementCount: 0`, `childNodes: 1` in all three apps' captured badge). Copa's `.status-chip` doesn't set `display`/`gap` at all (plain inline text pill); BR2026/CDB2026's `.game-status` sets `display:inline-flex; align-items:center; gap:4px` (kept for potential future icon use, per the original BR2026 v1.17/CDB2026 v2.3 port — CONSISTENCY_MATRIX item 67). With no second child to space, `gap:4px` is currently inert — the computed difference has zero rendered visual effect. All other properties of this exact badge state (fontSize, fontWeight, padding, borderRadius, backgroundColor — color separately allowlisted above) are already EQUAL across all three apps per this same audit run. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 67; bolao/{br2026,cdb2026}/js/app.js badge template (verbatim, single text node); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "borderRadius",
@@ -2887,8 +2887,8 @@
         },
         {
           "property": "minHeight",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "getComputedStyle artifact of each app's own (already-intentionally-different, CONSISTENCY_MATRIX item 72) DOM structure around the badge, not a token: `min-height:auto` resolves to the unresolved keyword 'auto' when the element is itself a flex ITEM of its immediate parent, but resolves to a concrete used value ('0px', since no explicit minimum is set) when it isn't. BR2026 renders the badge as a direct child of `.game-meta` (display:flex) — a flex-item context, reported as 'auto'. CDB2026 renders the badge inside `.leg-info` (display:block, part of its deliberately different ida+volta leg layout) — a non-flex-item context, reported as '0px'. Copa's badge (inside its own non-flex `.game-top`) also reports 'auto' by the same mechanism, coincidentally matching BR2026. Verified via Playwright probe reading each badge's parent chain/display directly. Has zero effect on the badge's actual rendered size — padding/font-size/border-radius (all confirmed EQUAL) fully determine it; min-height never becomes the controlling dimension either way. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure, root cause here too); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "gridTemplateColumns",

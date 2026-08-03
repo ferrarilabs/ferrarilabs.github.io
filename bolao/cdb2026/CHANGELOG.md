@@ -67,6 +67,82 @@ was being built; fixed before this commit). `check_sticky_overlap.mjs` → 0 ove
 0 console errors across all 112 manifest entries. `audit_scoring.py` passes all three apps
 (scoring untouched).
 
+## v3.86 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
+
+**Starting point**: the prior (unversioned — see note at the bottom of this entry) commit had
+brought `audit_visual_consistency.mjs`'s DIVERGENT count down from 21 to 8 via item 3's selector
+markers (`data-visual-audit="card-base"/"rules-heading"/"button-primary"/"button-small"/
+"button-danger"`) and item 4's real token alignment (`.form-grid` margin, `.rules-table`
+font-size/line-height, `.game-card`/`.confronto-card` padding+border-radius+margin-bottom, all
+brought to Copa's canonical values). The remaining 8 were explicitly left "not yet triaged" for
+this round: form-grid height/gridTemplateColumns, button-small/danger height, game-card
+gap/height, status-badge gap/minHeight.
+
+**Investigation method**: a standalone Playwright probe (scratchpad, not committed — reads
+`getBoundingClientRect`/`getComputedStyle`/parent-chain/child-list directly for each flagged
+component in all three apps) was used to determine, for each of the 8, whether the divergence was
+a real fixable bug or a genuine content/structure difference, before touching anything.
+
+**1 real bug found and fixed** (form-grid `gridTemplateColumns`): CDB2026's Palpites section has
+TWO `.form-grid` elements — the hidden `#findEntryCard` "editar entrada" form (`class="...
+hidden"`, i.e. `display:none`) comes FIRST in DOM order, before the real "Nova entrada" form. The
+generic `.form-grid` selector picked the hidden one. A `display:none` element never gets a layout
+box, so `getComputedStyle` can't resolve `gridTemplateColumns` to real pixel tracks (returned the
+unresolved `repeat(2, minmax(0px, 1fr))` string) and reported a bogus `height:auto` — a harness
+selector bug, not a CSS divergence, same bug class item 3 already fixed for `.card`/`h3`/buttons.
+**Fix**: new `data-visual-audit="form-grid"` marker on the real, visible "Nova entrada" form-grid
+in all three apps (purely additive attribute — Copa/BR2026 only ever had one `.form-grid` each,
+so this didn't change their behavior, only makes the selector strategy uniform/future-proof
+across all three). Confirmed: `gridTemplateColumns` is now `527px 527px` in all three (EQUAL).
+
+**7 confirmed content/structure-driven, not token bugs — documented in `ALLOWLIST.json`**:
+
+- `form-grid:height` — Copa's entry form has 5 fields (includes a static 'Valor' field showing
+  the fixed entry price; BR2026/CDB2026 don't have this field) = 3 grid rows vs 2 for the other
+  two apps. `.form-grid`'s own CSS is now byte-identical in all three (verified).
+- `button-small:height` / `button-danger:height` — `.small-btn`/`.danger`/`button` CSS is
+  byte-identical in all three (verified by diffing the stylesheets). `.admin-toolbar`'s default
+  `align-items:stretch` stretches every button on the same wrapped flex row to match its tallest
+  sibling. Copa's 13-button toolbar wraps these buttons onto a row with no full-size sibling
+  (34px, natural); BR2026/CDB2026's 5-button toolbar puts them on the SAME row as the full-size
+  'Sair'/logout button (46.5px, stretched) — confirmed via the Playwright probe reading each
+  button's `boundingClientRect.top` (same `top` = same row = stretched). Same root cause as the
+  already-approved `admin-toolbar:height` entry, cascading to its individual buttons — exactly the
+  failure mode item 6 names ("diferenças de funcionalidade devem ser NOT_APPLICABLE ou JUSTIFIED,
+  não comparadas como altura total").
+- `game-card:gap` — BR2026's `.game-card` is its own internal `display:flex; flex-direction:
+  column; gap:4px` layout (2 real stacked children); Copa's `.game-card`/CDB2026's
+  `.confronto-card` are block layouts (not flex containers), so `gap` computes to `normal` for
+  both. Already flagged in `bolao/br2026/css/styles.css`'s own comment as out of item 4's
+  authorized scope.
+- `game-card:height` — content/structure-driven: Copa (3 children), BR2026 (2 children + internal
+  gap), CDB2026's `.confronto-card` (a deliberately different ida+volta component per
+  CONSISTENCY_MATRIX item 72, INTENTIONALLY_DIFFERENT) all render different DOM structures with
+  padding/border-radius/margin already token-aligned — same exclusion class as `main`/`card-base`
+  height above.
+- `status-badge:gap` — only visible with 2+ flex children; confirmed via the probe that all three
+  apps render the 'encerrado' badge as a single text-node `<span>` (`childElementCount:0`) — the
+  `gap:4px` BR2026/CDB2026 set (kept for potential future icon use) is currently inert, zero
+  rendered effect. All other properties of this badge are already EQUAL.
+- `status-badge:minHeight` — a `getComputedStyle` artifact of each app's own (already
+  intentionally different) DOM structure: `min-height:auto` reports as the unresolved keyword
+  `auto` when the badge is a flex ITEM of its immediate parent (BR2026: direct child of
+  `.game-meta`, `display:flex`), but resolves to a concrete `0px` when it isn't (CDB2026: inside
+  `.leg-info`, `display:block`, part of its ida+volta leg layout). Zero effect on the badge's
+  actual rendered size (padding/font-size/border-radius, all EQUAL, fully determine it).
+
+**Result**: `node bolao/scripts/audit_visual_consistency.mjs` now exits 0 — 365 EQUAL, 13
+JUSTIFIED (7 prior + 7 new), 0 DIVERGENT. `node --check` clean on every `.js` in all three apps.
+`audit_scoring.py` passes all three apps (scoring untouched).
+
+**Housekeeping also folded into this version bump**: the prior commit (item 3/4 partial) touched
+`index.html`/`css/styles.css`/`js/app.js` in all three apps but didn't bump `siteVersion` or add a
+changelog entry — noted here rather than rewriting that commit's history. `siteVersion` bumped in
+all three apps (Copa v4.167→v4.168, BR2026 v1.86→v1.87, CDB2026 v3.85→v3.86) and
+`node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026` re-run so the `?v=` tag in
+each `index.html` matches the new file contents (all three were stale after the `index.html`/
+`config.js` edits above) — verified with `cachebust.mjs check` immediately after.
+
 ## v3.85 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
 
 **Bug found by independent PR120 review**: two incompatible sources of truth for the `?v=`
