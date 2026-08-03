@@ -206,23 +206,63 @@ window.POWERBALL_DRAWS = [
       { name: "Nathalia Galeazzi Nedel", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" }
     ],
 
-    // Sem tickets comprados ainda — aguardando compra. Orçamento disponível
-    // (ver `finance`) dá para 55 tickets a US$3/ticket (Power Play).
+    // 56 tickets comprados com ID: 29F4CE7C3D9F73C11, 03/08/2026 01:56 PM
+    // Total gasto: US$168 (US$2 além do orçamento de US$166 — coberto de fora)
     sharedTickets: {
-      compradoPor: "—",
-      dataComprovante: "—",
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "03/08/2026 10:59 PM ET",
       valorPorTicket: 3,
-      ticketsRecomendados: 55, // floor(166 / 3)
-      series: []
+      series: [
+        {
+          serial: "21E679F9C2F72AA73", qtd: 20, jogos: "01–20",
+          numeros: [
+            "01-14-27-63-64 — PB 25", "01-18-37-40-48 — PB 08", "01-22-47-53-66 — PB 17",
+            "02-06-17-43-60 — PB 20", "02-10-55-57-58 — PB 12"
+            // Faltam 15 números deste serial
+          ]
+        },
+        {
+          serial: "2460DFBEC81AF1EA8", qtd: 10, jogos: "21–30",
+          numeros: [
+            "04-07-15-41-66 — PB 16", "05-06-40-44-55 — PB 01", "10-11-17-53-68 — PB 12",
+            "12-17-26-32-39 — PB 06", "13-28-31-40-41 — PB 02"
+            // Faltam 5 números deste serial
+          ]
+        },
+        {
+          serial: "23AE428CB3D7645F0", qtd: 10, jogos: "31–40",
+          numeros: [
+            "08-38-47-59-69 — PB 12", "08-43-49-52-57 — PB 07", "09-13-33-36-58 — PB 13",
+            "09-19-34-40-45 — PB 22", "10-15-30-50-59 — PB 23"
+            // Faltam 5 números deste serial
+          ]
+        },
+        {
+          serial: "2E799CFD72E19C652", qtd: 8, jogos: "41–48",
+          numeros: [
+            "21-28-36-61-64 — PB 14", "23-32-33-63-69 — PB 04", "03-18-52-56-59 — PB 01",
+            "16-27-44-53-62 — PB 21", "11-23-36-54-64 — PB 09"
+            // Faltam 3 números deste serial
+          ]
+        },
+        {
+          serial: "2046D52D43154B684", qtd: 8, jogos: "49–56",
+          numeros: [
+            "15-28-48-62-65 — PB 11", "16-25-39-55-56 — PB 06", "17-20-31-44-54 — PB 03",
+            "17-29-42-50-62 — PB 21", "18-22-23-60-67 — PB 13", "19-35-44-46-56 — PB 10",
+            "20-27-32-59-68 — PB 14", "24-28-45-53-54 — PB 05"
+          ]
+        }
+      ]
     },
 
-    // totalArrecadado = US$142 (sobra do sorteio de 01/08) + US$24 (prêmio ganho
-    // nesse mesmo sorteio) = US$166. Nada foi gasto em tickets ainda; ao comprar,
-    // valorUtilizado deve virar 165 (55 tickets x US$3) e valorGuardadoProximoSorteio 1.
+    // totalArrecadado = US$142 (sobra) + US$24 (prêmio) = US$166
+    // valorUtilizado = 56 tickets × US$3 = US$168 (US$2 cobertos de fora)
+    // valorGuardadoProximoSorteio = 166 - 168 = -2 (crédito para recuperar no próximo)
     finance: {
       totalArrecadado: 166,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 166
+      valorUtilizado: 168,
+      valorGuardadoProximoSorteio: -2
     },
 
     result: {
