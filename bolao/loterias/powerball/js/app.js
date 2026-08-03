@@ -183,6 +183,90 @@
     });
   }
 
+  function buildResultEmailHtml(draw, gt, official, computed) {
+    var sortedNums = official.numbers.slice().sort(function (a, b) { return a - b; });
+    var numbersStr = sortedNums.join(" - ") + " · " + gt.specialBallLabel + " " + official.special;
+    if (official.multiplier) numbersStr += " · Power Play " + official.multiplier + "x";
+
+    var prizeHtml = "";
+    if (computed.jackpotHit) {
+      prizeHtml = "<h2 style='color:#CE1141;text-align:center;font-size:1.2em;'>🎉 JACKPOT! 🎉</h2>";
+    } else if (computed.total > 0) {
+      prizeHtml = "<p><strong>Prêmios ganhos:</strong> " + fmtUsd(computed.total) + "</p>";
+      if (computed.breakdown && computed.breakdown.length) {
+        prizeHtml += "<p><small>" + computed.breakdown.join("<br>") + "</small></p>";
+      }
+      var profit = computed.total - draw.finance.valorUtilizado;
+      prizeHtml += "<p><strong>Lucro:</strong> " + fmtUsd(profit) + "</p>";
+    } else {
+      prizeHtml = "<p><strong>Nenhum prêmio nesse sorteio.</strong></p><p><strong>Prejuízo:</strong> " + fmtUsd(-draw.finance.valorUtilizado) + "</p>";
+    }
+
+    return "<div style='font-family:sans-serif;color:#333;'>" +
+      "<h1 style='color:#CE1141;'>Resultado do Sorteio Powerball</h1>" +
+      "<p><strong>Data:</strong> " + draw.drawing.drawDateLabel + "</p>" +
+      "<p><strong>Jackpot:</strong> $" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M</p>" +
+      "<h2>Números Vencedores</h2>" +
+      "<p style='font-size:1.1em;font-weight:bold;'>" + numbersStr + "</p>" +
+      "<h2>Resultado do Bolão</h2>" +
+      prizeHtml +
+      "<hr style='border:none;border-top:1px solid #ddd;margin:20px 0;'>" +
+      "<p><small>Resultado buscado automaticamente em " + new Date().toLocaleString("pt-BR") + " de fonte oficial (NY Open Data).</small></p>" +
+      "</div>";
+  }
+
+  function sendResultEmail(draw, gt, official, computed) {
+    if (!window.emailjs || !POWERBALL_CONFIG.emailjs.enabled) {
+      console.warn("sendResultEmail: EmailJS not available");
+      return Promise.resolve();
+    }
+
+    var subject = "🎟️ Resultado do Sorteio Powerball — " + draw.drawing.drawDateLabel;
+    var html = buildResultEmailHtml(draw, gt, official, computed);
+
+    console.log("sendResultEmail: Starting email dispatch for draw " + draw.id);
+    console.log("sendResultEmail: Draw has " + draw.participants.length + " participants");
+    console.log("sendResultEmail: Subject: " + subject);
+
+    // DURING TESTING: Send ONLY to adminEmail (not to all participants)
+    // To enable full dispatch: uncomment the .map() loop below and remove this single-send
+    var adminEmailPromise = emailjs.send(
+      POWERBALL_CONFIG.emailjs.serviceId,
+      POWERBALL_CONFIG.emailjs.participantTemplateId, // Use participant template for main result
+      {
+        to_email: POWERBALL_CONFIG.adminEmail,
+        entry_name: subject,
+        receipt_code: subject,
+        html_message: html
+      },
+      { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
+    ).then(function (response) {
+      console.log("✓ Result email sent to " + POWERBALL_CONFIG.adminEmail, response);
+    }).catch(function (err) {
+      console.error("✗ Result email failed:", err);
+      throw err;
+    });
+
+    // PRODUCTION: Uncomment below to send to all participants
+    // var emailPromises = draw.participants.map(function (p, idx) {
+    //   // Would need participant.email field in data.js
+    //   var participantEmail = p.email || POWERBALL_CONFIG.adminEmail;
+    //   return emailjs.send(
+    //     POWERBALL_CONFIG.emailjs.serviceId,
+    //     POWERBALL_CONFIG.emailjs.participantTemplateId,
+    //     { to_email: participantEmail, entry_name: subject, receipt_code: subject, html_message: html },
+    //     { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
+    //   ).then(function () {
+    //     console.log("✓ Email " + (idx+1) + "/" + draw.participants.length + " sent to " + participantEmail);
+    //   });
+    // });
+
+    return adminEmailPromise.catch(function (err) {
+      console.error("Email dispatch error:", err);
+      // Don't throw — UI should still show result even if email fails
+    });
+  }
+
   function renderResultPending(state, message) {
     document.getElementById("pbResultDisplay").style.display = "none";
     var pending = document.getElementById("pbResultPending");
@@ -241,6 +325,12 @@
       };
       saveLocalOverride(draw.id, override);
       if (DRAWS[currentIdx].id === draw.id) renderDraw(currentIdx);
+
+      // Send result email automatically (fire-and-forget; don't block UI if email fails)
+      console.log("Sending result email for draw " + draw.id);
+      sendResultEmail(draw, gt, official, computed).catch(function (err) {
+        console.warn("Result email send failed (non-critical):", err);
+      });
     }).catch(function (err) {
       renderResultPending("error", "Não foi possível confirmar o resultado ainda (" + err.message + "). Ele é publicado pela loteria após o sorteio — tente novamente em instantes.");
     });
