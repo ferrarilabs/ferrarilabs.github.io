@@ -1,5 +1,14 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.86 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
+
+Same platform-shared fix documented in full in `bolao/cdb2026/CHANGELOG.md` v3.84 (new
+`bolao/scripts/cachebust.mjs` is the single source of truth for the `?v=` tag; the workflow
+`.github/workflows/sync_version.yml` and the local checker now compute/apply the exact same
+content hash instead of two incompatible values). This app's `index.html` was rewritten to
+`?v=5032d96b0455` (matches the current content hash of its own five critical files) as part of
+that same commit. No scoring/classification logic touched.
+
 ## v1.85 — 2026-08 — Fase 2.2-correção item 8: `main` padding + `.form-grid` aligned to Copa
 
 **Explicitly authorized by Eduardo** (previously deliberately left unapplied pending exactly this
