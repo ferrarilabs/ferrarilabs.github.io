@@ -177,8 +177,13 @@ main {
   /* Bottom padding era 80px (achado 2026-07-16, Eduardo: "muito espaço vazio no final da
      página") -- sobrava um vão enorme abaixo do botão sticky em toda aba, não só na de
      palpites. Copa (bolao/css/styles.css) tem a mesma estrutura de botão sticky com padding
-     simétrico (20px), sem folga extra -- alinhado aqui. */
-  padding: 16px 14px;
+     simétrico (20px), sem folga extra -- alinhado aqui.
+     Fase 2.2-correção item 8 (2026-08, autorizado explicitamente por Eduardo): valor numérico
+     alinhado a `20px 18px`, igual à Copa (referência visual canônica) -- era `16px 14px`. Só
+     visível acima de 900px (o breakpoint @media max-width:900px abaixo já convergia os três
+     apps para `12px 10px`, então mobile/tablet não muda). Ver
+     docs/bolao/evidence/visual-comparison/ para captura antes/depois em 320/768/1440px. */
+  padding: 20px 18px;
   /* Segunda camada de contenção contra o side-scroll permanente reportado 2026-08-02 -- ver
      nota completa em .topbar acima (mesma incerteza: não reproduzido no Chromium do sandbox).
      overflow-y: visible é OBRIGATÓRIO junto -- especificar só overflow-x faz o overflow-y
@@ -260,10 +265,15 @@ h3 { font-size: 1.05rem; }
 .pot-box strong { display: block; font-size: 26px; font-weight: 800; color: var(--green); line-height: 1.1; }
 
 /* ── Form ── */
+/* Fase 2.2-correção item 8 (2026-08, autorizado explicitamente por Eduardo): grid alinhado à
+   Copa (bolao/copa2026/css/styles.css) -- era `repeat(auto-fill, minmax(220px, 1fr))` gap 14px,
+   agora `repeat(2, minmax(0, 1fr))` gap 12px. Ambos os usos deste app (form de nova entrada, 4
+   campos; form "buscar minha entrada", 2 campos) são pares -- cabem bem num grid fixo de 2
+   colunas. Colapsa para 1 coluna em @media (max-width: 900px) abaixo, igual à Copa. */
 .form-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  gap: 14px; margin-bottom: 16px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px; margin-bottom: 16px;
 }
 label { display: flex; flex-direction: column; gap: 5px; }
 label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
@@ -765,6 +775,10 @@ h2:focus, h3:focus { outline: none; }
 
 @media (max-width: 900px) {
   main { padding: 12px 10px; }
+  /* Fase 2.2-correção item 8: mesmo colapso que a Copa (bolao/copa2026/css/styles.css) --
+     grid fixo de 2 colunas em telas largas, 1 coluna abaixo de 900px, evitando campo cramped
+     em telas de celular/tablet estreitas. */
+  .form-grid { grid-template-columns: 1fr; }
   .pay-grid { grid-template-columns: 1fr; }
   /* .brand and .whatsapp-btn both force nowrap on their own text, and
      .bolao-switcher's <select> sizes to its selected option's text —

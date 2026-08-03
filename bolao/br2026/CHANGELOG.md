@@ -1,5 +1,52 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.85 — 2026-08 — Fase 2.2-correção item 8: `main` padding + `.form-grid` aligned to Copa
+
+**Explicitly authorized by Eduardo** (previously deliberately left unapplied pending exactly this
+authorization — see v1.75/`docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`). Two numeric-only CSS
+changes, no HTML/JS touched:
+
+- `main` padding: `16px 14px` → `20px 18px`, matching Copa (`bolao/copa2026/css/styles.css`,
+  the platform's canonical visual reference). Only visible above the existing
+  `@media (max-width: 900px)` breakpoint — that breakpoint already forced all three apps to the
+  same `12px 10px`, so phone/tablet rendering (≤900px) is unchanged; only desktop-width `main`
+  gets wider now, matching Copa exactly.
+- `.form-grid`: `repeat(auto-fill, minmax(220px, 1fr))` gap `14px` → `repeat(2, minmax(0, 1fr))`
+  gap `12px`, matching Copa. Added a `.form-grid { grid-template-columns: 1fr }` rule inside the
+  existing `@media (max-width: 900px)` block (this app didn't have one before — Copa did), so the
+  grid still collapses to a single column on narrow screens exactly like Copa.
+
+**Real finding, not just cosmetic**: without the new breakpoint override, the entry form
+(4 fields: nome/responsável/e-mail/método) rendered as **3 cramped columns at 768px** (tablet
+width) under the old `auto-fill` rule — verified via `getComputedStyle` probe
+(`gridTemplateColumns` resolved to `227.328px 227.328px 227.328px`) and a real screenshot crop.
+Copa, at the same 768px width, already collapsed to 1 column (its own `@media (max-width:900px)`
+override). So this fix isn't only a desktop (>900px) visual alignment — it also fixes a real
+tablet-width layout inconsistency BR2026 had versus Copa.
+
+**Verification before applying** (per `docs/bolao/QA_MASTER_CHECKLIST.md` risk assessment for a
+`main`-wide change on an app used in production-adjacent testing): captured real Playwright
+screenshots of the Palpites/entry form at 320×568, 768×1024, and 1440×900, before and after, for
+BR2026, CDB2026, and Copa (unaffected control). Confirmed: `document.documentElement.scrollWidth`
+never exceeds `clientWidth` at any of the three viewports (no new horizontal overflow); the
+4-field entry form now wraps into a clean 2×2 grid at 1440px (was 1 row of 4, tightly packed
+against the wider `main`); `.sticky-submit` is a normal in-flow block (`display:flex`, not
+`position:fixed/sticky` despite the class name — confirmed by reading the CSS), so it can't ever
+overlap a form field regardless of grid layout. 320px and 768px renders are pixel-identical to
+before (both already resolved to the same breakpoint values pre-fix, confirmed via the 768px
+`gridTemplateColumns` probe above once the mobile override was in place).
+
+Re-ran `bolao/scripts/audit_visual_consistency.mjs` after the change:
+`main:padding`, `form-grid:gap`, and `form-grid:gridTemplateColumns` all flipped from DIVERGENT to
+EQUAL across all three apps (342 EQUAL / 1 JUSTIFIED / 21 DIVERGENT, down from 339/1/24 before this
+change — the 3-property delta is exactly this fix, nothing else moved). Remaining DIVERGENT for
+this component (`.form-grid:margin`, `0px` in Copa vs `0px 0px 16px` here) was **not** in this
+item's authorized scope (only `padding`/`grid-template-columns`/`gap` were named) — left
+unauthorized-but-documented rather than fixed silently; see
+`docs/bolao/CONSISTENCY_MATRIX.md` and `docs/bolao/evidence/visual-comparison/`.
+
+`node --check`: clean. `audit_scoring.py`: 5/5 (CSS-only change, scoring untouched).
+
 ## v1.84 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
 
 New `bolao/scripts/audit_visual_consistency.mjs` (top-level, cross-app). Full rationale,
