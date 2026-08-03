@@ -314,12 +314,14 @@
       saveLocalOverride(draw.id, override);
       if (DRAWS[currentIdx].id === draw.id) renderDraw(currentIdx);
 
-      // Dispatch result email automatically (non-critical, fire-and-forget)
-      console.log("Dispatching result emails automatically…");
+      // Dispatch result email ONLY if we got a valid result from NY Open Data
+      console.log("Result confirmed from NY Open Data. Dispatching emails…");
       sendResultEmail(draw, gt, official, computed).catch(function (err) {
         console.warn("Email dispatch failed (non-critical):", err);
       });
     }).catch(function (err) {
+      // NO EMAIL if result fetch failed
+      console.error("Result fetch failed, no email sent:", err.message);
       renderResultPending("error", "Não foi possível confirmar o resultado ainda (" + err.message + "). Ele é publicado pela loteria após o sorteio — tente novamente em instantes.");
     });
   }
