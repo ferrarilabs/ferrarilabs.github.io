@@ -1,5 +1,58 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08 — PR120-final review item 6: admin components captured in isolation
+
+**No app file touched** (`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js`
+unchanged in all three apps) — this entry is only about `bolao/scripts/audit_visual_consistency.mjs`
+(cross-app tooling), so no `siteVersion` bump/cache-bust re-write is needed, same as the item 5
+entry below.
+
+**What item 6 asked**: don't compare whole admin PAGES by total height — capture admin components
+in isolation (toolbar, card/row, input, select, primary/secondary/destructive button, payment
+badge, modal, toast, empty/filled state), same synthetic content and item count, and treat
+functional differences as NOT_APPLICABLE/JUSTIFIED rather than a height comparison. The existing
+script already avoided whole-page-height comparisons (components are read individually:
+admin-toolbar, admin-card-row, button-small, button-danger, paid-badge, and the item-7 round
+folded button-small/danger height differences into a JUSTIFIED entry precisely because they were
+a functional/composition difference, not a token — see `ALLOWLIST.json`). This entry adds the
+pieces that were still genuinely missing:
+
+- **`button-secondary`** (new component): the plain full-size `.secondary` button (`#adminLogoutBtn`,
+  "Sair") — distinct from `button-small` (`.secondary.small-btn`, a different size tier). Same id
+  in all three apps, no new marker needed. Result: EQUAL on every property in all three apps.
+- **`toast`** (new component): `showToast()` is declared inside each app's own top-level IIFE (per
+  `CLAUDE.md`, `app.js` is "a single IIFE"), so it isn't reachable as `window.showToast` from the
+  harness — confirmed this silently produced N/A on a first pass. Fixed by replicating
+  `showToast()`'s own DOM construction verbatim in the harness (confirmed byte-identical in all
+  three apps: `.bolao-toasts` container + `.bolao-toast <type>` child, plain textContent) — an
+  honest copy of the real markup this component produces, not a new one invented for the audit.
+  Result: EQUAL on every property in all three apps.
+- **`modal`** (new component, explicit N/A): verified by reading all three apps' `app.js` and
+  grepping all three `css/styles.css` for `.modal` (0 matches) — there is no custom modal/dialog
+  component in any of the three apps. Every confirmation flow (draft restore, extreme-score
+  warning, bulk result email, overwrite picks) uses the browser's native `window.confirm()`, which
+  is OS/browser chrome, not a page-rendered element — nothing for `getComputedStyle()` to read,
+  and it would be the identical native dialog regardless of which app triggered it. Listed with
+  all three selectors `null` so it shows as an explicit N/A row in the report instead of being
+  silently absent, per item 6's own instruction.
+- **"input"/"select" in admin context**: NOT duplicated as separate components. `input, select {
+  ... }` is a single global CSS rule with no section-specific override in any of the three apps
+  (confirmed by reading each stylesheet directly — there is no `#adminArea input`/`#adminArea
+  select` rule anywhere) — the existing `input-text`/`select` components (read from the Palpites
+  section) already exercise the exact same rule an admin-context input/select would resolve to.
+  Adding a second, redundant capture would not test anything the first doesn't already cover.
+- **"estado vazio"/"estado preenchido"**: NOT added as separate components. The empty-entries
+  message (`t("noEntries")`) renders as a plain `<p>` with no dedicated CSS class in any of the
+  three apps (confirmed: 0 matches for `.empty-state`/`.no-data` in any stylesheet) — there is no
+  distinct styled token to compare beyond generic paragraph/card text, already covered elsewhere.
+  "Estado preenchido" (filled) is what `admin-card-row` already captures — the harness's fixture
+  always seeds 2 entries, so every existing admin-scoped component in this script is already read
+  in the filled state, same item count (2) in all three apps.
+
+**Result**: `audit_visual_consistency.mjs` now compares 30 components (was 27); still 393 EQUAL /
+13 JUSTIFIED / 0 DIVERGENT / 14 N/A (the 14 `modal` properties) — exit 0 preserved. `node --check`
+clean. `audit_scoring.py` passes all three apps (scoring untouched).
+
 ## (tooling, no siteVersion bump) — 2026-08 — PR120-final review item 5: comparable Jogos fixtures
 
 **No app file touched** (`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js`

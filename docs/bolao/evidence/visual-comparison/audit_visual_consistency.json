@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-03T18:18:01.283Z",
-  "commit": "43df3d9",
+  "generatedAtUtc": "2026-08-03T18:51:31.436Z",
+  "commit": "f9961be",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -2517,6 +2517,138 @@
       ]
     },
     {
+      "id": "button-secondary",
+      "label": "Botão secundário (Sair)",
+      "selectors": {
+        "copa2026": "#adminLogoutBtn",
+        "br2026": "#adminLogoutBtn",
+        "cdb2026": "#adminLogoutBtn"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "900",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "11px 18px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "900",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "11px 18px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "900",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "11px 18px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
       "id": "ranking-row",
       "label": "Linha de ranking (.rank-row)",
       "selectors": {
@@ -3524,6 +3656,225 @@
           "property": "gridTemplateColumns",
           "status": "EQUAL",
           "reason": null
+        }
+      ]
+    },
+    {
+      "id": "toast",
+      "label": "Toast (notificação)",
+      "selectors": {
+        "copa2026": ".bolao-toast.info",
+        "br2026": ".bolao-toast.info",
+        "cdb2026": ".bolao-toast.info"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "8px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "8px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "8px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "modal",
+      "label": "Modal / diálogo",
+      "selectors": {
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
+      },
+      "note": "NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle().",
+      "values": {
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "fontSize",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "fontWeight",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "lineHeight",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "letterSpacing",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "padding",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "margin",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "gap",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "borderRadius",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "backgroundColor",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "color",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "height",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "minHeight",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         }
       ]
     }
