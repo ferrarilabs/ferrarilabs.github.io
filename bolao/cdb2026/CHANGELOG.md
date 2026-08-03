@@ -1,5 +1,42 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.80 — 2026-08 — Fase 2.2-correção item 6/coord.#4: authenticated-admin evidence capture (new harness script)
+
+New `bolao/cdb2026/scripts/visual/capture_admin_auth_evidence.mjs` — the existing harness
+(`capture_evidence.mjs`) only ever captured the Admin section's LOGIN form, since no synthetic
+session existed to bypass it. This adds a real authenticated capture using the exact
+`sessionStorage` keys each app's own `isAdminActive()` checks (verified by reading `app.js`
+directly before writing anything, not assumed from a secondhand description):
+`adminOk`+`adminUntil` for Copa, `br2026_adminUntil` for BR2026, `cdb2026_adminUntil` for
+CDB2026. The real admin password is never used anywhere in this file.
+
+- **Copa excluded, marked `notApplicable` (not skipped silently)**: `CONFIG.archived` hides the
+  Admin nav button (`.hidden` class), same product decision already respected for
+  Palpites/Jogos/Regras in `capture_evidence.mjs` — not worked around here either.
+- **BR2026 + CDB2026**: captured both a "filled" state (existing 2-entry fixture, one paid one
+  not) and an "empty" state (zero entries) at 3 viewports (320/768/1440) — 12 real screenshots.
+  Each capture clicks the real Admin nav button (proves the button itself works, not just that
+  the DOM can be forced), then verifies `#adminLogin` is actually hidden and `#adminArea` is
+  actually visible before treating the capture as successful.
+- Since `renderAdmin()` stacks toolbar + phases/results + payments + entries + audit log all
+  inside one `#adminArea` in both apps, a single fullPage screenshot per viewport already shows
+  the toolbar (including the destructive "Limpar tudo" button, visible but never clicked),
+  results, payments (with mark-paid/unpaid buttons), entries (with delete buttons, visible but
+  never clicked), and the audit log together — verified by reading the actual screenshots, not
+  just trusting the manifest's `captured:true`.
+- Output: `docs/bolao/evidence/visual/admin_auth_manifest.json` (separate from the main
+  `manifest.json` — different record shape) + 12 new PNGs in the existing `br2026/`/`cdb2026/`
+  evidence folders. Result: 13 entries, 12 captured, 1 notApplicable, 0 failed.
+- **Not covered by this capture** (documented, not overclaimed): individual export button
+  clicks, actually triggering a destructive action, and per-subsection isolated screenshots
+  (everything renders in one long page here, which is how the real app looks, not a limitation
+  worth working around).
+
+Cross-app change (touches BR2026 evidence too) but only `cdb2026/scripts/visual/` gained a new
+file — BR2026's own source (`js/`, `css/`) wasn't modified, so only CDB2026's `siteVersion` is
+bumped here, matching the precedent set by this branch's item-1 cache-bust commit.
+`audit_scoring.py`: 6/6, 5/5, 5/5 (unaffected — no scoring/logic touched).
+
 ## v3.79 — 2026-08 — Fase 2.2-correção item 3: desktop nav column count fixed (repeat(8)→repeat(6))
 
 CDB2026's base `.nav` rule was already correct (`repeat(6, ...)`, matching its 6 real visible

@@ -1,0 +1,215 @@
+[
+  {
+    "application": "copa2026",
+    "requestedSection": "AdminAuthenticated",
+    "captured": false,
+    "status": "notApplicable",
+    "reason": "CONFIG.archived hides the Admin nav button (.hidden class), same product decision as Palpites/Jogos/Regras -- not worked around, matches capture_evidence.mjs's existing treatment of this app.",
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:08.806Z"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
+      "width": 320,
+      "height": 568
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:11.076Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-filled_320x568.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:13.043Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-filled_768x1024.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:15.068Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-filled_1440x900.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
+      "width": 320,
+      "height": 568
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:16.950Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-empty_320x568.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:18.818Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-empty_768x1024.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:20.793Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-empty_1440x900.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
+      "width": 320,
+      "height": 568
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:22.773Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-filled_320x568.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:24.930Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-filled_768x1024.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:26.999Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-filled_1440x900.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
+      "width": 320,
+      "height": 568
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:29.129Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-empty_320x568.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
+      "width": 768,
+      "height": 1024
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:31.249Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-empty_768x1024.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
+      "width": 1440,
+      "height": 900
+    },
+    "commit": "533acf9",
+    "capturedAtUtc": "2026-08-02T23:57:33.335Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-empty_1440x900.png"
+  }
+]
