@@ -86,7 +86,14 @@ const APPS = {
   cdb2026: {
     path: "/bolao/cdb2026/", storeKey: "bolao_cdb2026_state",
     sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Pagamento: "payment", Regras: "rules", Admin: "admin" },
-    notApplicable: [],
+    // Participantes/Pagamento saíram do nav principal (display:none, mesmo padrão do BR2026/Copa
+    // -- Eduardo, 2026-08-01: "Deixe aparecer somente os mesmos botões que estão disponíveis no
+    // br2026") -- não é mais alcançável clicando no nav, por decisão de produto, não defeito de
+    // renderização. #payment continua existindo/renderizando normalmente, só sem botão apontando
+    // pra ela (ver bolao/cdb2026/index.html). Esta lista não tinha sido atualizada quando o nav
+    // mudou -- achado ao rodar o harness pro pacote de revisão (2026-08-02): 7 "failed" (timeout
+    // clicando um botão display:none em todos os 7 viewports), não um bug real.
+    notApplicable: ["Pagamento"],
   },
 };
 
