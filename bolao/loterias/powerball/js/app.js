@@ -1,5 +1,11 @@
 (function () {
   "use strict";
+  // ARCHITECTURE: Game-agnostic lottery pool engine.
+  // Works with any LOTTERY_GAME_TYPES and POWERBALL_DRAWS structure.
+  // To add a new lottery: define gameType in LOTTERY_GAME_TYPES and reference it
+  // in a draw object. Everything else (fetch, prizes, email, UI) is automatic.
+  // See ../TEMPLATE_NEW_LOTTERY.md for setup instructions.
+
   var DRAWS = window.POWERBALL_DRAWS;
   var GAME_TYPES = window.LOTTERY_GAME_TYPES;
   var LOCAL_KEY = "powerball_local_results_v1";
