@@ -1,5 +1,39 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.82 — 2026-08 — Fase 2.2-correção item 9/coord.#6: side-by-side comparison montages (Copa | BR2026 | CDB2026)
+
+New `bolao/scripts/make_visual_comparison_montages.mjs` (top-level, cross-app). Pure composition
+of screenshots already captured by `capture_evidence.mjs`/`capture_admin_auth_evidence.mjs` — no
+new page capture. This machine has neither ImageMagick nor Python's PIL (both checked, both
+absent), so compositing reuses the same tool already installed for everything else in this
+folder: render a small HTML page with three `<img>` columns via Playwright, screenshot that page.
+
+7 screens (tabs, formulário de palpites, ranking, jogos, regras, admin login, admin autenticado)
+× 4 viewports (320x568, 390x844, 768x1024, 1440x900 — the set from this correction round, not
+the full 7-viewport set the underlying harness uses) = 28 montages in
+`docs/bolao/evidence/visual-comparison/montage_<screen>_<viewport>.png` +
+`montage_manifest.json`.
+
+- **"Tabs" reuses each app's Ranking screenshot**, cropped to just the top strip (topbar+nav) via
+  a fixed-height overflow:hidden container — Ranking exists for all three apps at every viewport,
+  including archived Copa, so it was the only screen guaranteed available everywhere to crop from.
+- **Missing screenshots are rendered as a labeled N/A placeholder with the real documented
+  reason** (Copa archived → Palpites/Jogos/Regras/Admin nav hidden; BR2026 entries closed →
+  Palpites nav disabled) — never a blank gap or a silently dropped column.
+- `capture_admin_auth_evidence.mjs`'s viewport list extended from 3 to 4 entries (added
+  390x844) so the "admin autenticado" montage has real data at all 4 requested viewports — 16
+  captures now (was 12), still 0 failed.
+
+Spot-checked visually (not just "the manifest says 28, done"): `montage_tabs_1440x900.png`
+confirms the item-3 nav-column fix rendering correctly side by side (Copa 1 visible tab/archived,
+BR2026 7, CDB2026 6, no dead columns in either); `montage_form_768x1024.png` confirms the N/A
+placeholders read correctly with real reasons next to CDB2026's full rendered form.
+
+Cross-app change, only CDB2026's own files touched directly (the viewport-list edit) plus the
+new top-level script — `siteVersion` bumped here only, matching this branch's established
+pattern for changes that don't touch another app's own `js/`/`css/`. `audit_scoring.py`: 5/5
+(unaffected).
+
 ## v3.81 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
 
 New `bolao/scripts/audit_visual_consistency.mjs` — deliberately at the top-level `bolao/scripts/`,
