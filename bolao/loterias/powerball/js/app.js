@@ -225,41 +225,43 @@
     var html = buildResultEmailHtml(draw, gt, official, computed);
 
     console.log("sendResultEmail: Starting email dispatch for draw " + draw.id);
-    console.log("sendResultEmail: Sending to " + draw.participants.length + " participants");
+    console.log("sendResultEmail: Draw has " + draw.participants.length + " participants");
     console.log("sendResultEmail: Subject: " + subject);
 
-    // Send to all participants with valid emails
-    var emailPromises = draw.participants.map(function (p, idx) {
-      var participantEmail = (p.email || "").trim();
-      if (!participantEmail.includes("@")) {
-        console.warn("✗ Skipping " + p.name + " — no valid email");
-        return Promise.resolve();
-      }
-
-      return emailjs.send(
-        POWERBALL_CONFIG.emailjs.serviceId,
-        POWERBALL_CONFIG.emailjs.participantTemplateId,
-        {
-          to_email: participantEmail,
-          entry_name: subject,
-          receipt_code: subject,
-          html_message: html
-        },
-        { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
-      ).then(function (response) {
-        console.log("✓ Email " + (idx + 1) + "/" + draw.participants.length + " sent to " + p.name + " (" + participantEmail + ")");
-        return response;
-      }).catch(function (err) {
-        console.error("✗ Failed to send to " + p.name + " (" + participantEmail + "):", err);
-        // Don't throw — continue with other participants
-        return null;
-      });
+    // DURING TESTING: Send ONLY to adminEmail (not to all participants)
+    // To enable full dispatch: uncomment the .map() loop below and remove this single-send
+    var adminEmailPromise = emailjs.send(
+      POWERBALL_CONFIG.emailjs.serviceId,
+      POWERBALL_CONFIG.emailjs.participantTemplateId, // Use participant template for main result
+      {
+        to_email: POWERBALL_CONFIG.adminEmail,
+        entry_name: subject,
+        receipt_code: subject,
+        html_message: html
+      },
+      { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
+    ).then(function (response) {
+      console.log("✓ Result email sent to " + POWERBALL_CONFIG.adminEmail, response);
+    }).catch(function (err) {
+      console.error("✗ Result email failed:", err);
+      throw err;
     });
 
-    return Promise.all(emailPromises).then(function (results) {
-      var sent = results.filter(function (r) { return r !== null; }).length;
-      console.log("Email dispatch complete: " + sent + "/" + draw.participants.length + " sent successfully");
-    }).catch(function (err) {
+    // PRODUCTION: Uncomment below to send to all participants
+    // var emailPromises = draw.participants.map(function (p, idx) {
+    //   // Would need participant.email field in data.js
+    //   var participantEmail = p.email || POWERBALL_CONFIG.adminEmail;
+    //   return emailjs.send(
+    //     POWERBALL_CONFIG.emailjs.serviceId,
+    //     POWERBALL_CONFIG.emailjs.participantTemplateId,
+    //     { to_email: participantEmail, entry_name: subject, receipt_code: subject, html_message: html },
+    //     { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
+    //   ).then(function () {
+    //     console.log("✓ Email " + (idx+1) + "/" + draw.participants.length + " sent to " + participantEmail);
+    //   });
+    // });
+
+    return adminEmailPromise.catch(function (err) {
       console.error("Email dispatch error:", err);
       // Don't throw — UI should still show result even if email fails
     });
