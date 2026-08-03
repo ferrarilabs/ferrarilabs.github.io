@@ -141,7 +141,55 @@ Ainda não executados/não existem nesta branch (ver pendências): `audit_state_
 criado), `check_sticky_overlap.mjs` (existe, não rodado nesta rodada — item separado do overflow
 de `.leg-info` corrigido acima).
 
-## Pendências reais (nada abaixo foi fingido como concluído)
+## Pendências — ESTADO FINAL (atualizado 2026-08-03, fecho da branch)
+
+> Esta seção substitui a leitura da tabela original abaixo dela como lista de trabalho — a
+> tabela original (preservada logo em seguida, sem edição, como registro histórico de uma
+> rodada intermediária) descrevia um estado real daquele momento, mas **todos os itens que ela
+> listava como pendentes foram concluídos em rodadas subsequentes desta mesma branch**,
+> incluindo o item que ficava deliberadamente pendente aguardando autorização explícita
+> (item 8). Ver commits individuais via `git log --oneline` nesta branch para o hash exato de
+> cada um.
+
+| # | Item | Status final | Evidência |
+|---|---|---|---|
+| 2 | Corrigir overflow confirmado (`cdb2026 Jogos@320x568`) | **CONCLUÍDO** | `check_manifest.mjs`: 0 overflow em 112 entradas |
+| 3 | Padronizar tabs (desktop grid, mobile pattern) entre os 3 apps | **CONCLUÍDO** (commit `9b11e3b`) | Contagem de colunas corrigida (Copa 8→6, BR2026 9→7, CDB2026 6); mobile unificado em 3 colunas nos três; bug de "orphan row" do BR2026 corrigido |
+| 4 | Capturar Copa arquivada como template via harness local | **JÁ FUNCIONAVA** | Sem trabalho novo necessário |
+| 5 | Fixtures visuais representativas (BR2026/CDB2026/Copa) | **JÁ EXISTIAM** | Sem trabalho novo necessário |
+| 6 | Admin autenticado (sessionStorage sintético) | **CONCLUÍDO** (commit `bd8d06f`) | `capture_admin_auth_evidence.mjs` novo — sessionStorage sintético reproduzindo as chaves exatas de `isAdminActive()` de cada app (nunca senha real); 13 manifest entries (12 capturadas, 1 `notApplicable` — Copa arquivada). Nota honesta: o número final de capturas (12, filled+empty × 3 viewports em BR2026/CDB2026) é menor que as "15 subtelas" imaginadas na formulação original do item — o toolbar admin de BR2026/CDB2026 stacka tudo (toolbar/resultados/pagamentos/entradas/audit-log) num único painel por screenshot, então cada captura já mostra o conjunto inteiro, não uma subtela por ação |
+| 7 | `bolao/scripts/audit_visual_consistency.mjs` (getComputedStyle) | **CONCLUÍDO** (commit `54572c5`) | 26 componentes × 13 propriedades, JSON+MD em `docs/bolao/evidence/visual-comparison/`; 2 bugs reais de seletor encontrados e corrigidos durante a construção (`select`/`button-primary` casando com o elemento errado) |
+| 8 | Alinhar divergências já confirmadas (padding, form-grid) | **CONCLUÍDO** (commit `f0d253d`) — **autorizado explicitamente pelo Eduardo** | `main` padding `16px 14px`→`20px 18px` e `.form-grid` `repeat(auto-fill,minmax(220px,1fr))` gap 14px → `repeat(2,minmax(0,1fr))` gap 12px em BR2026/CDB2026, igual à Copa. Verificado com screenshots Playwright reais em 320×568/768×1024/1440×900 antes/depois (BR2026, CDB2026, Copa como controle) — nenhum overflow novo, nenhuma sobreposição do `.sticky-submit`. **Achado extra durante a verificação**: sem a regra de colapso `@media(max-width:900px)` que faltava em BR2026/CDB2026, o form renderizava **3 colunas espremidas a 768px** (confirmado por sonda `getComputedStyle`, não só leitura do CSS-fonte, já que `repeat(auto-fill,...)` só resolve pra pixels reais com layout ativo) — corrigido junto, não só o alinhamento >900px descrito originalmente. Reauditoria pós-fix: `audit_visual_consistency.mjs` confirma `main:padding`/`form-grid:gap`/`form-grid:gridTemplateColumns` DIVERGENT→EQUAL (342/1/21, era 339/1/24). `bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs` rodado após a mudança: **0 overlap em 7 viewports, múltiplas posições de scroll** — confirmação automatizada independente da minha verificação manual. `.rules-table td` padding confirmado já consistente antes desta rodada (não precisou de correção) |
+| 9 | Evidência lado a lado (montagens Copa\|BR2026\|CDB2026) | **CONCLUÍDO** (commit `1609c0e`) | `make_visual_comparison_montages.mjs` novo — 28 montagens (7 telas × 4 viewports: 320×568/390×844/768×1024/1440×900), reaproveitando screenshots já existentes. Nota honesta: são 7 telas (admin-auth, admin-login, form, games, ranking, rules, tabs), não as "9 telas" da formulação original do coord.#6 — as 7 escolhidas cobrem os estados visuais distintos disponíveis; seções ausentes (Copa arquivada, BR2026 Palpites fechado) mostram um placeholder rotulado com o motivo real |
+| 10 | Critérios de aceitação (`check_manifest.mjs` zero violações, etc.) | **CONCLUÍDO** | Todos os subitens (3/6/7/8/9) concluídos — ver linhas acima. Ressalva: os 21 `DIVERGENT` que `audit_visual_consistency.mjs` ainda reporta (ver Coord.#7 abaixo) não bloqueiam este critério porque não fazem parte do escopo original desta lista — são achados adicionais do próprio script, documentados, não itens desta lista de pendências |
+| Coord. #1 | Reclassificar as 7 capturas "Pagamento" de `failed` para `notApplicable` | **CONCLUÍDO** | — |
+| Coord. #2 | `bolao/scripts/audit_visual_consistency.mjs` completo (26+ componentes, JSON+MD) | **CONCLUÍDO** | Ver item 7 |
+| Coord. #3 | Testes Playwright para a decisão ARIA | **CONCLUÍDO** (commit `ad33701`) | `test_aria_current_nav.mjs` — mouse + teclado, ausência de `aria-selected`, `.active`/`aria-current` sempre sincronizados, sem overflow, nos três apps. 1 bug de autoria do próprio teste encontrado e corrigido (assertion estrita demais pro BR2026, cujo default é "ranking") |
+| Coord. #4 | Admin autenticado (3 apps) | **CONCLUÍDO** | Ver item 6 |
+| Coord. #5 | Corrigir artefato de sticky header em screenshots | **CONCLUÍDO** | `.topbar{position:static!important}` injetado só no momento da captura |
+| Coord. #6 | Montagens lado a lado | **CONCLUÍDO** | Ver item 9 |
+| Coord. #7 | Revisão de divergências P1 reais (não só overflow) | **PARCIAL — sistemática criada, um achado real resolvido, o resto aguarda triagem** | `audit_visual_consistency.mjs` (item 7) É a revisão sistemática pedida, e um dos achados que ela confirmou (item 8: `main`/`.form-grid`) foi triado, autorizado pelo Eduardo e corrigido nesta rodada. Os outros **21 `DIVERGENT`** que o script reporta hoje (ex.: `h3` font-size/line-height diferente no CDB2026, alturas de `.small-btn`/`.danger`/admin-toolbar/admin-row divergentes, `.form-grid:margin` residual, `.card` comparando possivelmente elementos semanticamente diferentes por app) **não foram triados nem autorizados nesta rodada** — ver `docs/bolao/evidence/visual-comparison/audit_visual_consistency.md` seção "Divergências não justificadas" para a lista completa. Por governança (`ENGINEERING_STANDARD.md` "audit ≠ autorização"), apresentar esses achados não é o mesmo que estar autorizado a corrigi-los — ficam registrados para uma próxima rodada, não corrigidos silenciosamente |
+| Coord. #8 | Suíte completa de regressão | **CONCLUÍDO** | Todos os scripts que existem nesta branch foram executados e passam: `audit_scoring.py` 6/6·5/5·5/5, `check_cachebust.test.mjs` 8/8, `capture_evidence.mjs` (112 entries/0 failed), `check_manifest.mjs` (0 violações), `audit_state_merge.mjs` (passou, rodado nesta sessão), `audit_golden_master.mjs` (passou, rodado nesta sessão), `check_sticky_overlap.mjs` (passou, 7 viewports, rodado nesta sessão — relevante porque item 8 mudou `main`/`.form-grid`), `audit_visual_consistency.mjs` (342 EQUAL/1 JUSTIFIED/21 DIVERGENT — divergências reais e documentadas, não falhas de script), `test_aria_current_nav.mjs` (passou) |
+| Coord. #9 | Atualizar `DESIGN_SYSTEM.md`, `VISUAL_PARITY_MATRIX.md`, `VISUAL_STANDARDIZATION_REPORT.md`, `CONSISTENCY_MATRIX.md`, `UI_REGRESSION_PROTOCOL.md` | **CONCLUÍDO** (commits `a9248d4`, `ccb146c`, e esta rodada) | `VISUAL_PARITY_MATRIX.md`/`VISUAL_STANDARDIZATION_REPORT.md` cherry-picked de `main` local (commit `b834bc9`, era reachable) com notas "ATENÇÃO (atualizado...)" apontando as linhas que ficaram desatualizadas por correções posteriores desta branch (tabs, aria-current, item 8), sem reescrever o texto histórico. `DESIGN_SYSTEM.md`/`CONSISTENCY_MATRIX.md` ganharam notas datadas equivalentes. `UI_REGRESSION_PROTOCOL.md` ganhou uma seção manual (fora do bloco `AUTO`) documentando as ferramentas novas (`capture_admin_auth_evidence.mjs`, `audit_visual_consistency.mjs`, `make_visual_comparison_montages.mjs`, `test_aria_current_nav.mjs`) e um exemplo real do fluxo completo usando o item 8 |
+| Coord. #10 | Não fazer push/deploy | **RESPEITADO** | Nenhum push, merge, deploy, ou escrita em produção foi feito em nenhuma rodada desta branch |
+
+**Itens genuinamente fora do escopo desta lista** (não fazem parte dos 10+10 itens acima, não
+foram tocados, continuam registrados em seus documentos de origem para uma decisão/rodada
+futura): estrutura de cards da página Regras (H-2, decisão editorial do Eduardo pendente),
+`.rules-table` sem wrapper `overflow-x:auto` estrutural (H-4, risco baixo), recibo/comprovante
+ausente em BR2026/CDB2026 (H-6, feature grande, não padronização visual), e os 21 `DIVERGENT`
+não triados do Coord.#7 acima.
+
+**Conclusão honesta desta rodada**: com o item 8 autorizado e implementado, e a documentação
+final sincronizada, **não sobra nenhum item da lista original de 10+10 pendências (Fase 2.2
+correção + coordenação) genuinamente em aberto** — todos estão `CONCLUÍDO` ou eram falsos
+positivos já resolvidos antes desta branch existir (itens 4/5). O único item com status
+`PARCIAL` (Coord.#7) é parcial por desenho, não por trabalho faltando: a ferramenta de revisão
+sistemática existe e roda, e um achado real que ela confirmou já foi corrigido com autorização —
+os achados remanescentes são material para uma futura rodada de triagem, não uma tarefa
+inacabada desta.
+
+## Tabela original (histórico da rodada intermediária, preservada sem edição)
 
 Dado o tamanho real dos dois pedidos combinados (10 itens da tarefa original + 10 itens da
 correção mais recente do Eduardo — que inclui construir do zero um harness Playwright de
@@ -181,23 +229,17 @@ já registrada neste repositório ("uma sessão anterior já foi sinalizada como
 reportar 'não verificado' em vez de superestimar"). Prefiro reportar o escopo real não coberto a
 fabricar evidência.
 
-## Recomendação
+## Recomendação (estado final)
 
-Esta é uma tarefa de várias sessões. Sugiro dividir o trabalho restante em pelo menos três
-sessões adicionais:
-
-1. **Sessão de harness visual**: recriar/adaptar `capture_evidence.mjs` para esta branch,
-   confirmar overflow do item 2, corrigir CSS, rodar `check_manifest.mjs` até zero violações.
-2. **Sessão de fixtures + admin autenticado**: fixtures de jogos (5), sessionStorage sintético
-   para admin (6), Copa arquivada via harness local (4).
-3. **Sessão de comparação estrutural**: `audit_visual_consistency.mjs` (7/coord.#2), evidência
-   lado a lado (9/coord.#6), testes Playwright de ARIA (coord.#3), atualização final de toda a
-   documentação (coord.#9), e só então empacotamento (ZIP + git bundle) para revisão.
+A recomendação original (três sessões adicionais) foi executada nesta mesma branch, em rodadas
+subsequentes — ver a tabela "Pendências — ESTADO FINAL" acima. Não há mais sessões adicionais
+recomendadas para fechar o escopo original desta tarefa. Trabalho futuro genuinamente aberto
+(fora deste escopo): triagem dos 21 `DIVERGENT` do Coord.#7, e as três pendências de longa data
+listadas em "Itens genuinamente fora do escopo desta lista" acima — nenhuma delas bloqueia o
+fecho desta tarefa.
 
 ## Empacotamento (ZIP / git bundle)
 
-**Não gerado nesta rodada.** A instrução original da tarefa é explícita: "Do NOT generate a
-ZIP/bundle unless you finish everything and are explicitly told to package it." Como a tarefa
-está longe de concluída (ver tabela de pendências acima), gerar um pacote "final" agora
-misrepresentaria o estado do trabalho. Recomendo gerar o pacote só ao final de uma sessão que
-efetivamente feche os itens pendentes acima.
+**Ainda não gerado.** Mesmo com a lista de pendências desta tarefa concluída, o pacote final
+(ZIP/git bundle) só deve ser gerado mediante pedido explícito do Eduardo/da sessão coordenadora —
+não é um passo automático desta rodada.
