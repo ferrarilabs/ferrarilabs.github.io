@@ -224,46 +224,34 @@
     var subject = "🎟️ Resultado do Sorteio Powerball — " + draw.drawing.drawDateLabel;
     var html = buildResultEmailHtml(draw, gt, official, computed);
 
-    console.log("sendResultEmail: Starting email dispatch for draw " + draw.id);
-    console.log("sendResultEmail: Draw has " + draw.participants.length + " participants");
-    console.log("sendResultEmail: Subject: " + subject);
+    console.log("sendResultEmail: Starting dispatch to " + draw.participants.length + " participants");
+    console.log("sendResultEmail: Draw ID: " + draw.id + " | Subject: " + subject);
 
-    // DURING TESTING: Send ONLY to adminEmail (not to all participants)
-    // To enable full dispatch: uncomment the .map() loop below and remove this single-send
-    var adminEmailPromise = emailjs.send(
-      POWERBALL_CONFIG.emailjs.serviceId,
-      POWERBALL_CONFIG.emailjs.participantTemplateId, // Use participant template for main result
-      {
-        to_email: POWERBALL_CONFIG.adminEmail,
-        entry_name: subject,
-        receipt_code: subject,
-        html_message: html
-      },
-      { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
-    ).then(function (response) {
-      console.log("✓ Result email sent to " + POWERBALL_CONFIG.adminEmail, response);
-    }).catch(function (err) {
-      console.error("✗ Result email failed:", err);
-      throw err;
+    var emailPromises = draw.participants.map(function (p, idx) {
+      var email = (p.email || "").trim();
+      if (!email.includes("@")) {
+        console.warn("✗ Skipping " + p.name + " — no valid email");
+        return Promise.resolve();
+      }
+
+      return emailjs.send(
+        POWERBALL_CONFIG.emailjs.serviceId,
+        POWERBALL_CONFIG.emailjs.participantTemplateId,
+        { to_email: email, entry_name: subject, receipt_code: subject, html_message: html },
+        { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
+      ).then(function () {
+        console.log("✓ " + (idx + 1) + "/" + draw.participants.length + " → " + p.name + " (" + email + ")");
+      }).catch(function (err) {
+        console.error("✗ Failed: " + p.name + " (" + email + ")", err.message);
+        return null;
+      });
     });
 
-    // PRODUCTION: Uncomment below to send to all participants
-    // var emailPromises = draw.participants.map(function (p, idx) {
-    //   // Would need participant.email field in data.js
-    //   var participantEmail = p.email || POWERBALL_CONFIG.adminEmail;
-    //   return emailjs.send(
-    //     POWERBALL_CONFIG.emailjs.serviceId,
-    //     POWERBALL_CONFIG.emailjs.participantTemplateId,
-    //     { to_email: participantEmail, entry_name: subject, receipt_code: subject, html_message: html },
-    //     { publicKey: POWERBALL_CONFIG.emailjs.publicKey }
-    //   ).then(function () {
-    //     console.log("✓ Email " + (idx+1) + "/" + draw.participants.length + " sent to " + participantEmail);
-    //   });
-    // });
-
-    return adminEmailPromise.catch(function (err) {
-      console.error("Email dispatch error:", err);
-      // Don't throw — UI should still show result even if email fails
+    return Promise.all(emailPromises).then(function (results) {
+      var sent = results.filter(Boolean).length;
+      console.log("✓ Email dispatch complete: " + sent + "/" + draw.participants.length);
+    }).catch(function (err) {
+      console.error("Email error (non-critical):", err);
     });
   }
 
@@ -326,10 +314,10 @@
       saveLocalOverride(draw.id, override);
       if (DRAWS[currentIdx].id === draw.id) renderDraw(currentIdx);
 
-      // Send result email automatically (fire-and-forget; don't block UI if email fails)
-      console.log("Sending result email for draw " + draw.id);
+      // Dispatch result email automatically (non-critical, fire-and-forget)
+      console.log("Dispatching result emails automatically…");
       sendResultEmail(draw, gt, official, computed).catch(function (err) {
-        console.warn("Result email send failed (non-critical):", err);
+        console.warn("Email dispatch failed (non-critical):", err);
       });
     }).catch(function (err) {
       renderResultPending("error", "Não foi possível confirmar o resultado ainda (" + err.message + "). Ele é publicado pela loteria após o sorteio — tente novamente em instantes.");
