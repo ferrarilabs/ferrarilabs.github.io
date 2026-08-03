@@ -116,3 +116,43 @@ componentes corrigidos, divergências restantes, risco, próxima ação. Nunca m
    ficou exatamente como estava antes (nenhum CSS/HTML compartilhado por engano entre apps, já
    que os três não importam código um do outro).
 <!-- AUTO:UI_REGRESSION_PROTOCOL:END -->
+
+## Ferramentas de regressão visual disponíveis (adicionado 2026-08, branch `fase2.2-correcao-final`)
+
+Conteúdo manual — fora do bloco `AUTO` acima por convenção deste arquivo. A seção 7 ("Como
+comparar") e a seção 9 ("Como atualizar a Consistency Matrix") agora têm ferramentas reais que as
+executam, em vez de depender só de leitura de código/inspeção manual:
+
+- **`bolao/cdb2026/scripts/visual/capture_evidence.mjs`** — harness Playwright cross-app:
+  screenshots reais nos viewports da seção 4, para os três apps, com fixture sintética
+  (localStorage) e detecção de overflow horizontal/erros de console. Saída:
+  `docs/bolao/evidence/visual/{copa2026,br2026,cdb2026}/*.png` + `manifest.json`.
+- **`bolao/cdb2026/scripts/visual/capture_admin_auth_evidence.mjs`** — mesma ideia, mas para as
+  telas de admin AUTENTICADO (sessionStorage sintético reproduzindo as chaves exatas que cada
+  `isAdminActive()` verifica — nunca a senha real). Copa fica `notApplicable` (arquivada,
+  `CONFIG.archived` esconde o botão de nav do Admin).
+- **`bolao/scripts/audit_visual_consistency.mjs`** — formaliza a seção 9 ("Como atualizar a
+  Consistency Matrix"): lê `getComputedStyle()` de ~26 componentes × 13 propriedades nos três
+  apps e classifica cada comparação automaticamente como `EQUAL`/`EQUIVALENT`/`JUSTIFIED`
+  (motivo citado, contra uma lista de divergências já documentadas)/`DIVERGENT` (sem
+  justificativa — precisa de revisão humana)/`N/A`. Saída:
+  `docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. Não substitui o
+  passo 2 da seção 7 (ler CSS/HTML lado a lado) — é um complemento automatizado, não uma
+  autorização para pular a leitura manual quando o resultado for `DIVERGENT`.
+- **`bolao/scripts/make_visual_comparison_montages.mjs`** — compõe screenshots já capturados em
+  montagens lado a lado (Copa|BR2026|CDB2026, mesma tela/viewport), reaproveitando
+  `docs/bolao/evidence/visual/` sem nova captura. Útil para o passo 3 da seção 7 ("capturar
+  screenshot... e comparar lado a lado") quando a evidência já existe.
+- **`bolao/scripts/test_aria_current_nav.mjs`** — suíte Playwright dedicada ao item "alvo de
+  toque/item ativo destacado" da seção 3 ("Nav"): confirma `aria-current="page"` no botão certo
+  via mouse E teclado, ausência de `aria-selected`, e nenhuma regressão de overflow — nos três
+  apps.
+
+**Exemplo real de uso do fluxo completo** (seções 7+9 aplicadas de ponta a ponta): a correção do
+item 8 (`main` padding + `.form-grid`, ver `docs/bolao/CONSISTENCY_MATRIX.md` nota "branch
+`fase2.2-correcao-final`") seguiu exatamente esta ordem — leitura de CSS lado a lado (achou a
+divergência), `audit_visual_consistency.mjs` ANTES da mudança (confirmou `DIVERGENT`), patch
+mínimo, screenshots reais 320/768/1440px antes/depois (achou um bug extra: 3 colunas espremidas
+a 768px, invisível só lendo o CSS-fonte porque dependia do valor resolvido do `auto-fill`),
+`audit_visual_consistency.mjs` DEPOIS da mudança (confirmou `DIVERGENT`→`EQUAL`), `node --check`
++ `audit_scoring.py` nos três apps, e atualização de `CONSISTENCY_MATRIX.md`/`CHANGELOG.md`.
