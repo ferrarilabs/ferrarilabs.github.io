@@ -240,6 +240,134 @@ fecho desta tarefa.
 
 ## Empacotamento (ZIP / git bundle)
 
-**Ainda não gerado.** Mesmo com a lista de pendências desta tarefa concluída, o pacote final
-(ZIP/git bundle) só deve ser gerado mediante pedido explícito do Eduardo/da sessão coordenadora —
-não é um passo automático desta rodada.
+**Ainda não gerado** nesta seção do documento (histórico, ver seção abaixo para o estado real
+atual). Mesmo com a lista de pendências desta tarefa concluída, o pacote final (ZIP/git bundle) só
+deve ser gerado mediante pedido explícito do Eduardo/da sessão coordenadora — não é um passo
+automático desta rodada.
+
+## Rodada "PR120-final review" (2026-08-03, itens 1-11 do pedido mais recente) — ESTADO FINAL
+
+Esta seção documenta a rodada que fechou os itens ainda abertos de uma revisão anterior do PR120
+("PR120-final review"): item 6 (admin por componente), item 7 (zerar DIVERGENT), item 9
+(verificar registro de PII fora do escopo), item 10 (regressão completa) e item 11 (pacote
+reproduzível). Itens 1-5/8 já estavam concluídos por rodadas anteriores desta mesma branch (ver
+tabela "Pendências — ESTADO FINAL" acima) e não foram retrabalhados aqui, exceto uma correção
+retroativa de versionamento (ver abaixo).
+
+**Estado do git ao início desta rodada**: branch `fase2.2-correcao-final` no commit `7b0aa3e`
+(item 3/4/7 parcial, 8 DIVERGENT). Durante esta rodada, **atividade concorrente de outra
+sessão/usuário foi detectada** no mesmo diretório de trabalho — `git branch --show-current`
+alternou inesperadamente para `main` mais de uma vez, e novos commits "Powerball 08/03: ..."
+apareceram na branch sem esta sessão os ter criado (confirmado: nenhum arquivo de
+`bolao/loterias/powerball/` foi tocado pelos commits desta sessão). Nenhuma ação corretiva foi
+tomada sobre essa atividade concorrente (não é escopo desta tarefa, e as regras da tarefa proíbem
+tocar `main`) — apenas documentada. `PR #120` mudou de `MERGEABLE` (relatado no início desta
+rodada) para `CONFLICTING`/`DIRTY` (verificado com `gh pr view 120` ao final desta rodada),
+provavelmente por causa dessa mesma atividade concorrente em `origin/main` — não corrigido, fora
+do escopo (exigiria rebase/merge, proibidos pelas regras desta tarefa).
+
+### Item 7 — zerar DIVERGENT (CONCLUÍDO, commit `f9961be`)
+
+`audit_visual_consistency.mjs` tinha 8 DIVERGENT ao início: form-grid height/gridTemplateColumns,
+button-small/danger height, game-card gap/height, status-badge gap/minHeight. Cada um foi
+investigado com uma sonda Playwright dedicada (script descartável em scratchpad, não commitado —
+lia `getBoundingClientRect`/`getComputedStyle`/cadeia de elementos-pai diretamente) antes de
+decidir corrigir ou documentar:
+
+- **1 bug real de seletor corrigido**: CDB2026 tem DOIS `.form-grid` no DOM — o formulário
+  escondido "editar entrada" (`#findEntryCard`, `display:none`) vem ANTES do formulário real "Nova
+  entrada" na ordem do DOM. O seletor genérico `.form-grid` pegava o escondido — um elemento
+  `display:none` nunca tem caixa de layout, então `gridTemplateColumns` não resolve para pixels
+  reais (retornava a string não resolvida) e `height` retornava `auto` bogus. Corrigido com um
+  marcador `data-visual-audit="form-grid"` no formulário real, nos três apps (aditivo, mesma
+  técnica do item 3) — `gridTemplateColumns` agora é `527px 527px`, EQUAL nos três apps.
+- **7 confirmados content/structure-driven, documentados em `ALLOWLIST.json`** (não corrigidos,
+  porque a CSS já é idêntica e a diferença vem de conteúdo/estrutura, não de token): form-grid
+  height (Copa tem 1 campo a mais, "Valor"), button-small/danger height (mesma causa-raiz já
+  aprovada do `admin-toolbar` — `align-items:stretch` padrão estica botões pra bater com o irmão
+  mais alto na mesma linha, e Copa tem 13 botões/2 linhas vs BR2026/CDB2026's 5 botões/1 linha),
+  game-card gap (BR2026 tem seu próprio layout flex interno, Copa/CDB2026 não são flex), game-card
+  height (estrutura de filhos diferente por app), status-badge gap/minHeight (propriedade inerte —
+  confirmado que os três apps renderizam um único nó de texto, sem filhos pra espaçar — e artefato
+  de `getComputedStyle` por contexto de flex-item, sem efeito visual real).
+
+Resultado: `node bolao/scripts/audit_visual_consistency.mjs` → **365 EQUAL, 13 JUSTIFIED,
+0 DIVERGENT, exit 0** (era 8 DIVERGENT / exit 1).
+
+### Item 6 — admin por componente (CONCLUÍDO, commit `a202d11`)
+
+Adicionados os componentes que faltavam do pedido original: `button-secondary` (botão "Sair",
+tier de tamanho diferente de `button-small`, EQUAL nos três apps), `toast` (réplica fiel do DOM
+que `showToast()` produz — a função vive dentro da IIFE de cada app.js e não é alcançável como
+`window.showToast` a partir do harness, então a construção do DOM foi replicada diretamente,
+confirmada byte-idêntica nos três apps — EQUAL em todas as propriedades), `modal` (N/A explícito —
+confirmado por leitura de código e grep de CSS que nenhum modal customizado existe em nenhum dos
+três apps; toda confirmação usa `window.confirm()` nativo). "Input"/"select" em contexto admin e
+"estado vazio"/"estado preenchido" foram avaliados e deliberadamente **não** duplicados como
+componentes separados — motivo registrado em `bolao/cdb2026/CHANGELOG.md` (regra CSS global sem
+override por seção para input/select; mensagem de lista vazia é um `<p>` genérico sem classe
+própria em nenhum dos três apps). Resultado: 30 componentes (era 27), ainda 0 DIVERGENT.
+
+### Item 9 — PII fora do escopo (VERIFICADO, não recriado)
+
+Confirmado por leitura direta (git show da branch `security-review-readonly`) que os dois achados
+de PII fora do escopo desta branch já estão **adequadamente registrados** em
+`docs/bolao/security/SECURITY_RISK_REGISTER.md` naquela branch, como parte do **PR #121**
+("[Security] Read-only assessment", confirmado **OPEN** no GitHub via `gh pr list`):
+
+- **SR-14** (severidade P2): `bolao/loterias/powerball/js/data.js` — nome completo + ID de
+  transação real de participantes, hardcoded em JS estático público.
+- **SR-15** (severidade P1, maior certeza de exposição real da auditoria): 
+  `bolao/copa2026/scripts/send_bracket_correction_email.py` — ~19-20 e-mails pessoais reais
+  hardcoded no dicionário `ROUTING`.
+
+Como já está formalmente registrado (com severidade, descrição do vetor e recomendação) num PR
+separado e aberto, **não foi duplicado nesta branch** — apenas esta verificação está registrada
+aqui. Nenhum valor completo (nome/e-mail/ID) foi reproduzido neste documento nem no pacote de
+revisão (seção abaixo); apenas contagens e números de linha.
+
+### Item 10 — regressão completa (CONCLUÍDO)
+
+Os 13 comandos da lista de regressão foram executados nesta rodada, todos passando (ver
+`test-logs/` no pacote final, seção seguinte, para a saída bruta de cada um): `node --check`
+(limpo), os três `audit_scoring.py` (todos ✓ ALL CHECKS PASSED), `audit_state_merge.mjs`,
+`audit_golden_master.mjs`, `check_cachebust.test.mjs` (8/8), `check_cachebust.mjs`,
+`test_aria_current_nav.mjs`, `check_sticky_overlap.mjs` (0 overlap, 7 viewports),
+`capture_evidence.mjs` (112 entradas, 0 failed), `check_manifest.mjs` (0 violações),
+`audit_visual_consistency.mjs` (0 DIVERGENT, exit 0). Critérios do item 10 todos atendidos: cache-
+bust verde, failed captures = 0, overflow = 0, sticky overlap = 0, console errors = 0, unapproved
+divergent styles = 0, score/ranking/entries/results inalterados (scoring/bracket/merge não
+tocados nesta rodada).
+
+### Item 11 — pacote reproduzível (CONCLUÍDO)
+
+Gerado em
+`/private/tmp/claude-501/.../scratchpad/review-packages/pr120-final/`: `pr120-final-review.zip`
+(git archive do HEAD `481ad78`, sem `.git`), `pr120-final-review.bundle` (bundle fino
+`origin/main..HEAD`, requer o commit `1459806e38e8d13c77eb11eaf7a0cc78d72c2d86` — confirmado
+ainda ancestral do `origin/main` atual), `pr120-final-review-manifest.txt` (identificação,
+itens 1-11, os 13 testes, as 13 JUSTIFIED, limitações/observações incluindo a atividade
+concorrente detectada, verificação do item 9, comandos exatos de reconstrução),
+`SHA256SUMS-PR120-FINAL.txt` (20 arquivos, todos verificados com `shasum -a 256 -c`, todos OK),
+`diffstat.txt`/`changed-files.txt` (162 arquivos: 67 A, 94 M, 1 D — inclui os dois commits
+Powerball da atividade concorrente, já parte do histórico real da branch), `test-logs/` (13
+arquivos), `pii_secrets_grep.txt` (valores mascarados, não reproduzidos). Verificado nesta sessão:
+`unzip -t` (sem erros), `git bundle verify` (ok), `shasum -a 256 -c` (20/20 OK).
+
+### Commits desta rodada
+
+- `f9961be` — fix(bolao): audit_visual_consistency.mjs reaches exit 0 (PR120 item 7 done)
+- `a202d11` — fix(bolao): capture admin components in isolation, not whole-page height (PR120 item 6)
+- `481ad78` — docs(bolao): regenerate visual evidence after item 6/7 fixes (PR120 item 10)
+
+Todos commitados e enviados com `git push origin fase2.2-correcao-final` (push simples, sem
+force), conforme regra da tarefa. Nenhum merge, nenhum push a `main`, nenhum deploy.
+
+### Pendências genuínas desta rodada
+
+Nenhuma dos itens 6/7/9/10/11 explicitamente pedidos ficou pendente. Fora do escopo desta rodada
+(mencionado por transparência, não uma tarefa inacabada): `PR #120` está `CONFLICTING`/`DIRTY` no
+GitHub agora (era `MERGEABLE`), provavelmente por causa da atividade concorrente em `origin/main`
+detectada durante esta sessão — resolver isso exigiria um rebase/merge contra `main`, proibido
+pelas regras desta tarefa; deixado para uma sessão futura com autorização explícita para tocar
+`main`/resolver conflitos.
