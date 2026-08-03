@@ -175,8 +175,13 @@ const SECTION_FOR_COMPONENT = {
   "ranking-row": "ranking",
   "game-card": "games", "status-badge": "games",
   "paid-badge": "admin", "admin-toolbar": "admin", "admin-card-row": "admin",
-  "button-small": "admin", "button-danger": "admin",
+  "button-small": "admin", "button-danger": "admin", "button-secondary": "admin",
   "whatsapp-btn": null,
+  // PR120-final review item 6: toast is a fixed-position overlay (position:fixed, z-index:10000)
+  // triggered explicitly below (see TOAST_TRIGGER_TEXT / extractStylesForApp) — its computed
+  // style doesn't depend on which `.page` is active, so `null` (read in the __always bucket) is
+  // correct, same as topbar/main.
+  toast: null,
 };
 
 // ── Components — id, human label, per-app selector (null = doesn't exist in that app), note ──
@@ -240,6 +245,11 @@ const COMPONENTS = [
   // data-visual-audit marker makes that explicit/stable rather than implicit, and its text is
   // normalized below same as button-primary/button-small.
   { id: "button-danger", label: "Botão destrutivo (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-danger"]', br2026: '[data-visual-audit="button-danger"]', cdb2026: '[data-visual-audit="button-danger"]' } },
+  // PR120-final review item 6: "botão secundário" named explicitly, distinct from button-small
+  // (which is `.secondary.small-btn`, a different size tier). `#adminLogoutBtn` ("Sair") is a
+  // plain full-size `.secondary` button (no `.small-btn`), same id/markup/position (first button
+  // in .admin-toolbar) in all three apps — no new marker needed, the id is already unique/stable.
+  { id: "button-secondary", label: "Botão secundário (Sair)", selectors: { copa2026: "#adminLogoutBtn", br2026: "#adminLogoutBtn", cdb2026: "#adminLogoutBtn" } },
   { id: "ranking-row", label: "Linha de ranking (.rank-row)", selectors: { copa2026: ".rank-row", br2026: ".rank-row", cdb2026: ".rank-row" } },
   { id: "game-card", label: "Card de jogo", selectors: { copa2026: ".game-card", br2026: ".game-card", cdb2026: ".confronto-card" }, note: "CDB2026 uses .confronto-card (ida+volta layout) instead of .game-card by design — CONSISTENCY_MATRIX.md item 72, INTENTIONALLY_DIFFERENT (tournament format, not a shared component)." },
   // PR120-final review item 3: was the ambiguous first `.status-chip`/`.game-status` in DOM
@@ -256,7 +266,27 @@ const COMPONENTS = [
   { id: "admin-card-row", label: "Card/linha de entrada no admin", selectors: { copa2026: ".admin-entry", br2026: ".admin-row", cdb2026: ".admin-row" }, note: "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight." },
   { id: "rules-table-cell", label: "Célula de tabela de regras (.rules-table td)", selectors: { copa2026: ".rules-table td", br2026: ".rules-table td", cdb2026: ".rules-table td" } },
   { id: "whatsapp-button", label: "Botão WhatsApp (.whatsapp-btn)", selectors: { copa2026: ".whatsapp-btn", br2026: ".whatsapp-btn", cdb2026: ".whatsapp-btn" } },
+  // PR120-final review item 6: "toast" named explicitly among the admin-adjacent components to
+  // capture in isolation. Triggered via each app's own `showToast()` (see TOAST_TRIGGER_TEXT
+  // below) — a real, existing component (`.bolao-toast.info`), not a new one built for this audit.
+  { id: "toast", label: "Toast (notificação)", selectors: { copa2026: ".bolao-toast.info", br2026: ".bolao-toast.info", cdb2026: ".bolao-toast.info" } },
+  // PR120-final review item 6: "modal" named explicitly among the components to capture. Verified
+  // by reading all three apps' app.js — there is NO custom modal/dialog component in any of the
+  // three (confirmed: `grep -c "\.modal\b"` across all three CSS files is 0). Every confirmation
+  // flow (draft restore, extreme-score warning, bulk result email, overwrite picks) uses the
+  // browser's native `window.confirm()`, which is OS/browser chrome, not a page-rendered element
+  // — there is nothing for `getComputedStyle()` to read, and it would be the same native dialog
+  // in all three apps regardless of which app triggered it (nothing to compare). Listed with all
+  // three selectors `null` so it appears as an explicit N/A row in the report rather than being
+  // silently absent — matching item 6's instruction that functional gaps be NOT_APPLICABLE, not
+  // silently skipped.
+  { id: "modal", label: "Modal / diálogo", selectors: { copa2026: null, br2026: null, cdb2026: null }, note: "NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle()." },
 ];
+
+// PR120-final review item 6: text used to trigger a real toast in each app's own `showToast()` —
+// a long duration (60s) keeps it in the DOM well past every other section-visit this script does,
+// so timing never matters for reading its computed style in the `__always` bucket.
+const TOAST_TRIGGER_TEXT = "Teste de notificação (harness)";
 
 // ── Allowlist (item 7) — versioned, external, reviewable. See ALLOWLIST.json's own $schema note. ─
 function loadAllowlist() {
@@ -354,6 +384,28 @@ async function extractStylesForApp(browser, appId, app) {
       if (el) el.textContent = text;
     }
   }, SYNTHETIC_BUTTON_TEXT);
+
+  // PR120-final review item 6: `showToast()` is declared inside each app's own top-level IIFE
+  // (app.js is "a single IIFE" per CLAUDE.md), so it is NOT reachable as `window.showToast` from
+  // here — confirmed this silently no-op'd on a first pass (toast came back N/A in all three
+  // apps). Rather than reach into the IIFE, this replicates `showToast()`'s own DOM construction
+  // verbatim (confirmed byte-identical in all three apps' app.js: `.bolao-toasts` container +
+  // `.bolao-toast <type>` child, plain textContent) — an honest, exact copy of the real markup
+  // this component produces, appropriate for a pure CSS-token comparison (this script never
+  // exercises app logic, e.g. button-primary/-small/-danger text is already overwritten directly
+  // above, the same category of harness-only DOM setup).
+  await page.evaluate((text) => {
+    let container = document.querySelector(".bolao-toasts");
+    if (!container) {
+      container = document.createElement("div");
+      container.className = "bolao-toasts";
+      document.body.appendChild(container);
+    }
+    const el = document.createElement("div");
+    el.className = "bolao-toast info";
+    el.textContent = text;
+    container.appendChild(el);
+  }, TOAST_TRIGGER_TEXT);
 
   // Visit every section this app's components actually need to be active in (see
   // SECTION_FOR_COMPONENT). Before every click, this ephemeral page's OWN copy of the nav button

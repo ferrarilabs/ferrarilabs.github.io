@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)
 
-Gerado em 2026-08-03T18:18:01.283Z · commit `43df3d9` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-03T18:51:31.436Z · commit `f9961be` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).
 
@@ -8,11 +8,11 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 
 | Status | Quantidade |
 |---|---|
-| EQUAL | 365 |
+| EQUAL | 393 |
 | EQUIVALENT | 0 |
 | JUSTIFIED | 13 |
 | DIVERGENT | 0 |
-| N/A | 0 |
+| N/A | 14 |
 
 ## Divergências não aprovadas (DIVERGENT) — bloqueiam exit 0
 
@@ -437,6 +437,27 @@ Seletores: copa2026=`[data-visual-audit="button-danger"]`, br2026=`[data-visual-
 | minHeight | `auto` | `auto` | `auto` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
+### Botão secundário (Sair) (`button-secondary`)
+
+Seletores: copa2026=`#adminLogoutBtn`, br2026=`#adminLogoutBtn`, cdb2026=`#adminLogoutBtn`
+
+| Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
+|---|---|---|---|---|---|
+| fontFamily | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | EQUAL | — |
+| fontSize | `15px` | `15px` | `15px` | EQUAL | — |
+| fontWeight | `900` | `900` | `900` | EQUAL | — |
+| lineHeight | `22.5px` | `22.5px` | `22.5px` | EQUAL | — |
+| letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
+| padding | `11px 18px` | `11px 18px` | `11px 18px` | EQUAL | — |
+| margin | `0px` | `0px` | `0px` | EQUAL | — |
+| gap | `normal` | `normal` | `normal` | EQUAL | — |
+| borderRadius | `12px` | `12px` | `12px` | EQUAL | — |
+| backgroundColor | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | EQUAL | — |
+| color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
+| height | `46.5px` | `46.5px` | `46.5px` | EQUAL | — |
+| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
+| gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
+
 ### Linha de ranking (.rank-row) (`ranking-row`)
 
 Seletores: copa2026=`.rank-row`, br2026=`.rank-row`, cdb2026=`.rank-row`
@@ -610,3 +631,47 @@ Seletores: copa2026=`.whatsapp-btn`, br2026=`.whatsapp-btn`, cdb2026=`.whatsapp-
 | height | `35.5px` | `35.5px` | `35.5px` | EQUAL | — |
 | minHeight | `auto` | `auto` | `auto` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
+
+### Toast (notificação) (`toast`)
+
+Seletores: copa2026=`.bolao-toast.info`, br2026=`.bolao-toast.info`, cdb2026=`.bolao-toast.info`
+
+| Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
+|---|---|---|---|---|---|
+| fontFamily | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | EQUAL | — |
+| fontSize | `13px` | `13px` | `13px` | EQUAL | — |
+| fontWeight | `600` | `600` | `600` | EQUAL | — |
+| lineHeight | `18.2px` | `18.2px` | `18.2px` | EQUAL | — |
+| letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
+| padding | `10px 16px` | `10px 16px` | `10px 16px` | EQUAL | — |
+| margin | `0px` | `0px` | `0px` | EQUAL | — |
+| gap | `normal` | `normal` | `normal` | EQUAL | — |
+| borderRadius | `8px` | `8px` | `8px` | EQUAL | — |
+| backgroundColor | `rgb(13, 31, 51)` | `rgb(13, 31, 51)` | `rgb(13, 31, 51)` | EQUAL | — |
+| color | `rgb(128, 200, 240)` | `rgb(128, 200, 240)` | `rgb(128, 200, 240)` | EQUAL | — |
+| height | `38.1875px` | `38.1875px` | `38.1875px` | EQUAL | — |
+| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
+| gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
+
+### Modal / diálogo (`modal`)
+
+Seletores: copa2026=`N/A`, br2026=`N/A`, cdb2026=`N/A`
+
+> NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle().
+
+| Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
+|---|---|---|---|---|---|
+| fontFamily | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontSize | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontWeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| lineHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| letterSpacing | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| padding | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| margin | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gap | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| borderRadius | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| backgroundColor | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| color | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| height | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| minHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gridTemplateColumns | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
