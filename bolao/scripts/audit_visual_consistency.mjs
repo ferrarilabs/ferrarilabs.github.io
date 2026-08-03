@@ -215,7 +215,18 @@ const COMPONENTS = [
   // switcher pill, earlier in the DOM and styled completely differently) instead, silently
   // comparing the wrong element between apps.
   { id: "select", label: "Select", selectors: { copa2026: "#paymentMethod", br2026: "#paymentMethod", cdb2026: "#paymentMethod" } },
-  { id: "form-grid", label: "Form grid (.form-grid)", selectors: { copa2026: ".form-grid", br2026: ".form-grid", cdb2026: ".form-grid" } },
+  // PR120-final review item 7 investigation: CDB2026 has TWO `.form-grid` elements in its DOM
+  // (the hidden `#findEntryCard` "editar entrada" form AND the real "Nova entrada" form) — the
+  // generic `.form-grid` selector picked up the FIRST one in DOM order, which is inside a
+  // `.hidden` (display:none) ancestor. A `display:none` element never gets a layout box, so
+  // `getComputedStyle` can't resolve `gridTemplateColumns` to real pixel tracks (returns the
+  // unresolved `repeat(2, minmax(0px, 1fr))` string instead) and reports a bogus `height:auto` —
+  // this was a harness selector bug, not a real CSS divergence (confirmed: once pointed at the
+  // real, visible form-grid, CDB2026's gridTemplateColumns is `527px 527px`, byte-identical to
+  // Copa/BR2026). Copa/BR2026 only ever had one `.form-grid` each, so this didn't affect them —
+  // the marker is added to all three for a uniform, future-proof selector strategy, matching the
+  // same "ambiguous first-match" bug class item 3 already fixed for `.card`/`h3`/`.small-btn`.
+  { id: "form-grid", label: "Form grid (.form-grid)", selectors: { copa2026: '[data-visual-audit="form-grid"]', br2026: '[data-visual-audit="form-grid"]', cdb2026: '[data-visual-audit="form-grid"]' } },
   // PR120-final review item 3: "botão primário com mesmo texto sintético" — data-visual-audit
   // gives a uniform selector across the three apps' differing real ids (#saveEntry vs
   // #saveEntryBtn); normalizeSyntheticButtonText() (below) overwrites its text at capture time.

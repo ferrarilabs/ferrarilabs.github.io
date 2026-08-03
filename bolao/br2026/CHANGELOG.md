@@ -1,5 +1,22 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.87 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
+
+Full rationale/findings documented once in `bolao/cdb2026/CHANGELOG.md` v3.85 (same change,
+touches all three apps equally). Summary: fixed a real selector-ambiguity bug (CDB2026 has two
+`.form-grid` elements; the generic selector picked the wrong, hidden one) via a new
+`data-visual-audit="form-grid"` marker on the real entry-form grid in all three apps (purely
+additive attribute, no CSS/behavior change) — same technique item 3 already used for
+`.card`/`h3`/buttons. The remaining 7 DIVERGENT findings (form-grid height, button-small/danger
+height, game-card gap/height, status-badge gap/minHeight) were investigated with a Playwright
+probe, confirmed content/structure-driven rather than token bugs, and documented in
+`docs/bolao/evidence/visual-comparison/ALLOWLIST.json` with verifiable justifications.
+`audit_visual_consistency.mjs` now exits 0 (365 EQUAL, 13 JUSTIFIED, 0 DIVERGENT). No
+scoring/classification logic touched. Also retroactively covers the prior (unversioned)
+commit's item 3/4 work — `data-visual-audit` markers and `.form-grid` margin/`.rules-table`
+font-size/`.game-card` padding+border-radius+margin-bottom alignment to Copa — which should have
+bumped `siteVersion` and didn't; noted here rather than rewriting that commit's history.
+
 ## v1.86 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
 
 Same platform-shared fix documented in full in `bolao/cdb2026/CHANGELOG.md` v3.84 (new
