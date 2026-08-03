@@ -1,0 +1,3369 @@
+{
+  "generatedAtUtc": "2026-08-03T00:13:59.899Z",
+  "commit": "bd8d06f",
+  "referenceApp": "copa2026",
+  "apps": [
+    "copa2026",
+    "br2026",
+    "cdb2026"
+  ],
+  "components": [
+    {
+      "id": "topbar",
+      "label": "Topbar",
+      "selectors": {
+        "copa2026": ".topbar",
+        "br2026": ".topbar",
+        "cdb2026": ".topbar"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 18px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "108.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 18px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "108.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 18px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "118.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "brand",
+      "label": "Brand / logo",
+      "selectors": {
+        "copa2026": ".brand",
+        "br2026": ".brand",
+        "cdb2026": ".brand"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "competition-selector",
+      "label": "Seletor de competição (Alternar bolão)",
+      "selectors": {
+        "copa2026": ".bolao-switcher",
+        "br2026": ".bolao-switcher",
+        "cdb2026": ".bolao-switcher"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "lang-button",
+      "label": "Botão de idioma",
+      "selectors": {
+        "copa2026": ".lang-links button",
+        "br2026": ".lang-links button",
+        "cdb2026": ".lang-links button"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "lang-button-active",
+      "label": "Botão de idioma ativo",
+      "selectors": {
+        "copa2026": ".lang-links button.active",
+        "br2026": ".lang-links button.active",
+        "cdb2026": ".lang-links button.active"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "tabs-nav",
+      "label": "Nav de tabs (.nav)",
+      "selectors": {
+        "copa2026": ".nav",
+        "br2026": ".nav",
+        "cdb2026": ".nav"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "5px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "203.156px 203.172px 203.156px 203.156px 203.156px 203.156px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "5px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "173.422px 173.422px 173.438px 173.422px 173.438px 173.422px 173.438px"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "5px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "JUSTIFIED",
+          "reason": "Fase 2.2-correção item 3 (this branch, bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78): column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real button count by design (that was the bug fixed in item 3), so unequal track widths across apps is the CORRECT outcome, not a regression."
+        }
+      ]
+    },
+    {
+      "id": "tab-button",
+      "label": "Botão de tab (inativo)",
+      "selectors": {
+        "copa2026": "[data-section=\"ranking\"]",
+        "br2026": "[data-section=\"ranking\"]",
+        "cdb2026": "[data-section=\"ranking\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "tab-button-active",
+      "label": "Botão de tab ativo",
+      "selectors": {
+        "copa2026": ".nav button.active",
+        "br2026": ".nav button.active",
+        "cdb2026": ".nav button.active"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "label": "main",
+      "selectors": {
+        "copa2026": "main",
+        "br2026": "main",
+        "cdb2026": "main"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "20px 18px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "7897.75px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "16px 14px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "1522px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "16px 14px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "6088.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "card",
+      "label": "Card (.card)",
+      "selectors": {
+        "copa2026": ".card",
+        "br2026": ".card",
+        "cdb2026": ".card"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "16px",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "1fr 300px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "120px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "120px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "h2",
+      "label": "h2",
+      "selectors": {
+        "copa2026": "h2",
+        "br2026": "h2",
+        "cdb2026": "h2"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "h3",
+      "label": "h3",
+      "selectors": {
+        "copa2026": "h3",
+        "br2026": "h3",
+        "cdb2026": "h3"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16.8px",
+          "fontWeight": "700",
+          "lineHeight": "25.2px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "2.52px 0px 6.72px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16.8px",
+          "fontWeight": "700",
+          "lineHeight": "25.2px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "2.52px 0px 6.72px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "700",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 6px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "input-text",
+      "label": "Input de texto",
+      "selectors": {
+        "copa2026": "#entryName",
+        "br2026": "input[type=text]",
+        "cdb2026": "input[type=text]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "label": "Select",
+      "selectors": {
+        "copa2026": "#paymentMethod",
+        "br2026": "#paymentMethod",
+        "cdb2026": "#paymentMethod"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "form-grid",
+      "label": "Form grid (.form-grid)",
+      "selectors": {
+        "copa2026": ".form-grid",
+        "br2026": ".form-grid",
+        "cdb2026": ".form-grid"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "repeat(2, minmax(0px, 1fr))"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 16px",
+          "gap": "14px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "repeat(auto-fill, minmax(220px, 1fr))"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 16px",
+          "gap": "14px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "repeat(auto-fill, minmax(220px, 1fr))"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-primary",
+      "label": "Botão primário",
+      "selectors": {
+        "copa2026": "#saveEntry",
+        "br2026": "#saveEntryBtn",
+        "cdb2026": "#saveEntryBtn"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "14px 28px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "14px 28px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "14px 28px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-small",
+      "label": "Botão small (.small-btn)",
+      "selectors": {
+        "copa2026": ".small-btn",
+        "br2026": ".small-btn",
+        "cdb2026": ".small-btn"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-danger",
+      "label": "Botão danger (.danger)",
+      "selectors": {
+        "copa2026": ".danger",
+        "br2026": ".danger",
+        "cdb2026": ".danger"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(61, 21, 32)",
+          "color": "rgb(255, 219, 225)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(61, 21, 32)",
+          "color": "rgb(255, 219, 225)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(61, 21, 32)",
+          "color": "rgb(255, 219, 225)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "ranking-row",
+      "label": "Linha de ranking (.rank-row)",
+      "selectors": {
+        "copa2026": ".rank-row",
+        "br2026": ".rank-row",
+        "cdb2026": ".rank-row"
+      },
+      "note": null,
+      "values": {
+        "copa2026": null,
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "12px",
+          "margin": "0px 0px 8px",
+          "gap": "10px",
+          "borderRadius": "14px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "48px 1fr auto auto"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "12px",
+          "margin": "0px 0px 8px",
+          "gap": "10px",
+          "borderRadius": "14px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "48px 1fr auto auto"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "game-card",
+      "label": "Card de jogo",
+      "selectors": {
+        "copa2026": ".game-card",
+        "br2026": ".game-card",
+        "cdb2026": ".confronto-card"
+      },
+      "note": "CDB2026 uses .confronto-card (ida+volta layout) instead of .game-card by design — CONSISTENCY_MATRIX.md item 72, INTENTIONALLY_DIFFERENT (tournament format, not a shared component).",
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "14px",
+          "margin": "0px 0px 10px",
+          "gap": "normal",
+          "borderRadius": "16px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": null,
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "status-badge",
+      "label": "Badge de status de jogo",
+      "selectors": {
+        "copa2026": ".status-chip",
+        "br2026": ".game-status",
+        "cdb2026": ".game-status"
+      },
+      "note": "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name.",
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": null,
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "4px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "paid-badge",
+      "label": "Badge de pagamento (.paid-badge)",
+      "selectors": {
+        "copa2026": ".paid-badge",
+        "br2026": ".paid-badge",
+        "cdb2026": ".paid-badge"
+      },
+      "note": null,
+      "values": {
+        "copa2026": null,
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "admin-toolbar",
+      "label": "Admin toolbar (.admin-toolbar)",
+      "selectors": {
+        "copa2026": ".admin-toolbar",
+        "br2026": ".admin-toolbar",
+        "cdb2026": ".admin-toolbar"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 14px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "88.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 14px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 14px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "admin-card-row",
+      "label": "Card/linha de entrada no admin",
+      "selectors": {
+        "copa2026": ".admin-entry",
+        "br2026": ".admin-row",
+        "cdb2026": ".admin-row"
+      },
+      "note": "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight.",
+      "values": {
+        "copa2026": null,
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "lineHeight": "21px",
+          "letterSpacing": "normal",
+          "padding": "8px 0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "89px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "lineHeight": "21px",
+          "letterSpacing": "normal",
+          "padding": "8px 0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "128px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "rules-table-cell",
+      "label": "Célula de tabela de regras (.rules-table td)",
+      "selectors": {
+        "copa2026": ".rules-table td",
+        "br2026": ".rules-table td",
+        "cdb2026": ".rules-table td"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "7px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "400",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "7px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "400",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "7px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "whatsapp-button",
+      "label": "Botão WhatsApp (.whatsapp-btn)",
+      "selectors": {
+        "copa2026": ".whatsapp-btn",
+        "br2026": ".whatsapp-btn",
+        "cdb2026": ".whatsapp-btn"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    }
+  ]
+}
