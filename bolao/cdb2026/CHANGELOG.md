@@ -1,5 +1,72 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08 — PR120-final review item 5: comparable Jogos fixtures
+
+**No app file touched** (`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js`
+unchanged in all three apps) — this entry is only about the shared visual test harness under
+`bolao/cdb2026/scripts/visual/`, so no `siteVersion` bump and no cache-bust re-write are needed
+(the hash the cache-bust tooling computes only covers those five per-app files).
+
+**Problem found by independent PR120 review**: the "Jogos" screenshot in
+`docs/bolao/evidence/visual/` was not a valid cross-app comparison — Copa showed `notApplicable`
+(archived), BR2026 showed a bare "carregando" placeholder (its games come from a live ESPN fetch
+this harness blocks/mocks empty), and only CDB2026 had any real fixture, and even that covered a
+single state (one scheduled leg).
+
+**Fix**: new `bolao/cdb2026/scripts/visual/game_fixtures.mjs`, shared by
+`capture_evidence.mjs` (screenshot evidence) and (next commit) `audit_visual_consistency.mjs`
+(computed-style comparison). Each app gets an equivalent synthetic data set — agendado, ao vivo,
+finalizado, adiado, nome longo, placar, badge, data, horário, estádio; CDB2026 additionally
+ida/volta/agregado (its own TWO_LEG tournament format, preserved, not generalized to the other
+two apps) — using each app's OWN unmodified rendering mechanism, never a new test-only code path:
+
+- **BR2026**: `renderGamesSection()` reads a module-level `_schedule` array populated from a
+  versioned sessionStorage cache (`br2026_schedule_<siteVersion>`) when present, skipping the live
+  ESPN fetch — seeding that cache with an already-parsed event array (same shape
+  `fetchSchedule()` itself produces) gets every state (pre/in/post/postponed) for free, since
+  they're plain fields on each event.
+- **CDB2026**: agendado/finalizado/nome-longo/estádio/ida-volta-agregado come from the same
+  state-seeding this harness already used (richer now: 5 ties instead of 1). "ao vivo" and
+  "adiado" are NOT plain state fields here — CDB2026 resolves them at runtime by matching a live
+  ESPN scoreboard response against tie team names (`fetchEspnCandidates()`/`fetchLiveTies()` in
+  `bolao/cdb2026/js/app.js`). `routeCdb2026Espn()` installs a realistic (schema-accurate,
+  fictional-content) scoreboard mock for exactly two ties, so the app's own unmodified matching
+  logic — not a special test branch — resolves them to live/postponed, the same way a real ESPN
+  response would.
+- **Copa**: no fixture at all (archived, tournament concluded 2026-07-19, real results are already
+  public) — `capture_evidence.mjs`'s `APPS.copa2026.harnessUnhide = { Jogos: "games" }` removes
+  Jogos from the `notApplicable` list and, in the harness's own ephemeral browser context only,
+  clears the `.hidden` class the archived-mode nav button carries before clicking it (same
+  principle `audit_visual_consistency.mjs`'s `archivedAdminNeedsUnhide` already used for Admin —
+  `applyArchiveMode()`/`CONFIG.archived` themselves are never touched, so a real visitor's
+  archived experience is completely unaffected). The real, already-final 2026 World Cup results
+  now render as genuine "cards reais" instead of `notApplicable`. Copa's Jogos view has no distinct
+  "postponed" status at all (verified by reading `renderGames()`) and "ao vivo" can never recur
+  for a concluded tournament — both are honestly N/A for Copa, not a gap in this fixture.
+
+**Two real findings during construction, both fixed in the fixture (not production code)**:
+
+1. A synthetic "finalizado" tie with PAST kickoff dates (representing an "already played" match)
+   dragged CDB2026's whole-phase entry cutoff into the past (`effectivePhaseCutoffMs()` derives
+   the cutoff from the EARLIEST known kickoff across every tie in the active phase, not per-tie),
+   disabling the Palpites nav button as an unintended side effect — fixed by keeping every
+   synthetic kickoff in this fixture in the future (2030), matching the convention the original
+   minimal fixture already used.
+2. Combining an already-wrapping long team name with an ALSO very long venue+city string on the
+   same tie reproduced a Chromium fullPage-screenshot-capture-time rendering artifact:
+   `.leg-teams`' CSS Grid `1fr` column rendered with its text stacked one character per line in the
+   OUTPUT PNG only, at 768×1024 — confirmed NOT a real CSS bug because `getBoundingClientRect()`
+   read immediately after the same screenshot reports a completely normal single/multi-line box.
+   Realistic-length venue/city strings (comparable to the other ties' `"Estádio Teste F, Cidade
+   Teste F"`-style values) avoid the artifact entirely while the team name alone still validates
+   real "nome longo" word-wrapping.
+
+Verification: `capture_evidence.mjs` → 112 entries, 0 failed (was already 0, unaffected).
+`check_manifest.mjs` → 0 violations (was transiently 1 — the artifact above — while this fixture
+was being built; fixed before this commit). `check_sticky_overlap.mjs` → 0 overlap, 7 viewports.
+0 console errors across all 112 manifest entries. `audit_scoring.py` passes all three apps
+(scoring untouched).
+
 ## v3.85 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
 
 **Bug found by independent PR120 review**: two incompatible sources of truth for the `?v=`
