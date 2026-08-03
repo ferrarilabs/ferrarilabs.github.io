@@ -190,20 +190,20 @@ window.POWERBALL_DRAWS = [
     // novo, o dinheiro é 100% saldo reciclado (sobra do sorteio anterior + prêmio
     // ganho), por isso não há valor individual por pessoa (ver `finance` abaixo).
     participants: [
-      { name: "Eduardo Ferrari", email: "emferrari@gmail.com", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" },
-      { name: "Gustavo Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Tatiana Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Marcelo Moreira", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Leandro Augustineli", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Alan Rech", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Ewerton Gruba Silva", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Simone Hirle da Costa", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Camila Ribeiro", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Marcus Steffenon", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Samuel Huller", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Amanda Quaresma", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Rodrigo Hajj", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Nathalia Galeazzi Nedel", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" }
+      { name: "Eduardo Ferrari", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Gustavo Bossle", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Tatiana Bossle", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Marcelo Moreira", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Leandro Augustineli", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Alan Rech", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Ewerton Gruba Silva", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Simone Hirle da Costa", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Camila Ribeiro", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Marcus Steffenon", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Samuel Huller", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Amanda Quaresma", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Rodrigo Hajj", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Nathalia Galeazzi Nedel", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" }
     ],
 
     // 56 tickets comprados com ID: 29F4CE7C3D9F73C11, 03/08/2026 01:56 PM
