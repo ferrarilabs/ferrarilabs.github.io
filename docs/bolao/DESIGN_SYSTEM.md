@@ -613,6 +613,16 @@ trade-off real, não uma correção óbvia:
    que forçar 4 colunas trocaria. Recomendação: **não** igualar cegamente à Copa aqui — o valor
    diferente parece uma adaptação deliberada e razoável ao maior número de itens, não drift. Sinalizado
    para confirmação do Eduardo antes de qualquer mudança.
+   > **Atualização (2026-08, branch `fase2.2-correcao-final`, item 3):** a contagem real de
+   > botões VISÍVEIS mudou desde esta nota (2026-07-14) — Copa/BR2026/CDB2026 tiveram colunas
+   > desktop mortas removidas (Copa 8→6, BR2026 9→7, CDB2026 6 mantido), então a premissa "BR2026
+   > tem 9/CDB2026 tem 8 contra 6 da Copa" não é mais verdadeira (hoje é 7/6/6). Com a contagem
+   > real corrigida, os três apps convergiram para `repeat(3, minmax(0,1fr))` em mobile —
+   > incluindo a Copa, que teve seu próprio `repeat(4,1fr)` alinhado (ver
+   > `docs/bolao/CONSISTENCY_MATRIX.md`, nota "branch `fase2.2-correcao-final`"). A recomendação
+   > "não igualar cegamente" continua correta como PRINCÍPIO (não copiar às cegas), mas a
+   > conclusão prática mudou porque a premissa (contagem de botões) mudou, não porque o princípio
+   > foi violado.
 
 ### Confirmado OK nesta rodada (sem ação necessária)
 
@@ -682,6 +692,22 @@ escondido.
   o mesmo `.sticky-submit`) ou se BR2026/CDB2026 têm folga demais — precisa de inspeção visual
   real (rolar até o fim de cada formulário nos 3 apps) antes de decidir qual lado corrigir.
   Registrado aqui para não ficar esquecido, não implementado sem essa verificação.
+  > **Atualização (2026-08-16, BR2026 v1.47/CDB2026 v3.35):** a folga de 80px de padding-bottom
+  > foi removida (achado real, Eduardo: "muito espaço vazio no final da página") — ver
+  > `docs/bolao/CONSISTENCY_MATRIX.md`, nota "80px de padding-bottom sobrando". `main` passou a
+  > ser `16px 14px` (sem componente de bottom extra) nos dois apps.
+  > **Atualização (2026-08, branch `fase2.2-correcao-final`, item 8):** o valor NUMÉRICO do
+  > padding (não só a folga extra) foi então alinhado à Copa também, autorizado explicitamente
+  > pelo Eduardo — BR2026/CDB2026 agora usam `20px 18px`, igual à Copa. `.form-grid` recebeu o
+  > mesmo tratamento (era `repeat(auto-fill, minmax(220px,1fr))` gap `14px`, agora
+  > `repeat(2, minmax(0,1fr))` gap `12px`, com colapso pra 1 coluna em
+  > `@media (max-width:900px)` que faltava nesses dois apps). Verificado com screenshots reais
+  > 320/768/1440px antes/depois: nenhum overflow novo, `.sticky-submit` (fluxo normal, não
+  > fixed/sticky) nunca cobre nenhum campo. Achado extra: sem o colapso de breakpoint, o
+  > formulário rendia 3 colunas espremidas a 768px — corrigido junto. Detalhe completo:
+  > `bolao/br2026/CHANGELOG.md` v1.85, `bolao/cdb2026/CHANGELOG.md` v3.83,
+  > `docs/bolao/CONSISTENCY_MATRIX.md` (nota "branch `fase2.2-correcao-final`"). **Esta
+  > pendência está resolvida — não é mais um item em aberto.**
 
 ## Correção: esquema de cor dourado do CDB2026 — buraco real na metodologia da auditoria anterior (2026-07-14, CDB2026 v3.10)
 

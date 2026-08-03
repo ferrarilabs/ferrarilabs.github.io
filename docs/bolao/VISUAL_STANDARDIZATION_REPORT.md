@@ -1,5 +1,36 @@
 # Visual Standardization Report — FASE 2.2 (2026-08-02)
 
+> **ATENÇÃO (atualizado em 2026-08, branch `fase2.2-correcao-final`):** este relatório foi
+> escrito em 2026-08-02 e descreve corretamente o que era verdade NAQUELE momento (nenhuma
+> mudança de código feita naquela sessão). Sessões subsequentes na mesma branch implementaram
+> correções reais que fecham vários dos itens abaixo listados como "Ainda aberto"/"Pendências":
+> - **H-3 (`aria-current`/`aria-selected`, P2)** — **RESOLVIDO.** `aria-current="page"`
+>   implementado nos três apps, validado por `bolao/scripts/test_aria_current_nav.mjs`
+>   (mouse + teclado, os três apps). Não é mais uma pendência.
+> - **Tabs — colunas desktop/mobile** (tabela "Verificações reais", linha `.nav`) —
+>   **CORRIGIDO.** A contagem de colunas descrita (`repeat(8/9/6,1fr)` desktop) e a diferença
+>   mobile (4/8 colunas na Copa vs. 3 em BR2026/CDB2026) foram unificadas — ver
+>   `docs/bolao/CONSISTENCY_MATRIX.md`, nota "branch `fase2.2-correcao-final`".
+> - **`main` padding / `.form-grid`** (linha "`main` max-width/padding", tratada como "decisão
+>   registrada, não pendência") — **item 8 foi autorizado e aplicado** nesta branch: BR2026/
+>   CDB2026 agora usam `20px 18px` (igual à Copa) e o mesmo `.form-grid` de 2 colunas fixas com
+>   colapso em `@media (max-width:900px)`. Achado extra na verificação: sem o colapso, o
+>   formulário rendia 3 colunas espremidas a 768px em BR2026/CDB2026 (a Copa já colapsava pra 1
+>   coluna nessa largura) — corrigido junto.
+> - **Item 5 das Pendências (validação visual real via Playwright)** — o ambiente desta rodada
+>   TEM Node/Playwright disponíveis (via `nvm` + Chromium em cache local), diferente da sessão
+>   que escreveu este relatório (que não tinha `node`/`npx`). O harness
+>   (`bolao/cdb2026/scripts/visual/capture_evidence.mjs`, `bolao/scripts/
+>   audit_visual_consistency.mjs`, `bolao/scripts/make_visual_comparison_montages.mjs`) foi
+>   rodado de verdade nesta branch — screenshots, `getComputedStyle` e montagens lado a lado
+>   existem agora em `docs/bolao/evidence/visual/` e `docs/bolao/evidence/visual-comparison/`.
+>
+> Itens que continuam genuinamente abertos (não tocados nesta branch): H-2 (estrutura de cards
+> de Regras, decisão editorial pendente), H-4 (`.rules-table` sem wrapper de overflow), H-6
+> (recibo/comprovante ausente em BR2026/CDB2026). Detalhe completo:
+> `docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`. O texto abaixo foi mantido como registro
+> histórico do estado em 2026-08-02, não reescrito.
+
 Relatório final da auditoria visual e de UX completa entre os três aplicativos bolão
 (`bolao/copa2026/`, `bolao/br2026/`, `bolao/cdb2026/`), executada conforme a especificação
 completa da tarefa "FASE 2.2 — AUDITORIA VISUAL, PADRONIZAÇÃO DE UX E CONSISTÊNCIA ENTRE OS

@@ -1971,3 +1971,76 @@ ida/volta, chip de adiado — todos preservados, só ganharam companhia do chip 
 Verificado com Playwright + estado real de produção + partida ao vivo simulada (mesmo mock da
 v3.73): confronto-cards, agregados e "quem avança" continuam idênticos ao antes; chip/placar ao
 vivo e auto-scroll confirmados funcionando.
+
+## Nota manual — branch `fase2.2-correcao-final`: harness visual real, padronização de tabs, aria-current, e item 8 (padding/form-grid) autorizado (2026-08, Copa v4.166 / BR2026 v1.85 / CDB2026 v3.83)
+
+Rodada de várias sessões consolidando a correção final da FASE 2.2 (ver
+`docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md` para o relato completo, sessão a sessão, incluindo
+o que ficou pendente entre rodadas). Resumo do que mudou na plataforma nesta branch, na ordem em
+que foi implementado:
+
+1. **Cache-bust tooling** (`bolao/cdb2026/scripts/check_cachebust.mjs`, `sync_version.yml`):
+   corrigido para INSERIR `?v=` quando ausente (os três `index.html` referenciavam os 5 assets
+   críticos sem nenhuma query), não só substituir uma já existente. `index.html` dos três apps
+   não foi tocado à mão (regra do Eduardo: o bot `sync_version.yml` cuida disso). PLATFORM_SHARED.
+2. **`aria-current="page"` na tab ativa** (cherry-pick de `main`, depois validado por uma suíte
+   Playwright nova — `bolao/scripts/test_aria_current_nav.mjs`): confirma, com mouse E teclado
+   nos três apps, que exatamente um botão tem `aria-current="page"` a qualquer momento, que
+   nenhum `aria-selected` é usado em lugar nenhum (navegação simples, não um tab-widget ARIA), e
+   que o atributo sempre acompanha a classe `.active`. Resolve o item H-3/P2 que
+   `VISUAL_STANDARDIZATION_REPORT.md` (2026-08-02) tinha listado como pendência aberta —
+   **agora fechado**. PLATFORM_SHARED (acessibilidade).
+3. **Overflow real em `cdb2026 Jogos@320x568`** corrigido de verdade (`.leg-info` ganhou
+   `white-space:normal`/`min-width:0` no breakpoint `max-width:600px` já existente) — não
+   mascarado com `overflow-x:hidden`. Harness de evidência (`capture_evidence.mjs`) recapturado:
+   0 overflow em 112 entradas (era 1). DATA_ONLY/CDB2026 apenas (bug específico do layout de
+   `.leg-info` desse app).
+4. **Tabs — contagem de colunas do `.nav` corrigida para o nº real de botões visíveis** (era
+   `repeat(8,...)`/`repeat(9,...)`/`repeat(6,...)` com 2 colunas mortas na Copa/BR2026; virou
+   `repeat(6,...)` Copa, `repeat(7,...)` BR2026, `repeat(6,...)` CDB2026 desktop) + padronização
+   mobile pras 3 colunas nos três (era só BR2026/CDB2026; Copa tinha `repeat(4,1fr)`/
+   `repeat(8,1fr)` próprios) + um bug real de "orphan row" corrigido (BR2026 tinha o botão
+   "Admin" sozinho na última linha mobile, 1/3 de largura, achado por screenshot real a 320px).
+   **Isto substitui as linhas "Tabs" e "Navegação mobile" de
+   `docs/bolao/VISUAL_PARITY_MATRIX.md`** (linhas 34/36), que descrevem o estado ANTERIOR a esta
+   correção (Copa 8/BR2026 9/CDB2026 6 colunas desktop; Copa 4/8 colunas mobile vs. 3 nos outros
+   dois) — ver aviso no topo daquele arquivo. PLATFORM_SHARED.
+5. **Captura de admin autenticado** (`bolao/cdb2026/scripts/visual/capture_admin_auth_evidence.mjs`):
+   sessionStorage sintético (nunca senha real) reproduzindo as chaves exatas que cada
+   `isAdminActive()` verifica — cobre BR2026/CDB2026 (Copa arquivada, marcada `notApplicable`,
+   mesmo tratamento que as demais seções arquivadas).
+6. **`bolao/scripts/audit_visual_consistency.mjs`** (novo, cross-app, fora de qualquer pasta de
+   app individual): compara `getComputedStyle()` de 26 componentes × 13 propriedades entre os
+   três apps, classifica EQUAL/EQUIVALENT/JUSTIFIED/DIVERGENT/N/A. Relatório completo:
+   `docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. Encontrou e
+   corrigiu 2 bugs reais de seletor no próprio script durante a construção (`select` pegando o
+   elemento errado, `button-primary` não casando com nenhum app) antes de confiar no resultado.
+7. **Montagens lado a lado Copa\|BR2026\|CDB2026** (`bolao/scripts/make_visual_comparison_montages.mjs`):
+   28 montagens (7 telas × 4 viewports), reaproveitando screenshots já existentes — sem nova
+   captura. Seções ausentes (Copa arquivada, BR2026 Palpites fechado) mostram um placeholder
+   rotulado com o motivo real, nunca um vão em branco.
+8. **Item 8 — `main` padding + `.form-grid` alinhados à Copa, autorizado explicitamente pelo
+   Eduardo** (commit `f0d253d`): `main` padding `16px 14px`→`20px 18px` em BR2026/CDB2026;
+   `.form-grid` `repeat(auto-fill, minmax(220px,1fr))` gap `14px` → `repeat(2, minmax(0,1fr))`
+   gap `12px`, com o mesmo colapso pra 1 coluna em `@media (max-width:900px)` que a Copa já
+   tinha (BR2026/CDB2026 não tinham essa regra — adicionada). **Achado extra durante a
+   verificação**: sem essa regra de colapso, o formulário de entrada renderizava **3 colunas
+   espremidas a 768px** (largura de tablet) sob o `auto-fill` antigo — confirmado por sonda de
+   `getComputedStyle` (`gridTemplateColumns` resolveu para pixels reais, não a string
+   `repeat()`, confirmando que o grid estava de fato renderizado) e captura de tela real. A Copa,
+   na mesma largura, já colapsava pra 1 coluna. Ou seja, esta correção fecha uma divergência real
+   de tablet, não só o alinhamento >900px descrito originalmente. Verificado com screenshots
+   reais 320/768/1440px antes/depois nos três apps: nenhum overflow horizontal novo, nenhuma
+   sobreposição do `.sticky-submit` (que é `display:flex` em fluxo normal, não `position:fixed`/
+   `sticky`, apesar do nome). Reauditoria com `audit_visual_consistency.mjs`: `main:padding`,
+   `form-grid:gap` e `form-grid:gridTemplateColumns` viraram EQUAL nos três apps (342 EQUAL/1
+   JUSTIFIED/21 DIVERGENT, era 339/1/24). `form-grid:margin` continua DIVERGENT (`0px` na Copa
+   vs. `0px 0px 16px` em BR2026/CDB2026) — **fora do escopo autorizado** deste item (só
+   `padding`/`grid-template-columns`/`gap` foram pedidos), registrado aqui como dívida técnica
+   não corrigida, não escondido. PLATFORM_SHARED (visual, `main`/`.form-grid` são compartilhados
+   pelos três apps).
+
+Em todos os itens acima: `node --check` limpo e `audit_scoring.py` 6/6 (Copa) / 5/5 (BR2026) /
+5/5 (CDB2026) rodados e confirmados a cada mudança — nenhum item tocou scoring, bracket, tiebreak
+ou regra de negócio. Ver commits individuais em `git log` desta branch para o hash exato de cada
+item.

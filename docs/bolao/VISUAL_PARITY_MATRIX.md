@@ -1,5 +1,31 @@
 # Visual Parity Matrix — Plataforma Bolão
 
+> **ATENÇÃO (atualizado em 2026-08, branch `fase2.2-correcao-final`):** este documento foi
+> escrito em 2026-08-02, antes de várias correções reais implementadas nesta mesma branch depois
+> dele. Pelo menos estas linhas abaixo **não descrevem mais o código atual**:
+> - **"Página geral / `main` max-width"** (linha 31): a diferença de padding do `main`
+>   (Copa `20px 18px` vs. BR2026/CDB2026 `16px 14px`) foi **alinhada** — os três apps usam
+>   `20px 18px` agora. `.form-grid` também foi alinhado (era `repeat(auto-fill,
+>   minmax(220px,1fr))` gap `14px` em BR2026/CDB2026, agora `repeat(2, minmax(0,1fr))` gap
+>   `12px`, igual à Copa). Ver `docs/bolao/CONSISTENCY_MATRIX.md`, nota "item 8", e
+>   `bolao/br2026/CHANGELOG.md` v1.85 / `bolao/cdb2026/CHANGELOG.md` v3.83.
+> - **"Tabs (nav principal)"** (linha 34): a contagem de colunas descrita (Copa 8, BR2026 9,
+>   CDB2026 6) é a contagem ANTERIOR à correção — hoje é Copa 6, BR2026 7, CDB2026 6 (colunas
+>   mortas removidas, contagem casada com o nº real de botões visíveis).
+> - **"Navegação mobile"** (linha 36): a diferença descrita (Copa `repeat(4,1fr)` vs. BR2026/
+>   CDB2026 `repeat(3,1fr)`) foi **eliminada** — os três apps usam `repeat(3, minmax(0,1fr))`
+>   em mobile agora, incluindo um bug real de "orphan row" corrigido no BR2026.
+> - **"aria-current / aria-selected nas tabs"** (linha 37): implementado nos três apps
+>   (`aria-current="page"` na tab ativa, sem `aria-selected` em lugar nenhum — navegação
+>   simples, não um tab-widget ARIA) e validado por uma suíte Playwright dedicada
+>   (`bolao/scripts/test_aria_current_nav.mjs`). **Não é mais uma pendência P2.**
+>
+> Detalhe completo de cada correção: `docs/bolao/CONSISTENCY_MATRIX.md` (nota manual "branch
+> `fase2.2-correcao-final`") e `docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`. As linhas
+> originais abaixo foram mantidas como registro histórico do estado em 2026-08-02, não
+> reescritas — confirme sempre contra o código atual antes de tratar qualquer linha como lista
+> de trabalho.
+
 Matriz de paridade visual componente-a-componente entre os três aplicativos, produzida na
 FASE 2.2 (auditoria visual/UX, 2026-08-02). Complementa `docs/bolao/CONSISTENCY_MATRIX.md`
 (que cobre paridade **funcional** em granularidade de item de auditoria) — este documento
