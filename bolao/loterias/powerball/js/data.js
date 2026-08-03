@@ -1,11 +1,20 @@
+// ARCHITECTURE: Reusable lottery pool system supporting multiple game types.
+//
 // Cada sorteio do bolão é uma entrada em `draws`. Para registrar um novo sorteio,
 // duplique um objeto abaixo, atualize os dados e preencha `result`/`profit` depois
 // que o sorteio sair — isso dá histórico automático (lucro, resultados anteriores etc.)
 // sem precisar reestruturar nada. `window.POWERBALL_DATA` sempre aponta para o mais
 // recente (o sorteio ativo/exibido na página principal).
-// Configuração visual/textual de cada loteria. Jogamos em ambas dependendo da situação —
-// cada sorteio (`draws[i]`) declara `gameType: "powerball" | "megamillions"` e a página
-// troca cor, logo e o nome da bola especial automaticamente.
+//
+// EXTENDING TO NEW LOTTERIES:
+// 1. Add new gameType to LOTTERY_GAME_TYPES below (icon, colors, API, parse, prizes)
+// 2. Set gameType: "newgame" in new draw objects
+// 3. App automatically: fetches results, calculates prizes, sends emails
+// See ../TEMPLATE_NEW_LOTTERY.md for detailed setup instructions.
+//
+// Configuração visual/textual de cada loteria. Jogamos em múltiplas dependendo da situação —
+// cada sorteio (`draws[i]`) declara `gameType: "powerball" | "megamillions" | "supalotto" | ...`
+// e a página troca cor, logo e o nome da bola especial automaticamente.
 window.LOTTERY_GAME_TYPES = {
   powerball: {
     label: "Powerball",
