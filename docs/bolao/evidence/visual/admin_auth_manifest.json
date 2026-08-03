@@ -5,8 +5,8 @@
     "captured": false,
     "status": "notApplicable",
     "reason": "CONFIG.archived hides the Admin nav button (.hidden class), same product decision as Palpites/Jogos/Regras -- not worked around, matches capture_evidence.mjs's existing treatment of this app.",
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:08.806Z"
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:35.019Z"
   },
   {
     "application": "br2026",
@@ -16,8 +16,8 @@
       "width": 320,
       "height": 568
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:11.076Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:37.205Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -30,11 +30,28 @@
     "requestedSection": "AdminAuthenticated",
     "state": "filled",
     "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:39.167Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-filled_390x844.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
       "width": 768,
       "height": 1024
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:13.043Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:41.119Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -50,8 +67,8 @@
       "width": 1440,
       "height": 900
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:15.068Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:43.088Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -67,8 +84,8 @@
       "width": 320,
       "height": 568
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:16.950Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:45.090Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -81,11 +98,28 @@
     "requestedSection": "AdminAuthenticated",
     "state": "empty",
     "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:47.089Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "br2026_admin-auth-empty_390x844.png"
+  },
+  {
+    "application": "br2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
       "width": 768,
       "height": 1024
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:18.818Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:48.997Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -101,8 +135,8 @@
       "width": 1440,
       "height": 900
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:20.793Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:51.020Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -118,8 +152,8 @@
       "width": 320,
       "height": 568
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:22.773Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:52.970Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -132,11 +166,28 @@
     "requestedSection": "AdminAuthenticated",
     "state": "filled",
     "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:55.019Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-filled_390x844.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "filled",
+    "viewport": {
       "width": 768,
       "height": 1024
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:24.930Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:57.035Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -152,8 +203,8 @@
       "width": 1440,
       "height": 900
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:26.999Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:17:59.066Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -169,8 +220,8 @@
       "width": 320,
       "height": 568
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:29.129Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:18:01.229Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -183,11 +234,28 @@
     "requestedSection": "AdminAuthenticated",
     "state": "empty",
     "viewport": {
+      "width": 390,
+      "height": 844
+    },
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:18:03.311Z",
+    "actualSection": "admin",
+    "captured": true,
+    "status": "captured",
+    "consoleErrors": [],
+    "horizontalOverflow": false,
+    "screenshot": "cdb2026_admin-auth-empty_390x844.png"
+  },
+  {
+    "application": "cdb2026",
+    "requestedSection": "AdminAuthenticated",
+    "state": "empty",
+    "viewport": {
       "width": 768,
       "height": 1024
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:31.249Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:18:05.360Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",
@@ -203,8 +271,8 @@
       "width": 1440,
       "height": 900
     },
-    "commit": "533acf9",
-    "capturedAtUtc": "2026-08-02T23:57:33.335Z",
+    "commit": "54572c5",
+    "capturedAtUtc": "2026-08-03T00:18:07.533Z",
     "actualSection": "admin",
     "captured": true,
     "status": "captured",

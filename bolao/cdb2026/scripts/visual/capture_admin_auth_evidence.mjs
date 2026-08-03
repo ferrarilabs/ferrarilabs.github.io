@@ -54,7 +54,10 @@ const FIXTURE_ID = "visual-comparable-v1";
 // screen (only Eduardo uses it, see CONSISTENCY_MATRIX.md item 78's rationale for the same
 // screen), so mobile/tablet/desktop is representative without 7x the runtime for a screen no
 // participant ever sees.
-const VIEWPORTS = [{ w: 320, h: 568 }, { w: 768, h: 1024 }, { w: 1440, h: 900 }];
+// 390x844 added (Fase 2.2-correção item 9) — the side-by-side montage script needs this exact
+// viewport for its 4-viewport set (320/390/768/1440, per Eduardo's second correction round), and
+// this harness previously only had 320/768/1440.
+const VIEWPORTS = [{ w: 320, h: 568 }, { w: 390, h: 844 }, { w: 768, h: 1024 }, { w: 1440, h: 900 }];
 
 function cdb2026FixtureFilled() {
   const emptyMatch = () => ({ homeTeam: null, awayTeam: null, kickoff: null, venue: null, city: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" });
