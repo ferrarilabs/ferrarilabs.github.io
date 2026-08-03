@@ -223,7 +223,9 @@ h3 { font-size: 1.05rem; }
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
-  margin-bottom: 16px;
+  /* margin-bottom removed (PR120-final review item 4) — Copa's canonical .form-grid has no
+     margin at all; this app's own explicit 16px was the last residual .form-grid divergence
+     (padding/gap/column-count already aligned in Fase 2.2-correção item 8). */
 }
 label { display: flex; flex-direction: column; gap: 5px; }
 label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
@@ -557,7 +559,10 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .receipt-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
 /* ── Rules table ── */
-.rules-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+/* font-size:13px removed (PR120-final review item 4) — Copa's canonical .rules-table sets no
+   font-size at all, inheriting body's 15px/line-height 1.5; this app's own 13px override was the
+   real .rules-table td font-size/line-height divergence (padding already matched). */
+.rules-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
 .rules-table th, .rules-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; }
 .rules-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
 .rules-table .z4-zone { background: rgba(248,113,113,.06); }
@@ -677,8 +682,12 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: 16px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
+  /* padding/margin-bottom aligned to Copa's canonical .game-card (PR120-final review item 4) —
+     border-radius already matched. gap:4px (BR2026's own internal flex layout, Copa's .game-card
+     isn't a flex container at all) is a structural difference, not in this item's authorized
+     scope — see ALLOWLIST.json. */
+  padding: 14px;
+  margin-bottom: 10px;
 }
 /* Grid de 3 colunas 1fr/auto/1fr — mesmo padrão de alinhamento de .game-teams na Copa
    (bolao/css/styles.css). Era flex com justify-content:center, que empacota pelo tamanho do

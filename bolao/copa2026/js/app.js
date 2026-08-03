@@ -2177,9 +2177,15 @@ function renderRules() {
   const box = $("#rulesContent");
   if (!box) return;
   const SC = CONFIG.scoring, BN = CONFIG.bonus;
+  // data-visual-audit="card-base"/"rules-heading" (PR120-final review item 3): stable,
+  // unambiguous selectors for bolao/scripts/audit_visual_consistency.mjs — this card/heading is
+  // the same structural component in all three apps (a plain .card wrapping the scoring-rules
+  // table), unlike a bare ".card"/"h3" selector which picks the FIRST match in DOM order and can
+  // land on a structurally different element per app (e.g. Copa's entry-form card has its own
+  // simulator grid layout). Purely additive — no CSS/behavior keys off this attribute.
   box.innerHTML = `
-<div class="card">
-  <h3>${escapeHtml(t("rulesScoringTitle"))}</h3>
+<div class="card" data-visual-audit="card-base">
+  <h3 data-visual-audit="rules-heading">${escapeHtml(t("rulesScoringTitle"))}</h3>
   <table class="rules-table"><tbody>
     <tr><td>${escapeHtml(t("scoreExact"))}</td><td>${SC.exactScore} pts</td></tr>
     <tr><td>${escapeHtml(t("scoreAdvance"))}</td><td>${SC.advance} pts</td></tr>

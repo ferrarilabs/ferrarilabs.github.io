@@ -1577,9 +1577,12 @@ function renderRules() {
   if (!box) return;
   const sc = C.scoring;
   const pr = C.prizes;
+  // data-visual-audit="card-base"/"rules-heading" (PR120-final review item 3): stable,
+  // unambiguous selectors for bolao/scripts/audit_visual_consistency.mjs — see the matching
+  // comment in bolao/copa2026/js/app.js's renderRules(). Purely additive, no CSS/behavior change.
   box.innerHTML = `
-    <div class="card">
-      <h3>${esc(t("rulesScoring"))}</h3>
+    <div class="card" data-visual-audit="card-base">
+      <h3 data-visual-audit="rules-heading">${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
         <tbody>
           <tr><td>${esc(t("rulesMatchExact"))}</td><td><b>${sc.match.exact}</b></td></tr>

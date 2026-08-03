@@ -1,58 +1,98 @@
 /**
  * audit_visual_consistency.mjs — cross-app computed-style consistency audit (Fase 2.2-correção
- * item 7 / coordinator #2).
+ * item 7 / coordinator #2; rewritten for PR120-final review items 3/4/7).
  *
  * Run:  node bolao/scripts/audit_visual_consistency.mjs
  *
  * Deliberately lives at `bolao/scripts/` (NOT under any single app's `scripts/`) — this is
  * cross-app tooling, unlike everything under `bolao/cdb2026/scripts/`, which is CDB2026-owned
  * (even the shared visual-evidence harness there is CDB2026-rooted by convention/history, see
- * `docs/bolao/PLATFORM_GOVERNANCE.md`). Reuses `playwright_loader.mjs` from
- * `bolao/cdb2026/scripts/visual/` rather than duplicating it — that file is already written to
- * be portable/reusable, not app-specific.
+ * `docs/bolao/PLATFORM_GOVERNANCE.md`). Reuses `playwright_loader.mjs` and (new) `game_fixtures.mjs`
+ * from `bolao/cdb2026/scripts/visual/` rather than duplicating them.
+ *
+ * PR120-final review — what changed here and why:
+ *
+ * 1. (item 3) Ambiguous selectors replaced with unambiguous ones. The previous version compared
+ *    the FIRST `.card`/`h3` in each app's DOM — not the same semantic element per app (e.g. Copa's
+ *    first `.card` is its entry-form card, which has its own simulator grid layout; BR2026/
+ *    CDB2026's first `.card` is a plain card) — and `.small-btn`/`.danger` picked up whichever
+ *    button happened to be first, with different text length driving different heights. Fixed:
+ *    `data-visual-audit="card-base"|"rules-heading"|"button-primary"|"button-danger"|
+ *    "button-small"` attributes (purely additive, zero CSS/behavior change — see the comments at
+ *    each attribute's call site in `bolao/{app}/js/app.js` / `index.html`) give every one of these
+ *    a single, stable, semantically-equivalent target in all three apps. `h2[data-i18n=
+ *    "entryTitle"]` (already unique in all three apps, no new attribute needed) adds the
+ *    previously-missing "heading do formulário" component the task named explicitly.
+ * 2. (item 3) Button height comparisons are now fair: `normalizeSyntheticButtonText()` overwrites
+ *    button-primary/button-danger/button-small's `textContent` to the SAME synthetic string in
+ *    every app, in this harness's own ephemeral page only (never touches source files) — before,
+ *    different real i18n label lengths (e.g. "CSV completo" vs "CSV") made height differences look
+ *    like a token bug when they were actually a content-length artifact.
+ * 3. (item 3) `height`/`minHeight` on `main`/`topbar`/`admin-toolbar`/`card-base` are no longer
+ *    compared at all — see docs/bolao/evidence/visual-comparison/ALLOWLIST.json, which documents
+ *    WHY for each (page-total content length, nav-wrap content length, admin-tool-count content
+ *    length, rules-table-row-count content length — none are design tokens).
+ * 4. (item 5) Game/status-badge components now get REAL, comparable data in all three apps via
+ *    `bolao/cdb2026/scripts/visual/game_fixtures.mjs` (BR2026's sessionStorage schedule seed,
+ *    CDB2026's richer tie fixture + ESPN mock, Copa's harness-only Jogos-nav unhide) — the
+ *    previous version had `.game-card:padding` etc. reading BR2026 as `null` (no games ever
+ *    rendered) because ESPN was mocked empty with no fallback.
+ * 5. (item 7) DIVERGENT findings are now checked against a VERSIONED allowlist
+ *    (`docs/bolao/evidence/visual-comparison/ALLOWLIST.json` — component, property, apps,
+ *    justification, docRef, owner, reviewDate) instead of an inline JS object living only in this
+ *    file's source. Exit code is 0 iff there are zero UNAPPROVED DIVERGENT findings (present in
+ *    neither the allowlist nor resolved by the item 4 CSS alignment) — matching the review's
+ *    explicit acceptance criterion.
  *
  * What this does: loads all three apps with a synthetic data fixture AND a synthetic admin
- * session (same sessionStorage-key technique verified for `capture_admin_auth_evidence.mjs`,
- * real password never used), reads `getComputedStyle()` for ~26 named components covering the
- * areas listed in the Fase 2.2-correção task (topbar, brand, competition selector, language
- * buttons, tabs, active tab, main, card, h2, h3, inputs, selects, buttons, ranking row, game
- * card, status badge, admin toolbar, admin card/row, rules table cell, WhatsApp button,
- * form-grid), and classifies every property-level comparison as:
+ * session (same sessionStorage-key technique verified for `capture_admin_auth_evidence.mjs`, real
+ * password never used), clicks through the sections each component actually needs to be visible
+ * in (entry/ranking/games/rules/admin), reads `getComputedStyle()` for ~28 named components, and
+ * classifies every property-level comparison as:
  *
  *   EQUAL       — identical computed value in every app where the component exists.
  *   EQUIVALENT  — different string but the same rendered effect (e.g. "0px" vs "" for an unset
  *                 shorthand that resolves to the same box) -- used sparingly, see isEquivalent().
- *   JUSTIFIED   — different value, but for a reason already documented in this repo (matched
- *                 against JUSTIFIED_DIVERGENCES below, cited by source). Never auto-approved
- *                 without a written reason attached to the record.
- *   DIVERGENT   — different value, no documented reason found. Flagged for human review, not
- *                 silently accepted.
+ *   JUSTIFIED   — different value, matched against a dated, sourced entry in ALLOWLIST.json.
+ *   DIVERGENT   — different value, no allowlist entry found. Flagged for human review, blocks a
+ *                 clean exit.
  *   N/A         — the component doesn't exist in that app's DOM at all (e.g. CDB2026's
  *                 `.confronto-card` has no equivalent selector reused from Copa's `.game-card` --
  *                 struct is intentionally different per CONSISTENCY_MATRIX.md item 72).
  *
  * Copa's archived mode: `capture_evidence.mjs` (screenshot evidence for real users) correctly
- * marks Copa's non-Ranking sections `notApplicable`, because CONFIG.archived hides those nav
- * buttons for real visitors and that screenshot harness is about what a visitor actually sees.
- * THIS script has a different purpose -- internal design-token comparison, not user-facing
- * evidence -- and the original Fase 2.2-correção task explicitly permitted forcing/simulating
- * Palpites/Jogos/Regras/Admin views for Copa "só via funções locais, fixtures e sessionStorage
- * sintético no contexto do harness Playwright" for exactly this kind of comparison. So here (and
- * only here) the Admin nav button's `.hidden` class is removed client-side, in this harness's own
- * browser context, before clicking it -- applyArchiveMode() and every other production file are
- * untouched; nothing here would let a real visitor reach it.
+ * marks Copa's non-Ranking sections `notApplicable` for MOST sections, because CONFIG.archived
+ * hides those nav buttons for real visitors and that screenshot harness is about what a visitor
+ * actually sees. THIS script has a different purpose — internal design-token comparison, not
+ * user-facing evidence — and the original Fase 2.2-correção task explicitly permitted forcing/
+ * simulating Palpites/Jogos/Regras/Admin views for Copa "só via funções locais, fixtures e
+ * sessionStorage sintético no contexto do harness Playwright" for exactly this kind of comparison.
+ * So here (and only here) the relevant nav button's `.hidden` class is removed client-side, in
+ * this harness's own browser context, before clicking it — applyArchiveMode() and every other
+ * production file are untouched; nothing here would let a real visitor reach it.
  */
 import { loadChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
+import { cdb2026TiesFixture, routeCdb2026Espn, seedBr2026Schedule } from "../cdb2026/scripts/visual/game_fixtures.mjs";
 import { spawn, execSync } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PORT = 8191; // distinct from capture_evidence.mjs (8189) / capture_admin_auth_evidence.mjs (8190)
 const OUT_DIR = join(ROOT, "docs", "bolao", "evidence", "visual-comparison");
+const ALLOWLIST_PATH = join(OUT_DIR, "ALLOWLIST.json");
 const FIXTURE_ID = "visual-comparable-v1";
 const REFERENCE_APP = "copa2026"; // golden master per CLAUDE.md / DESIGN_SYSTEM.md
+
+// Same fixed synthetic strings in every app — see file header point 2. Deliberately short (fits
+// every app's button without wrapping) and visibly NOT a real i18n string, so nobody mistakes this
+// for a real production label if a screenshot of this harness run is ever shared.
+const SYNTHETIC_BUTTON_TEXT = {
+  "button-primary": "Confirmar teste",
+  "button-danger": "Remover teste",
+  "button-small": "Sincronizar",
+};
 
 const PROPERTIES = [
   "fontFamily", "fontSize", "fontWeight", "lineHeight", "letterSpacing",
@@ -62,15 +102,18 @@ const PROPERTIES = [
 
 // ── Fixtures (fictional data only) ──────────────────────────────────────────────────────────
 function cdb2026Fixture() {
-  const emptyMatch = () => ({ homeTeam: null, awayTeam: null, kickoff: null, venue: null, city: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" });
   return {
     entries: [
       { id: "fx-1", entryName: "Entrada Teste #1", payerName: "Participante A", participantEmail: "a@example.invalid", paymentMethod: "CashApp", createdAt: "2026-07-20T12:00:00.000Z", picks: { matches: {}, qualified: {} } },
       { id: "fx-2", entryName: "Entrada Teste #2", payerName: "Participante B", participantEmail: "b@example.invalid", paymentMethod: "Zelle", createdAt: "2026-07-20T12:05:00.000Z", picks: { matches: {}, qualified: {} } },
     ],
     deletedIds: [], paid: { "fx-1": true, "fx-2": false },
-    phases: { oitavas: { cutoffAt: null, ties: { "fx-t1": { teamA: "Time A", teamB: "Time B", matches: { first: { ...emptyMatch(), kickoff: "2030-08-01T20:30:00.000Z" }, second: emptyMatch() } } } } },
-    espnSync: { activePhaseId: "oitavas" }, auditLog: [], meta: { updatedAt: null, version: FIXTURE_ID },
+    // PR120-final review item 5: sourced from the shared game_fixtures.mjs module (was a single
+    // scheduled leg — see that module's header for the full agendado/finalizado/adiado/ao vivo/
+    // nome longo/estádio/ida-volta-agregado coverage this now provides).
+    phases: cdb2026TiesFixture(),
+    espnSync: { activePhaseId: "oitavas", seededKnownConfrontos: true, backfilledOitavasKickoffs: true, healedFalseAutoResults: true, healedPhantomTies: true },
+    auditLog: [], meta: { updatedAt: null, version: FIXTURE_ID },
   };
 }
 function br2026Fixture() {
@@ -86,7 +129,9 @@ function br2026Fixture() {
 // the real archived/concluded state). This script's purpose is different (CSS token comparison,
 // needs at least one rendered `.rank-row`/`.admin-entry` to read styles from), so it gets its own
 // minimal fictional fixture, not a contradiction of that earlier decision -- just a different
-// purpose.
+// purpose. Games/rules/entry render from Copa's own REAL (already public) archived data once the
+// harness clears `.hidden`/`disabled` on those nav buttons (see the section-visit loop in
+// extractStylesForApp()) — no games fixture needed for Copa here either.
 function copa2026Fixture() {
   return {
     entries: [
@@ -98,9 +143,40 @@ function copa2026Fixture() {
 }
 
 const APPS = {
-  copa2026: { path: "/bolao/copa2026/", storeKey: "bolao_copa2026_state", fixture: copa2026Fixture(), seedAdmin: (until) => ({ adminOk: "true", adminUntil: String(until) }), archivedAdminNeedsUnhide: true },
-  br2026: { path: "/bolao/br2026/", storeKey: "bolao_br2026_state", fixture: br2026Fixture(), seedAdmin: (until) => ({ br2026_adminUntil: String(until) }), archivedAdminNeedsUnhide: false },
-  cdb2026: { path: "/bolao/cdb2026/", storeKey: "bolao_cdb2026_state", fixture: cdb2026Fixture(), seedAdmin: (until) => ({ cdb2026_adminUntil: String(until) }), archivedAdminNeedsUnhide: false },
+  copa2026: {
+    path: "/bolao/copa2026/", storeKey: "bolao_copa2026_state", fixture: copa2026Fixture(),
+    seedAdmin: (until) => ({ adminOk: "true", adminUntil: String(until) }),
+  },
+  br2026: {
+    path: "/bolao/br2026/", storeKey: "bolao_br2026_state", fixture: br2026Fixture(),
+    seedAdmin: (until) => ({ br2026_adminUntil: String(until) }),
+    seedSchedule: true, // PR120-final review item 5 — see extractStylesForApp()
+  },
+  cdb2026: {
+    path: "/bolao/cdb2026/", storeKey: "bolao_cdb2026_state", fixture: cdb2026Fixture(),
+    seedAdmin: (until) => ({ cdb2026_adminUntil: String(until) }),
+    mockEspn: true, // PR120-final review item 5 — see extractStylesForApp()
+  },
+};
+
+// Which section must be the active `.page` for a component's computed style to reflect its real
+// rendered state. `null` = present/readable regardless of which section is active (header/nav
+// chrome, or `main` itself). Layout-INdependent properties (padding/margin/border-radius/colors)
+// actually resolve correctly via getComputedStyle() even under a `display:none` ancestor, but
+// layout-DEpendent ones (height, gap in some engines) do not — reading every component from its
+// real active section avoids relying on that distinction being right for every property checked.
+const SECTION_FOR_COMPONENT = {
+  topbar: null, brand: null, "competition-selector": null, "lang-button": null,
+  "lang-button-active": null, "tabs-nav": null, "tab-button": null, "tab-button-active": null,
+  main: null,
+  "card-base": "rules", "rules-heading": "rules", "rules-table-cell": "rules",
+  "form-heading": "entry", "input-text": "entry", select: "entry", "form-grid": "entry",
+  "button-primary": "entry",
+  "ranking-row": "ranking",
+  "game-card": "games", "status-badge": "games",
+  "paid-badge": "admin", "admin-toolbar": "admin", "admin-card-row": "admin",
+  "button-small": "admin", "button-danger": "admin",
+  "whatsapp-btn": null,
 };
 
 // ── Components — id, human label, per-app selector (null = doesn't exist in that app), note ──
@@ -119,27 +195,51 @@ const COMPONENTS = [
   { id: "tab-button", label: "Botão de tab (inativo)", selectors: { copa2026: '[data-section="ranking"]', br2026: '[data-section="ranking"]', cdb2026: '[data-section="ranking"]' } },
   { id: "tab-button-active", label: "Botão de tab ativo", selectors: { copa2026: ".nav button.active", br2026: ".nav button.active", cdb2026: ".nav button.active" } },
   { id: "main", label: "main", selectors: { copa2026: "main", br2026: "main", cdb2026: "main" } },
-  { id: "card", label: "Card (.card)", selectors: { copa2026: ".card", br2026: ".card", cdb2026: ".card" } },
+  // PR120-final review item 3: was the ambiguous first `.card` in DOM order (could be a
+  // structurally different card per app, e.g. Copa's entry-form card has its own simulator grid).
+  // `data-visual-audit="card-base"` marks the SAME semantic element in all three apps: the plain
+  // `.card` wrapping the scoring-rules table in Regras (see renderRules() in each app's app.js).
+  { id: "card-base", label: "Card base (marcado)", selectors: { copa2026: '[data-visual-audit="card-base"]', br2026: '[data-visual-audit="card-base"]', cdb2026: '[data-visual-audit="card-base"]' } },
   { id: "h2", label: "h2", selectors: { copa2026: "h2", br2026: "h2", cdb2026: "h2" } },
-  { id: "h3", label: "h3", selectors: { copa2026: "h3", br2026: "h3", cdb2026: "h3" } },
-  { id: "input-text", label: "Input de texto", selectors: { copa2026: "#entryName", br2026: "input[type=text]", cdb2026: "input[type=text]" } },
+  // PR120-final review item 3: was the ambiguous first `h3` in DOM order. `rules-heading` is the
+  // "section heading de Regras" example the task names explicitly (the scoring-rules subheading).
+  { id: "rules-heading", label: "Heading de seção (Regras)", selectors: { copa2026: '[data-visual-audit="rules-heading"]', br2026: '[data-visual-audit="rules-heading"]', cdb2026: '[data-visual-audit="rules-heading"]' } },
+  // PR120-final review item 3: "heading do formulário" example the task names explicitly. Already
+  // unique per app via the existing data-i18n attribute — no new markup needed.
+  { id: "form-heading", label: "Heading do formulário (Nova entrada)", selectors: { copa2026: 'h2[data-i18n="entryTitle"]', br2026: 'h2[data-i18n="entryTitle"]', cdb2026: 'h2[data-i18n="entryTitle"]' } },
+  // #entryName verified present with this exact id in all three apps (not a generic `input[type=
+  // text]` match, which is ambiguous in CDB2026 — it also has #findEntryCode as input[type=text]).
+  { id: "input-text", label: "Input de texto", selectors: { copa2026: "#entryName", br2026: "#entryName", cdb2026: "#entryName" } },
   // #paymentMethod explicitly in all three (verified: all three index.html files have this exact
   // id) -- NOT a generic `select` tag match, which would pick up `#bolaoSelect` (the competition
   // switcher pill, earlier in the DOM and styled completely differently) instead, silently
   // comparing the wrong element between apps.
   { id: "select", label: "Select", selectors: { copa2026: "#paymentMethod", br2026: "#paymentMethod", cdb2026: "#paymentMethod" } },
   { id: "form-grid", label: "Form grid (.form-grid)", selectors: { copa2026: ".form-grid", br2026: ".form-grid", cdb2026: ".form-grid" } },
-  // None of the three apps actually uses type="submit" (all are type="button", handled via JS
-  // delegation) -- verified by grepping each index.html. The real id differs per app (#saveEntry
-  // in Copa, #saveEntryBtn in BR2026/CDB2026), so the selector lists both explicitly instead of
-  // guessing a shared attribute that doesn't exist (which silently produced `null` for two of
-  // the three apps before this fix).
-  { id: "button-primary", label: "Botão primário", selectors: { copa2026: "#saveEntry", br2026: "#saveEntryBtn", cdb2026: "#saveEntryBtn" } },
-  { id: "button-small", label: "Botão small (.small-btn)", selectors: { copa2026: ".small-btn", br2026: ".small-btn", cdb2026: ".small-btn" } },
-  { id: "button-danger", label: "Botão danger (.danger)", selectors: { copa2026: ".danger", br2026: ".danger", cdb2026: ".danger" } },
+  // PR120-final review item 3: "botão primário com mesmo texto sintético" — data-visual-audit
+  // gives a uniform selector across the three apps' differing real ids (#saveEntry vs
+  // #saveEntryBtn); normalizeSyntheticButtonText() (below) overwrites its text at capture time.
+  { id: "button-primary", label: "Botão primário (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-primary"]', br2026: '[data-visual-audit="button-primary"]', cdb2026: '[data-visual-audit="button-primary"]' } },
+  // PR120-final review item 3: was the ambiguous first `.small-btn` in DOM order (Copa's first
+  // is "CSV completo", BR2026/CDB2026's first is "CSV" — different text length driving different
+  // height even though the CSS rule is byte-identical in all three). Now marks the one button that
+  // is semantically the same action (force remote sync) in all three apps, text normalized below.
+  { id: "button-small", label: "Botão small (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-small"]', br2026: '[data-visual-audit="button-small"]', cdb2026: '[data-visual-audit="button-small"]' } },
+  // Already the single unambiguous `.danger` button in every app (only one exists per app) — the
+  // data-visual-audit marker makes that explicit/stable rather than implicit, and its text is
+  // normalized below same as button-primary/button-small.
+  { id: "button-danger", label: "Botão destrutivo (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-danger"]', br2026: '[data-visual-audit="button-danger"]', cdb2026: '[data-visual-audit="button-danger"]' } },
   { id: "ranking-row", label: "Linha de ranking (.rank-row)", selectors: { copa2026: ".rank-row", br2026: ".rank-row", cdb2026: ".rank-row" } },
   { id: "game-card", label: "Card de jogo", selectors: { copa2026: ".game-card", br2026: ".game-card", cdb2026: ".confronto-card" }, note: "CDB2026 uses .confronto-card (ida+volta layout) instead of .game-card by design — CONSISTENCY_MATRIX.md item 72, INTENTIONALLY_DIFFERENT (tournament format, not a shared component)." },
-  { id: "status-badge", label: "Badge de status de jogo", selectors: { copa2026: ".status-chip", br2026: ".game-status", cdb2026: ".game-status" }, note: "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name." },
+  // PR120-final review item 3: was the ambiguous first `.status-chip`/`.game-status` in DOM
+  // order — different apps/fixtures sort a different STATUS first (live/postponed/scheduled/
+  // final legitimately have different colors by design), so "first match" could silently compare
+  // a live badge in one app against a postponed badge in another — not a token bug, an
+  // apples-to-oranges selector mistake. Pinned to the "final/encerrado" state specifically
+  // (`.done`/`.post`), the one state guaranteed present in all three apps' fixtures (Copa's real
+  // archived tournament data is ALL final; BR2026/CDB2026's synthetic fixtures both include a
+  // finished match — see game_fixtures.mjs).
+  { id: "status-badge", label: "Badge de status de jogo (estado 'encerrado')", selectors: { copa2026: ".status-chip.done", br2026: ".game-status.post", cdb2026: ".game-status.post" }, note: "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name." },
   { id: "paid-badge", label: "Badge de pagamento (.paid-badge)", selectors: { copa2026: ".paid-badge", br2026: ".paid-badge", cdb2026: ".paid-badge" } },
   { id: "admin-toolbar", label: "Admin toolbar (.admin-toolbar)", selectors: { copa2026: ".admin-toolbar", br2026: ".admin-toolbar", cdb2026: ".admin-toolbar" } },
   { id: "admin-card-row", label: "Card/linha de entrada no admin", selectors: { copa2026: ".admin-entry", br2026: ".admin-row", cdb2026: ".admin-row" }, note: "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight." },
@@ -147,12 +247,18 @@ const COMPONENTS = [
   { id: "whatsapp-button", label: "Botão WhatsApp (.whatsapp-btn)", selectors: { copa2026: ".whatsapp-btn", br2026: ".whatsapp-btn", cdb2026: ".whatsapp-btn" } },
 ];
 
-// Differences already documented elsewhere in this repo as intentional — matched by
-// `${componentId}:${property}`. Cited so a reviewer can verify the claim, not just trust it.
-const JUSTIFIED_DIVERGENCES = {
-  "status-badge:color": "CONSISTENCY_MATRIX.md item 62: --red token differs (Copa #ff6b6b already in production vs BR2026/CDB2026 #f87171) — not unified on purpose, would change a color already live in production; requires a deliberate visual-only change, not a patch-minimal fix.",
-  "tabs-nav:gridTemplateColumns": "Fase 2.2-correção item 3 (this branch, bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78): column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real button count by design (that was the bug fixed in item 3), so unequal track widths across apps is the CORRECT outcome, not a regression.",
-};
+// ── Allowlist (item 7) — versioned, external, reviewable. See ALLOWLIST.json's own $schema note. ─
+function loadAllowlist() {
+  const raw = JSON.parse(readFileSync(ALLOWLIST_PATH, "utf8"));
+  const map = new Map(); // key `${component}:${property}` -> entry
+  for (const entry of raw.entries) {
+    const apps = entry.apps.split(",").map(s => s.trim());
+    for (const property of entry.property.split(",").map(s => s.trim())) {
+      map.set(`${entry.component}:${property}`, { ...entry, apps });
+    }
+  }
+  return map;
+}
 
 function isEquivalent(a, b) {
   // Treat "0px"/"0px 0px"/"0px 0px 0px 0px" as equivalent shorthand expansions of the same box,
@@ -165,16 +271,19 @@ function isEquivalent(a, b) {
   return false;
 }
 
-function classify(componentId, property, valuesByApp) {
+function classify(componentId, property, valuesByApp, allowlist) {
   const present = Object.entries(valuesByApp).filter(([, v]) => v !== null);
   if (present.length <= 1) return { status: "N/A", reason: "component not present in enough apps to compare" };
-  const [firstApp, firstVal] = present[0];
+  const [, firstVal] = present[0];
   const allEqual = present.every(([, v]) => v === firstVal);
   if (allEqual) return { status: "EQUAL" };
   const allEquivalent = present.every(([, v]) => isEquivalent(v, firstVal));
   if (allEquivalent) return { status: "EQUIVALENT" };
-  const key = `${componentId}:${property}`;
-  if (JUSTIFIED_DIVERGENCES[key]) return { status: "JUSTIFIED", reason: JUSTIFIED_DIVERGENCES[key] };
+  const entry = allowlist.get(`${componentId}:${property}`);
+  if (entry) {
+    const reason = `${entry.justification} [docRef: ${entry.docRef}; owner: ${entry.owner}; reviewDate: ${entry.reviewDate}]`;
+    return { status: "JUSTIFIED", reason };
+  }
   return { status: "DIVERGENT", reason: null };
 }
 
@@ -194,8 +303,13 @@ async function extractStylesForApp(browser, appId, app) {
   const page = await context.newPage();
   await context.route("**://cdn.jsdelivr.net/**", r => r.abort());
   await context.route("**://*.supabase.co/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
-  await context.route("**://site.api.espn.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: '{"events":[]}' }));
   await context.route("**://*.emailjs.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+  // PR120-final review item 5: CDB2026's ao-vivo/adiado game-card/status-badge states are
+  // resolved by the app's own ESPN-matching logic, so it gets the realistic mock; every other app
+  // gets the plain empty-response mock this harness has always used (registered first so
+  // routeCdb2026Espn's more specific registration below takes priority for cdb2026 only).
+  await context.route("**://site.api.espn.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: '{"events":[]}' }));
+  if (app.mockEspn) await routeCdb2026Espn(context);
 
   await page.goto(`http://localhost:${PORT}${app.path}`, { waitUntil: "load", timeout: 15000 });
   await page.waitForTimeout(500);
@@ -207,49 +321,98 @@ async function extractStylesForApp(browser, appId, app) {
     const seedAdmin = new Function("until", "return (" + seedAdminFnBody + ")(until)")(until);
     for (const [k, v] of Object.entries(seedAdmin)) sessionStorage.setItem(k, v);
   }, { storeKey: app.storeKey, fixture: app.fixture, seedAdminFnBody: app.seedAdmin.toString() });
+
+  // PR120-final review item 5: BR2026's Jogos comes from a versioned sessionStorage schedule
+  // cache (see game_fixtures.mjs) — seeded here, same pass, before the single reload below.
+  if (app.seedSchedule) {
+    const siteVersion = await page.evaluate(() => window.BR2026_CONFIG?.siteVersion);
+    await seedBr2026Schedule(page, siteVersion);
+  }
+
   await page.reload({ waitUntil: "load", timeout: 15000 });
   await page.waitForTimeout(500);
 
-  // renderAll() (verified by reading each app's app.js directly) already renders ranking, rules,
-  // games, and the entry form unconditionally on load -- only the ADMIN panel needs an explicit
-  // nav click, because every app's own admin render call is gated behind isAdminActive() (and,
-  // for Copa specifically, ALSO behind `#adminArea` not having the `.hidden` class -- see file
-  // header comment for why that button is unhidden here, harness-context only).
-  if (app.archivedAdminNeedsUnhide) {
-    await page.evaluate(() => document.querySelector('[data-section="admin"]')?.classList.remove("hidden"));
+  // PR120-final review item 3: normalize the three marked buttons' text to the SAME synthetic
+  // string in every app, in this ephemeral page only — makes height comparisons meaningful
+  // (previously different real i18n label lengths per app made height differences look like a
+  // token bug). Runs once; these are static index.html buttons, never re-rendered by section
+  // navigation, so the override survives every section click below.
+  await page.evaluate((texts) => {
+    for (const [id, text] of Object.entries(texts)) {
+      const el = document.querySelector(`[data-visual-audit="${id}"]`);
+      if (el) el.textContent = text;
+    }
+  }, SYNTHETIC_BUTTON_TEXT);
+
+  // Visit every section this app's components actually need to be active in (see
+  // SECTION_FOR_COMPONENT). Before every click, this ephemeral page's OWN copy of the nav button
+  // has both `.hidden` (Copa archived-mode) and `disabled` (BR2026's real entry cutoff passed
+  // 2026-07-16 — CLAUDE.md; CDB2026/Copa have the same per-phase-cutoff mechanism) cleared first —
+  // real product-state gating that would otherwise silently fail the click (caught, falls through
+  // to "whatever section was already active", producing bogus `height:auto`/`0px` readings for
+  // form-heading/input-text/select/button-primary that are a harness artifact, not a real style
+  // difference). This script's whole purpose (internal design-token comparison, never shown to
+  // real users) is explicitly permitted to reach any view this way — applyArchiveMode() and the
+  // real cutoff logic in bolao/{app}/js/app.js are themselves never touched.
+  const neededSections = [...new Set(Object.values(SECTION_FOR_COMPONENT).filter(Boolean))];
+  const stylesBySection = { __always: null };
+  for (const section of neededSections) {
+    await page.evaluate((ds) => {
+      const btn = document.querySelector(`[data-section="${ds}"]`);
+      if (btn) { btn.classList.remove("hidden"); btn.disabled = false; }
+    }, section);
+    await page.locator(`[data-section="${section}"]`).first().click({ timeout: 1500 }).catch(() => {});
+    await page.waitForTimeout(400);
+    stylesBySection[section] = await readComponentStyles(page, appId);
   }
-  await page.locator('[data-section="admin"]').first().click({ timeout: 1500 }).catch(() => {});
-  await page.waitForTimeout(400);
+  // "always visible" components (header/nav chrome, main) — read once, current DOM state is fine
+  // (whichever section ended up active last doesn't affect header/nav/main's own computed style).
+  stylesBySection.__always = await readComponentStyles(page, appId);
 
   const result = {};
   for (const comp of COMPONENTS) {
-    const selector = comp.selectors[appId];
-    if (!selector) { result[comp.id] = null; continue; }
-    const styles = await page.evaluate((sel) => {
+    const section = SECTION_FOR_COMPONENT[comp.id];
+    const bucket = section ? stylesBySection[section] : stylesBySection.__always;
+    result[comp.id] = bucket ? bucket[comp.id] : null;
+  }
+
+  await context.close();
+  return result;
+}
+
+// Reads getComputedStyle() for every component's selector (resolved for THIS app) against the
+// CURRENT DOM state (whatever section happens to be active right now) — the caller is
+// responsible for having clicked into the right section first for components that need it (see
+// SECTION_FOR_COMPONENT).
+async function readComponentStyles(page, appId) {
+  const components = COMPONENTS.map(c => ({ id: c.id, selector: c.selectors[appId] || null }));
+  return page.evaluate((components) => {
+    const out = {};
+    for (const comp of components) {
+      const sel = comp.selector;
+      if (!sel) { out[comp.id] = null; continue; }
       const el = document.querySelector(sel);
-      if (!el) return null;
+      if (!el) { out[comp.id] = null; continue; }
       const cs = getComputedStyle(el);
-      return {
+      out[comp.id] = {
         fontFamily: cs.fontFamily, fontSize: cs.fontSize, fontWeight: cs.fontWeight,
         lineHeight: cs.lineHeight, letterSpacing: cs.letterSpacing, padding: cs.padding,
         margin: cs.margin, gap: cs.gap, borderRadius: cs.borderRadius,
         backgroundColor: cs.backgroundColor, color: cs.color, height: cs.height,
         minHeight: cs.minHeight, gridTemplateColumns: cs.gridTemplateColumns,
       };
-    }, selector);
-    result[comp.id] = styles;
-  }
-  await context.close();
-  return result;
+    }
+    return out;
+  }, components);
 }
 
 function buildMarkdown(report) {
   const lines = [];
-  lines.push("# Auditoria de Consistência Visual — Estilos Computados (Fase 2.2-correção item 7)");
+  lines.push("# Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)");
   lines.push("");
   lines.push(`Gerado em ${report.generatedAtUtc} · commit \`${report.commit}\` · referência visual: **${REFERENCE_APP}** (golden master, ver CLAUDE.md).`);
   lines.push("");
-  lines.push("Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em outro lugar do repo, motivo citado) · **DIVERGENT** (diferença sem justificativa registrada — precisa de revisão humana) · **N/A** (componente não existe no app).");
+  lines.push("Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).");
   lines.push("");
   const counts = { EQUAL: 0, EQUIVALENT: 0, JUSTIFIED: 0, DIVERGENT: 0, "N/A": 0 };
   for (const comp of report.components) for (const prop of comp.properties) counts[prop.status]++;
@@ -259,24 +422,30 @@ function buildMarkdown(report) {
   lines.push("|---|---|");
   for (const [k, v] of Object.entries(counts)) lines.push(`| ${k} | ${v} |`);
   lines.push("");
-  lines.push("## Notas metodológicas (ler antes de interpretar `height`/`minHeight` como DIVERGENT)");
-  lines.push("");
-  lines.push("- **`height` em elementos `height:auto`/orientados por conteúdo** (`main`, `.card`, `.topbar`, `.admin-toolbar`, admin-card-row) **varia com a QUANTIDADE de conteúdo renderizado**, não é um token de design fixo — `main`'s computed height (a página inteira) é literalmente proporcional a quanto conteúdo cada app tem carregado no momento da captura (fixtures diferentes, número de fases/jogos diferente), não uma medida de estilo comparável. Presente na tabela porque a tarefa pediu explicitamente para capturar `height`/`minHeight`, mas **não deve ser lido como um problema de design system** a menos que o elemento tenha uma altura fixa por CSS (ex.: `.small-btn`, `.danger`, `select`, `.rank-row` — esses SIM são comparáveis).");
-  lines.push("- **`.game-card` no BR2026 não foi capturado** (`null` na tabela) — `renderGamesSection()` do BR2026 só roda quando `_schedule.length > 0`, e esse script bloqueia/simula a API da ESPN com uma resposta vazia (mesma política de rede das outras ferramentas desta pasta — nunca produção real). Resultado: BR2026 não teve nenhum `.game-card` renderizado nesta auditoria, então a comparação com Copa/CDB2026 para esse componente ficou incompleta — não um DIVERGENT real, uma lacuna de fixture. Registrado aqui em vez de escondido.");
-  lines.push("- **`.card` compara o PRIMEIRO elemento `.card` no DOM de cada app**, que pode não ser o mesmo card semanticamente (ex.: o primeiro card de um app pode ser o hero/intro, o de outro pode ser um card de countdown com layout de grid próprio) — `gridTemplateColumns`/`backgroundColor`/`gap` divergentes aqui podem refletir estar comparando cards DIFERENTES, não um token de `.card` genuinamente inconsistente. Achado real (dois selectors com IDs verificados, `select`/`button-primary`, já foram corrigidos nesta mesma rodada depois de um problema idêntico ser encontrado — ver commit) mas não corrigido aqui por falta de um seletor comum óbvio entre os três apps para 'o card X especificamente'; recomendo revisão manual antes de tratar como DIVERGENT real.");
-  lines.push("");
-  lines.push("## Divergências não justificadas (DIVERGENT) — precisam de revisão");
+  lines.push("## Divergências não aprovadas (DIVERGENT) — bloqueiam exit 0");
   lines.push("");
   const divergent = [];
   for (const comp of report.components) for (const prop of comp.properties) if (prop.status === "DIVERGENT") divergent.push({ comp, prop });
   if (!divergent.length) {
-    lines.push("Nenhuma. Todas as diferenças encontradas são EQUAL, EQUIVALENT ou JUSTIFIED.");
+    lines.push("Nenhuma. Todas as diferenças encontradas são EQUAL, EQUIVALENT ou JUSTIFIED (ver `ALLOWLIST.json`).");
   } else {
     lines.push("| Componente | Propriedade | " + Object.keys(APPS).join(" | ") + " |");
     lines.push("|---|---|" + Object.keys(APPS).map(() => "---").join("|") + "|");
     for (const { comp, prop } of divergent) {
       lines.push(`| ${comp.label} | ${prop.property} | ` + Object.keys(APPS).map(a => "`" + (comp.values[a]?.[prop.property] ?? "N/A") + "`").join(" | ") + " |");
     }
+  }
+  lines.push("");
+  lines.push("## Divergências aprovadas (JUSTIFIED) — ver ALLOWLIST.json");
+  lines.push("");
+  const justified = [];
+  for (const comp of report.components) for (const prop of comp.properties) if (prop.status === "JUSTIFIED") justified.push({ comp, prop });
+  if (!justified.length) {
+    lines.push("Nenhuma.");
+  } else {
+    lines.push("| Componente | Propriedade | Justificativa |");
+    lines.push("|---|---|---|");
+    for (const { comp, prop } of justified) lines.push(`| ${comp.label} | ${prop.property} | ${prop.reason} |`);
   }
   lines.push("");
   lines.push("## Detalhe por componente");
@@ -302,6 +471,7 @@ function buildMarkdown(report) {
 async function main() {
   const chromium = await loadChromium();
   mkdirSync(OUT_DIR, { recursive: true });
+  const allowlist = loadAllowlist();
   const server = await startServer();
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
   const commit = commitHash();
@@ -322,7 +492,7 @@ async function main() {
     const properties = PROPERTIES.map(property => {
       const valuesByApp = {};
       for (const appId of Object.keys(APPS)) valuesByApp[appId] = values[appId] ? values[appId][property] : null;
-      const { status, reason } = classify(comp.id, property, valuesByApp);
+      const { status, reason } = classify(comp.id, property, valuesByApp, allowlist);
       return { property, status, reason: reason || null };
     });
     return { id: comp.id, label: comp.label, selectors: comp.selectors, note: comp.note || null, values, properties };
