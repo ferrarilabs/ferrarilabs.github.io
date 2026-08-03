@@ -1,5 +1,51 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.81 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
+
+New `bolao/scripts/audit_visual_consistency.mjs` — deliberately at the top-level `bolao/scripts/`,
+not under any single app's own `scripts/`, since this compares all three apps equally. Loads
+each app with a fictional data fixture + a synthetic admin session (reusing the
+`capture_admin_auth_evidence.mjs` sessionStorage technique from the previous commit — real
+password never used), then reads `getComputedStyle()` for 26 components (topbar, brand,
+competition selector, language buttons, tabs nav + active/inactive tab, main, card, h2, h3,
+inputs, select, form-grid, primary/small/danger buttons, ranking row, game card, status badge,
+paid badge, admin toolbar, admin card/row, rules-table cell, WhatsApp button) across 13
+properties each (fontFamily/fontSize/fontWeight/lineHeight/letterSpacing/padding/margin/gap/
+borderRadius/backgroundColor/color/height/minHeight/gridTemplateColumns — exactly the list
+requested), classifying every comparison as EQUAL / EQUIVALENT / JUSTIFIED (cited reason) /
+DIVERGENT (unexplained, flagged for review) / N/A.
+
+**Two real selector bugs found and fixed while building this** (both worth noting because they
+show why "verify the diff, don't just trust the tool ran" matters even for your own new code):
+the `select` component was comparing Copa's real `#paymentMethod` against BR2026/CDB2026's
+generic `select` tag match, which actually picked up `#bolaoSelect` (the competition switcher
+pill, unrelated component, earlier in the DOM) — fixed to `#paymentMethod` explicitly in all
+three, after which the apparent "divergence" (different font-size/weight/padding/border-radius)
+disappeared entirely: **it was never a real design gap, purely a selector bug.** Same story for
+`button-primary` (`button[type=submit]` matches nothing in any of the three apps — all three use
+`type="button"` + JS delegation with different ids, `#saveEntry` vs `#saveEntryBtn`), which was
+silently returning `null` for BR2026/CDB2026 before the fix.
+
+**Result after both fixes**: 339 EQUAL, 1 JUSTIFIED, 24 DIVERGENT, 0 N/A. Output:
+`docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. The Markdown report
+includes explicit methodology notes (documented, not hidden) for: `height`/`minHeight` on
+content-driven `height:auto` containers (varies with fixture content volume, not a design token —
+`main`/`.card`/`.topbar`/admin components), BR2026's `.game-card` not rendering in this harness
+(gated behind `_schedule.length`, which stays 0 since this script fakes an empty ESPN response,
+same network policy as every other script in this folder), and `.card` comparing each app's
+FIRST `.card` in DOM order, which may not be the same semantic card. Real, previously
+undocumented findings surfaced (not fixed — findings are presented first, per
+`docs/bolao/ENGINEERING_STANDARD.md`'s audit-first workflow): `h3` font-size/line-height/margin
+diverges in CDB2026 specifically (Copa and BR2026 already match each other); `.rules-table td`
+font-size/line-height diverges (padding was already known-equal per CONSISTENCY_MATRIX.md item
+65, but font-size wasn't previously checked); `main` padding and `.form-grid` diverge exactly as
+already flagged in this branch's earlier item-8 note (independent confirmation via a different
+method).
+
+Cross-app change — `siteVersion` bumped in all three apps' `config.js` (Copa v4.166, BR2026
+v1.84, CDB2026 v3.81), matching entries in each app's own CHANGELOG.md. `audit_scoring.py`: 6/6,
+5/5, 5/5 (unaffected — no scoring/logic touched).
+
 ## v3.80 — 2026-08 — Fase 2.2-correção item 6/coord.#4: authenticated-admin evidence capture (new harness script)
 
 New `bolao/cdb2026/scripts/visual/capture_admin_auth_evidence.mjs` — the existing harness

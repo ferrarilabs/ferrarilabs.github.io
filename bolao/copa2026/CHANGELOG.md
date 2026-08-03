@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v4.166 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
+
+New `bolao/scripts/audit_visual_consistency.mjs` (top-level, cross-app — not under any single
+app's own `scripts/`). Full rationale, methodology, and findings in
+`bolao/cdb2026/CHANGELOG.md` v3.80 (this is the same change, documented once in detail since it
+touches all three apps equally). Summary: 339/364 property comparisons EQUAL across
+Copa/BR2026/CDB2026, 24 flagged DIVERGENT (documented, not auto-fixed — findings presented first
+per audit-first workflow), including independent confirmation of the already-known `main`
+padding and `.form-grid` divergences (item 8, still awaiting explicit authorization before any
+fix), plus new findings (`h3` and `.rules-table td` diverge in CDB2026 specifically). Report:
+`docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. `audit_scoring.py`:
+6/6 (unaffected).
+
 ## v4.165 — 2026-08 — Fase 2.2-correção item 3: tab nav standardized across all three apps (desktop column count, mobile 3-col pattern)
 
 Verified against the ACTUAL current CSS/HTML (not the possibly-stale numbers in the original

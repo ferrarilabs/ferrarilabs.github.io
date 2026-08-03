@@ -1,5 +1,16 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.84 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
+
+New `bolao/scripts/audit_visual_consistency.mjs` (top-level, cross-app). Full rationale,
+methodology, and findings in `bolao/cdb2026/CHANGELOG.md` v3.80 (documented once in detail,
+touches all three apps equally). Summary: 339/364 property comparisons EQUAL, 24 DIVERGENT
+(documented, not auto-fixed), including BR2026-relevant methodology notes: `.game-card` didn't
+render in this audit (BR2026's `renderGamesSection()` is gated behind a non-empty ESPN schedule,
+which this script fakes as empty — same network policy as every other script in this folder,
+never production). Report: `docs/bolao/evidence/visual-comparison/audit_visual_consistency.
+{json,md}`. `audit_scoring.py`: 5/5 (unaffected).
+
 ## v1.83 — 2026-08 — Fase 2.2-correção item 3: tab nav column counts fixed, mobile orphan-row fix
 
 Desktop `.nav` had `repeat(9, ...)` columns (base rule and the `min-width:901px` override) but
