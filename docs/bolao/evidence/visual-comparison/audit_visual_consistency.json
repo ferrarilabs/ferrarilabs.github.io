@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-03T00:13:59.899Z",
-  "commit": "bd8d06f",
+  "generatedAtUtc": "2026-08-03T12:44:54.046Z",
+  "commit": "ad33701",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -1096,13 +1096,13 @@
           "fontWeight": "400",
           "lineHeight": "22.5px",
           "letterSpacing": "normal",
-          "padding": "16px 14px",
+          "padding": "20px 18px",
           "margin": "0px 70px",
           "gap": "normal",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "1522px",
+          "height": "1530px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -1112,13 +1112,13 @@
           "fontWeight": "400",
           "lineHeight": "22.5px",
           "letterSpacing": "normal",
-          "padding": "16px 14px",
+          "padding": "20px 18px",
           "margin": "0px 70px",
           "gap": "normal",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "6088.5px",
+          "height": "6096.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1151,7 +1151,7 @@
         },
         {
           "property": "padding",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1890,13 +1890,13 @@
           "letterSpacing": "normal",
           "padding": "0px",
           "margin": "0px 0px 16px",
-          "gap": "14px",
+          "gap": "12px",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
           "height": "auto",
           "minHeight": "0px",
-          "gridTemplateColumns": "repeat(auto-fill, minmax(220px, 1fr))"
+          "gridTemplateColumns": "repeat(2, minmax(0px, 1fr))"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -1906,13 +1906,13 @@
           "letterSpacing": "normal",
           "padding": "0px",
           "margin": "0px 0px 16px",
-          "gap": "14px",
+          "gap": "12px",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
           "height": "auto",
           "minHeight": "0px",
-          "gridTemplateColumns": "repeat(auto-fill, minmax(220px, 1fr))"
+          "gridTemplateColumns": "repeat(2, minmax(0px, 1fr))"
         }
       },
       "properties": [
@@ -1953,7 +1953,7 @@
         },
         {
           "property": "gap",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1983,7 +1983,7 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         }
       ]

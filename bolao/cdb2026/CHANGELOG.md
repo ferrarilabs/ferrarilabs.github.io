@@ -1,5 +1,49 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.84 — 2026-08 — Fase 2.2-correção item 8: `main` padding + `.form-grid` aligned to Copa
+
+**Explicitly authorized by Eduardo** (previously deliberately left unapplied pending exactly this
+authorization — see v3.66/`docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`). Two numeric-only CSS
+changes, no HTML/JS touched (`main`'s `overflow-x:hidden; overflow-y:visible;`, added 2026-08-02
+for the permanent side-scroll fix, is untouched — only the `padding` value changed):
+
+- `main` padding: `16px 14px` → `20px 18px`, matching Copa (`bolao/copa2026/css/styles.css`,
+  the platform's canonical visual reference). Only visible above the existing
+  `@media (max-width: 900px)` breakpoint — that breakpoint already forced all three apps to the
+  same `12px 10px`, so phone/tablet rendering (≤900px) is unchanged.
+- `.form-grid`: `repeat(auto-fill, minmax(220px, 1fr))` gap `14px` → `repeat(2, minmax(0, 1fr))`
+  gap `12px`, matching Copa. Added `.form-grid { grid-template-columns: 1fr }` inside the
+  existing `@media (max-width: 900px)` block (this app didn't have one before — Copa did). Both
+  uses of `.form-grid` in this app (the 4-field "Nova entrada" form and the 2-field "Buscar minha
+  entrada" form) are even-numbered, so a fixed 2-column grid fits cleanly — no cramped odd field.
+
+**Real finding, not just cosmetic**: without the new breakpoint override, the entry form
+rendered as **3 cramped columns at 768px** (tablet width) under the old `auto-fill` rule —
+verified via `getComputedStyle` probe (`gridTemplateColumns` resolved to
+`227.328px 227.328px 227.328px`) and a real screenshot crop. Copa, at the same 768px width,
+already collapsed to 1 column. So this fix also closes a real tablet-width layout gap versus
+Copa, not only the >900px desktop padding/column-count alignment named in the original ask.
+
+**Verification before applying**: captured real Playwright screenshots of the Palpites/entry form
+at 320×568, 768×1024, and 1440×900, before and after, for CDB2026, BR2026, and Copa (unaffected
+control). Confirmed: no new horizontal overflow at any viewport
+(`document.documentElement.scrollWidth <= clientWidth`); the entry form now wraps into a clean
+2×2 grid at 1440px; `.sticky-submit` is a normal in-flow block (`display:flex`, not
+`position:fixed/sticky` despite the class name), so it can never overlap a form field regardless
+of grid layout; 320px/768px renders match pre-fix exactly once the new breakpoint override is in
+place (both converge to the same values Copa already used at those widths).
+
+Re-ran `bolao/scripts/audit_visual_consistency.mjs`: `main:padding`, `form-grid:gap`, and
+`form-grid:gridTemplateColumns` all flipped from DIVERGENT to EQUAL across all three apps (342
+EQUAL / 1 JUSTIFIED / 21 DIVERGENT, down from 339/1/24 before — exactly this fix's 3-property
+delta, nothing else moved). Remaining DIVERGENT for this component (`.form-grid:margin`, `0px` in
+Copa vs `0px 0px 16px` here) was **not** in this item's authorized scope (only
+`padding`/`grid-template-columns`/`gap` were named) — left unauthorized-but-documented rather
+than silently fixed; see `docs/bolao/CONSISTENCY_MATRIX.md` and
+`docs/bolao/evidence/visual-comparison/`.
+
+`node --check`: clean. `audit_scoring.py`: 5/5 (CSS-only change, scoring untouched).
+
 ## v3.83 — 2026-08 — Fase 2.2-correção coord.#3: Playwright test suite validating aria-current="page"
 
 New `bolao/scripts/test_aria_current_nav.mjs` (top-level, cross-app). Validates the

@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (Fase 2.2-correção item 7)
 
-Gerado em 2026-08-03T00:13:59.899Z · commit `bd8d06f` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-03T12:44:54.046Z · commit `ad33701` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em outro lugar do repo, motivo citado) · **DIVERGENT** (diferença sem justificativa registrada — precisa de revisão humana) · **N/A** (componente não existe no app).
 
@@ -8,10 +8,10 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 
 | Status | Quantidade |
 |---|---|
-| EQUAL | 339 |
+| EQUAL | 342 |
 | EQUIVALENT | 0 |
 | JUSTIFIED | 1 |
-| DIVERGENT | 24 |
+| DIVERGENT | 21 |
 | N/A | 0 |
 
 ## Notas metodológicas (ler antes de interpretar `height`/`minHeight` como DIVERGENT)
@@ -25,8 +25,7 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 | Componente | Propriedade | copa2026 | br2026 | cdb2026 |
 |---|---|---|---|---|
 | Topbar | height | `108.5px` | `108.5px` | `118.5px` |
-| main | padding | `20px 18px` | `16px 14px` | `16px 14px` |
-| main | height | `7897.75px` | `1522px` | `6088.5px` |
+| main | height | `7897.75px` | `1530px` | `6096.5px` |
 | Card (.card) | gap | `16px` | `normal` | `normal` |
 | Card (.card) | backgroundColor | `rgb(13, 32, 40)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` |
 | Card (.card) | height | `auto` | `120px` | `120px` |
@@ -35,8 +34,6 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 | h3 | lineHeight | `25.2px` | `25.2px` | `22.5px` |
 | h3 | margin | `2.52px 0px 6.72px` | `2.52px 0px 6.72px` | `0px 0px 6px` |
 | Form grid (.form-grid) | margin | `0px` | `0px 0px 16px` | `0px 0px 16px` |
-| Form grid (.form-grid) | gap | `12px` | `14px` | `14px` |
-| Form grid (.form-grid) | gridTemplateColumns | `repeat(2, minmax(0px, 1fr))` | `repeat(auto-fill, minmax(220px, 1fr))` | `repeat(auto-fill, minmax(220px, 1fr))` |
 | Botão small (.small-btn) | height | `46.5px` | `auto` | `auto` |
 | Botão small (.small-btn) | minHeight | `auto` | `0px` | `0px` |
 | Botão danger (.danger) | height | `34px` | `46.5px` | `46.5px` |
@@ -230,13 +227,13 @@ Seletores: copa2026=`main`, br2026=`main`, cdb2026=`main`
 | fontWeight | `400` | `400` | `400` | EQUAL | — |
 | lineHeight | `22.5px` | `22.5px` | `22.5px` | EQUAL | — |
 | letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
-| padding | `20px 18px` | `16px 14px` | `16px 14px` | DIVERGENT | — |
+| padding | `20px 18px` | `20px 18px` | `20px 18px` | EQUAL | — |
 | margin | `0px 70px` | `0px 70px` | `0px 70px` | EQUAL | — |
 | gap | `normal` | `normal` | `normal` | EQUAL | — |
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `7897.75px` | `1522px` | `6088.5px` | DIVERGENT | — |
+| height | `7897.75px` | `1530px` | `6096.5px` | DIVERGENT | — |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
@@ -358,13 +355,13 @@ Seletores: copa2026=`.form-grid`, br2026=`.form-grid`, cdb2026=`.form-grid`
 | letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
 | padding | `0px` | `0px` | `0px` | EQUAL | — |
 | margin | `0px` | `0px 0px 16px` | `0px 0px 16px` | DIVERGENT | — |
-| gap | `12px` | `14px` | `14px` | DIVERGENT | — |
+| gap | `12px` | `12px` | `12px` | EQUAL | — |
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
 | height | `auto` | `auto` | `auto` | EQUAL | — |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
-| gridTemplateColumns | `repeat(2, minmax(0px, 1fr))` | `repeat(auto-fill, minmax(220px, 1fr))` | `repeat(auto-fill, minmax(220px, 1fr))` | DIVERGENT | — |
+| gridTemplateColumns | `repeat(2, minmax(0px, 1fr))` | `repeat(2, minmax(0px, 1fr))` | `repeat(2, minmax(0px, 1fr))` | EQUAL | — |
 
 ### Botão primário (`button-primary`)
 
