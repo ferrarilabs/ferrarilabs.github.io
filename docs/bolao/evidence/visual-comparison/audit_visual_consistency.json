@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-03T12:44:54.046Z",
-  "commit": "ad33701",
+  "generatedAtUtc": "2026-08-03T17:40:19.090Z",
+  "commit": "8a61443",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -125,8 +125,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "`.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The remaining height difference (Copa/BR2026 108.5px vs CDB2026 118.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference — the same class of issue PR120-final review item 3 names for toolbars generally ('altura de toolbar com quantidade diferente de botões'). [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -692,7 +692,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "44px",
           "minHeight": "auto",
-          "gridTemplateColumns": "203.156px 203.172px 203.156px 203.156px 203.156px 203.156px"
+          "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -796,7 +796,7 @@
         {
           "property": "gridTemplateColumns",
           "status": "JUSTIFIED",
-          "reason": "Fase 2.2-correção item 3 (this branch, bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78): column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real button count by design (that was the bug fixed in item 3), so unequal track widths across apps is the CORRECT outcome, not a regression."
+          "reason": "Column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real visible button count by design (fixed in this branch, commit 9b11e3b — Copa 8→6, BR2026 9→7, CDB2026 6). Unequal track widths across apps given unequal button counts is the CORRECT outcome, not a regression. [docRef: bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78 (Fase 2.2-correção item 3); owner: Eduardo (prior session, reaffirmed PR120-final review); reviewDate: 2026-08-03]"
         }
       ]
     },
@@ -1102,7 +1102,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "1530px",
+          "height": "1765px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -1118,7 +1118,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "6096.5px",
+          "height": "4671.19px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1181,8 +1181,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -1197,12 +1197,12 @@
       ]
     },
     {
-      "id": "card",
-      "label": "Card (.card)",
+      "id": "card-base",
+      "label": "Card base (marcado)",
       "selectors": {
-        "copa2026": ".card",
-        "br2026": ".card",
-        "cdb2026": ".card"
+        "copa2026": "[data-visual-audit=\"card-base\"]",
+        "br2026": "[data-visual-audit=\"card-base\"]",
+        "cdb2026": "[data-visual-audit=\"card-base\"]"
       },
       "note": null,
       "values": {
@@ -1214,13 +1214,13 @@
           "letterSpacing": "normal",
           "padding": "18px",
           "margin": "0px 0px 14px",
-          "gap": "16px",
+          "gap": "normal",
           "borderRadius": "18px",
           "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "395.391px",
           "minHeight": "0px",
-          "gridTemplateColumns": "1fr 300px"
+          "gridTemplateColumns": "none"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -1232,9 +1232,9 @@
           "margin": "0px 0px 14px",
           "gap": "normal",
           "borderRadius": "18px",
-          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "120px",
+          "height": "752.828px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -1248,9 +1248,9 @@
           "margin": "0px 0px 14px",
           "gap": "normal",
           "borderRadius": "18px",
-          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "120px",
+          "height": "441.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1293,7 +1293,7 @@
         },
         {
           "property": "gap",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1303,7 +1303,7 @@
         },
         {
           "property": "backgroundColor",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1313,8 +1313,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — this is TOURNAMENT_SPECIFIC data (see CLAUDE.md 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -1323,7 +1323,7 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         }
       ]
@@ -1461,12 +1461,12 @@
       ]
     },
     {
-      "id": "h3",
-      "label": "h3",
+      "id": "rules-heading",
+      "label": "Heading de seção (Regras)",
       "selectors": {
-        "copa2026": "h3",
-        "br2026": "h3",
-        "cdb2026": "h3"
+        "copa2026": "[data-visual-audit=\"rules-heading\"]",
+        "br2026": "[data-visual-audit=\"rules-heading\"]",
+        "cdb2026": "[data-visual-audit=\"rules-heading\"]"
       },
       "note": null,
       "values": {
@@ -1482,7 +1482,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "25.1875px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -1498,23 +1498,23 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "25.1875px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "15px",
+          "fontSize": "16.8px",
           "fontWeight": "700",
-          "lineHeight": "22.5px",
+          "lineHeight": "25.2px",
           "letterSpacing": "normal",
           "padding": "0px",
-          "margin": "0px 0px 6px",
+          "margin": "2.52px 0px 6.72px",
           "gap": "normal",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "25.1875px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1527,7 +1527,7 @@
         },
         {
           "property": "fontSize",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1537,7 +1537,7 @@
         },
         {
           "property": "lineHeight",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1552,7 +1552,139 @@
         },
         {
           "property": "margin",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "form-heading",
+      "label": "Heading do formulário (Nova entrada)",
+      "selectors": {
+        "copa2026": "h2[data-i18n=\"entryTitle\"]",
+        "br2026": "h2[data-i18n=\"entryTitle\"]",
+        "cdb2026": "h2[data-i18n=\"entryTitle\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "30px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "30px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "30px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1597,8 +1729,8 @@
       "label": "Input de texto",
       "selectors": {
         "copa2026": "#entryName",
-        "br2026": "input[type=text]",
-        "cdb2026": "input[type=text]"
+        "br2026": "#entryName",
+        "cdb2026": "#entryName"
       },
       "note": null,
       "values": {
@@ -1614,8 +1746,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "44.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "br2026": {
@@ -1630,8 +1762,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "44.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
@@ -1646,8 +1778,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "44.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         }
       },
@@ -1746,8 +1878,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "44.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "br2026": {
@@ -1762,8 +1894,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "44.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
@@ -1778,8 +1910,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "44.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         }
       },
@@ -1878,9 +2010,9 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "226.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "repeat(2, minmax(0px, 1fr))"
+          "gridTemplateColumns": "527px 527px"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -1889,14 +2021,14 @@
           "lineHeight": "22.5px",
           "letterSpacing": "normal",
           "padding": "0px",
-          "margin": "0px 0px 16px",
+          "margin": "0px",
           "gap": "12px",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "147px",
           "minHeight": "0px",
-          "gridTemplateColumns": "repeat(2, minmax(0px, 1fr))"
+          "gridTemplateColumns": "527px 527px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -1905,7 +2037,7 @@
           "lineHeight": "22.5px",
           "letterSpacing": "normal",
           "padding": "0px",
-          "margin": "0px 0px 16px",
+          "margin": "0px",
           "gap": "12px",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
@@ -1948,7 +2080,7 @@
         },
         {
           "property": "margin",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -1973,7 +2105,7 @@
         },
         {
           "property": "height",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
@@ -1983,18 +2115,18 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         }
       ]
     },
     {
       "id": "button-primary",
-      "label": "Botão primário",
+      "label": "Botão primário (texto sintético)",
       "selectors": {
-        "copa2026": "#saveEntry",
-        "br2026": "#saveEntryBtn",
-        "cdb2026": "#saveEntryBtn"
+        "copa2026": "[data-visual-audit=\"button-primary\"]",
+        "br2026": "[data-visual-audit=\"button-primary\"]",
+        "cdb2026": "[data-visual-audit=\"button-primary\"]"
       },
       "note": null,
       "values": {
@@ -2010,8 +2142,8 @@
           "borderRadius": "12px",
           "backgroundColor": "rgb(47, 229, 110)",
           "color": "rgb(3, 19, 11)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "52px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "br2026": {
@@ -2026,8 +2158,8 @@
           "borderRadius": "12px",
           "backgroundColor": "rgb(47, 229, 110)",
           "color": "rgb(3, 19, 11)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "52px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
@@ -2042,8 +2174,8 @@
           "borderRadius": "12px",
           "backgroundColor": "rgb(47, 229, 110)",
           "color": "rgb(3, 19, 11)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "52px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         }
       },
@@ -2122,11 +2254,11 @@
     },
     {
       "id": "button-small",
-      "label": "Botão small (.small-btn)",
+      "label": "Botão small (texto sintético)",
       "selectors": {
-        "copa2026": ".small-btn",
-        "br2026": ".small-btn",
-        "cdb2026": ".small-btn"
+        "copa2026": "[data-visual-audit=\"button-small\"]",
+        "br2026": "[data-visual-audit=\"button-small\"]",
+        "cdb2026": "[data-visual-audit=\"button-small\"]"
       },
       "note": null,
       "values": {
@@ -2142,7 +2274,7 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "46.5px",
+          "height": "34px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
@@ -2158,8 +2290,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "46.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
@@ -2174,8 +2306,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "46.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         }
       },
@@ -2242,7 +2374,7 @@
         },
         {
           "property": "minHeight",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -2254,11 +2386,11 @@
     },
     {
       "id": "button-danger",
-      "label": "Botão danger (.danger)",
+      "label": "Botão destrutivo (texto sintético)",
       "selectors": {
-        "copa2026": ".danger",
-        "br2026": ".danger",
-        "cdb2026": ".danger"
+        "copa2026": "[data-visual-audit=\"button-danger\"]",
+        "br2026": "[data-visual-audit=\"button-danger\"]",
+        "cdb2026": "[data-visual-audit=\"button-danger\"]"
       },
       "note": null,
       "values": {
@@ -2407,9 +2539,9 @@
           "borderRadius": "14px",
           "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 1fr auto auto"
+          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -2423,9 +2555,9 @@
           "borderRadius": "14px",
           "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 1fr auto auto"
+          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
         }
       },
       "properties": [
@@ -2523,24 +2655,39 @@
           "borderRadius": "16px",
           "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "152px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
-        "br2026": null,
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "14px",
+          "margin": "0px 0px 10px",
+          "gap": "4px",
+          "borderRadius": "16px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "84px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
           "fontSize": "15px",
           "fontWeight": "400",
           "lineHeight": "22.5px",
           "letterSpacing": "normal",
-          "padding": "18px",
-          "margin": "0px 0px 14px",
+          "padding": "14px",
+          "margin": "0px 0px 10px",
           "gap": "normal",
-          "borderRadius": "18px",
+          "borderRadius": "16px",
           "backgroundColor": "rgb(13, 32, 40)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "187px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -2573,22 +2720,22 @@
         },
         {
           "property": "padding",
-          "status": "DIVERGENT",
-          "reason": null
-        },
-        {
-          "property": "margin",
-          "status": "DIVERGENT",
-          "reason": null
-        },
-        {
-          "property": "gap",
           "status": "EQUAL",
           "reason": null
         },
         {
-          "property": "borderRadius",
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
           "status": "DIVERGENT",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -2603,7 +2750,7 @@
         },
         {
           "property": "height",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
@@ -2620,11 +2767,11 @@
     },
     {
       "id": "status-badge",
-      "label": "Badge de status de jogo",
+      "label": "Badge de status de jogo (estado 'encerrado')",
       "selectors": {
-        "copa2026": ".status-chip",
-        "br2026": ".game-status",
-        "cdb2026": ".game-status"
+        "copa2026": ".status-chip.done",
+        "br2026": ".game-status.post",
+        "cdb2026": ".game-status.post"
       },
       "note": "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name.",
       "values": {
@@ -2640,11 +2787,26 @@
           "borderRadius": "999px",
           "backgroundColor": "rgba(47, 229, 110, 0.15)",
           "color": "rgb(47, 229, 110)",
-          "height": "auto",
-          "minHeight": "0px",
+          "height": "26.5px",
+          "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
-        "br2026": null,
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "4px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "26.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
           "fontSize": "11px",
@@ -2657,7 +2819,7 @@
           "borderRadius": "999px",
           "backgroundColor": "rgba(47, 229, 110, 0.15)",
           "color": "rgb(47, 229, 110)",
-          "height": "auto",
+          "height": "26.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -2725,7 +2887,7 @@
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
@@ -2969,8 +3131,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "Copa's admin toolbar has 12 buttons (CSV/JSON/HTML export variants, API-Football, ESPN sync, result emails, force sync, clear data); BR2026/CDB2026 have 4 (export CSV/JSON, force sync, clear data) — a real, intentional difference in which admin tools exist per app, not a shared design token. `.admin-toolbar` CSS itself (display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px) is identical across all three. PR120-final review item 3 explicitly instructs: 'não compare... altura de toolbar com quantidade diferente de botões' — item 6 repeats this: functional differences must be NOT_APPLICABLE/JUSTIFIED, never compared as total height. [docRef: PR120-final review item 3 and item 6 (verbatim task text); owner: Eduardo (task authorization, PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -3086,8 +3248,8 @@
         },
         {
           "property": "height",
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "Copa renders each admin entry as a full `.card.admin-entry` (multi-row, spaced layout); BR2026/CDB2026 use a dense single-line `.admin-row` list instead — a structural, admin-only-screen layout decision (long entry lists favor density), not a shared component with a divergent token. Same synthetic fixture content (2 fictional entries, same field names) is used for all three; only the wrapping structure differs, by design. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 78 (NEEDS_REVIEW, deliberately not converted); owner: Eduardo (prior session, reaffirmed PR120-final review); reviewDate: 2026-08-03]"
         },
         {
           "property": "minHeight",
@@ -3123,15 +3285,15 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "37px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "13px",
+          "fontSize": "15px",
           "fontWeight": "400",
-          "lineHeight": "19.5px",
+          "lineHeight": "22.5px",
           "letterSpacing": "normal",
           "padding": "7px 10px",
           "margin": "0px",
@@ -3139,15 +3301,15 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "37px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "13px",
+          "fontSize": "15px",
           "fontWeight": "400",
-          "lineHeight": "19.5px",
+          "lineHeight": "22.5px",
           "letterSpacing": "normal",
           "padding": "7px 10px",
           "margin": "0px",
@@ -3155,7 +3317,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "auto",
+          "height": "37px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -3168,7 +3330,7 @@
         },
         {
           "property": "fontSize",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {
@@ -3178,7 +3340,7 @@
         },
         {
           "property": "lineHeight",
-          "status": "DIVERGENT",
+          "status": "EQUAL",
           "reason": null
         },
         {

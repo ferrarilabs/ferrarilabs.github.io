@@ -2445,9 +2445,12 @@ function renderRules() {
     timeZone: "America/Sao_Paulo", day: "2-digit", month: "2-digit",
     year: "numeric", hour: "2-digit", minute: "2-digit"
   });
+  // data-visual-audit="card-base"/"rules-heading" (PR120-final review item 3): stable,
+  // unambiguous selectors for bolao/scripts/audit_visual_consistency.mjs — see the matching
+  // comment in bolao/copa2026/js/app.js's renderRules(). Purely additive, no CSS/behavior change.
   box.innerHTML = `
-    <div class="card">
-      <h3>${esc(t("rulesScoring"))}</h3>
+    <div class="card" data-visual-audit="card-base">
+      <h3 data-visual-audit="rules-heading">${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
         <tbody>
           <tr><td>🥇 1º Lugar (${esc(t("rulesExact"))})</td><td><b>30</b></td></tr>

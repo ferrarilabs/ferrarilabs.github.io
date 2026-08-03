@@ -273,7 +273,10 @@ h3 { font-size: 1.05rem; }
 .form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px; margin-bottom: 16px;
+  gap: 12px;
+  /* margin-bottom removed (PR120-final review item 4) — Copa's canonical .form-grid has no
+     margin at all; this app's own explicit 16px was the last residual .form-grid divergence
+     (padding/gap/column-count already aligned in Fase 2.2-correção item 8). */
 }
 label { display: flex; flex-direction: column; gap: 5px; }
 label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
@@ -409,7 +412,10 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pay-card a { color: var(--green); font-size: 13px; }
 
 /* ── Rules ── */
-.rules-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 12px; }
+/* font-size:13px removed (PR120-final review item 4) — Copa's canonical .rules-table sets no
+   font-size at all, inheriting body's 15px/line-height 1.5; this app's own 13px override was the
+   real .rules-table td font-size/line-height divergence (padding already matched). */
+.rules-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
 .rules-table th, .rules-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); text-align: left; }
 .rules-table th { color: var(--muted); font-size: 11px; text-transform: uppercase; }
 
@@ -664,7 +670,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Jogos — Oitavas ── */
 .confronto-card {
-  margin-bottom: 14px;
+  /* padding/border-radius/margin-bottom aligned to Copa's canonical .game-card (PR120-final
+     review item 4) — before this, .confronto-card only overrode margin-bottom (redundantly, same
+     14px the generic .card rule already had) and silently inherited .card's padding:18px/
+     border-radius:18px, which is the GENERIC card token, not the game-card-specific one Copa/
+     BR2026 both use. */
+  padding: 14px;
+  border-radius: 16px;
+  margin-bottom: 10px;
 }
 .confronto-header {
   font-size: 14px; font-weight: 900; color: var(--green);
