@@ -12,6 +12,39 @@
   var currentIdx = DRAWS.length - 1;
   var countdownTimer = null;
 
+  // finance.totalArrecadado/valorUtilizado/valorGuardadoProximoSorteio in data.js used to be
+  // hand-computed and pasted in as plain numbers (see the arithmetic-in-a-comment above each
+  // one) -- correct at the moment they were written, but silently stale the instant a new
+  // participant/ticket was added and nobody redid the math (real bug: 2026-08-05's totalArrecadado
+  // was left at 0 despite carrying a real -$2 balance from 2026-08-03). Derived here instead, from
+  // the same inputs a human would use: totalArrecadado = sum of participants' individual valor when
+  // this draw collected fresh payments, otherwise carried over from the previous draw's leftover +
+  // any prize it won (rolling shared fund, same wording as the data.js comments); valorUtilizado =
+  // tickets actually purchased x price per ticket; valorGuardadoProximoSorteio = what's left.
+  function computeFinance(draws, idx) {
+    var draw = draws[idx];
+    var hasIndividualValor = draw.participants.some(function (p) { return p.valor != null; });
+    var totalArrecadado;
+    if (hasIndividualValor) {
+      totalArrecadado = draw.participants.reduce(function (s, p) { return s + (p.valor || 0); }, 0);
+    } else if (idx > 0) {
+      var prev = draws[idx - 1];
+      var prevFinance = computeFinance(draws, idx - 1);
+      var premiosGanhos = (prev.result && prev.result.premiosGanhos) || 0;
+      totalArrecadado = prevFinance.valorGuardadoProximoSorteio + premiosGanhos;
+    } else {
+      totalArrecadado = 0;
+    }
+    var valorUtilizado = draw.sharedTickets.series.reduce(function (s, ser) { return s + (ser.qtd || 0); }, 0)
+      * (draw.sharedTickets.valorPorTicket || 0);
+    return {
+      totalArrecadado: totalArrecadado,
+      valorUtilizado: valorUtilizado,
+      valorGuardadoProximoSorteio: totalArrecadado - valorUtilizado
+    };
+  }
+  DRAWS.forEach(function (draw, i) { draw.finance = computeFinance(DRAWS, i); });
+
   function fmtUsd(n) {
     if (n === null || n === undefined) return "—";
     return "US$" + n.toLocaleString("en-US");

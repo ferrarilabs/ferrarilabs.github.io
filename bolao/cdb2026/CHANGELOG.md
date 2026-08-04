@@ -1,6 +1,23 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
-## v3.87 — 2026-08-04 — EMERGENCY_HOTFIX: live-monitoring deadline + second-leg kickoff sync
+## v3.88 — 2026-08-04 — Automatic kickoff/venue backfill no longer depends on the admin panel
+
+Real production bug reported by Eduardo: games still showing "Data a definir" today despite ESPN
+having already published the kickoff. Root cause: the `autoSyncEspn()` backfill added in v3.87
+(second-leg kickoff/venue) is client-side JS that only runs when an admin has the admin panel
+open in a browser — nothing was driving it automatically, so a leg whose schedule ESPN had
+already published stayed unscheduled on the public site until someone happened to open the admin
+panel after that.
+
+Fixed by porting the same backfill logic (same `withinResultMatchWindow` safety anchor, same
+schedule-only scope — never touches `goalsHome`/`goalsAway`/`status`/`qualifiedTeamId`) into
+`send_result_email.py`'s `--auto` path, which already runs every 10 minutes via
+`.github/workflows/cdb2026_result_emails.yml`. `fetch_espn_candidates()` now also returns
+`venue`/`city` (previously score/date only). New `sb_backfill_schedule()` runs on every cron
+tick, before the result-check logic, and re-fetches state if it patched anything so downstream
+logic sees the corrected kickoff.
+
+`audit_scoring.py` passes — schedule/timing only, scoring untouched.
 
 Two real production bugs found while investigating Eduardo's report that the Athletico-PR ×
 Vitória (Oitavas de Final, ida) result hadn't updated on the site and no email had gone out,
