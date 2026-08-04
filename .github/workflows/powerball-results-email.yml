@@ -1,0 +1,85 @@
+name: Powerball Results Email
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'bolao/loterias/powerball/js/data.js'
+
+jobs:
+  send-results:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Check if draw has completed result
+        id: check_result
+        run: |
+          python3 << 'EOF'
+          import json
+          import re
+
+          # Read data.js
+          with open('bolao/loterias/powerball/js/data.js', 'r', encoding='utf-8') as f:
+              content = f.read()
+
+          # Extract POWERBALL_DRAWS array
+          match = re.search(r'window\.POWERBALL_DRAWS\s*=\s*(\[[\s\S]*?\]\s*);', content)
+          if not match:
+              print("::error::Could not parse POWERBALL_DRAWS")
+              exit(1)
+
+          draws_str = match.group(1)
+
+          # Simple JSON extraction of the last draw
+          try:
+              # Use JSON parser - need to convert JS to valid JSON
+              draws_str = draws_str.replace("'", '"').replace('True', 'true').replace('False', 'false')
+              draws = json.loads(draws_str)
+
+              if not draws or len(draws) == 0:
+                  print("::warning::No draws found")
+                  exit(0)
+
+              # Get the last (most recent) draw
+              last_draw = draws[-1]
+
+              # Check if it has a completed result with prizes
+              if last_draw.get('result') and \
+                 last_draw['result'].get('numbers') and \
+                 last_draw['result'].get('premiosGanhos') is not None and \
+                 last_draw['result'].get('premiosGanhos', 0) > 0:
+                  print("SHOULD_SEND=true")
+                  print(f"Draw ID: {last_draw.get('id')}")
+                  print(f"Prizes: US$ {last_draw['result'].get('premiosGanhos')}")
+              else:
+                  print("::warning::Last draw does not have completed result with prizes")
+                  exit(0)
+          except json.JSONDecodeError as e:
+              print(f"::error::JSON parse error: {e}")
+              exit(1)
+          EOF
+        shell: bash
+
+      - name: Send email if result ready
+        if: env.SHOULD_SEND == 'true'
+        run: |
+          python3 bolao/loterias/powerball/scripts/send_result_email.py --send-all powerball
+
+      - name: Notify on success
+        if: success() && env.SHOULD_SEND == 'true'
+        run: |
+          echo "✓ Powerball results email sent successfully"
+
+      - name: Notify if no result to send
+        if: env.SHOULD_SEND != 'true'
+        run: |
+          echo "ℹ No completed result found in data.js — skipping email send"
