@@ -3,193 +3,12 @@
    Dark/green theme
    ============================================================ */
 
-*, *::before, *::after { box-sizing: border-box; }
-
-.skip-link {
-  position: absolute;
-  top: -48px;
-  left: 8px;
-  background: var(--green);
-  color: #000;
-  font-weight: 700;
-  padding: 8px 14px;
-  border-radius: 4px;
-  z-index: 9999;
-  text-decoration: none;
-  font-size: 14px;
-  transition: top .15s;
-}
-.skip-link:focus { top: 8px; }
-
-:root {
-  --bg:       #07141b;
-  --bg2:      #0d2028;
-  --bg3:      #10252d;
-  --border:   #1f3b45;
-  --border2:  #29444d;
-  --green:    #2fe56e;
-  --green-dk: #03130b;
-  --text:     #eef7f1;
-  --muted:    #9cb2b9;
-  --danger-bg:#3d1520;
-  --danger-tx:#ffdbe1;
-  --danger-br:#8e2d42;
-  --gold:     #f59e0b;
-  --red:      #ff6b6b;
-}
-
-/* overflow-x: hidden sozinho ainda deixa a Safari do iOS fazer "rubber-band" horizontal
-   (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
-   clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
-   sozinho não resolve. Achado 2026-07-16 (Eduardo, side-scroll voltou no BR2026/CDB2026 mesmo
-   com hidden já presente) -- hidden mantido como fallback para navegadores sem suporte a clip. */
-html, body { overflow-x: hidden; overflow-x: clip; }
-body {
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-button, input, select, textarea { font: inherit; }
-
-/* ── Buttons ── */
-button {
-  border: 0;
-  border-radius: 12px;
-  padding: 11px 18px;
-  background: var(--green);
-  color: var(--green-dk);
-  font-weight: 900;
-  cursor: pointer;
-  transition: opacity .15s;
-}
-button:hover { opacity: .88; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-button.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
-button.danger { background: var(--danger-bg); color: var(--danger-tx); border: 1px solid var(--danger-br); }
-button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white-space: nowrap; }
-
-/* ── Topbar ── */
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
-  background: rgba(7,20,27,.94);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 18px;
-  flex-wrap: wrap;
-}
-.brand {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-right: auto;
-  font-weight: 900;
-  font-size: 16px;
-  white-space: nowrap;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
-.whatsapp-btn {
-  display: inline-flex;
-  gap: 6px;
-  align-items: center;
-  background: #25D366;
-  color: #000;
-  text-decoration: none;
-  border-radius: 999px;
-  padding: 8px 13px;
-  font-weight: 900;
-  font-size: 13px;
-  white-space: nowrap;
-}
-.whatsapp-btn img { width: 18px; height: 18px; }
-
-/* ── Bolão switcher ── */
-.bolao-switcher select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--bg3);
-  color: var(--text);
-  border: 1px solid var(--border2);
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  width: auto;
-}
-.bolao-switcher select:focus { border-color: var(--green); }
-
-.lang-links { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
-.lang-links button {
-  background: var(--bg3);
-  color: var(--text);
-  border: 1px solid var(--border2);
-  border-radius: 999px;
-  padding: 7px 12px;
-  font-size: 12px;
-  font-weight: 700;
-}
-.lang-links button.active {
-  background: var(--green);
-  color: var(--green-dk);
-  border-color: var(--green);
-}
-
-/* Base rule — always overridden by the max-width:900px or min-width:901px media queries below
-   (together they cover every viewport width), kept here only as the pre-JS/no-media-query
-   fallback and for correctness if that ever changes. See the min-width:901px block for the
-   real desktop column-count rationale (6, matching actual visible button count). */
-.nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; width: 100%; }
-.nav button {
-  background: var(--bg3);
-  color: var(--text);
-  padding: 8px 6px;
-  font-size: 13px;
-  font-weight: 700;
-  border: 1px solid transparent;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  /* Alvo de toque mínimo (WCAG) -- achado em auditoria (2026-07-14): no breakpoint mais estreito
-     (font-size 11px, padding 8px 4px) o botão ficava com ~30px de altura efetiva. */
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.nav button.active {
-  background: var(--green);
-  color: var(--green-dk);
-}
-
-/* ── Layout ── */
-main { max-width: 1140px; margin: 0 auto; padding: 20px 18px; }
-
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.22);
-}
-
-h1, h2, h3 { margin: .15em 0 .4em; }
-h2 { font-size: 1.25rem; }
-h3 { font-size: 1.05rem; }
+/* Reset, tokens, body base, buttons, topbar, brand, whatsapp-btn,
+   bolao-switcher, lang-links, nav, main, card, h1-h3 base rules moved to
+   bolao/shared/css/{tokens,reset,shell,navigation,forms}.css (phase 2 of
+   the platform visual-framework migration) — Copa's own styles.css now
+   only carries Copa-specific rules and overrides. See
+   docs/bolao/CANONICAL_VISUAL_COMPONENT_CATALOG.md for the full inventory. */
 
 /* ── Hero ── */
 .hero {
@@ -561,34 +380,11 @@ h3 { font-size: 1.05rem; }
   .podium-grid { grid-template-columns: 1fr; }
 }
 
-/* ── Form ── */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-/* Mesmo padrão de label/input do BR2026/CDB2026 (2 dos 3 apps já usavam este formato antes
-   desta migração) — ver DESIGN_SYSTEM.md "Input". */
-label { display: flex; flex-direction: column; gap: 5px; }
-label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-input, select {
-  width: 100%;
-  padding: 10px 12px;
-  border-radius: 9px;
-  border: 1px solid var(--border2);
-  background: var(--bg3);
-  color: var(--text);
-  outline: none;
-  transition: border-color .15s;
-  appearance: none;
-}
-input:focus, select:focus { border-color: var(--green); }
-input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
-/* Placar é sempre digitado (0-20), o spinner nativo do navegador não ajuda e ocupa espaço
-   à toa em telas estreitas. */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+/* ── Form ──
+   .form-grid / label / input / select base rules moved to
+   bolao/shared/css/forms.css (phase 2 migration). Mesmo padrão de
+   label/input do BR2026/CDB2026 (2 dos 3 apps já usavam este formato
+   antes desta migração) — ver DESIGN_SYSTEM.md "Input". */
 
 .payment-box { margin-top: 10px; }
 
@@ -608,39 +404,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
-.match-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px;
-}
-.match-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-.match-badge { color: var(--green); font-weight: 900; font-size: 13px; }
-.phase { color: var(--muted); font-size: 12px; }
-.match-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-.pill {
-  font-size: 11px;
-  color: var(--muted);
-  border: 1px solid var(--border2);
-  border-radius: 999px;
-  padding: 4px 8px;
-}
-.teams {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 6px;
-  align-items: center;
-  margin: 10px 0;
-}
-.team { font-weight: 800; font-size: 15px; display: flex; align-items: center; gap: 6px; }
-.team.right { justify-content: flex-end; }
-.vs { color: var(--muted); font-size: 13px; text-align: center; }
+/* .match-card / .match-head / .match-badge / .phase / .match-meta /
+   .pill / .teams / .team / .vs base rules moved to
+   bolao/shared/css/components.css (phase 2 migration). */
 .score-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; }
 .score-inputs label span { display: block; font-size: 12px; min-height: 1.3em; color: var(--text); font-weight: 700; }
 .score-inputs input { text-align: center; font-size: 20px; font-weight: 900; }
@@ -654,18 +420,8 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
    automated cross-app audit (2026-08, propagating the CDB2026 Fase 2.2 fix): this exact
    pattern visually covered form content (headings, labels, selects) at several viewport/scroll
    combinations, same defect class CDB2026 had. Fixed the same way: normal document flow, no
-   floating position at all -- structurally impossible to overlap a sibling. */
-.sticky-submit {
-  display: flex;
-  justify-content: flex-end;
-  padding: 16px 0 4px;
-}
-.sticky-submit button {
-  min-width: 200px;
-  box-shadow: 0 4px 24px rgba(47,229,110,.35);
-  font-size: 16px;
-  padding: 14px 28px;
-}
+   floating position at all -- structurally impossible to overlap a sibling.
+   Base .sticky-submit rules moved to bolao/shared/css/forms.css. */
 
 /* ── Receipt box ── */
 .receipt-ready { border-color: var(--green); }
@@ -678,24 +434,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 .receipt-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
 
-/* ── Ranking / Participants ── */
-.rank-row {
-  display: grid;
-  grid-template-columns: 48px 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 8px;
-}
-.rank-pos { font-size: 22px; text-align: center; }
-.rank-arrow { font-size: 12px; vertical-align: super; }
-.rank-arrow.up { color: var(--green); }
-.rank-arrow.down { color: #ff6b6b; }
-.points { font-size: 26px; color: var(--green); font-weight: 900; text-align: right; }
-.muted { color: var(--muted); font-size: 13px; }
+/* ── Ranking / Participants ──
+   .rank-row / .rank-pos / .rank-arrow / .points / .muted base rules
+   moved to bolao/shared/css/components.css (phase 2 migration). */
 
 /* ── Edit-by-code mode ── */
 /* ── Match-end notification banner ── */
@@ -825,206 +566,40 @@ input[readonly] {
 .pay-method-icon { width: 40px; height: 40px; object-fit: contain; display: block; }
 .pay-card a { color: var(--green); font-size: 13px; }
 
-/* ── Games ── */
-.game-card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 14px;
-  margin-bottom: 10px;
-}
-.game-top {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  margin-bottom: 8px;
-}
-.game-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: 10px; }
-/* Badge/status — mesmo tratamento visual usado em .game-status (BR2026/CDB2026) e
-   .paid-badge/.unpaid-badge (BR2026/CDB2026) — ver DESIGN_SYSTEM.md "Badge / Status indicator".
-   Nomes de classe mantidos por app (custo de renomear no JS > benefício); a convergência é só
-   visual (mesmo border-radius/padding/paleta baseada em var()). */
-.status-chip { border-radius: 999px; padding: 4px 10px; font-size: 11px; font-weight: 900; }
-.status-chip.done { background: rgba(47,229,110,.15); color: var(--green); border: 1px solid rgba(47,229,110,.3); }
-.status-chip.pending { background: var(--bg3); color: var(--muted); border: 1px solid var(--border2); }
-.status-chip.live { background: #4a0e0e; color: var(--red); animation: live-pulse 1.6s ease-in-out infinite; }
-.game-card.is-live { border-color: var(--red); }
-.game-score.is-live { border-color: var(--red); color: var(--red); }
-@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
-.game-teams {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  gap: 10px;
-  align-items: center;
-}
-.game-team { font-weight: 800; font-size: 18px; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
-.game-team.right { justify-content: flex-start; }
-.game-score {
-  font-size: 22px;
-  font-weight: 900;
-  color: var(--text);
-  text-align: center;
-  background: var(--bg);
-  border: 1px solid var(--border2);
-  border-radius: 12px;
-  padding: 8px 14px;
-  min-width: 80px;
-}
+/* ── Games ──
+   .game-card / .game-top / .game-meta / .status-chip / @keyframes
+   live-pulse / .game-teams / .game-team / .game-score base rules moved
+   to bolao/shared/css/components.css (phase 2 migration). Badge/status
+   treatment shared with .game-status (BR2026/CDB2026) and
+   .paid-badge/.unpaid-badge (BR2026/CDB2026) — ver DESIGN_SYSTEM.md
+   "Badge / Status indicator". Class names kept per-app (renaming JS
+   cost > benefit); convergence is visual only, now enforced via the
+   shared stylesheet instead of copy-pasted values. */
 
-/* ── Rules ── */
-.rules-table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-.rules-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
-.rules-table td:last-child { text-align: right; color: var(--green); font-weight: 900; }
-.rules-list { padding-left: 18px; margin: 10px 0; }
-.rules-list li { margin-bottom: 8px; }
-.footer-note { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.6; }
-
-/* ── Admin ── */
-.admin-entry { margin-bottom: 10px; }
-.admin-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
-
-/* ── Misc ── */
-.hidden { display: none !important; }
+/* ── Rules / Admin / Misc ──
+   .rules-table / .rules-list / .footer-note / .admin-entry /
+   .admin-toolbar / .hidden base rules moved to
+   bolao/shared/css/{components,admin,reset}.css (phase 2 migration). */
 
 /* ============================================================
    Responsive
    ============================================================ */
+/* Copa-specific responsive rules only — shared topbar/brand/nav/
+   rank-row/form-grid/game-teams/prob-bar/sticky-submit responsive
+   rules moved to bolao/shared/css/responsive.css (phase 2 migration).
+   Kept here: .hero/.bracket/.pay-grid/.count-grid/.next-match-* which
+   don't exist in the canonical shared component set (Copa-only
+   markup). */
 @media (max-width: 900px) {
-  main { padding: 12px 10px; }
   .hero { grid-template-columns: 1fr; }
-  .form-grid { grid-template-columns: 1fr; }
   .bracket { grid-template-columns: 1fr; }
   .pay-grid { grid-template-columns: 1fr; }
   .count-grid { grid-template-columns: repeat(4, 1fr); }
-  /* .brand and .whatsapp-btn both force nowrap on their own text, and
-     .bolao-switcher's <select> sizes to its selected option's text —
-     three non-shrinking items crammed into one row don't fit any phone
-     width (confirmed overflowing by 200px+ at 390px), dragging the whole
-     page into horizontal scroll. Switcher gets its own full-width row
-     instead of competing with brand+WhatsApp for row 1's space. */
-  .topbar {
-    display: grid;
-    /* minmax(0,1fr), not bare 1fr — a plain 1fr track still won't shrink
-       below its content's min-content width, which is exactly what let
-       .brand's un-shrinkable text force the whole grid wider than the
-       viewport in the first place. */
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto auto auto;
-    align-items: center;
-    padding: 10px 12px;
-    gap: 6px 8px;
-  }
-  .brand { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
-  /* text-overflow:ellipsis doesn't render on a flex container with multiple
-     children (only single-child inline text) — the subtitle just gets
-     silently clipped instead of showing "...". Hide it outright on mobile
-     rather than leave an invisible sliver of clipped text. */
-  .brand span { display: none; }
-  .whatsapp-btn { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; font-size: 12px; padding: 7px 10px; }
-  .bolao-switcher { grid-column: 1 / -1; grid-row: 2; }
-  .bolao-switcher select { width: 100%; }
-  .lang-links { grid-column: 1 / -1; grid-row: 3; }
-  /* Fase 2.2-correção item 3: mobile nav standardized to 3 columns across all three apps
-     (BR2026/CDB2026 already used 3 — this was the odd one out at 4). Was NOT just "match the
-     majority" for its own sake: with 4 columns and Copa's 6 real buttons, the last row only had
-     2 of 4 slots filled (uneven, visually lopsided). 3 columns gives Copa exactly 2 full rows
-     (3+3) — a strict improvement for Copa's own layout, not only cross-app consistency. Verified
-     with a real 320px viewport (Claude Browser resize_window + screenshot, not just CSS reading)
-     against BR2026 (7 buttons, 3 cols) and CDB2026 (6 buttons, 3 cols) before applying here:
-     "Probabilidades" (longest label) renders in full at 11px, no ellipsis truncation. */
-  .nav { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-  .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
-  /* A lone button left alone in the final row (visible item count not divisible by 3) sits at
-     1/3 width, left-aligned, with two empty cells beside it -- confirmed visually on BR2026
-     (7 visible buttons: 3+3+1, "Admin" orphaned) before this rule existed. Intent: select an
-     item that is BOTH "first of its (grid) row" AND the actual last DOM child -- true only when
-     it's alone in the final row.
-     IMPORTANT: `:nth-child` counts ALL DOM children, including the two `display:none` buttons
-     (Participantes/Pagamento) that sit INSIDE `.nav` at DOM positions 3-4 in this app's markup
-     -- they don't occupy a grid cell (display:none is removed from the box tree), but they DO
-     shift every subsequent element's `:nth-child` count by 2 versus its actual rendered grid
-     position. So "first of row" in DOM terms is `nth-child(3n)`, not the naive `nth-child(3n+1)`
-     you'd write if every `.nav` child were actually visible (that's what CDB2026's own CSS
-     uses below, correctly, because CDB2026 keeps its hidden nav buttons in a separate
-     `.nav-secondary` container outside `.nav` entirely, so no such offset exists there). Admin
-     is DOM position 8 here (8 mod 3 = 2) -- doesn't match today (6 visible items, 2 full rows,
-     no orphan), by design, not by accident. */
-  .nav button:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1; }
-  .sticky-submit button { width: 100%; }
   .receipt-actions button { flex: 1 0 auto; }
-  /* Compact ranking card, all on one row: position, name, points and the
-     "Ver palpites" button side by side — no separate row-band for the
-     button, so more entries fit per screen. Points gets a fixed-width
-     column (not auto/content-sized) so the button's horizontal position
-     never shifts whether the score is "0" or "117" — only the points text
-     itself shifts within its own reserved slot. */
-  .rank-row {
-    grid-template-columns: 28px 1fr 40px auto;
-    padding: 10px 12px;
-    gap: 8px;
-    align-items: start;
-  }
-  .rank-row .rank-pos { font-size: 16px; }
-  .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
-  .rank-row .points { font-size: 17px; text-align: right; }
-  .rank-row button { justify-self: end; }
-  /* .rank-row é reaproveitado por renderParticipants()/renderAdminPayments() com só 3 itens
-     (ícone, nome/detalhe, badge ou botão) -- sem essa classe, o 3º item cai na 3ª coluna do
-     template acima (40px, fixa, pensada só pro placar de 1-3 dígitos do ranking) e o texto do
-     badge/botão ("Pago"/"Marcar como pago") fica espremido/vazando pra fora da própria caixa.
-     Achado 2026-07-16 (Eduardo: "o pago esta fora da caixa"). */
-  .rank-row.participant-row { grid-template-columns: 28px 1fr auto; }
 }
 
 @media (max-width: 500px) {
   .count-grid { grid-template-columns: repeat(2, 1fr); }
-  /* Bracket cards — used by both the Palpites entry form and the admin's
-     result-entry form (actively used every match, often from a phone).
-     Same compact single-row treatment as .game-teams below: stay on one
-     row, shrink text, let a long name wrap within its own column instead
-     of stacking the whole row into 3 separate full-width blocks. */
-  .teams { gap: 4px; margin: 8px 0; }
-  .team { font-size: 13px; gap: 4px; min-width: 0; line-height: 1.15; }
-  .team .team-flag { flex-shrink: 0; }
-  .team .team-name { overflow-wrap: break-word; }
-  .team.right { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
-  .vs { font-size: 11px; margin: 0; }
-  /* Was a full 3-row stack (name row / score row / name row) per match —
-     each row full-width, so even short team names ("Spain", "Belgium")
-     took up 3x the vertical space they needed and the list felt endless.
-     Stay on one row like desktop; just shrink text/gaps to fit, and let a
-     genuinely long name (e.g. "Bosnia and Herzegovina") wrap onto a second
-     line within its own column instead of forcing the whole row to stack. */
-  .game-teams { gap: 6px; }
-  .game-team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
-  .game-team .team-flag { flex-shrink: 0; }
-  .game-team .team-name { overflow-wrap: break-word; }
-  .game-team.right { justify-content: flex-start; }
-  .game-score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
-  /* Pre-match placeholder ("×", no score yet) shouldn't take as much visual
-     weight as an actual score. */
-  .game-score.muted {
-    min-width: 0;
-    padding: 2px 10px;
-    font-size: 15px;
-    background: none;
-    border: none;
-  }
-
-  /* Prob-bar segments get too narrow for "Team NN%" on a phone-width
-     screen — let the label wrap onto two lines instead of being clipped
-     mid-word by text-overflow: ellipsis. */
-  .prob-bars { height: auto; min-height: 30px; }
-  .prob-bar {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    font-size: 10px;
-    line-height: 1.25;
-    padding: 3px 4px;
-  }
 
   /* "Próximo jogo" card: stack instead of squeezing the countdown next to
      long team names, and keep its 3/4-cell timer from inheriting the
@@ -1036,49 +611,8 @@ input[readonly] {
   .next-match-timer.four { grid-template-columns: repeat(4, 1fr); }
 }
 
-@media (min-width: 901px) {
-  /* Two-row topbar: brand/WA/lang/switcher on row 1, nav full-width on row 2.
-     Switcher is always far-right (col 4) to match BR2026/CDB2026 visual position. */
-  .topbar {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
-    grid-template-rows: auto auto;
-    align-items: center;
-    gap: 8px 12px;
-  }
-  .brand       { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
-  .whatsapp-btn{ grid-column: 2; grid-row: 1; align-self: center; }
-  .lang-links  { grid-column: 3; grid-row: 1; align-self: center; }
-  .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
-  .nav {
-    grid-column: 1 / -1;
-    grid-row: 2;
-    /* Fase 2.2-correção item 3: was repeat(8, ...) but only 6 nav buttons are ever visible
-       (Palpites/Ranking/Jogos/Probabilidades/Regras/Admin — Participantes/Pagamento are
-       permanently style="display:none" in index.html, see index.html comments). 8 columns for
-       6 items left 2 empty tracks stretching the row on desktop. Column count now matches the
-       real visible button count for THIS app, not copied from another app or left stale. */
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-    gap: 5px;
-  }
-  .nav button { font-size: 13px; padding: 8px 6px; }
-}
-
-/* Accessibility: visible focus ring for keyboard navigation */
-button:focus-visible,
-input:focus-visible,
-select:focus-visible {
-  outline: 2px solid #2fe56e;
-  outline-offset: 3px;
-}
-/* showSection() gives the new section's heading tabindex="-1" + .focus() on every tab switch,
-   so screen readers land on it -- the browser's default focus ring then showed as an ugly box
-   around the heading text (Eduardo, screenshot, 2026-07-16: "Remova essa caixa ao redor da
-   projeção"). This heading is never reached by real keyboard Tab navigation (not normally
-   focusable), so hiding the ring loses nothing for sighted keyboard users -- the actual
-   accessibility benefit (focus moving for screen readers) doesn't depend on the ring being
-   visible. Same fix in BR2026/CDB2026 (identical showSection() pattern in all three). */
-h2:focus, h3:focus { outline: none; }
+/* Accessibility: focus-visible ring and h2/h3 focus-outline suppression
+   moved to bolao/shared/css/reset.css and shell.css (phase 2 migration). */
 
 /* Demo entry badge in ranking */
 .demo-badge {
@@ -1113,81 +647,10 @@ h2:focus, h3:focus { outline: none; }
   font: inherit; color: inherit; cursor: pointer; text-decoration: underline;
 }
 
-/* ── Probability bars (live match card) ── */
-.prob-bars {
-  display: flex;
-  border-radius: 6px;
-  overflow: hidden;
-  height: 28px;
-  margin-top: 10px;
-  font-size: 11px;
-  font-weight: 700;
-  gap: 2px;
-}
-.prob-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 6px;
-  padding: 0 4px;
-  transition: width 0.7s ease;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  border-radius: 4px;
-}
-.prob-bar.home { background: #16a34a; color: #fff; }
-.prob-bar.draw  { background: #475569; color: #fff; }
-.prob-bar.away  { background: #1d4ed8; color: #fff; }
-
-/* ── Championship probability table ── */
-.prob-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-  margin-top: 8px;
-}
-.prob-table th {
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--border);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: .05em;
-  text-align: left;
-  color: var(--muted);
-}
-.prob-table td {
-  padding: 7px 8px;
-  border-bottom: 1px solid rgba(255,255,255,.05);
-  vertical-align: middle;
-}
-.prob-table tr:hover td { background: rgba(255,255,255,.03); }
-.prob-champ-bar {
-  height: 10px;
-  border-radius: 4px;
-  background: linear-gradient(90deg, #22c55e, #15803d);
-  display: inline-block;
-  min-width: 2px;
-  vertical-align: middle;
-  margin-right: 6px;
-}
-.prob-pct-champ { color: #4ade80; font-weight: 700; }
-.prob-pct-final { color: var(--muted); }
-.prob-pct-semi  { color: var(--muted); }
-.poly-bar { background: linear-gradient(90deg, #f59e0b, #d97706); }
-.prob-disclaimer {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 14px;
-  line-height: 1.5;
-}
-
-/* ── Per-match probability hint ── */
-.game-prob-hint {
-  font-size: 11px;
-  color: var(--muted);
-  margin-top: 3px;
-}
+/* ── Probability bars / championship table / per-match hint ──
+   .prob-bars / .prob-bar / .prob-table / .prob-champ-bar / .prob-pct-*
+   / .poly-bar / .prob-disclaimer / .game-prob-hint base rules moved to
+   bolao/shared/css/components.css (phase 2 migration). */
 
 /* ── Reopen banner (closed site, awaiting M88) ── */
 #reopenBanner { margin: 0 auto 16px; max-width: 680px; }
@@ -1265,38 +728,6 @@ h2:focus, h3:focus { outline: none; }
 .audit-changes { margin: 2px 0 0 16px; padding: 0; font-size: 12px; list-style: disc; }
 .audit-changes li { margin-bottom: 2px; }
 
-/* Toast notifications */
-.bolao-toasts {
-  position: fixed;
-  bottom: 20px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 10000;
-  pointer-events: none;
-  max-width: 320px;
-}
-.bolao-toast {
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
-  pointer-events: auto;
-  animation: toast-in 0.2s ease;
-  transition: opacity 0.3s ease;
-  word-break: break-word;
-}
-.bolao-toast.success { background: #0f2a0f; color: #69c569; border-left: 3px solid #4caf50; }
-.bolao-toast.error   { background: #2a0f0f; color: #f08080; border-left: 3px solid #e05050; }
-.bolao-toast.warn    { background: #2a1f00; color: #ffcc66; border-left: 3px solid #ff9800; }
-.bolao-toast.info    { background: #0d1f33; color: #80c8f0; border-left: 3px solid #4a9fd4; }
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@media (max-width: 480px) {
-  .bolao-toasts { right: 8px; left: 8px; max-width: none; }
-}
+/* Toast notifications — .bolao-toasts / .bolao-toast / @keyframes
+   toast-in and their max-width:480px responsive override moved to
+   bolao/shared/css/{components,responsive}.css (phase 2 migration). */
