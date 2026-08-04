@@ -21,6 +21,16 @@
 <link rel="icon" href="data:,">
 <title>Bolão Powerball — Ferrari</title>
 <link rel="stylesheet" href="css/styles.css">
+<script>
+// Registra Service Worker para cache-busting permanente
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js', {scope: './'}).then(function(reg) {
+    console.log('SW registered for ' + reg.scope);
+  }).catch(function(err) {
+    console.error('SW registration failed:', err);
+  });
+}
+</script>
 </head>
 <body>
 
@@ -106,11 +116,7 @@
   <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
 </main>
 
-<script>
-// Força fetch fresh — adiciona timestamp único a cada load para evitar cache
-// Roda inline antes dos scripts carregarem
-document.write('<script src="js/data.js?t=' + Date.now() + '"><\/script>');
-document.write('<script src="js/app.js?t=' + Date.now() + '"><\/script>');
-</script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
 </body>
 </html>
