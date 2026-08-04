@@ -1,0 +1,10 @@
+/* ============================================================
+   Bolão platform — shared admin
+   admin-toolbar / admin-entry. Extracted from Copa's styles.css
+   (lines 884-886). No distinct .admin-card exists in Copa — admin
+   panels reuse .card from shared/css/shell.css (see
+   docs/bolao/CANONICAL_VISUAL_COMPONENT_CATALOG.md, item 35).
+   ============================================================ */
+
+.admin-entry { margin-bottom: var(--space-4); }
+.admin-toolbar { display: flex; gap: var(--space-3); flex-wrap: wrap; margin-bottom: var(--space-6); }

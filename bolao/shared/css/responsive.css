@@ -1,0 +1,138 @@
+/* ============================================================
+   Bolão platform — shared responsive rules
+   Breakpoints and overrides for the shared navigation/forms/
+   components files only. Extracted from Copa's styles.css
+   (@media blocks at lines 894-979, 981-1037, 1039-1065, 1300-1302).
+   Component-specific responsive rules that only apply to markup
+   Copa alone has (hero, bracket, count-grid, next-match, etc.) stay
+   in bolao/copa2026/css/styles.css — not duplicated here.
+   ============================================================ */
+
+@media (max-width: 900px) {
+  main { padding: 12px 10px; }
+  .form-grid { grid-template-columns: 1fr; }
+
+  /* .brand and .whatsapp-btn both force nowrap on their own text, and
+     .bolao-switcher's <select> sizes to its selected option's text —
+     three non-shrinking items crammed into one row don't fit any phone
+     width, dragging the whole page into horizontal scroll. Switcher
+     gets its own full-width row instead of competing with brand+
+     WhatsApp for row 1's space. */
+  .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto auto auto auto;
+    align-items: center;
+    padding: 10px 12px;
+    gap: 6px 8px;
+  }
+  .brand { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
+  /* text-overflow:ellipsis doesn't render on a flex container with
+     multiple children (only single-child inline text) — the subtitle
+     just gets silently clipped instead of showing "...". Hide it
+     outright on mobile rather than leave an invisible sliver. */
+  .brand span { display: none; }
+  .whatsapp-btn { grid-column: 2; grid-row: 1; justify-self: end; align-self: center; font-size: 12px; padding: 7px 10px; }
+  .bolao-switcher { grid-column: 1 / -1; grid-row: 2; }
+  .bolao-switcher select { width: 100%; }
+  .lang-links { grid-column: 1 / -1; grid-row: 3; }
+
+  /* Mobile nav standardized to 3 columns across all three apps. */
+  .nav { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
+  .nav button { font-size: 11px; padding: 8px 4px; text-align: center; }
+  /* A lone button left alone in the final row sits at 1/3 width,
+     left-aligned, with two empty cells beside it. Select the item that
+     is both "first of its (grid) row" AND the actual last DOM child —
+     true only when it's alone in the final row. */
+  .nav button:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1; }
+
+  .sticky-submit button { width: 100%; }
+
+  /* Compact ranking card, all on one row: position, name, points and
+     the action button side by side. Points gets a fixed-width column
+     so the button's horizontal position never shifts with score width. */
+  .rank-row {
+    grid-template-columns: 28px 1fr 40px auto;
+    padding: 10px 12px;
+    gap: 8px;
+    align-items: start;
+  }
+  .rank-row .rank-pos { font-size: 16px; }
+  .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
+  .rank-row .points { font-size: 17px; text-align: right; }
+  .rank-row button { justify-self: end; }
+  /* .rank-row is reused by renderParticipants()/renderAdminPayments()
+     with only 3 items (icon, name/detail, badge or button) — without
+     this class the 3rd item falls into the ranking template's 3rd
+     column (40px, fixed for the score) and overflows. */
+  .rank-row.participant-row { grid-template-columns: 28px 1fr auto; }
+}
+
+@media (max-width: 500px) {
+  /* Bracket/game team rows — stay on one row, shrink text, let a long
+     name wrap within its own column instead of stacking into 3
+     separate full-width blocks. */
+  .teams { gap: 4px; margin: 8px 0; }
+  .team { font-size: 13px; gap: 4px; min-width: 0; line-height: 1.15; }
+  .team .team-flag { flex-shrink: 0; }
+  .team .team-name { overflow-wrap: break-word; }
+  .team.right { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
+  .vs { font-size: 11px; margin: 0; }
+
+  .game-teams { gap: 6px; }
+  .game-team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
+  .game-team .team-flag { flex-shrink: 0; }
+  .game-team .team-name { overflow-wrap: break-word; }
+  .game-team.right { justify-content: flex-start; }
+  .game-score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
+  /* Pre-match placeholder ("×", no score yet) shouldn't take as much
+     visual weight as an actual score. */
+  .game-score.muted {
+    min-width: 0;
+    padding: 2px 10px;
+    font-size: 15px;
+    background: none;
+    border: none;
+  }
+
+  /* Prob-bar segments get too narrow for "Team NN%" on a phone-width
+     screen — let the label wrap onto two lines instead of being
+     clipped mid-word by text-overflow: ellipsis. */
+  .prob-bars { height: auto; min-height: 30px; }
+  .prob-bar {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    font-size: 10px;
+    line-height: 1.25;
+    padding: 3px 4px;
+  }
+}
+
+@media (min-width: 901px) {
+  /* Two-row topbar: brand/WA/lang/switcher on row 1, nav full-width on
+     row 2. Switcher is always far-right (col 4) to match BR2026/
+     CDB2026 visual position. */
+  .topbar {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-rows: auto auto;
+    align-items: center;
+    gap: 8px 12px;
+  }
+  .brand { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
+  .whatsapp-btn { grid-column: 2; grid-row: 1; align-self: center; }
+  .lang-links { grid-column: 3; grid-row: 1; align-self: center; }
+  .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
+  .nav {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 5px;
+  }
+  .nav button { font-size: 13px; padding: 8px 6px; }
+}
+
+@media (max-width: 480px) {
+  .bolao-toasts { right: 8px; left: 8px; max-width: none; }
+}
