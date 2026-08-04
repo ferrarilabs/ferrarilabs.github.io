@@ -37,23 +37,14 @@ EMAILJS_HEADERS = {
     "Referer": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
 }
 
-# ── Email routing per participant (read from data.js, not hardcoded) ────────────
-# Maps participant name to (email, cc_email) — cc for family/household groups
-PARTICIPANT_EMAILS = {
-    "Eduardo Ferrari": ("emferrari@gmail.com", ""),
-    "Gustavo Bossle": ("REDACTED_EMAIL", ""),
-    "Tatiana Bossle": ("REDACTED_EMAIL", ""),  # Sent via Gustavo per data.js
-    "Marcelo Moreira": ("REDACTED_EMAIL", ""),
-    "Leandro Augustineli": ("REDACTED_EMAIL", ""),
-    "Alan Rech": ("REDACTED_EMAIL", "REDACTED_EMAIL"),
-    "Ewerton Gruba Silva": ("REDACTED_EMAIL", ""),
-    "Simone Hirle da Costa": ("REDACTED_EMAIL", ""),
-    "Camila Ribeiro": ("REDACTED_EMAIL", ""),
-    "Marcus Steffenon": ("REDACTED_EMAIL", ""),
-    "Samuel Huller": ("REDACTED_EMAIL", ""),
-    "Amanda Quaresma": ("REDACTED_EMAIL", ""),
-    "Rodrigo Hajj": ("REDACTED_EMAIL", ""),
-    "Nathalia Galeazzi Nedel": ("REDACTED_EMAIL", ""),
+# ── Supabase Config ──────────────────────────────────────────────────────────
+SUPABASE_URL = "https://cmhqkkfczotdnssupkni.supabase.co"
+SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaHFra2ZjemF0ZG5zc3Vwa25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODQyNjI0MzcsImV4cCI6MTk5OTgzODQzN30.sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
+
+# ── Email routing overrides (for family/household groups) ──────────────────────
+# When a user should receive email at a different address (e.g., Tatiana via Gustavo)
+PARTICIPANT_EMAIL_OVERRIDES = {
+    "Tatiana Bossle": "REDACTED_EMAIL",  # Sent via Gustavo per data.js
 }
 
 DRAWS = {
@@ -110,10 +101,69 @@ def get_active_draw(gameType="powerball"):
             return draw
     return None
 
+def load_participants_from_supabase(draw_id):
+    """
+    Load participant list from Supabase for the given draw.
+    Centralizes user management — single source of truth for emails.
+    Falls back to data.js if Supabase is unavailable.
+    """
+    try:
+        # Query: get all users participating in this powerball draw
+        url = (
+            f"{SUPABASE_URL}/rest/v1/user_bolao_participation?"
+            f"select=users(id,name,email)&"
+            f"bolao_type_id=in.(SELECT id FROM bolao_types WHERE code='powerball')&"
+            f"bolao_draw_id=eq.{draw_id}&"
+            f"status=eq.active"
+        )
+        req = urllib.request.Request(
+            url,
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+                "Content-Type": "application/json"
+            }
+        )
+
+        with urllib.request.urlopen(req, timeout=10) as r:
+            data = json.loads(r.read())
+
+        participants = []
+        seen_emails = set()
+
+        for record in data:
+            if not record.get("users"):
+                continue
+
+            user = record["users"]
+            name = user.get("name", "")
+            email = user.get("email", "")
+
+            if not name or not email:
+                continue
+
+            # Apply email overrides (e.g., Tatiana via Gustavo)
+            if name in PARTICIPANT_EMAIL_OVERRIDES:
+                email = PARTICIPANT_EMAIL_OVERRIDES[name]
+
+            # Skip if email already added (avoid duplicates from household groups)
+            if email in seen_emails:
+                continue
+
+            seen_emails.add(email)
+            participants.append({"name": name, "email": email})
+
+        return participants
+
+    except Exception as e:
+        print(f"⚠ Supabase unavailable: {e}")
+        print(f"  Falling back to data.js...")
+        return load_participants_from_data_js(draw_id)
+
+
 def load_participants_from_data_js(draw_id):
     """
-    Load participant list DIRECTLY from data.js for the given draw.
-    This ensures only actual participants receive emails — no duplicates, no extras.
+    Fallback: Load participant list from data.js if Supabase is unavailable.
     """
     try:
         with open("bolao/loterias/powerball/js/data.js", "r", encoding="utf-8") as f:
@@ -132,23 +182,44 @@ def load_participants_from_data_js(draw_id):
         name_pattern = r'{\s*name:\s*["\']([^"\']+)["\']'
         names = re.findall(name_pattern, participants_str)
 
-        # Map names to emails, handling groups (like Tatiana via Gustavo)
         participants = []
         seen_emails = set()
 
         for name in names:
-            if name not in PARTICIPANT_EMAILS:
-                print(f"⚠ WARNING: {name} not in PARTICIPANT_EMAILS mapping")
+            # Try Supabase email first, fallback to hardcoded if needed
+            email = None
+
+            # Quick lookup from Supabase users table
+            try:
+                url = f"{SUPABASE_URL}/rest/v1/users?name=eq.{name}&select=email"
+                req = urllib.request.Request(
+                    url,
+                    headers={
+                        "apikey": SUPABASE_ANON_KEY,
+                        "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
+                    }
+                )
+                with urllib.request.urlopen(req, timeout=5) as r:
+                    data = json.loads(r.read())
+                    if data and len(data) > 0:
+                        email = data[0].get("email")
+            except:
+                pass  # Fall through to override
+
+            # Apply email overrides if no Supabase match
+            if not email and name in PARTICIPANT_EMAIL_OVERRIDES:
+                email = PARTICIPANT_EMAIL_OVERRIDES[name]
+
+            if not email:
+                print(f"⚠ WARNING: {name} email not found")
                 continue
 
-            email, cc = PARTICIPANT_EMAILS[name]
-
-            # Skip if email already in list (e.g., Tatiana via Gustavo)
+            # Skip if email already in list
             if email in seen_emails:
                 continue
 
             seen_emails.add(email)
-            participants.append({"name": name, "email": email, "cc": cc})
+            participants.append({"name": name, "email": email})
 
         return participants
 
@@ -322,8 +393,8 @@ def run_test_send(gameType="powerball"):
         print("❌ No completed draw found for " + gameType)
         sys.exit(1)
 
-    # Load ACTUAL participants from data.js
-    participants = load_participants_from_data_js(draw["id"])
+    # Load ACTUAL participants from Supabase (with data.js fallback)
+    participants = load_participants_from_supabase(draw["id"])
 
     errors = validate_data(draw, participants)
     if errors:
@@ -375,8 +446,8 @@ def run_send_all(gameType="powerball"):
         print("❌ No completed draw found for " + gameType)
         sys.exit(1)
 
-    # Load ACTUAL participants from data.js — not hardcoded list
-    recipients = load_participants_from_data_js(draw["id"])
+    # Load ACTUAL participants from Supabase (with data.js fallback)
+    recipients = load_participants_from_supabase(draw["id"])
     if not recipients:
         print(f"❌ No participants found in data.js for draw {draw['id']}\n")
         sys.exit(1)
