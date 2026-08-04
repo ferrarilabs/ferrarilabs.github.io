@@ -1,0 +1,54 @@
+/* ============================================================
+   Bolão platform — shared reset / base
+   Extracted verbatim from Copa's styles.css (lines 6, 41-56, 190-192).
+   ============================================================ */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+/* overflow-x: hidden alone still lets Safari on iOS "rubber-band"
+   (bounce) horizontally when an ancestor has position: sticky +
+   backdrop-filter (the topbar) -- overflow-x: clip is stricter (no
+   programmable scroll region) and fixes it when hidden alone doesn't.
+   hidden kept as a fallback for browsers without clip support. */
+html, body { overflow-x: hidden; overflow-x: clip; }
+
+body {
+  margin: 0;
+  font-family: var(--font-family);
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--font-size-base);
+  line-height: var(--line-height-base);
+}
+
+button, input, select, textarea { font: inherit; }
+
+h1, h2, h3 { margin: .15em 0 .4em; }
+h2 { font-size: var(--font-size-h2); }
+h3 { font-size: var(--font-size-h3); }
+
+.hidden { display: none !important; }
+
+.skip-link {
+  position: absolute;
+  top: -48px;
+  left: 8px;
+  background: var(--green);
+  color: #000;
+  font-weight: var(--font-weight-bold);
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  z-index: 9999;
+  text-decoration: none;
+  font-size: 14px;
+  transition: top var(--transition-fast);
+}
+.skip-link:focus { top: 8px; }
+
+/* Accessibility: visible focus ring for keyboard navigation */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 2px solid #2fe56e;
+  outline-offset: 3px;
+}

@@ -1,0 +1,109 @@
+/* ============================================================
+   Bolão platform — shared navigation
+   topbar / brand / support-button / language-switcher /
+   tournament-switcher / primary-tabs, extracted from Copa's
+   styles.css (lines 75-176). Responsive rules for these components
+   live in shared/css/responsive.css, not here.
+   ============================================================ */
+
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-topbar);
+  background: rgba(7, 20, 27, .94);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--topbar-padding);
+  flex-wrap: wrap;
+}
+
+.brand {
+  display: flex;
+  gap: var(--space-3);
+  align-items: center;
+  margin-right: auto;
+  font-weight: var(--font-weight-black);
+  font-size: 16px;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.brand span { color: var(--muted); font-size: 12px; font-weight: var(--font-weight-regular); }
+
+.whatsapp-btn {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  background: #25D366;
+  color: #000;
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 13px;
+  font-weight: var(--font-weight-black);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.whatsapp-btn img { width: 18px; height: 18px; }
+
+/* ── Bolão switcher ── */
+.bolao-switcher select {
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-pill);
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  width: auto;
+}
+.bolao-switcher select:focus { border-color: var(--green); }
+
+.lang-links { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+.lang-links button {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-pill);
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+}
+.lang-links button.active {
+  background: var(--green);
+  color: var(--green-dk);
+  border-color: var(--green);
+}
+
+/* Base rule — always overridden by the max-width:900px or min-width:901px
+   media queries in shared/css/responsive.css (together they cover every
+   viewport width); kept here only as the pre-JS/no-media-query fallback. */
+.nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; width: 100%; }
+.nav button {
+  background: var(--bg3);
+  color: var(--text);
+  padding: 8px 6px;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  border: 1px solid transparent;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  /* Minimum touch target (WCAG). */
+  min-height: var(--tabs-min-height);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav button.active {
+  background: var(--green);
+  color: var(--green-dk);
+}

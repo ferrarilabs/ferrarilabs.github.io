@@ -1,0 +1,81 @@
+/* ============================================================
+   Bolão platform — shared design tokens
+   Canonical source: bolao/copa2026/css/styles.css (Copa do Mundo 2026),
+   the platform's visual golden master (see repo CLAUDE.md, "Golden
+   master rule"). Values below are copied verbatim from Copa's :root
+   block and repeated layout constants — nothing invented. See
+   docs/bolao/CANONICAL_VISUAL_COMPONENT_CATALOG.md for provenance.
+   ============================================================ */
+
+:root {
+  /* Color */
+  --bg:        #07141b;
+  --bg2:       #0d2028;
+  --bg3:       #10252d;
+  --border:    #1f3b45;
+  --border2:   #29444d;
+  --green:     #2fe56e;
+  --green-dk:  #03130b;
+  --text:      #eef7f1;
+  --muted:     #9cb2b9;
+  --danger-bg: #3d1520;
+  --danger-tx: #ffdbe1;
+  --danger-br: #8e2d42;
+  --gold:      #f59e0b;
+  --red:       #ff6b6b;
+
+  /* Typography */
+  --font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  --font-family-mono: ui-monospace, "Cascadia Code", monospace;
+  --font-size-base: 15px;
+  --line-height-base: 1.5;
+  --font-size-h2: 1.25rem;
+  --font-size-h3: 1.05rem;
+  --font-weight-regular: 400;
+  --font-weight-bold: 700;
+  --font-weight-black: 900;
+
+  /* Spacing scale (as actually used across Copa's styles.css) */
+  --space-1: 4px;
+  --space-2: 6px;
+  --space-3: 8px;
+  --space-4: 10px;
+  --space-5: 12px;
+  --space-6: 14px;
+  --space-7: 16px;
+  --space-8: 18px;
+  --space-9: 20px;
+
+  /* Radii */
+  --radius-sm: 4px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 14px;
+  --radius-2xl: 16px;
+  --radius-3xl: 18px;
+  --radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-card: 0 8px 32px rgba(0, 0, 0, .22);
+  --shadow-toast: 0 4px 16px rgba(0, 0, 0, .45);
+  --shadow-cta: 0 4px 24px rgba(47, 229, 110, .35);
+
+  /* Layout */
+  --content-max-width: 1140px;
+  --topbar-padding: 10px 18px;
+  --tabs-min-height: 44px; /* WCAG touch target, .nav button */
+  --z-topbar: 20;
+  --z-toast: 10000;
+
+  /* Transitions */
+  --transition-fast: .15s;
+  --transition-toast: .3s ease;
+
+  /* Breakpoints (referenced by shared/css/responsive.css — CSS custom
+     properties can't be used inside @media conditions, kept here as
+     documentation of the real values Copa uses). */
+  --breakpoint-mobile: 500px;
+  --breakpoint-tablet: 900px;
+  --breakpoint-desktop: 901px;
+  --breakpoint-toast: 480px;
+}
