@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Debug Powerball Data</title>
+  <style>
+    body { font-family: monospace; white-space: pre; overflow: auto; }
+    .draw { margin: 20px 0; border: 1px solid #ccc; padding: 10px; }
+    .error { color: red; }
+    .success { color: green; }
+  </style>
+</head>
+<body>
+
+<h2>Powerball Data Debug</h2>
+
+<script src="js/data.js?v=20260804-alan-fix"></script>
+
+<script>
+console.log("=== POWERBALL DATA DEBUG ===\n");
+
+if (!window.POWERBALL_DRAWS) {
+  console.log("ERROR: POWERBALL_DRAWS not found!");
+  document.body.innerHTML += '<div class="error">ERROR: POWERBALL_DRAWS not found!</div>';
+} else {
+  console.log(`Total draws: ${window.POWERBALL_DRAWS.length}`);
+  document.body.innerHTML += `<div class="success">✓ Found ${window.POWERBALL_DRAWS.length} draws</div>\n`;
+
+  window.POWERBALL_DRAWS.forEach(function(draw, idx) {
+    const output = `\n=== Draw ${idx + 1}: ${draw.id} ===
+Date: ${draw.drawing.drawDateLabel}
+Participants: ${draw.participants.length}
+`;
+    console.log(output);
+    document.body.innerHTML += `<div class="draw">
+${output}
+${draw.participants.map(p => `  - ${p.name} (${p.valor})`).join('\n')}
+</div>`;
+
+    const alan = draw.participants.find(p => p.name === "Alan Rech");
+    if (alan) {
+      console.log(`  ✓ Alan Rech FOUND in this draw`);
+      document.body.innerHTML += `<div class="success">✓ Alan Rech FOUND</div>`;
+    }
+  });
+}
+
+// Final summary
+console.log("\n=== SUMMARY ===");
+const totalParticipants = window.POWERBALL_DRAWS.reduce((sum, d) => sum + d.participants.length, 0);
+const allAlans = window.POWERBALL_DRAWS.filter(d => d.participants.some(p => p.name === "Alan Rech"));
+console.log(`Total participants across all draws: ${totalParticipants}`);
+console.log(`Alan Rech appears in ${allAlans.length} draw(s)`);
+if (allAlans.length > 0) {
+  console.log(`Alan's draws: ${allAlans.map(d => d.id).join(", ")}`);
+}
+</script>
+
+</body>
+</html>
