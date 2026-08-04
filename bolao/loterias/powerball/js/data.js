@@ -1,11 +1,20 @@
+// ARCHITECTURE: Reusable lottery pool system supporting multiple game types.
+//
 // Cada sorteio do bolão é uma entrada em `draws`. Para registrar um novo sorteio,
 // duplique um objeto abaixo, atualize os dados e preencha `result`/`profit` depois
 // que o sorteio sair — isso dá histórico automático (lucro, resultados anteriores etc.)
 // sem precisar reestruturar nada. `window.POWERBALL_DATA` sempre aponta para o mais
 // recente (o sorteio ativo/exibido na página principal).
-// Configuração visual/textual de cada loteria. Jogamos em ambas dependendo da situação —
-// cada sorteio (`draws[i]`) declara `gameType: "powerball" | "megamillions"` e a página
-// troca cor, logo e o nome da bola especial automaticamente.
+//
+// EXTENDING TO NEW LOTTERIES:
+// 1. Add new gameType to LOTTERY_GAME_TYPES below (icon, colors, API, parse, prizes)
+// 2. Set gameType: "newgame" in new draw objects
+// 3. App automatically: fetches results, calculates prizes, sends emails
+// See ../TEMPLATE_NEW_LOTTERY.md for detailed setup instructions.
+//
+// Configuração visual/textual de cada loteria. Jogamos em múltiplas dependendo da situação —
+// cada sorteio (`draws[i]`) declara `gameType: "powerball" | "megamillions" | "supalotto" | ...`
+// e a página troca cor, logo e o nome da bola especial automaticamente.
 window.LOTTERY_GAME_TYPES = {
   powerball: {
     label: "Powerball",
@@ -269,6 +278,60 @@ window.POWERBALL_DRAWS = [
       totalArrecadado: 166,
       valorUtilizado: 168,
       valorGuardadoProximoSorteio: -2
+    },
+
+    result: {
+      numbers: null,
+      special: null,
+      multiplier: null,
+      checkedAt: null
+    },
+
+    profit: {
+      premiosGanhos: null,
+      lucro: null
+    }
+  },
+  {
+    id: "2026-08-05",
+    gameType: "powerball",
+    drawing: {
+      name: "Powerball Jackpot",
+      jackpot: 800000000,
+      drawDateIso: "2026-08-05T22:59:00-04:00",
+      drawDateLabel: "05/08/2026 22:59 ET"
+    },
+
+    // Todos os 14 participantes recorrem para o próximo sorteio com emails já preenchidos
+    participants: [
+      { name: "Eduardo Ferrari", email: "emferrari@gmail.com", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Gustavo Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Tatiana Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Marcelo Moreira", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Leandro Augustineli", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Alan Rech", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Ewerton Gruba Silva", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Simone Hirle da Costa", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Camila Ribeiro", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Marcus Steffenon", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Samuel Huller", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Amanda Quaresma", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Rodrigo Hajj", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
+      { name: "Nathalia Galeazzi Nedel", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" }
+    ],
+
+    // Sem tickets comprados ainda — aguardando compra
+    sharedTickets: {
+      compradoPor: "—",
+      dataComprovante: "—",
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 0,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0
     },
 
     result: {
