@@ -1,0 +1,58 @@
+Forensic Visual Parity Audit — test log
+Generated: 2026-08-04T12:16:05Z
+Branch: forensic-visual-audit
+Commit: c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d
+
+=== node --check (all forensic scripts) ===
+OK: bolao/scripts/forensic/classify.mjs
+OK: bolao/scripts/forensic/fixture.mjs
+OK: bolao/scripts/forensic/main.mjs
+OK: bolao/scripts/forensic/report.mjs
+OK: bolao/scripts/forensic/run_forensic_audit.mjs
+
+=== node --check (all touched app.js/index.html via html5-scan) ===
+OK: bolao/copa2026/js/app.js
+OK: bolao/br2026/js/app.js
+OK: bolao/cdb2026/js/app.js
+
+=== python3 audit_scoring.py (all 3 apps) ===
+Running scoring/ranking static self-audit...
+
+  ✓ Bracket mirrors data.js
+  ✓ Perfect-bracket simulation resolves end-to-end
+  ✓ Bonus points + 4th place present and applied
+  ✓ Partial podium (M103 only) still applies its own bonus
+  ✓ Score parser bounds match the site's
+  ✓ Tiebreak sort order (total, exact, podium)
+
+✓ ALL CHECKS PASSED
+exit: 0
+Running BR2026 scoring/ranking static self-audit...
+
+  ✓ G4 exact/group/miss mutually exclusive
+  ✓ Perfect pick totals G4+Z4+SA6 correctly
+  ✓ Blank pick scores nothing (no false hits)
+  ✓ No result yet returns None, not 0 or a crash
+  ✓ Tiebreak sort order (total, SA6, G4 exact, Z4 exact)
+
+✓ ALL CHECKS PASSED
+exit: 0
+Running CDB2026 scoring/ranking static self-audit...
+
+  ✓ Match points mutually exclusive (exact/result/side/miss)
+  ✓ Tie bonus + podium bonus applied and summed
+  ✓ Wrong qualifier pick scores no tie bonus
+  ✓ Unresolved match/tie scores nothing (no crash)
+  ✓ Tiebreak sort order (total, champion, runnerUp, exact)
+
+✓ ALL CHECKS PASSED
+exit: 0
+
+=== node bolao/scripts/forensic/main.mjs (final run) ===
+
+FORENSIC VISUAL PARITY FAILED
+Property comparisons: IDENTICAL=2421 WITHIN_TOLERANCE=2 FUNCTIONALLY_JUSTIFIED=4 DIVERGENT=423 N/A=912
+Pixel-diff failures: 40 / 40 comparable
+Console errors: 0
+Report: /Users/eduardoferrari/Documents/GitHub/ferrarilabs.github.io/.claude/worktrees/pr120-final/docs/bolao/evidence/forensic-visual/forensic-visual-report.html
+FINAL EXIT: 1

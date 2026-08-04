@@ -1,0 +1,465 @@
+{
+  "meta": {
+    "generatedAtUtc": "2026-08-04T12:17:57.410Z",
+    "sourceCommit": "c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d",
+    "sourceTreeHash": "47c3deec45fc6b36cc823448e594e0fc4846b0c6"
+  },
+  "entries": [
+    {
+      "screen": "games-full",
+      "viewport": "320x568",
+      "file": "montage_games-full_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "320x568",
+      "file": "montage_ranking-full_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "games-full",
+      "viewport": "375x667",
+      "file": "montage_games-full_375x667.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "375x667",
+      "file": "montage_ranking-full_375x667.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "games-full",
+      "viewport": "390x844",
+      "file": "montage_games-full_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "390x844",
+      "file": "montage_ranking-full_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "games-full",
+      "viewport": "414x896",
+      "file": "montage_games-full_414x896.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "414x896",
+      "file": "montage_ranking-full_414x896.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "games-full",
+      "viewport": "768x1024",
+      "file": "montage_games-full_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "768x1024",
+      "file": "montage_ranking-full_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "games-full",
+      "viewport": "1024x768",
+      "file": "montage_games-full_1024x768.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "1024x768",
+      "file": "montage_ranking-full_1024x768.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "games-full",
+      "viewport": "1440x900",
+      "file": "montage_games-full_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-full",
+      "viewport": "1440x900",
+      "file": "montage_ranking-full_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "game-card-pre",
+      "viewport": "1440x900",
+      "file": "montage_game-card-pre.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "game-card-live",
+      "viewport": "1440x900",
+      "file": "montage_game-card-live.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "game-card-post",
+      "viewport": "1440x900",
+      "file": "montage_game-card-post.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "game-card-postponed",
+      "viewport": "1440x900",
+      "file": "montage_game-card-postponed.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-row-0",
+      "viewport": "1440x900",
+      "file": "montage_ranking-row-0.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-row-1",
+      "viewport": "1440x900",
+      "file": "montage_ranking-row-1.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-row-2",
+      "viewport": "1440x900",
+      "file": "montage_ranking-row-2.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-row-3",
+      "viewport": "1440x900",
+      "file": "montage_ranking-row-3.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-row-4",
+      "viewport": "1440x900",
+      "file": "montage_ranking-row-4.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    },
+    {
+      "screen": "ranking-row-5",
+      "viewport": "1440x900",
+      "file": "montage_ranking-row-5.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true
+        },
+        {
+          "app": "br2026",
+          "available": true
+        },
+        {
+          "app": "cdb2026",
+          "available": true
+        }
+      ]
+    }
+  ]
+}

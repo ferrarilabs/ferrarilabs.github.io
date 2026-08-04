@@ -1,0 +1,1593 @@
+{
+  "meta": {
+    "generatedAtUtc": "2026-08-04T12:17:41.450Z",
+    "sourceCommit": "c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d",
+    "sourceTreeHash": "47c3deec45fc6b36cc823448e594e0fc4846b0c6"
+  },
+  "comparisons": [
+    {
+      "component": "games-section-title",
+      "state": "static",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 30,
+            "br2026": 30,
+            "cdb2026": 30
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-card",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1066,
+            "cdb2026": 1104
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 190,
+            "br2026": 84,
+            "cdb2026": 187
+          },
+          "status": "FUNCTIONALLY_JUSTIFIED",
+          "reason": "Total card height is a function of each app's own real internal structure (Copa: single team/score row; BR2026: matchup row + meta line; CDB2026: one .confronto-card contains 1-2 .leg rows plus an optional aggregate/classificado line) -- CDB2026 extends the same base game-card component with an additional ida/volta/agregado layer per the audit's own rule, it does not get a visually different base component. Not a token: padding/margin/border-radius/background on the card itself are compared independently and must still be IDENTICAL. [approvedBy: Eduardo; expiresAt: 2027-08-04]"
+        }
+      }
+    },
+    {
+      "component": "game-date",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 104.65625,
+            "br2026": null,
+            "cdb2026": 75.765625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 26.5,
+            "br2026": null,
+            "cdb2026": 15
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-stage",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 93.640625,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": 19.5,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "home-team",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 487,
+            "br2026": 434.890625,
+            "cdb2026": 55.625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "away-team",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 487,
+            "br2026": 434.890625,
+            "cdb2026": 49.265625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-name",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 78.953125,
+            "br2026": 36.6875,
+            "cdb2026": 52.15625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-logo",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 21,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-score",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 80,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": 51,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-time",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 161.59375,
+            "br2026": 150.21875,
+            "cdb2026": null
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 26.5,
+            "br2026": 16,
+            "cdb2026": null
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-status",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 63.390625,
+            "br2026": 81,
+            "cdb2026": 80.75
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 26.5,
+            "br2026": 26.5,
+            "cdb2026": 26.5
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-card",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 1066,
+            "cdb2026": 1104
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 85.5,
+            "cdb2026": 187
+          },
+          "status": "DIVERGENT",
+          "reason": "ALLOWLIST STALE: conjunto de apps não bate (entrada: copa2026,br2026,cdb2026; achado: br2026,cdb2026)"
+        }
+      }
+    },
+    {
+      "component": "game-date",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-stage",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "home-team",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 480,
+            "cdb2026": 52.734375
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "away-team",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 480,
+            "cdb2026": 52.15625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-name",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 46.125,
+            "cdb2026": 49.265625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-logo",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-score",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 39.0625,
+            "cdb2026": 28.609375
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 18,
+            "cdb2026": 15
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-time",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-status",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 63.953125,
+            "cdb2026": 109.421875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 26.5,
+            "cdb2026": 26.5
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-card",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1066,
+            "cdb2026": 1104
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 152,
+            "br2026": 84,
+            "cdb2026": 241
+          },
+          "status": "FUNCTIONALLY_JUSTIFIED",
+          "reason": "Total card height is a function of each app's own real internal structure (Copa: single team/score row; BR2026: matchup row + meta line; CDB2026: one .confronto-card contains 1-2 .leg rows plus an optional aggregate/classificado line) -- CDB2026 extends the same base game-card component with an additional ida/volta/agregado layer per the audit's own rule, it does not get a visually different base component. Not a token: padding/margin/border-radius/background on the card itself are compared independently and must still be IDENTICAL. [approvedBy: Eduardo; expiresAt: 2027-08-04]"
+        }
+      }
+    },
+    {
+      "component": "game-date",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 109.90625,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": 26.5,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-stage",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 161.125,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": 19.5,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "home-team",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 483.078125,
+            "br2026": 480,
+            "cdb2026": 50.421875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "away-team",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 483.078125,
+            "br2026": 480,
+            "cdb2026": 91.09375
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-name",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 62.53125,
+            "br2026": 43.984375,
+            "cdb2026": 46.953125
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-logo",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 21,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": 27,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-score",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 87.84375,
+            "br2026": 55.796875,
+            "cdb2026": 29.6875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 51,
+            "br2026": 18,
+            "cdb2026": 15
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-time",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-status",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 81.5,
+            "br2026": 81.765625,
+            "cdb2026": 81.765625
+          },
+          "status": "WITHIN_TOLERANCE",
+          "reason": "diferença dentro da tolerância máxima (1px geometria)"
+        },
+        "height": {
+          "values": {
+            "copa2026": 26.5,
+            "br2026": 26.5,
+            "cdb2026": 26.5
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "game-card",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 1066,
+            "cdb2026": 1104
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 84,
+            "cdb2026": 187
+          },
+          "status": "DIVERGENT",
+          "reason": "ALLOWLIST STALE: conjunto de apps não bate (entrada: copa2026,br2026,cdb2026; achado: br2026,cdb2026)"
+        }
+      }
+    },
+    {
+      "component": "game-date",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": 207.359375
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": 15
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-stage",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "home-team",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 480,
+            "cdb2026": 53.015625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "away-team",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 480,
+            "cdb2026": 54.578125
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-name",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 46.453125,
+            "cdb2026": 49.546875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 19.5,
+            "cdb2026": 17
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "team-logo",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-score",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-time",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 11.296875,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 16,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "componente não presente/comparável em apps suficientes"
+        }
+      }
+    },
+    {
+      "component": "game-status",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 62.671875,
+            "cdb2026": 62.671875
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 26.5,
+            "cdb2026": 26.5
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-table",
+      "state": "static",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 430,
+            "br2026": 499,
+            "cdb2026": 543
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-0",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-0",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-0",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 198.46875,
+            "br2026": 198.46875,
+            "cdb2026": 134.671875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-0",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 46.75,
+            "br2026": 46.75,
+            "cdb2026": 46.75
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-1",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-1",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-1",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 208.625,
+            "br2026": 208.625,
+            "cdb2026": 206.203125
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-1",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48.734375,
+            "br2026": 48.734375,
+            "cdb2026": 48.734375
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 410.390625,
+            "br2026": 410.390625,
+            "cdb2026": 410.390625
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 49.359375,
+            "br2026": 49.359375,
+            "cdb2026": 49.359375
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-3",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-3",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-3",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 212.515625,
+            "br2026": 212.515625,
+            "cdb2026": 212.515625
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-3",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 49.359375,
+            "br2026": 49.359375,
+            "cdb2026": 49.359375
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-4",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-4",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-4",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 206.203125,
+            "br2026": 206.203125,
+            "cdb2026": 208.625
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-4",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48.015625,
+            "br2026": 48.015625,
+            "cdb2026": 48.015625
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-5",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-5",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-5",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 134.671875,
+            "br2026": 134.671875,
+            "cdb2026": 198.46875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-5",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 30.0625,
+            "br2026": 30.0625,
+            "cdb2026": 30.0625
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    }
+  ]
+}
