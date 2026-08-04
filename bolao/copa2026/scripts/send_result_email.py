@@ -156,7 +156,7 @@ def any_copa_match_live():
         "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
         "scoreboard?limit=300&dates=20260611-20260719"
     )
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(url)
     with urllib.request.urlopen(req, timeout=20) as r:
         data = json.loads(r.read())
     live_dates = [
@@ -179,7 +179,7 @@ def fetch_espn_results(saved_results=None):
         "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
         "scoreboard?limit=300&dates=20260611-20260719"
     )
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(url)
     with urllib.request.urlopen(req, timeout=20) as r:
         data = json.loads(r.read())
 
