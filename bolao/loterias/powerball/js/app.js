@@ -83,6 +83,7 @@
     var sorted = draw.participants.slice().sort(function (a, b) {
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
+    console.log("DEBUG renderTable:", draw.id, "participants:", sorted.length, "names:", sorted.map(p => p.name).join(", "));
     tbody.innerHTML = sorted.map(function (p) {
       var statusClass = p.status === "organizador" ? "organizador" : "verificado";
       var statusLabel = p.status === "organizador" ? "Organizador" : "✓ Verificado";
