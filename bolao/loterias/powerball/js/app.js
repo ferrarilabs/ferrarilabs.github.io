@@ -47,7 +47,9 @@
 
   function fmtUsd(n) {
     if (n === null || n === undefined) return "—";
-    return "US$" + n.toLocaleString("en-US");
+    // toLocaleString on a negative number puts the sign after "US$" (e.g. "US$-2") -- reads as a
+    // typo, not a debt. Put the sign in front of the whole label instead ("-US$2").
+    return (n < 0 ? "-" : "") + "US$" + Math.abs(n).toLocaleString("en-US");
   }
 
   function loadLocalOverrides() {
@@ -95,9 +97,13 @@
   function renderSummary(draw) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
     var hasIndividualValor = draw.participants.some(function (p) { return p.valor != null; });
+    // Fundo é rotativo entre sorteios (sobra + prêmio de um vira o "arrecadado" do próximo) --
+    // um total negativo é uma dívida real herdada, não um erro de exibição, mas "-US$2" sozinho
+    // parece quebrado. Rotula explicitamente quando isso acontece.
+    var totalLabel = draw.finance.totalArrecadado < 0 ? "Total arrecadado (déficit herdado)" : "Total arrecadado";
     var el = document.getElementById("pbSummary");
     var rows = [
-      [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"]
+      [fmtUsd(draw.finance.totalArrecadado), totalLabel]
     ];
     if (hasIndividualValor) rows.push([totalCotas, "Cotas (US$20 cada)"]);
     rows.push([draw.participants.length, "Participantes"]);
