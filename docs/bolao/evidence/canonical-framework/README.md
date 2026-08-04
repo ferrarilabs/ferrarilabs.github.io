@@ -1,92 +1,104 @@
-# Canonical visual-framework migration — evidence limitations and capture guide
+# Canonical visual-framework migration — real visual evidence (phase 7)
 
-This documents what was and was NOT verified for the Copa-canonical visual-framework migration
-(phases 1-6, branch `visual-framework-copa-canonical`), and gives Eduardo exact steps to capture
-real before/after screenshots himself, since this Claude Code session has no working screenshot
-capability for this task.
+Phase 6 of this migration shipped without real screenshots because no browser/Playwright was
+available at the time. Phase 7 redid the check properly: a real Chrome binary was found on this
+machine, Playwright was installed locally (`npm install --no-save playwright`, scoped to this
+repo checkout, not committed as a dependency since the repo intentionally has no build step —
+see `docs/bolao/adr/ADR-001-vanilla-javascript.md`), and real headless-Chrome captures were run
+against all three apps served locally. Nothing below is fabricated or guessed.
 
-## What was actually verified (no browser required)
+## What was actually done
 
-- **Every shared CSS file and every app's local CSS file is syntactically valid**: brace-balance
-  checked programmatically for all 11 CSS files (`bolao/shared/css/*.css` ×8 plus each app's
-  `css/styles.css` ×3).
-- **All three apps' `index.html` parse without fatal errors** under Python's `html.parser`.
-- **Every `<link>` to a shared CSS file resolves with HTTP 200** — verified by running
-  `python3 -m http.server` from the repo root and fetching all 14 relevant URLs
-  (`bolao/{copa2026,br2026,cdb2026}/index.html` and the 8 `bolao/shared/css/*.css` files, plus
-  each app's own `css/styles.css`) with Python's `urllib`. This confirms the relative paths in
-  each app's `<link rel="stylesheet">` tags are correct for that app's real folder depth — a
-  wrong path here would 404 silently in a real browser (no visible error, just an unstyled
-  page), so this check matters even without a browser.
-- **The full CSS/HTML/JS diff was read line-by-line during phases 2-5** (not this phase) —
-  every rule removed from an app's local `css/styles.css` was checked against the shared file it
-  moved to, value for value, before deletion. This is not the same as a rendered screenshot, but
-  it is a real verification, not a guess.
-- **Static CSS contract check** (`bolao/scripts/check_shared_visual_contract.mjs`, phase 5):
-  0 violations — no local app CSS file redefines a protected shared-component property on a
-  protected selector without a variant suffix.
+1. **Real browser confirmed and used.** `ls -d "/Applications/Google Chrome.app"` found a real
+   Chrome install. `npx playwright install chromium` reported it already had a cached
+   "Chrome for Testing" binary at `~/Library/Caches/ms-playwright/chromium-1234/` (Playwright's
+   own bundled Chromium build, not the system Chrome — used via the
+   `PLAYWRIGHT_CHROMIUM_PATH` environment variable this repo's own capture scripts already
+   support, see `bolao/cdb2026/scripts/visual/capture_evidence.mjs:150`). Confirmed launchable
+   headlessly before running anything else.
+2. **Real captures, using this repo's own pre-existing, previously-reviewed harness** (not
+   reinvented): `bolao/cdb2026/scripts/visual/capture_evidence.mjs` (general screenshots, 7
+   sections × 7 viewports × 3 apps) and `capture_admin_auth_evidence.mjs` (authenticated admin
+   panel, synthetic `sessionStorage` session seeded per each app's own documented key —
+   `adminOk`/`adminUntil` for Copa, `br2026_adminUntil`, `cdb2026_adminUntil` — real admin
+   password never touched, same technique already reviewed and in use in this repo before this
+   session).
+3. **Side-by-side montages**, Copa always the first column, using
+   `bolao/scripts/make_visual_comparison_montages.mjs` (also pre-existing) — 28 real PNG images
+   (7 screens × 4 viewports: 320×568, 390×844, 768×1024, 1440×900) under
+   `docs/bolao/evidence/canonical-framework/montages/`.
+4. **A real, previously-undiscovered capture bug found and fixed**: the first capture run had 7
+   `failed` entries, all CDB2026 "Palpites" (entry form). Root cause traced to
+   `bolao/cdb2026/js/app.js`'s `isPastEntryCutoff()`/`effectivePhaseCutoffMs()`: the visual test
+   fixture (`bolao/cdb2026/scripts/visual/game_fixtures.mjs`) had two ties (`fx-t4`/`fx-t5`,
+   used to exercise the "postponed" and "live" game states) dated `2026-08-05`/`2026-08-04` —
+   which, once this sandbox's simulated "today" reached `2026-08-04`, became the phase's
+   earliest known kickoff, pushing the whole "Oitavas" phase's entry cutoff into the past and
+   silently defaulting the app to the Ranking tab on load. This is a **test-fixture staleness
+   bug in dev tooling** (`game_fixtures.mjs`), not a CSS/framework regression and not app
+   business logic — confirmed by reading `routeCdb2026Espn()` in the same file, which resolves
+   the postponed/live ESPN mock states by team name only, never by this date. Fixed by moving
+   both dates to 2031 (matching every other synthetic date already in that fixture). After the
+   fix: 77/77 applicable captures succeeded, 0 failed.
+5. **Computed-style cross-app audit**, using this repo's own pre-existing
+   `bolao/scripts/audit_visual_consistency.mjs` (getComputedStyle-based, not source-reading) —
+   30 components × up to 15 properties each. Before the fixture fix: 8 unapproved DIVERGENT
+   findings, all traced to the same root cause above (CDB2026's marked `input`/`select`/
+   `button-primary`/`form-grid` elements weren't in the live DOM because the app had defaulted
+   to Ranking). After the fixture fix: **0 unapproved DIVERGENT findings** — 383 EQUAL, 23
+   JUSTIFIED (documented, approved variants, see `docs/bolao/evidence/visual-comparison/
+   ALLOWLIST.json`), 14 N/A (component genuinely doesn't exist in that app).
+6. **Console errors, checked live** via Playwright's own `page.on("console")`/`page.on(
+   "pageerror")` listeners at 390×844/768×1024/1440×900 for all three apps: every error found
+   is an expected external-network failure (ESPN `fetch()` blocked by CORS — this sandbox has no
+   real internet access to `site.api.espn.com`/Supabase, and both are unreachable by design in
+   an offline capture environment) or a CSP `frame-ancestors`-in-`<meta>` browser warning (also
+   pre-existing, unrelated to this migration). **Zero app-code console errors** in any app at
+   any tested viewport.
+7. **Horizontal overflow, checked live** (`document.documentElement.scrollWidth >
+   .clientWidth`) at the same three viewports for all three apps: **zero overflow** anywhere.
+8. **Sticky overlap, checked live** via this repo's own pre-existing
+   `bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs` (real Chromium, real scroll
+   positions 0/25/50/75/100% at 7 viewports): **zero overlap** at any sampled position/viewport.
+9. **Probability-bar `min-width` divergence, investigated and fixed** (not left as
+   "intentionally different"): see the dedicated note in `docs/bolao/CONSISTENCY_MATRIX.md`'s
+   phase 7 entry and the code comment at `bolao/shared/css/components.css`'s `.prob-bar` rule.
+   Empirically measured via Playwright (a real 3% segment at 390px, with the shared canonical
+   `min-width: 6px`) that the percentage label every app renders inside every segment
+   (`label(pct,name)`, `bolao/copa2026/js/app.js:2656` — this is Copa's OWN code, not a BR2026/
+   CDB2026 addition) gets genuinely clipped (`scrollWidth 22px > clientWidth 19px`) at 6px, and
+   is fully legible (`scrollWidth === clientWidth`, `40px` rendered) at 32px. 32px — the value
+   BR2026/CDB2026 already carried as an undocumented local override — was promoted to the
+   shared canonical value; BR2026/CDB2026's now-redundant local overrides were deleted.
 
-## What was NOT verified — honestly
+## Genuinely inaccessible screens (honestly excluded, not silently skipped)
 
-**No browser or screenshot tool was available in this environment for this task.**
-`mcp__claude-in-chrome__list_connected_browsers` was checked first, as instructed, and returned
-an empty list — no Chrome extension instance is connected to this account/session. The
-repo's own Playwright-based visual harness (`bolao/scripts/audit_visual_consistency.mjs`) was
-also checked and cannot run here either: `node -e "import('playwright')"` fails with
-`Cannot find package 'playwright'` — it is not installed in this environment.
+Per `bolao/cdb2026/scripts/visual/capture_evidence.mjs`'s own app-by-app `notApplicable`
+config (verified against each app's real product behavior, not assumed) and confirmed again in
+this phase's montage run (`docs/bolao/evidence/canonical-framework/montages/
+montage_manifest.json`, every `available:false` entry carries a `reason` string):
 
-This means the following were **not** verified in this session, and nothing below should be read
-as claimed or implied by the "verified" list above:
+| App | Screen(s) | Why inaccessible |
+|---|---|---|
+| Copa (copa2026) | Palpites, Regras, Admin (login + authenticated) | `CONFIG.archived` hides every nav button except Ranking for real visitors — the tournament concluded and the site is intentionally archived (see `CLAUDE.md`, "Copa do Mundo 2026 archive"). Not worked around: `applyArchiveMode()`/`CONFIG.archived` were never touched to force these screens open, matching this repo's own pre-existing rule for this exact situation. |
+| BR2026 | Palpites | Entries closed 2026-07-16 (`CLAUDE.md`) — the Palpites nav button is permanently disabled by product decision, not a rendering defect. |
 
-- Actual rendered appearance in a real browser, at any viewport width.
-- Runtime JavaScript console errors or warnings (the `node --check` syntax pass in
-  `docs/bolao/evidence/canonical-framework/COMPONENT_AUDIT.md`'s companion test run only proves
-  the JS parses — it says nothing about runtime behavior, DOM errors, or whether `app.js`
-  actually finds and applies every class the new shared CSS expects).
-- Whether the cascade order (shared files load before each app's local `css/styles.css`) produces
-  the same *computed* styles as before the migration — this was verified by manual value-by-value
-  comparison during phases 2-5, not by a real computed-style diff.
-- Font rendering, spacing, or color exactly as a human eye would perceive it.
-- Any interactive/hover/focus state, animation, or responsive breakpoint behavior in practice.
+Every other screen × app × viewport combination named in phase 6's coordinator instructions
+(topbar, tabs, ranking, full games list, game-card scheduled, game-card completed, rules, form,
+admin login, admin authenticated) was captured for real for every app where the screen is
+reachable by product design. **Zero `CAPTURE_FAILED` entries remain in
+`COMPONENT_AUDIT.md` for any reason other than the two rows above.**
 
-`docs/bolao/evidence/canonical-framework/COMPONENT_AUDIT.md` marks every one of the 28 canonical
-components `CAPTURE_FAILED` for exactly this reason, rather than guessing `EQUAL`.
+## Where the evidence lives
 
-## What a real before/after capture would show (if someone runs it)
-
-For each of the 28 canonical components (topbar, brand, nav/tabs, card, game-card, score,
-status-badge, probability-bar, ranking-row, rules-table, form-grid, input/select, all button
-variants, admin-toolbar, toast, etc.) captured side-by-side across the three apps at desktop
-(≥1440px) and mobile (390px) widths, the expected result — based on the CSS value-for-value
-comparison actually done in phases 2-5 — is:
-
-- **Pixel-identical**: topbar layout, brand mark, language switcher, primary tabs (aside from
-  column count, which is intentionally token-driven per app via `--nav-cols-desktop`), card
-  shell, game-card box (background/border/radius/padding), score display, status-badge/chip
-  colors and shape, probability-bar colors, ranking-row grid, ranking-position/score typography,
-  rules-table, form-grid/input/select, all button variants, admin-toolbar, toast — these all now
-  read from the exact same shared CSS file in all three apps, so there is no plausible
-  code-level mechanism for them to render differently absent a browser-specific quirk this
-  audit can't see.
-- **Visibly different, on purpose** (documented divergences, not migration gaps): CDB2026's
-  two-leg confronto-card (ida/volta rows) vs Copa/BR2026's single-row game-card; each app's
-  `.sticky-submit` alignment (`center` in BR2026/CDB2026 vs `flex-end` in Copa — flagged, not
-  resolved, in phases 3-4); each app's desktop tab count (6/7/6).
-
-## Steps for Eduardo to capture real evidence
-
-1. `cd` to the repo root, run `python3 -m http.server 8080`.
-2. Open each app in a real browser: `http://localhost:8080/bolao/copa2026/`,
-   `http://localhost:8080/bolao/br2026/`, `http://localhost:8080/bolao/cdb2026/`.
-3. For each of: topbar (desktop + mobile width), primary tabs, a ranking row, a game/confronto
-   card, the rules table, the entry form, and the admin login card — screenshot the same
-   component in all three apps at the same viewport width (desktop ≥1440px and mobile 390px are
-   the two widths this repo's other visual tooling already uses, e.g.
-   `docs/bolao/evidence/visual-comparison/`).
-4. Compare side by side. Anything that looks different and isn't one of the documented
-   divergences above is a real finding — file it the same way the phase 2-5 CHANGELOG entries
-   did (component, property, apps affected, root cause).
-5. If Chrome DevTools MCP / claude-in-chrome becomes available in a future session (connect a
-   browser via the extension first), re-run this exercise with Claude driving the browser
-   directly and update `COMPONENT_AUDIT.md`'s `CAPTURE_FAILED` rows to real `EQUAL`/`DIVERGENT`
-   classifications from actual computed-style/screenshot evidence.
+- `docs/bolao/evidence/visual/manifest.json` — capture_evidence.mjs's own manifest (112 entries:
+  77 captured, 35 notApplicable, 0 failed).
+- `docs/bolao/evidence/visual/admin_auth_manifest.json` — authenticated-admin capture manifest
+  (17 entries: 16 captured, 1 notApplicable).
+- `docs/bolao/evidence/visual-comparison/audit_visual_consistency.{md,json}` (and a copy in this
+  folder) — the full computed-style comparison, all 30 components, all properties, all three
+  apps.
+- `docs/bolao/evidence/canonical-framework/montages/` — 28 real side-by-side PNG montages, Copa
+  always the first column, plus their manifest.
+- `docs/bolao/evidence/canonical-framework/COMPONENT_AUDIT.md` — final classification, now
+  backed by the real evidence above instead of source-only inspection.
