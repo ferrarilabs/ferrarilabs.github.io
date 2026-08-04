@@ -169,6 +169,51 @@ window.POWERBALL_DRAWS = [
       premiosGanhos: null,
       lucro: null
     }
+  },
+  {
+    id: "2026-08-05",
+    gameType: "powerball",
+    drawing: {
+      name: "Powerball Jackpot",
+      jackpot: 800000000,
+      drawDateIso: "2026-08-05T22:59:00-04:00",
+      drawDateLabel: "05/08/2026 22:59 ET"
+    },
+
+    // 12 participantes com cotas de US$10 cada (sorteio secundário)
+    participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 0, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "—", status: "verificado" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "—", status: "verificado" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", txId: "—", status: "verificado" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", txId: "—", status: "verificado" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "—", status: "verificado" },
+      { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "—", status: "verificado" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "—", status: "verificado" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", txId: "—", status: "verificado" }
+    ],
+
+    sharedTickets: {
+      compradoPor: "—",
+      dataComprovante: "—",
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 110,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 110
+    },
+
+    result: null,
+    profit: {
+      premiosGanhos: null,
+      lucro: null
+    }
   }
 ];
 
