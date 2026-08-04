@@ -2004,17 +2004,15 @@ function renderRanking() {
     const bonusBadge = bonusLine ? `<br><span class="muted">${escapeHtml(bonusLine)}</span>` : "";
     const row = document.createElement("div");
     row.className = "rank-row";
-    row.dataset.visualRole = "ranking-row";
     row.innerHTML = `
-<div class="rank-pos" data-visual-role="ranking-position">${medal}${arrowHtml}</div>
-<div><b data-visual-role="ranking-name">${escapeHtml(e.entryName)}</b>${demoBadge}${bonusBadge}</div>
-<div class="points" data-visual-role="ranking-points">${e._score}</div>
+<div class="rank-pos">${medal}${arrowHtml}</div>
+<div><b>${escapeHtml(e.entryName)}</b>${demoBadge}${bonusBadge}</div>
+<div class="points">${e._score}</div>
 <button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
     const isOpen = _openRankDetails.has(e.id);
     detail.className = `card picks-detail${isOpen ? "" : " hidden"}`;
-    detail.dataset.visualRole = "ranking-detail";
     detail.dataset.rankDetail = e.id;
     // Perf: picksTable() builds a full 32-match table -- achado em auditoria (2026-07-14), era
     // recalculado pra TODA entrada em todo render (resync de 30s incluso), mesmo quando o detalhe
@@ -2143,22 +2141,21 @@ function renderGames() {
     const div = document.createElement("div");
     div.className = `game-card${live ? " is-live" : ""}`;
     div.dataset.state = live ? "in" : (hasScore ? "post" : "pre");
-    div.dataset.visualRole = "game-card";
     div.innerHTML = `
 <div class="game-top">
   <span class="match-badge">${escapeHtml(String(m.match))}</span>
-  <span class="muted" data-visual-role="game-stage">${escapeHtml(phaseLabel(m.phase || "Fase de grupos"))}${m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : ""}</span>
-  <span class="status-chip ${statusClass}" data-visual-role="game-status">${live ? "🔴 " : ""}${escapeHtml(statusLabel)}${live?.clock ? ` · ${escapeHtml(live.clock)}` : ""}</span>
+  <span class="muted">${escapeHtml(phaseLabel(m.phase || "Fase de grupos"))}${m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : ""}</span>
+  <span class="status-chip ${statusClass}">${live ? "🔴 " : ""}${escapeHtml(statusLabel)}${live?.clock ? ` · ${escapeHtml(live.clock)}` : ""}</span>
 </div>
 <div class="game-meta">
-  ${m.date  ? `<span class="pill" data-visual-role="game-date">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
-  ${m.timeET ? `<span class="pill" data-visual-role="game-time">🕒 ${escapeHtml(m.timeET)} · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT</span>` : ""}
+  ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
+  ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)} · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT</span>` : ""}
   ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
 </div>
 <div class="game-teams">
-  <div class="game-team" data-visual-role="home-team"><span class="team-name" data-visual-role="team-name">${escapeHtml(a)}</span><span class="team-flag" data-visual-role="team-logo">${escapeHtml(flag(a))}</span></div>
-  ${hasScore ? `<div class="game-score${live ? " is-live" : ""}" data-visual-role="game-score">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted" data-visual-role="game-score">×</div>`}
-  <div class="game-team right" data-visual-role="away-team"><span class="team-flag" data-visual-role="team-logo">${escapeHtml(flag(b))}</span><span class="team-name" data-visual-role="team-name">${escapeHtml(b)}</span></div>
+  <div class="game-team"><span class="team-name">${escapeHtml(a)}</span><span class="team-flag">${escapeHtml(flag(a))}</span></div>
+  ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
+  <div class="game-team right"><span class="team-flag">${escapeHtml(flag(b))}</span><span class="team-name">${escapeHtml(b)}</span></div>
 </div>
 ${live ? goalScorersHtml(live, a, b) : ""}
 ${live ? livePlaysHtml(live, a, b, m.match) : ""}
