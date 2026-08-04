@@ -136,6 +136,8 @@ def fetch_espn_candidates():
             "awayScore": away_score,
             "homeWinner": (ev_state == "post" and not postponed and home.get("winner") is True),
             "awayWinner": (ev_state == "post" and not postponed and away.get("winner") is True),
+            "venue":     comp.get("venue", {}).get("fullName") or "",
+            "city":      comp.get("venue", {}).get("address", {}).get("city") or "",
         })
     return out
 
@@ -204,6 +206,55 @@ def sb_save_leg(phase_id, tie_id, leg, goals_home, goals_away, source="espn-auto
     state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
     status = _sb_upsert(state)
     return status, state
+
+
+def sb_backfill_schedule(espn_candidates):
+    """Server-side counterpart of autoSyncEspn()'s backfill pass in app.js (added 5a9dad4,
+    2026-08-04) -- that logic only runs client-side when an admin has the panel open, so a leg
+    (typically the volta) whose kickoff/venue ESPN has already published stays "Data a definir"
+    on the public site until someone happens to open the admin panel. This cron already runs
+    every 10 minutes (see .github/workflows/cdb2026_result_emails.yml) checking for score
+    results, so backfilling schedule-only fields (kickoff/venue/city -- NEVER
+    goalsHome/goalsAway/status/qualifiedTeamId) here on every tick closes that gap without new
+    infrastructure. Same withinResultMatchWindow safety anchor as the score-matching path: worst
+    case of a wrong team-name match here is a cosmetically wrong date/venue, never a result or a
+    payment. Returns the number of legs patched.
+    """
+    state = sb_fetch()
+    patched = 0
+    for phase in state.get("phases", {}).values():
+        for tie in phase.get("ties", {}).values():
+            if not tie.get("teamA") or not tie.get("teamB"):
+                continue
+            matches = tie.get("matches") or {}
+            tie_kickoff_anchor = next((m.get("kickoff") for m in matches.values() if m and m.get("kickoff")), None)
+            for leg, m in matches.items():
+                if not m or m.get("kickoff") or m.get("goalsHome") is not None:
+                    continue  # already scheduled, or already played -- nothing to backfill
+                home = tie["teamB"] if leg == "second" else tie["teamA"]
+                away = tie["teamA"] if leg == "second" else tie["teamB"]
+                ev = next((c for c in espn_candidates
+                           if c["homeTeam"] == home and c["awayTeam"] == away and c.get("dateISO")
+                           and within_result_match_window(c["dateISO"], m.get("kickoff") or tie_kickoff_anchor)), None)
+                if not ev:
+                    continue
+                matches[leg] = {
+                    **m, "kickoff": ev["dateISO"],
+                    "venue": ev.get("venue") or m.get("venue"),
+                    "city": ev.get("city") or m.get("city"),
+                }
+                patched += 1
+    if not patched:
+        return 0
+    state.setdefault("auditLog", []).insert(0, {
+        "ts": datetime.now(timezone.utc).isoformat(), "action": "backfill-schedule", "admin": True,
+        "detail": {"legsPatched": patched, "source": "espn-auto-cron"},
+    })
+    if len(state["auditLog"]) > 200:
+        state["auditLog"] = state["auditLog"][:200]
+    state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    _sb_upsert(state)
+    return patched
 
 
 def sb_lock_tie(phase_id, tie_id, qualified_side, source="espn-auto"):
@@ -740,6 +791,14 @@ def run_auto():
     except Exception as ex:
         print(f"ESPN fetch failed: {ex}")
         sys.exit(1)
+
+    try:
+        patched = sb_backfill_schedule(espn)
+        if patched:
+            print(f"AUTO — backfilled kickoff/venue for {patched} leg(s) missing schedule info.")
+            state = sb_fetch()  # re-fetch so downstream logic sees the patched kickoff fields
+    except Exception as ex:
+        print(f"Schedule backfill failed: {ex} — continuing with result check.")
 
     new_legs = _find_new_legs(state, espn)
 

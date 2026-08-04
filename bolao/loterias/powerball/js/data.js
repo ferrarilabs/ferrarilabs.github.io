@@ -155,11 +155,9 @@ window.POWERBALL_DRAWS = [
       ]
     },
 
-    finance: {
-      totalArrecadado: 280,
-      valorUtilizado: 138,   // 46 tickets x US$3 (Power Play)
-      valorGuardadoProximoSorteio: 142
-    },
+    // finance é calculado automaticamente em app.js (computeFinance) a partir de participants[]
+    // e sharedTickets -- não editar à mão aqui, isso ficava dessincronizado (achado real,
+    // 2026-08-05 ficou com totalArrecadado: 0 travado enquanto o saldo real já era -$2).
 
     // Preenchido manualmente após o sorteio de 01/08/2026.
     result: {
@@ -268,14 +266,7 @@ window.POWERBALL_DRAWS = [
       ]
     },
 
-    // totalArrecadado = US$142 (sobra) + US$24 (prêmio) = US$166
-    // valorUtilizado = 56 tickets × US$3 = US$168 (US$2 cobertos de fora)
-    // valorGuardadoProximoSorteio = 166 - 168 = -2 (crédito para recuperar no próximo)
-    finance: {
-      totalArrecadado: 166,
-      valorUtilizado: 168,
-      valorGuardadoProximoSorteio: -2
-    },
+    // finance calculado automaticamente (ver comentário no sorteio 08-01 acima).
 
     result: {
       numbers: null,
@@ -324,11 +315,7 @@ window.POWERBALL_DRAWS = [
       series: []
     },
 
-    finance: {
-      totalArrecadado: 0,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0
-    },
+    // finance calculado automaticamente (ver comentário no sorteio 08-01 acima).
 
     result: {
       numbers: null,
