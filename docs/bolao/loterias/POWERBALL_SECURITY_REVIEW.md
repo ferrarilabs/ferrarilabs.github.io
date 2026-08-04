@@ -49,7 +49,8 @@ the URL. It contains, in plaintext, for every participant across all three draws
 
 - Full name
 - Email address (as of `da774b3`/`8b45c01`, added this session for the current draw)
-- Zelle/Venmo/Cash App transaction IDs (`txId` field — e.g. `"REDACTED_PAYMENT_REFERENCE"`, `"REDACTED_PAYMENT_REFERENCE"`)
+- Zelle/Venmo/Cash App transaction IDs (`txId` field on each participant row — see `js/data.js`;
+  not reproduced here to avoid copying real transaction identifiers into a second file)
 - Payment method and exact payment timestamp
 
 **Mitigation already in place**: `index.html:6` sets
