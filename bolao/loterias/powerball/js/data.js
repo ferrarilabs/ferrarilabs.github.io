@@ -319,6 +319,7 @@ window.POWERBALL_DRAWS = [
       { name: "Rodrigo Hajj", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
       { name: "Nathalia Galeazzi Nedel", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" }
     ],
+      { name: "Jorge Augusto Junqueira Ferreira", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "04/08/2026", hora: "—", txId: "—", status: "recorrente" }],
 
     // Sem tickets comprados ainda — aguardando compra
     sharedTickets: {
