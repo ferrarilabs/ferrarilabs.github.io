@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "antes-do-sorteio",
+    "eventType": "lembrete_sorteio",
+    "subject": "⏰ Sorteio Powerball hoje — 01/08/2026 22:59 ET",
+    "file": "antes-do-sorteio.html"
+  },
+  {
+    "scenario": "tickets-publicados",
+    "eventType": "tickets_publicados",
+    "subject": "🎫 Tickets publicados — Powerball 01/08/2026 22:59 ET",
+    "file": "tickets-publicados.html"
+  },
+  {
+    "scenario": "sem-premio",
+    "eventType": "sem_premio",
+    "subject": "🎟️ Resultado do Sorteio Powerball — 01/08/2026 22:59 ET",
+    "file": "sem-premio.html"
+  },
+  {
+    "scenario": "com-premio",
+    "eventType": "premio_identificado",
+    "subject": "🎟️ Resultado do Sorteio Powerball — 01/08/2026 22:59 ET",
+    "file": "com-premio.html"
+  },
+  {
+    "scenario": "reenvio-manual-correcao",
+    "eventType": "correcao_administrativa",
+    "subject": "Powerball — 01/08/2026 22:59 ET",
+    "file": "reenvio-manual-correcao.html"
+  }
+]
