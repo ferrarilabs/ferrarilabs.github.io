@@ -68,7 +68,7 @@ window.LOTTERY_GAME_TYPES = {
 
 window.POWERBALL_DRAWS = [
   {
-    id: "2026-08-01",
+    id: "2026-08-03",
     gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
@@ -154,20 +154,14 @@ window.POWERBALL_DRAWS = [
 
     // Preenchido manualmente após o sorteio de 01/08/2026.
     result: {
-      numbers: [6, 17, 27, 48, 50],
-      special: 5,
-      multiplier: 3,
-      checkedAt: "01/08/2026 23:59 ET",
-      premiosGanhos: 24,
+      numbers: [8, 30, 41, 48, 54],
+      special: 4,
+      multiplier: 2,
+      checkedAt: "04/08/2026 07:25 ET",
+      premiosGanhos: 16,
       jackpotHit: false,
-      breakdown: ["1 + Powerball ($12)", "Powerball ($12)"]
+      breakdown: ["Powerball ($8)", "Powerball ($8)"]
     },
-
-    // Bilhetes que acertaram — renderizados em negrito
-    winningTickets: [
-      "06-15-26-34-37 — PB 05",
-      "24-28-45-53-54 — PB 05"
-    ],
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
     // profit = prêmios ganhos - valorUtilizado (não conta o valor guardado, que é reciclado).
@@ -177,21 +171,32 @@ window.POWERBALL_DRAWS = [
     }
   },
   {
-    id: "2026-08-03",
+    id: "2026-08-05",
     gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
-      jackpot: 748000000,
-      drawDateIso: "2026-08-03T22:59:00-04:00",
-      drawDateLabel: "03/08/2026 22:59 ET"
+      jackpot: 800000000,
+      drawDateIso: "2026-08-05T22:59:00-04:00",
+      drawDateLabel: "05/08/2026 22:59 ET"
     },
 
-    // Sorteio aberto para novas cotas — saldo do sorteio anterior é reciclado.
+    // 12 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" }
+      { name: "Eduardo Ferrari", cotas: 1, valor: 0, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "—", status: "verificado" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "—", status: "verificado" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", txId: "—", status: "verificado" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", txId: "—", status: "verificado" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "—", status: "verificado" },
+      { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "—", status: "verificado" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "—", status: "verificado" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", txId: "—", status: "verificado" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "04/08/2026", hora: "1:15 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", email: "REDACTED_EMAIL" }
     ],
 
-    // Sem tickets comprados ainda — aguardando confirmação de participantes.
     sharedTickets: {
       compradoPor: "—",
       dataComprovante: "—",
@@ -200,18 +205,12 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 142,
+      totalArrecadado: 110,
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 142
+      valorGuardadoProximoSorteio: 110
     },
 
-    result: {
-      numbers: null,
-      special: null,
-      multiplier: null,
-      checkedAt: null
-    },
-
+    result: null,
     profit: {
       premiosGanhos: null,
       lucro: null
