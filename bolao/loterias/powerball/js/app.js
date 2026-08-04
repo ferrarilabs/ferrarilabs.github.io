@@ -96,7 +96,7 @@
     });
     tbody.innerHTML = sorted.map(function (p) {
       var statusClass = p.status === "organizador" ? "organizador" : (p.status === "recorrente" ? "recorrente" : "verificado");
-      var statusLabel = p.status === "organizador" ? "Organizador" : (p.status === "recorrente" ? "↻ Saldo reciclado" : "✓ Verificado");
+      var statusLabel = p.status === "organizador" ? "Organizador" : (p.status === "recorrente" ? "↻ Recorrente" : "✓ Verificado");
       return "<tr>" +
         "<td>" + p.name + "</td>" +
         "<td>" + fmtUsd(p.valor) + "</td>" +
@@ -405,6 +405,60 @@
     wireShareButtons(draw, gt);
   }
 
+  // === ADMIN FUNCTIONS ===
+  var adminSession = {
+    isAuthenticated: false,
+    loginTime: null,
+    loginAttempts: 0,
+    lockoutUntil: null
+  };
+
+  function guardAdmin() {
+    if (!adminSession.isAuthenticated) return false;
+    var now = Date.now();
+    if (now > adminSession.loginTime + 30 * 60 * 1000) {
+      adminSession.isAuthenticated = false;
+      return false;
+    }
+    return true;
+  }
+
+  async function adminLogin(password) {
+    var now = Date.now();
+    if (adminSession.lockoutUntil && now < adminSession.lockoutUntil) {
+      alert("Muitas tentativas falhadas. Tente novamente em 15 minutos.");
+      return;
+    }
+    adminSession.lockoutUntil = null;
+    adminSession.loginAttempts = 0;
+
+    var buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password));
+    var hash = [...new Uint8Array(buf)].map(x => x.toString(16).padStart(2, "0")).join("");
+
+    if (hash === POWERBALL_CONFIG.adminPasswordHash) {
+      adminSession.isAuthenticated = true;
+      adminSession.loginTime = Date.now();
+      document.getElementById("pbAdminLoginModal").style.display = "none";
+      document.getElementById("pbAdminPanel").style.display = "flex";
+      document.getElementById("pbAdminPasswordInput").value = "";
+      return;
+    }
+
+    adminSession.loginAttempts++;
+    if (adminSession.loginAttempts >= 5) {
+      adminSession.lockoutUntil = now + 15 * 60 * 1000;
+      alert("Muitas tentativas. Bloqueado por 15 minutos.");
+      return;
+    }
+    document.getElementById("pbAdminLoginError").style.display = "block";
+    document.getElementById("pbAdminLoginError").textContent = "Senha incorreta. " + (5 - adminSession.loginAttempts) + " tentativas restantes.";
+  }
+
+  function adminLogout() {
+    adminSession.isAuthenticated = false;
+    document.getElementById("pbAdminPanel").style.display = "none";
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     renderDrawSelector();
     renderDraw(currentIdx);
@@ -412,5 +466,52 @@
     document.getElementById("pbDrawSelect").addEventListener("change", function (e) {
       renderDraw(Number(e.target.value));
     });
+
+    // Admin link
+    var adminLink = document.getElementById("pbAdminLink");
+    if (adminLink) {
+      adminLink.addEventListener("click", function (e) {
+        e.preventDefault();
+        if (!guardAdmin()) {
+          document.getElementById("pbAdminLoginModal").style.display = "flex";
+          document.getElementById("pbAdminPasswordInput").focus();
+        }
+      });
+    }
+
+    // Admin login button
+    var loginBtn = document.getElementById("pbAdminLoginBtn");
+    if (loginBtn) {
+      loginBtn.addEventListener("click", function () {
+        var pwd = document.getElementById("pbAdminPasswordInput").value;
+        adminLogin(pwd);
+      });
+    }
+
+    // Admin login cancel
+    var cancelBtn = document.getElementById("pbAdminLoginCancelBtn");
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", function () {
+        document.getElementById("pbAdminLoginModal").style.display = "none";
+        document.getElementById("pbAdminPasswordInput").value = "";
+        document.getElementById("pbAdminLoginError").style.display = "none";
+      });
+    }
+
+    // Admin close button
+    var closeBtn = document.getElementById("pbAdminCloseBtn");
+    if (closeBtn) {
+      closeBtn.addEventListener("click", function () {
+        adminLogout();
+      });
+    }
+
+    // Password enter key
+    var pwdInput = document.getElementById("pbAdminPasswordInput");
+    if (pwdInput) {
+      pwdInput.addEventListener("keyup", function (e) {
+        if (e.key === "Enter") adminLogin(pwdInput.value);
+      });
+    }
   });
 })();
