@@ -106,7 +106,7 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 59 | Versionamento de cache-busting (`?v=`) | `2aaedfb` | `2aaedfb` | `2aaedfb` | Sim | CONSISTENT | Os três referenciam o mesmo hash de commit — sincronizados pelo bot `sync_version.yml` | — | — |
 | 60 | `robots` meta tag | `noindex,nofollow` | idêntico | idêntico | Sim | CONSISTENT | Nenhuma | — | — |
 | 61 | Símbolo do time (junto ao nome) | Bandeira do país (`DATA.flags`, emoji) — correto para seleções nacionais | Escudo real da ESPN (`_teamLogos`, fetch ao vivo do standings), classes `.team-logo` (14px) / `.match-logo` (22px) | Escudo real da ESPN, mesmas URLs/IDs verificados manualmente e mesmas classes CSS que o BR2026 (`DATA.teamLogos` fixo em `data.js`, sem fetch ao vivo — CDB2026 não tem API própria) | Bandeira só faz sentido pra seleção; clubes devem usar escudo real — Copa é INTENTIONALLY_DIFFERENT por natureza do torneio, BR2026/CDB2026 devem bater entre si | CONSISTENT (BR2026 ↔ CDB2026); INTENTIONALLY_DIFFERENT (Copa, tournament-specific) | Resolvido em v1.15/v2.1 depois de um round de bugs reais: escudo do BR2026 renderizava gigante (`<img>` sem `width`/`height`, `.team-logo` sem dimensão no CSS) e o CDB2026 tinha uma bolinha colorida com iniciais em vez de escudo real — ver LESSONS_LEARNED.md | — | Nenhuma — ambos os apps de clube agora usam o mesmo padrão de escudo real |
-| 62 | Tokens de cor `--gold`/`--red` no `:root` | Não existiam (hex literal espalhado: `#f59e0b`, `#ff6b6b`) até v4.126; agora existem, `--red:#ff6b6b` | `--gold:#f59e0b`, `--red:#f87171` (já existiam) | idêntico ao BR2026 | Sim, todo app deveria ter os mesmos tokens de cor semântica | NEEDS_REVIEW | Tokens agora existem nos três, mas `--red` tem valor diferente entre a Copa (`#ff6b6b`, já usado ao vivo em produção) e BR2026/CDB2026 (`#f87171`) — não unificado de propósito, mudaria a cor renderizada em produção | Low | Decidir um valor único de `--red` só numa mudança visual deliberada, avaliando o impacto em produção — não como patch mínimo |
+| 62 | Tokens de cor `--gold`/`--red` no `:root` | `--gold:#f59e0b`, `--red:#ff6b6b` | `--gold:#f59e0b`, `--red:#ff6b6b` | `--gold:#f59e0b`, `--red:#ff6b6b` | Sim, todo app deveria ter os mesmos tokens de cor semântica | CONSISTENT | **Resolvido (PR120-final review item 5a, 2026-08-03)** — `--red` já está unificado em `#ff6b6b` nos três apps (verificado por grep direto de `bolao/{copa2026,br2026,cdb2026}/css/styles.css`); a divergência `#f87171` registrada anteriormente nesta linha não reflete mais o código atual — corrigida em uma rodada anterior deste mesmo ciclo de padronização e não atualizada aqui até agora. `status-badge:color` na auditoria automatizada (`audit_visual_consistency.mjs`) já reporta `EQUAL`, não `JUSTIFIED`/`DIVERGENT` — a antiga entrada de ALLOWLIST.json para esse par foi removida por não suprimir mais nenhum achado real | — | — |
 | 63 | Input/select/label (fundo, `border-radius`, foco, case do label) | `var(--bg3)`/`9px`/`border-color` no foco/label UPPERCASE `var(--muted)` desde v4.126 (migrado do padrão BR2026/CDB2026) | `var(--bg3)`/`9px`/`border-color`/UPPERCASE (padrão original) | idêntico ao BR2026 | Sim | CONSISTENT | Resolvido em v4.126 — Copa migrada para o padrão que os outros dois já usavam | — | — |
 | 64 | `h1,h2,h3` — normalização global de heading | `margin:.15em 0 .4em`, `h2:1.25rem`, `h3:1.05rem` (já existia) | Adicionado em v1.16 (idêntico à Copa) | Adicionado em v2.2 (idêntico à Copa) | Sim | CONSISTENT | Resolvido — antes só a Copa normalizava, um `<h3>` fora de `.section-head` renderizava no tamanho default do navegador em BR2026/CDB2026 | — | — |
 | 65 | `.rules-table td` padding | `7px 10px` desde v4.126 (era `8px 10px`) | `7px 10px` (já era) | `7px 10px` (já era) | Sim | CONSISTENT | Resolvido — Copa alinhada aos outros dois | — | — |
@@ -122,7 +122,7 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 75 | Texto do botão WhatsApp | "Suporte WhatsApp" | "Suporte WhatsApp" desde v1.19 (era só "WhatsApp") | "Suporte WhatsApp" desde v2.5 (idem) | Sim | CONSISTENT | Resolvido | — | — |
 | 76 | `input[type=number]` — spinner nativo | Suprimido (`-webkit-appearance:none` nos spin-buttons) desde v4.128 | Suprimido desde v1.19 | Suprimido desde v2.5 | Sim | CONSISTENT | Resolvido nos três ao mesmo tempo | — | — |
 | 77 | `.admin-toolbar` — gap/margin | `gap:8px; margin-bottom:14px` | Alinhado (era `6px`/`8px`) | Alinhado (era `6px`/`8px`) | Sim | CONSISTENT | Resolvido — diferença de 2px/6px, baixo impacto visual mas corrigido para exatidão | — | — |
-| 78 | `.admin-row` — lista vs. card | `<div class="card admin-entry">` — cada linha é um card completo | `.admin-row` — lista densa com `border-bottom`, não é card | `.admin-row` — idem BR2026 | Recomendado pela regra de referência canônica, mas admin tem densidade de dados maior (lista de entradas pode ser longa) e é área de baixa visibilidade (só o Eduardo usa) | NEEDS_REVIEW | **Não resolvido nesta rodada** — decisão consciente de manter lista densa em vez de virar N cards separados, dado o volume de linhas e o contexto admin-only; reavaliar se algum dia a lista de participantes crescer muito | Low | Se decidir padronizar, converter para `<div class="card admin-entry">` por linha, igual à Copa |
+| 78 | `.admin-row` — lista vs. card | `<div class="card admin-entry">` — cada linha é um card completo (variante `admin-entry-full`) | `.admin-row` — lista densa com `border-bottom`, não é card (variante `admin-entry-dense`) | `.admin-row` — idem BR2026 (`admin-entry-dense`) | Recomendado pela regra de referência canônica, mas admin tem densidade de dados maior (lista de entradas pode ser longa) e é área de baixa visibilidade (só o Eduardo usa) | INTENTIONALLY_DIFFERENT | **Formalizado (PR120-final review item 5b, 2026-08-03)** — deixou de ser uma divergência não resolvida: os dois layouts agora são variantes documentadas do mesmo componente, ver `docs/bolao/DESIGN_SYSTEM.md` § "Admin entry row — full vs. dense variant" pelo critério de quando usar cada um. `ALLOWLIST.json` (`bolao/scripts/audit_visual_consistency.mjs`) tem entradas correspondentes para `admin-card-row` (`height`, `fontSize`, `lineHeight`, `padding`, `margin`, `gap`, `borderRadius`, `backgroundColor`) referenciando esta seção | — | — |
 | 79 | Tabela do Brasileirão — colunas (BR2026 apenas) | N/A — Copa não tem tabela de classificação (torneio é mata-mata) | V/E/D/GP/GC/SG adicionados em v1.19 (só tinha Pos/Time/Pts) | N/A — CDB2026 não tem standings (sem API ao vivo) | Tournament-specific — não existe equivalente na Copa pra comparar | INTENTIONALLY_DIFFERENT | Resolvido como bug funcional (dado já vinha da ESPN, só não era exibido), não como divergência cross-app | — | — |
 
 ## Resumo por severidade
@@ -132,18 +132,18 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | Critical | 0 |
 | High | 3 (itens 1, 8/9/10 combinados) |
 | Medium | 10 |
-| Low | 16 (item 78/`.admin-row` entrou nesta rodada) |
-| Sem severidade (CONSISTENT/INTENTIONALLY_DIFFERENT sem ação) | 50 |
+| Low | 14 (itens 62 e 78 resolvidos em PR120-final review item 5) |
+| Sem severidade (CONSISTENT/INTENTIONALLY_DIFFERENT sem ação) | 52 |
 
 ## Resumo por status
 
 | Status | Quantidade |
 |---|---|
-| CONSISTENT | 48 |
-| INTENTIONALLY_DIFFERENT | 14 |
+| CONSISTENT | 49 |
+| INTENTIONALLY_DIFFERENT | 15 |
 | MISSING | 0 |
 | OUTDATED | 0 |
-| NEEDS_REVIEW | 15 |
+| NEEDS_REVIEW | 13 |
 | CRITICAL_DIVERGENCE | 0 |
 
 ### Progresso — Copa como referência visual canônica (v4.128 / v1.19 / v2.5)
@@ -151,11 +151,28 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 Itens resolvidos: 70 (`main` max-width), 71 (card de jogo no BR2026), 72 (grid time×placar no
 BR2026), 73 (ícone no card de pagamento), 74 (`.pay-grid` 3 colunas), 75 (texto do botão
 WhatsApp), 76 (spinner de input numérico), 77 (`.admin-toolbar` gap/margin). Item 78
-(`.admin-row` vs. card por linha) fica registrado como `NEEDS_REVIEW`, decisão consciente de
-não converter nesta rodada — ver a linha para o racional. Item 79 é uma correção funcional da
-tabela do Brasileirão (dado que a ESPN já fornecia e não estava sendo exibido), não uma
-divergência cross-app, classificado `INTENTIONALLY_DIFFERENT` porque a Copa não tem
-equivalente (mata-mata não tem tabela de classificação).
+(`.admin-row` vs. card por linha) ficou registrado como `NEEDS_REVIEW` nesta rodada — **ver
+"Progresso — PR120-final review item 5 (2026-08-03)" abaixo para a formalização posterior**.
+Item 79 é uma correção funcional da tabela do Brasileirão (dado que a ESPN já fornecia e não
+estava sendo exibido), não uma divergência cross-app, classificado `INTENTIONALLY_DIFFERENT`
+porque a Copa não tem equivalente (mata-mata não tem tabela de classificação).
+
+### Progresso — PR120-final review item 5 (2026-08-03)
+
+Os dois itens deixados em aberto nas rodadas anteriores foram fechados nesta:
+
+- **Item 62** (`--red` divergente entre Copa e BR2026/CDB2026): já estava resolvido no código —
+  os três apps têm `--red:#ff6b6b` idêntico (reverificado por grep direto do CSS). A linha da
+  matriz estava desatualizada (ainda citava `#f87171` para BR2026/CDB2026), não o código. Movido
+  de `NEEDS_REVIEW`/Low para `CONSISTENT`/sem severidade. A entrada de `ALLOWLIST.json` para
+  `status-badge:color` — que existia só para justificar essa divergência já inexistente — foi
+  removida por não suprimir mais nenhum achado real (a auditoria automatizada já reportava
+  `EQUAL`, tornando a entrada morta).
+- **Item 78** (`.admin-row` denso vs. `.admin-entry` card completo): formalizado como dois
+  variantes documentados do mesmo componente (`admin-entry-full`/`admin-entry-dense`) em
+  `docs/bolao/DESIGN_SYSTEM.md` § "Admin entry row — full vs. dense variant", com critério
+  explícito de quando usar cada um. Movido de `NEEDS_REVIEW`/Low para `INTENTIONALLY_DIFFERENT`
+  — deixa de ser uma divergência pendente e passa a ser uma decisão de design registrada.
 
 Junto com bugs reais encontrados testando o CDB2026 ao vivo (não fazem parte da comparação com
 a Copa, mas foram corrigidos na mesma leva): ordem de mandante/visitante no jogo de volta,
@@ -167,9 +184,10 @@ da CBF pra "quem avança" (trava em vitória simples, destrava em empate agregad
 
 Itens resolvidos nos três apps: 63 (input/select/label), 64 (h1/h2/h3), 65 (padding de
 `.rules-table`), 66 (sombra/`min-width` do botão sticky). Item 62 (tokens `--gold`/`--red`)
-parcialmente resolvido — tokens existem nos três, mas o valor de `--red` da Copa
-(`#ff6b6b`, já em produção) não foi unificado com o de BR2026/CDB2026 (`#f87171`) por não ser
-um patch mínimo (mudaria cor renderizada em produção).
+ficou parcialmente resolvido nesta rodada específica — tokens existiam nos três, mas o valor de
+`--red` ainda não estava confirmado unificado. **Totalmente resolvido em PR120-final review item
+5 (2026-08-03) — ver "Progresso — PR120-final review item 5" abaixo: `--red:#ff6b6b` já é
+idêntico nos três apps.**
 
 ### Progresso — findings Critical/High autorizados (v4.127 / v1.17 / v2.3)
 
@@ -592,10 +610,12 @@ Implementados nesta rodada (genuinamente ausentes, confirmado por leitura direta
 detalhamento e progresso): #1 (audit_scoring.py equivalente para BR2026/CDB2026), #9 (fluxo de
 PDF/popup do comprovante).
 
-**Deliberadamente NÃO tocados**, por já estarem registrados como decisão consciente e não bug:
-#62 (`--red` diferente entre Copa e BR2026/CDB2026 — mudança visual isolada, não patch em lote) e
-#78 (`.admin-row` lista densa vs. card — decisão de UX já documentada). Uma mudança em lote como
-esta não é o contexto certo pra reabrir decisões já tomadas deliberadamente.
+**Deliberadamente NÃO tocados nesta rodada específica**, por já estarem registrados como decisão
+consciente e não bug: #62 (`--red` diferente entre Copa e BR2026/CDB2026 — mudança visual
+isolada, não patch em lote) e #78 (`.admin-row` lista densa vs. card — decisão de UX já
+documentada). Uma mudança em lote como esta não era o contexto certo pra reabrir decisões já
+tomadas deliberadamente. **Ambos posteriormente fechados em PR120-final review item 5
+(2026-08-03) — ver "Progresso — PR120-final review item 5" acima.**
 
 `audit_scoring.py`: PASSOU nos dois apps em cada etapa — nenhuma mudança tocou scoring.
 
@@ -1936,3 +1956,111 @@ v3.36 — bounce é específico do WebKit/iOS Safari).
 `overscroll-behavior-x`** — candidatos ao mesmo reforço preventivo, não aplicados aqui (não
 reportado nos outros dois; Copa é produção e só recebe patches avaliados individualmente por
 `PLATFORM_GOVERNANCE.md`). Registrado aqui para decisão do Eduardo.
+
+## Nota manual — Aba "Jogos" do CDB2026 alinhada ao "look and feel" da Copa/BR2026: chips de status, placar ao vivo, auto-scroll pro próximo jogo (2026-08-02, CDB2026 v3.74)
+
+Eduardo: "A tab jogos da cdb e brasileirão devem funcionar da mesma maneira que copa do mundo e
+ter o mesmo look and feel. E por default deve ir automaticamente para o próximo jogo. verifique
+isso 100% sem retirar informações ou funcionalidades." BR2026 já tinha esse comportamento
+(`.game-card.pre`/`showSection()`, código idêntico ao padrão da Copa
+`.game-card[data-state="pre"]`) — só o CDB2026 estava sem. Auditado e corrigido:
+
+- **Chip de status por perna** (`.game-status pre/live/post/postponed`): CDB2026 só mostrava a
+  data OU o placar, sem nenhum rótulo — Copa/BR2026 sempre mostram um chip (Ao vivo/Encerrado/
+  Agendado/Adiado). Adicionado em toda perna, reaproveitando as classes/cores CSS que já existiam
+  desde a v3.26 (portadas mas nunca usadas fora do chip de "Adiado").
+- **Placar/relógio ao vivo na aba Jogos**: antes só aparecia no card `#liveTieCard` isolado do
+  topo; uma perna em andamento na aba Jogos continuava mostrando só a data antiga, como se ainda
+  não tivesse começado. Agora consulta `_liveTies` (mesma fonte do card do topo) e mostra placar
+  + relógio ao vivo (usando `liveClockDisplay()`, já reconciliado pelo fix da v3.73) direto na
+  perna correspondente, com destaque de borda vermelha igual ao `.game-card.is-live` da Copa.
+- **Auto-scroll pro próximo jogo**: `showSection("games")` agora rola automaticamente pra próxima
+  perna ainda não iniciada ao abrir a aba, mesmo comportamento de Copa/BR2026. Implementado com
+  `nextUpcomingLegKey()`, que reusa `flatLegsChronological()` (o helper de ordem cronológica real
+  por PERNA, não por confronto, já usado por "Ver palpites"/comprovante/CSV desde a v3.67) — o
+  simples "primeira `.pre` em ordem de DOM" que Copa/BR2026 usam não bastaria aqui: como um
+  confronto do CDB2026 agrupa ida+volta no mesmo card, a volta (ainda sem data) de um confronto já
+  iniciado poderia aparecer ANTES da ida de outro confronto com data mais próxima na ordem de DOM
+  agrupada por confronto. Exclui pernas já ao vivo (mesmo critério de Copa/BR2026 — o jogo ao vivo
+  já tem destaque próprio no card do topo).
+
+**Estrutura de card por CONFRONTO (ida+volta agrupadas), com linha de agregado/"quem avança", NÃO
+foi alterada** — é `TOURNAMENT_SPECIFIC` (mata-mata de duas pernas, sem equivalente na Copa/
+BR2026) e nenhuma informação existente foi removida (venue, agregado, classificado, rótulo de
+ida/volta, chip de adiado — todos preservados, só ganharam companhia do chip de status novo).
+Verificado com Playwright + estado real de produção + partida ao vivo simulada (mesmo mock da
+v3.73): confronto-cards, agregados e "quem avança" continuam idênticos ao antes; chip/placar ao
+vivo e auto-scroll confirmados funcionando.
+
+## Nota manual — branch `fase2.2-correcao-final`: harness visual real, padronização de tabs, aria-current, e item 8 (padding/form-grid) autorizado (2026-08, Copa v4.166 / BR2026 v1.85 / CDB2026 v3.83)
+
+Rodada de várias sessões consolidando a correção final da FASE 2.2 (ver
+`docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md` para o relato completo, sessão a sessão, incluindo
+o que ficou pendente entre rodadas). Resumo do que mudou na plataforma nesta branch, na ordem em
+que foi implementado:
+
+1. **Cache-bust tooling** (`bolao/cdb2026/scripts/check_cachebust.mjs`, `sync_version.yml`):
+   corrigido para INSERIR `?v=` quando ausente (os três `index.html` referenciavam os 5 assets
+   críticos sem nenhuma query), não só substituir uma já existente. `index.html` dos três apps
+   não foi tocado à mão (regra do Eduardo: o bot `sync_version.yml` cuida disso). PLATFORM_SHARED.
+2. **`aria-current="page"` na tab ativa** (cherry-pick de `main`, depois validado por uma suíte
+   Playwright nova — `bolao/scripts/test_aria_current_nav.mjs`): confirma, com mouse E teclado
+   nos três apps, que exatamente um botão tem `aria-current="page"` a qualquer momento, que
+   nenhum `aria-selected` é usado em lugar nenhum (navegação simples, não um tab-widget ARIA), e
+   que o atributo sempre acompanha a classe `.active`. Resolve o item H-3/P2 que
+   `VISUAL_STANDARDIZATION_REPORT.md` (2026-08-02) tinha listado como pendência aberta —
+   **agora fechado**. PLATFORM_SHARED (acessibilidade).
+3. **Overflow real em `cdb2026 Jogos@320x568`** corrigido de verdade (`.leg-info` ganhou
+   `white-space:normal`/`min-width:0` no breakpoint `max-width:600px` já existente) — não
+   mascarado com `overflow-x:hidden`. Harness de evidência (`capture_evidence.mjs`) recapturado:
+   0 overflow em 112 entradas (era 1). DATA_ONLY/CDB2026 apenas (bug específico do layout de
+   `.leg-info` desse app).
+4. **Tabs — contagem de colunas do `.nav` corrigida para o nº real de botões visíveis** (era
+   `repeat(8,...)`/`repeat(9,...)`/`repeat(6,...)` com 2 colunas mortas na Copa/BR2026; virou
+   `repeat(6,...)` Copa, `repeat(7,...)` BR2026, `repeat(6,...)` CDB2026 desktop) + padronização
+   mobile pras 3 colunas nos três (era só BR2026/CDB2026; Copa tinha `repeat(4,1fr)`/
+   `repeat(8,1fr)` próprios) + um bug real de "orphan row" corrigido (BR2026 tinha o botão
+   "Admin" sozinho na última linha mobile, 1/3 de largura, achado por screenshot real a 320px).
+   **Isto substitui as linhas "Tabs" e "Navegação mobile" de
+   `docs/bolao/VISUAL_PARITY_MATRIX.md`** (linhas 34/36), que descrevem o estado ANTERIOR a esta
+   correção (Copa 8/BR2026 9/CDB2026 6 colunas desktop; Copa 4/8 colunas mobile vs. 3 nos outros
+   dois) — ver aviso no topo daquele arquivo. PLATFORM_SHARED.
+5. **Captura de admin autenticado** (`bolao/cdb2026/scripts/visual/capture_admin_auth_evidence.mjs`):
+   sessionStorage sintético (nunca senha real) reproduzindo as chaves exatas que cada
+   `isAdminActive()` verifica — cobre BR2026/CDB2026 (Copa arquivada, marcada `notApplicable`,
+   mesmo tratamento que as demais seções arquivadas).
+6. **`bolao/scripts/audit_visual_consistency.mjs`** (novo, cross-app, fora de qualquer pasta de
+   app individual): compara `getComputedStyle()` de 26 componentes × 13 propriedades entre os
+   três apps, classifica EQUAL/EQUIVALENT/JUSTIFIED/DIVERGENT/N/A. Relatório completo:
+   `docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. Encontrou e
+   corrigiu 2 bugs reais de seletor no próprio script durante a construção (`select` pegando o
+   elemento errado, `button-primary` não casando com nenhum app) antes de confiar no resultado.
+7. **Montagens lado a lado Copa\|BR2026\|CDB2026** (`bolao/scripts/make_visual_comparison_montages.mjs`):
+   28 montagens (7 telas × 4 viewports), reaproveitando screenshots já existentes — sem nova
+   captura. Seções ausentes (Copa arquivada, BR2026 Palpites fechado) mostram um placeholder
+   rotulado com o motivo real, nunca um vão em branco.
+8. **Item 8 — `main` padding + `.form-grid` alinhados à Copa, autorizado explicitamente pelo
+   Eduardo** (commit `f0d253d`): `main` padding `16px 14px`→`20px 18px` em BR2026/CDB2026;
+   `.form-grid` `repeat(auto-fill, minmax(220px,1fr))` gap `14px` → `repeat(2, minmax(0,1fr))`
+   gap `12px`, com o mesmo colapso pra 1 coluna em `@media (max-width:900px)` que a Copa já
+   tinha (BR2026/CDB2026 não tinham essa regra — adicionada). **Achado extra durante a
+   verificação**: sem essa regra de colapso, o formulário de entrada renderizava **3 colunas
+   espremidas a 768px** (largura de tablet) sob o `auto-fill` antigo — confirmado por sonda de
+   `getComputedStyle` (`gridTemplateColumns` resolveu para pixels reais, não a string
+   `repeat()`, confirmando que o grid estava de fato renderizado) e captura de tela real. A Copa,
+   na mesma largura, já colapsava pra 1 coluna. Ou seja, esta correção fecha uma divergência real
+   de tablet, não só o alinhamento >900px descrito originalmente. Verificado com screenshots
+   reais 320/768/1440px antes/depois nos três apps: nenhum overflow horizontal novo, nenhuma
+   sobreposição do `.sticky-submit` (que é `display:flex` em fluxo normal, não `position:fixed`/
+   `sticky`, apesar do nome). Reauditoria com `audit_visual_consistency.mjs`: `main:padding`,
+   `form-grid:gap` e `form-grid:gridTemplateColumns` viraram EQUAL nos três apps (342 EQUAL/1
+   JUSTIFIED/21 DIVERGENT, era 339/1/24). `form-grid:margin` continua DIVERGENT (`0px` na Copa
+   vs. `0px 0px 16px` em BR2026/CDB2026) — **fora do escopo autorizado** deste item (só
+   `padding`/`grid-template-columns`/`gap` foram pedidos), registrado aqui como dívida técnica
+   não corrigida, não escondido. PLATFORM_SHARED (visual, `main`/`.form-grid` são compartilhados
+   pelos três apps).
+
+Em todos os itens acima: `node --check` limpo e `audit_scoring.py` 6/6 (Copa) / 5/5 (BR2026) /
+5/5 (CDB2026) rodados e confirmados a cada mudança — nenhum item tocou scoring, bracket, tiebreak
+ou regra de negócio. Ver commits individuais em `git log` desta branch para o hash exato de cada
+item.

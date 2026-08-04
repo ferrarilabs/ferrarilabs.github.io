@@ -23,6 +23,7 @@ import { spawn, execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readdirSync, unlinkSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { cdb2026TiesFixture, routeCdb2026Espn, seedBr2026Schedule, unhideCopaJogosForHarness } from "./game_fixtures.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const PORT = 8189;
@@ -37,19 +38,17 @@ const VIEWPORTS = [
 // ── Synthetic fixtures — fictional names only, no real participant data, no Supabase/ESPN/
 // EmailJS calls needed to render (self-contained localStorage seed per app). ──────────────────
 function cdb2026Fixture() {
-  const emptyMatch = () => ({ homeTeam: null, awayTeam: null, kickoff: null, venue: null, city: null, goalsHome: null, goalsAway: null, status: "SCHEDULED" });
   return {
     entries: [
       { id: "fx-1", entryName: "Entrada Teste #1", payerName: "Participante A", participantEmail: "a@example.invalid", paymentMethod: "CashApp", createdAt: "2026-07-20T12:00:00.000Z", picks: { matches: {}, qualified: {} } },
       { id: "fx-2", entryName: "Entrada Teste #2", payerName: "Participante B", participantEmail: "b@example.invalid", paymentMethod: "Zelle", createdAt: "2026-07-20T12:05:00.000Z", picks: { matches: {}, qualified: {} } },
     ],
     deletedIds: [], paid: { "fx-1": true, "fx-2": false },
-    phases: {
-      oitavas: { cutoffAt: null, ties: {
-        "fx-t1": { teamA: "Time A", teamB: "Time B", matches: { first: { ...emptyMatch(), kickoff: "2030-08-01T20:30:00.000Z" }, second: emptyMatch() } },
-      } },
-      final: { cutoffAt: null, ties: { "fx-f1": { teamA: "Time A", teamB: "Time C", matches: { single: { ...emptyMatch(), kickoff: "2030-11-01T22:00:00.000Z" } } } } },
-    },
+    // PR120-final review item 5: was a single scheduled leg (only "agendado"), not a valid basis
+    // for the Jogos comparison. Now sourced from the shared game_fixtures.mjs module (agendado,
+    // finalizado/placar/agregado, nome longo/estádio, plus ao-vivo/adiado resolved via the ESPN
+    // mock installed below — see routeCdb2026Espn()).
+    phases: cdb2026TiesFixture(),
     espnSync: { activePhaseId: "oitavas", seededKnownConfrontos: true, backfilledOitavasKickoffs: true, healedFalseAutoResults: true, healedPhantomTies: true },
     auditLog: [], meta: { updatedAt: null, version: FIXTURE_ID },
   };
@@ -74,7 +73,13 @@ const APPS = {
     sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Regras: "rules", Admin: "admin" },
     // Archived mode (CONFIG.archived) hides every nav button except Ranking — confirmed by running
     // the harness once and observing Regras also fails the same way as Palpites/Jogos/Admin.
-    notApplicable: ["Palpites", "Jogos", "Regras", "Admin"],
+    // PR120-final review item 5: Jogos removed from this list — the real (public, already-final)
+    // 2026 World Cup results ARE a valid "cards reais" screenshot once the harness unhides the
+    // nav button in its own ephemeral browser context (see `harnessUnhide` below and
+    // `unhideCopaJogosForHarness()` in game_fixtures.mjs) — applyArchiveMode()/CONFIG.archived
+    // themselves are never touched, so a real visitor's archived experience is unchanged.
+    notApplicable: ["Palpites", "Regras", "Admin"],
+    harnessUnhide: { Jogos: "games" },
   },
   br2026: {
     path: "/bolao/br2026/", storeKey: "bolao_br2026_state",
@@ -86,7 +91,22 @@ const APPS = {
   cdb2026: {
     path: "/bolao/cdb2026/", storeKey: "bolao_cdb2026_state",
     sections: { Palpites: "entry", Ranking: "ranking", Jogos: "games", Pagamento: "payment", Regras: "rules", Admin: "admin" },
-    notApplicable: [],
+    // Participantes/Pagamento saíram do nav principal (display:none, mesmo padrão do BR2026/Copa
+    // -- Eduardo, 2026-08-01: "Deixe aparecer somente os mesmos botões que estão disponíveis no
+    // br2026") -- não é mais alcançável clicando no nav, por decisão de produto (commit b8080aa,
+    // "Hide CDB2026 Participantes/Pagamento nav (match BR2026)"), não defeito de renderização.
+    // #payment continua existindo/renderizando normalmente, só sem botão apontando pra ela (ver
+    // bolao/cdb2026/index.html). Nenhum JS reabilita esse elemento (grepped app.js -- nada
+    // alterna seu display), então nenhuma mudança de fixture o tornaria clicável; classificar
+    // como qualquer coisa além de notApplicable reportaria uma decisão de produto permanente e
+    // intencional como bug. Mirrors BR2026's `notApplicable: ["Pagamento", ...]` above, que
+    // documenta o mesmo tipo de caso pelo mesmo motivo.
+    //
+    // Nota de resolução de rebase (fase2.2-correcao-final sobre origin/main atual, 2026-08-03):
+    // duas sessões independentes chegaram à MESMA correção funcional (`notApplicable:
+    // ["Pagamento"]`) de forma independente, só com comentários redigidos diferente. Nenhum
+    // conflito de lógica -- texto acima combina o detalhe de ambas as versões.
+    notApplicable: ["Pagamento"],
   },
 };
 
@@ -103,12 +123,22 @@ function startServer() {
   });
 }
 
+// PR120-final review item 5 (found while building game_fixtures.mjs): this used to delete EVERY
+// `.png` in each app's evidence directory, including files this script never writes and never
+// will (e.g. `${appId}_admin-auth-empty_*.png`/`${appId}_admin-auth-filled_*.png`, written by the
+// separate `capture_admin_auth_evidence.mjs` into the SAME per-app directory) — so running this
+// script alone silently destroyed a sibling script's already-committed evidence. Fixed: only
+// delete filenames matching THIS script's own naming convention
+// (`${appId}_${sectionKey}_${viewport}.png` for a `sectionKey` this app's own `sections` map
+// actually uses) — anything else in the directory is left alone.
 function clearOldEvidence() {
-  for (const appId of Object.keys(APPS)) {
+  for (const [appId, app] of Object.entries(APPS)) {
     const dir = join(EVIDENCE_ROOT, appId);
     mkdirSync(dir, { recursive: true });
+    const ownSectionKeys = new Set(Object.values(app.sections));
+    const ownFilePattern = new RegExp(`^${appId}_(${[...ownSectionKeys].join("|")})_\\d+x\\d+\\.png$`);
     for (const f of readdirSync(dir)) {
-      if (f.endsWith(".png")) unlinkSync(join(dir, f));
+      if (ownFilePattern.test(f)) unlinkSync(join(dir, f));
     }
   }
 }
@@ -154,6 +184,14 @@ async function main() {
         await context.route("**://*.supabase.co/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
         await context.route("**://site.api.espn.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: '{"events":[]}' }));
         await context.route("**://*.emailjs.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
+        // PR120-final review item 5: CDB2026's "ao vivo"/"adiado" Jogos states are resolved by the
+        // app's OWN fetchEspnCandidates()/fetchLiveTies() matching against a live ESPN scoreboard
+        // response, not a plain state field — so for THIS app only, the generic empty-ESPN route
+        // above is overridden with a realistic (schema-accurate, fictional-content) scoreboard
+        // mock (registered after the generic route, so it takes priority for cdb2026's requests;
+        // Playwright resolves multiple matching routes last-registered-first). See
+        // game_fixtures.mjs's file header for why BR2026/Copa don't need an equivalent override.
+        if (appId === "cdb2026") await routeCdb2026Espn(context);
 
         const fixture = FIXTURES[appId];
         await page.goto(`http://localhost:${PORT}${app.path}`, { waitUntil: "load", timeout: 15000 });
@@ -171,6 +209,14 @@ async function main() {
         // it would for a real returning visitor with existing localStorage.
         if (fixture) {
           await page.evaluate(({ key, state }) => localStorage.setItem(key, JSON.stringify(state)), { key: app.storeKey, state: fixture });
+          // PR120-final review item 5: BR2026's Jogos comes from a module-level `_schedule` array
+          // populated either by a live ESPN fetch or this versioned sessionStorage cache (see
+          // game_fixtures.mjs's file header) — seeded here, same pass, before the single reload
+          // below, so both storages are in place for the app's next init() together.
+          if (appId === "br2026") {
+            const siteVersion = await page.evaluate(() => window.BR2026_CONFIG?.siteVersion);
+            await seedBr2026Schedule(page, siteVersion);
+          }
           await page.reload({ waitUntil: "load", timeout: 15000 });
           await page.waitForTimeout(700);
         }
@@ -194,6 +240,13 @@ async function main() {
             continue;
           }
 
+          // Harness-only unhide (Copa/Jogos — see APPS.copa2026.harnessUnhide above): removes the
+          // `.hidden` class this ephemeral page's nav button carries in archived mode, so the
+          // click below can reach it. Never touches applyArchiveMode()/CONFIG.archived.
+          if (app.harnessUnhide?.[sectionLabel]) {
+            await page.evaluate((ds) => document.querySelector(`[data-section="${ds}"]`)?.classList.remove("hidden"), dataSection);
+          }
+
           let clickError = null;
           try { await btn.click({ timeout: 1500 }); } catch (e) { clickError = e.message; }
           await page.waitForTimeout(400);
@@ -211,6 +264,24 @@ async function main() {
           }
 
           const fname = `${appId}_${dataSection}_${vpLabel}.png`;
+          // Fase 2.2-correção: fullPage:true screenshots of a tall page were rendering `.topbar`
+          // TWICE — once in its normal document-flow position, and again lower down where it
+          // "stuck" during Chromium's full-page capture pass (position:sticky computing its
+          // stuck offset against an intermediate scroll position while the page is being resized
+          // to full height for capture — a known Chromium/Playwright quirk with sticky elements
+          // and fullPage screenshots, not an app bug: production scrolling behaves correctly,
+          // only this specific capture mode double-renders it). Confirmed reproducible on
+          // cdb2026_games_320x568.png before this fix (full topbar+nav block appearing again
+          // mid-page, between the countdown card and the confronto list). Fix: neutralize
+          // `.topbar`'s `position: sticky` to `position: static` via an injected stylesheet,
+          // scoped to THIS screenshot only — never touches the actual app CSS files, so
+          // production sticky behavior (real users scrolling) is completely unaffected. Other
+          // `position: sticky` elements in these apps (e.g. table-row headers inside a scrollable
+          // `.standings-wrap`/`.picks-detail` container) are out of scope: they weren't observed
+          // duplicating (bound to a small internal scroll container, not the viewport), so
+          // neutralizing them isn't needed and would risk changing what a targeted future repro
+          // could look like.
+          await page.addStyleTag({ content: ".topbar { position: static !important; }" });
           await page.screenshot({ path: join(outDir, fname), fullPage: true });
 
           const overflowCheck = await page.evaluate(() => {

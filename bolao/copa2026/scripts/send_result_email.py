@@ -145,7 +145,13 @@ def _espn_normalize(name):
 
 
 def any_copa_match_live():
-    """Returns True if any Copa 2026 match is currently in-progress on ESPN."""
+    """Returns the earliest live match's kickoff ISO string if any Copa 2026 match is currently
+    in-progress on ESPN, else None. Used both as a truthy "is anything live" check (unchanged call
+    sites) AND, since CDB2026 hit a real incident from NOT having this (2026-08-04 — see
+    send_result_email.py in bolao/cdb2026/scripts/, same architecture, "EXATAMENTE igual Copa do
+    Mundo"), as the anchor for run_auto()'s live-monitoring deadline. Dormant for Copa itself (the
+    tournament is concluded, archived, no more live matches are possible), kept in sync purely for
+    cross-app consistency in case this code is ever reused."""
     url = (
         "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/"
         "scoreboard?limit=300&dates=20260611-20260719"
@@ -153,10 +159,13 @@ def any_copa_match_live():
     req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
     with urllib.request.urlopen(req, timeout=20) as r:
         data = json.loads(r.read())
-    return any(
-        e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") == "in"
+    live_dates = [
+        e.get("competitions", [{}])[0].get("date") or e.get("date")
         for e in data.get("events", [])
-    )
+        if e.get("competitions", [{}])[0].get("status", {}).get("type", {}).get("state") == "in"
+    ]
+    live_dates = [d for d in live_dates if d]
+    return min(live_dates) if live_dates else None
 
 
 def fetch_espn_results(saved_results=None):
@@ -1025,9 +1034,17 @@ def run_auto():
     if not new_mids:
         # No new completed match yet — check if a game is live and wait for it
         try:
-            if any_copa_match_live():
-                print("Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, máx 80 min)...")
-                deadline = time.time() + 80 * 60
+            live_kickoff_iso = any_copa_match_live()
+            if live_kickoff_iso:
+                # Anchored to the live match's REAL kickoff time, not to time.time() at loop
+                # start — see any_copa_match_live()'s docstring and the real CDB2026 incident
+                # (2026-08-04) this mirrors the fix for. 130min = 90 regulation + ~15 halftime +
+                # ~10 stoppage + margin. Dormant here (Copa concluded, no more live matches).
+                try:
+                    deadline = datetime.fromisoformat(live_kickoff_iso.replace("Z", "+00:00")).timestamp() + 130 * 60
+                except (ValueError, TypeError):
+                    deadline = time.time() + 80 * 60  # kickoff iso missing/unparseable — old behavior as a fallback, not the norm
+                print("Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, prazo ancorado no kickoff real)...")
                 while time.time() < deadline:
                     remaining = int((deadline - time.time()) / 60)
                     print(f"  [{remaining} min restantes] Aguardando 120s...")
@@ -1050,7 +1067,7 @@ def run_auto():
                     except Exception:
                         pass
                 else:
-                    print("Monitoramento encerrado por timeout (80 min). Próximo cron tentará novamente.")
+                    print("Monitoramento encerrado por timeout (prazo ancorado no kickoff esgotado). Próximo cron tentará novamente.")
                     return
                 if not new_mids:
                     print("Nenhum resultado detectado após monitoramento. Encerrando.")

@@ -1,0 +1,626 @@
+{
+  "meta": {
+    "generatedAtUtc": "2026-08-04T00:45:05.409Z",
+    "sourceCommit": "e28d3b7fca5051e5bc28477de608c94c846529e5",
+    "sourceTreeHash": "885eb7626eec7e130adce2942f66056215c592ac",
+    "fixtureVersion": "visual-comparable-v1"
+  },
+  "entries": [
+    {
+      "screen": "tabs",
+      "viewport": "320x568",
+      "file": "montage_tabs_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "tabs",
+      "viewport": "390x844",
+      "file": "montage_tabs_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "tabs",
+      "viewport": "768x1024",
+      "file": "montage_tabs_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "tabs",
+      "viewport": "1440x900",
+      "file": "montage_tabs_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "form",
+      "viewport": "320x568",
+      "file": "montage_form_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada (CONFIG.archived) — nav de Palpites oculto, decisão de produto (ver CLAUDE.md)."
+        },
+        {
+          "app": "br2026",
+          "available": false,
+          "reason": "BR2026: entradas encerradas 2026-07-16 — nav de Palpites permanentemente desabilitado (ver CLAUDE.md/CONSISTENCY_MATRIX.md)."
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "form",
+      "viewport": "390x844",
+      "file": "montage_form_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada (CONFIG.archived) — nav de Palpites oculto, decisão de produto (ver CLAUDE.md)."
+        },
+        {
+          "app": "br2026",
+          "available": false,
+          "reason": "BR2026: entradas encerradas 2026-07-16 — nav de Palpites permanentemente desabilitado (ver CLAUDE.md/CONSISTENCY_MATRIX.md)."
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "form",
+      "viewport": "768x1024",
+      "file": "montage_form_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada (CONFIG.archived) — nav de Palpites oculto, decisão de produto (ver CLAUDE.md)."
+        },
+        {
+          "app": "br2026",
+          "available": false,
+          "reason": "BR2026: entradas encerradas 2026-07-16 — nav de Palpites permanentemente desabilitado (ver CLAUDE.md/CONSISTENCY_MATRIX.md)."
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "form",
+      "viewport": "1440x900",
+      "file": "montage_form_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada (CONFIG.archived) — nav de Palpites oculto, decisão de produto (ver CLAUDE.md)."
+        },
+        {
+          "app": "br2026",
+          "available": false,
+          "reason": "BR2026: entradas encerradas 2026-07-16 — nav de Palpites permanentemente desabilitado (ver CLAUDE.md/CONSISTENCY_MATRIX.md)."
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "ranking",
+      "viewport": "320x568",
+      "file": "montage_ranking_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "ranking",
+      "viewport": "390x844",
+      "file": "montage_ranking_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "ranking",
+      "viewport": "768x1024",
+      "file": "montage_ranking_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "ranking",
+      "viewport": "1440x900",
+      "file": "montage_ranking_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "games",
+      "viewport": "320x568",
+      "file": "montage_games_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "games",
+      "viewport": "390x844",
+      "file": "montage_games_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "games",
+      "viewport": "768x1024",
+      "file": "montage_games_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "games",
+      "viewport": "1440x900",
+      "file": "montage_games_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "rules",
+      "viewport": "320x568",
+      "file": "montage_rules_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Regras oculto, decisão de produto."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "rules",
+      "viewport": "390x844",
+      "file": "montage_rules_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Regras oculto, decisão de produto."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "rules",
+      "viewport": "768x1024",
+      "file": "montage_rules_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Regras oculto, decisão de produto."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "rules",
+      "viewport": "1440x900",
+      "file": "montage_rules_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Regras oculto, decisão de produto."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-login",
+      "viewport": "320x568",
+      "file": "montage_admin-login_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Admin oculto para visitantes reais; capture_evidence.mjs (evidência voltada a usuário real) não captura esta tela por isso."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-login",
+      "viewport": "390x844",
+      "file": "montage_admin-login_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Admin oculto para visitantes reais; capture_evidence.mjs (evidência voltada a usuário real) não captura esta tela por isso."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-login",
+      "viewport": "768x1024",
+      "file": "montage_admin-login_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Admin oculto para visitantes reais; capture_evidence.mjs (evidência voltada a usuário real) não captura esta tela por isso."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-login",
+      "viewport": "1440x900",
+      "file": "montage_admin-login_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — nav de Admin oculto para visitantes reais; capture_evidence.mjs (evidência voltada a usuário real) não captura esta tela por isso."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-auth",
+      "viewport": "320x568",
+      "file": "montage_admin-auth_320x568.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — capture_admin_auth_evidence.mjs marca esta combinação notApplicable pelo mesmo motivo (ver seu CHANGELOG v3.79)."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-auth",
+      "viewport": "390x844",
+      "file": "montage_admin-auth_390x844.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — capture_admin_auth_evidence.mjs marca esta combinação notApplicable pelo mesmo motivo (ver seu CHANGELOG v3.79)."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-auth",
+      "viewport": "768x1024",
+      "file": "montage_admin-auth_768x1024.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — capture_admin_auth_evidence.mjs marca esta combinação notApplicable pelo mesmo motivo (ver seu CHANGELOG v3.79)."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    },
+    {
+      "screen": "admin-auth",
+      "viewport": "1440x900",
+      "file": "montage_admin-auth_1440x900.png",
+      "apps": [
+        {
+          "app": "copa2026",
+          "available": false,
+          "reason": "Copa arquivada — capture_admin_auth_evidence.mjs marca esta combinação notApplicable pelo mesmo motivo (ver seu CHANGELOG v3.79)."
+        },
+        {
+          "app": "br2026",
+          "available": true,
+          "reason": null
+        },
+        {
+          "app": "cdb2026",
+          "available": true,
+          "reason": null
+        }
+      ]
+    }
+  ]
+}

@@ -136,6 +136,8 @@ def fetch_espn_candidates():
             "awayScore": away_score,
             "homeWinner": (ev_state == "post" and not postponed and home.get("winner") is True),
             "awayWinner": (ev_state == "post" and not postponed and away.get("winner") is True),
+            "venue":     comp.get("venue", {}).get("fullName") or "",
+            "city":      comp.get("venue", {}).get("address", {}).get("city") or "",
         })
     return out
 
@@ -204,6 +206,55 @@ def sb_save_leg(phase_id, tie_id, leg, goals_home, goals_away, source="espn-auto
     state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
     status = _sb_upsert(state)
     return status, state
+
+
+def sb_backfill_schedule(espn_candidates):
+    """Server-side counterpart of autoSyncEspn()'s backfill pass in app.js (added 5a9dad4,
+    2026-08-04) -- that logic only runs client-side when an admin has the panel open, so a leg
+    (typically the volta) whose kickoff/venue ESPN has already published stays "Data a definir"
+    on the public site until someone happens to open the admin panel. This cron already runs
+    every 10 minutes (see .github/workflows/cdb2026_result_emails.yml) checking for score
+    results, so backfilling schedule-only fields (kickoff/venue/city -- NEVER
+    goalsHome/goalsAway/status/qualifiedTeamId) here on every tick closes that gap without new
+    infrastructure. Same withinResultMatchWindow safety anchor as the score-matching path: worst
+    case of a wrong team-name match here is a cosmetically wrong date/venue, never a result or a
+    payment. Returns the number of legs patched.
+    """
+    state = sb_fetch()
+    patched = 0
+    for phase in state.get("phases", {}).values():
+        for tie in phase.get("ties", {}).values():
+            if not tie.get("teamA") or not tie.get("teamB"):
+                continue
+            matches = tie.get("matches") or {}
+            tie_kickoff_anchor = next((m.get("kickoff") for m in matches.values() if m and m.get("kickoff")), None)
+            for leg, m in matches.items():
+                if not m or m.get("kickoff") or m.get("goalsHome") is not None:
+                    continue  # already scheduled, or already played -- nothing to backfill
+                home = tie["teamB"] if leg == "second" else tie["teamA"]
+                away = tie["teamA"] if leg == "second" else tie["teamB"]
+                ev = next((c for c in espn_candidates
+                           if c["homeTeam"] == home and c["awayTeam"] == away and c.get("dateISO")
+                           and within_result_match_window(c["dateISO"], m.get("kickoff") or tie_kickoff_anchor)), None)
+                if not ev:
+                    continue
+                matches[leg] = {
+                    **m, "kickoff": ev["dateISO"],
+                    "venue": ev.get("venue") or m.get("venue"),
+                    "city": ev.get("city") or m.get("city"),
+                }
+                patched += 1
+    if not patched:
+        return 0
+    state.setdefault("auditLog", []).insert(0, {
+        "ts": datetime.now(timezone.utc).isoformat(), "action": "backfill-schedule", "admin": True,
+        "detail": {"legsPatched": patched, "source": "espn-auto-cron"},
+    })
+    if len(state["auditLog"]) > 200:
+        state["auditLog"] = state["auditLog"][:200]
+    state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    _sb_upsert(state)
+    return patched
 
 
 def sb_lock_tie(phase_id, tie_id, qualified_side, source="espn-auto"):
@@ -477,7 +528,17 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
     # ── Per-entry breakdown for this leg ──────────────────────────────────────
     # No "result" (correct W/D/L sign, wrong score) tier — matches audit_scoring.match_points()
     # exactly, which only ever returns "exact"/"side"/"miss" (see that module's 2026-08-01 fix).
+    #
+    # Eduardo, 2026-08-02, pasting a sent email as evidence: this table wasn't sorted by its own
+    # "Pts" column at all — it inherited `scored`'s order, which is the SEASON-TOTAL ranking
+    # (score_entry_total across every match so far), a different key entirely from the points a
+    # given entry earned on THIS leg. Fixed by building a fresh list keyed on this leg's own
+    # points (descending) with entry name (A→Z) as the tiebreak, computed as its own pass instead
+    # of reusing `scored`'s order. Matches the pattern Copa's build_html() already uses
+    # (`breakdown_scored`, a separate sort from its own season-ranking `scored`) — CDB2026 was the
+    # one that had skipped that separation, not a platform-wide bug.
     breakdown_rows_pt = ""
+    breakdown_items = []
     for item in scored:
         entry = item["e"]
         pick = (entry.get("picks") or {}).get("matches", {}).get(tie_id, {}).get(leg)
@@ -507,13 +568,17 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
                 bonus_pt = f"+{audit_scoring.TIE_BONUS} acertou quem avança" if hit else "errou quem avança"
                 det_pt = f"{det_pt}, {bonus_pt}" if det_pt != "—" else bonus_pt
 
-        color = pts_color(pts)
         name = entry.get("entryName", "?")
+        breakdown_items.append({"name": name, "pts": pts, "pick_str": pick_str, "det_pt": det_pt})
+
+    breakdown_items.sort(key=lambda x: (-x["pts"], x["name"].upper()))
+    for b in breakdown_items:
+        color = pts_color(b["pts"])
         breakdown_rows_pt += (
-            f'<tr><td style="padding:6px 10px">{name}</td>'
-            f'<td style="padding:6px 10px;text-align:center">{pick_str}</td>'
-            f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{pts}</td>'
-            f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{det_pt}</td></tr>'
+            f'<tr><td style="padding:6px 10px">{b["name"]}</td>'
+            f'<td style="padding:6px 10px;text-align:center">{b["pick_str"]}</td>'
+            f'<td style="padding:6px 10px;text-align:center;font-weight:700;color:{color}">{b["pts"]}</td>'
+            f'<td style="padding:6px 10px;font-size:11px;color:#6b7280">{b["det_pt"]}</td></tr>'
         )
 
     # ── Ranking ───────────────────────────────────────────────────────────────
@@ -727,13 +792,37 @@ def run_auto():
         print(f"ESPN fetch failed: {ex}")
         sys.exit(1)
 
+    try:
+        patched = sb_backfill_schedule(espn)
+        if patched:
+            print(f"AUTO — backfilled kickoff/venue for {patched} leg(s) missing schedule info.")
+            state = sb_fetch()  # re-fetch so downstream logic sees the patched kickoff fields
+    except Exception as ex:
+        print(f"Schedule backfill failed: {ex} — continuing with result check.")
+
     new_legs = _find_new_legs(state, espn)
 
     if not new_legs:
         try:
-            if any_cdb_match_live():
-                print("Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, máx 80 min)...")
-                deadline = time.time() + 80 * 60
+            live_now = [c for c in espn if c.get("state") == "in"]
+            if live_now:
+                # Anchored to the live match's REAL kickoff time, not to time.time() at loop
+                # start — real incident, 2026-08-04: Athletico-PR x Vitória (CDB2026) kicked off
+                # 00:00 UTC; this workflow's own cron tick didn't start running until 00:11:42
+                # (ordinary */10 cron granularity, not itself a bug); the OLD `time.time()+80*60`
+                # deadline measured 80 minutes from THAT run-start, not from kickoff, so it closed
+                # at 01:32:04 — about 4 minutes before the match's real finish (~01:36 UTC,
+                # 90min+stoppage+halftime per ESPN's own clock/period data) — and gave up with
+                # nothing saved or emailed until manually re-triggered. A cron tick landing a few
+                # minutes late (routine — cron fires on a 10-minute grid, kickoff doesn't) was
+                # silently eating into a fixed run-relative window instead of the actual match
+                # duration. 130min = 90 regulation + ~15 halftime + ~10 stoppage + margin.
+                try:
+                    anchor_iso = min(c["dateISO"] for c in live_now if c.get("dateISO"))
+                    deadline = datetime.fromisoformat(anchor_iso.replace("Z", "+00:00")).timestamp() + 130 * 60
+                except (ValueError, TypeError, KeyError):
+                    deadline = time.time() + 80 * 60  # dateISO missing/unparseable — old behavior as a fallback, not the norm
+                print(f"Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, prazo ancorado no kickoff real)...")
                 while time.time() < deadline:
                     remaining = int((deadline - time.time()) / 60)
                     print(f"  [{remaining} min restantes] Aguardando 120s...")
@@ -754,7 +843,7 @@ def run_auto():
                     except Exception:
                         pass
                 else:
-                    print("Monitoramento encerrado por timeout (80 min). Próximo cron tentará novamente.")
+                    print("Monitoramento encerrado por timeout (prazo ancorado no kickoff esgotado). Próximo cron tentará novamente.")
                     return
                 if not new_legs:
                     print("Nenhum resultado detectado após monitoramento. Encerrando.")
