@@ -1,5 +1,13 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
+
+Final phase of the 6-phase migration. No CSS/JS changes to this app in this phase — see
+`bolao/copa2026/CHANGELOG.md`'s same-dated entry and
+`docs/bolao/evidence/canonical-framework/{README.md,COMPONENT_AUDIT.md}` for the full wrap-up
+(component audit across all three apps, honest screenshot-tooling limitation, final full
+test/audit re-run — all pass).
+
 ## v1.89 — 2026-08-04 — Phase 5 of platform visual-framework migration: admin visual standardization
 
 Visual-only pass over the admin UI as part of the platform-wide migration (phases 2-4 migrated
