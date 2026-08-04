@@ -1,5 +1,37 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.90 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation + 2 bug fixes + fixture bug found/fixed
+
+Phase 6 shipped without a real browser (none available). Phase 7 installed Playwright + a real
+Chrome binary and re-verified everything with actual captures/computed styles — see
+`docs/bolao/evidence/canonical-framework/README.md` for the full account, and
+`docs/bolao/CONSISTENCY_MATRIX.md`'s phase 7 entry for the reclassification of every previously
+"preserved" divergence.
+
+**Test-fixture bug found and fixed (dev tooling, not production)**:
+`bolao/cdb2026/scripts/visual/game_fixtures.mjs`'s `fx-t4`/`fx-t5` ties (used to exercise the
+"postponed"/"live" game states in the visual capture harness) were dated `2026-08-05`/
+`2026-08-04` — once this sandbox's simulated "today" reached `2026-08-04`,
+`isPastEntryCutoff()`/`effectivePhaseCutoffMs()` (`js/app.js`, unmodified) picked that up as the
+Oitavas phase's earliest known kickoff and closed the entry cutoff, silently defaulting the app
+to Ranking instead of Palpites during capture. Confirmed via `routeCdb2026Espn()` in the same
+file that the postponed/live mock resolution is keyed by team name only, never this date — so
+moving both dates to 2031 (matching the rest of the fixture's already-future dates) fixes the
+capture with zero effect on what's actually being tested. After the fix: all 7 previously-failed
+CDB2026 "Palpites" captures now succeed.
+
+**Two real, previously-unfixed CSS bugs found and fixed** (same as BR2026's phase 7 entry, see
+that CHANGELOG for the full empirical reasoning):
+
+- **`.prob-bar` `min-width`**: this app's `32px` override promoted to the shared canonical value
+  (was `6px`, a real Copa-side legibility bug); local override removed.
+- **`.sticky-submit` alignment**: `justify-content: center` override removed, now inherits the
+  shared `flex-end`.
+
+Computed-style audit: 0 unapproved divergences (was 8, all traced to the fixture bug above, now
+fixed). 0 console errors, 0 horizontal overflow, 0 sticky-submit overlap (7 viewports × 5 scroll
+positions). `check_cachebust.mjs --write` re-synced `?v=` after the CSS/fixture changes.
+
 ## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
 
 Final phase of the 6-phase migration. No CSS/JS changes to this app in this phase — see

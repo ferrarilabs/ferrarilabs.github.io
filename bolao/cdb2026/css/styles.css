@@ -179,13 +179,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
    registrado aqui, não uma prioridade trocar agora (custo/risco não justifica nesta fase).
    Base .sticky-submit/.sticky-submit button rules moved to
    bolao/shared/css/forms.css (phase 4 migration) — shared sets
-   justify-content: flex-end (Copa's real value). This app's own
-   `justify-content: center` kept as a deliberate override — same
-   pre-existing divergence from Copa already flagged during BR2026's
-   phase 3 migration, not something this visual-only migration is
-   authorized to resolve on its own (CLAUDE.md: "não corrigir
-   silenciosamente"). */
-.sticky-submit { justify-content: center; }
+   justify-content: flex-end (Copa's real value). Phase 7 fix: this
+   app's own `justify-content: center` override — kept through phases
+   4-6 as flagged-but-unresolved — is removed here. Alignment of the
+   same submit button in an equivalent form context is not a
+   tournament-specific structural difference, so it doesn't qualify for
+   the "preserve tournament differences" exception — reclassified BUG
+   VISUAL in docs/bolao/CONSISTENCY_MATRIX.md's phase 7 entry and fixed
+   by relying on the shared value instead of overriding it. */
 
 /* ── Provisional note ── */
 .prov-note {
@@ -602,11 +603,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   .leg-info { grid-column: 1 / -1; text-align: left; white-space: normal; overflow-wrap: break-word; }
 }
 
-/* ── Probabilidades (barra 2 vias — sem empate, mesmo componente visual dos outros apps) ── */
-.prob-bars { display: flex; border-radius: 6px; overflow: hidden; height: 28px; margin-top: 10px; font-size: 11px; font-weight: 700; gap: 2px; }
-.prob-bar { display: flex; align-items: center; justify-content: center; min-width: 32px; padding: 0 4px; transition: width 0.7s ease; white-space: nowrap; overflow: hidden; border-radius: 4px; }
-.prob-bar.home { background: #16a34a; color: #fff; }
-.prob-bar.away { background: #1d4ed8; color: #fff; }
+/* ── Probabilidades (barra 2 vias — sem empate, mata-mata não tem empate) ──
+   Phase 7: .prob-bars/.prob-bar/.home/.away base rules moved to
+   bolao/shared/css/components.css — this app's min-width:32px override
+   was promoted to the shared canonical value (see the comment at
+   shared/css/components.css's .prob-bar rule), so this local copy is now
+   a true duplicate, removed. No .prob-bar.draw here on purpose — CDB2026
+   is single-elimination, there is no draw outcome to show a segment for
+   (TOURNAMENT_SPECIFIC, not a token gap). */
 
 /* ── Footer ── */
 .site-footer-bar {

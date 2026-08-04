@@ -105,7 +105,25 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 6px;
+  /* Phase 7 fix (2026-08-04): was 6px. All three apps render a percentage
+     label INSIDE every segment unconditionally (Copa's own label(pct,name)
+     helper, bolao/copa2026/js/app.js:2656, always returns "N%" text, never
+     an empty string, even for pct<12) — so this value must fit that text,
+     not just be a bare color sliver. Verified empirically via Playwright
+     (real Chrome, headless): a 3% segment at 390px viewport renders at
+     6px min-width with scrollWidth(22px) > clientWidth(19px) — the "3%"
+     label is genuinely clipped, illegible. At 32px min-width (the value
+     BR2026/CDB2026 already carried as an undocumented local override
+     since phases 3-4) the same segment renders at 40px with no clipping.
+     32px promoted to the shared canonical value here instead of leaving
+     BR2026/CDB2026's override in place — this was a real Copa-side
+     legibility bug, not a legitimate per-app variant, so BR2026/CDB2026
+     were right and Copa's original value is what changes. Still doesn't
+     "fake" a probability's visual weight beyond what legibility requires:
+     32px of ~390px (mobile) is under 10% of the bar's total width, and a
+     draw/away segment with genuine 0-1% probability is still visibly the
+     narrowest of the three — it just isn't clipped to unreadable. */
+  min-width: 32px;
   padding: 0 4px;
   transition: width 0.7s ease;
   white-space: nowrap;

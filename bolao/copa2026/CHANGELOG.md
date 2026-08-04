@@ -1,5 +1,27 @@
 # CHANGELOG
 
+## v4.170 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation, `.prob-bar` legibility fix
+
+Phase 6 shipped without a real browser. Phase 7 installed Playwright + a real Chrome binary and
+re-verified everything with actual captures/computed styles instead of source-only comparison —
+see `docs/bolao/evidence/canonical-framework/README.md` and `docs/bolao/CONSISTENCY_MATRIX.md`'s
+phase 7 entry.
+
+**Real bug found in Copa's own canonical `.prob-bar` value, fixed here**: `min-width: 6px` (this
+app's own value, inherited by BR2026/CDB2026 through `bolao/shared/css/components.css`) was
+empirically measured (real Chrome, Playwright) to genuinely clip the percentage label this app's
+own `label(pct,name)` helper (`js/app.js:2656`) renders inside every probability-bar segment — a
+3% segment at 390px rendered with `scrollWidth(22px) > clientWidth(19px)`, i.e. the "3%" text
+didn't fully fit. `min-width: 32px` (the value BR2026/CDB2026 already carried as an undocumented
+local override) renders the same segment with no clipping. Promoted 32px to the shared canonical
+value — this was Copa's own value that needed to change, not something BR2026/CDB2026 were wrong
+about.
+
+Computed-style audit (`bolao/scripts/audit_visual_consistency.mjs`, real Chromium, 30
+components): 0 unapproved divergences, 383 EQUAL, 23 JUSTIFIED (documented variants), 14 N/A. 0
+console errors, 0 horizontal overflow, 0 sticky-submit overlap — all confirmed live at
+390×844/768×1024/1440×900 (and 7 viewports for the overlap check).
+
 ## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
 
 Final phase of the 6-phase migration (phase 1: component catalog; phase 2: shared tokens/shell +
