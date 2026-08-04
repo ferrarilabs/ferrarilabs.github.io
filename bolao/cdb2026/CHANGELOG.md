@@ -1,5 +1,675 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.88 — 2026-08-04 — Automatic kickoff/venue backfill no longer depends on the admin panel
+
+Real production bug reported by Eduardo: games still showing "Data a definir" today despite ESPN
+having already published the kickoff. Root cause: the `autoSyncEspn()` backfill added in v3.87
+(second-leg kickoff/venue) is client-side JS that only runs when an admin has the admin panel
+open in a browser — nothing was driving it automatically, so a leg whose schedule ESPN had
+already published stayed unscheduled on the public site until someone happened to open the admin
+panel after that.
+
+Fixed by porting the same backfill logic (same `withinResultMatchWindow` safety anchor, same
+schedule-only scope — never touches `goalsHome`/`goalsAway`/`status`/`qualifiedTeamId`) into
+`send_result_email.py`'s `--auto` path, which already runs every 10 minutes via
+`.github/workflows/cdb2026_result_emails.yml`. `fetch_espn_candidates()` now also returns
+`venue`/`city` (previously score/date only). New `sb_backfill_schedule()` runs on every cron
+tick, before the result-check logic, and re-fetches state if it patched anything so downstream
+logic sees the corrected kickoff.
+
+`audit_scoring.py` passes — schedule/timing only, scoring untouched.
+
+Two real production bugs found while investigating Eduardo's report that the Athletico-PR ×
+Vitória (Oitavas de Final, ida) result hadn't updated on the site and no email had gone out,
+even though the match ended hours earlier.
+
+**1. `send_result_email.py --auto`'s live-match monitoring deadline was measured from the
+workflow run's own start time, not from the match's real kickoff.** The match kicked off
+2026-08-04 00:00 UTC; the `*/10` cron's own run didn't start until 00:11:42 (ordinary cron
+granularity, not itself a bug); the old `time.time() + 80*60` deadline then closed at 01:32:04 —
+about 4 minutes before the match's real finish (~01:36 UTC, 90min regulation + halftime +
+stoppage per ESPN's own clock/period data) — and the run gave up with nothing saved or emailed.
+Manually re-triggered the workflow to process the result immediately (12/12 emails sent,
+Supabase updated) while investigating. Fixed by anchoring the deadline to the live match's own
+`dateISO` (kickoff) + 130min (90 regulation + ~15 halftime + ~10 stoppage + margin) instead of
+`time.time()` at loop start, so cron-tick jitter can never eat into the real coverage window
+again. Mirrored in `bolao/copa2026/scripts/send_result_email.py` (`EXATAMENTE igual Copa do
+Mundo` per Eduardo, 2026-08-01) for cross-app consistency — dormant there, Copa's tournament is
+concluded and can never have another live match.
+
+**2. `autoSyncEspn()` never backfilled a tie's SECOND leg (volta) kickoff/venue once ESPN
+published it.** Only the first leg (ida) gets `kickoff`/`venue` at tie-creation time; a leg's
+schedule info was otherwise only ever touched once it had a final score
+(`autoSyncEspnResults()`). Once every current Oitavas tie's ida finished (this same incident's
+result being the last one), no leg anywhere had a `kickoff` at all — even though ESPN had
+already published every volta's date — so `findNextUpcomingMatch()` found nothing and the
+"Próximo jogo" card + countdown silently disappeared (Eduardo: "Próximo jogo e contador não
+aparece mais"). This looks like a structural gap that's existed since the ida/volta format was
+built, only now surfacing because the tournament just reached this point. Fixed by extending
+`autoSyncEspn()` with a backfill pass over already-known ties: any leg with no `kickoff` and no
+score gets matched against ESPN's own schedule (same `withinResultMatchWindow` safety anchor
+`autoSyncEspnResults()` already uses) and its `kickoff`/`venue`/`city` filled in — never touches
+`goalsHome`/`goalsAway`/`status`/`qualifiedTeamId`, so the worst case of a wrong match is a
+cosmetically wrong date/venue on the "next game" card, not a result or a payout. Reuses the
+already-registered `save-leg` mutation type in `applyAdminMutation()` for the Supabase batch
+write (a new, unregistered mutation type would have thrown on any remote-conflict merge —
+`applyMutationOverRemote()`'s switch has no default no-op, only `default: throw`).
+
+`audit_scoring.py`: passed in all three apps (scoring untouched — both fixes are schedule/timing
+only, never result or payout logic).
+
+## (tooling, no siteVersion bump) — 2026-08 — PR120-final review item 6: admin components captured in isolation
+
+**No app file touched** (`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js`
+unchanged in all three apps) — this entry is only about `bolao/scripts/audit_visual_consistency.mjs`
+(cross-app tooling), so no `siteVersion` bump/cache-bust re-write is needed, same as the item 5
+entry below.
+
+**What item 6 asked**: don't compare whole admin PAGES by total height — capture admin components
+in isolation (toolbar, card/row, input, select, primary/secondary/destructive button, payment
+badge, modal, toast, empty/filled state), same synthetic content and item count, and treat
+functional differences as NOT_APPLICABLE/JUSTIFIED rather than a height comparison. The existing
+script already avoided whole-page-height comparisons (components are read individually:
+admin-toolbar, admin-card-row, button-small, button-danger, paid-badge, and the item-7 round
+folded button-small/danger height differences into a JUSTIFIED entry precisely because they were
+a functional/composition difference, not a token — see `ALLOWLIST.json`). This entry adds the
+pieces that were still genuinely missing:
+
+- **`button-secondary`** (new component): the plain full-size `.secondary` button (`#adminLogoutBtn`,
+  "Sair") — distinct from `button-small` (`.secondary.small-btn`, a different size tier). Same id
+  in all three apps, no new marker needed. Result: EQUAL on every property in all three apps.
+- **`toast`** (new component): `showToast()` is declared inside each app's own top-level IIFE (per
+  `CLAUDE.md`, `app.js` is "a single IIFE"), so it isn't reachable as `window.showToast` from the
+  harness — confirmed this silently produced N/A on a first pass. Fixed by replicating
+  `showToast()`'s own DOM construction verbatim in the harness (confirmed byte-identical in all
+  three apps: `.bolao-toasts` container + `.bolao-toast <type>` child, plain textContent) — an
+  honest copy of the real markup this component produces, not a new one invented for the audit.
+  Result: EQUAL on every property in all three apps.
+- **`modal`** (new component, explicit N/A): verified by reading all three apps' `app.js` and
+  grepping all three `css/styles.css` for `.modal` (0 matches) — there is no custom modal/dialog
+  component in any of the three apps. Every confirmation flow (draft restore, extreme-score
+  warning, bulk result email, overwrite picks) uses the browser's native `window.confirm()`, which
+  is OS/browser chrome, not a page-rendered element — nothing for `getComputedStyle()` to read,
+  and it would be the identical native dialog regardless of which app triggered it. Listed with
+  all three selectors `null` so it shows as an explicit N/A row in the report instead of being
+  silently absent, per item 6's own instruction.
+- **"input"/"select" in admin context**: NOT duplicated as separate components. `input, select {
+  ... }` is a single global CSS rule with no section-specific override in any of the three apps
+  (confirmed by reading each stylesheet directly — there is no `#adminArea input`/`#adminArea
+  select` rule anywhere) — the existing `input-text`/`select` components (read from the Palpites
+  section) already exercise the exact same rule an admin-context input/select would resolve to.
+  Adding a second, redundant capture would not test anything the first doesn't already cover.
+- **"estado vazio"/"estado preenchido"**: NOT added as separate components. The empty-entries
+  message (`t("noEntries")`) renders as a plain `<p>` with no dedicated CSS class in any of the
+  three apps (confirmed: 0 matches for `.empty-state`/`.no-data` in any stylesheet) — there is no
+  distinct styled token to compare beyond generic paragraph/card text, already covered elsewhere.
+  "Estado preenchido" (filled) is what `admin-card-row` already captures — the harness's fixture
+  always seeds 2 entries, so every existing admin-scoped component in this script is already read
+  in the filled state, same item count (2) in all three apps.
+
+**Result**: `audit_visual_consistency.mjs` now compares 30 components (was 27); still 393 EQUAL /
+13 JUSTIFIED / 0 DIVERGENT / 14 N/A (the 14 `modal` properties) — exit 0 preserved. `node --check`
+clean. `audit_scoring.py` passes all three apps (scoring untouched).
+
+## (tooling, no siteVersion bump) — 2026-08 — PR120-final review item 5: comparable Jogos fixtures
+
+**No app file touched** (`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js`
+unchanged in all three apps) — this entry is only about the shared visual test harness under
+`bolao/cdb2026/scripts/visual/`, so no `siteVersion` bump and no cache-bust re-write are needed
+(the hash the cache-bust tooling computes only covers those five per-app files).
+
+**Problem found by independent PR120 review**: the "Jogos" screenshot in
+`docs/bolao/evidence/visual/` was not a valid cross-app comparison — Copa showed `notApplicable`
+(archived), BR2026 showed a bare "carregando" placeholder (its games come from a live ESPN fetch
+this harness blocks/mocks empty), and only CDB2026 had any real fixture, and even that covered a
+single state (one scheduled leg).
+
+**Fix**: new `bolao/cdb2026/scripts/visual/game_fixtures.mjs`, shared by
+`capture_evidence.mjs` (screenshot evidence) and (next commit) `audit_visual_consistency.mjs`
+(computed-style comparison). Each app gets an equivalent synthetic data set — agendado, ao vivo,
+finalizado, adiado, nome longo, placar, badge, data, horário, estádio; CDB2026 additionally
+ida/volta/agregado (its own TWO_LEG tournament format, preserved, not generalized to the other
+two apps) — using each app's OWN unmodified rendering mechanism, never a new test-only code path:
+
+- **BR2026**: `renderGamesSection()` reads a module-level `_schedule` array populated from a
+  versioned sessionStorage cache (`br2026_schedule_<siteVersion>`) when present, skipping the live
+  ESPN fetch — seeding that cache with an already-parsed event array (same shape
+  `fetchSchedule()` itself produces) gets every state (pre/in/post/postponed) for free, since
+  they're plain fields on each event.
+- **CDB2026**: agendado/finalizado/nome-longo/estádio/ida-volta-agregado come from the same
+  state-seeding this harness already used (richer now: 5 ties instead of 1). "ao vivo" and
+  "adiado" are NOT plain state fields here — CDB2026 resolves them at runtime by matching a live
+  ESPN scoreboard response against tie team names (`fetchEspnCandidates()`/`fetchLiveTies()` in
+  `bolao/cdb2026/js/app.js`). `routeCdb2026Espn()` installs a realistic (schema-accurate,
+  fictional-content) scoreboard mock for exactly two ties, so the app's own unmodified matching
+  logic — not a special test branch — resolves them to live/postponed, the same way a real ESPN
+  response would.
+- **Copa**: no fixture at all (archived, tournament concluded 2026-07-19, real results are already
+  public) — `capture_evidence.mjs`'s `APPS.copa2026.harnessUnhide = { Jogos: "games" }` removes
+  Jogos from the `notApplicable` list and, in the harness's own ephemeral browser context only,
+  clears the `.hidden` class the archived-mode nav button carries before clicking it (same
+  principle `audit_visual_consistency.mjs`'s `archivedAdminNeedsUnhide` already used for Admin —
+  `applyArchiveMode()`/`CONFIG.archived` themselves are never touched, so a real visitor's
+  archived experience is completely unaffected). The real, already-final 2026 World Cup results
+  now render as genuine "cards reais" instead of `notApplicable`. Copa's Jogos view has no distinct
+  "postponed" status at all (verified by reading `renderGames()`) and "ao vivo" can never recur
+  for a concluded tournament — both are honestly N/A for Copa, not a gap in this fixture.
+
+**Two real findings during construction, both fixed in the fixture (not production code)**:
+
+1. A synthetic "finalizado" tie with PAST kickoff dates (representing an "already played" match)
+   dragged CDB2026's whole-phase entry cutoff into the past (`effectivePhaseCutoffMs()` derives
+   the cutoff from the EARLIEST known kickoff across every tie in the active phase, not per-tie),
+   disabling the Palpites nav button as an unintended side effect — fixed by keeping every
+   synthetic kickoff in this fixture in the future (2030), matching the convention the original
+   minimal fixture already used.
+2. Combining an already-wrapping long team name with an ALSO very long venue+city string on the
+   same tie reproduced a Chromium fullPage-screenshot-capture-time rendering artifact:
+   `.leg-teams`' CSS Grid `1fr` column rendered with its text stacked one character per line in the
+   OUTPUT PNG only, at 768×1024 — confirmed NOT a real CSS bug because `getBoundingClientRect()`
+   read immediately after the same screenshot reports a completely normal single/multi-line box.
+   Realistic-length venue/city strings (comparable to the other ties' `"Estádio Teste F, Cidade
+   Teste F"`-style values) avoid the artifact entirely while the team name alone still validates
+   real "nome longo" word-wrapping.
+
+Verification: `capture_evidence.mjs` → 112 entries, 0 failed (was already 0, unaffected).
+`check_manifest.mjs` → 0 violations (was transiently 1 — the artifact above — while this fixture
+was being built; fixed before this commit). `check_sticky_overlap.mjs` → 0 overlap, 7 viewports.
+0 console errors across all 112 manifest entries. `audit_scoring.py` passes all three apps
+(scoring untouched).
+
+## v3.86 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
+
+**Starting point**: the prior (unversioned — see note at the bottom of this entry) commit had
+brought `audit_visual_consistency.mjs`'s DIVERGENT count down from 21 to 8 via item 3's selector
+markers (`data-visual-audit="card-base"/"rules-heading"/"button-primary"/"button-small"/
+"button-danger"`) and item 4's real token alignment (`.form-grid` margin, `.rules-table`
+font-size/line-height, `.game-card`/`.confronto-card` padding+border-radius+margin-bottom, all
+brought to Copa's canonical values). The remaining 8 were explicitly left "not yet triaged" for
+this round: form-grid height/gridTemplateColumns, button-small/danger height, game-card
+gap/height, status-badge gap/minHeight.
+
+**Investigation method**: a standalone Playwright probe (scratchpad, not committed — reads
+`getBoundingClientRect`/`getComputedStyle`/parent-chain/child-list directly for each flagged
+component in all three apps) was used to determine, for each of the 8, whether the divergence was
+a real fixable bug or a genuine content/structure difference, before touching anything.
+
+**1 real bug found and fixed** (form-grid `gridTemplateColumns`): CDB2026's Palpites section has
+TWO `.form-grid` elements — the hidden `#findEntryCard` "editar entrada" form (`class="...
+hidden"`, i.e. `display:none`) comes FIRST in DOM order, before the real "Nova entrada" form. The
+generic `.form-grid` selector picked the hidden one. A `display:none` element never gets a layout
+box, so `getComputedStyle` can't resolve `gridTemplateColumns` to real pixel tracks (returned the
+unresolved `repeat(2, minmax(0px, 1fr))` string) and reported a bogus `height:auto` — a harness
+selector bug, not a CSS divergence, same bug class item 3 already fixed for `.card`/`h3`/buttons.
+**Fix**: new `data-visual-audit="form-grid"` marker on the real, visible "Nova entrada" form-grid
+in all three apps (purely additive attribute — Copa/BR2026 only ever had one `.form-grid` each,
+so this didn't change their behavior, only makes the selector strategy uniform/future-proof
+across all three). Confirmed: `gridTemplateColumns` is now `527px 527px` in all three (EQUAL).
+
+**7 confirmed content/structure-driven, not token bugs — documented in `ALLOWLIST.json`**:
+
+- `form-grid:height` — Copa's entry form has 5 fields (includes a static 'Valor' field showing
+  the fixed entry price; BR2026/CDB2026 don't have this field) = 3 grid rows vs 2 for the other
+  two apps. `.form-grid`'s own CSS is now byte-identical in all three (verified).
+- `button-small:height` / `button-danger:height` — `.small-btn`/`.danger`/`button` CSS is
+  byte-identical in all three (verified by diffing the stylesheets). `.admin-toolbar`'s default
+  `align-items:stretch` stretches every button on the same wrapped flex row to match its tallest
+  sibling. Copa's 13-button toolbar wraps these buttons onto a row with no full-size sibling
+  (34px, natural); BR2026/CDB2026's 5-button toolbar puts them on the SAME row as the full-size
+  'Sair'/logout button (46.5px, stretched) — confirmed via the Playwright probe reading each
+  button's `boundingClientRect.top` (same `top` = same row = stretched). Same root cause as the
+  already-approved `admin-toolbar:height` entry, cascading to its individual buttons — exactly the
+  failure mode item 6 names ("diferenças de funcionalidade devem ser NOT_APPLICABLE ou JUSTIFIED,
+  não comparadas como altura total").
+- `game-card:gap` — BR2026's `.game-card` is its own internal `display:flex; flex-direction:
+  column; gap:4px` layout (2 real stacked children); Copa's `.game-card`/CDB2026's
+  `.confronto-card` are block layouts (not flex containers), so `gap` computes to `normal` for
+  both. Already flagged in `bolao/br2026/css/styles.css`'s own comment as out of item 4's
+  authorized scope.
+- `game-card:height` — content/structure-driven: Copa (3 children), BR2026 (2 children + internal
+  gap), CDB2026's `.confronto-card` (a deliberately different ida+volta component per
+  CONSISTENCY_MATRIX item 72, INTENTIONALLY_DIFFERENT) all render different DOM structures with
+  padding/border-radius/margin already token-aligned — same exclusion class as `main`/`card-base`
+  height above.
+- `status-badge:gap` — only visible with 2+ flex children; confirmed via the probe that all three
+  apps render the 'encerrado' badge as a single text-node `<span>` (`childElementCount:0`) — the
+  `gap:4px` BR2026/CDB2026 set (kept for potential future icon use) is currently inert, zero
+  rendered effect. All other properties of this badge are already EQUAL.
+- `status-badge:minHeight` — a `getComputedStyle` artifact of each app's own (already
+  intentionally different) DOM structure: `min-height:auto` reports as the unresolved keyword
+  `auto` when the badge is a flex ITEM of its immediate parent (BR2026: direct child of
+  `.game-meta`, `display:flex`), but resolves to a concrete `0px` when it isn't (CDB2026: inside
+  `.leg-info`, `display:block`, part of its ida+volta leg layout). Zero effect on the badge's
+  actual rendered size (padding/font-size/border-radius, all EQUAL, fully determine it).
+
+**Result**: `node bolao/scripts/audit_visual_consistency.mjs` now exits 0 — 365 EQUAL, 13
+JUSTIFIED (7 prior + 7 new), 0 DIVERGENT. `node --check` clean on every `.js` in all three apps.
+`audit_scoring.py` passes all three apps (scoring untouched).
+
+**Housekeeping also folded into this version bump**: the prior commit (item 3/4 partial) touched
+`index.html`/`css/styles.css`/`js/app.js` in all three apps but didn't bump `siteVersion` or add a
+changelog entry — noted here rather than rewriting that commit's history. `siteVersion` bumped in
+all three apps (Copa v4.167→v4.168, BR2026 v1.86→v1.87, CDB2026 v3.85→v3.86) and
+`node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026` re-run so the `?v=` tag in
+each `index.html` matches the new file contents (all three were stale after the `index.html`/
+`config.js` edits above) — verified with `cachebust.mjs check` immediately after.
+
+## v3.85 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
+
+**Bug found by independent PR120 review**: two incompatible sources of truth for the `?v=`
+cache-bust tag. `bolao/cdb2026/scripts/check_cachebust.mjs` computed a SHA-256 content hash of
+the five critical files (css/styles.css, js/config.js, js/data.js, js/i18n.js, js/app.js);
+`.github/workflows/sync_version.yml` independently used `git rev-parse --short HEAD` — a value
+that changes on every commit regardless of whether it touched any of those five files, and is
+never equal to the content hash. A workflow-applied tag would immediately fail the local
+checker's own definition of "up to date", and vice versa.
+
+**Fix — single shared source of truth**: new `bolao/scripts/cachebust.mjs` (top-level, cross-app,
+same convention as `bolao/scripts/audit_visual_consistency.mjs`) owns the tag computation
+(`computeTagFromFiles`/`computeAppTag`) and the insert-or-replace `?v=` rewrite
+(`tagRegex`/`currentTags`/`rewriteTags`), plus a `checkApp(app, {write})` entry point and a CLI
+(`node bolao/scripts/cachebust.mjs check|write [--app=...] [--root=...]`).
+
+- `bolao/cdb2026/scripts/check_cachebust.mjs` no longer defines its own copy of any of this — it
+  is now a thin CDB2026-scoped CLI wrapper that imports every function from the shared module and
+  calls `checkApp("cdb2026", {write})`. Kept as its own file (not deleted) because the review's
+  acceptance criterion is the literal command `node bolao/cdb2026/scripts/check_cachebust.mjs`
+  (no `--write`) passing, and because `check_cachebust.test.mjs` imports `tagRegex`/`currentTags`/
+  `rewriteTags` from this exact path — both keep working unchanged.
+- `.github/workflows/sync_version.yml` no longer computes a commit-SHA tag for copa2026/br2026/
+  cdb2026 — it calls `node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026`, the
+  exact same code path the local checker imports from, not a bash/sed re-implementation.
+  Powerball (`bolao/loterias/powerball/`) is explicitly out of scope for this branch (separate,
+  already-registered PII findings — see `docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`), so its
+  cache-bust step is untouched (still commit-SHA + sed), kept as its own separate workflow step so
+  this fix doesn't ripple into a directory this branch must not touch.
+- New `bolao/scripts/cachebust.integration.test.mjs` (8 tests, all passing) proves the full chain
+  end to end against a throwaway fixture directory: index with no `?v=` → `checkApp({write:true})`
+  inserts it → `checkApp({write:false})` (the checker) passes against that same file → a second
+  write is byte-for-byte idempotent → the real CLI subprocess (the same invocation
+  `sync_version.yml` uses) produces output byte-identical to calling the function directly → the
+  workflow file is grepped for the literal `cachebust.mjs write --app=copa2026,br2026,cdb2026`
+  invocation and for the absence of a live (non-comment, non-Powerball) `git rev-parse --short
+  HEAD`, so a future edit that quietly reintroduces a second implementation fails this test
+  instead of silently drifting apart again.
+- **The five critical assets are now up to date in this commit** (not left to depend solely on
+  the next CI run, per the review's explicit requirement): ran
+  `node bolao/scripts/cachebust.mjs write --app=copa2026,br2026,cdb2026` locally and committed the
+  resulting `index.html` changes for all three apps (copa2026 `?v=9bf6932b24fb`, br2026
+  `?v=5032d96b0455`, cdb2026 `?v=5665a312bc80` — hashes as of this commit; they will change again
+  the next time any of the five files change, by design).
+- `node bolao/cdb2026/scripts/check_cachebust.mjs` (no `--write`) now exits 0 — the required
+  acceptance criterion for this item.
+
+No scoring/ranking/entry logic touched. `siteVersion` bumped in all three apps
+(`v4.166→v4.167` Copa, `v1.85→v1.86` BR2026, `v3.84→v3.85` CDB2026) because their `index.html`
+files all changed (new `?v=` tags) — see `bolao/copa2026/CHANGELOG.md` and
+`bolao/br2026/CHANGELOG.md` for the brief cross-reference entries (full detail kept here, same
+convention as the v3.80/v7-item audits).
+
+## v3.84 — 2026-08 — Fase 2.2-correção item 8: `main` padding + `.form-grid` aligned to Copa
+
+**Explicitly authorized by Eduardo** (previously deliberately left unapplied pending exactly this
+authorization — see v3.66/`docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`). Two numeric-only CSS
+changes, no HTML/JS touched (`main`'s `overflow-x:hidden; overflow-y:visible;`, added 2026-08-02
+for the permanent side-scroll fix, is untouched — only the `padding` value changed):
+
+- `main` padding: `16px 14px` → `20px 18px`, matching Copa (`bolao/copa2026/css/styles.css`,
+  the platform's canonical visual reference). Only visible above the existing
+  `@media (max-width: 900px)` breakpoint — that breakpoint already forced all three apps to the
+  same `12px 10px`, so phone/tablet rendering (≤900px) is unchanged.
+- `.form-grid`: `repeat(auto-fill, minmax(220px, 1fr))` gap `14px` → `repeat(2, minmax(0, 1fr))`
+  gap `12px`, matching Copa. Added `.form-grid { grid-template-columns: 1fr }` inside the
+  existing `@media (max-width: 900px)` block (this app didn't have one before — Copa did). Both
+  uses of `.form-grid` in this app (the 4-field "Nova entrada" form and the 2-field "Buscar minha
+  entrada" form) are even-numbered, so a fixed 2-column grid fits cleanly — no cramped odd field.
+
+**Real finding, not just cosmetic**: without the new breakpoint override, the entry form
+rendered as **3 cramped columns at 768px** (tablet width) under the old `auto-fill` rule —
+verified via `getComputedStyle` probe (`gridTemplateColumns` resolved to
+`227.328px 227.328px 227.328px`) and a real screenshot crop. Copa, at the same 768px width,
+already collapsed to 1 column. So this fix also closes a real tablet-width layout gap versus
+Copa, not only the >900px desktop padding/column-count alignment named in the original ask.
+
+**Verification before applying**: captured real Playwright screenshots of the Palpites/entry form
+at 320×568, 768×1024, and 1440×900, before and after, for CDB2026, BR2026, and Copa (unaffected
+control). Confirmed: no new horizontal overflow at any viewport
+(`document.documentElement.scrollWidth <= clientWidth`); the entry form now wraps into a clean
+2×2 grid at 1440px; `.sticky-submit` is a normal in-flow block (`display:flex`, not
+`position:fixed/sticky` despite the class name), so it can never overlap a form field regardless
+of grid layout; 320px/768px renders match pre-fix exactly once the new breakpoint override is in
+place (both converge to the same values Copa already used at those widths).
+
+Re-ran `bolao/scripts/audit_visual_consistency.mjs`: `main:padding`, `form-grid:gap`, and
+`form-grid:gridTemplateColumns` all flipped from DIVERGENT to EQUAL across all three apps (342
+EQUAL / 1 JUSTIFIED / 21 DIVERGENT, down from 339/1/24 before — exactly this fix's 3-property
+delta, nothing else moved). Remaining DIVERGENT for this component (`.form-grid:margin`, `0px` in
+Copa vs `0px 0px 16px` here) was **not** in this item's authorized scope (only
+`padding`/`grid-template-columns`/`gap` were named) — left unauthorized-but-documented rather
+than silently fixed; see `docs/bolao/CONSISTENCY_MATRIX.md` and
+`docs/bolao/evidence/visual-comparison/`.
+
+`node --check`: clean. `audit_scoring.py`: 5/5 (CSS-only change, scoring untouched).
+
+## v3.83 — 2026-08 — Fase 2.2-correção coord.#3: Playwright test suite validating aria-current="page"
+
+New `bolao/scripts/test_aria_current_nav.mjs` (top-level, cross-app). Validates the
+`aria-current="page"` nav decision (cherry-picked from `main` earlier in this branch) actually
+works end-to-end in a real browser, for both mouse and keyboard, in all three apps — not just
+that the source line exists.
+
+Verified against the real `showSection()` implementation (read in all three `app.js` files
+first, identical shape) before writing any assertion: `aria-current="page"` is set on the
+matching `[data-section]` button and removed from every other one on every navigation, no
+`aria-selected` anywhere in any of the three codebases (confirmed by grep — no mixed tab-widget
+semantics to worry about, these are plain `<button>` elements, not `role="tab"`).
+
+Checks per app: exactly one `aria-current="page"` on load; no `aria-selected` anywhere; a real
+mouse click moves `aria-current` to exactly the clicked section and off the previous one; the
+same transition works via keyboard alone (Tab-focus + Enter, not just a mouse click); the
+`.active` CSS class and the `aria-current` attribute always point at the same element (proves the
+visual indicator and the accessibility attribute can't drift apart); no horizontal overflow is
+introduced by any navigation click.
+
+**One test-authoring bug found and fixed while writing this** (worth noting for the same reason
+as the two selector bugs found in item 7): the first version asserted "aria-current moved off the
+previous section" unconditionally, which failed for BR2026 — its default active section is
+already `ranking` (Palpites is disabled since entries closed), so clicking "Ranking" first is a
+legitimate no-op with nothing to move away from. Not an app bug; the test assertion was too
+strict for that case. Fixed to only run that specific check when the click is an actual
+transition.
+
+Copa: only "Ranking" is reachable via nav in archived mode (matches the harness's existing
+treatment elsewhere in this branch), so its keyboard-activation test is skipped with an explicit
+reason logged, not silently omitted.
+
+Result: **all checks pass** across all three apps (initial state, 4 click transitions each for
+BR2026/CDB2026, 1 for Copa, plus a keyboard-only transition for BR2026/CDB2026).
+`audit_scoring.py`: 6/6, 5/5, 5/5 (unaffected).
+
+## v3.82 — 2026-08 — Fase 2.2-correção item 9/coord.#6: side-by-side comparison montages (Copa | BR2026 | CDB2026)
+
+New `bolao/scripts/make_visual_comparison_montages.mjs` (top-level, cross-app). Pure composition
+of screenshots already captured by `capture_evidence.mjs`/`capture_admin_auth_evidence.mjs` — no
+new page capture. This machine has neither ImageMagick nor Python's PIL (both checked, both
+absent), so compositing reuses the same tool already installed for everything else in this
+folder: render a small HTML page with three `<img>` columns via Playwright, screenshot that page.
+
+7 screens (tabs, formulário de palpites, ranking, jogos, regras, admin login, admin autenticado)
+× 4 viewports (320x568, 390x844, 768x1024, 1440x900 — the set from this correction round, not
+the full 7-viewport set the underlying harness uses) = 28 montages in
+`docs/bolao/evidence/visual-comparison/montage_<screen>_<viewport>.png` +
+`montage_manifest.json`.
+
+- **"Tabs" reuses each app's Ranking screenshot**, cropped to just the top strip (topbar+nav) via
+  a fixed-height overflow:hidden container — Ranking exists for all three apps at every viewport,
+  including archived Copa, so it was the only screen guaranteed available everywhere to crop from.
+- **Missing screenshots are rendered as a labeled N/A placeholder with the real documented
+  reason** (Copa archived → Palpites/Jogos/Regras/Admin nav hidden; BR2026 entries closed →
+  Palpites nav disabled) — never a blank gap or a silently dropped column.
+- `capture_admin_auth_evidence.mjs`'s viewport list extended from 3 to 4 entries (added
+  390x844) so the "admin autenticado" montage has real data at all 4 requested viewports — 16
+  captures now (was 12), still 0 failed.
+
+Spot-checked visually (not just "the manifest says 28, done"): `montage_tabs_1440x900.png`
+confirms the item-3 nav-column fix rendering correctly side by side (Copa 1 visible tab/archived,
+BR2026 7, CDB2026 6, no dead columns in either); `montage_form_768x1024.png` confirms the N/A
+placeholders read correctly with real reasons next to CDB2026's full rendered form.
+
+Cross-app change, only CDB2026's own files touched directly (the viewport-list edit) plus the
+new top-level script — `siteVersion` bumped here only, matching this branch's established
+pattern for changes that don't touch another app's own `js/`/`css/`. `audit_scoring.py`: 5/5
+(unaffected).
+
+## v3.81 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
+
+New `bolao/scripts/audit_visual_consistency.mjs` — deliberately at the top-level `bolao/scripts/`,
+not under any single app's own `scripts/`, since this compares all three apps equally. Loads
+each app with a fictional data fixture + a synthetic admin session (reusing the
+`capture_admin_auth_evidence.mjs` sessionStorage technique from the previous commit — real
+password never used), then reads `getComputedStyle()` for 26 components (topbar, brand,
+competition selector, language buttons, tabs nav + active/inactive tab, main, card, h2, h3,
+inputs, select, form-grid, primary/small/danger buttons, ranking row, game card, status badge,
+paid badge, admin toolbar, admin card/row, rules-table cell, WhatsApp button) across 13
+properties each (fontFamily/fontSize/fontWeight/lineHeight/letterSpacing/padding/margin/gap/
+borderRadius/backgroundColor/color/height/minHeight/gridTemplateColumns — exactly the list
+requested), classifying every comparison as EQUAL / EQUIVALENT / JUSTIFIED (cited reason) /
+DIVERGENT (unexplained, flagged for review) / N/A.
+
+**Two real selector bugs found and fixed while building this** (both worth noting because they
+show why "verify the diff, don't just trust the tool ran" matters even for your own new code):
+the `select` component was comparing Copa's real `#paymentMethod` against BR2026/CDB2026's
+generic `select` tag match, which actually picked up `#bolaoSelect` (the competition switcher
+pill, unrelated component, earlier in the DOM) — fixed to `#paymentMethod` explicitly in all
+three, after which the apparent "divergence" (different font-size/weight/padding/border-radius)
+disappeared entirely: **it was never a real design gap, purely a selector bug.** Same story for
+`button-primary` (`button[type=submit]` matches nothing in any of the three apps — all three use
+`type="button"` + JS delegation with different ids, `#saveEntry` vs `#saveEntryBtn`), which was
+silently returning `null` for BR2026/CDB2026 before the fix.
+
+**Result after both fixes**: 339 EQUAL, 1 JUSTIFIED, 24 DIVERGENT, 0 N/A. Output:
+`docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. The Markdown report
+includes explicit methodology notes (documented, not hidden) for: `height`/`minHeight` on
+content-driven `height:auto` containers (varies with fixture content volume, not a design token —
+`main`/`.card`/`.topbar`/admin components), BR2026's `.game-card` not rendering in this harness
+(gated behind `_schedule.length`, which stays 0 since this script fakes an empty ESPN response,
+same network policy as every other script in this folder), and `.card` comparing each app's
+FIRST `.card` in DOM order, which may not be the same semantic card. Real, previously
+undocumented findings surfaced (not fixed — findings are presented first, per
+`docs/bolao/ENGINEERING_STANDARD.md`'s audit-first workflow): `h3` font-size/line-height/margin
+diverges in CDB2026 specifically (Copa and BR2026 already match each other); `.rules-table td`
+font-size/line-height diverges (padding was already known-equal per CONSISTENCY_MATRIX.md item
+65, but font-size wasn't previously checked); `main` padding and `.form-grid` diverge exactly as
+already flagged in this branch's earlier item-8 note (independent confirmation via a different
+method).
+
+Cross-app change — `siteVersion` bumped in all three apps' `config.js` (Copa v4.166, BR2026
+v1.84, CDB2026 v3.81), matching entries in each app's own CHANGELOG.md. `audit_scoring.py`: 6/6,
+5/5, 5/5 (unaffected — no scoring/logic touched).
+
+## v3.80 — 2026-08 — Fase 2.2-correção item 6/coord.#4: authenticated-admin evidence capture (new harness script)
+
+New `bolao/cdb2026/scripts/visual/capture_admin_auth_evidence.mjs` — the existing harness
+(`capture_evidence.mjs`) only ever captured the Admin section's LOGIN form, since no synthetic
+session existed to bypass it. This adds a real authenticated capture using the exact
+`sessionStorage` keys each app's own `isAdminActive()` checks (verified by reading `app.js`
+directly before writing anything, not assumed from a secondhand description):
+`adminOk`+`adminUntil` for Copa, `br2026_adminUntil` for BR2026, `cdb2026_adminUntil` for
+CDB2026. The real admin password is never used anywhere in this file.
+
+- **Copa excluded, marked `notApplicable` (not skipped silently)**: `CONFIG.archived` hides the
+  Admin nav button (`.hidden` class), same product decision already respected for
+  Palpites/Jogos/Regras in `capture_evidence.mjs` — not worked around here either.
+- **BR2026 + CDB2026**: captured both a "filled" state (existing 2-entry fixture, one paid one
+  not) and an "empty" state (zero entries) at 3 viewports (320/768/1440) — 12 real screenshots.
+  Each capture clicks the real Admin nav button (proves the button itself works, not just that
+  the DOM can be forced), then verifies `#adminLogin` is actually hidden and `#adminArea` is
+  actually visible before treating the capture as successful.
+- Since `renderAdmin()` stacks toolbar + phases/results + payments + entries + audit log all
+  inside one `#adminArea` in both apps, a single fullPage screenshot per viewport already shows
+  the toolbar (including the destructive "Limpar tudo" button, visible but never clicked),
+  results, payments (with mark-paid/unpaid buttons), entries (with delete buttons, visible but
+  never clicked), and the audit log together — verified by reading the actual screenshots, not
+  just trusting the manifest's `captured:true`.
+- Output: `docs/bolao/evidence/visual/admin_auth_manifest.json` (separate from the main
+  `manifest.json` — different record shape) + 12 new PNGs in the existing `br2026/`/`cdb2026/`
+  evidence folders. Result: 13 entries, 12 captured, 1 notApplicable, 0 failed.
+- **Not covered by this capture** (documented, not overclaimed): individual export button
+  clicks, actually triggering a destructive action, and per-subsection isolated screenshots
+  (everything renders in one long page here, which is how the real app looks, not a limitation
+  worth working around).
+
+Cross-app change (touches BR2026 evidence too) but only `cdb2026/scripts/visual/` gained a new
+file — BR2026's own source (`js/`, `css/`) wasn't modified, so only CDB2026's `siteVersion` is
+bumped here, matching the precedent set by this branch's item-1 cache-bust commit.
+`audit_scoring.py`: 6/6, 5/5, 5/5 (unaffected — no scoring/logic touched).
+
+## v3.79 — 2026-08 — Fase 2.2-correção item 3: desktop nav column count fixed (repeat(8)→repeat(6))
+
+CDB2026's base `.nav` rule was already correct (`repeat(6, ...)`, matching its 6 real visible
+buttons — Participantes/Pagamento live in a separate `.nav-secondary` container, not inside
+`.nav`), but the `min-width:901px` desktop override had drifted to `repeat(8, ...)` (apparently
+copied from Copa's own — then also stale — desktop rule). Fixed to `repeat(6, ...)`. Verified
+visually at 1024px (Claude Browser): 6 equal-width columns, no dead space.
+
+Added the same defensive last-row-orphan rule as Copa/BR2026 for consistency
+(`:nth-child(3n+1):nth-last-child(1)` — the un-offset formula, since CDB2026 has no hidden
+siblings inside `.nav` to account for). Currently inert (6 buttons = 2 full rows, no orphan
+today) but keeps the three files' patterns aligned and protects against a future 7th nav button
+silently reintroducing the same bug fixed in BR2026 this round.
+
+Propagated across all three apps in the same round — see `bolao/copa2026/CHANGELOG.md` and
+`bolao/br2026/CHANGELOG.md` for the full cross-app rationale. `audit_scoring.py`: 5/5
+(unaffected).
+
+## v3.78 — 2026-08 — Fase 2.2-correção itens 1/2/5: overflow real corrigido, harness de evidência recapturado com 0 failed/0 overflow
+
+Rodada de correção depois de efetivamente RODAR o harness Playwright existente
+(`bolao/cdb2026/scripts/visual/capture_evidence.mjs` + `check_manifest.mjs`) — a rodada anterior
+desta mesma branch tinha documentado (incorretamente) que esse harness "não existe nesta branch";
+ele existe e já estava commitado (`f0ea5ab`), só não tinha sido executado. Rodar de verdade contra
+o código atual confirmou exatamente os dois achados que o Eduardo apontou:
+
+1. **Overflow real em `cdb2026 Jogos@320x568`** (`.leg-info`, item 2): `.leg-info` concatena o
+   texto de data/local E o badge `.game-status` (`${scoreOrDate}${statusChip}`) num único
+   `<span>` com `white-space: nowrap`. Em telas estreitas essa string combinada é mais larga que o
+   card, e o badge "Agendado" ficava empurrado pra fora da área visível — mascarado por
+   `html,body{overflow-x:clip}` (sem barra de rolagem visível), mas genuinamente não renderizado
+   dentro da área visível. Corrigido SEM usar `overflow-x:hidden` como solução única: no breakpoint
+   `max-width:600px` já existente, `.leg-info` ganhou `white-space: normal` (permite quebrar entre
+   o texto e o badge — o badge continua `white-space:nowrap` internamente, então o texto do próprio
+   badge nunca quebra no meio) e `.leg-teams`/`.leg-info` ganharam `min-width: 0` (itens de grid
+   default pra `min-width:auto`, que sozinho já anula qualquer regra de quebra/`max-width` e estoura
+   a largura do card — confirmado testando que o `white-space:normal` sozinho não bastava).
+   Verificado via `check_manifest.mjs`: `horizontalOverflow` zerado nas 112 entradas do manifesto,
+   nos três apps, não só no caso que motivou a correção.
+2. **7 capturas "Pagamento" reclassificadas de `failed` para `notApplicable`** (item 1): o botão de
+   nav do CDB2026 pra essa seção tem `style="display:none"` PERMANENTE desde o commit `b8080aa`
+   ("Hide CDB2026 Participantes/Pagamento nav (match BR2026)") — decisão de produto já tomada, não
+   um defeito de renderização. Nenhum JS em `app.js` reativa esse botão (grep confirmou), então
+   nenhuma fixture poderia torná-lo clicável. `capture_evidence.mjs` ganhou `notApplicable:
+   ["Pagamento"]` na config do CDB2026, mesmo padrão já usado pra casos equivalentes do BR2026.
+3. **Artefato de topbar duplicado nas screenshots** (item adicional, achado ao inspecionar a
+   evidência): `fullPage:true` em páginas altas renderizava `.topbar` DUAS VEZES (posição normal
+   no topo + de novo mais abaixo, onde "grudou" durante a captura de página inteira — quirk
+   conhecido do Chromium/Playwright com `position:sticky` em screenshots `fullPage`, não um bug do
+   app: rolagem real de usuário funciona normalmente). Corrigido injetando
+   `.topbar{position:static!important}` via `page.addStyleTag()` só no momento da captura — nunca
+   toca o CSS real dos apps, comportamento sticky em produção continua intacto.
+
+**Resultado após recaptura completa**: `capture_evidence.mjs` → 112 entradas, 70 captured, 42
+notApplicable, **0 failed** (era 7). `check_manifest.mjs` → **0 violações** (era 1: overflow do
+CDB2026 Jogos). Evidência (`docs/bolao/evidence/visual/`) recapturada e commitada nesta mesma
+rodada, refletindo o código atual (commit no momento da captura, não mais de 2026-08-01).
+
+`python3 bolao/{copa2026,br2026,cdb2026}/scripts/audit_scoring.py` — os três passaram 5/5/5 depois
+da mudança. `node --check` limpo em todos os `.js` dos três apps.
+
+## v3.77 — 2026-08 — Fase 2.2-correção item 1: cache-bust tooling agora insere `?v=` ausente (não só substitui)
+
+Achado real em produção durante a rodada de correção da Fase 2.2: os três `index.html`
+(Copa, BR2026, CDB2026) hoje referenciam os cinco assets críticos (`styles.css`, `config.js`,
+`data.js`, `i18n.js`, `app.js`) **sem nenhum `?v=`** — nem uma query antiga nem a atual. Tanto
+`bolao/cdb2026/scripts/check_cachebust.mjs` quanto o `sed` do workflow `sync_version.yml` só
+sabiam SUBSTITUIR uma query já existente; nenhum dos dois conseguia INSERIR uma ausente, então
+ambos ficavam silenciosamente sem efeito nesse estado — o cache-bust está de fato quebrado hoje
+nos três apps (bug de infraestrutura, não de scoring/regra de negócio).
+
+- `check_cachebust.mjs`: `tagRegex()` agora casa o caminho relativo completo do asset
+  (`js/config.js`), ancorado nas aspas ao redor (lookbehind/lookahead), com uma query `?v=<hex>`
+  OPCIONAL — cobre `"js/config.js"` (sem query) e `"js/config.js?v=abc"` (query antiga) com a
+  mesma expressão, sempre produzindo `"js/config.js?v=<hash-atual>"`.
+- `--write` só anuncia sucesso depois de: (1) escrever o arquivo; (2) reler do disco de forma
+  independente; (3) rodar a mesma validação do modo de checagem; (4) confirmar que os cinco
+  assets têm a tag esperada — antes só assumia que a escrita em memória tinha funcionado.
+- Novo `check_cachebust.test.mjs` (Node `node:test`, sem dependência nova) cobre: query ausente,
+  query antiga, query já correta (idempotência), múltiplos assets misturados, e duas execuções
+  consecutivas de `rewriteTags()` produzindo o mesmo resultado.
+- `sync_version.yml`: o `sed` global (`s/?v=[^"' >]*/.../g`, que também exigia uma query já
+  existente) foi trocado por um laço por asset que casa o valor do atributo entre aspas
+  (`(["'])REL(\?v=...)?`) e sempre reescreve para `REL?v=<sha>` — mesma correção
+  inserir-ou-substituir aplicada ao script Node. Testado manualmente (fora do CI) simulando o novo
+  `sed` sobre uma cópia de `bolao/cdb2026/index.html`: insere corretamente quando a query está
+  ausente, substitui corretamente quando está desatualizada, e é idempotente numa segunda
+  execução.
+
+**Escopo desta mudança**: só a ferramenta (script + workflow). `index.html` dos três apps **não**
+foi editado à mão nesta rodada — por instrução explícita de Eduardo (bot `sync_version.yml` é
+quem deve tocar o `?v=`, edição manual já causou conflito de janela de deploy antes). O
+`?v=` ausente nos três `index.html` continua ausente até o próximo push real em `main` que toque
+JS/CSS de algum dos apps, quando o workflow corrigido vai preencher os cinco assets dos quatro
+apps cobertos (Copa, BR2026, CDB2026, Powerball) de uma vez.
+
+Categoria: `PLATFORM_SHARED` (tooling de infraestrutura, não específico de torneio). Afeta os
+quatro apps que o workflow cobre; só o `check_cachebust.mjs` (específico do CDB2026) teve
+`siteVersion` bumped aqui porque foi o único arquivo de app tocado nesta rodada — Copa e BR2026
+não tiveram nenhum arquivo alterado, então não recebem bump de versão por esta mudança isolada de
+workflow compartilhado.
+
+`python3 bolao/cdb2026/scripts/audit_scoring.py` rodado após a mudança — scoring não tocado.
+
+## v3.76 — 2026-08-02 — Fix: per-match result email breakdown table wasn't sorted by its own points
+
+Eduardo pasted a sent email as evidence: the "Entrada | Palpite | Pts | Detalhes" table for a
+single leg's result wasn't ordered by its own "Pts" column at all (10/5/5/10/10/5/5/5/5/5/5/5, no
+visible pattern). Root cause: `build_html()`'s breakdown loop reused `scored`'s order, which is
+the SEASON-TOTAL ranking (`score_entry_total()` across every match played so far) — a completely
+different sort key from what a given entry earned on *this* leg. Copa's equivalent script already
+avoids this (`breakdown_scored`, its own separate sort distinct from the season-ranking `scored`)
+— CDB2026 was the one that had skipped that separation, not a platform-wide bug; BR2026 has no
+equivalent per-match breakdown table to check.
+
+Fixed: the breakdown is now built as its own list, sorted by (this leg's points, descending),
+then (entry name, alphabetical) as Eduardo asked — computed after any tie-qualification bonus is
+folded in, since that's part of "this game's" score too. Sort verified against the exact pasted
+data (10-pt entries first, alphabetical among ties; then all 5-pt entries, alphabetical).
+`audit_scoring.py`: 5/5 (score/ranking computation itself untouched — this only reordered how one
+already-correct number is displayed).
+
+## v3.75 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
+
+Propagated from Copa (v4.164) per the Fase 2.2 visual/accessibility audit
+(`docs/bolao/VISUAL_PARITY_MATRIX.md`): `showSection()` now toggles `aria-current="page"` on the
+active `.nav button[data-section]` (removed on the rest), same shape as Copa/BR2026. No visual
+change, no scoring/logic touched. `audit_scoring.py`: 5/5.
+
+## v3.74 — 2026-08-02 — Aba "Jogos" alinhada 100% ao look and feel/comportamento da Copa: chips de status, placar ao vivo, auto-scroll pro próximo jogo
+
+Eduardo: "A tab jogos da cdb e brasileirão devem funcionar da mesma maneira que copa do mundo e
+ter o mesmo look and feel. E por default deve ir automaticamente para o próximo jogo. verifique
+isso 100% sem retirar informações ou funcionalidades." Auditoria confirmou: BR2026 já tinha esse
+comportamento (código idêntico ao padrão da Copa) — só faltava no CDB2026. Três gaps reais
+encontrados e corrigidos, nenhuma informação existente removida:
+
+1. **Chip de status por perna** (`.game-status pre/live/post/postponed`) — CDB2026 só mostrava a
+   data OU o placar cru, sem rótulo nenhum; Copa/BR2026 sempre mostram um chip colorido. Aplicado
+   a toda perna, reaproveitando o CSS já portado (e nunca usado fora de "Adiado") desde a v3.26.
+2. **Placar/relógio ao vivo dentro da aba Jogos** — uma perna em andamento continuava mostrando
+   só a data antiga na lista de jogos, como se ainda não tivesse começado (só o card `#liveTieCard`
+   isolado do topo mostrava o placar real). Agora consulta `_liveTies` e mostra placar + relógio
+   ao vivo (já reconciliado pelo fix da v3.73) direto na perna, com borda vermelha igual ao
+   `.game-card.is-live` da Copa.
+3. **Auto-scroll pro próximo jogo ao abrir a aba** — não existia. Novo `nextUpcomingLegKey()`,
+   que reusa `flatLegsChronological()` (ordem cronológica real por PERNA, não por confronto, já
+   usado por "Ver palpites"/comprovante/CSV desde a v3.67) em vez do "primeiro `.pre` em ordem de
+   DOM" que basta pra Copa/BR2026 — como o CDB2026 agrupa ida+volta no mesmo card por confronto, a
+   volta (ainda sem data) de um confronto já iniciado apareceria ANTES da ida de outro confronto
+   com data mais próxima se só a ordem de DOM fosse usada. Exclui pernas já ao vivo (mesmo
+   critério de Copa/BR2026 — o jogo ao vivo já tem destaque próprio no topo).
+
+**Estrutura de card por CONFRONTO (ida+volta agrupadas, com agregado/"quem avança") preservada
+integralmente** — é `TOURNAMENT_SPECIFIC` (mata-mata de duas pernas, sem equivalente na Copa/
+BR2026), não uma divergência a remover. Nenhuma informação existente foi tirada (venue, agregado,
+classificado, rótulo ida/volta, chip de adiado — todos continuam, só ganharam o chip de status
+novo ao lado).
+
+Verificado com Playwright contra estado real de produção + partida ao vivo simulada (mesmo mock
+Santos × Remo da v3.73): confronto-cards/agregados/"quem avança" idênticos a antes; chip de status
+em toda perna confirmado; placar+relógio ao vivo com borda vermelha confirmado na perna ao vivo;
+auto-scroll confirmado levando à perna correta (excluindo a que já está ao vivo). `node --check`:
+OK. `audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
+`audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só exibição/navegação da aba Jogos.
+
 ## v3.73 — 2026-08-02 — Relógio ao vivo mostrava acréscimo menor do que um lance já listado abaixo dele
 
 Eduardo, print do card ao vivo: "O cronometro esta errado, veja que mostra +1 mas logo abaixo
@@ -200,8 +870,8 @@ ainda não tem resultado, igual ao padrão da Copa (`hasRealScore ? ... : "—"`
 `tie.qualifiedTeamId` setado). Linhas de campeão/vice previsto mostram "—" no lugar (não existe
 "resultado real" pra bônus de pódio ainda não decidido).
 
-Reproduzido visualmente com estado real de produção (Playwright + Supabase, entrada "Marcelo
-<participant> #1"): confirmado que Vasco × Fluminense (jogo já disputado, 0×0) agora mostra "0 × 0"
+Reproduzido visualmente com estado real de produção (Playwright + Supabase, uma entrada real):
+confirmado que Vasco × Fluminense (jogo já disputado, 0×0) agora mostra "0 × 0"
 na coluna Real ao lado do palpite "1 × 1", igual à Copa mostraria. `node --check`: OK.
 `audit_scoring.py` das 3 apps (5/5 cada), `audit_golden_master.mjs` (37/37) e
 `audit_integrity.py` (0 erro) re-rodados — scoring não tocado, só exibição.
@@ -240,8 +910,8 @@ continua correto para o que resolvia.
 não publicado); registrar em `docs/bolao/CONSISTENCY_MATRIX.md` como divergência conhecida da
 Copa a avaliar separadamente.
 
-Reproduzido visualmente com o estado real de produção (Supabase, entrada "REDACTED_PARTICIPANT
-#1") via Playwright antes e depois da correção — HTML da tabela confirmado sem nenhuma classe de
+Reproduzido visualmente com o estado real de produção (Supabase, uma entrada real) via Playwright
+antes e depois da correção — HTML da tabela confirmado sem nenhuma classe de
 linha e sem `<b>` fora da coluna de placar. `node --check`: OK. `audit_scoring.py` das 3 apps
 (5/5 cada), `audit_golden_master.mjs` (37/37) e `audit_integrity.py` (0 erro) re-rodados —
 scoring não tocado, só marcação/CSS de exibição.

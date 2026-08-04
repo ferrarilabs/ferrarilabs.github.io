@@ -326,6 +326,41 @@ de chegar em qualquer conteúdo — ver "Admin" nas inconsistências); BR2026 = 
 4 botões. Não é um bug de componente (o componente é o mesmo), é uma questão de organização de
 informação — ver seção "Admin" abaixo.
 
+## Admin entry row — full vs. dense variant (2026-08-03, PR120-final review item 5)
+
+Cada entrada de participante na aba Admin é renderizada como um de dois variantes **formalmente
+documentados** do mesmo componente — nenhum dos dois é um bug ou uma divergência não resolvida
+(`docs/bolao/CONSISTENCY_MATRIX.md` item 78, anteriormente `NEEDS_REVIEW`, agora `RESOLVED` como
+`INTENTIONALLY_DIFFERENT` por esta seção):
+
+- **`admin-entry-full`** (Copa `bolao/copa2026/`, `.card.admin-entry`): um card completo e
+  empilhado — padding 18px, border-radius 18px, background token de `.card`, margin-bottom 10px
+  entre entradas, font-size 15px (herdado de `.card`). Usado por Copa porque a lista de entradas
+  raramente é longa o suficiente para exigir densidade (torneio já concluído/arquivado — ver
+  `applyArchiveMode()`), e o layout empilhado deixa espaço confortável para os botões de ação
+  (abrir recibo, baixar HTML, e-mail participante, e-mail admin, excluir).
+- **`admin-entry-dense`** (BR2026/CDB2026, `.admin-row`): uma linha densa de lista — padding
+  vertical apenas (8px, sem padding horizontal — não é um card com borda própria), sem
+  border-radius, background transparente (herda do container da lista), espaçamento via `gap`
+  (8px, é um flex row) em vez de margin por linha, font-size 14px (tamanho base do corpo).
+
+**Quando usar cada variante:** `admin-entry-full` é apropriado quando a lista de entradas é
+tipicamente curta (torneio concluído/arquivado, ou volume de participantes baixo) e o espaço
+extra por entrada não compromete a navegação. `admin-entry-dense` é apropriado quando a lista
+pode crescer bastante durante um torneio ativo (BR2026/CDB2026, inscrições abertas) e uma tela
+de admin precisa mostrar muitas entradas sem rolagem excessiva — a mesma motivação por trás de
+listas densas em qualquer produto administrativo.
+
+**Propriedades afetadas** (todas com entrada correspondente em
+`docs/bolao/evidence/visual-comparison/ALLOWLIST.json`, componente `admin-card-row`): `height`
+(conteúdo/variante-dependente), `fontSize`, `lineHeight`, `padding`, `margin`, `gap`,
+`borderRadius`, `backgroundColor`. Propriedades que NÃO variam entre os dois variantes (já
+`EQUAL` na auditoria): `fontFamily`, `fontWeight`, `letterSpacing`, `color`,
+`gridTemplateColumns` (nenhum dos dois usa grid).
+
+Se um novo app da plataforma precisar dessa tela, deve escolher explicitamente um dos dois
+variantes acima (não inventar um terceiro) e registrar a escolha nesta seção.
+
 ## Hero
 
 Estruturalmente diferente por app:
@@ -613,6 +648,16 @@ trade-off real, não uma correção óbvia:
    que forçar 4 colunas trocaria. Recomendação: **não** igualar cegamente à Copa aqui — o valor
    diferente parece uma adaptação deliberada e razoável ao maior número de itens, não drift. Sinalizado
    para confirmação do Eduardo antes de qualquer mudança.
+   > **Atualização (2026-08, branch `fase2.2-correcao-final`, item 3):** a contagem real de
+   > botões VISÍVEIS mudou desde esta nota (2026-07-14) — Copa/BR2026/CDB2026 tiveram colunas
+   > desktop mortas removidas (Copa 8→6, BR2026 9→7, CDB2026 6 mantido), então a premissa "BR2026
+   > tem 9/CDB2026 tem 8 contra 6 da Copa" não é mais verdadeira (hoje é 7/6/6). Com a contagem
+   > real corrigida, os três apps convergiram para `repeat(3, minmax(0,1fr))` em mobile —
+   > incluindo a Copa, que teve seu próprio `repeat(4,1fr)` alinhado (ver
+   > `docs/bolao/CONSISTENCY_MATRIX.md`, nota "branch `fase2.2-correcao-final`"). A recomendação
+   > "não igualar cegamente" continua correta como PRINCÍPIO (não copiar às cegas), mas a
+   > conclusão prática mudou porque a premissa (contagem de botões) mudou, não porque o princípio
+   > foi violado.
 
 ### Confirmado OK nesta rodada (sem ação necessária)
 
@@ -682,6 +727,22 @@ escondido.
   o mesmo `.sticky-submit`) ou se BR2026/CDB2026 têm folga demais — precisa de inspeção visual
   real (rolar até o fim de cada formulário nos 3 apps) antes de decidir qual lado corrigir.
   Registrado aqui para não ficar esquecido, não implementado sem essa verificação.
+  > **Atualização (2026-08-16, BR2026 v1.47/CDB2026 v3.35):** a folga de 80px de padding-bottom
+  > foi removida (achado real, Eduardo: "muito espaço vazio no final da página") — ver
+  > `docs/bolao/CONSISTENCY_MATRIX.md`, nota "80px de padding-bottom sobrando". `main` passou a
+  > ser `16px 14px` (sem componente de bottom extra) nos dois apps.
+  > **Atualização (2026-08, branch `fase2.2-correcao-final`, item 8):** o valor NUMÉRICO do
+  > padding (não só a folga extra) foi então alinhado à Copa também, autorizado explicitamente
+  > pelo Eduardo — BR2026/CDB2026 agora usam `20px 18px`, igual à Copa. `.form-grid` recebeu o
+  > mesmo tratamento (era `repeat(auto-fill, minmax(220px,1fr))` gap `14px`, agora
+  > `repeat(2, minmax(0,1fr))` gap `12px`, com colapso pra 1 coluna em
+  > `@media (max-width:900px)` que faltava nesses dois apps). Verificado com screenshots reais
+  > 320/768/1440px antes/depois: nenhum overflow novo, `.sticky-submit` (fluxo normal, não
+  > fixed/sticky) nunca cobre nenhum campo. Achado extra: sem o colapso de breakpoint, o
+  > formulário rendia 3 colunas espremidas a 768px — corrigido junto. Detalhe completo:
+  > `bolao/br2026/CHANGELOG.md` v1.85, `bolao/cdb2026/CHANGELOG.md` v3.83,
+  > `docs/bolao/CONSISTENCY_MATRIX.md` (nota "branch `fase2.2-correcao-final`"). **Esta
+  > pendência está resolvida — não é mais um item em aberto.**
 
 ## Correção: esquema de cor dourado do CDB2026 — buraco real na metodologia da auditoria anterior (2026-07-14, CDB2026 v3.10)
 

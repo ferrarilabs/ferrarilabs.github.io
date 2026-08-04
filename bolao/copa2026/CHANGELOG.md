@@ -1,5 +1,103 @@
 # CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08-04 — EMERGENCY_HOTFIX propagation: live-monitoring deadline anchor
+
+Propagated from `bolao/cdb2026/scripts/send_result_email.py` (same incident, same architecture —
+"EXATAMENTE igual Copa do Mundo" per Eduardo, 2026-08-01). `any_copa_match_live()`'s live-match
+monitoring deadline was `time.time() + 80*60` (measured from whenever the workflow run happened
+to start, not from the match's real kickoff) — CDB2026 hit this for real on 2026-08-04
+(Athletico-PR × Vitória: a cron tick landing 11m42s after kickoff, ordinary `*/10` granularity,
+ate enough of the fixed 80-minute window that it closed ~4 minutes before the match's real
+finish). Fixed the same way here: `any_copa_match_live()` now returns the earliest live match's
+kickoff ISO string (was a bare boolean) so `run_auto()` can anchor its deadline to kickoff + 130
+min instead of run-start + 80 min. **Dormant in this app** — the World Cup concluded 2026-07-19
+and `CONFIG.archived` is `true`; no live match can ever occur again — kept in sync purely so this
+script doesn't silently drift from CDB2026's copy again (same class of drift CLAUDE.md's own
+"never assume a change is unrelated" scoring-audit rule exists to catch). No app file touched
+(`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js` unchanged) — script
+only, no `siteVersion` bump/cache-bust needed.
+
+`audit_scoring.py`: passed (scoring untouched — timing/deadline only).
+
+## v4.168 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
+
+Full rationale/findings documented once in `bolao/cdb2026/CHANGELOG.md` v3.85 (same change,
+touches all three apps equally). Summary: fixed a real selector-ambiguity bug (CDB2026 has two
+`.form-grid` elements; the generic selector picked the wrong, hidden one) via a new
+`data-visual-audit="form-grid"` marker on the real entry-form grid in all three apps (purely
+additive attribute, no CSS/behavior change) — same technique item 3 already used for
+`.card`/`h3`/buttons. The remaining 7 DIVERGENT findings (form-grid height, button-small/danger
+height, game-card gap/height, status-badge gap/minHeight) were investigated with a Playwright
+probe, confirmed content/structure-driven rather than token bugs, and documented in
+`docs/bolao/evidence/visual-comparison/ALLOWLIST.json` with verifiable justifications.
+`audit_visual_consistency.mjs` now exits 0 (365 EQUAL, 13 JUSTIFIED, 0 DIVERGENT). No
+scoring/bracket/tiebreak logic touched. Also retroactively covers the prior (unversioned)
+commit's item 3/4 work — `data-visual-audit="card-base"/"rules-heading"/"button-primary"/
+"button-small"/"button-danger"` markers and `.form-grid` margin / `.rules-table` font-size /
+`.game-card` padding+border-radius+margin-bottom alignment to Copa — which should have bumped
+`siteVersion` and didn't; noted here rather than rewriting that commit's history.
+
+## v4.167 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
+
+Same platform-shared fix documented in full in `bolao/cdb2026/CHANGELOG.md` v3.84 (new
+`bolao/scripts/cachebust.mjs` is the single source of truth for the `?v=` tag; the workflow
+`.github/workflows/sync_version.yml` and the local checker now compute/apply the exact same
+content hash instead of two incompatible values). This app's `index.html` was rewritten to
+`?v=9bf6932b24fb` (matches the current content hash of its own five critical files) as part of
+that same commit — Copa's own bump, not shared with the other two apps' hashes (each app's tag is
+independently computed from its own files). No scoring/bracket/tiebreak logic touched.
+
+## v4.166 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
+
+New `bolao/scripts/audit_visual_consistency.mjs` (top-level, cross-app — not under any single
+app's own `scripts/`). Full rationale, methodology, and findings in
+`bolao/cdb2026/CHANGELOG.md` v3.80 (this is the same change, documented once in detail since it
+touches all three apps equally). Summary: 339/364 property comparisons EQUAL across
+Copa/BR2026/CDB2026, 24 flagged DIVERGENT (documented, not auto-fixed — findings presented first
+per audit-first workflow), including independent confirmation of the already-known `main`
+padding and `.form-grid` divergences (item 8, still awaiting explicit authorization before any
+fix), plus new findings (`h3` and `.rules-table td` diverge in CDB2026 specifically). Report:
+`docs/bolao/evidence/visual-comparison/audit_visual_consistency.{json,md}`. `audit_scoring.py`:
+6/6 (unaffected).
+
+## v4.165 — 2026-08 — Fase 2.2-correção item 3: tab nav standardized across all three apps (desktop column count, mobile 3-col pattern)
+
+Verified against the ACTUAL current CSS/HTML (not the possibly-stale numbers in the original
+task prompt) that Copa's desktop `.nav` grid still had `repeat(8, ...)` columns while only 6
+buttons are ever visible (Participantes/Pagamento are permanently `display:none`) — 2 dead
+columns stretching the row. Fixed to `repeat(6, ...)`, matching the real visible count, in both
+the base rule and the `min-width:901px` override (both were stale).
+
+Mobile nav standardized to **3 columns** across Copa/BR2026/CDB2026 (was 4 for Copa only,
+3 for the other two already). Not picked "because 2 of 3 already do it" — verified it's a real
+improvement for Copa's own layout too: 6 buttons / 4 columns was 4+2 (uneven last row); 6 buttons
+/ 3 columns is 3+3 (two full rows). Verified with a real 320px viewport (Claude Browser
+resize_window + screenshot, temporarily un-hiding the archived nav via a client-side-only debug
+script — CONFIG.archived/applyArchiveMode() itself was NOT touched) that the longest label,
+"Probabilidades", still renders in full at 11px with no ellipsis truncation.
+
+Added a defensive rule for a button left alone in the final mobile row when the visible count
+isn't divisible by 3 (`:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1 }` — the `3n`
+instead of the more obvious `3n+1` accounts for the two `display:none` Participantes/Pagamento
+buttons living INSIDE `.nav`, which `:nth-child` counts even though they don't occupy a grid
+cell; full accounting in the CSS comment). Currently inert for Copa (6 items, 2 full rows, no
+orphan) but matches the equivalent fix in BR2026 (which DOES have an orphan today — 7 items) and
+keeps the three files' patterns consistent for whoever edits nav items next.
+
+Propagated to all three apps in the same round — see `bolao/br2026/CHANGELOG.md` and
+`bolao/cdb2026/CHANGELOG.md`. `audit_scoring.py`: 6/6 (unaffected, no scoring/logic touched).
+
+## v4.164 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
+
+Fase 2.2 visual/accessibility audit (`docs/bolao/VISUAL_PARITY_MATRIX.md`) flagged that the main
+nav buttons only signaled the active tab via a `.active` CSS class, invisible to screen readers.
+`showSection()` now also toggles `aria-current="page"` on the matching `.nav button[data-section]`
+(removed on the rest). Not `aria-selected` — these are plain `<button>` elements, not a
+`role="tab"`/`role="tablist"` pair, so `aria-current` is the correct ARIA pattern here rather than
+adding a tab role without its full required structure. Same fix propagated to BR2026 and CDB2026
+(same `showSection()` shape in all three). No visual change, no scoring/logic touched.
+`audit_scoring.py`: 6/6.
+
 ## v4.163 — 2026-08-01 — Live clock stoppage-time cap missing for regular-time periods (propagated from CDB2026)
 
 Real live incident (CDB2026, Vasco×Fluminense, Oitavas, 2026-08-01): the live clock kept climbing

@@ -470,11 +470,26 @@ function appendAdminAuditLog(s, action, detail) {
 // ─── Sections ───────────────────────────────────────────────────────────────
 function showSection(id) {
   $$(".page").forEach(p => p.classList.toggle("active", p.id === id));
-  $$(".nav button[data-section]").forEach(b => b.classList.toggle("active", b.dataset.section === id));
+  $$(".nav button[data-section]").forEach(b => {
+    const active = b.dataset.section === id;
+    b.classList.toggle("active", active);
+    if (active) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current");
+  });
   const h = document.querySelector(`#${id} h2, #${id} h3`);
   if (h) { h.setAttribute("tabindex", "-1"); h.focus({ preventScroll: false }); }
   if (id === "admin") renderAdmin();
-  if (id === "games") renderGamesSection();
+  if (id === "games") {
+    renderGamesSection();
+    // Rola pra próxima perna automaticamente ao abrir a aba -- mesmo comportamento da Copa
+    // (.game-card[data-state="pre"], showSection() em bolao/js/app.js) e do BR2026
+    // (.game-card.pre, showSection() em bolao/br2026/js/app.js). Eduardo, 2026-08-02: "por
+    // default deve ir automaticamente para o próximo jogo." data-next-leg é calculado em
+    // renderGamesSection() via nextUpcomingLegKey() -- ordem cronológica real por perna, não por
+    // confronto (a mesma perna que "Ver palpites"/comprovante/CSV já usam desde a v3.67).
+    setTimeout(() => {
+      document.querySelector('[data-next-leg="true"]')?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 80);
+  }
   if (id === "probs") renderProbsSection();
 }
 
@@ -619,10 +634,10 @@ function uuid() {
 // fases finais — um time cadastrado pelo admin que não estiver no dicionário simplesmente não
 // mostra escudo (fallback gracioso, não é erro — a Copa do Brasil tem 126 clubes, muitos de
 // divisões sem CDN de escudo conhecida).
-function teamLogoImg(team, cls) {
+function teamLogoImg(team, cls, visualRole) {
   const url = DATA.teamLogos?.[team];
   if (!url) return "";
-  return `<img src="${esc(url)}" class="${cls || "team-logo"}" alt="" aria-hidden="true">`;
+  return `<img src="${esc(url)}" class="${cls || "team-logo"}" alt="" aria-hidden="true"${visualRole ? ` data-visual-role="${visualRole}"` : ""}>`;
 }
 
 // ─── Payment icon ───────────────────────────────────────────────────────────
@@ -1401,19 +1416,21 @@ function renderRanking() {
       : "";
     const row = document.createElement("div");
     row.className = "rank-row";
+    row.dataset.visualRole = "ranking-row";
     // Número puro, sem sufixo " pts" -- mesmo padrão da Copa. A coluna de pontos no mobile tem
     // largura FIXA de 40px (pra o botão "Ver palpites" nunca deslocar conforme o placar tem
     // 1-3 dígitos, ver CSS), dimensionada só pros dígitos. Com "170 pts" a linha quebrava --
     // Eduardo: "Deixe tudo da entrada em uma linha e sem crlf" (2026-07-16, mesmo ajuste no BR2026).
     row.innerHTML = `
-      <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
-      <div><b>${esc(item.e.entryName)}</b></div>
-      <div class="points">${item.total}</div>
+      <div class="rank-pos" data-visual-role="ranking-position">${medal}${rankMovementHtml(mv)}</div>
+      <div><b data-visual-role="ranking-name">${esc(item.e.entryName)}</b></div>
+      <div class="points" data-visual-role="ranking-points">${item.total}</div>
       ${viewBtn}`;
     box.appendChild(row);
     if (canViewPicks) {
       const detail = document.createElement("div");
       detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
+      detail.dataset.visualRole = "ranking-detail";
       detail.dataset.rankDetail = item.e.id;
       detail.innerHTML = renderPickDisplay(item.e, item.detail);
       box.appendChild(detail);
@@ -1562,9 +1579,12 @@ function renderRules() {
   if (!box) return;
   const sc = C.scoring;
   const pr = C.prizes;
+  // data-visual-audit="card-base"/"rules-heading" (PR120-final review item 3): stable,
+  // unambiguous selectors for bolao/scripts/audit_visual_consistency.mjs — see the matching
+  // comment in bolao/copa2026/js/app.js's renderRules(). Purely additive, no CSS/behavior change.
   box.innerHTML = `
-    <div class="card">
-      <h3>${esc(t("rulesScoring"))}</h3>
+    <div class="card" data-visual-audit="card-base">
+      <h3 data-visual-audit="rules-heading">${esc(t("rulesScoring"))}</h3>
       <table class="rules-table">
         <tbody>
           <tr><td>${esc(t("rulesMatchExact"))}</td><td><b>${sc.match.exact}</b></td></tr>
@@ -1829,10 +1849,48 @@ function flatLegsChronological(s, phase) {
   return flat;
 }
 
+// Chave "tieId:leg" da PRÓXIMA perna ainda não iniciada, em ordem cronológica real (não por
+// confronto) -- mesma lógica de flatLegsChronological() (usada por "Ver palpites"/comprovante/
+// CSV): sem isso, a primeira perna com classe "pre" em ordem de DOM poderia ser a volta de um
+// confronto já iniciado (ida jogada, volta ainda sem data) aparecendo ANTES da ida de outro
+// confronto que já tem data mais próxima -- mesmo bug de agrupar por confronto em vez de por
+// jogo já corrigido em flatLegsChronological(). Exclui pernas já AO VIVO (_liveTies) mesmo que
+// `m.goalsHome` ainda esteja null no estado persistido (só é preenchido quando o jogo termina) --
+// igual à Copa (`.game-card[data-state="pre"]` nunca inclui `"in"`) e ao BR2026
+// (`.game-card.pre`): o jogo ao vivo já tem destaque próprio no card #liveTieCard do topo, "o
+// próximo jogo" aqui é sobre o que ainda não começou. Retorna null se não houver nenhuma perna
+// futura conhecida (torneio esperando sorteio, ou todas as fases já decididas).
+function nextUpcomingLegKey(s) {
+  for (const phase of DATA.phases) {
+    const upcoming = flatLegsChronological(s, phase).find(({ tieId, tie, leg }) => {
+      const m = tie.matches?.[leg];
+      if (!m || !m.kickoff || m.goalsHome != null || isLegPostponed(tieId, leg)) return false;
+      return !_liveTies.some(l => l.tieId === tieId && l.leg === leg);
+    });
+    if (upcoming) return `${upcoming.tieId}:${upcoming.leg}`;
+  }
+  return null;
+}
+
+// Aba "Jogos" -- estrutura de card por CONFRONTO (ida+volta juntas) é intencional e
+// TOURNAMENT_SPECIFIC (mata-mata de duas pernas, ao contrário do bracket de partida única da
+// Copa/liga do BR2026) — preservada. O que faltava pra bater "look and feel" com a Copa/BR2026
+// (Eduardo, 2026-08-02: "devem funcionar da mesma maneira que copa do mundo e ter o mesmo look
+// and feel... por default deve ir automaticamente para o próximo jogo"), sem tirar nenhuma
+// informação já existente (venue, placar, agregado, "quem avança", chip de adiado):
+// 1. Chip de status (.game-status pre/live/post/postponed) em TODA perna, não só nas adiadas --
+//    Copa/BR2026 sempre mostram um chip; aqui só o placar/data aparecia, sem rótulo.
+// 2. Placar AO VIVO (via _liveTies, populado por pollLiveTies()) refletido aqui também -- antes
+//    só a data ficava visível numa perna em andamento, igual a Copa/BR2026 mostram no card do
+//    jogo, não só no card "ao vivo" isolado do topo.
+// 3. showSection() rola pra próxima perna automaticamente ao abrir a aba (ver nextUpcomingLegKey
+//    acima e o `data-next-leg` abaixo) -- mesmo comportamento de "próximo jogo" que Copa
+//    (.game-card[data-state="pre"]) e BR2026 (.game-card.pre) já têm.
 function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
   const s = state();
+  const nextKey = nextUpcomingLegKey(s);
 
   let html = "";
   DATA.phases.forEach(phase => {
@@ -1847,7 +1905,7 @@ function renderGamesSection() {
       if (msB === null) return -1;
       return msA - msB;
     });
-    html += `<h3 class="games-round-header">${esc(phase.name)}</h3>`;
+    html += `<h3 class="games-round-header" data-visual-role="game-stage">${esc(phase.name)}</h3>`;
     if (!ties.length) {
       const msg = (DATA.phasesConcludedNoData || []).includes(phase.id) ? "phaseAlreadyConcluded" : "waitingDraw";
       html += `<p class="muted" style="margin-bottom:14px">${esc(t(msg))}</p>`;
@@ -1862,24 +1920,41 @@ function renderGamesSection() {
         const home = leg === "second" ? tie.teamB : tie.teamA;
         const away = leg === "second" ? tie.teamA : tie.teamB;
         const label = leg === "single" ? "" : leg === "first" ? t("gamesLeg1") : t("gamesLeg2");
-        const scoreOrDate = m.goalsHome != null
-          ? `<b>${m.goalsHome} × ${m.goalsAway}</b>`
-          : esc(fmtDate(m.kickoff));
+        const live = _liveTies.find(l => l.tieId === tieId && l.leg === leg);
         // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- chip de "Adiado" quando a ESPN
         // sinaliza a partida como adiada/cancelada (ver isLegPostponed()/fetchLiveTies()).
-        const postponedChip = m.goalsHome == null && isLegPostponed(tieId, leg)
-          ? ` <span class="game-status postponed">${esc(t("gamePostponed"))}</span>` : "";
-        return `<div class="leg">
+        const postponed = m.goalsHome == null && isLegPostponed(tieId, leg);
+        const state = postponed ? "postponed" : live ? "live" : m.goalsHome != null ? "post" : "pre";
+        // PR120-final forensic review: CDB shows either a score OR a date in the same slot
+        // (never both) -- marked game-score when a result exists, game-date otherwise, so the
+        // forensic comparison picks the right role per state instead of comparing across states.
+        const scoreOrDate = live
+          ? `<b data-visual-role="game-score">${live.goalsHome ?? 0} × ${live.goalsAway ?? 0}</b>`
+          : m.goalsHome != null
+            ? `<b data-visual-role="game-score">${m.goalsHome} × ${m.goalsAway}</b>`
+            : `<span data-visual-role="game-date">${esc(fmtDate(m.kickoff))}</span>`;
+        const statusLabel = state === "postponed" ? t("gamePostponed")
+          : state === "live" ? `${t("gameLive")}${live ? " · " + liveClockDisplay(live) : ""}`
+          : state === "post" ? t("gameFinal")
+          : t("gamePending");
+        const statusChip = ` <span class="game-status ${state}" data-visual-role="game-status">${esc(statusLabel)}</span>`;
+        const isNext = `${tieId}:${leg}` === nextKey;
+        // home-team/away-team/team-name/team-logo marked only at leg level (not the tie-level
+        // confronto-header below, which has no equivalent in Copa/BR2026's single-match card) --
+        // each .leg is the closest CDB unit to Copa/BR's one-card-one-match-worth of team/score/
+        // date/status content, per the forensic review's own rule: CDB extends the same base
+        // component with an extra ida/volta/agregado layer, it doesn't get a different one.
+        return `<div class="leg ${state}"${isNext ? ' data-next-leg="true"' : ""}>
           ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
-          <span class="leg-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} × ${teamLogoImg(away, "team-logo")} ${esc(away)}</span>
-          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}${postponedChip}</span>
+          <span class="leg-teams"><span data-visual-role="home-team"><span class="team-name" data-visual-role="team-name">${esc(home)}</span> ${teamLogoImg(home, "team-logo", "team-logo")}</span> × <span data-visual-role="away-team">${teamLogoImg(away, "team-logo", "team-logo")} <span class="team-name" data-visual-role="team-name">${esc(away)}</span></span></span>
+          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}${statusChip}</span>
         </div>`;
       };
       const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
       const resultLine = tie.qualifiedTeamId
         ? `<div class="leg confronto-result">${agg ? `${esc(t("gamesAggregate"))}: <b>${agg.totalA} × ${agg.totalB}</b> — ` : ""}${esc(t("gamesAdvances"))}: ${esc(tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB)}</div>`
         : "";
-      return `<div class="confronto-card card">
+      return `<div class="confronto-card card" data-visual-role="game-card">
         <div class="confronto-header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
         <div class="confronto-legs">
           ${legs.map(legHtml).join("")}
@@ -2924,6 +2999,40 @@ async function autoSyncEspn(s) {
     s2.phases[phaseId].ties[tieId] = tie;
     added.push(`${ev.homeTeam} × ${ev.awayTeam}`);
     mutations.push({ type: "espn-add-tie", phaseId, tieId, tie });
+  });
+
+  // Achado real em produção (2026-08-04, Eduardo: "Próximo jogo e contador não aparece mais"):
+  // a perna da IDA recebe kickoff/venue só na criação do confronto (bloco acima), mas a VOLTA
+  // nunca recebia -- nem este bloco (só toca a perna nova, "first"/"single"), nem
+  // autoSyncEspnResults() (só toca uma perna quando ela JÁ tem placar, ver `homeScore != null`
+  // ali). O resultado: assim que a ida de todo confronto aberto termina, `findNextUpcomingMatch()`
+  // não encontra mais nenhuma perna com `kickoff` preenchido em lugar nenhum -- mesmo a ESPN já
+  // tendo publicado a data da volta -- e o card "Próximo jogo"/contador some. Preenche aqui o
+  // kickoff/venue/city de qualquer perna já conhecida (tie existente) que ainda não tem essas
+  // duas coisas, com a MESMA proteção de janela de data (withinResultMatchWindow) que
+  // autoSyncEspnResults() já usa -- nunca toca goalsHome/goalsAway/status/qualifiedTeamId, só
+  // informação de agenda, então o pior caso de um casamento errado aqui é uma data/local
+  // cosmeticamente errados no card, não um resultado ou pagamento.
+  Object.entries(s2.phases[phaseId].ties).forEach(([tieId, tie]) => {
+    if (!tie.teamA || !tie.teamB) return;
+    const tieKickoffAnchor = legs.map(l => tie.matches?.[l]?.kickoff).find(Boolean);
+    legs.forEach(leg => {
+      const m = tie.matches?.[leg];
+      if (!m || m.kickoff || m.goalsHome != null) return; // já tem data, ou já foi jogada -- nada a preencher
+      const home = leg === "second" ? tie.teamB : tie.teamA;
+      const away = leg === "second" ? tie.teamA : tie.teamB;
+      const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away
+        && withinResultMatchWindow(c.dateISO, m.kickoff || tieKickoffAnchor));
+      if (!ev || !ev.dateISO) return;
+      const patchedMatch = { ...m, kickoff: ev.dateISO, venue: ev.venue || m.venue || null, city: ev.city || m.city || null };
+      tie.matches[leg] = patchedMatch;
+      // Reuses the already-registered "save-leg" mutation type (applyAdminMutation() below) --
+      // same {phaseId, tieId, leg, match} shape as espn-save-result, just with schedule fields
+      // instead of a score. A brand-new mutation "type" string here would hit that function's
+      // `default: throw new Error(...)` on any Supabase remote-conflict merge, since
+      // applyMutationOverRemote() only recognizes the types explicitly listed there.
+      mutations.push({ type: "save-leg", phaseId, tieId, leg, match: patchedMatch });
+    });
   });
 
   // Fase 2.1 §2: cada confronto novo vira uma mutação `espn-add-tie` dirigida, aplicada como um

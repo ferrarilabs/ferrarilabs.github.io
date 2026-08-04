@@ -1,5 +1,114 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.87 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
+
+Full rationale/findings documented once in `bolao/cdb2026/CHANGELOG.md` v3.85 (same change,
+touches all three apps equally). Summary: fixed a real selector-ambiguity bug (CDB2026 has two
+`.form-grid` elements; the generic selector picked the wrong, hidden one) via a new
+`data-visual-audit="form-grid"` marker on the real entry-form grid in all three apps (purely
+additive attribute, no CSS/behavior change) — same technique item 3 already used for
+`.card`/`h3`/buttons. The remaining 7 DIVERGENT findings (form-grid height, button-small/danger
+height, game-card gap/height, status-badge gap/minHeight) were investigated with a Playwright
+probe, confirmed content/structure-driven rather than token bugs, and documented in
+`docs/bolao/evidence/visual-comparison/ALLOWLIST.json` with verifiable justifications.
+`audit_visual_consistency.mjs` now exits 0 (365 EQUAL, 13 JUSTIFIED, 0 DIVERGENT). No
+scoring/classification logic touched. Also retroactively covers the prior (unversioned)
+commit's item 3/4 work — `data-visual-audit` markers and `.form-grid` margin/`.rules-table`
+font-size/`.game-card` padding+border-radius+margin-bottom alignment to Copa — which should have
+bumped `siteVersion` and didn't; noted here rather than rewriting that commit's history.
+
+## v1.86 — 2026-08 — PR120-final review item 2: unify cache-bust (content-hash, not commit-SHA)
+
+Same platform-shared fix documented in full in `bolao/cdb2026/CHANGELOG.md` v3.84 (new
+`bolao/scripts/cachebust.mjs` is the single source of truth for the `?v=` tag; the workflow
+`.github/workflows/sync_version.yml` and the local checker now compute/apply the exact same
+content hash instead of two incompatible values). This app's `index.html` was rewritten to
+`?v=5032d96b0455` (matches the current content hash of its own five critical files) as part of
+that same commit. No scoring/classification logic touched.
+
+## v1.85 — 2026-08 — Fase 2.2-correção item 8: `main` padding + `.form-grid` aligned to Copa
+
+**Explicitly authorized by Eduardo** (previously deliberately left unapplied pending exactly this
+authorization — see v1.75/`docs/bolao/FASE2.2_CORRECAO_FINAL_REPORT.md`). Two numeric-only CSS
+changes, no HTML/JS touched:
+
+- `main` padding: `16px 14px` → `20px 18px`, matching Copa (`bolao/copa2026/css/styles.css`,
+  the platform's canonical visual reference). Only visible above the existing
+  `@media (max-width: 900px)` breakpoint — that breakpoint already forced all three apps to the
+  same `12px 10px`, so phone/tablet rendering (≤900px) is unchanged; only desktop-width `main`
+  gets wider now, matching Copa exactly.
+- `.form-grid`: `repeat(auto-fill, minmax(220px, 1fr))` gap `14px` → `repeat(2, minmax(0, 1fr))`
+  gap `12px`, matching Copa. Added a `.form-grid { grid-template-columns: 1fr }` rule inside the
+  existing `@media (max-width: 900px)` block (this app didn't have one before — Copa did), so the
+  grid still collapses to a single column on narrow screens exactly like Copa.
+
+**Real finding, not just cosmetic**: without the new breakpoint override, the entry form
+(4 fields: nome/responsável/e-mail/método) rendered as **3 cramped columns at 768px** (tablet
+width) under the old `auto-fill` rule — verified via `getComputedStyle` probe
+(`gridTemplateColumns` resolved to `227.328px 227.328px 227.328px`) and a real screenshot crop.
+Copa, at the same 768px width, already collapsed to 1 column (its own `@media (max-width:900px)`
+override). So this fix isn't only a desktop (>900px) visual alignment — it also fixes a real
+tablet-width layout inconsistency BR2026 had versus Copa.
+
+**Verification before applying** (per `docs/bolao/QA_MASTER_CHECKLIST.md` risk assessment for a
+`main`-wide change on an app used in production-adjacent testing): captured real Playwright
+screenshots of the Palpites/entry form at 320×568, 768×1024, and 1440×900, before and after, for
+BR2026, CDB2026, and Copa (unaffected control). Confirmed: `document.documentElement.scrollWidth`
+never exceeds `clientWidth` at any of the three viewports (no new horizontal overflow); the
+4-field entry form now wraps into a clean 2×2 grid at 1440px (was 1 row of 4, tightly packed
+against the wider `main`); `.sticky-submit` is a normal in-flow block (`display:flex`, not
+`position:fixed/sticky` despite the class name — confirmed by reading the CSS), so it can't ever
+overlap a form field regardless of grid layout. 320px and 768px renders are pixel-identical to
+before (both already resolved to the same breakpoint values pre-fix, confirmed via the 768px
+`gridTemplateColumns` probe above once the mobile override was in place).
+
+Re-ran `bolao/scripts/audit_visual_consistency.mjs` after the change:
+`main:padding`, `form-grid:gap`, and `form-grid:gridTemplateColumns` all flipped from DIVERGENT to
+EQUAL across all three apps (342 EQUAL / 1 JUSTIFIED / 21 DIVERGENT, down from 339/1/24 before this
+change — the 3-property delta is exactly this fix, nothing else moved). Remaining DIVERGENT for
+this component (`.form-grid:margin`, `0px` in Copa vs `0px 0px 16px` here) was **not** in this
+item's authorized scope (only `padding`/`grid-template-columns`/`gap` were named) — left
+unauthorized-but-documented rather than fixed silently; see
+`docs/bolao/CONSISTENCY_MATRIX.md` and `docs/bolao/evidence/visual-comparison/`.
+
+`node --check`: clean. `audit_scoring.py`: 5/5 (CSS-only change, scoring untouched).
+
+## v1.84 — 2026-08 — Fase 2.2-correção item 7/coord.#2: cross-app computed-style consistency audit
+
+New `bolao/scripts/audit_visual_consistency.mjs` (top-level, cross-app). Full rationale,
+methodology, and findings in `bolao/cdb2026/CHANGELOG.md` v3.80 (documented once in detail,
+touches all three apps equally). Summary: 339/364 property comparisons EQUAL, 24 DIVERGENT
+(documented, not auto-fixed), including BR2026-relevant methodology notes: `.game-card` didn't
+render in this audit (BR2026's `renderGamesSection()` is gated behind a non-empty ESPN schedule,
+which this script fakes as empty — same network policy as every other script in this folder,
+never production). Report: `docs/bolao/evidence/visual-comparison/audit_visual_consistency.
+{json,md}`. `audit_scoring.py`: 5/5 (unaffected).
+
+## v1.83 — 2026-08 — Fase 2.2-correção item 3: tab nav column counts fixed, mobile orphan-row fix
+
+Desktop `.nav` had `repeat(9, ...)` columns (base rule and the `min-width:901px` override) but
+only 7 buttons are ever visible (Palpites/Ranking/Tabela/Jogos/Probabilidades/Regras/Admin —
+Participantes/Pagamento permanently `display:none`) — 2 dead desktop columns. Fixed to
+`repeat(7, ...)` in both places. Verified visually at 1024px (Claude Browser): 7 equal-width
+columns, no dead space.
+
+Mobile (already 3 columns, unchanged) had a real, visible defect: 7 buttons / 3 columns = 3+3+1,
+so "Admin" sat alone in the final row at 1/3 width, left-aligned, two empty cells beside it —
+confirmed with a real 320px screenshot before this fix. Added
+`:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1 }` so the lone last button spans the full
+row instead. Re-verified at 320px after the fix: Admin now spans full width. Same accounting
+applied to Copa (`bolao/copa2026/CHANGELOG.md`), which has the identical DOM structure (two
+hidden nav buttons inside `.nav`).
+
+Propagated across all three apps in the same round. `audit_scoring.py`: 5/5 (unaffected).
+
+## v1.82 — 2026-08-02 — Tab nav: `aria-current="page"` on the active section button
+
+Propagated from Copa (v4.164) per the Fase 2.2 visual/accessibility audit
+(`docs/bolao/VISUAL_PARITY_MATRIX.md`): `showSection()` now toggles `aria-current="page"` on the
+active `.nav button[data-section]` (removed on the rest), same shape as Copa/CDB2026. No visual
+change, no scoring/logic touched. `audit_scoring.py`: 5/5.
+
 ## v1.81 — 2026-08-01 — Live clock stoppage-time cap missing for regular-time periods (propagated from CDB2026)
 
 Same defect class found live in CDB2026 (Vasco×Fluminense, Oitavas, 2026-08-01): the live clock's
