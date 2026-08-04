@@ -78,4 +78,12 @@
   --breakpoint-tablet: 900px;
   --breakpoint-desktop: 901px;
   --breakpoint-toast: 480px;
+
+  /* Desktop primary-tabs column count — the one real per-app divergence in
+     an otherwise identical .nav component (each app has a different number
+     of always-visible tabs). Copa's own real value (6) is the default here;
+     apps with a different tab count override this single property in their
+     own stylesheet's :root block instead of forking the whole .nav rule.
+     See bolao/shared/css/responsive.css. */
+  --nav-cols-desktop: 6;
 }
