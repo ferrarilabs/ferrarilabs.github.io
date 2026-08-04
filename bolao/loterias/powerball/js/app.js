@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  console.log("✓ app.js loaded, POWERBALL_DRAWS:", window.POWERBALL_DRAWS ? window.POWERBALL_DRAWS.length + " draws" : "NOT FOUND");
   var DRAWS = window.POWERBALL_DRAWS;
   var GAME_TYPES = window.LOTTERY_GAME_TYPES;
   var LOCAL_KEY = "powerball_local_results_v1";
@@ -38,8 +39,9 @@
     var sel = document.getElementById("pbDrawSelect");
     sel.innerHTML = DRAWS.map(function (d, i) {
       var gt = GAME_TYPES[d.gameType] || GAME_TYPES.powerball;
+      var hasResult = getEffectiveDraw(d).result.numbers ? "✓ " : "";
       return '<option value="' + i + '"' + (i === currentIdx ? " selected" : "") + '>' +
-        gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
+        hasResult + gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
     }).join("");
   }
 
@@ -82,6 +84,7 @@
     var sorted = draw.participants.slice().sort(function (a, b) {
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
+    console.log("DEBUG renderTable:", draw.id, "participants:", sorted.length, "names:", sorted.map(p => p.name).join(", "));
     tbody.innerHTML = sorted.map(function (p) {
       var statusClass = p.status === "organizador" ? "organizador" : "verificado";
       var statusLabel = p.status === "organizador" ? "Organizador" : "✓ Verificado";
@@ -102,10 +105,7 @@
 
     document.getElementById("pbTicketsBody").innerHTML = t.series.map(function (s) {
       var numsHtml = s.numeros && s.numeros.length
-        ? "<ul>" + s.numeros.map(function (n, i) {
-            var isWinner = draw.winningTickets && draw.winningTickets.indexOf(n) !== -1;
-            return "<li" + (isWinner ? ' style="font-weight: bold; color: #CE1141;"' : "") + ">Jogo " + (i + 1) + ": " + n + "</li>";
-          }).join("") +
+        ? "<ul>" + s.numeros.map(function (n, i) { return "<li>Jogo " + (i + 1) + ": " + n + "</li>"; }).join("") +
           (s.qtd > s.numeros.length ? '<li class="pb-pending">+ ' + (s.qtd - s.numeros.length) + " ticket(s) desse serial ainda não cadastrado(s)</li>" : "") +
           "</ul>"
         : '<div class="pb-pending">Números individuais deste serial ainda não cadastrados.</div>';
