@@ -53,11 +53,13 @@ export const GAMES_BY_STATE = {
   postponed: { home: "Nigéria", away: "Uruguai" },
 };
 
+// Fictional names only (per task spec section 5) -- no real participant name may ever appear in
+// this fixture. "Eduardo Ferrari #1" was removed; every name below is invented.
 export const RANKING = [
-  { pos: 1, name: "Eduardo Ferrari #1", points: 176 },
-  { pos: 2, name: "Nome Médio de Participante", points: 158 },
-  { pos: 3, name: "Participante com Nome Extremamente Longo para Teste", points: 148 },
-  { pos: 3, name: "Outro Participante Empatado", points: 148 },
+  { pos: 1, name: "Participante Alfa", points: 176 },
+  { pos: 2, name: "Participante Beta", points: 158 },
+  { pos: 3, name: "Participante Nome Extremamente Longo", points: 148 },
+  { pos: 3, name: "Participante Gama", points: 148 },
   { pos: 10, name: "Participante Décima Posição", points: 135 },
   { pos: 99, name: "Participante Posição Longa", points: 12 },
 ];

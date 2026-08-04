@@ -96,9 +96,26 @@ export function loadAllowlist(path, knownApps) {
  *   opts.isGeometry: use geometry tolerance (1px) instead of style tolerance table
  * Returns { status, reason }.
  */
+// Part 9: opts.naReasonByApp = { app: "LEGITIMATE_NA"|"MISSING_SELECTOR"|"MISSING_FIXTURE"|
+// "MISSING_COMPONENT"|"CAPTURE_FAILURE" } -- one entry per app whose value is null/undefined here.
+// The gate (main.mjs) fails on any reason other than LEGITIMATE_NA; the generic bucket this
+// classifier used to return ("componente não presente...") is never emitted anymore -- every N/A
+// carries an explicit, caller-supplied reason code, or defaults to MISSING_COMPONENT if the
+// caller didn't supply one (treated as a failure, since an unclassified N/A must never pass
+// silently).
 export function classify(component, property, valuesByApp, allowlist, opts = {}) {
   const present = Object.entries(valuesByApp).filter(([, v]) => v !== null && v !== undefined);
-  if (present.length <= 1) return { status: "N/A", reason: "componente não presente/comparável em apps suficientes" };
+  if (present.length <= 1) {
+    const naReasonByApp = opts.naReasonByApp || {};
+    const missingApps = Object.keys(valuesByApp).filter((a) => valuesByApp[a] === null || valuesByApp[a] === undefined);
+    const reasons = {};
+    for (const app of missingApps) reasons[app] = naReasonByApp[app] || "MISSING_COMPONENT";
+    // Worst-reason-wins: if ANY app's absence is unexplained/structural-bug, the whole cell is
+    // reported under that reason, not silently averaged into LEGITIMATE_NA.
+    const nonLegit = Object.values(reasons).filter((r) => r !== "LEGITIMATE_NA");
+    const naReason = nonLegit.length ? nonLegit[0] : "LEGITIMATE_NA";
+    return { status: "N/A", reason: `${naReason}: ${JSON.stringify(reasons)}`, naReason, naReasonsByApp: reasons };
+  }
 
   const [, firstVal] = present[0];
   let allIdentical = true, allWithinTolerance = true;

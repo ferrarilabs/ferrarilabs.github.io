@@ -14,14 +14,22 @@ import { join } from "node:path";
 import { loadChromium } from "../../cdb2026/scripts/visual/playwright_loader.mjs";
 import {
   ROOT, PORT, OUT_DIR, DIFF_DIR, MONTAGE_DIR, ALLOWLIST_PATH, REFERENCE_APP, APPS, VIEWPORTS,
-  PRIMARY_VIEWPORT, PROPERTIES, GAME_STATES, GAME_ROLE_SET,
+  PRIMARY_VIEWPORT, PROPERTIES, GAME_STATES, GAME_ROLE_SET, RANKING_SELECTORS,
   commitHashFull, sourceTreeHash, startServer, setupPage, captureRanking, findStateElement,
   scopeSelectorForState, readRoleStyles, readRankingRoles, screenshotRole, pixelDiff,
 } from "./run_forensic_audit.mjs";
 import { loadAllowlist, classify } from "./classify.mjs";
 import { GAMES, RANKING } from "./fixture.mjs";
+import { execSync } from "node:child_process";
 
 const CAPTURES_DIR = join(DIFF_DIR, "captures");
+const HARNESS_VERSION = "2.0.0"; // bumped from the data-visual-role-era 1.x harness (part 2026-08 rewrite)
+const FIXTURE_VERSION = "2.0.0"; // bumped when RANKING/GAMES fixture content changes (part 5: real name removed)
+
+function redactUserPaths(str) {
+  // Part 11: no absolute /Users/... paths in any generated artifact.
+  return str.split(ROOT).join(".");
+}
 
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
@@ -36,9 +44,11 @@ async function main() {
 
   const consoleErrors = {};
   const gameCaptures = {};      // gameCaptures[appId][state] = { role: {style,geometry} } | null
+  const naReasonsByAppStateRole = {}; // [appId][state][role] = "LEGITIMATE_NA"|"MISSING_SELECTOR"|"MISSING_FIXTURE"
   const titleCaptures = {};     // titleCaptures[appId] = {style,geometry} | null
   const rankingCaptures = {};   // rankingCaptures[appId] = { table, rows: [...] }
   const screenshotIndex = {};   // screenshotIndex[appId][state][role] = filePath
+  const screenshotMeta = {};    // screenshotMeta[appId][state][role] = {ok, reason, locator, textContent, boundingBox, visible} (part 8)
 
   try {
     for (const appId of APPS) {
@@ -46,25 +56,45 @@ async function main() {
       consoleErrors[appId] = errors;
 
       gameCaptures[appId] = {};
+      naReasonsByAppStateRole[appId] = {};
       screenshotIndex[appId] = {};
+      screenshotMeta[appId] = {};
 
       for (const state of GAME_STATES) {
         const reachable = await findStateElement(page, appId, state);
-        if (!reachable) { gameCaptures[appId][state] = null; screenshotIndex[appId][state] = null; continue; }
+        if (!reachable) {
+          gameCaptures[appId][state] = null;
+          screenshotIndex[appId][state] = null;
+          screenshotMeta[appId][state] = null;
+          // copa2026 permanently has no "live" or "postponed" CSS state at all (verified:
+          // .status-chip only defines done/pending/live -- no postponed; "live" state IS defined
+          // but the archived, concluded tournament's real dataset never renders it) -- documented,
+          // permanent, structural absence, not a fixture/harness bug. Every other unreachable
+          // state is a real MISSING_FIXTURE (this run's fixture data should have produced that
+          // state but didn't -- a genuine gap to investigate, not a design difference).
+          const legitimate = appId === "copa2026" && (state === "live" || state === "postponed");
+          naReasonsByAppStateRole[appId][state] = Object.fromEntries([...GAME_ROLE_SET].map((r) => [r, legitimate ? "LEGITIMATE_NA" : "MISSING_FIXTURE"]));
+          continue;
+        }
         const resolvePostponedAncestor = appId === "br2026" && state === "postponed";
         const scopeSelector = scopeSelectorForState(appId, state);
-        gameCaptures[appId][state] = await readRoleStyles(page, scopeSelector, GAME_ROLE_SET, resolvePostponedAncestor);
+        const captured = await readRoleStyles(page, appId, scopeSelector, GAME_ROLE_SET, resolvePostponedAncestor);
+        naReasonsByAppStateRole[appId][state] = captured.__naReasons || {};
+        delete captured.__naReasons;
+        gameCaptures[appId][state] = captured;
 
         screenshotIndex[appId][state] = {};
-        for (const role of ["game-card", ...GAME_ROLE_SET]) {
+        screenshotMeta[appId][state] = {};
+        for (const role of GAME_ROLE_SET) { // GAME_ROLE_SET already includes "game-card" -- do not prepend it again (was a duplication bug, part 4)
           const fname = `${appId}_${state}_${role}.png`;
           const outPath = join(CAPTURES_DIR, fname);
-          const ok = await screenshotRole(page, scopeSelector, role, outPath, resolvePostponedAncestor);
-          if (ok) screenshotIndex[appId][state][role] = outPath;
+          const meta = await screenshotRole(page, appId, scopeSelector, role, outPath, resolvePostponedAncestor);
+          screenshotMeta[appId][state][role] = meta;
+          if (meta.ok) screenshotIndex[appId][state][role] = outPath;
         }
       }
 
-      const titleStyles = await readRoleStyles(page, "body", new Set(["games-section-title"]), false);
+      const titleStyles = await readRoleStyles(page, appId, "body", new Set(["games-section-title"]), false);
       titleCaptures[appId] = titleStyles["games-section-title"] || null;
 
       await captureRanking(page);
@@ -72,7 +102,7 @@ async function main() {
       for (let i = 0; i < RANKING.length; i++) {
         const fname = `${appId}_ranking-row-${i}.png`;
         const outPath = join(CAPTURES_DIR, fname);
-        const rows = await page.$$('[data-visual-role="ranking-row"]');
+        const rows = await page.$$(RANKING_SELECTORS["ranking-row"]);
         const el = rows[i];
         if (el) {
           const box = await el.boundingBox();
@@ -84,7 +114,7 @@ async function main() {
         }
       }
       const fullRankingPath = join(CAPTURES_DIR, `${appId}_ranking-table.png`);
-      const tableEl = await page.$('[data-visual-role="ranking-table"]');
+      const tableEl = await page.$(RANKING_SELECTORS["ranking-table"]);
       if (tableEl) {
         const box = await tableEl.boundingBox();
         if (box && box.width > 0 && box.height > 0) {
@@ -118,34 +148,37 @@ async function main() {
     const styleComparison = [];
     const geometryComparison = [];
 
-    function addComparison(component, stateLabel, valuesByApp) {
-      const present = Object.values(valuesByApp).filter(Boolean);
+    function addComparison(component, stateLabel, valuesByApp, naReasonByApp = {}) {
       const styleRow = { component, state: stateLabel, properties: {} };
       const geomRow = { component, state: stateLabel, geometry: {} };
       for (const prop of PROPERTIES) {
         const vals = {};
         for (const app of APPS) vals[app] = valuesByApp[app] ? valuesByApp[app].style[prop] : null;
-        const result = classify(component, prop, vals, allowlist, { isGeometry: false });
+        const result = classify(component, prop, vals, allowlist, { isGeometry: false, naReasonByApp });
         styleRow.properties[prop] = { values: vals, ...result };
       }
       for (const field of ["width", "height"]) {
         const vals = {};
         for (const app of APPS) vals[app] = valuesByApp[app] ? valuesByApp[app].geometry[field] : null;
-        const result = classify(component, field, vals, allowlist, { isGeometry: true });
+        const result = classify(component, field, vals, allowlist, { isGeometry: true, naReasonByApp });
         geomRow.geometry[field] = { values: vals, ...result };
       }
       styleComparison.push(styleRow);
       geometryComparison.push(geomRow);
     }
 
-    // games-section-title (state-independent)
+    // games-section-title (state-independent, no per-app selector variance -- always real if setupPage succeeded)
     addComparison("games-section-title", "static", { copa2026: titleCaptures.copa2026, br2026: titleCaptures.br2026, cdb2026: titleCaptures.cdb2026 });
 
     for (const state of GAME_STATES) {
       for (const role of GAME_ROLE_SET) {
         const valuesByApp = {};
-        for (const app of APPS) valuesByApp[app] = gameCaptures[app][state]?.[role] || null;
-        addComparison(role, state, valuesByApp);
+        const naReasonByApp = {};
+        for (const app of APPS) {
+          valuesByApp[app] = gameCaptures[app][state]?.[role] || null;
+          if (!valuesByApp[app]) naReasonByApp[app] = naReasonsByAppStateRole[app]?.[state]?.[role] || "MISSING_COMPONENT";
+        }
+        addComparison(role, state, valuesByApp, naReasonByApp);
       }
     }
 
@@ -161,28 +194,33 @@ async function main() {
       }
     }
 
-    writeFileSync(join(OUT_DIR, "computed-style-comparison.json"), JSON.stringify({
-      meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), sourceTreeHash: sourceTreeHash(), referenceApp: REFERENCE_APP },
+    writeFileSync(join(OUT_DIR, "computed-style-comparison.json"), redactUserPaths(JSON.stringify({
+      meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), sourceTreeHash: sourceTreeHash(), referenceApp: REFERENCE_APP, fixtureVersion: FIXTURE_VERSION, harnessVersion: HARNESS_VERSION },
       comparisons: styleComparison,
-    }, null, 2));
-    writeFileSync(join(OUT_DIR, "geometry-comparison.json"), JSON.stringify({
-      meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), sourceTreeHash: sourceTreeHash() },
+    }, null, 2)));
+    writeFileSync(join(OUT_DIR, "geometry-comparison.json"), redactUserPaths(JSON.stringify({
+      meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), sourceTreeHash: sourceTreeHash(), fixtureVersion: FIXTURE_VERSION, harnessVersion: HARNESS_VERSION },
       comparisons: geometryComparison,
-    }, null, 2));
+    }, null, 2)));
 
     // ── Pixel diff (Copa reference vs BR2026/CDB2026) ───────────────────────────────────────────
     const utilContext = await browser.newContext({ viewport: { width: 800, height: 600 } });
     const utilPage = await utilContext.newPage();
     const pixelDiffResults = [];
     for (const state of GAME_STATES) {
-      for (const role of ["game-card", ...GAME_ROLE_SET]) {
+      for (const role of GAME_ROLE_SET) { // GAME_ROLE_SET already includes "game-card" -- do not prepend it again (was a duplication bug, part 4)
         const refPath = screenshotIndex[REFERENCE_APP]?.[state]?.[role];
         for (const app of APPS) {
           if (app === REFERENCE_APP) continue;
           const candPath = screenshotIndex[app]?.[state]?.[role];
           const diffPath = join(DIFF_DIR, `${app}_vs_${REFERENCE_APP}_${state}_${role}.png`);
           if (!refPath || !candPath) {
-            pixelDiffResults.push({ component: role, state, app, comparable: false, reason: !refPath ? `${REFERENCE_APP} não capturado (N/A)` : `${app} não capturado (N/A)` });
+            // Part 9: reuse the same reason taxonomy the screenshot capture itself already
+            // produced (screenshotMeta), instead of a fresh generic "N/A" string here.
+            const refMeta = screenshotMeta[REFERENCE_APP]?.[state]?.[role];
+            const candMeta = screenshotMeta[app]?.[state]?.[role];
+            const naReason = !refPath ? (refMeta?.reason || "MISSING_COMPONENT") : (candMeta?.reason || "MISSING_COMPONENT");
+            pixelDiffResults.push({ component: role, state, app, comparable: false, naReason, reason: `${!refPath ? REFERENCE_APP : app}: ${naReason}` });
             continue;
           }
           const result = await pixelDiff(utilPage, refPath, candPath, diffPath);
@@ -197,7 +235,7 @@ async function main() {
         const candPath = screenshotIndex[app]?.[`ranking-row-${i}`]?.["ranking-row"];
         const diffPath = join(DIFF_DIR, `${app}_vs_${REFERENCE_APP}_ranking-row-${i}.png`);
         if (!refPath || !candPath) {
-          pixelDiffResults.push({ component: "ranking-row", state: `row-${i}`, app, comparable: false, reason: "screenshot ausente" });
+          pixelDiffResults.push({ component: "ranking-row", state: `row-${i}`, app, comparable: false, naReason: "MISSING_SELECTOR", reason: "screenshot ausente (ranking-row)" });
           continue;
         }
         const result = await pixelDiff(utilPage, refPath, candPath, diffPath);
@@ -208,11 +246,34 @@ async function main() {
 
     const PIXEL_THRESHOLD_RATIO = 0.005;
     const pixelDiffFailures = pixelDiffResults.filter((r) => r.comparable && (r.ratio > PIXEL_THRESHOLD_RATIO || !r.sameDimensions));
-    writeFileSync(join(OUT_DIR, "pixel-diff-summary.json"), JSON.stringify({
-      meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), thresholdRatio: PIXEL_THRESHOLD_RATIO },
+
+    // ── Part 4: duplicate-record detection ──────────────────────────────────────────────────────
+    // A record's identity is (screen, state, role/component, baseline, candidate). GAME_ROLE_SET
+    // already contains "game-card" (see the loop above), so prepending "game-card" again used to
+    // double-count every game-card pixel-diff under an identical key -- fixed by iterating
+    // GAME_ROLE_SET alone. This check makes any future reintroduction of that bug fail loudly
+    // instead of silently inflating counts.
+    const recordKey = (r) => `${r.state}::${r.component}::${r.app}::${r.referenceImage || ""}::${r.candidateImage || ""}`;
+    const keyCounts = new Map();
+    for (const r of pixelDiffResults) {
+      const k = recordKey(r);
+      keyCounts.set(k, (keyCounts.get(k) || 0) + 1);
+    }
+    const duplicateKeys = [...keyCounts.entries()].filter(([, n]) => n > 1);
+    const totalRecords = pixelDiffResults.length;
+    const uniqueRecords = keyCounts.size;
+    const duplicateRecords = totalRecords - uniqueRecords;
+    const comparableUniqueRecords = new Set(pixelDiffResults.filter((r) => r.comparable).map(recordKey)).size;
+    if (duplicateRecords > 0) {
+      throw new Error(`Part 4 regression: ${duplicateRecords} duplicate pixel-diff record(s) found (must be 0). Duplicate keys: ${duplicateKeys.map(([k]) => k).join(", ")}`);
+    }
+
+    writeFileSync(join(OUT_DIR, "pixel-diff-summary.json"), redactUserPaths(JSON.stringify({
+      meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), thresholdRatio: PIXEL_THRESHOLD_RATIO, fixtureVersion: FIXTURE_VERSION, harnessVersion: HARNESS_VERSION },
+      recordCounts: { totalRecords, uniqueRecords, duplicateRecords, comparableUniqueRecords },
       results: pixelDiffResults,
       failureCount: pixelDiffFailures.length,
-    }, null, 2));
+    }, null, 2)));
 
     // ── Montages (Copa | BR2026 | CDB2026), 7 viewports, Jogos + Ranking full-page ─────────────
     const montageEntries = [];
@@ -266,71 +327,110 @@ async function main() {
       }, `montage_ranking-row-${i}.png`);
     }
 
-    writeFileSync(join(MONTAGE_DIR, "montage_manifest.json"), JSON.stringify({
+    writeFileSync(join(MONTAGE_DIR, "montage_manifest.json"), redactUserPaths(JSON.stringify({
       meta: { generatedAtUtc: new Date().toISOString(), sourceCommit: commitHashFull(), sourceTreeHash: sourceTreeHash() },
       entries: montageEntries,
-    }, null, 2));
+    }, null, 2)));
 
     // ── Fixture definition + console error log ──────────────────────────────────────────────────
-    writeFileSync(join(OUT_DIR, "fixture-definition.json"), JSON.stringify({ games: GAMES, ranking: RANKING }, null, 2));
-    writeFileSync(join(OUT_DIR, "console-errors.json"), JSON.stringify(consoleErrors, null, 2));
+    writeFileSync(join(OUT_DIR, "fixture-definition.json"), redactUserPaths(JSON.stringify({ games: GAMES, ranking: RANKING, fixtureVersion: FIXTURE_VERSION }, null, 2)));
+    writeFileSync(join(OUT_DIR, "console-errors.json"), redactUserPaths(JSON.stringify(consoleErrors, null, 2)));
 
     // ── Verdict ──────────────────────────────────────────────────────────────────────────────────
     const allProps = [...styleComparison.flatMap((c) => Object.values(c.properties)), ...geometryComparison.flatMap((c) => Object.values(c.geometry))];
     const counts = { IDENTICAL: 0, WITHIN_TOLERANCE: 0, FUNCTIONALLY_JUSTIFIED: 0, DIVERGENT: 0, "N/A": 0 };
     for (const p of allProps) counts[p.status]++;
+
+    // Part 9: split the N/A bucket by reason. Only LEGITIMATE_NA is acceptable; the gate fails on
+    // any MISSING_FIXTURE / MISSING_SELECTOR / MISSING_COMPONENT / CAPTURE_FAILURE cell.
+    const naByReason = { LEGITIMATE_NA: 0, MISSING_FIXTURE: 0, MISSING_SELECTOR: 0, MISSING_COMPONENT: 0, CAPTURE_FAILURE: 0 };
+    for (const p of allProps) {
+      if (p.status !== "N/A") continue;
+      naByReason[p.naReason] = (naByReason[p.naReason] || 0) + 1;
+    }
+    const unacceptableNaCount = Object.entries(naByReason).filter(([k]) => k !== "LEGITIMATE_NA").reduce((s, [, v]) => s + v, 0);
+
     const unusedEntries = [...allowlist.entries()].filter(([, e]) => !e.used);
-    // Two known, identical-across-all-three-apps baseline errors, neither caused by this audit's
-    // own changes: (1) "frame-ancestors ignored via meta" -- a pre-existing production CSP <meta>
-    // limitation (frame-ancestors can only be enforced via HTTP header; every other directive still
-    // enforces normally); (2) SRI-blocked/failed-to-load errors on the EmailJS/Supabase CDN
-    // scripts -- this harness deliberately blocks that real external CDN (see cdn.jsdelivr.net
-    // route in run_forensic_audit.mjs) since a pure visual/style capture never needs to actually
-    // send email or hit Supabase (CLAUDE.md: "App is local-first: Supabase failure degrades
-    // gracefully"). Both excluded from the pass/fail gate but still logged verbatim in
-    // console-errors.json for transparency, never silently dropped.
-    const KNOWN_BASELINE_ERRORS = [
-      /frame-ancestors.*ignored.*meta/i,
-      /cdn\.jsdelivr\.net/i,
-      /integrity.*attribute/i,
-      // The aborted jsdelivr request (see cdn.jsdelivr.net route above) logs a generic
-      // "Failed to load resource: net::ERR_FAILED" with no URL in the console.error text itself
-      // -- confirmed via console-errors.json this is the ONLY net::ERR_FAILED this harness ever
-      // produces (2 per page load, exactly matching the 2 jsdelivr <script> tags in every app's
-      // index.html), not a wildcard that could hide an unrelated real failure.
-      /net::ERR_FAILED/,
-    ];
+
+    // Part 10: structured console/network error filtering. Only ONE exact, documented combination
+    // is excluded from the gate -- the 2 aborted cdn.jsdelivr.net <script> requests per page load
+    // (this harness deliberately routes that CDN to abort() in run_forensic_audit.mjs, since a
+    // pure visual/style capture never needs to actually send email or hit Supabase; CLAUDE.md:
+    // "App is local-first: Supabase failure degrades gracefully") plus the two console messages
+    // that abort necessarily also produces (the generic "net::ERR_FAILED" text, and the resulting
+    // CSP "frame-ancestors ignored via meta" note, itself a pre-existing production limitation
+    // unrelated to this harness -- frame-ancestors can only be enforced via HTTP header). Every
+    // other requestfailed/console error, from ANY host, fails the gate -- no wildcard patterns.
+    function isKnownBaselineError(e) {
+      if (e.kind === "requestfailed") {
+        return /cdn\.jsdelivr\.net/i.test(e.url) && e.resourceType === "script";
+      }
+      if (e.kind === "console") {
+        return /frame-ancestors.*ignored.*meta/i.test(e.text)
+          || /net::err_failed/i.test(e.text)
+          || /integrity.*attribute/i.test(e.text);
+      }
+      return false;
+    }
     const allConsoleErrors = Object.values(consoleErrors).flat();
-    const unexpectedConsoleErrors = allConsoleErrors.filter((e) => !KNOWN_BASELINE_ERRORS.some((re) => re.test(e)));
+    const unexpectedConsoleErrors = allConsoleErrors.filter((e) => !isKnownBaselineError(e));
     const totalConsoleErrors = unexpectedConsoleErrors.length;
 
-    const ok = schemaProblems.length === 0 && unusedEntries.length === 0 && counts.DIVERGENT === 0 && pixelDiffFailures.length === 0 && totalConsoleErrors === 0;
+    // ── Part 11: provenance ──────────────────────────────────────────────────────────────────────
+    // auditedTreeHash is computed fresh, right here, against the worktree that was ACTUALLY
+    // rendered by this run (not just the base commit) -- catches uncommitted local edits the run
+    // captured that a bare sourceCommit would silently hide.
+    let auditedTreeHash = "unknown", gitDirty = null;
+    try {
+      auditedTreeHash = execSync("git rev-parse HEAD^{tree}", { cwd: ROOT }).toString().trim();
+      gitDirty = execSync("git status --porcelain", { cwd: ROOT }).toString().trim().length > 0;
+    } catch { /* not fatal -- provenance stays "unknown", still surfaced explicitly rather than a fake value */ }
+    const provenance = {
+      auditedCommit: commitHashFull(),
+      auditedTreeHash,
+      auditedWorktreeDirty: gitDirty,
+      artifactCommit: commitHashFull(), // this run's artifacts are committed at/after this same commit; updated to the real commit hash by the packaging step (part 16) once committed
+      generatedAtUtc: new Date().toISOString(),
+      fixtureVersion: FIXTURE_VERSION,
+      harnessVersion: HARNESS_VERSION,
+    };
+
+    const ok = schemaProblems.length === 0 && unusedEntries.length === 0 && counts.DIVERGENT === 0
+      && pixelDiffFailures.length === 0 && totalConsoleErrors === 0 && unacceptableNaCount === 0
+      && duplicateRecords === 0;
 
     const verdict = {
       verdict: ok ? "FORENSIC VISUAL PARITY PASSED" : "FORENSIC VISUAL PARITY FAILED",
       counts,
+      naByReason,
+      unacceptableNaCount,
       schemaProblems,
       unusedAllowlistEntries: unusedEntries.map(([k, e]) => ({ key: k, apps: e.apps, approvedBy: e.approvedBy })),
       pixelDiffFailureCount: pixelDiffFailures.length,
+      pixelDiffRecordCounts: { totalRecords, uniqueRecords, duplicateRecords, comparableUniqueRecords },
       consoleErrorCount: totalConsoleErrors,
-      generatedAtUtc: new Date().toISOString(),
-      sourceCommit: commitHashFull(),
+      unexpectedConsoleErrors,
+      provenance,
+      generatedAtUtc: provenance.generatedAtUtc,
+      sourceCommit: provenance.auditedCommit,
     };
-    writeFileSync(join(OUT_DIR, "verdict.json"), JSON.stringify(verdict, null, 2));
+    writeFileSync(join(OUT_DIR, "verdict.json"), redactUserPaths(JSON.stringify(verdict, null, 2)));
 
     // ── HTML report ──────────────────────────────────────────────────────────────────────────────
     const { buildReportHtml } = await import("./report.mjs");
-    const reportHtml = buildReportHtml({ verdict, styleComparison, geometryComparison, pixelDiffResults, montageEntries, fixture: { games: GAMES, ranking: RANKING }, consoleErrors });
+    const reportHtml = redactUserPaths(buildReportHtml({ verdict, styleComparison, geometryComparison, pixelDiffResults, montageEntries, fixture: { games: GAMES, ranking: RANKING }, consoleErrors }));
     writeFileSync(join(OUT_DIR, "forensic-visual-report.html"), reportHtml);
     writeFileSync(join(OUT_DIR, "index.html"), reportHtml);
 
     console.log(`\n${verdict.verdict}`);
-    console.log(`Property comparisons: IDENTICAL=${counts.IDENTICAL} WITHIN_TOLERANCE=${counts.WITHIN_TOLERANCE} FUNCTIONALLY_JUSTIFIED=${counts.FUNCTIONALLY_JUSTIFIED} DIVERGENT=${counts.DIVERGENT} N/A=${counts["N/A"]}`);
+    console.log(`Property comparisons: IDENTICAL=${counts.IDENTICAL} WITHIN_TOLERANCE=${counts.WITHIN_TOLERANCE} FUNCTIONALLY_JUSTIFIED=${counts.FUNCTIONALLY_JUSTIFIED} DIVERGENT=${counts.DIVERGENT} N/A=${counts["N/A"]} (of which unacceptable=${unacceptableNaCount})`);
+    console.log(`N/A breakdown: ${JSON.stringify(naByReason)}`);
+    console.log(`Pixel-diff records: total=${totalRecords} unique=${uniqueRecords} duplicate=${duplicateRecords} comparableUnique=${comparableUniqueRecords}`);
     console.log(`Pixel-diff failures: ${pixelDiffFailures.length} / ${pixelDiffResults.filter((r) => r.comparable).length} comparable`);
-    console.log(`Console errors: ${totalConsoleErrors}`);
+    console.log(`Console errors (unexpected): ${totalConsoleErrors}`);
     if (schemaProblems.length) console.log(`Allowlist schema problems: ${schemaProblems.length}\n  ${schemaProblems.join("\n  ")}`);
     if (unusedEntries.length) console.log(`Unused allowlist entries: ${unusedEntries.map(([k]) => k).join(", ")}`);
-    console.log(`Report: ${join(OUT_DIR, "forensic-visual-report.html")}`);
+    console.log(`Report: ${redactUserPaths(join(OUT_DIR, "forensic-visual-report.html"))}`);
 
     process.exitCode = ok ? 0 : 1;
   } finally {
