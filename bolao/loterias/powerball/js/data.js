@@ -195,24 +195,21 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "03/08/2026 22:59 ET"
     },
 
-    // Todos os 14 participantes do sorteio anterior seguem para este — sem depósito
-    // novo, o dinheiro é 100% saldo reciclado (sobra do sorteio anterior + prêmio
-    // ganho), por isso não há valor individual por pessoa (ver `finance` abaixo).
+    // 10 participantes que pagaram para este sorteio (04/08) + Eduardo (organizador)
+    // + 1 novo (Jorge). Quem não pagou (Tatiana, Alan, Samuel, Rodrigo) removido.
+    // Dívida de $2 do sorteio anterior (Eduardo cobriu): levada para próximo sorteio.
     participants: [
-      { name: "Eduardo Ferrari", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "organizador" },
-      { name: "Gustavo Bossle", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Tatiana Bossle", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Marcelo Moreira", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Leandro Augustineli", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Alan Rech", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Ewerton Gruba Silva", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Simone Hirle da Costa", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Camila Ribeiro", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Marcus Steffenon", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Samuel Huller", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Amanda Quaresma", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Rodrigo Hajj", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Nathalia Galeazzi Nedel", cotas: null, valor: null, metodo: "Saldo anterior", data: "02/08/2026", hora: "—", txId: "—", status: "recorrente" }
+      { name: "Eduardo Ferrari", cotas: null, valor: null, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Gustavo Bossle", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Marcelo Moreira", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Leandro Augustineli", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Ewerton Gruba Silva", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Simone Hirle da Costa", cotas: null, valor: null, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Camila Ribeiro", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Marcus Steffenon", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Amanda Quaresma", cotas: null, valor: null, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Nathalia Galeazzi Nedel", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" }
     ],
 
     // 56 tickets comprados com ID: 29F4CE7C3D9F73C11, 03/08/2026 01:56 PM
