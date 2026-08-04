@@ -1,85 +1,59 @@
-name: Powerball Results Email
+name: Powerball Results (auto fetch + email)
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - 'bolao/loterias/powerball/js/data.js'
+  schedule:
+    # Tuesday 22:00-06:00 UTC (18:00-02:00 EDT) + Wed 02:59 UTC is Tue 22:59 EDT
+    - cron: '*/10 22-23 * * 2'  # Tuesday 22:00-23:50 UTC
+    - cron: '*/10 0-6 * * 3'    # Wednesday 00:00-06:50 UTC (covers Tue 20:00-02:50 EDT)
+    # Saturday 22:00-06:00 UTC (18:00-02:00 EDT) + Sun 02:59 UTC is Sat 22:59 EDT
+    - cron: '*/10 22-23 * * 6'  # Saturday 22:00-23:50 UTC
+    - cron: '*/10 0-6 * * 0'    # Sunday 00:00-06:50 UTC (covers Sat 20:00-02:50 EDT)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (preview without sending email)"
+        required: false
+        type: boolean
+        default: false
+      force_resend:
+        description: "Force resend even if already sent"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: powerball-results
+  cancel-in-progress: false
+
+permissions:
+  contents: write
 
 jobs:
-  send-results:
+  fetch-and-send:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Check if draw has completed result
-        id: check_result
+      - name: Configure git
         run: |
-          python3 << 'EOF'
-          import json
-          import re
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
 
-          # Read data.js
-          with open('bolao/loterias/powerball/js/data.js', 'r', encoding='utf-8') as f:
-              content = f.read()
-
-          # Extract POWERBALL_DRAWS array
-          match = re.search(r'window\.POWERBALL_DRAWS\s*=\s*(\[[\s\S]*?\]\s*);', content)
-          if not match:
-              print("::error::Could not parse POWERBALL_DRAWS")
-              exit(1)
-
-          draws_str = match.group(1)
-
-          # Simple JSON extraction of the last draw
-          try:
-              # Use JSON parser - need to convert JS to valid JSON
-              draws_str = draws_str.replace("'", '"').replace('True', 'true').replace('False', 'false')
-              draws = json.loads(draws_str)
-
-              if not draws or len(draws) == 0:
-                  print("::warning::No draws found")
-                  exit(0)
-
-              # Get the last (most recent) draw
-              last_draw = draws[-1]
-
-              # Check if it has a completed result with prizes
-              if last_draw.get('result') and \
-                 last_draw['result'].get('numbers') and \
-                 last_draw['result'].get('premiosGanhos') is not None and \
-                 last_draw['result'].get('premiosGanhos', 0) > 0:
-                  print("SHOULD_SEND=true")
-                  print(f"Draw ID: {last_draw.get('id')}")
-                  print(f"Prizes: US$ {last_draw['result'].get('premiosGanhos')}")
-              else:
-                  print("::warning::Last draw does not have completed result with prizes")
-                  exit(0)
-          except json.JSONDecodeError as e:
-              print(f"::error::JSON parse error: {e}")
-              exit(1)
-          EOF
-        shell: bash
-
-      - name: Send email if result ready
-        if: env.SHOULD_SEND == 'true'
+      - name: Fetch and send results
+        working-directory: bolao/loterias/powerball/scripts
         run: |
-          python3 bolao/loterias/powerball/scripts/send_result_email.py --send-all powerball
-
-      - name: Notify on success
-        if: success() && env.SHOULD_SEND == 'true'
-        run: |
-          echo "✓ Powerball results email sent successfully"
-
-      - name: Notify if no result to send
-        if: env.SHOULD_SEND != 'true'
-        run: |
-          echo "ℹ No completed result found in data.js — skipping email send"
+          DRY_RUN=""
+          FORCE_RESEND=""
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
+          [ "${{ github.event.inputs.force_resend }}" = "true" ] && FORCE_RESEND="--force-resend"
+          python3 fetch_and_send_results.py $DRY_RUN $FORCE_RESEND
