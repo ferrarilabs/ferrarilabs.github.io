@@ -1,5 +1,46 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.87 — 2026-08-04 — EMERGENCY_HOTFIX: live-monitoring deadline + second-leg kickoff sync
+
+Two real production bugs found while investigating Eduardo's report that the Athletico-PR ×
+Vitória (Oitavas de Final, ida) result hadn't updated on the site and no email had gone out,
+even though the match ended hours earlier.
+
+**1. `send_result_email.py --auto`'s live-match monitoring deadline was measured from the
+workflow run's own start time, not from the match's real kickoff.** The match kicked off
+2026-08-04 00:00 UTC; the `*/10` cron's own run didn't start until 00:11:42 (ordinary cron
+granularity, not itself a bug); the old `time.time() + 80*60` deadline then closed at 01:32:04 —
+about 4 minutes before the match's real finish (~01:36 UTC, 90min regulation + halftime +
+stoppage per ESPN's own clock/period data) — and the run gave up with nothing saved or emailed.
+Manually re-triggered the workflow to process the result immediately (12/12 emails sent,
+Supabase updated) while investigating. Fixed by anchoring the deadline to the live match's own
+`dateISO` (kickoff) + 130min (90 regulation + ~15 halftime + ~10 stoppage + margin) instead of
+`time.time()` at loop start, so cron-tick jitter can never eat into the real coverage window
+again. Mirrored in `bolao/copa2026/scripts/send_result_email.py` (`EXATAMENTE igual Copa do
+Mundo` per Eduardo, 2026-08-01) for cross-app consistency — dormant there, Copa's tournament is
+concluded and can never have another live match.
+
+**2. `autoSyncEspn()` never backfilled a tie's SECOND leg (volta) kickoff/venue once ESPN
+published it.** Only the first leg (ida) gets `kickoff`/`venue` at tie-creation time; a leg's
+schedule info was otherwise only ever touched once it had a final score
+(`autoSyncEspnResults()`). Once every current Oitavas tie's ida finished (this same incident's
+result being the last one), no leg anywhere had a `kickoff` at all — even though ESPN had
+already published every volta's date — so `findNextUpcomingMatch()` found nothing and the
+"Próximo jogo" card + countdown silently disappeared (Eduardo: "Próximo jogo e contador não
+aparece mais"). This looks like a structural gap that's existed since the ida/volta format was
+built, only now surfacing because the tournament just reached this point. Fixed by extending
+`autoSyncEspn()` with a backfill pass over already-known ties: any leg with no `kickoff` and no
+score gets matched against ESPN's own schedule (same `withinResultMatchWindow` safety anchor
+`autoSyncEspnResults()` already uses) and its `kickoff`/`venue`/`city` filled in — never touches
+`goalsHome`/`goalsAway`/`status`/`qualifiedTeamId`, so the worst case of a wrong match is a
+cosmetically wrong date/venue on the "next game" card, not a result or a payout. Reuses the
+already-registered `save-leg` mutation type in `applyAdminMutation()` for the Supabase batch
+write (a new, unregistered mutation type would have thrown on any remote-conflict merge —
+`applyMutationOverRemote()`'s switch has no default no-op, only `default: throw`).
+
+`audit_scoring.py`: passed in all three apps (scoring untouched — both fixes are schedule/timing
+only, never result or payout logic).
+
 ## (tooling, no siteVersion bump) — 2026-08 — PR120-final review item 6: admin components captured in isolation
 
 **No app file touched** (`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js`

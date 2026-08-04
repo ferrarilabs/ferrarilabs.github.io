@@ -745,9 +745,25 @@ def run_auto():
 
     if not new_legs:
         try:
-            if any_cdb_match_live():
-                print("Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, máx 80 min)...")
-                deadline = time.time() + 80 * 60
+            live_now = [c for c in espn if c.get("state") == "in"]
+            if live_now:
+                # Anchored to the live match's REAL kickoff time, not to time.time() at loop
+                # start — real incident, 2026-08-04: Athletico-PR x Vitória (CDB2026) kicked off
+                # 00:00 UTC; this workflow's own cron tick didn't start running until 00:11:42
+                # (ordinary */10 cron granularity, not itself a bug); the OLD `time.time()+80*60`
+                # deadline measured 80 minutes from THAT run-start, not from kickoff, so it closed
+                # at 01:32:04 — about 4 minutes before the match's real finish (~01:36 UTC,
+                # 90min+stoppage+halftime per ESPN's own clock/period data) — and gave up with
+                # nothing saved or emailed until manually re-triggered. A cron tick landing a few
+                # minutes late (routine — cron fires on a 10-minute grid, kickoff doesn't) was
+                # silently eating into a fixed run-relative window instead of the actual match
+                # duration. 130min = 90 regulation + ~15 halftime + ~10 stoppage + margin.
+                try:
+                    anchor_iso = min(c["dateISO"] for c in live_now if c.get("dateISO"))
+                    deadline = datetime.fromisoformat(anchor_iso.replace("Z", "+00:00")).timestamp() + 130 * 60
+                except (ValueError, TypeError, KeyError):
+                    deadline = time.time() + 80 * 60  # dateISO missing/unparseable — old behavior as a fallback, not the norm
+                print(f"Jogo ao vivo detectado — monitorando até terminar (poll a cada 2 min, prazo ancorado no kickoff real)...")
                 while time.time() < deadline:
                     remaining = int((deadline - time.time()) / 60)
                     print(f"  [{remaining} min restantes] Aguardando 120s...")
@@ -768,7 +784,7 @@ def run_auto():
                     except Exception:
                         pass
                 else:
-                    print("Monitoramento encerrado por timeout (80 min). Próximo cron tentará novamente.")
+                    print("Monitoramento encerrado por timeout (prazo ancorado no kickoff esgotado). Próximo cron tentará novamente.")
                     return
                 if not new_legs:
                     print("Nenhum resultado detectado após monitoramento. Encerrando.")

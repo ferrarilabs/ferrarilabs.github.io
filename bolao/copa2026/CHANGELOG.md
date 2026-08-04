@@ -1,5 +1,24 @@
 # CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08-04 — EMERGENCY_HOTFIX propagation: live-monitoring deadline anchor
+
+Propagated from `bolao/cdb2026/scripts/send_result_email.py` (same incident, same architecture —
+"EXATAMENTE igual Copa do Mundo" per Eduardo, 2026-08-01). `any_copa_match_live()`'s live-match
+monitoring deadline was `time.time() + 80*60` (measured from whenever the workflow run happened
+to start, not from the match's real kickoff) — CDB2026 hit this for real on 2026-08-04
+(Athletico-PR × Vitória: a cron tick landing 11m42s after kickoff, ordinary `*/10` granularity,
+ate enough of the fixed 80-minute window that it closed ~4 minutes before the match's real
+finish). Fixed the same way here: `any_copa_match_live()` now returns the earliest live match's
+kickoff ISO string (was a bare boolean) so `run_auto()` can anchor its deadline to kickoff + 130
+min instead of run-start + 80 min. **Dormant in this app** — the World Cup concluded 2026-07-19
+and `CONFIG.archived` is `true`; no live match can ever occur again — kept in sync purely so this
+script doesn't silently drift from CDB2026's copy again (same class of drift CLAUDE.md's own
+"never assume a change is unrelated" scoring-audit rule exists to catch). No app file touched
+(`css/styles.css`, `js/config.js`, `js/data.js`, `js/i18n.js`, `js/app.js` unchanged) — script
+only, no `siteVersion` bump/cache-bust needed.
+
+`audit_scoring.py`: passed (scoring untouched — timing/deadline only).
+
 ## v4.168 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
 
 Full rationale/findings documented once in `bolao/cdb2026/CHANGELOG.md` v3.85 (same change,
