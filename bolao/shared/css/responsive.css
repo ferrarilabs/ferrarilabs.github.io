@@ -79,15 +79,19 @@
   .team.right { flex-direction: row-reverse; text-align: right; justify-content: flex-start; }
   .vs { font-size: 11px; margin: 0; }
 
-  .game-teams { gap: 6px; }
-  .game-team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
-  .game-team .team-flag { flex-shrink: 0; }
-  .game-team .team-name { overflow-wrap: break-word; }
-  .game-team.right { justify-content: flex-start; }
-  .game-score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
+  /* Phase 7-FIX: BEM equivalents (.game-card__match/__team/__logo/__team-name/__score) added
+     as extra selectors alongside the old .game-teams/.game-team/.team-flag/.team-name/
+     .game-score ones — see shared/css/components.css's own header comment for why both exist
+     during the incremental app-by-app migration. */
+  .game-teams, .game-card__match { gap: 6px; }
+  .game-team, .game-card__team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
+  .game-team .team-flag, .game-card__logo { flex-shrink: 0; }
+  .game-team .team-name, .game-card__team-name { overflow-wrap: break-word; }
+  .game-team.right, .game-card__team--away { justify-content: flex-start; }
+  .game-score, .game-card__score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
   /* Pre-match placeholder ("×", no score yet) shouldn't take as much
      visual weight as an actual score. */
-  .game-score.muted {
+  .game-score.muted, .game-card__score.muted {
     min-width: 0;
     padding: 2px 10px;
     font-size: 15px;

@@ -6,8 +6,19 @@
    these components live in shared/css/responsive.css.
    ============================================================ */
 
-/* ── Games ── */
-.game-card {
+/* ── Games ──
+   Phase 7-FIX (docs/bolao/PROJECT_MEMORY.md "DOM unification"): canonical BEM skeleton
+   (.game-card__header/__competition/__status/__metadata/__date/__time/__venue/__match/
+   __team--home/__team--away/__logo/__team-name/__center/__score/__extension), one shared
+   structure for all three apps' single-match game card, replacing three apps' three different
+   DOM shapes that happened to share CSS *values* without sharing CSS *selectors* or markup
+   order (see docs/bolao/CANONICAL_GAME_CARD_SKELETON.md for the before/after comparison this
+   was designed from). The OLD selectors below (.game-top/.game-meta/.game-teams/.game-team/
+   .status-chip's card-scoped siblings) are kept as compatibility aliases, comma-combined with
+   the new BEM selectors, so BR2026/CDB2026's not-yet-migrated templates keep rendering
+   correctly during the incremental app-by-app migration — once every app's template emits only
+   BEM classes, the old aliases can be deleted in a follow-up cleanup pass. */
+.game-card, .game-card {
   background: var(--bg2);
   border: 1px solid var(--border);
   border-radius: var(--radius-2xl);
@@ -15,7 +26,8 @@
   margin-bottom: var(--space-4);
 }
 .game-card.is-live { border-color: var(--red); }
-.game-top {
+
+.game-top, .game-card__header {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -23,17 +35,32 @@
   flex-wrap: wrap;
   margin-bottom: var(--space-3);
 }
-.game-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: var(--space-4); }
-.game-teams {
+.game-card__competition { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: var(--space-2); }
+
+.game-meta, .game-card__metadata { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: var(--space-4); }
+.game-card__date, .game-card__time, .game-card__venue { /* inherit .pill visual treatment via markup, no extra rule needed */ }
+
+.game-teams, .game-card__match {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
   gap: var(--space-4);
   align-items: center;
 }
-.game-team { font-weight: var(--font-weight-black); font-size: 18px; display: flex; align-items: center; gap: 6px; justify-content: flex-end; }
-.game-team.right { justify-content: flex-start; }
+.game-team, .game-card__team {
+  font-weight: var(--font-weight-black);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.game-team.right, .game-card__team--away { justify-content: flex-start; }
+.game-card__team--home { justify-content: flex-end; }
+.game-card__team-name { /* typography comes from .game-team/.game-card__team above — shared identity */ }
+.game-card__logo { display: inline-flex; align-items: center; }
+.game-card__center { display: contents; } /* score/time sits directly in the grid's center column */
 
-.game-score {
+.game-score, .game-card__score {
   font-size: 22px;
   font-weight: var(--font-weight-black);
   color: var(--text);
@@ -44,7 +71,8 @@
   padding: 8px 14px;
   min-width: 80px;
 }
-.game-score.is-live { border-color: var(--red); color: var(--red); }
+.game-score.is-live, .game-card__score.is-live { border-color: var(--red); color: var(--red); }
+.game-card__extension:empty { display: none; }
 
 @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
