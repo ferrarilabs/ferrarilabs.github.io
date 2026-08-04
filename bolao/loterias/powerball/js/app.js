@@ -1,5 +1,6 @@
 (function () {
   "use strict";
+  console.log("✓ app.js loaded, POWERBALL_DRAWS:", window.POWERBALL_DRAWS ? window.POWERBALL_DRAWS.length + " draws" : "NOT FOUND");
   var DRAWS = window.POWERBALL_DRAWS;
   var GAME_TYPES = window.LOTTERY_GAME_TYPES;
   var LOCAL_KEY = "powerball_local_results_v1";
