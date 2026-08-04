@@ -326,6 +326,41 @@ de chegar em qualquer conteúdo — ver "Admin" nas inconsistências); BR2026 = 
 4 botões. Não é um bug de componente (o componente é o mesmo), é uma questão de organização de
 informação — ver seção "Admin" abaixo.
 
+## Admin entry row — full vs. dense variant (2026-08-03, PR120-final review item 5)
+
+Cada entrada de participante na aba Admin é renderizada como um de dois variantes **formalmente
+documentados** do mesmo componente — nenhum dos dois é um bug ou uma divergência não resolvida
+(`docs/bolao/CONSISTENCY_MATRIX.md` item 78, anteriormente `NEEDS_REVIEW`, agora `RESOLVED` como
+`INTENTIONALLY_DIFFERENT` por esta seção):
+
+- **`admin-entry-full`** (Copa `bolao/copa2026/`, `.card.admin-entry`): um card completo e
+  empilhado — padding 18px, border-radius 18px, background token de `.card`, margin-bottom 10px
+  entre entradas, font-size 15px (herdado de `.card`). Usado por Copa porque a lista de entradas
+  raramente é longa o suficiente para exigir densidade (torneio já concluído/arquivado — ver
+  `applyArchiveMode()`), e o layout empilhado deixa espaço confortável para os botões de ação
+  (abrir recibo, baixar HTML, e-mail participante, e-mail admin, excluir).
+- **`admin-entry-dense`** (BR2026/CDB2026, `.admin-row`): uma linha densa de lista — padding
+  vertical apenas (8px, sem padding horizontal — não é um card com borda própria), sem
+  border-radius, background transparente (herda do container da lista), espaçamento via `gap`
+  (8px, é um flex row) em vez de margin por linha, font-size 14px (tamanho base do corpo).
+
+**Quando usar cada variante:** `admin-entry-full` é apropriado quando a lista de entradas é
+tipicamente curta (torneio concluído/arquivado, ou volume de participantes baixo) e o espaço
+extra por entrada não compromete a navegação. `admin-entry-dense` é apropriado quando a lista
+pode crescer bastante durante um torneio ativo (BR2026/CDB2026, inscrições abertas) e uma tela
+de admin precisa mostrar muitas entradas sem rolagem excessiva — a mesma motivação por trás de
+listas densas em qualquer produto administrativo.
+
+**Propriedades afetadas** (todas com entrada correspondente em
+`docs/bolao/evidence/visual-comparison/ALLOWLIST.json`, componente `admin-card-row`): `height`
+(conteúdo/variante-dependente), `fontSize`, `lineHeight`, `padding`, `margin`, `gap`,
+`borderRadius`, `backgroundColor`. Propriedades que NÃO variam entre os dois variantes (já
+`EQUAL` na auditoria): `fontFamily`, `fontWeight`, `letterSpacing`, `color`,
+`gridTemplateColumns` (nenhum dos dois usa grid).
+
+Se um novo app da plataforma precisar dessa tela, deve escolher explicitamente um dos dois
+variantes acima (não inventar um terceiro) e registrar a escolha nesta seção.
+
 ## Hero
 
 Estruturalmente diferente por app:

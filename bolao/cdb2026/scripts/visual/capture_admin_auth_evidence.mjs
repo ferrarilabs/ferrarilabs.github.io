@@ -115,6 +115,22 @@ function commitHash() {
   catch { return "unknown"; }
 }
 
+// Full (not abbreviated) commit hash for the manifest's sourceCommit field — unambiguous even if
+// short-hash collisions ever become a concern, unlike the display-only commitHash() above.
+function commitHashFull() {
+  try { return execSync("git rev-parse HEAD", { cwd: ROOT }).toString().trim(); }
+  catch { return "unknown"; }
+}
+
+// Hash of the actual tree object HEAD points at — distinct from the commit hash: if this worktree
+// has uncommitted changes, sourceCommit alone would silently describe a DIFFERENT (older) state
+// than what was actually captured. Comparing this against a fresh `git rev-parse HEAD^{tree}` is
+// how a reviewer can independently confirm the evidence really matches a clean, unmodified commit.
+function sourceTreeHash() {
+  try { return execSync("git rev-parse HEAD^{tree}", { cwd: ROOT }).toString().trim(); }
+  catch { return "unknown"; }
+}
+
 function startServer() {
   return new Promise((resolve, reject) => {
     const p = spawn("python3", ["-m", "http.server", String(PORT)], { cwd: ROOT, stdio: "ignore" });
@@ -214,8 +230,17 @@ async function main() {
     server.kill();
   }
 
+  // PR120-final review (evidence/allowlist round): every regenerated manifest now carries enough
+  // metadata for an independent reviewer to tell WHEN this was captured and against WHAT exact
+  // tree, without having to cross-reference a separate commit message.
   const outPath = join(EVIDENCE_ROOT, "admin_auth_manifest.json");
-  writeFileSync(outPath, JSON.stringify(manifest, null, 2));
+  const meta = {
+    generatedAtUtc: new Date().toISOString(),
+    sourceCommit: commitHashFull(),
+    sourceTreeHash: sourceTreeHash(),
+    fixtureVersion: FIXTURE_ID,
+  };
+  writeFileSync(outPath, JSON.stringify({ meta, entries: manifest }, null, 2));
   const counts = manifest.reduce((acc, m) => { acc[m.status] = (acc[m.status] || 0) + 1; return acc; }, {});
   console.log(`Admin-auth manifest entries: ${manifest.length}`);
   console.log(`  captured:      ${counts.captured || 0}`);
