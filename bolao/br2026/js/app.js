@@ -2035,7 +2035,10 @@ function renderGamesSection() {
     const dateLabel = new Date(refISO).toLocaleDateString("pt-BR", {
       timeZone: "America/Sao_Paulo", weekday: "long", day: "2-digit", month: "2-digit"
     });
-    html += `<div class="game-date-header">${esc(dateLabel)}</div>`;
+    // PR120-final forensic review: BR2026 groups games under one date header per day (not a
+    // per-card date badge like Copa's 📅 pill) -- marked game-date here since it's the closest
+    // existing concept, but note this is a group-level date, not per-card, in the forensic report.
+    html += `<div class="game-date-header" data-visual-role="game-date">${esc(dateLabel)}</div>`;
 
     byDate[key].forEach(g => {
       const timeStr = brtTimeStr(g.dateISO);
@@ -2043,17 +2046,17 @@ function renderGamesSection() {
 
       let scoreOrTime, statusHtml;
       if (g.postponed) {
-        scoreOrTime = `<span class="game-time muted">—</span>`;
-        statusHtml  = `<span class="game-status postponed">${esc(t("gamePostponed"))}</span>`;
+        scoreOrTime = `<span class="game-time muted" data-visual-role="game-time">—</span>`;
+        statusHtml  = `<span class="game-status postponed" data-visual-role="game-status">${esc(t("gamePostponed"))}</span>`;
       } else if (g.state === "in") {
-        scoreOrTime = `<span class="game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
-        statusHtml  = `<span class="game-status live">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
+        scoreOrTime = `<span class="game-score-live" data-visual-role="game-score">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        statusHtml  = `<span class="game-status live" data-visual-role="game-status">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
       } else if (g.state === "post") {
-        scoreOrTime = `<span class="game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
-        statusHtml  = `<span class="game-status post">${esc(t("gameFinal"))}</span>`;
+        scoreOrTime = `<span class="game-score-final" data-visual-role="game-score">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        statusHtml  = `<span class="game-status post" data-visual-role="game-status">${esc(t("gameFinal"))}</span>`;
       } else {
-        scoreOrTime = `<span class="game-time">${esc(timeStrFull)} BRT</span>`;
-        statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
+        scoreOrTime = `<span class="game-time" data-visual-role="game-time">${esc(timeStrFull)} BRT</span>`;
+        statusHtml  = `<span class="game-status pre" data-visual-role="game-status">${esc(timeStr)} BRT</span>`;
       }
 
       let probBarsHtml = "";
@@ -2076,16 +2079,16 @@ function renderGamesSection() {
           <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${barLabel(aPct, aLabel)}</div>
         </div>`;
       }
-      const homeLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
-      const awayLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
+      const homeLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" class="match-logo" alt="" aria-hidden="true" data-visual-role="team-logo">` : "";
+      const awayLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" class="match-logo" alt="" aria-hidden="true" data-visual-role="team-logo">` : "";
       const partida  = gameNum.has(g.id) ? `<span class="game-number">Partida ${gameNum.get(g.id)}</span>` : "";
       const venueStr = g.venue ? `${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}` : "";
       const metaParts = [statusHtml, partida, venueStr].filter(Boolean);
-      html += `<div class="game-card ${esc(g.state || "pre")}">
+      html += `<div class="game-card ${esc(g.state || "pre")}" data-visual-role="game-card">
         <div class="game-matchup">
-          <div class="match-team home"><span class="match-team-name home-name">${esc(g.homeTeam)}</span>${homeLogo}</div>
+          <div class="match-team home" data-visual-role="home-team"><span class="match-team-name home-name" data-visual-role="team-name">${esc(g.homeTeam)}</span>${homeLogo}</div>
           <div class="match-center">${scoreOrTime}</div>
-          <div class="match-team away">${awayLogo}<span class="match-team-name away-name">${esc(g.awayTeam)}</span></div>
+          <div class="match-team away" data-visual-role="away-team">${awayLogo}<span class="match-team-name away-name" data-visual-role="team-name">${esc(g.awayTeam)}</span></div>
         </div>
         <div class="game-meta">${metaParts.join('<span class="game-meta-sep"> · </span>')}</div>
         ${probBarsHtml}
@@ -2251,6 +2254,7 @@ function renderRanking() {
       : "";
     const row = document.createElement("div");
     row.className = "rank-row";
+    row.dataset.visualRole = "ranking-row";
     // Pontos sempre no mesmo estilo (verde, número puro sem "pts") -- Copa e CDB2026 nunca
     // coloriram de amarelo/trocaram o rótulo por "↕" pra sinalizar "provisório" (isso já é
     // comunicado pelo prov-note no topo da lista). Eduardo: "no ranking mostra a pontuacao em
@@ -2262,14 +2266,15 @@ function renderRanking() {
     // nunca mostrou "pts" aqui). Com o sufixo, "170 pts" não cabia numa linha só e quebrava --
     // Eduardo: "Deixe tudo da entrada em uma linha e sem crlf".
     row.innerHTML = `
-      <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
-      <div><b>${esc(item.e.entryName)}</b></div>
-      <div class="points">${item.total}</div>
+      <div class="rank-pos" data-visual-role="ranking-position">${medal}${rankMovementHtml(mv)}</div>
+      <div><b data-visual-role="ranking-name">${esc(item.e.entryName)}</b></div>
+      <div class="points" data-visual-role="ranking-points">${item.total}</div>
       ${viewBtn}`;
     box.appendChild(row);
     if (canViewPicks) {
       const detail = document.createElement("div");
       detail.className = `card picks-detail${_openRankDetails.has(item.e.id) ? "" : " hidden"}`;
+      detail.dataset.visualRole = "ranking-detail";
       detail.dataset.rankDetail = item.e.id;
       detail.innerHTML = renderPickDisplay(item.e, item.detail, { g4: g4cur, z4: z4cur, sa6: sa6cur, isOfficial });
       box.appendChild(detail);

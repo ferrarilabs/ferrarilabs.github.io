@@ -1,0 +1,950 @@
+{
+  "meta": {
+    "generatedAtUtc": "2026-08-04T12:17:41.881Z",
+    "sourceCommit": "c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d",
+    "thresholdRatio": 0.005
+  },
+  "results": [
+    {
+      "component": "game-card",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 130215,
+      "totalPixels": 209760,
+      "ratio": 0.6207808924485125,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_game-card.png"
+    },
+    {
+      "component": "game-card",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 127159,
+      "totalPixels": 209760,
+      "ratio": 0.6062118611746758,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_game-card.png"
+    },
+    {
+      "component": "game-card",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 130215,
+      "totalPixels": 209760,
+      "ratio": 0.6207808924485125,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_game-card.png"
+    },
+    {
+      "component": "game-card",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 127159,
+      "totalPixels": 209760,
+      "ratio": 0.6062118611746758,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_game-card.png"
+    },
+    {
+      "component": "game-date",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-date",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 2828,
+      "totalPixels": 2835,
+      "ratio": 0.9975308641975309,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_game-date.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-date.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_game-date.png"
+    },
+    {
+      "component": "game-stage",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "home-team",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 4991,
+      "totalPixels": 13149,
+      "ratio": 0.3795725910715644,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_home-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_home-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_home-team.png"
+    },
+    {
+      "component": "home-team",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 13149,
+      "totalPixels": 13149,
+      "ratio": 1,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_home-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_home-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_home-team.png"
+    },
+    {
+      "component": "away-team",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 5227,
+      "totalPixels": 13149,
+      "ratio": 0.3975207240094304,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_away-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_away-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_away-team.png"
+    },
+    {
+      "component": "away-team",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 13132,
+      "totalPixels": 13149,
+      "ratio": 0.9987071260171876,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_away-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_away-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_away-team.png"
+    },
+    {
+      "component": "team-name",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 1797,
+      "totalPixels": 2133,
+      "ratio": 0.8424753867791842,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_team-name.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_team-name.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_team-name.png"
+    },
+    {
+      "component": "team-name",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 2099,
+      "totalPixels": 2133,
+      "ratio": 0.9840600093764651,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_team-name.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_team-name.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_team-name.png"
+    },
+    {
+      "component": "team-logo",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-logo",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-time",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 3237,
+      "totalPixels": 4401,
+      "ratio": 0.7355146557600545,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_game-time.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-time.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_game-time.png"
+    },
+    {
+      "component": "game-time",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-status",
+      "state": "pre",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 1148,
+      "totalPixels": 2214,
+      "ratio": 0.5185185185185185,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_pre_game-status.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-status.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_pre_game-status.png"
+    },
+    {
+      "component": "game-status",
+      "state": "pre",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 1035,
+      "totalPixels": 2187,
+      "ratio": 0.4732510288065844,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_pre_game-status.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_pre_game-status.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_pre_game-status.png"
+    },
+    {
+      "component": "game-card",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-date",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-date",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "home-team",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "home-team",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "away-team",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "away-team",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-name",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-name",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-logo",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-logo",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-time",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-time",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-status",
+      "state": "live",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-status",
+      "state": "live",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 156118,
+      "totalPixels": 167808,
+      "ratio": 0.9303370518688024,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_game-card.png"
+    },
+    {
+      "component": "game-card",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 199594,
+      "totalPixels": 267168,
+      "ratio": 0.7470730027548209,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_game-card.png"
+    },
+    {
+      "component": "game-card",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 156118,
+      "totalPixels": 167808,
+      "ratio": 0.9303370518688024,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_game-card.png"
+    },
+    {
+      "component": "game-card",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 199594,
+      "totalPixels": 267168,
+      "ratio": 0.7470730027548209,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_game-card.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-card.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_game-card.png"
+    },
+    {
+      "component": "game-date",
+      "state": "post",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-date",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "post",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "home-team",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 13052,
+      "totalPixels": 13068,
+      "ratio": 0.9987756351392715,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_home-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_home-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_home-team.png"
+    },
+    {
+      "component": "home-team",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 13068,
+      "totalPixels": 13068,
+      "ratio": 1,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_home-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_home-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_home-team.png"
+    },
+    {
+      "component": "away-team",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 13047,
+      "totalPixels": 13068,
+      "ratio": 0.9983930211202938,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_away-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_away-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_away-team.png"
+    },
+    {
+      "component": "away-team",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 13026,
+      "totalPixels": 13068,
+      "ratio": 0.9967860422405876,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_away-team.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_away-team.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_away-team.png"
+    },
+    {
+      "component": "team-name",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 1728,
+      "totalPixels": 1728,
+      "ratio": 1,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_team-name.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_team-name.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_team-name.png"
+    },
+    {
+      "component": "team-name",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 1694,
+      "totalPixels": 1728,
+      "ratio": 0.9803240740740741,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_team-name.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_team-name.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_team-name.png"
+    },
+    {
+      "component": "team-logo",
+      "state": "post",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "br2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-logo",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "cdb2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 4488,
+      "totalPixels": 4488,
+      "ratio": 1,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_game-score.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-score.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_game-score.png"
+    },
+    {
+      "component": "game-score",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 4485,
+      "totalPixels": 4488,
+      "ratio": 0.9993315508021391,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_game-score.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-score.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_game-score.png"
+    },
+    {
+      "component": "game-time",
+      "state": "post",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-time",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-status",
+      "state": "post",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 2241,
+      "totalPixels": 2241,
+      "ratio": 1,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_post_game-status.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-status.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_post_game-status.png"
+    },
+    {
+      "component": "game-status",
+      "state": "post",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 2218,
+      "totalPixels": 2296,
+      "ratio": 0.9660278745644599,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_post_game-status.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_post_game-status.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_post_game-status.png"
+    },
+    {
+      "component": "game-card",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-card",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-date",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-date",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-stage",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "home-team",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "home-team",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "away-team",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "away-team",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-name",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-name",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-logo",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "team-logo",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-score",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-time",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-time",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-status",
+      "state": "postponed",
+      "app": "br2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "game-status",
+      "state": "postponed",
+      "app": "cdb2026",
+      "comparable": false,
+      "reason": "copa2026 não capturado (N/A)"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-0",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 21988,
+      "totalPixels": 85008,
+      "ratio": 0.25865800865800864,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_ranking-row-0.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-0.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_ranking-row-0.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-0",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 21866,
+      "totalPixels": 85008,
+      "ratio": 0.257222849614154,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_ranking-row-0.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-0.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_ranking-row-0.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-1",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 20071,
+      "totalPixels": 85008,
+      "ratio": 0.23610718991153773,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_ranking-row-1.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-1.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_ranking-row-1.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-1",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 21270,
+      "totalPixels": 86112,
+      "ratio": 0.24700390189520624,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_ranking-row-1.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-1.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_ranking-row-1.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-2",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 24150,
+      "totalPixels": 85008,
+      "ratio": 0.2840909090909091,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_ranking-row-2.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-2.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_ranking-row-2.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-2",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 24146,
+      "totalPixels": 85008,
+      "ratio": 0.2840438546960286,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_ranking-row-2.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-2.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_ranking-row-2.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-3",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 20083,
+      "totalPixels": 85008,
+      "ratio": 0.23624835309617917,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_ranking-row-3.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-3.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_ranking-row-3.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-3",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 21183,
+      "totalPixels": 86112,
+      "ratio": 0.24599358974358973,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_ranking-row-3.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-3.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_ranking-row-3.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-4",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 21973,
+      "totalPixels": 85008,
+      "ratio": 0.25848155467720685,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_ranking-row-4.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-4.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_ranking-row-4.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-4",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 22183,
+      "totalPixels": 85008,
+      "ratio": 0.26095191040843213,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_ranking-row-4.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-4.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_ranking-row-4.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-5",
+      "app": "br2026",
+      "comparable": true,
+      "diffPixels": 18949,
+      "totalPixels": 85008,
+      "ratio": 0.2229084321475626,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/br2026_vs_copa2026_ranking-row-5.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-5.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/br2026_ranking-row-5.png"
+    },
+    {
+      "component": "ranking-row",
+      "state": "row-5",
+      "app": "cdb2026",
+      "comparable": true,
+      "diffPixels": 20685,
+      "totalPixels": 86112,
+      "ratio": 0.24021042363433667,
+      "sameDimensions": false,
+      "diffImage": "docs/bolao/evidence/forensic-visual/diff-images/cdb2026_vs_copa2026_ranking-row-5.png",
+      "referenceImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/copa2026_ranking-row-5.png",
+      "candidateImage": "docs/bolao/evidence/forensic-visual/diff-images/captures/cdb2026_ranking-row-5.png"
+    }
+  ],
+  "failureCount": 40
+}

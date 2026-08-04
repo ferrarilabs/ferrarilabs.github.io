@@ -1,0 +1,26 @@
+{
+  "copa2026": [
+    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] Failed to load resource: net::ERR_FAILED"
+  ],
+  "br2026": [
+    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] Failed to load resource: net::ERR_FAILED"
+  ],
+  "cdb2026": [
+    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+    "[console] Failed to load resource: net::ERR_FAILED",
+    "[console] Failed to load resource: net::ERR_FAILED"
+  ]
+}

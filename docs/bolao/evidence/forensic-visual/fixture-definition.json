@@ -1,0 +1,63 @@
+{
+  "games": {
+    "homeShort": "Brasil",
+    "awayShort": "Japão",
+    "homeLong": "Associação Atlética Internacional",
+    "awayLong": "Clube Atlético Mineiro de Belo Horizonte",
+    "dateLabel": "15 AGO",
+    "timeLabel": "8:30 PM ET",
+    "venue": "Estádio Internacional de Testes",
+    "scores": {
+      "scoreless": [
+        0,
+        0
+      ],
+      "oneNil": [
+        1,
+        0
+      ],
+      "drawHigh": [
+        2,
+        2
+      ],
+      "blowout": [
+        12,
+        11
+      ]
+    },
+    "aggregate": "3 × 2",
+    "advances": "Brasil"
+  },
+  "ranking": [
+    {
+      "pos": 1,
+      "name": "Eduardo Ferrari #1",
+      "points": 176
+    },
+    {
+      "pos": 2,
+      "name": "Nome Médio de Participante",
+      "points": 158
+    },
+    {
+      "pos": 3,
+      "name": "Participante com Nome Extremamente Longo para Teste",
+      "points": 148
+    },
+    {
+      "pos": 3,
+      "name": "Outro Participante Empatado",
+      "points": 148
+    },
+    {
+      "pos": 10,
+      "name": "Participante Décima Posição",
+      "points": 135
+    },
+    {
+      "pos": 99,
+      "name": "Participante Posição Longa",
+      "points": 12
+    }
+  ]
+}

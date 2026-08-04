@@ -1,0 +1,16 @@
+{
+  "$schema": "Forensic visual parity audit (2026-08-04) -- versioned allowlist for bolao/scripts/forensic/run_forensic_audit.mjs. The ONLY mechanism that can convert a DIVERGENT finding to FUNCTIONALLY_JUSTIFIED. Every entry is validated strictly: exact app set, approvalStatus==='approved' (pending never suppresses), expiresAt not expired, current value matches expectedValues exactly. An unused, expired, or schema-invalid entry fails the audit run (exit non-zero) -- this file cannot silently accumulate stale suppressions.",
+  "fields": ["component", "property", "apps", "expectedValues", "condition", "approvalStatus", "approvedBy", "expiresAt"],
+  "entries": [
+    {
+      "component": "game-card",
+      "property": "height",
+      "apps": ["copa2026", "br2026", "cdb2026"],
+      "expectedValues": { "copa2026": "content-driven", "br2026": "content-driven", "cdb2026": "content-driven" },
+      "condition": "Total card height is a function of each app's own real internal structure (Copa: single team/score row; BR2026: matchup row + meta line; CDB2026: one .confronto-card contains 1-2 .leg rows plus an optional aggregate/classificado line) -- CDB2026 extends the same base game-card component with an additional ida/volta/agregado layer per the audit's own rule, it does not get a visually different base component. Not a token: padding/margin/border-radius/background on the card itself are compared independently and must still be IDENTICAL.",
+      "approvalStatus": "approved",
+      "approvedBy": "Eduardo",
+      "expiresAt": "2027-08-04"
+    }
+  ]
+}

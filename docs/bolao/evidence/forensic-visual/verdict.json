@@ -1,0 +1,16 @@
+{
+  "verdict": "FORENSIC VISUAL PARITY FAILED",
+  "counts": {
+    "IDENTICAL": 2421,
+    "WITHIN_TOLERANCE": 2,
+    "FUNCTIONALLY_JUSTIFIED": 4,
+    "DIVERGENT": 423,
+    "N/A": 912
+  },
+  "schemaProblems": [],
+  "unusedAllowlistEntries": [],
+  "pixelDiffFailureCount": 40,
+  "consoleErrorCount": 0,
+  "generatedAtUtc": "2026-08-04T12:17:57.471Z",
+  "sourceCommit": "c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d"
+}
