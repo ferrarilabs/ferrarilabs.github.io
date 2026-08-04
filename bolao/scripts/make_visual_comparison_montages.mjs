@@ -24,6 +24,7 @@
  * have to guess why one third of it is empty.
  */
 import { mkdirSync, existsSync, readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { loadChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
@@ -31,6 +32,20 @@ import { loadChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const EVIDENCE_VISUAL = join(ROOT, "docs", "bolao", "evidence", "visual");
 const OUT_DIR = join(ROOT, "docs", "bolao", "evidence", "visual-comparison");
+// Same fixture identity capture_evidence.mjs/capture_admin_auth_evidence.mjs stamp on the
+// screenshots this script only composites (never re-captures) — kept as one literal string
+// across all three files rather than importing it, since none of them share a common module today
+// and duplicating one string is lower-risk than adding a new cross-file dependency for this.
+const FIXTURE_VERSION = "visual-comparable-v1";
+
+function commitHashFull() {
+  try { return execSync("git rev-parse HEAD", { cwd: ROOT }).toString().trim(); }
+  catch { return "unknown"; }
+}
+function sourceTreeHash() {
+  try { return execSync("git rev-parse HEAD^{tree}", { cwd: ROOT }).toString().trim(); }
+  catch { return "unknown"; }
+}
 
 const VIEWPORTS = [{ w: 320, h: 568 }, { w: 390, h: 844 }, { w: 768, h: 1024 }, { w: 1440, h: 900 }];
 const APP_LABELS = { copa2026: "Copa do Mundo 2026", br2026: "Brasileirão 2026", cdb2026: "Copa do Brasil 2026" };
@@ -50,7 +65,11 @@ const SCREENS = [
 
 const NOT_APPLICABLE_REASONS = {
   "copa2026:form": "Copa arquivada (CONFIG.archived) — nav de Palpites oculto, decisão de produto (ver CLAUDE.md).",
-  "copa2026:games": "Copa arquivada — nav de Jogos oculto, decisão de produto.",
+  // "copa2026:games" removed (PR120-final review, evidence/allowlist round): Jogos IS captured
+  // for Copa now — capture_evidence.mjs's harnessUnhide clears the archived nav's .hidden class
+  // in this harness's own ephemeral browser context only (CONFIG.archived/applyArchiveMode()
+  // themselves untouched), so a real "games" screenshot exists and findScreenshot() below finds
+  // it — this reason entry would never be reached, kept-but-stale would misdescribe reality.
   "copa2026:rules": "Copa arquivada — nav de Regras oculto, decisão de produto.",
   "copa2026:admin-login": "Copa arquivada — nav de Admin oculto para visitantes reais; capture_evidence.mjs (evidência voltada a usuário real) não captura esta tela por isso.",
   "copa2026:admin-auth": "Copa arquivada — capture_admin_auth_evidence.mjs marca esta combinação notApplicable pelo mesmo motivo (ver seu CHANGELOG v3.79).",
@@ -141,7 +160,13 @@ async function main() {
 
   const manifestPath = join(OUT_DIR, "montage_manifest.json");
   const { writeFileSync } = await import("node:fs");
-  writeFileSync(manifestPath, JSON.stringify(results, null, 2));
+  const meta = {
+    generatedAtUtc: new Date().toISOString(),
+    sourceCommit: commitHashFull(),
+    sourceTreeHash: sourceTreeHash(),
+    fixtureVersion: FIXTURE_VERSION,
+  };
+  writeFileSync(manifestPath, JSON.stringify({ meta, entries: results }, null, 2));
   console.log(`Montages generated: ${results.length}`);
   console.log(`Output dir: ${OUT_DIR}`);
   console.log(`Manifest: ${manifestPath}`);

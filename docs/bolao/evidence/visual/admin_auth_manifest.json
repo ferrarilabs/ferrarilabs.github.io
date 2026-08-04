@@ -1,283 +1,291 @@
-[
-  {
-    "application": "copa2026",
-    "requestedSection": "AdminAuthenticated",
-    "captured": false,
-    "status": "notApplicable",
-    "reason": "CONFIG.archived hides the Admin nav button (.hidden class), same product decision as Palpites/Jogos/Regras -- not worked around, matches capture_evidence.mjs's existing treatment of this app.",
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:16.341Z"
+{
+  "meta": {
+    "generatedAtUtc": "2026-08-04T00:44:47.076Z",
+    "sourceCommit": "e28d3b7fca5051e5bc28477de608c94c846529e5",
+    "sourceTreeHash": "885eb7626eec7e130adce2942f66056215c592ac",
+    "fixtureVersion": "visual-comparable-v1"
   },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 320,
-      "height": 568
+  "entries": [
+    {
+      "application": "copa2026",
+      "requestedSection": "AdminAuthenticated",
+      "captured": false,
+      "status": "notApplicable",
+      "reason": "CONFIG.archived hides the Admin nav button (.hidden class), same product decision as Palpites/Jogos/Regras -- not worked around, matches capture_evidence.mjs's existing treatment of this app.",
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:14.854Z"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:18.532Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-filled_320x568.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 390,
-      "height": 844
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:16.777Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-filled_320x568.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:20.535Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-filled_390x844.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 768,
-      "height": 1024
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:18.749Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-filled_390x844.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:22.548Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-filled_768x1024.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 1440,
-      "height": 900
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:20.695Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-filled_768x1024.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:24.584Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-filled_1440x900.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 320,
-      "height": 568
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:22.660Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-filled_1440x900.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:26.601Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-empty_320x568.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 390,
-      "height": 844
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:24.613Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-empty_320x568.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:28.599Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-empty_390x844.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 768,
-      "height": 1024
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:26.549Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-empty_390x844.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:30.617Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-empty_768x1024.png"
-  },
-  {
-    "application": "br2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 1440,
-      "height": 900
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:28.514Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-empty_768x1024.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:32.618Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "br2026_admin-auth-empty_1440x900.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 320,
-      "height": 568
+    {
+      "application": "br2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:30.484Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "br2026_admin-auth-empty_1440x900.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:34.658Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-filled_320x568.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 390,
-      "height": 844
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:32.476Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-filled_320x568.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:36.716Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-filled_390x844.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 768,
-      "height": 1024
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:34.534Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-filled_390x844.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:38.769Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-filled_768x1024.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "filled",
-    "viewport": {
-      "width": 1440,
-      "height": 900
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:36.564Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-filled_768x1024.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:40.882Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-filled_1440x900.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 320,
-      "height": 568
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "filled",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:38.596Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-filled_1440x900.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:43.032Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-empty_320x568.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 390,
-      "height": 844
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 320,
+        "height": 568
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:40.681Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-empty_320x568.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:45.058Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-empty_390x844.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 768,
-      "height": 1024
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:42.681Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-empty_390x844.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:47.133Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-empty_768x1024.png"
-  },
-  {
-    "application": "cdb2026",
-    "requestedSection": "AdminAuthenticated",
-    "state": "empty",
-    "viewport": {
-      "width": 1440,
-      "height": 900
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:44.741Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-empty_768x1024.png"
     },
-    "commit": "4b24aa4",
-    "capturedAtUtc": "2026-08-03T16:36:49.233Z",
-    "actualSection": "admin",
-    "captured": true,
-    "status": "captured",
-    "consoleErrors": [],
-    "horizontalOverflow": false,
-    "screenshot": "cdb2026_admin-auth-empty_1440x900.png"
-  }
-]
+    {
+      "application": "cdb2026",
+      "requestedSection": "AdminAuthenticated",
+      "state": "empty",
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "commit": "e28d3b7",
+      "capturedAtUtc": "2026-08-04T00:44:46.782Z",
+      "actualSection": "admin",
+      "captured": true,
+      "status": "captured",
+      "consoleErrors": [],
+      "horizontalOverflow": false,
+      "screenshot": "cdb2026_admin-auth-empty_1440x900.png"
+    }
+  ]
+}

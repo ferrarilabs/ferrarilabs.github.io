@@ -106,7 +106,7 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 59 | Versionamento de cache-busting (`?v=`) | `2aaedfb` | `2aaedfb` | `2aaedfb` | Sim | CONSISTENT | Os três referenciam o mesmo hash de commit — sincronizados pelo bot `sync_version.yml` | — | — |
 | 60 | `robots` meta tag | `noindex,nofollow` | idêntico | idêntico | Sim | CONSISTENT | Nenhuma | — | — |
 | 61 | Símbolo do time (junto ao nome) | Bandeira do país (`DATA.flags`, emoji) — correto para seleções nacionais | Escudo real da ESPN (`_teamLogos`, fetch ao vivo do standings), classes `.team-logo` (14px) / `.match-logo` (22px) | Escudo real da ESPN, mesmas URLs/IDs verificados manualmente e mesmas classes CSS que o BR2026 (`DATA.teamLogos` fixo em `data.js`, sem fetch ao vivo — CDB2026 não tem API própria) | Bandeira só faz sentido pra seleção; clubes devem usar escudo real — Copa é INTENTIONALLY_DIFFERENT por natureza do torneio, BR2026/CDB2026 devem bater entre si | CONSISTENT (BR2026 ↔ CDB2026); INTENTIONALLY_DIFFERENT (Copa, tournament-specific) | Resolvido em v1.15/v2.1 depois de um round de bugs reais: escudo do BR2026 renderizava gigante (`<img>` sem `width`/`height`, `.team-logo` sem dimensão no CSS) e o CDB2026 tinha uma bolinha colorida com iniciais em vez de escudo real — ver LESSONS_LEARNED.md | — | Nenhuma — ambos os apps de clube agora usam o mesmo padrão de escudo real |
-| 62 | Tokens de cor `--gold`/`--red` no `:root` | Não existiam (hex literal espalhado: `#f59e0b`, `#ff6b6b`) até v4.126; agora existem, `--red:#ff6b6b` | `--gold:#f59e0b`, `--red:#f87171` (já existiam) | idêntico ao BR2026 | Sim, todo app deveria ter os mesmos tokens de cor semântica | NEEDS_REVIEW | Tokens agora existem nos três, mas `--red` tem valor diferente entre a Copa (`#ff6b6b`, já usado ao vivo em produção) e BR2026/CDB2026 (`#f87171`) — não unificado de propósito, mudaria a cor renderizada em produção | Low | Decidir um valor único de `--red` só numa mudança visual deliberada, avaliando o impacto em produção — não como patch mínimo |
+| 62 | Tokens de cor `--gold`/`--red` no `:root` | `--gold:#f59e0b`, `--red:#ff6b6b` | `--gold:#f59e0b`, `--red:#ff6b6b` | `--gold:#f59e0b`, `--red:#ff6b6b` | Sim, todo app deveria ter os mesmos tokens de cor semântica | CONSISTENT | **Resolvido (PR120-final review item 5a, 2026-08-03)** — `--red` já está unificado em `#ff6b6b` nos três apps (verificado por grep direto de `bolao/{copa2026,br2026,cdb2026}/css/styles.css`); a divergência `#f87171` registrada anteriormente nesta linha não reflete mais o código atual — corrigida em uma rodada anterior deste mesmo ciclo de padronização e não atualizada aqui até agora. `status-badge:color` na auditoria automatizada (`audit_visual_consistency.mjs`) já reporta `EQUAL`, não `JUSTIFIED`/`DIVERGENT` — a antiga entrada de ALLOWLIST.json para esse par foi removida por não suprimir mais nenhum achado real | — | — |
 | 63 | Input/select/label (fundo, `border-radius`, foco, case do label) | `var(--bg3)`/`9px`/`border-color` no foco/label UPPERCASE `var(--muted)` desde v4.126 (migrado do padrão BR2026/CDB2026) | `var(--bg3)`/`9px`/`border-color`/UPPERCASE (padrão original) | idêntico ao BR2026 | Sim | CONSISTENT | Resolvido em v4.126 — Copa migrada para o padrão que os outros dois já usavam | — | — |
 | 64 | `h1,h2,h3` — normalização global de heading | `margin:.15em 0 .4em`, `h2:1.25rem`, `h3:1.05rem` (já existia) | Adicionado em v1.16 (idêntico à Copa) | Adicionado em v2.2 (idêntico à Copa) | Sim | CONSISTENT | Resolvido — antes só a Copa normalizava, um `<h3>` fora de `.section-head` renderizava no tamanho default do navegador em BR2026/CDB2026 | — | — |
 | 65 | `.rules-table td` padding | `7px 10px` desde v4.126 (era `8px 10px`) | `7px 10px` (já era) | `7px 10px` (já era) | Sim | CONSISTENT | Resolvido — Copa alinhada aos outros dois | — | — |
@@ -122,7 +122,7 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | 75 | Texto do botão WhatsApp | "Suporte WhatsApp" | "Suporte WhatsApp" desde v1.19 (era só "WhatsApp") | "Suporte WhatsApp" desde v2.5 (idem) | Sim | CONSISTENT | Resolvido | — | — |
 | 76 | `input[type=number]` — spinner nativo | Suprimido (`-webkit-appearance:none` nos spin-buttons) desde v4.128 | Suprimido desde v1.19 | Suprimido desde v2.5 | Sim | CONSISTENT | Resolvido nos três ao mesmo tempo | — | — |
 | 77 | `.admin-toolbar` — gap/margin | `gap:8px; margin-bottom:14px` | Alinhado (era `6px`/`8px`) | Alinhado (era `6px`/`8px`) | Sim | CONSISTENT | Resolvido — diferença de 2px/6px, baixo impacto visual mas corrigido para exatidão | — | — |
-| 78 | `.admin-row` — lista vs. card | `<div class="card admin-entry">` — cada linha é um card completo | `.admin-row` — lista densa com `border-bottom`, não é card | `.admin-row` — idem BR2026 | Recomendado pela regra de referência canônica, mas admin tem densidade de dados maior (lista de entradas pode ser longa) e é área de baixa visibilidade (só o Eduardo usa) | NEEDS_REVIEW | **Não resolvido nesta rodada** — decisão consciente de manter lista densa em vez de virar N cards separados, dado o volume de linhas e o contexto admin-only; reavaliar se algum dia a lista de participantes crescer muito | Low | Se decidir padronizar, converter para `<div class="card admin-entry">` por linha, igual à Copa |
+| 78 | `.admin-row` — lista vs. card | `<div class="card admin-entry">` — cada linha é um card completo (variante `admin-entry-full`) | `.admin-row` — lista densa com `border-bottom`, não é card (variante `admin-entry-dense`) | `.admin-row` — idem BR2026 (`admin-entry-dense`) | Recomendado pela regra de referência canônica, mas admin tem densidade de dados maior (lista de entradas pode ser longa) e é área de baixa visibilidade (só o Eduardo usa) | INTENTIONALLY_DIFFERENT | **Formalizado (PR120-final review item 5b, 2026-08-03)** — deixou de ser uma divergência não resolvida: os dois layouts agora são variantes documentadas do mesmo componente, ver `docs/bolao/DESIGN_SYSTEM.md` § "Admin entry row — full vs. dense variant" pelo critério de quando usar cada um. `ALLOWLIST.json` (`bolao/scripts/audit_visual_consistency.mjs`) tem entradas correspondentes para `admin-card-row` (`height`, `fontSize`, `lineHeight`, `padding`, `margin`, `gap`, `borderRadius`, `backgroundColor`) referenciando esta seção | — | — |
 | 79 | Tabela do Brasileirão — colunas (BR2026 apenas) | N/A — Copa não tem tabela de classificação (torneio é mata-mata) | V/E/D/GP/GC/SG adicionados em v1.19 (só tinha Pos/Time/Pts) | N/A — CDB2026 não tem standings (sem API ao vivo) | Tournament-specific — não existe equivalente na Copa pra comparar | INTENTIONALLY_DIFFERENT | Resolvido como bug funcional (dado já vinha da ESPN, só não era exibido), não como divergência cross-app | — | — |
 
 ## Resumo por severidade
@@ -132,18 +132,18 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 | Critical | 0 |
 | High | 3 (itens 1, 8/9/10 combinados) |
 | Medium | 10 |
-| Low | 16 (item 78/`.admin-row` entrou nesta rodada) |
-| Sem severidade (CONSISTENT/INTENTIONALLY_DIFFERENT sem ação) | 50 |
+| Low | 14 (itens 62 e 78 resolvidos em PR120-final review item 5) |
+| Sem severidade (CONSISTENT/INTENTIONALLY_DIFFERENT sem ação) | 52 |
 
 ## Resumo por status
 
 | Status | Quantidade |
 |---|---|
-| CONSISTENT | 48 |
-| INTENTIONALLY_DIFFERENT | 14 |
+| CONSISTENT | 49 |
+| INTENTIONALLY_DIFFERENT | 15 |
 | MISSING | 0 |
 | OUTDATED | 0 |
-| NEEDS_REVIEW | 15 |
+| NEEDS_REVIEW | 13 |
 | CRITICAL_DIVERGENCE | 0 |
 
 ### Progresso — Copa como referência visual canônica (v4.128 / v1.19 / v2.5)
@@ -151,11 +151,28 @@ Severidades: `Critical`, `High`, `Medium`, `Low`.
 Itens resolvidos: 70 (`main` max-width), 71 (card de jogo no BR2026), 72 (grid time×placar no
 BR2026), 73 (ícone no card de pagamento), 74 (`.pay-grid` 3 colunas), 75 (texto do botão
 WhatsApp), 76 (spinner de input numérico), 77 (`.admin-toolbar` gap/margin). Item 78
-(`.admin-row` vs. card por linha) fica registrado como `NEEDS_REVIEW`, decisão consciente de
-não converter nesta rodada — ver a linha para o racional. Item 79 é uma correção funcional da
-tabela do Brasileirão (dado que a ESPN já fornecia e não estava sendo exibido), não uma
-divergência cross-app, classificado `INTENTIONALLY_DIFFERENT` porque a Copa não tem
-equivalente (mata-mata não tem tabela de classificação).
+(`.admin-row` vs. card por linha) ficou registrado como `NEEDS_REVIEW` nesta rodada — **ver
+"Progresso — PR120-final review item 5 (2026-08-03)" abaixo para a formalização posterior**.
+Item 79 é uma correção funcional da tabela do Brasileirão (dado que a ESPN já fornecia e não
+estava sendo exibido), não uma divergência cross-app, classificado `INTENTIONALLY_DIFFERENT`
+porque a Copa não tem equivalente (mata-mata não tem tabela de classificação).
+
+### Progresso — PR120-final review item 5 (2026-08-03)
+
+Os dois itens deixados em aberto nas rodadas anteriores foram fechados nesta:
+
+- **Item 62** (`--red` divergente entre Copa e BR2026/CDB2026): já estava resolvido no código —
+  os três apps têm `--red:#ff6b6b` idêntico (reverificado por grep direto do CSS). A linha da
+  matriz estava desatualizada (ainda citava `#f87171` para BR2026/CDB2026), não o código. Movido
+  de `NEEDS_REVIEW`/Low para `CONSISTENT`/sem severidade. A entrada de `ALLOWLIST.json` para
+  `status-badge:color` — que existia só para justificar essa divergência já inexistente — foi
+  removida por não suprimir mais nenhum achado real (a auditoria automatizada já reportava
+  `EQUAL`, tornando a entrada morta).
+- **Item 78** (`.admin-row` denso vs. `.admin-entry` card completo): formalizado como dois
+  variantes documentados do mesmo componente (`admin-entry-full`/`admin-entry-dense`) em
+  `docs/bolao/DESIGN_SYSTEM.md` § "Admin entry row — full vs. dense variant", com critério
+  explícito de quando usar cada um. Movido de `NEEDS_REVIEW`/Low para `INTENTIONALLY_DIFFERENT`
+  — deixa de ser uma divergência pendente e passa a ser uma decisão de design registrada.
 
 Junto com bugs reais encontrados testando o CDB2026 ao vivo (não fazem parte da comparação com
 a Copa, mas foram corrigidos na mesma leva): ordem de mandante/visitante no jogo de volta,
@@ -167,9 +184,10 @@ da CBF pra "quem avança" (trava em vitória simples, destrava em empate agregad
 
 Itens resolvidos nos três apps: 63 (input/select/label), 64 (h1/h2/h3), 65 (padding de
 `.rules-table`), 66 (sombra/`min-width` do botão sticky). Item 62 (tokens `--gold`/`--red`)
-parcialmente resolvido — tokens existem nos três, mas o valor de `--red` da Copa
-(`#ff6b6b`, já em produção) não foi unificado com o de BR2026/CDB2026 (`#f87171`) por não ser
-um patch mínimo (mudaria cor renderizada em produção).
+ficou parcialmente resolvido nesta rodada específica — tokens existiam nos três, mas o valor de
+`--red` ainda não estava confirmado unificado. **Totalmente resolvido em PR120-final review item
+5 (2026-08-03) — ver "Progresso — PR120-final review item 5" abaixo: `--red:#ff6b6b` já é
+idêntico nos três apps.**
 
 ### Progresso — findings Critical/High autorizados (v4.127 / v1.17 / v2.3)
 
@@ -592,10 +610,12 @@ Implementados nesta rodada (genuinamente ausentes, confirmado por leitura direta
 detalhamento e progresso): #1 (audit_scoring.py equivalente para BR2026/CDB2026), #9 (fluxo de
 PDF/popup do comprovante).
 
-**Deliberadamente NÃO tocados**, por já estarem registrados como decisão consciente e não bug:
-#62 (`--red` diferente entre Copa e BR2026/CDB2026 — mudança visual isolada, não patch em lote) e
-#78 (`.admin-row` lista densa vs. card — decisão de UX já documentada). Uma mudança em lote como
-esta não é o contexto certo pra reabrir decisões já tomadas deliberadamente.
+**Deliberadamente NÃO tocados nesta rodada específica**, por já estarem registrados como decisão
+consciente e não bug: #62 (`--red` diferente entre Copa e BR2026/CDB2026 — mudança visual
+isolada, não patch em lote) e #78 (`.admin-row` lista densa vs. card — decisão de UX já
+documentada). Uma mudança em lote como esta não era o contexto certo pra reabrir decisões já
+tomadas deliberadamente. **Ambos posteriormente fechados em PR120-final review item 5
+(2026-08-03) — ver "Progresso — PR120-final review item 5" acima.**
 
 `audit_scoring.py`: PASSOU nos dois apps em cada etapa — nenhuma mudança tocou scoring.
 

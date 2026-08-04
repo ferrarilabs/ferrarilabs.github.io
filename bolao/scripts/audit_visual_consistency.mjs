@@ -144,7 +144,14 @@ function copa2026Fixture() {
 
 const APPS = {
   copa2026: {
-    path: "/bolao/copa2026/", storeKey: "bolao_copa2026_state", fixture: copa2026Fixture(),
+    // PR120-final review item 2 investigation: was "bolao_copa2026_state" (no underscore between
+    // "copa" and "2026") -- doesn't match the real key Copa's own js/config.js declares
+    // (`storeKey: "bolao_copa_2026_state"`, see CLAUDE.md "State" section). The fixture was
+    // silently written to a dead key every run; Copa's app never read it, fell through to the
+    // mocked-empty Supabase response, rendered zero admin entries, and admin-card-row came back
+    // N/A for Copa only -- a harness bug, not a real product divergence. br2026/cdb2026's keys
+    // were already correct (verified against their own config.js).
+    path: "/bolao/copa2026/", storeKey: "bolao_copa_2026_state", fixture: copa2026Fixture(),
     seedAdmin: (until) => ({ adminOk: "true", adminUntil: String(until) }),
   },
   br2026: {
@@ -288,17 +295,82 @@ const COMPONENTS = [
 // so timing never matters for reading its computed style in the `__always` bucket.
 const TOAST_TRIGGER_TEXT = "Teste de notificação (harness)";
 
-// ── Allowlist (item 7) — versioned, external, reviewable. See ALLOWLIST.json's own $schema note. ─
-function loadAllowlist() {
-  const raw = JSON.parse(readFileSync(ALLOWLIST_PATH, "utf8"));
-  const map = new Map(); // key `${component}:${property}` -> entry
-  for (const entry of raw.entries) {
-    const apps = entry.apps.split(",").map(s => s.trim());
-    for (const property of entry.property.split(",").map(s => s.trim())) {
-      map.set(`${entry.component}:${property}`, { ...entry, apps });
+// ── Allowlist (item 7, hardened per PR120-final review "evidence/allowlist" round) — versioned,
+// external, reviewable. See ALLOWLIST.json's own $schema note. This is the ONLY mechanism that can
+// turn a DIVERGENT finding into JUSTIFIED — every entry is validated strictly (required fields,
+// known component/property/app names, approvalStatus==='approved', reviewBy not expired) BEFORE
+// it's trusted, and every entry must actually match a real finding this run or the script fails —
+// an allowlist entry sitting unused is exactly as much a defect as an unapproved DIVERGENT.
+const REQUIRED_FIELDS = ["component", "property", "apps", "expectedType", "expected", "justification", "docRef", "owner", "approvalStatus", "approvedBy", "reviewDate", "reviewBy"];
+const KNOWN_PROPERTIES = new Set(PROPERTIES);
+const KNOWN_COMPONENT_IDS = new Set(COMPONENTS.map(c => c.id));
+const KNOWN_APP_IDS = new Set(Object.keys(APPS));
+
+function isoDateInPast(iso) {
+  const d = new Date(iso + "T00:00:00Z");
+  return isNaN(d.getTime()) ? null : d.getTime() < Date.now();
+}
+
+// Validates ONE allowlist entry's own shape/references, independent of whether it matches any
+// real finding this run. Returns a list of problems (empty = structurally valid). This runs on
+// EVERY entry up front, so a malformed entry is reported once, clearly, rather than silently
+// failing to match later and looking like a plain "unused" entry with no explanation.
+function validateAllowlistEntrySchema(entry, index) {
+  const problems = [];
+  const where = `entries[${index}] (component=${JSON.stringify(entry.component)}, property=${JSON.stringify(entry.property)})`;
+  for (const field of REQUIRED_FIELDS) {
+    if (!(field in entry)) problems.push(`${where}: campo obrigatório ausente: "${field}"`);
+  }
+  if (problems.length) return problems; // don't cascade into null-deref checks below
+  if (typeof entry.component !== "string" || !KNOWN_COMPONENT_IDS.has(entry.component)) {
+    problems.push(`${where}: componente inexistente ("${entry.component}" não está na lista COMPONENTS deste script)`);
+  }
+  if (typeof entry.property !== "string" || !KNOWN_PROPERTIES.has(entry.property)) {
+    problems.push(`${where}: propriedade inexistente ("${entry.property}" não está em PROPERTIES)`);
+  }
+  if (!Array.isArray(entry.apps) || entry.apps.length === 0) {
+    problems.push(`${where}: "apps" precisa ser um array não-vazio de app IDs`);
+  } else {
+    for (const app of entry.apps) {
+      if (!KNOWN_APP_IDS.has(app)) problems.push(`${where}: app inválido em "apps": "${app}"`);
     }
   }
-  return map;
+  if (entry.expectedType !== "exact" && entry.expectedType !== "content-driven") {
+    problems.push(`${where}: expectedType precisa ser "exact" ou "content-driven", recebeu ${JSON.stringify(entry.expectedType)}`);
+  }
+  if (entry.expectedType === "exact") {
+    if (!entry.expected || typeof entry.expected !== "object") {
+      problems.push(`${where}: expectedType="exact" exige "expected" como objeto {app: valor}`);
+    } else if (Array.isArray(entry.apps)) {
+      for (const app of entry.apps) {
+        if (!(app in entry.expected)) problems.push(`${where}: "expected" não tem valor para o app "${app}" listado em "apps"`);
+      }
+    }
+  }
+  if (entry.approvalStatus !== "approved" && entry.approvalStatus !== "pending") {
+    problems.push(`${where}: approvalStatus precisa ser "approved" ou "pending", recebeu ${JSON.stringify(entry.approvalStatus)}`);
+  }
+  if (entry.approvalStatus === "approved" && !entry.approvedBy) {
+    problems.push(`${where}: approvalStatus="approved" mas "approvedBy" está vazio — nenhuma aprovação automática por "task authorization" genérica é aceita, precisa de um aprovador nomeado`);
+  }
+  if (typeof entry.reviewBy !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(entry.reviewBy)) {
+    problems.push(`${where}: "reviewBy" precisa ser uma data ISO (YYYY-MM-DD)`);
+  } else if (isoDateInPast(entry.reviewBy)) {
+    problems.push(`${where}: aprovação EXPIRADA — reviewBy=${entry.reviewBy} já passou, precisa de nova revisão antes de continuar suprimindo este achado`);
+  }
+  return problems;
+}
+
+function loadAllowlist() {
+  const raw = JSON.parse(readFileSync(ALLOWLIST_PATH, "utf8"));
+  const schemaProblems = [];
+  const map = new Map(); // key `${component}:${property}` -> validated entry (only if schema-valid)
+  raw.entries.forEach((entry, i) => {
+    const problems = validateAllowlistEntrySchema(entry, i);
+    if (problems.length) { schemaProblems.push(...problems); return; }
+    map.set(`${entry.component}:${entry.property}`, { ...entry, used: false });
+  });
+  return { map, schemaProblems };
 }
 
 function isEquivalent(a, b) {
@@ -312,6 +384,12 @@ function isEquivalent(a, b) {
   return false;
 }
 
+// Hardened per PR120-final review items 2/3/4: an allowlist entry only suppresses a DIVERGENT
+// finding when component+property match AND the app SET matches exactly (not a superset/subset)
+// AND approvalStatus is "approved" (never "pending") AND reviewBy hasn't expired AND, for
+// expectedType:"exact" entries, every app's CURRENT value matches the entry's stored "expected"
+// value byte-for-byte — a value that has drifted since the entry was written is exactly as
+// unapproved as a finding with no entry at all, not silently waved through.
 function classify(componentId, property, valuesByApp, allowlist) {
   const present = Object.entries(valuesByApp).filter(([, v]) => v !== null);
   if (present.length <= 1) return { status: "N/A", reason: "component not present in enough apps to compare" };
@@ -320,12 +398,35 @@ function classify(componentId, property, valuesByApp, allowlist) {
   if (allEqual) return { status: "EQUAL" };
   const allEquivalent = present.every(([, v]) => isEquivalent(v, firstVal));
   if (allEquivalent) return { status: "EQUIVALENT" };
+
   const entry = allowlist.get(`${componentId}:${property}`);
-  if (entry) {
-    const reason = `${entry.justification} [docRef: ${entry.docRef}; owner: ${entry.owner}; reviewDate: ${entry.reviewDate}]`;
-    return { status: "JUSTIFIED", reason };
+  if (!entry) return { status: "DIVERGENT", reason: null };
+
+  const presentAppSet = new Set(present.map(([app]) => app));
+  const entryAppSet = new Set(entry.apps);
+  const sameAppSet = presentAppSet.size === entryAppSet.size && [...presentAppSet].every(a => entryAppSet.has(a));
+  if (!sameAppSet) {
+    return { status: "DIVERGENT", reason: `ALLOWLIST STALE: entrada existe para "${componentId}:${property}" mas o conjunto de apps não bate (entrada: ${[...entryAppSet].join(",")}; achado atual: ${[...presentAppSet].join(",")}) — precisa de revisão antes de suprimir.` };
   }
-  return { status: "DIVERGENT", reason: null };
+  if (entry.approvalStatus !== "approved") {
+    return { status: "DIVERGENT", reason: `PENDING APPROVAL: entrada existe para "${componentId}:${property}" mas approvalStatus="${entry.approvalStatus}", não "approved" — não pode suprimir até ser explicitamente aprovada.` };
+  }
+  if (isoDateInPast(entry.reviewBy)) {
+    return { status: "DIVERGENT", reason: `EXPIRED APPROVAL: entrada para "${componentId}:${property}" tinha reviewBy=${entry.reviewBy}, já expirou — precisa de nova revisão.` };
+  }
+  if (entry.expectedType === "exact") {
+    const mismatches = present.filter(([app, v]) => entry.expected[app] !== v);
+    if (mismatches.length) {
+      const detail = mismatches.map(([app, v]) => `${app}: esperado "${entry.expected[app]}", atual "${v}"`).join("; ");
+      return { status: "DIVERGENT", reason: `VALUE DRIFT: entrada aprovada para "${componentId}:${property}" é expectedType="exact", mas o valor atual não bate mais com o autorizado (${detail}) — a entrada ficou desatualizada, precisa de nova revisão/atualização, não é mais coberta pela aprovação existente.` };
+    }
+  }
+  // content-driven entries accept any differing value once app-set/approval/expiry all check out —
+  // that's the whole point of this expectedType (the exact number is expected to vary by content).
+
+  entry.used = true; // only mark used once it genuinely suppressed a real finding this run
+  const reason = `${entry.justification} [docRef: ${entry.docRef}; owner: ${entry.owner}; approvedBy: ${entry.approvedBy}; reviewDate: ${entry.reviewDate}; reviewBy: ${entry.reviewBy}]`;
+  return { status: "JUSTIFIED", reason };
 }
 
 function commitHash() {
@@ -534,7 +635,7 @@ function buildMarkdown(report) {
 async function main() {
   const chromium = await loadChromium();
   mkdirSync(OUT_DIR, { recursive: true });
-  const allowlist = loadAllowlist();
+  const { map: allowlist, schemaProblems } = loadAllowlist();
   const server = await startServer();
   const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
   const commit = commitHash();
@@ -572,7 +673,32 @@ async function main() {
   console.log(`Property comparisons: EQUAL=${counts.EQUAL} EQUIVALENT=${counts.EQUIVALENT} JUSTIFIED=${counts.JUSTIFIED} DIVERGENT=${counts.DIVERGENT} N/A=${counts["N/A"]}`);
   console.log(`Output: ${join(OUT_DIR, "audit_visual_consistency.json")}`);
   console.log(`Output: ${join(OUT_DIR, "audit_visual_consistency.md")}`);
-  process.exit(counts.DIVERGENT > 0 ? 1 : 0);
+
+  // Hardened per PR120-final review item 3: an allowlist entry that never suppressed a real
+  // finding this run is exactly as much a defect as an unapproved DIVERGENT — it means either the
+  // underlying issue was already fixed in code (entry should be deleted) or the entry's
+  // component/property/apps no longer match reality (entry is stale and needs to be re-pointed).
+  // Silently ignoring it would let dead suppressions accumulate forever with nobody noticing.
+  const unusedEntries = [...allowlist.entries()]
+    .filter(([, entry]) => !entry.used)
+    .map(([key, entry]) => `${key} (apps: ${entry.apps.join(",")}, approvedBy: ${entry.approvedBy})`);
+
+  let ok = counts.DIVERGENT === 0;
+  if (schemaProblems.length) {
+    ok = false;
+    console.log(`\n✗ ${schemaProblems.length} problema(s) de schema no ALLOWLIST.json:`);
+    for (const p of schemaProblems) console.log(`  ✗ ${p}`);
+  }
+  if (unusedEntries.length) {
+    ok = false;
+    console.log(`\n✗ ${unusedEntries.length} entrada(s) de ALLOWLIST.json não utilizada(s) nesta rodada (não suprimiram nenhum achado real — ou já foi corrigido em código, remova a entrada, ou a entrada está desatualizada, corrija component/property/apps):`);
+    for (const u of unusedEntries) console.log(`  ✗ ${u}`);
+  }
+  if (counts.DIVERGENT > 0) {
+    console.log(`\n✗ ${counts.DIVERGENT} divergência(s) não aprovada(s) — ver seção "Divergências não aprovadas" em audit_visual_consistency.md.`);
+  }
+  if (ok) console.log("\n✓ 0 divergência não aprovada, 0 entrada de allowlist inválida/não utilizada.");
+  process.exit(ok ? 0 : 1);
 }
 
 main();
