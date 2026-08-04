@@ -1,5 +1,5 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.88",
+  siteVersion: "v3.89",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
