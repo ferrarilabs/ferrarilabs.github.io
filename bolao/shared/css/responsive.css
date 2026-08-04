@@ -127,7 +127,10 @@
   .nav {
     grid-column: 1 / -1;
     grid-row: 2;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    /* Column count is per-app (each app has a different number of
+       always-visible tabs) — see --nav-cols-desktop in
+       bolao/shared/css/tokens.css. Defaults to Copa's real value (6). */
+    grid-template-columns: repeat(var(--nav-cols-desktop, 6), minmax(0, 1fr));
     gap: 5px;
   }
   .nav button { font-size: 13px; padding: 8px 6px; }

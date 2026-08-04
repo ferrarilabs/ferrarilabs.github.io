@@ -85,7 +85,7 @@
 /* Base rule — always overridden by the max-width:900px or min-width:901px
    media queries in shared/css/responsive.css (together they cover every
    viewport width); kept here only as the pre-JS/no-media-query fallback. */
-.nav { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; width: 100%; }
+.nav { display: grid; grid-template-columns: repeat(var(--nav-cols-desktop, 6), minmax(0, 1fr)); gap: 5px; width: 100%; }
 .nav button {
   background: var(--bg3);
   color: var(--text);
