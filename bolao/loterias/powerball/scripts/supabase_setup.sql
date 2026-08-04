@@ -67,6 +67,61 @@ CREATE POLICY "Allow read bolao_types" ON public.bolao_types
 CREATE POLICY "Allow read participation" ON public.user_bolao_participation
   FOR SELECT USING (true);
 
+-- 6. AUDIT_LOG table — complete audit trail of all operations
+CREATE TABLE IF NOT EXISTS public.audit_log (
+  id BIGSERIAL PRIMARY KEY,
+  action VARCHAR(50) NOT NULL,  -- 'email_sent', 'data_updated', 'draw_created', etc.
+  entity_type VARCHAR(50),      -- 'user', 'draw', 'participation', 'email', etc.
+  entity_id VARCHAR(255),       -- user id, draw id, email address, etc.
+  performed_by VARCHAR(255),    -- script name, admin name, user name
+  details JSONB,                -- structured data about what changed
+  status VARCHAR(20),           -- 'success', 'failed', 'pending'
+  error_message TEXT,           -- if status = 'failed'
+  ip_address INET,              -- source IP (if applicable)
+  created_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_audit_action ON public.audit_log(action);
+CREATE INDEX IF NOT EXISTS idx_audit_entity ON public.audit_log(entity_type, entity_id);
+CREATE INDEX IF NOT EXISTS idx_audit_created ON public.audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_status ON public.audit_log(status);
+
+-- 7. EMAIL_LOG table — detailed email sending log
+CREATE TABLE IF NOT EXISTS public.email_log (
+  id BIGSERIAL PRIMARY KEY,
+  recipient_email VARCHAR(255) NOT NULL,
+  recipient_name VARCHAR(255),
+  subject VARCHAR(500),
+  bolao_type VARCHAR(50),
+  draw_id VARCHAR(50),
+  template_used VARCHAR(100),
+  status VARCHAR(20),           -- 'sent', 'failed', 'bounced', 'opened', etc.
+  emailjs_status_code INT,      -- HTTP status from EmailJS
+  emailjs_message_id VARCHAR(255),
+  error_reason TEXT,
+  sent_at TIMESTAMP DEFAULT NOW(),
+  metadata JSONB                -- additional tracking data
+);
+
+CREATE INDEX IF NOT EXISTS idx_email_recipient ON public.email_log(recipient_email);
+CREATE INDEX IF NOT EXISTS idx_email_draw ON public.email_log(draw_id);
+CREATE INDEX IF NOT EXISTS idx_email_status ON public.email_log(status);
+CREATE INDEX IF NOT EXISTS idx_email_sent_at ON public.email_log(sent_at DESC);
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- Enable RLS on audit tables
+-- ═══════════════════════════════════════════════════════════════════════════════
+
+ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.email_log ENABLE ROW LEVEL SECURITY;
+
+-- Read-only policies for audit tables (anon can read, no writes from frontend)
+CREATE POLICY "Allow read audit_log" ON public.audit_log
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow read email_log" ON public.email_log
+  FOR SELECT USING (true);
+
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- Sample Data for Powerball 2026-08-01 Draw
 -- ═══════════════════════════════════════════════════════════════════════════════

@@ -16,8 +16,9 @@ Email is sent ONLY if the draw has a completed result with winning tickets and p
 Business rule: only play next drawing if jackpot accumulates (configured per draw).
 """
 
-import json, sys, time, urllib.request, re
+import json, sys, time, urllib.request, re, logging
 from datetime import datetime
+from pathlib import Path
 
 # ── Config ────────────────────────────────────────────────────────────────────
 EMAILJS_URL   = "https://api.emailjs.com/api/v1.0/email/send"
@@ -36,6 +37,25 @@ EMAILJS_HEADERS = {
     "Origin":  "https://ferrarilabs.github.io",
     "Referer": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
 }
+
+# ── Logging Setup ────────────────────────────────────────────────────────────
+LOG_DIR = Path(__file__).parent.parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+LOG_FILE = LOG_DIR / f"send_result_email_{datetime.now().strftime('%Y%m%d_%H%M%S')}.log"
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s | %(levelname)-8s | %(message)s',
+    handlers=[
+        logging.FileHandler(LOG_FILE),
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+logger = logging.getLogger(__name__)
+
+logger.info("="*80)
+logger.info("POWERBALL EMAIL SCRIPT STARTED")
+logger.info("="*80)
 
 # ── Supabase Config ──────────────────────────────────────────────────────────
 SUPABASE_URL = "https://cmhqkkfczotdnssupkni.supabase.co"
@@ -107,6 +127,7 @@ def load_participants_from_supabase(draw_id):
     Centralizes user management — single source of truth for emails.
     Falls back to data.js if Supabase is unavailable.
     """
+    logger.info(f"Loading participants from Supabase for draw {draw_id}")
     try:
         # Query: get all users participating in this powerball draw
         url = (
@@ -153,11 +174,13 @@ def load_participants_from_supabase(draw_id):
             seen_emails.add(email)
             participants.append({"name": name, "email": email})
 
+        logger.info(f"✓ Loaded {len(participants)} participants from Supabase for draw {draw_id}")
+        audit_log("participants_loaded", "draw", draw_id, "success", {"source": "supabase", "count": len(participants)})
         return participants
 
     except Exception as e:
-        print(f"⚠ Supabase unavailable: {e}")
-        print(f"  Falling back to data.js...")
+        logger.warning(f"⚠ Supabase unavailable: {e}")
+        logger.info(f"  Falling back to data.js...")
         return load_participants_from_data_js(draw_id)
 
 
@@ -165,6 +188,7 @@ def load_participants_from_data_js(draw_id):
     """
     Fallback: Load participant list from data.js if Supabase is unavailable.
     """
+    logger.info(f"Loading participants from data.js fallback for draw {draw_id}")
     try:
         with open("bolao/loterias/powerball/js/data.js", "r", encoding="utf-8") as f:
             content = f.read()
@@ -221,10 +245,13 @@ def load_participants_from_data_js(draw_id):
             seen_emails.add(email)
             participants.append({"name": name, "email": email})
 
+        logger.info(f"✓ Loaded {len(participants)} participants from data.js for draw {draw_id}")
+        audit_log("participants_loaded", "draw", draw_id, "success", {"source": "data.js", "count": len(participants)})
         return participants
 
     except Exception as e:
-        print(f"❌ Error loading participants from data.js: {e}")
+        logger.error(f"❌ Error loading participants from data.js: {e}")
+        audit_log("participants_load_failed", "draw", draw_id, "failed", {"source": "data.js"}, error_msg=str(e))
         return []
 
 # Prize table (mirrors prizeTable in data.js exactly)
@@ -274,6 +301,71 @@ def validate_data(draw, participants=None):
         errors.append("⚠ Prêmios ganhos = $0 (verify calculation)")
 
     return errors
+
+
+def audit_log(action, entity_type, entity_id, status, details=None, error_msg=None):
+    """Log action to Supabase audit_log table."""
+    try:
+        payload = json.dumps({
+            "action": action,
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "performed_by": "send_result_email.py",
+            "status": status,
+            "details": details or {},
+            "error_message": error_msg
+        }).encode()
+
+        url = f"{SUPABASE_URL}/rest/v1/audit_log"
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req, timeout=5) as r:
+            logger.debug(f"✓ Audited: {action} → {entity_type} {entity_id}")
+    except Exception as e:
+        logger.warning(f"⚠ Audit log failed (continuing): {e}")
+
+
+def log_email_sent(recipient_email, recipient_name, subject, draw_id, status, details=None, error_msg=None):
+    """Log email send to Supabase email_log table."""
+    try:
+        payload = json.dumps({
+            "recipient_email": recipient_email,
+            "recipient_name": recipient_name,
+            "subject": subject,
+            "bolao_type": "powerball",
+            "draw_id": draw_id,
+            "status": status,
+            "error_reason": error_msg,
+            "metadata": details or {}
+        }).encode()
+
+        url = f"{SUPABASE_URL}/rest/v1/email_log"
+        req = urllib.request.Request(
+            url,
+            data=payload,
+            headers={
+                "apikey": SUPABASE_ANON_KEY,
+                "Authorization": f"Bearer {SUPABASE_ANON_KEY}",
+                "Content-Type": "application/json",
+                "Prefer": "return=minimal"
+            },
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req, timeout=5) as r:
+            logger.info(f"📧 Logged email to {recipient_email}: {status}")
+    except Exception as e:
+        logger.warning(f"⚠ Email log failed (continuing): {e}")
 
 
 def fmtUsd(n):
@@ -354,11 +446,17 @@ Resultado conferido: {r["checkedAt"]}
 </html>"""
 
 
-def send_email(addr, subject, html):
+def send_email(addr, subject, html, recipient_name="", draw_id=""):
     """Send via EmailJS. Subject uses "." instead of "/" to avoid HTML escaping in EmailJS template."""
     addr = addr.strip()
+
+    logger.info(f"📤 Sending email to {addr} [{recipient_name}]")
+
     if not addr or "@" not in addr:
-        return False, f"Invalid email: {addr}"
+        error = f"Invalid email: {addr}"
+        logger.error(f"❌ {error}")
+        log_email_sent(addr, recipient_name, subject, draw_id, "failed", error_msg=error)
+        return False, error
 
     body = json.dumps({
         "service_id": EMAILJS_SVC,
@@ -375,9 +473,23 @@ def send_email(addr, subject, html):
     try:
         req = urllib.request.Request(EMAILJS_URL, data=body, headers=EMAILJS_HEADERS, method="POST")
         with urllib.request.urlopen(req, timeout=20) as r:
-            return r.status == 200, f"HTTP {r.status}"
+            status_code = r.status
+            if status_code == 200:
+                logger.info(f"✅ Email sent successfully to {addr}")
+                log_email_sent(addr, recipient_name, subject, draw_id, "sent", details={"http_status": status_code})
+                audit_log("email_sent", "email", addr, "success", {"recipient": recipient_name, "draw_id": draw_id})
+                return True, f"HTTP {status_code}"
+            else:
+                error = f"HTTP {status_code}"
+                logger.warning(f"⚠ Email failed with {error}")
+                log_email_sent(addr, recipient_name, subject, draw_id, "failed", details={"http_status": status_code}, error_msg=error)
+                return False, error
     except Exception as e:
-        return False, str(e)
+        error = str(e)
+        logger.error(f"❌ Exception sending to {addr}: {error}")
+        log_email_sent(addr, recipient_name, subject, draw_id, "failed", error_msg=error)
+        audit_log("email_failed", "email", addr, "failed", {"recipient": recipient_name, "error": error}, error_msg=error)
+        return False, error
 
 
 def run_test_send(gameType="powerball"):
@@ -418,9 +530,10 @@ def run_test_send(gameType="powerball"):
     {html}
     """
 
-    ok, msg = send_email(ADMIN_EMAIL, subject, preview)
+    ok, msg = send_email(ADMIN_EMAIL, subject, preview, recipient_name="Admin (Preview)", draw_id=draw["id"])
 
     if ok:
+        logger.info(f"✓ Preview enviado com sucesso para {ADMIN_EMAIL}")
         print(f"✓ Preview enviado com sucesso ({msg})")
         print(f"\n📋 Próximos passos:")
         print(f"   1. Confira seu email em {ADMIN_EMAIL}")
@@ -466,10 +579,13 @@ def run_send_all(gameType="powerball"):
     html = build_html(draw)
     subject = f"⚽ Resultado {game_label} — {draw['drawing']['drawDateLabel'].replace('/', '.')}"
 
+    logger.info(f"Starting broadcast to {len(recipients)} participants for draw {draw['id']}")
+    audit_log("broadcast_started", "draw", draw['id'], "success", {"total_recipients": len(recipients)})
+
     sent, failed = 0, []
     for p in recipients:
         name, email = p["name"], p["email"]
-        ok, msg = send_email(email, subject, html)
+        ok, msg = send_email(email, subject, html, recipient_name=name, draw_id=draw['id'])
         status = "✓" if ok else "✗"
         print(f"  {status} {name:<30} {email}")
 
@@ -478,8 +594,15 @@ def run_send_all(gameType="powerball"):
             time.sleep(2)  # EmailJS rate limit
         else:
             failed.append((name, email, msg))
+            logger.warning(f"Email failed for {name} ({email}): {msg}")
 
     print(f"\n{'='*60}")
+    logger.info(f"Broadcast completed: {sent} sent, {len(failed)} failed")
+    audit_log("broadcast_completed", "draw", draw['id'], "success" if len(failed) == 0 else "partial", {
+        "sent": sent,
+        "failed": len(failed),
+        "total": len(recipients)
+    })
     print(f"✓ {sent} enviados, {len(failed)} falharam")
     if failed:
         print(f"\nFalhas:")
@@ -514,15 +637,21 @@ def main():
         print(f"Available: {', '.join(DRAWS.keys())}\n")
         sys.exit(1)
 
-    if "--test-send" in args:
-        run_test_send(gameType)
-    elif "--send-all" in args:
-        run_send_all(gameType)
-    elif "--check-data" in args:
-        run_check_data(gameType)
-    else:
-        print(__doc__)
-        sys.exit(1)
+    try:
+        if "--test-send" in args:
+            run_test_send(gameType)
+        elif "--send-all" in args:
+            run_send_all(gameType)
+        elif "--check-data" in args:
+            run_check_data(gameType)
+        else:
+            print(__doc__)
+            sys.exit(1)
+    finally:
+        logger.info("="*80)
+        logger.info(f"SCRIPT COMPLETED | Logs saved to: {LOG_FILE}")
+        logger.info("="*80)
+        print(f"\n📋 Logs: {LOG_FILE}")
 
 
 if __name__ == "__main__":
