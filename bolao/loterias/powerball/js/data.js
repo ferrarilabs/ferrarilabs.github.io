@@ -299,22 +299,21 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "05/08/2026 22:59 ET"
     },
 
-    // Todos os 14 participantes recorrem para o próximo sorteio com emails já preenchidos
+    // 11 participantes que pagaram (04/08) + Eduardo (organizador) = 12 total
+    // Removidos: Tatiana, Alan, Samuel, Rodrigo (não pagaram)
+    // Dívida de $2: Eduardo cobriu no sorteio anterior
     participants: [
-      { name: "Eduardo Ferrari", email: "emferrari@gmail.com", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "organizador" },
-      { name: "Gustavo Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Tatiana Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Marcelo Moreira", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Leandro Augustineli", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Alan Rech", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Ewerton Gruba Silva", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Simone Hirle da Costa", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Camila Ribeiro", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Marcus Steffenon", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Samuel Huller", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Amanda Quaresma", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Rodrigo Hajj", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" },
-      { name: "Nathalia Galeazzi Nedel", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Saldo anterior", data: "03/08/2026", hora: "—", txId: "—", status: "recorrente" }
+      { name: "Eduardo Ferrari", email: "emferrari@gmail.com", cotas: null, valor: null, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Gustavo Bossle", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Marcelo Moreira", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Leandro Augustineli", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Ewerton Gruba Silva", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Simone Hirle da Costa", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Camila Ribeiro", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Marcus Steffenon", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Amanda Quaresma", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Nathalia Galeazzi Nedel", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
+      { name: "Jorge Augusto Junqueira Ferreira", email: "REDACTED_EMAIL", cotas: null, valor: null, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" }
     ],
 
     // Sem tickets comprados ainda — aguardando compra
