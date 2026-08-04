@@ -154,13 +154,13 @@ window.POWERBALL_DRAWS = [
 
     // Preenchido manualmente após o sorteio de 01/08/2026.
     result: {
-      numbers: [6, 17, 27, 48, 50],
-      special: 5,
-      multiplier: 3,
-      checkedAt: "01/08/2026 23:59 ET",
-      premiosGanhos: 0,
+      numbers: [8, 30, 41, 48, 54],
+      special: 4,
+      multiplier: 2,
+      checkedAt: "04/08/2026 07:25 ET",
+      premiosGanhos: 16,
       jackpotHit: false,
-      breakdown: []
+      breakdown: ["Powerball ($8)", "Powerball ($8)"]
     },
 
     // Preenchido manualmente após conferir os tickets contra o resultado.

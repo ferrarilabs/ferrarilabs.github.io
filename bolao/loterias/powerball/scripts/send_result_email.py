@@ -72,17 +72,17 @@ DRAWS = {
                 "drawDateLabel": "01/08/2026 22:59 ET"
             },
             "result": {
-                "numbers": [6, 17, 27, 48, 50],
-                "special": 5,
-                "multiplier": 3,
-                "checkedAt": "01/08/2026 23:59 ET",
-                "premiosGanhos": 24,
+                "numbers": [8, 30, 41, 48, 54],
+                "special": 4,
+                "multiplier": 2,
+                "checkedAt": "04/08/2026 07:25 ET",
+                "premiosGanhos": 16,
                 "jackpotHit": False,
-                "breakdown": ["1 + Powerball ($12)", "Powerball ($12)"]
+                "breakdown": ["Powerball ($8)", "Powerball ($8)"]
             },
             "winningTickets": [
-                "06-15-26-34-37 — PB 05",
-                "24-28-45-53-54 — PB 05"
+                "03-24-29-57-66 — PB 04",
+                "23-32-33-63-69 — PB 04"
             ]
         },
         # Next draw — 03/08/2026 (conditional: only play if 01/08 jackpot doesn't hit)
