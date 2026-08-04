@@ -75,7 +75,7 @@ FETCH_LOOKAHEAD_DAYS = 14
 
 # ── ESPN ─────────────────────────────────────────────────────────────────────
 def _espn_get(url):
-    req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(url)
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read())
 

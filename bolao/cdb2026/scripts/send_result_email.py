@@ -95,7 +95,7 @@ def _espn_normalize(name):
 
 # ── ESPN helpers ──────────────────────────────────────────────────────────────
 def any_cdb_match_live():
-    req = urllib.request.Request(ESPN_SCOREBOARD_URL, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(ESPN_SCOREBOARD_URL)
     with urllib.request.urlopen(req, timeout=20) as r:
         data = json.loads(r.read())
     return any(
@@ -109,7 +109,7 @@ def fetch_espn_candidates():
     scores/winner only when the match is over (state=='post'), or live scores when state=='in'.
     Returns a list of dicts (not indexed by anything — matching is done by the caller via
     homeTeam/awayTeam string equality, exactly like the site's own autoSyncEspnResults())."""
-    req = urllib.request.Request(ESPN_SCOREBOARD_URL, headers={"User-Agent": "Mozilla/5.0"})
+    req = urllib.request.Request(ESPN_SCOREBOARD_URL)
     with urllib.request.urlopen(req, timeout=20) as r:
         data = json.loads(r.read())
 
