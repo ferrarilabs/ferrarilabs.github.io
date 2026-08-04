@@ -1,8 +1,10 @@
 {
   "meta": {
-    "generatedAtUtc": "2026-08-04T12:17:41.450Z",
-    "sourceCommit": "c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d",
-    "sourceTreeHash": "47c3deec45fc6b36cc823448e594e0fc4846b0c6"
+    "generatedAtUtc": "2026-08-04T15:21:51.489Z",
+    "sourceCommit": "7de21d49b07a9a6a43d61632ab8e03dd67880bf7",
+    "sourceTreeHash": "f0018d0e058a3d9e7f93967bf1a8c116fe52cfac",
+    "fixtureVersion": "2.0.0",
+    "harnessVersion": "2.0.0"
   },
   "comparisons": [
     {
@@ -11,21 +13,33 @@
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 1104,
-            "br2026": 1104,
-            "cdb2026": 1104
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
           },
-          "status": "IDENTICAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "MISSING_COMPONENT: {\"copa2026\":\"MISSING_COMPONENT\",\"br2026\":\"MISSING_COMPONENT\",\"cdb2026\":\"MISSING_COMPONENT\"}",
+          "naReason": "MISSING_COMPONENT",
+          "naReasonsByApp": {
+            "copa2026": "MISSING_COMPONENT",
+            "br2026": "MISSING_COMPONENT",
+            "cdb2026": "MISSING_COMPONENT"
+          }
         },
         "height": {
           "values": {
-            "copa2026": 30,
-            "br2026": 30,
-            "cdb2026": 30
+            "copa2026": null,
+            "br2026": null,
+            "cdb2026": null
           },
-          "status": "IDENTICAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "MISSING_COMPONENT: {\"copa2026\":\"MISSING_COMPONENT\",\"br2026\":\"MISSING_COMPONENT\",\"cdb2026\":\"MISSING_COMPONENT\"}",
+          "naReason": "MISSING_COMPONENT",
+          "naReasonsByApp": {
+            "copa2026": "MISSING_COMPONENT",
+            "br2026": "MISSING_COMPONENT",
+            "cdb2026": "MISSING_COMPONENT"
+          }
         }
       }
     },
@@ -37,7 +51,7 @@
           "values": {
             "copa2026": 1104,
             "br2026": 1066,
-            "cdb2026": 1104
+            "cdb2026": 1074
           },
           "status": "DIVERGENT",
           "reason": null
@@ -46,7 +60,7 @@
           "values": {
             "copa2026": 190,
             "br2026": 84,
-            "cdb2026": 187
+            "cdb2026": 52.5
           },
           "status": "FUNCTIONALLY_JUSTIFIED",
           "reason": "Total card height is a function of each app's own real internal structure (Copa: single team/score row; BR2026: matchup row + meta line; CDB2026: one .confronto-card contains 1-2 .leg rows plus an optional aggregate/classificado line) -- CDB2026 extends the same base game-card component with an additional ida/volta/agregado layer per the audit's own rule, it does not get a visually different base component. Not a token: padding/margin/border-radius/background on the card itself are compared independently and must still be IDENTICAL. [approvedBy: Eduardo; expiresAt: 2027-08-04]"
@@ -78,6 +92,40 @@
       }
     },
     {
+      "component": "round-date-header",
+      "state": "pre",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 1066,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 35,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
+        }
+      }
+    },
+    {
       "component": "game-stage",
       "state": "pre",
       "geometry": {
@@ -85,19 +133,19 @@
           "values": {
             "copa2026": 93.640625,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 1104
           },
-          "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "status": "DIVERGENT",
+          "reason": null
         },
         "height": {
           "values": {
             "copa2026": 19.5,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 19.5
           },
-          "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "status": "IDENTICAL",
+          "reason": null
         }
       }
     },
@@ -184,7 +232,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         },
         "height": {
           "values": {
@@ -193,7 +246,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         }
       }
     },
@@ -208,7 +266,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
@@ -217,7 +280,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -277,7 +345,7 @@
           "values": {
             "copa2026": null,
             "br2026": 1066,
-            "cdb2026": 1104
+            "cdb2026": 1074
           },
           "status": "DIVERGENT",
           "reason": null
@@ -286,7 +354,7 @@
           "values": {
             "copa2026": null,
             "br2026": 85.5,
-            "cdb2026": 187
+            "cdb2026": 52.5
           },
           "status": "DIVERGENT",
           "reason": "ALLOWLIST STALE: conjunto de apps não bate (entrada: copa2026,br2026,cdb2026; achado: br2026,cdb2026)"
@@ -301,19 +369,63 @@
           "values": {
             "copa2026": null,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 109.421875
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
             "copa2026": null,
             "br2026": null,
+            "cdb2026": 26.5
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
+        }
+      }
+    },
+    {
+      "component": "round-date-header",
+      "state": "live",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 1066,
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 35,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -325,19 +437,29 @@
           "values": {
             "copa2026": null,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 1104
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
             "copa2026": null,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 19.5
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -424,7 +546,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         },
         "height": {
           "values": {
@@ -433,7 +561,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         }
       }
     },
@@ -445,19 +579,29 @@
           "values": {
             "copa2026": null,
             "br2026": 39.0625,
-            "cdb2026": 28.609375
+            "cdb2026": null
           },
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
             "copa2026": null,
             "br2026": 18,
-            "cdb2026": 15
+            "cdb2026": null
           },
-          "status": "DIVERGENT",
-          "reason": null
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -472,7 +616,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
@@ -481,7 +631,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -517,7 +673,7 @@
           "values": {
             "copa2026": 1104,
             "br2026": 1066,
-            "cdb2026": 1104
+            "cdb2026": 1074
           },
           "status": "DIVERGENT",
           "reason": null
@@ -526,7 +682,7 @@
           "values": {
             "copa2026": 152,
             "br2026": 84,
-            "cdb2026": 241
+            "cdb2026": 52.5
           },
           "status": "FUNCTIONALLY_JUSTIFIED",
           "reason": "Total card height is a function of each app's own real internal structure (Copa: single team/score row; BR2026: matchup row + meta line; CDB2026: one .confronto-card contains 1-2 .leg rows plus an optional aggregate/classificado line) -- CDB2026 extends the same base game-card component with an additional ida/volta/agregado layer per the audit's own rule, it does not get a visually different base component. Not a token: padding/margin/border-radius/background on the card itself are compared independently and must still be IDENTICAL. [approvedBy: Eduardo; expiresAt: 2027-08-04]"
@@ -541,19 +697,53 @@
           "values": {
             "copa2026": 109.90625,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 81.765625
           },
-          "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "status": "DIVERGENT",
+          "reason": null
         },
         "height": {
           "values": {
             "copa2026": 26.5,
             "br2026": null,
+            "cdb2026": 26.5
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "round-date-header",
+      "state": "post",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 1066,
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 35,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -565,19 +755,19 @@
           "values": {
             "copa2026": 161.125,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 1104
           },
-          "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "status": "DIVERGENT",
+          "reason": null
         },
         "height": {
           "values": {
             "copa2026": 19.5,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 19.5
           },
-          "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "status": "IDENTICAL",
+          "reason": null
         }
       }
     },
@@ -664,7 +854,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         },
         "height": {
           "values": {
@@ -673,7 +868,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         }
       }
     },
@@ -685,7 +885,7 @@
           "values": {
             "copa2026": 87.84375,
             "br2026": 55.796875,
-            "cdb2026": 29.6875
+            "cdb2026": null
           },
           "status": "DIVERGENT",
           "reason": null
@@ -694,7 +894,7 @@
           "values": {
             "copa2026": 51,
             "br2026": 18,
-            "cdb2026": 15
+            "cdb2026": null
           },
           "status": "DIVERGENT",
           "reason": null
@@ -712,7 +912,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"MISSING_SELECTOR\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "MISSING_SELECTOR",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
@@ -721,7 +927,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"MISSING_SELECTOR\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "MISSING_SELECTOR",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -757,7 +969,7 @@
           "values": {
             "copa2026": null,
             "br2026": 1066,
-            "cdb2026": 1104
+            "cdb2026": 1074
           },
           "status": "DIVERGENT",
           "reason": null
@@ -766,7 +978,7 @@
           "values": {
             "copa2026": null,
             "br2026": 84,
-            "cdb2026": 187
+            "cdb2026": 52.5
           },
           "status": "DIVERGENT",
           "reason": "ALLOWLIST STALE: conjunto de apps não bate (entrada: copa2026,br2026,cdb2026; achado: br2026,cdb2026)"
@@ -784,7 +996,12 @@
             "cdb2026": 207.359375
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
@@ -793,7 +1010,46 @@
             "cdb2026": 15
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
+        }
+      }
+    },
+    {
+      "component": "round-date-header",
+      "state": "postponed",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": null,
+            "br2026": 1066,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
+        },
+        "height": {
+          "values": {
+            "copa2026": null,
+            "br2026": 35,
+            "cdb2026": null
+          },
+          "status": "N/A",
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -805,19 +1061,29 @@
           "values": {
             "copa2026": null,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 1104
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
             "copa2026": null,
             "br2026": null,
-            "cdb2026": null
+            "cdb2026": 19.5
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -904,7 +1170,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         },
         "height": {
           "values": {
@@ -913,7 +1185,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"MISSING_SELECTOR\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "MISSING_SELECTOR"
+          }
         }
       }
     },
@@ -928,7 +1206,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
@@ -937,7 +1221,13 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "MISSING_SELECTOR: {\"copa2026\":\"LEGITIMATE_NA\",\"br2026\":\"MISSING_SELECTOR\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "MISSING_SELECTOR",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "br2026": "MISSING_SELECTOR",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -952,7 +1242,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         },
         "height": {
           "values": {
@@ -961,7 +1256,12 @@
             "cdb2026": null
           },
           "status": "N/A",
-          "reason": "componente não presente/comparável em apps suficientes"
+          "reason": "LEGITIMATE_NA: {\"copa2026\":\"LEGITIMATE_NA\",\"cdb2026\":\"LEGITIMATE_NA\"}",
+          "naReason": "LEGITIMATE_NA",
+          "naReasonsByApp": {
+            "copa2026": "LEGITIMATE_NA",
+            "cdb2026": "LEGITIMATE_NA"
+          }
         }
       }
     },
@@ -1069,7 +1369,7 @@
           "values": {
             "copa2026": 198.46875,
             "br2026": 198.46875,
-            "cdb2026": 134.671875
+            "cdb2026": 122.109375
           },
           "status": "DIVERGENT",
           "reason": null
@@ -1091,11 +1391,11 @@
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 46.75,
-            "br2026": 46.75,
+            "copa2026": 18.203125,
+            "br2026": 18.203125,
             "cdb2026": 46.75
           },
-          "status": "IDENTICAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         "height": {
@@ -1160,12 +1460,204 @@
     {
       "component": "ranking-name",
       "state": "ranking-row-1",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 295.296875,
+            "br2026": 295.296875,
+            "cdb2026": 126.4375
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-1",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 18.203125,
+            "br2026": 18.203125,
+            "cdb2026": 48.734375
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 135,
+            "br2026": 135,
+            "cdb2026": 295.296875
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 18,
+            "br2026": 18,
+            "cdb2026": 18
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-points",
+      "state": "ranking-row-2",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 18.203125,
+            "br2026": 18.203125,
+            "cdb2026": 49.359375
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 39,
+            "br2026": 39,
+            "cdb2026": 39
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-row",
+      "state": "ranking-row-3",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 1104,
+            "br2026": 1104,
+            "cdb2026": 1104
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 65,
+            "br2026": 76.5,
+            "cdb2026": 76.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-position",
+      "state": "ranking-row-3",
+      "geometry": {
+        "width": {
+          "values": {
+            "copa2026": 48,
+            "br2026": 48,
+            "cdb2026": 48
+          },
+          "status": "IDENTICAL",
+          "reason": null
+        },
+        "height": {
+          "values": {
+            "copa2026": 33,
+            "br2026": 50.5,
+            "cdb2026": 50.5
+          },
+          "status": "DIVERGENT",
+          "reason": null
+        }
+      }
+    },
+    {
+      "component": "ranking-name",
+      "state": "ranking-row-3",
       "geometry": {
         "width": {
           "values": {
             "copa2026": 208.625,
             "br2026": 208.625,
-            "cdb2026": 206.203125
+            "cdb2026": 135
           },
           "status": "DIVERGENT",
           "reason": null
@@ -1183,207 +1675,15 @@
     },
     {
       "component": "ranking-points",
-      "state": "ranking-row-1",
+      "state": "ranking-row-3",
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 48.734375,
-            "br2026": 48.734375,
-            "cdb2026": 48.734375
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 39,
-            "br2026": 39,
-            "cdb2026": 39
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-row",
-      "state": "ranking-row-2",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 1104,
-            "br2026": 1104,
-            "cdb2026": 1104
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 65,
-            "br2026": 76.5,
-            "cdb2026": 76.5
-          },
-          "status": "DIVERGENT",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-position",
-      "state": "ranking-row-2",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 48,
-            "br2026": 48,
-            "cdb2026": 48
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 33,
-            "br2026": 50.5,
-            "cdb2026": 50.5
-          },
-          "status": "DIVERGENT",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-name",
-      "state": "ranking-row-2",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 410.390625,
-            "br2026": 410.390625,
-            "cdb2026": 410.390625
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 18,
-            "br2026": 18,
-            "cdb2026": 18
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-points",
-      "state": "ranking-row-2",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 49.359375,
-            "br2026": 49.359375,
+            "copa2026": 18.203125,
+            "br2026": 18.203125,
             "cdb2026": 49.359375
           },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 39,
-            "br2026": 39,
-            "cdb2026": 39
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-row",
-      "state": "ranking-row-3",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 1104,
-            "br2026": 1104,
-            "cdb2026": 1104
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 65,
-            "br2026": 76.5,
-            "cdb2026": 76.5
-          },
           "status": "DIVERGENT",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-position",
-      "state": "ranking-row-3",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 48,
-            "br2026": 48,
-            "cdb2026": 48
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 33,
-            "br2026": 50.5,
-            "cdb2026": 50.5
-          },
-          "status": "DIVERGENT",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-name",
-      "state": "ranking-row-3",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 212.515625,
-            "br2026": 212.515625,
-            "cdb2026": 212.515625
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        },
-        "height": {
-          "values": {
-            "copa2026": 18,
-            "br2026": 18,
-            "cdb2026": 18
-          },
-          "status": "IDENTICAL",
-          "reason": null
-        }
-      }
-    },
-    {
-      "component": "ranking-points",
-      "state": "ranking-row-3",
-      "geometry": {
-        "width": {
-          "values": {
-            "copa2026": 49.359375,
-            "br2026": 49.359375,
-            "cdb2026": 49.359375
-          },
-          "status": "IDENTICAL",
           "reason": null
         },
         "height": {
@@ -1451,8 +1751,8 @@
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 206.203125,
-            "br2026": 206.203125,
+            "copa2026": 126.4375,
+            "br2026": 126.4375,
             "cdb2026": 208.625
           },
           "status": "DIVERGENT",
@@ -1475,11 +1775,11 @@
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 48.015625,
-            "br2026": 48.015625,
+            "copa2026": 18.203125,
+            "br2026": 18.203125,
             "cdb2026": 48.015625
           },
-          "status": "IDENTICAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         "height": {
@@ -1547,8 +1847,8 @@
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 134.671875,
-            "br2026": 134.671875,
+            "copa2026": 122.109375,
+            "br2026": 122.109375,
             "cdb2026": 198.46875
           },
           "status": "DIVERGENT",
@@ -1571,11 +1871,11 @@
       "geometry": {
         "width": {
           "values": {
-            "copa2026": 30.0625,
-            "br2026": 30.0625,
+            "copa2026": 18.203125,
+            "br2026": 18.203125,
             "cdb2026": 30.0625
           },
-          "status": "IDENTICAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         "height": {

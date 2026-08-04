@@ -1,26 +1,212 @@
 {
   "copa2026": [
-    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] Failed to load resource: net::ERR_FAILED"
+    {
+      "kind": "console",
+      "text": "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+      "app": "copa2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "copa2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "copa2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "copa2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "copa2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "console",
+      "text": "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+      "app": "copa2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "copa2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "copa2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "copa2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "copa2026",
+      "viewport": "1440x900"
+    }
   ],
   "br2026": [
-    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] Failed to load resource: net::ERR_FAILED"
+    {
+      "kind": "console",
+      "text": "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+      "app": "br2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "br2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "br2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "br2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "br2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "console",
+      "text": "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+      "app": "br2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "br2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "br2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "br2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "br2026",
+      "viewport": "1440x900"
+    }
   ],
   "cdb2026": [
-    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
-    "[console] Failed to load resource: net::ERR_FAILED",
-    "[console] Failed to load resource: net::ERR_FAILED"
+    {
+      "kind": "console",
+      "text": "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+      "app": "cdb2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "cdb2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "cdb2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "cdb2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "cdb2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "console",
+      "text": "The Content Security Policy directive 'frame-ancestors' is ignored when delivered via a <meta> element.",
+      "app": "cdb2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "cdb2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "cdb2026",
+      "viewport": "1440x900"
+    },
+    {
+      "kind": "requestfailed",
+      "app": "cdb2026",
+      "viewport": "1440x900",
+      "url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js",
+      "resourceType": "script",
+      "failureReason": "net::ERR_FAILED"
+    },
+    {
+      "kind": "console",
+      "text": "Failed to load resource: net::ERR_FAILED",
+      "app": "cdb2026",
+      "viewport": "1440x900"
+    }
   ]
 }

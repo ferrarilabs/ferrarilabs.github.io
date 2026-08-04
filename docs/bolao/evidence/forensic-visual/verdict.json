@@ -1,16 +1,40 @@
 {
   "verdict": "FORENSIC VISUAL PARITY FAILED",
   "counts": {
-    "IDENTICAL": 2421,
+    "IDENTICAL": 2365,
     "WITHIN_TOLERANCE": 2,
     "FUNCTIONALLY_JUSTIFIED": 4,
-    "DIVERGENT": 423,
-    "N/A": 912
+    "DIVERGENT": 536,
+    "N/A": 1083
   },
+  "naByReason": {
+    "LEGITIMATE_NA": 570,
+    "MISSING_FIXTURE": 0,
+    "MISSING_SELECTOR": 456,
+    "MISSING_COMPONENT": 57,
+    "CAPTURE_FAILURE": 0
+  },
+  "unacceptableNaCount": 513,
   "schemaProblems": [],
   "unusedAllowlistEntries": [],
-  "pixelDiffFailureCount": 40,
+  "pixelDiffFailureCount": 38,
+  "pixelDiffRecordCounts": {
+    "totalRecords": 100,
+    "uniqueRecords": 100,
+    "duplicateRecords": 0,
+    "comparableUniqueRecords": 38
+  },
   "consoleErrorCount": 0,
-  "generatedAtUtc": "2026-08-04T12:17:57.471Z",
-  "sourceCommit": "c0bce9893bdb3b15d4fc5ed45114e4ef3d7b296d"
+  "unexpectedConsoleErrors": [],
+  "provenance": {
+    "auditedCommit": "7de21d49b07a9a6a43d61632ab8e03dd67880bf7",
+    "auditedTreeHash": "f0018d0e058a3d9e7f93967bf1a8c116fe52cfac",
+    "auditedWorktreeDirty": true,
+    "artifactCommit": "7de21d49b07a9a6a43d61632ab8e03dd67880bf7",
+    "generatedAtUtc": "2026-08-04T15:22:06.528Z",
+    "fixtureVersion": "2.0.0",
+    "harnessVersion": "2.0.0"
+  },
+  "generatedAtUtc": "2026-08-04T15:22:06.528Z",
+  "sourceCommit": "7de21d49b07a9a6a43d61632ab8e03dd67880bf7"
 }
