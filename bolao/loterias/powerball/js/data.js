@@ -290,11 +290,12 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "05/08/2026 22:59 ET"
     },
 
-    // 11 participantes pagaram $10,00 cada em 04/08/2026 (novo formato de entrada deste sorteio,
-    // 1 cota = US$10) + Eduardo (organizador, cobriu o saldo devedor do sorteio anterior) = 12
-    // pagantes + organizador = 13 total. Removidos do sorteio anterior: Tatiana, Alan, Samuel,
-    // Rodrigo (não pagaram). Compilado por Eduardo a partir dos e-mails/SMS de confirmação
-    // recebidos, 2026-08-04 (Admin não estava funcional -- ver POWERBALL_ADMIN_FUNCTION_MATRIX.md).
+    // 12 participantes pagaram $10,00 cada em 04/08/2026 (novo formato de entrada deste sorteio,
+    // 1 cota = US$10) + Eduardo (organizador, cobriu o saldo devedor do sorteio anterior) = 13
+    // pagantes + organizador = 14 total. Removidos do sorteio anterior: Tatiana, Alan, Samuel,
+    // Rodrigo (não pagaram). Novo: Marcelo Minghetti Pereira (Zelle REDACTED_PAYMENT_REFERENCE em 04/08 10:51 AM).
+    // Compilado por Eduardo a partir dos e-mails/SMS de confirmação recebidos, 2026-08-04
+    // (Admin não estava funcional -- ver POWERBALL_ADMIN_FUNCTION_MATRIX.md).
     participants: [
       { name: "Eduardo Ferrari", email: "emferrari@gmail.com", cotas: null, valor: null, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
       { name: "Gustavo Bossle", email: "REDACTED_EMAIL", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
@@ -307,8 +308,7 @@ window.POWERBALL_DRAWS = [
       { name: "Amanda Quaresma", email: "REDACTED_EMAIL", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
       { name: "Nathalia Galeazzi Nedel", email: "REDACTED_EMAIL", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
       { name: "Jorge Augusto Junqueira Ferreira", email: "REDACTED_EMAIL", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" },
-      // Email ainda não confirmado (Eduardo está buscando) -- null explícito, não um placeholder
-      // inventado; preencher assim que disponível.
+      { name: "Marcelo Minghetti Pereira", email: "REDACTED_EMAIL", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "—", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" }
       { name: "Marcelo Minghetti Pereira", email: null, cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" }
     ],
 
