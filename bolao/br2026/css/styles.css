@@ -387,6 +387,17 @@
   padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
 }
 .admin-row:last-child { border-bottom: 0; }
+/* Phase 5 admin visual standardization: label inside .admin-row (used by admin results
+   entry — see renderAdminResultsPanel() g4rows/sa6rows/z4rows) was a bare <label for="...">
+   with no override, so it inherited the shared canonical `label { display:flex;
+   flex-direction:column; }` from bolao/shared/css/forms.css (built for the palpites form,
+   where label text stacks above its input) -- inside a dense one-line admin row this made
+   the label stack vertically above its <select> instead of sitting inline beside it, a real
+   visual regression this migration would otherwise have silently introduced (shared forms.css
+   didn't exist as a cross-app dependency before phase 3). CDB2026 already carries the correct
+   fix for its own `.admin-row label` (bolao/cdb2026/css/styles.css) — same override applied
+   here for consistency, not previously copied over. */
+.admin-row label { font-size: 13px; color: var(--muted); min-width: 120px; flex-direction: row; text-transform: none; letter-spacing: 0; }
 .admin-results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 540px) { .admin-results-grid { grid-template-columns: 1fr; } }
 .admin-results-grid h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }

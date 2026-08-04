@@ -1,5 +1,35 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.89 — 2026-08-04 — Phase 5 of platform visual-framework migration: admin visual standardization
+
+Visual-only pass over the admin UI as part of the platform-wide migration (phases 2-4 migrated
+Copa/BR2026/CDB2026 onto `bolao/shared/css/`). Admin shell/login card/toolbar/buttons/tables
+were already unified by the earlier phases (all three apps' `#adminLogin` uses the shared
+`.card` + `.form-grid` + button primitives; `.admin-toolbar` has been a shared rule since phase
+3). This phase found and fixed one real remaining divergence:
+
+- **`.admin-row label` was missing its inline-layout override** — `.admin-row` (used by
+  `renderAdminResultsPanel()`'s G4/SA6/Z4 result-entry rows) puts a bare `<label for="...">`
+  next to a `<select>` on one line, but the shared canonical `label { display:flex;
+  flex-direction:column; }` (bolao/shared/css/forms.css, built for the Palpites form where label
+  text stacks above its input) made that label stack vertically above the select instead of
+  sitting inline beside it — a real visual regression the shared-framework migration would have
+  otherwise silently introduced (this cross-app dependency didn't exist before phase 3).
+  CDB2026 already had the correct fix for its own identical `.admin-row label` (added earlier,
+  outside this migration) but it was never copied over to BR2026. Fixed by adding the same
+  `flex-direction: row` override here.
+- No admin auth, session/lockout, persistence, or `.js` business logic touched — CSS only.
+- **Functional admin bugs noticed but not fixed** (per CLAUDE.md: never mix a refactor with a
+  bug fix in the same patch) — none found during this pass. The `.admin-row label` issue above
+  is a visual/CSS regression risk introduced by the shared-framework migration itself, not a
+  pre-existing functional bug, so fixing it here (as part of the same migration that would have
+  caused it) is in scope.
+- New: `bolao/scripts/check_shared_visual_contract.mjs` (cross-app, not owned by this app) —
+  static CSS gate that flags any local app CSS rule redefining a protected shared-component
+  property (font/color/spacing/shape) on a protected selector (`.card`, `.topbar`, `.nav`,
+  `.button`, `.admin-toolbar`, `.form-grid`, etc.) without a formally declared variant suffix.
+  Passes clean against this app's `css/styles.css` after the fix above.
+
 ## v1.88 — 2026-08-04 — Phase 3 of platform visual-framework migration: adopt shared canonical framework
 
 Copa (`bolao/copa2026/`) is the platform's canonical visual reference (`CLAUDE.md`, "Golden
