@@ -76,10 +76,14 @@ def parse_draws(content):
         return None
 
 def get_last_incomplete_draw(draws):
-    """Get the last draw that doesn't have a completed result yet."""
+    """Get the last draw that doesn't have a completed result yet and we're participating in."""
     for draw in reversed(draws):
+        # Skip if no result yet
         if draw.get("result") is None or draw["result"].get("numbers") is None:
-            return draw
+            # Check if we have tickets/participation in this draw
+            has_tickets = draw.get("sharedTickets") or draw.get("participants")
+            if has_tickets:
+                return draw
     return None
 
 def check_and_update_results(game_type, dry_run=False, force_resend=False):
@@ -101,13 +105,19 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
         print("❌ Could not parse POWERBALL_DRAWS from data.js")
         return False
 
-    # Find the draw that needs a result
+    # Find the draw that needs a result (and we're participating in)
     target_draw = get_last_incomplete_draw(draws)
     if not target_draw:
-        print("ℹ️  All draws already have results")
+        print("ℹ️  No incomplete draw found OR not participating in any incomplete draw")
         return False
 
-    print(f"📋 Found incomplete draw: {target_draw['id']}")
+    # Double-check we have participation
+    has_tickets = target_draw.get("sharedTickets") or target_draw.get("participants")
+    if not has_tickets:
+        print(f"ℹ️  Draw {target_draw['id']} has no tickets/participation — skipping")
+        return False
+
+    print(f"📋 Found incomplete draw we're playing: {target_draw['id']}")
 
     # Check if official result matches the target draw's date
     # For now, assume the latest API result is for the incomplete draw
