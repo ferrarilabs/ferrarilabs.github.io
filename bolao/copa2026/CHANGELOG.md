@@ -1,5 +1,33 @@
 # CHANGELOG
 
+## v4.169 — 2026-08-04 — Phase 2 of platform visual-framework migration: shared CSS tokens/shell
+
+Copa is the platform's canonical visual reference (`CLAUDE.md`, "Golden master rule"). Phase 1
+(previous commit) catalogued Copa's real CSS values into
+`docs/bolao/CANONICAL_VISUAL_COMPONENT_CATALOG.md`; this phase extracts those values into a new
+shared stylesheet set and migrates Copa itself to consume it, so BR2026/CDB2026 (phases 3-4) have
+a real shared contract to copy instead of hand-copying values file by file.
+
+- Added `bolao/shared/css/{tokens,reset,shell,navigation,components,forms,admin,responsive}.css`
+  — every value copied verbatim from Copa's own `css/styles.css` (no invented values). Covers the
+  28 components catalogued as actually existing in Copa in phase 1 (topbar, brand, nav/tabs, card,
+  game-card, score, status-badge, probability-bar, ranking-row/position/score, rules-table,
+  form-grid, input/select, buttons, admin-toolbar, toast, etc.).
+- `index.html` now loads the 8 shared stylesheets before `css/styles.css`, so Copa's own file only
+  needs to carry Copa-specific rules/overrides (hero, bracket, count-grid, receipt box, podium
+  banner, match-end banner, reopen banner, America250 badge, audit log, demo badge, site footer,
+  etc.) and Copa-specific responsive tweaks.
+- Trimmed `css/styles.css` from 1302 to 733 lines by removing rules that are now fully duplicated
+  in the shared files, replacing each removed block with a short pointer comment to where it lives
+  now (no rule was deleted without a shared-file equivalent already in place).
+- Not touched: any `.js` file, scoring, business rules, Supabase, EmailJS, Powerball/other
+  lottery modules. `python3 scripts/audit_scoring.py` re-run after this change, still passes (see
+  repo `CLAUDE.md` — required after every change, scoring-related or not).
+- Known follow-up for phase 5 (not done here): `shared/css/responsive.css`'s desktop nav rule
+  hardcodes `repeat(6, minmax(0,1fr))`, which is Copa's real visible-tab count — BR2026 (7 tabs)
+  and CDB2026 (6 tabs) will need their own override when they migrate in phases 3-4, same as they
+  already do today for the mobile 3-column rule.
+
 ## (tooling, no siteVersion bump) — 2026-08-04 — EMERGENCY_HOTFIX propagation: live-monitoring deadline anchor
 
 Propagated from `bolao/cdb2026/scripts/send_result_email.py` (same incident, same architecture —
