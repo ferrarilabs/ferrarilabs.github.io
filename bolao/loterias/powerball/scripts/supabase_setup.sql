@@ -57,15 +57,21 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bolao_types ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_bolao_participation ENABLE ROW LEVEL SECURITY;
 
--- 5. Create RLS policies (allow anon to read, no writes from frontend)
+-- 5. Create RLS policies (allow anon to read, allow scripts to write to tracking tables)
 CREATE POLICY "Allow read users" ON public.users
   FOR SELECT USING (true);
+
+CREATE POLICY "Allow insert users (scripts only)" ON public.users
+  FOR INSERT WITH CHECK (true);
 
 CREATE POLICY "Allow read bolao_types" ON public.bolao_types
   FOR SELECT USING (true);
 
 CREATE POLICY "Allow read participation" ON public.user_bolao_participation
   FOR SELECT USING (true);
+
+CREATE POLICY "Allow insert participation (scripts only)" ON public.user_bolao_participation
+  FOR INSERT WITH CHECK (true);
 
 -- 6. AUDIT_LOG table — complete audit trail of all operations
 CREATE TABLE IF NOT EXISTS public.audit_log (
@@ -115,12 +121,18 @@ CREATE INDEX IF NOT EXISTS idx_email_sent_at ON public.email_log(sent_at DESC);
 ALTER TABLE public.audit_log ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.email_log ENABLE ROW LEVEL SECURITY;
 
--- Read-only policies for audit tables (anon can read, no writes from frontend)
+-- Read-only policies for audit tables (anon can read, scripts can write)
 CREATE POLICY "Allow read audit_log" ON public.audit_log
   FOR SELECT USING (true);
 
+CREATE POLICY "Allow insert audit_log (scripts only)" ON public.audit_log
+  FOR INSERT WITH CHECK (true);
+
 CREATE POLICY "Allow read email_log" ON public.email_log
   FOR SELECT USING (true);
+
+CREATE POLICY "Allow insert email_log (scripts only)" ON public.email_log
+  FOR INSERT WITH CHECK (true);
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- Sample Data for Powerball 2026-08-01 Draw
