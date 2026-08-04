@@ -1,5 +1,19 @@
 # CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
+
+Final phase of the 6-phase migration (phase 1: component catalog; phase 2: shared tokens/shell +
+Copa migration; phase 3: BR2026 migration; phase 4: CDB2026 migration; phase 5: admin
+standardization + contract script). No CSS/JS changes to this app in this phase — this entry
+documents the wrap-up: full `docs/bolao/evidence/canonical-framework/COMPONENT_AUDIT.md`
+classification of all 28 canonical components across the three apps (mix of EQUAL/
+VARIANT_APPROVED/DIVERGENT, with a real previously-undocumented `.prob-bar` min-width
+divergence surfaced), an honest `README.md` in that same folder documenting that no
+browser/screenshot tool was available this session (verified by checking, not assumed) so no
+rendered-pixel evidence was fabricated, and a final full re-run of every test/audit script
+across all three apps — all pass. See `docs/bolao/CONSISTENCY_MATRIX.md` for the consolidated
+list of documented cross-app divergences from phases 2-5.
+
 ## v4.169 — 2026-08-04 — Phase 2 of platform visual-framework migration: shared CSS tokens/shell
 
 Copa is the platform's canonical visual reference (`CLAUDE.md`, "Golden master rule"). Phase 1

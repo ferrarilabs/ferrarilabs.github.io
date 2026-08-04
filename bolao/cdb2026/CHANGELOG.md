@@ -1,5 +1,14 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
+
+Final phase of the 6-phase migration. No CSS/JS changes to this app in this phase — see
+`bolao/copa2026/CHANGELOG.md`'s same-dated entry and
+`docs/bolao/evidence/canonical-framework/{README.md,COMPONENT_AUDIT.md}` for the full wrap-up
+(component audit across all three apps, honest screenshot-tooling limitation, final full
+test/audit re-run — all pass, including this app's `audit_golden_master.mjs`,
+`audit_state_merge.mjs`, `audit_integrity.py`, and `check_cachebust.mjs`).
+
 ## v3.89 — 2026-08-04 — Phase 4 of platform visual-framework migration: adopt shared canonical framework
 
 Copa (`bolao/copa2026/`) is the platform's canonical visual reference (`CLAUDE.md`, "Golden

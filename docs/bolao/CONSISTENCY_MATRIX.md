@@ -2064,3 +2064,78 @@ Em todos os itens acima: `node --check` limpo e `audit_scoring.py` 6/6 (Copa) / 
 5/5 (CDB2026) rodados e confirmados a cada mudança — nenhum item tocou scoring, bracket, tiebreak
 ou regra de negócio. Ver commits individuais em `git log` desta branch para o hash exato de cada
 item.
+
+## Nota manual — migração para o framework visual compartilhado `bolao/shared/css/` (2026-08-04, branch `visual-framework-copa-canonical`, Copa v4.169+tooling / BR2026 v1.89+tooling / CDB2026 v3.89+tooling)
+
+Migração de 6 fases movendo os componentes visuais canônicos da Copa (referência golden-master,
+ver `CLAUDE.md`) para `bolao/shared/css/{tokens,reset,shell,navigation,components,forms,admin,
+responsive}.css`, consumidos pelos três apps via `<link>` antes do `css/styles.css` próprio de
+cada um. Fase 1 catalogou os valores reais da Copa
+(`docs/bolao/CANONICAL_VISUAL_COMPONENT_CATALOG.md`); fases 2-4 migraram Copa/BR2026/CDB2026 uma
+de cada vez, com commit de checkpoint próprio; fase 5 padronizou o admin e adicionou
+`bolao/scripts/check_shared_visual_contract.mjs` (gate estático que barra qualquer app local
+redefinindo uma propriedade protegida de um seletor protegido sem sufixo de variante formal);
+fase 6 documentou evidência (`docs/bolao/evidence/canonical-framework/`) e fez o wrap-up.
+
+**Itens que ERAM divergência (`DIVERGENT` implícito, nunca formalmente catalogado) e agora são
+`CONSISTENT`/compartilhados de fato, não só por inspeção**: topbar, brand, whatsapp-btn,
+bolao-switcher, lang-links, `main`/`.card` (base), `h1-h3`, `.section-head`, `.form-grid`/input/
+select, `.admin-toolbar`, `.hidden`, `.muted`, focus-visible/h2:focus, toast, `.rank-row`/
+`.points` (base), `.game-card` (box: background/border/radius/padding), botões (primary/
+secondary/danger), `.rules-table` (regras compartilhadas de `td`). Todos os três apps agora leem
+a MESMA declaração-fonte para esses componentes — não há mais 3 cópias que podem divergir
+silenciosamente numa mudança futura, é o que `check_shared_visual_contract.mjs` (fase 5) passou a
+impedir automaticamente.
+
+**Divergências mantidas, DOCUMENTADAS como `VARIANT_APPROVED`/`TOURNAMENT_SPECIFIC` (não
+corrigidas, decisão consciente registrada em cada fase)**:
+
+1. **Contagem de abas do `.nav` no desktop** — Copa 6, BR2026 7 (inclui "Tabela"), CDB2026 6.
+   Resolvido via `--nav-cols-desktop` (custom property em `bolao/shared/css/tokens.css`, default
+   6) em vez de bifurcar a regra `.nav` compartilhada — cada app só sobrescreve o valor no
+   próprio `:root`. Fase 3 (BR2026) escolheu esse caminho sobre um fork local justamente para
+   manter uma única regra `.nav` real nos três apps.
+2. **Fórmula do botão órfão de nav no mobile** — Copa/BR2026 usam `nth-child(3n)` (têm botões
+   ocultos de Participantes/Pagamento DENTRO de `.nav`, deslocando a contagem DOM); CDB2026 usa
+   `nth-child(3n+1)` (mantém esses botões em `.nav-secondary`, fora de `.nav`, sem deslocamento).
+   Achado real de regressão na fase 4: aplicar a fórmula compartilhada (pensada pra Copa/BR2026)
+   ao CDB2026 sem ajuste teria espalhado incorretamente o 6º botão real (já uma linha cheia) —
+   corrigido com um reset explícito local antes da regra correta.
+3. **Estrutura do card de confronto de mata-mata** — Copa/BR2026 usam uma linha só (`.game-card`
+   + `.game-teams`/`.game-team`), CDB2026 usa duas linhas por confronto (ida/volta,
+   `.confronto-card`/`.confronto-legs`/`.leg`). O CDB2026 tem sorteio progressivo com mata-mata
+   de ida-e-volta em várias fases (ver `docs/bolao/CDB2026_RULES_AND_MODEL.md`) — diferença real
+   de formato de torneio, não generalizada entre apps (`PLATFORM_GOVERNANCE.md`). A caixa visual
+   (background/border/radius/padding) do `.confronto-card` já vem do `.card` compartilhado desde
+   a fase 4; só a estrutura interna (linhas de ida/volta) permanece própria do CDB2026.
+4. **Alinhamento do `.sticky-submit`** — Copa usa `justify-content: flex-end` (valor
+   canônico, agora em `bolao/shared/css/forms.css`); BR2026 e CDB2026 mantêm
+   `justify-content: center` como override local. Divergência pré-existente à migração,
+   sinalizada nas fases 3 e 4 mas **não corrigida** sem autorização explícita do Eduardo — CSS
+   puramente visual, mas mudar o alinhamento de um CTA de submissão não é uma correção óbvia o
+   bastante pra decidir sozinho.
+5. **`.prob-bar` `min-width`** — Copa/compartilhado usa `6px`; BR2026 e CDB2026 usam `32px`
+   (a barra deles mostra um rótulo de porcentagem dentro do segmento, precisa de mais espaço).
+   Pré-existente à migração, carregado como override local nas fases 3-4 sem ter sido nomeado
+   como divergência formal até a fase 6 (`docs/bolao/evidence/canonical-framework/
+   COMPONENT_AUDIT.md`) — reclassificado aqui como `DIVERGENT` conhecido, não corrigido.
+6. **Nomes de classe geradas por JS não renomeados para as canônicas da Copa** —
+   `.game-matchup`/`.match-team`/`.match-team-name` (BR2026), `.confronto-legs`/`.leg`/
+   `.leg-label`/`.leg-teams` (CDB2026), `.game-status` (BR2026/CDB2026, em vez de
+   `.status-chip`). Decisão consciente nas fases 3-4: esses seletores são gerados por
+   `js/app.js` de cada app, e renomear exigiria tocar `.js` sem ganho visual (os valores
+   declarados já espelham os tokens compartilhados 1:1, verificado por inspeção). Dívida técnica
+   registrada, não escondida: se o token compartilhado mudar no futuro, essas cópias locais
+   precisam ser atualizadas manualmente — não há mais garantia estrutural de que fiquem em
+   sincronia (diferente dos componentes que agora leem a mesma declaração-fonte).
+
+Em todos os itens acima: `node --check` limpo (19/19 arquivos `.js`), `audit_scoring.py` 6/6
+(Copa) / 5/5 (BR2026) / 5/5 (CDB2026), `audit_golden_master.mjs`/`audit_state_merge.mjs`/
+`audit_integrity.py`/`check_cachebust.mjs` (CDB2026) e `check_shared_visual_contract.mjs`
+(plataforma) todos passando — rodados e confirmados a cada fase e novamente na fase 6. Nenhuma
+fase tocou scoring, bracket, tiebreak, autenticação admin, persistência ou regra de negócio.
+Nenhuma captura de tela real foi feita nesta sessão (sem navegador/ferramenta de screenshot
+disponível, verificado antes de assumir — ver `docs/bolao/evidence/canonical-framework/
+README.md`); a classificação acima é por comparação estática de CSS/markup, não por renderização
+visual confirmada. Ver commits individuais em `git log` da branch
+`visual-framework-copa-canonical` para o hash exato de cada fase.
