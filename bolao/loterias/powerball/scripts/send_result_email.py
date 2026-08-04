@@ -16,7 +16,7 @@ Email is sent ONLY if the draw has a completed result with winning tickets and p
 Business rule: only play next drawing if jackpot accumulates (configured per draw).
 """
 
-import json, sys, time, urllib.request
+import json, sys, time, urllib.request, re
 from datetime import datetime
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -37,27 +37,24 @@ EMAILJS_HEADERS = {
     "Referer": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
 }
 
-# ── Hardcoded draw data (mirrors data.js exactly) ──────────────────────────────
-# This is intentionally copied from data.js to ensure no drift between site and email.
-# If you change data.js, update this too — this is the single source of truth for emails.
-# Structure: {gameType: [draws]} to support Powerball, Mega Millions, etc.
-
-PARTICIPANTS = [
-    {"name": "Eduardo Ferrari", "email": "emferrari@gmail.com"},
-    {"name": "Gustavo Bossle", "email": "REDACTED_EMAIL"},
-    {"name": "Tatiana Bossle", "email": "REDACTED_EMAIL"},  # Sent via Gustavo per data.js
-    {"name": "Marcelo Moreira", "email": "REDACTED_EMAIL"},
-    {"name": "Leandro Augustineli", "email": "REDACTED_EMAIL"},
-    {"name": "Alan Rech", "email": "REDACTED_EMAIL"},
-    {"name": "Ewerton Gruba Silva", "email": "REDACTED_EMAIL"},
-    {"name": "Simone Hirle da Costa", "email": "REDACTED_EMAIL"},
-    {"name": "Camila Ribeiro", "email": "REDACTED_EMAIL"},
-    {"name": "Marcus Steffenon", "email": "REDACTED_EMAIL"},
-    {"name": "Samuel Huller", "email": "REDACTED_EMAIL"},
-    {"name": "Amanda Quaresma", "email": "REDACTED_EMAIL"},
-    {"name": "Rodrigo Hajj", "email": "REDACTED_EMAIL"},
-    {"name": "Nathalia Galeazzi Nedel", "email": "REDACTED_EMAIL"},
-]
+# ── Email routing per participant (read from data.js, not hardcoded) ────────────
+# Maps participant name to (email, cc_email) — cc for family/household groups
+PARTICIPANT_EMAILS = {
+    "Eduardo Ferrari": ("emferrari@gmail.com", ""),
+    "Gustavo Bossle": ("REDACTED_EMAIL", ""),
+    "Tatiana Bossle": ("REDACTED_EMAIL", ""),  # Sent via Gustavo per data.js
+    "Marcelo Moreira": ("REDACTED_EMAIL", ""),
+    "Leandro Augustineli": ("REDACTED_EMAIL", ""),
+    "Alan Rech": ("REDACTED_EMAIL", "REDACTED_EMAIL"),
+    "Ewerton Gruba Silva": ("REDACTED_EMAIL", ""),
+    "Simone Hirle da Costa": ("REDACTED_EMAIL", ""),
+    "Camila Ribeiro": ("REDACTED_EMAIL", ""),
+    "Marcus Steffenon": ("REDACTED_EMAIL", ""),
+    "Samuel Huller": ("REDACTED_EMAIL", ""),
+    "Amanda Quaresma": ("REDACTED_EMAIL", ""),
+    "Rodrigo Hajj": ("REDACTED_EMAIL", ""),
+    "Nathalia Galeazzi Nedel": ("REDACTED_EMAIL", ""),
+}
 
 DRAWS = {
     "powerball": [
@@ -113,6 +110,52 @@ def get_active_draw(gameType="powerball"):
             return draw
     return None
 
+def load_participants_from_data_js(draw_id):
+    """
+    Load participant list DIRECTLY from data.js for the given draw.
+    This ensures only actual participants receive emails — no duplicates, no extras.
+    """
+    try:
+        with open("bolao/loterias/powerball/js/data.js", "r", encoding="utf-8") as f:
+            content = f.read()
+
+        # Find the draw block that matches this ID
+        draw_pattern = r'id:\s*["\']' + re.escape(draw_id) + r'["\'][^}]*?participants:\s*\[(.*?)\]'
+        match = re.search(draw_pattern, content, re.DOTALL)
+
+        if not match:
+            return []
+
+        participants_str = match.group(1)
+
+        # Extract name from each participant entry
+        name_pattern = r'{\s*name:\s*["\']([^"\']+)["\']'
+        names = re.findall(name_pattern, participants_str)
+
+        # Map names to emails, handling groups (like Tatiana via Gustavo)
+        participants = []
+        seen_emails = set()
+
+        for name in names:
+            if name not in PARTICIPANT_EMAILS:
+                print(f"⚠ WARNING: {name} not in PARTICIPANT_EMAILS mapping")
+                continue
+
+            email, cc = PARTICIPANT_EMAILS[name]
+
+            # Skip if email already in list (e.g., Tatiana via Gustavo)
+            if email in seen_emails:
+                continue
+
+            seen_emails.add(email)
+            participants.append({"name": name, "email": email, "cc": cc})
+
+        return participants
+
+    except Exception as e:
+        print(f"❌ Error loading participants from data.js: {e}")
+        return []
+
 # Prize table (mirrors prizeTable in data.js exactly)
 def get_prize(mainMatches, specialMatch, multiplier):
     if mainMatches == 5 and specialMatch:
@@ -136,10 +179,13 @@ def get_prize(mainMatches, specialMatch, multiplier):
     return None
 
 
-def validate_data(draw):
+def validate_data(draw, participants=None):
     """Verify data consistency before any send."""
     if not draw:
         return ["❌ No completed draw found"]
+
+    if not participants:
+        participants = []
 
     errors = []
 
@@ -149,7 +195,7 @@ def validate_data(draw):
     if not draw.get("winningTickets"):
         errors.append("⚠ No winning tickets marked")
 
-    missing_emails = [p["name"] for p in PARTICIPANTS if not p["email"]]
+    missing_emails = [p["name"] for p in participants if not p["email"]]
     if missing_emails:
         errors.append(f"❌ MISSING EMAILS: {', '.join(missing_emails)}")
 
@@ -272,16 +318,19 @@ def run_test_send(gameType="powerball"):
     print(f"{game_label.upper()} RESULT EMAIL — PREVIEW TO ADMIN")
     print("="*60)
 
-    errors = validate_data(draw)
+    if not draw:
+        print("❌ No completed draw found for " + gameType)
+        sys.exit(1)
+
+    # Load ACTUAL participants from data.js
+    participants = load_participants_from_data_js(draw["id"])
+
+    errors = validate_data(draw, participants)
     if errors:
         print("\n⚠️  DATA ISSUES FOUND:\n")
         for err in errors:
             print(f"  {err}")
-        print("\n⚠️  Review data in /bolao/loterias/powerball/scripts/send_result_email.py\n")
-
-    if not draw:
-        print("❌ No completed draw found for " + gameType)
-        sys.exit(1)
+        print("\n⚠️  Review data in /bolao/loterias/powerball/js/data.js\n")
 
     print(f"\n📧 SENDING PREVIEW TO ADMIN: {ADMIN_EMAIL}")
     print(f"   Draw: {draw['drawing']['drawDateLabel']}")
@@ -326,19 +375,18 @@ def run_send_all(gameType="powerball"):
         print("❌ No completed draw found for " + gameType)
         sys.exit(1)
 
-    errors = validate_data(draw)
+    # Load ACTUAL participants from data.js — not hardcoded list
+    recipients = load_participants_from_data_js(draw["id"])
+    if not recipients:
+        print(f"❌ No participants found in data.js for draw {draw['id']}\n")
+        sys.exit(1)
+
+    errors = validate_data(draw, recipients)
     if errors:
         print("\n❌ CANNOT SEND — DATA ISSUES FOUND:\n")
         for err in errors:
             print(f"  {err}")
         print("\nFix the issues above and run --test-send again.\n")
-        sys.exit(1)
-
-    # Filter to participants with valid emails
-    recipients = [p for p in PARTICIPANTS if p["email"]]
-
-    if not recipients:
-        print("❌ No valid email addresses found. Cannot send.\n")
         sys.exit(1)
 
     print(f"\n📧 ENVIANDO PARA {len(recipients)} PARTICIPANTES:")
