@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.90 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation + 2 bug fixes
+
+Phase 6 shipped without a real browser (none available). Phase 7 installed Playwright + a real
+Chrome binary and re-verified everything with actual captures/computed styles — see
+`docs/bolao/evidence/canonical-framework/README.md` for the full account, and
+`docs/bolao/CONSISTENCY_MATRIX.md`'s phase 7 entry for the reclassification of every previously
+"preserved" divergence.
+
+Two real, previously-unfixed bugs found and fixed here (Eduardo authorized fixing alignment/
+button divergences that aren't excused by tournament-structure differences):
+
+- **`.prob-bar` `min-width`**: was `6px` (inherited from the shared canonical rule, itself a
+  latent Copa-side legibility bug — a real Chrome measurement showed a 3% segment's percentage
+  label genuinely clipped at that width). This app's own `32px` override — carried since phase 3
+  without being named a real fix — turned out to be the CORRECT value; promoted to the shared
+  canonical rule, this app's now-redundant local override removed.
+- **`.sticky-submit` alignment**: was `justify-content: center`, diverging from Copa's canonical
+  `flex-end` for no functional reason (same button, same form context). Local override removed;
+  now inherits the shared value.
+
+Computed-style audit (`bolao/scripts/audit_visual_consistency.mjs`, real Chromium): 0 unapproved
+divergences (was 8 before a CDB2026-side test-fixture date bug was fixed — unrelated to this
+app). 0 console errors, 0 horizontal overflow, 0 sticky-submit overlap, confirmed live at
+390×844/768×1024/1440×900.
+
 ## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
 
 Final phase of the 6-phase migration. No CSS/JS changes to this app in this phase — see

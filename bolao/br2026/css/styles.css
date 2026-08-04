@@ -84,16 +84,18 @@
 .pick-select    { min-width: 0; }
 
 /* ── Sticky submit ──
-   Base .sticky-submit/.sticky-submit button rules moved to
-   bolao/shared/css/forms.css (phase 3 migration) — shared sets
-   justify-content: flex-end (Copa's real value). BR2026's own
-   `justify-content: center` is kept here as a deliberate override:
-   pre-existing intentional divergence from Copa, not something this
-   visual-only migration is authorized to silently resolve (see
-   CLAUDE.md "não corrigir silenciosamente" / CONSISTENCY_MATRIX.md
-   item 66 already tracks this component, shadow/min-width columns
-   only — center-vs-flex-end alignment isn't catalogued there yet). */
-.sticky-submit { justify-content: center; }
+   Phase 7 fix: base .sticky-submit/.sticky-submit button rules already
+   live in bolao/shared/css/forms.css (phase 3 migration), which sets
+   justify-content: flex-end (Copa's canonical value). This app's own
+   `justify-content: center` override — kept through phases 3-6 as a
+   flagged-but-unresolved divergence — is removed here: submit-button
+   alignment is not a tournament-specific structural difference (there is
+   no functional reason the SAME "Salvar palpites" button in an
+   equivalent form context should sit in a different place per app), so
+   it doesn't qualify for the "preserve tournament differences" exception
+   — reclassified BUG VISUAL in docs/bolao/CONSISTENCY_MATRIX.md's phase
+   7 entry and fixed by simply relying on the shared value instead of
+   overriding it. */
 
 /* ── Live match card ── */
 /* Estrutura e tokens copiados da Copa (bolao/css/styles.css .hero-live-card/.hero-live-top/
@@ -563,12 +565,12 @@
 .game-status.postponed { background: rgba(245,158,11,.15); color: var(--gold); border: 1px solid rgba(245,158,11,.3); }
 @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-/* ── Probability bars (live match) ── */
-.prob-bars { display: flex; border-radius: 6px; overflow: hidden; height: 28px; margin-top: 10px; font-size: 11px; font-weight: 700; gap: 2px; }
-.prob-bar { display: flex; align-items: center; justify-content: center; min-width: 32px; padding: 0 4px; transition: width 0.7s ease; white-space: nowrap; overflow: hidden; border-radius: 4px; }
-.prob-bar.home { background: #16a34a; color: #fff; }
-.prob-bar.draw  { background: #475569; color: #fff; }
-.prob-bar.away  { background: #1d4ed8; color: #fff; }
+/* ── Probability bars (live match) ──
+   Phase 7: .prob-bars/.prob-bar/.home/.draw/.away base rules moved to
+   bolao/shared/css/components.css — this app's min-width:32px override
+   was promoted to the shared canonical value (was 6px, a real Copa-side
+   legibility bug, see the comment at shared/css/components.css's
+   .prob-bar rule), so this local copy is now a true duplicate, removed. */
 
 /* ── Probability table (MC section) ── */
 .prob-table { width: 100%; border-collapse: collapse; font-size: 13px; }
