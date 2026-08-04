@@ -148,11 +148,17 @@ export class EmailOutbox {
     return { ...job };
   }
 
-  /** Re-queues a failed job for another attempt. Returns null if the job isn't in `failed`. */
-  retry(emailJobId) {
+  /**
+   * Re-queues a failed job for another attempt. Returns null if the job isn't in `failed`, OR if
+   * it already used up maxAttempts — a job stuck failing forever must stop consuming worker
+   * cycles/provider quota rather than retry indefinitely; it stays `failed` (a human/admin action
+   * would be the only way out, not built in this branch — see POWERBALL_EMAIL_RELIABILITY.md).
+   */
+  retry(emailJobId, { maxAttempts = 5 } = {}) {
     const job = this._jobs.get(emailJobId);
     if (!job) throw new Error(`retry: no such job ${emailJobId}`);
     if (job.status !== JOB_STATUS.FAILED) return null;
+    if (job.attempt_count >= maxAttempts) return null;
     job.status = JOB_STATUS.PENDING;
     return { ...job };
   }

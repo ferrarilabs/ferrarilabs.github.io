@@ -131,6 +131,26 @@ test("retry não duplica — job count stays 1 across claim/fail/retry/claim", (
   assert.equal(outbox.all().length, 1);
 });
 
+test("limite de tentativas — retry stops once maxAttempts is reached, job stays failed", () => {
+  const outbox = new EmailOutbox();
+  const job = outbox.enqueue({
+    poolId: "powerball", drawId: "2026-08-01", eventType: "resultado_disponivel",
+    recipient: "participante.gama@example.invalid", templateId: "t", templateVersion: "v1",
+    payloadSnapshot: {},
+  });
+  for (let i = 0; i < 5; i++) {
+    outbox.claim(job.email_job_id);
+    outbox.recordFailure(job.email_job_id, { error: new Error("simulated") });
+    outbox.retry(job.email_job_id, { maxAttempts: 5 });
+  }
+  const final = outbox.get(job.email_job_id);
+  assert.equal(final.attempt_count, 5);
+  // 5th retry() call above returned null once attempt_count hit 5 -- job never went back to
+  // pending on that iteration, so it's still sitting in `failed`, not `pending`.
+  assert.equal(final.status, JOB_STATUS.FAILED);
+  assert.equal(outbox.retry(job.email_job_id, { maxAttempts: 5 }), null);
+});
+
 // ── event validation ────────────────────────────────────────────────────────
 
 test("não envia antes da hora — result event rejected for a future draw", () => {
