@@ -39,7 +39,8 @@
     var sel = document.getElementById("pbDrawSelect");
     sel.innerHTML = DRAWS.map(function (d, i) {
       var gt = GAME_TYPES[d.gameType] || GAME_TYPES.powerball;
-      var hasResult = getEffectiveDraw(d).result.numbers ? "✓ " : "";
+      var effectiveDraw = getEffectiveDraw(d);
+      var hasResult = effectiveDraw.result && effectiveDraw.result.numbers ? "✓ " : "";
       return '<option value="' + i + '"' + (i === currentIdx ? " selected" : "") + '>' +
         hasResult + gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
     }).join("");
