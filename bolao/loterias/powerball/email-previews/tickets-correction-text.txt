@@ -1,0 +1,22 @@
+[TESTE ADMIN] — não é um envio de produção
+CORREÇÃO — Powerball 05/08/2026 22:59 ET — Versão 2
+Motivo: Corrigido número 63→64 no primeiro bilhete (erro de digitação no cadastro).
+
+Sua participação: 1 cota(s), US$10, status verificado
+
+Resumo financeiro:
+  Participantes: 1
+  Total de cotas: 1
+  Valor por cota: US$138
+  Total arrecadado: US$138
+  Valor usado: US$153
+  Saldo reservado: US$1
+  Tickets: 2
+  Custo total: US$6
+
+Números jogados:
+  #1: 1-14-27-36-64 — PB 25
+  #2: 4-11-22-45-61 — PB 9
+
+Hash SHA-256 do manifesto: cdebc35fab1f405489b40369e95a5f49efbd638dedc56daa10d739b16c5f29a1
+Versão: 2 · Publicado em 2026-08-05T14:08:15.698Z UTC
