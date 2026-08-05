@@ -1,5 +1,111 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.90 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation + 2 bug fixes
+
+Phase 6 shipped without a real browser (none available). Phase 7 installed Playwright + a real
+Chrome binary and re-verified everything with actual captures/computed styles — see
+`docs/bolao/evidence/canonical-framework/README.md` for the full account, and
+`docs/bolao/CONSISTENCY_MATRIX.md`'s phase 7 entry for the reclassification of every previously
+"preserved" divergence.
+
+Two real, previously-unfixed bugs found and fixed here (Eduardo authorized fixing alignment/
+button divergences that aren't excused by tournament-structure differences):
+
+- **`.prob-bar` `min-width`**: was `6px` (inherited from the shared canonical rule, itself a
+  latent Copa-side legibility bug — a real Chrome measurement showed a 3% segment's percentage
+  label genuinely clipped at that width). This app's own `32px` override — carried since phase 3
+  without being named a real fix — turned out to be the CORRECT value; promoted to the shared
+  canonical rule, this app's now-redundant local override removed.
+- **`.sticky-submit` alignment**: was `justify-content: center`, diverging from Copa's canonical
+  `flex-end` for no functional reason (same button, same form context). Local override removed;
+  now inherits the shared value.
+
+Computed-style audit (`bolao/scripts/audit_visual_consistency.mjs`, real Chromium): 0 unapproved
+divergences (was 8 before a CDB2026-side test-fixture date bug was fixed — unrelated to this
+app). 0 console errors, 0 horizontal overflow, 0 sticky-submit overlap, confirmed live at
+390×844/768×1024/1440×900.
+
+## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
+
+Final phase of the 6-phase migration. No CSS/JS changes to this app in this phase — see
+`bolao/copa2026/CHANGELOG.md`'s same-dated entry and
+`docs/bolao/evidence/canonical-framework/{README.md,COMPONENT_AUDIT.md}` for the full wrap-up
+(component audit across all three apps, honest screenshot-tooling limitation, final full
+test/audit re-run — all pass).
+
+## v1.89 — 2026-08-04 — Phase 5 of platform visual-framework migration: admin visual standardization
+
+Visual-only pass over the admin UI as part of the platform-wide migration (phases 2-4 migrated
+Copa/BR2026/CDB2026 onto `bolao/shared/css/`). Admin shell/login card/toolbar/buttons/tables
+were already unified by the earlier phases (all three apps' `#adminLogin` uses the shared
+`.card` + `.form-grid` + button primitives; `.admin-toolbar` has been a shared rule since phase
+3). This phase found and fixed one real remaining divergence:
+
+- **`.admin-row label` was missing its inline-layout override** — `.admin-row` (used by
+  `renderAdminResultsPanel()`'s G4/SA6/Z4 result-entry rows) puts a bare `<label for="...">`
+  next to a `<select>` on one line, but the shared canonical `label { display:flex;
+  flex-direction:column; }` (bolao/shared/css/forms.css, built for the Palpites form where label
+  text stacks above its input) made that label stack vertically above the select instead of
+  sitting inline beside it — a real visual regression the shared-framework migration would have
+  otherwise silently introduced (this cross-app dependency didn't exist before phase 3).
+  CDB2026 already had the correct fix for its own identical `.admin-row label` (added earlier,
+  outside this migration) but it was never copied over to BR2026. Fixed by adding the same
+  `flex-direction: row` override here.
+- No admin auth, session/lockout, persistence, or `.js` business logic touched — CSS only.
+- **Functional admin bugs noticed but not fixed** (per CLAUDE.md: never mix a refactor with a
+  bug fix in the same patch) — none found during this pass. The `.admin-row label` issue above
+  is a visual/CSS regression risk introduced by the shared-framework migration itself, not a
+  pre-existing functional bug, so fixing it here (as part of the same migration that would have
+  caused it) is in scope.
+- New: `bolao/scripts/check_shared_visual_contract.mjs` (cross-app, not owned by this app) —
+  static CSS gate that flags any local app CSS rule redefining a protected shared-component
+  property (font/color/spacing/shape) on a protected selector (`.card`, `.topbar`, `.nav`,
+  `.button`, `.admin-toolbar`, `.form-grid`, etc.) without a formally declared variant suffix.
+  Passes clean against this app's `css/styles.css` after the fix above.
+
+## v1.88 — 2026-08-04 — Phase 3 of platform visual-framework migration: adopt shared canonical framework
+
+Copa (`bolao/copa2026/`) is the platform's canonical visual reference (`CLAUDE.md`, "Golden
+master rule"). Phase 2 (previous commits) built `bolao/shared/css/` from Copa's real values and
+migrated Copa itself; this phase migrates BR2026 to the same shared framework — copying Copa's
+visual tokens only, never its tournament logic (BR2026's own G4/Z4/SA6 scoring, standings, and
+projection model are untouched).
+
+- `index.html` now loads the 8 `bolao/shared/css/*.css` files before this app's own
+  `css/styles.css`, same pattern as Copa.
+- Trimmed `css/styles.css` from 910 to 611 lines by removing rules now fully covered by the
+  shared files (reset, tokens except `--yellow`, body/button base, topbar/brand/nav, `main`/
+  `.card`, `h1-h3`, `.page`/`.section-head`, `.form-grid`/inputs, `.admin-toolbar`, `.hidden`,
+  `.muted`, focus-visible/h2:focus, toast, base `.rank-row`/`.points`, base `.game-card` box),
+  replacing each with a pointer comment. Kept untouched: G4/Z4/SA6 pick groups, live match/live
+  ranking hero, standings table, movement indicators, probability tables, admin results grid,
+  and every projection-language string/disclaimer (`rankingTitle`, `projectionDisclaimer`,
+  `accuracyIndexLabel`, etc. in `js/i18n.js` — not touched at all, per the standing rule that
+  every classification shown before the Brasileirão ends must read as a projection).
+- **Desktop nav tab count**: BR2026 has 7 always-visible tabs (Copa has 6 — no "Tabela"). Rather
+  than fork the shared `.nav` rule, `shared/css/tokens.css` gained a `--nav-cols-desktop`
+  custom property (default 6, Copa's real value) and `shared/css/{navigation,responsive}.css`
+  now read `var(--nav-cols-desktop, 6)`. This app's own `:root` overrides it to `7`. Chosen over
+  a scoped local override because it keeps exactly one shared `.nav` rule for all three apps
+  instead of three near-duplicate forks — CDB2026 (phase 4) will do the same if its tab count
+  differs from Copa's.
+- **game-card**: box styling (background/border/radius/padding/margin) now comes from the shared
+  canonical `.game-card`; BR2026's own `display:flex; flex-direction:column; gap:4px` kept as a
+  local addition (Copa's `.game-card` isn't a flex container). Deliberately NOT renamed:
+  `.game-matchup`/`.match-team`/`.match-team-name`/`.game-status` keep their own BR2026 class
+  names rather than Copa's `.game-teams`/`.game-team`/`.status-chip` — those are generated by
+  `js/app.js` render templates, and renaming them means editing `.js` (out of scope for a
+  CSS-only visual migration; their token values already mirror Copa's 1:1, so there's no visual
+  gain to justify a JS-touching regression risk).
+- **Preserved intentional divergence, not silently fixed**: `.sticky-submit` keeps
+  `justify-content: center` as a local override on top of the shared `flex-end` default — a
+  pre-existing difference from Copa this migration is not authorized to resolve on its own
+  (CLAUDE.md: "não corrigir silenciosamente tudo que a auditoria encontrar"). Flagged here for
+  Eduardo to decide; `docs/bolao/CONSISTENCY_MATRIX.md` item 66 already tracks `.sticky-submit`
+  shadow/min-width as CONSISTENT but doesn't yet catalogue the alignment difference.
+- Not touched: any `.js` file's logic, scoring, business rules, Supabase, EmailJS.
+  `python3 scripts/audit_scoring.py` re-run after this change for all three apps, still passes.
+
 ## v1.87 — 2026-08 — PR120-final review item 7: audit_visual_consistency.mjs reaches exit 0
 
 Full rationale/findings documented once in `bolao/cdb2026/CHANGELOG.md` v3.85 (same change,

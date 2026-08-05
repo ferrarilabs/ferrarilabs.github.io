@@ -2041,18 +2041,31 @@ function renderGamesSection() {
       const timeStr = brtTimeStr(g.dateISO);
       const timeStrFull = `${estTimeStr(g.dateISO)} · ${timeStr}`;
 
+      // Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): scoreOrTime now always
+      // renders through the canonical .game-card__score slot (kept as .game-score-live/
+      // .game-score-final/.game-time CLASSES for their own distinct typography/color, same
+      // values as before — only the WRAPPING element/slot changed, not these three states'
+      // look). statusHtml is unchanged (still .game-status, still lives in the new
+      // .game-card__header/__status slot below, instead of being merged into game-meta).
+      // Structural auditor finding (bolao/scripts/audit_structural_parity.mjs), fixed here:
+      // scoreOrTime previously carried ONLY its state-specific class (.game-score-live/
+      // .game-score-final/.game-time) — never the canonical .game-card__score class Copa/
+      // CDB2026's center slot uses, making this element structurally invisible to any check (or
+      // future shared CSS rule) keyed on .game-card__score. Now dual-classed: the state-specific
+      // class is kept (distinct typography/color per state, unchanged), .game-card__score is
+      // added alongside it.
       let scoreOrTime, statusHtml;
       if (g.postponed) {
-        scoreOrTime = `<span class="game-time muted">—</span>`;
+        scoreOrTime = `<span class="game-card__score game-time muted">—</span>`;
         statusHtml  = `<span class="game-status postponed">${esc(t("gamePostponed"))}</span>`;
       } else if (g.state === "in") {
-        scoreOrTime = `<span class="game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        scoreOrTime = `<span class="game-card__score is-live game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status live">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
       } else if (g.state === "post") {
-        scoreOrTime = `<span class="game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        scoreOrTime = `<span class="game-card__score game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status post">${esc(t("gameFinal"))}</span>`;
       } else {
-        scoreOrTime = `<span class="game-time">${esc(timeStrFull)} BRT</span>`;
+        scoreOrTime = `<span class="game-card__score game-time">${esc(timeStrFull)} BRT</span>`;
         statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
       }
 
@@ -2078,17 +2091,34 @@ function renderGamesSection() {
       }
       const homeLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
       const awayLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
-      const partida  = gameNum.has(g.id) ? `<span class="game-number">Partida ${gameNum.get(g.id)}</span>` : "";
+      const partida  = gameNum.has(g.id) ? `<span class="game-card__competition game-number">Partida ${gameNum.get(g.id)}</span>` : "";
       const venueStr = g.venue ? `${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}` : "";
-      const metaParts = [statusHtml, partida, venueStr].filter(Boolean);
+      // Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): date/time/venue/match-number
+      // are now four SEPARATE elements in .game-card__metadata (same canonical slot Copa's
+      // .game-card__date/__time/__venue use) instead of one joined "status + number + venue"
+      // string — status moved to its own .game-card__header/__status slot, matching where
+      // Copa's status-chip lives (its own header row, never mixed into metadata). dateLabel is
+      // the same value already computed above for the page-level day-group heading; repeating
+      // it inside each card's own __date makes the card self-describing (same composition Copa
+      // uses), without removing the day-group heading itself (a BR2026-specific season-schedule
+      // affordance, not part of the card component). Same underlying values as before this
+      // change — only which element each value renders into, and whether it's joined with " · "
+      // into one string vs. kept as separate elements, changed.
       html += `<div class="game-card ${esc(g.state || "pre")}">
-        <div class="game-matchup">
-          <div class="match-team home"><span class="match-team-name home-name">${esc(g.homeTeam)}</span>${homeLogo}</div>
-          <div class="match-center">${scoreOrTime}</div>
-          <div class="match-team away">${awayLogo}<span class="match-team-name away-name">${esc(g.awayTeam)}</span></div>
+        <div class="game-card__header">
+          ${partida}
+          <span class="game-card__status">${statusHtml}</span>
         </div>
-        <div class="game-meta">${metaParts.join('<span class="game-meta-sep"> · </span>')}</div>
-        ${probBarsHtml}
+        <div class="game-card__metadata">
+          <span class="game-card__date pill">${esc(dateLabel)}</span>
+          ${venueStr ? `<span class="game-card__venue pill">${venueStr}</span>` : ""}
+        </div>
+        <div class="game-card__match">
+          <div class="game-card__team game-card__team--home"><span class="game-card__team-name">${esc(g.homeTeam)}</span><span class="game-card__logo">${homeLogo}</span></div>
+          <div class="game-card__center">${scoreOrTime}</div>
+          <div class="game-card__team game-card__team--away"><span class="game-card__logo">${awayLogo}</span><span class="game-card__team-name">${esc(g.awayTeam)}</span></div>
+        </div>
+        <div class="game-card__extension">${probBarsHtml}</div>
       </div>`;
     });
   });
@@ -2250,7 +2280,7 @@ function renderRanking() {
       ? `<button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-expanded="${_openRankDetails.has(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`
       : "";
     const row = document.createElement("div");
-    row.className = "rank-row";
+    row.className = "rank-row ranking-row";
     // Pontos sempre no mesmo estilo (verde, número puro sem "pts") -- Copa e CDB2026 nunca
     // coloriram de amarelo/trocaram o rótulo por "↕" pra sinalizar "provisório" (isso já é
     // comunicado pelo prov-note no topo da lista). Eduardo: "no ranking mostra a pontuacao em
@@ -2261,11 +2291,14 @@ function renderRanking() {
     // placar tem 1-3 dígitos, ver CSS) -- dimensionada só pros dígitos, igual a Copa (que também
     // nunca mostrou "pts" aqui). Com o sufixo, "170 pts" não cabia numa linha só e quebrava --
     // Eduardo: "Deixe tudo da entrada em uma linha e sem crlf".
+    // Phase 7-FIX: .ranking-row__position/__participant/__name/__score/__actions BEM labels
+    // added on the same elements/values — .rank-row/.rank-pos/.points kept (still drive the
+    // grid/mobile CSS).
     row.innerHTML = `
-      <div class="rank-pos">${medal}${rankMovementHtml(mv)}</div>
-      <div><b>${esc(item.e.entryName)}</b></div>
-      <div class="points">${item.total}</div>
-      ${viewBtn}`;
+      <div class="rank-pos ranking-row__position">${medal}${rankMovementHtml(mv)}</div>
+      <div class="ranking-row__participant"><span class="ranking-row__name"><b>${esc(item.e.entryName)}</b></span></div>
+      <div class="points ranking-row__score">${item.total}</div>
+      ${viewBtn.replace('class="secondary small-btn"', 'class="secondary small-btn ranking-row__actions"')}`;
     box.appendChild(row);
     if (canViewPicks) {
       const detail = document.createElement("div");
