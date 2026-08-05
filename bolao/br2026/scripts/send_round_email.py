@@ -38,7 +38,7 @@ Usage:
                                              # Supabase state -- safe to run any time.
 """
 
-import json, sys, time, urllib.request
+import json, os, sys, time, urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
@@ -52,6 +52,20 @@ from pathlib import Path
 # recipients who already got this batch's email, never leaving the rest unsent forever.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "shared" / "scripts"))
 import notification_outbox as outbox
+
+# Football-hardening readiness follow-up, item 7: real --dry-run mode. Same pattern as
+# bolao/cdb2026/scripts/send_result_email.py — see that file's matching comment for the full
+# rationale.
+DRY_RUN = "--dry-run" in sys.argv or os.environ.get("DRY_RUN") == "1"
+DRY_RUN_REPORT = {
+    "dryRun": True,
+    "wouldCreateEvents": [],
+    "wouldEnqueueJobs": [],
+    "wouldSend": [],
+    "wouldSkipAlreadyProcessed": [],
+    "wouldRetry": [],
+    "validationErrors": [],
+}
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import audit_scoring  # same directory — score_entry() mirrors app.js scoreEntry()
@@ -226,6 +240,10 @@ def sb_upsert(state):
     if "meta" not in state or not isinstance(state["meta"], dict):
         state["meta"] = {}
     state["meta"]["updatedAt"] = datetime.now(timezone.utc).isoformat()
+    if DRY_RUN:
+        DRY_RUN_REPORT["wouldEnqueueJobs"].append({"action": "sb_upsert (state write)", "stateId": STATE_ID})
+        print("  [DRY-RUN] would upsert Supabase state — skipped")
+        return "DRY-RUN-SKIPPED"
     body = json.dumps({"id": STATE_ID, "state": state}).encode()
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state", data=body, method="POST",
@@ -330,6 +348,10 @@ def build_admin_summary_html(window_label, results_html, standings_html, sent_co
 
 
 def send_email(addr, subject, html):
+    if DRY_RUN:
+        DRY_RUN_REPORT["wouldSend"].append({"recipient": addr, "subject": subject})
+        print(f"  [DRY-RUN] would send to {addr}  [{subject}] — skipped")
+        return 200
     body = json.dumps({
         "service_id": EMAILJS_SVC, "template_id": EMAILJS_TMPL, "user_id": EMAILJS_KEY,
         "template_params": {
@@ -405,6 +427,8 @@ def _send_round_batch_to_entries(entries, rank_by_id, prev_rank_by_id, window_la
         if existing and existing.get("status") == "sent":
             print(f"  SKIP (duplicate — already sent this batch, idempotency key {key}) → {addr}")
             skipped += 1
+            if DRY_RUN:
+                DRY_RUN_REPORT["wouldSkipAlreadyProcessed"].append({"recipient": addr, "idempotencyKey": key})
             continue
         movement = None
         if e["id"] in prev_rank_by_id:
@@ -644,6 +668,8 @@ def run_test_send():
 
 def main():
     args = sys.argv[1:]
+    if DRY_RUN:
+        print("=== DRY-RUN MODE (item 7) — no Supabase writes, no EmailJS sends, no commit/push ===")
     if "--test-send" in args:
         run_test_send()
         return
@@ -651,6 +677,9 @@ def main():
         print(__doc__)
         sys.exit(1)
     run_auto()
+    if DRY_RUN:
+        print("\n=== DRY-RUN REPORT ===")
+        print(json.dumps(DRY_RUN_REPORT, indent=2, ensure_ascii=False))
 
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ Usage:
   and unlocks the tie (qualifiedTeamId cleared) if it had been locked from that leg's data.
 """
 
-import json, re, sys, time, urllib.request
+import json, os, re, sys, time, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -50,6 +50,25 @@ import audit_scoring  # match_points(), score_entry(), MATCH_SCORING, TIE_BONUS,
 # content. See _send_to_all() below for the actual integration point.
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "shared" / "scripts"))
 import notification_outbox as outbox
+
+# Football-hardening readiness follow-up, item 7: real --dry-run mode. When DRY_RUN is True,
+# every ACTUAL side-effecting call (Supabase write via _sb_upsert, EmailJS send via send_email,
+# git commit/push) is skipped and recorded into DRY_RUN_REPORT instead — provider fetch (ESPN,
+# read-only), validation, ranking/points calculation, event/job creation bookkeeping, template
+# rendering, recipient list resolution, and idempotency-key computation all still run for real,
+# so a dry run genuinely exercises the same decision logic a real run would, just never commits
+# any of it. Set via the --dry-run CLI flag; also honors DRY_RUN=1 in the environment so a
+# workflow's workflow_dispatch input can set it without changing the invocation command.
+DRY_RUN = "--dry-run" in sys.argv or os.environ.get("DRY_RUN") == "1"
+DRY_RUN_REPORT = {
+    "dryRun": True,
+    "wouldCreateEvents": [],
+    "wouldEnqueueJobs": [],
+    "wouldSend": [],
+    "wouldSkipAlreadyProcessed": [],
+    "wouldRetry": [],
+    "validationErrors": [],
+}
 
 # ── Config — mirrors bolao/cdb2026/js/config.js exactly ───────────────────────
 SUPABASE_URL   = "https://cmhqkkfczotdnssupkni.supabase.co"
@@ -179,6 +198,14 @@ def sb_fetch():
 
 
 def _sb_upsert(state):
+    if DRY_RUN:
+        # Item 7: dry-run must NEVER alter production Supabase. This is the ONE function every
+        # real write (sb_save_leg, sb_lock_tie, sb_clear_leg, sb_backfill_schedule) funnels
+        # through — gating it here means every caller's "would persist this" intent is captured
+        # without needing to duplicate the guard at each call site.
+        DRY_RUN_REPORT["wouldEnqueueJobs"].append({"action": "sb_upsert (state write)", "stateId": STATE_ID})
+        print(f"  [DRY-RUN] would upsert Supabase state (id={STATE_ID}) — skipped")
+        return "DRY-RUN-SKIPPED"
     body = json.dumps({"id": STATE_ID, "state": state}).encode()
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state",
@@ -676,6 +703,15 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
 # ── Email sender — identical mechanism to the Copa's script ──────────────────
 def send_email(addr, subject, html):
     addr = addr.strip().rstrip(",").strip()
+    if DRY_RUN:
+        # Item 7: dry-run must NEVER hit EmailJS. Real recipient/subject ARE recorded into the
+        # report (this is a controlled, local, gitignored-by-convention run artifact printed to
+        # stdout only — not committed anywhere, unlike durable_persist.py's PII warning which is
+        # about git commits specifically) so a human reviewing dry-run output can actually see
+        # who WOULD have been emailed and with what subject.
+        DRY_RUN_REPORT["wouldSend"].append({"recipient": addr, "subject": subject})
+        print(f"  [DRY-RUN] would send to {addr}  [{subject}] — skipped")
+        return 200
     body = json.dumps({
         "service_id":  EMAILJS_SVC, "template_id": EMAILJS_TMPL, "user_id": EMAILJS_KEY,
         "template_params": {"to_email": addr, "entry_name": subject, "receipt_code": subject, "html_message": html},
@@ -719,6 +755,8 @@ def _send_to_all(state, html, subject, *, match_id=None, result_version=1):
             if existing and existing.get("status") == "sent":
                 print(f"  SKIP (duplicate — already sent, idempotency key {key}) → {addr}")
                 skipped += 1
+                if DRY_RUN:
+                    DRY_RUN_REPORT["wouldSkipAlreadyProcessed"].append({"recipient": addr, "idempotencyKey": key})
                 continue
             job, _created = outbox.enqueue({
                 "app": "cdb2026", "matchId": match_id, "recipient": addr, "resultVersion": result_version,
@@ -971,8 +1009,20 @@ def run_auto():
 def main():
     args = sys.argv[1:]
 
+    if DRY_RUN:
+        print("=== DRY-RUN MODE (item 7) — no Supabase writes, no EmailJS sends, no commit/push ===")
+        # Validation step (item 7): reuse audit_scoring's own static self-test, same gate
+        # --auto already runs before touching anything for real — a dry run should surface the
+        # exact same validation failures a real run would refuse to proceed past.
+        ok = audit_scoring.run_static_audit() if hasattr(audit_scoring, "run_static_audit") else True
+        if not ok:
+            DRY_RUN_REPORT["validationErrors"].append("audit_scoring.py static self-test failed")
+
     if "--auto" in args:
         run_auto()
+        if DRY_RUN:
+            print("\n=== DRY-RUN REPORT ===")
+            print(json.dumps(DRY_RUN_REPORT, indent=2, ensure_ascii=False))
         return
 
     if "--clear-leg" in args:
