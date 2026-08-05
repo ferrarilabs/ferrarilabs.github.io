@@ -182,7 +182,7 @@ window.POWERBALL_DRAWS = [
 
     // 14 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 0, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "—", status: "verificado" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "—", status: "verificado" },
@@ -206,9 +206,9 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 130,
+      totalArrecadado: 138,
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 130
+      valorGuardadoProximoSorteio: 138
     },
 
     result: null,
