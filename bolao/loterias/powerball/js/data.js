@@ -180,21 +180,22 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "05/08/2026 22:59 ET"
     },
 
-    // 12 participantes com cotas de US$10 cada (sorteio secundário)
+    // 14 participantes com cotas de US$20 cada (sorteio secundário)
     participants: [
       { name: "Eduardo Ferrari", cotas: 1, valor: 0, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador" },
-      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado" },
-      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "—", status: "verificado" },
-      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "—", status: "verificado" },
-      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", txId: "—", status: "verificado" },
-      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
-      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
-      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", txId: "—", status: "verificado" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "—", status: "verificado" },
-      { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "—", status: "verificado" },
-      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "—", status: "verificado" },
-      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", txId: "—", status: "verificado" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "04/08/2026", hora: "1:15 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", email: "REDACTED_EMAIL" }
+      { name: "Marcus Steffenon", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "—", status: "verificado" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "—", status: "verificado" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 20, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", txId: "—", status: "verificado" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", txId: "—", status: "verificado" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", txId: "—", status: "verificado" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 20, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", txId: "—", status: "verificado" },
+      { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", txId: "—", status: "verificado" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "—", status: "verificado" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", txId: "—", status: "verificado" },
+      { name: "Alan Rech", cotas: 1, valor: 20, metodo: "Cash App", data: "04/08/2026", hora: "1:15 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", email: "REDACTED_EMAIL" },
+      { name: "Samuel Huller", cotas: 1, valor: 20, metodo: "Zelle", data: "04/08/2026", hora: "—", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado" }
     ],
 
     sharedTickets: {
@@ -205,9 +206,9 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 110,
+      totalArrecadado: 260,
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 110
+      valorGuardadoProximoSorteio: 260
     },
 
     result: null,
