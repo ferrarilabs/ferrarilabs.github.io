@@ -165,9 +165,11 @@ window.POWERBALL_DRAWS = [
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
     // profit = prêmios ganhos - valorUtilizado (não conta o valor guardado, que é reciclado).
+    // Os US$16 ganhos foram usados no sorteio seguinte (05/08) para cobrir parte da
+    // compra de tickets — ver comentário em finance do draw 2026-08-05.
     profit: {
-      premiosGanhos: null,
-      lucro: null
+      premiosGanhos: 16,
+      lucro: -122
     }
   },
   {
@@ -253,15 +255,15 @@ window.POWERBALL_DRAWS = [
       ]
     },
 
-    // 51 tickets x US$3 (Power Play) = US$153. Arrecadado no bolão foi US$138 —
-    // faltam US$15, cobertos com saldo guardado do sorteio anterior (US$142 em
-    // "valorGuardadoProximoSorteio" do draw 2026-08-03). Eduardo: confirmar se foi
-    // isso mesmo ou se o saldo veio de outro lugar, para eu não deixar esse número
-    // registrado errado.
+    // 51 tickets x US$3 (Power Play) = US$153. Arrecadado neste sorteio foi US$138 —
+    // faltavam US$15, cobertos com os US$16 de prêmio ganho no sorteio anterior
+    // (2026-08-03, ver profit.premiosGanhos daquele draw), não com o saldo guardado
+    // (esse continua reservado). Sobra US$1 (16 - 15) somado ao guardado deste sorteio.
     finance: {
       totalArrecadado: 138,
+      creditoSorteioAnterior: 16, // prêmio ganho em 2026-08-03, usado para cobrir o déficit de tickets
       valorUtilizado: 153,
-      valorGuardadoProximoSorteio: 0
+      valorGuardadoProximoSorteio: 1 // 138 + 16 - 153
     },
 
     result: null,
