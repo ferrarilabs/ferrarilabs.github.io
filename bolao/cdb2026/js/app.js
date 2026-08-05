@@ -1974,6 +1974,10 @@ function renderGamesSection() {
     html += ties.map(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return "";
       const legs = legsForFormat(phase.format);
+      // Computed once, reused by both the second-leg card's __extension (scheduled-state
+      // aggregate note) and the tie-group__result line below — same tieProgressDisplay() call,
+      // never duplicated.
+      const progress = tieProgressDisplay(tie, phase.format);
       const legCardHtml = leg => {
         const m = tie.matches?.[leg];
         if (!m) return "";
@@ -2014,10 +2018,17 @@ function renderGamesSection() {
             <div class="game-card__center"><span class="game-card__score${hasScore ? (live ? " is-live" : "") : " muted"}" data-visual-role="game-score">${scoreContent}</span></div>
             <div class="game-card__team game-card__team--away" data-visual-role="away-team"><span class="game-card__logo">${teamLogoImg(away, "team-logo", "team-logo")}</span><span class="game-card__team-name team-name" data-visual-role="team-name">${esc(away)}</span></div>
           </div>
-          <div class="game-card__extension"></div>
+          <div class="game-card__extension">${
+            // "Second leg scheduled" state (Eduardo's aggregate-hero spec item 1): once leg 1 is
+            // done and leg 2 hasn't started, show "Agregado após a ida: X–Y" here — the static
+            // (non-live) equivalent of the live-hero's "Agregado ao vivo" line, same
+            // tieProgressDisplay() data, never a duplicate calculation.
+            leg === "second" && state === "pre" && progress?.stage === "second-leg-pending" && progress.aggregate
+              ? `<span class="game-card__aggregate">${esc(t("gamesAggregate"))} após a ida: <b>${progress.aggregate.teamA} – ${progress.aggregate.teamB}</b></span>`
+              : ""
+          }</div>
         </div>`;
       };
-      const progress = tieProgressDisplay(tie, phase.format);
       const resultLine = progress && progress.stage === "final" && progress.advancingTeamId
         ? `<div class="tie-group__result">${progress.aggregate ? `${esc(t("gamesAggregate"))}: <b>${progress.aggregate.teamA} × ${progress.aggregate.teamB}</b> — ` : ""}${esc(t("gamesAdvances"))}: ${esc(progress.advancingTeamId === "A" ? tie.teamA : tie.teamB)}</div>`
         : "";
@@ -2601,8 +2612,23 @@ function renderLiveTieCard() {
     // Local do jogo (venue) removido do modo ao vivo -- Eduardo: "Não precisa mostrar a
     // localização no live mode" (2026-07-17). Fase continua (útil pra saber "que confronto é
     // esse" durante o jogo) -- venue continua aparecendo normalmente no card pré-live.
-    const phaseName = getPhaseDef(l.phaseId)?.name || "";
+    const phaseDef = getPhaseDef(l.phaseId);
+    const phaseName = phaseDef?.name || "";
     const metaHtml = phaseName ? `<div class="live-match-meta"><span>${esc(phaseName)}</span></div>` : "";
+    // Phase 7-FIX aggregate-hero feature: only meaningful once leg 2 is live (leg 1 in progress
+    // would just duplicate the live score, per spec — "Jogo de ida" label stays as-is, no
+    // aggregate shown). Reuses tieProgressDisplay() — the SAME resolver renderGamesSection()'s
+    // confronto result line uses — never recomputed here. .game-card__aggregate uses the shared
+    // canonical class/tokens (bolao/shared/css/components.css) even though this specific widget
+    // predates the full game-card skeleton migration — Eduardo's instruction was "same canonical
+    // card model, don't create a separate CDB variant", not "migrate this whole widget".
+    let aggregateHtml = "";
+    if (l.leg === "second" && phaseDef?.format === "TWO_LEG" && l.tie) {
+      const progress = tieProgressDisplay(l.tie, phaseDef.format, { goalsHome: l.goalsHome, goalsAway: l.goalsAway });
+      if (progress?.aggregate) {
+        aggregateHtml = `<div class="game-card__aggregate" aria-live="polite">${esc(t("gamesAggregate"))} ao vivo: <b>${progress.aggregate.teamA} – ${progress.aggregate.teamB}</b></div>`;
+      }
+    }
     return `<div class="live-match">
       <div class="live-top">
         ${teamColHtml(l.homeTeam)}
@@ -2610,6 +2636,7 @@ function renderLiveTieCard() {
         <div class="live-center">
           <span class="live-badge">${esc(t("liveNow"))}</span>
           <span class="live-clock">${esc(clock)}</span>
+          ${aggregateHtml}
         </div>
         <div class="live-score">${l.goalsAway ?? 0}</div>
         ${teamColHtml(l.awayTeam)}
@@ -4009,7 +4036,7 @@ document.addEventListener("DOMContentLoaded", init);
 
 // Read-only test hooks — pure functions only, no state mutation exposed. Mesmo padrão do BR2026
 // (window.__BR2026_TESTHOOKS__, bolao/br2026/js/app.js).
-window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays, explainScore, legTeams, formatBrtTimestamp, SCORING_RULE_VERSION };
+window.__CDB2026_TESTHOOKS__ = { rankEntriesBy, calculateRankingMovement, liveScoreEntry, scoreEntry, matchPoints, extractMatchPlays, explainScore, legTeams, formatBrtTimestamp, SCORING_RULE_VERSION, tieProgressDisplay, aggregateFromMatches };
 })();
 
 if ('serviceWorker' in navigator) {

@@ -1,5 +1,46 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.91 — 2026-08-05 — Aggregate score in live-game hero (following Copa's tiebreak rule)
+
+Explicitly authorized by Eduardo. Adds the two-leg tie's aggregate score to
+`renderLiveTieCard()`'s live hero widget and to the second-leg scheduled card's extension slot
+(`.game-card__aggregate`, shared token, secondary in visual weight to the primary score).
+
+**Copa's actual tiebreak rule, found before writing any code** (not guessed — see the
+premise-check reported earlier this session): Copa never computes or displays a numeric penalty
+score. `bolao/copa2026/js/i18n.js` states explicitly to real participants: *"Placar válido: 90
+minutos + prorrogação. Pênaltis não entram no placar."* When a knockout match is tied after
+regulation+extra time, Copa's admin manually picks who advances via `advanceSide` — no penalty
+score is ever stored or shown. CDB2026 already had the exact same mechanism
+(`tie.qualifiedTeamId`, admin-picked) before this change. Grepped the entire CDB2026 codebase for
+any penalty-score field (`penScore`, `shootout`, `pk*`) — none exists. So the aggregate feature
+here shows the aggregate score and, once concluded, who advances (`qualifiedTeamId`) — it does
+NOT show a penalty score, because building that would mean inventing a business rule Copa itself
+doesn't have, not replicating one. If a real admin data-entry field for penalty scores is wanted
+in the future, that's a separate, larger change (new data model field + admin UI) requiring its
+own authorization — not fabricated here.
+
+`tieProgressDisplay(tie, phaseFormat, liveLeg2Goals)` extracted as the single shared resolver for
+this feature — reused by both the live hero and the confronto-card's static result line (no
+duplicated calculation). Display states: first leg in progress → no aggregate (would duplicate
+the live score); second leg scheduled → "Agregado após a ida: X–Y"; second leg live → "Agregado
+ao vivo: X–Y" (updates with the live score); final → tie-group's existing result line ("Agregado:
+X × Y — Classificado: Time"). Aggregate orientation follows the tie's canonical teamA/teamB order
+even when leg 2's home/away is swapped (same convention `aggregateFromMatches()` already used).
+
+Tests: `bolao/cdb2026/scripts/test_aggregate_hero.mjs` — 14/14 pass, extracting and executing the
+real `tieProgressDisplay()`/`aggregateFromMatches()` source directly (not a reimplemented copy).
+Covers: first leg no redundant aggregate, second leg scheduled, second leg live, live goal
+updates the aggregate, final without penalties, final with a tied aggregate (penalties still
+correctly absent — no data field exists), penalties never summed into the aggregate (structural
+guarantee), classificado resolves from `qualifiedTeamId` independent of the aggregate, reversed
+home/away in leg 2 doesn't flip team order, incomplete data produces no NaN/undefined, and a
+regression check that `aggregateFromMatches()` itself (scoring/ranking/persistence-adjacent) is
+unchanged. `audit_scoring.py`, `audit_golden_master.mjs`, `audit_state_merge.mjs`,
+`audit_integrity.py` all re-run after this change, all pass — no scoring, ranking, or persisted
+result logic touched, this is a display/computation-only addition reusing existing
+`qualifiedTeamId`/`aggregateFromMatches()` logic.
+
 ## v3.90 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation + 2 bug fixes + fixture bug found/fixed
 
 Phase 6 shipped without a real browser (none available). Phase 7 installed Playwright + a real

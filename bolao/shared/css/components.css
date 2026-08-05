@@ -74,6 +74,23 @@
 .game-score.is-live, .game-card__score.is-live { border-color: var(--red); color: var(--red); }
 .game-card__extension:empty { display: none; }
 
+/* Phase 7-FIX aggregate-hero feature: secondary in visual weight to the primary
+   .game-card__score/.live-score (smaller, muted color, no background/border of its own) — never
+   competes with the main score for attention. aria-live="polite" so a live-updating aggregate
+   (second leg in progress) is announced to screen readers without interrupting them mid-sentence
+   the way aria-live="assertive" would. Centered, no card-break — same font-family as every other
+   shared text token, just smaller/muted, so it reads as a caption under the score, not a second
+   score. */
+.game-card__aggregate {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: var(--font-weight-regular);
+  color: var(--muted);
+  text-align: center;
+}
+.game-card__aggregate b { color: var(--text); font-weight: var(--font-weight-bold); }
+
 @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
 /* ── Match / bracket card (knockout entry form, same shape as game-card) ── */
