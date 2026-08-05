@@ -187,7 +187,7 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "05/08/2026 22:59 ET"
     },
 
-    // 14 participantes com cotas de US$10 cada (sorteio secundário)
+    // 15 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
       { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador", state: "NC", email: "emferrari@gmail.com" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
@@ -202,7 +202,8 @@ window.POWERBALL_DRAWS = [
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", txId: "—", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", txId: "—", status: "verificado", state: "NC", email: "—" },
       { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "04/08/2026", hora: "1:15 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "FL", email: "REDACTED_EMAIL" },
-      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:47 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "NC", email: "REDACTED_EMAIL" }
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:47 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "05/08/2026", hora: "11:19 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "NC", email: "REDACTED_EMAIL" }
     ],
 
     sharedTickets: {
@@ -255,15 +256,16 @@ window.POWERBALL_DRAWS = [
       ]
     },
 
-    // 51 tickets x US$3 (Power Play) = US$153. Arrecadado neste sorteio foi US$138 —
-    // faltavam US$15, cobertos com os US$16 de prêmio ganho no sorteio anterior
-    // (2026-08-03, ver profit.premiosGanhos daquele draw), não com o saldo guardado
-    // (esse continua reservado). Sobra US$1 (16 - 15) somado ao guardado deste sorteio.
+    // 51 tickets x US$3 (Power Play) = US$153, já comprados antes do Rodrigo entrar —
+    // ele concorre nos mesmos tickets coletivos (ver sharedTickets), só divide o prêmio
+    // por mais uma cota. Arrecadado inicial US$138 + US$10 do Rodrigo = US$148; faltavam
+    // US$15 pra fechar os tickets, cobertos com os US$16 de prêmio do sorteio anterior
+    // (2026-08-03, ver profit.premiosGanhos daquele draw). Sobra US$11 (148 + 16 - 153).
     finance: {
-      totalArrecadado: 138,
+      totalArrecadado: 148,
       creditoSorteioAnterior: 16, // prêmio ganho em 2026-08-03, usado para cobrir o déficit de tickets
       valorUtilizado: 153,
-      valorGuardadoProximoSorteio: 1 // 138 + 16 - 153
+      valorGuardadoProximoSorteio: 11 // 148 + 16 - 153
     },
 
     result: null,
