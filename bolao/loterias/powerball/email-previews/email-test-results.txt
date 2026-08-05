@@ -1,76 +1,133 @@
-Powerball email professionalization — admin test-send evidence (ROUND 2)
+Powerball email professionalization — admin test-send evidence (ROUND 3)
 ==========================================================================
 
-Round 1 was REJECTED by Eduardo — 3 real bugs found (mismatched percentage
-between templates, an unreconciled financial summary, and a correction email
-describing a change that didn't actually exist in the ticket data). Root
-cause: the three templates were not consuming one single, validated,
-internally-consistent snapshot. Round 2 fixes this by introducing a single
-shared fixture (scripts/email/fixtures/powerball-email-test-fixture.json)
-that all three flows build from, plus hard validation gates (financial
-reconciliation, cross-template consistency, real ticket-diff for
-corrections) that block the send instead of allowing another bad email out.
-See docs/bolao/loterias/POWERBALL_EMAIL_ARCHITECTURE.md for the full
-before/after and scripts/audit_email_tests_round2.mjs for regression tests
-reproducing all three original bugs (they now fail loudly instead of
-sending).
+Round 1: REJECTED (percentage mismatch, unreconciled financial summary,
+fabricated correction diff).
+Round 2: REJECTED (delivered subject was the EmailJS template's generic
+fallback "Bolão do Ferrari", not our rendered subject; ticket numbers
+rendered concatenated in the delivered email).
+Round 3 (this round): both round-2 bugs root-caused and fixed, PLUS
+additional issues Eduardo found in the round-3 verification email fixed in
+the same pass before the final resend below.
 
-Synthetic data (fixture): Participante Alfa, participante.alfa@example.invalid,
-REDACTED_PAYMENT_REFERENCE, Carolina do Norte (NC), drawId 2026-08-05-FIXTURE, 14
-participants total, 1 cota each except the organizer's 2. All financials
-verified to reconcile before any send: totalArrecadado($140) = valorUtilizado
-($6) + saldoReservado($134) + reembolso($0) + outrasDestinacoes($0).
+ROOT CAUSES (round 2's two bugs)
+---------------------------------
+1. Subject: send.mjs sent template_params.subject, a key the EmailJS
+   template (template_xq7yzzb) does not recognize. EmailJS silently falls
+   back to its own dashboard-configured static Subject text ("Bolão do
+   Ferrari - {{X}}") when an expected variable is missing — no error, no
+   indication in the API response. Root-caused by comparing against
+   scripts/send_result_email.py's send_email(), which sends the subject text
+   under entry_name AND receipt_code (never subject) — confirmed working by
+   finding a real, correctly-subjected past email in Gmail ("Bolão do
+   Ferrari - Resultado Powerball — 01.08.2026 22:59 ET", sent 2026-08-04 by
+   that script). Fixed: send.mjs now sends the same canonical subject value
+   under entry_name, receipt_code, AND email_subject (defensive third key —
+   see send.mjs's "SUBJECT CONTRACT" comment for the full reasoning and
+   honest limitation: this codebase has no credential to inspect/edit the
+   EmailJS dashboard directly).
+2. A second, related bug found via the same real-inbox cross-check: EmailJS
+   HTML-escapes subject template variables server-side, so "/" arrived as
+   the literal text "&#x2F;" (e.g. "05&#x2F;08&#x2F;2026"). Fixed with
+   render.mjs's subjectSafeDate() — subject lines use "." instead of "/" in
+   dates, matching send_result_email.py's own documented workaround for the
+   exact same issue.
+3. Ticket numbers: the HTML row relied entirely on inline CSS (margin) for
+   visual separation between number spans, with zero literal-text fallback —
+   when the delivered email's styling didn't fully survive, digits appeared
+   concatenated. Fixed: every number is its own table cell, a literal "·"
+   separator sits in its own cell between them, the Powerball number gets an
+   explicit "| Powerball:" text label (never a bare colored digit), and a
+   fully redundant plain-text line ("24 · 31 · 47 · 52 · 63 | Powerball: 17
+   | Power Play: Sim") is included under the visual row.
 
-1) participant-added (templateVersion 2)
-   emailJobId:         job_1785940148416_qt35ygip
-   subject:            [TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05/08/2026 22:59 ET
-   actual recipient:   emferrari@gmail.com
-   sentAt (UTC):       2026-08-05T14:29:09.705Z
-   providerStatus:     200
-   providerMessageId:  emailjs-1785940149704
-   drawId:             2026-08-05-FIXTURE
-   Content fix verified: 1 cota de 14 cotas / Participação no bolão: 7,1429%
-   (previously showed 7.14% against a DIFFERENT draw's total than the
-   publication email — now both read totalShares=14 from the same fixture).
+ADDITIONAL FIXES (found in the round-3 verification pass, before final resend)
+--------------------------------------------------------------------------------
+- Currency unified to "$X.XX" (was inconsistently "US$10" in places).
+- "Pagamento verificado" -> "Pagamento confirmado" (was already intended in
+  round 2 but the verification send used pre-rewrite code).
+- Friendly date ("5 de agosto de 2026 às 10:59 PM ET") now shown first, in
+  the primary reading flow (a "Sorteio" row near the top of both emails),
+  compact ISO-derived form secondary/technical.
+- Annuity section reworded: removed "Média mensal estimada" (implied a
+  constant monthly installment that doesn't exist officially) in favor of
+  "Média anual líquida (meramente ilustrativa)" with an explicit disclaimer
+  that official annual payments are not necessarily equal to each other.
+- State codes expanded to full PT-BR names (NC -> Carolina do Norte).
+- Removed all dead "#" links (Baixar PDF/CSV/JSON) and added an isRealUrl()
+  guard so no localhost/127.0.0.1/.invalid/.example/.test/.local URL is ever
+  rendered as a clickable link — shown as plain, clearly-labeled text
+  instead when not a real reachable address.
 
-2) tickets-published (templateVersion 2, publicationVersion 1)
-   emailJobId:         job_1785940149706_g0v51gfw
-   subject:            [TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05/08/2026 22:59 ET — 2 jogos
-   actual recipient:   emferrari@gmail.com
-   sentAt (UTC):       2026-08-05T14:29:10.797Z
-   providerStatus:     200
-   providerMessageId:  emailjs-1785940150796
-   drawId:             2026-08-05-FIXTURE
-   Content fix verified: Reconciliação block shows Total arrecadado $140 =
-   Valor utilizado $6 + Saldo reservado $134, Diferença não conciliada $0.00.
-   Publication would have been BLOCKED (validateFinancialReconciliation) had
-   this not reconciled — see regression test "regression (a)".
+VERIFICATION METHODOLOGY (per Eduardo's explicit instruction: don't trust
+providerStatus:200 alone)
+--------------------------------------------------------------------------
+Every subject and body claim below was cross-checked against the ACTUAL
+delivered Gmail message via a real Gmail search + full-content fetch in this
+session (message IDs included) — not assumed from the send call's return
+value.
 
-3) tickets-corrected (templateVersion 2, publicationVersion 2)
-   emailJobId:         job_1785940150799_wo375i7n
-   subject:            [TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05/08/2026 22:59 ET — Versão 2
-   actual recipient:   emferrari@gmail.com
-   sentAt (UTC):       2026-08-05T14:29:11.670Z
-   providerStatus:     200
-   providerMessageId:  emailjs-1785940151669
-   drawId:             2026-08-05-FIXTURE
-   Content fix verified: "O que foi alterado" shows a REAL diff — Jogo 01
-   Antes: 24 · 31 · 47 · 52 · 63 — Powerball 17 / Depois: 24 · 31 · 47 · 52 ·
-   64 — Powerball 17 — generated by diff.mjs::computeTicketDiff comparing the
-   actual v1 and v2 ticket arrays, never typed. Jogo 02 correctly shows as
-   unchanged (not claimed as different). Hash da versão anterior and Hash da
-   nova versão both shown and differ. A correction attempt with identical
-   tickets is blocked entirely with "Não existem diferenças entre as
-   versões..." — see regression test "regression (c)".
+FINAL RESEND — 3 emails, emferrari@gmail.com only
+---------------------------------------------------
 
-All 3 sends used the same EmailJS service/template as the existing
-send_result_email.py precedent (service_o4hyzxr / template_xq7yzzb), sent via
-scripts/email/send.mjs -> https://api.emailjs.com/api/v1.0/email/send.
+1) tickets-published
+   emailJobId:          job_1785941312751_54fhnopd
+   Gmail message id:    19fd265c89deca09
+   assunto esperado:    [TESTE ADMIN] Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos
+   assunto real recebido (Gmail, verificado): Bolão do Ferrari - [TESTE ADMIN] Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos
+   destinatário:         emferrari@gmail.com
+   sentAt (UTC):         2026-08-05T14:48:32.704Z
+   providerStatus:       200
+   templateId:           tickets-published
+   templateVersion:      2
+   publicationVersion:   1
+   Body verified: friendly date first, $140.00/$6.00/$134.00/$0.00
+   reconciliation, "Pagamento confirmado", both games render as
+   "24 · 31 · 47 · 52 · 63 | Powerball: 17 | Power Play: Sim" (and the
+   circled-ball HTML variant with an explicit "Powerball:" label), no dead
+   links, comprovante shown as non-clickable text (example.invalid domain).
+
+2) participant-added
+   emailJobId:          job_1785941345844_bv00hsag
+   Gmail message id:    19fd26648b70f70c
+   assunto esperado:    [TESTE ADMIN] Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET
+   assunto real recebido (Gmail, verificado): Bolão do Ferrari - [TESTE ADMIN] Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET
+   destinatário:         emferrari@gmail.com
+   sentAt (UTC):         ~2026-08-05T14:49:06Z
+   providerStatus:       200
+   templateId:           participant-added
+   templateVersion:      2
+   drawId:               2026-08-05-FIXTURE
+
+3) tickets-corrected
+   emailJobId:          job_1785941348038_16noy82a
+   Gmail message id:    19fd26651f8d4ea8
+   assunto esperado:    [TESTE ADMIN] Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2
+   assunto real recebido (Gmail, verificado): Bolão do Ferrari - [TESTE ADMIN] Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2
+   destinatário:         emferrari@gmail.com
+   sentAt (UTC):         2026-08-05T14:49:05.797Z
+   providerStatus:       200
+   templateId:           tickets-corrected
+   templateVersion:      2
+   publicationVersion:   2
+   Body verified: real diff for Jogo 01 (24 31 47 52 63 -> 64, Powerball 17
+   unchanged), Jogo 02 correctly shown as unchanged, hash da versão anterior
+   distinct from hash da nova versão, motivo shown only alongside the real diff.
+
+Honest note on the EmailJS-side "Bolão do Ferrari - " prefix: this text
+comes from the EmailJS dashboard template's own static Subject field
+configuration, prepended before whatever variable value we send (confirmed
+by the fact every email sent through this template — including years of
+real football-app results emails — carries the same prefix). This repo has
+no credential to log into the EmailJS dashboard and remove that prefix; it
+is cosmetic (our full intended subject text follows it verbatim) and Eduardo
+can remove it directly in the EmailJS dashboard if desired — that is outside
+what this codebase can control.
+
+All 3 sends recorded in scripts/email/outbox.json with testMode:true,
+expectedSubject, providerSubjectParameters, and (added manually after the
+Gmail cross-check above) receivedSubject.
 
 No real draw was marked as published. No real participant was notified.
-Full job records (including frozen payloadSnapshot) are in
-scripts/email/outbox.json. Automated proof: node
-scripts/audit_email_tests_round2.mjs (18/18 passed, including 3 explicit
-regression tests reproducing this round's exact reported bugs) and node
-scripts/audit_email_tests.mjs (24/24 passed, updated for the new field
-names/reconciliation behavior).
+Automated proof: node scripts/audit_email_tests.mjs (24/24),
+scripts/audit_email_tests_round2.mjs (20/20), scripts/audit_email_tests_round3.mjs (13/13) — 57/57 total.

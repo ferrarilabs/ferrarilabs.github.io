@@ -3,19 +3,21 @@ Olá, Participante Alfa!
 Sua participação no Bolão Powerball foi registrada com sucesso.
 
 Sua participação:
-  Sorteio: 05/08/2026 22:59 ET
-  Data/horário da entrada: 04/08/2026 9:00 AM
+  Sorteio: 5 de agosto de 2026 às 10:59 PM ET (05/08/2026 22:59 ET)
+  Data/horário da entrada: 4 de agosto de 2026 às 9:00 AM (04/08/2026 9:00 AM)
   Cotas: 1 cota(s) de 14 cotas
-  Valor registrado: US$10
+  Valor registrado: $10.00
   Participação no bolão: 7,1429%
-  Pagamento: verificado
-  Estado considerado: NC
+  Pagamento: Pagamento confirmado
+  Estado considerado: Carolina do Norte
 
 Estimativas do prêmio:
-  Jackpot anunciado: US$786,000,000
-  Cash option (total): US$341,600,000
+  Jackpot anunciado: $786,000,000.00
+  Cash option (total): $341,600,000.00
   Estimativa correspondente à sua participação:
-    Lump Sum líquido: US$14,398,440
-    Anuidade total líquida (30 anos): US$33,129,900
+    Lump Sum líquido: $14,398,440.00
+    Anuidade total líquida estimada ao longo de 30 anos: $33,129,900.00
+    Média anual líquida (meramente ilustrativa): $1,104,330.00
+    (Os pagamentos anuais oficiais não são necessariamente iguais entre si; a média acima é apenas ilustrativa.)
 
 Site: https://ferrarilabs.github.io/bolao/loterias/powerball/
