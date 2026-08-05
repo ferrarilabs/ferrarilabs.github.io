@@ -414,7 +414,19 @@ function applyAdminMutation(state, mutation) {
     case "lock-tie": {
       const ph = phaseOf(mutation.phaseId);
       const tie = ph.ties[mutation.tieId] || {};
-      const newTie = { ...tie, qualifiedTeamId: mutation.qualifiedTeamId, lockedAt: mutation.lockedAt, lockedBy: mutation.lockedBy };
+      // Football-hardening checkpoint E: penaltiesHome/penaltiesAway/penaltiesWinnerTeamId are
+      // purely additive — only set when the mutation actually carries them (a tied-aggregate
+      // lock with penalty scores entered). Old mutations/replays with none of these keys behave
+      // exactly as before: qualifiedTeamId/lockedAt/lockedBy only, no penalty fields at all.
+      const newTie = {
+        ...tie,
+        qualifiedTeamId: mutation.qualifiedTeamId, lockedAt: mutation.lockedAt, lockedBy: mutation.lockedBy,
+        ...(mutation.penaltiesHome != null && mutation.penaltiesAway != null ? {
+          penaltiesHome: mutation.penaltiesHome,
+          penaltiesAway: mutation.penaltiesAway,
+          penaltiesWinnerTeamId: mutation.penaltiesWinnerTeamId || mutation.qualifiedTeamId,
+        } : {}),
+      };
       s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: newTie } };
       break;
     }
@@ -700,13 +712,19 @@ function aggregateFromMatches(matches) {
 // convention aggregateFromMatches() already uses for the "final" stage is applied here for the
 // "second-leg-live" stage too, so the aggregate never flips when home/away swaps between legs.
 //
-// Penalties: CDB2026 has NO admin-enterable penalty-score field anywhere in its data model
-// (verified: grepped the whole file for pen/penScore/shootout/pk-prefixed fields — the tie
-// object only ever has qualifiedTeamId, exactly like Copa's advanceSide — see Copa's own rules
-// text, bolao/copa2026/js/i18n.js: "Pênaltis não entram no placar", confirmed Copa never tracks
-// a numeric penalty score either). `penalties` below is always null — intentionally, not a bug
-// — until/unless a real admin data-entry field for it is added elsewhere; this function must
-// never fabricate a penalty score for data that has nowhere to come from.
+// Penalties: football-hardening checkpoint E (2026-08, Eduardo explicitly authorized) added
+// additive, backward-compatible penalty fields — tie.penaltiesHome, tie.penaltiesAway,
+// tie.penaltiesWinnerTeamId — alongside the existing tie.qualifiedTeamId. These are ALWAYS
+// keyed by TEAM (teamA/teamB), never by leg-2 home/away, specifically so a reversed home/away
+// between legs can never flip which team's penalty count is which (the same orientation bug
+// class aggregateFromMatches()/this function already guard against for the regulation
+// aggregate). Old fixtures/tie objects with none of these three keys are unaffected: `penalties`
+// stays null exactly as before (backward compatible, not a breaking schema change) — see
+// docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md and bolao/cdb2026/scripts/test_penalty_fields.mjs.
+// HARD RULE, never violate: penalties are NEVER added into `aggregate` anywhere below — the
+// aggregate is always the pure regulation-goals sum from aggregateFromMatches(), and `penalties`
+// is always a separate, sibling field. This is the exact "6x5 instead of aggregate 1x1 +
+// penalties 5x4" bug class this checkpoint exists to prevent.
 function tieProgressDisplay(tie, phaseFormat, liveLeg2Goals) {
   if (phaseFormat !== "TWO_LEG") return null;
   const matches = tie.matches || {};
@@ -718,11 +736,13 @@ function tieProgressDisplay(tie, phaseFormat, liveLeg2Goals) {
   const secondDone = second && second.goalsHome != null && second.goalsAway != null;
   if (secondDone) {
     const agg = aggregateFromMatches(matches);
+    const hasPenalties = tie.penaltiesHome != null && tie.penaltiesAway != null;
     return {
       stage: "final",
       aggregate: agg ? { teamA: agg.totalA, teamB: agg.totalB } : null,
-      penalties: null,
-      advancingTeamId: tie.qualifiedTeamId || null,
+      // Team-keyed, never leg/home-away-keyed — see comment above.
+      penalties: hasPenalties ? { teamA: tie.penaltiesHome, teamB: tie.penaltiesAway } : null,
+      advancingTeamId: tie.penaltiesWinnerTeamId || tie.qualifiedTeamId || null,
     };
   }
   if (liveLeg2Goals && liveLeg2Goals.goalsHome != null && liveLeg2Goals.goalsAway != null) {
@@ -730,7 +750,7 @@ function tieProgressDisplay(tie, phaseFormat, liveLeg2Goals) {
     return {
       stage: "second-leg-live",
       aggregate: { teamA: first.goalsHome + liveLeg2Goals.goalsAway, teamB: first.goalsAway + liveLeg2Goals.goalsHome },
-      penalties: null,
+      penalties: null, // penalties are never relevant before the tie is actually decided
       advancingTeamId: null,
     };
   }
@@ -2032,8 +2052,21 @@ function renderGamesSection() {
           }</div>
         </div>`;
       };
+      // Football-hardening checkpoint E: match score (in legCardHtml above), aggregate,
+      // penalties, and advancing team are rendered as STRUCTURALLY SEPARATE elements — each its
+      // own <span data-visual-role="..."> — never concatenated into one combined number. This is
+      // the exact bug class ("6x5" instead of "aggregate 1x1 + penalties 5x4") this checkpoint
+      // exists to prevent; see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md.
       const resultLine = progress && progress.stage === "final" && progress.advancingTeamId
-        ? `<div class="tie-group__result">${progress.aggregate ? `${esc(t("gamesAggregate"))}: <b>${progress.aggregate.teamA} × ${progress.aggregate.teamB}</b> — ` : ""}${esc(t("gamesAdvances"))}: ${esc(progress.advancingTeamId === "A" ? tie.teamA : tie.teamB)}</div>`
+        ? `<div class="tie-group__result">${
+            progress.aggregate
+              ? `<span class="tie-group__aggregate" data-visual-role="tie-aggregate">${esc(t("gamesAggregate"))}: <b>${progress.aggregate.teamA} × ${progress.aggregate.teamB}</b></span>`
+              : ""
+          }${
+            progress.penalties
+              ? ` <span class="tie-group__penalties" data-visual-role="tie-penalties">${esc(t("gamesPenalties"))}: <b>${progress.penalties.teamA} × ${progress.penalties.teamB}</b></span>`
+              : ""
+          } — <span class="tie-group__advances" data-visual-role="tie-advances">${esc(t("gamesAdvances"))}: ${esc(progress.advancingTeamId === "A" ? tie.teamA : tie.teamB)}</span></div>`
         : "";
       return `<div class="tie-group" data-visual-role="tie-group">
         <div class="tie-group__header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
@@ -3542,7 +3575,11 @@ function renderAdminResultsForTie(phase, tieId, tie) {
       <span class="leg-label">${esc(t("aggregatePreview"))}</span>
       <span class="leg-teams-admin">${totalA} × ${totalB}</span>
       ${tied
-        ? `<select class="adm-qualified" aria-label="${esc(t("pickQualifiedLabel"))}">
+        ? `<span class="admin-tie-penalties-inputs" data-visual-role="admin-penalties-input">
+             <label>${esc(t("gamesPenalties"))} ${esc(tie.teamA)}: <input type="number" min="0" class="adm-penalties-home" style="width:3.5em"></label>
+             <label>${esc(t("gamesPenalties"))} ${esc(tie.teamB)}: <input type="number" min="0" class="adm-penalties-away" style="width:3.5em"></label>
+           </span>
+           <select class="adm-qualified" aria-label="${esc(t("pickQualifiedLabel"))}">
              <option value="">${esc(t("pickSelectAdvance"))}</option>
              <option value="A">${esc(tie.teamA)}</option>
              <option value="B">${esc(tie.teamB)}</option>
@@ -3630,9 +3667,29 @@ function renderAdminResults(s) {
     const totalA = parseInt(btn.dataset.totalA, 10), totalB = parseInt(btn.dataset.totalB, 10);
     const block = box.querySelector(`[data-tie-block="${tieId}"]`);
     let qualified;
+    // Football-hardening checkpoint E: optional penalty-score entry, ONLY shown/read when the
+    // aggregate is tied (totalA === totalB). Purely additive — if left blank, behavior is
+    // byte-for-byte identical to before (qualified from the dropdown, no penalty fields at all).
+    let penaltiesHome = null, penaltiesAway = null, penaltiesWinnerTeamId = null;
     if (totalA === totalB) {
       qualified = block.querySelector(".adm-qualified")?.value;
       if (!qualified) { alert(t("errorAdminAdvanceRequired")); return; }
+      const penHomeRaw = block.querySelector(".adm-penalties-home")?.value;
+      const penAwayRaw = block.querySelector(".adm-penalties-away")?.value;
+      if (penHomeRaw !== "" && penAwayRaw !== "" && penHomeRaw != null && penAwayRaw != null) {
+        const ph = parseInt(penHomeRaw, 10), pa = parseInt(penAwayRaw, 10);
+        if (!Number.isNaN(ph) && !Number.isNaN(pa) && ph !== pa) {
+          penaltiesHome = ph; penaltiesAway = pa;
+          // Team-keyed (A/B), never leg-home/away-keyed — same guarantee as tieProgressDisplay().
+          penaltiesWinnerTeamId = ph > pa ? "A" : "B";
+          if (penaltiesWinnerTeamId !== qualified) {
+            // The dropdown and the penalty scores disagree on who advances — refuse to save
+            // silently-inconsistent data; the admin must reconcile which one is right.
+            alert(t("errorAdminAdvanceRequired"));
+            return;
+          }
+        }
+      }
     } else {
       qualified = totalA > totalB ? "A" : "B";
     }
@@ -3642,8 +3699,13 @@ function renderAdminResults(s) {
     s2.phases[phaseId].ties[tieId].qualifiedTeamId = qualified;
     s2.phases[phaseId].ties[tieId].lockedAt = lockedAt;
     s2.phases[phaseId].ties[tieId].lockedBy = "admin";
-    appendAdminAuditLog(s2, "lock-tie", { phase: phaseId, tieId, qualifiedTeamId: qualified, totalA, totalB });
-    saveState(s2, { mutation: { type: "lock-tie", phaseId, tieId, qualifiedTeamId: qualified, lockedAt, lockedBy: "admin" } });
+    if (penaltiesHome != null) {
+      s2.phases[phaseId].ties[tieId].penaltiesHome = penaltiesHome;
+      s2.phases[phaseId].ties[tieId].penaltiesAway = penaltiesAway;
+      s2.phases[phaseId].ties[tieId].penaltiesWinnerTeamId = penaltiesWinnerTeamId;
+    }
+    appendAdminAuditLog(s2, "lock-tie", { phase: phaseId, tieId, qualifiedTeamId: qualified, totalA, totalB, penaltiesHome, penaltiesAway });
+    saveState(s2, { mutation: { type: "lock-tie", phaseId, tieId, qualifiedTeamId: qualified, lockedAt, lockedBy: "admin", penaltiesHome, penaltiesAway, penaltiesWinnerTeamId } });
     showToast(t("resultsSaved"), "success");
   }));
   box.querySelectorAll("[data-unlock-tie]").forEach(btn => btn.addEventListener("click", () => {
