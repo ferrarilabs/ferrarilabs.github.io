@@ -7,8 +7,9 @@
 // a multi-cota participant still gets exactly one email because eligibility is
 // computed on the participant list, not on cotas.
 
+import fs from "node:fs";
 import { loadDrawSnapshot } from "./snapshot.mjs";
-import { validateTicketPublication, eligibleRecipients } from "./validate.mjs";
+import { validateTicketPublication, eligibleRecipients, validateAttachmentsAndLinks } from "./validate.mjs";
 import { buildTicketPublicationPayload, manifestToCsv } from "./payload.mjs";
 import { renderTicketPublicationSubject, renderTicketPublicationHtml, renderTicketPublicationText } from "./render.mjs";
 import { enqueueEmailJob, recordEmailResult, idempotencyKeyForPublication } from "./outbox.mjs";
@@ -40,6 +41,20 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
 
   const validation = validateTicketPublication({ draw, participants: eligible, tickets });
   if (!validation.ok) return { ok: false, errors: validation.errors, invalidRecipients: validation.invalidRecipients };
+
+  // Production attachment/link gate (Eduardo, round 4) — applies to REAL
+  // sends only. The fixture-driven admin test path intentionally uses
+  // example.invalid as a documented placeholder and must not be blocked by
+  // this; a real (non-test) send with the same placeholder MUST be blocked.
+  if (!testMode) {
+    const attachmentCheck = validateAttachmentsAndLinks(
+      { proofUrl, attachments: [] }, // real attachment wiring (PDF/CSV/JSON URLs or file paths) is not yet built — see POWERBALL_EMAIL_OPERATIONS_RUNBOOK.md
+      (p) => fs.existsSync(p)
+    );
+    if (!attachmentCheck.ok) {
+      return { ok: false, errors: attachmentCheck.errors, blockedBy: "validateAttachmentsAndLinks" };
+    }
+  }
 
   // Correction path: never send from a typed description disconnected from
   // the data — the diff must be real, and if nothing actually changed we
