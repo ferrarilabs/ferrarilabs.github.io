@@ -1,8 +1,105 @@
 # Powerball Email — Operations Runbook
 
-Status as of this branch: **implemented and test-gated, NOT activated for
-production.** No production trigger is wired up; every send so far used
-`--test` with the real recipient forced to `emferrari@gmail.com`.
+Status as of 2026-08-05: **Flow A (participant confirmation) activated for a
+one-time authorized backfill** — 13 real participants of draw `2026-08-05`
+were sent their confirmation email (see "2026-08-05 backfill send" below).
+Flow B (ticket publication) remains NOT activated — no real publish has been
+performed, and the production attachment/link gate currently blocks it by
+design (no attachment pipeline wired up yet).
+
+## PENDING DEFECT — EmailJS static subject prefix (not blocking, tracked)
+
+**Symptom**: every email sent through EmailJS template `template_xq7yzzb`
+arrives with a static `"Bolão do Ferrari - "` prefix prepended to the
+subject this codebase sends, even after Eduardo edited the dashboard's
+Subject field to `{{entry_name}}` on 2026-08-05.
+
+- **templateId**: `template_xq7yzzb` (the only template this pipeline ever
+  uses, for all three flows — participant-added, tickets-published,
+  tickets-corrected). `js/config.js`'s other template,
+  `adminTemplateId: "template_4sgp5r9"`, is never referenced by this
+  pipeline.
+- **serviceId**: `service_o4hyzxr`.
+- **publicKey (masked)**: `GBZFu...v0fG5`.
+- **Tests performed**: multiple fresh diagnostic sends across several
+  rounds, each immediately cross-checked against the actual delivered Gmail
+  message (not assumed from `providerStatus:200`).
+- **Subjects sent vs. received** (representative sample, most recent
+  checks):
+  - Sent: `[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET`
+    Received (Gmail msg `19fd429802174c99`, 2026-08-05T23:01:57Z): `Bolão do Ferrari - [TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET`
+  - Sent (after Eduardo's dashboard edit, re-verified): same pattern —
+    Received (Gmail msg `19fd42bfc2ccc4f9`, 2026-08-05T23:04:40Z): still prefixed.
+  - Sent (final pre-real-send test): `✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET [TESTE ADMIN]`
+    Received (Gmail msg `19fd432e4fe5050b`, 2026-08-05T23:12:12Z): `Bolão do Ferrari - ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET [TESTE ADMIN]`
+  - Real sends (13, 2026-08-05T23:12–23:13Z) all carry the same prefix per
+    spot-check (Gmail msg `19fd43389b3248a1`, to Alan Rech).
+- **Best-guess likely cause** (cannot be confirmed without dashboard
+  access, which this codebase does not have): either (a) the edit was
+  applied to a different template than `template_xq7yzzb` (e.g. a
+  duplicate/staging copy, or `template_4sgp5r9` by mistake), (b) the edit
+  didn't save, or (c) EmailJS account/workspace-level subject prefixing
+  (some EmailJS plans/settings apply an account-wide subject template
+  wrapper independent of the per-template Subject field) — this last
+  possibility would mean no per-template dashboard edit can remove it, and
+  it would need to be checked in EmailJS's account-level settings, not the
+  template editor.
+- **Status**: accepted as a known, non-blocking cosmetic defect for the
+  2026-08-05 send per Eduardo's explicit authorization. Not fixed in this
+  codebase because there is nothing in this codebase producing that text —
+  confirmed by grepping the entire `scripts/email/` directory for the
+  string `"Bolão do Ferrari"` (zero matches outside this doc).
+- **Next step**: Eduardo to check EmailJS account-level subject settings (not
+  just the template editor) for `template_xq7yzzb`, or contact EmailJS
+  support with the message IDs above as evidence of the discrepancy.
+
+## 2026-08-05 backfill send — record
+
+Explicit literal authorization ("APROVADO") relayed from Eduardo via the
+coordinator. Script: `scripts/email/send_participant_confirmation_backfill.mjs`
+(new, one-time-use — sends to every current eligible participant of a draw
+who hasn't received a confirmation yet, not the per-add trigger).
+
+- Draw: `2026-08-05`.
+- Financial reconciliation (real data, computed at send time):
+  `totalArrecadado` $148.00 + `creditoSorteioAnterior` $16.00 = `totalPaid`
+  $164.00; `totalSpent` (valorUtilizado) $162.00 + `remainingBalance`
+  (valorGuardadoProximoSorteio) $2.00 = $164.00. **Difference: $0.00 exactly.**
+  Also confirmed: sum of all 15 participants' individual `valor` fields
+  ($148.00) matches `totalArrecadado` exactly — no inconsistent amounts.
+- Eligibility: 15 total participants → 13 eligible, 2 excluded
+  (`Jorge Augusto Junqueira Ferreira`, `Marcelo Minghetti Pereira` — both
+  `INVALID_EMAIL`, literal `"—"` in `js/data.js`). Zero duplicate emails,
+  zero duplicate participant names, zero state-unsupported blocks among the
+  13 eligible (all NC or FL).
+- Pre-send verification: one full production-shaped test to
+  `emferrari@gmail.com` (real participant data — Gustavo Bossle's record —
+  production subject + `[TESTE ADMIN]` appended, production HTML with no
+  test banner) was sent and its actual delivered content fetched from Gmail
+  and inspected line-by-line: correct name, cotas ("1 cota de 15 cotas"),
+  values, dates (friendly + technical), jackpot ($786,000,000.00), cash
+  option, lump sum, annuity, and a real `https://ferrarilabs.github.io/...`
+  link — no placeholders, no localhost. Only defect: the accepted
+  "Bolão do Ferrari - " prefix (see above).
+- Real send: 13 individual EmailJS calls (one recipient per call, no CC, no
+  batch/collective recipient), 1200ms throttle between sends,
+  `providerStatus:200` / `ok:true` for all 13, 0 failures, 0 retries needed.
+  Ledger written immediately after each send to
+  `~/Desktop/powerball-confirmation-send-2026-08-05.json` (private, outside
+  the git working tree, never committed — verified via `git check-ignore`
+  reporting the path as outside the repository entirely).
+- Idempotency key pattern used:
+  `powerball:participant-confirmation-backfill:v1:{participantId}` — a
+  second run of this script for the same draw will skip everyone already
+  marked `"sent"` in that ledger file.
+- Spot-checked 2 of the 13 real deliveries directly in Gmail (Gustavo
+  Bossle's full body content, Alan Rech's subject/recipient) — both correct
+  except for the accepted prefix.
+
+## Prior status (pre-backfill)
+
+Everything below describes the general architecture; the "not activated"
+framing for Flow A is now superseded by the 2026-08-05 backfill above.
 
 ## Triggers (once activated)
 
