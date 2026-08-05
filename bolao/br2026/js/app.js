@@ -2047,18 +2047,25 @@ function renderGamesSection() {
       // values as before — only the WRAPPING element/slot changed, not these three states'
       // look). statusHtml is unchanged (still .game-status, still lives in the new
       // .game-card__header/__status slot below, instead of being merged into game-meta).
+      // Structural auditor finding (bolao/scripts/audit_structural_parity.mjs), fixed here:
+      // scoreOrTime previously carried ONLY its state-specific class (.game-score-live/
+      // .game-score-final/.game-time) — never the canonical .game-card__score class Copa/
+      // CDB2026's center slot uses, making this element structurally invisible to any check (or
+      // future shared CSS rule) keyed on .game-card__score. Now dual-classed: the state-specific
+      // class is kept (distinct typography/color per state, unchanged), .game-card__score is
+      // added alongside it.
       let scoreOrTime, statusHtml;
       if (g.postponed) {
-        scoreOrTime = `<span class="game-time muted">—</span>`;
+        scoreOrTime = `<span class="game-card__score game-time muted">—</span>`;
         statusHtml  = `<span class="game-status postponed">${esc(t("gamePostponed"))}</span>`;
       } else if (g.state === "in") {
-        scoreOrTime = `<span class="game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        scoreOrTime = `<span class="game-card__score is-live game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status live">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
       } else if (g.state === "post") {
-        scoreOrTime = `<span class="game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
+        scoreOrTime = `<span class="game-card__score game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status post">${esc(t("gameFinal"))}</span>`;
       } else {
-        scoreOrTime = `<span class="game-time">${esc(timeStrFull)} BRT</span>`;
+        scoreOrTime = `<span class="game-card__score game-time">${esc(timeStrFull)} BRT</span>`;
         statusHtml  = `<span class="game-status pre">${esc(timeStr)} BRT</span>`;
       }
 
