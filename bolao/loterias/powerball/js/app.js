@@ -61,7 +61,7 @@
     var el = document.getElementById("pbSummary");
     el.innerHTML = [
       [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"],
-      [totalCotas, "Cotas (US$20 cada)"],
+      [totalCotas, "Cotas (US$10 cada)"],
       [draw.participants.length, "Participantes"],
       [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
       [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
