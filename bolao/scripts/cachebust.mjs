@@ -99,6 +99,20 @@ function rewriteTags(html, tag, files = CRITICAL_FILES) {
  * Runs the check (or write) for a single app's index.html.
  * Returns { app, ok, wrote, expected, found, staleFiles }.
  */
+// Football-hardening checkpoint G: the <meta name="build-id"> tag (read by
+// bolao/shared/js/freshness-guard.js) must carry the SAME value as the `?v=` cache-bust tags —
+// one source of truth, not two independently-maintained values that could drift.
+const BUILD_ID_META_RE = /(<meta name="build-id" content=")([a-f0-9]*)(")/;
+
+function currentBuildIdMeta(html) {
+  const m = BUILD_ID_META_RE.exec(html);
+  return m ? m[2] : null;
+}
+
+function rewriteBuildIdMeta(html, tag) {
+  return html.replace(BUILD_ID_META_RE, `$1${tag}$3`);
+}
+
 function checkApp(app, { write = false, bolaoRoot = DEFAULT_BOLAO_ROOT } = {}) {
   const root = appRoot(app, bolaoRoot);
   const indexPath = join(root, "index.html");
@@ -106,32 +120,73 @@ function checkApp(app, { write = false, bolaoRoot = DEFAULT_BOLAO_ROOT } = {}) {
   const expected = computeAppTag(app, bolaoRoot);
   const found = currentTags(html, CRITICAL_FILES);
   const staleFiles = CRITICAL_FILES.filter(f => found[f] !== expected);
+  const hasMeta = BUILD_ID_META_RE.test(html);
+  const metaStale = hasMeta && currentBuildIdMeta(html) !== expected;
 
-  if (!staleFiles.length) {
+  if (!staleFiles.length && !metaStale) {
     return { app, ok: true, wrote: false, expected, found, staleFiles: [] };
   }
 
   if (write) {
-    const updated = rewriteTags(html, expected, CRITICAL_FILES);
+    let updated = rewriteTags(html, expected, CRITICAL_FILES);
+    if (hasMeta) updated = rewriteBuildIdMeta(updated, expected);
     writeFileSync(indexPath, updated);
 
     // Only announce success after: (1) writing, (2) re-reading independently from disk (not
     // reusing the in-memory `updated` string), (3) re-validating, (4) confirming all five assets
-    // carry the expected tag. A write that "looks right" in memory but didn't land must not be
-    // reported as success.
+    // AND the build-id meta tag carry the expected tag. A write that "looks right" in memory but
+    // didn't land must not be reported as success.
     const rewrittenHtml = readFileSync(indexPath, "utf8");
     const verifyTags = currentTags(rewrittenHtml, CRITICAL_FILES);
     const stillStale = CRITICAL_FILES.filter(f => verifyTags[f] !== expected);
-    return { app, ok: stillStale.length === 0, wrote: true, expected, found: verifyTags, staleFiles: stillStale };
+    const metaStillStale = hasMeta && currentBuildIdMeta(rewrittenHtml) !== expected;
+    return { app, ok: stillStale.length === 0 && !metaStillStale, wrote: true, expected, found: verifyTags, staleFiles: stillStale, metaStillStale };
   }
 
-  return { app, ok: false, wrote: false, expected, found, staleFiles };
+  return { app, ok: false, wrote: false, expected, found, staleFiles, metaStale };
+}
+
+/**
+ * Football-hardening checkpoint G: build-version.json — the SAME computeAppTag() value already
+ * used for the `?v=` cache-bust query string, now also published as a small JSON file each app
+ * fetches with `cache: "no-store"` (bolao/shared/js/freshness-guard.js) to detect a stale page
+ * without depending on the browser ever revalidating the cached index.html on its own. Reusing
+ * computeAppTag() here — rather than inventing a second, separate "build id" concept — means
+ * there is exactly one source of truth for "which build is this," never two values that could
+ * drift from each other.
+ */
+function buildVersionPath(app, bolaoRoot = DEFAULT_BOLAO_ROOT) {
+  return join(appRoot(app, bolaoRoot), "build-version.json");
+}
+
+function writeBuildVersion(app, bolaoRoot = DEFAULT_BOLAO_ROOT) {
+  const buildId = computeAppTag(app, bolaoRoot);
+  const path = buildVersionPath(app, bolaoRoot);
+  const payload = { buildId, generatedAt: new Date().toISOString() };
+  writeFileSync(path, JSON.stringify(payload, null, 2) + "\n");
+  // Verify from disk, same discipline as checkApp()'s post-write verification below.
+  const reread = JSON.parse(readFileSync(path, "utf8"));
+  return { app, ok: reread.buildId === buildId, buildId, path };
+}
+
+function checkBuildVersion(app, bolaoRoot = DEFAULT_BOLAO_ROOT) {
+  const expected = computeAppTag(app, bolaoRoot);
+  const path = buildVersionPath(app, bolaoRoot);
+  let published = null;
+  try {
+    published = JSON.parse(readFileSync(path, "utf8")).buildId;
+  } catch {
+    return { app, ok: false, expected, published: null, reason: "build-version.json missing or unreadable" };
+  }
+  return { app, ok: published === expected, expected, published };
 }
 
 export {
   CRITICAL_FILES, APPS, DEFAULT_BOLAO_ROOT,
   appRoot, computeTagFromFiles, computeAppTag,
   escapeRe, tagRegex, currentTags, rewriteTags, checkApp,
+  buildVersionPath, writeBuildVersion, checkBuildVersion,
+  currentBuildIdMeta, rewriteBuildIdMeta,
 };
 
 // ── CLI ──────────────────────────────────────────────────────────────────────────────────────
@@ -157,6 +212,17 @@ function main(argv = process.argv.slice(2)) {
       const verb = write ? "WRITE FAILED post-write verification" : "CACHE-BUST STALE";
       console.error(`✗ [${app}] ${verb} — expected ${result.expected}, stale: ${result.staleFiles.join(", ")}`);
       for (const f of result.staleFiles) console.error(`    ${f}: has ${result.found[f] ?? "(no ?v= found)"}`);
+    }
+
+    // build-version.json: always kept in sync alongside the index.html tag (same buildId).
+    if (write) {
+      const bv = writeBuildVersion(app, bolaoRoot);
+      if (bv.ok) console.log(`✓ [${app}] build-version.json written and verified (${bv.buildId})`);
+      else { allOk = false; console.error(`✗ [${app}] build-version.json WRITE FAILED verification`); }
+    } else {
+      const bv = checkBuildVersion(app, bolaoRoot);
+      if (bv.ok) console.log(`✓ [${app}] build-version.json up to date (${bv.expected})`);
+      else { allOk = false; console.error(`✗ [${app}] build-version.json STALE/MISSING — expected ${bv.expected}, published ${bv.published ?? bv.reason}`); }
     }
   }
   if (!allOk && !write) {

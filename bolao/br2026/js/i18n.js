@@ -172,6 +172,7 @@ window.BR2026_I18N = {
     adminWrongPassword: "Senha incorreta. {n} tentativa(s) restante(s).",
     adminLocked: "Admin bloqueado por {min} minuto(s) após muitas tentativas erradas.",
     adminLockedNow: "Muitas tentativas. Admin bloqueado por {min} minutos.",
+    adminStaleBuildBlocked: "Página desatualizada — atualize antes de salvar.",
     logout: "Sair",
     adminPayments: "Pagamentos",
     adminResults: "Resultado final",

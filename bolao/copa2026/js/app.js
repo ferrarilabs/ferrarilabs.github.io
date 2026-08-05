@@ -614,12 +614,22 @@ function isAdminActive() {
 }
 
 function guardAdmin() {
-  if (isAdminActive()) return true;
-  sessionStorage.removeItem("adminOk"); sessionStorage.removeItem("adminUntil");
-  $("#adminArea")?.classList.add("hidden");
-  $("#adminLogin")?.classList.remove("hidden");
-  showToast(t("adminExpired"), "warn");
-  return false;
+  if (!isAdminActive()) {
+    sessionStorage.removeItem("adminOk"); sessionStorage.removeItem("adminUntil");
+    $("#adminArea")?.classList.add("hidden");
+    $("#adminLogin")?.classList.remove("hidden");
+    showToast(t("adminExpired"), "warn");
+    return false;
+  }
+  // Football-hardening checkpoint G: block admin writes on a CONFIRMED stale build (never on
+  // "unknown" — see freshness-guard.js's own isConfirmedFreshForAdmin() comment — an admin who
+  // is mid-session while the very first background check hasn't resolved yet, or briefly
+  // offline, must not be locked out; only a definite stale confirmation blocks).
+  if (window.FreshnessGuard && window.FreshnessGuard.state.fresh === false) {
+    showToast(t("adminStaleBuildBlocked") || "Página desatualizada — atualize antes de salvar.", "warn");
+    return false;
+  }
+  return true;
 }
 
 function extendAdmin() {
@@ -4943,6 +4953,6 @@ window.Bolao = { openReceipt, downloadReceipt, showSection };
 
 })();
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/bolao/copa2026/sw.js').catch(() => {});
-}
+// Football-hardening checkpoint G: no longer registers a service worker (zero-stale-cache
+// policy — see bolao/shared/js/freshness-guard.js, loaded in index.html, which unregisters any
+// existing registration and clears Cache API entries on every load instead).

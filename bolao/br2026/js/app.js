@@ -209,7 +209,16 @@ let _loginAttempts  = Number(sessionStorage.getItem("br2026_loginAttempts") || 0
 let _loginLockUntil = Number(sessionStorage.getItem("br2026_loginLockUntil") || 0);
 
 function isAdminActive() { return Number(sessionStorage.getItem("br2026_adminUntil") || 0) > Date.now(); }
-function guardAdmin() { if (isAdminActive()) return true; showSection("admin"); return false; }
+// Football-hardening checkpoint G: block admin writes on a CONFIRMED stale build only (never on
+// "unknown" — see freshness-guard.js's isConfirmedFreshForAdmin() comment).
+function guardAdmin() {
+  if (!isAdminActive()) { showSection("admin"); return false; }
+  if (window.FreshnessGuard && window.FreshnessGuard.state.fresh === false) {
+    showToast(t("adminStaleBuildBlocked"), "warn");
+    return false;
+  }
+  return true;
+}
 
 // ─── Admin action safety: triple confirmation + audit journal ───────────────────────────────
 // Eduardo, 2026-07-16: "make sure there's triple confirmation if I click incorrectly it can be
@@ -3213,9 +3222,9 @@ init();
 
 })();
 
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('/bolao/sw.js').catch(() => {});
-}
+// Football-hardening checkpoint G: no longer registers a service worker (zero-stale-cache
+// policy — see bolao/shared/js/freshness-guard.js, loaded in index.html, which unregisters any
+// existing registration and clears Cache API entries on every load instead).
 
 // Reload when a new deploy is detected — on tab focus and every 10 min
 (function startVersionPolling() {

@@ -4,11 +4,19 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
+  <!-- Football-hardening checkpoint G: zero-stale-cache policy. build-id must stay the SAME
+       value bolao/scripts/cachebust.mjs write / bolao/br2026/build-version.json publish —
+       kept in sync by that same command, never edited by hand. -->
+  <meta name="build-id" content="23b1ba830e31">
+  <script src="../shared/js/freshness-guard.js"></script>
   <meta name="description" content="Bolão Brasileirão 2026 — palpites de G4 e Z4 com ranking ao vivo.">
+  <!-- Football-hardening checkpoint C2/G: site.api.espn.com removed from connect-src —
+       checkpoint C2 eliminated every direct browser->ESPN fetch (verified by grep, 0 references
+       remain in js/app.js); that host was a dead CSP allowance. -->
   <meta http-equiv="Content-Security-Policy" content="
     default-src 'self';
     script-src 'self' https://cdn.jsdelivr.net;
-    connect-src 'self' https://api.emailjs.com https://*.supabase.co https://site.api.espn.com;
+    connect-src 'self' https://api.emailjs.com https://*.supabase.co;
     img-src 'self' data: https://a.espncdn.com;
     style-src 'self' 'unsafe-inline';
     worker-src 'self';
@@ -25,17 +33,17 @@
   <link rel="stylesheet" href="../shared/css/forms.css">
   <link rel="stylesheet" href="../shared/css/admin.css">
   <link rel="stylesheet" href="../shared/css/responsive.css">
-  <link rel="stylesheet" href="css/styles.css?v=a2f75b9577bb">
+  <link rel="stylesheet" href="css/styles.css?v=23b1ba830e31">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
           integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
           crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous"></script>
-  <script src="js/config.js?v=a2f75b9577bb"></script>
-  <script src="js/data.js?v=a2f75b9577bb"></script>
-  <script src="js/i18n.js?v=a2f75b9577bb"></script>
-  <script defer src="js/app.js?v=a2f75b9577bb"></script>
+  <script src="js/config.js?v=23b1ba830e31"></script>
+  <script src="js/data.js?v=23b1ba830e31"></script>
+  <script src="js/i18n.js?v=23b1ba830e31"></script>
+  <script defer src="js/app.js?v=23b1ba830e31"></script>
 </head>
 <body>
 <a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
