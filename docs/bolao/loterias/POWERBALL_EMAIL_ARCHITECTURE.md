@@ -85,6 +85,47 @@ Retrying an existing key returns the original frozen `payloadSnapshot`
 unchanged (see `outbox.mjs::enqueueEmailJob`) — a second run never recomputes
 or resends.
 
+## Round 2 (post-rejection fixes)
+
+Eduardo rejected round 1's three test emails: a percentage mismatch between
+templates (7.14% vs. 100% for "the same" participation), an unreconciled
+financial summary (usado+saldo > arrecadado), and a correction email
+describing a ticket change that hadn't actually happened. Root cause: the
+three templates were being built from different, non-reconciling snapshots
+(in one case, the real production `js/data.js` draw, whose own finance
+fields don't reconcile — see `POWERBALL_PII_AUDIT.md` is unrelated, but see
+below).
+
+Fixes:
+
+- `scripts/email/fixtures/powerball-email-test-fixture.json` — one
+  internally-consistent synthetic fixture, validated by
+  `fixture.mjs::validateFixtureConsistency` before anything renders from it.
+  All three flows for test/preview purposes now build from this single file
+  via `run_fixture_test_sends.mjs`, not from the real (currently
+  non-reconciling) `js/data.js` draw.
+- `validate.mjs::validateFinancialReconciliation` — hard gate:
+  `totalArrecadado` must equal `valorUtilizado + saldoReservado + reembolso +
+  outrasDestinacoes` exactly, or publication is blocked.
+- `validate.mjs::validateCrossTemplateConsistency` — compares
+  confirmation/publication/correction payloads for the same draw and blocks
+  if `totalShares`, `drawDateLabel`, `jackpot`, or `drawId` diverge.
+- `diff.mjs::computeTicketDiff` — the only source of "what changed" for a
+  correction email; a correction with zero real ticket differences is
+  blocked entirely ("Não existem diferenças entre as versões...").
+- `payload.mjs` field names normalized to `totalShares`/`participantShares`/
+  `participantPercentage` (always computed, never passed as a literal) so
+  the same computation path is used everywhere.
+
+Note on the real production draw: `js/data.js`'s `2026-08-05` draw's own
+`finance` object does not reconcile (`totalArrecadado: 138` vs.
+`valorUtilizado: 153` + `saldoReservado: 1` = 154). This is a pre-existing
+data-entry issue in the production data, now correctly caught by the new
+reconciliation gate rather than silently propagated into an email — flagged
+here for Eduardo to fix in `js/data.js` separately; not touched in this
+branch since fixing production participant financial data is out of scope
+for the email-flow work and was not requested.
+
 ## Known limitation (flagged, not fixed silently)
 
 The spec's mobile-preview PNGs were captured via the `claude-in-chrome` tool;
