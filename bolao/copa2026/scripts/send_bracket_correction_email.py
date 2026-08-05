@@ -77,6 +77,7 @@ ROUTING = {
     "Ewerton":             ("REDACTED_EMAIL", ""),
     "<participant>": ("REDACTED_EMAIL",   ""),
     "Vinicius":            ("REDACTED_EMAIL", ""),
+    "Rodrigo Hajj":        ("REDACTED_EMAIL", ""),
 }
 
 # ── Supabase ──────────────────────────────────────────────────────────────────
