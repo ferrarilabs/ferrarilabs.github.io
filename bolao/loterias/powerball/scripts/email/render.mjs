@@ -136,31 +136,51 @@ function ticketPlainLine(ticket, powerPlay) {
   return `${nums} | Powerball: ${ticket.special} | Power Play: ${powerPlay ? "Sim" : "Não"}`;
 }
 
-// HTML ball row. Two layers, both always present:
-//  1. A literal text line matching ticketPlainLine EXACTLY (same string,
-//     same "Powerball: N" label) — this is what remains if the client
-//     strips every tag/style, so the Powerball number is NEVER a bare
-//     unlabeled digit relying on red color or trailing position to be
-//     understood.
-//  2. On top of that, a table-cell + circle visual treatment (light cells
-//     for the five white balls, red cell explicitly following a "Powerball:"
-//     text label, not a loose number) for clients that do honor inline
-//     styles.
+// HTML ball row — Powerball-style circles, restored per Eduardo's request.
+// Searched git history (this branch's earlier commits, and the separate
+// powerball-professionalization-audit branch's "email outbox/pipeline/
+// worker" reference implementation and its docs/bolao/loterias/evidence/
+// email-previews/*.html) for a prior, richer ball-circle implementation to
+// reuse — none was found (that branch's preview HTML has no ball rendering
+// at all, just a plain-text summary). This is a fresh implementation, not a
+// restore of literal prior code, built to the exact spec given this round.
+//
+// Design:
+//  - Every ball is a FIXED width==height table cell (not padding-driven, so
+//    circles stay circular regardless of digit count) with border-radius:50%
+//    on both the <td> and an inner <div>, for maximum client compatibility
+//    (some clients honor border-radius on td, others only on a nested div —
+//    setting it on both costs nothing and covers either case).
+//  - Five white balls: light gray fill, subtle border, dark bold text.
+//  - Powerball: larger cell, solid red fill, white bold text — visually the
+//    most prominent circle in the row, always in the same row as the five
+//    white balls, never trailing loose text.
+//  - No text label is layered on the numbers themselves (the spec asked for
+//    the visual design to be primary, not accompanied by a redundant label);
+//    "Power Play" gets its own small line below the circle row instead.
+//  - No duplicate plain-text fallback line under the circles anymore (moved
+//    to text/plain only, per this round's point 1) — the table-cell
+//    structure IS the fallback: if a client strips every style (border,
+//    radius, background, color), what's left is six plain table cells
+//    reading left to right in order — five numbers, then the Powerball
+//    number — still legible, still in the right sequence, never garbled.
+const BALL_SIZE = 32;
+const PB_BALL_SIZE = 36;
+function ballCellHtml(value, { size, background, color, border }) {
+  const radius = "50%";
+  return `<td style="width:${size}px;height:${size}px;min-width:${size}px;border-radius:${radius};background:${background};text-align:center;vertical-align:middle;padding:0;">` +
+    `<div style="width:${size}px;height:${size}px;line-height:${size}px;border-radius:${radius};background:${background};` +
+    `${border ? `border:1px solid ${border};` : ""}color:${color};font-size:13px;font-weight:bold;text-align:center;font-family:Arial,Helvetica,sans-serif;">${value}</div>` +
+    `</td>`;
+}
 function ballsRowHtml(ticket, powerPlay) {
   const nums = ticket.numbers.slice().sort((a, b) => a - b);
-  const numCells = nums.map((n, i) => {
-    const cell = `<td style="padding:0 2px;text-align:center;"><span style="display:inline-block;min-width:24px;padding:4px 6px;border-radius:50%;background:#f0f0f0;border:1px solid #ccc;font-size:13px;font-weight:bold;">${n}</span></td>`;
-    return i < nums.length - 1 ? cell + `<td style="padding:0 4px;color:#999;font-size:13px;">·</td>` : cell;
-  }).join("");
-  const pbLabelCell = `<td style="padding:0 4px 0 10px;color:#666;font-size:12px;white-space:nowrap;">| Powerball:</td>`;
-  const pbCell = `<td style="padding:0 2px;text-align:center;"><span style="display:inline-block;min-width:24px;padding:4px 6px;border-radius:50%;background:${RED};color:#fff;font-size:13px;font-weight:bold;">${ticket.special}</span></td>`;
-  const ppCell = `<td style="padding:0 2px 0 10px;color:#666;font-size:12px;white-space:nowrap;">| Power Play: ${powerPlay ? "Sim" : "Não"}</td>`;
-  const visualTable = `<table role="presentation" cellpadding="0" cellspacing="0"><tr>${numCells}${pbLabelCell}${pbCell}${ppCell}</tr></table>`;
-  // Literal fallback line, identical text to ticketPlainLine — kept as real
-  // text content (not a CSS ::before/content trick, which some clients also
-  // strip), in a small muted line under the visual row for redundancy.
-  const fallbackLine = `<div style="font-size:11px;color:#999;margin-top:2px;">${esc(ticketPlainLine(ticket, powerPlay))}</div>`;
-  return visualTable + fallbackLine;
+  const spacerCell = `<td style="width:6px;min-width:6px;">&nbsp;</td>`;
+  const numCells = nums.map((n) => ballCellHtml(n, { size: BALL_SIZE, background: "#f2f2f2", color: "#1a1a1a", border: "#cccccc" }) + spacerCell).join("");
+  const pbCell = ballCellHtml(ticket.special, { size: PB_BALL_SIZE, background: RED, color: "#ffffff" });
+  const circleRow = `<table role="presentation" cellpadding="0" cellspacing="0" style="border-collapse:collapse;"><tr>${numCells}${pbCell}</tr></table>`;
+  const powerPlayLine = `<div style="font-size:11px;color:#666;margin-top:4px;">Power Play: <strong>${powerPlay ? "Sim" : "Não"}</strong></div>`;
+  return circleRow + powerPlayLine;
 }
 
 // ---------- participant-added ----------
@@ -278,13 +298,18 @@ export function renderTicketPublicationHtml(payload, testMode) {
   if (isCorrection && payload.diff) {
     diffHtml = `
 <h3 style="color:${RED};margin:16px 0 8px;">O que foi alterado</h3>
-${payload.diff.changed.map((c) => `
+${payload.diff.changed.map((c) => {
+  const powerPlayFlag = !!f.costPerTicket;
+  return `
   <div style="background:#fff3cd;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;">
-    <strong>Jogo ${String(c.index + 1).padStart(2, "0")}</strong><br>
-    Antes: ${c.beforeText ? esc(c.beforeText) : "<em>(não existia)</em>"}<br>
-    Depois: ${c.afterText ? esc(c.afterText) : "<em>(removido)</em>"}<br>
-    ${payload.correctionReason ? `Motivo: ${esc(payload.correctionReason)}` : ""}
-  </div>`).join("")}
+    <strong>Jogo ${String(c.index + 1).padStart(2, "0")}</strong>
+    <div style="margin-top:6px;color:#666;font-size:11px;">Antes:</div>
+    ${c.before ? ballsRowHtml(c.before, powerPlayFlag) : `<em>(não existia)</em>`}
+    <div style="margin-top:8px;color:#666;font-size:11px;">Depois:</div>
+    ${c.after ? ballsRowHtml(c.after, powerPlayFlag) : `<em>(removido)</em>`}
+    ${payload.correctionReason ? `<div style="margin-top:8px;">Motivo: ${esc(payload.correctionReason)}</div>` : ""}
+  </div>`;
+}).join("")}
 <p style="font-size:12px;color:#666;">Hash da versão anterior: <code>${esc(payload.previousHashShort)}</code> · Hash da nova versão: <code>${esc(payload.manifestHashShort)}</code></p>`;
   }
 
