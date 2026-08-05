@@ -1,0 +1,35 @@
+# bolao_health_check.yml — football-hardening readiness follow-up, item 8.
+#
+# NOT ACTIVE ON A SCHEDULE. workflow_dispatch only. Runs bolao/shared/scripts/
+# pipeline_health.mjs — read-only observability, no dry_run input needed (this workflow never
+# writes anything regardless of mode; included here for consistency with the other four
+# reusable workflows and to prove the CI-invocation shape).
+#
+# Script:              bolao/shared/scripts/pipeline_health.mjs --json
+# Backend repository:  reads ESPN snapshot files (checked into the repo, checkpoint C),
+#                       notification_outbox.json/match_store.json if present (checkpoint D) —
+#                       zero writes of any kind
+# Secrets used:         none
+# Concurrency:          none needed (read-only, safe to run concurrently with itself or anything
+#                       else) — no concurrency group set, deliberately
+# Timeout:              5 minutes
+# Failure recovery:     N/A — a failed health check just means "couldn't read the health report
+#                       this time," never leaves any state to recover
+
+name: Bolão — Pipeline Health Check
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  health-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run pipeline_health.mjs
+        run: node bolao/shared/scripts/pipeline_health.mjs --json

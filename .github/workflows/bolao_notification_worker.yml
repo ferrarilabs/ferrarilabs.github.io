@@ -1,0 +1,56 @@
+# bolao_notification_worker.yml — football-hardening readiness follow-up, item 8.
+#
+# NOT ACTIVE ON A SCHEDULE. workflow_dispatch only. Runs bolao/shared/scripts/
+# notification_worker.mjs — the reconciler-as-standalone-worker CLI (item 7). NOT wired to any
+# real per-app recipients/payload yet (see notification_worker.mjs's own main() comment) — this
+# workflow proves the CI-invocation shape and the dry-run mechanism, not a live notification
+# pipeline.
+#
+# Script:              bolao/shared/scripts/notification_worker.mjs
+# Backend repository:  local match_store.json/notification_outbox.json (file-backed — see
+#                       docs/bolao/FOOTBALL_HARDENING_PERSISTENCE_ARCHITECTURE.md: this is
+#                       explicitly NOT the production backend; production is Supabase via
+#                       bolao/shared/scripts/supabase_notification_repository.mjs, not yet wired
+#                       into this worker)
+# Secrets used:         none
+# Concurrency:          single global group — the worker processes across all pools in one run,
+#                       two overlapping runs would race the same local files
+# Timeout:              10 minutes
+# Failure recovery:     dry-run mode (default) never touches real files at all (see
+#                       test_notification_worker.mjs); real mode's atomic-write discipline
+#                       (notification_outbox.mjs's writeAll temp-file+rename) means a crash
+#                       mid-run never corrupts the outbox, only stalls it until the next run
+
+name: Bolão — Notification Worker (dry-run capable)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — real match/outbox files are never opened for writing (see notification_worker.mjs)"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: bolao-notification-worker
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run-worker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.event.inputs.dry_run == 'true' && 'test' || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run notification_worker.mjs
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            node bolao/shared/scripts/notification_worker.mjs --dry-run
+          else
+            node bolao/shared/scripts/notification_worker.mjs
+          fi

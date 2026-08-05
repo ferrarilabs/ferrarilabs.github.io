@@ -1,0 +1,53 @@
+# bolao_reconciliation.yml — football-hardening readiness follow-up, item 8.
+#
+# NOT ACTIVE ON A SCHEDULE. workflow_dispatch only. Reconciliation and "notification worker" are
+# the SAME underlying operation in this pipeline (bolao/shared/scripts/reconciler.mjs's
+# reconcile() does both: find gaps AND process pending jobs — see that file's own header) — this
+# is a separate workflow file (rather than one workflow doing double duty) so reconciliation can
+# be scheduled at a DIFFERENT, wider cadence than the tighter notification-worker cadence once
+# real schedules are enabled (a deliberate, separate, reviewed step — not part of this branch).
+#
+# Script:              bolao/shared/scripts/notification_worker.mjs (same script as
+#                       bolao_notification_worker.yml — the distinction is operational cadence,
+#                       not code)
+# Backend repository:  same as bolao_notification_worker.yml (local files today, Supabase once
+#                       wired — see that workflow's comment)
+# Secrets used:         none
+# Concurrency:          single global group, same reasoning as the worker workflow
+# Timeout:              15 minutes (reconciliation may process more matches per cycle if run at
+#                       a wider interval)
+# Failure recovery:     same as bolao_notification_worker.yml
+
+name: Bolão — Reconciliation (dry-run capable)
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run — same guarantee as notification_worker.mjs's --dry-run"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: bolao-reconciliation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  reconcile:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ github.event.inputs.dry_run == 'true' && 'test' || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run reconciliation pass
+        run: |
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            node bolao/shared/scripts/notification_worker.mjs --dry-run
+          else
+            node bolao/shared/scripts/notification_worker.mjs
+          fi
