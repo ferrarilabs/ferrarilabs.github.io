@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS public.users (
   name VARCHAR(255) NOT NULL UNIQUE,
   email VARCHAR(255) NOT NULL UNIQUE,
   phone VARCHAR(20),
+  state VARCHAR(2),  -- US state abbreviation (e.g., 'NC', 'FL', 'CA')
   active BOOLEAN DEFAULT true,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW()
@@ -139,22 +140,23 @@ CREATE POLICY "Allow insert email_log (scripts only)" ON public.email_log
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 -- Insert users (only if they don't exist)
-INSERT INTO public.users (name, email) VALUES
-  ('Eduardo Ferrari', 'emferrari@gmail.com'),
-  ('Gustavo Bossle', 'REDACTED_EMAIL'),
-  ('Tatiana Bossle', 'tatiana.bossle@example.com'),  -- separate email if exists
-  ('Marcelo Moreira', 'REDACTED_EMAIL'),
-  ('Leandro Augustineli', 'REDACTED_EMAIL'),
-  ('Alan Rech', 'REDACTED_EMAIL'),
-  ('Ewerton Gruba Silva', 'REDACTED_EMAIL'),
-  ('Simone Hirle da Costa', 'REDACTED_EMAIL'),
-  ('Camila Ribeiro', 'REDACTED_EMAIL'),
-  ('Marcus Steffenon', 'REDACTED_EMAIL'),
-  ('Samuel Huller', 'REDACTED_EMAIL'),
-  ('Amanda Quaresma', 'REDACTED_EMAIL'),
-  ('Rodrigo Hajj', 'REDACTED_EMAIL'),
-  ('Nathalia Galeazzi Nedel', 'REDACTED_EMAIL')
-ON CONFLICT (email) DO NOTHING;
+-- NOTE: Update state values based on actual participant locations
+INSERT INTO public.users (name, email, state) VALUES
+  ('Eduardo Ferrari', 'emferrari@gmail.com', 'FL'),  -- update if different
+  ('Gustavo Bossle', 'REDACTED_EMAIL', 'NC'),
+  ('Tatiana Bossle', 'tatiana.bossle@example.com', 'NC'),
+  ('Marcelo Moreira', 'REDACTED_EMAIL', 'NC'),
+  ('Leandro Augustineli', 'REDACTED_EMAIL', 'NC'),
+  ('Alan Rech', 'REDACTED_EMAIL', 'FL'),
+  ('Ewerton Gruba Silva', 'REDACTED_EMAIL', 'NC'),
+  ('Simone Hirle da Costa', 'REDACTED_EMAIL', 'NC'),
+  ('Camila Ribeiro', 'REDACTED_EMAIL', 'NC'),
+  ('Marcus Steffenon', 'REDACTED_EMAIL', 'NC'),
+  ('Samuel Huller', 'REDACTED_EMAIL', 'NC'),
+  ('Amanda Quaresma', 'REDACTED_EMAIL', 'NC'),
+  ('Rodrigo Hajj', 'REDACTED_EMAIL', 'NC'),
+  ('Nathalia Galeazzi Nedel', 'REDACTED_EMAIL', 'NC')
+ON CONFLICT (name) DO NOTHING;
 
 -- Add participation records for Powerball draw 2026-08-01
 WITH powerball_type AS (
