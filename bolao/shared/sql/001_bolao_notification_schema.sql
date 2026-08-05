@@ -35,6 +35,10 @@ create table if not exists bolao_notification_jobs (
   job_id              uuid primary key default gen_random_uuid(),
   event_id            uuid not null references bolao_events(event_id) on delete cascade,
   pool_id             text not null,
+  -- Denormalized from the parent event (canonical schema requires them on the job record
+  -- itself, not only reachable via a join) — set at enqueue time, never recomputed.
+  entity_id           text not null,
+  event_version       integer not null,
   recipient           text not null,          -- PII — see RLS note below
   template_id         text not null default 'default',
   template_version    integer not null default 1,

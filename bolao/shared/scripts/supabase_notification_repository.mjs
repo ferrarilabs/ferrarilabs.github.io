@@ -57,8 +57,16 @@ export class SupabaseNotificationRepository {
   }
 
   async enqueueJobs(eventId, jobDrafts) {
+    // Canonical schema requires entityId/eventVersion denormalized onto the JOB record itself
+    // (not only reachable via a join to bolao_events) — look the parent event up once, same
+    // pattern as the Memory/File adapters.
+    const { data: parentEvent, error: eventErr } = await this.client
+      .from("bolao_events").select("entity_id, event_version").eq("event_id", eventId).single();
+    if (eventErr) throw new Error(`enqueueJobs could not resolve parent event ${eventId}: ${eventErr.message}`);
+
     const rows = jobDrafts.map((d) => ({
       event_id: eventId, pool_id: d.poolId, recipient: d.recipient,
+      entity_id: d.entityId ?? parentEvent.entity_id, event_version: d.eventVersion ?? parentEvent.event_version,
       template_id: d.templateId ?? "default", template_version: d.templateVersion ?? 1,
       payload_snapshot: d.payloadSnapshot, idempotency_key: d.idempotencyKey,
       status: JOB_STATUS.PENDING, attempt_count: 0,
@@ -151,6 +159,7 @@ export class SupabaseNotificationRepository {
   _mapJob(row) {
     return {
       schemaVersion: SCHEMA_VERSION, jobId: row.job_id, eventId: row.event_id, poolId: row.pool_id,
+      entityId: row.entity_id, eventVersion: row.event_version,
       recipient: row.recipient, templateId: row.template_id, templateVersion: row.template_version,
       payloadSnapshot: row.payload_snapshot, idempotencyKey: row.idempotency_key, status: row.status,
       attemptCount: row.attempt_count, nextAttemptAt: row.next_attempt_at, claimedAt: row.claimed_at,

@@ -128,6 +128,7 @@ export class MemoryNotificationRepository {
   async enqueueJobs(eventId, jobDrafts) {
     const created = [];
     let newCount = 0;
+    const parentEvent = this.events.get(eventId);
     for (const draft of jobDrafts) {
       const existing = [...this.jobs.values()].find((j) => j.idempotencyKey === draft.idempotencyKey);
       if (existing) { created.push(existing); continue; }
@@ -135,6 +136,8 @@ export class MemoryNotificationRepository {
         schemaVersion: SCHEMA_VERSION,
         jobId: `job_${this.clock.nowMs()}_${this._jobSeq++}`,
         eventId,
+        entityId: draft.entityId ?? parentEvent?.entityId,
+        eventVersion: draft.eventVersion ?? parentEvent?.eventVersion,
         poolId: draft.poolId,
         recipient: draft.recipient,
         templateId: draft.templateId ?? "default",
@@ -255,6 +258,8 @@ export class FileNotificationRepository {
 
   async enqueueJobs(eventId, jobDrafts) {
     const jobs = this._readAll(this.jobsPath);
+    const events = this._readAll(this.eventsPath);
+    const parentEvent = events.find((e) => e.eventId === eventId);
     const created = [];
     let newCount = 0;
     for (const draft of jobDrafts) {
@@ -264,6 +269,8 @@ export class FileNotificationRepository {
         schemaVersion: SCHEMA_VERSION,
         jobId: `job_${this.clock.nowMs()}_${Math.random().toString(36).slice(2, 8)}`,
         eventId,
+        entityId: draft.entityId ?? parentEvent?.entityId,
+        eventVersion: draft.eventVersion ?? parentEvent?.eventVersion,
         poolId: draft.poolId,
         recipient: draft.recipient,
         templateId: draft.templateId ?? "default",
