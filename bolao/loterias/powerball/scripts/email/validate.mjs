@@ -43,6 +43,14 @@ export function validateTicketPublication({ draw, participants, tickets, nowIso 
     errors.push("DRAW_ALREADY_CONCLUDED");
   }
   if (draw.__stale === true) errors.push("TICKET_DATA_STALE");
+  if (draw.finance) {
+    const recon = validateFinancialReconciliation(draw.finance);
+    if (!recon.ok) errors.push(...recon.errors);
+  }
+  if (tickets && draw.sharedTickets && draw.sharedTickets.costPerTicket != null && draw.finance) {
+    const costCheck = validateTicketCostTotal({ ticketCount: tickets.length, costPerTicket: draw.sharedTickets.costPerTicket, ticketCostTotal: draw.finance.valorUtilizado });
+    if (!costCheck.ok) errors.push(...costCheck.errors);
+  }
   return {
     ok: errors.length === 0,
     errors,
@@ -55,6 +63,51 @@ export function eligibleRecipients(participants) {
   return (participants || []).filter(
     (p) => isValidEmail(p.email) && Number(p.cotas) > 0 && p.status !== "cancelado"
   );
+}
+
+/**
+ * Hard reconciliation gate (round-1 bug 2): publication must be BLOCKED
+ * whenever totalArrecadado != valorUtilizado + saldoReservado + reembolso +
+ * outrasDestinacoes. Never fabricates a balancing number.
+ */
+export function validateFinancialReconciliation(finance) {
+  const f = finance || {};
+  const reconciled = (f.valorUtilizado || 0) + (f.valorGuardadoProximoSorteio || 0) + (f.reembolso || 0) + (f.outrasDestinacoes || 0);
+  const diff = Number((f.totalArrecadado - reconciled).toFixed(2));
+  if (diff !== 0) {
+    return { ok: false, errors: [`FINANCE_NOT_RECONCILED: totalArrecadado(${f.totalArrecadado}) != valorUtilizado+saldo+reembolso+outras(${reconciled}), diff=${diff}`], diff };
+  }
+  return { ok: true, errors: [], diff: 0 };
+}
+
+/** ticketCostTotal must equal ticketCount × costPerTicket, exactly. */
+export function validateTicketCostTotal({ ticketCount, costPerTicket, ticketCostTotal }) {
+  const expected = ticketCount * costPerTicket;
+  if (expected !== ticketCostTotal) {
+    return { ok: false, errors: [`TICKET_COST_MISMATCH: expected ${ticketCount}×${costPerTicket}=${expected}, got ${ticketCostTotal}`] };
+  }
+  return { ok: true, errors: [] };
+}
+
+/**
+ * Cross-template consistency (round-1 bug 1): the three payloads built for
+ * confirmation / publication / correction of the SAME poolId+drawId must
+ * agree on totalShares, drawDateLabel, and jackpot. Called before any of the
+ * three is allowed to send.
+ */
+export function validateCrossTemplateConsistency(payloads) {
+  const errors = [];
+  const present = payloads.filter(Boolean);
+  if (present.length < 2) return { ok: true, errors: [] };
+  const drawIds = new Set(present.map((p) => p.drawId));
+  if (drawIds.size > 1) errors.push(`DRAW_ID_DIVERGES: ${[...drawIds].join(", ")}`);
+  const totalShares = new Set(present.map((p) => p.totalShares).filter((v) => v !== undefined));
+  if (totalShares.size > 1) errors.push(`TOTAL_SHARES_DIVERGES: ${[...totalShares].join(", ")}`);
+  const dateLabels = new Set(present.map((p) => p.drawDateLabel).filter(Boolean));
+  if (dateLabels.size > 1) errors.push(`DRAW_DATE_DIVERGES: ${[...dateLabels].join(", ")}`);
+  const jackpots = new Set(present.map((p) => p.jackpot).filter((v) => v !== undefined));
+  if (jackpots.size > 1) errors.push(`JACKPOT_DIVERGES: ${[...jackpots].join(", ")}`);
+  return { ok: errors.length === 0, errors };
 }
 
 export { isValidEmail };

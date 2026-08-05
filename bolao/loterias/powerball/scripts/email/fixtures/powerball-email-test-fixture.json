@@ -1,0 +1,57 @@
+{
+  "_comment": "Synthetic, internally-consistent fixture used ONLY for admin test sends and previews. Deliberately NOT loaded from js/data.js because the real 2026-08-05 draw's finance fields (totalArrecadado=138, valorUtilizado=153, saldoReservado=1) do not reconcile (153+1 > 138) — using them produced the round-1 test-email bugs. All numbers below satisfy totalArrecadado = valorUtilizado + saldoReservado exactly, and participant shares/percentages are computed from THIS fixture's own totalShares, so every template that reads this file agrees.",
+  "poolId": "powerball",
+  "drawId": "2026-08-05-FIXTURE",
+  "calculationVersion": 1,
+  "gameType": "powerball",
+  "gameTypeMeta": { "label": "Powerball", "icon": "🔴", "specialBallLabel": "Powerball" },
+  "drawing": {
+    "jackpot": 786000000,
+    "cashValue": 341600000,
+    "drawDateIso": "2026-08-05T22:59:00-04:00",
+    "drawDateLabel": "05/08/2026 22:59 ET"
+  },
+  "totalShares": 14,
+  "participants": [
+    { "name": "Participante Alfa", "email": "participante.alfa@example.invalid", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "04/08/2026", "hora": "9:00 AM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC" },
+    { "name": "Participante Beta", "email": "participante.beta@example.invalid", "cotas": 1, "valor": 20, "metodo": "Fundo próprio (organizador)", "data": "31/07/2026", "hora": "3:59 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "organizador", "state": "NC" },
+    { "name": "Participante Gama", "cotas": 1, "valor": 10, "metodo": "Venmo", "data": "01/08/2026", "hora": "9:02 AM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "FL", "email": "participante.gama@example.invalid" },
+    { "name": "Participante Delta", "cotas": 1, "valor": 10, "metodo": "Cash App", "data": "01/08/2026", "hora": "12:29 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.delta@example.invalid" },
+    { "name": "Participante Epsilon", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "01/08/2026", "hora": "12:36 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.epsilon@example.invalid" },
+    { "name": "Participante Zeta", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "01/08/2026", "hora": "7:12 AM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.zeta@example.invalid" },
+    { "name": "Participante Eta", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "31/07/2026", "hora": "4:39 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.eta@example.invalid" },
+    { "name": "Participante Theta", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "31/07/2026", "hora": "4:43 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.theta@example.invalid" },
+    { "name": "Participante Iota", "cotas": 1, "valor": 10, "metodo": "Cash App", "data": "31/07/2026", "hora": "4:45 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "FL", "email": "participante.iota@example.invalid" },
+    { "name": "Participante Kappa", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "31/07/2026", "hora": "4:48 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.kappa@example.invalid" },
+    { "name": "Participante Lambda", "cotas": 1, "valor": 10, "metodo": "Venmo", "data": "31/07/2026", "hora": "4:54 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.lambda@example.invalid" },
+    { "name": "Participante Mu", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "31/07/2026", "hora": "9:12 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.mu@example.invalid" },
+    { "name": "Participante Nu", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "31/07/2026", "hora": "11:41 PM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.nu@example.invalid" },
+    { "name": "Participante Xi", "cotas": 1, "valor": 10, "metodo": "Zelle", "data": "01/08/2026", "hora": "7:12 AM", "txId": "REDACTED_PAYMENT_REFERENCE", "status": "verificado", "state": "NC", "email": "participante.xi@example.invalid" }
+  ],
+  "finance": {
+    "totalArrecadado": 140,
+    "valorUtilizado": 6,
+    "valorGuardadoProximoSorteio": 134,
+    "reembolso": 0,
+    "outrasDestinacoes": 0
+  },
+  "sharedTickets": {
+    "costPerTicket": 3,
+    "compradoPor": "Participante Beta",
+    "dataComprovante": "05/08/2026",
+    "proofUrl": "https://example.invalid/proof-fixture.jpg"
+  },
+  "ticketVersions": {
+    "1": [
+      { "numbers": [24, 31, 47, 52, 63], "special": 17, "serial": "S-EXAMPLE-FIXTURE" },
+      { "numbers": [4, 11, 22, 45, 61], "special": 9, "serial": "S-EXAMPLE-FIXTURE" }
+    ],
+    "2": [
+      { "numbers": [24, 31, 47, 52, 64], "special": 17, "serial": "S-EXAMPLE-FIXTURE" },
+      { "numbers": [4, 11, 22, 45, 61], "special": 9, "serial": "S-EXAMPLE-FIXTURE" }
+    ]
+  },
+  "corrections": {
+    "2": { "reason": "Corrigido número do Jogo 01 (63 → 64) — erro de digitação identificado ao conferir o comprovante de compra." }
+  }
+}
