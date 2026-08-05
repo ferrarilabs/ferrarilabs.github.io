@@ -17,6 +17,6 @@ Jogos:
   Jogo 01: 24 · 31 · 47 · 52 · 63 | Powerball: 17 | Power Play: Sim
   Jogo 02: 4 · 11 · 22 · 45 · 61 | Powerball: 9 | Power Play: Sim
 
-Hash (resumido): f129100fcad2…50fad18f
-Publicado em 5 de agosto de 2026 às 10:51 AM ET
-Registro UTC: 2026-08-05T14:51:28.871Z
+Hash (resumido): c961d6d92455…d448a6da
+Publicado em 5 de agosto de 2026 às 11:08 AM ET
+Registro UTC: 2026-08-05T15:08:10.460Z
