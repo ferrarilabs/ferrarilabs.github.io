@@ -1467,17 +1467,20 @@ function renderRanking() {
       ? `<button type="button" class="secondary small-btn" data-rank-toggle="${esc(item.e.id)}" aria-label="${esc(t("viewPicks"))} — ${esc(item.e.entryName || "")}">${esc(t("viewPicks"))}</button>`
       : "";
     const row = document.createElement("div");
-    row.className = "rank-row";
+    row.className = "rank-row ranking-row";
     row.dataset.visualRole = "ranking-row";
     // Número puro, sem sufixo " pts" -- mesmo padrão da Copa. A coluna de pontos no mobile tem
     // largura FIXA de 40px (pra o botão "Ver palpites" nunca deslocar conforme o placar tem
     // 1-3 dígitos, ver CSS), dimensionada só pros dígitos. Com "170 pts" a linha quebrava --
     // Eduardo: "Deixe tudo da entrada em uma linha e sem crlf" (2026-07-16, mesmo ajuste no BR2026).
+    // Phase 7-FIX: .ranking-row__position/__participant/__name/__score/__actions BEM labels
+    // added on the same elements/values — .rank-row/.rank-pos/.points and the existing
+    // data-visual-role attributes kept unchanged.
     row.innerHTML = `
-      <div class="rank-pos" data-visual-role="ranking-position">${medal}${rankMovementHtml(mv)}</div>
-      <div><b data-visual-role="ranking-name">${esc(item.e.entryName)}</b></div>
-      <div class="points" data-visual-role="ranking-points">${item.total}</div>
-      ${viewBtn}`;
+      <div class="rank-pos ranking-row__position" data-visual-role="ranking-position">${medal}${rankMovementHtml(mv)}</div>
+      <div class="ranking-row__participant"><span class="ranking-row__name"><b data-visual-role="ranking-name">${esc(item.e.entryName)}</b></span></div>
+      <div class="points ranking-row__score" data-visual-role="ranking-points">${item.total}</div>
+      ${viewBtn.replace('class="secondary small-btn"', 'class="secondary small-btn ranking-row__actions"')}`;
     box.appendChild(row);
     if (canViewPicks) {
       const detail = document.createElement("div");

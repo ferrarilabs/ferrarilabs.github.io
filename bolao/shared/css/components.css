@@ -209,8 +209,13 @@
 .prob-disclaimer { font-size: 11px; color: var(--muted); margin-top: var(--space-6); line-height: 1.5; }
 .game-prob-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
-/* ── Ranking / Participants ── */
-.rank-row {
+/* ── Ranking / Participants ──
+   Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md's ranking-row equivalent): canonical
+   BEM classes (.ranking-row__position/__participant/__name/__metadata/__score/__actions) added
+   as EXTRA selectors alongside the existing .rank-row/.rank-pos/.points (kept — all three apps
+   were already very close structurally here, unlike game-card, so both class sets coexist
+   permanently rather than one being a temporary migration alias). */
+.rank-row, .ranking-row {
   display: grid;
   grid-template-columns: 48px 1fr auto auto;
   gap: var(--space-4);
@@ -221,12 +226,21 @@
   padding: var(--space-5);
   margin-bottom: var(--space-3);
 }
-.rank-pos { font-size: 22px; text-align: center; }
+.rank-pos, .ranking-row__position { font-size: 22px; text-align: center; }
+.ranking-row__participant { min-width: 0; }
+.ranking-row__name { font-weight: var(--font-weight-bold); }
+.ranking-row__metadata { display: block; }
+/* .ranking-row__actions is applied directly on the action <button> itself (not a wrapping
+   container — see each app's renderRanking()), so it needs no layout rule of its own: the
+   button already participates as its own grid cell exactly as it did before this BEM label was
+   added (bolao/shared/css/responsive.css's ".rank-row button { justify-self:end }" still
+   applies unchanged). A stray earlier "display:contents" here would have stripped the button's
+   own rendering box — removed before shipping. */
 .rank-arrow { font-size: 12px; vertical-align: super; }
 .rank-arrow.up { color: var(--green); }
 .rank-arrow.down { color: var(--red); }
 .rank-arrow-n { font-size: 0.8em; font-weight: var(--font-weight-bold); margin-left: 1px; vertical-align: middle; }
-.points { font-size: 26px; color: var(--green); font-weight: var(--font-weight-black); text-align: right; }
+.points, .ranking-row__score { font-size: 26px; color: var(--green); font-weight: var(--font-weight-black); text-align: right; }
 .muted { color: var(--muted); font-size: 13px; }
 
 /* ── Rules ── */
