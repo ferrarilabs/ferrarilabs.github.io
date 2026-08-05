@@ -1,0 +1,2 @@
+SKIPPED (NÃO EXECUTADO): SUPABASE_URL/SUPABASE_ANON_KEY/TEST_OWNER_EMAIL not set — no reachable Supabase project in this environment.
+exit=2

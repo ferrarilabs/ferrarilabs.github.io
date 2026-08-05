@@ -1,0 +1,2 @@
+SKIPPED (NÃO EXECUTADO): SUPABASE_URL/SUPABASE_ANON_KEY not set — no reachable Supabase project in this environment (this sandbox also has no Docker, so `npx supabase start` for a local instance is not possible either). This is real, runnable test code; it has genuinely never been executed. See POWERBALL_ADMIN_OPERATIONS.md for the runbook to execute it for real.
+exit=2

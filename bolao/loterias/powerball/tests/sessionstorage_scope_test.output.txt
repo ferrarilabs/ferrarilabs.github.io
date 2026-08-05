@@ -1,0 +1,1 @@
+PASS: sessionStorage usage is limited to the Supabase auth session storage option (js/supabaseClient.js) and the defense-in-depth clear() on logout (js/auth.js). No other admin code touches sessionStorage.
