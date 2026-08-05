@@ -689,6 +689,58 @@ function aggregateFromMatches(matches) {
   if (!second || second.goalsHome == null || second.goalsAway == null) return null;
   return { totalA: first.goalsHome + second.goalsAway, totalB: first.goalsAway + second.goalsHome };
 }
+
+// Phase 7-FIX aggregate-hero feature: SINGLE source of truth for "what's the tie's progress/
+// aggregate right now", reused by BOTH the confronto-card's static result line (resultLine,
+// renderGamesSection() below) and the live-hero widget (renderLiveTieCard()) — Eduardo's
+// explicit requirement was "reuse existing qualification logic rather than recomputing in the
+// presentation layer". Returns null for single-match ties (Final) — no aggregate concept there.
+//
+// Team-order note: leg 2 swaps home/away (legTeams(): leg2 home=teamB, away=teamA) — the SAME
+// convention aggregateFromMatches() already uses for the "final" stage is applied here for the
+// "second-leg-live" stage too, so the aggregate never flips when home/away swaps between legs.
+//
+// Penalties: CDB2026 has NO admin-enterable penalty-score field anywhere in its data model
+// (verified: grepped the whole file for pen/penScore/shootout/pk-prefixed fields — the tie
+// object only ever has qualifiedTeamId, exactly like Copa's advanceSide — see Copa's own rules
+// text, bolao/copa2026/js/i18n.js: "Pênaltis não entram no placar", confirmed Copa never tracks
+// a numeric penalty score either). `penalties` below is always null — intentionally, not a bug
+// — until/unless a real admin data-entry field for it is added elsewhere; this function must
+// never fabricate a penalty score for data that has nowhere to come from.
+function tieProgressDisplay(tie, phaseFormat, liveLeg2Goals) {
+  if (phaseFormat !== "TWO_LEG") return null;
+  const matches = tie.matches || {};
+  const first = matches.first, second = matches.second;
+  const firstDone = first && first.goalsHome != null && first.goalsAway != null;
+  if (!firstDone) {
+    return { stage: "first-leg", aggregate: null, penalties: null, advancingTeamId: null };
+  }
+  const secondDone = second && second.goalsHome != null && second.goalsAway != null;
+  if (secondDone) {
+    const agg = aggregateFromMatches(matches);
+    return {
+      stage: "final",
+      aggregate: agg ? { teamA: agg.totalA, teamB: agg.totalB } : null,
+      penalties: null,
+      advancingTeamId: tie.qualifiedTeamId || null,
+    };
+  }
+  if (liveLeg2Goals && liveLeg2Goals.goalsHome != null && liveLeg2Goals.goalsAway != null) {
+    // Leg 2: home=teamB, away=teamA — same orientation aggregateFromMatches() uses for "final".
+    return {
+      stage: "second-leg-live",
+      aggregate: { teamA: first.goalsHome + liveLeg2Goals.goalsAway, teamB: first.goalsAway + liveLeg2Goals.goalsHome },
+      penalties: null,
+      advancingTeamId: null,
+    };
+  }
+  return {
+    stage: "second-leg-pending",
+    aggregate: { teamA: first.goalsHome, teamB: first.goalsAway },
+    penalties: null,
+    advancingTeamId: null,
+  };
+}
 // Mesmo cálculo, mas a partir de um palpite (goalsHome/goalsAway "crus", ainda não gravados como
 // Match) — usado tanto na pré-visualização ao vivo do formulário de palpite quanto na validação.
 function predictedAggFromPicks(format, matchPicks) {
@@ -1911,10 +1963,18 @@ function renderGamesSection() {
       html += `<p class="muted" style="margin-bottom:14px">${esc(t(msg))}</p>`;
       return;
     }
+    // Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): each leg now renders as its own
+    // canonical .game-card (game-card--first-leg / game-card--second-leg for the two-leg case,
+    // unmodified single game-card for the Final's single match) — same
+    // __header/__metadata/__match/__extension skeleton Copa/BR2026 use, not CDB's own compressed
+    // single-line .leg-teams/.leg-info. .tie-group/.tie-group__header wrap the two legs as a PURE
+    // grouping container (round name + team names + aggregate/classificado), never restructuring
+    // the game-card itself. IND/VOLTA labels now live in each leg's own .game-card__competition
+    // (the header slot), not a prefix outside the card.
     html += ties.map(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return "";
       const legs = legsForFormat(phase.format);
-      const legHtml = leg => {
+      const legCardHtml = leg => {
         const m = tie.matches?.[leg];
         if (!m) return "";
         const home = leg === "second" ? tie.teamB : tie.teamA;
@@ -1925,41 +1985,46 @@ function renderGamesSection() {
         // sinaliza a partida como adiada/cancelada (ver isLegPostponed()/fetchLiveTies()).
         const postponed = m.goalsHome == null && isLegPostponed(tieId, leg);
         const state = postponed ? "postponed" : live ? "live" : m.goalsHome != null ? "post" : "pre";
+        const hasScore = live ? true : m.goalsHome != null;
         // PR120-final forensic review: CDB shows either a score OR a date in the same slot
-        // (never both) -- marked game-score when a result exists, game-date otherwise, so the
-        // forensic comparison picks the right role per state instead of comparing across states.
-        const scoreOrDate = live
-          ? `<b data-visual-role="game-score">${live.goalsHome ?? 0} × ${live.goalsAway ?? 0}</b>`
+        // (never both) -- same convention as Copa's .game-card__score/.muted placeholder.
+        const scoreContent = live
+          ? `${live.goalsHome ?? 0} × ${live.goalsAway ?? 0}`
           : m.goalsHome != null
-            ? `<b data-visual-role="game-score">${m.goalsHome} × ${m.goalsAway}</b>`
-            : `<span data-visual-role="game-date">${esc(fmtDate(m.kickoff))}</span>`;
+            ? `${m.goalsHome} × ${m.goalsAway}`
+            : esc(fmtDate(m.kickoff));
         const statusLabel = state === "postponed" ? t("gamePostponed")
           : state === "live" ? `${t("gameLive")}${live ? " · " + liveClockDisplay(live) : ""}`
           : state === "post" ? t("gameFinal")
           : t("gamePending");
-        const statusChip = ` <span class="game-status ${state}" data-visual-role="game-status">${esc(statusLabel)}</span>`;
         const isNext = `${tieId}:${leg}` === nextKey;
-        // home-team/away-team/team-name/team-logo marked only at leg level (not the tie-level
-        // confronto-header below, which has no equivalent in Copa/BR2026's single-match card) --
-        // each .leg is the closest CDB unit to Copa/BR's one-card-one-match-worth of team/score/
-        // date/status content, per the forensic review's own rule: CDB extends the same base
-        // component with an extra ida/volta/agregado layer, it doesn't get a different one.
-        return `<div class="leg ${state}"${isNext ? ' data-next-leg="true"' : ""}>
-          ${label ? `<span class="leg-label">${esc(label)}</span>` : ""}
-          <span class="leg-teams"><span data-visual-role="home-team"><span class="team-name" data-visual-role="team-name">${esc(home)}</span> ${teamLogoImg(home, "team-logo", "team-logo")}</span> × <span data-visual-role="away-team">${teamLogoImg(away, "team-logo", "team-logo")} <span class="team-name" data-visual-role="team-name">${esc(away)}</span></span></span>
-          <span class="leg-info">${m.venue ? "📍 " + esc(m.venue) + (m.city ? ", " + esc(m.city) : "") + " · " : ""}${scoreOrDate}${statusChip}</span>
+        const legVariant = leg === "second" ? " game-card--second-leg" : leg === "first" ? " game-card--first-leg" : "";
+        // home-team/away-team/team-name/team-logo data-visual-role kept for the structural
+        // auditor — same forensic-review convention as before, just on the new canonical classes.
+        return `<div class="game-card${legVariant}${live ? " is-live" : ""}" data-state="${esc(state)}"${isNext ? ' data-next-leg="true"' : ""} data-visual-role="game-card">
+          <div class="game-card__header">
+            <span class="game-card__competition">${label ? esc(label) : ""}</span>
+            <span class="game-card__status"><span class="game-status ${state}" data-visual-role="game-status">${esc(statusLabel)}</span></span>
+          </div>
+          <div class="game-card__metadata">
+            ${m.venue ? `<span class="game-card__venue pill">📍 ${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</span>` : ""}
+          </div>
+          <div class="game-card__match">
+            <div class="game-card__team game-card__team--home" data-visual-role="home-team"><span class="game-card__team-name team-name" data-visual-role="team-name">${esc(home)}</span><span class="game-card__logo">${teamLogoImg(home, "team-logo", "team-logo")}</span></div>
+            <div class="game-card__center"><span class="game-card__score${hasScore ? (live ? " is-live" : "") : " muted"}" data-visual-role="game-score">${scoreContent}</span></div>
+            <div class="game-card__team game-card__team--away" data-visual-role="away-team"><span class="game-card__logo">${teamLogoImg(away, "team-logo", "team-logo")}</span><span class="game-card__team-name team-name" data-visual-role="team-name">${esc(away)}</span></div>
+          </div>
+          <div class="game-card__extension"></div>
         </div>`;
       };
-      const agg = phase.format === "TWO_LEG" ? aggregateFromMatches(tie.matches) : null;
-      const resultLine = tie.qualifiedTeamId
-        ? `<div class="leg confronto-result">${agg ? `${esc(t("gamesAggregate"))}: <b>${agg.totalA} × ${agg.totalB}</b> — ` : ""}${esc(t("gamesAdvances"))}: ${esc(tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB)}</div>`
+      const progress = tieProgressDisplay(tie, phase.format);
+      const resultLine = progress && progress.stage === "final" && progress.advancingTeamId
+        ? `<div class="tie-group__result">${progress.aggregate ? `${esc(t("gamesAggregate"))}: <b>${progress.aggregate.teamA} × ${progress.aggregate.teamB}</b> — ` : ""}${esc(t("gamesAdvances"))}: ${esc(progress.advancingTeamId === "A" ? tie.teamA : tie.teamB)}</div>`
         : "";
-      return `<div class="confronto-card card" data-visual-role="game-card">
-        <div class="confronto-header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
-        <div class="confronto-legs">
-          ${legs.map(legHtml).join("")}
-          ${resultLine}
-        </div>
+      return `<div class="tie-group" data-visual-role="tie-group">
+        <div class="tie-group__header">${esc(tie.teamA)} ${teamLogoImg(tie.teamA, "match-logo")} × ${teamLogoImg(tie.teamB, "match-logo")} ${esc(tie.teamB)}</div>
+        ${legs.map(legCardHtml).join("")}
+        ${resultLine}
       </div>`;
     }).join("");
   });
