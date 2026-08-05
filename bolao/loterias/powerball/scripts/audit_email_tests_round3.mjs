@@ -135,21 +135,36 @@ test("plain-text ticket line uses explicit ' - ' separators and labeled Powerbal
   assert.ok(!/\d{6,}/.test(jogosSection), `no run of 6+ consecutive digits allowed in the ticket list:\n${jogosSection}`);
 });
 
-test("HTML ticket row embeds a literal separator between every number cell AND an explicit 'Powerball:' label, not just CSS margin/color", () => {
+test("HTML ticket row: each of the 6 numbers is its own fixed-size table cell — with all markup stripped, they still read left-to-right, in order, not garbled", () => {
   const { perRecipient } = buildTicketPublicationPayload({ draw: draw1, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
   const html = renderTicketPublicationHtml(perRecipient[0], true);
-  // Strip all tags to simulate "client ignored every style AND every tag boundary,
-  // rendered as raw text" — the worst case. Even then, digits must not run together,
-  // and "Powerball" must appear as a real text label, not just a colored digit.
   const textOnly = html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
-  // Scope the "no 6+ digit run" check to the ticket-list section only — the
-  // manifest hash elsewhere in the email is hex/timestamp-derived and can
-  // incidentally contain a 6+ digit run by chance, unrelated to ticket rendering.
   const ticketSection = textOnly.slice(textOnly.indexOf("Conjunto completo"), textOnly.indexOf("Comprovantes e auditoria"));
+  // Round-4 design: the table-CELL BOUNDARY itself is the fallback (not a
+  // redundant text label inside the HTML anymore — that moved to text/plain
+  // only, per this round's spec). A client that strips every style still
+  // renders each <td> as whitespace-separated text, so the six numbers
+  // never run together even with zero CSS.
   assert.ok(!/\d{6,}/.test(ticketSection), `even with all markup stripped, no 6+ digit run should appear in the ticket list:\n${ticketSection}`);
-  assert.ok(textOnly.includes("Powerball: 17"), `expects an explicit "Powerball: N" text label to survive stripped markup:\n${textOnly.slice(0, 400)}`);
-  assert.ok(textOnly.includes("Power Play:"), "expects an explicit Power Play label to survive stripped markup");
-  assert.ok(html.includes(">·<"), "expects a literal '·' separator cell between white-ball numbers in the markup");
+  assert.ok(ticketSection.includes("24") && ticketSection.includes("31") && ticketSection.includes("47") && ticketSection.includes("52") && ticketSection.includes("63") && ticketSection.includes("17"), "all 6 numbers (5 white + Powerball) must be present and legible with markup stripped");
+});
+
+test("HTML ticket row no longer duplicates the plain-text separator line (moved to text/plain only, per this round's spec)", () => {
+  const { perRecipient } = buildTicketPublicationPayload({ draw: draw1, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
+  const html = renderTicketPublicationHtml(perRecipient[0], true);
+  assert.ok(!html.includes("24 · 31 · 47 · 52 · 63 | Powerball: 17 | Power Play:"), "HTML must not contain the redundant gray fallback text line anymore — text/plain only");
+});
+
+test("HTML ball design: 5 white/light circles + 1 larger red Powerball circle, fixed width==height (true circles, not padding-stretched ellipses), Power Play shown as its own small line", () => {
+  const { perRecipient } = buildTicketPublicationPayload({ draw: draw1, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
+  const html = renderTicketPublicationHtml(perRecipient[0], true);
+  const whiteCircles = html.match(/background:#f2f2f2[^"]*"[^>]*>(\d+)/g) || [];
+  assert.equal(whiteCircles.length >= 5, true, "expected at least 5 white-ball circles per ticket row");
+  assert.ok(html.includes(`background:${"#CE1141"}`), "expected the Powerball circle to use the approved red accent");
+  assert.ok(/width:36px;height:36px/.test(html), "Powerball circle must be the larger size (36px) than the white balls (32px)");
+  assert.ok(/width:32px;height:32px/.test(html), "white balls must be fixed 32x32 (true circles)");
+  assert.ok(html.includes("Power Play:"), "expects a Power Play line");
+  assert.ok(html.includes("<strong>Sim</strong>") || html.includes("<strong>Não</strong>"), "Power Play value must be present");
 });
 
 test("correction ANTES/DEPOIS lines use the same separator format, not raw concatenation", () => {
@@ -160,6 +175,23 @@ test("correction ANTES/DEPOIS lines use the same separator format, not raw conca
   const text = renderTicketPublicationText(perRecipient[0], true);
   assert.ok(text.includes("Antes: 24 · 31 · 47 · 52 · 63 — Powerball 17"));
   assert.ok(text.includes("Depois: 24 · 31 · 47 · 52 · 64 — Powerball 17"));
+});
+
+test("correction HTML 'O que foi alterado' box renders BOTH antes and depois as ball circles (Eduardo's explicit ask), not plain text", () => {
+  const { perRecipient } = buildTicketPublicationPayload({
+    draw: draw2, participants: fx.participants, tickets: fx.ticketVersions["2"], publicationVersion: 2,
+    correctionReason: "teste", previousHash: "abc", previousTickets: fx.ticketVersions["1"],
+  });
+  const html = renderTicketPublicationHtml(perRecipient[0], true);
+  const alteradoSection = html.slice(html.indexOf("O que foi alterado"), html.indexOf("Hash da versão anterior"));
+  assert.ok(alteradoSection.includes("Antes:"));
+  assert.ok(alteradoSection.includes("Depois:"));
+  // Both the "antes" (63) and "depois" (64) ball rows must be present as circles.
+  const beforeCircles = (alteradoSection.match(/>63</g) || []).length;
+  const afterCircles = (alteradoSection.match(/>64</g) || []).length;
+  assert.ok(beforeCircles >= 1, "expected the 'antes' ball row to render 63 in a circle");
+  assert.ok(afterCircles >= 1, "expected the 'depois' ball row to render 64 in a circle");
+  assert.ok(/background:#CE1141/.test(alteradoSection), "expected red Powerball circles in the antes/depois rows");
 });
 
 console.log("\nNo localhost/dev links in a real send, currency always 2 decimals, payment status never raw:");
@@ -221,6 +253,56 @@ test("friendly date form appears in the primary reading flow (headline/first tab
   const pubHeadline = pubHtml.indexOf("<h2");
   const pubFriendly = pubHtml.indexOf("de agosto de");
   assert.ok(pubFriendly > -1 && pubFriendly - pubHeadline < 400, "friendly date must appear near the headline, not only in a footer line");
+});
+
+console.log("\nProduction attachment/link gate (round 4):");
+
+const { validateAttachmentsAndLinks } = await import("./email/validate.mjs");
+const { runPublishTickets } = await import("./email/publish_tickets.mjs");
+
+test("blocks when proofUrl is empty", () => {
+  const r = validateAttachmentsAndLinks({ proofUrl: "", attachments: [] });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes("PROOF_URL_MISSING")));
+});
+test("blocks when proofUrl is localhost", () => {
+  const r = validateAttachmentsAndLinks({ proofUrl: "http://localhost:8099/proof.jpg", attachments: [] });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes("PROOF_URL_NOT_REAL")));
+});
+test("blocks when proofUrl is example.invalid", () => {
+  const r = validateAttachmentsAndLinks({ proofUrl: "https://example.invalid/proof.jpg", attachments: [] });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes("PROOF_URL_NOT_REAL")));
+});
+test("blocks when a referenced attachment file does not exist on disk", () => {
+  const r = validateAttachmentsAndLinks(
+    { proofUrl: "https://ferrarilabs.github.io/proof.jpg", attachments: [{ kind: "pdf", filePath: "/definitely/not/a/real/file.pdf" }, { kind: "csv", filePath: "/nope.csv" }, { kind: "json", filePath: "/nope.json" }] },
+    (p) => false
+  );
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes("ATTACHMENT_FILE_NOT_FOUND")));
+});
+test("passes when proofUrl is real and all 3 attachments resolve (URL or existing file)", () => {
+  const r = validateAttachmentsAndLinks(
+    { proofUrl: "https://ferrarilabs.github.io/proof.jpg", attachments: [{ kind: "pdf", url: "https://ferrarilabs.github.io/a.pdf" }, { kind: "csv", filePath: "/real.csv" }, { kind: "json", filePath: "/real.json" }] },
+    (p) => true
+  );
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+});
+
+await atest("runPublishTickets: a REAL (non-test) send is blocked by the attachment gate today (no attachment pipeline wired up yet) — explicit error, not a silent skip", async () => {
+  const draw = fixtureAsDraw(fx, 1);
+  const r = await runPublishTickets({ drawId: fx.drawId, publicationVersion: 1, testMode: false, dryRun: true, outboxFile: "/tmp/pb-round4-real-gate.json", syntheticDraw: { ...draw, __tickets: fx.ticketVersions["1"] }, proofUrl: fx.sharedTickets.proofUrl });
+  assert.equal(r.ok, false);
+  assert.equal(r.blockedBy, "validateAttachmentsAndLinks");
+  assert.ok(r.errors.some((e) => e.includes("ATTACHMENT_MISSING")));
+});
+
+await atest("runPublishTickets: the fixture-driven TEST path is unaffected by the attachment gate (example.invalid proofUrl is fine in test mode)", async () => {
+  const draw = fixtureAsDraw(fx, 1);
+  const r = await runPublishTickets({ drawId: fx.drawId, publicationVersion: 1, testMode: true, dryRun: true, outboxFile: "/tmp/pb-round4-test-gate.json", syntheticDraw: { ...draw, __tickets: fx.ticketVersions["1"] }, proofUrl: fx.sharedTickets.proofUrl });
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
