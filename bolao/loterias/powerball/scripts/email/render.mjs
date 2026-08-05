@@ -1,6 +1,14 @@
 // render.mjs — subject/HTML/text renderers. Powerball visual identity preserved
 // exactly: red #CE1141 / blue #003DA5 (from js/data.js LOTTERY_GAME_TYPES.powerball),
 // inline CSS only, no JS in emails.
+//
+// Round-2 rewrite: friendly PT-BR content, whole-prize vs per-participant
+// estimate sections clearly separated and labeled from the REAL function's
+// actual return shape (never "anuidade total" for what would be an
+// installment — the real calculatePrizePerParticipant genuinely returns a
+// 30-year total, so that label is accurate; see docs), visual ball rendering,
+// explicit reconciliation block, and correction content generated only from
+// a real computeTicketDiff (never a typed description).
 
 const RED = "#CE1141";
 const BLUE = "#003DA5";
@@ -14,13 +22,24 @@ function usd(n) {
   if (n === null || n === undefined) return "—";
   return "US$" + Number(n).toLocaleString("en-US", { maximumFractionDigits: 2 });
 }
+function pct(n) {
+  if (n === null || n === undefined) return "—";
+  return Number(n).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 4 }) + "%";
+}
+function friendlyDate(iso) {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const datePart = d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric", timeZone: "America/New_York" });
+  const timePart = d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" });
+  return `${datePart} às ${timePart} ET`;
+}
 
-function shell({ title, accentBar, bodyHtml, testMode }) {
+function shell({ title, bodyHtml, testMode }) {
   return `<!doctype html>
 <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>${esc(title)}</title></head>
 <body style="margin:0;padding:0;background:#f4f4f7;font-family:Arial,Helvetica,sans-serif;color:#1a1a1a;">
-${testMode ? `<div style="background:#fff3cd;color:#7a5b00;text-align:center;padding:8px;font-size:13px;font-weight:bold;">[TESTE ADMIN] — não é um envio de produção</div>` : ""}
+${testMode ? `<div style="background:#fff3cd;color:#7a5b00;text-align:center;padding:8px;font-size:13px;font-weight:bold;">TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção.</div>` : ""}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f7;padding:24px 0;">
 <tr><td align="center">
 <table role="presentation" width="100%" style="max-width:600px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e5e5ea;" cellpadding="0" cellspacing="0">
@@ -39,36 +58,55 @@ ${bodyHtml}
 </body></html>`;
 }
 
+function ballsRow(ticket) {
+  const white = ticket.numbers.slice().sort((a, b) => a - b).map((n) =>
+    `<span style="display:inline-block;width:28px;height:28px;line-height:28px;border-radius:50%;background:#f0f0f0;border:1px solid #ccc;text-align:center;font-size:13px;font-weight:bold;margin-right:4px;">${n}</span>`
+  ).join("");
+  const red = `<span style="display:inline-block;width:28px;height:28px;line-height:28px;border-radius:50%;background:${RED};color:#fff;text-align:center;font-size:13px;font-weight:bold;">${ticket.special}</span>`;
+  return white + red;
+}
+function ballsText(ticket) {
+  return ticket.numbers.slice().sort((a, b) => a - b).join("  ") + "     Powerball " + ticket.special;
+}
+
 // ---------- participant-added ----------
 
 export function renderParticipantConfirmationSubject(payload, testMode) {
   const prefix = testMode ? "[TESTE ADMIN] " : "";
-  const dateSuffix = payload.nextDrawDateLabel ? ` — Sorteio ${payload.nextDrawDateLabel}` : "";
-  return `${prefix}✅ Sua participação foi registrada — Bolão Powerball${dateSuffix}`;
+  return `${prefix}✅ Participação confirmada — Bolão Powerball — Sorteio de ${payload.drawDateLabel}`;
 }
 
 export function renderParticipantConfirmationHtml(payload, testMode) {
   const e = payload.estimates || {};
   const body = `
-<h2 style="color:${RED};margin:0 0 12px;">Participação confirmada, ${esc(payload.participantName)}!</h2>
-<p style="font-size:14px;line-height:1.5;">Sua entrada no bolão foi registrada com sucesso. Resumo:</p>
+<h2 style="color:${RED};margin:0 0 12px;">Olá, ${esc(payload.participantName)}!</h2>
+<p style="font-size:14px;line-height:1.5;">Sua participação no Bolão Powerball foi registrada com sucesso. Confira abaixo os dados considerados para este sorteio.</p>
+<h3 style="color:${BLUE};margin:20px 0 8px;">Sua participação</h3>
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;">
-<tr><td style="color:#666;">Pool</td><td><strong>${esc(payload.poolId)}</strong></td></tr>
-<tr><td style="color:#666;">Data da entrada</td><td>${esc(payload.entryDate)} ${esc(payload.entryTime || "")}</td></tr>
-<tr><td style="color:#666;">Próximo sorteio</td><td>${esc(payload.nextDrawDateLabel)}</td></tr>
-<tr><td style="color:#666;">Cotas</td><td>${esc(payload.cotas)}</td></tr>
-<tr><td style="color:#666;">Valor</td><td>${usd(payload.valor)}</td></tr>
-<tr><td style="color:#666;">Status do pagamento</td><td>${esc(payload.paymentStatus)}</td></tr>
-<tr><td style="color:#666;">% de participação no pool</td><td>${esc(payload.participationPct)}%</td></tr>
+<tr><td style="color:#666;">Sorteio</td><td>${esc(payload.drawDateLabel)}</td></tr>
+<tr><td style="color:#666;">Data/horário da entrada</td><td>${esc(payload.entryDate)} ${esc(payload.entryTime || "")}</td></tr>
+<tr><td style="color:#666;">Cotas</td><td>${esc(payload.participantShares)} cota${payload.participantShares === 1 ? "" : "s"} de ${esc(payload.totalShares)} cotas</td></tr>
+<tr><td style="color:#666;">Valor registrado</td><td>${usd(payload.valor)}</td></tr>
+<tr><td style="color:#666;">Participação no bolão</td><td><strong>${pct(payload.participantPercentage)}</strong></td></tr>
+<tr><td style="color:#666;">Pagamento</td><td>${esc(payload.paymentStatus)}</td></tr>
+<tr><td style="color:#666;">Estado considerado</td><td>${esc(payload.state)}</td></tr>
 </table>
-<h3 style="color:${BLUE};margin:20px 0 8px;">Estimativas do prêmio atual</h3>
+<h3 style="color:${BLUE};margin:20px 0 8px;">Estimativas do prêmio</h3>
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;background:#f8f9fc;border-radius:8px;">
-<tr><td style="color:#666;">Jackpot</td><td>${usd(payload.jackpot)}</td></tr>
-<tr><td style="color:#666;">Lump Sum bruto (sua cota)</td><td>${usd(e.lumpSumBruto)}</td></tr>
-<tr><td style="color:#666;">Lump Sum líquido estimado</td><td><strong>${usd(e.lumpSumNet)}</strong></td></tr>
-<tr><td style="color:#666;">Anuidade total líquida estimada</td><td><strong>${usd(e.annuityTotalNet)}</strong></td></tr>
+<tr><td style="color:#666;">Jackpot anunciado</td><td>${usd(payload.jackpot)}</td></tr>
+<tr><td style="color:#666;">Cash option (total)</td><td>${usd(payload.cashValue)}</td></tr>
 </table>
-<p style="font-size:12px;color:#999;margin-top:16px;">Estimativas calculadas pela mesma função usada na página pública do bolão (estado declarado: ${esc(payload.state)}). Valores sujeitos a alteração até o sorteio.</p>
+<p style="font-size:13px;color:#444;margin:12px 0 4px;font-weight:bold;">Estimativa correspondente à sua participação</p>
+<table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;background:#f8f9fc;border-radius:8px;">
+${e.stateKnown === false ? `<tr><td colspan="2" style="color:#a00;">Estado não suportado pelo cálculo — estimativa indisponível.</td></tr>` : `
+<tr><td style="color:#666;">Lump Sum bruto (sua participação)</td><td>${usd(e.lumpSumBruto)}</td></tr>
+<tr><td style="color:#666;">Lump Sum líquido (sua participação)</td><td><strong>${usd(e.lumpSumNet)}</strong></td></tr>
+<tr><td style="color:#666;">Anuidade total bruta, 30 anos (sua participação)</td><td>${usd(e.annuityTotalBruto)}</td></tr>
+<tr><td style="color:#666;">Anuidade total líquida, 30 anos (sua participação)</td><td><strong>${usd(e.annuityTotalNet)}</strong></td></tr>
+<tr><td style="color:#666;">Média mensal estimada (didática, não é parcela real)</td><td>${usd(e.annuityMonthlyNet)}</td></tr>
+`}
+</table>
+<p style="font-size:12px;color:#999;margin-top:12px;">Estimativas calculadas considerando o estado declarado: ${esc(payload.state)}. Os valores são estimativas e podem mudar. O pagamento final depende das regras oficiais, opção escolhida, residência e obrigações fiscais.</p>
 <p style="font-size:14px;margin-top:16px;"><a href="${esc(payload.siteUrl)}" style="color:${BLUE};">Ver o bolão</a></p>`;
   return shell({ title: "Participação confirmada — Bolão Powerball", bodyHtml: body, testMode });
 }
@@ -76,21 +114,29 @@ export function renderParticipantConfirmationHtml(payload, testMode) {
 export function renderParticipantConfirmationText(payload, testMode) {
   const e = payload.estimates || {};
   const lines = [
-    testMode ? "[TESTE ADMIN] — não é um envio de produção" : null,
-    `Participação confirmada, ${payload.participantName}!`,
+    testMode ? "TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção." : null,
+    `Olá, ${payload.participantName}!`,
+    "Sua participação no Bolão Powerball foi registrada com sucesso.",
     "",
-    `Pool: ${payload.poolId}`,
-    `Data da entrada: ${payload.entryDate} ${payload.entryTime || ""}`,
-    `Próximo sorteio: ${payload.nextDrawDateLabel}`,
-    `Cotas: ${payload.cotas}`,
-    `Valor: ${usd(payload.valor)}`,
-    `Status do pagamento: ${payload.paymentStatus}`,
-    `% de participação: ${payload.participationPct}%`,
+    "Sua participação:",
+    `  Sorteio: ${payload.drawDateLabel}`,
+    `  Data/horário da entrada: ${payload.entryDate} ${payload.entryTime || ""}`,
+    `  Cotas: ${payload.participantShares} cota(s) de ${payload.totalShares} cotas`,
+    `  Valor registrado: ${usd(payload.valor)}`,
+    `  Participação no bolão: ${pct(payload.participantPercentage)}`,
+    `  Pagamento: ${payload.paymentStatus}`,
+    `  Estado considerado: ${payload.state}`,
     "",
-    "Estimativas do prêmio atual:",
-    `  Jackpot: ${usd(payload.jackpot)}`,
-    `  Lump Sum líquido estimado: ${usd(e.lumpSumNet)}`,
-    `  Anuidade total líquida estimada: ${usd(e.annuityTotalNet)}`,
+    "Estimativas do prêmio:",
+    `  Jackpot anunciado: ${usd(payload.jackpot)}`,
+    `  Cash option (total): ${usd(payload.cashValue)}`,
+    "  Estimativa correspondente à sua participação:",
+    e.stateKnown === false
+      ? "    Estado não suportado pelo cálculo — estimativa indisponível."
+      : [
+          `    Lump Sum líquido: ${usd(e.lumpSumNet)}`,
+          `    Anuidade total líquida (30 anos): ${usd(e.annuityTotalNet)}`,
+        ].join("\n"),
     "",
     `Site: ${payload.siteUrl}`,
   ].filter((l) => l !== null);
@@ -104,66 +150,124 @@ export function renderTicketPublicationSubject(payload, testMode) {
   if (payload.templateId === "tickets-corrected") {
     return `${prefix}⚠️ Correção dos bilhetes — Powerball de ${payload.drawDateLabel} — Versão ${payload.publicationVersion}`;
   }
-  return `${prefix}🎟️ Bilhetes publicados — Powerball de ${payload.drawDateLabel}`;
+  return `${prefix}🎟️ Bilhetes publicados — Powerball de ${payload.drawDateLabel} — ${payload.tickets.length} jogos`;
+}
+
+function reconciliationHtml(f) {
+  return `
+<h3 style="color:${BLUE};margin:16px 0 8px;">Reconciliação</h3>
+<table role="presentation" width="100%" cellpadding="5" style="font-size:13px;border-collapse:collapse;font-family:monospace;">
+<tr><td>Total arrecadado</td><td style="text-align:right;">${usd(f.totalArrecadado)}</td></tr>
+<tr><td>Valor utilizado</td><td style="text-align:right;">${usd(f.valorUsado)}</td></tr>
+<tr><td>Saldo reservado</td><td style="text-align:right;">${usd(f.saldoReservado)}</td></tr>
+${f.reembolso ? `<tr><td>Reembolso</td><td style="text-align:right;">${usd(f.reembolso)}</td></tr>` : ""}
+${f.outrasDestinacoes ? `<tr><td>Outras destinações</td><td style="text-align:right;">${usd(f.outrasDestinacoes)}</td></tr>` : ""}
+<tr><td style="font-weight:bold;">Diferença não conciliada</td><td style="text-align:right;font-weight:bold;color:${f.diferencaNaoConciliada === 0 ? "#2a7" : "#a00"};">${usd(f.diferencaNaoConciliada)}</td></tr>
+</table>`;
 }
 
 export function renderTicketPublicationHtml(payload, testMode) {
   const f = payload.financialSummary;
   const isCorrection = payload.templateId === "tickets-corrected";
   const ticketsHtml = payload.tickets.map((t, i) =>
-    `<tr><td style="padding:4px 6px;">#${i + 1}</td><td style="padding:4px 6px;font-family:monospace;">${t.numbers.join("-")} — PB ${t.special}</td></tr>`
+    `<tr><td style="padding:6px 8px;color:#666;font-size:12px;width:50px;">Jogo ${String(i + 1).padStart(2, "0")}</td><td style="padding:6px 8px;">${ballsRow(t)}</td></tr>`
   ).join("");
+
+  let diffHtml = "";
+  if (isCorrection && payload.diff) {
+    diffHtml = `
+<h3 style="color:${RED};margin:16px 0 8px;">O que foi alterado</h3>
+${payload.diff.changed.map((c) => `
+  <div style="background:#fff3cd;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:13px;">
+    <strong>Jogo ${String(c.index + 1).padStart(2, "0")}</strong><br>
+    Antes: ${c.beforeText ? esc(c.beforeText) : "<em>(não existia)</em>"}<br>
+    Depois: ${c.afterText ? esc(c.afterText) : "<em>(removido)</em>"}<br>
+    ${payload.correctionReason ? `Motivo: ${esc(payload.correctionReason)}` : ""}
+  </div>`).join("")}
+<p style="font-size:12px;color:#666;">Hash da versão anterior: <code>${esc(payload.previousHashShort)}</code> · Hash da nova versão: <code>${esc(payload.manifestHashShort)}</code></p>`;
+  }
+
   const body = `
-${isCorrection ? `<div style="background:#fff3cd;color:#7a5b00;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px;"><strong>Correção de versão ${esc(payload.publicationVersion)}.</strong> ${esc(payload.correctionReason)}</div>` : ""}
-<h2 style="color:${RED};margin:0 0 12px;">${isCorrection ? "Bilhetes corrigidos" : "Bilhetes publicados"} — ${esc(payload.drawDateLabel)}</h2>
-<p style="font-size:14px;">Sua participação: <strong>${esc(payload.individualParticipation.cotas)}</strong> cota(s), ${usd(payload.individualParticipation.valor)}, status ${esc(payload.individualParticipation.status)}.</p>
-<h3 style="color:${BLUE};margin:16px 0 8px;">Resumo financeiro</h3>
+<h2 style="color:${RED};margin:0 0 12px;">${isCorrection ? `Correção dos bilhetes — Versão ${esc(payload.publicationVersion)}` : "Bilhetes publicados"}</h2>
+<p style="font-size:14px;">${isCorrection
+    ? `Uma correção foi identificada nos bilhetes do Powerball de ${esc(payload.drawDateLabel)}.`
+    : `Os bilhetes do Powerball de ${esc(payload.drawDateLabel)} foram registrados e publicados. Confira abaixo todas as informações usadas nesta publicação.`}</p>
+${diffHtml}
+<h3 style="color:${BLUE};margin:16px 0 8px;">Sua participação</h3>
 <table role="presentation" width="100%" cellpadding="5" style="font-size:13px;border-collapse:collapse;">
-<tr><td style="color:#666;">Participantes</td><td>${f.participantCount}</td></tr>
-<tr><td style="color:#666;">Total de cotas</td><td>${f.totalCotas}</td></tr>
+<tr><td style="color:#666;">Nome</td><td>${esc(payload.participantName)}</td></tr>
+<tr><td style="color:#666;">Cotas</td><td>${esc(payload.individualParticipation.shares)} de ${esc(payload.totalShares)}</td></tr>
+<tr><td style="color:#666;">Valor contribuído</td><td>${usd(payload.individualParticipation.valor)}</td></tr>
+<tr><td style="color:#666;">Participação</td><td>${pct(payload.individualParticipation.percentage)}</td></tr>
+<tr><td style="color:#666;">Pagamento</td><td>${esc(payload.individualParticipation.status)}</td></tr>
+</table>
+<h3 style="color:${BLUE};margin:16px 0 8px;">Resumo geral do bolão</h3>
+<table role="presentation" width="100%" cellpadding="5" style="font-size:13px;border-collapse:collapse;">
+<tr><td style="color:#666;">Participantes ativos</td><td>${f.participantCount}</td></tr>
+<tr><td style="color:#666;">Total de cotas</td><td>${f.totalShares}</td></tr>
 <tr><td style="color:#666;">Valor por cota</td><td>${usd(f.valorPorCota)}</td></tr>
 <tr><td style="color:#666;">Total arrecadado</td><td>${usd(f.totalArrecadado)}</td></tr>
 <tr><td style="color:#666;">Valor usado</td><td>${usd(f.valorUsado)}</td></tr>
 <tr><td style="color:#666;">Saldo reservado</td><td>${usd(f.saldoReservado)}</td></tr>
-<tr><td style="color:#666;">Tickets</td><td>${f.ticketCount}</td></tr>
-<tr><td style="color:#666;">Custo total</td><td>${usd(f.totalCost)}</td></tr>
-<tr><td style="color:#666;">Power Play</td><td>${f.powerPlay != null ? usd(f.powerPlay) + "/ticket" : "—"}</td></tr>
+<tr><td style="color:#666;">Quantidade de jogos</td><td>${f.ticketCount}</td></tr>
+<tr><td style="color:#666;">Custo por jogo</td><td>${usd(f.costPerTicket)}</td></tr>
+<tr><td style="color:#666;">Custo total</td><td>${usd(f.ticketCostTotal)}</td></tr>
 </table>
-<h3 style="color:${BLUE};margin:16px 0 8px;">Todos os números jogados</h3>
+${reconciliationHtml(f)}
+<h3 style="color:${BLUE};margin:16px 0 8px;">Conjunto completo ${isCorrection ? "revisado" : "de jogos"}</h3>
 <table role="presentation" width="100%" cellpadding="0" style="font-size:13px;border-collapse:collapse;">${ticketsHtml}</table>
-${payload.proofUrl ? `<p style="font-size:13px;margin-top:12px;"><a href="${esc(payload.proofUrl)}" style="color:${BLUE};">Ver comprovante de compra</a></p>` : ""}
+<h3 style="color:${BLUE};margin:16px 0 8px;">Comprovantes e auditoria</h3>
+<p style="font-size:13px;line-height:1.8;">
+${payload.proofUrl ? `<a href="${esc(payload.proofUrl)}" style="color:${BLUE};">Ver comprovantes de compra</a><br>` : ""}
+<a href="#" style="color:${BLUE};">Baixar PDF para auditoria</a><br>
+<a href="#" style="color:${BLUE};">Baixar CSV</a><br>
+<a href="#" style="color:${BLUE};">Baixar manifesto JSON</a>
+</p>
 <h3 style="color:${BLUE};margin:16px 0 8px;">Como conferir</h3>
-<p style="font-size:13px;line-height:1.5;">O manifesto desta publicação (JSON) tem hash SHA-256 <code style="background:#f0f0f0;padding:2px 4px;border-radius:4px;">${esc(payload.manifestHash)}</code>. Compare esse hash com o anexo/PDF para confirmar que os números não foram alterados após a publicação.</p>
-<p style="font-size:12px;color:#999;">Versão da publicação: ${esc(payload.publicationVersion)} · Publicado em ${esc(payload.generatedAtUtc)} (UTC)</p>`;
+<p style="font-size:13px;line-height:1.5;">Este código identifica exatamente esta versão dos bilhetes. Caso qualquer número seja alterado, o código também mudará.<br>
+Código (resumido): <code style="background:#f0f0f0;padding:2px 4px;border-radius:4px;">${esc(payload.manifestHashShort)}</code></p>
+<p style="font-size:12px;color:#999;">Publicado em ${friendlyDate(payload.generatedAtUtc)}<br>Registro UTC: ${esc(payload.generatedAtUtc)}</p>`;
   return shell({ title: isCorrection ? "Correção dos bilhetes — Powerball" : "Bilhetes publicados — Powerball", bodyHtml: body, testMode });
 }
 
 export function renderTicketPublicationText(payload, testMode) {
   const f = payload.financialSummary;
+  const isCorrection = payload.templateId === "tickets-corrected";
   const lines = [
-    testMode ? "[TESTE ADMIN] — não é um envio de produção" : null,
-    payload.templateId === "tickets-corrected"
-      ? `CORREÇÃO — Powerball ${payload.drawDateLabel} — Versão ${payload.publicationVersion}`
-      : `Bilhetes publicados — Powerball ${payload.drawDateLabel}`,
-    payload.correctionReason ? `Motivo: ${payload.correctionReason}` : null,
+    testMode ? "TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção." : null,
+    isCorrection ? `Correção dos bilhetes — Versão ${payload.publicationVersion}` : `Bilhetes publicados — Powerball ${payload.drawDateLabel} — ${payload.tickets.length} jogos`,
     "",
-    `Sua participação: ${payload.individualParticipation.cotas} cota(s), ${usd(payload.individualParticipation.valor)}, status ${payload.individualParticipation.status}`,
+  ];
+  if (isCorrection && payload.diff) {
+    lines.push("O que foi alterado:");
+    payload.diff.changed.forEach((c) => {
+      lines.push(`  Jogo ${String(c.index + 1).padStart(2, "0")}`);
+      lines.push(`    Antes: ${c.beforeText || "(não existia)"}`);
+      lines.push(`    Depois: ${c.afterText || "(removido)"}`);
+      if (payload.correctionReason) lines.push(`    Motivo: ${payload.correctionReason}`);
+    });
+    lines.push(`  Hash anterior: ${payload.previousHashShort} · Hash novo: ${payload.manifestHashShort}`);
+    lines.push("");
+  }
+  lines.push(
+    "Sua participação:",
+    `  ${payload.individualParticipation.shares} de ${payload.totalShares} cotas, ${usd(payload.individualParticipation.valor)}, ${pct(payload.individualParticipation.percentage)}, status ${payload.individualParticipation.status}`,
     "",
-    "Resumo financeiro:",
+    "Resumo geral:",
     `  Participantes: ${f.participantCount}`,
-    `  Total de cotas: ${f.totalCotas}`,
+    `  Total de cotas: ${f.totalShares}`,
     `  Valor por cota: ${usd(f.valorPorCota)}`,
     `  Total arrecadado: ${usd(f.totalArrecadado)}`,
     `  Valor usado: ${usd(f.valorUsado)}`,
     `  Saldo reservado: ${usd(f.saldoReservado)}`,
-    `  Tickets: ${f.ticketCount}`,
-    `  Custo total: ${usd(f.totalCost)}`,
+    `  Diferença não conciliada: ${usd(f.diferencaNaoConciliada)}`,
     "",
-    "Números jogados:",
-    ...payload.tickets.map((t, i) => `  #${i + 1}: ${t.numbers.join("-")} — PB ${t.special}`),
+    "Jogos:",
+    ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ballsText(t)}`),
     "",
-    `Hash SHA-256 do manifesto: ${payload.manifestHash}`,
-    `Versão: ${payload.publicationVersion} · Publicado em ${payload.generatedAtUtc} UTC`,
-  ].filter((l) => l !== null);
-  return lines.join("\n");
+    `Hash (resumido): ${payload.manifestHashShort}`,
+    `Publicado em ${friendlyDate(payload.generatedAtUtc)}`,
+    `Registro UTC: ${payload.generatedAtUtc}`,
+  );
+  return lines.filter((l) => l !== null).join("\n");
 }
