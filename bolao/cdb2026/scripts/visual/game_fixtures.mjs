@@ -137,14 +137,30 @@ export function cdb2026TiesFixture() {
           first: { ...emptyMatch(), kickoff: "2030-08-15T19:00:00.000Z", venue: "Estádio Fictício", city: "Cidade Extensa" },
           second: emptyMatch(),
         } },
-        // adiado (resolved via the ESPN mock below matching Time F x Time G as postponed)
+        // adiado (resolved via the ESPN mock below matching Time F x Time G as postponed).
+        // Kickoff bumped from 2026-08-05 to 2031 (phase 7, real Playwright capture pass):
+        // ESPN-mock resolution matches by TEAM NAME only (routeCdb2026Espn() below), never by
+        // this date, so moving it doesn't touch the postponed/live behavior being tested. The
+        // original 2026-08-05 date was itself already "keep it near-future" per the fx-t2
+        // comment's own stated convention -- it just didn't account for the fixture being run
+        // on-or-after that exact date, at which point `firstKnownKickoffMs()`
+        // (bolao/cdb2026/js/app.js) picks it up as the phase's EARLIEST known kickoff and
+        // `effectivePhaseCutoffMs()` computes a cutoff 1h before it -- so once "today" reached
+        // 2026-08-04 (this sandbox's simulated date), fx-t5's same-day kickoff below put the
+        // whole "oitavas" phase's cutoff in the past, silently closing Palpites and defaulting
+        // the app to Ranking on load (confirmed via a real Playwright probe: nav shows
+        // "Palpites" but the app boots into the "ranking" section). Same root cause the fx-t2
+        // comment already warned about, just with a shorter fuse. Both fx-t4/fx-t5 moved to
+        // 2031 (matching the rest of this fixture's already-future-dated ties) so this doesn't
+        // recur for a long time; a fully date-proof fix (compute relative to Date.now() instead
+        // of a fixed year) is a reasonable future improvement but out of scope for this pass.
         "fx-t4": { teamA: "Time F", teamB: "Time G", matches: {
-          first: { ...emptyMatch(), kickoff: "2026-08-05T20:00:00.000Z", venue: "Estádio Teste F", city: "Cidade Teste F" },
+          first: { ...emptyMatch(), kickoff: "2031-08-05T20:00:00.000Z", venue: "Estádio Teste F", city: "Cidade Teste F" },
           second: emptyMatch(),
         } },
         // ao vivo (resolved via the ESPN mock below matching Time H x Time I as in-progress)
         "fx-t5": { teamA: "Time H", teamB: "Time I", matches: {
-          first: { ...emptyMatch(), kickoff: "2026-08-04T20:00:00.000Z", venue: "Estádio Teste H", city: "Cidade Teste H" },
+          first: { ...emptyMatch(), kickoff: "2031-08-04T20:00:00.000Z", venue: "Estádio Teste H", city: "Cidade Teste H" },
           second: emptyMatch(),
         } },
       },

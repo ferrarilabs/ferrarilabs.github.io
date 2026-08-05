@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)
 
-Gerado em 2026-08-04T00:45:18.049Z · commit `e28d3b7` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-05T13:31:32.819Z · commit `922426e` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).
 
@@ -8,11 +8,11 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 
 | Status | Quantidade |
 |---|---|
-| EQUAL | 383 |
+| EQUAL | 332 |
 | EQUIVALENT | 0 |
-| JUSTIFIED | 23 |
+| JUSTIFIED | 18 |
 | DIVERGENT | 0 |
-| N/A | 14 |
+| N/A | 70 |
 
 ## Divergências não aprovadas (DIVERGENT) — bloqueiam exit 0
 
@@ -22,20 +22,15 @@ Nenhuma. Todas as diferenças encontradas são EQUAL, EQUIVALENT ou JUSTIFIED (v
 
 | Componente | Propriedade | Justificativa |
 |---|---|---|
-| Topbar | height | `.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 118.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. If this value ever drifts (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| Topbar | height | `.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Nav de tabs (.nav) | gridTemplateColumns | Column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real visible button count by design (fixed in this branch, commit 9b11e3b — Copa 8→6, BR2026 9→7, CDB2026 6). Unequal track widths across apps given unequal button counts is the CORRECT outcome, not a regression. If a nav button is ever added/removed in any app, the resolved track-width string changes and this exact-match entry correctly goes stale, forcing a fresh human review rather than silently continuing to approve a now-unverified state — this is the reference example the task itself asked for. [docRef: bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78 (Fase 2.2-correção item 3); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | main | height | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Card base (marcado) | height | The marked card (data-visual-audit="card-base", the scoring-rules card in Regras) wraps a <table class="rules-table"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| Form grid (.form-grid) | height | `.form-grid` CSS itself is byte-identical in all three apps (display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px — verified by diffing the three stylesheets directly; gridTemplateColumns resolves to the identical `527px 527px` in all three). The height gap is a field-COUNT difference, not a token: Copa's entry form has 5 fields (includes a static disabled 'Valor' field showing the fixed US$5 entry price) = 3 grid rows; BR2026/CDB2026 have 4 fields (no 'Valor' field) = 2 grid rows. Verified by reading each app's index.html entry-form markup directly. [docRef: bolao/copa2026/index.html vs bolao/br2026/index.html vs bolao/cdb2026/index.html (entry form field lists, verbatim); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| Botão small (texto sintético) | height | `.small-btn`/`button` base CSS is byte-identical in all three apps. `.admin-toolbar` uses `display:flex; flex-wrap:wrap` with default `align-items:stretch`, so every button on the SAME wrapped row stretches to match the tallest sibling in that row. Copa's 13-button toolbar wraps the measured forceSync button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts it on the SAME row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via Playwright probe reading each button's boundingClientRect top/height. Same root cause as the admin-toolbar:height entry above, cascading to individual buttons — a stale exact value here (if toolbar composition changes) correctly re-flags for review. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| Botão destrutivo (texto sintético) | height | Same root cause as button-small:height above: `.admin-toolbar`'s default `align-items:stretch` stretches every button on a wrapped flex row to match its tallest sibling. Copa's 13-button toolbar wraps the measured clearData button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts clearData on the same row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via the same Playwright probe technique as button-small. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar/button-small entries above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Linha de ranking (.rank-row) | height | `.rank-row` CSS itself is byte-identical (`display:grid; grid-template-columns:48px 1fr auto auto; gap:10px` in all three -- verified by diffing the stylesheets directly). The height gap is a real, intentional per-app business rule, not a token: BR2026/CDB2026 gate the 'Ver palpites' button on `isPastCutoff()`/`isPastEntryCutoff()` (privacy protection -- picks stay hidden from other participants until the reveal cutoff, so no one can copy another entrant's picks before submissions close) and this harness's synthetic fixture doesn't simulate a past-cutoff state for either. Copa is fully concluded/archived (cutoff long past for the real tournament), so its ranking row always renders the 4th column. Same class of exclusion as main/card-base height above -- state-driven, not CSS-driven. [docRef: bolao/br2026/js/app.js isPastCutoff() gating comment (verbatim); bolao/cdb2026/js/app.js isPastEntryCutoff() (same pattern); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Linha de ranking (.rank-row) | gridTemplateColumns | Same root cause as ranking-row:height directly above: the grid-template-columns RULE (`48px 1fr auto auto`) is identical CSS in all three apps, but the 4th `auto` track resolves to the 'Ver palpites' button's real width in Copa (cutoff always past, button always rendered) and collapses to `0px` in BR2026/CDB2026 in this harness run (their own picks-reveal cutoff gate -- see ranking-row:height entry -- isn't simulated, so the button doesn't render at all, and an empty `auto` track has zero width). Content-driven column sizing, not a token divergence -- will resolve identically to Copa's the moment either app's synthetic run simulates a past-cutoff state. [docRef: ALLOWLIST.json ranking-row:height entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| Card de jogo | gap | BR2026's `.game-card` is its own internal `display:flex; flex-direction:column; gap:4px` layout, spacing 2 real stacked children — already flagged in bolao/br2026/css/styles.css's own comment as a structural difference, out of item 4's authorized alignment scope. Copa's `.game-card` (block layout, 3 children) and CDB2026's `.confronto-card` (block layout, 2 children, a deliberately different ida+volta component per CONSISTENCY_MATRIX item 72) are not flex containers, so `gap` computes to `normal` for both. Aligning this would mean restructuring BR2026's internal game-card layout, explicitly out of this task's authorized scope. [docRef: bolao/br2026/css/styles.css .game-card comment (verbatim); docs/bolao/CONSISTENCY_MATRIX.md item 72; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| Card de jogo | height | Padding/border-radius/margin-bottom are already token-aligned across all three (item 4, prior commit). The remaining height gap is structure/content-driven, not a token: Copa's `.game-card` has 3 stacked children; BR2026's has 2 with its own internal gap (see game-card:gap above); CDB2026's `.confronto-card` is a deliberately different ida+volta component (CONSISTENCY_MATRIX item 72, INTENTIONALLY_DIFFERENT) — not the same structural component as Copa/BR2026's `.game-card` at all. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT); ALLOWLIST.json main/card-base entries above (same exclusion class); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| Card de jogo | height | Verified with a live DOM probe (not assumed): margin/padding/gap/border-radius/colors/fonts are all EQUAL (confirmed via audit_visual_consistency.mjs's own computed-style output) — the height gap is pure fixture-content length, not a token. Copa's first .game-card__header wraps a match-badge + a longer 'Fase de grupos — Grupo A' phase label onto its own content width; BR2026's header is a single short 'Partida N' label. Copa's .game-card__metadata has 1 pill (date only, this fixture's first match has no venue set); BR2026's has 2 (date + venue). Different synthetic fixture text length per app, same class of exclusion as main/card-base/admin-toolbar height above — not a CSS/token bug, and not fixable by aligning a design token since there is none to align. [docRef: bolao/scripts/audit_visual_consistency.mjs live DOM probe, 2026-08-05 (game-card__header/__metadata innerHTML compared directly, see PR history); ALLOWLIST.json main/card-base height entries above (same exclusion class); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-05; reviewBy: 2027-08-05] |
 | Badge de status de jogo (estado 'encerrado') | gap | `gap` only has a visible effect with 2+ flex children to space apart. Confirmed by reading each app's renderer: all three produce a single `<span>` with ONLY a text node inside (childElementCount:0, verified live via Playwright probe). Copa's `.status-chip` doesn't set display/gap at all (plain inline text pill); BR2026/CDB2026's `.game-status` sets `display:inline-flex; gap:4px` (kept for potential future icon use, CONSISTENCY_MATRIX item 67). With no second child to space, `gap:4px` is currently inert — zero rendered visual effect. All other properties of this exact badge state are already EQUAL across all three apps. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 67; bolao/{br2026,cdb2026}/js/app.js badge template (verbatim, single text node); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Badge de status de jogo (estado 'encerrado') | height | Copa's `.status-chip` has no `display` declared (default inline span) so `height` never resolves past the keyword 'auto'; BR2026/CDB2026's `.game-status` explicitly sets `display:inline-flex`, which DOES resolve a concrete used height. Same root cause, same CONSISTENCY_MATRIX item 72 structural difference, as the minHeight entry directly above -- newly surfaced after the copa2026 fixture storeKey fix let Copa's games section render its real archived match data through this harness for the first time this round. Zero visual difference (both render the badge at its natural content-driven size; 'auto' vs '26.5px' is the same rendered outcome via two different CSS mechanisms). [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure); ALLOWLIST.json status-badge:minHeight entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| Badge de status de jogo (estado 'encerrado') | minHeight | getComputedStyle artifact of each app's own (already-intentionally-different, CONSISTENCY_MATRIX item 72) DOM structure around the badge, not a token: `min-height:auto` resolves to the unresolved keyword 'auto' when the element is a flex ITEM of its immediate parent under certain browser-specific conditions, but resolves to a concrete used value ('0px') otherwise. Re-measured after fixing the copa2026 fixture storeKey (PR120-final review item 2/3 -- see APPS.copa2026.storeKey comment in audit_visual_consistency.mjs): Copa's `.status-chip` is a flex item of `.game-top` (display:flex) yet resolves '0px', not 'auto' as an earlier pass of this entry assumed -- corrected here to the actual measured value rather than left stale. Zero effect on the badge's actual rendered size either way -- padding/font-size/border-radius (all EQUAL) fully determine it. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure, root cause here too); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Admin toolbar (.admin-toolbar) | height | Copa's admin toolbar has 12 buttons (CSV/JSON/HTML export variants, API-Football, ESPN sync, result emails, force sync, clear data); BR2026/CDB2026 have 4 (export CSV/JSON, force sync, clear data) — a real, intentional difference in which admin tools exist per app, not a shared design token. `.admin-toolbar` CSS itself (display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px) is identical across all three. PR120-final review item 3 explicitly instructs: 'não compare... altura de toolbar com quantidade diferente de botões' — item 6 repeats this. If Copa's tool count ever drops enough to fit one row (or BR2026/CDB2026's grows past one row), this exact value goes stale and re-flags for review, which is correct. [docRef: PR120-final review item 3 and item 6 (verbatim task text); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Card/linha de entrada no admin | fontSize | Same formalized `admin-entry-full` vs `admin-entry-dense` variant as admin-card-row:height above (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'). `admin-entry-full` reuses Copa's `.card` base font-size (15px, same as every other `.card` in Copa); `admin-entry-dense` is a plain list row with the base body font-size (14px). Newly surfaced after the copa2026 fixture storeKey fix let Copa's admin-card-row render real comparable content for the first time this round -- not a new divergence, the same pre-existing documented one, just previously masked by the harness bug (Copa's admin-card-row was N/A, not compared, before the fix). [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Card/linha de entrada no admin | lineHeight | Direct consequence of the fontSize divergence in the entry immediately above (1.5x line-height ratio applied to each variant's own base font-size) -- same `admin-entry-full` vs `admin-entry-dense` variant, same docRef. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; ALLOWLIST.json admin-card-row:fontSize entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
@@ -65,7 +60,7 @@ Seletores: copa2026=`.topbar`, br2026=`.topbar`, cdb2026=`.topbar`
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(7, 20, 27, 0.94)` | `rgba(7, 20, 27, 0.94)` | `rgba(7, 20, 27, 0.94)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `108.5px` | `108.5px` | `118.5px` | JUSTIFIED | `.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 118.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. If this value ever drifts (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `108.5px` | `108.5px` | `144.5px` | JUSTIFIED | `.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | EQUAL | — |
 
@@ -233,7 +228,7 @@ Seletores: copa2026=`main`, br2026=`main`, cdb2026=`main`
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `8328.97px` | `1765px` | `4671.19px` | JUSTIFIED | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `8328.97px` | `1749px` | `4615.88px` | JUSTIFIED | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
@@ -254,7 +249,7 @@ Seletores: copa2026=`[data-visual-audit="card-base"]`, br2026=`[data-visual-audi
 | borderRadius | `18px` | `18px` | `18px` | EQUAL | — |
 | backgroundColor | `rgb(13, 32, 40)` | `rgb(13, 32, 40)` | `rgb(13, 32, 40)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `395.391px` | `752.828px` | `441.5px` | JUSTIFIED | The marked card (data-visual-audit="card-base", the scoring-rules card in Regras) wraps a <table class="rules-table"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `395.391px` | `756.109px` | `444.781px` | JUSTIFIED | The marked card (data-visual-audit="card-base", the scoring-rules card in Regras) wraps a <table class="rules-table"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
@@ -369,20 +364,20 @@ Seletores: copa2026=`[data-visual-audit="form-grid"]`, br2026=`[data-visual-audi
 
 | Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
 |---|---|---|---|---|---|
-| fontFamily | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | EQUAL | — |
-| fontSize | `15px` | `15px` | `15px` | EQUAL | — |
-| fontWeight | `400` | `400` | `400` | EQUAL | — |
-| lineHeight | `22.5px` | `22.5px` | `22.5px` | EQUAL | — |
-| letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
-| padding | `0px` | `0px` | `0px` | EQUAL | — |
-| margin | `0px` | `0px` | `0px` | EQUAL | — |
-| gap | `12px` | `12px` | `12px` | EQUAL | — |
-| borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
-| backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
-| color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `226.5px` | `147px` | `147px` | JUSTIFIED | `.form-grid` CSS itself is byte-identical in all three apps (display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px — verified by diffing the three stylesheets directly; gridTemplateColumns resolves to the identical `527px 527px` in all three). The height gap is a field-COUNT difference, not a token: Copa's entry form has 5 fields (includes a static disabled 'Valor' field showing the fixed US$5 entry price) = 3 grid rows; BR2026/CDB2026 have 4 fields (no 'Valor' field) = 2 grid rows. Verified by reading each app's index.html entry-form markup directly. [docRef: bolao/copa2026/index.html vs bolao/br2026/index.html vs bolao/cdb2026/index.html (entry form field lists, verbatim); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| minHeight | `0px` | `0px` | `0px` | EQUAL | — |
-| gridTemplateColumns | `527px 527px` | `527px 527px` | `527px 527px` | EQUAL | — |
+| fontFamily | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontSize | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontWeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| lineHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| letterSpacing | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| padding | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| margin | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gap | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| borderRadius | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| backgroundColor | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| color | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| height | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| minHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gridTemplateColumns | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
 
 ### Botão primário (texto sintético) (`button-primary`)
 
@@ -390,20 +385,20 @@ Seletores: copa2026=`[data-visual-audit="button-primary"]`, br2026=`[data-visual
 
 | Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
 |---|---|---|---|---|---|
-| fontFamily | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | EQUAL | — |
-| fontSize | `16px` | `16px` | `16px` | EQUAL | — |
-| fontWeight | `900` | `900` | `900` | EQUAL | — |
-| lineHeight | `24px` | `24px` | `24px` | EQUAL | — |
-| letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
-| padding | `14px 28px` | `14px 28px` | `14px 28px` | EQUAL | — |
-| margin | `0px` | `0px` | `0px` | EQUAL | — |
-| gap | `normal` | `normal` | `normal` | EQUAL | — |
-| borderRadius | `12px` | `12px` | `12px` | EQUAL | — |
-| backgroundColor | `rgb(47, 229, 110)` | `rgb(47, 229, 110)` | `rgb(47, 229, 110)` | EQUAL | — |
-| color | `rgb(3, 19, 11)` | `rgb(3, 19, 11)` | `rgb(3, 19, 11)` | EQUAL | — |
-| height | `52px` | `52px` | `52px` | EQUAL | — |
-| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
-| gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
+| fontFamily | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontSize | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontWeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| lineHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| letterSpacing | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| padding | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| margin | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gap | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| borderRadius | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| backgroundColor | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| color | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| height | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| minHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gridTemplateColumns | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
 
 ### Botão small (texto sintético) (`button-small`)
 
@@ -411,20 +406,20 @@ Seletores: copa2026=`[data-visual-audit="button-small"]`, br2026=`[data-visual-a
 
 | Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
 |---|---|---|---|---|---|
-| fontFamily | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | EQUAL | — |
-| fontSize | `12px` | `12px` | `12px` | EQUAL | — |
-| fontWeight | `900` | `900` | `900` | EQUAL | — |
-| lineHeight | `18px` | `18px` | `18px` | EQUAL | — |
-| letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
-| padding | `7px 11px` | `7px 11px` | `7px 11px` | EQUAL | — |
-| margin | `0px` | `0px` | `0px` | EQUAL | — |
-| gap | `normal` | `normal` | `normal` | EQUAL | — |
-| borderRadius | `9px` | `9px` | `9px` | EQUAL | — |
-| backgroundColor | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | EQUAL | — |
-| color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `34px` | `46.5px` | `46.5px` | JUSTIFIED | `.small-btn`/`button` base CSS is byte-identical in all three apps. `.admin-toolbar` uses `display:flex; flex-wrap:wrap` with default `align-items:stretch`, so every button on the SAME wrapped row stretches to match the tallest sibling in that row. Copa's 13-button toolbar wraps the measured forceSync button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts it on the SAME row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via Playwright probe reading each button's boundingClientRect top/height. Same root cause as the admin-toolbar:height entry above, cascading to individual buttons — a stale exact value here (if toolbar composition changes) correctly re-flags for review. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
-| gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
+| fontFamily | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontSize | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontWeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| lineHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| letterSpacing | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| padding | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| margin | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gap | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| borderRadius | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| backgroundColor | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| color | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| height | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| minHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gridTemplateColumns | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
 
 ### Botão destrutivo (texto sintético) (`button-danger`)
 
@@ -432,20 +427,20 @@ Seletores: copa2026=`[data-visual-audit="button-danger"]`, br2026=`[data-visual-
 
 | Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
 |---|---|---|---|---|---|
-| fontFamily | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | `Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif` | EQUAL | — |
-| fontSize | `12px` | `12px` | `12px` | EQUAL | — |
-| fontWeight | `900` | `900` | `900` | EQUAL | — |
-| lineHeight | `18px` | `18px` | `18px` | EQUAL | — |
-| letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
-| padding | `7px 11px` | `7px 11px` | `7px 11px` | EQUAL | — |
-| margin | `0px` | `0px` | `0px` | EQUAL | — |
-| gap | `normal` | `normal` | `normal` | EQUAL | — |
-| borderRadius | `9px` | `9px` | `9px` | EQUAL | — |
-| backgroundColor | `rgb(61, 21, 32)` | `rgb(61, 21, 32)` | `rgb(61, 21, 32)` | EQUAL | — |
-| color | `rgb(255, 219, 225)` | `rgb(255, 219, 225)` | `rgb(255, 219, 225)` | EQUAL | — |
-| height | `34px` | `46.5px` | `46.5px` | JUSTIFIED | Same root cause as button-small:height above: `.admin-toolbar`'s default `align-items:stretch` stretches every button on a wrapped flex row to match its tallest sibling. Copa's 13-button toolbar wraps the measured clearData button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts clearData on the same row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via the same Playwright probe technique as button-small. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar/button-small entries above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
-| gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
+| fontFamily | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontSize | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| fontWeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| lineHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| letterSpacing | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| padding | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| margin | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gap | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| borderRadius | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| backgroundColor | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| color | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| height | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| minHeight | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
+| gridTemplateColumns | `—` | `—` | `—` | N/A | component not present in enough apps to compare |
 
 ### Botão secundário (Sair) (`button-secondary`)
 
@@ -491,9 +486,9 @@ Seletores: copa2026=`.rank-row`, br2026=`.rank-row`, cdb2026=`.rank-row`
 
 ### Card de jogo (`game-card`)
 
-Seletores: copa2026=`.game-card`, br2026=`.game-card`, cdb2026=`.confronto-card`
+Seletores: copa2026=`.game-card`, br2026=`.game-card`, cdb2026=`.game-card`
 
-> CDB2026 uses .confronto-card (ida+volta layout) instead of .game-card by design — CONSISTENCY_MATRIX.md item 72, INTENTIONALLY_DIFFERENT (tournament format, not a shared component).
+> CDB2026 migrated its per-leg match cards to the same canonical .game-card as Copa/BR2026 (visual-framework-copa-canonical branch, structural DOM unification) — .confronto-card is now only the tie-group summary/aggregate wrapper, not the per-match card.
 
 | Propriedade | copa2026 | br2026 | cdb2026 | Status | Motivo |
 |---|---|---|---|---|---|
@@ -504,11 +499,11 @@ Seletores: copa2026=`.game-card`, br2026=`.game-card`, cdb2026=`.confronto-card`
 | letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
 | padding | `14px` | `14px` | `14px` | EQUAL | — |
 | margin | `0px 0px 10px` | `0px 0px 10px` | `0px 0px 10px` | EQUAL | — |
-| gap | `normal` | `4px` | `normal` | JUSTIFIED | BR2026's `.game-card` is its own internal `display:flex; flex-direction:column; gap:4px` layout, spacing 2 real stacked children — already flagged in bolao/br2026/css/styles.css's own comment as a structural difference, out of item 4's authorized alignment scope. Copa's `.game-card` (block layout, 3 children) and CDB2026's `.confronto-card` (block layout, 2 children, a deliberately different ida+volta component per CONSISTENCY_MATRIX item 72) are not flex containers, so `gap` computes to `normal` for both. Aligning this would mean restructuring BR2026's internal game-card layout, explicitly out of this task's authorized scope. [docRef: bolao/br2026/css/styles.css .game-card comment (verbatim); docs/bolao/CONSISTENCY_MATRIX.md item 72; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| gap | `normal` | `normal` | `normal` | EQUAL | — |
 | borderRadius | `16px` | `16px` | `16px` | EQUAL | — |
 | backgroundColor | `rgb(13, 32, 40)` | `rgb(13, 32, 40)` | `rgb(13, 32, 40)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `152px` | `84px` | `187px` | JUSTIFIED | Padding/border-radius/margin-bottom are already token-aligned across all three (item 4, prior commit). The remaining height gap is structure/content-driven, not a token: Copa's `.game-card` has 3 stacked children; BR2026's has 2 with its own internal gap (see game-card:gap above); CDB2026's `.confronto-card` is a deliberately different ida+volta component (CONSISTENCY_MATRIX item 72, INTENTIONALLY_DIFFERENT) — not the same structural component as Copa/BR2026's `.game-card` at all. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT); ALLOWLIST.json main/card-base entries above (same exclusion class); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `152px` | `141.5px` | `152px` | JUSTIFIED | Verified with a live DOM probe (not assumed): margin/padding/gap/border-radius/colors/fonts are all EQUAL (confirmed via audit_visual_consistency.mjs's own computed-style output) — the height gap is pure fixture-content length, not a token. Copa's first .game-card__header wraps a match-badge + a longer 'Fase de grupos — Grupo A' phase label onto its own content width; BR2026's header is a single short 'Partida N' label. Copa's .game-card__metadata has 1 pill (date only, this fixture's first match has no venue set); BR2026's has 2 (date + venue). Different synthetic fixture text length per app, same class of exclusion as main/card-base/admin-toolbar height above — not a CSS/token bug, and not fixable by aligning a design token since there is none to align. [docRef: bolao/scripts/audit_visual_consistency.mjs live DOM probe, 2026-08-05 (game-card__header/__metadata innerHTML compared directly, see PR history); ALLOWLIST.json main/card-base height entries above (same exclusion class); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-05; reviewBy: 2027-08-05] |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
@@ -532,7 +527,7 @@ Seletores: copa2026=`.status-chip.done`, br2026=`.game-status.post`, cdb2026=`.g
 | backgroundColor | `rgba(47, 229, 110, 0.15)` | `rgba(47, 229, 110, 0.15)` | `rgba(47, 229, 110, 0.15)` | EQUAL | — |
 | color | `rgb(47, 229, 110)` | `rgb(47, 229, 110)` | `rgb(47, 229, 110)` | EQUAL | — |
 | height | `auto` | `26.5px` | `26.5px` | JUSTIFIED | Copa's `.status-chip` has no `display` declared (default inline span) so `height` never resolves past the keyword 'auto'; BR2026/CDB2026's `.game-status` explicitly sets `display:inline-flex`, which DOES resolve a concrete used height. Same root cause, same CONSISTENCY_MATRIX item 72 structural difference, as the minHeight entry directly above -- newly surfaced after the copa2026 fixture storeKey fix let Copa's games section render its real archived match data through this harness for the first time this round. Zero visual difference (both render the badge at its natural content-driven size; 'auto' vs '26.5px' is the same rendered outcome via two different CSS mechanisms). [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure); ALLOWLIST.json status-badge:minHeight entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
-| minHeight | `0px` | `auto` | `0px` | JUSTIFIED | getComputedStyle artifact of each app's own (already-intentionally-different, CONSISTENCY_MATRIX item 72) DOM structure around the badge, not a token: `min-height:auto` resolves to the unresolved keyword 'auto' when the element is a flex ITEM of its immediate parent under certain browser-specific conditions, but resolves to a concrete used value ('0px') otherwise. Re-measured after fixing the copa2026 fixture storeKey (PR120-final review item 2/3 -- see APPS.copa2026.storeKey comment in audit_visual_consistency.mjs): Copa's `.status-chip` is a flex item of `.game-top` (display:flex) yet resolves '0px', not 'auto' as an earlier pass of this entry assumed -- corrected here to the actual measured value rather than left stale. Zero effect on the badge's actual rendered size either way -- padding/font-size/border-radius (all EQUAL) fully determine it. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure, root cause here too); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
 ### Badge de pagamento (.paid-badge) (`paid-badge`)
@@ -596,7 +591,7 @@ Seletores: copa2026=`.admin-entry`, br2026=`.admin-row`, cdb2026=`.admin-row`
 | borderRadius | `18px` | `0px` | `0px` | JUSTIFIED | `admin-entry-full` is a rounded `.card` (18px, same token as every other `.card`); `admin-entry-dense` is an unrounded list row (0px -- it's a row in a list, not a boxed card). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | backgroundColor | `rgb(13, 32, 40)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | JUSTIFIED | `admin-entry-full` has its own `.card` background token (same as every other `.card`); `admin-entry-dense` rows are transparent, relying on the dense-list container's own background instead of a per-row fill. Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `149.5px` | `89px` | `128px` | JUSTIFIED | Two FORMALIZED design-system variants (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'): Copa renders each admin entry as `admin-entry-full` (a complete `.card.admin-entry`, multi-row spaced layout); BR2026/CDB2026 render `admin-entry-dense` (a single-line `.admin-row` list) — both are documented, permitted variants of the same component, not a token drift on one shared component. Same synthetic fixture content (2 fictional entries, same field names) is used for all three; only the variant differs, by design, per the design system doc's own stated criteria for when each is appropriate. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `149.5px` | `87.5px` | `128px` | JUSTIFIED | Two FORMALIZED design-system variants (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'): Copa renders each admin entry as `admin-entry-full` (a complete `.card.admin-entry`, multi-row spaced layout); BR2026/CDB2026 render `admin-entry-dense` (a single-line `.admin-row` list) — both are documented, permitted variants of the same component, not a token drift on one shared component. Same synthetic fixture content (2 fictional entries, same field names) is used for all three; only the variant differs, by design, per the design system doc's own stated criteria for when each is appropriate. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
@@ -656,7 +651,7 @@ Seletores: copa2026=`.bolao-toast.info`, br2026=`.bolao-toast.info`, cdb2026=`.b
 | padding | `10px 16px` | `10px 16px` | `10px 16px` | EQUAL | — |
 | margin | `0px` | `0px` | `0px` | EQUAL | — |
 | gap | `normal` | `normal` | `normal` | EQUAL | — |
-| borderRadius | `8px` | `8px` | `8px` | EQUAL | — |
+| borderRadius | `12px` | `12px` | `12px` | EQUAL | — |
 | backgroundColor | `rgb(13, 31, 51)` | `rgb(13, 31, 51)` | `rgb(13, 31, 51)` | EQUAL | — |
 | color | `rgb(128, 200, 240)` | `rgb(128, 200, 240)` | `rgb(128, 200, 240)` | EQUAL | — |
 | height | `38.1875px` | `38.1875px` | `38.1875px` | EQUAL | — |

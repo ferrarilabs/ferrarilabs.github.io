@@ -1,8 +1,8 @@
 {
   "meta": {
-    "generatedAtUtc": "2026-08-04T00:44:47.076Z",
-    "sourceCommit": "e28d3b7fca5051e5bc28477de608c94c846529e5",
-    "sourceTreeHash": "885eb7626eec7e130adce2942f66056215c592ac",
+    "generatedAtUtc": "2026-08-05T13:04:14.661Z",
+    "sourceCommit": "7185627d66affc53963974f9337cad968996100f",
+    "sourceTreeHash": "9f0f8d0483eed1186f6d990845c546e4a56aeba2",
     "fixtureVersion": "visual-comparable-v1"
   },
   "entries": [
@@ -12,8 +12,8 @@
       "captured": false,
       "status": "notApplicable",
       "reason": "CONFIG.archived hides the Admin nav button (.hidden class), same product decision as Palpites/Jogos/Regras -- not worked around, matches capture_evidence.mjs's existing treatment of this app.",
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:14.854Z"
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:43.509Z"
     },
     {
       "application": "br2026",
@@ -23,8 +23,8 @@
         "width": 320,
         "height": 568
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:16.777Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:45.529Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -40,8 +40,8 @@
         "width": 390,
         "height": 844
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:18.749Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:47.407Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -57,8 +57,8 @@
         "width": 768,
         "height": 1024
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:20.695Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:49.289Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -74,8 +74,8 @@
         "width": 1440,
         "height": 900
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:22.660Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:51.174Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -91,8 +91,8 @@
         "width": 320,
         "height": 568
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:24.613Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:53.089Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -108,8 +108,8 @@
         "width": 390,
         "height": 844
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:26.549Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:54.972Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -125,8 +125,8 @@
         "width": 768,
         "height": 1024
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:28.514Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:56.868Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -142,8 +142,8 @@
         "width": 1440,
         "height": 900
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:30.484Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:03:58.740Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -159,8 +159,8 @@
         "width": 320,
         "height": 568
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:32.476Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:00.672Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -176,8 +176,8 @@
         "width": 390,
         "height": 844
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:34.534Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:02.615Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -193,8 +193,8 @@
         "width": 768,
         "height": 1024
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:36.564Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:04.551Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -210,8 +210,8 @@
         "width": 1440,
         "height": 900
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:38.596Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:06.530Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -227,8 +227,8 @@
         "width": 320,
         "height": 568
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:40.681Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:08.521Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -244,8 +244,8 @@
         "width": 390,
         "height": 844
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:42.681Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:10.440Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -261,8 +261,8 @@
         "width": 768,
         "height": 1024
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:44.741Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:12.387Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
@@ -278,8 +278,8 @@
         "width": 1440,
         "height": 900
       },
-      "commit": "e28d3b7",
-      "capturedAtUtc": "2026-08-04T00:44:46.782Z",
+      "commit": "7185627",
+      "capturedAtUtc": "2026-08-05T13:04:14.359Z",
       "actualSection": "admin",
       "captured": true,
       "status": "captured",
