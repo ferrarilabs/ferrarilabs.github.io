@@ -1,87 +1,111 @@
-Powerball email professionalization — admin test-send evidence (ROUND 4)
+Powerball email professionalization — admin test-send evidence (ROUND 5)
 ==========================================================================
 
-Round 1: REJECTED (percentage mismatch, unreconciled financial summary,
-fabricated correction diff).
-Round 2: REJECTED (delivered subject was the EmailJS template's generic
-fallback; ticket numbers rendered concatenated).
-Round 3: subject and number-concatenation root-caused and fixed; Eduardo
-then removed the static "Bolão do Ferrari - " EmailJS dashboard prefix
-himself and asked for 3 more fixes before a final resend:
-Round 4 (this round):
-  1. Removed the redundant small gray plain-text line that appeared
-     underneath the ball circles in the HTML version (it now lives ONLY in
-     text/plain, as originally requested).
-  2. Added a production attachment/link gate
-     (validate.mjs::validateAttachmentsAndLinks) — blocks any REAL
-     (non-test) publication send when the comprovante URL is empty,
-     localhost, or a reserved/placeholder domain (.invalid/.example/.test/
-     .local), or when a PDF/CSV/JSON attachment can't be resolved to a real
-     URL or an existing file. Explicit error, not a silent skip. The
-     fixture-driven admin TEST path is intentionally exempt (it uses
-     example.invalid, a documented placeholder) — see
-     scripts/email/publish_tickets.mjs's `if (!testMode)` gate.
-  3. Restored/rebuilt the ball-circle visual design: searched git history
-     (this branch + the separate powerball-professionalization-audit
-     branch's reference "email outbox/pipeline/worker" implementation and
-     its evidence HTML previews) for a prior richer ball design to reuse —
-     none existed (that branch's previews have no ball rendering at all).
-     Built fresh per spec: five fixed 32x32 light-gray circles + one larger
-     36x36 solid-red Powerball circle, all six in the same row, true circles
-     via matching width==height (not padding-stretched), "Power Play:
-     Sim/Não" as its own small line below the row, no text label crowding
-     the numbers. Applied to tickets-published AND tickets-corrected
-     (BOTH the "Antes" and "Depois" ball rows in the diff box).
+Body/visual design (ball circles, HTML layout, all three templates):
+APPROVED by Eduardo in round 4 — LOCKED, not touched this round.
 
-VERIFICATION METHODOLOGY: every claim below was cross-checked against the
-actual delivered Gmail message (real search + full-content fetch), not
-assumed from providerStatus:200.
+This round's scope, per Eduardo's 3 remaining blockers before production
+activation:
+  1. Subject-prefix diagnosis (see below — dashboard-side, outside this
+     codebase's control; not "fixed" because there is nothing in the code to
+     fix).
+  2. Confirm the production attachment/link gate actually blocks a REAL
+     send — verified, see below.
+  3. Confirm the financial-reconciliation gate actually blocks a REAL
+     publish attempt — verified, see below.
+No code changes were made to render.mjs, validate.mjs, or publish_tickets.mjs
+this round — points 2 and 3 were already correctly built and enforced from
+round 4; this round only verified and reported on them, per Eduardo's
+explicit instruction not to touch the locked body/ball design and to fix the
+subject issue "if the fix is actually in your control."
 
-HONEST NOTE ON THE "Bolão do Ferrari - " PREFIX: this round's 3 sends still
-arrived with the "Bolão do Ferrari - " prefix despite Eduardo reporting he
-removed it from the EmailJS dashboard. Possible causes: the dashboard change
-had not fully propagated/saved before this round's sends, EmailJS-side
-caching, or the removal was done after these specific sends went out. This
-is flagged honestly rather than glossed over — Eduardo should visually
-confirm in his own inbox whether the prefix is now gone or still present;
-this codebase cannot control or verify the EmailJS dashboard's state.
+1) SUBJECT PREFIX — DIAGNOSIS
+------------------------------
+templateId actually used by this codebase's EmailJS calls (grepped every
+send call site): exactly ONE — "template_xq7yzzb" — used for ALL THREE
+flows (participant-added, tickets-published, tickets-corrected). See:
+  - bolao/loterias/powerball/scripts/email/send_participant_confirmation.mjs:24
+  - bolao/loterias/powerball/scripts/email/publish_tickets.mjs:22
+  - bolao/loterias/powerball/scripts/email/run_fixture_test_sends.mjs:22
+This matches js/config.js's participantTemplateId. The OTHER template
+defined in js/config.js, adminTemplateId: "template_4sgp5r9", is NEVER
+referenced anywhere in this email pipeline — if Eduardo edited that one
+instead of template_xq7yzzb, that would fully explain why the prefix is
+still showing up. The one and only template to check in the EmailJS
+dashboard for this issue is template_xq7yzzb.
 
-FINAL RESEND — 3 emails, emferrari@gmail.com only
----------------------------------------------------
+Fresh verification performed THIS round (not reused from a prior round):
+sent 1 new isolated test email, then re-sent all 3, then searched Gmail
+again immediately after each — every single one, right now, still arrives
+with the prefix: "Bolão do Ferrari - [TESTE ADMIN] ...". Checked twice in
+this round alone; the prefix is still there both times, confirmed via real
+Gmail message content, not just providerStatus:200.
 
-1) tickets-published
-   emailJobId:          job_1785942557384_zwplnbkz
-   Gmail message id:    19fd278c5b0d9878
-   assunto real recebido (Gmail, verificado): Bolão do Ferrari - [TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos
-   destinatário:         emferrari@gmail.com
-   sentAt (UTC):         2026-08-05T15:09:15.208Z
-   providerStatus:       200
-   Body verified (full HTML fetched and inspected): both games render as
-   5 fixed 32x32 #f2f2f2 circles + 1 fixed 36x36 #CE1141 (red) circle, no
-   gray fallback text line underneath, "Power Play: Sim" as its own line.
+No string "Bolão do Ferrari" appears anywhere in this codebase (grepped the
+full bolao/loterias/powerball/scripts/email/ directory) — this text is not
+something our code sends or could accidentally send; the prefix is entirely
+a property of the EmailJS template's own Subject field configuration on
+EmailJS's servers. There is nothing in this codebase to fix. Root cause
+report to Eduardo: the dashboard edit either didn't target template_xq7yzzb
+specifically, didn't save, or hasn't finished propagating on EmailJS's
+side — please re-check template_xq7yzzb's Subject field directly (not
+template_4sgp5r9, which this pipeline never uses).
 
-2) participant-added
-   emailJobId:          job_1785942555251_ffcm2g7v
-   Gmail message id:    19fd278bcfedf6b0
-   assunto real recebido (Gmail, verificado): Bolão do Ferrari - [TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET
-   destinatário:         emferrari@gmail.com
-   providerStatus:       200
-   (No ticket numbers in this template — unaffected by this round's ball-design change.)
+2) PRODUCTION ATTACHMENT/LINK GATE — ENFORCEMENT STATUS: CONFIRMED SOLID
+---------------------------------------------------------------------------
+Ran runPublishTickets with testMode:false (the real-send code path) against
+three broken inputs, verifying an actual function-level block (not just a
+test assertion):
+  - No proofUrl, no attachments -> BLOCKED
+    errors: ["PROOF_URL_MISSING", "ATTACHMENT_MISSING: pdf", "ATTACHMENT_MISSING: csv", "ATTACHMENT_MISSING: json"]
+    blockedBy: "validateAttachmentsAndLinks"
+  - localhost proofUrl -> BLOCKED
+    errors: ["PROOF_URL_NOT_REAL: http://localhost:8099/proof.jpg ...", + all 3 ATTACHMENT_MISSING]
+  - example.invalid proofUrl -> BLOCKED
+    errors: ["PROOF_URL_NOT_REAL: https://example.invalid/proof.jpg ...", + all 3 ATTACHMENT_MISSING]
+All three returned ok:false with a specific, readable error list — never a
+silent skip, never ok:true. The test-mode (fixture) path remains correctly
+UNAFFECTED by this gate (verified separately — example.invalid is fine when
+testMode:true, since that's the documented test fixture placeholder).
+No code change was needed; this was built and wired correctly in round 4.
+
+3) FINANCIAL RECONCILIATION GATE — ENFORCEMENT STATUS: CONFIRMED SOLID
+---------------------------------------------------------------------------
+Ran runPublishTickets with testMode:false against the REAL, currently-
+unreconciled production draw (js/data.js's "2026-08-05" draw, finance:
+totalArrecadado=138, valorUtilizado=153, valorGuardadoProximoSorteio=1,
+creditoSorteioAnterior=16 -> 153+1 != 138):
+  Result: BLOCKED
+  errors: ["FINANCE_NOT_RECONCILED: totalArrecadado(138) != valorUtilizado+saldo+reembolso+outras(154), diff=-16"]
+This gate runs unconditionally (not testMode-gated) inside
+validateTicketPublication, so it protects both the test and the real path —
+confirmed it actually stopped a real publish attempt against real,
+currently-broken production data, not just a synthetic test case. No code
+change was needed; this was built and wired correctly in round 2.
+
+FINAL RESEND — 3 emails, emferrari@gmail.com only (round 5)
+---------------------------------------------------------------
+Sent AFTER the two gate confirmations above, using the unchanged
+(locked/approved) body and ball-circle rendering:
+
+1) participant-added
+   emailJobId:          job_1785943090288_2x4gieu0
+   Gmail message id:    19fd280e6728dd28
+   assunto real recebido (Gmail, verificado agora): Bolão do Ferrari - [TESTE ADMIN] Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET
+   providerStatus: 200
+
+2) tickets-published
+   emailJobId:          job_1785943092482_cm8gj1mx
+   Gmail message id:    19fd280ee4302003
+   assunto real recebido (Gmail, verificado agora): Bolão do Ferrari - [TESTE ADMIN] Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos
+   providerStatus: 200
 
 3) tickets-corrected
-   emailJobId:          job_1785942559249_5z3yci84
-   Gmail message id:    19fd278cc1a422e3
-   assunto real recebido (Gmail, verificado): Bolão do Ferrari - [TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2
-   destinatário:         emferrari@gmail.com
-   providerStatus:       200
-   Body verified: "O que foi alterado" box shows BOTH "Antes" and "Depois"
-   as full ball-circle rows (not plain text) — Jogo 01's changed number (63
-   -> 64) visibly different between the two circle rows, Powerball 17 circle
-   unchanged in both.
+   emailJobId:          job_1785943094438_bpnv4fk3
+   Gmail message id:    19fd280f7c8db186
+   assunto real recebido (Gmail, verificado agora): Bolão do Ferrari - [TESTE ADMIN] Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2
+   providerStatus: 200
 
-All 3 sends recorded in scripts/email/outbox.json with testMode:true.
-No real draw was marked as published. No real participant was notified.
-Automated proof: node scripts/audit_email_tests.mjs (24/24),
-scripts/audit_email_tests_round2.mjs (20/20),
-scripts/audit_email_tests_round3.mjs (23/23) — 67/67 total, including new
-tests for the attachment/link gate and the restored ball-circle design.
+All 3 recorded in scripts/email/outbox.json with testMode:true. No real
+draw marked published. No real participant notified. Body/ball design
+unchanged (locked/approved) — this round only re-verified.
