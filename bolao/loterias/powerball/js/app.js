@@ -12,6 +12,23 @@
     return "US$" + n.toLocaleString("en-US");
   }
 
+  // Valores grandes (prêmios) em formato compacto: K/M/B, arredondado a 1 casa
+  // decimal (sem casas quando o resultado é inteiro). Valores pequenos (< $1.000,
+  // ex.: contribuição de cada participante) ficam por extenso, sem abreviar.
+  function fmtUsdCompact(n) {
+    if (n === null || n === undefined) return "—";
+    var abs = Math.abs(n);
+    var sign = n < 0 ? "-" : "";
+    var value, suffix;
+    if (abs >= 1e9) { value = abs / 1e9; suffix = "B"; }
+    else if (abs >= 1e6) { value = abs / 1e6; suffix = "M"; }
+    else if (abs >= 1e3) { value = abs / 1e3; suffix = "K"; }
+    else { return fmtUsd(n); }
+    var rounded = Math.round(value * 10) / 10;
+    var text = rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
+    return sign + "US$" + text + suffix;
+  }
+
   function loadLocalOverrides() {
     try {
       return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
@@ -89,36 +106,53 @@
   };
   var FEDERAL_TAX_RATE = 0.37; // Faixa federal mais alta, aplicável a prêmios deste porte
 
+  // Duas opções de recebimento, INDEPENDENTES entre si — o ganhador escolhe UMA delas,
+  // nunca as duas:
+  //   1) LUMP SUM (à vista): recebe o Cash Value de uma vez, com imposto retido sobre
+  //      esse valor à vista.
+  //   2) ANUIDADE (parcelado): recebe o valor CHEIO do jackpot (não o Cash Value) em
+  //      30 parcelas anuais crescentes ao longo de 29 anos, com imposto retido sobre
+  //      cada parcela conforme ela é paga.
+  // As duas partem de bases diferentes (Cash Value vs. jackpot total) e não devem ser
+  // combinadas ou confundidas — por isso os campos abaixo são mantidos e exibidos
+  // separadamente.
   function calculatePrizePerParticipant(draw, participant) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
-    // Usa o Cash Value oficial divulgado pela loteria quando disponível; cai para a
-    // estimativa genérica de 50,5% só quando ainda não temos o valor oficial.
+    var stateRate = STATE_TAX_RATES.hasOwnProperty(participant.state) ? STATE_TAX_RATES[participant.state] : null;
+
+    // --- Opção 1: LUMP SUM (à vista) — base: Cash Value oficial (ou estimativa de
+    // 50,5% do jackpot só quando o Cash Value oficial ainda não foi divulgado). ---
     var lumpSumPool = draw.drawing.cashValue != null ? draw.drawing.cashValue : draw.drawing.jackpot * 0.505;
     var lumpSumBruto = (lumpSumPool / totalCotas) * participant.cotas;
 
-    var stateRate = STATE_TAX_RATES.hasOwnProperty(participant.state) ? STATE_TAX_RATES[participant.state] : null;
     if (stateRate === null) {
-      // Estado não cadastrado: não estimamos o imposto para não mostrar número errado.
-      return { lumpSumBruto: lumpSumBruto, taxAmount: null, netAmount: null, monthlyAnnuityNet: null, stateKnown: false };
+      // Estado não cadastrado: não estimamos impostos para não mostrar número errado.
+      return {
+        lumpSumBruto: lumpSumBruto, lumpSumTax: null, lumpSumNet: null,
+        annuityTotalBruto: null, annuityTotalNet: null, annuityMonthlyNet: null,
+        stateKnown: false
+      };
     }
+    var lumpSumTax = lumpSumBruto * (FEDERAL_TAX_RATE + stateRate);
+    var lumpSumNet = lumpSumBruto - lumpSumTax;
 
-    var federalTax = lumpSumBruto * FEDERAL_TAX_RATE;
-    var stateTax = lumpSumBruto * stateRate;
-    var taxAmount = federalTax + stateTax;
-    var netAmount = lumpSumBruto - taxAmount;
-
-    // Anuidade: 30 pagamentos anuais e crescentes (~5%/ano) sobre o valor cheio do
-    // jackpot — aqui mostramos a MÉDIA mensal simplificada (total ÷ 30 anos ÷ 12),
-    // não o valor do primeiro pagamento real (que é menor que a média).
-    var annuityTotal = (draw.drawing.jackpot / totalCotas) * participant.cotas;
-    var monthlyAnnuityGross = annuityTotal / 30 / 12;
-    var monthlyAnnuityNet = monthlyAnnuityGross * (1 - FEDERAL_TAX_RATE - stateRate);
+    // --- Opção 2: ANUIDADE (parcelado, 30 anos) — base: valor CHEIO do jackpot,
+    // nunca o Cash Value do lump sum. 30 pagamentos anuais crescentes (~5%/ano); aqui
+    // mostramos a MÉDIA (total ÷ 30 anos), não o valor real da primeira parcela
+    // (que é menor que a média por ser a primeira de uma série crescente). Mensal é
+    // só uma divisão didática da média anual por 12 — o Powerball paga anualmente,
+    // não mensalmente. ---
+    var annuityTotalBruto = (draw.drawing.jackpot / totalCotas) * participant.cotas;
+    var annuityTotalNet = annuityTotalBruto * (1 - FEDERAL_TAX_RATE - stateRate);
+    var annuityMonthlyNet = annuityTotalNet / 30 / 12;
 
     return {
       lumpSumBruto: lumpSumBruto,
-      taxAmount: taxAmount,
-      netAmount: netAmount,
-      monthlyAnnuityNet: monthlyAnnuityNet,
+      lumpSumTax: lumpSumTax,
+      lumpSumNet: lumpSumNet,
+      annuityTotalBruto: annuityTotalBruto,
+      annuityTotalNet: annuityTotalNet,
+      annuityMonthlyNet: annuityMonthlyNet,
       stateKnown: true
     };
   }
@@ -135,15 +169,17 @@
       var prize = calculatePrizePerParticipant(draw, p);
       var stateLabel = p.state ? " (" + p.state + ")" : "";
       return "<tr>" +
-        "<td>" + p.name + stateLabel + "</td>" +
-        "<td>" + fmtUsd(p.valor) + "</td>" +
-        "<td>" + p.metodo + "</td>" +
-        "<td>" + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
-        '<td><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
-        "<td>" + fmtUsd(prize.lumpSumBruto) + "</td>" +
-        "<td>" + (prize.stateKnown ? fmtUsd(prize.taxAmount) : "—") + "</td>" +
-        "<td><strong>" + (prize.stateKnown ? fmtUsd(prize.netAmount) : "—") + "</strong></td>" +
-        "<td>" + (prize.stateKnown ? fmtUsd(Math.round(prize.monthlyAnnuityNet)) : "—") + "</td>" +
+        '<td data-label="Nome">' + p.name + stateLabel + "</td>" +
+        '<td data-label="Valor">' + fmtUsd(p.valor) + "</td>" +
+        '<td data-label="Método" class="pb-td-mobile-hide">' + p.metodo + "</td>" +
+        '<td data-label="Data / Hora" class="pb-td-mobile-hide">' + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
+        '<td data-label="Status"><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
+        '<td data-label="Lump Sum Bruto" class="pb-td-mobile-hide">' + fmtUsdCompact(prize.lumpSumBruto) + "</td>" +
+        '<td data-label="Lump Sum Impostos" class="pb-td-mobile-hide">' + (prize.stateKnown ? fmtUsdCompact(prize.lumpSumTax) : "—") + "</td>" +
+        '<td data-label="Lump Sum Líquido"><strong>' + (prize.stateKnown ? fmtUsdCompact(prize.lumpSumNet) : "—") + "</strong></td>" +
+        '<td data-label="Anuidade Total Bruto" class="pb-td-mobile-hide">' + (prize.stateKnown ? fmtUsdCompact(prize.annuityTotalBruto) : "—") + "</td>" +
+        '<td data-label="Anuidade Total Líquido"><strong>' + (prize.stateKnown ? fmtUsdCompact(prize.annuityTotalNet) : "—") + "</strong></td>" +
+        '<td data-label="Anuidade Média Mensal Líquida">' + (prize.stateKnown ? fmtUsdCompact(prize.annuityMonthlyNet) : "—") + "</td>" +
         "</tr>";
     }).join("");
   }
@@ -345,6 +381,13 @@
 
     document.getElementById("pbJackpot").textContent = "$" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M";
     document.getElementById("pbDrawDate").textContent = draw.drawing.drawDateLabel;
+
+    var cashValueLabel = draw.drawing.cashValue != null
+      ? "$" + (draw.drawing.cashValue / 1e6).toFixed(1) + "M"
+      : "$" + ((draw.drawing.jackpot * 0.505) / 1e6).toFixed(1) + "M (estimado)";
+    document.getElementById("pbJackpotOptions").innerHTML =
+      '<span class="pb-jackpot-opt"><strong>Anuidade</strong> (30 anos): $' + (draw.drawing.jackpot / 1e6).toFixed(0) + "M</span>" +
+      '<span class="pb-jackpot-opt"><strong>Lump Sum</strong> (à vista): ' + cashValueLabel + "</span>";
 
     renderSummary(draw);
     renderTable(draw);

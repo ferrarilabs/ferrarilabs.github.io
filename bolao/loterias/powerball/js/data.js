@@ -82,7 +82,7 @@ window.POWERBALL_DRAWS = [
     // Os tickets são comprados de uma vez só com o fundo do bolão e são coletivos —
     // todos os participantes concorrem aos mesmos números (ver `sharedTickets` abaixo).
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Fundo próprio (organizador)", data: "31/07/2026", hora: "3:59:00 PM", txId: "—", status: "organizador", state: "FL", email: "emferrari@gmail.com" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 20, metodo: "Fundo próprio (organizador)", data: "31/07/2026", hora: "3:59:00 PM", txId: "—", status: "organizador", state: "NC", email: "emferrari@gmail.com" },
       { name: "Gustavo Bossle", cotas: 1, valor: 20, metodo: "Zelle", data: "31/07/2026", hora: "4:52:51 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
       { name: "Tatiana Bossle", cotas: 1, valor: 20, metodo: "Zelle (depósito de Gustavo Bossle)", data: "01/08/2026", hora: "11:57:41 AM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "NC", email: "tatiana.bossle@example.com" },
       { name: "Marcelo Moreira", cotas: 1, valor: 20, metodo: "Zelle", data: "31/07/2026", hora: "4:39:47 PM", txId: "REDACTED_PAYMENT_REFERENCE", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
@@ -187,7 +187,7 @@ window.POWERBALL_DRAWS = [
 
     // 14 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador", state: "FL", email: "emferrari@gmail.com" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", txId: "—", status: "organizador", state: "NC", email: "emferrari@gmail.com" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", txId: "—", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", txId: "—", status: "verificado", state: "FL", email: "—" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", txId: "—", status: "verificado", state: "NC", email: "REDACTED_EMAIL" },
@@ -204,16 +204,64 @@ window.POWERBALL_DRAWS = [
     ],
 
     sharedTickets: {
-      compradoPor: "—",
-      dataComprovante: "—",
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "05/08/2026 22:59 ET",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "25FCD6C065ACBBF0D", qtd: 1, jogos: "1",
+          numeros: ["24-31-47-52-68 — PB 17"]
+        },
+        {
+          serial: "2D6F455C923756663", qtd: 5, jogos: "1–5",
+          numeros: [
+            "35-48-49-52-56 — PB 21", "01-26-58-60-61 — PB 23", "02-23-30-43-64 — PB 22",
+            "07-16-33-50-55 — PB 19", "18-21-25-42-67 — PB 11"
+          ]
+        },
+        {
+          serial: "25AE2E9403C675208", qtd: 5, jogos: "1–5",
+          numeros: [
+            "20-25-34-51-60 — PB 04", "20-28-31-33-58 — PB 15", "21-30-38-46-47 — PB 03",
+            "22-27-29-40-62 — PB 06", "24-36-43-53-59 — PB 10"
+          ]
+        },
+        {
+          serial: "2529427987A488194", qtd: 20, jogos: "1–20",
+          numeros: [
+            "07-12-39-48-63 — PB 07", "07-15-18-46-49 — PB 13", "08-09-33-46-62 — PB 16",
+            "08-10-23-32-55 — PB 16", "08-11-21-34-56 — PB 02", "09-12-22-45-60 — PB 22",
+            "09-27-48-54-57 — PB 07", "10-16-29-42-61 — PB 12", "11-16-41-51-58 — PB 09",
+            "11-26-53-63-64 — PB 14", "12-14-31-38-61 — PB 11", "13-22-41-65-68 — PB 13",
+            "14-15-52-54-59 — PB 01", "15-24-33-35-66 — PB 18", "15-29-32-37-50 — PB 12",
+            "16-40-45-64-67 — PB 25", "17-20-38-59-67 — PB 18", "18-23-41-53-56 — PB 26",
+            "19-32-36-40-69 — PB 03", "19-42-50-51-63 — PB 01"
+          ]
+        },
+        {
+          serial: "2CD0E132C5697EA89", qtd: 20, jogos: "1–20",
+          numeros: [
+            "01-18-28-55-57 — PB 24", "01-25-44-64-66 — PB 24", "01-32-39-52-65 — PB 20",
+            "02-07-25-61-62 — PB 14", "02-27-37-66-69 — PB 25", "02-31-36-46-57 — PB 05",
+            "03-10-35-40-53 — PB 21", "03-17-30-51-68 — PB 10", "03-21-28-50-60 — PB 19",
+            "04-06-26-39-57 — PB 17", "04-12-13-43-49 — PB 08", "04-19-30-65-67 — PB 08",
+            "04-24-44-45-69 — PB 05", "05-08-47-58-63 — PB 23", "05-13-34-55-66 — PB 02",
+            "05-17-26-54-69 — PB 15", "05-36-39-42-68 — PB 06", "06-09-23-44-65 — PB 20",
+            "06-10-45-47-54 — PB 09", "06-14-22-37-43 — PB 04"
+          ]
+        }
+      ]
     },
 
+    // 51 tickets x US$3 (Power Play) = US$153. Arrecadado no bolão foi US$138 —
+    // faltam US$15, cobertos com saldo guardado do sorteio anterior (US$142 em
+    // "valorGuardadoProximoSorteio" do draw 2026-08-03). Eduardo: confirmar se foi
+    // isso mesmo ou se o saldo veio de outro lugar, para eu não deixar esse número
+    // registrado errado.
     finance: {
       totalArrecadado: 138,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 138
+      valorUtilizado: 153,
+      valorGuardadoProximoSorteio: 0
     },
 
     result: null,

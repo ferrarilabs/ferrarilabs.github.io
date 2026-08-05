@@ -95,6 +95,8 @@ main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
 }
 .pb-jackpot { font-size: clamp(1.8rem, 5vw, 2.8rem); font-weight: 900; letter-spacing: -1px; }
 .pb-jackpot small { display: block; font-size: .85rem; font-weight: 500; opacity: .9; }
+.pb-jackpot-options { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; font-size: .8rem; opacity: .95; }
+.pb-jackpot-opt strong { font-weight: 900; }
 
 .pb-countdown {
   background: rgba(0,0,0,.25); border: 1px solid rgba(255,255,255,.25);
@@ -108,7 +110,7 @@ main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
 .section-title { margin: 0 0 14px; font-size: 1rem; font-weight: 900; color: var(--text); }
 
 .pb-table-wrap { overflow-x: auto; }
-table.pb-table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 640px; }
+table.pb-table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 760px; }
 table.pb-table th {
   text-align: left; background: var(--bg3); color: var(--muted);
   font-size: .7rem; text-transform: uppercase; letter-spacing: .03em;
@@ -116,6 +118,35 @@ table.pb-table th {
 }
 table.pb-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 table.pb-table tr:hover td { background: var(--bg3); }
+.pb-th-group {
+  text-align: center; border-left: 2px solid var(--border2);
+  color: var(--gold); font-weight: 900;
+}
+
+/* Mobile: tabela vira uma lista de cards (sem scroll horizontal). Esconde colunas
+   secundárias (Método, Data/Hora, valores Brutos e Impostos) e mantém só o essencial:
+   Nome, Valor, Status, Líquido (Lump Sum e Anuidade) e Média Mensal da anuidade. */
+@media (max-width: 640px) {
+  .pb-table-wrap { overflow-x: visible; }
+  table.pb-table { min-width: 0; font-size: .82rem; }
+  table.pb-table thead { display: none; }
+  table.pb-table, table.pb-table tbody, table.pb-table tr { display: block; width: 100%; }
+  table.pb-table tr {
+    margin-bottom: 10px; border: 1px solid var(--border2); border-radius: 12px;
+    padding: 10px 12px; background: var(--bg3);
+  }
+  table.pb-table td {
+    display: flex; justify-content: space-between; align-items: center; gap: 10px;
+    padding: 5px 0; border-bottom: 1px dashed var(--border);
+  }
+  table.pb-table tr td:last-child { border-bottom: none; }
+  table.pb-table td[data-label]::before {
+    content: attr(data-label); color: var(--muted);
+    font-size: .68rem; font-weight: 700; text-transform: uppercase; letter-spacing: .02em;
+  }
+  table.pb-table td[data-label="Nome"] { font-weight: 900; font-size: .95rem; }
+  .pb-td-mobile-hide { display: none !important; }
+}
 
 .pb-tickets-btn {
   background: var(--bg3); color: var(--text); border: 1px solid var(--border2);

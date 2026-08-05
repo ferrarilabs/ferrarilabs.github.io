@@ -142,7 +142,7 @@ CREATE POLICY "Allow insert email_log (scripts only)" ON public.email_log
 -- Insert users (only if they don't exist)
 -- NOTE: Update state values based on actual participant locations
 INSERT INTO public.users (name, email, state) VALUES
-  ('Eduardo Ferrari', 'emferrari@gmail.com', 'FL'),  -- update if different
+  ('Eduardo Ferrari', 'emferrari@gmail.com', 'NC'),
   ('Gustavo Bossle', 'REDACTED_EMAIL', 'NC'),
   ('Tatiana Bossle', 'tatiana.bossle@example.com', 'NC'),
   ('Marcelo Moreira', 'REDACTED_EMAIL', 'NC'),
