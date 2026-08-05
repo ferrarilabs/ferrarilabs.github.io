@@ -126,6 +126,56 @@ here for Eduardo to fix in `js/data.js` separately; not touched in this
 branch since fixing production participant financial data is out of scope
 for the email-flow work and was not requested.
 
+## Round 3 (delivered-content bugs found via real Gmail cross-check)
+
+Round 2's resend was ALSO rejected — providerStatus:200 had been treated as
+proof of a correct send, which it is not. Eduardo reported the actual inbox
+subject was the EmailJS template's generic fallback, and ticket numbers
+arrived visually concatenated. Investigated end-to-end rather than guessed:
+
+- **Subject root cause**: `send.mjs` sent `template_params.subject`. The
+  EmailJS template (`template_xq7yzzb`) has no variable by that name.
+  `scripts/send_result_email.py`'s working `send_email()` sends the subject
+  text under `entry_name` and `receipt_code` instead — confirmed as the
+  actual working contract by finding a real, correctly-subjected historical
+  email in Gmail search (a genuine Powerball result email sent by that
+  script). `send.mjs` now sends the canonical subject under `entry_name`,
+  `receipt_code`, and a third defensive `email_subject` key — see the
+  "SUBJECT CONTRACT" comment at the top of `send.mjs` for the full
+  reasoning, including the honest limitation that this codebase has no
+  credential to read or edit the EmailJS dashboard's Subject field directly.
+- **Second subject bug**: EmailJS HTML-escapes subject variables
+  server-side; a `/` arrived as the literal text `&#x2F;`. Fixed with
+  `render.mjs`'s `subjectSafeDate()` (dates in subjects use `.` instead of
+  `/`), mirroring `send_result_email.py`'s own documented workaround for the
+  identical issue.
+- **Ticket-number concatenation root cause**: the HTML row relied entirely
+  on inline CSS margins for spacing between number `<span>`s — no literal
+  text separated them. Fixed: every number is its own `<td>`, a literal `·`
+  separator sits in its own `<td>` between numbers, the Powerball number
+  gets an explicit `| Powerball:` text label (never a bare colored digit),
+  and a fully redundant plain-text line
+  (`24 · 31 · 47 · 52 · 63 | Powerball: 17 | Power Play: Sim`) sits under
+  the visual row for clients that strip all markup.
+- Also fixed in the same pass (found while re-verifying against a real
+  delivered test email, not assumed): unified `$X.XX` currency formatting
+  (was inconsistently `US$10`), `paymentStatusLabel()` actually applied
+  everywhere ("Pagamento confirmado", not "verificado"), friendly dates
+  moved into the primary reading flow (a "Sorteio" row near the top, not
+  only a footer line), the annuity section's misleading "Média mensal
+  estimada" replaced with an annual, explicitly-illustrative figure with a
+  disclaimer, state codes expanded to full PT-BR names, and a new
+  `isRealUrl()` guard so no `localhost`/`127.0.0.1`/`.invalid`/`.example`/
+  `.test`/`.local` address is ever rendered as a clickable link — the "Baixar
+  PDF/CSV/JSON" dead `href="#"` links were removed entirely in favor of
+  honest text explaining those artifacts aren't linked from inside this
+  test email.
+- **Verification methodology change**: this round's fixes were confirmed
+  against the actual delivered Gmail message (via a real Gmail search + full
+  message fetch), not just a `providerStatus:200` response — see
+  `email-previews/email-test-results.txt`'s "ROUND 3" section for the
+  message IDs and cross-checked content.
+
 ## Known limitation (flagged, not fixed silently)
 
 The spec's mobile-preview PNGs were captured via the `claude-in-chrome` tool;
