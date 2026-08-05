@@ -1,0 +1,13 @@
+/* Powerball Admin — minimal layout on top of the app's existing css/styles.css tokens. */
+#login-view { max-width: 420px; margin: 4rem auto; padding: 1.5rem; }
+#login-view form { display: flex; flex-direction: column; gap: 0.75rem; }
+#login-error { color: #b00020; min-height: 1.2em; }
+.pb-admin-note { font-size: 0.85rem; opacity: 0.8; }
+
+#app-view { display: flex; min-height: 100vh; }
+.pb-admin-nav { display: flex; flex-direction: column; gap: 0.25rem; width: 220px; padding: 1rem; border-right: 1px solid rgba(128,128,128,0.3); }
+.pb-admin-nav button { text-align: left; padding: 0.5rem 0.75rem; background: transparent; border: none; cursor: pointer; border-radius: 6px; }
+.pb-admin-nav button:hover { background: rgba(128,128,128,0.15); }
+.pb-admin-content { flex: 1; padding: 1.5rem; }
+.pb-admin-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+.pb-admin-table th, .pb-admin-table td { text-align: left; padding: 0.4rem 0.6rem; border-bottom: 1px solid rgba(128,128,128,0.25); }

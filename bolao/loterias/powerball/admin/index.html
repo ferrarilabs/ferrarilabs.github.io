@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>Powerball — Admin</title>
+<link rel="stylesheet" href="../css/styles.css" />
+<link rel="stylesheet" href="./admin.css" />
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+<div id="login-view">
+  <h1>Powerball — Admin</h1>
+  <p>Acesso restrito. Faça login com sua conta autorizada.</p>
+  <form id="login-form">
+    <label>Email <input id="login-email" type="email" required autocomplete="username" /></label>
+    <label>Senha <input id="login-password" type="password" required autocomplete="current-password" /></label>
+    <button type="submit">Entrar</button>
+  </form>
+  <p id="login-error" role="alert"></p>
+  <p class="pb-admin-note">
+    Sem conta autorizada? Este painel não recupera acesso por conta própria — contate o
+    administrador do sistema (ver docs/bolao/loterias/POWERBALL_ADMIN_OPERATIONS.md).
+  </p>
+</div>
+
+<div id="app-view" style="display:none">
+  <div id="app"></div>
+</div>
+
+<script src="./js/supabaseClient.js"></script>
+<script src="./js/auth.js"></script>
+<script src="./js/app.js"></script>
+</body>
+</html>
