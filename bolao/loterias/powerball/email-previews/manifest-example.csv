@@ -1,4 +1,4 @@
 poolId,drawId,publicationVersion,ticketIndex,numbers,special,serial
-powerball,2026-08-05,1,1,1-14-27-36-63,25,S-EXAMPLE-1
-powerball,2026-08-05,1,2,4-11-22-45-61,9,S-EXAMPLE-1
-sha256,9139fe1b57a8203ec143fd33bbb14b7566f1b3b7a75e861f5d8e6bc2557bcc9e,,,,,
+powerball,2026-08-05-FIXTURE,1,1,24-31-47-52-63,17,S-EXAMPLE-FIXTURE
+powerball,2026-08-05-FIXTURE,1,2,4-11-22-45-61,9,S-EXAMPLE-FIXTURE
+sha256,48d0d4c818dabd74d339a9f3d8d37abfd4ff53903fd1a00e736af170b8dc293a,,,,,
