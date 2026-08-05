@@ -40,6 +40,18 @@ Usage:
 
 import json, sys, time, urllib.request
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+# Football-hardening checkpoint F: wires this script's real per-participant send loop into the
+# shared checkpoint-D outbox (bolao/shared/scripts/notification_outbox.py — same schema/
+# idempotency format the JS reconciler uses, see test_notification_outbox_interop.mjs). This
+# closes the EXACT gap this file's own comment above documents: "a crash between sending and
+# [closing the batch] could in theory skip a round's email" — previously idempotency was only
+# batch-level (pendingBatch/sentGameIds), all-or-nothing; per-recipient idempotency keys mean a
+# crash mid-batch resumes exactly where it left off on the next run, never re-sending to
+# recipients who already got this batch's email, never leaving the rest unsent forever.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "shared" / "scripts"))
+import notification_outbox as outbox
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 import audit_scoring  # same directory — score_entry() mirrors app.js scoreEntry()
@@ -366,6 +378,59 @@ def get_or_open_batch(state, games_by_id):
     return pending, True
 
 
+def _send_round_batch_to_entries(entries, rank_by_id, prev_rank_by_id, window_label,
+                                  window_label_subject, results_html, standings_html, batch_id):
+    """Football-hardening checkpoint F: the actual per-recipient send loop, extracted from
+    run_auto() so it's directly testable (same "extract for testing" pattern this repo already
+    uses for app.js functions — see e.g. bolao/cdb2026/scripts/test_aggregate_hero.mjs) — not a
+    behavior change, the loop body is unchanged from what was inline in run_auto() before this
+    patch, just given a name and parameters.
+
+    Wires every send through the shared outbox (bolao/shared/scripts/notification_outbox.py):
+    idempotency key br2026:{batch_id}:{recipient}:v1, where batch_id is the batch's stable sorted
+    gameIds set. Closes this file's own previously-documented gap ("a crash between sending and
+    [closing the batch] could in theory skip a round's email") by making duplicate-prevention
+    per-recipient instead of only batch-level all-or-nothing."""
+    print(f"AUTO — sending to {len(entries)} participant(s)...")
+    sent, errors, skipped = 0, [], 0
+    for e in entries:
+        addr = (e.get("participantEmail") or "").strip()
+        if "@" not in addr:
+            continue
+        r = rank_by_id.get(e["id"])
+        if not r:
+            continue
+        key = outbox.idempotency_key("br2026", batch_id, addr, 1)
+        existing = outbox.find_by_idempotency_key(key)
+        if existing and existing.get("status") == "sent":
+            print(f"  SKIP (duplicate — already sent this batch, idempotency key {key}) → {addr}")
+            skipped += 1
+            continue
+        movement = None
+        if e["id"] in prev_rank_by_id:
+            movement = prev_rank_by_id[e["id"]] - r["rank"]
+        html = build_participant_email_html(window_label, results_html, standings_html, e,
+                                             {"total": r["total"], "rank": r["rank"], "movement": movement})
+        subject = f"Rodada {window_label_subject} — resultados e classificação"
+        job, _created = outbox.enqueue({
+            "app": "br2026", "matchId": batch_id, "recipient": addr, "resultVersion": 1,
+            "payloadSnapshot": {"subject": subject}, "idempotencyKey": key,
+        })
+        try:
+            status = send_email(addr, subject, html)
+            print(f"  OK {status} → {addr}")
+            outbox.record_result(job["jobId"], True)
+            sent += 1
+            time.sleep(3)
+        except Exception as ex:
+            outbox.record_result(job["jobId"], False, str(ex))
+            errors.append(f"{addr}: {ex}")
+            print(f"  ERR → {addr}: {ex}")
+    if skipped:
+        print(f"  ({skipped} recipient(s) skipped as duplicates via the shared outbox)")
+    return sent, errors
+
+
 def run_auto():
     print("AUTO — running scoring/ranking self-audit before touching anything...")
     audit_ok, _ = audit_scoring.run_static_audit(verbose=True)
@@ -467,29 +532,16 @@ def run_auto():
         ranked_prev = rank_entries(entries, baseline["g4"], baseline["z4"], baseline["sa6"])
         prev_rank_by_id = {r["entry"]["id"]: r["rank"] for r in ranked_prev}
 
-    print(f"AUTO — sending to {len(entries)} participant(s)...")
-    sent, errors = 0, []
-    for e in entries:
-        addr = (e.get("participantEmail") or "").strip()
-        if "@" not in addr:
-            continue
-        r = rank_by_id.get(e["id"])
-        if not r:
-            continue
-        movement = None
-        if e["id"] in prev_rank_by_id:
-            movement = prev_rank_by_id[e["id"]] - r["rank"]
-        html = build_participant_email_html(window_label, results_html, standings_html, e,
-                                             {"total": r["total"], "rank": r["rank"], "movement": movement})
-        subject = f"Rodada {window_label_subject} — resultados e classificação"
-        try:
-            status = send_email(addr, subject, html)
-            print(f"  OK {status} → {addr}")
-            sent += 1
-            time.sleep(3)
-        except Exception as ex:
-            errors.append(f"{addr}: {ex}")
-            print(f"  ERR → {addr}: {ex}")
+    # Football-hardening checkpoint F: stable batch identity for per-recipient idempotency keys
+    # — the sorted set of gameIds this batch covers, same value every retry of the SAME batch
+    # (batch["gameIds"] doesn't change once a batch is opened; get_or_open_batch() only adds
+    # games while still pending, and by this point in the function the batch is already
+    # confirmed complete/stable, so its gameId set is final for this send cycle).
+    batch_id = "round:" + ",".join(sorted(batch["gameIds"]))
+    sent, errors = _send_round_batch_to_entries(
+        entries, rank_by_id, prev_rank_by_id, window_label, window_label_subject,
+        results_html, standings_html, batch_id,
+    )
 
     try:
         admin_html = build_admin_summary_html(window_label, results_html, standings_html, sent)

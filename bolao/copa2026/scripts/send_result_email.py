@@ -22,6 +22,17 @@ Usage:
 
 import json, re, sys, time, urllib.request
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
+
+# Football-hardening checkpoint F: wires this script's real send path into the shared
+# checkpoint-D outbox (bolao/shared/scripts/notification_outbox.py, same on-disk JSON schema and
+# idempotency-key format as the JS reconciler's notification_outbox.mjs — see
+# test_notification_outbox_interop.mjs). Purely additive duplicate-prevention, same pattern as
+# bolao/cdb2026/scripts/send_result_email.py's identical wiring: can only ever SKIP a send that
+# repeats an already-"sent" idempotency key, never suppress a send that would have gone out
+# before this change existed, never alters scoring/ranking/email content. See _send_to_all().
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "shared" / "scripts"))
+import notification_outbox as outbox
 
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL  = "https://cmhqkkfczotdnssupkni.supabase.co"
@@ -983,20 +994,44 @@ def _build_recipients(state):
     return recipients
 
 
-def _send_to_all(state, html, subject):
-    """Send to all valid recipients. Returns (sent_count, error_list)."""
+def _send_to_all(state, html, subject, *, match_id=None, result_version=1):
+    """Send to all valid recipients. Returns (sent_count, error_list).
+
+    Football-hardening checkpoint F: when `match_id` is supplied, every recipient's send is
+    routed through the shared outbox first — a job with the SAME idempotency key
+    (copa2026:{match_id}:{recipient}:v{result_version}) already recorded "sent" is skipped, not
+    repeated. Backward compatible: match_id=None (the default) is the exact pre-checkpoint-F
+    behavior, zero outbox involvement."""
     recipients = _build_recipients(state)
     print(f"Sending to {len(recipients)} recipients...")
-    sent, errors = 0, []
+    sent, errors, skipped = 0, [], 0
     for _, addr in recipients.items():
+        job = None
+        if match_id is not None:
+            key = outbox.idempotency_key("copa2026", match_id, addr, result_version)
+            existing = outbox.find_by_idempotency_key(key)
+            if existing and existing.get("status") == "sent":
+                print(f"  SKIP (duplicate — already sent, idempotency key {key}) → {addr}")
+                skipped += 1
+                continue
+            job, _created = outbox.enqueue({
+                "app": "copa2026", "matchId": match_id, "recipient": addr, "resultVersion": result_version,
+                "payloadSnapshot": {"subject": subject}, "idempotencyKey": key,
+            })
         try:
             status = send_email(addr, subject, html)
             print(f"  OK {status} → {addr}  [{subject}]")
+            if job is not None:
+                outbox.record_result(job["jobId"], True)
             sent += 1
             time.sleep(3)
         except Exception as ex:
+            if job is not None:
+                outbox.record_result(job["jobId"], False, str(ex))
             errors.append(f"{addr}: {ex}")
             print(f"  ERR → {addr}: {ex}")
+    if skipped:
+        print(f"  ({skipped} recipient(s) skipped as duplicates via the shared outbox)")
     return sent, errors
 
 
@@ -1151,7 +1186,7 @@ def run_auto():
                 print(f"  🏆 Tournament complete — including podium/prize block ({len(payouts_info['payouts'])} payouts, pot ${payouts_info['pot']})")
                 print(f"  🏅 Also including Copa do Brasil 2026 (CDB2026) invite block")
 
-        sent, errors = _send_to_all(state, html, subj)
+        sent, errors = _send_to_all(state, html, subj, match_id=f"M{mid}")
         print(f"  → {sent} sent, {len(errors)} errors")
         for err in errors:
             print(f"    ERROR: {err}")
@@ -1212,7 +1247,7 @@ def main():
     html     = build_html(state)
 
     print(f"Completed matches: {sorted(results.keys(), key=int)}")
-    sent, errors = _send_to_all(state, html, subject)
+    sent, errors = _send_to_all(state, html, subject, match_id=f"M{last_mid}")
     print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors")
     for err in errors:
         print(f"  ERROR: {err}")

@@ -41,6 +41,16 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import audit_scoring  # match_points(), score_entry(), MATCH_SCORING, TIE_BONUS, PODIUM_BONUS
 
+# Football-hardening checkpoint F: wires this script's real send path into the shared
+# checkpoint-D outbox (bolao/shared/scripts/notification_outbox.py, same on-disk JSON schema and
+# idempotency-key format as the JS reconciler's notification_outbox.mjs — see
+# test_notification_outbox_interop.mjs). Purely additive duplicate-prevention: it can only ever
+# SKIP a send that repeats an idempotency key already recorded as "sent", never suppress a send
+# that would have gone out before this change existed, and never alters scoring/ranking/email
+# content. See _send_to_all() below for the actual integration point.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent / "shared" / "scripts"))
+import notification_outbox as outbox
+
 # ── Config — mirrors bolao/cdb2026/js/config.js exactly ───────────────────────
 SUPABASE_URL   = "https://cmhqkkfczotdnssupkni.supabase.co"
 ANON_KEY       = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
@@ -688,19 +698,46 @@ def _build_recipients(state):
     return recipients
 
 
-def _send_to_all(state, html, subject):
+def _send_to_all(state, html, subject, *, match_id=None, result_version=1):
+    """Football-hardening checkpoint F: when `match_id` is supplied (phase:tie:leg, or
+    phase:tie:final for the podium email), every recipient's send is routed through the shared
+    outbox (bolao/shared/scripts/notification_outbox.py) first. If a job with the SAME
+    idempotency key (cdb2026:{match_id}:{recipient}:v{result_version}) is already recorded
+    "sent" — e.g. this exact email for this exact leg/version already went out in a prior run
+    that then crashed/retried — the send is skipped, not repeated. This can only ever prevent a
+    literal duplicate; a recipient with no prior job for this key sends exactly as before
+    match_id was introduced (backward compatible: match_id=None keeps the old behavior with zero
+    outbox involvement, for any caller that doesn't pass it)."""
     recipients = _build_recipients(state)
     print(f"Sending to {len(recipients)} recipients...")
-    sent, errors = 0, []
+    sent, errors, skipped = 0, [], 0
     for _, addr in recipients.items():
+        job = None
+        if match_id is not None:
+            key = outbox.idempotency_key("cdb2026", match_id, addr, result_version)
+            existing = outbox.find_by_idempotency_key(key)
+            if existing and existing.get("status") == "sent":
+                print(f"  SKIP (duplicate — already sent, idempotency key {key}) → {addr}")
+                skipped += 1
+                continue
+            job, _created = outbox.enqueue({
+                "app": "cdb2026", "matchId": match_id, "recipient": addr, "resultVersion": result_version,
+                "payloadSnapshot": {"subject": subject}, "idempotencyKey": key,
+            })
         try:
             status = send_email(addr, subject, html)
             print(f"  OK {status} → {addr}  [{subject}]")
+            if job is not None:
+                outbox.record_result(job["jobId"], True)
             sent += 1
             time.sleep(3)
         except Exception as ex:
+            if job is not None:
+                outbox.record_result(job["jobId"], False, str(ex))
             errors.append(f"{addr}: {ex}")
             print(f"  ERR → {addr}: {ex}")
+    if skipped:
+        print(f"  ({skipped} recipient(s) skipped as duplicates via the shared outbox)")
     return sent, errors
 
 
@@ -917,7 +954,8 @@ def run_auto():
                 subj = f"🏆 Resultado Final do Bolão! · Final Bolão Result! — Campeão: {champion}"
                 print(f"  🏆 Tournament complete — including podium/prize block ({len(payouts_info['payouts'])} payouts, pot ${payouts_info['pot']})")
 
-        sent, errors = _send_to_all(state, html, subj)
+        match_id = f"{phase_id}:{tie_id}:{leg}"
+        sent, errors = _send_to_all(state, html, subj, match_id=match_id)
         print(f"  → {sent} sent, {len(errors)} errors")
         for err in errors:
             print(f"    ERROR: {err}")
@@ -988,7 +1026,7 @@ def main():
     tie = state["phases"][phase_id]["ties"][tie_id]
     html = build_html(state, phase_id, tie_id, leg, tie_just_decided=bool(tie.get("qualifiedTeamId")))
     subject = f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}"
-    sent, errors = _send_to_all(state, html, subject)
+    sent, errors = _send_to_all(state, html, subject, match_id=f"{phase_id}:{tie_id}:{leg}")
     print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors")
     for err in errors:
         print(f"  ERROR: {err}")
