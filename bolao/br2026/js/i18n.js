@@ -136,6 +136,8 @@ window.BR2026_I18N = {
     nextGameLive: "Jogo em andamento",
     gamesTitle: "Jogos",
     gamesLoading: "Carregando calendário...",
+    gamesError: "Não foi possível carregar o calendário agora. Os dados podem estar temporariamente indisponíveis — tente novamente em instantes.",
+    gamesStale: "Estes dados podem estar desatualizados — não foi possível atualizar a partir da fonte agora.",
     gameFinal: "Encerrado",
     gameLive: "Ao vivo",
     gamePostponed: "Adiado",

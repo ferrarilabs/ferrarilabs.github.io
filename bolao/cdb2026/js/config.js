@@ -93,7 +93,11 @@ window.CDB2026_CONFIG = {
   // Slug verificado contra a API real em 2026-08 (142 jogos retornados).
   espn: {
     leagueSlug: "bra.copa_do_brazil",
-    scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard?dates=20260101-20261231&limit=500",
+    // Football-hardening checkpoint C2: no more direct browser->ESPN fetch (no CORS guarantee —
+    // see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md). bolao/cdb2026/scripts/sync_espn.py
+    // (using the shared bolao/shared/scripts/espn_provider.py) fetches/validates/normalizes
+    // ESPN data server-side and writes it here; the frontend only ever reads this local file.
+    scoreboardUrl: "data/espn-normalized.json",
   },
   transparency: {
     disclaimer: "Bolão informal entre amigos. Comprovantes individuais e backups servem como evidência. Sem responsabilidade por dados externos, APIs ou falhas de terceiros."

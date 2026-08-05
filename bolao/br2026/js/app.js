@@ -592,8 +592,16 @@ function accuracyMetrics(entry, g4Result, z4Result, sa6Result) {
 // ─── ESPN polling ────────────────────────────────────────────────────────────
 let _standings  = [];   // sorted by rank (1st = index 0)
 let _liveMatches = [];  // currently live matches
-let _schedule   = [];   // full season events from ESPN
+let _schedule   = [];   // full season events, read from the local normalized snapshot
 let _scheduleTs = 0;    // last schedule fetch timestamp
+// Football-hardening checkpoint C2/G: explicit data-source health flags, distinct from "still
+// loading" (_schedule.length === 0 with these both false). Read by renderGamesSection() /
+// renderStandingsSection() to show a real error/stale state instead of an infinite loading
+// spinner when the local normalized snapshot can't be read or is marked stale by the
+// server-side sync script — see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md.
+let _dataSourceStale = false;
+let _dataSourceError = false;
+let _dataGeneratedAt = null;
 let _mcResult   = null; // Monte Carlo result cache
 let _mcTs       = 0;    // timestamp of last MC run
 let _matchProbs   = {};   // { "HomeTeam|AwayTeam": { pH, pD, pA } } for upcoming matches
@@ -740,75 +748,55 @@ async function fetchJson(url, opts = {}) {
   finally { clearTimeout(timer); }
 }
 
-// ESPN's standings endpoint (v2/.../standings) and scoreboard/schedule endpoint
-// (site/v2/.../scoreboard) occasionally disagree on a team's displayName -- found
-// 2026-07-16 (Eduardo: Probabilidades showing Remo/Athletico Paranaense wildly wrong):
-// standings returns "Athletico Paranaense" (matches DATA.teams), scoreboard returns
-// "Athletico-PR". Every function downstream (buildRatings(), runMonteCarlo(), the
-// standings-vs-schedule cross-reference) assumes both feeds use the same name for the
-// same team -- a silent mismatch splits one team's data across two dictionary keys
-// instead of erroring, which is exactly what happened: Athletico's simulated points
-// accumulated under "Athletico-PR" while their starting total stayed frozen under
-// "Athletico Paranaense", making them look relegation-bound despite being 4th place.
-// Same alias-map pattern as bolao/scripts/send_result_email.py's ESPN_ALIASES, just
-// applied client-side. Mirrors bolao/js/i18n.js scoping -- keep in sync by hand if
-// ESPN renames a team.
-const ESPN_SCOREBOARD_NAME_ALIASES = { "Athletico-PR": "Athletico Paranaense" };
-function normalizeEspnTeamName(name) {
-  return ESPN_SCOREBOARD_NAME_ALIASES[name] || name;
-}
+// ESPN's standings endpoint and scoreboard/schedule endpoint occasionally disagree on a team's
+// displayName -- found 2026-07-16 (Eduardo: Probabilidades showing Remo/Athletico Paranaense
+// wildly wrong). Football-hardening checkpoint C2: this aliasing (ESPN_SCOREBOARD_NAME_ALIASES,
+// "Athletico-PR" -> "Athletico Paranaense") now happens ONCE, server-side, in
+// bolao/br2026/scripts/sync_espn.py's ALIASES dict (shared normalize_team_name() in
+// bolao/shared/scripts/espn_provider.py) -- both the standings and scoreboard/schedule snapshots
+// this file reads are already alias-normalized before they ever reach the browser, so there is
+// no client-side alias map to keep in sync by hand anymore.
 
+// Football-hardening checkpoint C2: no more direct browser->ESPN fetch. Reads the
+// project-controlled, same-origin normalized snapshot written by
+// bolao/br2026/scripts/sync_espn.py (via the shared bolao/shared/scripts/espn_provider.py) —
+// see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md. Sets _dataSourceStale/_dataSourceError
+// module flags so the UI (renderGamesSection, renderStandingsSection) can show an explicit
+// stale/error state instead of silently treating old or missing data as fresh.
 async function fetchStandings() {
   try {
-    const r = await fetchJson(C.espn.standingsUrl);
-    const data = await r.json();
-    const entries = data?.children?.[0]?.standings?.entries || [];
-    const parsed = entries.map(e => {
-      const getStat = (...names) => {
-        for (const nm of names) {
-          const hit = (e.stats || []).find(s => s.name === nm);
-          if (hit) return hit.value ?? 0;
-        }
-        return 0;
-      };
-      return {
-        name:   e.team?.displayName || "",
-        abbr:   e.team?.abbreviation || "",
-        logo:   e.team?.logos?.[0]?.href || "",
-        rank:   getStat("rank") || 99,
-        points: getStat("points"),
-        // Sem "|| 1" -- um time com 0 jogos de verdade (início de temporada/recém-promovido) tem
-        // que aparecer como 0 na coluna "J" da tabela, não 1 (achado em auditoria, 2026-07-14).
-        // A divisão em buildRatings() (linha ~817) já tem sua própria proteção independente
-        // (Math.max(tm.played || 1, 1)) contra dividir por zero -- não depende deste valor.
-        played: getStat("gamesPlayed", "GP"),
-        wins:   getStat("wins"),
-        draws:  getStat("ties", "draws"),
-        losses: getStat("losses"),
-        gf:     getStat("pointsFor", "goalsFor"),
-        ga:     getStat("pointsAgainst", "goalsAgainst"),
-        gd:     getStat("pointDifferential", "goalDifferential"),
-      };
+    const r = await fetchJson(C.espn.standingsUrl, { cache: "no-store" });
+    if (!r.ok) { _dataSourceError = true; return null; }
+    const snap = await r.json();
+    if (!snap || !Array.isArray(snap.matches)) { _dataSourceError = true; return null; }
+    _dataSourceStale = !!snap.stale;
+    _dataSourceError = false;
+    _dataGeneratedAt = snap.generatedAt || null;
+    const parsed = snap.matches.map(tm => ({
+      name: tm.name || "", abbr: tm.abbr || "", logo: tm.logo || "",
+      rank: tm.rank || 99, points: tm.points || 0, played: tm.played || 0,
+      wins: tm.wins || 0, draws: tm.draws || 0, losses: tm.losses || 0,
+      gf: tm.gf || 0, ga: tm.ga || 0, gd: tm.gd || 0,
     // Ordenar só por `rank` da ESPN não é suficiente -- achado em auditoria (2026-07-14): logo
     // após uma rodada terminar, a ESPN pode devolver ranks empatados por um instante (antes do
     // desempate deles terminar de aplicar do lado deles), e a classificação PROVISÓRIA (G4/SA6/Z4)
     // é fatiada por índice fixo direto deste array -- um empate de rank podia errar a fronteira
     // entre zonas. Desempate próprio e determinístico: saldo de gols → gols pró → nome (nunca hoje
     // era a fonte oficial de pontuação, que sempre vem do resultado travado pelo admin).
-    }).filter(entry => entry.name).sort((a, b) =>
+    })).filter(entry => entry.name).sort((a, b) =>
       a.rank - b.rank || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name, "pt-BR")
     );
-    // DATA.teams (lista fixa usada no formulário de palpite) e o nome ao vivo da ESPN (usado pra
-    // pontuar) nunca são checados um contra o outro -- achado em auditoria (2026-07-14). Se a ESPN
-    // mudar o `displayName` de um time, todo mundo que apostou nele passa a pontuar zero
+    // DATA.teams (lista fixa usada no formulário de palpite) e o nome normalizado (usado pra
+    // pontuar) nunca são checados um contra o outro -- achado em auditoria (2026-07-14). Se a
+    // fonte mudar o nome de um time, todo mundo que apostou nele passa a pontuar zero
     // silenciosamente (comparação por igualdade exata de string em scoreEntry()). Aviso no console
     // é o mínimo pra não deixar isso passar batido -- não é um erro fatal, o time ainda aparece na
     // tabela normalmente, só não bate com nenhuma opção do formulário.
     const knownTeams = new Set(DATA.teams || []);
     const unknown = parsed.filter(tm => !knownTeams.has(tm.name)).map(tm => tm.name);
-    if (unknown.length) console.warn("[BR2026] Time(s) da ESPN sem correspondência em DATA.teams:", unknown);
+    if (unknown.length) console.warn("[BR2026] Time(s) sem correspondência em DATA.teams:", unknown);
     return parsed.length ? parsed : null;
-  } catch (err) { console.warn("[BR2026] Standings fetch failed", err); return null; }
+  } catch (err) { console.warn("[BR2026] Standings fetch failed", err); _dataSourceError = true; return null; }
 }
 
 // Minute-by-minute plays feed (goals/cards/subs) — ported from Copa's extractMatchPlays
@@ -882,67 +870,59 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
 
 // Supplements comp.details with ESPN's richer per-event summary endpoint (keyEvents, includes
 // substitutions — see extractMatchPlays). Same fix as Copa (bolao/js/app.js), propagated here
-// same day. Only called for matches currently live, so a normal poll with nothing in progress
-// never adds extra network calls. Fails soft: any error just means this cycle falls back to
-// comp.details alone.
-async function fetchEspnEventSummary(eventId) {
-  try {
-    const summaryUrl = C.espn.scoreboardUrl.replace(/\/scoreboard(\?.*)?$/, "/summary");
-    const r = await fetchJson(`${summaryUrl}?event=${eventId}`);
-    const data = await r.json();
-    return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
-  } catch (err) {
-    console.warn(`[BR2026] ESPN event summary fetch failed for event ${eventId}`, err);
-    return null;
-  }
-}
+// same day. Football-hardening checkpoint C2: the richer per-event summary (keyEvents, with
+// substitutions) is intentionally NOT fetched per-live-match anymore from the browser — the
+// server-side sync script (bolao/br2026/scripts/sync_espn.py) would have to fan out one extra
+// ESPN call per live match on every sync cycle to keep that, which was judged not worth the
+// added server-side load for a "plays" feed that already works off comp.details. Documented
+// scope reduction, not a silent drop — see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md
+// checkpoint C2 notes. fetchEspnEventSummary() is removed; extractMatchPlays() below now always
+// runs off comp.details (2nd arg omitted) reconstructed from the normalized snapshot.
 
 async function fetchScoreboard() {
   try {
-    const r = await fetchJson(C.espn.scoreboardUrl + "?limit=20");
-    const data = await r.json();
-    const events = data?.events || [];
-    const liveEventIds = events
-      .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
-      .map(ev => ev.id)
-      .filter(Boolean);
-    const keyEventsById = {};
-    if (liveEventIds.length) {
-      const summaries = await Promise.all(liveEventIds.map(id => fetchEspnEventSummary(id)));
-      liveEventIds.forEach((id, i) => { if (summaries[i]) keyEventsById[id] = summaries[i]; });
-    }
-    return events.map(ev => {
-      const comp = ev.competitions?.[0];
-      if (!comp) return null;
-      const c    = comp.competitors || [];
-      const home = c.find(x => x.homeAway === "home") || c[0];
-      const away = c.find(x => x.homeAway === "away") || c[1];
-      const clockSec = typeof comp.status?.clock === "number" ? comp.status.clock : null;
-      const period   = typeof comp.status?.period === "number" ? comp.status.period : null;
-      // Mesma detecção de intervalo/pênaltis da Copa (mapEspnToLiveScores) -- `state` da ESPN
-      // continua "in" durante o intervalo, só `type.name`/texto do status muda.
-      const statusName = (comp.status?.type?.name || "").toUpperCase();
-      const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""} ${comp.status?.type?.detail || ""}`.toLowerCase();
+    const r = await fetchJson(C.espn.scoreboardUrl, { cache: "no-store" });
+    if (!r.ok) { _dataSourceError = true; return null; }
+    const snap = await r.json();
+    if (!snap || !Array.isArray(snap.matches)) { _dataSourceError = true; return null; }
+    _dataSourceStale = !!snap.stale;
+    _dataSourceError = false;
+    _dataGeneratedAt = snap.generatedAt || null;
+    return snap.matches.map(m => {
+      // Mesma detecção de intervalo/pênaltis da Copa (mapEspnToLiveScores) -- `state`
+      // continua "in" durante o intervalo, só o texto do status muda.
+      const statusName = (m.statusName || "").toUpperCase();
+      const statusText = `${m.statusDescription || ""} ${m.statusShortDetail || ""} ${m.statusDetail || ""}`.toLowerCase();
       const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
-      const isPenalties = period === 5
+      const isPenalties = m.period === 5
         || statusName.includes("SHOOTOUT")
         || statusName.includes("PENALT")
         || statusName.includes("END_OF_EXTRATIME")
         || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
+      // Shim reconstructing just enough of the old ESPN "comp" shape for extractMatchPlays(),
+      // which keys plays to home/away by team.id — carried through by the normalizer
+      // (homeTeamId/awayTeamId) specifically so this still works after migrating off ESPN.
+      const compShim = {
+        competitors: [
+          { homeAway: "home", team: { id: m.homeTeamId } },
+          { homeAway: "away", team: { id: m.awayTeamId } },
+        ],
+        details: m.details || [],
+      };
       return {
-        id:        ev.id,
-        state:     comp.status?.type?.state,
-        homeTeam:  normalizeEspnTeamName(home?.team?.displayName || ""),
-        awayTeam:  normalizeEspnTeamName(away?.team?.displayName || ""),
-        homeScore: parseInt(home?.score || "0", 10),
-        awayScore: parseInt(away?.score || "0", 10),
-        clockSec,
-        clockStr:  comp.status?.displayClock || "",
-        period, isHalftime, isPenalties,
-        plays: extractMatchPlays(comp, keyEventsById[ev.id]),
+        id:        m.id,
+        state:     m.state,
+        homeTeam:  m.homeTeam,
+        awayTeam:  m.awayTeam,
+        homeScore: m.homeScore ?? 0,
+        awayScore: m.awayScore ?? 0,
+        clockSec:  m.clockSec,
+        clockStr:  m.clockStr || "",
+        period: m.period, isHalftime, isPenalties,
+        plays: extractMatchPlays(compShim),
       };
     }).filter(Boolean);
-  } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
+  } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); _dataSourceError = true; return null; }
 }
 
 let _pollInFlight = false;
@@ -1293,15 +1273,14 @@ async function fetchSchedule() {
   } catch { /* corrupt/unparseable cache entry — fall through and refetch */ }
   try {
     const r = await fetchJson(C.espn.scheduleUrl, { cache: "no-store" });
-    if (!r.ok) return;
-    const data = await r.json();
-    _schedule = (data.events || []).map(ev => {
-      const comp = ev.competitions?.[0];
-      if (!comp) return null;
-      const comps = comp.competitors || [];
-      const home  = comps.find(c => c.homeAway === "home") || comps[0];
-      const away  = comps.find(c => c.homeAway === "away") || comps[1];
-      const espnState = comp.status?.type?.state || "pre";
+    if (!r.ok) { _dataSourceError = true; return; }
+    const snap = await r.json();
+    if (!snap || !Array.isArray(snap.matches)) { _dataSourceError = true; return; }
+    _dataSourceStale = !!snap.stale;
+    _dataSourceError = false;
+    _dataGeneratedAt = snap.generatedAt || null;
+    _schedule = snap.matches.map(m => {
+      const espnState = m.state || "pre";
       // ESPN's own event-status enum for a postponed/canceled game is state:"post" with
       // completed:false (name is the machine constant "STATUS_POSTPONED"/"STATUS_CANCELED", NOT
       // the human string "Postponed"/"Canceled" this used to compare against -- that comparison
@@ -1313,24 +1292,24 @@ async function fetchSchedule() {
       // played by +1 each on the actual production page. `completed` is reliable either way
       // (false for both postponed and not-yet-played "pre" games, but this flag is only ever
       // consulted alongside state==="post" checks, so that ambiguity never matters in practice).
-      const postponed = espnState === "post" && comp.status?.type?.completed === false;
+      const postponed = espnState === "post" && m.completed === false;
       return {
-        id:        ev.id,
-        dateISO:   comp.date || ev.date || "",
+        id:        m.id,
+        dateISO:   m.date || "",
         state:     espnState,
-        detail:    comp.status?.type?.shortDetail || "",
+        detail:    m.statusShortDetail || "",
         postponed,
-        homeTeam:  normalizeEspnTeamName(home?.team?.displayName || ""),
-        awayTeam:  normalizeEspnTeamName(away?.team?.displayName || ""),
-        homeScore: home?.score != null ? parseInt(home.score, 10) : null,
-        awayScore: away?.score != null ? parseInt(away.score, 10) : null,
-        venue:     comp.venue?.fullName || "",
-        city:      comp.venue?.address?.city || "",
+        homeTeam:  m.homeTeam,
+        awayTeam:  m.awayTeam,
+        homeScore: m.homeScore,
+        awayScore: m.awayScore,
+        venue:     m.venue || "",
+        city:      m.city || "",
       };
     }).filter(Boolean).sort((a, b) => a.dateISO.localeCompare(b.dateISO));
     _scheduleTs = now;
     sessionStorage.setItem(`br2026_schedule_${C.siteVersion}`, JSON.stringify({ ts: now, events: _schedule }));
-  } catch (err) { console.warn("[BR2026] Schedule fetch failed", err); }
+  } catch (err) { console.warn("[BR2026] Schedule fetch failed", err); _dataSourceError = true; }
 }
 
 // ─── Probability math (Poisson + Monte Carlo) ────────────────────────────────
@@ -2010,7 +1989,16 @@ function renderGamesSection() {
   const box = $("gamesList");
   if (!box) return;
   if (!_schedule.length) {
-    box.innerHTML = `<p class="muted">${esc(t("gamesLoading"))}</p>`;
+    // Football-hardening checkpoint G: distinct states, never a permanent "Carregando" spinner.
+    // _dataSourceError/_dataSourceStale are set by fetchSchedule()/fetchScoreboard() reading the
+    // local normalized snapshot — see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md checkpoint
+    // A section 1 for the original bug (an unreachable/blocked data source looked identical to
+    // "still loading" forever).
+    if (_dataSourceError) {
+      box.innerHTML = `<p class="muted data-error" role="alert">${esc(t("gamesError"))}</p>`;
+    } else {
+      box.innerHTML = `<p class="muted">${esc(t("gamesLoading"))}</p>`;
+    }
     return;
   }
 
@@ -2023,7 +2011,12 @@ function renderGamesSection() {
   });
 
   const dateKeys = Object.keys(byDate).sort();
-  let html = "";
+  // Checkpoint G: last-known-good data is still shown (never blanked out), but a visible banner
+  // marks it stale rather than presenting it as fresh — the sync script sets `stale: true` when
+  // it couldn't refresh from ESPN and had to preserve the last snapshot on disk.
+  let html = _dataSourceStale
+    ? `<p class="muted data-stale" role="status">${esc(t("gamesStale"))}</p>`
+    : "";
   const hasRatings = _standings.length >= 20;
   const gRatings   = hasRatings ? buildRatings() : null;
   // Map dateISO → 1-based sequential game number in the season

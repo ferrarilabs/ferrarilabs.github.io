@@ -1,5 +1,12 @@
 window.BOLAO_CONFIG = {
   siteVersion: "v4.170",
+  // Football-hardening checkpoint C2: no more direct browser->ESPN fetch (no CORS guarantee —
+  // see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md). bolao/copa2026/scripts/sync_espn.py
+  // (using the shared bolao/shared/scripts/espn_provider.py) fetches/validates/normalizes ESPN
+  // data server-side and writes it here; the frontend only ever reads this local file.
+  espn: {
+    scoreboardUrl: "data/espn-normalized.json",
+  },
   // Tournament fully decided (2026-07-19, Spain champion) -- Eduardo: "Copa do mundo finalizada!
   // ... Desabilitar os botões todos, deixar só o vencedor, auditoria e os palpites." When true,
   // hides the entry/games/probs/rules nav buttons and the Admin nav button (still reachable —

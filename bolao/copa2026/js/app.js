@@ -3593,29 +3593,15 @@ function stopResultsPolling() {
 // effort only: on any failure or unexpected shape, returns null so the
 // caller falls back to the site's own Poisson-based estimate. Never throws,
 // never blocks rendering (fetched async, cached, applied on the next render).
-async function fetchEspnWinProbability(eventId, competitionId) {
-  if (!eventId) return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const res = await fetch(
-      `https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events/${eventId}/competitions/${competitionId || eventId}/probabilities?limit=1`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const item = json.items?.[json.items.length - 1];
-    if (!item) return null;
-    const pH = typeof item.homeWinPercentage === "number" ? item.homeWinPercentage : null;
-    const pAw = typeof item.awayWinPercentage === "number" ? item.awayWinPercentage : null;
-    if (pH === null || pAw === null) return null;
-    const pD = typeof item.tiePercentage === "number" ? item.tiePercentage : Math.max(0, 1 - pH - pAw);
-    return { pA: pH, pD, pB: pAw };
-  } catch (err) {
-    clearTimeout(timer);
-    return null;
-  }
+// Football-hardening checkpoint C2: retired, not migrated. This function only ever fired during
+// LIVE polling (pollLiveScores), and the tournament concluded 2026-07-19 (CONFIG.archived —
+// see "Copa do Mundo 2026 archive" in CLAUDE.md) — no future live match will ever call it again.
+// Building server-side snapshot infra for a live-only code path with zero remaining callers
+// would be dead weight, not hardening; kept as a documented no-op (always returns null, same
+// contract as before on any failure) rather than deleted outright, so a future un-archiving of
+// a new tournament reusing this codebase has the shape to restore from git history.
+async function fetchEspnWinProbability(_eventId, _competitionId) {
+  return null;
 }
 
 const _espnProbCache = new Map();
@@ -3679,51 +3665,11 @@ function extractEspnOdds(events) {
   }
 }
 
-// ESPN's per-event "summary" endpoint (same site.api.espn.com family we
-// already use for scores, so much more likely to actually work for soccer
-// than the specialized predictor API above). Pulls shots-on-target and
-// possession — used only as an input to sharpen our own in-play estimate
-// when ESPN's real win-probability isn't available, never displayed
-// directly. Tries a few plausible stat-name variants since the exact keys
-// aren't confirmed without live testing; returns null on any mismatch.
-async function fetchEspnMatchStats(eventId, teamAName, teamBName) {
-  if (!eventId) return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const teams = json.boxscore?.teams;
-    if (!Array.isArray(teams) || teams.length < 2) return null;
-
-    const findStat = (team, aliases) => {
-      for (const name of aliases) {
-        const s = team.statistics?.find(x => x.name === name);
-        if (s) { const v = parseFloat(s.displayValue); if (!isNaN(v)) return v; }
-      }
-      return null;
-    };
-    const normA = normalizeTeamName(teamAName), normB = normalizeTeamName(teamBName);
-    const out = {};
-    for (const team of teams) {
-      const name = normalizeTeamName(team.team?.displayName);
-      const side = name === normA ? "A" : name === normB ? "B" : null;
-      if (!side) continue;
-      out[`shotsOnTarget${side}`] = findStat(team, ["shotsOnTarget", "totalShotsOnTarget", "shotsOnGoal"]);
-      out[`possession${side}`] = findStat(team, ["possessionPct", "possession", "ballPossession"]);
-    }
-    if (out.shotsOnTargetA == null && out.shotsOnTargetB == null &&
-        out.possessionA == null && out.possessionB == null) return null;
-    return out;
-  } catch (err) {
-    clearTimeout(timer);
-    return null;
-  }
+// Football-hardening checkpoint C2: retired, not migrated — same reasoning as
+// fetchEspnWinProbability() above (live-only, tournament concluded 2026-07-19, no remaining
+// caller path can ever fire this again). Kept as a documented no-op, not deleted.
+async function fetchEspnMatchStats(_eventId, _teamAName, _teamBName) {
+  return null;
 }
 
 // Blend pre-match lambdas with an in-match dominance signal (shots on
@@ -3750,52 +3696,53 @@ function statsAdjustedLambdas(lambdaA, lambdaB, stats) {
 
 const _espnStatsCache = new Map();
 
-/* ── ESPN free results ── */
+// Football-hardening checkpoint C2: no more direct browser->ESPN fetch (no CORS guarantee — see
+// docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md). bolao/copa2026/scripts/sync_espn.py (using
+// the shared bolao/shared/scripts/espn_provider.py) fetches/validates/normalizes ESPN data
+// server-side and writes it to C.espn.scoreboardUrl (a local, same-origin JSON file). This
+// function's return shape (raw-ESPN-like "events" objects with .competitions[0]) is
+// reconstructed from the normalized snapshot's `matches` so every existing caller
+// (mapEspnToMatches, mapEspnToLiveScores, extractEspnOdds, etc.) keeps working unchanged.
 async function fetchEspnFixtures() {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const res = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=300&dates=20260611-20260719",
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
+    const res = await fetch(C.espn.scoreboardUrl, { cache: "no-store" });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    return json.events || [];
+    const snap = await res.json();
+    if (!snap || !Array.isArray(snap.matches)) throw new Error("normalized snapshot missing matches[]");
+    return snap.matches.map(m => ({
+      id: m.id,
+      date: m.date,
+      competitions: [{
+        date: m.date,
+        status: {
+          clock: m.clockSec, period: m.period, displayClock: m.clockStr,
+          type: {
+            state: m.state, name: m.statusName, description: m.statusDescription,
+            shortDetail: m.statusShortDetail, detail: m.statusDetail, completed: m.completed,
+          },
+        },
+        venue: { fullName: m.venue, address: { city: m.city } },
+        competitors: [
+          { homeAway: "home", team: { id: m.homeTeamId, displayName: m.homeTeam }, score: m.homeScore, winner: m.homeWinner },
+          { homeAway: "away", team: { id: m.awayTeamId, displayName: m.awayTeam }, score: m.awayScore, winner: m.awayWinner },
+        ],
+        details: m.details || [],
+      }],
+    }));
   } catch (err) {
-    clearTimeout(timer);
-    console.warn("ESPN fetch failed", err);
+    console.warn("[Copa2026] normalized-snapshot fetch failed", err);
     return null;
   }
 }
 
-// Supplements the scoreboard's `comp.details` (used by extractMatchPlays) with ESPN's richer
-// per-event summary endpoint. Confirmed live during the World Cup Final (2026-07-19, Eduardo:
-// "As substituições sumiram do lugar onde tem os lances cartões e gols"): comp.details only ever
-// carries goals and cards for this match -- 11 real substitutions had happened by the 79th
-// minute, comp.details still showed just the 2 yellow cards, nothing more. The summary endpoint's
-// keyEvents array has the same goals/cards PLUS substitutions. Only called for matches currently
-// live (see pollLiveScores) so this never adds load on a normal poll with nothing in progress.
-// Fails soft like every other ESPN fetch here: any error just means this cycle falls back to
-// comp.details alone (cards/goals keep working, subs silently stay missing until the next poll).
-async function fetchEspnEventSummary(eventId) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
-  try {
-    const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    const json = await res.json();
-    return Array.isArray(json?.keyEvents) ? json.keyEvents : null;
-  } catch (err) {
-    clearTimeout(timer);
-    console.warn(`ESPN event summary fetch failed for event ${eventId}`, err);
-    return null;
-  }
+// Football-hardening checkpoint C2: retired, not migrated — same reasoning as
+// fetchEspnWinProbability() above. This only ever supplemented LIVE polling (pollLiveScores)
+// with richer substitution data; the tournament concluded 2026-07-19, so no remaining caller
+// path can fire this again. Kept as a documented no-op, not deleted; extractMatchPlays() now
+// runs off comp.details alone (already reconstructed above), same fallback behavior this
+// function's failure path always had.
+async function fetchEspnEventSummary(_eventId) {
+  return null;
 }
 
 function mapEspnToMatches(events) {

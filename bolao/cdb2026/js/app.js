@@ -2356,6 +2356,12 @@ function saveRawClockCache(history) { safeLocalStorageSetJson(CDB_LIVE_CLOCK_RAW
 
 let _liveTies = []; // [{ tieId, tie, phaseId, leg, homeTeam, awayTeam, goalsHome, goalsAway, clockSeconds, pollTime, period, isHalftime, isPenalties, clockPaused, clockStr }]
 const LIVE_TIE_POLL_INTERVAL_MS = 60 * 1000; // mesma cadência da Copa/BR2026 -- rápida o bastante pro relógio parecer "ao vivo"
+// Football-hardening checkpoint C2/G: explicit data-source health flags, same pattern as
+// BR2026 (bolao/br2026/js/app.js) — set by fetchEspnCandidates() reading the local normalized
+// snapshot, read by the UI to show a real stale/error state instead of an indefinite spinner.
+let _dataSourceStale = false;
+let _dataSourceError = false;
+let _dataGeneratedAt = null;
 
 // Pernas (ida/volta) atualmente sinalizadas como adiadas/canceladas pela ESPN -- item 25 do
 // CONSISTENCY_MATRIX.md (2026-07-15), portado do BR2026 (fetchSchedule()/`postponed`). Chave
@@ -2742,123 +2748,79 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
   return `<div class="live-plays" data-plays-match="${esc(String(mid ?? ""))}">${rows}</div>`;
 }
 
-// Supplements comp.details with ESPN's richer per-event summary endpoint (keyEvents, includes
-// substitutions — see extractMatchPlays). Same fix as Copa/BR2026, propagated here same day
-// (Eduardo: "PRECISAMOS SER CONSISTENTES"). Only called for matches currently live, so a normal
-// poll with nothing in progress never adds extra network calls. Fails soft: any error just means
-// this cycle falls back to comp.details alone.
-// fetchJson() (acima) já generaliza AbortController+timeout — os dois fetches ESPN abaixo
-// usavam sua própria cópia manual (mesmo timeout de 10000ms) antes de fetchJson() existir.
-// Consolidado Fase 2 §5: mesmo comportamento (mesmo timeout, mesmo catch-e-retorna-null), só a
-// duplicação de scaffolding removida.
-async function fetchEspnEventSummary(eventId) {
-  try {
-    const summaryUrl = (C.espn?.scoreboardUrl || "").replace(/\/scoreboard(\?.*)?$/, "/summary");
-    if (!summaryUrl) return null;
-    const r = await fetchJson(`${summaryUrl}?event=${eventId}`);
-    if (!r.ok) return null;
-    const data = await r.json();
-    return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
-  } catch (err) {
-    console.warn(`[CDB2026] ESPN event summary fetch failed for event ${eventId}`, err);
-    return null;
-  }
-}
-
-// A ESPN às vezes nomeia um time diferente do nome curado usado em DATA.knownConfrontos/data.js
-// -- sem normalizar, TODO casamento por nome (fetchLiveTies, autoSyncEspn, autoSyncEspnResults)
-// falha silenciosamente para esse time: nunca aparece "ao vivo", nunca trava resultado
-// automaticamente. Achado em produção (2026-08-01, jogo real Vasco×Fluminense ao vivo não
-// aparecendo): ESPN devolve "Vasco da Gama", nosso confronto usa "Vasco". Mesmo padrão da
-// BR2026 (ESPN_SCOREBOARD_NAME_ALIASES/normalizeEspnTeamName, bolao/br2026/js/app.js) --
-// mantido em sincronia à mão se a ESPN mudar/adicionar outro apelido.
-const CDB_ESPN_NAME_ALIASES = { "Vasco da Gama": "Vasco" };
-function normalizeEspnTeamName(name) { return CDB_ESPN_NAME_ALIASES[name] || name; }
-
+// Football-hardening checkpoint C2: no more direct browser->ESPN fetch (no CORS guarantee — see
+// docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md). bolao/cdb2026/scripts/sync_espn.py (using
+// the shared bolao/shared/scripts/espn_provider.py) fetches/validates/normalizes ESPN data
+// server-side, including the "Vasco da Gama" -> "Vasco" alias found in production 2026-08-01
+// (CDB_ESPN_NAME_ALIASES moved into that script's ALIASES dict — no client-side alias map to
+// keep in sync by hand anymore). fetchEspnEventSummary()'s per-live-match keyEvents fan-out is
+// intentionally not reproduced server-side per sync cycle (same documented scope reduction as
+// BR2026 — see that file's equivalent comment); extractMatchPlays() below runs off the
+// normalized snapshot's `details` field alone.
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
   try {
     const r = await fetchJson(url);
-    if (!r.ok) return null;
-    const data = await r.json();
-    const events = data.events || [];
-    const liveEventIds = events
-      .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
-      .map(ev => ev.id)
-      .filter(Boolean);
-    const keyEventsById = {};
-    if (liveEventIds.length) {
-      const summaries = await Promise.all(liveEventIds.map(id => fetchEspnEventSummary(id)));
-      liveEventIds.forEach((id, i) => { if (summaries[i]) keyEventsById[id] = summaries[i]; });
-    }
-    return events.map(ev => {
-      const comp = ev.competitions?.[0];
-      if (!comp) return null;
-      const comps = comp.competitors || [];
-      const home  = comps.find(c => c.homeAway === "home") || comps[0];
-      const away  = comps.find(c => c.homeAway === "away") || comps[1];
-      const evState = comp.status?.type?.state || "pre";
+    if (!r.ok) { _dataSourceError = true; return null; }
+    const snap = await r.json();
+    if (!snap || !Array.isArray(snap.matches)) { _dataSourceError = true; return null; }
+    _dataSourceStale = !!snap.stale;
+    _dataSourceError = false;
+    _dataGeneratedAt = snap.generatedAt || null;
+    return snap.matches.map(m => {
+      const evState = m.state || "pre";
       // Campos de jogo AO VIVO (2026-07-15, ver CDB2026: recurso de partida ao vivo) --
       // adicionados sem tocar homeScore/awayScore/homeWinner/awayWinner acima, que
       // autoSyncEspn()/autoSyncEspnResults() já dependem para decidir "confronto acabou" (só
-      // `state === "post"`). Mesma detecção de intervalo/pênaltis da Copa/BR2026
-      // (mapEspnToLiveScores/fetchScoreboard) -- `state` da ESPN fica "in" durante o intervalo
-      // também, só `type.name`/texto do status muda.
-      const clockSec = typeof comp.status?.clock === "number" ? comp.status.clock : null;
-      const period   = typeof comp.status?.period === "number" ? comp.status.period : null;
-      const statusName = (comp.status?.type?.name || "").toUpperCase();
-      const statusText = `${comp.status?.type?.description || ""} ${comp.status?.type?.shortDetail || ""} ${comp.status?.type?.detail || ""}`.toLowerCase();
+      // `state === "post"`). Mesma detecção de intervalo/pênaltis da Copa/BR2026 -- `state`
+      // fica "in" durante o intervalo também, só o texto do status muda.
+      const statusName = (m.statusName || "").toUpperCase();
+      const statusText = `${m.statusDescription || ""} ${m.statusShortDetail || ""} ${m.statusDetail || ""}`.toLowerCase();
       const isHalftime = statusName.includes("HALFTIME") || /half.?time|intervalo|entretiempo/.test(statusText);
-      const isPenalties = period === 5
+      const isPenalties = m.period === 5
         || statusName.includes("SHOOTOUT")
         || statusName.includes("PENALT")
         || statusName.includes("END_OF_EXTRATIME")
         || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
-      // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- CDB2026 não tinha nenhuma forma de
-      // sinalizar jogo adiado/cancelado; portado do BR2026 (fetchSchedule(), mesma checagem) --
-      // só que o BR2026 original tinha um bug real nessa checagem, herdado aqui junto: o `name`
-      // da ESPN para um jogo adiado é a constante "STATUS_POSTPONED"/"STATUS_CANCELED", nunca o
-      // texto "POSTPONED"/"CANCELED" comparado aqui, então essa comparação nunca batia. Corrigido
-      // junto com o BR2026 (Eduardo, 2026-07-26, achado auditando dados da tabela do BR2026:
-      // "outros sites mostra pontuacao diferentes") -- usa state==="post" + completed===false,
-      // que é o sinal real e confiável (verificado contra dados reais da ESPN).
-      const postponed = evState === "post" && comp.status?.type?.completed === false;
+      // Item 25 do CONSISTENCY_MATRIX.md (2026-07-15) -- postponed via state==="post" +
+      // completed===false, o sinal real e confiável (mesmo campo verificado no BR2026).
+      const postponed = evState === "post" && m.completed === false;
+      const compShim = {
+        competitors: [
+          { homeAway: "home", team: { id: m.homeTeamId } },
+          { homeAway: "away", team: { id: m.awayTeamId } },
+        ],
+        details: m.details || [],
+      };
       return {
-        id: ev.id,
-        dateISO: comp.date || ev.date || "",
-        homeTeam: normalizeEspnTeamName(home?.team?.displayName || ""),
-        awayTeam: normalizeEspnTeamName(away?.team?.displayName || ""),
+        id: m.id,
+        dateISO: m.date || "",
+        homeTeam: m.homeTeam,
+        awayTeam: m.awayTeam,
         // `!postponed` é obrigatório aqui, não só no chip de "Adiado": a ESPN devolve um jogo
-        // adiado como state:"post" COM score "0" (verificado em dados reais de 2026-07-29 na
-        // bra.1) -- sem esta guarda, `homeScore` virava 0 (não null) e autoSyncEspn()/
-        // autoSyncEspnResults() gravavam a perna como FINAL 0-0 de um jogo nunca disputado.
-        // Pior: `if (m.goalsHome != null) return` mais abaixo faz o placar falso BLOQUEAR para
-        // sempre o preenchimento automático do resultado real. Achado na auditoria de 2026-08
-        // (AUDIT-06) -- latente hoje (nenhum jogo da Copa do Brasil está adiado), mas a Copa do
-        // Brasil adia jogos com frequência e o bolão paga dinheiro real.
-        homeScore: evState === "post" && !postponed && home?.score != null ? parseInt(home.score, 10) : null,
-        awayScore: evState === "post" && !postponed && away?.score != null ? parseInt(away.score, 10) : null,
-        // `winner` é o campo que a própria ESPN usa pra indicar quem passou de fase depois de
-        // pênaltis (o placar normal por si só empata em caso de disputa) -- só confiável quando o
-        // jogo já terminou (evState === "post"); usado em autoSyncEspnResults() para travar um
-        // confronto empatado no agregado sem precisar do admin escolher manualmente.
-        // Mesma guarda `!postponed` (ver homeScore acima): um jogo adiado nunca tem vencedor.
-        homeWinner: evState === "post" && !postponed ? home?.winner === true : null,
-        awayWinner: evState === "post" && !postponed ? away?.winner === true : null,
-        venue: comp.venue?.fullName || "",
-        city: comp.venue?.address?.city || "",
+        // adiado como state:"post" COM score "0" -- sem esta guarda, `homeScore` virava 0 (não
+        // null) e autoSyncEspn()/autoSyncEspnResults() gravavam a perna como FINAL 0-0 de um
+        // jogo nunca disputado. Achado na auditoria de 2026-08 (AUDIT-06).
+        homeScore: evState === "post" && !postponed ? m.homeScore : null,
+        awayScore: evState === "post" && !postponed ? m.awayScore : null,
+        // `winner` indica quem passou de fase depois de pênaltis; só confiável quando terminado.
+        homeWinner: evState === "post" && !postponed ? m.homeWinner === true : null,
+        awayWinner: evState === "post" && !postponed ? m.awayWinner === true : null,
+        venue: m.venue || "",
+        city: m.city || "",
         state: evState,
-        liveHomeScore: evState === "in" && home?.score != null ? parseInt(home.score, 10) : null,
-        liveAwayScore: evState === "in" && away?.score != null ? parseInt(away.score, 10) : null,
-        clockSec, period, isHalftime, isPenalties, postponed,
-        clockStr: comp.status?.displayClock || "",
-        plays: extractMatchPlays(comp, keyEventsById[ev.id]),
+        liveHomeScore: evState === "in" ? m.homeScore : null,
+        liveAwayScore: evState === "in" ? m.awayScore : null,
+        clockSec: m.clockSec, period: m.period, isHalftime, isPenalties, postponed,
+        clockStr: m.clockStr || "",
+        plays: extractMatchPlays(compShim),
       };
     }).filter(ev => ev && ev.homeTeam && ev.awayTeam)
       .sort((a, b) => a.dateISO.localeCompare(b.dateISO));
   } catch (err) {
-    console.warn("[CDB2026] ESPN fetch failed", err);
+    console.warn("[CDB2026] normalized-snapshot fetch failed", err);
+    _dataSourceError = true;
     return null;
   }
 }

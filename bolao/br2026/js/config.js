@@ -74,12 +74,17 @@ window.BR2026_CONFIG = {
     stateId: "br2026",
     localFallback: true
   },
+  // Football-hardening checkpoint C2: the browser no longer calls ESPN directly (no CORS
+  // guarantee for that endpoint — see docs/bolao/FOOTBALL_HARDENING_INCIDENT_AUDIT.md). A
+  // server-side script (bolao/br2026/scripts/sync_espn.py, using the shared
+  // bolao/shared/scripts/espn_provider.py) fetches/validates/normalizes ESPN data and writes it
+  // to these project-controlled, same-origin JSON files. The frontend only ever reads these.
   espn: {
     leagueSlug: "bra.1",
     season: 2026,
-    standingsUrl: "https://site.api.espn.com/apis/v2/sports/soccer/bra.1/standings",
-    scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard",
-    scheduleUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard?dates=20260101-20261231&limit=500",
+    standingsUrl: "data/espn-standings-normalized.json",
+    scoreboardUrl: "data/espn-normalized.json",
+    scheduleUrl: "data/espn-normalized.json",
     pollIntervalMs: 60000,
   },
   transparency: {
