@@ -1,21 +1,22 @@
-[TESTE ADMIN] — não é um envio de produção
-Bilhetes publicados — Powerball 05/08/2026 22:59 ET
+TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção.
+Bilhetes publicados — Powerball 05/08/2026 22:59 ET — 2 jogos
 
-Sua participação: 1 cota(s), US$10, status verificado
+Sua participação:
+  1 de 14 cotas, US$10, 7,1429%, status verificado
 
-Resumo financeiro:
-  Participantes: 1
-  Total de cotas: 1
-  Valor por cota: US$138
-  Total arrecadado: US$138
-  Valor usado: US$153
-  Saldo reservado: US$1
-  Tickets: 2
-  Custo total: US$6
+Resumo geral:
+  Participantes: 14
+  Total de cotas: 14
+  Valor por cota: US$10
+  Total arrecadado: US$140
+  Valor usado: US$6
+  Saldo reservado: US$134
+  Diferença não conciliada: US$0
 
-Números jogados:
-  #1: 1-14-27-36-63 — PB 25
-  #2: 4-11-22-45-61 — PB 9
+Jogos:
+  Jogo 01: 24  31  47  52  63     Powerball 17
+  Jogo 02: 4  11  22  45  61     Powerball 9
 
-Hash SHA-256 do manifesto: 9139fe1b57a8203ec143fd33bbb14b7566f1b3b7a75e861f5d8e6bc2557bcc9e
-Versão: 1 · Publicado em 2026-08-05T14:08:15.694Z UTC
+Hash (resumido): 48d0d4c818da…b8dc293a
+Publicado em 5 de agosto de 2026 às 10:28 AM ET
+Registro UTC: 2026-08-05T14:28:02.146Z
