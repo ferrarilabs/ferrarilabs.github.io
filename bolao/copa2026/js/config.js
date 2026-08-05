@@ -1,5 +1,5 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.168",
+  siteVersion: "v4.170",
   // Tournament fully decided (2026-07-19, Spain champion) -- Eduardo: "Copa do mundo finalizada!
   // ... Desabilitar os botões todos, deixar só o vencedor, auditoria e os palpites." When true,
   // hides the entry/games/probs/rules nav buttons and the Admin nav button (still reachable —

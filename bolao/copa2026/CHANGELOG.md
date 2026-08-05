@@ -1,5 +1,69 @@
 # CHANGELOG
 
+## v4.170 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation, `.prob-bar` legibility fix
+
+Phase 6 shipped without a real browser. Phase 7 installed Playwright + a real Chrome binary and
+re-verified everything with actual captures/computed styles instead of source-only comparison —
+see `docs/bolao/evidence/canonical-framework/README.md` and `docs/bolao/CONSISTENCY_MATRIX.md`'s
+phase 7 entry.
+
+**Real bug found in Copa's own canonical `.prob-bar` value, fixed here**: `min-width: 6px` (this
+app's own value, inherited by BR2026/CDB2026 through `bolao/shared/css/components.css`) was
+empirically measured (real Chrome, Playwright) to genuinely clip the percentage label this app's
+own `label(pct,name)` helper (`js/app.js:2656`) renders inside every probability-bar segment — a
+3% segment at 390px rendered with `scrollWidth(22px) > clientWidth(19px)`, i.e. the "3%" text
+didn't fully fit. `min-width: 32px` (the value BR2026/CDB2026 already carried as an undocumented
+local override) renders the same segment with no clipping. Promoted 32px to the shared canonical
+value — this was Copa's own value that needed to change, not something BR2026/CDB2026 were wrong
+about.
+
+Computed-style audit (`bolao/scripts/audit_visual_consistency.mjs`, real Chromium, 30
+components): 0 unapproved divergences, 383 EQUAL, 23 JUSTIFIED (documented variants), 14 N/A. 0
+console errors, 0 horizontal overflow, 0 sticky-submit overlap — all confirmed live at
+390×844/768×1024/1440×900 (and 7 viewports for the overlap check).
+
+## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
+
+Final phase of the 6-phase migration (phase 1: component catalog; phase 2: shared tokens/shell +
+Copa migration; phase 3: BR2026 migration; phase 4: CDB2026 migration; phase 5: admin
+standardization + contract script). No CSS/JS changes to this app in this phase — this entry
+documents the wrap-up: full `docs/bolao/evidence/canonical-framework/COMPONENT_AUDIT.md`
+classification of all 28 canonical components across the three apps (mix of EQUAL/
+VARIANT_APPROVED/DIVERGENT, with a real previously-undocumented `.prob-bar` min-width
+divergence surfaced), an honest `README.md` in that same folder documenting that no
+browser/screenshot tool was available this session (verified by checking, not assumed) so no
+rendered-pixel evidence was fabricated, and a final full re-run of every test/audit script
+across all three apps — all pass. See `docs/bolao/CONSISTENCY_MATRIX.md` for the consolidated
+list of documented cross-app divergences from phases 2-5.
+
+## v4.169 — 2026-08-04 — Phase 2 of platform visual-framework migration: shared CSS tokens/shell
+
+Copa is the platform's canonical visual reference (`CLAUDE.md`, "Golden master rule"). Phase 1
+(previous commit) catalogued Copa's real CSS values into
+`docs/bolao/CANONICAL_VISUAL_COMPONENT_CATALOG.md`; this phase extracts those values into a new
+shared stylesheet set and migrates Copa itself to consume it, so BR2026/CDB2026 (phases 3-4) have
+a real shared contract to copy instead of hand-copying values file by file.
+
+- Added `bolao/shared/css/{tokens,reset,shell,navigation,components,forms,admin,responsive}.css`
+  — every value copied verbatim from Copa's own `css/styles.css` (no invented values). Covers the
+  28 components catalogued as actually existing in Copa in phase 1 (topbar, brand, nav/tabs, card,
+  game-card, score, status-badge, probability-bar, ranking-row/position/score, rules-table,
+  form-grid, input/select, buttons, admin-toolbar, toast, etc.).
+- `index.html` now loads the 8 shared stylesheets before `css/styles.css`, so Copa's own file only
+  needs to carry Copa-specific rules/overrides (hero, bracket, count-grid, receipt box, podium
+  banner, match-end banner, reopen banner, America250 badge, audit log, demo badge, site footer,
+  etc.) and Copa-specific responsive tweaks.
+- Trimmed `css/styles.css` from 1302 to 733 lines by removing rules that are now fully duplicated
+  in the shared files, replacing each removed block with a short pointer comment to where it lives
+  now (no rule was deleted without a shared-file equivalent already in place).
+- Not touched: any `.js` file, scoring, business rules, Supabase, EmailJS, Powerball/other
+  lottery modules. `python3 scripts/audit_scoring.py` re-run after this change, still passes (see
+  repo `CLAUDE.md` — required after every change, scoring-related or not).
+- Known follow-up for phase 5 (not done here): `shared/css/responsive.css`'s desktop nav rule
+  hardcodes `repeat(6, minmax(0,1fr))`, which is Copa's real visible-tab count — BR2026 (7 tabs)
+  and CDB2026 (6 tabs) will need their own override when they migrate in phases 3-4, same as they
+  already do today for the mobile 3-column rule.
+
 ## (tooling, no siteVersion bump) — 2026-08-04 — EMERGENCY_HOTFIX propagation: live-monitoring deadline anchor
 
 Propagated from `bolao/cdb2026/scripts/send_result_email.py` (same incident, same architecture —

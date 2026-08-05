@@ -7,3 +7,4 @@ bolao/cdb2026/backups/
 bolao/loterias/*/logs/
 __pycache__/
 *.pyc
+node_modules/

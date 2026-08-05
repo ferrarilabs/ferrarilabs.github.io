@@ -1,0 +1,3912 @@
+{
+  "generatedAtUtc": "2026-08-04T19:22:42.424Z",
+  "commit": "624bc4a",
+  "referenceApp": "copa2026",
+  "apps": [
+    "copa2026",
+    "br2026",
+    "cdb2026"
+  ],
+  "components": [
+    {
+      "id": "topbar",
+      "label": "Topbar",
+      "selectors": {
+        "copa2026": ".topbar",
+        "br2026": ".topbar",
+        "cdb2026": ".topbar"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 18px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "108.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 18px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "108.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 18px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "118.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "`.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 118.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. If this value ever drifts (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "brand",
+      "label": "Brand / logo",
+      "selectors": {
+        "copa2026": ".brand",
+        "br2026": ".brand",
+        "cdb2026": ".brand"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "competition-selector",
+      "label": "Seletor de competição (Alternar bolão)",
+      "selectors": {
+        "copa2026": ".bolao-switcher",
+        "br2026": ".bolao-switcher",
+        "cdb2026": ".bolao-switcher"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "lang-button",
+      "label": "Botão de idioma",
+      "selectors": {
+        "copa2026": ".lang-links button",
+        "br2026": ".lang-links button",
+        "cdb2026": ".lang-links button"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "lang-button-active",
+      "label": "Botão de idioma ativo",
+      "selectors": {
+        "copa2026": ".lang-links button.active",
+        "br2026": ".lang-links button.active",
+        "cdb2026": ".lang-links button.active"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "700",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "tabs-nav",
+      "label": "Nav de tabs (.nav)",
+      "selectors": {
+        "copa2026": ".nav",
+        "br2026": ".nav",
+        "cdb2026": ".nav"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "5px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "5px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "173.422px 173.422px 173.438px 173.422px 173.438px 173.422px 173.438px"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "5px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "JUSTIFIED",
+          "reason": "Column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real visible button count by design (fixed in this branch, commit 9b11e3b — Copa 8→6, BR2026 9→7, CDB2026 6). Unequal track widths across apps given unequal button counts is the CORRECT outcome, not a regression. If a nav button is ever added/removed in any app, the resolved track-width string changes and this exact-match entry correctly goes stale, forcing a fresh human review rather than silently continuing to approve a now-unverified state — this is the reference example the task itself asked for. [docRef: bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78 (Fase 2.2-correção item 3); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        }
+      ]
+    },
+    {
+      "id": "tab-button",
+      "label": "Botão de tab (inativo)",
+      "selectors": {
+        "copa2026": "[data-section=\"ranking\"]",
+        "br2026": "[data-section=\"ranking\"]",
+        "cdb2026": "[data-section=\"ranking\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "tab-button-active",
+      "label": "Botão de tab ativo",
+      "selectors": {
+        "copa2026": ".nav button.active",
+        "br2026": ".nav button.active",
+        "cdb2026": ".nav button.active"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "700",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 6px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "44px",
+          "minHeight": "44px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "main",
+      "label": "main",
+      "selectors": {
+        "copa2026": "main",
+        "br2026": "main",
+        "cdb2026": "main"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "20px 18px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "8328.97px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "20px 18px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "1749px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "20px 18px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "4615.88px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "card-base",
+      "label": "Card base (marcado)",
+      "selectors": {
+        "copa2026": "[data-visual-audit=\"card-base\"]",
+        "br2026": "[data-visual-audit=\"card-base\"]",
+        "cdb2026": "[data-visual-audit=\"card-base\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "395.391px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "756.109px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "444.781px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "h2",
+      "label": "h2",
+      "selectors": {
+        "copa2026": "h2",
+        "br2026": "h2",
+        "cdb2026": "h2"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "rules-heading",
+      "label": "Heading de seção (Regras)",
+      "selectors": {
+        "copa2026": "[data-visual-audit=\"rules-heading\"]",
+        "br2026": "[data-visual-audit=\"rules-heading\"]",
+        "cdb2026": "[data-visual-audit=\"rules-heading\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16.8px",
+          "fontWeight": "700",
+          "lineHeight": "25.2px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "2.52px 0px 6.72px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "25.1875px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16.8px",
+          "fontWeight": "700",
+          "lineHeight": "25.2px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "2.52px 0px 6.72px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "25.1875px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16.8px",
+          "fontWeight": "700",
+          "lineHeight": "25.2px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "2.52px 0px 6.72px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "25.1875px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "form-heading",
+      "label": "Heading do formulário (Nova entrada)",
+      "selectors": {
+        "copa2026": "h2[data-i18n=\"entryTitle\"]",
+        "br2026": "h2[data-i18n=\"entryTitle\"]",
+        "cdb2026": "h2[data-i18n=\"entryTitle\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "30px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "30px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "20px",
+          "fontWeight": "700",
+          "lineHeight": "30px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "3px 0px 8px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "30px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "input-text",
+      "label": "Input de texto",
+      "selectors": {
+        "copa2026": "#entryName",
+        "br2026": "#entryName",
+        "cdb2026": "#entryName"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "select",
+      "label": "Select",
+      "selectors": {
+        "copa2026": "#paymentMethod",
+        "br2026": "#paymentMethod",
+        "cdb2026": "#paymentMethod"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "10px 12px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "44.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "form-grid",
+      "label": "Form grid (.form-grid)",
+      "selectors": {
+        "copa2026": "[data-visual-audit=\"form-grid\"]",
+        "br2026": "[data-visual-audit=\"form-grid\"]",
+        "cdb2026": "[data-visual-audit=\"form-grid\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "226.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "527px 527px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "147px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "527px 527px"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "147px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "527px 527px"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "`.form-grid` CSS itself is byte-identical in all three apps (display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px — verified by diffing the three stylesheets directly; gridTemplateColumns resolves to the identical `527px 527px` in all three). The height gap is a field-COUNT difference, not a token: Copa's entry form has 5 fields (includes a static disabled 'Valor' field showing the fixed US$5 entry price) = 3 grid rows; BR2026/CDB2026 have 4 fields (no 'Valor' field) = 2 grid rows. Verified by reading each app's index.html entry-form markup directly. [docRef: bolao/copa2026/index.html vs bolao/br2026/index.html vs bolao/cdb2026/index.html (entry form field lists, verbatim); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-primary",
+      "label": "Botão primário (texto sintético)",
+      "selectors": {
+        "copa2026": "[data-visual-audit=\"button-primary\"]",
+        "br2026": "[data-visual-audit=\"button-primary\"]",
+        "cdb2026": "[data-visual-audit=\"button-primary\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "14px 28px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "52px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "14px 28px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "52px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "14px 28px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(47, 229, 110)",
+          "color": "rgb(3, 19, 11)",
+          "height": "52px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-small",
+      "label": "Botão small (texto sintético)",
+      "selectors": {
+        "copa2026": "[data-visual-audit=\"button-small\"]",
+        "br2026": "[data-visual-audit=\"button-small\"]",
+        "cdb2026": "[data-visual-audit=\"button-small\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "`.small-btn`/`button` base CSS is byte-identical in all three apps. `.admin-toolbar` uses `display:flex; flex-wrap:wrap` with default `align-items:stretch`, so every button on the SAME wrapped row stretches to match the tallest sibling in that row. Copa's 13-button toolbar wraps the measured forceSync button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts it on the SAME row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via Playwright probe reading each button's boundingClientRect top/height. Same root cause as the admin-toolbar:height entry above, cascading to individual buttons — a stale exact value here (if toolbar composition changes) correctly re-flags for review. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-danger",
+      "label": "Botão destrutivo (texto sintético)",
+      "selectors": {
+        "copa2026": "[data-visual-audit=\"button-danger\"]",
+        "br2026": "[data-visual-audit=\"button-danger\"]",
+        "cdb2026": "[data-visual-audit=\"button-danger\"]"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(61, 21, 32)",
+          "color": "rgb(255, 219, 225)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(61, 21, 32)",
+          "color": "rgb(255, 219, 225)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "12px",
+          "fontWeight": "900",
+          "lineHeight": "18px",
+          "letterSpacing": "normal",
+          "padding": "7px 11px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "9px",
+          "backgroundColor": "rgb(61, 21, 32)",
+          "color": "rgb(255, 219, 225)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "Same root cause as button-small:height above: `.admin-toolbar`'s default `align-items:stretch` stretches every button on a wrapped flex row to match its tallest sibling. Copa's 13-button toolbar wraps the measured clearData button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts clearData on the same row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via the same Playwright probe technique as button-small. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar/button-small entries above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "button-secondary",
+      "label": "Botão secundário (Sair)",
+      "selectors": {
+        "copa2026": "#adminLogoutBtn",
+        "br2026": "#adminLogoutBtn",
+        "cdb2026": "#adminLogoutBtn"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "900",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "11px 18px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "900",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "11px 18px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "900",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "11px 18px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(16, 37, 45)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "ranking-row",
+      "label": "Linha de ranking (.rank-row)",
+      "selectors": {
+        "copa2026": ".rank-row",
+        "br2026": ".rank-row",
+        "cdb2026": ".rank-row"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "12px",
+          "margin": "0px 0px 8px",
+          "gap": "10px",
+          "borderRadius": "14px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "65px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "12px",
+          "margin": "0px 0px 8px",
+          "gap": "10px",
+          "borderRadius": "14px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "76.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "12px",
+          "margin": "0px 0px 8px",
+          "gap": "10px",
+          "borderRadius": "14px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "76.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "`.rank-row` CSS itself is byte-identical (`display:grid; grid-template-columns:48px 1fr auto auto; gap:10px` in all three -- verified by diffing the stylesheets directly). The height gap is a real, intentional per-app business rule, not a token: BR2026/CDB2026 gate the 'Ver palpites' button on `isPastCutoff()`/`isPastEntryCutoff()` (privacy protection -- picks stay hidden from other participants until the reveal cutoff, so no one can copy another entrant's picks before submissions close) and this harness's synthetic fixture doesn't simulate a past-cutoff state for either. Copa is fully concluded/archived (cutoff long past for the real tournament), so its ranking row always renders the 4th column. Same class of exclusion as main/card-base height above -- state-driven, not CSS-driven. [docRef: bolao/br2026/js/app.js isPastCutoff() gating comment (verbatim); bolao/cdb2026/js/app.js isPastEntryCutoff() (same pattern); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "JUSTIFIED",
+          "reason": "Same root cause as ranking-row:height directly above: the grid-template-columns RULE (`48px 1fr auto auto`) is identical CSS in all three apps, but the 4th `auto` track resolves to the 'Ver palpites' button's real width in Copa (cutoff always past, button always rendered) and collapses to `0px` in BR2026/CDB2026 in this harness run (their own picks-reveal cutoff gate -- see ranking-row:height entry -- isn't simulated, so the button doesn't render at all, and an empty `auto` track has zero width). Content-driven column sizing, not a token divergence -- will resolve identically to Copa's the moment either app's synthetic run simulates a past-cutoff state. [docRef: ALLOWLIST.json ranking-row:height entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        }
+      ]
+    },
+    {
+      "id": "game-card",
+      "label": "Card de jogo",
+      "selectors": {
+        "copa2026": ".game-card",
+        "br2026": ".game-card",
+        "cdb2026": ".confronto-card"
+      },
+      "note": "CDB2026 uses .confronto-card (ida+volta layout) instead of .game-card by design — CONSISTENCY_MATRIX.md item 72, INTENTIONALLY_DIFFERENT (tournament format, not a shared component).",
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "14px",
+          "margin": "0px 0px 10px",
+          "gap": "normal",
+          "borderRadius": "16px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "152px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "14px",
+          "margin": "0px 0px 10px",
+          "gap": "4px",
+          "borderRadius": "16px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "94px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "14px",
+          "margin": "0px 0px 10px",
+          "gap": "normal",
+          "borderRadius": "16px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "241px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "JUSTIFIED",
+          "reason": "BR2026's `.game-card` is its own internal `display:flex; flex-direction:column; gap:4px` layout, spacing 2 real stacked children — already flagged in bolao/br2026/css/styles.css's own comment as a structural difference, out of item 4's authorized alignment scope. Copa's `.game-card` (block layout, 3 children) and CDB2026's `.confronto-card` (block layout, 2 children, a deliberately different ida+volta component per CONSISTENCY_MATRIX item 72) are not flex containers, so `gap` computes to `normal` for both. Aligning this would mean restructuring BR2026's internal game-card layout, explicitly out of this task's authorized scope. [docRef: bolao/br2026/css/styles.css .game-card comment (verbatim); docs/bolao/CONSISTENCY_MATRIX.md item 72; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "Padding/border-radius/margin-bottom are already token-aligned across all three (item 4, prior commit). The remaining height gap is structure/content-driven, not a token: Copa's `.game-card` has 3 stacked children; BR2026's has 2 with its own internal gap (see game-card:gap above); CDB2026's `.confronto-card` is a deliberately different ida+volta component (CONSISTENCY_MATRIX item 72, INTENTIONALLY_DIFFERENT) — not the same structural component as Copa/BR2026's `.game-card` at all. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT); ALLOWLIST.json main/card-base entries above (same exclusion class); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "status-badge",
+      "label": "Badge de status de jogo (estado 'encerrado')",
+      "selectors": {
+        "copa2026": ".status-chip.done",
+        "br2026": ".game-status.post",
+        "cdb2026": ".game-status.post"
+      },
+      "note": "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name.",
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "4px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "26.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "4px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "26.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "JUSTIFIED",
+          "reason": "`gap` only has a visible effect with 2+ flex children to space apart. Confirmed by reading each app's renderer: all three produce a single `<span>` with ONLY a text node inside (childElementCount:0, verified live via Playwright probe). Copa's `.status-chip` doesn't set display/gap at all (plain inline text pill); BR2026/CDB2026's `.game-status` sets `display:inline-flex; gap:4px` (kept for potential future icon use, CONSISTENCY_MATRIX item 67). With no second child to space, `gap:4px` is currently inert — zero rendered visual effect. All other properties of this exact badge state are already EQUAL across all three apps. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 67; bolao/{br2026,cdb2026}/js/app.js badge template (verbatim, single text node); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "Copa's `.status-chip` has no `display` declared (default inline span) so `height` never resolves past the keyword 'auto'; BR2026/CDB2026's `.game-status` explicitly sets `display:inline-flex`, which DOES resolve a concrete used height. Same root cause, same CONSISTENCY_MATRIX item 72 structural difference, as the minHeight entry directly above -- newly surfaced after the copa2026 fixture storeKey fix let Copa's games section render its real archived match data through this harness for the first time this round. Zero visual difference (both render the badge at its natural content-driven size; 'auto' vs '26.5px' is the same rendered outcome via two different CSS mechanisms). [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure); ALLOWLIST.json status-badge:minHeight entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "JUSTIFIED",
+          "reason": "getComputedStyle artifact of each app's own (already-intentionally-different, CONSISTENCY_MATRIX item 72) DOM structure around the badge, not a token: `min-height:auto` resolves to the unresolved keyword 'auto' when the element is a flex ITEM of its immediate parent under certain browser-specific conditions, but resolves to a concrete used value ('0px') otherwise. Re-measured after fixing the copa2026 fixture storeKey (PR120-final review item 2/3 -- see APPS.copa2026.storeKey comment in audit_visual_consistency.mjs): Copa's `.status-chip` is a flex item of `.game-top` (display:flex) yet resolves '0px', not 'auto' as an earlier pass of this entry assumed -- corrected here to the actual measured value rather than left stale. Zero effect on the badge's actual rendered size either way -- padding/font-size/border-radius (all EQUAL) fully determine it. [docRef: docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure, root cause here too); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "paid-badge",
+      "label": "Badge de pagamento (.paid-badge)",
+      "selectors": {
+        "copa2026": ".paid-badge",
+        "br2026": ".paid-badge",
+        "cdb2026": ".paid-badge"
+      },
+      "note": null,
+      "values": {
+        "copa2026": null,
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "11px",
+          "fontWeight": "900",
+          "lineHeight": "16.5px",
+          "letterSpacing": "normal",
+          "padding": "4px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "999px",
+          "backgroundColor": "rgba(47, 229, 110, 0.15)",
+          "color": "rgb(47, 229, 110)",
+          "height": "auto",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "admin-toolbar",
+      "label": "Admin toolbar (.admin-toolbar)",
+      "selectors": {
+        "copa2026": ".admin-toolbar",
+        "br2026": ".admin-toolbar",
+        "cdb2026": ".admin-toolbar"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 14px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "88.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 14px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px 0px 14px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "46.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "Copa's admin toolbar has 12 buttons (CSV/JSON/HTML export variants, API-Football, ESPN sync, result emails, force sync, clear data); BR2026/CDB2026 have 4 (export CSV/JSON, force sync, clear data) — a real, intentional difference in which admin tools exist per app, not a shared design token. `.admin-toolbar` CSS itself (display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px) is identical across all three. PR120-final review item 3 explicitly instructs: 'não compare... altura de toolbar com quantidade diferente de botões' — item 6 repeats this. If Copa's tool count ever drops enough to fit one row (or BR2026/CDB2026's grows past one row), this exact value goes stale and re-flags for review, which is correct. [docRef: PR120-final review item 3 and item 6 (verbatim task text); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "admin-card-row",
+      "label": "Card/linha de entrada no admin",
+      "selectors": {
+        "copa2026": ".admin-entry",
+        "br2026": ".admin-row",
+        "cdb2026": ".admin-row"
+      },
+      "note": "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight.",
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 10px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "149.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "lineHeight": "21px",
+          "letterSpacing": "normal",
+          "padding": "8px 0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "87.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "14px",
+          "fontWeight": "400",
+          "lineHeight": "21px",
+          "letterSpacing": "normal",
+          "padding": "8px 0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "128px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "JUSTIFIED",
+          "reason": "Same formalized `admin-entry-full` vs `admin-entry-dense` variant as admin-card-row:height above (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'). `admin-entry-full` reuses Copa's `.card` base font-size (15px, same as every other `.card` in Copa); `admin-entry-dense` is a plain list row with the base body font-size (14px). Newly surfaced after the copa2026 fixture storeKey fix let Copa's admin-card-row render real comparable content for the first time this round -- not a new divergence, the same pre-existing documented one, just previously masked by the harness bug (Copa's admin-card-row was N/A, not compared, before the fix). [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "JUSTIFIED",
+          "reason": "Direct consequence of the fontSize divergence in the entry immediately above (1.5x line-height ratio applied to each variant's own base font-size) -- same `admin-entry-full` vs `admin-entry-dense` variant, same docRef. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; ALLOWLIST.json admin-card-row:fontSize entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "JUSTIFIED",
+          "reason": "`admin-entry-full` is a padded `.card` (18px all sides, same as every other `.card` in the platform); `admin-entry-dense` is a plain list row with vertical-only padding (8px top/bottom, 0 horizontal -- it isn't a boxed card). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "margin",
+          "status": "JUSTIFIED",
+          "reason": "`admin-entry-full` cards stack with a bottom margin (10px, same as other `.card` instances); `admin-entry-dense` rows are spaced by the dense-list container's own `gap` instead of per-row margin (see admin-card-row:gap below). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "gap",
+          "status": "JUSTIFIED",
+          "reason": "`admin-entry-full` (a `.card`) isn't a flex/grid container itself, so `gap` computes to `normal`; `admin-entry-dense`'s dense-list row IS a flex row (spacing icon/name/actions inline), hence a real 8px gap. Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "borderRadius",
+          "status": "JUSTIFIED",
+          "reason": "`admin-entry-full` is a rounded `.card` (18px, same token as every other `.card`); `admin-entry-dense` is an unrounded list row (0px -- it's a row in a list, not a boxed card). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "backgroundColor",
+          "status": "JUSTIFIED",
+          "reason": "`admin-entry-full` has its own `.card` background token (same as every other `.card`); `admin-entry-dense` rows are transparent, relying on the dense-list container's own background instead of a per-row fill. Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "JUSTIFIED",
+          "reason": "Two FORMALIZED design-system variants (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'): Copa renders each admin entry as `admin-entry-full` (a complete `.card.admin-entry`, multi-row spaced layout); BR2026/CDB2026 render `admin-entry-dense` (a single-line `.admin-row` list) — both are documented, permitted variants of the same component, not a token drift on one shared component. Same synthetic fixture content (2 fictional entries, same field names) is used for all three; only the variant differs, by design, per the design system doc's own stated criteria for when each is appropriate. [docRef: docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "rules-table-cell",
+      "label": "Célula de tabela de regras (.rules-table td)",
+      "selectors": {
+        "copa2026": ".rules-table td",
+        "br2026": ".rules-table td",
+        "cdb2026": ".rules-table td"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "7px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "37px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "7px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "37px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "7px 10px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "37px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "whatsapp-button",
+      "label": "Botão WhatsApp (.whatsapp-btn)",
+      "selectors": {
+        "copa2026": ".whatsapp-btn",
+        "br2026": ".whatsapp-btn",
+        "cdb2026": ".whatsapp-btn"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "toast",
+      "label": "Toast (notificação)",
+      "selectors": {
+        "copa2026": ".bolao-toast.info",
+        "br2026": ".bolao-toast.info",
+        "cdb2026": ".bolao-toast.info"
+      },
+      "note": null,
+      "values": {
+        "copa2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "br2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        }
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontSize",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "fontWeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "lineHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "letterSpacing",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "padding",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "margin",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gap",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "borderRadius",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "backgroundColor",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "color",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "height",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "minHeight",
+          "status": "EQUAL",
+          "reason": null
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "EQUAL",
+          "reason": null
+        }
+      ]
+    },
+    {
+      "id": "modal",
+      "label": "Modal / diálogo",
+      "selectors": {
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
+      },
+      "note": "NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle().",
+      "values": {
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
+      },
+      "properties": [
+        {
+          "property": "fontFamily",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "fontSize",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "fontWeight",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "lineHeight",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "letterSpacing",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "padding",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "margin",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "gap",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "borderRadius",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "backgroundColor",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "color",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "height",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "minHeight",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        },
+        {
+          "property": "gridTemplateColumns",
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
+        }
+      ]
+    }
+  ]
+}

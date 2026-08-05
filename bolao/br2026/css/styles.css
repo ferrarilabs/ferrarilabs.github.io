@@ -3,159 +3,23 @@
    Dark/green theme — same visual language as Copa bolão
    ============================================================ */
 
-*, *::before, *::after { box-sizing: border-box; }
-
-.skip-link {
-  position: absolute; top: -48px; left: 8px;
-  background: var(--green); color: #000;
-  font-weight: 700; padding: 8px 14px;
-  border-radius: 4px; z-index: 9999;
-  text-decoration: none; font-size: 14px;
-  transition: top .15s;
-}
-.skip-link:focus { top: 8px; }
-
+/* Reset, tokens (except --yellow, BR2026-only), body base, buttons,
+   topbar, brand, whatsapp-btn, bolao-switcher, lang-links, nav, main,
+   card, h1-h3 base rules moved to bolao/shared/css/{tokens,reset,shell,
+   navigation,forms}.css (phase 3 of the platform visual-framework
+   migration — same shared framework Copa migrated to in phase 2). This
+   app's own styles.css now only carries BR2026-specific rules/overrides.
+   Golden master: bolao/copa2026/ (see repo CLAUDE.md). */
 :root {
-  --bg:        #07141b;
-  --bg2:       #0d2028;
-  --bg3:       #10252d;
-  --border:    #1f3b45;
-  --border2:   #29444d;
-  --green:     #2fe56e;
-  --green-dk:  #03130b;
-  --yellow:    #fde047;
-  --gold:      #f59e0b;
-  --text:      #eef7f1;
-  --muted:     #9cb2b9;
-  --red:       #ff6b6b;
-  --danger-bg: #3d1520;
-  --danger-tx: #ffdbe1;
-  --danger-br: #8e2d42;
-}
-
-/* overflow-x: hidden sozinho ainda deixa a Safari do iOS fazer "rubber-band" horizontal
-   (bounce) quando um ancestral tem position: sticky + backdrop-filter (o .topbar) -- overflow-x:
-   clip é mais rígido (não cria uma região de scroll programável) e resolve isso quando hidden
-   sozinho não resolve. Achado 2026-07-16 (Eduardo: "the issue with the side scroll is back") --
-   hidden mantido como fallback para navegadores sem suporte a clip. */
-html, body { overflow-x: hidden; overflow-x: clip; }
-body {
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-button, input, select, textarea { font: inherit; }
-
-/* ── Buttons ── */
-button {
-  border: 0; border-radius: 12px; padding: 11px 18px;
-  background: var(--green); color: var(--green-dk);
-  font-weight: 900; cursor: pointer; transition: opacity .15s;
-}
-button:hover { opacity: .88; }
-button:disabled { opacity: .45; cursor: not-allowed; }
-button.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
-button.danger    { background: var(--danger-bg); color: var(--danger-tx); border: 1px solid var(--danger-br); }
-button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: 9px; white-space: nowrap; }
-
-/* ── Topbar ── */
-.topbar {
-  position: sticky; top: 0; z-index: 20;
-  background: rgba(7,20,27,.94);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 18px; flex-wrap: wrap;
-}
-.brand {
-  display: flex; gap: 8px; align-items: center;
-  margin-right: auto; font-weight: 900; font-size: 16px; white-space: nowrap;
-  min-width: 0; overflow: hidden; text-overflow: ellipsis;
-}
-.brand span { color: var(--muted); font-size: 12px; font-weight: 400; }
-
-/* ── WhatsApp support button ── */
-.whatsapp-btn {
-  display: inline-flex; gap: 6px; align-items: center;
-  background: #25D366; color: #000; text-decoration: none;
-  border-radius: 999px; padding: 8px 13px;
-  font-weight: 900; font-size: 13px; white-space: nowrap;
-}
-.whatsapp-btn img { width: 18px; height: 18px; }
-
-/* ── Bolão switcher ── */
-.bolao-switcher select {
-  appearance: none;
-  -webkit-appearance: none;
-  background: var(--bg3);
-  color: var(--text);
-  border: 1px solid var(--border2);
-  border-radius: 999px;
-  padding: 7px 14px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  width: auto;
-}
-.bolao-switcher select:focus { border-color: var(--green); }
-
-.lang-links { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
-.lang-links button {
-  background: var(--bg3); color: var(--text);
-  border: 1px solid var(--border2); border-radius: 999px;
-  padding: 7px 12px; font-size: 12px; font-weight: 700;
-}
-.lang-links button.active { background: var(--green); color: var(--green-dk); border-color: var(--green); }
-
-/* Fase 2.2-correção item 3: was repeat(9, ...) but only 7 nav buttons are ever visible
-   (Palpites/Ranking/Tabela/Jogos/Probabilidades/Regras/Admin -- Participantes/Pagamento are
-   permanently style="display:none" in index.html). Base rule always overridden by the
-   max-width:900px or min-width:901px media queries below (together cover every width); kept
-   accurate here too, not left stale. */
-.nav { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; width: 100%; }
-.nav button {
-  background: var(--bg3); color: var(--text);
-  padding: 8px 6px; font-size: 13px; font-weight: 700;
-  border: 1px solid transparent;
-  text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  /* Alvo de toque mínimo (WCAG) -- mesmo achado/correção da Copa (2026-07-14). */
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.nav button.active { background: var(--green); color: var(--green-dk); }
-
-/* ── Main layout ── */
-/* max-width igual à Copa (bolao/css/styles.css) — Copa é a referência visual canônica da
-   plataforma, ver DESIGN_SYSTEM.md e CLAUDE.md. Era 860px, divergente. */
-main {
-  max-width: 1140px; margin: 0 auto;
-  /* Bottom padding era 80px (achado 2026-07-16, Eduardo: "muito espaço vazio no final da
-     página") -- sobrava um vão enorme abaixo do botão sticky em toda aba, não só na de
-     palpites. Copa (bolao/css/styles.css) tem a mesma estrutura de botão sticky com padding
-     simétrico (20px), sem folga extra -- alinhado aqui.
-     Fase 2.2-correção item 8 (2026-08, autorizado explicitamente por Eduardo): valor numérico
-     alinhado a `20px 18px`, igual à Copa (referência visual canônica) -- era `16px 14px`. Só
-     visível acima de 900px (o breakpoint @media max-width:900px abaixo já convergia os três
-     apps para `12px 10px`, então mobile/tablet não muda). Ver
-     docs/bolao/evidence/visual-comparison/ para captura antes/depois em 320/768/1440px. */
-  padding: 20px 18px;
-}
-
-/* ── Card ── */
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 18px;
-  padding: 18px;
-  margin-bottom: 14px;
-  box-shadow: 0 8px 32px rgba(0,0,0,.22);
+  /* BR2026-only token, not part of Copa's canonical palette (used by
+     .live-standings-disclaimer) — kept local rather than added to
+     shared/css/tokens.css since Copa has no equivalent use for it. */
+  --yellow: #fde047;
+  /* Copa's canonical .nav has 6 always-visible tabs; BR2026 has 7
+     (adds "Tabela"). Overrides shared/css/tokens.css's default of 6 via
+     the --nav-cols-desktop custom property instead of forking the
+     shared .nav rule — see bolao/shared/css/responsive.css. */
+  --nav-cols-desktop: 7;
 }
 
 /* ── Hero ── */
@@ -192,56 +56,15 @@ main {
 }
 .count-grid span { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 
-/* ── Pages ── */
-.page { display: none; }
-.page.active { display: block; }
-
-/* Normalização global de heading — mesma regra do Copa (bolao/css/styles.css), evita que um
-   <h3> fora de .section-head (ex.: dentro de um .card) caia no tamanho/margem default do
-   navegador — ver DESIGN_SYSTEM.md "Header". */
-h1, h2, h3 { margin: .15em 0 .4em; }
-h2 { font-size: 1.25rem; }
-h3 { font-size: 1.05rem; }
-
-.section-head { margin-bottom: 14px; }
-/* Cabeçalho da seção Ranking + caixa do Pot -- mesma estrutura/classes da Copa
-   (bolao/css/styles.css) -- achado em auditoria (2026-07-15, Eduardo: "o pot na copa nao esta
-   igual nos outros dois"). Antes o Pot só aparecia como um dos 3 números da barra de estatísticas
-   de Participantes (sem equivalente na Copa); agora aparece no mesmo lugar que a Copa usa. */
-.section-head-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+/* .page / h1-h3 / .section-head / .section-head-row base rules moved to
+   bolao/shared/css/shell.css (phase 3 migration). .pot-box kept below —
+   no equivalent in the shared canonical component set. */
 .pot-box { text-align: right; flex-shrink: 0; }
 .pot-box span { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; }
 .pot-box strong { display: block; font-size: 26px; font-weight: 800; color: var(--green); line-height: 1.1; }
 
-/* ── Form ── */
-/* Fase 2.2-correção item 8 (2026-08, autorizado explicitamente por Eduardo): grid alinhado à
-   Copa (bolao/copa2026/css/styles.css) -- era `repeat(auto-fill, minmax(220px, 1fr))` gap 14px,
-   agora `repeat(2, minmax(0, 1fr))` gap 12px. Formulário de entrada tem 4 campos (par, 2 linhas
-   de 2) -- cabe bem num grid fixo de 2 colunas, sem campo cramped. Colapsa para 1 coluna em
-   @media (max-width: 900px) abaixo, igual à Copa. */
-.form-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-  /* margin-bottom removed (PR120-final review item 4) — Copa's canonical .form-grid has no
-     margin at all; this app's own explicit 16px was the last residual .form-grid divergence
-     (padding/gap/column-count already aligned in Fase 2.2-correção item 8). */
-}
-label { display: flex; flex-direction: column; gap: 5px; }
-label span { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-input, select {
-  background: var(--bg3); border: 1px solid var(--border2);
-  color: var(--text); border-radius: 9px; padding: 10px 12px;
-  outline: none; transition: border-color .15s; width: 100%;
-  appearance: none; -webkit-appearance: none;
-}
-input:focus, select:focus { border-color: var(--green); }
-input:disabled, select:disabled { opacity: .5; cursor: not-allowed; }
-/* Placar é sempre digitado (0-20), o spinner nativo do navegador não ajuda e ocupa espaço
-   à toa em telas estreitas. */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
+/* .form-grid / label / input / select base rules moved to
+   bolao/shared/css/forms.css (phase 3 migration). */
 
 /* ── Pick groups ── */
 .pick-group { margin-bottom: 20px; }
@@ -261,15 +84,18 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .pick-select    { min-width: 0; }
 
 /* ── Sticky submit ──
-   Was `position: sticky` -- confirmed via an automated cross-app audit (2026-08, propagating
-   the CDB2026 Fase 2.2 fix) to visually cover form content (including the "Nova entrada" h2
-   itself) at several viewport/scroll combinations, same defect class as CDB2026 and Copa2026.
-   Fixed the same way: normal document flow, no floating position -- structurally impossible to
-   overlap a sibling. */
-.sticky-submit {
-  display: flex; justify-content: center; padding: 16px 0 4px;
-}
-.sticky-submit button { min-width: 200px; padding: 14px 28px; font-size: 16px; box-shadow: 0 4px 24px rgba(47,229,110,.35); }
+   Phase 7 fix: base .sticky-submit/.sticky-submit button rules already
+   live in bolao/shared/css/forms.css (phase 3 migration), which sets
+   justify-content: flex-end (Copa's canonical value). This app's own
+   `justify-content: center` override — kept through phases 3-6 as a
+   flagged-but-unresolved divergence — is removed here: submit-button
+   alignment is not a tournament-specific structural difference (there is
+   no functional reason the SAME "Salvar palpites" button in an
+   equivalent form context should sit in a different place per app), so
+   it doesn't qualify for the "preserve tournament differences" exception
+   — reclassified BUG VISUAL in docs/bolao/CONSISTENCY_MATRIX.md's phase
+   7 entry and fixed by simply relying on the shared value instead of
+   overriding it. */
 
 /* ── Live match card ── */
 /* Estrutura e tokens copiados da Copa (bolao/css/styles.css .hero-live-card/.hero-live-top/
@@ -500,24 +326,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 
 /* ── Ranking — mesma estrutura densa de 1 linha da Copa (.rank-row), já validada em várias
    rodadas de feedback mobile real — ver DESIGN_SYSTEM.md "Ranking — estrutura do card" e
-   CONSISTENCY_MATRIX.md item 68. Substitui o antigo .rank-card empilhado. */
-.rank-row {
-  display: grid;
-  grid-template-columns: 48px 1fr auto auto;
-  gap: 10px;
-  align-items: center;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 12px;
-  margin-bottom: 8px;
-}
+   CONSISTENCY_MATRIX.md item 68. Substitui o antigo .rank-card empilhado.
+   Base .rank-row grid/.points rules moved to bolao/shared/css/components.css
+   (phase 3 migration) — kept below: BR2026-only movement-arrow stacking
+   inside .rank-pos, which has no Copa equivalent. */
 .rank-row .rank-pos {
-  font-size: 22px; text-align: center;
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
 .rank-row .rank-pos .movement { font-size: 11px; }
-.rank-row .points { font-size: 26px; color: var(--green); font-weight: 900; text-align: right; }
 /* Mesmas classes/valores da Copa (bolao/css/styles.css) -- achado em auditoria (2026-07-14,
    Eduardo: "a visualizacao de ver palpites... esta inconsistente com a da copa"). */
 .picks-detail { overflow-x: auto; margin-bottom: 10px; }
@@ -573,10 +389,21 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 14px;
 }
 .admin-row:last-child { border-bottom: 0; }
+/* Phase 5 admin visual standardization: label inside .admin-row (used by admin results
+   entry — see renderAdminResultsPanel() g4rows/sa6rows/z4rows) was a bare <label for="...">
+   with no override, so it inherited the shared canonical `label { display:flex;
+   flex-direction:column; }` from bolao/shared/css/forms.css (built for the palpites form,
+   where label text stacks above its input) -- inside a dense one-line admin row this made
+   the label stack vertically above its <select> instead of sitting inline beside it, a real
+   visual regression this migration would otherwise have silently introduced (shared forms.css
+   didn't exist as a cross-app dependency before phase 3). CDB2026 already carries the correct
+   fix for its own `.admin-row label` (bolao/cdb2026/css/styles.css) — same override applied
+   here for consistency, not previously copied over. */
+.admin-row label { font-size: 13px; color: var(--muted); min-width: 120px; flex-direction: row; text-transform: none; letter-spacing: 0; }
 .admin-results-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
 @media (max-width: 540px) { .admin-results-grid { grid-template-columns: 1fr; } }
 .admin-results-grid h4 { margin: 0 0 8px; font-size: 13px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-.admin-toolbar { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+/* Base .admin-toolbar rule moved to bolao/shared/css/admin.css (phase 3 migration). */
 
 #adminArea .card { margin-bottom: 14px; }
 #adminArea h3 { margin: 0 0 12px; font-size: 15px; }
@@ -592,9 +419,9 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .audit-row:last-child { border-bottom: none; }
 .audit-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline; }
 
-/* ── Misc ── */
-.hidden   { display: none !important; }
-.muted    { color: var(--muted); }
+/* ── Misc ──
+   .hidden moved to bolao/shared/css/reset.css; .muted moved to
+   bolao/shared/css/components.css (phase 3 migration). */
 .small-text { font-size: 12px; }
 .button-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 
@@ -676,46 +503,32 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .game-date-header:first-child { margin-top: 0; }
 /* Mesmo tratamento de card da Copa (.game-card em bolao/css/styles.css) — antes era uma linha
    de lista plana (só border-bottom), sem nenhum card visual, divergente da Copa e do CDB2026
-   (que já usa a classe .card compartilhada) — ver DESIGN_SYSTEM.md "Cards e seções". */
-.game-card {
-  display: flex; flex-direction: column; gap: 4px;
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  /* padding/margin-bottom aligned to Copa's canonical .game-card (PR120-final review item 4) —
-     border-radius already matched. gap:4px (BR2026's own internal flex layout, Copa's .game-card
-     isn't a flex container at all) is a structural difference, not in this item's authorized
-     scope — see ALLOWLIST.json. */
-  padding: 14px;
-  margin-bottom: 10px;
-}
-/* Grid de 3 colunas 1fr/auto/1fr — mesmo padrão de alinhamento de .game-teams na Copa
-   (bolao/css/styles.css). Era flex com justify-content:center, que empacota pelo tamanho do
-   conteúdo — o placar/hora central não ficava na mesma posição horizontal entre linhas com
-   nomes de time de tamanhos diferentes. Grid força as duas colunas de time a terem a mesma
-   largura, então o centro sempre alinha. */
-.game-matchup {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: center;
-  gap: 8px;
-}
-.match-team { display: flex; align-items: center; gap: 6px; min-width: 0; }
-.match-team.home { justify-content: flex-end; }
-.match-team.away { justify-content: flex-start; }
-.match-team-name {
-  font-size: 13px; font-weight: 700;
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  min-width: 0;
-}
+   (que já usa a classe .card compartilhada) — ver DESIGN_SYSTEM.md "Cards e seções".
+   Base background/border/border-radius/padding/margin-bottom come entirely from
+   bolao/shared/css/components.css's canonical .game-card (phase 3 migration,
+   game-card variant formalization). The local `display:flex; gap:4px` override that used
+   to live here was written for BR2026's PRE-Phase-7-FIX internal DOM (its own
+   .game-matchup/.match-team layout); since renderGamesSection() now emits the same
+   canonical .game-card__header/__metadata/__match/__extension block-level skeleton as
+   Copa (see Phase 7-FIX comment below), that override just re-introduced a flex gap Copa's
+   .game-card was never given, causing a real gap/height divergence — removed so BR2026's
+   game-card shell resolves identically to Copa's (audit_visual_consistency.mjs, 2026-08-05). */
+/* Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): renderGamesSection()
+   (bolao/br2026/js/app.js) now emits the canonical .game-card__match/__team/__team-name/
+   __logo/__center/__metadata/__header/__status skeleton — the SAME shared classes Copa's own
+   game card uses (bolao/shared/css/components.css), not BR2026's own .game-matchup/.match-team/
+   .match-team-name/.match-center/.game-meta (all now unused, removed below). This is the real
+   fix for what the earlier "Phase 3 note" (kept here in git history/PR context, not in this
+   comment anymore) got wrong: keeping BR2026's own class names because "the values below
+   mirror Copa's tokens 1:1" was FALSE for at least one property — .match-team-name was
+   font-size:13px/font-weight:700 vs Copa's actual 18px/900 (.game-team's real values,
+   bolao/shared/css/components.css) — a real, previously undetected typography divergence,
+   only findable once both apps render the SAME selector for the SAME concept, which per-app
+   computed-style comparison of two DIFFERENT selectors could never catch. .match-logo kept
+   (still referenced by <img class="match-logo"> for icon sizing, a leaf-level detail class, not
+   a structural one). .game-status kept (still its own class on the status badge, dual-classed
+   with .game-card__status in the new header slot — see the JS template). */
 .match-logo { width: 22px; height: 22px; object-fit: contain; flex-shrink: 0; border-radius: 2px; }
-.match-center { min-width: 60px; text-align: center; flex-shrink: 0; }
-.game-meta {
-  display: flex; gap: 6px; align-items: center;
-  font-size: 11px; color: var(--muted); flex-wrap: wrap; margin-top: 1px;
-  justify-content: center;
-}
-.game-meta-sep { opacity: .4; }
 .game-time { font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .game-score-live { font-size: 16px; font-weight: 900; color: var(--green); font-variant-numeric: tabular-nums; }
 .game-score-final { font-size: 15px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums; }
@@ -733,12 +546,12 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .game-status.postponed { background: rgba(245,158,11,.15); color: var(--gold); border: 1px solid rgba(245,158,11,.3); }
 @keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
 
-/* ── Probability bars (live match) ── */
-.prob-bars { display: flex; border-radius: 6px; overflow: hidden; height: 28px; margin-top: 10px; font-size: 11px; font-weight: 700; gap: 2px; }
-.prob-bar { display: flex; align-items: center; justify-content: center; min-width: 32px; padding: 0 4px; transition: width 0.7s ease; white-space: nowrap; overflow: hidden; border-radius: 4px; }
-.prob-bar.home { background: #16a34a; color: #fff; }
-.prob-bar.draw  { background: #475569; color: #fff; }
-.prob-bar.away  { background: #1d4ed8; color: #fff; }
+/* ── Probability bars (live match) ──
+   Phase 7: .prob-bars/.prob-bar/.home/.draw/.away base rules moved to
+   bolao/shared/css/components.css — this app's min-width:32px override
+   was promoted to the shared canonical value (was 6px, a real Copa-side
+   legibility bug, see the comment at shared/css/components.css's
+   .prob-bar rule), so this local copy is now a true duplicate, removed. */
 
 /* ── Probability table (MC section) ── */
 .prob-table { width: 100%; border-collapse: collapse; font-size: 13px; }
@@ -758,92 +571,18 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 /* ── Per-match probability hint in Jogos ── */
 .game-prob-hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
-/* Accessibility */
-button:focus-visible, input:focus-visible, select:focus-visible {
-  outline: 2px solid #2fe56e;
-  outline-offset: 3px;
-}
-/* showSection() gives the new section's heading tabindex="-1" + .focus() on every tab switch, so
-   screen readers land on it -- the browser's default focus ring showed as an ugly box around the
-   heading text (Eduardo, screenshot, 2026-07-16: "Remova essa caixa ao redor da projeção"). Never
-   reached by real keyboard Tab navigation, so hiding the ring loses nothing for sighted keyboard
-   users. Same fix in Copa/CDB2026 (identical showSection() pattern in all three). */
-h2:focus, h3:focus { outline: none; }
+/* Accessibility: focus-visible ring and h2/h3 focus-outline suppression
+   moved to bolao/shared/css/reset.css and shell.css (phase 3 migration). */
 
-/* ── Responsive ── */
-@media (min-width: 901px) {
-  .topbar {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) auto auto auto;
-    grid-template-rows: auto auto;
-    align-items: center;
-    gap: 8px 12px;
-  }
-  .brand          { grid-column: 1; grid-row: 1; margin-right: 0 !important; align-self: center; }
-  .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; }
-  .lang-links     { grid-column: 3; grid-row: 1; align-self: center; }
-  .bolao-switcher { grid-column: 4; grid-row: 1; align-self: center; }
-  /* Fase 2.2-correção item 3: was repeat(9, ...), 7 real visible buttons -- 2 empty desktop
-     columns before this fix. See the base .nav rule above for the full accounting. */
-  .nav            { grid-column: 1 / -1; grid-row: 2; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
-  .nav button     { font-size: 13px; padding: 8px 6px; }
-}
-
+/* ── Responsive ──
+   Shared topbar/brand/nav/rank-row/form-grid/toast responsive rules moved
+   to bolao/shared/css/responsive.css (phase 3 migration) — including the
+   desktop 7-column nav, now driven by --nav-cols-desktop:7 set above,
+   the same shared rule Copa's 6-column nav uses. BR2026-only responsive
+   rules kept below (no equivalent in the shared canonical component set). */
 @media (max-width: 900px) {
-  main { padding: 12px 10px; }
-  /* Fase 2.2-correção item 8: mesmo colapso que a Copa (bolao/copa2026/css/styles.css) --
-     grid fixo de 2 colunas em telas largas, 1 coluna abaixo de 900px, evitando campo cramped
-     em telas de celular/tablet estreitas. */
-  .form-grid { grid-template-columns: 1fr; }
   .pay-grid { grid-template-columns: 1fr; }
-  /* .brand and .whatsapp-btn both force nowrap on their own text, and
-     .bolao-switcher's <select> sizes to its selected option's text —
-     three non-shrinking items crammed into one row overflow any phone
-     width. Switcher gets its own full-width row instead of competing with
-     brand+WhatsApp for row 1's space (same fix as bolao/css/styles.css). */
-  .topbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    grid-template-rows: auto auto auto auto;
-    align-items: center;
-    padding: 10px 12px;
-    gap: 8px;
-  }
-  .brand          { grid-column: 1; grid-row: 1; margin-right: 0; align-self: center; }
-  .brand span     { display: none; }
-  .whatsapp-btn   { grid-column: 2; grid-row: 1; align-self: center; font-size: 12px; padding: 7px 10px; }
-  .bolao-switcher { grid-column: 1 / -1; grid-row: 2; }
-  .bolao-switcher select { width: 100%; }
-  .lang-links     { grid-column: 1 / -1; grid-row: 3; }
-  .nav            { grid-column: 1 / -1; grid-row: 4; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 5px; }
-  .nav button     { font-size: 11px; padding: 8px 4px; text-align: center; }
-  /* Fase 2.2-correção item 3: 7 visible buttons / 3 columns = 3+3+1 -- "Admin" was left alone
-     in the final row (1/3 width, left-aligned, two empty cells beside it). Confirmed visually
-     at 320px (Claude Browser) before this rule existed. Same accounting as Copa's identical
-     fix (bolao/copa2026/css/styles.css): `:nth-child` counts the two `display:none`
-     Participantes/Pagamento buttons that sit INSIDE `.nav` at DOM positions 3-4, shifting every
-     later button's DOM index 2 ahead of its rendered grid position -- so "first of row" in DOM
-     terms is `nth-child(3n)`, matching Admin at DOM position 9 (9 mod 3 = 0). */
-  .nav button:nth-child(3n):nth-last-child(1) { grid-column: 1 / -1; }
   .pick-row label { flex-direction: column; align-items: flex-start; }
-  /* Ranking compacta em 1 linha — mesmo tratamento da Copa (bolao/css/styles.css). Coluna de
-     pontos com largura fixa (40px) pra o botão nunca deslocar conforme o placar tem 1-3 dígitos. */
-  .rank-row {
-    grid-template-columns: 28px 1fr 40px auto;
-    padding: 10px 12px;
-    gap: 8px;
-    align-items: start;
-  }
-  .rank-row .rank-pos { font-size: 16px; }
-  .rank-row > div:nth-child(2) { font-size: 13px; line-height: 1.35; }
-  .rank-row .points { font-size: 17px; text-align: right; }
-  .rank-row button { justify-self: end; }
-  /* .rank-row é reaproveitado por renderParticipants() com só 3 itens (ícone, nome/detalhe,
-     badge Pago/Pendente) -- sem essa classe, o badge cai na 3ª coluna do template acima (40px,
-     fixa, pensada só pro placar de 1-3 dígitos do ranking) e o texto vaza pra fora da própria
-     caixa, principalmente "Pendente" (8 letras). Achado 2026-07-16 (Eduardo: "o pago esta fora
-     da caixa"), mesmo padrão da Copa (bolao/css/styles.css). */
-  .rank-row.participant-row { grid-template-columns: 28px 1fr auto; }
 }
 
 @media (max-width: 500px) {
@@ -856,42 +595,6 @@ h2:focus, h3:focus { outline: none; }
 
 @media (max-width: 660px) {
   .admin-results-grid.three-col { grid-template-columns: 1fr; }
-}
-
-/* Toast notifications — mesma implementação da Copa (bolao/css/styles.css) */
-.bolao-toasts {
-  position: fixed;
-  bottom: 20px;
-  right: 16px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  z-index: 10000;
-  pointer-events: none;
-  max-width: 320px;
-}
-.bolao-toast {
-  padding: 10px 16px;
-  border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 1.4;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.45);
-  pointer-events: auto;
-  animation: toast-in 0.2s ease;
-  transition: opacity 0.3s ease;
-  word-break: break-word;
-}
-.bolao-toast.success { background: #0f2a0f; color: #69c569; border-left: 3px solid #4caf50; }
-.bolao-toast.error   { background: #2a0f0f; color: #f08080; border-left: 3px solid #e05050; }
-.bolao-toast.warn    { background: #2a1f00; color: #ffcc66; border-left: 3px solid #ff9800; }
-.bolao-toast.info    { background: #0d1f33; color: #80c8f0; border-left: 3px solid #4a9fd4; }
-@keyframes toast-in {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@media (max-width: 480px) {
-  .bolao-toasts { right: 8px; left: 8px; max-width: none; }
 }
 
 .edit-mode-banner {
