@@ -67,7 +67,7 @@ await atest("regression (c): correction claiming a change with NO actual ticket 
   const draw = fixtureAsDraw(fx, 1);
   const sameTickets = fx.ticketVersions["1"];
   const r = await runPublishTickets({
-    drawId: fx.drawId, publicationVersion: 2, dryRun: true, outboxFile: "/tmp/pb-round2-noop.json",
+    drawId: fx.drawId, publicationVersion: 2, testMode: true, dryRun: true, outboxFile: "/tmp/pb-round2-noop.json",
     syntheticDraw: { ...draw, __tickets: sameTickets },
     correctionReason: "Descrição inventada sem diff real",
     previousTickets: sameTickets, // identical to "new" tickets -> no real diff
