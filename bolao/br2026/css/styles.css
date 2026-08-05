@@ -504,15 +504,15 @@
 /* Mesmo tratamento de card da Copa (.game-card em bolao/css/styles.css) — antes era uma linha
    de lista plana (só border-bottom), sem nenhum card visual, divergente da Copa e do CDB2026
    (que já usa a classe .card compartilhada) — ver DESIGN_SYSTEM.md "Cards e seções".
-   Base background/border/border-radius/padding/margin-bottom now come from
+   Base background/border/border-radius/padding/margin-bottom come entirely from
    bolao/shared/css/components.css's canonical .game-card (phase 3 migration,
-   game-card variant formalization) — kept below: BR2026's own internal
-   flex layout (gap:4px), which Copa's .game-card doesn't use since it isn't
-   a flex container at all — structural difference, not part of this
-   migration's scope (see ALLOWLIST.json). */
-.game-card {
-  display: flex; flex-direction: column; gap: 4px;
-}
+   game-card variant formalization). The local `display:flex; gap:4px` override that used
+   to live here was written for BR2026's PRE-Phase-7-FIX internal DOM (its own
+   .game-matchup/.match-team layout); since renderGamesSection() now emits the same
+   canonical .game-card__header/__metadata/__match/__extension block-level skeleton as
+   Copa (see Phase 7-FIX comment below), that override just re-introduced a flex gap Copa's
+   .game-card was never given, causing a real gap/height divergence — removed so BR2026's
+   game-card shell resolves identically to Copa's (audit_visual_consistency.mjs, 2026-08-05). */
 /* Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): renderGamesSection()
    (bolao/br2026/js/app.js) now emits the canonical .game-card__match/__team/__team-name/
    __logo/__center/__metadata/__header/__status skeleton — the SAME shared classes Copa's own
