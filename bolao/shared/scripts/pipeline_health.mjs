@@ -27,13 +27,32 @@
  * not a test) UNLESS an unexpected error occurs reading/parsing a file that exists — a MISSING
  * file (nothing has run yet) is reported as informational, not a failure.
  */
-import { readFileSync, existsSync } from "node:fs";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BOLAO_ROOT = join(HERE, "..", "..");
-const APPS = ["copa2026", "br2026", "cdb2026"];
+const KNOWN_APPS = ["copa2026", "br2026", "cdb2026"];
+// Section 8 review finding: a hardcoded list meant a brand-new pool (built by
+// bolao/shared/scripts/new_bolao.mjs) would silently never appear in this report. Auto-discover
+// any additional bolao/<app>/data/ directory (what new_bolao.mjs's scaffold + sync_espn.py
+// create) so a new pool shows up here with zero manual edit to this shared file. KNOWN_APPS is
+// kept as the base list (order-stable, matches existing output) rather than fully replaced by
+// discovery, so this can't silently drop one of the three original apps if a directory is
+// temporarily missing/renamed mid-migration.
+function discoverApps() {
+  const discovered = new Set(KNOWN_APPS);
+  let entries = [];
+  try { entries = readdirSync(join(BOLAO_ROOT), { withFileTypes: true }); } catch { return [...discovered]; }
+  for (const e of entries) {
+    if (!e.isDirectory()) continue;
+    if (e.name === "shared" || e.name === "scripts" || e.name === "loterias") continue;
+    if (existsSync(join(BOLAO_ROOT, e.name, "data"))) discovered.add(e.name);
+  }
+  return [...discovered];
+}
+const APPS = discoverApps();
 const STUCK_PROCESSING_THRESHOLD_MS = 5 * 60 * 1000;
 const AS_JSON = process.argv.includes("--json");
 
