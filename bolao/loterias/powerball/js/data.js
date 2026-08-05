@@ -175,7 +175,7 @@ window.POWERBALL_DRAWS = [
     gameType: "powerball",
     drawing: {
       name: "Powerball Jackpot",
-      jackpot: 800000000,
+      jackpot: 786000000,
       drawDateIso: "2026-08-05T22:59:00-04:00",
       drawDateLabel: "05/08/2026 22:59 ET"
     },
