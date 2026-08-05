@@ -110,4 +110,64 @@ export function validateCrossTemplateConsistency(payloads) {
   return { ok: errors.length === 0, errors };
 }
 
-export { isValidEmail };
+// ---------------------------------------------------------------------------
+// Production attachment/link gate (Eduardo, round 4). Applies to REAL
+// (non-test) publication sends only — the fixture used for admin test sends
+// deliberately uses example.invalid as a documented, self-evidently-fake
+// placeholder domain (see fixtures/powerball-email-test-fixture.json's
+// _comment), which this gate would otherwise correctly reject. Callers must
+// invoke this before a real send and treat any failure as a hard block —
+// never a silent skip.
+// ---------------------------------------------------------------------------
+const RESERVED_HOSTS = /(localhost|127\.0\.0\.1|0\.0\.0\.0|::1)$/i;
+const RESERVED_TLDS = /\.(invalid|example|test|local)$/i;
+
+function isRealReachableUrl(url) {
+  if (!url || typeof url !== "string") return false;
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    if (RESERVED_HOSTS.test(u.hostname)) return false;
+    if (RESERVED_TLDS.test(u.hostname)) return false;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Validates that everything a real publication email will reference is
+ * actually real: comprovante URL must be a live, non-placeholder URL; PDF/
+ * CSV/JSON must either be attached (attachments array of {filename, exists})
+ * or referenced by a real URL. `existsFn` defaults to Node's fs.existsSync
+ * for local paths but can be overridden for testing.
+ */
+export function validateAttachmentsAndLinks({ proofUrl, attachments = [] }, existsFn) {
+  const errors = [];
+  if (!proofUrl) {
+    errors.push("PROOF_URL_MISSING");
+  } else if (!isRealReachableUrl(proofUrl)) {
+    errors.push(`PROOF_URL_NOT_REAL: ${proofUrl} (must not be empty, localhost, or a reserved/placeholder domain like .invalid/.example/.test/.local)`);
+  }
+
+  const required = ["pdf", "csv", "json"];
+  required.forEach((kind) => {
+    const att = attachments.find((a) => a.kind === kind);
+    if (!att) {
+      errors.push(`ATTACHMENT_MISSING: ${kind} (must be attached directly or referenced by a real URL)`);
+      return;
+    }
+    if (att.url) {
+      if (!isRealReachableUrl(att.url)) errors.push(`ATTACHMENT_URL_NOT_REAL: ${kind} -> ${att.url}`);
+    } else if (att.filePath) {
+      const exists = existsFn ? existsFn(att.filePath) : false;
+      if (!exists) errors.push(`ATTACHMENT_FILE_NOT_FOUND: ${kind} -> ${att.filePath}`);
+    } else {
+      errors.push(`ATTACHMENT_UNRESOLVABLE: ${kind} (neither a URL nor a file path was provided)`);
+    }
+  });
+
+  return { ok: errors.length === 0, errors };
+}
+
+export { isValidEmail, isRealReachableUrl };
