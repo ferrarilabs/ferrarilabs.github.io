@@ -559,7 +559,6 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   margin-bottom: 12px; padding-bottom: 8px;
   border-bottom: 1px solid var(--border2);
 }
-.tie-group .game-card { margin-bottom: 8px; }
 .tie-group .game-card:last-of-type { margin-bottom: 0; }
 .tie-group__result { font-size: 12px; color: var(--green); font-weight: 700; margin-top: 4px; }
 /* Mesmo destaque de borda vermelha da Copa pro jogo ao vivo (.game-card.is-live,
