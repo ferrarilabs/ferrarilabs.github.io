@@ -1,0 +1,51 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [4 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Length 587 >>
+stream
+BT /F1 10 Tf 50 742 Td 14 TL
+(Powerball  Bilhetes publicados \(EXEMPLO SINTÉTICO\)) Tj T*
+(Draw: 2026-08-05  Versão: 1) Tj T*
+(Hash SHA-256: 9139fe1b57a8203ec143fd33bbb14b7566f1b3b7a75e861f5d8e6bc2557bcc9e) Tj T*
+() Tj T*
+(Resumo financeiro:) Tj T*
+(  participantCount: 1) Tj T*
+(  totalCotas: 1) Tj T*
+(  valorPorCota: 138) Tj T*
+(  totalArrecadado: 138) Tj T*
+(  valorUsado: 153) Tj T*
+(  saldoReservado: 1) Tj T*
+(  ticketCount: 2) Tj T*
+(  totalCost: 6) Tj T*
+(  powerPlay: 3) Tj T*
+() Tj T*
+(Tickets:) Tj T*
+(  #1: 1-14-27-36-63  PB 25) Tj T*
+(  #2: 4-11-22-45-61  PB 9) Tj T*
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 3 0 R >>
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000753 00000 n 
+0000000879 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+949
+%%EOF
