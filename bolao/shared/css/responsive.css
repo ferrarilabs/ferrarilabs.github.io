@@ -86,7 +86,13 @@
   .game-teams, .game-card__match { gap: 6px; }
   .game-team, .game-card__team { font-size: 14px; gap: 5px; min-width: 0; line-height: 1.15; }
   .game-team .team-flag, .game-card__logo { flex-shrink: 0; }
-  .game-team .team-name, .game-card__team-name { overflow-wrap: break-word; }
+  /* overflow-wrap:break-word alone leaves a residual ~7-8px overflow at 320px for real,
+     unhyphenated-by-default long single-word team names (confirmed via Playwright measurement:
+     "Chapecoense", "Internacional" both real CDB2026 team names, not synthetic) — break-word
+     only forces a break when no other wrap opportunity exists, and can still leave the last
+     fragment slightly wider than its column. hyphens:auto (lang="pt-BR" already set on <html>,
+     confirmed) lets the browser insert a real hyphenation point instead, closing the gap. */
+  .game-team .team-name, .game-card__team-name { overflow-wrap: break-word; hyphens: auto; }
   .game-team.right, .game-card__team--away { justify-content: flex-start; }
   .game-score, .game-card__score { min-width: 54px; font-size: 16px; padding: 6px 8px; }
   /* Pre-match placeholder ("×", no score yet) shouldn't take as much
@@ -97,6 +103,25 @@
     font-size: 15px;
     background: none;
     border: none;
+  }
+  /* Real overflow found via Playwright at 320/375px (checkpoint H follow-up, section 7 review):
+     .game-card__score.muted holds a full pre-match date string (e.g. "16:30 (EDT) · qui.,
+     01/08, 17:30 BRT" — fmtDate() in js/app.js's legCardHtml()) inside .game-card__center, which
+     is `display: contents` -- the span becomes a direct child of the `1fr auto 1fr` grid, and
+     the `auto` track sizes to the span's max-content (single-line) width. A ~40-char date string
+     with no wrap forces the auto column far wider than a 320px card can hold, shoving the
+     away-team column (and its team-name span) off the right edge -- confirmed via
+     getBoundingClientRect(): the away-team span's `left` (314px) started almost entirely outside
+     a 320px viewport. Root cause is the unconstrained auto-sized grid track content, NOT the
+     team-name text itself (team-name already wraps correctly via the .game-team rules above --
+     it just never had room to). Fix: let the date placeholder wrap onto multiple lines within a
+     capped width, so it contributes a bounded max-content size to the grid track instead of one
+     long unbroken line. Same targeted 2-file diff for both apps this shared file serves. */
+  .game-score.muted, .game-card__score.muted {
+    white-space: normal;
+    max-width: 92px;
+    line-height: 1.25;
+    text-align: center;
   }
 
   /* Prob-bar segments get too narrow for "Team NN%" on a phone-width
