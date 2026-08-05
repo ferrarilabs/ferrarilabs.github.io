@@ -2,6 +2,24 @@
 durable_persist.py — makes the shared outbox/match-store JSON files ACTUALLY durable across
 independent GitHub Actions runs (football-hardening follow-up, section 2 finding).
 
+================================================================================================
+NOT FOR PRODUCTION USE. Eduardo's explicit architecture decision (see
+docs/bolao/FOOTBALL_HARDENING_PERSISTENCE_ARCHITECTURE.md): production notification-job
+persistence is Supabase (bolao/shared/scripts/supabase_notification_repository.mjs), matching
+this repo's existing production pattern. This file stays in the repo ONLY as a cross-process
+durability abstraction proof-of-concept — it proved two real things (ephemeral CI filesystems
+need a durable channel; naive line-based JSON-array merging fails under concurrency) that
+informed the Supabase design (the atomic-claim RPC exists specifically to avoid the
+read-then-write race this file's JSON-merge fallback works around at the git layer instead).
+
+NEVER call sync_state() with a file containing `recipient`, `payloadSnapshot`,
+`providerMessageId`, or any error message that could contain PII. Committing that to git creates
+a permanent, effectively-unremovable plaintext record in a public repo's history. This module has
+no awareness of what it's committing — the caller is entirely responsible. No caller in this repo
+does this today (its own test only ever commits synthetic {"v": "x"}-shaped fixtures) — this
+warning exists so that never changes.
+================================================================================================
+
 WHY THIS EXISTS: audited 2026-08 — bolao/shared/scripts/notification_outbox.json and
 match_store.json were never committed to git, and no workflow used actions/cache or
 actions/upload-artifact/download-artifact. Every workflow run does a fresh actions/checkout@v4.
