@@ -3157,5 +3157,360 @@
       "email_subject"
     ],
     "receivedSubject": "Bolão do Ferrari - [TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2"
+  },
+  {
+    "emailJobId": "job_1785942555251_ffcm2g7v",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T15:09:15.202Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:r4final-1785942555249-9xxr",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:09:16.374Z",
+    "sentAt": "2026-08-05T15:09:16.374Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785942556373",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:09:15.251Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785942557384_zwplnbkz",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-published",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-published",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-published",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 1,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 1,
+        "publishedAtUtc": "2026-08-05T15:09:15.208Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              63
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "ea24b631acad356c725c8516c1433836b1eee4cbcaf7ee448b9dc39a3e281142"
+      },
+      "manifestHash": "ea24b631acad356c725c8516c1433836b1eee4cbcaf7ee448b9dc39a3e281142",
+      "manifestHashShort": "ea24b631acad…3e281142",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            63
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": null,
+      "previousHash": null,
+      "previousHashShort": null,
+      "diff": null,
+      "generatedAtUtc": "2026-08-05T15:09:15.208Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v1.2:Participante Alfa:r4final-1785942557382-tuzx",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:09:18.237Z",
+    "sentAt": "2026-08-05T15:09:18.237Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785942558236",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:09:17.384Z",
+    "expectedSubject": "[TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785942559249_5z3yci84",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-corrected",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-corrected",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-corrected",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 2,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 2,
+        "publishedAtUtc": "2026-08-05T15:09:15.209Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              64
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "ce8bbd915e751964ba23c2264dccfe7a5a028fde628b6f35e8ee5dde4a97b95e"
+      },
+      "manifestHash": "ce8bbd915e751964ba23c2264dccfe7a5a028fde628b6f35e8ee5dde4a97b95e",
+      "manifestHashShort": "ce8bbd915e75…4a97b95e",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            64
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": "Corrigido número do Jogo 01 (63 → 64) — erro de digitação identificado ao conferir o comprovante de compra.",
+      "previousHash": "ea24b631acad356c725c8516c1433836b1eee4cbcaf7ee448b9dc39a3e281142",
+      "previousHashShort": "ea24b631acad…3e281142",
+      "diff": {
+        "changed": [
+          {
+            "index": 0,
+            "before": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                63
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "after": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                64
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "beforeText": "24 · 31 · 47 · 52 · 63 — Powerball 17",
+            "afterText": "24 · 31 · 47 · 52 · 64 — Powerball 17"
+          }
+        ],
+        "unchanged": [
+          {
+            "index": 1,
+            "ticket": {
+              "numbers": [
+                4,
+                11,
+                22,
+                45,
+                61
+              ],
+              "special": 9,
+              "serial": "S-EXAMPLE-FIXTURE"
+            }
+          }
+        ],
+        "hasDiff": true
+      },
+      "generatedAtUtc": "2026-08-05T15:09:15.209Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v2.2:Participante Alfa:r4final-1785942559246-9xnx",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:09:20.249Z",
+    "sentAt": "2026-08-05T15:09:20.249Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785942560247",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:09:19.249Z",
+    "expectedSubject": "[TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
   }
 ]
