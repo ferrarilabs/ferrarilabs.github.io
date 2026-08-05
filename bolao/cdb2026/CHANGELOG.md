@@ -1,5 +1,144 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.91 — 2026-08-05 — Aggregate score in live-game hero (following Copa's tiebreak rule)
+
+Explicitly authorized by Eduardo. Adds the two-leg tie's aggregate score to
+`renderLiveTieCard()`'s live hero widget and to the second-leg scheduled card's extension slot
+(`.game-card__aggregate`, shared token, secondary in visual weight to the primary score).
+
+**Copa's actual tiebreak rule, found before writing any code** (not guessed — see the
+premise-check reported earlier this session): Copa never computes or displays a numeric penalty
+score. `bolao/copa2026/js/i18n.js` states explicitly to real participants: *"Placar válido: 90
+minutos + prorrogação. Pênaltis não entram no placar."* When a knockout match is tied after
+regulation+extra time, Copa's admin manually picks who advances via `advanceSide` — no penalty
+score is ever stored or shown. CDB2026 already had the exact same mechanism
+(`tie.qualifiedTeamId`, admin-picked) before this change. Grepped the entire CDB2026 codebase for
+any penalty-score field (`penScore`, `shootout`, `pk*`) — none exists. So the aggregate feature
+here shows the aggregate score and, once concluded, who advances (`qualifiedTeamId`) — it does
+NOT show a penalty score, because building that would mean inventing a business rule Copa itself
+doesn't have, not replicating one. If a real admin data-entry field for penalty scores is wanted
+in the future, that's a separate, larger change (new data model field + admin UI) requiring its
+own authorization — not fabricated here.
+
+`tieProgressDisplay(tie, phaseFormat, liveLeg2Goals)` extracted as the single shared resolver for
+this feature — reused by both the live hero and the confronto-card's static result line (no
+duplicated calculation). Display states: first leg in progress → no aggregate (would duplicate
+the live score); second leg scheduled → "Agregado após a ida: X–Y"; second leg live → "Agregado
+ao vivo: X–Y" (updates with the live score); final → tie-group's existing result line ("Agregado:
+X × Y — Classificado: Time"). Aggregate orientation follows the tie's canonical teamA/teamB order
+even when leg 2's home/away is swapped (same convention `aggregateFromMatches()` already used).
+
+Tests: `bolao/cdb2026/scripts/test_aggregate_hero.mjs` — 14/14 pass, extracting and executing the
+real `tieProgressDisplay()`/`aggregateFromMatches()` source directly (not a reimplemented copy).
+Covers: first leg no redundant aggregate, second leg scheduled, second leg live, live goal
+updates the aggregate, final without penalties, final with a tied aggregate (penalties still
+correctly absent — no data field exists), penalties never summed into the aggregate (structural
+guarantee), classificado resolves from `qualifiedTeamId` independent of the aggregate, reversed
+home/away in leg 2 doesn't flip team order, incomplete data produces no NaN/undefined, and a
+regression check that `aggregateFromMatches()` itself (scoring/ranking/persistence-adjacent) is
+unchanged. `audit_scoring.py`, `audit_golden_master.mjs`, `audit_state_merge.mjs`,
+`audit_integrity.py` all re-run after this change, all pass — no scoring, ranking, or persisted
+result logic touched, this is a display/computation-only addition reusing existing
+`qualifiedTeamId`/`aggregateFromMatches()` logic.
+
+## v3.90 — 2026-08-04 — Phase 7 of platform visual-framework migration: real visual validation + 2 bug fixes + fixture bug found/fixed
+
+Phase 6 shipped without a real browser (none available). Phase 7 installed Playwright + a real
+Chrome binary and re-verified everything with actual captures/computed styles — see
+`docs/bolao/evidence/canonical-framework/README.md` for the full account, and
+`docs/bolao/CONSISTENCY_MATRIX.md`'s phase 7 entry for the reclassification of every previously
+"preserved" divergence.
+
+**Test-fixture bug found and fixed (dev tooling, not production)**:
+`bolao/cdb2026/scripts/visual/game_fixtures.mjs`'s `fx-t4`/`fx-t5` ties (used to exercise the
+"postponed"/"live" game states in the visual capture harness) were dated `2026-08-05`/
+`2026-08-04` — once this sandbox's simulated "today" reached `2026-08-04`,
+`isPastEntryCutoff()`/`effectivePhaseCutoffMs()` (`js/app.js`, unmodified) picked that up as the
+Oitavas phase's earliest known kickoff and closed the entry cutoff, silently defaulting the app
+to Ranking instead of Palpites during capture. Confirmed via `routeCdb2026Espn()` in the same
+file that the postponed/live mock resolution is keyed by team name only, never this date — so
+moving both dates to 2031 (matching the rest of the fixture's already-future dates) fixes the
+capture with zero effect on what's actually being tested. After the fix: all 7 previously-failed
+CDB2026 "Palpites" captures now succeed.
+
+**Two real, previously-unfixed CSS bugs found and fixed** (same as BR2026's phase 7 entry, see
+that CHANGELOG for the full empirical reasoning):
+
+- **`.prob-bar` `min-width`**: this app's `32px` override promoted to the shared canonical value
+  (was `6px`, a real Copa-side legibility bug); local override removed.
+- **`.sticky-submit` alignment**: `justify-content: center` override removed, now inherits the
+  shared `flex-end`.
+
+Computed-style audit: 0 unapproved divergences (was 8, all traced to the fixture bug above, now
+fixed). 0 console errors, 0 horizontal overflow, 0 sticky-submit overlap (7 viewports × 5 scroll
+positions). `check_cachebust.mjs --write` re-synced `?v=` after the CSS/fixture changes.
+
+## (tooling, no siteVersion bump) — 2026-08-04 — Phase 6 of platform visual-framework migration: evidence + wrap-up
+
+Final phase of the 6-phase migration. No CSS/JS changes to this app in this phase — see
+`bolao/copa2026/CHANGELOG.md`'s same-dated entry and
+`docs/bolao/evidence/canonical-framework/{README.md,COMPONENT_AUDIT.md}` for the full wrap-up
+(component audit across all three apps, honest screenshot-tooling limitation, final full
+test/audit re-run — all pass, including this app's `audit_golden_master.mjs`,
+`audit_state_merge.mjs`, `audit_integrity.py`, and `check_cachebust.mjs`).
+
+## v3.89 — 2026-08-04 — Phase 4 of platform visual-framework migration: adopt shared canonical framework
+
+Copa (`bolao/copa2026/`) is the platform's canonical visual reference (`CLAUDE.md`, "Golden
+master rule"). Phases 2-3 (previous commits) built `bolao/shared/css/` from Copa's real values
+and migrated Copa and BR2026; this phase migrates CDB2026 — in production since 2026-07-19, so
+kept deliberately small, surgical, and reversible. Copying Copa's visual tokens only, never its
+tournament logic (CDB2026's own two-leg/single-match knockout scoring, phase model, and tiebreak
+cascade are untouched).
+
+- `index.html` now loads the 8 `bolao/shared/css/*.css` files before this app's own
+  `css/styles.css`, same pattern as Copa/BR2026.
+- Trimmed `css/styles.css` from 885 to 650 lines by removing rules now fully covered by the
+  shared files (reset, tokens, body/button base, topbar/brand/nav base, `main`/`.card` base,
+  `h1-h3`, `.page`/`.section-head`, `.form-grid`/inputs, `.admin-toolbar`, `.hidden`, `.muted`,
+  focus-visible/h2:focus, toast, base `.rank-row`/`.points`, `@keyframes live-pulse`), replacing
+  each with a pointer comment. Kept untouched: two-leg/single-tie pick UI, live tie/ranking hero,
+  probability bars, admin phase/tie registration screens, and the iOS side-scroll containment
+  this app alone carries (extra `overscroll-behavior-x`/`overflow-y` layering on top of the
+  shared topbar/main rules).
+- **Desktop nav tab count**: confirmed CDB2026 has exactly 6 always-visible `.nav` tabs (same as
+  Copa's default) — `--nav-cols-desktop: 6` set explicitly in this app's own `:root` anyway, per
+  the same pattern BR2026 uses for its 7-tab override, so a future 7th tab here doesn't silently
+  inherit whatever the shared default happens to be.
+- **Mobile nav orphan-button rule — real regression avoided**: CDB2026's mobile "lone last-row
+  button spans full width" fix uses a different `:nth-child` formula than Copa/BR2026
+  (`nth-child(3n+1)`, not `nth-child(3n)`) because CDB2026 keeps its hidden Participantes/
+  Pagamento buttons in a separate `.nav-secondary` container outside `.nav` entirely, unlike
+  Copa/BR2026 which keep them inside `.nav` and therefore need the offset formula. Naively
+  relying on `shared/css/responsive.css`'s `nth-child(3n)` formula would have incorrectly
+  spanned CDB2026's real 6th nav button (already a full row, no orphan) — added an explicit
+  `.nav button:nth-child(3n):nth-last-child(1) { grid-column: auto; }` reset alongside the
+  correct local `nth-child(3n+1)` rule.
+- **Two-leg knockout card (game-card variant formalization)**: `.confronto-card` markup already
+  applies `class="card confronto-card"` (verified in `js/app.js`'s render template), so
+  background/border/box-shadow now come from the shared canonical `.card`; local
+  `.confronto-card` only overrides padding/border-radius/margin to match Copa's `.game-card` box
+  exactly (already true before this migration, now sourced from the shared token instead of a
+  hardcoded copy). `.confronto-header`/`.confronto-legs`/`.leg`/`.leg-label`/`.leg-teams`/
+  `.leg-info` keep their own class names — CDB2026's ida/volta two-row-per-tie structure has no
+  Copa equivalent to converge onto (Copa's bracket is single-match), a genuine
+  `TOURNAMENT_SPECIFIC` difference, not one this migration should generalize away.
+- **`.game-status`**: kept its own class name rather than being renamed to Copa's `.status-chip`
+  — generated by `js/app.js` render templates, same judgment call as BR2026's phase 3 migration
+  (renaming means touching `.js` for no visual gain; values already mirror Copa's tokens 1:1).
+- **Preserved intentional divergence, not silently fixed**: `.sticky-submit` keeps
+  `justify-content: center` on top of the shared `flex-end` default — same pre-existing
+  divergence from Copa already flagged during BR2026's phase 3 migration, still not resolved
+  without Eduardo's authorization.
+- Not touched: any `.js` file's logic, scoring, business rules, Supabase, EmailJS, the two-leg
+  bracket/phase model. `python3 scripts/audit_scoring.py`, `node scripts/audit_golden_master.mjs`,
+  `node scripts/audit_state_merge.mjs`, `python3 scripts/audit_integrity.py`, and
+  `node scripts/check_cachebust.test.mjs` all re-run after this change, all pass.
+  `node scripts/check_cachebust.mjs --write` re-synced the `?v=` cache-bust tag in `index.html`
+  to match the changed `css/styles.css`/`js/config.js` content (required after any content
+  change to those files, per that script's own purpose — not a manual override of the main
+  site's separate `sync_version.yml`-managed tag).
+
 ## v3.88 — 2026-08-04 — Automatic kickoff/venue backfill no longer depends on the admin panel
 
 Real production bug reported by Eduardo: games still showing "Data a definir" today despite ESPN

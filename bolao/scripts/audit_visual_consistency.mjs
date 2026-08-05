@@ -258,7 +258,7 @@ const COMPONENTS = [
   // in .admin-toolbar) in all three apps — no new marker needed, the id is already unique/stable.
   { id: "button-secondary", label: "Botão secundário (Sair)", selectors: { copa2026: "#adminLogoutBtn", br2026: "#adminLogoutBtn", cdb2026: "#adminLogoutBtn" } },
   { id: "ranking-row", label: "Linha de ranking (.rank-row)", selectors: { copa2026: ".rank-row", br2026: ".rank-row", cdb2026: ".rank-row" } },
-  { id: "game-card", label: "Card de jogo", selectors: { copa2026: ".game-card", br2026: ".game-card", cdb2026: ".confronto-card" }, note: "CDB2026 uses .confronto-card (ida+volta layout) instead of .game-card by design — CONSISTENCY_MATRIX.md item 72, INTENTIONALLY_DIFFERENT (tournament format, not a shared component)." },
+  { id: "game-card", label: "Card de jogo", selectors: { copa2026: ".game-card", br2026: ".game-card", cdb2026: ".game-card" }, note: "CDB2026 migrated its per-leg match cards to the same canonical .game-card as Copa/BR2026 (visual-framework-copa-canonical branch, structural DOM unification) — .confronto-card is now only the tie-group summary/aggregate wrapper, not the per-match card." },
   // PR120-final review item 3: was the ambiguous first `.status-chip`/`.game-status` in DOM
   // order — different apps/fixtures sort a different STATUS first (live/postponed/scheduled/
   // final legitimately have different colors by design), so "first match" could silently compare

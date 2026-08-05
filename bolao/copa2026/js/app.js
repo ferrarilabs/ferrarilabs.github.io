@@ -2002,13 +2002,18 @@ function renderRanking() {
     const bonusLine = e._bonus?.total ? `${t("bonusLabel")} +${e._bonus.total}` : "";
     const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
     const bonusBadge = bonusLine ? `<br><span class="muted">${escapeHtml(bonusLine)}</span>` : "";
+    // Phase 7-FIX ranking-row canonical skeleton (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md's
+    // ranking-row equivalent): .rank-row/.rank-pos/.points kept (still drive the grid/mobile
+    // CSS, bolao/shared/css/responsive.css) — .ranking-row__position/__participant/__name/
+    // __metadata/__score/__actions added as BEM labels on the same elements, same content/
+    // values as before this change.
     const row = document.createElement("div");
-    row.className = "rank-row";
+    row.className = "rank-row ranking-row";
     row.innerHTML = `
-<div class="rank-pos">${medal}${arrowHtml}</div>
-<div><b>${escapeHtml(e.entryName)}</b>${demoBadge}${bonusBadge}</div>
-<div class="points">${e._score}</div>
-<button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
+<div class="rank-pos ranking-row__position">${medal}${arrowHtml}</div>
+<div class="ranking-row__participant"><span class="ranking-row__name"><b>${escapeHtml(e.entryName)}</b></span>${demoBadge}<span class="ranking-row__metadata">${bonusBadge}</span></div>
+<div class="points ranking-row__score">${e._score}</div>
+<button type="button" class="secondary small-btn ranking-row__actions" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
     const isOpen = _openRankDetails.has(e.id);
@@ -2138,29 +2143,38 @@ function renderGames() {
       probBarsHtml = preMatchProbBarsHtml(m);
     }
 
+    // Phase 7-FIX canonical game-card skeleton (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md):
+    // __header (competition label + status) → __metadata (date/time/venue, always separate
+    // elements) → __match (team--home / center-score / team--away) → __extension (optional:
+    // goal scorers, live plays, probability bars, live-points toggle). Same data/values as
+    // before this change — only the element classes/nesting changed, verified by diffing this
+    // function's inputs/outputs before and after.
+    const extensionHtml = [
+      live ? goalScorersHtml(live, a, b) : "",
+      live ? livePlaysHtml(live, a, b, m.match) : "",
+      probBarsHtml,
+      canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : "",
+    ].join("");
+
     const div = document.createElement("div");
     div.className = `game-card${live ? " is-live" : ""}`;
     div.dataset.state = live ? "in" : (hasScore ? "post" : "pre");
     div.innerHTML = `
-<div class="game-top">
-  <span class="match-badge">${escapeHtml(String(m.match))}</span>
-  <span class="muted">${escapeHtml(phaseLabel(m.phase || "Fase de grupos"))}${m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : ""}</span>
-  <span class="status-chip ${statusClass}">${live ? "🔴 " : ""}${escapeHtml(statusLabel)}${live?.clock ? ` · ${escapeHtml(live.clock)}` : ""}</span>
+<div class="game-card__header">
+  <span class="game-card__competition"><span class="match-badge">${escapeHtml(String(m.match))}</span> <span class="muted">${escapeHtml(phaseLabel(m.phase || "Fase de grupos"))}${m.group ? ` — ${escapeHtml(t("groupLabel"))} ${escapeHtml(m.group)}` : ""}</span></span>
+  <span class="game-card__status status-chip ${statusClass}">${live ? "🔴 " : ""}${escapeHtml(statusLabel)}${live?.clock ? ` · ${escapeHtml(live.clock)}` : ""}</span>
 </div>
-<div class="game-meta">
-  ${m.date  ? `<span class="pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
-  ${m.timeET ? `<span class="pill">🕒 ${escapeHtml(m.timeET)} · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT</span>` : ""}
-  ${venue   ? `<span class="pill">📍 ${escapeHtml(venue)}</span>` : ""}
+<div class="game-card__metadata">
+  ${m.date  ? `<span class="game-card__date pill">📅 ${escapeHtml(formatDate(m.date))}</span>` : ""}
+  ${m.timeET ? `<span class="game-card__time pill">🕒 ${escapeHtml(m.timeET)} · ${escapeHtml(brtTimeFromKickoff(m.date, m.timeET))} BRT</span>` : ""}
+  ${venue   ? `<span class="game-card__venue pill">📍 ${escapeHtml(venue)}</span>` : ""}
 </div>
-<div class="game-teams">
-  <div class="game-team"><span class="team-name">${escapeHtml(a)}</span><span class="team-flag">${escapeHtml(flag(a))}</span></div>
-  ${hasScore ? `<div class="game-score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</div>` : `<div class="game-score muted">×</div>`}
-  <div class="game-team right"><span class="team-flag">${escapeHtml(flag(b))}</span><span class="team-name">${escapeHtml(b)}</span></div>
+<div class="game-card__match">
+  <div class="game-card__team game-card__team--home"><span class="game-card__team-name">${escapeHtml(a)}</span><span class="game-card__logo">${escapeHtml(flag(a))}</span></div>
+  <div class="game-card__center">${hasScore ? `<span class="game-card__score${live ? " is-live" : ""}">${goalsA} — ${goalsB}</span>` : `<span class="game-card__score muted">×</span>`}</div>
+  <div class="game-card__team game-card__team--away"><span class="game-card__logo">${escapeHtml(flag(b))}</span><span class="game-card__team-name">${escapeHtml(b)}</span></div>
 </div>
-${live ? goalScorersHtml(live, a, b) : ""}
-${live ? livePlaysHtml(live, a, b, m.match) : ""}
-${probBarsHtml}
-${canShowLivePoints ? `<button type="button" class="secondary small-btn" style="margin-top:10px" data-live-toggle="${escapeHtml(String(m.match))}">${escapeHtml(t("liveToggleShow"))}</button>` : ""}`;
+<div class="game-card__extension">${extensionHtml}</div>`;
     box.appendChild(div);
     if (canShowLivePoints) {
       const detail = document.createElement("div");

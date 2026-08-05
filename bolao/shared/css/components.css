@@ -1,0 +1,285 @@
+/* ============================================================
+   Bolão platform — shared components
+   game-card / score / status-badge / probability-bar /
+   ranking-row / ranking-position / ranking-score / rules-table /
+   toast. Extracted from Copa's styles.css. Responsive rules for
+   these components live in shared/css/responsive.css.
+   ============================================================ */
+
+/* ── Games ──
+   Phase 7-FIX (docs/bolao/PROJECT_MEMORY.md "DOM unification"): canonical BEM skeleton
+   (.game-card__header/__competition/__status/__metadata/__date/__time/__venue/__match/
+   __team--home/__team--away/__logo/__team-name/__center/__score/__extension), one shared
+   structure for all three apps' single-match game card, replacing three apps' three different
+   DOM shapes that happened to share CSS *values* without sharing CSS *selectors* or markup
+   order (see docs/bolao/CANONICAL_GAME_CARD_SKELETON.md for the before/after comparison this
+   was designed from). The OLD selectors below (.game-top/.game-meta/.game-teams/.game-team/
+   .status-chip's card-scoped siblings) are kept as compatibility aliases, comma-combined with
+   the new BEM selectors, so BR2026/CDB2026's not-yet-migrated templates keep rendering
+   correctly during the incremental app-by-app migration — once every app's template emits only
+   BEM classes, the old aliases can be deleted in a follow-up cleanup pass. */
+.game-card, .game-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+  margin-bottom: var(--space-4);
+}
+.game-card.is-live { border-color: var(--red); }
+
+.game-top, .game-card__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+.game-card__competition { color: var(--muted); font-size: 12px; display: flex; align-items: center; gap: var(--space-2); }
+
+.game-meta, .game-card__metadata { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: var(--space-4); }
+.game-card__date, .game-card__time, .game-card__venue { /* inherit .pill visual treatment via markup, no extra rule needed */ }
+
+.game-teams, .game-card__match {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--space-4);
+  align-items: center;
+}
+.game-team, .game-card__team {
+  font-weight: var(--font-weight-black);
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-end;
+}
+.game-team.right, .game-card__team--away { justify-content: flex-start; }
+.game-card__team--home { justify-content: flex-end; }
+.game-card__team-name { /* typography comes from .game-team/.game-card__team above — shared identity */ }
+.game-card__logo { display: inline-flex; align-items: center; }
+.game-card__center { display: contents; } /* score/time sits directly in the grid's center column */
+
+.game-score, .game-card__score {
+  font-size: 22px;
+  font-weight: var(--font-weight-black);
+  color: var(--text);
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-lg);
+  padding: 8px 14px;
+  min-width: 80px;
+}
+.game-score.is-live, .game-card__score.is-live { border-color: var(--red); color: var(--red); }
+.game-card__extension:empty { display: none; }
+
+/* Phase 7-FIX aggregate-hero feature: secondary in visual weight to the primary
+   .game-card__score/.live-score (smaller, muted color, no background/border of its own) — never
+   competes with the main score for attention. aria-live="polite" so a live-updating aggregate
+   (second leg in progress) is announced to screen readers without interrupting them mid-sentence
+   the way aria-live="assertive" would. Centered, no card-break — same font-family as every other
+   shared text token, just smaller/muted, so it reads as a caption under the score, not a second
+   score. */
+.game-card__aggregate {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: var(--font-weight-regular);
+  color: var(--muted);
+  text-align: center;
+}
+.game-card__aggregate b { color: var(--text); font-weight: var(--font-weight-bold); }
+
+@keyframes live-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+
+/* ── Match / bracket card (knockout entry form, same shape as game-card) ── */
+.match-card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-6);
+}
+.match-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.match-badge { color: var(--green); font-weight: var(--font-weight-black); font-size: 13px; }
+.phase { color: var(--muted); font-size: 12px; }
+.match-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-bottom: var(--space-4); }
+.teams {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: 6px;
+  align-items: center;
+  margin: var(--space-4) 0;
+}
+.team { font-weight: var(--font-weight-black); font-size: 15px; display: flex; align-items: center; gap: 6px; }
+.team.right { justify-content: flex-end; }
+.vs { color: var(--muted); font-size: 13px; text-align: center; }
+
+/* ── Status / badges ── */
+.status-chip { border-radius: var(--radius-pill); padding: 4px 10px; font-size: 11px; font-weight: var(--font-weight-black); }
+.status-chip.done { background: rgba(47, 229, 110, .15); color: var(--green); border: 1px solid rgba(47, 229, 110, .3); }
+.status-chip.pending { background: var(--bg3); color: var(--muted); border: 1px solid var(--border2); }
+.status-chip.live { background: #4a0e0e; color: var(--red); animation: live-pulse 1.6s ease-in-out infinite; }
+
+.pill {
+  font-size: 11px;
+  color: var(--muted);
+  border: 1px solid var(--border2);
+  border-radius: var(--radius-pill);
+  padding: 4px 8px;
+}
+
+/* ── Probability bars (live match card) ── */
+.prob-bars {
+  display: flex;
+  border-radius: 6px;
+  overflow: hidden;
+  height: 28px;
+  margin-top: var(--space-4);
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  gap: 2px;
+}
+.prob-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Phase 7 fix (2026-08-04): was 6px. All three apps render a percentage
+     label INSIDE every segment unconditionally (Copa's own label(pct,name)
+     helper, bolao/copa2026/js/app.js:2656, always returns "N%" text, never
+     an empty string, even for pct<12) — so this value must fit that text,
+     not just be a bare color sliver. Verified empirically via Playwright
+     (real Chrome, headless): a 3% segment at 390px viewport renders at
+     6px min-width with scrollWidth(22px) > clientWidth(19px) — the "3%"
+     label is genuinely clipped, illegible. At 32px min-width (the value
+     BR2026/CDB2026 already carried as an undocumented local override
+     since phases 3-4) the same segment renders at 40px with no clipping.
+     32px promoted to the shared canonical value here instead of leaving
+     BR2026/CDB2026's override in place — this was a real Copa-side
+     legibility bug, not a legitimate per-app variant, so BR2026/CDB2026
+     were right and Copa's original value is what changes. Still doesn't
+     "fake" a probability's visual weight beyond what legibility requires:
+     32px of ~390px (mobile) is under 10% of the bar's total width, and a
+     draw/away segment with genuine 0-1% probability is still visibly the
+     narrowest of the three — it just isn't clipped to unreadable. */
+  min-width: 32px;
+  padding: 0 4px;
+  transition: width 0.7s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-radius: var(--radius-sm);
+}
+.prob-bar.home { background: #16a34a; color: #fff; }
+.prob-bar.draw { background: #475569; color: #fff; }
+.prob-bar.away { background: #1d4ed8; color: #fff; }
+
+/* ── Championship probability table ── */
+.prob-table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: var(--space-3); }
+.prob-table th {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  text-align: left;
+  color: var(--muted);
+}
+.prob-table td { padding: 7px 8px; border-bottom: 1px solid rgba(255, 255, 255, .05); vertical-align: middle; }
+.prob-table tr:hover td { background: rgba(255, 255, 255, .03); }
+.prob-champ-bar {
+  height: 10px;
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, #22c55e, #15803d);
+  display: inline-block;
+  min-width: 2px;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+.prob-pct-champ { color: #4ade80; font-weight: var(--font-weight-bold); }
+.prob-pct-final { color: var(--muted); }
+.prob-pct-semi { color: var(--muted); }
+.poly-bar { background: linear-gradient(90deg, #f59e0b, #d97706); }
+.prob-disclaimer { font-size: 11px; color: var(--muted); margin-top: var(--space-6); line-height: 1.5; }
+.game-prob-hint { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+/* ── Ranking / Participants ──
+   Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md's ranking-row equivalent): canonical
+   BEM classes (.ranking-row__position/__participant/__name/__metadata/__score/__actions) added
+   as EXTRA selectors alongside the existing .rank-row/.rank-pos/.points (kept — all three apps
+   were already very close structurally here, unlike game-card, so both class sets coexist
+   permanently rather than one being a temporary migration alias). */
+.rank-row, .ranking-row {
+  display: grid;
+  grid-template-columns: 48px 1fr auto auto;
+  gap: var(--space-4);
+  align-items: center;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-5);
+  margin-bottom: var(--space-3);
+}
+.rank-pos, .ranking-row__position { font-size: 22px; text-align: center; }
+.ranking-row__participant { min-width: 0; }
+.ranking-row__name { font-weight: var(--font-weight-bold); }
+.ranking-row__metadata { display: block; }
+/* .ranking-row__actions is applied directly on the action <button> itself (not a wrapping
+   container — see each app's renderRanking()), so it needs no layout rule of its own: the
+   button already participates as its own grid cell exactly as it did before this BEM label was
+   added (bolao/shared/css/responsive.css's ".rank-row button { justify-self:end }" still
+   applies unchanged). A stray earlier "display:contents" here would have stripped the button's
+   own rendering box — removed before shipping. */
+.rank-arrow { font-size: 12px; vertical-align: super; }
+.rank-arrow.up { color: var(--green); }
+.rank-arrow.down { color: var(--red); }
+.rank-arrow-n { font-size: 0.8em; font-weight: var(--font-weight-bold); margin-left: 1px; vertical-align: middle; }
+.points, .ranking-row__score { font-size: 26px; color: var(--green); font-weight: var(--font-weight-black); text-align: right; }
+.muted { color: var(--muted); font-size: 13px; }
+
+/* ── Rules ── */
+.rules-table { width: 100%; border-collapse: collapse; margin-top: var(--space-4); }
+.rules-table td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+.rules-table td:last-child { text-align: right; color: var(--green); font-weight: var(--font-weight-black); }
+.rules-list { padding-left: 18px; margin: var(--space-4) 0; }
+.rules-list li { margin-bottom: var(--space-3); }
+.footer-note { font-size: 12px; color: var(--muted); margin-top: var(--space-5); line-height: 1.6; }
+
+/* ── Toast notifications ── */
+.bolao-toasts {
+  position: fixed;
+  bottom: 20px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  z-index: var(--z-toast);
+  pointer-events: none;
+  max-width: 320px;
+}
+.bolao-toast {
+  padding: 10px 16px;
+  border-radius: var(--radius-lg);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  box-shadow: var(--shadow-toast);
+  pointer-events: auto;
+  animation: toast-in 0.2s ease;
+  transition: opacity var(--transition-toast);
+  word-break: break-word;
+}
+.bolao-toast.success { background: #0f2a0f; color: #69c569; border-left: 3px solid #4caf50; }
+.bolao-toast.error { background: #2a0f0f; color: #f08080; border-left: 3px solid #e05050; }
+.bolao-toast.warn { background: #2a1f00; color: #ffcc66; border-left: 3px solid #ff9800; }
+.bolao-toast.info { background: #0d1f33; color: #80c8f0; border-left: 3px solid #4a9fd4; }
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
