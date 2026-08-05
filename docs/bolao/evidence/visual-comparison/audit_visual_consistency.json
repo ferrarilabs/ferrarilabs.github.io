@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-05T13:22:32.556Z",
-  "commit": "b0b4cd6",
+  "generatedAtUtc": "2026-08-05T13:31:32.819Z",
+  "commit": "922426e",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -62,7 +62,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "118.5px",
+          "height": "144.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
         }
@@ -126,7 +126,7 @@
         {
           "property": "height",
           "status": "JUSTIFIED",
-          "reason": "`.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 118.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. If this value ever drifts (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "reason": "`.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
         },
         {
           "property": "minHeight",
@@ -1998,125 +1998,80 @@
       },
       "note": null,
       "values": {
-        "copa2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "15px",
-          "fontWeight": "400",
-          "lineHeight": "22.5px",
-          "letterSpacing": "normal",
-          "padding": "0px",
-          "margin": "0px",
-          "gap": "12px",
-          "borderRadius": "0px",
-          "backgroundColor": "rgba(0, 0, 0, 0)",
-          "color": "rgb(238, 247, 241)",
-          "height": "226.5px",
-          "minHeight": "0px",
-          "gridTemplateColumns": "527px 527px"
-        },
-        "br2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "15px",
-          "fontWeight": "400",
-          "lineHeight": "22.5px",
-          "letterSpacing": "normal",
-          "padding": "0px",
-          "margin": "0px",
-          "gap": "12px",
-          "borderRadius": "0px",
-          "backgroundColor": "rgba(0, 0, 0, 0)",
-          "color": "rgb(238, 247, 241)",
-          "height": "147px",
-          "minHeight": "0px",
-          "gridTemplateColumns": "527px 527px"
-        },
-        "cdb2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "15px",
-          "fontWeight": "400",
-          "lineHeight": "22.5px",
-          "letterSpacing": "normal",
-          "padding": "0px",
-          "margin": "0px",
-          "gap": "12px",
-          "borderRadius": "0px",
-          "backgroundColor": "rgba(0, 0, 0, 0)",
-          "color": "rgb(238, 247, 241)",
-          "height": "147px",
-          "minHeight": "0px",
-          "gridTemplateColumns": "527px 527px"
-        }
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
       },
       "properties": [
         {
           "property": "fontFamily",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontSize",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontWeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "lineHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "letterSpacing",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "padding",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "margin",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gap",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "borderRadius",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "backgroundColor",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "color",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "height",
-          "status": "JUSTIFIED",
-          "reason": "`.form-grid` CSS itself is byte-identical in all three apps (display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px — verified by diffing the three stylesheets directly; gridTemplateColumns resolves to the identical `527px 527px` in all three). The height gap is a field-COUNT difference, not a token: Copa's entry form has 5 fields (includes a static disabled 'Valor' field showing the fixed US$5 entry price) = 3 grid rows; BR2026/CDB2026 have 4 fields (no 'Valor' field) = 2 grid rows. Verified by reading each app's index.html entry-form markup directly. [docRef: bolao/copa2026/index.html vs bolao/br2026/index.html vs bolao/cdb2026/index.html (entry form field lists, verbatim); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         }
       ]
     },
@@ -2130,125 +2085,80 @@
       },
       "note": null,
       "values": {
-        "copa2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "16px",
-          "fontWeight": "900",
-          "lineHeight": "24px",
-          "letterSpacing": "normal",
-          "padding": "14px 28px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "12px",
-          "backgroundColor": "rgb(47, 229, 110)",
-          "color": "rgb(3, 19, 11)",
-          "height": "52px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        },
-        "br2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "16px",
-          "fontWeight": "900",
-          "lineHeight": "24px",
-          "letterSpacing": "normal",
-          "padding": "14px 28px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "12px",
-          "backgroundColor": "rgb(47, 229, 110)",
-          "color": "rgb(3, 19, 11)",
-          "height": "52px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        },
-        "cdb2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "16px",
-          "fontWeight": "900",
-          "lineHeight": "24px",
-          "letterSpacing": "normal",
-          "padding": "14px 28px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "12px",
-          "backgroundColor": "rgb(47, 229, 110)",
-          "color": "rgb(3, 19, 11)",
-          "height": "52px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        }
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
       },
       "properties": [
         {
           "property": "fontFamily",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontSize",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontWeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "lineHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "letterSpacing",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "padding",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "margin",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gap",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "borderRadius",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "backgroundColor",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "color",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "height",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         }
       ]
     },
@@ -2262,125 +2172,80 @@
       },
       "note": null,
       "values": {
-        "copa2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "12px",
-          "fontWeight": "900",
-          "lineHeight": "18px",
-          "letterSpacing": "normal",
-          "padding": "7px 11px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "9px",
-          "backgroundColor": "rgb(16, 37, 45)",
-          "color": "rgb(238, 247, 241)",
-          "height": "34px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        },
-        "br2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "12px",
-          "fontWeight": "900",
-          "lineHeight": "18px",
-          "letterSpacing": "normal",
-          "padding": "7px 11px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "9px",
-          "backgroundColor": "rgb(16, 37, 45)",
-          "color": "rgb(238, 247, 241)",
-          "height": "46.5px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        },
-        "cdb2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "12px",
-          "fontWeight": "900",
-          "lineHeight": "18px",
-          "letterSpacing": "normal",
-          "padding": "7px 11px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "9px",
-          "backgroundColor": "rgb(16, 37, 45)",
-          "color": "rgb(238, 247, 241)",
-          "height": "46.5px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        }
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
       },
       "properties": [
         {
           "property": "fontFamily",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontSize",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontWeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "lineHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "letterSpacing",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "padding",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "margin",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gap",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "borderRadius",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "backgroundColor",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "color",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "height",
-          "status": "JUSTIFIED",
-          "reason": "`.small-btn`/`button` base CSS is byte-identical in all three apps. `.admin-toolbar` uses `display:flex; flex-wrap:wrap` with default `align-items:stretch`, so every button on the SAME wrapped row stretches to match the tallest sibling in that row. Copa's 13-button toolbar wraps the measured forceSync button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts it on the SAME row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via Playwright probe reading each button's boundingClientRect top/height. Same root cause as the admin-toolbar:height entry above, cascading to individual buttons — a stale exact value here (if toolbar composition changes) correctly re-flags for review. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         }
       ]
     },
@@ -2394,125 +2259,80 @@
       },
       "note": null,
       "values": {
-        "copa2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "12px",
-          "fontWeight": "900",
-          "lineHeight": "18px",
-          "letterSpacing": "normal",
-          "padding": "7px 11px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "9px",
-          "backgroundColor": "rgb(61, 21, 32)",
-          "color": "rgb(255, 219, 225)",
-          "height": "34px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        },
-        "br2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "12px",
-          "fontWeight": "900",
-          "lineHeight": "18px",
-          "letterSpacing": "normal",
-          "padding": "7px 11px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "9px",
-          "backgroundColor": "rgb(61, 21, 32)",
-          "color": "rgb(255, 219, 225)",
-          "height": "46.5px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        },
-        "cdb2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "12px",
-          "fontWeight": "900",
-          "lineHeight": "18px",
-          "letterSpacing": "normal",
-          "padding": "7px 11px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "9px",
-          "backgroundColor": "rgb(61, 21, 32)",
-          "color": "rgb(255, 219, 225)",
-          "height": "46.5px",
-          "minHeight": "auto",
-          "gridTemplateColumns": "none"
-        }
+        "copa2026": null,
+        "br2026": null,
+        "cdb2026": null
       },
       "properties": [
         {
           "property": "fontFamily",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontSize",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontWeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "lineHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "letterSpacing",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "padding",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "margin",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gap",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "borderRadius",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "backgroundColor",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "color",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "height",
-          "status": "JUSTIFIED",
-          "reason": "Same root cause as button-small:height above: `.admin-toolbar`'s default `align-items:stretch` stretches every button on a wrapped flex row to match its tallest sibling. Copa's 13-button toolbar wraps the measured clearData button onto a row with no full-size sibling (34px, natural); BR2026/CDB2026's 5-button toolbar puts clearData on the same row as the full-size 'Sair' button (46.5px, stretched). Verified empirically via the same Playwright probe technique as button-small. [docRef: PR120-final review item 6 (verbatim task text); ALLOWLIST.json admin-toolbar/button-small entries above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         }
       ]
     },
