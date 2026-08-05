@@ -176,6 +176,11 @@ window.POWERBALL_DRAWS = [
     drawing: {
       name: "Powerball Jackpot",
       jackpot: 786000000,
+      // Valor de lump sum ("Cash Value") divulgado oficialmente pela NC Lottery
+      // (nclottery.com/Home, verificado 05/08/2026) — mais preciso que a estimativa
+      // genérica de 50,5% do jackpot, que a loteria não usa de forma fixa (varia com
+      // taxas de juros dos títulos do Tesouro no momento do sorteio).
+      cashValue: 341600000,
       drawDateIso: "2026-08-05T22:59:00-04:00",
       drawDateLabel: "05/08/2026 22:59 ET"
     },
