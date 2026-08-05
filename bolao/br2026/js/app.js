@@ -2041,6 +2041,12 @@ function renderGamesSection() {
       const timeStr = brtTimeStr(g.dateISO);
       const timeStrFull = `${estTimeStr(g.dateISO)} · ${timeStr}`;
 
+      // Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): scoreOrTime now always
+      // renders through the canonical .game-card__score slot (kept as .game-score-live/
+      // .game-score-final/.game-time CLASSES for their own distinct typography/color, same
+      // values as before — only the WRAPPING element/slot changed, not these three states'
+      // look). statusHtml is unchanged (still .game-status, still lives in the new
+      // .game-card__header/__status slot below, instead of being merged into game-meta).
       let scoreOrTime, statusHtml;
       if (g.postponed) {
         scoreOrTime = `<span class="game-time muted">—</span>`;
@@ -2078,17 +2084,34 @@ function renderGamesSection() {
       }
       const homeLogo = _teamLogos[g.homeTeam] ? `<img src="${esc(_teamLogos[g.homeTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
       const awayLogo = _teamLogos[g.awayTeam] ? `<img src="${esc(_teamLogos[g.awayTeam])}" class="match-logo" alt="" aria-hidden="true">` : "";
-      const partida  = gameNum.has(g.id) ? `<span class="game-number">Partida ${gameNum.get(g.id)}</span>` : "";
+      const partida  = gameNum.has(g.id) ? `<span class="game-card__competition game-number">Partida ${gameNum.get(g.id)}</span>` : "";
       const venueStr = g.venue ? `${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}` : "";
-      const metaParts = [statusHtml, partida, venueStr].filter(Boolean);
+      // Phase 7-FIX (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md): date/time/venue/match-number
+      // are now four SEPARATE elements in .game-card__metadata (same canonical slot Copa's
+      // .game-card__date/__time/__venue use) instead of one joined "status + number + venue"
+      // string — status moved to its own .game-card__header/__status slot, matching where
+      // Copa's status-chip lives (its own header row, never mixed into metadata). dateLabel is
+      // the same value already computed above for the page-level day-group heading; repeating
+      // it inside each card's own __date makes the card self-describing (same composition Copa
+      // uses), without removing the day-group heading itself (a BR2026-specific season-schedule
+      // affordance, not part of the card component). Same underlying values as before this
+      // change — only which element each value renders into, and whether it's joined with " · "
+      // into one string vs. kept as separate elements, changed.
       html += `<div class="game-card ${esc(g.state || "pre")}">
-        <div class="game-matchup">
-          <div class="match-team home"><span class="match-team-name home-name">${esc(g.homeTeam)}</span>${homeLogo}</div>
-          <div class="match-center">${scoreOrTime}</div>
-          <div class="match-team away">${awayLogo}<span class="match-team-name away-name">${esc(g.awayTeam)}</span></div>
+        <div class="game-card__header">
+          ${partida}
+          <span class="game-card__status">${statusHtml}</span>
         </div>
-        <div class="game-meta">${metaParts.join('<span class="game-meta-sep"> · </span>')}</div>
-        ${probBarsHtml}
+        <div class="game-card__metadata">
+          <span class="game-card__date pill">${esc(dateLabel)}</span>
+          ${venueStr ? `<span class="game-card__venue pill">${venueStr}</span>` : ""}
+        </div>
+        <div class="game-card__match">
+          <div class="game-card__team game-card__team--home"><span class="game-card__team-name">${esc(g.homeTeam)}</span><span class="game-card__logo">${homeLogo}</span></div>
+          <div class="game-card__center">${scoreOrTime}</div>
+          <div class="game-card__team game-card__team--away"><span class="game-card__logo">${awayLogo}</span><span class="game-card__team-name">${esc(g.awayTeam)}</span></div>
+        </div>
+        <div class="game-card__extension">${probBarsHtml}</div>
       </div>`;
     });
   });
