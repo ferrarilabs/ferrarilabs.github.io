@@ -174,12 +174,12 @@ test("assunto não contém tipo do e-mail e data → fails", () => {
   const subj = renderParticipantConfirmationSubject(confirmPayload, true);
   assert.ok(subj.includes("[TESTE ADMIN]"));
   assert.ok(subj.includes("Participação confirmada"));
-  assert.ok(subj.includes(fx.drawing.drawDateLabel));
+  assert.ok(subj.includes(fx.drawing.drawDateLabel.replace(/\//g, ".")));
 
   const { perRecipient } = buildTicketPublicationPayload({ draw, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
   const pubSubj = renderTicketPublicationSubject(perRecipient[0], true);
   assert.ok(pubSubj.includes("Bilhetes publicados"));
-  assert.ok(pubSubj.includes(fx.drawing.drawDateLabel));
+  assert.ok(pubSubj.includes(fx.drawing.drawDateLabel.replace(/\//g, ".")));
   assert.ok(/\d+ jogos/.test(pubSubj));
 });
 
@@ -192,6 +192,36 @@ await atest("buildAllThreeFromFixture succeeds and cross-template check passes",
   assert.equal(r.confirmPayload.drawDateLabel, r.pubPayload.drawDateLabel);
   assert.equal(r.confirmPayload.jackpot, r.pubPayload.jackpot);
   assert.equal(r.pubPayload.financialSummary.diferencaNaoConciliada, 0);
+});
+
+console.log("\nRound-3 regressions (delivered-subject bugs found via real inbox cross-check):");
+
+test("regression (d): EmailJS template_params never use a key literally called 'subject' — must match the known-working entry_name/receipt_code pattern", async () => {
+  const { readFileSync } = await import("node:fs");
+  const src = readFileSync(new URL("./email/send.mjs", import.meta.url), "utf8");
+  assert.ok(src.includes("entry_name"), "send.mjs must set template_params.entry_name (the variable the EmailJS template actually reads)");
+  assert.ok(src.includes("receipt_code"), "send.mjs must set template_params.receipt_code (mirrors the known-working send_result_email.py precedent)");
+  // A bare "subject" KEY (not the "subject" local variable used as a VALUE,
+  // e.g. "entry_name: subject," is fine) would sit right after "{" or ","
+  // in the object literal. "email_subject:" must NOT false-positive here.
+  assert.ok(!/[{,]\s*subject\s*:/.test(src), "must not send a bare 'subject' key — EmailJS silently ignores unrecognized variable names and falls back to its own static Subject");
+});
+
+test("regression (e): rendered subjects never contain a raw '/' (EmailJS HTML-escapes subject variables server-side, turning '/' into the literal text '&#x2F;' in the delivered email — confirmed via a real inbox cross-check)", () => {
+  const draw = fixtureAsDraw(fx, 1);
+  const estimates = { stateKnown: true };
+  const confirmPayload = buildParticipantConfirmationPayload({ participant: fx.participants[0], draw, estimates });
+  const confirmSubj = renderParticipantConfirmationSubject(confirmPayload, true);
+  assert.ok(!confirmSubj.includes("/"), `subject must not contain "/": ${confirmSubj}`);
+
+  const { perRecipient } = buildTicketPublicationPayload({ draw, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
+  const pubSubj = renderTicketPublicationSubject(perRecipient[0], true);
+  assert.ok(!pubSubj.includes("/"), `subject must not contain "/": ${pubSubj}`);
+
+  const draw2 = fixtureAsDraw(fx, 2);
+  const { perRecipient: corrPer } = buildTicketPublicationPayload({ draw: draw2, participants: fx.participants, tickets: fx.ticketVersions["2"], publicationVersion: 2, correctionReason: "x", previousHash: "y", previousTickets: fx.ticketVersions["1"] });
+  const corrSubj = renderTicketPublicationSubject(corrPer[0], true);
+  assert.ok(!corrSubj.includes("/"), `subject must not contain "/": ${corrSubj}`);
 });
 
 console.log(`\n${pass} passed, ${fail} failed`);
