@@ -1,0 +1,44 @@
+Powerball email professionalization — admin test-send evidence
+================================================================
+
+Gate: CLAUDE.md-derived instruction — 3 real test emails, synthetic payload
+content, real recipient = emferrari@gmail.com ONLY, no BCC, no other
+recipients, testMode=true recorded in the outbox (scripts/email/outbox.json).
+
+Synthetic data used for payload content: Participante Alfa,
+participante.alfa@example.invalid, REDACTED_PAYMENT_REFERENCE, Carolina do Norte (NC).
+
+1) participant-added
+   emailJobId:        job_1785938980677_wp09q8pt
+   subject:            [TESTE ADMIN] ✅ Sua participação foi registrada — Bolão Powerball — Sorteio 05/08/2026 22:59 ET
+   actual recipient:   emferrari@gmail.com
+   sentAt (UTC):       2026-08-05T14:09:41.932Z
+   providerStatus:     200
+   providerMessageId:  emailjs-1785938981932
+   testMode:           true
+
+2) tickets-published
+   emailJobId:        job_1785938988336_d4s8u5qf
+   subject:            [TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05/08/2026 22:59 ET
+   actual recipient:   emferrari@gmail.com
+   sentAt (UTC):       2026-08-05T14:09:49.439Z
+   providerStatus:     200
+   providerMessageId:  emailjs-1785938989438
+   testMode:           true
+
+3) tickets-corrected
+   emailJobId:        job_1785938994955_ksm9euxe
+   subject:            [TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05/08/2026 22:59 ET — Versão 2
+   actual recipient:   emferrari@gmail.com
+   sentAt (UTC):       2026-08-05T14:09:56.034Z
+   providerStatus:     200
+   providerMessageId:  emailjs-1785938996033
+   testMode:           true
+
+All 3 sends used the same EmailJS service/template as the existing
+send_result_email.py precedent (service_o4hyzxr / template_xq7yzzb), sent via
+scripts/email/send.mjs -> https://api.emailjs.com/api/v1.0/email/send.
+
+No real draw was marked as published. No real participant was notified.
+Full job records (including frozen payloadSnapshot) are in
+scripts/email/outbox.json.

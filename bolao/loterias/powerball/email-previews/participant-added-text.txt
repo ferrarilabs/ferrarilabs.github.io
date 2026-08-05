@@ -1,0 +1,17 @@
+[TESTE ADMIN] — não é um envio de produção
+Participação confirmada, Participante Alfa!
+
+Pool: powerball
+Data da entrada: 04/08/2026 9:00 AM
+Próximo sorteio: 05/08/2026 22:59 ET
+Cotas: 1
+Valor: US$10
+Status do pagamento: verificado
+% de participação: 6.67%
+
+Estimativas do prêmio atual:
+  Jackpot: US$786,000,000
+  Lump Sum líquido estimado: US$13,438,544
+  Anuidade total líquida estimada: US$30,921,240
+
+Site: https://ferrarilabs.github.io/bolao/loterias/powerball/

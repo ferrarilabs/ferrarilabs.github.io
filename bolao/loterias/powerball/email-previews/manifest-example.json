@@ -1,0 +1,31 @@
+{
+  "poolId": "powerball",
+  "drawId": "2026-08-05",
+  "publicationVersion": 1,
+  "publishedAtUtc": "2026-08-05T14:08:15.694Z",
+  "tickets": [
+    {
+      "numbers": [
+        1,
+        14,
+        27,
+        36,
+        63
+      ],
+      "special": 25,
+      "serial": "S-EXAMPLE-1"
+    },
+    {
+      "numbers": [
+        4,
+        11,
+        22,
+        45,
+        61
+      ],
+      "special": 9,
+      "serial": "S-EXAMPLE-1"
+    }
+  ],
+  "sha256": "9139fe1b57a8203ec143fd33bbb14b7566f1b3b7a75e861f5d8e6bc2557bcc9e"
+}
