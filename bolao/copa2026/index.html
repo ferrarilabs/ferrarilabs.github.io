@@ -18,17 +18,17 @@
   ">
   <link rel="icon" href="data:,">
   <title>Bolão do Ferrari — Copa 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=e4074e1225eb">
+  <link rel="stylesheet" href="css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
           integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
           crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous"></script>
-  <script src="js/config.js?v=e4074e1225eb"></script>
-  <script src="js/data.js?v=e4074e1225eb"></script>
-  <script src="js/i18n.js?v=e4074e1225eb"></script>
-  <script defer src="js/app.js?v=e4074e1225eb"></script>
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script defer src="js/app.js"></script>
 </head>
 <body>
 <a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
@@ -98,7 +98,7 @@
     <div id="editByCodeCard" class="card hidden"></div>
     <div id="entryFormCard" class="card">
       <h2 data-i18n="entryTitle">Nova entrada</h2>
-      <div class="form-grid" data-visual-audit="form-grid">
+      <div class="form-grid">
         <label>
           <span data-i18n="entryName">Nome da entrada</span>
           <input id="entryName" type="text" autocomplete="name" placeholder="Eduardo #1" maxlength="80">
@@ -148,7 +148,7 @@
     <form id="bracketForm" class="bracket" aria-label="Bracket de palpites" novalidate></form>
 
     <div class="sticky-submit">
-      <button id="saveEntry" type="button" data-i18n="saveEntry" data-visual-audit="button-primary">Salvar entrada</button>
+      <button id="saveEntry" type="button" data-i18n="saveEntry">Salvar entrada</button>
     </div>
 
     <div id="latestReceiptBox" class="card receipt-ready hidden"></div>
@@ -245,8 +245,8 @@
           <button id="espnSync" type="button" class="secondary small-btn">⚽ ESPN</button>
           <button id="sendResultEmailTest" type="button" class="secondary small-btn">📧 Teste (admin)</button>
           <button id="sendResultEmailAll" type="button" class="secondary small-btn">📧 Email a todos</button>
-          <button id="forceSync" type="button" class="secondary small-btn" data-i18n="forceSyncBtn" data-visual-audit="button-small">☁️ Sync remoto</button>
-          <button id="clearData" type="button" class="danger small-btn" data-visual-audit="button-danger">🗑 Limpar tudo</button>
+          <button id="forceSync" type="button" class="secondary small-btn" data-i18n="forceSyncBtn">☁️ Sync remoto</button>
+          <button id="clearData" type="button" class="danger small-btn">🗑 Limpar tudo</button>
         </div>
         <div id="apiStatusBar" class="hidden" style="padding:4px 2px;margin-top:4px"></div>
       </div>

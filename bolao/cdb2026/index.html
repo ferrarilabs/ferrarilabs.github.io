@@ -17,17 +17,17 @@
   ">
   <link rel="icon" href="data:,">
   <title>Bolão do Ferrari — Copa do Brasil 2026</title>
-  <link rel="stylesheet" href="css/styles.css?v=5f22d172db2f">
+  <link rel="stylesheet" href="css/styles.css">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
           integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
           crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"
           integrity="sha384-GFr3yTh5lJznCbZfpTtXnwboFsxqtTQoeTZCRHhE0579KrRmlCzen5AA8ohaB5ug"
           crossorigin="anonymous"></script>
-  <script src="js/config.js?v=5f22d172db2f"></script>
-  <script src="js/data.js?v=5f22d172db2f"></script>
-  <script src="js/i18n.js?v=5f22d172db2f"></script>
-  <script defer src="js/app.js?v=5f22d172db2f"></script>
+  <script src="js/config.js"></script>
+  <script src="js/data.js"></script>
+  <script src="js/i18n.js"></script>
+  <script defer src="js/app.js"></script>
 </head>
 <body>
 <a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
@@ -58,17 +58,12 @@
     <button type="button" data-section="admin"   data-i18n="navAdmin">Admin</button>
   </nav>
   <!-- Fase 2.1 §7: Participantes/Pagamento saíram da barra principal (paridade de densidade com
-       Copa/BR2026, que têm o mesmo padrão de 6 abas primárias) mas continuavam acessíveis por
-       este link secundário compacto até 2026-08-01. Escondidos agora (mesmo `style="display:none"`
-       do Copa/BR2026 -- ver bolao/br2026/index.html #106) por pedido do Eduardo, "agora que a
-       competição começou": "Deixe aparecer somente os mesmos botões que estão disponíveis no
-       br2026 nesse momento" -- BR2026 e Copa nunca mostraram estes dois no nav em produção.
-       Mesmo atributo data-section, mesmo listener genérico de init() (`$$("[data-section]")`),
-       nenhuma funcionalidade removida -- as seções #participants/#payment continuam existindo e
-       renderizando normalmente, só não têm mais um botão de nav apontando pra elas. -->
+       Copa/BR2026, que têm o mesmo padrão de 6 abas primárias) mas continuam acessíveis por este
+       link secundário compacto -- mesmo atributo data-section, mesmo listener genérico de
+       init() (`$$("[data-section]")`), nenhuma funcionalidade removida. -->
   <div class="nav-secondary" aria-label="Mais opções">
-    <button type="button" class="nav-secondary-link" data-section="participants" data-i18n="navParticipants" style="display:none">Participantes</button>
-    <button type="button" class="nav-secondary-link" data-section="payment" data-i18n="navPayment" style="display:none">Pagamento</button>
+    <button type="button" class="nav-secondary-link" data-section="participants" data-i18n="navParticipants">Participantes</button>
+    <button type="button" class="nav-secondary-link" data-section="payment" data-i18n="navPayment">Pagamento</button>
   </div>
 </header>
 
@@ -118,7 +113,7 @@
     <div id="receiptBox" class="card hidden"></div>
     <div class="card">
       <h2 data-i18n="entryTitle">Nova entrada</h2>
-      <div class="form-grid" data-visual-audit="form-grid">
+      <div class="form-grid">
         <label>
           <span data-i18n="entryName">Nome da entrada</span>
           <input id="entryName" type="text" autocomplete="name" placeholder="Eduardo #1" maxlength="80">
@@ -145,7 +140,7 @@
       <div id="pickForm"></div>
     </div>
     <div class="sticky-submit">
-      <button id="saveEntryBtn" type="button" data-i18n="saveEntry" data-visual-audit="button-primary">Salvar entrada</button>
+      <button id="saveEntryBtn" type="button" data-i18n="saveEntry">Salvar entrada</button>
     </div>
   </section>
 
@@ -227,8 +222,8 @@
           <button id="adminLogoutBtn"  type="button" class="secondary" data-i18n="logout">Sair</button>
           <button id="exportCsvBtn"    type="button" class="secondary small-btn" data-i18n="exportCsvBtn">📊 CSV</button>
           <button id="exportJsonBtn"   type="button" class="secondary small-btn" data-i18n="exportJsonBtn">💾 JSON</button>
-          <button id="forceSyncBtn"    type="button" class="secondary small-btn" data-i18n="forceSyncBtn" data-visual-audit="button-small">☁️ Sync</button>
-          <button id="clearDataBtn"    type="button" class="danger small-btn" data-i18n="clearDataBtn" data-visual-audit="button-danger">🗑️ Limpar tudo</button>
+          <button id="forceSyncBtn"    type="button" class="secondary small-btn" data-i18n="forceSyncBtn">☁️ Sync</button>
+          <button id="clearDataBtn"    type="button" class="danger small-btn" data-i18n="clearDataBtn">🗑️ Limpar tudo</button>
         </div>
       </div>
       <div id="adminEspnSync" class="card"></div>

@@ -1,0 +1,59 @@
+name: Powerball Results (auto fetch + email)
+
+on:
+  schedule:
+    # Tuesday 22:00-06:00 UTC (18:00-02:00 EDT) + Wed 02:59 UTC is Tue 22:59 EDT
+    - cron: '*/10 22-23 * * 2'  # Tuesday 22:00-23:50 UTC
+    - cron: '*/10 0-6 * * 3'    # Wednesday 00:00-06:50 UTC (covers Tue 20:00-02:50 EDT)
+    # Saturday 22:00-06:00 UTC (18:00-02:00 EDT) + Sun 02:59 UTC is Sat 22:59 EDT
+    - cron: '*/10 22-23 * * 6'  # Saturday 22:00-23:50 UTC
+    - cron: '*/10 0-6 * * 0'    # Sunday 00:00-06:50 UTC (covers Sat 20:00-02:50 EDT)
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Dry run (preview without sending email)"
+        required: false
+        type: boolean
+        default: false
+      force_resend:
+        description: "Force resend even if already sent"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  group: powerball-results
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  fetch-and-send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure git
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Fetch and send results
+        working-directory: bolao/loterias/powerball/scripts
+        run: |
+          DRY_RUN=""
+          FORCE_RESEND=""
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY_RUN="--dry-run"
+          [ "${{ github.event.inputs.force_resend }}" = "true" ] && FORCE_RESEND="--force-resend"
+          python3 fetch_and_send_results.py $DRY_RUN $FORCE_RESEND
