@@ -252,20 +252,24 @@ window.POWERBALL_DRAWS = [
             "05-17-26-54-69 — PB 15", "05-36-39-42-68 — PB 06", "06-09-23-44-65 — PB 20",
             "06-10-45-47-54 — PB 09", "06-14-22-37-43 — PB 04"
           ]
+        },
+        {
+          serial: "22CC7A56751B4416E", qtd: 3, jogos: "1–3",
+          numeros: [
+            "03-14-27-34-41 — PB 26", "11-13-29-38-44 — PB 04", "17-28-37-48-62 — PB 07"
+          ]
         }
       ]
     },
 
-    // 51 tickets x US$3 (Power Play) = US$153, já comprados antes do Rodrigo entrar —
-    // ele concorre nos mesmos tickets coletivos (ver sharedTickets), só divide o prêmio
-    // por mais uma cota. Arrecadado inicial US$138 + US$10 do Rodrigo = US$148; faltavam
-    // US$15 pra fechar os tickets, cobertos com os US$16 de prêmio do sorteio anterior
-    // (2026-08-03, ver profit.premiosGanhos daquele draw). Sobra US$11 (148 + 16 - 153).
+    // 54 tickets x US$3 (Power Play) = US$162 (51 originais + 3 do serial
+    // 22CC7A56751B4416E). Arrecadado US$148 + crédito de US$16 do sorteio anterior
+    // (2026-08-03) = US$164 disponível; sobra US$2 (164 - 162) guardado p/ próximo sorteio.
     finance: {
       totalArrecadado: 148,
       creditoSorteioAnterior: 16, // prêmio ganho em 2026-08-03, usado para cobrir o déficit de tickets
-      valorUtilizado: 153,
-      valorGuardadoProximoSorteio: 11 // 148 + 16 - 153
+      valorUtilizado: 162,
+      valorGuardadoProximoSorteio: 2 // 148 + 16 - 162
     },
 
     result: null,
