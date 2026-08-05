@@ -156,7 +156,7 @@ When adding a new participant:
 
 ### Florida (FL)
 - Tax Rate: 37% (no state income tax)
-- Used for Florida residents (e.g., Eduardo Ferrari, Alan Rech)
+- Used for Florida residents (e.g., Jorge Augusto Junqueira Ferreira, Alan Rech)
 
 ### Other States
 - Research current income tax rate

@@ -20,7 +20,7 @@
 ">
 <link rel="icon" href="data:,">
 <title>Bolão Powerball — Ferrari</title>
-<link rel="stylesheet" href="css/styles.css?v=fix-tax-2026-08-05">
+<link rel="stylesheet" href="css/styles.css?v=2026-08-05-tickets">
 <script>
 // Registra Service Worker para cache-busting permanente
 if ('serviceWorker' in navigator) {
@@ -53,6 +53,7 @@ if ('serviceWorker' in navigator) {
           <span id="pbJackpot">$707M</span>
           <small>Jackpot estimado — Sorteio <span id="pbDrawDate"></span></small>
         </div>
+        <div class="pb-jackpot-options" id="pbJackpotOptions"></div>
       </div>
       <div class="pb-countdown">
         <div class="pb-countdown-label">Tempo até o sorteio</div>
@@ -74,20 +75,26 @@ if ('serviceWorker' in navigator) {
 
   <section class="card">
     <h2 class="section-title">Participantes</h2>
-    <p class="pb-disclaimer">⚠️ <strong>Aviso:</strong> Os valores de prêmio abaixo são meramente ilustrativos. Lump Sum usa o Cash Value oficial divulgado pela loteria quando disponível. Impostos calculados por participante conforme o estado (FL = sem imposto estadual, NC = 3,99% flat) + 37% federal — a taxa federal real pode variar conforme a situação fiscal individual (deduções, outros rendimentos etc.). A anuidade mensal exibida é uma <strong>média simplificada</strong> (total ÷ 30 anos ÷ 12); na prática o Powerball paga 30 parcelas anuais crescentes (~5%/ano), não mensais, e a primeira parcela é menor que essa média. Este site não se responsabiliza por informações incorretas ou omissões — consulte um consultor fiscal para cálculos precisos.</p>
+    <p class="pb-disclaimer">⚠️ <strong>Aviso:</strong> Os valores de prêmio abaixo são meramente ilustrativos. São <strong>duas opções de recebimento independentes</strong> que o ganhador escolhe (uma OU outra, nunca as duas): <strong>Lump Sum</strong> (recebe o Cash Value oficial de uma vez só) ou <strong>Anuidade</strong> (recebe o valor cheio do jackpot em 30 parcelas anuais crescentes ao longo de 29 anos — a "Média Mensal" é só o total dividido por 30 anos ÷ 12 para dar uma noção de fluxo mensal; a primeira parcela real do Powerball é menor que essa média, pois as parcelas crescem ~5% ao ano). Impostos calculados por participante conforme o estado (FL = sem imposto estadual, NC = 3,99% flat) + 37% federal — a taxa federal real pode variar conforme a situação fiscal individual (deduções, outros rendimentos etc.). Este site não se responsabiliza por informações incorretas ou omissões — consulte um consultor fiscal para cálculos precisos.</p>
     <div class="pb-table-wrap">
       <table class="pb-table">
         <thead>
           <tr>
-            <th>Nome</th>
-            <th>Valor</th>
-            <th>Método</th>
-            <th>Data / Hora</th>
-            <th>Status</th>
-            <th>Lump Sum Bruto</th>
+            <th rowspan="2">Nome</th>
+            <th rowspan="2">Valor</th>
+            <th rowspan="2">Método</th>
+            <th rowspan="2">Data / Hora</th>
+            <th rowspan="2">Status</th>
+            <th colspan="3" class="pb-th-group">Opção 1 · Lump Sum (à vista)</th>
+            <th colspan="3" class="pb-th-group">Opção 2 · Anuidade (30 anos)</th>
+          </tr>
+          <tr>
+            <th>Bruto</th>
             <th>Impostos</th>
-            <th>Valor Líquido</th>
-            <th>Anuidade Mensal Líquida (média)</th>
+            <th>Líquido</th>
+            <th>Total Bruto</th>
+            <th>Total Líquido</th>
+            <th>Média Mensal Líquida</th>
           </tr>
         </thead>
         <tbody id="pbParticipantsBody"></tbody>
@@ -121,7 +128,7 @@ if ('serviceWorker' in navigator) {
   <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
 </main>
 
-<script src="js/data.js?v=fix-tax-2026-08-05"></script>
-<script src="js/app.js?v=fix-tax-2026-08-05"></script>
+<script src="js/data.js?v=2026-08-05-tickets"></script>
+<script src="js/app.js?v=2026-08-05-tickets"></script>
 </body>
 </html>
