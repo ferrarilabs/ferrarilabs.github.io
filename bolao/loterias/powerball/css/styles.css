@@ -155,7 +155,7 @@ table.pb-table tr:hover td { background: var(--bg3); }
 .pb-tickets-btn:hover { border-color: var(--green); }
 
 .pb-status-pill {
-  display: inline-flex; align-items: center; gap: 4px;
+  display: inline-flex; align-items: center; gap: 4px; white-space: nowrap;
   font-size: .76rem; font-weight: 700; padding: 3px 9px; border-radius: 999px;
 }
 .pb-status-pill.verificado { background: rgba(47,229,110,.15); color: var(--green); }
