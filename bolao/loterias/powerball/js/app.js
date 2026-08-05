@@ -80,11 +80,27 @@
     return isNaN(t) ? 0 : t;
   }
 
+  function calculatePrizePerParticipant(draw) {
+    var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
+    var lumpSumBruto = (draw.drawing.jackpot * 0.505) / totalCotas;
+    var federalTax = 0.37;
+    var stateTax = 0.0399;
+    var totalTax = federalTax + stateTax;
+    var taxAmount = lumpSumBruto * totalTax;
+    var netAmount = lumpSumBruto - taxAmount;
+    return {
+      lumpSumBruto: lumpSumBruto,
+      taxAmount: taxAmount,
+      netAmount: netAmount
+    };
+  }
+
   function renderTable(draw) {
     var tbody = document.getElementById("pbParticipantsBody");
     var sorted = draw.participants.slice().sort(function (a, b) {
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
+    var prize = calculatePrizePerParticipant(draw);
     console.log("DEBUG renderTable:", draw.id, "participants:", sorted.length, "names:", sorted.map(p => p.name).join(", "));
     tbody.innerHTML = sorted.map(function (p) {
       var statusClass = p.status === "organizador" ? "organizador" : "verificado";
@@ -95,6 +111,9 @@
         "<td>" + p.metodo + "</td>" +
         "<td>" + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
         '<td><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
+        "<td>" + fmtUsd(prize.lumpSumBruto) + "</td>" +
+        "<td>" + fmtUsd(prize.taxAmount) + "</td>" +
+        "<td><strong>" + fmtUsd(prize.netAmount) + "</strong></td>" +
         "</tr>";
     }).join("");
   }
