@@ -2002,13 +2002,18 @@ function renderRanking() {
     const bonusLine = e._bonus?.total ? `${t("bonusLabel")} +${e._bonus.total}` : "";
     const demoBadge = e.diagnostics?.demo ? ' <span class="demo-badge">Demo</span>' : "";
     const bonusBadge = bonusLine ? `<br><span class="muted">${escapeHtml(bonusLine)}</span>` : "";
+    // Phase 7-FIX ranking-row canonical skeleton (docs/bolao/CANONICAL_GAME_CARD_SKELETON.md's
+    // ranking-row equivalent): .rank-row/.rank-pos/.points kept (still drive the grid/mobile
+    // CSS, bolao/shared/css/responsive.css) — .ranking-row__position/__participant/__name/
+    // __metadata/__score/__actions added as BEM labels on the same elements, same content/
+    // values as before this change.
     const row = document.createElement("div");
-    row.className = "rank-row";
+    row.className = "rank-row ranking-row";
     row.innerHTML = `
-<div class="rank-pos">${medal}${arrowHtml}</div>
-<div><b>${escapeHtml(e.entryName)}</b>${demoBadge}${bonusBadge}</div>
-<div class="points">${e._score}</div>
-<button type="button" class="secondary small-btn" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
+<div class="rank-pos ranking-row__position">${medal}${arrowHtml}</div>
+<div class="ranking-row__participant"><span class="ranking-row__name"><b>${escapeHtml(e.entryName)}</b></span>${demoBadge}<span class="ranking-row__metadata">${bonusBadge}</span></div>
+<div class="points ranking-row__score">${e._score}</div>
+<button type="button" class="secondary small-btn ranking-row__actions" data-rank-toggle="${escapeHtml(e.id)}" aria-label="${escapeHtml(t("viewPicks"))} — ${escapeHtml(e.entryName || "")}">${escapeHtml(t("viewPicks"))}</button>`;
     box.appendChild(row);
     const detail = document.createElement("div");
     const isOpen = _openRankDetails.has(e.id);
