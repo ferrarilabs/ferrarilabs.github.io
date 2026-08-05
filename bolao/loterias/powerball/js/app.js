@@ -163,6 +163,11 @@
     };
   }
 
+  // Exposto para reuso fora do IIFE (ex.: fluxo de e-mail de confirmação de
+  // participante em scripts/email/). Mesma função usada pela tabela pública —
+  // nunca reimplementar lump sum/anuidade/imposto em outro lugar.
+  window.POWERBALL_PRIZE_CALC = { calculatePrizePerParticipant: calculatePrizePerParticipant };
+
   function renderTable(draw) {
     var tbody = document.getElementById("pbParticipantsBody");
     var sorted = draw.participants.slice().sort(function (a, b) {
