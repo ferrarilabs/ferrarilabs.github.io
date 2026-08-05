@@ -158,12 +158,20 @@ await atest("runParticipantConfirmation blocks on unsupported state and offers r
 });
 if (fs.existsSync(TMP_OUTBOX)) fs.unlinkSync(TMP_OUTBOX);
 
+// NOTE: the real 2026-08-05 draw's own finance fields do not reconcile
+// (totalArrecadado 138 != valorUtilizado 153 + saldo 1) — that's the exact
+// bug found in round 1, and the reconciliation gate now correctly blocks it.
+// These two structural tests (dedup / eligibility filtering) aren't testing
+// reconciliation, so they use a reconciled finance stub on top of the real
+// participant list.
+const RECONCILED_FINANCE_STUB = { totalArrecadado: 6, valorUtilizado: 6, valorGuardadoProximoSorteio: 0, reembolso: 0, outrasDestinacoes: 0 };
+
 await atest("runPublishTickets: one job per eligible recipient, multi-cota participant still gets exactly one", async () => {
   const draw = loadDrawSnapshot(realDraw.id);
   const dupCotas = { ...draw.participants[0], cotas: 3 };
-  const patchedDraw = { ...draw, participants: [dupCotas, ...draw.participants.slice(1)] };
+  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, participants: [dupCotas, ...draw.participants.slice(1)] };
   const r = await runPublishTickets({ drawId: realDraw.id, publicationVersion: 999, dryRun: true, outboxFile: TMP_OUTBOX, syntheticDraw: patchedDraw });
-  assert.equal(r.ok, true);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
   const names = r.results.map((x) => x.participant);
   assert.equal(new Set(names).size, names.length, "duplicate recipient jobs found");
 });
@@ -174,15 +182,22 @@ await atest("runPublishTickets excludes cancelled / cota<=0 / invalid-email part
   const cancelled = { ...draw.participants[0], name: "Cancelled Person", email: "cancelled@example.com", status: "cancelado" };
   const zeroCota = { ...draw.participants[1], name: "Zero Cota", email: "zero@example.com", cotas: 0 };
   const badEmail = { ...draw.participants[2], name: "Bad Email", email: "—" };
-  const patchedDraw = { ...draw, participants: [...draw.participants, cancelled, zeroCota, badEmail] };
+  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, participants: [...draw.participants, cancelled, zeroCota, badEmail] };
   const r = await runPublishTickets({ drawId: realDraw.id, publicationVersion: 998, dryRun: true, outboxFile: TMP_OUTBOX, syntheticDraw: patchedDraw });
-  assert.equal(r.ok, true);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
   const names = r.results.map((x) => x.participant);
   assert.ok(!names.includes("Cancelled Person"));
   assert.ok(!names.includes("Zero Cota"));
   assert.ok(!names.includes("Bad Email"));
 });
 if (fs.existsSync(TMP_OUTBOX)) fs.unlinkSync(TMP_OUTBOX);
+
+test("the REAL 2026-08-05 draw finance, unmodified, is correctly BLOCKED by the reconciliation gate (round-1 bug 2 regression)", () => {
+  const draw = loadDrawSnapshot(realDraw.id);
+  const r = validateTicketPublication({ draw, participants: draw.participants, tickets: [{ numbers: [1, 2, 3, 4, 5], special: 1 }] });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes("FINANCE_NOT_RECONCILED")));
+});
 
 test("validateTicketPublication blocks when no tickets / no participants / invalid ticket", () => {
   const draw = loadDrawSnapshot(realDraw.id);
@@ -193,15 +208,17 @@ test("validateTicketPublication blocks when no tickets / no participants / inval
 
 // -------- 5. Financial totals reconciliation --------
 console.log("\nFinancial reconciliation:");
-test("financial summary totals reconcile against draw.finance", () => {
+test("financial summary totals reconcile against draw.finance (using a reconciled finance stub)", () => {
   const draw = loadDrawSnapshot(realDraw.id);
+  const reconciledDraw = { ...draw, finance: { totalArrecadado: 6, valorUtilizado: 6, valorGuardadoProximoSorteio: 0, reembolso: 0, outrasDestinacoes: 0 } };
   const tickets = [{ numbers: [1, 2, 3, 4, 5], special: 1 }];
-  const { shared } = buildTicketPublicationPayload({ draw, participants: draw.participants, tickets, publicationVersion: 1 });
-  assert.equal(shared.financialSummary.totalArrecadado, draw.finance.totalArrecadado);
-  assert.equal(shared.financialSummary.valorUsado, draw.finance.valorUtilizado);
-  assert.equal(shared.financialSummary.saldoReservado, draw.finance.valorGuardadoProximoSorteio);
+  const { shared } = buildTicketPublicationPayload({ draw: reconciledDraw, participants: draw.participants, tickets, publicationVersion: 1 });
+  assert.equal(shared.financialSummary.totalArrecadado, reconciledDraw.finance.totalArrecadado);
+  assert.equal(shared.financialSummary.valorUsado, reconciledDraw.finance.valorUtilizado);
+  assert.equal(shared.financialSummary.saldoReservado, reconciledDraw.finance.valorGuardadoProximoSorteio);
+  assert.equal(shared.financialSummary.diferencaNaoConciliada, 0);
   const sumCotas = draw.participants.reduce((s, p) => s + p.cotas, 0);
-  assert.equal(shared.financialSummary.totalCotas, sumCotas);
+  assert.equal(shared.financialSummary.totalShares, sumCotas);
 });
 
 // -------- 6. Snapshot immutability --------
@@ -229,8 +246,9 @@ test("hash in HTML email, CSV, and PDF text all match the manifest's own sha256"
   const { shared, perRecipient } = buildTicketPublicationPayload({ draw, participants: draw.participants, tickets, publicationVersion: 1 });
   const csv = manifestToCsv(shared.manifest);
   const html = renderTicketPublicationHtml(perRecipient[0], false);
-  assert.ok(csv.includes(shared.manifest.sha256));
-  assert.ok(html.includes(shared.manifest.sha256));
+  assert.ok(csv.includes(shared.manifest.sha256)); // full hash in the JSON-manifest-derived CSV
+  assert.ok(html.includes(shared.manifestHashShort)); // HTML shows the short form only, per the "Hash presentation" spec
+  assert.ok(shared.manifest.sha256.startsWith(shared.manifestHashShort.split("…")[0]));
   // Recomputed independently from the manifest content (minus the hash field itself) must match.
   const { sha256, ...manifestWithoutHash } = shared.manifest;
   assert.equal(sha256Hex(stableStringify(manifestWithoutHash)), sha256);
