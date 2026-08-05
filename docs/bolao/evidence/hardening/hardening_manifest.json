@@ -1,0 +1,110 @@
+[
+  {
+    "name": "cdb2026_live_aggregate@390x844",
+    "status": "VARIANT_APPROVED",
+    "screenshot": "cdb2026_live_aggregate_pending_second_leg_390x844.png",
+    "reason": "second leg not yet live in this static capture (ESPN live-poll is real-time and can't be forced without a running poll cycle) — captures the pre-live 'aggregate after leg 1' state honestly instead of fabricating a live tick",
+    "capturedAtUtc": "2026-08-05T20:06:11.459Z"
+  },
+  {
+    "name": "cdb2026_live_aggregate@768x1024",
+    "status": "VARIANT_APPROVED",
+    "screenshot": "cdb2026_live_aggregate_pending_second_leg_768x1024.png",
+    "reason": "second leg not yet live in this static capture (ESPN live-poll is real-time and can't be forced without a running poll cycle) — captures the pre-live 'aggregate after leg 1' state honestly instead of fabricating a live tick",
+    "capturedAtUtc": "2026-08-05T20:06:11.746Z"
+  },
+  {
+    "name": "cdb2026_live_aggregate@1440x900",
+    "status": "VARIANT_APPROVED",
+    "screenshot": "cdb2026_live_aggregate_pending_second_leg_1440x900.png",
+    "reason": "second leg not yet live in this static capture (ESPN live-poll is real-time and can't be forced without a running poll cycle) — captures the pre-live 'aggregate after leg 1' state honestly instead of fabricating a live tick",
+    "capturedAtUtc": "2026-08-05T20:06:12.089Z"
+  },
+  {
+    "name": "cdb2026_final_penalties@390x844",
+    "status": "EQUAL",
+    "screenshot": "cdb2026_final_penalties_mandatory_scenario_390x844.png",
+    "aggregateText": "Agregado: 1 × 1",
+    "penaltiesText": "Pênaltis: 5 × 4",
+    "advancesText": "Classificado: Time Alfa",
+    "capturedAtUtc": "2026-08-05T20:06:13.909Z"
+  },
+  {
+    "name": "cdb2026_final_penalties@768x1024",
+    "status": "EQUAL",
+    "screenshot": "cdb2026_final_penalties_mandatory_scenario_768x1024.png",
+    "aggregateText": "Agregado: 1 × 1",
+    "penaltiesText": "Pênaltis: 5 × 4",
+    "advancesText": "Classificado: Time Alfa",
+    "capturedAtUtc": "2026-08-05T20:06:14.166Z"
+  },
+  {
+    "name": "cdb2026_final_penalties@1440x900",
+    "status": "EQUAL",
+    "screenshot": "cdb2026_final_penalties_mandatory_scenario_1440x900.png",
+    "aggregateText": "Agregado: 1 × 1",
+    "penaltiesText": "Pênaltis: 5 × 4",
+    "advancesText": "Classificado: Time Alfa",
+    "capturedAtUtc": "2026-08-05T20:06:14.509Z"
+  },
+  {
+    "name": "br2026_probabilidades@390x844",
+    "status": "EQUAL",
+    "screenshot": "br2026_probabilidades_390x844.png",
+    "capturedAtUtc": "2026-08-05T20:06:16.205Z"
+  },
+  {
+    "name": "br2026_probabilidades@768x1024",
+    "status": "EQUAL",
+    "screenshot": "br2026_probabilidades_768x1024.png",
+    "capturedAtUtc": "2026-08-05T20:06:16.313Z"
+  },
+  {
+    "name": "br2026_probabilidades@1440x900",
+    "status": "EQUAL",
+    "screenshot": "br2026_probabilidades_1440x900.png",
+    "capturedAtUtc": "2026-08-05T20:06:16.435Z"
+  },
+  {
+    "name": "sports_source_failure@390x844",
+    "status": "EQUAL",
+    "screenshot": "sports_source_failure_br2026_390x844.png",
+    "reason": "real error state shown, not a stuck spinner",
+    "capturedAtUtc": "2026-08-05T20:06:18.597Z"
+  },
+  {
+    "name": "sports_source_failure@768x1024",
+    "status": "EQUAL",
+    "screenshot": "sports_source_failure_br2026_768x1024.png",
+    "reason": "real error state shown, not a stuck spinner",
+    "capturedAtUtc": "2026-08-05T20:06:18.680Z"
+  },
+  {
+    "name": "sports_source_failure@1440x900",
+    "status": "EQUAL",
+    "screenshot": "sports_source_failure_br2026_1440x900.png",
+    "reason": "real error state shown, not a stuck spinner",
+    "capturedAtUtc": "2026-08-05T20:06:18.754Z"
+  },
+  {
+    "name": "build_update_recovery@390x844",
+    "status": "EQUAL",
+    "screenshot": "build_update_recovery_cdb2026_390x844.png",
+    "reason": "freshness-guard detected the build mismatch and reloaded (before=http://localhost:8193/bolao/cdb2026/ after=http://localhost:8193/bolao/cdb2026/?_fresh=simulatedNEWbuild01)",
+    "capturedAtUtc": "2026-08-05T20:06:20.527Z"
+  },
+  {
+    "name": "build_update_recovery@768x1024",
+    "status": "EQUAL",
+    "screenshot": "build_update_recovery_cdb2026_768x1024.png",
+    "reason": "freshness-guard detected the build mismatch and reloaded (before=http://localhost:8193/bolao/cdb2026/ after=http://localhost:8193/bolao/cdb2026/?_fresh=simulatedNEWbuild01)",
+    "capturedAtUtc": "2026-08-05T20:06:20.622Z"
+  },
+  {
+    "name": "build_update_recovery@1440x900",
+    "status": "EQUAL",
+    "screenshot": "build_update_recovery_cdb2026_1440x900.png",
+    "reason": "freshness-guard detected the build mismatch and reloaded (before=http://localhost:8193/bolao/cdb2026/ after=http://localhost:8193/bolao/cdb2026/?_fresh=simulatedNEWbuild01)",
+    "capturedAtUtc": "2026-08-05T20:06:20.728Z"
+  }
+]
