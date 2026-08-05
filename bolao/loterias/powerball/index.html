@@ -20,7 +20,7 @@
 ">
 <link rel="icon" href="data:,">
 <title>Bolão Powerball — Ferrari</title>
-<link rel="stylesheet" href="css/styles.css?v=ec3d11d">
+<link rel="stylesheet" href="css/styles.css?v=fix-tax-2026-08-05">
 <script>
 // Registra Service Worker para cache-busting permanente
 if ('serviceWorker' in navigator) {
@@ -74,7 +74,7 @@ if ('serviceWorker' in navigator) {
 
   <section class="card">
     <h2 class="section-title">Participantes</h2>
-    <p class="pb-disclaimer">⚠️ <strong>Aviso:</strong> Os valores de prêmio abaixo são meramente ilustrativos baseados no jackpot atual. Impostos federais e estaduais variam conforme a situação fiscal individual de cada participante. Este site não se responsabiliza por informações incorretas ou omissões. Consulte um consultor fiscal para cálculos precisos.</p>
+    <p class="pb-disclaimer">⚠️ <strong>Aviso:</strong> Os valores de prêmio abaixo são meramente ilustrativos. Lump Sum usa o Cash Value oficial divulgado pela loteria quando disponível. Impostos calculados por participante conforme o estado (FL = sem imposto estadual, NC = 3,99% flat) + 37% federal — a taxa federal real pode variar conforme a situação fiscal individual (deduções, outros rendimentos etc.). A anuidade mensal exibida é uma <strong>média simplificada</strong> (total ÷ 30 anos ÷ 12); na prática o Powerball paga 30 parcelas anuais crescentes (~5%/ano), não mensais, e a primeira parcela é menor que essa média. Este site não se responsabiliza por informações incorretas ou omissões — consulte um consultor fiscal para cálculos precisos.</p>
     <div class="pb-table-wrap">
       <table class="pb-table">
         <thead>
@@ -87,6 +87,7 @@ if ('serviceWorker' in navigator) {
             <th>Lump Sum Bruto</th>
             <th>Impostos</th>
             <th>Valor Líquido</th>
+            <th>Anuidade Mensal Líquida (média)</th>
           </tr>
         </thead>
         <tbody id="pbParticipantsBody"></tbody>
@@ -120,7 +121,7 @@ if ('serviceWorker' in navigator) {
   <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
 </main>
 
-<script src="js/data.js?v=ec3d11d"></script>
-<script src="js/app.js?v=ec3d11d"></script>
+<script src="js/data.js?v=fix-tax-2026-08-05"></script>
+<script src="js/app.js?v=fix-tax-2026-08-05"></script>
 </body>
 </html>

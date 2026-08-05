@@ -80,18 +80,46 @@
     return isNaN(t) ? 0 : t;
   }
 
-  function calculatePrizePerParticipant(draw) {
+  // Imposto estadual sobre prêmios de loteria, por estado (taxa fixa sobre o valor
+  // bruto). null = estado não cadastrado ainda (ver PARTICIPANT_FRAMEWORK.md).
+  // Fontes: NC Dept. of Revenue (3,99% flat); FL não tributa renda pessoa física.
+  var STATE_TAX_RATES = {
+    FL: 0,      // Florida — sem imposto de renda estadual
+    NC: 0.0399  // North Carolina — 3,99% flat sobre a renda (inclui prêmios de loteria)
+  };
+  var FEDERAL_TAX_RATE = 0.37; // Faixa federal mais alta, aplicável a prêmios deste porte
+
+  function calculatePrizePerParticipant(draw, participant) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
-    var lumpSumBruto = (draw.drawing.jackpot * 0.505) / totalCotas;
-    var federalTax = 0.37;
-    var stateTax = 0.0399;
-    var totalTax = federalTax + stateTax;
-    var taxAmount = lumpSumBruto * totalTax;
+    // Usa o Cash Value oficial divulgado pela loteria quando disponível; cai para a
+    // estimativa genérica de 50,5% só quando ainda não temos o valor oficial.
+    var lumpSumPool = draw.drawing.cashValue != null ? draw.drawing.cashValue : draw.drawing.jackpot * 0.505;
+    var lumpSumBruto = (lumpSumPool / totalCotas) * participant.cotas;
+
+    var stateRate = STATE_TAX_RATES.hasOwnProperty(participant.state) ? STATE_TAX_RATES[participant.state] : null;
+    if (stateRate === null) {
+      // Estado não cadastrado: não estimamos o imposto para não mostrar número errado.
+      return { lumpSumBruto: lumpSumBruto, taxAmount: null, netAmount: null, monthlyAnnuityNet: null, stateKnown: false };
+    }
+
+    var federalTax = lumpSumBruto * FEDERAL_TAX_RATE;
+    var stateTax = lumpSumBruto * stateRate;
+    var taxAmount = federalTax + stateTax;
     var netAmount = lumpSumBruto - taxAmount;
+
+    // Anuidade: 30 pagamentos anuais e crescentes (~5%/ano) sobre o valor cheio do
+    // jackpot — aqui mostramos a MÉDIA mensal simplificada (total ÷ 30 anos ÷ 12),
+    // não o valor do primeiro pagamento real (que é menor que a média).
+    var annuityTotal = (draw.drawing.jackpot / totalCotas) * participant.cotas;
+    var monthlyAnnuityGross = annuityTotal / 30 / 12;
+    var monthlyAnnuityNet = monthlyAnnuityGross * (1 - FEDERAL_TAX_RATE - stateRate);
+
     return {
       lumpSumBruto: lumpSumBruto,
       taxAmount: taxAmount,
-      netAmount: netAmount
+      netAmount: netAmount,
+      monthlyAnnuityNet: monthlyAnnuityNet,
+      stateKnown: true
     };
   }
 
@@ -100,20 +128,22 @@
     var sorted = draw.participants.slice().sort(function (a, b) {
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
-    var prize = calculatePrizePerParticipant(draw);
     console.log("DEBUG renderTable:", draw.id, "participants:", sorted.length, "names:", sorted.map(p => p.name).join(", "));
     tbody.innerHTML = sorted.map(function (p) {
       var statusClass = p.status === "organizador" ? "organizador" : "verificado";
       var statusLabel = p.status === "organizador" ? "Organizador" : "✓ Verificado";
+      var prize = calculatePrizePerParticipant(draw, p);
+      var stateLabel = p.state ? " (" + p.state + ")" : "";
       return "<tr>" +
-        "<td>" + p.name + "</td>" +
+        "<td>" + p.name + stateLabel + "</td>" +
         "<td>" + fmtUsd(p.valor) + "</td>" +
         "<td>" + p.metodo + "</td>" +
         "<td>" + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
         '<td><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
         "<td>" + fmtUsd(prize.lumpSumBruto) + "</td>" +
-        "<td>" + fmtUsd(prize.taxAmount) + "</td>" +
-        "<td><strong>" + fmtUsd(prize.netAmount) + "</strong></td>" +
+        "<td>" + (prize.stateKnown ? fmtUsd(prize.taxAmount) : "—") + "</td>" +
+        "<td><strong>" + (prize.stateKnown ? fmtUsd(prize.netAmount) : "—") + "</strong></td>" +
+        "<td>" + (prize.stateKnown ? fmtUsd(Math.round(prize.monthlyAnnuityNet)) : "—") + "</td>" +
         "</tr>";
     }).join("");
   }
