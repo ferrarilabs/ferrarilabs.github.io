@@ -76,14 +76,20 @@
   function renderSummary(draw) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
     var el = document.getElementById("pbSummary");
-    el.innerHTML = [
+    var rows = [
       [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"],
       [totalCotas, "Cotas (US$10 cada)"],
-      [draw.participants.length, "Participantes"],
+      [draw.participants.length, "Participantes"]
+    ];
+    if (draw.finance.creditoSorteioAnterior) {
+      rows.push([fmtUsd(draw.finance.creditoSorteioAnterior), "Crédito do sorteio anterior"]);
+    }
+    rows.push(
       [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
       [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
       ["$" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M", "Jackpot"]
-    ].map(function (row) {
+    );
+    el.innerHTML = rows.map(function (row) {
       return '<div class="pb-summary-item"><div class="v">' + row[0] + '</div><div class="l">' + row[1] + "</div></div>";
     }).join("");
   }
