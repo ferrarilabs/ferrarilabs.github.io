@@ -42,10 +42,17 @@ class NotificationBridgeTests(unittest.TestCase):
             return 200
         self._orig_send_email = sre.send_email
         sre.send_email = fake_send_email
+        # Section 5 review: production's real time.sleep(3) per-recipient throttle in
+        # sre._send_to_all() made these tests take 18-45s each for no real reason -- a
+        # test must never depend on real wall-clock sleep. Production code keeps its
+        # real throttle untouched; only the TEST's view of time.sleep is a no-op.
+        self._orig_sleep = sre.time.sleep
+        sre.time.sleep = lambda *_a, **_k: None
 
     def tearDown(self):
         outbox.default_outbox_path = self._orig_default_path
         sre.send_email = self._orig_send_email
+        sre.time.sleep = self._orig_sleep
         self._tmpdir.cleanup()
 
     def test_first_send_goes_through_and_is_recorded_sent(self):

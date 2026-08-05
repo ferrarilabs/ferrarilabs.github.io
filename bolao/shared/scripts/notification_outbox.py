@@ -85,6 +85,11 @@ def enqueue(job: dict, path: Optional[str] = None) -> tuple[dict, bool]:
     if existing:
         return existing, False
     record = {
+        # schemaVersion/providerMessageId added post-review (field-equality audit against
+        # notification_outbox.mjs) — see that file's matching comment for why the fuller
+        # poolId/eventId/templateId/templateVersion/nextAttemptAt rename is a deferred follow-up
+        # rather than a same-session change to already-wired production call sites.
+        "schemaVersion": 1,
         "jobId": f"job_{int(time.time() * 1000)}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=8))}",
         "app": job["app"],
         "matchId": job["matchId"],
@@ -98,6 +103,7 @@ def enqueue(job: dict, path: Optional[str] = None) -> tuple[dict, bool]:
         "processingStartedAt": None,
         "lastAttemptAt": None,
         "sentAt": None,
+        "providerMessageId": None,
         "lastError": None,
         "createdAt": _now_iso(),
     }
@@ -106,7 +112,7 @@ def enqueue(job: dict, path: Optional[str] = None) -> tuple[dict, bool]:
     return record, True
 
 
-def record_result(job_id: str, ok: bool, error: Optional[str] = None, path: Optional[str] = None) -> dict:
+def record_result(job_id: str, ok: bool, error: Optional[str] = None, path: Optional[str] = None, provider_message_id: Optional[str] = None) -> dict:
     path = path or default_outbox_path()
     jobs = read_all(path)
     idx = next((i for i, j in enumerate(jobs) if j.get("jobId") == job_id), None)
@@ -120,6 +126,7 @@ def record_result(job_id: str, ok: bool, error: Optional[str] = None, path: Opti
     j["lastError"] = None if ok else (error or "unknown error")
     if ok:
         j["sentAt"] = j["lastAttemptAt"]
+        j["providerMessageId"] = provider_message_id if provider_message_id is not None else j.get("providerMessageId")
     jobs[idx] = j
     _write_all(jobs, path)
     return j

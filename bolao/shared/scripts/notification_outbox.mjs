@@ -51,6 +51,15 @@ export function enqueue(job, clock, file = defaultOutboxPath()) {
   const existing = jobs.find((j) => j.idempotencyKey === job.idempotencyKey);
   if (existing) return { job: existing, created: false };
   const record = {
+    // Added post-review (Eduardo's field-equality audit): schemaVersion and providerMessageId
+    // were missing. Full rename to poolId/eventId/templateId/templateVersion/nextAttemptAt
+    // (matching the Powerball outbox's naming) is a DEFERRED follow-up, not done here — those
+    // fields are already read/written by three production call sites
+    // (bolao/{cdb2026,copa2026,br2026}/scripts/send_*.py) and a same-session rename of an
+    // already-wired production integration is exactly the kind of rushed change this repo's own
+    // governance warns against. app/matchId/resultVersion are kept as-is; schemaVersion and
+    // providerMessageId are purely additive.
+    schemaVersion: 1,
     jobId: `job_${clock.nowMs()}_${Math.random().toString(36).slice(2, 10)}`,
     app: job.app,
     matchId: job.matchId,
@@ -64,6 +73,7 @@ export function enqueue(job, clock, file = defaultOutboxPath()) {
     processingStartedAt: null,
     lastAttemptAt: null,
     sentAt: null,
+    providerMessageId: null,
     lastError: null,
     createdAt: clock.nowIso(),
   };
@@ -101,7 +111,7 @@ export function recordResult(jobId, result, clock, file = defaultOutboxPath()) {
   j.processingStartedAt = null;
   j.status = result.ok ? "sent" : "failed";
   j.lastError = result.ok ? null : (result.error || "unknown error");
-  if (result.ok) j.sentAt = j.lastAttemptAt;
+  if (result.ok) { j.sentAt = j.lastAttemptAt; j.providerMessageId = result.providerMessageId ?? j.providerMessageId ?? null; }
   jobs[idx] = j;
   writeAll(jobs, file);
   return j;
