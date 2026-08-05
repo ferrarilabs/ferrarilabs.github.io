@@ -39,7 +39,8 @@
     var sel = document.getElementById("pbDrawSelect");
     sel.innerHTML = DRAWS.map(function (d, i) {
       var gt = GAME_TYPES[d.gameType] || GAME_TYPES.powerball;
-      var hasResult = getEffectiveDraw(d).result.numbers ? "✓ " : "";
+      var effectiveDraw = getEffectiveDraw(d);
+      var hasResult = effectiveDraw.result && effectiveDraw.result.numbers ? "✓ " : "";
       return '<option value="' + i + '"' + (i === currentIdx ? " selected" : "") + '>' +
         hasResult + gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
     }).join("");
@@ -60,7 +61,7 @@
     var el = document.getElementById("pbSummary");
     el.innerHTML = [
       [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"],
-      [totalCotas, "Cotas (US$20 cada)"],
+      [totalCotas, "Cotas (US$10 cada)"],
       [draw.participants.length, "Participantes"],
       [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
       [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
@@ -68,6 +69,21 @@
     ].map(function (row) {
       return '<div class="pb-summary-item"><div class="v">' + row[0] + '</div><div class="l">' + row[1] + "</div></div>";
     }).join("");
+  }
+
+  function calculatePrizePerParticipant(draw) {
+    var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
+    var lumpSumBruto = (draw.drawing.jackpot * 0.505) / totalCotas;
+    var federalTax = 0.37;
+    var stateTax = 0.0399;
+    var totalTax = federalTax + stateTax;
+    var taxAmount = lumpSumBruto * totalTax;
+    var netAmount = lumpSumBruto - taxAmount;
+    return {
+      lumpSumBruto: lumpSumBruto,
+      taxAmount: taxAmount,
+      netAmount: netAmount
+    };
   }
 
   // "31/07/2026" + "4:52:51 PM" -> timestamp, para ordenar a tabela por entrada.
@@ -84,6 +100,7 @@
     var sorted = draw.participants.slice().sort(function (a, b) {
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
+    var prize = calculatePrizePerParticipant(draw);
     console.log("DEBUG renderTable:", draw.id, "participants:", sorted.length, "names:", sorted.map(p => p.name).join(", "));
     tbody.innerHTML = sorted.map(function (p) {
       var statusClass = p.status === "organizador" ? "organizador" : "verificado";
@@ -94,6 +111,9 @@
         "<td>" + p.metodo + "</td>" +
         "<td>" + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
         '<td><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
+        "<td>" + fmtUsd(prize.lumpSumBruto) + "</td>" +
+        "<td>" + fmtUsd(prize.taxAmount) + "</td>" +
+        "<td><strong>" + fmtUsd(prize.netAmount) + "</strong></td>" +
         "</tr>";
     }).join("");
   }
