@@ -57,6 +57,9 @@ export function enqueueEmailJob(job, file) {
     lastError: null,
     testMode: !!job.testMode,
     createdAt: new Date().toISOString(),
+    expectedSubject: job.expectedSubject || null,
+    providerSubjectParameters: job.providerSubjectParameters || null,
+    receivedSubject: null, // filled in manually after a Gmail cross-check, never assumed from providerStatus
   };
   jobs.push(record);
   writeAll(jobs, file);
@@ -75,6 +78,8 @@ export function recordEmailResult(emailJobId, result, file) {
   j.providerMessageId = result.providerMessageId ?? null;
   j.lastError = result.ok ? null : (result.error || "unknown error");
   if (result.ok) j.sentAt = j.lastAttemptAt;
+  if (result.expectedSubject) j.expectedSubject = result.expectedSubject;
+  if (result.providerSubjectParameters) j.providerSubjectParameters = result.providerSubjectParameters;
   jobs[idx] = j;
   writeAll(jobs, file);
   return j;
