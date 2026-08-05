@@ -178,7 +178,7 @@
         '<td data-label="Nome">' + p.name + stateLabel + "</td>" +
         '<td data-label="Valor">' + fmtUsd(p.valor) + "</td>" +
         '<td data-label="Método" class="pb-td-mobile-hide">' + p.metodo + "</td>" +
-        '<td data-label="Data / Hora" class="pb-td-mobile-hide">' + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
+        '<td data-label="Data / Hora">' + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
         '<td data-label="Status"><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
         '<td data-label="Lump Sum Bruto" class="pb-td-mobile-hide">' + fmtUsdCompact(prize.lumpSumBruto) + "</td>" +
         '<td data-label="Lump Sum Impostos" class="pb-td-mobile-hide">' + (prize.stateKnown ? fmtUsdCompact(prize.lumpSumTax) : "—") + "</td>" +
