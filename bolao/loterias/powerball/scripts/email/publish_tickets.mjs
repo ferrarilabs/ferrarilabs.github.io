@@ -32,7 +32,7 @@ function ticketsFromDraw(draw) {
   return out;
 }
 
-export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, correctionReason, previousHash, outboxFile, dryRun, syntheticDraw }) {
+export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw }) {
   const draw = syntheticDraw || loadDrawSnapshot(drawId);
   const tickets = (syntheticDraw && syntheticDraw.__tickets) ? syntheticDraw.__tickets : ticketsFromDraw(draw);
   const participants = draw.participants;
@@ -41,8 +41,24 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
   const validation = validateTicketPublication({ draw, participants: eligible, tickets });
   if (!validation.ok) return { ok: false, errors: validation.errors, invalidRecipients: validation.invalidRecipients };
 
+  // Correction path: never send from a typed description disconnected from
+  // the data — the diff must be real, and if nothing actually changed we
+  // block creation of the correction email entirely (round-1 bug 3).
+  if (correctionReason) {
+    if (!previousTickets) return { ok: false, errors: ["CORRECTION_MISSING_PREVIOUS_TICKETS"] };
+    const { computeTicketDiff } = await import("./diff.mjs");
+    const diff = computeTicketDiff(previousTickets, tickets);
+    if (!diff.hasDiff) {
+      return {
+        ok: false,
+        errors: ["NO_DIFF"],
+        message: `Não existem diferenças entre as versões ${publicationVersion} e ${publicationVersion - 1}. Nenhum e-mail de correção foi criado.`,
+      };
+    }
+  }
+
   const { shared, perRecipient } = buildTicketPublicationPayload({
-    draw, participants: eligible, tickets, publicationVersion, proofUrl, correctionReason, previousHash,
+    draw, participants: eligible, tickets, publicationVersion, proofUrl, correctionReason, previousHash, previousTickets,
   });
 
   const results = [];

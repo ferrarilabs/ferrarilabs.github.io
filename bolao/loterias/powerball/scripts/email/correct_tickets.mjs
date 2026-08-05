@@ -1,8 +1,10 @@
 #!/usr/bin/env node
-// Correction flow — never overwrites. Reads the previous manifest (if present),
-// writes a NEW versioned manifest file (prior file untouched), records the
-// correction reason, recomputes the hash via buildTicketPublicationPayload, and
-// sends the distinct "tickets-corrected" template.
+// Correction flow — never overwrites. Reads the previous manifest's ACTUAL
+// ticket list (not just its hash) so runPublishTickets can compute a real
+// diff. Writes a NEW versioned manifest file (prior file untouched), records
+// the correction reason ONLY alongside that real diff, recomputes the hash,
+// and sends the distinct "tickets-corrected" template. Blocks entirely (no
+// email created) when the two versions' tickets are identical.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -18,10 +20,19 @@ function parseArgs(argv) {
   return out;
 }
 
-export async function runCorrectTickets({ drawId, newVersion, previousVersion, reason, testMode, overrideRecipient, dryRun, syntheticDraw }) {
+export async function runCorrectTickets({ drawId, newVersion, previousVersion, reason, testMode, overrideRecipient, dryRun, syntheticDraw, previousTicketsOverride }) {
   fs.mkdirSync(MANIFEST_DIR, { recursive: true });
   const prevPath = path.join(MANIFEST_DIR, `${drawId}.v${previousVersion}.json`);
-  const previousHash = fs.existsSync(prevPath) ? JSON.parse(fs.readFileSync(prevPath, "utf8")).sha256 : null;
+  let previousHash = null;
+  let previousTickets = previousTicketsOverride || null;
+  if (fs.existsSync(prevPath)) {
+    const prevManifest = JSON.parse(fs.readFileSync(prevPath, "utf8"));
+    previousHash = prevManifest.sha256;
+    if (!previousTickets) previousTickets = prevManifest.tickets;
+  }
+  if (!previousTickets) {
+    return { ok: false, errors: ["NO_PREVIOUS_VERSION_FOUND"], message: `Versão anterior (${previousVersion}) não encontrada — não é possível gerar um diff real. Nenhum e-mail de correção foi criado.` };
+  }
 
   const result = await runPublishTickets({
     drawId,
@@ -30,6 +41,7 @@ export async function runCorrectTickets({ drawId, newVersion, previousVersion, r
     overrideRecipient,
     correctionReason: reason,
     previousHash,
+    previousTickets,
     dryRun,
     syntheticDraw,
   });
@@ -38,7 +50,6 @@ export async function runCorrectTickets({ drawId, newVersion, previousVersion, r
     // Preserve the new version distinctly; the previous file (if any) is never touched.
     const newPath = path.join(MANIFEST_DIR, `${drawId}.v${newVersion}.json`);
     fs.writeFileSync(newPath, JSON.stringify(result.manifest, null, 2) + "\n");
-    result.diff = previousHash ? { previousHash, newHash: result.manifest.sha256, changed: previousHash !== result.manifest.sha256 } : null;
   }
   return result;
 }
