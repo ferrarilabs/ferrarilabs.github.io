@@ -39,6 +39,13 @@ test("no duplicate dropdown label across all draws", () => {
   assert.equal(new Set(labels).size, labels.length, `duplicate label found: ${JSON.stringify(labels)}`);
 });
 
+test("no dropdown label bakes in a checkmark — the native <select> already shows its own selection indicator, a baked-in ✓/✔ would duplicate it", () => {
+  const labels = draws.map(drawSelectorLabel);
+  for (const label of labels) {
+    assert.ok(!label.includes("✓") && !label.includes("✔"), `label contains a checkmark character: ${JSON.stringify(label)}`);
+  }
+});
+
 test("the next draw (2026-08-08) exists, is in planning, and appears distinctly in the dropdown", () => {
   const next = draws.find((d) => d.id === "2026-08-08");
   assert.ok(next, "2026-08-08 draw not found");
