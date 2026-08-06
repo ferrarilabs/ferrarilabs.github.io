@@ -1,5 +1,33 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.93 — 2026-08-06 — Participantes/Pagamento visible again (framework-migration regression); dropped the always-on provisional-score note
+
+Eduardo, screenshot: "Essa parte não é necessário: Resultado não travado — pontuação provisória.
+E por que tem isso agora??" — the "por que tem isso agora" turned out to be a real regression,
+not a new bug: "Participantes"/"Pagamento" showed up again in the nav-secondary strip, which had
+been explicitly hidden (`style="display:none"`) since commit b8080aa (2026-08-01, "Deixe aparecer
+somente os mesmos botões que estão disponíveis no br2026"). Traced it to `a22ee99
+refactor(bolao): migrate CDB2026 to canonical framework` (2026-08-04) — that rewrite of
+`index.html` recreated the `.nav-secondary` block without the `display:none`, silently reverting
+a real, shipped product decision. Restored it (same two `style="display:none"` attributes,
+nothing else in that block touched — `data-section`/listeners/the `#participants`/`#payment`
+sections themselves were never affected either way).
+
+Also removed the "Resultado não travado — pontuação provisória" note per Eduardo's explicit
+request. It showed above the Ranking list whenever ANY tie in ANY phase across the whole
+tournament wasn't decided yet — in practice, almost always, until the Final itself concludes
+months from now — unlike BR2026's `.prov-note` (central to its live season-projection model,
+`BR2026_PROJECTION_MODEL.md`) or Copa's (only shown during an actual live match). Removed the
+now-dead `resultsProgress()` function (had no other caller), the `provisionalNote` i18n key, and
+the `.prov-note` CSS rule along with it — BR2026/Copa's own versions of this pattern are
+untouched (different context, `TOURNAMENT_SPECIFIC`).
+
+Verified with Playwright against real production state: nav-secondary links confirmed
+`display:none` again, `.prov-note` confirmed absent from the DOM, ranking otherwise unchanged
+(Matheus's corrected 77 pts from the previous fix still showing). `node --check`: OK.
+`audit_scoring.py` (3 apps), `audit_golden_master.mjs` (37/37), and `audit_state_merge.mjs`
+(44/44) all re-run — scoring/merge untouched, this was markup/display only.
+
 ## v3.92 — 2026-08-05 — Live aggregate showed correct numbers on the wrong side
 
 Eduardo, screenshot of the live Grêmio × Mirassol second leg: "o agregado está correto mas para

@@ -134,7 +134,6 @@ window.CDB2026_I18N = {
     // Ranking
     rankingTitle: "Ranking",
     rankingSubtitle: "Pontuação baseada nos resultados da Copa do Brasil 2026.",
-    provisionalNote: "Resultado não travado — pontuação provisória.",
     noEntries: "Nenhuma entrada ainda.",
     // Achado real (2026-07-14, Eduardo) -- ver renderPickDisplay() em app.js.
     picksHiddenUntilCutoff: "Os palpites ficam ocultos até o prazo da fase ativa encerrar — evita que participantes copiem uns dos outros.",
