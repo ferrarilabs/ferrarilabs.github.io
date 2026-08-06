@@ -66,14 +66,14 @@ Key design decisions:
 - The public-projection view (`lottery_public_projection` in `002_rls.sql`) intentionally does
   not yet join published ticket numbers/results — that join was deliberately left out rather
   than guessed at, pending validation against real fixture data. Tracked here, not hidden.
-- Participantes, Pagamentos, and Sorteios are fully wired end-to-end in the admin UI (list via
-  RLS-gated SELECT, every mutation via a real RPC call: create/archive participant, record/
-  reverse payment, create draw/edit estimates with optimistic-concurrency handling). The
-  remaining 8 sections (Visão geral, Bilhetes, Publicações, Resultados, E-mails, Comprovantes,
-  Auditoria, Saúde do sistema) have RPCs designed and specified in the migrations, but the UI
-  screens themselves are not built — per Eduardo's instruction, an unwired button must not exist
-  in the shipped UI, so these sections currently render explanatory text and no buttons rather
-  than a decoy screen.
+- Participantes, Pagamentos, Sorteios, Bilhetes, and Resultados are fully wired end-to-end in
+  the admin UI (list via RLS-gated SELECT, every mutation via a real RPC call). Resultados'
+  "Corrigir" button requires typing "CONFIRMAR" literally before calling `admin_correct_result`,
+  matching the critical-action requirement from the task spec. The remaining 6 sections (Visão
+  geral, Publicações, E-mails, Comprovantes, Auditoria, Saúde do sistema) have RPCs designed and
+  specified in the migrations, but the UI screens themselves are not built — per Eduardo's
+  instruction, an unwired button must not exist in the shipped UI, so these sections currently
+  render explanatory text and no buttons rather than a decoy screen.
 - The Pagamentos and Sorteios screens ask for raw UUIDs (participation_id / pool_id) via
   `window.prompt()` rather than a proper picker/dropdown — functional but crude, flagged here as
   a UX debt rather than silently presented as polished.
