@@ -289,6 +289,55 @@ window.POWERBALL_DRAWS = [
       premiosGanhos: 16,
       lucro: -146 // 16 - 162 (valorUtilizado)
     }
+  },
+
+  // Próximo sorteio oficial após 05/08/2026 (quarta-feira): Powerball sorteia
+  // segunda/quarta/sábado às 22:59 ET — o próximo dia da semana nessa lista
+  // após uma quarta é sábado, 08/08/2026. Data e valores (jackpot $856M,
+  // cash value $372.0M) confirmados diretamente em powerball.com em
+  // 06/08/2026. Em planejamento: nenhum participante/ticket ainda —
+  // participants não são uma estrutura permanente do pool (cada sorteio
+  // anterior já teve uma lista diferente de participantes), então não são
+  // copiados do sorteio anterior.
+  {
+    id: "2026-08-08",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-08-06T13:00:00-04:00",
+    previousDrawId: "2026-08-05",
+    drawing: {
+      name: "Powerball Jackpot",
+      jackpot: 856000000,
+      cashValue: 372000000,
+      drawDateIso: "2026-08-08T22:59:00-04:00",
+      drawDateLabel: "08/08/2026 22:59 ET"
+    },
+
+    // Nenhum participante confirmado ainda para este sorteio.
+    participants: [],
+
+    // Nenhum ticket comprado ainda.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    // carryForward = saldo remanescente do sorteio anterior (valorGuardadoProximoSorteio,
+    // $2) + prêmios CONFIRMADOS do sorteio anterior (premiosGanhos oficial, $16) -
+    // qualquer valor já distribuído/utilizado deste saldo ($0, nada foi gasto ainda) = $18.
+    // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
+    // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
+    finance: {
+      totalArrecadado: 0,
+      creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 18 // nada foi gasto ainda: 0 + 18 - 0 = 18
+    },
+
+    result: null,
+    profit: null
   }
 ];
 

@@ -52,14 +52,29 @@
     return merged;
   }
 
+  // Dropdown label per draw: planning draws (no result yet, status
+  // "planejamento") get "Próximo sorteio — <data> — Em planejamento";
+  // completed draws get "<data> — Resultado: N N N N N | PB N". Each draw's
+  // own `id` is the option's value, so there is never a duplicate/ambiguous
+  // selection even if two draws share a display date format.
+  function drawSelectorLabel(d, effectiveDraw) {
+    var hasResult = effectiveDraw.result && effectiveDraw.result.numbers;
+    if (d.status === "planejamento" && !hasResult) {
+      return "Próximo sorteio — " + d.drawing.drawDateLabel + " — Em planejamento";
+    }
+    if (hasResult) {
+      var nums = effectiveDraw.result.numbers.slice().sort(function (a, b) { return a - b; }).join(" ");
+      return d.drawing.drawDateLabel + " — Resultado: " + nums + " | PB " + effectiveDraw.result.special;
+    }
+    return d.drawing.drawDateLabel + " — Aguardando sorteio";
+  }
+
   function renderDrawSelector() {
     var sel = document.getElementById("pbDrawSelect");
     sel.innerHTML = DRAWS.map(function (d, i) {
-      var gt = GAME_TYPES[d.gameType] || GAME_TYPES.powerball;
       var effectiveDraw = getEffectiveDraw(d);
-      var hasResult = effectiveDraw.result && effectiveDraw.result.numbers ? "✓ " : "";
-      return '<option value="' + i + '"' + (i === currentIdx ? " selected" : "") + '>' +
-        hasResult + gt.icon + " " + gt.label + " — " + d.drawing.drawDateLabel + "</option>";
+      return '<option value="' + d.id + '"' + (i === currentIdx ? " selected" : "") + '>' +
+        drawSelectorLabel(d, effectiveDraw) + "</option>";
     }).join("");
   }
 
@@ -197,6 +212,14 @@
 
   function renderSharedTickets(draw) {
     var t = draw.sharedTickets;
+    // Planning-stage draw: no tickets purchased yet (empty series, no
+    // compradoPor/dataComprovante) — show a clear pending message instead of
+    // "Comprado por null · null ...".
+    if (!t || !t.series || t.series.length === 0) {
+      document.getElementById("pbTicketsMeta").textContent = "Nenhum ticket comprado ainda para este sorteio.";
+      document.getElementById("pbTicketsBody").innerHTML = '<div class="pb-pending">Os tickets serão publicados assim que forem comprados para este sorteio.</div>';
+      return;
+    }
     document.getElementById("pbTicketsMeta").textContent =
       "Comprado por " + t.compradoPor + " · " + t.dataComprovante + " · US$" + t.valorPorTicket + "/ticket (Power Play)";
 
@@ -410,12 +433,31 @@
     wireShareButtons(draw, gt);
   }
 
+  function indexForDrawId(id) {
+    for (var i = 0; i < DRAWS.length; i++) if (DRAWS[i].id === id) return i;
+    return -1;
+  }
+
+  // Deep-link: ?draw=<id> (or #<id>) selects that draw on load, falling back
+  // to the default (last/most relevant draw) when absent or unrecognized.
+  function deepLinkedIndex() {
+    var params = new URLSearchParams(window.location.search);
+    var fromQuery = params.get("draw");
+    var fromHash = window.location.hash ? window.location.hash.slice(1) : null;
+    var id = fromQuery || fromHash;
+    if (!id) return -1;
+    return indexForDrawId(id);
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
+    var deepLinked = deepLinkedIndex();
+    if (deepLinked !== -1) currentIdx = deepLinked;
     renderDrawSelector();
     renderDraw(currentIdx);
 
     document.getElementById("pbDrawSelect").addEventListener("change", function (e) {
-      renderDraw(Number(e.target.value));
+      var idx = indexForDrawId(e.target.value);
+      if (idx !== -1) renderDraw(idx);
     });
   });
 })();
