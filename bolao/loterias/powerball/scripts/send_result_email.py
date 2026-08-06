@@ -93,19 +93,29 @@ DRAWS = {
                 "23-32-33-63-69 — PB 04"
             ]
         },
-        # Next draw — 03/08/2026 (conditional: only play if 01/08 jackpot doesn't hit)
+        # Completed draw — 05/08/2026 (id matches js/data.js's "2026-08-05" entry)
         {
-            "id": "2026-08-03",
+            "id": "2026-08-05",
             "gameType": "powerball",
             "drawing": {
                 "name": "Powerball Jackpot",
-                "jackpot": 748000000,
-                "drawDateIso": "2026-08-03T22:59:00-04:00",
-                "drawDateLabel": "03/08/2026 22:59 ET"
+                "jackpot": 786000000,
+                "drawDateIso": "2026-08-05T22:59:00-04:00",
+                "drawDateLabel": "05/08/2026 22:59 ET"
             },
-            "playNextIfAccumulates": True,  # Business rule: only play if 01/08 has no jackpot
-            "result": None,  # Not yet drawn
-            "winningTickets": []
+            "result": {
+                "numbers": [14, 20, 59, 60, 61],
+                "special": 25,
+                "multiplier": 2,
+                "checkedAt": "05/08/2026 23:13 ET",
+                "premiosGanhos": 16,
+                "jackpotHit": False,
+                "breakdown": ["Powerball ($8)", "Powerball ($8)"]
+            },
+            "winningTickets": [
+                "16-40-45-64-67 — PB 25",
+                "02-27-37-66-69 — PB 25"
+            ]
         }
     ],
     "megamillions": [
@@ -193,8 +203,11 @@ def load_participants_from_data_js(draw_id):
         with open("bolao/loterias/powerball/js/data.js", "r", encoding="utf-8") as f:
             content = f.read()
 
-        # Find the draw block that matches this ID
-        draw_pattern = r'id:\s*["\']' + re.escape(draw_id) + r'["\'][^}]*?participants:\s*\[(.*?)\]'
+        # Find the draw block that matches this ID. Uses a plain ".*?" (not "[^}]*?")
+        # between id and "participants:" because the "drawing: {...}" sub-object in
+        # between contains its own closing "}" — excluding "}" here made the regex
+        # never match any real draw (drawing always has more than one key).
+        draw_pattern = r'id:\s*["\']' + re.escape(draw_id) + r'["\'].*?participants:\s*\[(.*?)\]'
         match = re.search(draw_pattern, content, re.DOTALL)
 
         if not match:
@@ -202,39 +215,26 @@ def load_participants_from_data_js(draw_id):
 
         participants_str = match.group(1)
 
-        # Extract name from each participant entry
-        name_pattern = r'{\s*name:\s*["\']([^"\']+)["\']'
-        names = re.findall(name_pattern, participants_str)
+        # Extract name + email together from each participant entry. data.js already
+        # carries an "email" field per participant (see PARTICIPANT_FRAMEWORK.md) —
+        # this used to do a live per-name Supabase lookup instead, which silently
+        # returned nothing for every participant because SUPABASE_ANON_KEY in this
+        # file is rejected with HTTP 401 (invalid/expired key), not just for
+        # participants missing an email. Reading the email straight out of data.js
+        # is both simpler and no longer dependent on that broken credential.
+        entry_pattern = r'{\s*name:\s*["\']([^"\']+)["\'][^{}]*?email:\s*["\']([^"\']*)["\']'
+        entries = re.findall(entry_pattern, participants_str)
 
         participants = []
         seen_emails = set()
 
-        for name in names:
-            # Try Supabase email first, fallback to hardcoded if needed
-            email = None
-
-            # Quick lookup from Supabase users table
-            try:
-                url = f"{SUPABASE_URL}/rest/v1/users?name=eq.{name}&select=email"
-                req = urllib.request.Request(
-                    url,
-                    headers={
-                        "apikey": SUPABASE_ANON_KEY,
-                        "Authorization": f"Bearer {SUPABASE_ANON_KEY}"
-                    }
-                )
-                with urllib.request.urlopen(req, timeout=5) as r:
-                    data = json.loads(r.read())
-                    if data and len(data) > 0:
-                        email = data[0].get("email")
-            except:
-                pass  # Fall through to override
-
-            # Apply email overrides if no Supabase match
-            if not email and name in PARTICIPANT_EMAIL_OVERRIDES:
+        for name, email in entries:
+            # Apply email overrides (e.g., Tatiana via Gustavo) regardless of what's
+            # in data.js for that name, same as the Supabase-loading path above.
+            if name in PARTICIPANT_EMAIL_OVERRIDES:
                 email = PARTICIPANT_EMAIL_OVERRIDES[name]
 
-            if not email:
+            if not email or email == "—":
                 print(f"⚠ WARNING: {name} email not found")
                 continue
 
