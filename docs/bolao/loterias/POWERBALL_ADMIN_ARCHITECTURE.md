@@ -66,13 +66,22 @@ Key design decisions:
 - The public-projection view (`lottery_public_projection` in `002_rls.sql`) intentionally does
   not yet join published ticket numbers/results — that join was deliberately left out rather
   than guessed at, pending validation against real fixture data. Tracked here, not hidden.
-- Participantes, Pagamentos, Sorteios, Bilhetes, Resultados, Publicações, and E-mails are fully
-  wired end-to-end in the admin UI (list via RLS-gated SELECT, every mutation via a real RPC
-  call). Resultados' "Corrigir" and Publicações' "Publicar bilhetes" both require typing
-  "CONFIRMAR" literally before the RPC call, matching the critical-action requirement. The
-  remaining 4 sections (Visão geral, Comprovantes, Auditoria, Saúde do sistema) have RPCs/design
-  specified but no UI screen yet — per Eduardo's instruction, an unwired button must not exist in
-  the shipped UI, so these sections render explanatory text and no buttons.
+- Participantes, Pagamentos, Sorteios, Bilhetes, Resultados, Publicações, E-mails, Visão geral,
+  Auditoria, and Saúde do sistema are all built (10 of 11 sections). Resultados' "Corrigir" and
+  Publicações' "Publicar bilhetes" both require typing "CONFIRMAR" literally before the RPC
+  call. Only **Comprovantes** remains unbuilt — it depends on the `powerball-private` Storage
+  bucket, which has not been created in any real Supabase project (see
+  POWERBALL_ADMIN_SECURITY.md), so building the UI would mean guessing at an API surface that
+  doesn't exist yet; it renders text-only, no buttons, same as any other not-yet-implemented
+  section.
+- Auditoria's "Verificar cadeia de auditoria" button calls the real `verify_powerball_audit_chain`
+  RPC — this is the one read-only screen with a wired button, since chain verification is itself
+  a meaningful server-side action, not a decorative refresh.
+- Saúde do sistema checks: Supabase round-trip latency, session validity, pending/failed email
+  job counts, and audit chain validity (via the same RPC). It does NOT yet check financial
+  reconciliation, missing comprovantes, or stuck (long-running `processing`) jobs — stated
+  explicitly on the screen itself rather than silently omitted, since those checks need
+  data/logic not implemented in this pass.
 - **Publicações' financial_snapshot/participant_snapshot are a known simplification**: the UI
   sends a minimal placeholder object (ticket count + a note), not a fully computed per-participant
   financial breakdown. Building that computation (matching cotas/payments to the specific tickets

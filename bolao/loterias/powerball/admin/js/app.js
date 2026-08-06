@@ -16,7 +16,7 @@
   "use strict";
 
   const SECTIONS = [
-    { id: "overview", label: "Visão geral", implemented: false },
+    { id: "overview", label: "Visão geral", implemented: true },
     { id: "participants", label: "Participantes", implemented: true },
     { id: "payments", label: "Pagamentos", implemented: true },
     { id: "draws", label: "Sorteios", implemented: true },
@@ -25,8 +25,8 @@
     { id: "results", label: "Resultados", implemented: true },
     { id: "emails", label: "E-mails", implemented: true },
     { id: "receipts", label: "Comprovantes", implemented: false },
-    { id: "audit", label: "Auditoria", implemented: false },
-    { id: "health", label: "Saúde do sistema", implemented: false },
+    { id: "audit", label: "Auditoria", implemented: true },
+    { id: "health", label: "Saúde do sistema", implemented: true },
   ];
 
   function el(tag, attrs, children) {
@@ -880,6 +880,177 @@
     await load();
   }
 
+  async function renderOverview(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Visão geral" }));
+    const status = el("p", { text: "Carregando…" });
+    root.appendChild(status);
+    const grid = el("ul");
+    root.appendChild(grid);
+
+    async function load() {
+      status.textContent = "Carregando…";
+      // Read-only aggregate counts, all real RLS-gated SELECTs, re-fetched every time this
+      // screen is opened (no client-side cache of these numbers).
+      const [draws, participants, participations, tickets, publications, pendingEmails, failedEmails] = await Promise.all([
+        supabase.from("lottery_draws").select("draw_id, draw_date, jackpot_estimate, cash_value_estimate, status").order("draw_date", { ascending: false }).limit(1),
+        supabase.from("lottery_participants").select("participant_id", { count: "exact", head: true }).eq("state", "active"),
+        supabase.from("lottery_participations").select("cotas").eq("state", "active"),
+        supabase.from("lottery_tickets").select("ticket_id", { count: "exact", head: true }),
+        supabase.from("lottery_ticket_publications").select("publication_id, status", { count: "exact" }).eq("status", "published"),
+        supabase.from("lottery_email_jobs").select("job_id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("lottery_email_jobs").select("job_id", { count: "exact", head: true }).eq("status", "failed"),
+      ]);
+      const firstError = [draws, participants, participations, tickets, publications, pendingEmails, failedEmails].find((r) => r.error);
+      if (firstError) {
+        status.textContent = "Erro ao carregar visão geral: " + firstError.error.message;
+        return;
+      }
+      const nextDraw = draws.data && draws.data[0];
+      const totalCotas = (participations.data || []).reduce((sum, p) => sum + Number(p.cotas || 0), 0);
+      status.textContent = "";
+      grid.innerHTML = "";
+      const items = [
+        `Próximo/último sorteio: ${nextDraw ? nextDraw.draw_date : "—"} (status: ${nextDraw ? nextDraw.status : "—"})`,
+        `Jackpot estimado: ${nextDraw && nextDraw.jackpot_estimate != null ? Number(nextDraw.jackpot_estimate).toFixed(2) : "—"}`,
+        `Cash value estimado: ${nextDraw && nextDraw.cash_value_estimate != null ? Number(nextDraw.cash_value_estimate).toFixed(2) : "—"}`,
+        `Participantes ativos: ${participants.count ?? 0}`,
+        `Total de cotas ativas: ${totalCotas}`,
+        `Bilhetes (total): ${tickets.count ?? 0}`,
+        `Publicações publicadas: ${publications.count ?? 0}`,
+        `E-mails pendentes: ${pendingEmails.count ?? 0}`,
+        `E-mails com falha: ${failedEmails.count ?? 0}`,
+        `Última atualização: ${new Date().toLocaleString("pt-BR")}`,
+      ];
+      items.forEach((text) => grid.appendChild(el("li", { text })));
+    }
+
+    await load();
+  }
+
+  async function renderAudit(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Auditoria" }));
+    root.appendChild(
+      el("p", {
+        text:
+          "Log append-only. UPDATE/DELETE são bloqueados por trigger no banco mesmo para " +
+          "owner. Esta tela é somente leitura + verificação de integridade da cadeia de hash.",
+      })
+    );
+
+    const status = el("p", { text: "Carregando…" });
+    root.appendChild(status);
+
+    const verifyBtn = el("button", { type: "button", text: "Verificar cadeia de auditoria" });
+    const verifyResult = el("p", { id: "audit-verify-result" });
+    verifyBtn.addEventListener("click", async () => {
+      try {
+        verifyBtn.disabled = true;
+        verifyResult.textContent = "Verificando…";
+        // Real RPC call — verify_powerball_audit_chain() walks the whole table and
+        // recomputes the hash chain server-side; nothing is computed client-side.
+        const { data, error } = await supabase.rpc("verify_powerball_audit_chain");
+        if (error) throw error;
+        const row = data && data[0];
+        verifyResult.textContent = row.valid
+          ? `Cadeia válida (${row.checked_count} entrada(s) verificada(s)).`
+          : `CADEIA INVÁLIDA — primeira entrada corrompida: ${row.first_broken_audit_id}`;
+      } catch (e) {
+        verifyResult.textContent = "Falha ao verificar: " + e.message;
+      } finally {
+        verifyBtn.disabled = false;
+      }
+    });
+    root.appendChild(verifyBtn);
+    root.appendChild(verifyResult);
+
+    const table = el("table", { class: "pb-admin-table" });
+    root.appendChild(table);
+
+    async function load() {
+      status.textContent = "Carregando…";
+      const { data, error } = await supabase
+        .from("lottery_admin_audit")
+        .select("audit_id, actor_email_snapshot, action_type, entity_type, reason, server_created_at")
+        .order("server_created_at", { ascending: false })
+        .limit(50);
+      if (error) {
+        status.textContent = "Erro ao carregar: " + error.message;
+        return;
+      }
+      status.textContent = `Últimas ${data.length} entrada(s) (máx. 50).`;
+      table.innerHTML = "";
+      table.appendChild(
+        el("tr", {}, [
+          el("th", { text: "Data (servidor)" }),
+          el("th", { text: "Ator" }),
+          el("th", { text: "Ação" }),
+          el("th", { text: "Entidade" }),
+          el("th", { text: "Motivo" }),
+        ])
+      );
+      data.forEach((a) => {
+        table.appendChild(
+          el("tr", {}, [
+            el("td", { text: new Date(a.server_created_at).toLocaleString("pt-BR") }),
+            el("td", { text: a.actor_email_snapshot || "—" }),
+            el("td", { text: a.action_type }),
+            el("td", { text: a.entity_type }),
+            el("td", { text: a.reason || "—" }),
+          ])
+        );
+      });
+    }
+
+    await load();
+  }
+
+  async function renderHealth(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Saúde do sistema" }));
+    const status = el("p", { text: "Verificando…" });
+    root.appendChild(status);
+    const list = el("ul");
+    root.appendChild(list);
+
+    async function load() {
+      status.textContent = "Verificando…";
+      const startedAt = Date.now();
+      const [session, pendingJobs, failedJobs, chain] = await Promise.all([
+        window.PowerballAdmin.auth.getSession(),
+        supabase.from("lottery_email_jobs").select("job_id", { count: "exact", head: true }).eq("status", "pending"),
+        supabase.from("lottery_email_jobs").select("job_id", { count: "exact", head: true }).eq("status", "failed"),
+        supabase.rpc("verify_powerball_audit_chain"),
+      ]);
+      const latencyMs = Date.now() - startedAt;
+      status.textContent = "";
+      list.innerHTML = "";
+      const items = [
+        `Conexão Supabase: ${pendingJobs.error && failedJobs.error ? "FALHA" : "OK"} (round-trip ~${latencyMs}ms)`,
+        `Sessão válida: ${session ? "sim" : "não"}`,
+        `Versão do frontend (cache-bust): ver index.html (?v=...) — não lido automaticamente aqui`,
+        `Jobs de e-mail pendentes: ${pendingJobs.count ?? "erro"}`,
+        `Jobs de e-mail com falha: ${failedJobs.count ?? "erro"}`,
+        `Cadeia de auditoria válida: ${chain.error ? "erro: " + chain.error.message : (chain.data && chain.data[0] && chain.data[0].valid ? "sim" : "NÃO — investigar")}`,
+      ];
+      items.forEach((text) => list.appendChild(el("li", { text })));
+      list.appendChild(
+        el("li", {
+          text:
+            "Reconciliação financeira, comprovantes ausentes e jobs travados (processing há " +
+            "muito tempo) não são checados aqui ainda — dependem de dados/lógica não " +
+            "implementados nesta fase (ver POWERBALL_ADMIN_ARCHITECTURE.md).",
+        })
+      );
+    }
+
+    await load();
+  }
+
   function renderNotImplemented(root, section) {
     root.innerHTML = "";
     root.appendChild(el("h2", { text: section.label }));
@@ -911,7 +1082,13 @@
     nav.appendChild(logoutBtn);
 
     async function selectSection(section) {
-      if (section.id === "participants") {
+      if (section.id === "overview") {
+        await renderOverview(content);
+      } else if (section.id === "audit") {
+        await renderAudit(content);
+      } else if (section.id === "health") {
+        await renderHealth(content);
+      } else if (section.id === "participants") {
         await renderParticipants(content);
       } else if (section.id === "payments") {
         await renderPayments(content);
