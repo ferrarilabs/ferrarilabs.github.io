@@ -319,7 +319,8 @@ window.POWERBALL_DRAWS = [
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:10 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:16 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:23 AM", status: "verificado", state: "NC" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:36 AM", status: "verificado", state: "NC" }
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:36 AM", status: "verificado", state: "NC" },
+      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11 AM", status: "verificado", state: "FL" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -336,10 +337,10 @@ window.POWERBALL_DRAWS = [
     // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
     // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
-      totalArrecadado: 60, // Samuel Huller + Jorge + Simone + Gustavo Bossle + Marcelo Moreira + Amanda, todos $10, 06/08/2026
+      totalArrecadado: 70, // Samuel Huller + Jorge + Simone + Gustavo Bossle + Marcelo Moreira + Amanda + REDACTED_PARTICIPANT, todos $10, 06/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 78 // nada foi gasto ainda: 60 + 18 - 0 = 78
+      valorGuardadoProximoSorteio: 88 // nada foi gasto ainda: 70 + 18 - 0 = 88
     },
 
     result: null,
