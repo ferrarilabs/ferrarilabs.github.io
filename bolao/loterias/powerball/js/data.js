@@ -272,10 +272,22 @@ window.POWERBALL_DRAWS = [
       valorGuardadoProximoSorteio: 2 // 148 + 16 - 162
     },
 
-    result: null,
+    // Preenchido manualmente após o sorteio de 05/08/2026 (site oficial powerball.com;
+    // fonte NY Open Data ainda não havia publicado no momento). Conferidos os 54 tickets
+    // contra o resultado: 2 acertos de "Powerball" (sem números principais), $8 cada
+    // (Power Play 2x) = $16. Sem jackpot.
+    result: {
+      numbers: [14, 20, 59, 60, 61],
+      special: 25,
+      multiplier: 2,
+      checkedAt: "05/08/2026 23:13 ET",
+      premiosGanhos: 16,
+      jackpotHit: false,
+      breakdown: ["Powerball ($8)", "Powerball ($8)"]
+    },
     profit: {
-      premiosGanhos: null,
-      lucro: null
+      premiosGanhos: 16,
+      lucro: -146 // 16 - 162 (valorUtilizado)
     }
   }
 ];
