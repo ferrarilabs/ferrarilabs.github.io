@@ -21,9 +21,9 @@
     { id: "payments", label: "Pagamentos", implemented: true },
     { id: "draws", label: "Sorteios", implemented: true },
     { id: "tickets", label: "Bilhetes", implemented: true },
-    { id: "publications", label: "Publicações", implemented: false },
+    { id: "publications", label: "Publicações", implemented: true },
     { id: "results", label: "Resultados", implemented: true },
-    { id: "emails", label: "E-mails", implemented: false },
+    { id: "emails", label: "E-mails", implemented: true },
     { id: "receipts", label: "Comprovantes", implemented: false },
     { id: "audit", label: "Auditoria", implemented: false },
     { id: "health", label: "Saúde do sistema", implemented: false },
@@ -657,6 +657,229 @@
     await load();
   }
 
+  async function renderPublications(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Publicações" }));
+    root.appendChild(
+      el("p", {
+        text:
+          "Publicar bilhetes é uma ação crítica e irreversível (os bilhetes referenciados " +
+          "tornam-se imutáveis). Exige digitar CONFIRMAR. NOTA: o financial_snapshot/" +
+          "participant_snapshot enviados aqui são um resumo mínimo (contagem de bilhetes + " +
+          "timestamp), não o cálculo financeiro completo por participante -- essa lógica de " +
+          "negócio não foi implementada nesta fase e está documentada como pendência em " +
+          "POWERBALL_ADMIN_ARCHITECTURE.md, não escondida.",
+      })
+    );
+
+    const status = el("p", { text: "Carregando publicações…" });
+    root.appendChild(status);
+
+    const newBtn = el("button", { type: "button", text: "Publicar bilhetes (crítico)" });
+    newBtn.addEventListener("click", async () => {
+      try {
+        const drawId = window.prompt("draw_id (UUID de lottery_draws):");
+        if (!drawId) return;
+        const ticketIdsRaw = window.prompt("ticket_id(s) a publicar, separados por vírgula:");
+        if (!ticketIdsRaw) return;
+        const ticketIds = ticketIdsRaw.split(",").map((s) => s.trim()).filter(Boolean);
+        if (ticketIds.length === 0) {
+          window.alert("Nenhum ticket_id informado — ação cancelada.");
+          return;
+        }
+        const reason = await requireReasonPrompt("publicar bilhetes");
+        const impactMsg =
+          `Impacto: ${ticketIds.length} bilhete(s) do sorteio ${drawId} serão marcados como ` +
+          `publicados e se tornarão imutáveis. Esta ação não pode ser desfeita (apenas ` +
+          `corrigida por uma nova versão de publicação).\n\nDigite CONFIRMAR para prosseguir:`;
+        const confirmation = window.prompt(impactMsg);
+        if (confirmation !== "CONFIRMAR") {
+          window.alert('Confirmação não corresponde a "CONFIRMAR" — ação cancelada.');
+          return;
+        }
+        newBtn.disabled = true;
+        const manifest = { ticket_ids: ticketIds, draw_id: drawId, published_at_client: new Date().toISOString() };
+        const financialSnapshot = { ticket_count: ticketIds.length, note: "resumo mínimo — não é o cálculo financeiro completo" };
+        const participantSnapshot = { note: "resumo mínimo — snapshot completo por participante não implementado nesta fase" };
+        const { error } = await supabase.rpc("admin_publish_tickets", {
+          p_draw_id: drawId,
+          p_ticket_ids: ticketIds,
+          p_manifest: manifest,
+          p_financial_snapshot: financialSnapshot,
+          p_participant_snapshot: participantSnapshot,
+          p_reason: reason,
+          p_confirmation_text: confirmation,
+          p_request_id: newRequestId(),
+        });
+        if (error) throw error;
+        await load();
+      } catch (e) {
+        window.alert("Falha ao publicar: " + e.message);
+      } finally {
+        newBtn.disabled = false;
+      }
+    });
+    root.appendChild(newBtn);
+
+    const table = el("table", { class: "pb-admin-table" });
+    root.appendChild(table);
+
+    async function load() {
+      status.textContent = "Carregando publicações…";
+      const { data, error } = await supabase
+        .from("lottery_ticket_publications")
+        .select("publication_id, draw_id, version, status, manifest_hash, published_at, created_at")
+        .order("created_at", { ascending: false });
+      if (error) {
+        status.textContent = "Erro ao carregar: " + error.message;
+        return;
+      }
+      status.textContent = `${data.length} publicação(ões).`;
+      table.innerHTML = "";
+      table.appendChild(
+        el("tr", {}, [
+          el("th", { text: "Sorteio" }),
+          el("th", { text: "Versão" }),
+          el("th", { text: "Status" }),
+          el("th", { text: "Hash do manifesto" }),
+          el("th", { text: "Publicado em" }),
+        ])
+      );
+      data.forEach((p) => {
+        table.appendChild(
+          el("tr", {}, [
+            el("td", { text: p.draw_id }),
+            el("td", { text: String(p.version) }),
+            el("td", { text: p.status }),
+            el("td", { text: (p.manifest_hash || "").slice(0, 12) + "…" }),
+            el("td", { text: p.published_at ? new Date(p.published_at).toLocaleString("pt-BR") : "—" }),
+          ])
+        );
+      });
+    }
+
+    await load();
+  }
+
+  async function renderEmails(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "E-mails" }));
+    root.appendChild(
+      el("p", {
+        text:
+          "Esta tela apenas gerencia a fila persistida (lottery_email_jobs). O envio real é " +
+          "feito pelo worker de e-mail já existente (reaproveitado de " +
+          "powerball-email-professionalization) -- nenhum envio acontece diretamente do " +
+          "navegador.",
+      })
+    );
+
+    const status = el("p", { text: "Carregando fila de e-mails…" });
+    root.appendChild(status);
+
+    const newBtn = el("button", { type: "button", text: "Enfileirar e-mail" });
+    newBtn.addEventListener("click", async () => {
+      try {
+        const jobType = window.prompt("Tipo (participant_added/tickets_published/tickets_corrected/admin_test):", "admin_test");
+        if (!jobType) return;
+        const entityType = window.prompt("entity_type (ex: participant, ticket_publication; opcional):") || null;
+        const entityId = window.prompt("entity_id (UUID, opcional):") || null;
+        const recipientEmail = window.prompt("Email do destinatário:");
+        if (!recipientEmail) return;
+        const reason = await requireReasonPrompt("enfileirar e-mail");
+        newBtn.disabled = true;
+        const { error } = await supabase.rpc("admin_enqueue_email", {
+          p_job_type: jobType,
+          p_entity_type: entityType,
+          p_entity_id: entityId,
+          p_recipient_email: recipientEmail,
+          p_reason: reason,
+          p_request_id: newRequestId(),
+        });
+        if (error) throw error;
+        await load();
+      } catch (e) {
+        window.alert("Falha ao enfileirar: " + e.message);
+      } finally {
+        newBtn.disabled = false;
+      }
+    });
+    root.appendChild(newBtn);
+
+    const table = el("table", { class: "pb-admin-table" });
+    root.appendChild(table);
+
+    async function load() {
+      status.textContent = "Carregando fila de e-mails…";
+      const { data, error } = await supabase
+        .from("lottery_email_jobs")
+        .select("job_id, job_type, recipient_email, status, attempts, last_error, created_at")
+        .order("created_at", { ascending: false });
+      if (error) {
+        status.textContent = "Erro ao carregar: " + error.message;
+        return;
+      }
+      status.textContent = `${data.length} job(s).`;
+      table.innerHTML = "";
+      table.appendChild(
+        el("tr", {}, [
+          el("th", { text: "Tipo" }),
+          el("th", { text: "Destinatário" }),
+          el("th", { text: "Status" }),
+          el("th", { text: "Tentativas" }),
+          el("th", { text: "Ações" }),
+        ])
+      );
+      data.forEach((j) => {
+        const retryBtn = el("button", { type: "button", text: "Tentar novamente" });
+        retryBtn.disabled = !(j.status === "failed" || j.status === "cancelled");
+        retryBtn.addEventListener("click", async () => {
+          try {
+            const reason = await requireReasonPrompt(`reenviar job ${j.job_id}`);
+            retryBtn.disabled = true;
+            const { error } = await supabase.rpc("admin_retry_email", {
+              p_job_id: j.job_id, p_reason: reason, p_request_id: newRequestId(),
+            });
+            if (error) throw error;
+            await load();
+          } catch (e) {
+            window.alert("Falha ao reenviar: " + e.message);
+            retryBtn.disabled = false;
+          }
+        });
+        const cancelBtn = el("button", { type: "button", text: "Cancelar" });
+        cancelBtn.disabled = !(j.status === "pending" || j.status === "processing");
+        cancelBtn.addEventListener("click", async () => {
+          try {
+            const reason = await requireReasonPrompt(`cancelar job ${j.job_id}`);
+            cancelBtn.disabled = true;
+            const { error } = await supabase.rpc("admin_cancel_email_job", {
+              p_job_id: j.job_id, p_reason: reason, p_request_id: newRequestId(),
+            });
+            if (error) throw error;
+            await load();
+          } catch (e) {
+            window.alert("Falha ao cancelar: " + e.message);
+            cancelBtn.disabled = false;
+          }
+        });
+        table.appendChild(
+          el("tr", {}, [
+            el("td", { text: j.job_type }),
+            el("td", { text: j.recipient_email }),
+            el("td", { text: j.status + (j.last_error ? ` (${j.last_error})` : "") }),
+            el("td", { text: String(j.attempts) }),
+            el("td", {}, [retryBtn, cancelBtn]),
+          ])
+        );
+      });
+    }
+
+    await load();
+  }
+
   function renderNotImplemented(root, section) {
     root.innerHTML = "";
     root.appendChild(el("h2", { text: section.label }));
@@ -698,6 +921,10 @@
         await renderTickets(content);
       } else if (section.id === "results") {
         await renderResults(content);
+      } else if (section.id === "publications") {
+        await renderPublications(content);
+      } else if (section.id === "emails") {
+        await renderEmails(content);
       } else {
         renderNotImplemented(content, section);
       }

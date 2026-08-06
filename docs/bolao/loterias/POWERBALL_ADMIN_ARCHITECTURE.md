@@ -66,14 +66,23 @@ Key design decisions:
 - The public-projection view (`lottery_public_projection` in `002_rls.sql`) intentionally does
   not yet join published ticket numbers/results — that join was deliberately left out rather
   than guessed at, pending validation against real fixture data. Tracked here, not hidden.
-- Participantes, Pagamentos, Sorteios, Bilhetes, and Resultados are fully wired end-to-end in
-  the admin UI (list via RLS-gated SELECT, every mutation via a real RPC call). Resultados'
-  "Corrigir" button requires typing "CONFIRMAR" literally before calling `admin_correct_result`,
-  matching the critical-action requirement from the task spec. The remaining 6 sections (Visão
-  geral, Publicações, E-mails, Comprovantes, Auditoria, Saúde do sistema) have RPCs designed and
-  specified in the migrations, but the UI screens themselves are not built — per Eduardo's
-  instruction, an unwired button must not exist in the shipped UI, so these sections currently
-  render explanatory text and no buttons rather than a decoy screen.
+- Participantes, Pagamentos, Sorteios, Bilhetes, Resultados, Publicações, and E-mails are fully
+  wired end-to-end in the admin UI (list via RLS-gated SELECT, every mutation via a real RPC
+  call). Resultados' "Corrigir" and Publicações' "Publicar bilhetes" both require typing
+  "CONFIRMAR" literally before the RPC call, matching the critical-action requirement. The
+  remaining 4 sections (Visão geral, Comprovantes, Auditoria, Saúde do sistema) have RPCs/design
+  specified but no UI screen yet — per Eduardo's instruction, an unwired button must not exist in
+  the shipped UI, so these sections render explanatory text and no buttons.
+- **Publicações' financial_snapshot/participant_snapshot are a known simplification**: the UI
+  sends a minimal placeholder object (ticket count + a note), not a fully computed per-participant
+  financial breakdown. Building that computation (matching cotas/payments to the specific tickets
+  being published) is real business logic that was not implemented in this pass — flagged in the
+  screen's own on-page copy, not hidden. `admin_publish_tickets` itself accepts whatever jsonb is
+  passed for these two fields; the RPC does not currently validate their shape.
+- **E-mails screen is outbox-management only.** It enqueues/retries/cancels rows in
+  `lottery_email_jobs` via RPC; it never sends anything itself. Actual delivery still requires
+  the separate worker process from `powerball-email-professionalization` to be pointed at this
+  table — that wiring was not built in this pass (see "Open items" below).
 - The Pagamentos and Sorteios screens ask for raw UUIDs (participation_id / pool_id) via
   `window.prompt()` rather than a proper picker/dropdown — functional but crude, flagged here as
   a UX debt rather than silently presented as polished.
