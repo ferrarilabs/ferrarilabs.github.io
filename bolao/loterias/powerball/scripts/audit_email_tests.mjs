@@ -36,7 +36,11 @@ console.log("Powerball email architecture — automated tests\n");
 // -------- 1. Prize calc reuse (real function, matrix, not reinvented) --------
 console.log("Prize calculation (reused from js/app.js):");
 const { calculatePrizePerParticipant, DRAWS } = loadRealPrizeCalculator();
-const realDraw = DRAWS[DRAWS.length - 1];
+// The last draw in DRAWS is now the 2026-08-08 planning-stage draw (empty
+// participants, no result, added 2026-08-06) — these tests exercise
+// participant/ticket flows, so they target the most recent COMPLETED draw
+// with participants instead, not just "whichever draw is last".
+const realDraw = DRAWS.filter((d) => d.participants && d.participants.length > 0).slice(-1)[0];
 
 test("known state (NC) returns full estimate matching the real function's own output shape", () => {
   const p = realDraw.participants.find((x) => x.state === "NC");
