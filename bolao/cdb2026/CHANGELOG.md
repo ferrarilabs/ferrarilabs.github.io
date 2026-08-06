@@ -1,5 +1,65 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.93 — 2026-08-06 — Participantes/Pagamento visible again (framework-migration regression); dropped the always-on provisional-score note
+
+Eduardo, screenshot: "Essa parte não é necessário: Resultado não travado — pontuação provisória.
+E por que tem isso agora??" — the "por que tem isso agora" turned out to be a real regression,
+not a new bug: "Participantes"/"Pagamento" showed up again in the nav-secondary strip, which had
+been explicitly hidden (`style="display:none"`) since commit b8080aa (2026-08-01, "Deixe aparecer
+somente os mesmos botões que estão disponíveis no br2026"). Traced it to `a22ee99
+refactor(bolao): migrate CDB2026 to canonical framework` (2026-08-04) — that rewrite of
+`index.html` recreated the `.nav-secondary` block without the `display:none`, silently reverting
+a real, shipped product decision. Restored it (same two `style="display:none"` attributes,
+nothing else in that block touched — `data-section`/listeners/the `#participants`/`#payment`
+sections themselves were never affected either way).
+
+Also removed the "Resultado não travado — pontuação provisória" note per Eduardo's explicit
+request. It showed above the Ranking list whenever ANY tie in ANY phase across the whole
+tournament wasn't decided yet — in practice, almost always, until the Final itself concludes
+months from now — unlike BR2026's `.prov-note` (central to its live season-projection model,
+`BR2026_PROJECTION_MODEL.md`) or Copa's (only shown during an actual live match). Removed the
+now-dead `resultsProgress()` function (had no other caller), the `provisionalNote` i18n key, and
+the `.prov-note` CSS rule along with it — BR2026/Copa's own versions of this pattern are
+untouched (different context, `TOURNAMENT_SPECIFIC`).
+
+Verified with Playwright against real production state: nav-secondary links confirmed
+`display:none` again, `.prov-note` confirmed absent from the DOM, ranking otherwise unchanged
+(Matheus's corrected 77 pts from the previous fix still showing). `node --check`: OK.
+`audit_scoring.py` (3 apps), `audit_golden_master.mjs` (37/37), and `audit_state_merge.mjs`
+(44/44) all re-run — scoring/merge untouched, this was markup/display only.
+
+## v3.92 — 2026-08-05 — Live aggregate showed correct numbers on the wrong side
+
+Eduardo, screenshot of the live Grêmio × Mirassol second leg: "o agregado está correto mas para
+o lado errado." Confirmed against real production data — leg 1 was Mirassol 1×1 Grêmio; leg 2
+(live) was Grêmio 1×0 Mirassol. True aggregate: Mirassol 1, Grêmio 2. The live-hero score row
+shows `l.homeTeam` (left) / `l.awayTeam` (right), and leg 2 always swaps home to teamB (Grêmio)
+per the tie's documented orientation convention — so with Grêmio on the left, the aggregate line
+needed to print Grêmio's total first too. It didn't: `renderLiveTieCard()`'s `.game-card__aggregate`
+line always printed the fixed `progress.aggregate.teamA – progress.aggregate.teamB` order
+regardless of which team the current leg actually shows on the left, so it read "1 – 2" under a
+Grêmio-left/Mirassol-right score row — Grêmio's own 2 landed on Mirassol's side. `tieProgressDisplay()`
+itself (the resolver `test_aggregate_hero.mjs` covers) was never wrong — both numbers were always
+correct, only the two lines that print them ever mislabeled which side is which.
+
+Fixed both call sites that consume `progress.aggregate` for a leg-2 context — swapped to print
+`teamB – teamA` (matching leg 2's home/away order), left everything else (the resolver, the
+`resultLine`'s final-stage aggregate, which already matches its own teamA-first header) untouched:
+- `renderLiveTieCard()`'s "Agregado ao vivo" line (the one in the screenshot).
+- `renderGamesSection()`'s "Agregado após a ida" line on the second leg's scheduled-state card —
+  same bug, same root cause, not reported but caught while fixing the first (identical mismatch:
+  that card also shows home=teamB/away=teamA for leg 2).
+
+Verified with Playwright against the real Grêmio × Mirassol state + a mocked live leg 2 matching
+the screenshot exactly (Grêmio 1×0 Mirassol, 82nd minute): aggregate line now reads "Agregado ao
+vivo: 2 – 1" under Grêmio(left)–Mirassol(right), correct on both axes. `test_aggregate_hero.mjs`
+re-run (14/14) — it never covered this because it only asserts the resolver's `{teamA, teamB}`
+object, not the HTML string order at each call site; noting this as a real gap, not expanding the
+suite unprompted since this was scoped as a surgical fix. `node --check`: OK. `audit_scoring.py`
+(3 apps, 5/5 or 6/6 each), `audit_golden_master.mjs` (37/37), `audit_state_merge.mjs` (44/44), and
+`audit_integrity.py` (golden fixture clean) all re-run — scoring/merge logic untouched, this was
+presentation-only.
+
 ## v3.91 — 2026-08-05 — Aggregate score in live-game hero (following Copa's tiebreak rule)
 
 Explicitly authorized by Eduardo. Adds the two-leg tie's aggregate score to

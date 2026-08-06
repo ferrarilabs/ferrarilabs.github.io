@@ -1,0 +1,31 @@
+{
+  "poolId": "powerball",
+  "drawId": "2026-08-05-FIXTURE",
+  "publicationVersion": 1,
+  "publishedAtUtc": "2026-08-05T15:08:10.460Z",
+  "tickets": [
+    {
+      "numbers": [
+        24,
+        31,
+        47,
+        52,
+        63
+      ],
+      "special": 17,
+      "serial": "S-EXAMPLE-FIXTURE"
+    },
+    {
+      "numbers": [
+        4,
+        11,
+        22,
+        45,
+        61
+      ],
+      "special": 9,
+      "serial": "S-EXAMPLE-FIXTURE"
+    }
+  ],
+  "sha256": "c961d6d924557250d4655d85270176be555dd5c1e07fef4d09d92751d448a6da"
+}
