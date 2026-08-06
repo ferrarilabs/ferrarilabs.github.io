@@ -169,7 +169,7 @@ const RECONCILED_FINANCE_STUB = { totalArrecadado: 6, valorUtilizado: 6, valorGu
 await atest("runPublishTickets: one job per eligible recipient, multi-cota participant still gets exactly one", async () => {
   const draw = loadDrawSnapshot(realDraw.id);
   const dupCotas = { ...draw.participants[0], cotas: 3 };
-  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, participants: [dupCotas, ...draw.participants.slice(1)] };
+  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, result: null, participants: [dupCotas, ...draw.participants.slice(1)] };
   const r = await runPublishTickets({ drawId: realDraw.id, publicationVersion: 999, testMode: true, dryRun: true, outboxFile: TMP_OUTBOX, syntheticDraw: patchedDraw });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const names = r.results.map((x) => x.participant);
@@ -182,7 +182,7 @@ await atest("runPublishTickets excludes cancelled / cota<=0 / invalid-email part
   const cancelled = { ...draw.participants[0], name: "Cancelled Person", email: "cancelled@example.com", status: "cancelado" };
   const zeroCota = { ...draw.participants[1], name: "Zero Cota", email: "zero@example.com", cotas: 0 };
   const badEmail = { ...draw.participants[2], name: "Bad Email", email: "—" };
-  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, participants: [...draw.participants, cancelled, zeroCota, badEmail] };
+  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, result: null, participants: [...draw.participants, cancelled, zeroCota, badEmail] };
   const r = await runPublishTickets({ drawId: realDraw.id, publicationVersion: 998, testMode: true, dryRun: true, outboxFile: TMP_OUTBOX, syntheticDraw: patchedDraw });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const names = r.results.map((x) => x.participant);
