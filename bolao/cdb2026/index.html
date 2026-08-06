@@ -66,12 +66,19 @@
     <button type="button" data-section="admin"   data-i18n="navAdmin">Admin</button>
   </nav>
   <!-- Fase 2.1 §7: Participantes/Pagamento saíram da barra principal (paridade de densidade com
-       Copa/BR2026, que têm o mesmo padrão de 6 abas primárias) mas continuam acessíveis por este
-       link secundário compacto -- mesmo atributo data-section, mesmo listener genérico de
-       init() (`$$("[data-section]")`), nenhuma funcionalidade removida. -->
+       Copa/BR2026, que têm o mesmo padrão de 6 abas primárias) mas continuavam acessíveis por
+       este link secundário compacto até 2026-08-01. Escondidos (`style="display:none"`, commit
+       b8080aa) por pedido do Eduardo, "agora que a competição começou": "Deixe aparecer somente
+       os mesmos botões que estão disponíveis no br2026" -- BR2026/Copa não têm .nav-secondary
+       nenhum (confirmado: nem o container existe nos dois). REGREDIU sem querer na migração pro
+       framework canônico (commit a22ee99, 2026-08-04) -- o rewrite do index.html recriou este
+       bloco sem o `style="display:none"`, revelando os dois botões de novo em produção.
+       Restaurado (2026-08-06, achado por Eduardo em print). Mesmo atributo data-section, mesmo
+       listener genérico de init() (`$$("[data-section]")`), nenhuma funcionalidade removida --
+       as seções #participants/#payment continuam existindo e renderizando normalmente. -->
   <div class="nav-secondary" aria-label="Mais opções">
-    <button type="button" class="nav-secondary-link" data-section="participants" data-i18n="navParticipants">Participantes</button>
-    <button type="button" class="nav-secondary-link" data-section="payment" data-i18n="navPayment">Pagamento</button>
+    <button type="button" class="nav-secondary-link" data-section="participants" data-i18n="navParticipants" style="display:none">Participantes</button>
+    <button type="button" class="nav-secondary-link" data-section="payment" data-i18n="navPayment" style="display:none">Pagamento</button>
   </div>
 </header>
 

@@ -1202,16 +1202,6 @@ function explainScore(entry, s) {
   return { total, reconciles: sum === total, ruleVersion: SCORING_RULE_VERSION, breakdown };
 }
 
-function resultsProgress(s) {
-  let done = 0, totalTies = 0;
-  DATA.phases.forEach(phase => {
-    const ties = Object.values(s.phases?.[phase.id]?.ties || {});
-    totalTies += ties.length;
-    done += ties.filter(tie => tie.qualifiedTeamId).length;
-  });
-  return { done, totalTies };
-}
-
 function renderFindEntryCard() {
   const card = $("findEntryCard");
   if (!card) return;
@@ -1447,9 +1437,13 @@ function renderRanking() {
   const movement = calculateRankingMovement(entries, s);
   const scored   = rankEntriesBy(entries, e => (_liveTies.length ? liveScoreEntry(e, s) : getActiveScore(e, s)));
 
-  const { done, totalTies } = resultsProgress(s);
-  const provNote = totalTies > 0 && done < totalTies
-    ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
+  // "Resultado não travado — pontuação provisória" removido (Eduardo, 2026-08-06: "Essa parte
+  // não é necessário") -- ao contrário do BR2026 (nota central ao modelo de projeção de liga,
+  // ver BR2026_PROJECTION_MODEL.md) e da Copa (só aparece DURANTE uma partida ao vivo), esta
+  // nota aqui ficava visível o torneio inteiro sempre que qualquer confronto de qualquer fase
+  // ainda não tivesse sido decidido -- ou seja, quase sempre, até a Final terminar. Removida só
+  // aqui (contexto diferente, TOURNAMENT_SPECIFIC); resultsProgress() (só existia pra isso)
+  // removida junto, sem chamador restante. Padrão do BR2026/Copa não foi tocado.
 
   // Pago/Pendente é informação de administração do bolão, não do ranking público -- mesmo
   // padrão da Copa (renderRanking(), bolao/js/app.js), que nunca mostrou esse badge na linha do
@@ -1459,7 +1453,7 @@ function renderRanking() {
   // (renderPickDisplay() já protegia o dado, mas o botão continuava visível e clicável sem
   // fazer nada útil).
   const canViewPicks = isPastEntryCutoff();
-  box.innerHTML = provNote;
+  box.innerHTML = "";
   scored.forEach(item => {
     const medal   = { 1: "🥇", 2: "🥈", 3: "🥉" }[item.rank] || `${item.rank}`;
     const mv      = movement.get(item.e.id);
