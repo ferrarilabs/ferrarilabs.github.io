@@ -66,14 +66,16 @@ Key design decisions:
 - The public-projection view (`lottery_public_projection` in `002_rls.sql`) intentionally does
   not yet join published ticket numbers/results — that join was deliberately left out rather
   than guessed at, pending validation against real fixture data. Tracked here, not hidden.
-- Participantes, Pagamentos, Sorteios, Bilhetes, Resultados, Publicações, E-mails, Visão geral,
-  Auditoria, and Saúde do sistema are all built (10 of 11 sections). Resultados' "Corrigir" and
+- All 11 sections are now built, including Comprovantes. Resultados' "Corrigir" and
   Publicações' "Publicar bilhetes" both require typing "CONFIRMAR" literally before the RPC
-  call. Only **Comprovantes** remains unbuilt — it depends on the `powerball-private` Storage
-  bucket, which has not been created in any real Supabase project (see
-  POWERBALL_ADMIN_SECURITY.md), so building the UI would mean guessing at an API surface that
-  doesn't exist yet; it renders text-only, no buttons, same as any other not-yet-implemented
-  section.
+  call.
+- **Comprovantes** (`renderReceipts()`) calls the real `@supabase/supabase-js` Storage API
+  (`.storage.from("powerball-private").list()/.upload()/.createSignedUrl()`) against a bucket
+  that does not exist in any real Supabase project yet — every action will genuinely fail with
+  "Bucket not found" until the bucket is created. This is intentional: the screen fails
+  honestly rather than faking success. Full bucket structure, RLS policy design, and a
+  documented audit-trail gap (Storage uploads don't currently go through the RPC/audit-log
+  path) are in `docs/bolao/loterias/POWERBALL_ADMIN_STORAGE.md`.
 - Auditoria's "Verificar cadeia de auditoria" button calls the real `verify_powerball_audit_chain`
   RPC — this is the one read-only screen with a wired button, since chain verification is itself
   a meaningful server-side action, not a decorative refresh.
@@ -89,9 +91,12 @@ Key design decisions:
   screen's own on-page copy, not hidden. `admin_publish_tickets` itself accepts whatever jsonb is
   passed for these two fields; the RPC does not currently validate their shape.
 - **E-mails screen is outbox-management only.** It enqueues/retries/cancels rows in
-  `lottery_email_jobs` via RPC; it never sends anything itself. Actual delivery still requires
-  the separate worker process from `powerball-email-professionalization` to be pointed at this
-  table — that wiring was not built in this pass (see "Open items" below).
+  `lottery_email_jobs` via RPC; it never sends anything itself, and today nothing reads that
+  table at all — the real, working send path (`scripts/email/outbox.mjs` + `send.mjs` from
+  `powerball-email-professionalization`) is entirely separate and file-backed (`outbox.json`),
+  not Supabase-backed. Full gap analysis and two integration options (with their real costs) are
+  documented in `docs/bolao/loterias/POWERBALL_ADMIN_EMAIL_INTEGRATION.md` — planning only, no
+  code written for either option yet.
 - The Pagamentos and Sorteios screens ask for raw UUIDs (participation_id / pool_id) via
   `window.prompt()` rather than a proper picker/dropdown — functional but crude, flagged here as
   a UX debt rather than silently presented as polished.

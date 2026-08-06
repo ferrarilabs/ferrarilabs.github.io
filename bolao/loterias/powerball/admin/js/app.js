@@ -24,7 +24,7 @@
     { id: "publications", label: "Publicações", implemented: true },
     { id: "results", label: "Resultados", implemented: true },
     { id: "emails", label: "E-mails", implemented: true },
-    { id: "receipts", label: "Comprovantes", implemented: false },
+    { id: "receipts", label: "Comprovantes", implemented: true },
     { id: "audit", label: "Auditoria", implemented: true },
     { id: "health", label: "Saúde do sistema", implemented: true },
   ];
@@ -1051,6 +1051,127 @@
     await load();
   }
 
+  async function renderReceipts(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Comprovantes" }));
+    root.appendChild(
+      el("p", {
+        text:
+          "PENDENTE DE BACKEND REAL: esta tela usa a API real do Supabase Storage " +
+          "(supabase.storage.from('powerball-private')...), não uma simulação -- mas o bucket " +
+          "'powerball-private' ainda não foi criado em nenhum projeto Supabase real (ver " +
+          "docs/bolao/loterias/POWERBALL_ADMIN_STORAGE.md para a estrutura de pastas e as " +
+          "políticas RLS de Storage propostas). Até o bucket existir, toda ação aqui vai falhar " +
+          "com um erro real do Supabase (bucket not found) em vez de simular sucesso -- isso é " +
+          "intencional: preferível uma tela que falha honestamente a uma que finge funcionar.",
+      })
+    );
+
+    const status = el("p", { text: "Carregando comprovantes…" });
+    root.appendChild(status);
+
+    const pathInput = el("input", { type: "text", placeholder: "pasta (ex: participants/<participant_id>/)", value: "" });
+    const listBtn = el("button", { type: "button", text: "Listar" });
+    const fileInput = el("input", { type: "file" });
+    const uploadPathInput = el("input", { type: "text", placeholder: "caminho de destino (ex: participants/<id>/comprovante.pdf)" });
+    const uploadBtn = el("button", { type: "button", text: "Enviar comprovante" });
+
+    listBtn.addEventListener("click", () => load(pathInput.value || ""));
+
+    uploadBtn.addEventListener("click", async () => {
+      try {
+        const file = fileInput.files && fileInput.files[0];
+        if (!file) {
+          window.alert("Selecione um arquivo primeiro.");
+          return;
+        }
+        const destPath = uploadPathInput.value.trim();
+        if (!destPath) {
+          window.alert("Informe o caminho de destino — ação cancelada.");
+          return;
+        }
+        const reason = await requireReasonPrompt("enviar comprovante");
+        // Reason is not yet written to lottery_admin_audit for Storage uploads (Supabase
+        // Storage writes don't go through our RPC layer, unlike table mutations) -- this is a
+        // documented gap, see POWERBALL_ADMIN_STORAGE.md "Audit trail gap" section, not
+        // silently accepted as good enough.
+        uploadBtn.disabled = true;
+        // Real Supabase Storage API call -- will genuinely fail with "Bucket not found" until
+        // the bucket is created for real, which is the honest behavior we want here.
+        const { error } = await supabase.storage.from("powerball-private").upload(destPath, file, {
+          upsert: false,
+        });
+        if (error) throw error;
+        window.alert(`Comprovante enviado (motivo registrado apenas localmente nesta sessão: "${reason}"). Ver POWERBALL_ADMIN_STORAGE.md sobre a lacuna de auditoria para uploads.`);
+        await load(pathInput.value || "");
+      } catch (e) {
+        window.alert("Falha ao enviar comprovante: " + e.message);
+      } finally {
+        uploadBtn.disabled = false;
+      }
+    });
+
+    root.appendChild(el("div", { class: "pb-admin-toolbar" }, [pathInput, listBtn]));
+    root.appendChild(el("div", { class: "pb-admin-toolbar" }, [fileInput, uploadPathInput, uploadBtn]));
+
+    const table = el("table", { class: "pb-admin-table" });
+    root.appendChild(table);
+
+    async function load(folder) {
+      status.textContent = "Carregando comprovantes…";
+      // Real Storage list() call. Until the bucket exists, this returns an error we surface
+      // honestly rather than hiding behind a fake empty list.
+      const { data, error } = await supabase.storage.from("powerball-private").list(folder, {
+        limit: 100,
+        sortBy: { column: "created_at", order: "desc" },
+      });
+      if (error) {
+        status.textContent =
+          "Erro ao carregar (esperado até o bucket powerball-private existir): " + error.message;
+        table.innerHTML = "";
+        return;
+      }
+      status.textContent = `${data.length} item(ns) em "${folder || "/"}".`;
+      table.innerHTML = "";
+      table.appendChild(
+        el("tr", {}, [
+          el("th", { text: "Nome" }),
+          el("th", { text: "Tamanho" }),
+          el("th", { text: "Atualizado em" }),
+          el("th", { text: "Ações" }),
+        ])
+      );
+      data.forEach((f) => {
+        const signedUrlBtn = el("button", { type: "button", text: "Gerar link temporário" });
+        signedUrlBtn.addEventListener("click", async () => {
+          try {
+            const fullPath = (folder ? folder.replace(/\/$/, "") + "/" : "") + f.name;
+            // Signed URL with expiration -- never a bare public URL, per the hard rule that
+            // comprovantes/transaction proof are never exposed via a permanent public link.
+            const { data: signed, error: signErr } = await supabase.storage
+              .from("powerball-private")
+              .createSignedUrl(fullPath, 300); // 5 minutes
+            if (signErr) throw signErr;
+            window.prompt("Link temporário (expira em 5 minutos) — copie:", signed.signedUrl);
+          } catch (e) {
+            window.alert("Falha ao gerar link: " + e.message);
+          }
+        });
+        table.appendChild(
+          el("tr", {}, [
+            el("td", { text: f.name }),
+            el("td", { text: f.metadata && f.metadata.size != null ? `${f.metadata.size} bytes` : "—" }),
+            el("td", { text: f.updated_at ? new Date(f.updated_at).toLocaleString("pt-BR") : "—" }),
+            el("td", {}, [signedUrlBtn]),
+          ])
+        );
+      });
+    }
+
+    await load("");
+  }
+
   function renderNotImplemented(root, section) {
     root.innerHTML = "";
     root.appendChild(el("h2", { text: section.label }));
@@ -1102,6 +1223,8 @@
         await renderPublications(content);
       } else if (section.id === "emails") {
         await renderEmails(content);
+      } else if (section.id === "receipts") {
+        await renderReceipts(content);
       } else {
         renderNotImplemented(content, section);
       }
