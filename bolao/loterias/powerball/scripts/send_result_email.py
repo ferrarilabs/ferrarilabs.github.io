@@ -16,7 +16,7 @@ Email is sent ONLY if the draw has a completed result with winning tickets and p
 Business rule: only play next drawing if jackpot accumulates (configured per draw).
 """
 
-import json, sys, time, urllib.request, re, logging
+import json, os, sys, time, urllib.request, re, logging
 from datetime import datetime
 from pathlib import Path
 
@@ -62,10 +62,21 @@ SUPABASE_URL = "https://cmhqkkfczotdnssupkni.supabase.co"
 SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaHFra2ZjemF0ZG5zc3Vwa25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODQyNjI0MzcsImV4cCI6MTk5OTgzODQzN30.sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
 
 # ── Email routing overrides (for family/household groups) ──────────────────────
-# When a user should receive email at a different address (e.g., Tatiana via Gustavo)
-PARTICIPANT_EMAIL_OVERRIDES = {
-    "Tatiana Bossle": "REDACTED_EMAIL",  # Sent via Gustavo per data.js
-}
+# When a user should receive email at a different address (e.g., a household
+# member routed via another participant's inbox). Loaded from the
+# POWERBALL_PRIVATE_PARTICIPANT_DATA secret's "_overrides" key (P0.1 PII hotfix,
+# 2026-08) — this file is committed to a public repo and must never hardcode a
+# real routing-override address.
+def _load_email_overrides():
+    raw = os.environ.get("POWERBALL_PRIVATE_PARTICIPANT_DATA", "")
+    if not raw:
+        return {}
+    try:
+        return json.loads(raw).get("_overrides", {})
+    except Exception:
+        return {}
+
+PARTICIPANT_EMAIL_OVERRIDES = _load_email_overrides()
 
 DRAWS = {
     "powerball": [
@@ -123,6 +134,14 @@ DRAWS = {
     ]
 }
 
+def _mask(value):
+    """Never log a raw email — first char + last char + length only (P0.2)."""
+    if not value:
+        return "(empty)"
+    if len(value) <= 2:
+        return "*" * len(value)
+    return f"{value[0]}{'*' * (len(value) - 2)}{value[-1]} (len {len(value)})"
+
 def get_active_draw(gameType="powerball"):
     """Get the latest completed draw for the given game type."""
     draws = DRAWS.get(gameType, [])
@@ -135,7 +154,7 @@ def load_participants_from_supabase(draw_id):
     """
     Load participant list from Supabase for the given draw.
     Centralizes user management — single source of truth for emails.
-    Falls back to data.js if Supabase is unavailable.
+    Falls back to the private env var (POWERBALL_PRIVATE_PARTICIPANT_DATA) if Supabase is unavailable.
     """
     logger.info(f"Loading participants from Supabase for draw {draw_id}")
     try:
@@ -190,68 +209,96 @@ def load_participants_from_supabase(draw_id):
 
     except Exception as e:
         logger.warning(f"⚠ Supabase unavailable: {e}")
-        logger.info(f"  Falling back to data.js...")
-        return load_participants_from_data_js(draw_id)
+        logger.info(f"  Falling back to private participant data (env var)...")
+        return load_participants_from_private_env(draw_id)
 
 
-def load_participants_from_data_js(draw_id):
+def _normalize_name(name):
+    """Deterministic normalization for the transitional name-based matching key
+    (P0.2 gate): trim, collapse internal whitespace, casefold. Matching is by
+    name because the private data has no stable participant ID yet — see
+    docs/bolao/loterias/POWERBALL_PRIVATE_DATA_SECRET_CONTRACT.md
+    (MATCHING_MODEL = TRANSITIONAL_NAME_BASED)."""
+    return " ".join((name or "").split()).casefold()
+
+def _short_hash(value):
+    """Non-reversible short identifier for logs — never the raw name/email."""
+    import hashlib
+    return hashlib.sha256((value or "").encode("utf-8")).hexdigest()[:8]
+
+def load_participants_from_private_env(draw_id):
     """
-    Fallback: Load participant list from data.js if Supabase is unavailable.
+    Fallback: Load participant emails from the POWERBALL_PRIVATE_PARTICIPANT_DATA
+    env var (a GitHub Actions secret injected only in CI) if Supabase is unavailable.
+
+    data.js is PUBLIC (served directly to browsers on GitHub Pages) and no longer
+    carries participant email/txId — those fields were removed in the P0.1 PII
+    hotfix (2026-08). Emails now live only in this secret, never in a committed
+    file. Names/cotas/status still come from data.js (that part is intentionally
+    public); this function only supplies the email address per name.
     """
-    logger.info(f"Loading participants from data.js fallback for draw {draw_id}")
+    logger.info(f"Loading participants from private env fallback for draw {draw_id}")
+    raw = os.environ.get("POWERBALL_PRIVATE_PARTICIPANT_DATA", "")
+    if not raw:
+        logger.error("❌ POWERBALL_PRIVATE_PARTICIPANT_DATA not set — cannot fall back")
+        audit_log("participants_load_failed", "draw", draw_id, "failed", {"source": "private_env"}, error_msg="env var not set")
+        return []
+
     try:
-        with open("bolao/loterias/powerball/js/data.js", "r", encoding="utf-8") as f:
-            content = f.read()
+        private_data = json.loads(raw)
+        draw_entries = private_data.get(draw_id, {})
 
-        # Find the draw block that matches this ID. Uses a plain ".*?" (not "[^}]*?")
-        # between id and "participants:" because the "drawing: {...}" sub-object in
-        # between contains its own closing "}" — excluding "}" here made the regex
-        # never match any real draw (drawing always has more than one key).
-        draw_pattern = r'id:\s*["\']' + re.escape(draw_id) + r'["\'].*?participants:\s*\[(.*?)\]'
-        match = re.search(draw_pattern, content, re.DOTALL)
+        # P0.2 gate: collision detection on the normalized matching key BEFORE
+        # resolving any participant. Two distinct raw names that normalize to
+        # the same key is a fail-closed condition for this draw's private
+        # data — never guess which one is authoritative. Logs use a short
+        # non-reversible hash, never the raw name.
+        normalized_seen = {}
+        collisions = []
+        for raw_name in draw_entries.keys():
+            key = _normalize_name(raw_name)
+            if key in normalized_seen and normalized_seen[key] != raw_name:
+                collisions.append(key)
+            normalized_seen[key] = raw_name
 
-        if not match:
+        if collisions:
+            logger.error(
+                f"❌ Name collision in private data for draw {draw_id}: "
+                f"{len(collisions)} normalized-key collision(s) "
+                f"(hashes: {[_short_hash(c) for c in collisions]}) — refusing to load."
+            )
+            audit_log("participants_load_failed", "draw", draw_id, "failed",
+                      {"source": "private_env", "reason": "name_collision", "count": len(collisions)})
             return []
-
-        participants_str = match.group(1)
-
-        # Extract name + email together from each participant entry. data.js already
-        # carries an "email" field per participant (see PARTICIPANT_FRAMEWORK.md) —
-        # this used to do a live per-name Supabase lookup instead, which silently
-        # returned nothing for every participant because SUPABASE_ANON_KEY in this
-        # file is rejected with HTTP 401 (invalid/expired key), not just for
-        # participants missing an email. Reading the email straight out of data.js
-        # is both simpler and no longer dependent on that broken credential.
-        entry_pattern = r'{\s*name:\s*["\']([^"\']+)["\'][^{}]*?email:\s*["\']([^"\']*)["\']'
-        entries = re.findall(entry_pattern, participants_str)
 
         participants = []
         seen_emails = set()
 
-        for name, email in entries:
+        for name, fields in draw_entries.items():
+            email = fields.get("email") if isinstance(fields, dict) else None
+
             # Apply email overrides (e.g., Tatiana via Gustavo) regardless of what's
-            # in data.js for that name, same as the Supabase-loading path above.
+            # in the private data for that name, same as the Supabase-loading path above.
             if name in PARTICIPANT_EMAIL_OVERRIDES:
                 email = PARTICIPANT_EMAIL_OVERRIDES[name]
 
             if not email or email == "—":
-                print(f"⚠ WARNING: {name} email not found")
+                print(f"⚠ WARNING: participant (hash {_short_hash(name)}) email not found")
                 continue
 
-            # Skip if email already in list
             if email in seen_emails:
                 continue
 
             seen_emails.add(email)
             participants.append({"name": name, "email": email})
 
-        logger.info(f"✓ Loaded {len(participants)} participants from data.js for draw {draw_id}")
-        audit_log("participants_loaded", "draw", draw_id, "success", {"source": "data.js", "count": len(participants)})
+        logger.info(f"✓ Loaded {len(participants)} participants from private env for draw {draw_id}")
+        audit_log("participants_loaded", "draw", draw_id, "success", {"source": "private_env", "count": len(participants)})
         return participants
 
     except Exception as e:
-        logger.error(f"❌ Error loading participants from data.js: {e}")
-        audit_log("participants_load_failed", "draw", draw_id, "failed", {"source": "data.js"}, error_msg=str(e))
+        logger.error(f"❌ Error loading participants from private env: {e}")
+        audit_log("participants_load_failed", "draw", draw_id, "failed", {"source": "private_env"}, error_msg=str(e))
         return []
 
 # Prize table (mirrors prizeTable in data.js exactly)
@@ -450,10 +497,13 @@ def send_email(addr, subject, html, recipient_name="", draw_id=""):
     """Send via EmailJS. Subject uses "." instead of "/" to avoid HTML escaping in EmailJS template."""
     addr = addr.strip()
 
-    logger.info(f"📤 Sending email to {addr} [{recipient_name}]")
+    # P0.2: logger writes to both stdout and a log file (which has been
+    # accidentally committed before — see POWERBALL_PII_AUDIT.md §3) — never
+    # put a raw email in a log line, mask it.
+    logger.info(f"📤 Sending email to {_mask(addr)} [{recipient_name}]")
 
     if not addr or "@" not in addr:
-        error = f"Invalid email: {addr}"
+        error = f"Invalid email: {_mask(addr)}"
         logger.error(f"❌ {error}")
         log_email_sent(addr, recipient_name, subject, draw_id, "failed", error_msg=error)
         return False, error
@@ -475,7 +525,7 @@ def send_email(addr, subject, html, recipient_name="", draw_id=""):
         with urllib.request.urlopen(req, timeout=20) as r:
             status_code = r.status
             if status_code == 200:
-                logger.info(f"✅ Email sent successfully to {addr}")
+                logger.info(f"✅ Email sent successfully to {_mask(addr)}")
                 log_email_sent(addr, recipient_name, subject, draw_id, "sent", details={"http_status": status_code})
                 audit_log("email_sent", "email", addr, "success", {"recipient": recipient_name, "draw_id": draw_id})
                 return True, f"HTTP {status_code}"
@@ -486,7 +536,7 @@ def send_email(addr, subject, html, recipient_name="", draw_id=""):
                 return False, error
     except Exception as e:
         error = str(e)
-        logger.error(f"❌ Exception sending to {addr}: {error}")
+        logger.error(f"❌ Exception sending to {_mask(addr)}: {error}")
         log_email_sent(addr, recipient_name, subject, draw_id, "failed", error_msg=error)
         audit_log("email_failed", "email", addr, "failed", {"recipient": recipient_name, "error": error}, error_msg=error)
         return False, error
@@ -505,7 +555,7 @@ def run_test_send(gameType="powerball"):
         print("❌ No completed draw found for " + gameType)
         sys.exit(1)
 
-    # Load ACTUAL participants from Supabase (with data.js fallback)
+    # Load ACTUAL participants from Supabase (with private-env fallback)
     participants = load_participants_from_supabase(draw["id"])
 
     errors = validate_data(draw, participants)
@@ -513,7 +563,7 @@ def run_test_send(gameType="powerball"):
         print("\n⚠️  DATA ISSUES FOUND:\n")
         for err in errors:
             print(f"  {err}")
-        print("\n⚠️  Review data in /bolao/loterias/powerball/js/data.js\n")
+        print("\n⚠️  Review data in Supabase or the POWERBALL_PRIVATE_PARTICIPANT_DATA secret\n")
 
     print(f"\n📧 SENDING PREVIEW TO ADMIN: {ADMIN_EMAIL}")
     print(f"   Draw: {draw['drawing']['drawDateLabel']}")
@@ -559,10 +609,10 @@ def run_send_all(gameType="powerball"):
         print("❌ No completed draw found for " + gameType)
         sys.exit(1)
 
-    # Load ACTUAL participants from Supabase (with data.js fallback)
+    # Load ACTUAL participants from Supabase (with private-env fallback)
     recipients = load_participants_from_supabase(draw["id"])
     if not recipients:
-        print(f"❌ No participants found in data.js for draw {draw['id']}\n")
+        print(f"❌ No participants found (Supabase + private env fallback) for draw {draw['id']}\n")
         sys.exit(1)
 
     errors = validate_data(draw, recipients)
@@ -587,14 +637,15 @@ def run_send_all(gameType="powerball"):
         name, email = p["name"], p["email"]
         ok, msg = send_email(email, subject, html, recipient_name=name, draw_id=draw['id'])
         status = "✓" if ok else "✗"
-        print(f"  {status} {name:<30} {email}")
+        # P0.2: never print a raw email address to stdout/logs, even on send.
+        print(f"  {status} {name:<30} {_mask(email)}")
 
         if ok:
             sent += 1
             time.sleep(2)  # EmailJS rate limit
         else:
             failed.append((name, email, msg))
-            logger.warning(f"Email failed for {name} ({email}): {msg}")
+            logger.warning(f"Email failed for {name} ({_mask(email)}): {msg}")
 
     print(f"\n{'='*60}")
     logger.info(f"Broadcast completed: {sent} sent, {len(failed)} failed")
@@ -603,11 +654,14 @@ def run_send_all(gameType="powerball"):
         "failed": len(failed),
         "total": len(recipients)
     })
-    print(f"✓ {sent} enviados, {len(failed)} falharam")
+    print(f"{'✓' if not failed else '⚠'} {sent} enviados, {len(failed)} falharam")
     if failed:
         print(f"\nFalhas:")
         for name, email, msg in failed:
-            print(f"  ✗ {name} ({email}): {msg}")
+            print(f"  ✗ {name} ({_mask(email)}): {msg}")
+        print()
+        # P0.2: never declare success on a partial/silent-failure send.
+        sys.exit(1)
     print()
 
 

@@ -4,11 +4,18 @@ Sends individual bilingual emails notifying participants of the Round of 16
 bracket correction (M89/M90/M91/M95/M96 path fix, v4.16).
 
 Usage:
-  python3 send_bracket_correction_email.py           # sends to all 15 participants
-  python3 send_bracket_correction_email.py --test    # sends only to admin (emferrari@gmail.com)
+  python3 send_bracket_correction_email.py             # sends to all real participants
+  python3 send_bracket_correction_email.py --test      # sends only to admin (emferrari@gmail.com)
+  python3 send_bracket_correction_email.py --dry-run   # validates + builds emails, sends nothing
+
+Fail-closed contract (P0.2 hotfix, 2026-08): if a real send is requested and
+any real participant is missing routing (COPA_BRACKET_CORRECTION_ROUTING env
+var unset/incomplete), this script refuses to send ANYTHING and exits
+non-zero — it never silently skips participants and reports "0 sent" as
+success, and it never logs a raw email address (only masked).
 """
 
-import json, sys, time, urllib.request
+import json, os, sys, time, urllib.request
 from collections import defaultdict
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -59,26 +66,36 @@ RIGHT = {
     "95": ("87", "86"), "96": ("85", "88"),
 }
 
-# Manual email routing: payer → (to, cc)
-# cc = "" means no CC
-ROUTING = {
-    "Eduardo Ferrari":     ("REDACTED_EMAIL", "emferrari@gmail.com"),
-    "Mitch":               ("REDACTED_EMAIL",     ""),
-    "Aline":               ("REDACTED_EMAIL",  ""),
-    "Fabrizio Marodin":    ("REDACTED_EMAIL", ""),
-    "Samuel":              ("REDACTED_EMAIL",     ""),
-    "Kisie Krawczyk":      ("REDACTED_EMAIL",    ""),
-    "Simone":              ("REDACTED_EMAIL",   ""),
-    "Gustavo Bossle":      ("REDACTED_EMAIL", ""),
-    "Alan":                ("REDACTED_EMAIL",   "REDACTED_EMAIL"),
-    "Nathalia":            ("REDACTED_EMAIL", ""),
-    "Gustavo Ribeiro":     ("REDACTED_EMAIL",  ""),
-    "Camila":              ("REDACTED_EMAIL", ""),
-    "Ewerton":             ("REDACTED_EMAIL", ""),
-    "Roberta Falcao Rech": ("REDACTED_EMAIL",   ""),
-    "Vinicius":            ("REDACTED_EMAIL", ""),
-    "Rodrigo Hajj":        ("REDACTED_EMAIL", ""),
-}
+# Manual email routing: payer → (to, cc). This was a one-time historical send
+# (Round of 16 bracket correction, v4.16, already sent) — kept as a script for
+# audit/reference, not scheduled or re-run automatically.
+#
+# PII P0 hotfix (2026-08): this file is committed to a PUBLIC repo and must
+# never hardcode real participant emails. Routing now loads from the
+# COPA_BRACKET_CORRECTION_ROUTING env var (JSON: {"Payer Name": ["to", "cc-or-empty"]}),
+# never from a committed literal. If unset, ROUTING is empty and every payer is
+# skipped (fails safe — see the "no routing configured" guard below), not
+# silently mis-sent.
+def _load_routing():
+    raw = os.environ.get("COPA_BRACKET_CORRECTION_ROUTING", "")
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+        return {k: (v[0], v[1] if len(v) > 1 else "") for k, v in data.items()}
+    except Exception as e:
+        print(f"⚠️  COPA_BRACKET_CORRECTION_ROUTING is set but invalid JSON: {e}")
+        return {}
+
+ROUTING = _load_routing()
+
+def _mask(value):
+    """Never log a raw email/name — first char + last char + length only."""
+    if not value:
+        return "(empty)"
+    if len(value) <= 2:
+        return "*" * len(value)
+    return f"{value[0]}{'*' * (len(value) - 2)}{value[-1]} (len {len(value)})"
 
 # ── Supabase ──────────────────────────────────────────────────────────────────
 def sb_fetch():
@@ -224,9 +241,30 @@ def send_email(addr, html):
     with urllib.request.urlopen(req, timeout=20) as r:
         return r.status
 
+def resolve_routing(payers, routing):
+    """Pure function: resolve each payer's (to, cc) from `routing`, fail-closed.
+
+    Returns (resolved: dict, missing: list[payer], ambiguous: list[(payer, payer)]).
+    No I/O, no printing, no sending — testable without Supabase/EmailJS access.
+    """
+    resolved, missing, ambiguous = {}, [], []
+    seen_targets = {}  # to-address -> payer, to detect two different payers
+                        # accidentally routed to the same address (collision)
+    for payer in payers:
+        to, cc = routing.get(payer, ("", ""))
+        if not to or "@" not in to:
+            missing.append(payer)
+            continue
+        if to in seen_targets and seen_targets[to] != payer:
+            ambiguous.append((payer, seen_targets[to]))
+        seen_targets[to] = payer
+        resolved[payer] = (to, cc)
+    return resolved, missing, ambiguous
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 def main():
     test_mode = "--test" in sys.argv
+    dry_run   = "--dry-run" in sys.argv
 
     print("Fetching state from Supabase...")
     state   = sb_fetch()
@@ -245,33 +283,59 @@ def main():
         payer_map[p].append(e)
 
     if test_mode:
-        print(f"\n⚠️  TEST MODE — sending only to {ADMIN_EMAIL}\n")
+        print(f"\n⚠️  TEST MODE — sending only to admin ({_mask(ADMIN_EMAIL)})\n")
+        if dry_run:
+            print("DRY_RUN=true — validated only, nothing sent.")
+            return
         html = build_html("Eduardo Ferrari", payer_map.get("Eduardo Ferrari", [real[0]]), "pt")
         try:
             status = send_email(ADMIN_EMAIL, html)
-            print(f"  OK {status} → {ADMIN_EMAIL}")
+            print(f"  OK {status} → {_mask(ADMIN_EMAIL)}")
         except Exception as ex:
-            print(f"  ERR → {ADMIN_EMAIL}: {ex}")
+            print(f"  ERR → {_mask(ADMIN_EMAIL)}: {ex}")
+        return
+
+    # ── Fail-closed pre-validation: resolve every payer's routing BEFORE any
+    # send happens. A real send request with any unresolved participant is a
+    # hard failure, not a partial/silent skip (P0.2 gate).
+    payers = sorted(payer_map.keys())
+    resolved, missing, ambiguous = resolve_routing(payers, ROUTING)
+
+    print(f"\nRouting resolution: {len(resolved)}/{len(payers)} payer(s) resolved, "
+          f"{len(missing)} missing, {len(ambiguous)} ambiguous (masked identifiers only).")
+
+    if missing:
+        print("❌ FAILED — missing routing for required recipient(s):")
+        for p in missing:
+            print(f"   - {_mask(p)}")
+        print("\nSet COPA_BRACKET_CORRECTION_ROUTING before sending. No email was sent.")
+        sys.exit(1)
+
+    if ambiguous:
+        print("❌ FAILED — routing collision (two payers resolved to the same address):")
+        for p1, p2 in ambiguous:
+            print(f"   - {_mask(p1)} / {_mask(p2)}")
+        print("\nFix COPA_BRACKET_CORRECTION_ROUTING before sending. No email was sent.")
+        sys.exit(1)
+
+    if dry_run:
+        print(f"\nDRY_RUN=true — {len(resolved)} payer(s) fully resolved, 0 sent (dry run).")
         return
 
     sent, errors = 0, []
-    for payer, elist in payer_map.items():
-        to, cc = ROUTING.get(payer, ("", ""))
-        if not to:
-            print(f"  SKIP {payer} — no routing configured")
-            continue
-
+    for payer, (to, cc) in resolved.items():
+        elist  = payer_map[payer]
         lang   = "en" if payer == "Mitch" else "pt"
         html   = build_html(payer, elist, lang, cc_label=cc if cc else "")
 
         # Primary send
         try:
             status = send_email(to, html)
-            print(f"  OK {status} → {to}  [{payer}]")
+            print(f"  OK {status} → {_mask(to)}  [{_mask(payer)}]")
             sent += 1
         except Exception as ex:
-            errors.append(f"{to}: {ex}")
-            print(f"  ERR → {to}: {ex}")
+            errors.append((payer, "to"))
+            print(f"  ERR → {_mask(to)}: {ex}")
 
         time.sleep(4)
 
@@ -279,16 +343,18 @@ def main():
         if cc:
             try:
                 status = send_email(cc, html)
-                print(f"  OK {status} → {cc}  [CC: {payer}]")
+                print(f"  OK {status} → {_mask(cc)}  [CC: {_mask(payer)}]")
                 sent += 1
             except Exception as ex:
-                errors.append(f"{cc}: {ex}")
-                print(f"  ERR → {cc}: {ex}")
+                errors.append((payer, "cc"))
+                print(f"  ERR → {_mask(cc)}: {ex}")
             time.sleep(4)
 
     print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors")
-    for err in errors:
-        print(f"  ERROR: {err}")
+    if errors:
+        for payer, which in errors:
+            print(f"  ERROR: {_mask(payer)} ({which})")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

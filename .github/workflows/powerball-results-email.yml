@@ -59,6 +59,12 @@ jobs:
 
       - name: Fetch and send results
         working-directory: bolao/loterias/powerball/scripts
+        env:
+          # Fallback participant emails, used only if the live Supabase read fails.
+          # data.js is public and no longer carries email/txId (P0.1 hotfix) — this
+          # secret is the only remaining source, injected as an env var, never written
+          # to a file or committed.
+          POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
         run: |
           DRY_RUN=""
           FORCE_RESEND=""

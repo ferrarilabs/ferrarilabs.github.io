@@ -139,23 +139,29 @@ CREATE POLICY "Allow insert email_log (scripts only)" ON public.email_log
 -- Sample Data for Powerball 2026-08-01 Draw
 -- ═══════════════════════════════════════════════════════════════════════════════
 
--- Insert users (only if they don't exist)
--- NOTE: Update state values based on actual participant locations
+-- Insert users (only if they don't exist).
+-- P0.1 PII hotfix (2026-08): this file is committed to a PUBLIC repo, so it must
+-- never carry real participant emails. Placeholders below MUST be replaced with
+-- real addresses (from POWERBALL_PRIVATE_PARTICIPANT_DATA, never pasted back into
+-- this file) by whoever runs this script by hand in the Supabase SQL editor —
+-- or, preferably, seed participants one at a time via add_participant_to_supabase.py,
+-- which never writes email to a committed file at all.
+-- NOTE: Update state values based on actual participant locations.
 INSERT INTO public.users (name, email, state) VALUES
-  ('Eduardo Ferrari', 'emferrari@gmail.com', 'NC'),
-  ('Gustavo Bossle', 'REDACTED_EMAIL', 'NC'),
-  ('Tatiana Bossle', 'tatiana.bossle@example.com', 'NC'),
-  ('Marcelo Moreira', 'REDACTED_EMAIL', 'NC'),
-  ('Leandro Augustineli', 'REDACTED_EMAIL', 'NC'),
-  ('Alan Rech', 'REDACTED_EMAIL', 'FL'),
-  ('Ewerton Gruba Silva', 'REDACTED_EMAIL', 'NC'),
-  ('Simone Hirle da Costa', 'REDACTED_EMAIL', 'NC'),
-  ('Camila Ribeiro', 'REDACTED_EMAIL', 'NC'),
-  ('Marcus Steffenon', 'REDACTED_EMAIL', 'NC'),
-  ('Samuel Huller', 'REDACTED_EMAIL', 'NC'),
-  ('Amanda Quaresma', 'REDACTED_EMAIL', 'NC'),
-  ('Rodrigo Hajj', 'REDACTED_EMAIL', 'NC'),
-  ('Nathalia Galeazzi Nedel', 'REDACTED_EMAIL', 'NC')
+  ('Eduardo Ferrari', '<real-email-from-private-data>', 'NC'),
+  ('Gustavo Bossle', '<real-email-from-private-data>', 'NC'),
+  ('Tatiana Bossle', '<real-email-from-private-data>', 'NC'),
+  ('Marcelo Moreira', '<real-email-from-private-data>', 'NC'),
+  ('Leandro Augustineli', '<real-email-from-private-data>', 'NC'),
+  ('Alan Rech', '<real-email-from-private-data>', 'FL'),
+  ('Ewerton Gruba Silva', '<real-email-from-private-data>', 'NC'),
+  ('Simone Hirle da Costa', '<real-email-from-private-data>', 'NC'),
+  ('Camila Ribeiro', '<real-email-from-private-data>', 'NC'),
+  ('Marcus Steffenon', '<real-email-from-private-data>', 'NC'),
+  ('Samuel Huller', '<real-email-from-private-data>', 'NC'),
+  ('Amanda Quaresma', '<real-email-from-private-data>', 'NC'),
+  ('Rodrigo Hajj', '<real-email-from-private-data>', 'NC'),
+  ('Nathalia Galeazzi Nedel', '<real-email-from-private-data>', 'NC')
 ON CONFLICT (name) DO NOTHING;
 
 -- Add participation records for Powerball draw 2026-08-01

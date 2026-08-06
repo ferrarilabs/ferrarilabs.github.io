@@ -9,6 +9,8 @@ This document establishes the permanent framework for managing participants in t
 Each participant must have the following fields:
 
 ```javascript
+// js/data.js — PUBLIC (served directly to browsers). Since the P0.1 PII
+// hotfix (2026-08), this file must NEVER contain email or txId.
 {
   name: "Full Name",
   cotas: 1,                    // Number of shares (typically 1)
@@ -16,12 +18,17 @@ Each participant must have the following fields:
   metodo: "Zelle",             // Payment method
   data: "04/08/2026",          // Payment date
   hora: "8:40 AM",             // Payment time
-  txId: "REDACTED_PAYMENT_REFERENCE",         // Transaction ID
   status: "verificado",        // "organizador" or "verificado"
   state: "NC",                 // US STATE ABBREVIATION (REQUIRED)
-  email: "participant@example.com"  // Email address (REQUIRED)
 }
 ```
+
+Email and txId are PRIVATE and are never written to `js/data.js`. They live only
+in the `POWERBALL_PRIVATE_PARTICIPANT_DATA` GitHub secret (consumed as an env var
+by CI) and, for local/manual runs, in a gitignored sidecar file
+(`scripts/private-participant-data.local.json`), keyed by draw id → participant
+name → `{ email, txId }`. See `scripts/add-participant.js` / `scripts/add_participants.py`,
+which write both files automatically when adding a participant.
 
 ## Adding New Participants
 

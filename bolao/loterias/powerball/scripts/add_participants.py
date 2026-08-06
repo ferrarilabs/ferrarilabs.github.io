@@ -61,12 +61,13 @@ def add_participants_to_file(data_content, draw_id, participants):
             print(f"   - {p['name']}: {p['email']}")
         sys.exit(1)
 
-    # Build participant entries
+    # Build participant entries. data.js is PUBLIC (served directly to browsers on
+    # GitHub Pages) — it must never carry email or txId (P0.1 PII hotfix, 2026-08).
     today = datetime.now().strftime("%d/%m/%Y")
     entries = []
 
     for p in participants:
-        entry = f'''      {{ name: "{p['name']}", email: "{p['email']}", cotas: null, valor: null, metodo: "Saldo anterior", data: "{today}", hora: "—", txId: "—", status: "recorrente" }}'''
+        entry = f'''      {{ name: "{p['name']}", cotas: null, valor: null, metodo: "Saldo anterior", data: "{today}", hora: "—", status: "recorrente" }}'''
         entries.append(entry)
 
     # Find the participants array for this draw and insert before closing bracket
@@ -157,20 +158,41 @@ def main():
     extract_draw(data_content, args.draw_id)
     updated_content = add_participants_to_file(data_content, args.draw_id, participants)
 
-    # Write back
+    # Write back (public file — no email/txId)
     data_path = Path(__file__).parent.parent / "js" / "data.js"
     with open(data_path, 'w', encoding='utf-8') as f:
         f.write(updated_content)
 
-    # Report
-    print(f"✅ Added {len(participants)} participant(s) to draw {args.draw_id}:")
+    # Write private sidecar (local only — .gitignore'd, never committed)
+    sidecar_path = Path(__file__).parent / "private-participant-data.local.json"
+    sidecar = {}
+    if sidecar_path.exists():
+        try:
+            with open(sidecar_path, 'r', encoding='utf-8') as f:
+                sidecar = json.load(f)
+        except Exception:
+            sidecar = {}
+    sidecar.setdefault(args.draw_id, {})
     for p in participants:
-        print(f"   ✓ {p['name']} ({p['email']})")
+        sidecar[args.draw_id][p['name']] = {"email": p['email'], "txId": "—"}
+    with open(sidecar_path, 'w', encoding='utf-8') as f:
+        json.dump(sidecar, f, ensure_ascii=False, indent=2)
+
+    # Report
+    print(f"✅ Added {len(participants)} participant(s) to draw {args.draw_id} (public data.js — no email/txId):")
+    for p in participants:
+        print(f"   ✓ {p['name']}")
+
+    print(f"\n⚠️  Emails were written ONLY to {sidecar_path} (local, gitignored, NOT committed).")
+    print(f"   Merge this file's contents into the GitHub secret manually:")
+    print(f"   gh secret set POWERBALL_PRIVATE_PARTICIPANT_DATA --repo ferrarilabs/ferrarilabs.github.io < <(merge this file with the current secret)")
 
     print(f"\n📝 Next steps:")
     print(f"   1. Verify: head -50 js/data.js | tail -20")
     print(f"   2. Audit: python3 ../scripts/audit_scoring.py")
-    print(f"   3. Commit: git add js/data.js && git commit -m \"Add {len(participants)} participant(s)\"")
+    print(f"   3. Update the GitHub secret with the new email(s) — see above.")
+    print(f"   4. Delete or keep-local {sidecar_path.name} — never git add it.")
+    print(f"   5. Commit: git add js/data.js && git commit -m \"Add {len(participants)} participant(s)\"")
 
 if __name__ == '__main__':
     main()
