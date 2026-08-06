@@ -156,6 +156,121 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
   };
 }
 
+// ---------------------------------------------------------------------------
+// Draw-result email (2026-08-06, real-send). Reuses the REAL prize table
+// (gt.prizeTable from js/data.js, passed in — never reimplemented here) to
+// compute hits/prizes per ticket, exactly the same logic js/app.js's own
+// computePrize() uses for the public page. Financial figures are read
+// directly from draw.finance/draw.result/draw.profit — never invented.
+// ---------------------------------------------------------------------------
+
+function parseTicketNumeros(str) {
+  const m = str.match(/^([\d\s-]+?)\s*—\s*PB\s*(\d+)$/);
+  if (!m) return null;
+  return { numbers: m[1].split("-").map(Number), special: Number(m[2]) };
+}
+
+/** All shared tickets for a draw, flattened, with serial retained. */
+export function allTicketsForDraw(draw) {
+  const out = [];
+  (draw.sharedTickets ? draw.sharedTickets.series : []).forEach((s) => {
+    (s.numeros || []).forEach((str) => {
+      const parsed = parseTicketNumeros(str);
+      if (parsed) out.push({ ...parsed, serial: s.serial });
+    });
+  });
+  return out;
+}
+
+/**
+ * Computes hits/prize per ticket using the REAL prizeTable function (from
+ * js/data.js's LOTTERY_GAME_TYPES.powerball.prizeTable, loaded via
+ * prize-calc-bridge.mjs) — identical logic to js/app.js's own computePrize().
+ */
+export function computeTicketResults(tickets, official, prizeTableFn) {
+  return tickets.map((t) => {
+    const mainMatches = t.numbers.filter((n) => official.numbers.includes(n)).length;
+    const specialMatch = t.special === official.special;
+    const prize = prizeTableFn(mainMatches, specialMatch, official.multiplier);
+    return {
+      ...t,
+      mainMatches,
+      specialMatch,
+      prizeLabel: prize ? prize.label : null,
+      prizeAmount: prize ? prize.amount : 0,
+      jackpotHit: !!(prize && prize.amount === null),
+    };
+  });
+}
+
+export function buildDrawResultPayload({ draw, participants, official, prizeTableFn, siteUrl }) {
+  const totalShares = participants.reduce((s, p) => s + (p.cotas || 0), 0);
+  const tickets = allTicketsForDraw(draw);
+  const ticketResults = computeTicketResults(tickets, official, prizeTableFn);
+  const winningTickets = ticketResults.filter((t) => t.prizeAmount);
+
+  const f = draw.finance;
+  const totalWon = draw.result ? draw.result.premiosGanhos : null;
+  const totalSpent = f.valorUtilizado;
+  const remainingBalance = f.valorGuardadoProximoSorteio;
+  // Estimated funds carried into the next draw = balance already reserved +
+  // whatever was won this draw (losses are historically covered by the
+  // organizer separately, per PARTICIPANT_FRAMEWORK.md convention already
+  // visible in this draw's own "Saldo anterior (cobriu -$2...)" entries) —
+  // explicitly labeled as an estimate, not asserted as an official carried
+  // balance until the next draw entry actually exists in js/data.js.
+  const estimatedNextDrawCredit = totalWon != null ? Number((remainingBalance + totalWon).toFixed(2)) : null;
+
+  const base = {
+    templateId: "draw-result",
+    templateVersion: 1,
+    poolId: draw.gameType,
+    drawId: draw.id,
+    drawDateLabel: draw.drawing.drawDateLabel,
+    drawDateIso: draw.drawing.drawDateIso,
+    jackpot: draw.drawing.jackpot,
+    totalShares,
+    official,
+    checkedAt: draw.result ? draw.result.checkedAt : null,
+    jackpotHit: draw.result ? draw.result.jackpotHit : null,
+    tickets: ticketResults,
+    winningTickets,
+    ticketCount: ticketResults.length,
+    financialSummary: {
+      participantCount: participants.length,
+      totalShares,
+      totalArrecadado: f.totalArrecadado,
+      totalSpent,
+      remainingBalance,
+      totalWon,
+      lucro: draw.profit ? draw.profit.lucro : (totalWon != null ? Number((totalWon - totalSpent).toFixed(2)) : null),
+      estimatedNextDrawCredit,
+    },
+    proofUrl: draw.sharedTickets ? draw.sharedTickets.proofUrl : null,
+    siteUrl: siteUrl || "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+    generatedAtUtc: new Date().toISOString(),
+  };
+
+  return {
+    shared: base,
+    perRecipient: participants.map((p) => {
+      const shares = p.cotas || 0;
+      return {
+        ...base,
+        recipient: p.email,
+        participantId: p.name,
+        participantName: p.name,
+        individualParticipation: {
+          shares,
+          valor: p.valor,
+          status: p.status,
+          percentage: Number(((totalShares > 0 ? shares / totalShares : 0) * 100).toFixed(4)),
+        },
+      };
+    }),
+  };
+}
+
 export function manifestToCsv(manifest) {
   const rows = [["poolId", "drawId", "publicationVersion", "ticketIndex", "numbers", "special", "serial"]];
   manifest.tickets.forEach((t, i) => {
