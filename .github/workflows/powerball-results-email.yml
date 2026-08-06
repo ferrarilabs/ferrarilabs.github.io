@@ -2,9 +2,17 @@ name: Powerball Results (auto fetch + email)
 
 on:
   schedule:
-    # Tuesday 22:00-06:00 UTC (18:00-02:00 EDT) + Wed 02:59 UTC is Tue 22:59 EDT
-    - cron: '*/10 22-23 * * 2'  # Tuesday 22:00-23:50 UTC
-    - cron: '*/10 0-6 * * 3'    # Wednesday 00:00-06:50 UTC (covers Tue 20:00-02:50 EDT)
+    # Real Powerball draw days are Monday / Wednesday / Saturday at 22:59 ET.
+    # BUG FOUND 2026-08-06: this schedule previously covered Tuesday+Saturday
+    # only (no Monday, no Wednesday) — so it silently never fired after any
+    # Monday or Wednesday drawing, including 2026-08-05 (a Wednesday). Fixed
+    # to cover all three real draw nights.
+    # Monday 22:00-06:00 UTC (18:00-02:00 EDT) + Tue 02:59 UTC is Mon 22:59 EDT
+    - cron: '*/10 22-23 * * 1'  # Monday 22:00-23:50 UTC
+    - cron: '*/10 0-6 * * 2'    # Tuesday 00:00-06:50 UTC (covers Mon 20:00-02:50 EDT)
+    # Wednesday 22:00-06:00 UTC (18:00-02:00 EDT) + Thu 02:59 UTC is Wed 22:59 EDT
+    - cron: '*/10 22-23 * * 3'  # Wednesday 22:00-23:50 UTC
+    - cron: '*/10 0-6 * * 4'    # Thursday 00:00-06:50 UTC (covers Wed 20:00-02:50 EDT)
     # Saturday 22:00-06:00 UTC (18:00-02:00 EDT) + Sun 02:59 UTC is Sat 22:59 EDT
     - cron: '*/10 22-23 * * 6'  # Saturday 22:00-23:50 UTC
     - cron: '*/10 0-6 * * 0'    # Sunday 00:00-06:50 UTC (covers Sat 20:00-02:50 EDT)
