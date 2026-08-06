@@ -102,9 +102,12 @@ if (duplicates.length > 0) {
   process.exit(1);
 }
 
-// Build new participant objects
+// Build new participant objects. data.js is PUBLIC (served directly to browsers
+// on GitHub Pages) — it must never carry email or txId (P0.1 PII hotfix, 2026-08).
+// Email is written instead to a local-only sidecar file, never committed, for the
+// operator to merge into the POWERBALL_PRIVATE_PARTICIPANT_DATA GitHub secret by hand.
 const participantStrings = newParticipants.map(p => `
-      { name: "${p.name}", email: "${p.email}", cotas: null, valor: null, metodo: "Saldo anterior", data: "${new Date().toLocaleDateString('pt-BR')}", hora: "—", txId: "—", status: "recorrente" }`);
+      { name: "${p.name}", cotas: null, valor: null, metodo: "Saldo anterior", data: "${new Date().toLocaleDateString('pt-BR')}", hora: "—", status: "recorrente" }`);
 
 // Insert before closing bracket
 const newParticipantsSection = participantStrings.join(',');
@@ -121,15 +124,37 @@ const updated = dataContent.replace(
   `$1${newParticipantsStr}$3`
 );
 
-// Write back
+// Write back (public file — no email/txId)
 fs.writeFileSync(dataPath, updated);
 
-console.log(`✅ Added ${newParticipants.length} participant(s) to draw ${drawId}:`);
+// Write private sidecar (local only — .gitignore'd, never committed)
+const privateSidecarPath = path.join(__dirname, 'private-participant-data.local.json');
+let privateSidecar = {};
+if (fs.existsSync(privateSidecarPath)) {
+  try {
+    privateSidecar = JSON.parse(fs.readFileSync(privateSidecarPath, 'utf8'));
+  } catch (e) {
+    privateSidecar = {};
+  }
+}
+privateSidecar[drawId] = privateSidecar[drawId] || {};
 newParticipants.forEach(p => {
-  console.log(`   ✓ ${p.name} (${p.email})`);
+  privateSidecar[drawId][p.name] = { email: p.email, txId: '—' };
 });
+fs.writeFileSync(privateSidecarPath, JSON.stringify(privateSidecar, null, 2));
+
+console.log(`✅ Added ${newParticipants.length} participant(s) to draw ${drawId} (public data.js — no email/txId):`);
+newParticipants.forEach(p => {
+  console.log(`   ✓ ${p.name}`);
+});
+
+console.log(`\n⚠️  Emails were written ONLY to ${privateSidecarPath} (local, gitignored, NOT committed).`);
+console.log(`   You must merge this file's contents into the GitHub secret manually:`);
+console.log(`   gh secret set POWERBALL_PRIVATE_PARTICIPANT_DATA --repo ferrarilabs/ferrarilabs.github.io < <(merge this file with the current secret)`);
 
 console.log(`\n📝 Next steps:`);
 console.log(`   1. Verify changes: cat js/data.js | grep -A 20 "id: \\"${drawId}\\""  `);
 console.log(`   2. Run audit: python3 ../scripts/audit_scoring.py`);
-console.log(`   3. Commit: git add js/data.js && git commit -m "Add ${newParticipants.length} new participant(s)"`);
+console.log(`   3. Update the GitHub secret with the new email(s) — see above.`);
+console.log(`   4. Delete or keep-local ${path.basename(privateSidecarPath)} — never git add it.`);
+console.log(`   5. Commit: git add js/data.js && git commit -m "Add ${newParticipants.length} new participant(s)"`);

@@ -32,13 +32,16 @@ status, state, email`. Confirmed by grep against the file that ships with
 `index.html`:
 
 ```
-email: "REDACTED_EMAIL"
-email: "REDACTED_EMAIL"
+email: "a***@***.com"
+email: "a***@***.com.br"
 ...
 txId: "REDACTED_PAYMENT_REFERENCE"
 txId: "REDACTED_PAYMENT_REFERENCE"
 ...
 ```
+(Real values masked here on 2026-08-06 as part of the P0.1 hotfix — this
+document itself was a public PII exposure vector, since it's committed to the
+same public repo it's auditing. See "P0.1 update" note at the bottom.)
 
 This means every participant's email address and payment transaction ID
 (Zelle/Cash App/Venmo confirmation numbers) is currently downloadable by
@@ -50,9 +53,9 @@ git-history-only issue.
 - `js/data.js` was introduced in commit `87c9f40` (2026-08-01) and has been
   modified in 46+ commits since, most of which added or changed participant
   emails/txIds.
-- An old, superseded personal email (`REDACTED_EMAIL`, later replaced
-  by `REDACTED_EMAIL` for the same participant in commit `65c3327`)
-  remains in history — anyone who checks out an earlier commit, or views that
+- An old, superseded personal email (masked here: `e***@gmail.com`, later
+  replaced by the participant's current address in commit `65c3327`) remains
+  in history — anyone who checks out an earlier commit, or views that
   commit's diff on github.com, can still see it, even though it no longer
   appears in the current file.
 - `bolao/loterias/powerball/logs/send_result_email_20260804_172718.log` is
@@ -258,3 +261,36 @@ never be published or shared publicly.
 3. No code, no data, no git history changed. No migration applied. No
    PII removed from `js/data.js` — that requires Eduardo's explicit
    go-ahead per the scope note above.
+
+## P0.1 update (2026-08-06)
+
+Eduardo authorized the interim fix this document flagged as needing
+"explicit go-ahead" (§8/§9/Gate checklist above). Executed on branch
+`hotfix-powerball-public-pii`:
+
+- `email`/`txId` fields removed entirely from `js/data.js` (now zero, not 15
+  emails + 28 txIds).
+- Real values moved to the `POWERBALL_PRIVATE_PARTICIPANT_DATA` GitHub
+  encrypted secret (CI) / a gitignored local sidecar file (manual runs) —
+  never in a committed file.
+- `send_result_email.py`'s data.js-fallback path and the `scripts/email/*.mjs`
+  pipeline (via `snapshot.mjs`) updated to merge private fields from that
+  source instead of parsing them out of the public file.
+- `add-participant.js` / `add_participants.py` updated to stop writing
+  email/txId into `data.js` — they now write to the same private sidecar file.
+- Two other real-PII leaks found during this pass and also fixed:
+  `docs/SUPABASE_FINAL_SETUP.md` and `scripts/supabase_setup.sql` (both had
+  hardcoded real participant emails/txId); `send_result_email.py`'s
+  `PARTICIPANT_EMAIL_OVERRIDES` (hardcoded a real routing-override address,
+  now loaded from the same secret).
+- The values redacted in §2/§3 of this document above were the actual real
+  values at the time this audit was written — masked in place rather than
+  removed, to preserve the document's evidentiary record.
+- **Not done in this pass** (still open, per §8/§9 of this document): git
+  history rewrite (`filter-repo`) and the full Supabase persistence
+  migration. Both remain proposals requiring separate authorization.
+- **Also found, out of scope for this Powerball-specific authorization**:
+  `bolao/copa2026/scripts/send_bracket_correction_email.py` hardcodes several
+  of the same real participant emails (a different app, different tournament)
+  — flagged for Eduardo, not fixed here, since this authorization was scoped
+  to Powerball only.

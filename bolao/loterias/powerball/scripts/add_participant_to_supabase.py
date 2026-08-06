@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Add a participant to Supabase for a specific draw.
-Usage: python3 add_participant_to_supabase.py --name "Alan Rech" --email "REDACTED_EMAIL" --draw "2026-08-01"
+Usage: python3 add_participant_to_supabase.py --name "John Doe" --email "john.doe@example.invalid" --draw "2026-08-01"
 """
 
 import json
@@ -153,7 +153,7 @@ def main():
     
     if not name or not email or not draw_id:
         print("Usage: python3 add_participant_to_supabase.py --name <name> --email <email> --draw <draw_id>")
-        print("Example: python3 add_participant_to_supabase.py --name 'Alan Rech' --email 'REDACTED_EMAIL' --draw '2026-08-01'")
+        print("Example: python3 add_participant_to_supabase.py --name 'John Doe' --email 'john.doe@example.invalid' --draw '2026-08-01'")
         sys.exit(1)
     
     print(f"Adding participant to Supabase:")

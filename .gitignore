@@ -8,3 +8,4 @@ bolao/loterias/*/logs/
 __pycache__/
 *.pyc
 node_modules/
+*private-participant-data.local.json

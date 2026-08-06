@@ -3,7 +3,7 @@
 ## Status Atual
 
 ✅ **Código pronto:**
-- Alan Rech adicionado a data.js com email correto (REDACTED_EMAIL)
+- Alan Rech adicionado com email correto (ver secret POWERBALL_PRIVATE_PARTICIPANT_DATA — nunca em data.js)
 - RLS policies criadas para permitir INSERT de scripts
 - Audit logging system implementado (local logs + Supabase tables)
 - add_participant_to_supabase.py script criado
@@ -52,7 +52,7 @@ Se Alan Rech não aparecer na query acima, adicione manualmente:
 ```bash
 python3 bolao/loterias/powerball/scripts/add_participant_to_supabase.py \
   --name "Alan Rech" \
-  --email "REDACTED_EMAIL" \
+  --email "<email-real-do-Alan — ver secret POWERBALL_PRIVATE_PARTICIPANT_DATA>" \
   --draw "2026-08-01"
 ```
 
@@ -89,10 +89,10 @@ ORDER BY created_at DESC;
 ## Resumo de Dados
 
 **Alan Rech — Powerball 2026-08-01:**
-- Email: REDACTED_EMAIL
+- Email: (ver secret POWERBALL_PRIVATE_PARTICIPANT_DATA — não documentado aqui, arquivo é público)
 - Valor: US$20.00
 - Método: Cash App
-- txId: REDACTED_PAYMENT_REFERENCE
+- txId: (ver secret POWERBALL_PRIVATE_PARTICIPANT_DATA — não documentado aqui, arquivo é público)
 - Status: Verificado
 - Data: 04/08/2026 1:15 PM
 
