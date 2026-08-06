@@ -313,8 +313,9 @@ window.POWERBALL_DRAWS = [
       drawDateLabel: "08/08/2026 22:59 ET"
     },
 
-    // Nenhum participante confirmado ainda para este sorteio.
-    participants: [],
+    participants: [
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "—", status: "verificado", state: "NC" }
+    ],
 
     // Nenhum ticket comprado ainda.
     sharedTickets: {
@@ -330,10 +331,10 @@ window.POWERBALL_DRAWS = [
     // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
     // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
-      totalArrecadado: 0,
+      totalArrecadado: 10, // Samuel Huller, Zelle, 06/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 18 // nada foi gasto ainda: 0 + 18 - 0 = 18
+      valorGuardadoProximoSorteio: 28 // nada foi gasto ainda: 10 + 18 - 0 = 28
     },
 
     result: null,
