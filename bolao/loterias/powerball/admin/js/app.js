@@ -18,8 +18,8 @@
   const SECTIONS = [
     { id: "overview", label: "Visão geral", implemented: false },
     { id: "participants", label: "Participantes", implemented: true },
-    { id: "payments", label: "Pagamentos", implemented: false },
-    { id: "draws", label: "Sorteios", implemented: false },
+    { id: "payments", label: "Pagamentos", implemented: true },
+    { id: "draws", label: "Sorteios", implemented: true },
     { id: "tickets", label: "Bilhetes", implemented: false },
     { id: "publications", label: "Publicações", implemented: false },
     { id: "results", label: "Resultados", implemented: false },
@@ -156,6 +156,225 @@
     await load();
   }
 
+  async function renderPayments(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Pagamentos" }));
+    root.appendChild(
+      el("p", {
+        text:
+          "Ledger append-only: correções nunca editam uma transação existente, apenas criam " +
+          "uma reversão referenciando a original.",
+      })
+    );
+
+    const status = el("p", { text: "Carregando pagamentos…" });
+    root.appendChild(status);
+
+    const newBtn = el("button", { type: "button", text: "Registrar pagamento" });
+    newBtn.addEventListener("click", async () => {
+      try {
+        const participationId = window.prompt("participation_id (UUID de lottery_participations):");
+        if (!participationId) return;
+        const type = window.prompt("Tipo (contribution/refund/adjustment/carryover):", "contribution");
+        if (!type) return;
+        const amountStr = window.prompt("Valor (USD):");
+        const amount = Number(amountStr);
+        if (!amountStr || Number.isNaN(amount)) {
+          window.alert("Valor inválido — ação cancelada.");
+          return;
+        }
+        const externalReference = window.prompt("Referência externa (Zelle/PIX/txId, opcional):") || null;
+        const reason = await requireReasonPrompt("registrar pagamento");
+        newBtn.disabled = true;
+        const { error } = await supabase.rpc("admin_record_payment", {
+          p_participation_id: participationId,
+          p_type: type,
+          p_amount: amount,
+          p_external_reference: externalReference,
+          p_proof_object_path: null,
+          p_reason: reason,
+          p_request_id: newRequestId(),
+        });
+        if (error) throw error;
+        await load();
+      } catch (e) {
+        window.alert("Falha ao registrar pagamento: " + e.message);
+      } finally {
+        newBtn.disabled = false;
+      }
+    });
+    root.appendChild(newBtn);
+
+    const table = el("table", { class: "pb-admin-table" });
+    root.appendChild(table);
+
+    async function load() {
+      status.textContent = "Carregando pagamentos…";
+      const { data, error } = await supabase
+        .from("lottery_payment_transactions")
+        .select("transaction_id, participation_id, type, amount, external_reference, reverses_transaction_id, created_at")
+        .order("created_at", { ascending: false });
+      if (error) {
+        status.textContent = "Erro ao carregar: " + error.message;
+        return;
+      }
+      status.textContent = `${data.length} transação(ões).`;
+      table.innerHTML = "";
+      table.appendChild(
+        el("tr", {}, [
+          el("th", { text: "Data" }),
+          el("th", { text: "Tipo" }),
+          el("th", { text: "Valor" }),
+          el("th", { text: "Referência" }),
+          el("th", { text: "Ações" }),
+        ])
+      );
+      data.forEach((t) => {
+        const reverseBtn = el("button", { type: "button", text: "Reverter" });
+        reverseBtn.disabled = t.type === "reversal" || Boolean(t.reverses_transaction_id);
+        reverseBtn.addEventListener("click", async () => {
+          try {
+            const reason = await requireReasonPrompt(`reverter transação ${t.transaction_id}`);
+            reverseBtn.disabled = true;
+            const { error } = await supabase.rpc("admin_reverse_payment", {
+              p_transaction_id: t.transaction_id,
+              p_reason: reason,
+              p_request_id: newRequestId(),
+            });
+            if (error) throw error;
+            await load();
+          } catch (e) {
+            window.alert("Falha ao reverter: " + e.message);
+            reverseBtn.disabled = false;
+          }
+        });
+        table.appendChild(
+          el("tr", {}, [
+            el("td", { text: new Date(t.created_at).toLocaleString("pt-BR") }),
+            el("td", { text: t.type }),
+            el("td", { text: Number(t.amount).toFixed(2) }),
+            el("td", { text: t.external_reference || "—" }),
+            el("td", {}, [reverseBtn]),
+          ])
+        );
+      });
+    }
+
+    await load();
+  }
+
+  async function renderDraws(root) {
+    const supabase = window.PowerballAdmin.getSupabaseClient();
+    root.innerHTML = "";
+    root.appendChild(el("h2", { text: "Sorteios" }));
+
+    const status = el("p", { text: "Carregando sorteios…" });
+    root.appendChild(status);
+
+    const newBtn = el("button", { type: "button", text: "Novo sorteio" });
+    newBtn.addEventListener("click", async () => {
+      try {
+        const poolId = window.prompt("pool_id (UUID de lottery_pools):");
+        if (!poolId) return;
+        const drawDate = window.prompt("Data do sorteio (YYYY-MM-DD):");
+        if (!drawDate) return;
+        const jackpot = Number(window.prompt("Estimativa de jackpot (USD, opcional):") || "0") || null;
+        const cashValue = Number(window.prompt("Estimativa de cash value (USD, opcional):") || "0") || null;
+        const reason = await requireReasonPrompt("criar sorteio");
+        newBtn.disabled = true;
+        const { error } = await supabase.rpc("admin_create_draw", {
+          p_pool_id: poolId,
+          p_draw_date: drawDate,
+          p_jackpot_estimate: jackpot,
+          p_cash_value_estimate: cashValue,
+          p_reason: reason,
+          p_request_id: newRequestId(),
+        });
+        if (error) throw error;
+        await load();
+      } catch (e) {
+        window.alert("Falha ao criar sorteio: " + e.message);
+      } finally {
+        newBtn.disabled = false;
+      }
+    });
+    root.appendChild(newBtn);
+
+    const table = el("table", { class: "pb-admin-table" });
+    root.appendChild(table);
+
+    async function load() {
+      status.textContent = "Carregando sorteios…";
+      const { data, error } = await supabase
+        .from("lottery_draws")
+        .select("draw_id, draw_date, jackpot_estimate, cash_value_estimate, status, version")
+        .order("draw_date", { ascending: false });
+      if (error) {
+        status.textContent = "Erro ao carregar: " + error.message;
+        return;
+      }
+      status.textContent = `${data.length} sorteio(s).`;
+      table.innerHTML = "";
+      table.appendChild(
+        el("tr", {}, [
+          el("th", { text: "Data" }),
+          el("th", { text: "Jackpot est." }),
+          el("th", { text: "Cash value est." }),
+          el("th", { text: "Status" }),
+          el("th", { text: "Ações" }),
+        ])
+      );
+      data.forEach((d) => {
+        const editBtn = el("button", { type: "button", text: "Editar estimativas" });
+        editBtn.addEventListener("click", async () => {
+          try {
+            const jackpot = Number(window.prompt("Novo jackpot estimado (USD):", d.jackpot_estimate ?? "") || "");
+            const cashValue = Number(window.prompt("Novo cash value estimado (USD):", d.cash_value_estimate ?? "") || "");
+            if (Number.isNaN(jackpot) || Number.isNaN(cashValue)) {
+              window.alert("Valores inválidos — ação cancelada.");
+              return;
+            }
+            const reason = await requireReasonPrompt(`editar estimativas do sorteio ${d.draw_date}`);
+            editBtn.disabled = true;
+            const { error } = await supabase.rpc("admin_update_draw_estimates", {
+              p_draw_id: d.draw_id,
+              p_jackpot_estimate: jackpot,
+              p_cash_value_estimate: cashValue,
+              p_expected_version: d.version,
+              p_reason: reason,
+              p_request_id: newRequestId(),
+            });
+            if (error) {
+              if (String(error.message).startsWith("STALE_VERSION")) {
+                window.alert("Este registro foi alterado por outro processo. Recarregue os dados antes de continuar.");
+                await load();
+                return;
+              }
+              throw error;
+            }
+            await load();
+          } catch (e) {
+            window.alert("Falha ao editar: " + e.message);
+          } finally {
+            editBtn.disabled = false;
+          }
+        });
+        table.appendChild(
+          el("tr", {}, [
+            el("td", { text: d.draw_date }),
+            el("td", { text: d.jackpot_estimate != null ? Number(d.jackpot_estimate).toFixed(2) : "—" }),
+            el("td", { text: d.cash_value_estimate != null ? Number(d.cash_value_estimate).toFixed(2) : "—" }),
+            el("td", { text: d.status }),
+            el("td", {}, [editBtn]),
+          ])
+        );
+      });
+    }
+
+    await load();
+  }
+
   function renderNotImplemented(root, section) {
     root.innerHTML = "";
     root.appendChild(el("h2", { text: section.label }));
@@ -187,8 +406,12 @@
     nav.appendChild(logoutBtn);
 
     async function selectSection(section) {
-      if (section.implemented && section.id === "participants") {
+      if (section.id === "participants") {
         await renderParticipants(content);
+      } else if (section.id === "payments") {
+        await renderPayments(content);
+      } else if (section.id === "draws") {
+        await renderDraws(content);
       } else {
         renderNotImplemented(content, section);
       }

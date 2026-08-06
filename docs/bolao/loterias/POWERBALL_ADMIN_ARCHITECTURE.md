@@ -66,12 +66,17 @@ Key design decisions:
 - The public-projection view (`lottery_public_projection` in `002_rls.sql`) intentionally does
   not yet join published ticket numbers/results — that join was deliberately left out rather
   than guessed at, pending validation against real fixture data. Tracked here, not hidden.
-- Only the Participantes screen is fully wired end-to-end in the admin UI. The other 10 sections
-  (Visão geral, Pagamentos, Sorteios, Bilhetes, Publicações, Resultados, E-mails, Comprovantes,
+- Participantes, Pagamentos, and Sorteios are fully wired end-to-end in the admin UI (list via
+  RLS-gated SELECT, every mutation via a real RPC call: create/archive participant, record/
+  reverse payment, create draw/edit estimates with optimistic-concurrency handling). The
+  remaining 8 sections (Visão geral, Bilhetes, Publicações, Resultados, E-mails, Comprovantes,
   Auditoria, Saúde do sistema) have RPCs designed and specified in the migrations, but the UI
   screens themselves are not built — per Eduardo's instruction, an unwired button must not exist
   in the shipped UI, so these sections currently render explanatory text and no buttons rather
   than a decoy screen.
+- The Pagamentos and Sorteios screens ask for raw UUIDs (participation_id / pool_id) via
+  `window.prompt()` rather than a proper picker/dropdown — functional but crude, flagged here as
+  a UX debt rather than silently presented as polished.
 - Email integration reuses the outbox tables' shape (`lottery_email_jobs`/`lottery_email_deliveries`)
   designed to be compatible with the worker described in
   `docs/bolao/loterias/POWERBALL_EMAIL_ARCHITECTURE.md` from the email-professionalization
