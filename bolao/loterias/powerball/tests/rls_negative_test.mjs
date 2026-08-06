@@ -120,6 +120,48 @@ async function main() {
     console.error("SKIPPED sub-test 7 (NÃO EXECUTADO): TEST_OWNER_EMAIL not set.");
   }
 
+  // 8. Anonymous cannot call any of the newer RPCs (payments/draws/tickets/results/
+  //    publications/emails) either — covers the RPCs added after the original participant/
+  //    payment pass, so the negative-test surface tracks the full RPC set in
+  //    migrations/003_rpcs.sql + 004_rpcs_draws_tickets_publications_results_emails.sql.
+  {
+    const anonRpcCalls = [
+      ["admin_record_payment", { p_participation_id: crypto.randomUUID(), p_type: "contribution", p_amount: 10, p_external_reference: null, p_proof_object_path: null, p_reason: "attempted anon RPC call", p_request_id: crypto.randomUUID() }],
+      ["admin_create_draw", { p_pool_id: crypto.randomUUID(), p_draw_date: "2026-12-25", p_jackpot_estimate: null, p_cash_value_estimate: null, p_reason: "attempted anon RPC call", p_request_id: crypto.randomUUID() }],
+      ["admin_create_ticket", { p_draw_id: crypto.randomUUID(), p_numbers: [1, 2, 3, 4, 5], p_powerball: 1, p_power_play: false, p_reason: "attempted anon RPC call", p_request_id: crypto.randomUUID() }],
+      ["admin_record_result", { p_draw_id: crypto.randomUUID(), p_numbers: [1, 2, 3, 4, 5], p_powerball: 1, p_jackpot_amount: null, p_reason: "attempted anon RPC call", p_request_id: crypto.randomUUID() }],
+      ["admin_publish_tickets", { p_draw_id: crypto.randomUUID(), p_ticket_ids: [], p_manifest: {}, p_financial_snapshot: {}, p_participant_snapshot: {}, p_reason: "attempted anon RPC call", p_confirmation_text: "CONFIRMAR", p_request_id: crypto.randomUUID() }],
+      ["admin_enqueue_email", { p_job_type: "admin_test", p_entity_type: null, p_entity_id: null, p_recipient_email: "attempted-anon@example.invalid", p_reason: "attempted anon RPC call", p_request_id: crypto.randomUUID() }],
+    ];
+    for (const [fnName, args] of anonRpcCalls) {
+      const { error } = await anon.rpc(fnName, args);
+      assert(error, `anon RPC call to ${fnName} must be rejected`);
+    }
+  }
+
+  // 9. Auditor cannot call any write RPC either — re-check with a representative sample from
+  //    the newer RPC set, not just admin_create_participant as in sub-test 5.
+  if (process.env.TEST_AUDITOR_EMAIL) {
+    const auditorClient = createClient(URL, ANON_KEY);
+    await auditorClient.auth.signInWithPassword({
+      email: process.env.TEST_AUDITOR_EMAIL, password: process.env.TEST_AUDITOR_PASSWORD,
+    });
+    const { error: paymentErr } = await auditorClient.rpc("admin_record_payment", {
+      p_participation_id: crypto.randomUUID(), p_type: "contribution", p_amount: 10,
+      p_external_reference: null, p_proof_object_path: null,
+      p_reason: "auditor attempted write", p_request_id: crypto.randomUUID(),
+    });
+    assert(paymentErr, "auditor must not be able to call admin_record_payment");
+    const { error: publishErr } = await auditorClient.rpc("admin_publish_tickets", {
+      p_draw_id: crypto.randomUUID(), p_ticket_ids: [], p_manifest: {}, p_financial_snapshot: {},
+      p_participant_snapshot: {}, p_reason: "auditor attempted write",
+      p_confirmation_text: "CONFIRMAR", p_request_id: crypto.randomUUID(),
+    });
+    assert(publishErr, "auditor must not be able to call admin_publish_tickets (a critical action) either");
+  } else {
+    console.error("SKIPPED sub-test 9 (NÃO EXECUTADO): TEST_AUDITOR_EMAIL not set.");
+  }
+
   console.log("PASS: all executable RLS/RPC negative-test assertions held.");
 }
 
