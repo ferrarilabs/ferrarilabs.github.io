@@ -1202,16 +1202,6 @@ function explainScore(entry, s) {
   return { total, reconciles: sum === total, ruleVersion: SCORING_RULE_VERSION, breakdown };
 }
 
-function resultsProgress(s) {
-  let done = 0, totalTies = 0;
-  DATA.phases.forEach(phase => {
-    const ties = Object.values(s.phases?.[phase.id]?.ties || {});
-    totalTies += ties.length;
-    done += ties.filter(tie => tie.qualifiedTeamId).length;
-  });
-  return { done, totalTies };
-}
-
 function renderFindEntryCard() {
   const card = $("findEntryCard");
   if (!card) return;
@@ -1447,9 +1437,13 @@ function renderRanking() {
   const movement = calculateRankingMovement(entries, s);
   const scored   = rankEntriesBy(entries, e => (_liveTies.length ? liveScoreEntry(e, s) : getActiveScore(e, s)));
 
-  const { done, totalTies } = resultsProgress(s);
-  const provNote = totalTies > 0 && done < totalTies
-    ? `<p class="prov-note">↕ ${esc(t("provisionalNote"))}</p>` : "";
+  // "Resultado não travado — pontuação provisória" removido (Eduardo, 2026-08-06: "Essa parte
+  // não é necessário") -- ao contrário do BR2026 (nota central ao modelo de projeção de liga,
+  // ver BR2026_PROJECTION_MODEL.md) e da Copa (só aparece DURANTE uma partida ao vivo), esta
+  // nota aqui ficava visível o torneio inteiro sempre que qualquer confronto de qualquer fase
+  // ainda não tivesse sido decidido -- ou seja, quase sempre, até a Final terminar. Removida só
+  // aqui (contexto diferente, TOURNAMENT_SPECIFIC); resultsProgress() (só existia pra isso)
+  // removida junto, sem chamador restante. Padrão do BR2026/Copa não foi tocado.
 
   // Pago/Pendente é informação de administração do bolão, não do ranking público -- mesmo
   // padrão da Copa (renderRanking(), bolao/js/app.js), que nunca mostrou esse badge na linha do
@@ -1459,7 +1453,7 @@ function renderRanking() {
   // (renderPickDisplay() já protegia o dado, mas o botão continuava visível e clicável sem
   // fazer nada útil).
   const canViewPicks = isPastEntryCutoff();
-  box.innerHTML = provNote;
+  box.innerHTML = "";
   scored.forEach(item => {
     const medal   = { 1: "🥇", 2: "🥈", 3: "🥉" }[item.rank] || `${item.rank}`;
     const mv      = movement.get(item.e.id);
@@ -2026,8 +2020,12 @@ function renderGamesSection() {
             // done and leg 2 hasn't started, show "Agregado após a ida: X–Y" here — the static
             // (non-live) equivalent of the live-hero's "Agregado ao vivo" line, same
             // tieProgressDisplay() data, never a duplicate calculation.
+            // Same side-swap bug as the live-hero's "Agregado ao vivo" line (fixed 2026-08-05,
+            // see renderLiveTieCard() above) -- this card's own team row (line ~2020) shows
+            // home=teamB (left) / away=teamA (right) for leg 2, so the aggregate must print in
+            // that same order, not the fixed teamA–teamB order.
             leg === "second" && state === "pre" && progress?.stage === "second-leg-pending" && progress.aggregate
-              ? `<span class="game-card__aggregate">${esc(t("gamesAggregate"))} após a ida: <b>${progress.aggregate.teamA} – ${progress.aggregate.teamB}</b></span>`
+              ? `<span class="game-card__aggregate">${esc(t("gamesAggregate"))} após a ida: <b>${progress.aggregate.teamB} – ${progress.aggregate.teamA}</b></span>`
               : ""
           }</div>
         </div>`;
@@ -2629,7 +2627,15 @@ function renderLiveTieCard() {
     if (l.leg === "second" && phaseDef?.format === "TWO_LEG" && l.tie) {
       const progress = tieProgressDisplay(l.tie, phaseDef.format, { goalsHome: l.goalsHome, goalsAway: l.goalsAway });
       if (progress?.aggregate) {
-        aggregateHtml = `<div class="game-card__aggregate" aria-live="polite">${esc(t("gamesAggregate"))} ao vivo: <b>${progress.aggregate.teamA} – ${progress.aggregate.teamB}</b></div>`;
+        // Bug found by Eduardo (2026-08-05, screenshot): live score row above shows
+        // l.homeTeam (left) / l.awayTeam (right), and leg 2 always swaps home=teamB/away=teamA
+        // (see tieProgressDisplay()'s "Team-order note" above) -- but this line printed the
+        // aggregate as fixed "teamA – teamB", which for a leg-2 live match reads left-to-right
+        // as teamA first even though teamB (home) is the one actually shown on the left. Numbers
+        // were correct, side was swapped (e.g. Grêmio 1–0 Mirassol live, aggregate showed
+        // "1 – 2" under it instead of "2 – 1" -- Grêmio's own 2 total landed under Mirassol).
+        // Print in the SAME home(teamB)/away(teamA) order as the score row it sits under.
+        aggregateHtml = `<div class="game-card__aggregate" aria-live="polite">${esc(t("gamesAggregate"))} ao vivo: <b>${progress.aggregate.teamB} – ${progress.aggregate.teamA}</b></div>`;
       }
     }
     return `<div class="live-match">

@@ -188,12 +188,6 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
    VISUAL in docs/bolao/CONSISTENCY_MATRIX.md's phase 7 entry and fixed
    by relying on the shared value instead of overriding it. */
 
-/* ── Provisional note ── */
-.prov-note {
-  font-size: 12px; color: var(--muted); padding: 8px 12px;
-  background: var(--bg2); border-radius: 8px; margin-bottom: 10px;
-}
-
 /* ── Ranking — mesma estrutura densa de 1 linha da Copa (.rank-row), já validada em várias
    rodadas de feedback mobile real — ver DESIGN_SYSTEM.md "Ranking — estrutura do card" e
    CONSISTENCY_MATRIX.md item 68. Substitui o antigo .rank-card empilhado.

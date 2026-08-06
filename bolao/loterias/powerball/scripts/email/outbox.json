@@ -1,0 +1,4051 @@
+[
+  {
+    "emailJobId": "job_1785938980677_wp09q8pt",
+    "poolId": "powerball",
+    "drawId": "2026-08-05",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 1,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 1,
+      "poolId": "powerball",
+      "drawId": "2026-08-05",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "nextDrawDateLabel": "05/08/2026 22:59 ET",
+      "cotas": 1,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participationPct": 7.14,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 22773333.333333332,
+        "lumpSumTax": 9334789.333333332,
+        "lumpSumNet": 13438544,
+        "annuityTotalBruto": 52400000,
+        "annuityTotalNet": 30921239.999999996,
+        "annuityMonthlyNet": 85892.33333333333,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T14:09:40.676Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v1",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:09:41.932Z",
+    "sentAt": "2026-08-05T14:09:41.932Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785938981932",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:09:40.677Z"
+  },
+  {
+    "emailJobId": "job_1785938988336_d4s8u5qf",
+    "poolId": "powerball",
+    "drawId": "2026-08-05",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-published",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-published",
+    "templateVersion": 1,
+    "payloadSnapshot": {
+      "templateId": "tickets-published",
+      "templateVersion": 1,
+      "poolId": "powerball",
+      "drawId": "2026-08-05",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "publicationVersion": 1,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05",
+        "publicationVersion": 1,
+        "publishedAtUtc": "2026-08-05T14:09:48.334Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              68
+            ],
+            "special": 17,
+            "serial": "25FCD6C065ACBBF0D"
+          },
+          {
+            "numbers": [
+              35,
+              48,
+              49,
+              52,
+              56
+            ],
+            "special": 21,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              1,
+              26,
+              58,
+              60,
+              61
+            ],
+            "special": 23,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              2,
+              23,
+              30,
+              43,
+              64
+            ],
+            "special": 22,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              7,
+              16,
+              33,
+              50,
+              55
+            ],
+            "special": 19,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              18,
+              21,
+              25,
+              42,
+              67
+            ],
+            "special": 11,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              20,
+              25,
+              34,
+              51,
+              60
+            ],
+            "special": 4,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              20,
+              28,
+              31,
+              33,
+              58
+            ],
+            "special": 15,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              21,
+              30,
+              38,
+              46,
+              47
+            ],
+            "special": 3,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              22,
+              27,
+              29,
+              40,
+              62
+            ],
+            "special": 6,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              24,
+              36,
+              43,
+              53,
+              59
+            ],
+            "special": 10,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              7,
+              12,
+              39,
+              48,
+              63
+            ],
+            "special": 7,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              7,
+              15,
+              18,
+              46,
+              49
+            ],
+            "special": 13,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              8,
+              9,
+              33,
+              46,
+              62
+            ],
+            "special": 16,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              8,
+              10,
+              23,
+              32,
+              55
+            ],
+            "special": 16,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              8,
+              11,
+              21,
+              34,
+              56
+            ],
+            "special": 2,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              9,
+              12,
+              22,
+              45,
+              60
+            ],
+            "special": 22,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              9,
+              27,
+              48,
+              54,
+              57
+            ],
+            "special": 7,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              10,
+              16,
+              29,
+              42,
+              61
+            ],
+            "special": 12,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              11,
+              16,
+              41,
+              51,
+              58
+            ],
+            "special": 9,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              11,
+              26,
+              53,
+              63,
+              64
+            ],
+            "special": 14,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              12,
+              14,
+              31,
+              38,
+              61
+            ],
+            "special": 11,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              13,
+              22,
+              41,
+              65,
+              68
+            ],
+            "special": 13,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              14,
+              15,
+              52,
+              54,
+              59
+            ],
+            "special": 1,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              15,
+              24,
+              33,
+              35,
+              66
+            ],
+            "special": 18,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              15,
+              29,
+              32,
+              37,
+              50
+            ],
+            "special": 12,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              16,
+              40,
+              45,
+              64,
+              67
+            ],
+            "special": 25,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              17,
+              20,
+              38,
+              59,
+              67
+            ],
+            "special": 18,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              18,
+              23,
+              41,
+              53,
+              56
+            ],
+            "special": 26,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              19,
+              32,
+              36,
+              40,
+              69
+            ],
+            "special": 3,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              19,
+              42,
+              50,
+              51,
+              63
+            ],
+            "special": 1,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              1,
+              18,
+              28,
+              55,
+              57
+            ],
+            "special": 24,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              1,
+              25,
+              44,
+              64,
+              66
+            ],
+            "special": 24,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              1,
+              32,
+              39,
+              52,
+              65
+            ],
+            "special": 20,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              2,
+              7,
+              25,
+              61,
+              62
+            ],
+            "special": 14,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              2,
+              27,
+              37,
+              66,
+              69
+            ],
+            "special": 25,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              2,
+              31,
+              36,
+              46,
+              57
+            ],
+            "special": 5,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              3,
+              10,
+              35,
+              40,
+              53
+            ],
+            "special": 21,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              3,
+              17,
+              30,
+              51,
+              68
+            ],
+            "special": 10,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              3,
+              21,
+              28,
+              50,
+              60
+            ],
+            "special": 19,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              6,
+              26,
+              39,
+              57
+            ],
+            "special": 17,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              12,
+              13,
+              43,
+              49
+            ],
+            "special": 8,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              19,
+              30,
+              65,
+              67
+            ],
+            "special": 8,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              24,
+              44,
+              45,
+              69
+            ],
+            "special": 5,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              8,
+              47,
+              58,
+              63
+            ],
+            "special": 23,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              13,
+              34,
+              55,
+              66
+            ],
+            "special": 2,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              17,
+              26,
+              54,
+              69
+            ],
+            "special": 15,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              36,
+              39,
+              42,
+              68
+            ],
+            "special": 6,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              6,
+              9,
+              23,
+              44,
+              65
+            ],
+            "special": 20,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              6,
+              10,
+              45,
+              47,
+              54
+            ],
+            "special": 9,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              6,
+              14,
+              22,
+              37,
+              43
+            ],
+            "special": 4,
+            "serial": "2CD0E132C5697EA89"
+          }
+        ],
+        "sha256": "56985c95dfacc4d6a854ffc9e04c89046419181949d7f19f36ad7c12b61d9f72"
+      },
+      "manifestHash": "56985c95dfacc4d6a854ffc9e04c89046419181949d7f19f36ad7c12b61d9f72",
+      "financialSummary": {
+        "participantCount": 1,
+        "totalCotas": 1,
+        "valorPorCota": 138,
+        "totalArrecadado": 138,
+        "valorUsado": 153,
+        "saldoReservado": 1,
+        "ticketCount": 51,
+        "totalCost": 153,
+        "powerPlay": 3
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            68
+          ],
+          "special": 17,
+          "serial": "25FCD6C065ACBBF0D"
+        },
+        {
+          "numbers": [
+            35,
+            48,
+            49,
+            52,
+            56
+          ],
+          "special": 21,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            1,
+            26,
+            58,
+            60,
+            61
+          ],
+          "special": 23,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            2,
+            23,
+            30,
+            43,
+            64
+          ],
+          "special": 22,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            7,
+            16,
+            33,
+            50,
+            55
+          ],
+          "special": 19,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            18,
+            21,
+            25,
+            42,
+            67
+          ],
+          "special": 11,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            20,
+            25,
+            34,
+            51,
+            60
+          ],
+          "special": 4,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            20,
+            28,
+            31,
+            33,
+            58
+          ],
+          "special": 15,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            21,
+            30,
+            38,
+            46,
+            47
+          ],
+          "special": 3,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            22,
+            27,
+            29,
+            40,
+            62
+          ],
+          "special": 6,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            24,
+            36,
+            43,
+            53,
+            59
+          ],
+          "special": 10,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            7,
+            12,
+            39,
+            48,
+            63
+          ],
+          "special": 7,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            7,
+            15,
+            18,
+            46,
+            49
+          ],
+          "special": 13,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            8,
+            9,
+            33,
+            46,
+            62
+          ],
+          "special": 16,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            8,
+            10,
+            23,
+            32,
+            55
+          ],
+          "special": 16,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            8,
+            11,
+            21,
+            34,
+            56
+          ],
+          "special": 2,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            9,
+            12,
+            22,
+            45,
+            60
+          ],
+          "special": 22,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            9,
+            27,
+            48,
+            54,
+            57
+          ],
+          "special": 7,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            10,
+            16,
+            29,
+            42,
+            61
+          ],
+          "special": 12,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            11,
+            16,
+            41,
+            51,
+            58
+          ],
+          "special": 9,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            11,
+            26,
+            53,
+            63,
+            64
+          ],
+          "special": 14,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            12,
+            14,
+            31,
+            38,
+            61
+          ],
+          "special": 11,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            13,
+            22,
+            41,
+            65,
+            68
+          ],
+          "special": 13,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            14,
+            15,
+            52,
+            54,
+            59
+          ],
+          "special": 1,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            15,
+            24,
+            33,
+            35,
+            66
+          ],
+          "special": 18,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            15,
+            29,
+            32,
+            37,
+            50
+          ],
+          "special": 12,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            16,
+            40,
+            45,
+            64,
+            67
+          ],
+          "special": 25,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            17,
+            20,
+            38,
+            59,
+            67
+          ],
+          "special": 18,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            18,
+            23,
+            41,
+            53,
+            56
+          ],
+          "special": 26,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            19,
+            32,
+            36,
+            40,
+            69
+          ],
+          "special": 3,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            19,
+            42,
+            50,
+            51,
+            63
+          ],
+          "special": 1,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            1,
+            18,
+            28,
+            55,
+            57
+          ],
+          "special": 24,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            1,
+            25,
+            44,
+            64,
+            66
+          ],
+          "special": 24,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            1,
+            32,
+            39,
+            52,
+            65
+          ],
+          "special": 20,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            2,
+            7,
+            25,
+            61,
+            62
+          ],
+          "special": 14,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            2,
+            27,
+            37,
+            66,
+            69
+          ],
+          "special": 25,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            2,
+            31,
+            36,
+            46,
+            57
+          ],
+          "special": 5,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            3,
+            10,
+            35,
+            40,
+            53
+          ],
+          "special": 21,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            3,
+            17,
+            30,
+            51,
+            68
+          ],
+          "special": 10,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            3,
+            21,
+            28,
+            50,
+            60
+          ],
+          "special": 19,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            6,
+            26,
+            39,
+            57
+          ],
+          "special": 17,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            12,
+            13,
+            43,
+            49
+          ],
+          "special": 8,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            19,
+            30,
+            65,
+            67
+          ],
+          "special": 8,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            24,
+            44,
+            45,
+            69
+          ],
+          "special": 5,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            8,
+            47,
+            58,
+            63
+          ],
+          "special": 23,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            13,
+            34,
+            55,
+            66
+          ],
+          "special": 2,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            17,
+            26,
+            54,
+            69
+          ],
+          "special": 15,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            36,
+            39,
+            42,
+            68
+          ],
+          "special": 6,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            6,
+            9,
+            23,
+            44,
+            65
+          ],
+          "special": 20,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            6,
+            10,
+            45,
+            47,
+            54
+          ],
+          "special": 9,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            6,
+            14,
+            22,
+            37,
+            43
+          ],
+          "special": 4,
+          "serial": "2CD0E132C5697EA89"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof.jpg",
+      "correctionReason": null,
+      "previousHash": null,
+      "generatedAtUtc": "2026-08-05T14:09:48.334Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "cotas": 1,
+        "valor": 10,
+        "status": "verificado"
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05:tickets-published:v1.1:Participante Alfa",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:09:49.439Z",
+    "sentAt": "2026-08-05T14:09:49.439Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785938989438",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:09:48.336Z"
+  },
+  {
+    "emailJobId": "job_1785938994955_ksm9euxe",
+    "poolId": "powerball",
+    "drawId": "2026-08-05",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-corrected",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-corrected",
+    "templateVersion": 1,
+    "payloadSnapshot": {
+      "templateId": "tickets-corrected",
+      "templateVersion": 1,
+      "poolId": "powerball",
+      "drawId": "2026-08-05",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "publicationVersion": 2,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05",
+        "publicationVersion": 2,
+        "publishedAtUtc": "2026-08-05T14:09:54.953Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              68
+            ],
+            "special": 17,
+            "serial": "25FCD6C065ACBBF0D"
+          },
+          {
+            "numbers": [
+              35,
+              48,
+              49,
+              52,
+              56
+            ],
+            "special": 21,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              1,
+              26,
+              58,
+              60,
+              61
+            ],
+            "special": 23,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              2,
+              23,
+              30,
+              43,
+              64
+            ],
+            "special": 22,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              7,
+              16,
+              33,
+              50,
+              55
+            ],
+            "special": 19,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              18,
+              21,
+              25,
+              42,
+              67
+            ],
+            "special": 11,
+            "serial": "2D6F455C923756663"
+          },
+          {
+            "numbers": [
+              20,
+              25,
+              34,
+              51,
+              60
+            ],
+            "special": 4,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              20,
+              28,
+              31,
+              33,
+              58
+            ],
+            "special": 15,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              21,
+              30,
+              38,
+              46,
+              47
+            ],
+            "special": 3,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              22,
+              27,
+              29,
+              40,
+              62
+            ],
+            "special": 6,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              24,
+              36,
+              43,
+              53,
+              59
+            ],
+            "special": 10,
+            "serial": "25AE2E9403C675208"
+          },
+          {
+            "numbers": [
+              7,
+              12,
+              39,
+              48,
+              63
+            ],
+            "special": 7,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              7,
+              15,
+              18,
+              46,
+              49
+            ],
+            "special": 13,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              8,
+              9,
+              33,
+              46,
+              62
+            ],
+            "special": 16,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              8,
+              10,
+              23,
+              32,
+              55
+            ],
+            "special": 16,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              8,
+              11,
+              21,
+              34,
+              56
+            ],
+            "special": 2,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              9,
+              12,
+              22,
+              45,
+              60
+            ],
+            "special": 22,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              9,
+              27,
+              48,
+              54,
+              57
+            ],
+            "special": 7,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              10,
+              16,
+              29,
+              42,
+              61
+            ],
+            "special": 12,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              11,
+              16,
+              41,
+              51,
+              58
+            ],
+            "special": 9,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              11,
+              26,
+              53,
+              63,
+              64
+            ],
+            "special": 14,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              12,
+              14,
+              31,
+              38,
+              61
+            ],
+            "special": 11,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              13,
+              22,
+              41,
+              65,
+              68
+            ],
+            "special": 13,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              14,
+              15,
+              52,
+              54,
+              59
+            ],
+            "special": 1,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              15,
+              24,
+              33,
+              35,
+              66
+            ],
+            "special": 18,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              15,
+              29,
+              32,
+              37,
+              50
+            ],
+            "special": 12,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              16,
+              40,
+              45,
+              64,
+              67
+            ],
+            "special": 25,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              17,
+              20,
+              38,
+              59,
+              67
+            ],
+            "special": 18,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              18,
+              23,
+              41,
+              53,
+              56
+            ],
+            "special": 26,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              19,
+              32,
+              36,
+              40,
+              69
+            ],
+            "special": 3,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              19,
+              42,
+              50,
+              51,
+              63
+            ],
+            "special": 1,
+            "serial": "2529427987A488194"
+          },
+          {
+            "numbers": [
+              1,
+              18,
+              28,
+              55,
+              57
+            ],
+            "special": 24,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              1,
+              25,
+              44,
+              64,
+              66
+            ],
+            "special": 24,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              1,
+              32,
+              39,
+              52,
+              65
+            ],
+            "special": 20,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              2,
+              7,
+              25,
+              61,
+              62
+            ],
+            "special": 14,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              2,
+              27,
+              37,
+              66,
+              69
+            ],
+            "special": 25,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              2,
+              31,
+              36,
+              46,
+              57
+            ],
+            "special": 5,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              3,
+              10,
+              35,
+              40,
+              53
+            ],
+            "special": 21,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              3,
+              17,
+              30,
+              51,
+              68
+            ],
+            "special": 10,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              3,
+              21,
+              28,
+              50,
+              60
+            ],
+            "special": 19,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              6,
+              26,
+              39,
+              57
+            ],
+            "special": 17,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              12,
+              13,
+              43,
+              49
+            ],
+            "special": 8,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              19,
+              30,
+              65,
+              67
+            ],
+            "special": 8,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              4,
+              24,
+              44,
+              45,
+              69
+            ],
+            "special": 5,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              8,
+              47,
+              58,
+              63
+            ],
+            "special": 23,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              13,
+              34,
+              55,
+              66
+            ],
+            "special": 2,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              17,
+              26,
+              54,
+              69
+            ],
+            "special": 15,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              5,
+              36,
+              39,
+              42,
+              68
+            ],
+            "special": 6,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              6,
+              9,
+              23,
+              44,
+              65
+            ],
+            "special": 20,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              6,
+              10,
+              45,
+              47,
+              54
+            ],
+            "special": 9,
+            "serial": "2CD0E132C5697EA89"
+          },
+          {
+            "numbers": [
+              6,
+              14,
+              22,
+              37,
+              43
+            ],
+            "special": 4,
+            "serial": "2CD0E132C5697EA89"
+          }
+        ],
+        "sha256": "d78e2477e544110ef0cebffbb8c27fcce677d222b83dff995c182a1da2b0f4ee"
+      },
+      "manifestHash": "d78e2477e544110ef0cebffbb8c27fcce677d222b83dff995c182a1da2b0f4ee",
+      "financialSummary": {
+        "participantCount": 1,
+        "totalCotas": 1,
+        "valorPorCota": 138,
+        "totalArrecadado": 138,
+        "valorUsado": 153,
+        "saldoReservado": 1,
+        "ticketCount": 51,
+        "totalCost": 153,
+        "powerPlay": 3
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            68
+          ],
+          "special": 17,
+          "serial": "25FCD6C065ACBBF0D"
+        },
+        {
+          "numbers": [
+            35,
+            48,
+            49,
+            52,
+            56
+          ],
+          "special": 21,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            1,
+            26,
+            58,
+            60,
+            61
+          ],
+          "special": 23,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            2,
+            23,
+            30,
+            43,
+            64
+          ],
+          "special": 22,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            7,
+            16,
+            33,
+            50,
+            55
+          ],
+          "special": 19,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            18,
+            21,
+            25,
+            42,
+            67
+          ],
+          "special": 11,
+          "serial": "2D6F455C923756663"
+        },
+        {
+          "numbers": [
+            20,
+            25,
+            34,
+            51,
+            60
+          ],
+          "special": 4,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            20,
+            28,
+            31,
+            33,
+            58
+          ],
+          "special": 15,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            21,
+            30,
+            38,
+            46,
+            47
+          ],
+          "special": 3,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            22,
+            27,
+            29,
+            40,
+            62
+          ],
+          "special": 6,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            24,
+            36,
+            43,
+            53,
+            59
+          ],
+          "special": 10,
+          "serial": "25AE2E9403C675208"
+        },
+        {
+          "numbers": [
+            7,
+            12,
+            39,
+            48,
+            63
+          ],
+          "special": 7,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            7,
+            15,
+            18,
+            46,
+            49
+          ],
+          "special": 13,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            8,
+            9,
+            33,
+            46,
+            62
+          ],
+          "special": 16,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            8,
+            10,
+            23,
+            32,
+            55
+          ],
+          "special": 16,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            8,
+            11,
+            21,
+            34,
+            56
+          ],
+          "special": 2,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            9,
+            12,
+            22,
+            45,
+            60
+          ],
+          "special": 22,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            9,
+            27,
+            48,
+            54,
+            57
+          ],
+          "special": 7,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            10,
+            16,
+            29,
+            42,
+            61
+          ],
+          "special": 12,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            11,
+            16,
+            41,
+            51,
+            58
+          ],
+          "special": 9,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            11,
+            26,
+            53,
+            63,
+            64
+          ],
+          "special": 14,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            12,
+            14,
+            31,
+            38,
+            61
+          ],
+          "special": 11,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            13,
+            22,
+            41,
+            65,
+            68
+          ],
+          "special": 13,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            14,
+            15,
+            52,
+            54,
+            59
+          ],
+          "special": 1,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            15,
+            24,
+            33,
+            35,
+            66
+          ],
+          "special": 18,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            15,
+            29,
+            32,
+            37,
+            50
+          ],
+          "special": 12,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            16,
+            40,
+            45,
+            64,
+            67
+          ],
+          "special": 25,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            17,
+            20,
+            38,
+            59,
+            67
+          ],
+          "special": 18,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            18,
+            23,
+            41,
+            53,
+            56
+          ],
+          "special": 26,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            19,
+            32,
+            36,
+            40,
+            69
+          ],
+          "special": 3,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            19,
+            42,
+            50,
+            51,
+            63
+          ],
+          "special": 1,
+          "serial": "2529427987A488194"
+        },
+        {
+          "numbers": [
+            1,
+            18,
+            28,
+            55,
+            57
+          ],
+          "special": 24,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            1,
+            25,
+            44,
+            64,
+            66
+          ],
+          "special": 24,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            1,
+            32,
+            39,
+            52,
+            65
+          ],
+          "special": 20,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            2,
+            7,
+            25,
+            61,
+            62
+          ],
+          "special": 14,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            2,
+            27,
+            37,
+            66,
+            69
+          ],
+          "special": 25,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            2,
+            31,
+            36,
+            46,
+            57
+          ],
+          "special": 5,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            3,
+            10,
+            35,
+            40,
+            53
+          ],
+          "special": 21,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            3,
+            17,
+            30,
+            51,
+            68
+          ],
+          "special": 10,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            3,
+            21,
+            28,
+            50,
+            60
+          ],
+          "special": 19,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            6,
+            26,
+            39,
+            57
+          ],
+          "special": 17,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            12,
+            13,
+            43,
+            49
+          ],
+          "special": 8,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            19,
+            30,
+            65,
+            67
+          ],
+          "special": 8,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            4,
+            24,
+            44,
+            45,
+            69
+          ],
+          "special": 5,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            8,
+            47,
+            58,
+            63
+          ],
+          "special": 23,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            13,
+            34,
+            55,
+            66
+          ],
+          "special": 2,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            17,
+            26,
+            54,
+            69
+          ],
+          "special": 15,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            5,
+            36,
+            39,
+            42,
+            68
+          ],
+          "special": 6,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            6,
+            9,
+            23,
+            44,
+            65
+          ],
+          "special": 20,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            6,
+            10,
+            45,
+            47,
+            54
+          ],
+          "special": 9,
+          "serial": "2CD0E132C5697EA89"
+        },
+        {
+          "numbers": [
+            6,
+            14,
+            22,
+            37,
+            43
+          ],
+          "special": 4,
+          "serial": "2CD0E132C5697EA89"
+        }
+      ],
+      "proofUrl": null,
+      "correctionReason": "Corrigido número 63→64 no primeiro bilhete (erro de digitação no cadastro).",
+      "previousHash": null,
+      "generatedAtUtc": "2026-08-05T14:09:54.953Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "cotas": 1,
+        "valor": 10,
+        "status": "verificado"
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05:tickets-published:v2.1:Participante Alfa",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:09:56.034Z",
+    "sentAt": "2026-08-05T14:09:56.034Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785938996033",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:09:54.955Z"
+  },
+  {
+    "emailJobId": "job_1785940148416_qt35ygip",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T14:29:08.403Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:fixturetest",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:29:09.705Z",
+    "sentAt": "2026-08-05T14:29:09.705Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785940149704",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:29:08.416Z"
+  },
+  {
+    "emailJobId": "job_1785940149706_g0v51gfw",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-published",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-published",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-published",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 1,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 1,
+        "publishedAtUtc": "2026-08-05T14:29:08.411Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              63
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "cb4c4054eade7f329f7e8e9c7e135dc865ba9bb389eb3d49639a227a40aa217f"
+      },
+      "manifestHash": "cb4c4054eade7f329f7e8e9c7e135dc865ba9bb389eb3d49639a227a40aa217f",
+      "manifestHashShort": "cb4c4054eade…40aa217f",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            63
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": null,
+      "previousHash": null,
+      "previousHashShort": null,
+      "diff": null,
+      "generatedAtUtc": "2026-08-05T14:29:08.411Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v1.2:Participante Alfa:fixturetest",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:29:10.797Z",
+    "sentAt": "2026-08-05T14:29:10.797Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785940150796",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:29:09.706Z"
+  },
+  {
+    "emailJobId": "job_1785940150799_wo375i7n",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-corrected",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-corrected",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-corrected",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 2,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 2,
+        "publishedAtUtc": "2026-08-05T14:29:08.414Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              64
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "63d228dc5887f848a6cd9bb202579146334cacb5a3402c4a0ac5606f0eaedb79"
+      },
+      "manifestHash": "63d228dc5887f848a6cd9bb202579146334cacb5a3402c4a0ac5606f0eaedb79",
+      "manifestHashShort": "63d228dc5887…0eaedb79",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            64
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": "Corrigido número do Jogo 01 (63 → 64) — erro de digitação identificado ao conferir o comprovante de compra.",
+      "previousHash": "cb4c4054eade7f329f7e8e9c7e135dc865ba9bb389eb3d49639a227a40aa217f",
+      "previousHashShort": "cb4c4054eade…40aa217f",
+      "diff": {
+        "changed": [
+          {
+            "index": 0,
+            "before": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                63
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "after": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                64
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "beforeText": "24 · 31 · 47 · 52 · 63 — Powerball 17",
+            "afterText": "24 · 31 · 47 · 52 · 64 — Powerball 17"
+          }
+        ],
+        "unchanged": [
+          {
+            "index": 1,
+            "ticket": {
+              "numbers": [
+                4,
+                11,
+                22,
+                45,
+                61
+              ],
+              "special": 9,
+              "serial": "S-EXAMPLE-FIXTURE"
+            }
+          }
+        ],
+        "hasDiff": true
+      },
+      "generatedAtUtc": "2026-08-05T14:29:08.414Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v2.2:Participante Alfa:fixturetest",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:29:11.670Z",
+    "sentAt": "2026-08-05T14:29:11.670Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785940151669",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:29:10.799Z"
+  },
+  {
+    "emailJobId": "job_1785940616163_3xr1y889",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T14:36:56.113Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:subjectfix-verify-1785940616160",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:36:57.247Z",
+    "sentAt": "2026-08-05T14:36:57.247Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785940617246",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:36:56.163Z"
+  },
+  {
+    "emailJobId": "job_1785941312751_54fhnopd",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-published",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-published",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-published",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 1,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 1,
+        "publishedAtUtc": "2026-08-05T14:48:32.704Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              63
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "a4f7371952406b7b6ee3f92f601533070a25993b09d1303676e4984e31dedce4"
+      },
+      "manifestHash": "a4f7371952406b7b6ee3f92f601533070a25993b09d1303676e4984e31dedce4",
+      "manifestHashShort": "a4f737195240…31dedce4",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            63
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": null,
+      "previousHash": null,
+      "previousHashShort": null,
+      "diff": null,
+      "generatedAtUtc": "2026-08-05T14:48:32.704Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v1.2:r3verify-1785941312749",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:48:33.969Z",
+    "sentAt": "2026-08-05T14:48:33.969Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785941313968",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:48:32.751Z",
+    "expectedSubject": "[TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": "Bolão do Ferrari - [TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos"
+  },
+  {
+    "emailJobId": "job_1785941345844_bv00hsag",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T14:49:05.789Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:r3final-1785941345842",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:49:06.831Z",
+    "sentAt": "2026-08-05T14:49:06.831Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785941346830",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:49:05.844Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": "Bolão do Ferrari - [TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET"
+  },
+  {
+    "emailJobId": "job_1785941348038_16noy82a",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-corrected",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-corrected",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-corrected",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 2,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 2,
+        "publishedAtUtc": "2026-08-05T14:49:05.797Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              64
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "e3b98e48d22b999db598c0c712d2a6d8a1938ba2e571fef73704f7fb338f4af0"
+      },
+      "manifestHash": "e3b98e48d22b999db598c0c712d2a6d8a1938ba2e571fef73704f7fb338f4af0",
+      "manifestHashShort": "e3b98e48d22b…338f4af0",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            64
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": "Corrigido número do Jogo 01 (63 → 64) — erro de digitação identificado ao conferir o comprovante de compra.",
+      "previousHash": "1d8ecb0f79795a840727d20beb5a6dbdefa66c139511470249a13bb2d64a56f9",
+      "previousHashShort": "1d8ecb0f7979…d64a56f9",
+      "diff": {
+        "changed": [
+          {
+            "index": 0,
+            "before": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                63
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "after": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                64
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "beforeText": "24 · 31 · 47 · 52 · 63 — Powerball 17",
+            "afterText": "24 · 31 · 47 · 52 · 64 — Powerball 17"
+          }
+        ],
+        "unchanged": [
+          {
+            "index": 1,
+            "ticket": {
+              "numbers": [
+                4,
+                11,
+                22,
+                45,
+                61
+              ],
+              "special": 9,
+              "serial": "S-EXAMPLE-FIXTURE"
+            }
+          }
+        ],
+        "hasDiff": true
+      },
+      "generatedAtUtc": "2026-08-05T14:49:05.797Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v2.2:Participante Alfa:r3final-1785941348037",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T14:49:08.847Z",
+    "sentAt": "2026-08-05T14:49:08.847Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785941348846",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T14:49:08.038Z",
+    "expectedSubject": "[TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": "Bolão do Ferrari - [TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2"
+  },
+  {
+    "emailJobId": "job_1785942555251_ffcm2g7v",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T15:09:15.202Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:r4final-1785942555249-9xxr",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:09:16.374Z",
+    "sentAt": "2026-08-05T15:09:16.374Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785942556373",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:09:15.251Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785942557384_zwplnbkz",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-published",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-published",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-published",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 1,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 1,
+        "publishedAtUtc": "2026-08-05T15:09:15.208Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              63
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "ea24b631acad356c725c8516c1433836b1eee4cbcaf7ee448b9dc39a3e281142"
+      },
+      "manifestHash": "ea24b631acad356c725c8516c1433836b1eee4cbcaf7ee448b9dc39a3e281142",
+      "manifestHashShort": "ea24b631acad…3e281142",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            63
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": null,
+      "previousHash": null,
+      "previousHashShort": null,
+      "diff": null,
+      "generatedAtUtc": "2026-08-05T15:09:15.208Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v1.2:Participante Alfa:r4final-1785942557382-tuzx",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:09:18.237Z",
+    "sentAt": "2026-08-05T15:09:18.237Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785942558236",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:09:17.384Z",
+    "expectedSubject": "[TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785942559249_5z3yci84",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-corrected",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-corrected",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-corrected",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 2,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 2,
+        "publishedAtUtc": "2026-08-05T15:09:15.209Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              64
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "ce8bbd915e751964ba23c2264dccfe7a5a028fde628b6f35e8ee5dde4a97b95e"
+      },
+      "manifestHash": "ce8bbd915e751964ba23c2264dccfe7a5a028fde628b6f35e8ee5dde4a97b95e",
+      "manifestHashShort": "ce8bbd915e75…4a97b95e",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            64
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": "Corrigido número do Jogo 01 (63 → 64) — erro de digitação identificado ao conferir o comprovante de compra.",
+      "previousHash": "ea24b631acad356c725c8516c1433836b1eee4cbcaf7ee448b9dc39a3e281142",
+      "previousHashShort": "ea24b631acad…3e281142",
+      "diff": {
+        "changed": [
+          {
+            "index": 0,
+            "before": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                63
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "after": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                64
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "beforeText": "24 · 31 · 47 · 52 · 63 — Powerball 17",
+            "afterText": "24 · 31 · 47 · 52 · 64 — Powerball 17"
+          }
+        ],
+        "unchanged": [
+          {
+            "index": 1,
+            "ticket": {
+              "numbers": [
+                4,
+                11,
+                22,
+                45,
+                61
+              ],
+              "special": 9,
+              "serial": "S-EXAMPLE-FIXTURE"
+            }
+          }
+        ],
+        "hasDiff": true
+      },
+      "generatedAtUtc": "2026-08-05T15:09:15.209Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v2.2:Participante Alfa:r4final-1785942559246-9xnx",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:09:20.249Z",
+    "sentAt": "2026-08-05T15:09:20.249Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785942560247",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:09:19.249Z",
+    "expectedSubject": "[TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785943036023_2evx2g2t",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T15:17:15.971Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:subjectcheck-1785943036021",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:17:17.214Z",
+    "sentAt": "2026-08-05T15:17:17.214Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785943037212",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:17:16.023Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785943090288_2x4gieu0",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T15:18:10.238Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:r5final-1785943090286-91wh",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:18:11.473Z",
+    "sentAt": "2026-08-05T15:18:11.473Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785943091472",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:18:10.288Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785943092482_cm8gj1mx",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-published",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-published",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-published",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 1,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 1,
+        "publishedAtUtc": "2026-08-05T15:18:10.244Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              63
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "09d6058f0149430a22d2a5c0e1b628820c738da2c19fbd8fe009adfb98cd2c47"
+      },
+      "manifestHash": "09d6058f0149430a22d2a5c0e1b628820c738da2c19fbd8fe009adfb98cd2c47",
+      "manifestHashShort": "09d6058f0149…98cd2c47",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            63
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": null,
+      "previousHash": null,
+      "previousHashShort": null,
+      "diff": null,
+      "generatedAtUtc": "2026-08-05T15:18:10.244Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v1.2:Participante Alfa:r5final-1785943092481-i2z5",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:18:13.431Z",
+    "sentAt": "2026-08-05T15:18:13.431Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785943093430",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:18:12.482Z",
+    "expectedSubject": "[TESTE ADMIN] 🎟️ Bilhetes publicados — Powerball de 05.08.2026 22:59 ET — 2 jogos",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785943094438_bpnv4fk3",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "tickets-corrected",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "tickets-corrected",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "tickets-corrected",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "jackpot": 786000000,
+      "totalShares": 14,
+      "publicationVersion": 2,
+      "manifest": {
+        "poolId": "powerball",
+        "drawId": "2026-08-05-FIXTURE",
+        "publicationVersion": 2,
+        "publishedAtUtc": "2026-08-05T15:18:10.246Z",
+        "tickets": [
+          {
+            "numbers": [
+              24,
+              31,
+              47,
+              52,
+              64
+            ],
+            "special": 17,
+            "serial": "S-EXAMPLE-FIXTURE"
+          },
+          {
+            "numbers": [
+              4,
+              11,
+              22,
+              45,
+              61
+            ],
+            "special": 9,
+            "serial": "S-EXAMPLE-FIXTURE"
+          }
+        ],
+        "sha256": "1b3a0df4f9d0940f030ecae37358c7a0e3083ad63de28228351746ebe07b0f4c"
+      },
+      "manifestHash": "1b3a0df4f9d0940f030ecae37358c7a0e3083ad63de28228351746ebe07b0f4c",
+      "manifestHashShort": "1b3a0df4f9d0…e07b0f4c",
+      "financialSummary": {
+        "participantCount": 14,
+        "totalShares": 14,
+        "valorPorCota": 10,
+        "totalArrecadado": 140,
+        "valorUsado": 6,
+        "saldoReservado": 134,
+        "reembolso": 0,
+        "outrasDestinacoes": 0,
+        "diferencaNaoConciliada": 0,
+        "ticketCount": 2,
+        "costPerTicket": 3,
+        "ticketCostTotal": 6
+      },
+      "tickets": [
+        {
+          "numbers": [
+            24,
+            31,
+            47,
+            52,
+            64
+          ],
+          "special": 17,
+          "serial": "S-EXAMPLE-FIXTURE"
+        },
+        {
+          "numbers": [
+            4,
+            11,
+            22,
+            45,
+            61
+          ],
+          "special": 9,
+          "serial": "S-EXAMPLE-FIXTURE"
+        }
+      ],
+      "proofUrl": "https://example.invalid/proof-fixture.jpg",
+      "correctionReason": "Corrigido número do Jogo 01 (63 → 64) — erro de digitação identificado ao conferir o comprovante de compra.",
+      "previousHash": "09d6058f0149430a22d2a5c0e1b628820c738da2c19fbd8fe009adfb98cd2c47",
+      "previousHashShort": "09d6058f0149…98cd2c47",
+      "diff": {
+        "changed": [
+          {
+            "index": 0,
+            "before": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                63
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "after": {
+              "numbers": [
+                24,
+                31,
+                47,
+                52,
+                64
+              ],
+              "special": 17,
+              "serial": "S-EXAMPLE-FIXTURE"
+            },
+            "beforeText": "24 · 31 · 47 · 52 · 63 — Powerball 17",
+            "afterText": "24 · 31 · 47 · 52 · 64 — Powerball 17"
+          }
+        ],
+        "unchanged": [
+          {
+            "index": 1,
+            "ticket": {
+              "numbers": [
+                4,
+                11,
+                22,
+                45,
+                61
+              ],
+              "special": 9,
+              "serial": "S-EXAMPLE-FIXTURE"
+            }
+          }
+        ],
+        "hasDiff": true
+      },
+      "generatedAtUtc": "2026-08-05T15:18:10.246Z",
+      "recipient": "participante.alfa@example.invalid",
+      "participantId": "Participante Alfa",
+      "participantName": "Participante Alfa",
+      "individualParticipation": {
+        "shares": 1,
+        "valor": 10,
+        "status": "verificado",
+        "percentage": 7.1429
+      }
+    },
+    "idempotencyKey": "powerball:powerball:2026-08-05-FIXTURE:tickets-published:v2.2:Participante Alfa:r5final-1785943094437-vhgc",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T15:18:15.347Z",
+    "sentAt": "2026-08-05T15:18:15.347Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785943095345",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T15:18:14.438Z",
+    "expectedSubject": "[TESTE ADMIN] ⚠️ Correção dos bilhetes — Powerball de 05.08.2026 22:59 ET — Versão 2",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785970916906_3juogn78",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T23:01:56.855Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:dashboardcheck-1785970916903",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T23:01:58.133Z",
+    "sentAt": "2026-08-05T23:01:58.133Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785970918133",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T23:01:56.906Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  },
+  {
+    "emailJobId": "job_1785971079419_nvyaugov",
+    "poolId": "powerball",
+    "drawId": "2026-08-05-FIXTURE",
+    "participantId": "Participante Alfa",
+    "eventType": "participant-added",
+    "recipient": "emferrari@gmail.com",
+    "templateId": "participant-added",
+    "templateVersion": 2,
+    "payloadSnapshot": {
+      "templateId": "participant-added",
+      "templateVersion": 2,
+      "poolId": "powerball",
+      "drawId": "2026-08-05-FIXTURE",
+      "participantId": "Participante Alfa",
+      "recipient": "participante.alfa@example.invalid",
+      "participantName": "Participante Alfa",
+      "entryDate": "04/08/2026",
+      "entryTime": "9:00 AM",
+      "drawDateLabel": "05/08/2026 22:59 ET",
+      "drawDateIso": "2026-08-05T22:59:00-04:00",
+      "participantShares": 1,
+      "totalShares": 14,
+      "valor": 10,
+      "paymentMethod": "Zelle",
+      "paymentStatus": "verificado",
+      "participantPercentage": 7.1429,
+      "state": "NC",
+      "jackpot": 786000000,
+      "cashValue": 341600000,
+      "estimates": {
+        "lumpSumBruto": 24400000,
+        "lumpSumTax": 10001560,
+        "lumpSumNet": 14398440,
+        "annuityTotalBruto": 56142857.14285714,
+        "annuityTotalNet": 33129899.999999996,
+        "annuityMonthlyNet": 92027.49999999999,
+        "stateKnown": true
+      },
+      "siteUrl": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+      "generatedAtUtc": "2026-08-05T23:04:39.360Z"
+    },
+    "idempotencyKey": "powerball:powerball:participant-added:Participante Alfa:v2:dashboardcheck2-1785971079416",
+    "status": "sent",
+    "attemptCount": 1,
+    "lastAttemptAt": "2026-08-05T23:04:40.577Z",
+    "sentAt": "2026-08-05T23:04:40.577Z",
+    "providerStatus": 200,
+    "providerMessageId": "emailjs-1785971080576",
+    "lastError": null,
+    "testMode": true,
+    "createdAt": "2026-08-05T23:04:39.419Z",
+    "expectedSubject": "[TESTE ADMIN] ✅ Participação confirmada — Bolão Powerball — Sorteio de 05.08.2026 22:59 ET",
+    "providerSubjectParameters": [
+      "entry_name",
+      "receipt_code",
+      "email_subject"
+    ],
+    "receivedSubject": null
+  }
+]
