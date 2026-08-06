@@ -115,5 +115,56 @@ test("idempotency key format matches the required pattern", () => {
   assert.equal(key, "powerball:draw-result:2026-08-05:v1:Alan Rech");
 });
 
+console.log("\nEmail-format simplification (2026-08-06, per Eduardo's feedback):");
+
+test("HTML never contains the removed full-ticket-list section or any non-winning ticket listing", () => {
+  const official = { numbers: draw.result.numbers, special: draw.result.special, multiplier: draw.result.multiplier };
+  const { perRecipient } = buildDrawResultPayload({ draw, participants: draw.participants, official, prizeTableFn: gt.prizeTable });
+  const html = renderDrawResultHtml(perRecipient[0], false);
+  assert.ok(!html.includes("Todos os"), 'HTML must not contain a "Todos os N jogos" section');
+  assert.ok(!html.includes("Conjunto completo"), "HTML must not contain a full ticket list section");
+  // None of the 52 non-winning tickets' numbers-only lines should appear as a
+  // bare list — spot-check a few known non-winning ticket number combos from
+  // the real 2026-08-05 pool are absent as a "Jogo NN:" line.
+  assert.ok(!/Jogo 01:/.test(html), "HTML must not list non-winning tickets by 'Jogo NN:' lines");
+  assert.ok(!html.includes("font-family:monospace;\">Jogo"), "no monospace ticket-list block");
+});
+
+test("HTML includes a real link/button to the site to see all games", () => {
+  const official = { numbers: draw.result.numbers, special: draw.result.special, multiplier: draw.result.multiplier };
+  const { perRecipient } = buildDrawResultPayload({ draw, participants: draw.participants, official, prizeTableFn: gt.prizeTable });
+  const html = renderDrawResultHtml(perRecipient[0], false);
+  assert.ok(html.includes("Ver todos os jogos e detalhes no site"));
+  assert.ok(html.includes("https://ferrarilabs.github.io/bolao/loterias/powerball/"));
+  assert.ok(!html.includes("localhost"));
+});
+
+test("winning tickets still show hits, tier, and prize amount as cards", () => {
+  const official = { numbers: draw.result.numbers, special: draw.result.special, multiplier: draw.result.multiplier };
+  const { perRecipient } = buildDrawResultPayload({ draw, participants: draw.participants, official, prizeTableFn: gt.prizeTable });
+  const html = renderDrawResultHtml(perRecipient[0], false);
+  assert.ok(html.includes("Jogos premiados"));
+  assert.ok(html.includes("Acertos:"));
+  assert.ok(html.includes("Powerball — $8.00"));
+});
+
+test("zero-winner case shows a clear message, not an empty section", () => {
+  const official = { numbers: [1, 2, 3, 4, 5], special: 99, multiplier: 2 }; // guaranteed no matches
+  const { perRecipient } = buildDrawResultPayload({ draw, participants: draw.participants.slice(0, 1), official, prizeTableFn: gt.prizeTable });
+  const html = renderDrawResultHtml(perRecipient[0], false);
+  assert.ok(html.includes("Nenhum dos nossos"));
+  assert.ok(html.includes("teve prêmio nesta rodada"));
+});
+
+test("production render (testMode:false) never contains [TESTE ADMIN] or the test banner", () => {
+  const official = { numbers: draw.result.numbers, special: draw.result.special, multiplier: draw.result.multiplier };
+  const { perRecipient } = buildDrawResultPayload({ draw, participants: draw.participants, official, prizeTableFn: gt.prizeTable });
+  const subject = renderDrawResultSubject(perRecipient[0], false);
+  const html = renderDrawResultHtml(perRecipient[0], false);
+  assert.ok(!subject.includes("[TESTE ADMIN]"));
+  assert.ok(!html.includes("[TESTE ADMIN]"));
+  assert.ok(!html.includes("TESTE ADMINISTRATIVO"));
+});
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

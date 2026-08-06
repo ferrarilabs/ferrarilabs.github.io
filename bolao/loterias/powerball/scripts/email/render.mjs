@@ -413,39 +413,47 @@ export function renderDrawResultSubject(payload, testMode) {
   return `${prefix}🔴 Resultado Powerball — ${subjectSafeDate(payload.drawDateLabel)} — ${nums} PB ${payload.official.special}`;
 }
 
+// Round-2 simplification (2026-08-06, per Eduardo's feedback on the email
+// that already went out): removed the full ticket-by-ticket listing (a
+// "Todos os N jogos" monospace block of every non-winning ticket) — long,
+// ugly in Gmail, and redundant since every ticket is on the site. FUTURE
+// result emails only show: draw header, official numbers (ball circles),
+// Power Play, a compact summary, winning tickets as cards (with hits/tier/
+// prize), a clear zero-winners message, a button to the site, and next
+// steps. No non-winning ticket appears in the email body at all.
 export function renderDrawResultHtml(payload, testMode) {
   const f = payload.financialSummary;
   const officialTicket = { numbers: payload.official.numbers, special: payload.official.special };
   const powerPlay = payload.official.multiplier > 1;
   const won = f.totalWon != null;
-
-  // With a large shared-ticket pool (real 2026-08-05 draw: 54 tickets), a
-  // full ball-circle row per ticket pushed the email past EmailJS's payload
-  // size limit (measured: 165KB -> HTTP 413). Winning tickets (typically a
-  // handful) still get the full approved ball-circle treatment; the rest are
-  // listed compactly (same numbers, no nested tables) so every ticket is
-  // still shown, "hits per ticket" is still answered, but the email stays a
-  // sendable size.
   const winners = payload.tickets.filter((t) => t.prizeAmount || t.jackpotHit);
-  const nonWinners = payload.tickets.filter((t) => !t.prizeAmount && !t.jackpotHit);
-  const winnersHtml = winners.map((t) => {
+  const siteLink = isRealUrl(payload.siteUrl) ? payload.siteUrl : null;
+
+  const winnerCards = winners.map((t) => {
     const idx = payload.tickets.indexOf(t) + 1;
-    return `<tr><td style="padding:8px 8px;color:#666;font-size:12px;width:60px;vertical-align:middle;">Jogo ${String(idx).padStart(2, "0")}</td>
-      <td style="padding:8px 8px;background:#e8f9ee;border:1px solid #2a7;border-radius:8px;">
-        ${ballsRowHtml(t, powerPlay)}
-        <div style="font-size:12px;margin-top:4px;color:#1a7a3d;font-weight:bold;">
-          ${t.jackpotHit ? "🎉 JACKPOT!" : `${esc(t.prizeLabel)} — ${usd(t.prizeAmount)}`}
-        </div>
-      </td></tr>`;
+    return `<div style="background:#e8f9ee;border:1px solid #2a7;border-radius:10px;padding:12px 14px;margin-bottom:10px;">
+      <div style="font-size:12px;color:#666;margin-bottom:6px;">Jogo ${String(idx).padStart(2, "0")}</div>
+      ${ballsRowHtml(t, powerPlay)}
+      <div style="font-size:12px;color:#444;margin-top:8px;">Acertos: ${t.mainMatches} número${t.mainMatches === 1 ? "" : "s"}${t.specialMatch ? " + Powerball" : ""}</div>
+      <div style="font-size:14px;margin-top:4px;color:#1a7a3d;font-weight:bold;">
+        ${t.jackpotHit ? "🎉 JACKPOT!" : `${esc(t.prizeLabel)} — ${usd(t.prizeAmount)}`}
+      </div>
+    </div>`;
   }).join("");
-  const nonWinnersCompact = nonWinners.map((t) => {
-    const idx = payload.tickets.indexOf(t) + 1;
-    return `Jogo ${String(idx).padStart(2, "0")}: ${t.numbers.slice().sort((a, b) => a - b).join(" · ")} · PB ${t.special}`;
-  }).join(" &nbsp;|&nbsp; ");
+
+  const winnersSection = winners.length
+    ? `<h3 style="color:${BLUE};margin:20px 0 8px;">Jogos premiados</h3>${winnerCards}`
+    : `<div style="background:#f8f9fc;border-radius:10px;padding:14px;margin:16px 0;text-align:center;">
+        <p style="font-size:14px;margin:0;color:#444;">Nenhum dos nossos ${payload.ticketCount} jogos teve prêmio nesta rodada.</p>
+      </div>`;
+
+  const ctaButton = siteLink
+    ? `<a href="${esc(siteLink)}" style="display:inline-block;background:${BLUE};color:#fff;text-decoration:none;font-size:14px;font-weight:bold;padding:12px 24px;border-radius:8px;margin-top:8px;">Ver todos os jogos e detalhes no site</a>`
+    : `<p style="font-size:13px;color:#999;">Site: <em>${esc(payload.siteUrl)}</em></p>`;
 
   const body = `
 <h2 style="color:${RED};margin:0 0 12px;">Resultado do sorteio — ${esc(payload.drawDateLabel)}</h2>
-<p style="font-size:14px;line-height:1.5;">O sorteio de ${esc(friendlyDate(payload.drawDateIso))} foi conferido${payload.checkedAt ? ` em ${esc(payload.checkedAt)}` : ""}. Confira abaixo o resultado oficial e o desempenho dos nossos jogos.</p>
+<p style="font-size:14px;line-height:1.5;">O sorteio de ${esc(friendlyDate(payload.drawDateIso))} foi conferido${payload.checkedAt ? ` em ${esc(payload.checkedAt)}` : ""}.</p>
 <h3 style="color:${BLUE};margin:20px 0 8px;">Números sorteados</h3>
 ${ballsRowHtml(officialTicket, powerPlay)}
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;margin-top:8px;">
@@ -453,31 +461,26 @@ ${ballsRowHtml(officialTicket, powerPlay)}
 <tr><td style="color:#666;">Power Play</td><td>${payload.official.multiplier}x</td></tr>
 <tr><td style="color:#666;">Jackpot premiado nesta rodada?</td><td>${payload.jackpotHit ? "🎉 SIM" : "Não"}</td></tr>
 </table>
+<h3 style="color:${BLUE};margin:20px 0 8px;">Resumo</h3>
+<table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;background:#f8f9fc;border-radius:8px;">
+<tr><td style="color:#666;">Total de jogos</td><td>${payload.ticketCount}</td></tr>
+<tr><td style="color:#666;">Jogos premiados</td><td>${winners.length}</td></tr>
+<tr><td style="color:#666;">Total ganho</td><td>${won ? `<strong>${usd(f.totalWon)}</strong>` : "aguardando valor oficial"}</td></tr>
+<tr><td style="color:#666;">Saldo anterior</td><td>${usd(f.remainingBalance)}</td></tr>
+<tr><td style="color:#666;">Saldo após prêmios</td><td>${f.estimatedNextDrawCredit != null ? `<strong>${usd(f.estimatedNextDrawCredit)}</strong>` : "aguardando valor oficial"}</td></tr>
+</table>
 <h3 style="color:${BLUE};margin:20px 0 8px;">Sua participação</h3>
 <table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;">
 <tr><td style="color:#666;">Cotas</td><td>${esc(payload.individualParticipation.shares)} de ${esc(payload.totalShares)}</td></tr>
 <tr><td style="color:#666;">Participação</td><td>${pct(payload.individualParticipation.percentage)}</td></tr>
 <tr><td style="color:#666;">Pagamento</td><td>${esc(paymentStatusLabel(payload.individualParticipation.status))}</td></tr>
 </table>
-${winners.length ? `<h3 style="color:${BLUE};margin:20px 0 8px;">Bilhetes premiados</h3>
-<table role="presentation" width="100%" cellpadding="0" style="font-size:13px;border-collapse:collapse;">${winnersHtml}</table>` : `<p style="font-size:14px;">Nenhum dos nossos ${payload.ticketCount} jogos teve prêmio nesta rodada.</p>`}
-<h3 style="color:${BLUE};margin:20px 0 8px;">Todos os ${payload.ticketCount} jogos${winners.length ? ` (${winners.length} premiado${winners.length > 1 ? "s" : ""} acima, demais sem prêmio abaixo)` : ""}</h3>
-<p style="font-size:12px;color:#666;line-height:1.8;font-family:monospace;">${nonWinnersCompact || "—"}</p>
-<h3 style="color:${BLUE};margin:20px 0 8px;">Resumo financeiro</h3>
-<table role="presentation" width="100%" cellpadding="6" style="font-size:14px;border-collapse:collapse;">
-<tr><td style="color:#666;">Total de jogos</td><td>${payload.ticketCount}</td></tr>
-<tr><td style="color:#666;">Valor investido nos jogos</td><td>${usd(f.totalSpent)}</td></tr>
-<tr><td style="color:#666;">Total ganho</td><td>${won ? `<strong>${usd(f.totalWon)}</strong>` : "aguardando valor oficial"}</td></tr>
-<tr><td style="color:#666;">Resultado (ganho − investido)</td><td>${f.lucro != null ? usd(f.lucro) : "aguardando valor oficial"}</td></tr>
-<tr><td style="color:#666;">Saldo já reservado p/ próximo sorteio</td><td>${usd(f.remainingBalance)}</td></tr>
-<tr><td style="color:#666;">Estimativa disponível p/ próximo sorteio</td><td>${f.estimatedNextDrawCredit != null ? usd(f.estimatedNextDrawCredit) : "aguardando valor oficial"}</td></tr>
-</table>
-<p style="font-size:11px;color:#999;margin-top:4px;">A estimativa acima soma o saldo já reservado ao valor ganho neste sorteio — é uma projeção interna, não um valor oficial já lançado para o próximo sorteio.</p>
+${winnersSection}
+<div style="text-align:center;margin:20px 0;">${ctaButton}</div>
 <h3 style="color:${BLUE};margin:20px 0 8px;">Próximos passos</h3>
 <p style="font-size:14px;line-height:1.5;">${payload.jackpotHit
     ? "🎉 Ligue para o organizador imediatamente para os próximos passos de resgate do prêmio."
-    : (won ? "Os prêmios ganhos entram no saldo do bolão para o próximo sorteio." : "Nenhum outro prêmio além do já listado acima. Boa sorte no próximo sorteio!")}</p>
-<p style="font-size:14px;margin-top:16px;">${isRealUrl(payload.siteUrl) ? `<a href="${esc(payload.siteUrl)}" style="color:${BLUE};">Ver o bolão</a>` : `Site: <em>${esc(payload.siteUrl)}</em>`}</p>`;
+    : (won ? "Os prêmios ganhos entram no saldo do bolão para o próximo sorteio." : "Boa sorte no próximo sorteio!")}</p>`;
   return shell({ title: `Resultado Powerball — ${payload.drawDateLabel}`, bodyHtml: body, testMode });
 }
 
@@ -485,6 +488,7 @@ export function renderDrawResultText(payload, testMode) {
   const f = payload.financialSummary;
   const won = f.totalWon != null;
   const nums = payload.official.numbers.slice().sort((a, b) => a - b).join(" · ");
+  const winners = payload.tickets.filter((t) => t.prizeAmount || t.jackpotHit);
   const lines = [
     testMode ? "TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção." : null,
     `Resultado do sorteio — ${payload.drawDateLabel}`,
@@ -494,21 +498,24 @@ export function renderDrawResultText(payload, testMode) {
     `Jackpot anunciado: ${usd(payload.jackpot)}`,
     `Jackpot premiado nesta rodada?: ${payload.jackpotHit ? "SIM" : "Não"}`,
     "",
+    "Resumo:",
+    `  Total de jogos: ${payload.ticketCount}`,
+    `  Jogos premiados: ${winners.length}`,
+    `  Total ganho: ${won ? usd(f.totalWon) : "aguardando valor oficial"}`,
+    `  Saldo anterior: ${usd(f.remainingBalance)}`,
+    `  Saldo após prêmios: ${f.estimatedNextDrawCredit != null ? usd(f.estimatedNextDrawCredit) : "aguardando valor oficial"}`,
+    "",
     "Sua participação:",
     `  ${payload.individualParticipation.shares} de ${payload.totalShares} cotas, ${pct(payload.individualParticipation.percentage)}, ${paymentStatusLabel(payload.individualParticipation.status)}`,
     "",
-    "Nossos jogos:",
-    ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, payload.official.multiplier > 1)} -> ${t.prizeAmount ? `${t.prizeLabel} (${usd(t.prizeAmount)})` : (t.jackpotHit ? "JACKPOT!" : "sem prêmio")}`),
+    winners.length ? "Jogos premiados:" : `Nenhum dos nossos ${payload.ticketCount} jogos teve prêmio nesta rodada.`,
+    ...winners.map((t) => {
+      const idx = payload.tickets.indexOf(t) + 1;
+      return `  Jogo ${String(idx).padStart(2, "0")}: ${ticketPlainLine(t, payload.official.multiplier > 1)} -> Acertos: ${t.mainMatches}${t.specialMatch ? "+PB" : ""} -> ${t.jackpotHit ? "JACKPOT!" : `${t.prizeLabel} (${usd(t.prizeAmount)})`}`;
+    }),
     "",
-    "Resumo financeiro:",
-    `  Total de jogos: ${payload.ticketCount}`,
-    `  Valor investido: ${usd(f.totalSpent)}`,
-    `  Total ganho: ${won ? usd(f.totalWon) : "aguardando valor oficial"}`,
-    `  Resultado: ${f.lucro != null ? usd(f.lucro) : "aguardando valor oficial"}`,
-    `  Saldo já reservado: ${usd(f.remainingBalance)}`,
-    `  Estimativa p/ próximo sorteio: ${f.estimatedNextDrawCredit != null ? usd(f.estimatedNextDrawCredit) : "aguardando valor oficial"}`,
-    "",
-    `Site: ${payload.siteUrl}`,
+    "Ver todos os jogos e detalhes no site:",
+    `  ${payload.siteUrl}`,
   ];
   return lines.filter((l) => l !== null).join("\n");
 }
