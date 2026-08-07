@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-05T13:31:32.819Z",
-  "commit": "922426e",
+  "generatedAtUtc": "2026-08-07T17:37:23.327Z",
+  "commit": "eca19b1",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -62,7 +62,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "144.5px",
+          "height": "108.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
         }
@@ -125,8 +125,8 @@
         },
         {
           "property": "height",
-          "status": "JUSTIFIED",
-          "reason": "`.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "status": "EQUAL",
+          "reason": null
         },
         {
           "property": "minHeight",
@@ -1646,7 +1646,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "30px",
+          "height": "auto",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1709,8 +1709,8 @@
         },
         {
           "property": "height",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"form-heading:height\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "minHeight",
@@ -1776,10 +1776,10 @@
           "margin": "0px",
           "gap": "normal",
           "borderRadius": "9px",
-          "backgroundColor": "rgb(16, 37, 45)",
-          "color": "rgb(238, 247, 241)",
-          "height": "44.5px",
-          "minHeight": "auto",
+          "backgroundColor": "rgb(7, 20, 27)",
+          "color": "rgb(156, 178, 185)",
+          "height": "auto",
+          "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
       },
@@ -1831,23 +1831,23 @@
         },
         {
           "property": "backgroundColor",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"input-text:backgroundColor\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "color",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"input-text:color\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "height",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"input-text:height\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"input-text:minHeight\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "gridTemplateColumns",
@@ -1910,8 +1910,8 @@
           "borderRadius": "9px",
           "backgroundColor": "rgb(16, 37, 45)",
           "color": "rgb(238, 247, 241)",
-          "height": "44.5px",
-          "minHeight": "auto",
+          "height": "auto",
+          "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
       },
@@ -1973,13 +1973,13 @@
         },
         {
           "property": "height",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"select:height\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "PENDING APPROVAL: entrada existe para \"select:minHeight\" mas approvalStatus=\"pending\", não \"approved\" — não pode suprimir até ser explicitamente aprovada."
         },
         {
           "property": "gridTemplateColumns",

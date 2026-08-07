@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)
 
-Gerado em 2026-08-05T13:31:32.819Z · commit `922426e` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-07T17:37:23.327Z · commit `eca19b1` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).
 
@@ -8,21 +8,28 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 
 | Status | Quantidade |
 |---|---|
-| EQUAL | 332 |
+| EQUAL | 326 |
 | EQUIVALENT | 0 |
-| JUSTIFIED | 18 |
-| DIVERGENT | 0 |
+| JUSTIFIED | 17 |
+| DIVERGENT | 7 |
 | N/A | 70 |
 
 ## Divergências não aprovadas (DIVERGENT) — bloqueiam exit 0
 
-Nenhuma. Todas as diferenças encontradas são EQUAL, EQUIVALENT ou JUSTIFIED (ver `ALLOWLIST.json`).
+| Componente | Propriedade | copa2026 | br2026 | cdb2026 |
+|---|---|---|---|---|
+| Heading do formulário (Nova entrada) | height | `30px` | `30px` | `auto` |
+| Input de texto | backgroundColor | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | `rgb(7, 20, 27)` |
+| Input de texto | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(156, 178, 185)` |
+| Input de texto | height | `44.5px` | `44.5px` | `auto` |
+| Input de texto | minHeight | `auto` | `auto` | `0px` |
+| Select | height | `44.5px` | `44.5px` | `auto` |
+| Select | minHeight | `auto` | `auto` | `0px` |
 
 ## Divergências aprovadas (JUSTIFIED) — ver ALLOWLIST.json
 
 | Componente | Propriedade | Justificativa |
 |---|---|---|
-| Topbar | height | `.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Nav de tabs (.nav) | gridTemplateColumns | Column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real visible button count by design (fixed in this branch, commit 9b11e3b — Copa 8→6, BR2026 9→7, CDB2026 6). Unequal track widths across apps given unequal button counts is the CORRECT outcome, not a regression. If a nav button is ever added/removed in any app, the resolved track-width string changes and this exact-match entry correctly goes stale, forcing a fresh human review rather than silently continuing to approve a now-unverified state — this is the reference example the task itself asked for. [docRef: bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78 (Fase 2.2-correção item 3); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | main | height | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | Card base (marcado) | height | The marked card (data-visual-audit="card-base", the scoring-rules card in Regras) wraps a <table class="rules-table"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
@@ -60,7 +67,7 @@ Seletores: copa2026=`.topbar`, br2026=`.topbar`, cdb2026=`.topbar`
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(7, 20, 27, 0.94)` | `rgba(7, 20, 27, 0.94)` | `rgba(7, 20, 27, 0.94)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `108.5px` | `108.5px` | `144.5px` | JUSTIFIED | `.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug. [docRef: PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `108.5px` | `108.5px` | `108.5px` | EQUAL | — |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | EQUAL | — |
 
@@ -312,7 +319,7 @@ Seletores: copa2026=`h2[data-i18n="entryTitle"]`, br2026=`h2[data-i18n="entryTit
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `30px` | `30px` | `30px` | EQUAL | — |
+| height | `30px` | `30px` | `auto` | DIVERGENT | PENDING APPROVAL: entrada existe para "form-heading:height" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
@@ -331,10 +338,10 @@ Seletores: copa2026=`#entryName`, br2026=`#entryName`, cdb2026=`#entryName`
 | margin | `0px` | `0px` | `0px` | EQUAL | — |
 | gap | `normal` | `normal` | `normal` | EQUAL | — |
 | borderRadius | `9px` | `9px` | `9px` | EQUAL | — |
-| backgroundColor | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | EQUAL | — |
-| color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `44.5px` | `44.5px` | `44.5px` | EQUAL | — |
-| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
+| backgroundColor | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | `rgb(7, 20, 27)` | DIVERGENT | PENDING APPROVAL: entrada existe para "input-text:backgroundColor" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
+| color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(156, 178, 185)` | DIVERGENT | PENDING APPROVAL: entrada existe para "input-text:color" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
+| height | `44.5px` | `44.5px` | `auto` | DIVERGENT | PENDING APPROVAL: entrada existe para "input-text:height" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
+| minHeight | `auto` | `auto` | `0px` | DIVERGENT | PENDING APPROVAL: entrada existe para "input-text:minHeight" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
 ### Select (`select`)
@@ -354,8 +361,8 @@ Seletores: copa2026=`#paymentMethod`, br2026=`#paymentMethod`, cdb2026=`#payment
 | borderRadius | `9px` | `9px` | `9px` | EQUAL | — |
 | backgroundColor | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | `rgb(16, 37, 45)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `44.5px` | `44.5px` | `44.5px` | EQUAL | — |
-| minHeight | `auto` | `auto` | `auto` | EQUAL | — |
+| height | `44.5px` | `44.5px` | `auto` | DIVERGENT | PENDING APPROVAL: entrada existe para "select:height" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
+| minHeight | `auto` | `auto` | `0px` | DIVERGENT | PENDING APPROVAL: entrada existe para "select:minHeight" mas approvalStatus="pending", não "approved" — não pode suprimir até ser explicitamente aprovada. |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
 ### Form grid (.form-grid) (`form-grid`)
