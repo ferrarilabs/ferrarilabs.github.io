@@ -24,6 +24,10 @@ window.CDB2026_I18N = {
     phaseAlreadyConcluded: "Fase já concluída antes do início deste bolão — não fez parte do período de palpites.",
     // Form
     entryTitle: "Nova entrada",
+    // Título do mesmo card com o roster congelado: ele deixa de ser criação e passa a ser
+    // edição dos próprios palpites (ver renderNewEntryCard em js/app.js).
+    entryTitleEditing: "Editar meus palpites",
+    entryGoneOnSave: "Esta entrada não existe mais. Nada foi salvo — busque sua entrada novamente.",
     entryName: "Nome da entrada",
     payerName: "Responsável pelo pagamento",
     emailLabel: "E-mail para comprovante",

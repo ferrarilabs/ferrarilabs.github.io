@@ -1,8 +1,32 @@
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.93",
+  siteVersion: "v3.94",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
+  // ENTRY ROSTER FREEZE (2026-08-07, decisão do Eduardo): as inscrições do bolão da Copa do
+  // Brasil estão encerradas EM DEFINITIVO. Nenhuma entrada nova é criada até a Final pelos
+  // caminhos normais da aplicação: formulário público (saveEntry), admin e mutação de estado
+  // (applyAdminMutation "upsert-entry").
+  //
+  // LIMITAÇÃO — leia antes de confiar nisto: este é um controle de CAMADA DE APLICAÇÃO, não uma
+  // fronteira de segurança de banco. Ele NÃO impede um insert direto na tabela do Supabase via
+  // API/anon key por fora da aplicação. Não afirmar "é impossível criar entradas por qualquer
+  // meio técnico"; a afirmação correta é "os caminhos normais de criação da aplicação e do admin
+  // estão congelados". Enforcement no banco (RLS/constraint) fica para a modernização, em
+  // trabalho separado — deliberadamente NÃO implementado neste patch.
+  //
+  // Isto é INDEPENDENTE de `PICKS_OPEN`. Os palpites ainda abrem três vezes (quartas, semifinal,
+  // final) e essa reabertura NUNCA reabre inscrição. Invariante:
+  //
+  //     PICKS_OPEN pode alternar por fase.  ENTRY_CREATION_ALLOWED permanece false.
+  //
+  // Por que uma flag explícita e não só o cutoff: até aqui o fechamento das inscrições era
+  // derivado de `entryCutoffMs()`, que devolve o cutoff da FASE ATIVA (`espnSync.activePhaseId`).
+  // Quando o sorteio das quartas for cadastrado, esse cutoff volta a ser um instante FUTURO e
+  // `isPastEntryCutoff()` vira false — reabrindo o formulário, o botão "Nova entrada" e a seção
+  // inicial de entrada. Ou seja: abrir os palpites das quartas reabriria a inscrição sozinho.
+  // Esta flag corta esse acoplamento; o cutoff continua governando só os palpites.
+  entryRosterFrozen: true,
   // SHA-256 hash of admin password. Never store plaintext here.
   adminPasswordHash: "2132e264513230629493ac29b4192dbf5c99a203bcbb2b7a01020666fa32156c",
   adminMaxAttempts: 5,

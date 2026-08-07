@@ -126,8 +126,13 @@
       </div>
     </div>
     <div id="receiptBox" class="card hidden"></div>
-    <div class="card">
-      <h2 data-i18n="entryTitle">Nova entrada</h2>
+    <!-- ENTRY ROSTER FREEZE: começa oculto de propósito (fail closed) — se o JS não rodar, o
+         formulário de nova entrada não aparece. renderNewEntryCard() em js/app.js revela este
+         card em dois casos: criação liberada (CONFIG.entryRosterFrozen false) OU uma entrada
+         existente e válida carregada para edição — este card contém #pickForm, é por ele que o
+         participante já cadastrado envia os palpites de quartas/semi/final. -->
+    <div id="newEntryCard" class="card hidden">
+      <h2 id="newEntryTitle" data-i18n="entryTitle">Nova entrada</h2>
       <div class="form-grid">
         <label>
           <span data-i18n="entryName">Nome da entrada</span>

@@ -1,5 +1,91 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.94 — 2026-08-07 — Congelamento permanente do roster de entradas (Batch 0)
+
+Eduardo, 2026-08-07: as inscrições da Copa do Brasil estão encerradas EM DEFINITIVO — nenhuma
+entrada nova até a Final — mas os palpites ainda reabrem três vezes (quartas, semifinal, final)
+e os participantes existentes precisam continuar preenchendo cada nova fase.
+
+A auditoria forense encontrou que essas duas coisas estavam **acopladas**, e o acoplamento
+reabriria a inscrição sozinho na próxima fase. `entryCutoffMs()` deriva o fechamento das
+inscrições do cutoff da FASE ATIVA (`espnSync.activePhaseId`). Quando o sorteio das quartas for
+cadastrado, esse cutoff volta a ser um instante FUTURO, `isPastEntryCutoff()` vira `false` e o
+formulário de nova entrada, o botão e a seção inicial de entrada voltam todos. Não era hipótese:
+era o comportamento garantido da próxima fase.
+
+Correção mínima, em três camadas (esconder o botão não é solução):
+
+- `config.js`: nova flag `entryRosterFrozen: true` — fonte de verdade única, independente de
+  `PICKS_OPEN`. Invariante: `PICKS_OPEN` pode alternar por fase, `ENTRY_CREATION_ALLOWED`
+  permanece `false`.
+- `app.js`: `isEntryCreationAllowed()` (não consulta cutoff/fase de propósito); guard em
+  `saveEntry()` **antes** de ler o formulário ou alocar id; guard no ramo de APPEND da mutação
+  `upsert-entry`, que lança `ENTRY_ROSTER_FROZEN` sem escrita parcial. O ramo de UPDATE (id já
+  existente) continua liberado — o admin ainda corrige nome/pagamento de quem já está no roster,
+  e é por ele que os palpites das novas fases são salvos.
+- `index.html`: `#newEntryCard` ganha id e nasce com `hidden` (fail closed — se o JS não rodar,
+  não aparece formulário de inscrição). `renderFindEntryCard()` passa a manter "editar entrada"
+  sempre visível com o roster congelado: é o único caminho que resta para o participante
+  existente chegar aos palpites.
+
+Deliberadamente **não** alterado: `navEntryBtn.disabled`/`showSection` continuam governados por
+`isPastEntryCutoff()`. A seção "Palpites" é a mesma usada por quem já tem entrada — travá-la
+bloquearia justamente os participantes que precisam palpitar nas quartas.
+
+### Correções da revisão independente (mesma versão, três blockers)
+
+A revisão independente do primeiro corte encontrou três defeitos reais — todos corrigidos aqui,
+no mesmo commit (não em cima dele):
+
+1. **O formulário do participante existente ficava escondido.** `#newEntryCard` não é só "Nova
+   entrada": ele contém `#paymentBox` e `#pickForm`, ou seja, é TAMBÉM o formulário por onde quem
+   já está no roster manda os palpites de quartas/semi/final. Escondê-lo por "roster congelado"
+   quebrava exatamente a continuidade que o congelamento deveria preservar. Nova regra:
+   `showForm = isEntryCreationAllowed() || editingEntryIsValid()`. `editingEntryIsValid()` não
+   confia em `_editingEntry` ser truthy — exige que o id ainda exista no roster e não esteja
+   tombstoned. Com o roster congelado o card se retitula para `entryTitleEditing`
+   ("Editar meus palpites") e os campos de identidade ficam `readOnly`/`disabled`.
+2. **Edição obsoleta virava criação (fail open).** `saveEntry()` fazia
+   `if (idx >= 0) update; else push` — um `_editingEntry` cujo id sumiu do roster (removido em
+   outro dispositivo) criava uma entrada NOVA disfarçada de edição, furando o congelamento. Agora
+   o update passa pela helper pura `updateExistingEntry()`, que lança `ENTRY_NOT_FOUND_OR_REMOVED`
+   quando o id não existe ou está em `deletedIds`. Rejeição determinística, sem push, sem
+   `saveState()`, sem mutação parcial; o participante recebe uma mensagem própria
+   (`entryGoneOnSave`) e volta ao fluxo de busca.
+3. **O self-service podia reescrever a identidade da entrada.** O save espalhava os inputs sobre a
+   entrada armazenada, então trocar o nome no formulário trocava o `entryName` — e como
+   `receiptCode()` é `hash(entryName + createdAt)`, isso DESTRUÍA o código de recuperação do
+   participante, além de semanticamente transformar uma entrada em outra pessoa. Com o roster
+   congelado, `id`, `createdAt`, `entryName`, `participantEmail`, `payerName` e `paymentMethod`
+   passam a vir da entrada armazenada, nunca dos inputs; só `picks` e `updatedAt` mudam. Correção
+   administrativa de identidade continua exclusivamente pelo admin (`applyAdminMutation`, ramo de
+   update) — nenhum bypass público novo foi criado.
+
+E uma correção de documentação, não de código: o comentário de `entryRosterFrozen` afirmava que
+nenhuma entrada podia ser criada "por nenhum caminho". Isso é falso e perigoso de acreditar. A
+flag é um controle de **camada de aplicação**; ela não impede um insert direto na tabela do
+Supabase por fora do app. O comentário agora diz exatamente isso, e registra que enforcement no
+banco (RLS/constraint) fica para a modernização, em trabalho separado.
+
+Nova suíte `scripts/audit_entry_roster_freeze.mjs` (26 checks, T01–T21): roster preservado,
+mutação direta rejeitada, sem escrita parcial, sem bypass de admin, batch aninhado não contrabandeia
+criação, rejeições idempotentes, entrada existente ainda atualiza, picks históricos intactos, e o
+teste central — abrir os palpites das quartas **não** reabre a inscrição. Extrai as funções do
+`app.js` real em runtime (mesma técnica de `audit_state_merge.mjs`), então testa o código que
+embarca, não uma cópia. T13–T21 vão além da mutação em memória e executam o `saveEntry()` REAL
+num harness de DOM stub (o repo não tem node_modules/Playwright): formulário revelado na busca,
+formulário oculto sem entrada carregada, edição obsoleta e tombstoned rejeitadas sem append,
+identidade imutável mesmo com inputs adulterados, palpites de nova fase gravados, `receiptCode`
+estável e conjunto de ids do roster inalterado. `emailjs.enabled: false` e `saveState` espionado
+em memória no harness — a suíte não manda e-mail nem toca em banco.
+
+`node --check`: OK. `audit_scoring.py` (3 apps), `audit_golden_master.mjs`,
+`audit_state_merge.mjs`, `test_aggregate_hero.mjs`, `audit_integrity.py` (0 ERROR/CRITICAL),
+`audit_pii_repo_wide.mjs` (432 arquivos, 0 findings) e `check_shared_visual_contract.mjs`
+(0 violações) re-executados — scoring/merge intocados. Não propagado para Copa2026 (arquivada) nem BR2026 (inscrições
+já encerradas em 2026-07-16, sem reabertura de palpites prevista) — nenhum dos dois está em risco;
+registrar em `CONSISTENCY_MATRIX.md` se o padrão for adotado como plataforma.
+
 ## v3.93 — 2026-08-06 — Participantes/Pagamento visible again (framework-migration regression); dropped the always-on provisional-score note
 
 Eduardo, screenshot: "Essa parte não é necessário: Resultado não travado — pontuação provisória.
