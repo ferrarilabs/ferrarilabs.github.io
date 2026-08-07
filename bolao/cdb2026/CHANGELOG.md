@@ -1,5 +1,54 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.101 — 2026-08-07 — HOTFIX: remoto autoritativo no load (resíduo local imortal)
+
+Eduardo, com a produção JÁ comprovadamente limpa: o navegador dele mostrava
+"Próxima partida Bahia × Santos / Oitavas de Final", entradas "Participante A"/"Participante D" e
+pote de **$65** (13 × $5, quando a produção tem 12 entradas).
+
+Leitura read-only da produção no mesmo momento: **12 entradas reais**, **nenhum** confronto
+Bahia × Santos em fase alguma, nenhum marcador de fixture, `meta.updatedAt` inalterado. O dado errado
+estava **só no navegador dele**.
+
+Por que sobrevivia — quatro coisas somadas:
+
+1. `ties` era **UNIÃO** nas duas direções e ties **não têm tombstone**: confronto que só existia
+   local era imortal, e o reparo do banco nunca alcançava o cliente.
+2. O invariante de sorteio (`enforceDrawLifecycle`, v3.99) cobre **quartas**. Este fantasma estava
+   nas **oitavas**, uma fase já oficial — fora do alcance dele por construção. Era exatamente a
+   dívida registrada em `CDB2026_DRAW_LIFECYCLE.md` ("um tie fantasma numa fase já oficial ainda não
+   pode ser apagado pelo remoto").
+3. Entradas eram unidas por id, então entrada sintética só-local também era imortal — e a chave de
+   `paid` dela inflava o pote.
+4. O caminho de **save** reenviaria tudo isso de volta para a produção.
+
+### Correção
+
+No **LOAD** (único ponto onde um estado remoto foi de fato lido do Supabase) o remoto é a verdade:
+
+- **Ties:** se o remoto tem a fase, o CONJUNTO de confrontos dela é o do remoto. Confronto só-local
+  não é legítimo — é resíduo. Fase que o remoto **não** possui é preservada (proteção contra remoto
+  parcial).
+- **Entradas:** com `entryRosterFrozen`, nenhuma entrada nova é legítima, então o conjunto de
+  entradas é o do remoto. **Não** vale com roster aberto — aí entrada local significa "ainda não
+  sincronizou" e descartá-la perderia trabalho real.
+- **`paid`:** chave órfã (entrada que não existe mais) é removida depois do merge de entradas.
+
+Fora do load segue **união**, de propósito: no save, confronto que o admin acabou de cadastrar e
+entrada recém-salva ainda não estão no remoto e não podem ser descartados.
+
+Falha de rede nunca chega a este caminho, então indisponibilidade do Supabase não apaga nada.
+
+Testes: `scripts/audit_remote_authoritative.mjs`, 11 checks — fantasma nas oitavas eliminado;
+entradas sintéticas eliminadas; `paid` órfã removida; dado remoto legítimo intacto; `updatedAt` local
+mais novo não ressuscita resíduo; **save preserva** confronto novo do admin e entrada não
+sincronizada; roster ABERTO não descarta entrada local mas mantém autoridade sobre ties; fase ausente
+no remoto não é apagada; e verificação de que só `loadRemoteState()` pede autoridade remota.
+
+Validado em browser real semeando o sintoma exato: "Participante A" desaparece, entradas voltam ao
+conjunto real, `paid` fica só com a chave real, o confronto fantasma sai das oitavas e o card
+"Próxima partida" fica oculto — sem apagar nada legítimo.
+
 ## v3.100 — 2026-08-07 — Snapshot ESPN server-side + barras de probabilidade no card ao vivo
 
 **1. Fim da dependência de ESPN no navegador.** `C.espn.scoreboardUrl` passa a ser

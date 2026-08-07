@@ -199,7 +199,9 @@ async function loadRemoteState() {
     if (!r.ok) return;
     const data = await r.json();
     if (!data?.[0]?.state) return;
-    const merged = mergeStates(state(), data[0].state, { preferRemoteResults: true });
+    // `remoteAuthoritative: true` só aqui: este é o único ponto onde um estado remoto foi
+    // efetivamente lido do Supabase. Ver mergeStates() para o que isso torna autoritativo.
+    const merged = mergeStates(state(), data[0].state, { preferRemoteResults: true, remoteAuthoritative: true });
     localStorage.setItem(C.storeKey, JSON.stringify(merged));
   } catch (err) { console.warn("[CDB2026] Supabase load failed", err); }
 }
@@ -343,14 +345,28 @@ async function saveRemoteState(s, opts = {}) {
 // e audit log seguem a MESMA regra de reconciliação nos dois caminhos; só phases/paid/espnSync
 // divergem (mergeStates funde os dois lados campo a campo; a mutação começa 100% do remoto e
 // aplica só a mudança pedida por cima, ver applyAdminMutation).
-function mergeEntriesTombstonesAuditLog(local, remote) {
+function mergeEntriesTombstonesAuditLog(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
+  // REMOTO AUTORITATIVO NO LOAD + ROSTER CONGELADO (2026-08-07).
+  // Com `entryRosterFrozen` nenhuma entrada nova é legítima (ver isEntryCreationAllowed): uma
+  // entrada que existe só no navegador é resíduo, não trabalho offline por sincronizar. Era assim
+  // que "Participante A"/"Participante D" e um pote de $65 (13 x $5, quando a produção tem 12
+  // entradas) continuavam aparecendo num navegador mesmo com a produção comprovadamente limpa.
+  // Deliberadamente NÃO vale quando o roster está aberto: aí uma entrada local ainda não
+  // sincronizada é legítima e não pode ser descartada. E só no LOAD, onde o remoto foi lido de
+  // fato.
+  const remoteAuthoritativeEntries = !!opts.remoteAuthoritative && !!C.entryRosterFrozen;
+  const remoteIds = new Set((remote.entries || []).map(e => e.id));
   // Achado 2026-07-16 (mesmo achado do BR2026, propagado aqui por ter a mesma estrutura de
   // merge): "local sempre vence" escondia edição de admin pra sempre em qualquer navegador que
   // já tivesse a entrada em cache. Preferir sempre o registro mais RECENTE por entrada
   // (updatedAt/createdAt), mesmo padrão que a Copa já usa (bolao/js/app.js mergeStates()).
   const byId = {};
-  for (const e of (local.entries || [])) if (!deleted.has(e.id)) byId[e.id] = e;
+  for (const e of (local.entries || [])) {
+    if (deleted.has(e.id)) continue;
+    if (remoteAuthoritativeEntries && !remoteIds.has(e.id)) continue; // resíduo local: descarta
+    byId[e.id] = e;
+  }
   for (const e of (remote.entries || [])) {
     if (deleted.has(e.id)) continue;
     const existing = byId[e.id];
@@ -382,7 +398,7 @@ function mergeEntriesTombstonesAuditLog(local, remote) {
 // resultado oficial contra cache velho de PARTICIPANTE, não para representar uma decisão explícita
 // do admin sobre um registro específico).
 function mergeStates(local, remote, opts = {}) {
-  const { entries, deletedIds, auditLog } = mergeEntriesTombstonesAuditLog(local, remote);
+  const { entries, deletedIds, auditLog } = mergeEntriesTombstonesAuditLog(local, remote, opts);
   // any-true-wins por chave (união das chaves dos dois lados), NUNCA spread — um spread
   // (`{...remote.paid, ...local.paid}`) faz "local sempre vence", então um `false` local velho
   // sobrescrevia um `true` remoto mais novo do admin. Achado na auditoria de 2026-08 (AUDIT-02):
@@ -396,13 +412,39 @@ function mergeStates(local, remote, opts = {}) {
   for (const k of new Set([...Object.keys(remote.paid || {}), ...Object.keys(local.paid || {})])) {
     paid[k] = !!(local.paid?.[k] || remote.paid?.[k]);
   }
+  // Chave de `paid` de entrada que não existe mais é lixo que aparece no total do pote. Removida
+  // DEPOIS do merge de entradas, e só no load autoritativo — nunca perde pagamento de entrada viva.
+  if (opts.remoteAuthoritative) {
+    const liveIds = new Set(entries.map(e => e.id));
+    for (const k of Object.keys(paid)) if (!liveIds.has(k)) delete paid[k];
+  }
   const phases = {};
   DATA.phases.forEach(p => {
     const localP  = local.phases?.[p.id]  || emptyPhaseState();
     const remoteP = remote.phases?.[p.id] || emptyPhaseState();
-    const ties = opts.preferRemoteResults
-      ? { ...localP.ties, ...remoteP.ties }
-      : { ...remoteP.ties, ...localP.ties };
+    // REMOTO AUTORITATIVO NO LOAD (2026-08-07, incidente reportado pelo Eduardo).
+    //
+    // O problema: `ties` era UNIÃO nas duas direções e não existe tombstone de tie. Um confronto
+    // que só existia LOCAL sobrevivia para sempre — o reparo do banco nunca alcançava o navegador.
+    // O invariante de sorteio (enforceDrawLifecycle) fechou o caso das QUARTAS, mas um fantasma
+    // numa fase JÁ oficial (ex.: "Bahia × Santos" nas Oitavas, que o Eduardo viu depois de a
+    // produção estar comprovadamente limpa) não era alcançado por ele — e o caminho de save
+    // reenviaria esse fantasma para a produção.
+    //
+    // No LOAD (`opts.remoteAuthoritative`) o remoto É a verdade: a tabela do Supabase é o estado
+    // curado pelo admin. Se o remoto tem a fase, o CONJUNTO de confrontos dela é o do remoto —
+    // confronto que existe só local não é legítimo, é resíduo. Isto só roda quando um estado remoto
+    // foi REALMENTE lido (ver loadRemoteState); falha de rede não chega aqui e portanto nunca apaga
+    // nada.
+    //
+    // Fora do load segue UNIÃO de propósito: no save, um confronto que o admin acabou de cadastrar
+    // ainda não está no remoto e não pode ser descartado.
+    const remoteHasPhase = !!(remote.phases && remote.phases[p.id]);
+    const ties = (opts.remoteAuthoritative && remoteHasPhase)
+      ? { ...remoteP.ties }
+      : opts.preferRemoteResults
+        ? { ...localP.ties, ...remoteP.ties }
+        : { ...remoteP.ties, ...localP.ties };
     const cutoffAt = opts.preferRemoteResults
       ? (remoteP.cutoffAt ?? localP.cutoffAt)
       : (localP.cutoffAt ?? remoteP.cutoffAt);
