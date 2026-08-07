@@ -1006,10 +1006,22 @@ async function saveEntry() {
   const email         = $("participantEmail")?.value.trim() || "";
   const paymentMethod = $("paymentMethod")?.value || "";
 
-  if (!entryName) { alert(t("errorEntryName")); return; }
-  if (!payerName) { alert(t("requiredPayerName")); return; }
-  if (!email || !email.includes("@")) { alert(t("errorEmail")); return; }
-  if (!paymentMethod) { alert(t("requiredPaymentMethod")); return; }
+  // ENTRY ROSTER FREEZE: no self-service congelado a identidade NÃO vem destes inputs — vem de
+  // `_editingEntry` (ver a construção de `entry` abaixo). Validar os inputs aqui seria validar
+  // valores que o save descarta, e pior: BLOQUEARIA o participante. Os campos ficam readOnly e o
+  // select disabled em renderNewEntryCard(), preenchidos a partir da entrada armazenada; se o
+  // paymentMethod guardado não casar exatamente com uma das <option> ("CashApp"/"Zelle"/"Venmo"),
+  // `select.value` resolve para "" e o alerta abaixo trancaria essa pessoa para fora dos palpites
+  // de quartas/semi/final PARA SEMPRE, sem nenhum campo editável para consertar. Como este card é
+  // o único caminho restante até a Final, valida-se aqui somente o que o save realmente usa: os
+  // palpites. Correção de identidade continua sendo pelo admin.
+  const frozenSelfServiceEdit = !!_editingEntry && !isEntryCreationAllowed();
+  if (!frozenSelfServiceEdit) {
+    if (!entryName) { alert(t("errorEntryName")); return; }
+    if (!payerName) { alert(t("requiredPayerName")); return; }
+    if (!email || !email.includes("@")) { alert(t("errorEmail")); return; }
+    if (!paymentMethod) { alert(t("requiredPaymentMethod")); return; }
+  }
 
   const picks  = getPickValues();
   const errors = validatePicks(picks);
@@ -1028,9 +1040,8 @@ async function saveEntry() {
     // código de recuperação do participante) e semanticamente transformaria uma entrada em
     // outra pessoa. Correção administrativa de identidade continua sendo pelo admin
     // (applyAdminMutation "upsert-entry", ramo de update) — não abrimos um bypass público aqui.
-    const frozenEdit = !!_editingEntry && !isEntryCreationAllowed();
     const entry = _editingEntry
-      ? (frozenEdit
+      ? (frozenSelfServiceEdit
           ? { ..._editingEntry, picks, updatedAt: now }
           : { ..._editingEntry, entryName, payerName, participantEmail: email, paymentMethod, picks, updatedAt: now })
       : { id: uuid(), entryName, payerName, participantEmail: email, paymentMethod, picks, createdAt: now };
