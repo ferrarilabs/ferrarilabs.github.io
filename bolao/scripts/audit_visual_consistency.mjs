@@ -71,13 +71,14 @@
  * this harness's own browser context, before clicking it — applyArchiveMode() and every other
  * production file are untouched; nothing here would let a real visitor reach it.
  */
-import { loadChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
+import { launchChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
 import { cdb2026TiesFixture, routeCdb2026Espn, seedBr2026Schedule } from "../cdb2026/scripts/visual/game_fixtures.mjs";
 import { spawn, execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+import { startStaticServer } from "./static_server.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PORT = 8191; // distinct from capture_evidence.mjs (8189) / capture_admin_auth_evidence.mjs (8190)
 const OUT_DIR = join(ROOT, "docs", "bolao", "evidence", "visual-comparison");
@@ -432,12 +433,13 @@ function classify(componentId, property, valuesByApp, allowlist) {
 function commitHash() {
   try { return execSync("git rev-parse --short HEAD", { cwd: ROOT }).toString().trim(); } catch { return "unknown"; }
 }
-function startServer() {
-  return new Promise((resolve, reject) => {
-    const p = spawn("python3", ["-m", "http.server", String(PORT)], { cwd: ROOT, stdio: "ignore" });
-    p.on("error", reject);
-    setTimeout(() => resolve(p), 700);
-  });
+// Delega ao helper compartilhado fail-closed (bolao/scripts/static_server.mjs). Antes daqui
+// este corpo era spawn+setTimeout com stdio ignorado: se a porta estivesse ocupada, o python
+// morria em silêncio e o browser media um servidor/checkout ESTRANHO. Ver o cabeçalho do helper.
+// Devolve um objeto com .kill() para os call sites existentes seguirem iguais.
+async function startServer() {
+  const s = await startStaticServer(PORT, ROOT);
+  return { kill: s.stop };
 }
 
 async function extractStylesForApp(browser, appId, app) {
@@ -633,11 +635,10 @@ function buildMarkdown(report) {
 }
 
 async function main() {
-  const chromium = await loadChromium();
   mkdirSync(OUT_DIR, { recursive: true });
   const { map: allowlist, schemaProblems } = loadAllowlist();
   const server = await startServer();
-  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchChromium();
   const commit = commitHash();
 
   const perAppStyles = {};

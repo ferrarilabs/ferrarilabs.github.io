@@ -25,6 +25,29 @@ import { existsSync } from "node:fs";
 
 const KNOWN_SANDBOX_FALLBACK = "/opt/node22/lib/node_modules/playwright/index.mjs";
 
+/**
+ * Lança o Chromium de forma PORTÁTIL.
+ *
+ * Por que isto existe: seis scripts faziam
+ *
+ *     chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium" })
+ *
+ * O `||` com caminho absoluto é o bug: sem a env var, o launch era FORÇADO para um caminho de
+ * outro ambiente (o sandbox onde os scripts foram escritos). Numa máquina onde o Playwright tem
+ * seu próprio browser gerenciado, isso falha com "executable doesn't exist" — mesmo com o
+ * Playwright instalado e funcionando. Era por isso que as suítes visuais/a11y ficavam
+ * "bloqueadas por falta de tooling": o tooling estava lá; o caminho estava errado.
+ *
+ * Regra correta (a que `audit_structural_parity.mjs` já usava, e a razão de ela ser a única que
+ * passava): só passar `executablePath` quando o operador pedir explicitamente. Sem a env var,
+ * deixar o Playwright resolver o browser que ele mesmo instalou.
+ */
+export async function launchChromium(opts = {}) {
+  const chromium = await loadChromium();
+  const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;
+  return chromium.launch({ headless: true, ...(executablePath ? { executablePath } : {}), ...opts });
+}
+
 export async function loadChromium() {
   try {
     const mod = await import("playwright");

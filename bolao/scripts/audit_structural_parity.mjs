@@ -28,6 +28,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { seedBr2026Schedule } from "../cdb2026/scripts/visual/game_fixtures.mjs";
 
+import { startStaticServer } from "./static_server.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", ".."); // repo root
 const PORT = 8792;
 const BASE = `http://127.0.0.1:${PORT}`;
@@ -40,12 +41,13 @@ const GAME_CARD_CHILDREN = ["game-card__header", "game-card__metadata", "game-ca
 const GAME_CARD_MATCH_CHILDREN = ["game-card__team", "game-card__center", "game-card__team"];
 const RANKING_ROW_REQUIRED_CLASSES = ["ranking-row__position", "ranking-row__participant", "ranking-row__score"];
 
-function startServer() {
-  return new Promise((resolve, reject) => {
-    const proc = spawn("python3", ["-m", "http.server", String(PORT)], { cwd: ROOT, stdio: "ignore" });
-    proc.on("error", reject);
-    setTimeout(() => resolve(proc), 700);
-  });
+// Delega ao helper compartilhado fail-closed (bolao/scripts/static_server.mjs). Antes daqui
+// este corpo era spawn+setTimeout com stdio ignorado: se a porta estivesse ocupada, o python
+// morria em silêncio e o browser media um servidor/checkout ESTRANHO. Ver o cabeçalho do helper.
+// Devolve um objeto com .kill() para os call sites existentes seguirem iguais.
+async function startServer() {
+  const s = await startStaticServer(PORT, ROOT);
+  return { kill: s.stop };
 }
 async function launchBrowser() {
   const executablePath = process.env.PLAYWRIGHT_CHROMIUM_PATH;

@@ -19,11 +19,12 @@
  *
  * Exit 0 = no overlap anywhere. Exit 1 = overlap found (full JSON detail printed) or a page error.
  */
-import { loadChromium } from "./playwright_loader.mjs";
+import { launchChromium } from "./playwright_loader.mjs";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+import { startStaticServer } from "../../../scripts/static_server.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const PORT = 8137;
 // Fase 2.2 §3: all 7 required viewports, not just the 4 mobile ones — a normal-flow CTA has no
@@ -50,12 +51,13 @@ const SEED_STATE = {
   auditLog: [], meta: { updatedAt: null, version: "test" },
 };
 
-function startServer() {
-  return new Promise((resolve, reject) => {
-    const p = spawn("python3", ["-m", "http.server", String(PORT)], { cwd: ROOT, stdio: "ignore" });
-    p.on("error", reject);
-    setTimeout(() => resolve(p), 700);
-  });
+// Delega ao helper compartilhado fail-closed (bolao/scripts/static_server.mjs). Antes daqui
+// este corpo era spawn+setTimeout com stdio ignorado: se a porta estivesse ocupada, o python
+// morria em silêncio e o browser media um servidor/checkout ESTRANHO. Ver o cabeçalho do helper.
+// Devolve um objeto com .kill() para os call sites existentes seguirem iguais.
+async function startServer() {
+  const s = await startStaticServer(PORT, ROOT);
+  return { kill: s.stop };
 }
 
 // Fase 2.2 §4: element types a CTA must never visually cover, not just focusable controls.
@@ -66,9 +68,8 @@ const RELEVANT_SELECTOR = [
 ].join(", ");
 
 async function main() {
-  const chromium = await loadChromium();
   const server = await startServer();
-  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchChromium();
   let failures = 0;
   const allFindings = [];
 

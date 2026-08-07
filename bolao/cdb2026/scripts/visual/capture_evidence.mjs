@@ -18,13 +18,14 @@
  * Never touches production: local static server, all external network blocked, no real
  * participant data anywhere in the seeds below.
  */
-import { loadChromium } from "./playwright_loader.mjs";
+import { launchChromium } from "./playwright_loader.mjs";
 import { spawn, execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readdirSync, unlinkSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { cdb2026TiesFixture, routeCdb2026Espn, seedBr2026Schedule, unhideCopaJogosForHarness } from "./game_fixtures.mjs";
 
+import { startStaticServer } from "../../../scripts/static_server.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
 const PORT = 8189;
 const EVIDENCE_ROOT = join(ROOT, "docs", "bolao", "evidence", "visual");
@@ -115,12 +116,13 @@ function commitHash() {
   catch { return "unknown"; }
 }
 
-function startServer() {
-  return new Promise((resolve, reject) => {
-    const p = spawn("python3", ["-m", "http.server", String(PORT)], { cwd: ROOT, stdio: "ignore" });
-    p.on("error", reject);
-    setTimeout(() => resolve(p), 700);
-  });
+// Delega ao helper compartilhado fail-closed (bolao/scripts/static_server.mjs). Antes daqui
+// este corpo era spawn+setTimeout com stdio ignorado: se a porta estivesse ocupada, o python
+// morria em silêncio e o browser media um servidor/checkout ESTRANHO. Ver o cabeçalho do helper.
+// Devolve um objeto com .kill() para os call sites existentes seguirem iguais.
+async function startServer() {
+  const s = await startStaticServer(PORT, ROOT);
+  return { kill: s.stop };
 }
 
 // PR120-final review item 5 (found while building game_fixtures.mjs): this used to delete EVERY
@@ -144,10 +146,9 @@ function clearOldEvidence() {
 }
 
 async function main() {
-  const chromium = await loadChromium();
   clearOldEvidence();
   const server = await startServer();
-  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchChromium();
   const commit = commitHash();
   const manifest = [];
 
