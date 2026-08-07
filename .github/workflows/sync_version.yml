@@ -95,6 +95,21 @@ jobs:
           if git diff --cached --quiet; then
             echo "No index.html changes — nothing to commit"
           else
-            git commit -m "chore: bump cache-bust version in index.html [skip ci]"
+            # NÃO usar [skip ci] aqui (removido 2026-08-07). Ele bloqueava TODOS os workflows
+            # neste commit — inclusive o "Deploy GitHub Pages". Resultado: o bump de ?v= era
+            # commitado em main mas NUNCA publicado, então o index.html ao vivo continuava
+            # apontando para o ?v= ANTIGO e os navegadores que já tinham o app em cache seguiam
+            # servindo o JS velho. A invalidação de cache falhava exatamente quando mais
+            # importava (um hotfix), e só entrava de carona no próximo deploy não relacionado.
+            # Observado duas vezes em 2026-08-07, incluindo no deploy do hotfix P0, cada vez
+            # exigindo um `gh workflow run "Deploy GitHub Pages"` manual e lembrado.
+            #
+            # Sem [skip ci] este push dispara apenas o Deploy GitHub Pages (push:main, sem filtro
+            # de path) — que é precisamente o que precisa rodar. NÃO há loop: o filtro `paths:`
+            # deste próprio workflow (acima) cobre só js/**.js e css/**.css, e este commit toca
+            # exclusivamente arquivos index.html, então ele não pode se re-disparar. E não pode
+            # disparar envio de email: todos os workflows de email são schedule/workflow_dispatch,
+            # nenhum roda em push.
+            git commit -m "chore: bump cache-bust version in index.html"
             git push
           fi
