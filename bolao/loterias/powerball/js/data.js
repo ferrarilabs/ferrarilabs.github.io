@@ -314,6 +314,7 @@ window.POWERBALL_DRAWS = [
     },
 
     participants: [
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "06/08/2026", hora: "—", status: "organizador", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "2:10 PM", status: "verificado", state: "NC" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "8:59 AM", status: "verificado", state: "FL" },
       // Camila pagou $12 no total; $10 é a cota deste sorteio (valor abaixo),
@@ -345,10 +346,10 @@ window.POWERBALL_DRAWS = [
     // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
     // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
-      totalArrecadado: 130, // 13 participantes x $10 (contribuição alocada a este sorteio), 06/08/2026
+      totalArrecadado: 140, // 14 participantes x $10 (contribuição alocada a este sorteio), 06/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 148, // nada foi gasto ainda: 130 + 18 - 0 = 148
+      valorGuardadoProximoSorteio: 158, // nada foi gasto ainda: 140 + 18 - 0 = 158
       // Camila Ribeiro pagou $12; $2 não são cota, prêmio, saldo anterior, crédito
       // automático do próximo sorteio, nem dívida pessoal — ficam explicitamente
       // pendentes de classificação, fora de totalArrecadado/valorGuardadoProximoSorteio.
