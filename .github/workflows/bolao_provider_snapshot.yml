@@ -1,0 +1,69 @@
+# bolao_provider_snapshot.yml — football-hardening readiness follow-up, item 8.
+#
+# NOT ACTIVE ON A SCHEDULE. workflow_dispatch only — this branch does not activate any new
+# production cron. Enabling a real `schedule:` trigger is a deliberate, separate, reviewed step
+# after this workflow has been run manually a few times and its dry-run output inspected.
+#
+# Purpose: runs each app's sync_espn.py (checkpoint C's shared ESPN provider wrapper) to refresh
+# the normalized snapshot. Intended eventual schedule (NOT active here): every 10-15 min during
+# each app's live-match window, same cadence as the existing result-email crons.
+#
+# Script:              bolao/{copa2026,br2026,cdb2026}/scripts/sync_espn.py
+# Backend repository:  none (writes a local JSON snapshot file — no Supabase/DB involved at all;
+#                       this step is pure read from ESPN + local file write, see
+#                       bolao/shared/scripts/espn_provider.py)
+# Secrets used:         none (ESPN's public endpoints need no credential)
+# Concurrency:          one group per app, queued not cancelled — two overlapping snapshot
+#                       refreshes for the SAME app must never race each other's atomic write
+# Timeout:              10 minutes (provider fetch has its own internal timeout+retry, this is
+#                       an outer safety bound)
+# Failure recovery:     espn_provider.py's own stale-preservation (build_snapshot()) means a
+#                       failed fetch never corrupts the last-known-good snapshot — the next
+#                       scheduled run (once a real schedule exists) retries automatically
+
+name: Bolão — Provider Snapshot (dry-run capable)
+
+on:
+  workflow_dispatch:
+    inputs:
+      app:
+        description: "Which app's snapshot to refresh"
+        required: true
+        type: choice
+        options: ["copa2026", "br2026", "cdb2026"]
+      dry_run:
+        description: "Dry run — fetch and validate, but do NOT commit the snapshot back to the repo"
+        required: false
+        type: boolean
+        default: true
+
+concurrency:
+  group: bolao-provider-snapshot-${{ github.event.inputs.app }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  refresh-snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: ${{ github.event.inputs.dry_run == 'true' && 'test' || 'production' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run sync_espn.py
+        working-directory: bolao/${{ github.event.inputs.app }}/scripts
+        run: python3 sync_espn.py
+
+      - name: Report (dry-run — snapshot NOT committed)
+        if: github.event.inputs.dry_run == 'true'
+        run: |
+          echo "Dry run: snapshot file was written locally by sync_espn.py but this workflow" \
+               "will NOT commit/push it (no git commit step below runs in dry-run mode)."
+          cat bolao/${{ github.event.inputs.app }}/data/espn-normalized.json
+
+      # Real commit-back step intentionally NOT included in this readiness pass — see item 8's
+      # own note: a real "commit the refreshed snapshot" step needs its own dedicated review
+      # (same reasoning as durable_persist.py not being wired into production email workflows
+      # without a separate staged rollout).
