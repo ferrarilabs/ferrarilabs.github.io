@@ -104,40 +104,89 @@ def any_cdb_match_live():
     )
 
 
+class SourceUnavailable(Exception):
+    """A fonte de descoberta não pôde ser consultada NEM havia snapshot utilizável em disco.
+    Distinta de "consultei e não havia nada novo": nada foi descoberto, nada foi descartado."""
+
+
 def fetch_espn_candidates():
-    """Mirrors fetchEspnCandidates() in app.js: every scoreboard event, normalized team names,
-    scores/winner only when the match is over (state=='post'), or live scores when state=='in'.
-    Returns a list of dicts (not indexed by anything — matching is done by the caller via
-    homeTeam/awayTeam string equality, exactly like the site's own autoSyncEspnResults())."""
-    req = urllib.request.Request(ESPN_SCOREBOARD_URL)
-    with urllib.request.urlopen(req, timeout=20) as r:
-        data = json.loads(r.read())
+    """Candidatos de resultado a partir do SNAPSHOT NORMALIZADO canônico — o MESMO arquivo que os
+    três apps de futebol leem.
+
+    Antes daqui esta função tinha a sua própria implementação de ESPN: montava a request para
+    ESPN_SCOREBOARD_URL e abria a conexão direto, SEM definir User-Agent, e parseava os `events`
+    crus. (O código antigo não é citado literalmente aqui de propósito: um teste de contrato desta
+    suíte falha se qualquer chamada de rede reaparecer no corpo desta função, e um exemplo em
+    docstring dispararia esse teste como se fosse código de verdade.)
+
+    Dois problemas reais:
+
+      1. Era uma SEGUNDA implementação de ESPN em paralelo à do provider compartilhado — dois
+         parsers, duas listas de alias, duas noções de "partida acabou". Divergência silenciosa
+         entre o que o site mostra e o que o email afirma é exatamente o risco que a auditoria de
+         julho/2026 encontrou em `send_result_email.py` (ver CHANGELOG v4.57).
+      2. Sem `User-Agent` a ESPN recusa a conexão nos runners do GitHub (403/TLS). Era a causa do
+         cron ficar vermelho: o provider compartilhado passa `curl/8.7.1` de propósito
+         (`_default_opener`, descoberto empiricamente) e funciona no CI — comprovado com o workflow
+         de snapshot rodando com sucesso lá.
+
+    Agora existe UM caminho canônico: o provider compartilhado atualiza o snapshot (com o UA certo,
+    timeout, retry e preservação do último-bom-conhecido) e esta função LÊ esse snapshot. Zero
+    parsing de ESPN aqui.
+
+    Levanta SourceUnavailable quando não há snapshot utilizável — o chamador trata como "nada
+    descoberto neste ciclo" e sai com 0.
+    """
+    here = Path(__file__).parent
+    shared = str(here.parent.parent / "shared" / "scripts")
+    if shared not in sys.path:
+        sys.path.insert(0, shared)
+    if str(here) not in sys.path:
+        sys.path.insert(0, str(here))
+    import espn_provider as ep
+    import sync_espn  # expõe CONFIG e NÃO executa nada no import (guarda __main__)
+
+    # Tenta atualizar. Falha aqui NÃO é fatal: run_sync() preserva o snapshot anterior marcado
+    # `stale`, e um resultado já finalizado é um fato imutável — snapshot velho pode ATRASAR a
+    # descoberta, nunca produzir um resultado errado.
+    try:
+        outcome = ep.run_sync(sync_espn.CONFIG)
+        print(f"AUTO — snapshot: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason}")
+        if outcome.problems:
+            print(f"AUTO — snapshot problems: {outcome.problems}")
+    except Exception as ex:  # noqa: BLE001 — qualquer falha cai para o snapshot em disco
+        print(f"AUTO — refresh do snapshot falhou ({ex}); tentando o snapshot em disco")
+
+    snap = ep.read_snapshot(sync_espn.CONFIG["output_path"])
+    if not snap or not isinstance(snap.get("matches"), list):
+        raise SourceUnavailable("nenhum snapshot normalizado utilizável em disco")
+    if not ep.is_schema_compatible(snap):
+        # Schema futuro/incompatível nunca é lido "no chute" — mesma regra do run_sync().
+        raise SourceUnavailable(f"snapshot com schemaVersion incompatível: {snap.get('schemaVersion')!r}")
+    if snap.get("stale"):
+        print(f"AUTO — ATENÇÃO: snapshot marcado stale ({snap.get('staleReason')}), "
+              f"generatedAt={snap.get('generatedAt')} — resultado novo pode demorar um ciclo")
 
     out = []
-    for e in data.get("events", []):
-        comp = e.get("competitions", [{}])[0]
-        comps = comp.get("competitors", [])
-        home = next((c for c in comps if c.get("homeAway") == "home"), comps[0] if comps else None)
-        away = next((c for c in comps if c.get("homeAway") == "away"), comps[1] if len(comps) > 1 else None)
-        if not home or not away:
-            continue
-        st = comp.get("status", {}).get("type", {})
-        ev_state = st.get("state", "pre")
-        postponed = ev_state == "post" and st.get("completed") is False
-        home_score = _parse(home.get("score")) if (ev_state == "post" and not postponed) else None
-        away_score = _parse(away.get("score")) if (ev_state == "post" and not postponed) else None
+    for m in snap["matches"]:
+        ev_state = m.get("state") or "pre"
+        # `completed is False` com state "post" = adiado/cancelado. Mesma leitura do app.
+        postponed = ev_state == "post" and m.get("completed") is False
+        scored = ev_state == "post" and not postponed
         out.append({
-            "dateISO":   comp.get("date") or e.get("date") or "",
-            "homeTeam":  _espn_normalize(home.get("team", {}).get("displayName", "")),
-            "awayTeam":  _espn_normalize(away.get("team", {}).get("displayName", "")),
+            "dateISO":   m.get("date") or "",
+            # O provider já aplicou os aliases dele; `_espn_normalize` continua aplicado porque é
+            # idempotente e mantém a normalização local como rede de segurança.
+            "homeTeam":  _espn_normalize(m.get("homeTeam") or ""),
+            "awayTeam":  _espn_normalize(m.get("awayTeam") or ""),
             "state":     ev_state,
             "postponed": postponed,
-            "homeScore": home_score,
-            "awayScore": away_score,
-            "homeWinner": (ev_state == "post" and not postponed and home.get("winner") is True),
-            "awayWinner": (ev_state == "post" and not postponed and away.get("winner") is True),
-            "venue":     comp.get("venue", {}).get("fullName") or "",
-            "city":      comp.get("venue", {}).get("address", {}).get("city") or "",
+            "homeScore": _parse(m.get("homeScore")) if scored else None,
+            "awayScore": _parse(m.get("awayScore")) if scored else None,
+            "homeWinner": bool(scored and m.get("homeWinner") is True),
+            "awayWinner": bool(scored and m.get("awayWinner") is True),
+            "venue":     m.get("venue") or "",
+            "city":      m.get("city") or "",
         })
     return out
 
