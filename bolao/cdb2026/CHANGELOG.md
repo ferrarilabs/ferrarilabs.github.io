@@ -1,5 +1,33 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.95 — 2026-08-07 — Fix: validação de identidade trancava o participante fora dos palpites
+
+Defeito encontrado na revisão final do v3.94, **antes do merge** — não chegou a produção.
+
+Com o roster congelado, a identidade da entrada é imutável e vem de `_editingEntry`, nunca dos
+inputs (v3.94, correto). Mas as validações no topo de `saveEntry()` continuavam validando os
+**inputs** — valores que o save descarta. E `renderNewEntryCard()` deixa esses campos `readOnly` e
+o `#paymentMethod` `disabled`, preenchidos a partir da entrada armazenada.
+
+Consequência: se o `paymentMethod` guardado não casar **exatamente** com uma das `<option>`
+(`CashApp`/`Zelle`/`Venmo`) — ausente, ou qualquer deriva de grafia/caixa como `"Cash App"` —
+`select.value` resolve para `""`, o `alert(t("requiredPaymentMethod"))` dispara e o participante
+fica trancado fora dos palpites de quartas/semi/final **permanentemente**, sem nenhum campo
+editável para consertar. Mesma classe de falha para `entryName`/`payerName`/`email` guardados
+vazios. Como `#newEntryCard` é agora o único caminho restante até a Final, isto seria um bloqueio
+de produção com dinheiro real em jogo.
+
+Correção mínima: no self-service congelado, valida-se apenas o que o save realmente usa — os
+palpites. Fora do congelamento (criação liberada) a validação de identidade segue idêntica.
+
+- `app.js`: validações de identidade passam a rodar sob `if (!frozenSelfServiceEdit)`; a flag
+  `frozenEdit` local foi unificada nessa mesma variável (era a mesma expressão duas vezes).
+- `scripts/audit_entry_roster_freeze.mjs`: **T22** (save congelado conclui com `paymentMethod`
+  armazenado que não resolve numa `<option>`, e não clobbera o valor guardado) e **T23** (a
+  validação de identidade continua ativa quando a criação está liberada). T22 foi verificado
+  falhando contra o código do 0333cde com exatamente `requiredPaymentMethod` — é regressão real,
+  não tautologia. 28/28.
+
 ## v3.94 — 2026-08-07 — Congelamento permanente do roster de entradas (Batch 0)
 
 Eduardo, 2026-08-07: as inscrições da Copa do Brasil estão encerradas EM DEFINITIVO — nenhuma

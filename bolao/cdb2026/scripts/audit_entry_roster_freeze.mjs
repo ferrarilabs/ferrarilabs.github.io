@@ -433,6 +433,44 @@ await atest("T21 the flow runs the REAL saveEntry path (observed persistence), n
   assertEqual(h.calls.queueReceipt, 0, "an email receipt was queued during the audit");
 });
 
+// T22/T23 — regressão do bloqueio de identidade no self-service congelado.
+// Os campos de identidade ficam readOnly/disabled e são preenchidos a partir da entrada
+// armazenada. Se esse preenchimento não reproduzir exatamente uma <option> do select
+// (paymentMethod ausente, ou grafia/caixa divergente como "Cash App"), `select.value` resolve
+// para "" — e a validação de inputs trancaria o participante FORA dos palpites de quartas/semi/
+// final permanentemente, sem campo editável para consertar. Como este card é o único caminho
+// restante até a Final, o save congelado só pode validar o que realmente usa: os palpites.
+await atest("T22 frozen self-service save succeeds when the stored paymentMethod does not match an <option>", async () => {
+  const st = freshState();
+  const target = st.entries[0];
+  target.paymentMethod = "Cash App"; // grafia divergente das <option> ("CashApp")
+  const original = JSON.parse(JSON.stringify(target));
+  const h = buildAppHarness({
+    frozen: true, initialState: st, editing: target,
+    // o select não resolve o valor guardado -> chega vazio, exatamente como no browser
+    inputs: { entryName: original.entryName, payerName: original.payerName,
+      participantEmail: original.participantEmail, paymentMethod: "" },
+  });
+  await h.saveEntry();
+  assertEqual(h.calls.alerts.length, 0, `save was blocked by an identity alert: ${h.calls.alerts.join("; ")}`);
+  assertEqual(h.calls.saveState.length, 1, "picks were not persisted — participant is locked out");
+  const saved = h.getState().entries.find(e => e.id === original.id);
+  assertEqual(saved.picks.matches["qf-1"].home, 3, "the new-phase pick was not persisted");
+  assertEqual(saved.paymentMethod, "Cash App", "stored paymentMethod was clobbered by the empty input");
+});
+
+await atest("T23 identity validation still applies when creation is ALLOWED (not frozen)", async () => {
+  const st = freshState();
+  const h = buildAppHarness({
+    frozen: false, initialState: st, editing: null,
+    inputs: { entryName: "Nova", payerName: "Pagador", participantEmail: "n@example.com", paymentMethod: "" },
+  });
+  await h.saveEntry();
+  assertEqual(h.calls.alerts.length, 1, "unfrozen creation no longer validates paymentMethod");
+  assertEqual(h.calls.alerts[0], "requiredPaymentMethod", "wrong validation fired");
+  assertEqual(h.calls.saveState.length, 0, "an invalid new entry was persisted");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ ENTRY ROSTER FREEZE SUITE FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL CHECKS PASSED\n");
