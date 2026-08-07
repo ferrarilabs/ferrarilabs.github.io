@@ -1,0 +1,39 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ferrarilabs.github.io/bolao/shared/schemas/notification_job.schema.json",
+  "title": "BolaoNotificationJob",
+  "description": "Canonical notification-job shape, Node and Python both. See bolao/shared/scripts/notification_repository.{mjs,py} — this is the single source of truth both languages validate against (football-hardening readiness follow-up, item 5), not two independently-maintained contracts.",
+  "type": "object",
+  "required": [
+    "schemaVersion", "jobId", "poolId", "eventId", "entityId", "eventVersion", "recipient",
+    "templateId", "templateVersion", "payloadSnapshot", "idempotencyKey", "status",
+    "attemptCount", "nextAttemptAt", "lastAttemptAt", "sentAt", "providerMessageId", "lastError"
+  ],
+  "properties": {
+    "schemaVersion": { "type": "integer", "const": 2 },
+    "jobId": { "type": "string", "minLength": 1 },
+    "poolId": { "type": "string", "minLength": 1 },
+    "eventId": { "type": "string", "minLength": 1 },
+    "entityId": { "type": "string", "minLength": 1 },
+    "eventVersion": { "type": "integer", "minimum": 1 },
+    "recipient": { "type": "string", "minLength": 1 },
+    "templateId": { "type": "string", "minLength": 1 },
+    "templateVersion": { "type": "integer", "minimum": 1 },
+    "payloadSnapshot": { "type": "object" },
+    "idempotencyKey": { "type": "string", "minLength": 1 },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "processing", "sent", "failed_retryable", "failed_permanent", "suppressed", "cancelled"]
+    },
+    "attemptCount": { "type": "integer", "minimum": 0 },
+    "nextAttemptAt": { "type": ["string", "null"], "format": "date-time" },
+    "lastAttemptAt": { "type": ["string", "null"], "format": "date-time" },
+    "sentAt": { "type": ["string", "null"], "format": "date-time" },
+    "providerMessageId": { "type": ["string", "null"] },
+    "lastError": { "type": ["string", "null"] },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "claimedAt": { "type": ["string", "null"], "format": "date-time" },
+    "claimedBy": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}
