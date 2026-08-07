@@ -85,6 +85,10 @@ const OUT_DIR = join(ROOT, "docs", "bolao", "evidence", "visual-comparison");
 const ALLOWLIST_PATH = join(OUT_DIR, "ALLOWLIST.json");
 const FIXTURE_ID = "visual-comparable-v1";
 const REFERENCE_APP = "copa2026"; // golden master per CLAUDE.md / DESIGN_SYSTEM.md
+// Viewport único para TODAS as medições. Extraído para constante porque settleLayout() precisa
+// saber de que lado do breakpoint de 901px (responsive.css) esta largura cai — antes ficava
+// escrito inline em newContext() e não havia como o assentamento conferir isso.
+const VIEWPORT = { width: 1280, height: 900 };
 
 // Same fixed synthetic strings in every app — see file header point 2. Deliberately short (fits
 // every app's button without wrapping) and visibly NOT a real i18n string, so nobody mistakes this
@@ -442,8 +446,46 @@ async function startServer() {
   return { kill: s.stop };
 }
 
+// ── Estabilização de layout antes de medir (fix de flakiness, 2026-08-07) ──────────────────────
+// Antes daqui isto era `await page.waitForTimeout(500)` — um palpite. Com ele a suíte às vezes lia
+// os estilos ANTES do layout assentar no viewport alvo e reportava divergências falsas, sempre no
+// topbar e sempre num app diferente a cada rodada (observado: 4 e depois 24 comparações DIVERGENT
+// que voltavam a 0 em rodadas seguintes, sem nenhuma mudança de código).
+//
+// Causa: `bolao/shared/css/responsive.css` tem `@media (min-width: 901px)` que troca `.topbar` de
+// FLEX (gap 10px, `.brand` com margin-right) para `display: grid !important` (gap 8px 12px,
+// margin-right 0). Medir antes do assentamento capturava o lado errado do breakpoint — daí os
+// valores flagrados serem exatamente `gap: 10px`, `gridTemplateColumns: none` e
+// `margin: 0 407px 0 0`.
+//
+// Agora espera condições REAIS em vez de tempo: fontes carregadas (uma fonte que chega tarde
+// remede o wrap), duas rAF (dois frames de layout/estilo), e o breakpoint efetivamente aplicado.
+// Se o breakpoint não bater, FALHA ALTO em vez de medir o layout errado em silêncio — a lição do
+// P0 e do servidor estático: nunca medir a coisa errada sem avisar.
+async function settleLayout(page, appId, when) {
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  const expectWide = VIEWPORT.width >= 901;
+  try {
+    await page.waitForFunction(
+      wide => window.matchMedia("(min-width: 901px)").matches === wide,
+      expectWide, { timeout: 5000 }
+    );
+  } catch {
+    const seen = await page.evaluate(() => ({
+      inner: window.innerWidth,
+      matches: window.matchMedia("(min-width: 901px)").matches,
+      topbarDisplay: getComputedStyle(document.querySelector(".topbar")).display,
+    }));
+    throw new Error(
+      `[${appId}] layout não assentou ${when}: esperado matchMedia(min-width:901px)===${expectWide}, ` +
+      `visto ${JSON.stringify(seen)}. Medir agora compararia lados diferentes do breakpoint entre apps.`
+    );
+  }
+}
+
 async function extractStylesForApp(browser, appId, app) {
-  const context = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const context = await browser.newContext({ viewport: VIEWPORT });
   const page = await context.newPage();
   await context.route("**://cdn.jsdelivr.net/**", r => r.abort());
   await context.route("**://*.supabase.co/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "[]" }));
@@ -456,7 +498,7 @@ async function extractStylesForApp(browser, appId, app) {
   if (app.mockEspn) await routeCdb2026Espn(context);
 
   await page.goto(`http://localhost:${PORT}${app.path}`, { waitUntil: "load", timeout: 15000 });
-  await page.waitForTimeout(500);
+  await settleLayout(page, appId, "após goto");
 
   await page.evaluate(({ storeKey, fixture, seedAdminFnBody }) => {
     localStorage.setItem(storeKey, JSON.stringify(fixture));
@@ -474,7 +516,7 @@ async function extractStylesForApp(browser, appId, app) {
   }
 
   await page.reload({ waitUntil: "load", timeout: 15000 });
-  await page.waitForTimeout(500);
+  await settleLayout(page, appId, "após reload");
 
   // PR120-final review item 3: normalize the three marked buttons' text to the SAME synthetic
   // string in every app, in this ephemeral page only — makes height comparisons meaningful
