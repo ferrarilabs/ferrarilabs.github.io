@@ -285,11 +285,17 @@
     }).join("");
   }
 
-  // "31/07/2026" + "4:52:51 PM" -> timestamp, para ordenar a tabela por entrada.
+  // "31/07/2026" + "4:52:51 PM" -> timestamp, para ordenar a tabela por entrada
+  // (quem pagou primeiro aparece no topo). Hora "—" (não registrada) usa 23:59:59,
+  // não 00:00:00 — meia-noite faria alguém sem hora registrada parecer o PRIMEIRO
+  // do dia, na frente de quem tem hora real e pagou de manhã, o que é o oposto do
+  // que sabemos (a hora só não foi registrada, o pagamento não foi à meia-noite).
+  // Fim do dia é a suposição mais segura: só ultrapassa quem pagou depois nesse
+  // mesmo dia, nunca quem pagou antes com hora conhecida.
   function parseEntryTimestamp(p) {
     var dm = p.data.split("/"); // DD/MM/YYYY
     var iso = dm[2] + "-" + dm[1] + "-" + dm[0];
-    var hora = p.hora === "—" ? "00:00:00" : p.hora;
+    var hora = p.hora === "—" ? "23:59:59" : p.hora;
     var t = new Date(iso + " " + hora).getTime();
     return isNaN(t) ? 0 : t;
   }
@@ -562,7 +568,8 @@
         '<div><div class="n">' + m + '</div><div class="u">min</div></div>' +
         '<div><div class="n">' + s + '</div><div class="u">seg</div></div>';
 
-      statusBadge.textContent = gt.icon + " " + gt.label.toUpperCase() + " · ATIVO — Sorteio em " + h + "h " + m + "min";
+      var etaText = d > 0 ? (d + "d " + h + "h " + m + "min") : (h + "h " + m + "min");
+      statusBadge.textContent = gt.icon + " " + gt.label.toUpperCase() + " · ATIVO — Sorteio em " + etaText;
     }
     step();
     countdownTimer = setInterval(step, 1000);
