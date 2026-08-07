@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.99",
+  siteVersion: "v3.100",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -119,7 +119,10 @@ window.CDB2026_CONFIG = {
   // Slug verificado contra a API real em 2026-08 (142 jogos retornados).
   espn: {
     leagueSlug: "bra.copa_do_brazil",
-    scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.copa_do_brazil/scoreboard?dates=20260101-20261231&limit=500",
+    // Snapshot NORMALIZADO gerado server-side (bolao/shared/scripts/espn_provider.py +
+    // scripts/sync_espn.py) e versionado no repo. Mesma origem da página: o navegador nunca chama
+    // a ESPN direto. A URL original da ESPN vive agora só no sync_espn.py deste app.
+    scoreboardUrl: "data/espn-normalized.json",
   },
   transparency: {
     disclaimer: "Bolão informal entre amigos. Comprovantes individuais e backups servem como evidência. Sem responsabilidade por dados externos, APIs ou falhas de terceiros."
