@@ -55,6 +55,10 @@ on:
 
 permissions:
   contents: write
+  # actions: write — necessário para o passo "Trigger Pages deploy" no fim deste workflow.
+  # Ver o comentário longo lá: um push feito com o GITHUB_TOKEN NUNCA dispara outro workflow
+  # (proteção anti-loop do GitHub), então o deploy tem de ser pedido EXPLICITAMENTE.
+  actions: write
 
 jobs:
   sync:
@@ -88,6 +92,7 @@ jobs:
           fi
 
       - name: Commit updated index.html files (if any changed)
+        id: commit
         run: |
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
@@ -112,4 +117,34 @@ jobs:
             # nenhum roda em push.
             git commit -m "chore: bump cache-bust version in index.html"
             git push
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
           fi
+
+      # ── Por que este passo existe (2026-08-07) ────────────────────────────────────────────
+      # O bump de ?v= era commitado em main mas NUNCA publicado: o index.html ao vivo seguia
+      # apontando para o ?v= ANTIGO e navegadores com o app em cache continuavam servindo JS
+      # velho. A invalidação de cache falhava exatamente quando mais importa (um hotfix), e o
+      # bump só chegava à produção de carona no próximo deploy não relacionado.
+      #
+      # A causa NÃO era só o "[skip ci]" que este commit carregava (removido no mesmo dia).
+      # A causa raiz é uma regra do GitHub: um push autenticado com o GITHUB_TOKEN não dispara
+      # nenhum workflow — é a proteção anti-loop deles. Ou seja: mesmo sem marcador de skip, o
+      # push acima jamais acordaria o "Deploy GitHub Pages". Comprovado em 2026-08-07: o commit
+      # 43d5904 saiu sem marcador de skip e continuou sem nenhum run associado.
+      #
+      # Um `workflow_dispatch` EXPLÍCITO, por outro lado, é permitido com o GITHUB_TOKEN desde
+      # que `actions: write` esteja concedido (ver o bloco permissions no topo). É por isso que
+      # o deploy é PEDIDO aqui em vez de esperado como efeito colateral do push.
+      #
+      # Alternativa descartada: usar um PAT no push. Resolveria, mas troca uma credencial de
+      # escopo mínimo por um segredo de longa duração com permissão de push em main — custo de
+      # segurança desnecessário para o problema.
+      #
+      # `if` garante que só dispara quando houve bump de verdade (nada de deploy a cada push).
+      - name: Trigger Pages deploy for the cache-bust commit
+        if: steps.commit.outputs.bumped == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Deploy GitHub Pages" --ref main
+          echo "Deploy GitHub Pages dispatched for the cache-bust commit."
