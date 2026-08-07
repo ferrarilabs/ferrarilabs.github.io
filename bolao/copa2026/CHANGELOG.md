@@ -1,5 +1,35 @@
 # CHANGELOG
 
+## v4.173 — 2026-08-07 — Migração para o snapshot ESPN server-side (fim da dependência de CORS)
+
+O navegador não chama mais `site.api.espn.com`. Passa a ler o snapshot NORMALIZADO gerado
+server-side por `bolao/shared/scripts/espn_provider.py` e versionado em `data/espn-normalized.json`
+— mesma origem da página, então CORS deixa de existir como classe de problema.
+
+Motivo (nada hipotético): a produção registrava `Access to fetch ... has been blocked` em toda
+carga de página, e a ESPN já nos bloqueou duas vezes — 403 por user-agent e, depois, TLS nos
+runners do GitHub (`SSL: TLSV1_ALERT_INTERNAL_ERROR`).
+
+- `fetchEspnFixtures()` lê o snapshot e um ADAPTADOR (`snapshotEventsToEspnShape()`) reconstrói a
+  forma crua da ESPN que todo o código a jusante já esperava (`ev.competitions[0].competitors[]`).
+  Trocar a FONTE sem tocar em `mapEspnToMatches`, `extractMatchPlays`, `pollLiveScores` nem em
+  qualquer coisa de scoring/ranking — diff cirúrgico de propósito.
+- Falha segura idêntica à anterior: qualquer erro devolve `null`, que já significava "sem dados
+  neste ciclo" para todos os chamadores. Nenhum resultado é inventado. `stale: true` NÃO é tratado
+  como erro (dado velho conhecido é melhor que nenhum) e só emite aviso no console.
+- `fetchEspnWinProbability`, `fetchEspnMatchStats` e `fetchEspnEventSummary` viraram **no-ops
+  documentadas**. Eram alcançáveis só por `pollLiveScores()` em partida AO VIVO; a Copa terminou em
+  2026-07-19 e o app está arquivado, então nenhum caminho pode dispará-las — e mantê-las faria o
+  navegador chamar a ESPN direto, exatamente a dependência que esta migração remove. Não deletadas
+  porque os chamadores sempre souberam lidar com `null`; deletar ampliaria o diff sem ganho.
+- `index.html`: `site.api.espn.com` e `sports.core.api.espn.com` **removidos** do `connect-src` do
+  CSP. Não sobrou nenhuma chamada de browser para a ESPN, então a permissão deixou de ser
+  necessária — e agora o CSP passa a ser uma barreira real contra reintrodução acidental.
+
+Verificado em browser real: **0** requisições diretas à ESPN, snapshot carregado (104 partidas,
+`stale: false`), **104 game cards renderizados** com dados reais, nenhum erro de console, nenhum
+4xx/5xx. `audit_scoring.py` da Copa segue passando — scoring e resultados armazenados intocados.
+
 ## v4.172 — 2026-08-07 — HOTFIX: origem de produção errada no guard de test isolation
 
 O guard de test isolation entregue na versão anterior usava

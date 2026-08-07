@@ -3645,29 +3645,19 @@ function stopResultsPolling() {
 // effort only: on any failure or unexpected shape, returns null so the
 // caller falls back to the site's own Poisson-based estimate. Never throws,
 // never blocks rendering (fetched async, cached, applied on the next render).
-async function fetchEspnWinProbability(eventId, competitionId) {
-  if (!eventId) return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const res = await fetch(
-      `https://sports.core.api.espn.com/v2/sports/soccer/leagues/fifa.world/events/${eventId}/competitions/${competitionId || eventId}/probabilities?limit=1`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const item = json.items?.[json.items.length - 1];
-    if (!item) return null;
-    const pH = typeof item.homeWinPercentage === "number" ? item.homeWinPercentage : null;
-    const pAw = typeof item.awayWinPercentage === "number" ? item.awayWinPercentage : null;
-    if (pH === null || pAw === null) return null;
-    const pD = typeof item.tiePercentage === "number" ? item.tiePercentage : Math.max(0, 1 - pH - pAw);
-    return { pA: pH, pD, pB: pAw };
-  } catch (err) {
-    clearTimeout(timer);
-    return null;
-  }
+// APOSENTADA na migração para o snapshot (2026-08-07): probabilidade ao vivo da ESPN (sports.core.api.espn.com).
+// Só era alcançável por pollLiveScores() para partidas AO VIVO. A Copa do Mundo terminou em
+// 2026-07-19 e o app está arquivado (CONFIG.archived), então nenhum caminho de chamada pode mais
+// disparar isto — e mantê-la faria o navegador chamar a ESPN direto, que é exatamente a dependência
+// que esta migração remove (e que permitiria remover a ESPN do CSP só pela metade).
+//
+// Mantida como no-op DOCUMENTADA em vez de deletada: os chamadores continuam existindo e sempre
+// souberam lidar com `null` (era o retorno de qualquer falha de rede). Deletar exigiria mexer nos
+// chamadores, o que ampliaria o diff sem ganho. O snapshot deliberadamente NÃO inclui dados por
+// evento (evita fan-out N+1 server-side) — extractMatchPlays() já cai para `comp.details`, que o
+// snapshot fornece.
+async function fetchEspnWinProbability(_eventId, _competitionId) {
+  return null;
 }
 
 const _espnProbCache = new Map();
@@ -3738,44 +3728,19 @@ function extractEspnOdds(events) {
 // when ESPN's real win-probability isn't available, never displayed
 // directly. Tries a few plausible stat-name variants since the exact keys
 // aren't confirmed without live testing; returns null on any mismatch.
-async function fetchEspnMatchStats(eventId, teamAName, teamBName) {
-  if (!eventId) return null;
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 6000);
-  try {
-    const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    const json = await res.json();
-    const teams = json.boxscore?.teams;
-    if (!Array.isArray(teams) || teams.length < 2) return null;
-
-    const findStat = (team, aliases) => {
-      for (const name of aliases) {
-        const s = team.statistics?.find(x => x.name === name);
-        if (s) { const v = parseFloat(s.displayValue); if (!isNaN(v)) return v; }
-      }
-      return null;
-    };
-    const normA = normalizeTeamName(teamAName), normB = normalizeTeamName(teamBName);
-    const out = {};
-    for (const team of teams) {
-      const name = normalizeTeamName(team.team?.displayName);
-      const side = name === normA ? "A" : name === normB ? "B" : null;
-      if (!side) continue;
-      out[`shotsOnTarget${side}`] = findStat(team, ["shotsOnTarget", "totalShotsOnTarget", "shotsOnGoal"]);
-      out[`possession${side}`] = findStat(team, ["possessionPct", "possession", "ballPossession"]);
-    }
-    if (out.shotsOnTargetA == null && out.shotsOnTargetB == null &&
-        out.possessionA == null && out.possessionB == null) return null;
-    return out;
-  } catch (err) {
-    clearTimeout(timer);
-    return null;
-  }
+// APOSENTADA na migração para o snapshot (2026-08-07): boxscore/estatísticas por partida (endpoint summary da ESPN).
+// Só era alcançável por pollLiveScores() para partidas AO VIVO. A Copa do Mundo terminou em
+// 2026-07-19 e o app está arquivado (CONFIG.archived), então nenhum caminho de chamada pode mais
+// disparar isto — e mantê-la faria o navegador chamar a ESPN direto, que é exatamente a dependência
+// que esta migração remove (e que permitiria remover a ESPN do CSP só pela metade).
+//
+// Mantida como no-op DOCUMENTADA em vez de deletada: os chamadores continuam existindo e sempre
+// souberam lidar com `null` (era o retorno de qualquer falha de rede). Deletar exigiria mexer nos
+// chamadores, o que ampliaria o diff sem ganho. O snapshot deliberadamente NÃO inclui dados por
+// evento (evita fan-out N+1 server-side) — extractMatchPlays() já cai para `comp.details`, que o
+// snapshot fornece.
+async function fetchEspnMatchStats(_eventId, _teamAName, _teamBName) {
+  return null;
 }
 
 // Blend pre-match lambdas with an in-match dominance signal (shots on
@@ -3803,21 +3768,65 @@ function statsAdjustedLambdas(lambdaA, lambdaB, stats) {
 const _espnStatsCache = new Map();
 
 /* ── ESPN free results ── */
+// ─── MIGRAÇÃO PARA O SNAPSHOT SERVER-SIDE (2026-08-07) ──────────────────────
+// Antes daqui isto chamava site.api.espn.com DIRETO do navegador. Dois problemas reais, não
+// hipotéticos: (a) a ESPN não dá garantia de CORS e a produção registrava
+// `Access to fetch ... has been blocked` em toda carga de página; (b) a ESPN já nos bloqueou
+// duas vezes (403 por user-agent e, depois, TLS nos runners do GitHub).
+//
+// Agora lê o snapshot NORMALIZADO gerado server-side por bolao/shared/scripts/espn_provider.py e
+// versionado em data/espn-normalized.json. Mesma origem da página, então CORS deixa de existir
+// como classe de problema.
+//
+// ADAPTADOR, de propósito: o snapshot tem forma achatada (homeTeam/homeScore/state/...), mas todo
+// o código a jusante (mapEspnToMatches, extractMatchPlays, pollLiveScores) espera a forma crua da
+// ESPN (`ev.competitions[0].competitors[]`). Reconstruir a forma AQUI mantém o diff cirúrgico e
+// não toca em nenhuma lógica de scoring/ranking — o objetivo é trocar a FONTE, não o
+// comportamento.
+//
+// Falha segura: qualquer erro devolve `null`, exatamente como a versão anterior fazia. `null` já
+// significa "sem dados neste ciclo" para todos os chamadores; nenhum resultado é inventado.
+// `stale: true` no snapshot NÃO é tratado como erro — dado velho conhecido é melhor que nenhum, e
+// a idade fica registrada em generatedAt/staleSince para auditoria.
+const ESPN_SNAPSHOT_URL = "data/espn-normalized.json";
+
+function snapshotEventsToEspnShape(matches) {
+  return matches.map(m => ({
+    id: m.id,
+    date: m.date,
+    competitions: [{
+      date: m.date,
+      status: {
+        clock: m.clockSec, period: m.period, displayClock: m.clockStr,
+        type: {
+          state: m.state, name: m.statusName, description: m.statusDescription,
+          shortDetail: m.statusShortDetail, detail: m.statusDetail, completed: m.completed,
+        },
+      },
+      venue: { fullName: m.venue, address: { city: m.city } },
+      competitors: [
+        { homeAway: "home", team: { id: m.homeTeamId, displayName: m.homeTeam }, score: m.homeScore, winner: m.homeWinner },
+        { homeAway: "away", team: { id: m.awayTeamId, displayName: m.awayTeam }, score: m.awayScore, winner: m.awayWinner },
+      ],
+      details: m.details || [],
+    }],
+  }));
+}
+
 async function fetchEspnFixtures() {
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 10000);
   try {
-    const res = await fetch(
-      "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=300&dates=20260611-20260719",
-      { signal: ctrl.signal }
-    );
+    const res = await fetch(ESPN_SNAPSHOT_URL, { signal: ctrl.signal, cache: "no-store" });
     clearTimeout(timer);
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    return json.events || [];
+    const snap = await res.json();
+    if (!snap || !Array.isArray(snap.matches)) throw new Error("snapshot normalizado sem matches[]");
+    if (snap.stale) console.warn(`[Copa2026] snapshot ESPN marcado stale (${snap.staleReason || "?"}) — usando último dado bom conhecido`);
+    return snapshotEventsToEspnShape(snap.matches);
   } catch (err) {
     clearTimeout(timer);
-    console.warn("ESPN fetch failed", err);
+    console.warn("[Copa2026] leitura do snapshot ESPN falhou", err);
     return null;
   }
 }
@@ -3831,23 +3840,19 @@ async function fetchEspnFixtures() {
 // live (see pollLiveScores) so this never adds load on a normal poll with nothing in progress.
 // Fails soft like every other ESPN fetch here: any error just means this cycle falls back to
 // comp.details alone (cards/goals keep working, subs silently stay missing until the next poll).
-async function fetchEspnEventSummary(eventId) {
-  const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), 10000);
-  try {
-    const res = await fetch(
-      `https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary?event=${eventId}`,
-      { signal: ctrl.signal }
-    );
-    clearTimeout(timer);
-    if (!res.ok) return null;
-    const json = await res.json();
-    return Array.isArray(json?.keyEvents) ? json.keyEvents : null;
-  } catch (err) {
-    clearTimeout(timer);
-    console.warn(`ESPN event summary fetch failed for event ${eventId}`, err);
-    return null;
-  }
+// APOSENTADA na migração para o snapshot (2026-08-07): keyEvents por partida (endpoint summary da ESPN), que trazia as substituições.
+// Só era alcançável por pollLiveScores() para partidas AO VIVO. A Copa do Mundo terminou em
+// 2026-07-19 e o app está arquivado (CONFIG.archived), então nenhum caminho de chamada pode mais
+// disparar isto — e mantê-la faria o navegador chamar a ESPN direto, que é exatamente a dependência
+// que esta migração remove (e que permitiria remover a ESPN do CSP só pela metade).
+//
+// Mantida como no-op DOCUMENTADA em vez de deletada: os chamadores continuam existindo e sempre
+// souberam lidar com `null` (era o retorno de qualquer falha de rede). Deletar exigiria mexer nos
+// chamadores, o que ampliaria o diff sem ganho. O snapshot deliberadamente NÃO inclui dados por
+// evento (evita fan-out N+1 server-side) — extractMatchPlays() já cai para `comp.details`, que o
+// snapshot fornece.
+async function fetchEspnEventSummary(_eventId) {
+  return null;
 }
 
 function mapEspnToMatches(events) {
