@@ -2203,3 +2203,15 @@ bracket, tiebreak, autenticação admin ou persistência — as duas correções
 (`.prob-bar` min-width, `.sticky-submit` alignment) são puramente CSS, e a correção de fixture
 (`game_fixtures.mjs`) é ferramenta de teste, não código de produção. Ver
 `docs/bolao/evidence/canonical-framework/README.md` para o relato completo da captura real.
+
+## Congelamento permanente do roster de entradas (`entryRosterFrozen`) — 2026-08-07
+
+| Divergência | Categoria | Justificativa |
+|---|---|---|
+| `CONFIG.entryRosterFrozen` + `isEntryCreationAllowed()`/`editingEntryIsValid()`/`updateExistingEntry()` existem só no CDB2026 | **TOURNAMENT_SPECIFIC — INTENTIONALLY_DIFFERENT** | Só o CDB2026 tem a combinação que exige a flag: inscrições encerradas em definitivo **e** palpites que ainda reabrem três vezes (quartas, semifinal, final). Sem ela, cadastrar o sorteio da próxima fase torna o cutoff da fase ativa futuro, `isPastEntryCutoff()` vira `false` e a inscrição reabre sozinha. A Copa2026 está arquivada (`CONFIG.archived`, nenhum formulário ativo) e o BR2026 encerrou as inscrições em 2026-07-16 sem reabertura de palpites prevista — nos dois, o cutoff sozinho basta. Não propagar. Se algum dos outros apps passar a ter fases de palpite reabrindo depois do fechamento das inscrições, esta flag deve ser adotada lá também. |
+
+**Limitação registrada (não é dívida escondida):** `entryRosterFrozen` é um controle de camada de
+aplicação — cobre o formulário público, o admin e `applyAdminMutation`. Não é fronteira de
+segurança de banco e não impede insert direto na tabela do Supabase por fora do app. Enforcement
+no banco (RLS/constraint) fica para a modernização, em trabalho separado — deliberadamente não
+implementado no Batch 0.

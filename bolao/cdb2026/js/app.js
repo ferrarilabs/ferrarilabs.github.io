@@ -365,6 +365,13 @@ function applyAdminMutation(state, mutation) {
   switch (mutation.type) {
     case "upsert-entry": {
       const idx = (s.entries || []).findIndex(e => e.id === mutation.entry.id);
+      // ENTRY ROSTER FREEZE: o ramo de APPEND (id desconhecido) é criação de entrada e fica
+      // proibido enquanto CONFIG.entryRosterFrozen. O ramo de UPDATE (id já existente) continua
+      // liberado — o admin ainda precisa corrigir nome/pagamento de quem já está no roster.
+      // Rejeição determinística e sem escrita parcial: nada é alocado antes deste ponto.
+      if (idx < 0 && !isEntryCreationAllowed()) {
+        throw new Error("ENTRY_ROSTER_FROZEN");
+      }
       s.entries = idx >= 0 ? s.entries.map((e, i) => i === idx ? mutation.entry : e) : [...(s.entries || []), mutation.entry];
       break;
     }
@@ -561,6 +568,24 @@ function entryCutoffMs() {
 function isPastEntryCutoff() {
   const ms = entryCutoffMs();
   return ms !== null && Date.now() > ms;
+}
+// ENTRY ROSTER FREEZE — ver CONFIG.entryRosterFrozen em js/config.js.
+// Fonte de verdade única para "pode criar UMA ENTRADA NOVA?". Deliberadamente NÃO consulta
+// cutoff/fase/palpites: o congelamento é permanente e independente de PICKS_OPEN. Editar uma
+// entrada JÁ existente não passa por aqui — continua governado pelo cutoff da fase.
+function isEntryCreationAllowed() {
+  return !C.entryRosterFrozen;
+}
+// ENTRY ROSTER FREEZE — "estou editando uma entrada que REALMENTE existe?".
+// Não basta `_editingEntry` ser truthy: o id precisa continuar no roster e não estar tombstoned
+// (a entrada pode ter sido removida pelo admin em outro dispositivo entre o lookup e o save).
+// É por isto que o formulário de palpites volta a aparecer com o roster congelado — e SÓ por
+// isto: um `_editingEntry` obsoleto não revela formulário nenhum.
+function editingEntryIsValid(s) {
+  const st = s || state();
+  if (!_editingEntry || !_editingEntry.id) return false;
+  if (new Set(st.deletedIds || []).has(_editingEntry.id)) return false;
+  return (st.entries || []).some(e => e.id === _editingEntry.id);
 }
 function isPhaseLocked(s, phaseId) {
   const ms = effectivePhaseCutoffMs(s, phaseId);
@@ -959,8 +984,22 @@ function renderPickForm() {
   });
 }
 
+// ENTRY ROSTER FREEZE: update de uma entrada JÁ existente, fail closed. Se o id sumiu do roster
+// ou foi tombstoned, REJEITA — nunca converte uma edição obsoleta em criação (era exatamente o
+// que o antigo `else s.entries.push(entry)` fazia: criação disfarçada de edição, furando o
+// congelamento). Função pura: devolve o novo array de entries, não muta o estado recebido.
+function updateExistingEntry(s, entry) {
+  if (new Set(s.deletedIds || []).has(entry.id)) throw new Error("ENTRY_NOT_FOUND_OR_REMOVED");
+  const idx = (s.entries || []).findIndex(e => e.id === entry.id);
+  if (idx < 0) throw new Error("ENTRY_NOT_FOUND_OR_REMOVED");
+  return (s.entries || []).map((e, i) => (i === idx ? entry : e));
+}
+
 // ─── Save entry ──────────────────────────────────────────────────────────────
 async function saveEntry() {
+  // ENTRY ROSTER FREEZE: barra a criação ANTES de qualquer leitura de formulário, alocação de
+  // id ou escrita de estado. Editar uma entrada existente (_editingEntry) segue permitido.
+  if (!_editingEntry && !isEntryCreationAllowed()) { showToast(t("closed"), "warn"); return; }
   if (isPastEntryCutoff() && !_editingEntry) { showToast(t("closed"), "warn"); return; }
   const entryName     = $("entryName")?.value.trim() || "";
   const payerName     = $("payerName")?.value.trim() || "";
@@ -983,13 +1022,21 @@ async function saveEntry() {
     const wasNew = !_editingEntry;
     const s   = state();
     const now = new Date().toISOString();
+    // ENTRY ROSTER FREEZE: no self-service com o roster congelado a IDENTIDADE da entrada é
+    // imutável — id, createdAt, entryName, participantEmail, payerName e paymentMethod vêm da
+    // entrada armazenada, nunca dos inputs. Trocar entryName mudaria o receiptCode() (que é o
+    // código de recuperação do participante) e semanticamente transformaria uma entrada em
+    // outra pessoa. Correção administrativa de identidade continua sendo pelo admin
+    // (applyAdminMutation "upsert-entry", ramo de update) — não abrimos um bypass público aqui.
+    const frozenEdit = !!_editingEntry && !isEntryCreationAllowed();
     const entry = _editingEntry
-      ? { ..._editingEntry, entryName, payerName, participantEmail: email, paymentMethod, picks, updatedAt: now }
+      ? (frozenEdit
+          ? { ..._editingEntry, picks, updatedAt: now }
+          : { ..._editingEntry, entryName, payerName, participantEmail: email, paymentMethod, picks, updatedAt: now })
       : { id: uuid(), entryName, payerName, participantEmail: email, paymentMethod, picks, createdAt: now };
 
     if (_editingEntry) {
-      const idx = s.entries.findIndex(e => e.id === entry.id);
-      if (idx >= 0) s.entries[idx] = entry; else s.entries.push(entry);
+      s.entries = updateExistingEntry(s, entry); // lança ENTRY_NOT_FOUND_OR_REMOVED, sem escrita parcial
     } else {
       s.entries.push(entry);
     }
@@ -1004,13 +1051,22 @@ async function saveEntry() {
     renderPickForm();
     ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
     $("paymentMethod") && ($("paymentMethod").value = "");
+    renderNewEntryCard(); // edição terminou: com o roster congelado o card volta a ficar oculto
 
     renderReceiptBox(entry);
     showToast(t("savedSuccess"), "success");
     if (!wasNew) showSection("ranking");
   } catch (err) {
     console.error("[CDB2026] Save error", err);
-    showToast(t("saveError"), "error");
+    if (err && err.message === "ENTRY_NOT_FOUND_OR_REMOVED") {
+      // Edição obsoleta: a entrada não existe mais. Nada foi salvo. Devolve o participante ao
+      // fluxo de busca em vez de reportar como falha genérica de save.
+      _editingEntry = null;
+      renderNewEntryCard();
+      showToast(t("entryGoneOnSave"), "error");
+    } else {
+      showToast(t("saveError"), "error");
+    }
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
   }
@@ -1205,7 +1261,35 @@ function explainScore(entry, s) {
 function renderFindEntryCard() {
   const card = $("findEntryCard");
   if (!card) return;
-  card.classList.toggle("hidden", !oitavasComplete(state()));
+  // ENTRY ROSTER FREEZE: com o roster congelado, "editar entrada" é o ÚNICO caminho de entrada
+  // que ainda faz sentido — precisa ficar sempre visível, senão o participante existente não
+  // consegue chegar aos palpites das próximas fases.
+  card.classList.toggle("hidden", isEntryCreationAllowed() && !oitavasComplete(state()));
+}
+
+// ENTRY ROSTER FREEZE: este card não é só "Nova entrada" — ele contém #paymentBox e #pickForm,
+// ou seja, é TAMBÉM o formulário que o participante já cadastrado usa para mandar os palpites de
+// quartas/semi/final. Esconder por "roster congelado" sozinho quebrava a continuidade até a
+// Final. Regra: aparece se a criação está liberada OU se há uma entrada existente e válida
+// carregada para edição. Camada de UI apenas — a garantia real está em saveEntry(),
+// updateExistingEntry() e na mutação `upsert-entry`.
+function renderNewEntryCard() {
+  const card = $("newEntryCard");
+  if (!card) return;
+  const creating = isEntryCreationAllowed();
+  const editing  = !creating && editingEntryIsValid();
+  card.classList.toggle("hidden", !(creating || editing));
+  // Com o roster congelado o card nunca é "Nova entrada" — é edição dos próprios palpites.
+  // renderAll() chama applyI18n() ANTES daqui, então este textContent é o que prevalece.
+  const title = $("newEntryTitle");
+  if (title) title.textContent = t(creating ? "entryTitle" : "entryTitleEditing");
+  // Identidade é imutável no self-service congelado (ver saveEntry) — travar os campos para a
+  // UI não aceitar uma edição que seria descartada em silêncio no save.
+  ["entryName", "payerName", "participantEmail"].forEach(id => {
+    const el = $(id); if (el) el.readOnly = !creating;
+  });
+  const pm = $("paymentMethod");
+  if (pm) pm.disabled = !creating;
 }
 
 // ─── Tiebreaker helpers ──────────────────────────────────────────────────────
@@ -3860,6 +3944,7 @@ function pickFormIsDirty() {
 function renderAll() {
   applyI18n();
   renderFindEntryCard();
+  renderNewEntryCard();
   if (!pickFormIsDirty()) renderPickForm();
   renderRanking();
   renderNextTieCard();
@@ -3932,6 +4017,9 @@ async function init() {
     $("participantEmail") && ($("participantEmail").value = found.participantEmail || "");
     $("paymentMethod") && ($("paymentMethod").value = found.paymentMethod || "");
     renderPaymentBox();
+    // ENTRY ROSTER FREEZE: revela o formulário de palpites agora que há uma entrada existente
+    // carregada — com o roster congelado este é o único caminho até as próximas fases.
+    renderNewEntryCard();
     showToast(t("findEntryLoaded"), "success");
   });
 
