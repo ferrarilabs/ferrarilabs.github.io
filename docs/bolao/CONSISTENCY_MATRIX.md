@@ -2232,3 +2232,9 @@ POST direto na REST API do Supabase com a anon key (pública por construção). 
 causou o incidente — um harness carregando a aplicação — não todos os vetores. Enforcement real
 (RLS por role/origem) fica para a modernização do banco e segue como o risco de produção aberto de
 maior severidade.
+
+### Hotfix da origem de produção — 2026-08-07 (mesma sessão)
+
+| Item | Categoria | Situação |
+|---|---|---|
+| `PRODUCTION_ORIGINS` (allowlist) em vez de `PRODUCTION_ORIGIN` (string), derivado do `CNAME` | **SECURITY — CORRIGIDO NOS TRÊS** | copa2026 v4.172, br2026 v1.92, cdb2026 v3.97. A primeira versão do guard usou `ferrarilabs.github.io`, que responde 301 para `www.ferrarilabs.com` (o `CNAME` real): o guard bloqueava TODA gravação de produção nos três apps, em silêncio. Pego na verificação ao vivo, não pela suíte. `audit_test_isolation.mjs` agora lê o `CNAME` e falha se o domínio real não estiver na allowlist (verificado por controle negativo). |

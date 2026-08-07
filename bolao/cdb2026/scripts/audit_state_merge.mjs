@@ -35,6 +35,18 @@ function extractConstDecl(name) {
   return `const ${name} = ${m[1]};`;
 }
 
+// Array literal de strings de nível superior (`const NOME = [ "a", "b" ];`).
+function extractConstArrayDecl(name) {
+  const m = src.match(new RegExp(`\\nconst ${name} = \\[([\\s\\S]*?)\\];`));
+  if (!m) throw new Error(`const ${name} (array) not found in app.js`);
+  return `const ${name} = [${m[1]}];`;
+}
+
+// O domínio real de produção, lido do CNAME na raiz do repo — mesma fonte de verdade usada por
+// bolao/scripts/audit_test_isolation.mjs, para o harness não transcrever o domínio à mão.
+const PROD_ORIGIN_FOR_HARNESS =
+  "https://" + readFileSync(new URL("../../../CNAME", import.meta.url), "utf8").trim();
+
 function extractFn(name) {
   let start = src.indexOf(`function ${name}(`);
   if (start === -1) throw new Error(`function ${name}() not found in app.js`);
@@ -88,12 +100,12 @@ function makeSaveRemoteStateFactory() {
     // contexto simulado é o de produção legítima, para que o caminho de merge seja de fato
     // exercitado. Isto NÃO é um bypass do guard: o guard real, e o fato de ele estar no
     // chokepoint, são testados em bolao/scripts/audit_test_isolation.mjs.
-    const location = { origin: "https://ferrarilabs.github.io" };
+    const location = { origin: ${JSON.stringify(PROD_ORIGIN_FOR_HARNESS)} };
     const navigator = { webdriver: false };
     const sessionStorage = { getItem: () => null };
     ${extractFn("productionWriteBlockReason")}
     ${extractFn("productionWritesAllowed")}
-    ${extractConstDecl("PRODUCTION_ORIGIN")}
+    ${extractConstArrayDecl("PRODUCTION_ORIGINS")}
     ${extractConstDecl("ALLOW_PROD_WRITES_KEY")}
     ${extractFn("mergeEntriesTombstonesAuditLog")}
     ${extractFn("mergeStates")}

@@ -300,10 +300,22 @@ async function loadRemoteState() {
 // carregue esta app grava na tabela real. Aqui vale mais ainda: a Copa está ARQUIVADA e paga —
 // o estado remoto dela não deveria mudar nunca mais.
 // Override deliberado: sessionStorage.setItem("copa2026_allow_production_writes", "I UNDERSTAND")
-const PRODUCTION_ORIGIN = "https://ferrarilabs.github.io";
+// A origem CANÔNICA de produção é o domínio customizado do arquivo CNAME na raiz do repo
+// (www.ferrarilabs.com) — NÃO ferrarilabs.github.io, que responde 301 para ele. Errar isto
+// bloqueia a produção inteira em silêncio (foi o que aconteceu na primeira versão deste guard,
+// pega na verificação ao vivo). O apex e o github.io estão na lista porque são hosts nossos: hoje
+// os dois redirecionam, então nenhuma página executa neles, mas se o CNAME for removido a
+// produção passa a servir do github.io e o guard não pode virar um bloqueio total.
+// audit_test_isolation.mjs lê o CNAME e falha se ele não estiver nesta lista — a lista não pode
+// mais divergir do domínio real sem a suíte acusar.
+const PRODUCTION_ORIGINS = [
+  "https://www.ferrarilabs.com",
+  "https://ferrarilabs.com",
+  "https://ferrarilabs.github.io",
+];
 const ALLOW_PROD_WRITES_KEY = "copa2026_allow_production_writes";
 function productionWriteBlockReason() {
-  if (typeof location !== "undefined" && location.origin !== PRODUCTION_ORIGIN) {
+  if (typeof location !== "undefined" && !PRODUCTION_ORIGINS.includes(location.origin)) {
     return `origem não-produção (${location.origin})`;
   }
   if (typeof navigator !== "undefined" && navigator.webdriver) {
