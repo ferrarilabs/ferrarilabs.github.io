@@ -2215,3 +2215,20 @@ aplicação — cobre o formulário público, o admin e `applyAdminMutation`. N�
 segurança de banco e não impede insert direto na tabela do Supabase por fora do app. Enforcement
 no banco (RLS/constraint) fica para a modernização, em trabalho separado — deliberadamente não
 implementado no Batch 0.
+
+## TEST ISOLATION — gravação remota fail closed (P0) — 2026-08-07
+
+Documento completo: `docs/bolao/TEST_ISOLATION.md`. Suíte: `bolao/scripts/audit_test_isolation.mjs`.
+
+| Área | Categoria | Situação |
+|---|---|---|
+| Guard `productionWritesAllowed()` dentro de `saveRemoteState()` | **PLATFORM_SHARED — PROPAGADO NOS TRÊS** | Copa2026 (v4.171), BR2026 (v1.91), CDB2026 (v3.96). Mesma regra, mesma posição (antes de qualquer chamada remota), mesmas mensagens. Verificado por suíte, não por inspeção: o check de chokepoint falha se o guard for neutralizado em qualquer um dos três. |
+| Chave do escape hatch namespaced por app (`copa2026_`/`br2026_`/`cdb2026_allow_production_writes`) | **INTENTIONALLY_DIFFERENT** | Uma chave compartilhada faria um override deliberado em um app liberar silenciosamente os outros dois. O prefixo por app é a diferença correta e é testada. |
+| Valor de retorno do early-return do guard (`undefined` no BR2026, `false` na Copa, objeto `{ok:false,skipped:true}` no CDB2026) | **INTENTIONALLY_DIFFERENT** | Cada guard devolve o que o `if (!C.database.enabled)` / `if (!initDb())` daquele app já devolvia, para não mudar o contrato que os chamadores daquele app assumem. Unificar o valor de retorno é refatoração de persistência — não se mistura com um patch de segurança (regra "nunca misturar refatoração com correção"). |
+| Leitura remota (`loadRemoteState`) **não** é bloqueada | **DECISÃO REGISTRADA** | O incidente foi de ESCRITA. Bloquear a leitura tiraria a capacidade de reproduzir o estado real num preview local, que é justamente como se investiga incidente, e leitura não pode corromper produção. Se um dia a leitura passar a ter efeito colateral remoto, esta decisão precisa ser revisitada. |
+
+**Limitação registrada (não é dívida escondida):** controle de camada de aplicação. Não impede um
+POST direto na REST API do Supabase com a anon key (pública por construção). Fecha o vetor que
+causou o incidente — um harness carregando a aplicação — não todos os vetores. Enforcement real
+(RLS por role/origem) fica para a modernização do banco e segue como o risco de produção aberto de
+maior severidade.

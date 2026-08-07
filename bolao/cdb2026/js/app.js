@@ -162,8 +162,64 @@ function debouncedReload() {
 //
 // Fase 2.1 §2: `opts.mutation` desvia deste merge campo-a-campo para applyMutationOverRemote() —
 // ver esse comentário para o porquê. Sem `opts.mutation`, comportamento idêntico a antes.
+// ─── TEST ISOLATION (P0, 2026-08-07) ────────────────────────────────────────
+// O incidente de produção do CDB2026 foi causado por uma fixture de harness que carregou esta
+// aplicação com a configuração REAL do Supabase (url/anonKey/stateId estão hardcoded em
+// config.js) e gravou entradas sintéticas na tabela de produção. Nenhuma flag de teste impedia
+// isso, porque não existia nenhuma.
+//
+// Este guard é a fronteira permanente e FAIL CLOSED: a gravação remota é NEGADA por padrão
+// sempre que o contexto não é produção. Ele fica dentro de saveRemoteState() de propósito —
+// o único ponto por onde toda escrita remota passa — e não em cada chamador, porque um guard
+// que depende do teste lembrar de chamá-lo não é uma fronteira, é uma convenção.
+//
+// Contexto não-produção = origem não é o host de produção (localhost, 127.0.0.1, file://,
+// qualquer preview) OU o navegador está sob automação (`navigator.webdriver`, que Playwright/
+// Puppeteer/Selenium setam). Participantes reais nunca satisfazem nenhum dos dois.
+//
+// Escape hatch DELIBERADO e não-acidental, para quando o Eduardo precisa mesmo administrar a
+// produção a partir de um preview local — tem de ser digitado no console, nunca é o default, e
+// não sobrevive ao fechamento da aba:
+//
+//     sessionStorage.setItem("cdb2026_allow_production_writes", "I UNDERSTAND");
+//
+// Deliberadamente NÃO é uma fronteira de banco. Enforcement real (RLS por origem/role) fica
+// para a modernização do banco. Isto fecha o vetor que causou o incidente, não todos.
+const PRODUCTION_ORIGIN = "https://ferrarilabs.github.io";
+const ALLOW_PROD_WRITES_KEY = "cdb2026_allow_production_writes";
+function productionWriteBlockReason() {
+  if (typeof location !== "undefined" && location.origin !== PRODUCTION_ORIGIN) {
+    return `origem não-produção (${location.origin})`;
+  }
+  if (typeof navigator !== "undefined" && navigator.webdriver) {
+    return "navegador sob automação (navigator.webdriver)";
+  }
+  return null;
+}
+function productionWritesAllowed() {
+  const reason = productionWriteBlockReason();
+  if (!reason) return { allowed: true };
+  let override = null;
+  // sessionStorage pode lançar (modo restrito//file://) — tratar como ausente é o lado seguro.
+  try { override = sessionStorage.getItem(ALLOW_PROD_WRITES_KEY); } catch { override = null; }
+  if (override === "I UNDERSTAND") return { allowed: true, overridden: true, reason };
+  return { allowed: false, reason };
+}
+
 async function saveRemoteState(s, opts = {}) {
   if (!C.database.enabled) return { ok: false, skipped: true };
+  // TEST ISOLATION: fail closed ANTES de qualquer leitura ou escrita remota. O estado local já
+  // foi gravado por saveState(), então nada é perdido — só não vaza para a produção.
+  const gate = productionWritesAllowed();
+  if (!gate.allowed) {
+    console.warn(`[CDB2026] TEST ISOLATION: gravação remota BLOQUEADA — ${gate.reason}. ` +
+      `Estado salvo apenas localmente. Para liberar deliberadamente: ` +
+      `sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
+    return { ok: false, skipped: true, blockedByTestIsolation: true, reason: gate.reason };
+  }
+  if (gate.overridden) {
+    console.warn(`[CDB2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
+  }
   const { url, anonKey, table, stateId } = C.database;
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
   let payload = s;
