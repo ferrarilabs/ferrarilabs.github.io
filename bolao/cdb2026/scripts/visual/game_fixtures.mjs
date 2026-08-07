@@ -210,15 +210,69 @@ export function cdb2026EspnScoreboardMock() {
 // gracefully, and the play-by-play feed itself is out of scope for a static-card visual
 // comparison). Must be registered on the CONTEXT before navigation, same as the other app-agnostic
 // routes this harness already installs.
-export async function routeCdb2026Espn(context) {
-  const body = cdb2026EspnScoreboardMock();
-  await context.route("**://site.api.espn.com/**", (route) => {
-    const url = route.request().url();
-    if (/\/summary(\?|$)/.test(url)) {
-      return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ keyEvents: [] }) });
-    }
-    return route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+// ATUALIZADO em 2026-08-07 (migração para o snapshot): o CDB2026 não chama mais
+// site.api.espn.com — ele lê `data/espn-normalized.json`. Um mock que continuasse interceptando só
+// a ESPN teria virado fixture MORTA: nada falharia, mas os estados ao vivo/adiado que este mock
+// existe para exercitar deixariam de ser exercitados em silêncio, e a suíte passaria dando a
+// impressão de cobertura que não existe mais.
+//
+// Agora intercepta o SNAPSHOT e converte o mock de scoreboard da ESPN para a forma normalizada
+// (`{schemaVersion, matches[]}`) — a mesma conversão que espn_provider.normalize_scoreboard() faz
+// server-side. A rota da ESPN é mantida por segurança: se algum app voltar a chamar a ESPN direto,
+// este mock responde em vez de deixar escapar uma requisição real de rede num teste.
+function cdb2026NormalizedSnapshotMock() {
+  const raw = cdb2026EspnScoreboardMock();
+  const matches = (raw.events || []).map((ev) => {
+    const comp = (ev.competitions || [{}])[0];
+    const cs = comp.competitors || [];
+    const home = cs.find((c) => c.homeAway === "home") || cs[0] || {};
+    const away = cs.find((c) => c.homeAway === "away") || cs[1] || {};
+    const st = (comp.status || {}).type || {};
+    return {
+      id: ev.id,
+      date: ev.date,
+      state: st.state,
+      statusName: st.name,
+      statusDescription: st.description,
+      statusShortDetail: st.shortDetail,
+      statusDetail: st.detail,
+      completed: st.completed,
+      homeTeam: (home.team || {}).displayName || "",
+      awayTeam: (away.team || {}).displayName || "",
+      homeTeamId: (home.team || {}).id,
+      awayTeamId: (away.team || {}).id,
+      homeScore: home.score,
+      awayScore: away.score,
+      homeWinner: home.winner,
+      awayWinner: away.winner,
+      venue: ((comp.venue || {}).fullName) || null,
+      city: (((comp.venue || {}).address) || {}).city || null,
+      clockSec: typeof (comp.status || {}).clock === "number" ? comp.status.clock : null,
+      clockStr: (comp.status || {}).displayClock || "",
+      period: typeof (comp.status || {}).period === "number" ? comp.status.period : null,
+      details: Array.isArray(comp.details) ? comp.details : [],
+    };
   });
+  return {
+    schemaVersion: 1,
+    competitionId: "bra.copa_do_brazil",
+    provider: "espn",
+    generatedAt: new Date().toISOString(),
+    sourceUpdatedAt: new Date().toISOString(),
+    stale: false,
+    staleReason: null,
+    payloadHash: "fixture",
+    matches,
+  };
+}
+
+export async function routeCdb2026Espn(context) {
+  const snapshot = cdb2026NormalizedSnapshotMock();
+  await context.route("**/data/espn-normalized.json", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(snapshot) }));
+  // Rede de segurança: nenhuma requisição real à ESPN deve escapar de um teste.
+  await context.route("**://site.api.espn.com/**", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ events: [], keyEvents: [] }) }));
 }
 
 // ── Copa (archived) ──────────────────────────────────────────────────────────────────────────

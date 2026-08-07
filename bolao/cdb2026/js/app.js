@@ -2888,6 +2888,19 @@ function renderLiveTieCard() {
         aggregateHtml = `<div class="game-card__aggregate" aria-live="polite">${esc(t("gamesAggregate"))} ao vivo: <b>${progress.aggregate.teamB} – ${progress.aggregate.teamA}</b></div>`;
       }
     }
+    // BARRAS DE PROBABILIDADE NO CARD AO VIVO (2026-08-07, achado do Eduardo: "quando tem jogo ao
+    // vivo ... não mostra as probabilidades igual da copa do mundo mostrava").
+    // `tieProbBarsHtml()` já existia neste arquivo, mas era chamada SÓ em renderProbsSection() —
+    // renderLiveTieCard() nunca a chamava, então durante um jogo ao vivo as barras simplesmente não
+    // existiam aqui, ao contrário da Copa (que chama liveProbBarsHtml(m, live) no card dela).
+    //
+    // Reusa a MESMA função da aba Probabilidades: um único resolvedor, nenhum cálculo novo e nenhuma
+    // segunda fonte de verdade para probabilidade. As barras são de AVANÇO NO CONFRONTO (é o modelo
+    // deste torneio: mata-mata), não de resultado da partida isolada — por isso não dependem do
+    // placar ao vivo e não piscam a cada tick de relógio.
+    const probBarsHtml = (l.tie && l.tie.teamA && l.tie.teamB && phaseDef?.format)
+      ? tieProbBarsHtml(l.tie.teamA, l.tie.teamB, phaseDef.format)
+      : "";
     return `<div class="live-match">
       <div class="live-top">
         ${teamColHtml(l.homeTeam)}
@@ -2901,6 +2914,7 @@ function renderLiveTieCard() {
         ${teamColHtml(l.awayTeam)}
       </div>
       ${metaHtml}
+      ${probBarsHtml}
       ${playsHtml ? `<div class="live-match-detail">${playsHtml}</div>` : ""}
     </div>`;
   }).join("");
@@ -3007,18 +3021,22 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
 // usavam sua própria cópia manual (mesmo timeout de 10000ms) antes de fetchJson() existir.
 // Consolidado Fase 2 §5: mesmo comportamento (mesmo timeout, mesmo catch-e-retorna-null), só a
 // duplicação de scaffolding removida.
-async function fetchEspnEventSummary(eventId) {
-  try {
-    const summaryUrl = (C.espn?.scoreboardUrl || "").replace(/\/scoreboard(\?.*)?$/, "/summary");
-    if (!summaryUrl) return null;
-    const r = await fetchJson(`${summaryUrl}?event=${eventId}`);
-    if (!r.ok) return null;
-    const data = await r.json();
-    return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
-  } catch (err) {
-    console.warn(`[CDB2026] ESPN event summary fetch failed for event ${eventId}`, err);
-    return null;
-  }
+// APOSENTADA na migração para o snapshot (2026-08-07). Buscava os `keyEvents` por partida no
+// endpoint summary da ESPN (o único lugar que traz SUBSTITUIÇÕES; `comp.details` só traz gols e
+// cartões). Era chamada só para partidas AO VIVO.
+//
+// Por que virar no-op em vez de continuar tentando: esta é uma chamada de NAVEGADOR para a ESPN —
+// exatamente a dependência que a migração remove, e que a produção já não conseguia completar
+// (CORS). Continuar chamando só produziria uma falha por partida ao vivo, por ciclo de poll.
+//
+// Consequência aceita e registrada: durante um jogo ao vivo o feed de lances mostra gols e cartões
+// (de `comp.details`, que o snapshot fornece) e NÃO mostra substituições. `extractMatchPlays()` já
+// cai para `comp.details` quando não recebe keyEvents — mesmo comportamento que qualquer falha de
+// rede sempre produziu aqui. Restaurar as substituições exige que o provider server-side busque o
+// summary por evento (fan-out N+1, hoje deliberadamente fora de escopo — ver o cabeçalho de
+// bolao/shared/scripts/espn_provider.py).
+async function fetchEspnEventSummary(_eventId) {
+  return null;
 }
 
 // A ESPN às vezes nomeia um time diferente do nome curado usado em DATA.knownConfrontos/data.js
@@ -3031,14 +3049,49 @@ async function fetchEspnEventSummary(eventId) {
 const CDB_ESPN_NAME_ALIASES = { "Vasco da Gama": "Vasco" };
 function normalizeEspnTeamName(name) { return CDB_ESPN_NAME_ALIASES[name] || name; }
 
+// ─── MIGRAÇÃO PARA O SNAPSHOT SERVER-SIDE (2026-08-07) ──────────────────────
+// `C.espn.scoreboardUrl` agora aponta para `data/espn-normalized.json` (mesma origem da página),
+// gerado server-side por bolao/shared/scripts/espn_provider.py. O navegador não chama mais
+// site.api.espn.com: a ESPN não garante CORS e já nos bloqueou duas vezes (403 por user-agent e,
+// depois, TLS nos runners do GitHub).
+//
+// ADAPTADOR de propósito: o snapshot é achatado (homeTeam/homeScore/state/...), mas TODO o código a
+// jusante — autoSyncEspn(), autoSyncEspnResults(), o card ao vivo, extractMatchPlays() — já esperava
+// a forma crua da ESPN (`ev.competitions[0].competitors[]`). Reconstruir a forma aqui troca a FONTE
+// sem tocar em scoring, em resultado armazenado, nem no invariante de sorteio das quartas.
+function snapshotEventsToEspnShape(matches) {
+  return matches.map(m => ({
+    id: m.id,
+    date: m.date,
+    competitions: [{
+      date: m.date,
+      status: {
+        clock: m.clockSec, period: m.period, displayClock: m.clockStr,
+        type: {
+          state: m.state, name: m.statusName, description: m.statusDescription,
+          shortDetail: m.statusShortDetail, detail: m.statusDetail, completed: m.completed,
+        },
+      },
+      venue: { fullName: m.venue, address: { city: m.city } },
+      competitors: [
+        { homeAway: "home", team: { id: m.homeTeamId, displayName: m.homeTeam }, score: m.homeScore, winner: m.homeWinner },
+        { homeAway: "away", team: { id: m.awayTeamId, displayName: m.awayTeam }, score: m.awayScore, winner: m.awayWinner },
+      ],
+      details: m.details || [],
+    }],
+  }));
+}
+
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
   try {
     const r = await fetchJson(url);
     if (!r.ok) return null;
-    const data = await r.json();
-    const events = data.events || [];
+    const snap = await r.json();
+    if (!snap || !Array.isArray(snap.matches)) return null; // forma inesperada: melhor nada que lixo
+    if (snap.stale) console.warn(`[CDB2026] snapshot ESPN marcado stale (${snap.staleReason || "?"}) — usando último dado bom conhecido`);
+    const events = snapshotEventsToEspnShape(snap.matches);
     const liveEventIds = events
       .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
       .map(ev => ev.id)

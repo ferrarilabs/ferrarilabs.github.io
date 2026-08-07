@@ -1,5 +1,47 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.100 — 2026-08-07 — Snapshot ESPN server-side + barras de probabilidade no card ao vivo
+
+**1. Fim da dependência de ESPN no navegador.** `C.espn.scoreboardUrl` passa a ser
+`data/espn-normalized.json` — snapshot NORMALIZADO gerado server-side por
+`bolao/shared/scripts/espn_provider.py`. Mesma origem da página, então CORS deixa de existir como
+classe de problema. A ESPN já nos bloqueou duas vezes (403 por user-agent e, depois, TLS nos runners
+do GitHub).
+
+- Adaptador `snapshotEventsToEspnShape()`: o snapshot é achatado, mas `autoSyncEspn()`,
+  `autoSyncEspnResults()`, o card ao vivo e `extractMatchPlays()` já esperavam a forma crua da ESPN.
+  Reconstruir a forma aqui troca a FONTE sem tocar em scoring, resultado armazenado, congelamento de
+  roster ou invariante de sorteio das quartas.
+- `fetchEspnEventSummary()` virou no-op documentada. Era a única fonte de SUBSTITUIÇÕES (`comp.details`
+  só traz gols e cartões) e era uma chamada de navegador para a ESPN — a dependência que esta migração
+  remove, e que a produção já não completava. Consequência aceita e registrada: no feed ao vivo
+  aparecem gols e cartões, não substituições. Restaurá-las exige o provider buscar o summary por
+  evento (fan-out N+1, fora de escopo hoje).
+- `index.html`: `site.api.espn.com` removido do `connect-src` do CSP — o CSP agora impede
+  reintrodução acidental.
+- Forma inesperada no snapshot devolve `null` (melhor nada que lixo). `stale: true` NÃO é erro: dado
+  velho conhecido é melhor que nenhum, e só emite aviso.
+
+**2. Barras de probabilidade no card ao vivo.** Eduardo, 2026-08-07: "quando tem jogo ao vivo ... não
+mostra as probabilidades igual da copa do mundo mostrava". `tieProbBarsHtml()` já existia mas era
+chamada SÓ em `renderProbsSection()`; `renderLiveTieCard()` nunca a chamava, ao contrário da Copa.
+Agora chama a MESMA função — um único resolvedor, nenhum cálculo novo, nenhuma segunda fonte de
+verdade. São barras de AVANÇO NO CONFRONTO (modelo deste torneio), então não dependem do placar ao
+vivo e não piscam a cada tick do relógio.
+
+**3. Fixture obsoleta corrigida.** `routeCdb2026Espn()` interceptava só `site.api.espn.com`, que o app
+não chama mais — teria virado fixture morta (nada falharia, mas os estados ao vivo/adiado deixariam de
+ser exercitados em silêncio). Agora intercepta o snapshot e converte o mock para a forma normalizada,
+mantendo a rota da ESPN como rede de segurança contra requisição real escapar num teste.
+
+Testes: nova suíte `scripts/test_live_prob_bars.mjs` (6 checks em browser real: card ao vivo vem do
+snapshot com 0 requisições à ESPN; as barras aparecem; as porcentagens batem com a aba
+Probabilidades; snapshot stale ainda renderiza; snapshot 404 falha seguro sem inventar dado e sem
+perder entrada; invariante das quartas intacto). Gate completo: `audit_draw_lifecycle`,
+`audit_entry_roster_freeze`, `audit_golden_master`, `audit_state_merge`, `test_aggregate_hero`,
+`audit_scoring.py`, `audit_integrity.py`, isolamento P0, paridade estrutural, ARIA e visual
+(DIVERGENT=0) — todos PASS.
+
 ## v3.99 — 2026-08-07 — HOTFIX: invariante de ciclo de vida do sorteio (quartas fantasma)
 
 Eduardo, 2026-08-07: "próxima partida bahia X santos ainda aparece apesar das correcoes no banco".
