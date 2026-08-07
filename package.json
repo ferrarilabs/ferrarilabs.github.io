@@ -7,8 +7,9 @@
     "test:node": "node bolao/scripts/audit_test_isolation.mjs && node bolao/cdb2026/scripts/audit_entry_roster_freeze.mjs && node bolao/cdb2026/scripts/audit_draw_lifecycle.mjs && node bolao/cdb2026/scripts/audit_golden_master.mjs && node bolao/cdb2026/scripts/audit_state_merge.mjs && node bolao/cdb2026/scripts/test_aggregate_hero.mjs && node bolao/scripts/check_shared_visual_contract.mjs && node bolao/scripts/cachebust.integration.test.mjs && node bolao/cdb2026/scripts/check_cachebust.test.mjs",
     "test:scoring": "python3 bolao/copa2026/scripts/audit_scoring.py && python3 bolao/br2026/scripts/audit_scoring.py && python3 bolao/cdb2026/scripts/audit_scoring.py && python3 bolao/cdb2026/scripts/audit_integrity.py",
     "test:browser": "node bolao/scripts/audit_structural_parity.mjs && node bolao/scripts/test_aria_current_nav.mjs && node bolao/scripts/audit_visual_consistency.mjs",
-    "test": "npm run test:scoring && npm run test:node && npm run test:browser",
-    "setup:browser": "playwright install chromium"
+    "test": "npm run test:scoring && npm run test:node && npm run test:notifications && npm run test:browser",
+    "setup:browser": "playwright install chromium",
+    "test:notifications": "node bolao/shared/scripts/test_notification_repository.mjs && node bolao/shared/scripts/test_notification_worker.mjs && node bolao/shared/scripts/test_notification_pipeline.mjs && node bolao/shared/scripts/test_notification_outbox_interop.mjs && node bolao/shared/scripts/test_notification_repository_interop.mjs && python3 bolao/shared/scripts/test_notification_repository.py && python3 bolao/shared/scripts/test_durable_persist.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"
