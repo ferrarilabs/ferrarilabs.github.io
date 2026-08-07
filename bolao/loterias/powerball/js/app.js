@@ -1,11 +1,19 @@
 (function () {
   "use strict";
-  console.log("✓ app.js loaded, POWERBALL_DRAWS:", window.POWERBALL_DRAWS ? window.POWERBALL_DRAWS.length + " draws" : "NOT FOUND");
   var DRAWS = window.POWERBALL_DRAWS;
   var GAME_TYPES = window.LOTTERY_GAME_TYPES;
   var LOCAL_KEY = "powerball_local_results_v1";
   var currentIdx = DRAWS.length - 1;
   var countdownTimer = null;
+
+  // Escape de HTML. Não existia neste arquivo; necessário porque buildDrawCombo() monta as opções
+  // via innerHTML. Os labels vêm de data.js (conteúdo nosso), mas escapar é a regra da casa —
+  // ver docs/bolao/SECURITY.md "XSS prevention" — e não depende de a origem ser confiável hoje.
+  function esc(v) {
+    return String(v == null ? "" : v)
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+  }
 
   function fmtUsd(n) {
     if (n === null || n === undefined) return "—";
@@ -69,13 +77,178 @@
     return d.drawing.drawDateLabel + " — Aguardando sorteio";
   }
 
-  function renderDrawSelector() {
-    var sel = document.getElementById("pbDrawSelect");
-    sel.innerHTML = DRAWS.map(function (d, i) {
-      var effectiveDraw = getEffectiveDraw(d);
-      return '<option value="' + d.id + '"' + (i === currentIdx ? " selected" : "") + '>' +
-        drawSelectorLabel(d, effectiveDraw) + "</option>";
+  // ─── BATCH 6: dropdown customizado de sorteio ───────────────────────────────
+  // Pedido do Eduardo (repetido 3x, nunca implementado até 2026-08-07). O <select> nativo foi
+  // REMOVIDO do index.html, não escondido: manter o nativo por baixo criaria duas fontes de
+  // verdade para a seleção, que é justamente o modo de falha vetado no pedido.
+  //
+  // Fonte de verdade única: `currentIdx`. O componente nunca guarda seleção própria — ele
+  // desenha `currentIdx` e chama `renderDraw(idx)`, exatamente como o listener de `change` fazia.
+  //
+  // Padrão ARIA combobox + listbox: o botão é `role="combobox"` com `aria-expanded` e
+  // `aria-controls`; a lista é `role="listbox"` com `role="option"` e `aria-selected`. Enquanto
+  // aberto, o foco PERMANECE no botão e a opção corrente é apontada por `aria-activedescendant`
+  // (padrão APG) — é o que faz leitor de tela anunciar a navegação sem mover foco de verdade.
+  var comboOpen = false;
+  var comboActiveIdx = 0;
+  var docClickWired = false;
+
+  function comboEls() {
+    return {
+      root: document.getElementById("pbDrawCombo"),
+      button: document.getElementById("pbDrawButton"),
+      label: document.getElementById("pbDrawLabel"),
+      listbox: document.getElementById("pbDrawListbox")
+    };
+  }
+
+  function buildDrawCombo() {
+    var root = document.getElementById("pbDrawCombo");
+    if (!root) return;
+    var options = DRAWS.map(function (d, i) {
+      var label = drawSelectorLabel(d, getEffectiveDraw(d));
+      return '<li role="option" id="pbDrawOpt-' + i + '" class="pb-select__option" data-idx="' + i + '"' +
+        ' aria-selected="' + (i === currentIdx ? "true" : "false") + '">' + esc(label) + "</li>";
     }).join("");
+    root.innerHTML =
+      '<button type="button" class="pb-select__button" id="pbDrawButton" role="combobox"' +
+      ' aria-haspopup="listbox" aria-expanded="false" aria-controls="pbDrawListbox"' +
+      ' aria-label="Escolher sorteio">' +
+        '<span class="pb-select__value" id="pbDrawLabel"></span>' +
+        '<span class="pb-select__chevron" aria-hidden="true"></span>' +
+      "</button>" +
+      '<ul class="pb-select__listbox" id="pbDrawListbox" role="listbox" aria-label="Sorteios" hidden>' +
+        options +
+      "</ul>";
+    syncDrawCombo();
+    wireDrawCombo();
+  }
+
+  // Reconstrói apenas os RÓTULOS (texto) das opções + do botão, sem recriar nós: usado depois de
+  // um render, quando um resultado novo pode ter mudado o texto de uma opção.
+  function syncDrawComboLabels() {
+    var e = comboEls();
+    if (!e.listbox) return;
+    var opts = e.listbox.querySelectorAll('[role="option"]');
+    for (var i = 0; i < opts.length; i++) {
+      var idx = Number(opts[i].getAttribute("data-idx"));
+      var d = DRAWS[idx];
+      if (d) opts[i].textContent = drawSelectorLabel(d, getEffectiveDraw(d));
+    }
+    syncDrawCombo();
+  }
+
+  // Reflete `currentIdx` na UI. Chamado no build e sempre que o sorteio muda.
+  function syncDrawCombo() {
+    var e = comboEls();
+    if (!e.root || !e.label) return;
+    var d = DRAWS[currentIdx];
+    if (d) e.label.textContent = drawSelectorLabel(d, getEffectiveDraw(d));
+    var opts = e.listbox ? e.listbox.querySelectorAll('[role="option"]') : [];
+    for (var i = 0; i < opts.length; i++) {
+      var selected = Number(opts[i].getAttribute("data-idx")) === currentIdx;
+      opts[i].setAttribute("aria-selected", selected ? "true" : "false");
+      opts[i].classList.toggle("is-selected", selected);
+    }
+  }
+
+  function setComboActive(idx) {
+    var e = comboEls();
+    if (!e.listbox) return;
+    var opts = e.listbox.querySelectorAll('[role="option"]');
+    if (!opts.length) return;
+    comboActiveIdx = Math.max(0, Math.min(idx, opts.length - 1));
+    for (var i = 0; i < opts.length; i++) opts[i].classList.toggle("is-active", i === comboActiveIdx);
+    var active = opts[comboActiveIdx];
+    // O foco NÃO se move para a opção — o botão continua focado e aponta a opção ativa.
+    if (e.button) e.button.setAttribute("aria-activedescendant", active.id);
+    if (active.scrollIntoView) active.scrollIntoView({ block: "nearest" });
+  }
+
+  function openCombo() {
+    var e = comboEls();
+    if (!e.listbox || comboOpen) return;
+    comboOpen = true;
+    e.listbox.hidden = false;
+    e.root.classList.add("is-open");
+    e.button.setAttribute("aria-expanded", "true");
+    setComboActive(currentIdx); // abre já sobre a opção selecionada
+  }
+
+  function closeCombo(refocus) {
+    var e = comboEls();
+    if (!e.listbox) return;
+    comboOpen = false;
+    e.listbox.hidden = true;
+    e.root.classList.remove("is-open");
+    e.button.setAttribute("aria-expanded", "false");
+    e.button.removeAttribute("aria-activedescendant");
+    if (refocus && e.button) e.button.focus();
+  }
+
+  // Seleciona e fecha. Único caminho de mudança de sorteio — mesma chamada que o `change` fazia.
+  function chooseDraw(idx) {
+    closeCombo(false);                                  // fecha sem focar ainda
+    if (idx !== currentIdx) renderDraw(idx); else syncDrawCombo();
+    var btn = document.getElementById("pbDrawButton");  // foco DEPOIS do render
+    if (btn) btn.focus();
+  }
+
+  function wireDrawCombo() {
+    var e = comboEls();
+    if (!e.button || !e.listbox) return;
+
+    e.button.addEventListener("click", function () {
+      if (comboOpen) closeCombo(true); else openCombo();
+    });
+
+    // Clique numa opção (também cobre toque no mobile).
+    e.listbox.addEventListener("click", function (ev) {
+      var li = ev.target.closest ? ev.target.closest('[role="option"]') : null;
+      if (li) chooseDraw(Number(li.getAttribute("data-idx")));
+    });
+    // Hover não seleciona — só move a opção ativa, como um <select> nativo.
+    e.listbox.addEventListener("mousemove", function (ev) {
+      var li = ev.target.closest ? ev.target.closest('[role="option"]') : null;
+      if (li) setComboActive(Number(li.getAttribute("data-idx")));
+    });
+
+    e.button.addEventListener("keydown", function (ev) {
+      var k = ev.key;
+      if (!comboOpen) {
+        // Fechado: setas/Enter/Espaço/Home/End abrem. Alt+Down também (convenção de combobox).
+        if (k === "ArrowDown" || k === "ArrowUp" || k === "Enter" || k === " " || k === "Home" || k === "End") {
+          ev.preventDefault(); openCombo();
+          if (k === "Home") setComboActive(0);
+          else if (k === "End") setComboActive(DRAWS.length - 1);
+          return;
+        }
+        return;
+      }
+      // Aberto:
+      if (k === "ArrowDown")      { ev.preventDefault(); setComboActive(comboActiveIdx + 1); }
+      else if (k === "ArrowUp")   { ev.preventDefault(); setComboActive(comboActiveIdx - 1); }
+      else if (k === "Home")      { ev.preventDefault(); setComboActive(0); }
+      else if (k === "End")       { ev.preventDefault(); setComboActive(DRAWS.length - 1); }
+      else if (k === "Enter" || k === " ") { ev.preventDefault(); chooseDraw(comboActiveIdx); }
+      else if (k === "Escape")    { ev.preventDefault(); closeCombo(true); }   // fecha SEM mudar
+      else if (k === "Tab")       { closeCombo(false); }                        // deixa o Tab seguir
+    });
+
+    // Clique fora fecha. Registrado UMA vez (guarda abaixo) — buildDrawCombo() pode, em teoria,
+    // ser chamado de novo no futuro, e um listener de `document` por chamada seria vazamento.
+    if (docClickWired) return;
+    docClickWired = true;
+    document.addEventListener("click", function (ev) {
+      if (!comboOpen) return;
+      var root = document.getElementById("pbDrawCombo");
+      if (root && !root.contains(ev.target)) closeCombo(false);
+    });
+  }
+
+  // Mantido com o nome antigo: é o que o bootstrap já chamava.
+  function renderDrawSelector() {
+    buildDrawCombo();
   }
 
   function applyTheme(gameType) {
@@ -84,7 +257,10 @@
     document.documentElement.style.setProperty("--lot-accent2", gt.accent2);
     document.getElementById("pbLogo").textContent = gt.icon;
     document.getElementById("pbPreviousResultsLink").href = gt.previousResultsUrl;
-    document.title = "Bolão " + gt.label + " — Ferrari";
+    // Padrão dos outros três bolões: "Bolão do Ferrari — <competição>". Antes daqui esta linha
+    // era "Bolão " + gt.label + " — Ferrari", que sobrescrevia EM RUNTIME o <title> corrigido no
+    // index.html -- a correção estática sozinha não aparecia no navegador.
+    document.title = "Bolão do Ferrari — " + gt.label;
     return gt;
   }
 
@@ -410,6 +586,7 @@
 
   function renderDraw(idx) {
     currentIdx = idx;
+    syncDrawCombo(); // o botão do combo mostra o sorteio corrente -- fonte de verdade é currentIdx
     var draw = getEffectiveDraw(DRAWS[idx]);
     var gt = applyTheme(draw.gameType);
 
@@ -429,7 +606,11 @@
     renderResult(draw, gt);
     wireResultRetry();
     tick(draw, gt);
-    renderDrawSelector();
+    // NÃO reconstruir o combo aqui. buildDrawCombo() faz innerHTML, o que (a) destrói o botão que
+    // acabou de receber o foco depois de Enter/clique e (b) re-registra os listeners a cada render,
+    // inclusive o de `document` (vazamento). Refrescar os rótulos é suficiente: as opções só mudam
+    // de TEXTO quando um resultado entra, nunca de quantidade.
+    syncDrawComboLabels();
     wireShareButtons(draw, gt);
   }
 
@@ -455,9 +636,7 @@
     renderDrawSelector();
     renderDraw(currentIdx);
 
-    document.getElementById("pbDrawSelect").addEventListener("change", function (e) {
-      var idx = indexForDrawId(e.target.value);
-      if (idx !== -1) renderDraw(idx);
-    });
+    // O <select> nativo não existe mais (Batch 6). O combo customizado registra os próprios
+    // handlers em wireDrawCombo(), chamado uma única vez por buildDrawCombo().
   });
 })();

@@ -61,14 +61,67 @@ button:hover { opacity: .88; }
 .brand h1 { margin: 0; font: inherit; }
 #pbLogo { font-size: 20px; line-height: 1; }
 
-.bolao-switcher select {
+/* ── BATCH 6: dropdown customizado de sorteio (2026-08-07) ──
+   O <select> nativo saiu do index.html. O botão herda EXATAMENTE os tokens que a regra antiga
+   de `.bolao-switcher select` usava (bg3/border2/999px/7px 14px/12px/700) para o header não
+   mudar de aparência — a troca é de mecânica e acessibilidade, não de visual. */
+.pb-select { position: relative; }
+
+.pb-select__button {
   appearance: none; -webkit-appearance: none;
+  display: flex; align-items: center; gap: 8px;
   background: var(--bg3); color: var(--text);
   border: 1px solid var(--border2); border-radius: 999px;
   padding: 7px 14px; font-size: 12px; font-weight: 700;
+  font-family: inherit; text-align: left;
   cursor: pointer; width: auto; min-width: 180px; max-width: 260px;
 }
-.bolao-switcher select:focus { border-color: var(--green); outline: none; }
+.pb-select__button:hover { border-color: var(--green); }
+/* Foco SEMPRE visível: o <select> nativo tinha `outline: none` e dependia da borda. Num botão
+   customizado isso não basta para teclado — mantém a borda E um anel explícito. */
+.pb-select__button:focus-visible {
+  border-color: var(--green);
+  outline: 2px solid var(--green); outline-offset: 2px;
+}
+.pb-select__value {
+  flex: 1 1 auto; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* Chevron via CSS (o conteúdo fica vazio no HTML, aria-hidden) — gira quando aberto. */
+.pb-select__chevron {
+  flex: 0 0 auto; width: 0; height: 0;
+  border-left: 4px solid transparent; border-right: 4px solid transparent;
+  border-top: 5px solid currentColor;
+  transition: transform .15s ease;
+}
+.pb-select.is-open .pb-select__chevron { transform: rotate(180deg); }
+
+.pb-select__listbox {
+  position: absolute; z-index: 60; top: calc(100% + 6px); left: 0;
+  margin: 0; padding: 4px; list-style: none;
+  min-width: 100%; max-width: min(92vw, 420px); max-height: 320px; overflow-y: auto;
+  background: var(--bg2, var(--bg3)); color: var(--text);
+  border: 1px solid var(--border2); border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .45);
+}
+.pb-select__listbox[hidden] { display: none; }
+
+.pb-select__option {
+  padding: 9px 12px; border-radius: 8px; font-size: 12px; font-weight: 600;
+  cursor: pointer; white-space: normal;
+  /* Alvo de toque >= 40px de altura no mobile (padding + line-height) — o <select> nativo
+     ganhava isso do sistema; num listbox customizado é responsabilidade nossa. */
+  min-height: 40px; display: flex; align-items: center;
+}
+/* `is-active` = opção sob navegação (teclado/hover). NÃO é seleção. */
+.pb-select__option.is-active { background: var(--bg3); }
+/* `is-selected` = o sorteio realmente escolhido. */
+.pb-select__option.is-selected { color: var(--green); font-weight: 800; }
+.pb-select__option.is-selected::after { content: " ✓"; margin-left: auto; padding-left: 8px; }
+
+@media (max-width: 720px) {
+  .pb-select, .pb-select__button { width: 100%; max-width: none; }
+  .pb-select__listbox { max-width: none; }
+}
 
 main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
 
