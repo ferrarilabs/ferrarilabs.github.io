@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-07T17:51:20.713Z",
-  "commit": "4763883",
+  "generatedAtUtc": "2026-08-07T20:16:08.936Z",
+  "commit": "98ebf89",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -26,13 +26,13 @@
           "letterSpacing": "normal",
           "padding": "10px 18px",
           "margin": "0px",
-          "gap": "8px 12px",
+          "gap": "10px",
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "108.5px",
+          "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+          "gridTemplateColumns": "none"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -105,7 +105,7 @@
         },
         {
           "property": "gap",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
@@ -125,7 +125,7 @@
         },
         {
           "property": "height",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
@@ -135,7 +135,7 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         }
       ]
@@ -157,7 +157,7 @@
           "lineHeight": "24px",
           "letterSpacing": "normal",
           "padding": "0px",
-          "margin": "0px",
+          "margin": "0px 407.156px 0px 0px",
           "gap": "8px",
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
@@ -232,7 +232,7 @@
         },
         {
           "property": "margin",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
