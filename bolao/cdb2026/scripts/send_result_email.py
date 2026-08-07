@@ -790,7 +790,24 @@ def run_auto():
         espn = fetch_espn_candidates()
     except Exception as ex:
         print(f"ESPN fetch failed: {ex}")
-        sys.exit(1)
+        # FONTE INDISPONÍVEL != FALHA NOSSA (2026-08-07). Antes daqui isto era `sys.exit(1)`, o que
+        # deixava o cron VERMELHO a cada 10 minutos quando a ESPN recusava a conexão — observado em
+        # produção com `SSL: TLSV1_ALERT_INTERNAL_ERROR` (a ESPN rejeitando o handshake TLS dos
+        # runners do GitHub; antes já houve o bloqueio por user-agent, ver a branch fix-espn-403-ua).
+        # Um cron cronicamente vermelho treina todo mundo a ignorar falha de cron — e a falha REAL
+        # que importa (tinha resultado e não conseguimos enviar) fica indistinguível do ruído.
+        #
+        # A ESPN aqui é a fonte de DESCOBERTA: sem ela não há nada para agir, e nada conhecido é
+        # descartado (o estado do Supabase já foi lido acima e não é modificado). Então o correto é
+        # encerrar limpo e tentar no ciclo seguinte, com uma linha de log distintiva e "grepável"
+        # para a indisponibilidade continuar OBSERVÁVEL.
+        #
+        # Não é invenção: este é exatamente o padrão que a re-checagem da Copa já usava
+        # ("skipping this cycle, will retry next run"). Aqui ele passa a valer também para a busca
+        # principal. Mesma semântica do teste de "delayed source" do outbox do Batch 1: a fonte
+        # atrasa, o ciclo seguinte recupera, nada é perdido nem duplicado.
+        print("SOURCE_UNAVAILABLE — nada descoberto neste ciclo; tentando de novo na próxima execução.")
+        sys.exit(0)
 
     try:
         patched = sb_backfill_schedule(espn)
