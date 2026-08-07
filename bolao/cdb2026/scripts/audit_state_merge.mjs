@@ -26,6 +26,15 @@ const src = readFileSync(APP_JS, "utf8");
 /** Extract a top-level `function name(...) { ... }` by brace-matching from the real app.js.
  *  The parameter list is skipped by paren-matching first — otherwise a default value like
  *  `opts = {}` is mistaken for the function body and the extraction stops immediately. */
+// Extrai uma declaração `const NOME = "...";` de nível superior do app.js real, para que o
+// harness use o valor de produção em vez de uma cópia transcrita à mão (a deriva que o cabeçalho
+// de audit_scoring.py alerta).
+function extractConstDecl(name) {
+  const m = src.match(new RegExp(`\\nconst ${name} = ("[^"]*");`));
+  if (!m) throw new Error(`const ${name} not found in app.js`);
+  return `const ${name} = ${m[1]};`;
+}
+
 function extractFn(name) {
   let start = src.indexOf(`function ${name}(`);
   if (start === -1) throw new Error(`function ${name}() not found in app.js`);
@@ -73,6 +82,19 @@ function makeSaveRemoteStateFactory() {
     const localStorage = { setItem: () => {}, getItem: () => null };
     const console = { warn: () => {} };
     async function fetchJson(u, o) { return fetchImpl(u, o); }
+    // TEST ISOLATION (ver docs/bolao/TEST_ISOLATION.md): saveRemoteState() agora consulta o guard
+    // fail-closed antes de qualquer chamada remota. Estas asserções são sobre a lógica de MERGE, e
+    // o fetchImpl injetado acima é um dublê em memória — nenhuma rede é tocada aqui. Então o
+    // contexto simulado é o de produção legítima, para que o caminho de merge seja de fato
+    // exercitado. Isto NÃO é um bypass do guard: o guard real, e o fato de ele estar no
+    // chokepoint, são testados em bolao/scripts/audit_test_isolation.mjs.
+    const location = { origin: "https://ferrarilabs.github.io" };
+    const navigator = { webdriver: false };
+    const sessionStorage = { getItem: () => null };
+    ${extractFn("productionWriteBlockReason")}
+    ${extractFn("productionWritesAllowed")}
+    ${extractConstDecl("PRODUCTION_ORIGIN")}
+    ${extractConstDecl("ALLOW_PROD_WRITES_KEY")}
     ${extractFn("mergeEntriesTombstonesAuditLog")}
     ${extractFn("mergeStates")}
     ${extractFn("applyAdminMutation")}

@@ -1,5 +1,37 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.96 — 2026-08-07 — TEST ISOLATION (P0): gravação remota fail closed fora da produção
+
+Propagação da correção P0 aberta pelo incidente de produção do CDB2026 (ver
+`docs/bolao/TEST_ISOLATION.md`). O incidente foi no CDB2026, mas a causa raiz é idêntica nos três
+apps: `url`/`anonKey`/`stateId` de produção são hardcoded em `js/config.js`, então qualquer harness
+que carregue a aplicação grava na tabela real. Não havia flag de teste — porque não existia nenhuma.
+
+Regra: gravação remota é NEGADA por padrão quando `location.origin` não é
+`https://ferrarilabs.github.io` OU `navigator.webdriver` é verdadeiro (Playwright/Puppeteer/
+Selenium). Participantes reais nunca satisfazem nenhuma das duas.
+
+- `js/app.js`: guard `productionWritesAllowed()` dentro de `saveRemoteState()`, **antes** de
+  qualquer chamada remota — o único ponto por onde toda escrita remota passa. Não em cada
+  chamador: um guard que depende do teste lembrar de chamá-lo é convenção, não fronteira, e foi
+  uma convenção que falhou no incidente. A escrita local (`localStorage`) segue normal — nada é
+  perdido, só não vaza.
+- Escape hatch deliberado, para administrar produção de um preview local:
+  `sessionStorage.setItem("cdb2026_allow_production_writes", "I UNDERSTAND")` — precisa ser digitado, valor exato,
+  namespaced por app, morre ao fechar a aba, e avisa no console a cada gravação. `sessionStorage`
+  lançando é tratado como override ausente (fail closed, nunca fail open).
+
+Limitação registrada de propósito: é controle de camada de aplicação, não fronteira de banco. NÃO
+impede um POST direto na REST API com a anon key (que é pública por construção). Enforcement real
+via RLS por role/origem fica para a modernização do banco — segue como o risco de produção aberto
+de maior severidade.
+
+Testes: `bolao/scripts/audit_test_isolation.mjs`, 33 checks nos três apps (produção permitida;
+localhost/127.0.0.1/`file://`/webdriver negados; override correto libera; override com valor errado
+não libera; `sessionStorage` lançando não libera; chave namespaced; origem não casa por substring).
+O check de chokepoint foi verificado com controle negativo — neutralizar o guard faz a suíte
+falhar. Scoring intocado; `audit_scoring.py` dos três apps segue passando.
+
 ## v3.95 — 2026-08-07 — Fix: validação de identidade trancava o participante fora dos palpites
 
 Defeito encontrado na revisão final do v3.94, **antes do merge** — não chegou a produção.

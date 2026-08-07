@@ -293,8 +293,48 @@ async function loadRemoteState() {
   } catch (err) { console.warn("Remote load failed", err); return false; }
 }
 
+// ─── TEST ISOLATION (P0, 2026-08-07) ────────────────────────────────────────
+// Propagado do CDB2026 (ver o comentário longo em bolao/cdb2026/js/app.js e
+// docs/bolao/TEST_ISOLATION.md). O incidente foi no CDB2026, mas a causa é idêntica nos três
+// apps: url/anonKey/stateId de produção estão hardcoded em config.js, então qualquer harness que
+// carregue esta app grava na tabela real. Aqui vale mais ainda: a Copa está ARQUIVADA e paga —
+// o estado remoto dela não deveria mudar nunca mais.
+// Override deliberado: sessionStorage.setItem("copa2026_allow_production_writes", "I UNDERSTAND")
+const PRODUCTION_ORIGIN = "https://ferrarilabs.github.io";
+const ALLOW_PROD_WRITES_KEY = "copa2026_allow_production_writes";
+function productionWriteBlockReason() {
+  if (typeof location !== "undefined" && location.origin !== PRODUCTION_ORIGIN) {
+    return `origem não-produção (${location.origin})`;
+  }
+  if (typeof navigator !== "undefined" && navigator.webdriver) {
+    return "navegador sob automação (navigator.webdriver)";
+  }
+  return null;
+}
+function productionWritesAllowed() {
+  const reason = productionWriteBlockReason();
+  if (!reason) return { allowed: true };
+  let override = null;
+  // sessionStorage pode lançar (modo restrito/file://) — tratar como ausente é o lado seguro.
+  try { override = sessionStorage.getItem(ALLOW_PROD_WRITES_KEY); } catch { override = null; }
+  if (override === "I UNDERSTAND") return { allowed: true, overridden: true, reason };
+  return { allowed: false, reason };
+}
+
 async function saveRemoteState(s, opts = {}) {
   if (!initDb()) return false;
+  // TEST ISOLATION: fail closed antes de qualquer escrita remota. O estado local já foi gravado
+  // pelo chamador, então nada é perdido — só não vaza para a produção.
+  const gate = productionWritesAllowed();
+  if (!gate.allowed) {
+    console.warn(`[COPA2026] TEST ISOLATION: gravação remota BLOQUEADA — ${gate.reason}. ` +
+      `Estado salvo apenas localmente. Para liberar deliberadamente: ` +
+      `sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
+    return false;
+  }
+  if (gate.overridden) {
+    console.warn(`[COPA2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
+  }
   const cfg = CONFIG.database;
   try {
     const { data: cur } = await remoteDb
