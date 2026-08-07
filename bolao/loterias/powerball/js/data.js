@@ -327,7 +327,8 @@ window.POWERBALL_DRAWS = [
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:26 AM", status: "verificado", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:30 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "10:21 AM", status: "verificado", state: "NC" },
-      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "6:49 PM", status: "verificado", state: "NC" }
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "6:49 PM", status: "verificado", state: "NC" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "06/08/2026", hora: "—", status: "verificado", state: "FL" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -344,10 +345,10 @@ window.POWERBALL_DRAWS = [
     // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
     // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
-      totalArrecadado: 120, // 12 participantes x $10 (contribuição alocada a este sorteio), 06/08/2026
+      totalArrecadado: 130, // 13 participantes x $10 (contribuição alocada a este sorteio), 06/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 138, // nada foi gasto ainda: 120 + 18 - 0 = 138
+      valorGuardadoProximoSorteio: 148, // nada foi gasto ainda: 130 + 18 - 0 = 148
       // Camila Ribeiro pagou $12; $2 não são cota, prêmio, saldo anterior, crédito
       // automático do próximo sorteio, nem dívida pessoal — ficam explicitamente
       // pendentes de classificação, fora de totalArrecadado/valorGuardadoProximoSorteio.
