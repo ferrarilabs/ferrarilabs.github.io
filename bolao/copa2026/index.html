@@ -36,6 +36,8 @@
   <script src="js/config.js?v=3a878e9fcaa1"></script>
   <script src="js/data.js?v=3a878e9fcaa1"></script>
   <script src="js/i18n.js?v=3a878e9fcaa1"></script>
+  <!-- Formatador USD canônico compartilhado (BATCH 5) — precisa carregar ANTES de app.js. -->
+  <script src="../shared/js/money.js"></script>
   <script defer src="js/app.js?v=3a878e9fcaa1"></script>
 </head>
 <body>
@@ -172,7 +174,8 @@
       </div>
       <div class="pot-box">
         <span class="muted">Pot</span>
-        <strong id="potValue">$0</strong>
+        <!-- BATCH 5: placeholder no formato canônico; o JS sobrescreve com BOLAO_MONEY.usd(). -->
+        <strong id="potValue">US$ 0.00</strong>
       </div>
     </div>
     <a class="audit-report-link" href="audit-report.html" target="_blank" rel="noopener" data-i18n="auditReportLink">🔍 Ver Relatório de Auditoria da Pontuação</a>

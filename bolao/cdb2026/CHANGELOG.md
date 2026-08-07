@@ -1,5 +1,28 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.102 — 2026-08-07 — BATCH 5: formato USD canônico `US$ X.XX`
+
+Decisão de produto do Eduardo: o formato humano canônico é **`US$ X.XX`** (`US$ 5.00`,
+`US$ 1,250.00`), e a UI não pode usar um formato enquanto o email do participante usa outro.
+
+A plataforma tinha **quatro** formatos em produção para o mesmo tipo de valor: `US$5` (UI do
+Powerball), `$1,250.00` (email do Powerball), `$5` (Copa, com `.00` removido — e a mesma lambda
+**triplicada** no arquivo) e `$65`/`$0` (potes do CDB2026/BR2026/Copa, interpolação direta).
+
+Formatador canônico novo, uma implementação por runtime porque não há build step neste repo:
+`bolao/shared/js/money.js` (navegador), `bolao/shared/scripts/money.mjs` (Node/email),
+`bolao/shared/scripts/money.py` (Python/email). As três são comparadas por
+`bolao/shared/scripts/test_money_interop.mjs` contra a mesma tabela de valores — divergir faz a
+suíte falhar.
+
+**Duas divergências reais de arredondamento foram encontradas pelo próprio teste de interop:**
+`5.005` dava `US$ 5.01` no JS (`Intl`) e `US$ 5.00` no Python (half-even); `1250` compacto dava
+`US$ 1.3K` no JS e `US$ 1.2K` no Python. Nenhum default de linguagem é "o certo" para dinheiro — o
+que importa é a plataforma concordar. O arredondamento para centavos agora é **explícito e half-up**
+nos três runtimes (`Math.round` no positivo; `math.floor(x + 0.5)` no Python).
+
+Escopo deliberado: **só dinheiro**. Nenhum `toLocaleString` de DATA foi tocado.
+
 ## v3.101 — 2026-08-07 — HOTFIX: remoto autoritativo no load (resíduo local imortal)
 
 Eduardo, com a produção JÁ comprovadamente limpa: o navegador dele mostrava

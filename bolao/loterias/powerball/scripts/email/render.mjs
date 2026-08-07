@@ -14,7 +14,7 @@
 //     average with an explicit "payments are not necessarily equal" caveat,
 //     no invented monthly installment.
 //   - State codes now expand to full PT-BR names, payment status to friendly
-//     text, currency unified to "$X.XX", dates friendly-first with the
+//     text, currency canônica "US$ X.XX" (ver shared/scripts/money.mjs), dates friendly-first with the
 //     compact/technical form secondary.
 
 const RED = "#CE1141";
@@ -25,9 +25,13 @@ function esc(s) {
     "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;",
   }[c]));
 }
+// BATCH 5 (2026-08-07): passa a usar o formatador USD canônico (`US$ X.XX`). Este arquivo dizia no
+// cabeçalho "currency unified to $X.XX" — era uma unificação SÓ do email, e deixava o participante
+// vendo `$5.00` aqui e `US$5` na interface. O Eduardo decidiu o padrão único: `US$ X.XX`.
+import { usd as canonicalUsd } from "../../../../shared/scripts/money.mjs";
+
 function usd(n) {
-  if (n === null || n === undefined) return "—";
-  return "$" + Number(n).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return canonicalUsd(n);
 }
 function pct(n) {
   if (n === null || n === undefined) return "—";

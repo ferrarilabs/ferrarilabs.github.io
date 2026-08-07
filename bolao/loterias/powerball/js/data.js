@@ -160,7 +160,7 @@ window.POWERBALL_DRAWS = [
       checkedAt: "04/08/2026 07:25 ET",
       premiosGanhos: 16,
       jackpotHit: false,
-      breakdown: ["Powerball ($8)", "Powerball ($8)"]
+      breakdown: ["Powerball (US$ 8.00)", "Powerball (US$ 8.00)"]
     },
 
     // Preenchido manualmente após conferir os tickets contra o resultado.
@@ -189,7 +189,7 @@ window.POWERBALL_DRAWS = [
 
     // 15 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -$2 do sorteio 08-03)", data: "04/08/2026", hora: "—", status: "organizador", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -US$ 2.00 do sorteio 08-03)", data: "04/08/2026", hora: "—", status: "organizador", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", status: "verificado", state: "NC" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", status: "verificado", state: "FL" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", status: "verificado", state: "NC" },
@@ -283,7 +283,7 @@ window.POWERBALL_DRAWS = [
       checkedAt: "05/08/2026 23:13 ET",
       premiosGanhos: 16,
       jackpotHit: false,
-      breakdown: ["Powerball ($8)", "Powerball ($8)"]
+      breakdown: ["Powerball (US$ 8.00)", "Powerball (US$ 8.00)"]
     },
     profit: {
       premiosGanhos: 16,
