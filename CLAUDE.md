@@ -4,13 +4,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Deployment
 
-No build step. Push to `main` and GitHub Pages auto-deploys to `ferrarilabs.github.io`.
+No build step. Push to `main` and GitHub Pages auto-deploys.
 
-- Main site: `ferrarilabs.github.io`
-- Bolão root: `ferrarilabs.github.io/bolao/` — redirects to Brasileirão (see below)
-- Copa do Mundo 2026: `ferrarilabs.github.io/bolao/copa2026/` (moved here 2026-07-19, v4.159 — see "Copa do Mundo 2026 archive" below)
-- Brasileirão 2026: `ferrarilabs.github.io/bolao/br2026/` (not published yet)
-- Copa do Brasil 2026: `ferrarilabs.github.io/bolao/cdb2026/` (published 2026-07-19, in production)
+**A origem de produção é `https://www.ferrarilabs.com`** (definida pelo `CNAME` na raiz do repo).
+`ferrarilabs.github.io` e o apex `ferrarilabs.com` respondem **301** para lá — nenhuma página de
+produção executa neles. Qualquer código que compare `location.origin` com `ferrarilabs.github.io`
+está errado para 100% do tráfego real (já causou um incidente: ver `docs/bolao/TEST_ISOLATION.md`).
+As URLs abaixo usam o caminho canônico `www.ferrarilabs.com`.
+
+O bump de cache-bust (`?v=`) é feito pelo bot `sync_version.yml`, que **dispara o deploy do Pages
+explicitamente** — um push com `GITHUB_TOKEN` não acorda workflow nenhum. Verificar deploy sempre
+comparando o `?v=` ao vivo com o do repositório.
+
+- Main site: `www.ferrarilabs.com`
+- Bolão root: `www.ferrarilabs.com/bolao/` — redirects to Brasileirão (see below)
+- Copa do Mundo 2026: `www.ferrarilabs.com/bolao/copa2026/` (moved here 2026-07-19, v4.159 — see "Copa do Mundo 2026 archive" below)
+- Brasileirão 2026: `www.ferrarilabs.com/bolao/br2026/` (not published yet)
+- Copa do Brasil 2026: `www.ferrarilabs.com/bolao/cdb2026/` (published 2026-07-19, in production)
 
 To preview locally:
 ```bash
@@ -24,11 +34,11 @@ Three independent sub-projects:
 
 **Main site** (`index.html`, `index.pt.html`, `index.es.html`, `index.jp.html`, `styles.css`) — static multilingual personal site about Eduardo Ferrari's work in financial crime/AML/AI compliance. Contact form uses Formspree + Cloudflare Turnstile (keys must be set manually in the HTML).
 
-**Copa do Mundo 2026** (`bolao/copa2026/`) — bracket pool, tournament concluded (Spain champion, 2026-07-19) and archived. Vanilla JS, no framework, no build system. URL: `ferrarilabs.github.io/bolao/copa2026/`. See "Copa do Mundo 2026 archive" below.
+**Copa do Mundo 2026** (`bolao/copa2026/`) — bracket pool, tournament concluded (Spain champion, 2026-07-19) and archived. Vanilla JS, no framework, no build system. URL: `www.ferrarilabs.com/bolao/copa2026/`. See "Copa do Mundo 2026 archive" below.
 
-**Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `ferrarilabs.github.io/bolao/br2026/`.
+**Brasileirão 2026** (`bolao/br2026/`) — G4/Z4 classification picks with live ESPN standings. Not published yet (no link from main site). URL: `www.ferrarilabs.com/bolao/br2026/`.
 
-**Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Published 2026-07-19 (in production, invited by email). URL: `ferrarilabs.github.io/bolao/cdb2026/`.
+**Copa do Brasil 2026** (`bolao/cdb2026/`) — knockout-round picks with real teams. Published 2026-07-19 (in production, invited by email). URL: `www.ferrarilabs.com/bolao/cdb2026/`.
 
 ## Copa do Mundo 2026 archive (v4.157–v4.159, 2026-07-19)
 
