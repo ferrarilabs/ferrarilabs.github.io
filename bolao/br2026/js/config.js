@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.92",
+  siteVersion: "v1.93",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -77,9 +77,17 @@ window.BR2026_CONFIG = {
   espn: {
     leagueSlug: "bra.1",
     season: 2026,
-    standingsUrl: "https://site.api.espn.com/apis/v2/sports/soccer/bra.1/standings",
-    scoreboardUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard",
-    scheduleUrl: "https://site.api.espn.com/apis/site/v2/sports/soccer/bra.1/scoreboard?dates=20260101-20261231&limit=500",
+    // Snapshots NORMALIZADOS gerados server-side (bolao/shared/scripts/espn_provider.py +
+    // scripts/sync_espn.py) e versionados no repo. Mesma origem da página: o navegador nunca chama
+    // a ESPN direto — era este `standingsUrl` que a produção não conseguia buscar por CORS, e por
+    // isso as barras de probabilidade desapareciam. As URLs reais da ESPN vivem agora só no
+    // sync_espn.py deste app.
+    //
+    // scoreboardUrl e scheduleUrl apontam para o MESMO arquivo de propósito: o snapshot já cobre a
+    // temporada inteira, que é o que a antiga scheduleUrl (dates=...&limit=500) buscava.
+    standingsUrl: "data/espn-standings-normalized.json",
+    scoreboardUrl: "data/espn-normalized.json",
+    scheduleUrl: "data/espn-normalized.json",
     pollIntervalMs: 60000,
   },
   transparency: {

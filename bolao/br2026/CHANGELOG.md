@@ -1,5 +1,42 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.93 — 2026-08-07 — Snapshot ESPN server-side: as barras de probabilidade voltam a aparecer
+
+**Este era o pior caso da plataforma.** A produção chamava
+`https://site.api.espn.com/apis/v2/sports/soccer/bra.1/standings` DIRETO do navegador e o browser
+bloqueava por CORS em toda carga de página (registrado no smoke ao vivo:
+`Access to fetch ... has been blocked`). As barras de probabilidade dependem da tabela
+(`only when standings are loaded`), então elas **simplesmente desapareciam** — sem mensagem nenhuma
+para o participante. Não era degradação percebida como erro: era ausência silenciosa.
+
+Os três endpoints passam a ler snapshots normalizados gerados server-side
+(`bolao/shared/scripts/espn_provider.py` + `scripts/sync_espn.py`), versionados no repo e servidos
+da mesma origem da página:
+
+- `standingsUrl` → `data/espn-standings-normalized.json`
+- `scoreboardUrl` → `data/espn-normalized.json`
+- `scheduleUrl` → `data/espn-normalized.json` (o mesmo arquivo, de propósito: o snapshot já cobre a
+  temporada inteira, que era o que a antiga `scheduleUrl` com `dates=...&limit=500` buscava)
+
+- `fetchStandings()`: o parse dos `stats[]` da ESPN (rank/points/gamesPlayed/goalsFor/...) já
+  acontece no provider, UMA vez, então o `getStat()` local saiu — manter dois parsers da mesma coisa
+  é a duplicação que causa divergência silenciosa. **Preservado como lógica deste app:** o desempate
+  determinístico (rank → saldo → gols pró → nome), porque a classificação provisória G4/SA6/Z4 é
+  fatiada por índice do array e um empate de rank da ESPN podia errar a fronteira entre zonas
+  (achado de auditoria, 2026-07-14); e o aviso de time sem correspondência em `DATA.teams`.
+- `snapshotEventsToEspnShape()`: adaptador para a forma crua da ESPN que o código a jusante já
+  esperava — mesma técnica da Copa e do CDB2026. Troca a FONTE, não o comportamento.
+- `fetchEspnEventSummary()` virou no-op documentada (era a única fonte de substituições e era uma
+  chamada de navegador para a ESPN). Consequência registrada: o feed ao vivo mostra gols e cartões,
+  não substituições.
+- `index.html`: `site.api.espn.com` removido do `connect-src` do CSP.
+- Contrato de falha preservado: `null` / cache anterior mantido. Nenhum dado inventado. `stale: true`
+  não é erro.
+
+Verificado em browser real: **0** requisições diretas à ESPN, 30 linhas de classificação com nomes
+reais de time, 30 células de zona, **174 `.prob-bars` com 522 segmentos renderizados**, nenhum erro
+de console, nenhum 4xx/5xx. `audit_scoring.py` do BR2026 segue passando — scoring intocado.
+
 ## v1.92 — 2026-08-07 — HOTFIX: origem de produção errada no guard de test isolation
 
 O guard de test isolation entregue na versão anterior usava
