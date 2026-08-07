@@ -314,13 +314,18 @@ window.POWERBALL_DRAWS = [
     },
 
     participants: [
-      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "—", status: "verificado", state: "NC" },
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "2:10 PM", status: "verificado", state: "NC" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "8:59 AM", status: "verificado", state: "FL" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 12, metodo: "Zelle", data: "06/08/2026", hora: "9:09 AM", status: "verificado", state: "NC" },
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:10 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:16 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:23 AM", status: "verificado", state: "NC" },
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:36 AM", status: "verificado", state: "NC" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11 AM", status: "verificado", state: "FL" }
+      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11 AM", status: "verificado", state: "FL" },
+      { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:26 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:30 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "10:21 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "6:49 PM", status: "verificado", state: "NC" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -337,10 +342,10 @@ window.POWERBALL_DRAWS = [
     // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
     // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
-      totalArrecadado: 70, // Samuel Huller + Jorge + Simone + Gustavo Bossle + Marcelo Moreira + Amanda + REDACTED_PARTICIPANT, todos $10, 06/08/2026
+      totalArrecadado: 122, // 11 participantes x $10 + Camila Ribeiro $12, todos 06/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 88 // nada foi gasto ainda: 70 + 18 - 0 = 88
+      valorGuardadoProximoSorteio: 140 // nada foi gasto ainda: 122 + 18 - 0 = 140
     },
 
     result: null,
