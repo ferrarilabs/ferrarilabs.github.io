@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.98",
+  siteVersion: "v3.99",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,

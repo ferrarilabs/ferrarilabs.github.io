@@ -47,6 +47,13 @@ function extractConstArrayDecl(name) {
 const PROD_ORIGIN_FOR_HARNESS =
   "https://" + readFileSync(new URL("../../../CNAME", import.meta.url), "utf8").trim();
 
+// Set literal de nível superior (`const NOME = new Set([...]);`).
+function extractSetDecl(name) {
+  const m = src.match(new RegExp(`\\nconst ${name} = new Set\\(\\[([^\\]]*)\\]\\);`));
+  if (!m) throw new Error(`const ${name} (Set) not found in app.js`);
+  return `const ${name} = new Set([${m[1]}]);`;
+}
+
 function extractFn(name) {
   let start = src.indexOf(`function ${name}(`);
   if (start === -1) throw new Error(`function ${name}() not found in app.js`);
@@ -73,6 +80,9 @@ const harness = `
   const DATA = { phases: [{ id: "oitavas" }, { id: "quartas" }] };
   function emptyPhaseState() { return { cutoffAt: null, ties: {} }; }
   ${extractFn("mergeEntriesTombstonesAuditLog")}
+  ${extractSetDecl("DRAW_GATED_PHASES")}
+  ${extractFn("phaseDrawIsOfficial")}
+  ${extractFn("enforceDrawLifecycle")}
   ${extractFn("mergeStates")}
   ${extractFn("applyAdminMutation")}
   ${extractFn("applyMutationOverRemote")}
@@ -108,6 +118,11 @@ function makeSaveRemoteStateFactory() {
     ${extractConstArrayDecl("PRODUCTION_ORIGINS")}
     ${extractConstDecl("ALLOW_PROD_WRITES_KEY")}
     ${extractFn("mergeEntriesTombstonesAuditLog")}
+    // Invariante de ciclo de vida do sorteio (v3.99): mergeStates() e saveRemoteState() passaram a
+    // aplicá-lo, então o sandbox precisa das três peças. Ver docs/bolao/CDB2026_DRAW_LIFECYCLE.md.
+    ${extractSetDecl("DRAW_GATED_PHASES")}
+    ${extractFn("phaseDrawIsOfficial")}
+    ${extractFn("enforceDrawLifecycle")}
     ${extractFn("mergeStates")}
     ${extractFn("applyAdminMutation")}
     ${extractFn("applyMutationOverRemote")}

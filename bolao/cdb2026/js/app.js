@@ -73,6 +73,65 @@ function emptyState() {
   // reaplica a população inicial, mesmo que o admin remova um confronto semeado.
   return { entries: [], deletedIds: [], paid: {}, phases, espnSync: { activePhaseId: null, seededKnownConfrontos: false }, auditLog: [], meta: { updatedAt: null, version: C.siteVersion } };
 }
+// ─── INVARIANTE DE CICLO DE VIDA DO SORTEIO (hotfix 2026-08-07) ─────────────
+// PROBLEMA REAL (não hipotético): depois do reparo manual da produção, o navegador do Eduardo
+// continuava mostrando "próxima partida Bahia × Santos". A produção estava limpa (quartas com 0
+// ties, cutoffAt null) e esse par é IMPOSSÍVEL no bracket real — o Bahia foi eliminado na fase-5
+// (Bahia × Remo, qualified=B) e não está entre os 16 times das oitavas. O confronto era sintético,
+// sobrevivendo no localStorage do dispositivo dele.
+//
+// Por que o reparo do banco não o apagava — três causas somadas:
+//   1. `mergeStates` faz UNIÃO de ties nas duas direções (`{...localP.ties, ...remoteP.ties}`) e
+//      ties não têm tombstone (entradas têm, via `deletedIds`). O remoto NUNCA consegue apagar um
+//      tie que só existe local.
+//   2. `healPhantomTies()` é one-shot (`if (s.espnSync?.healedPhantomTies) return false`): a flag
+//      já estava true naquele navegador, então nunca rodava de novo.
+//   3. Mesmo se rodasse, ele PULA quartas (`const known = DATA.knownConfrontos?.[phaseId]; if
+//      (!known) return;`) — não existe lista curada para quartas porque o sorteio não aconteceu.
+//      A fase mais vulnerável a confronto fabricado é justamente a que o healer se recusa a tocar.
+//
+// E o risco não era cosmético: o caminho de save também faz união, então salvar qualquer coisa
+// como admin naquele navegador empurraria os ties sintéticos DE VOLTA para a produção.
+//
+// INVARIANTE: enquanto uma fase com sorteio (hoje só quartas) não tiver sorteio oficial, ela não
+// pode ter confronto NENHUM. Qualquer tie ali é fantasma por definição — é a tradução direta da
+// regra "nunca fabricar confrontos". Aplicado nos QUATRO pontos de passagem (leitura/render,
+// merge, gravação local e payload remoto), não só na UI.
+//
+// Semifinal/Final NÃO entram aqui: elas não têm sorteio, resolvem deterministicamente a partir dos
+// vencedores (Batch 4). Gate próprio, trabalho separado — não generalizar este por conveniência.
+const DRAW_GATED_PHASES = new Set(["quartas"]);
+
+// Duas formas de o sorteio ser oficial, nesta ordem de preferência:
+//   1. `phase.officialDraw.validatedAt` — proveniência explícita (Batch 2/3: ingestão validada da
+//      fonte oficial da CBF). Campo novo, aditivo; nenhum estado existente tem isto ainda.
+//   2. `phase.cutoffAt !== null` — o admin registrou a fase deliberadamente (é o que ele já faz
+//      hoje para abrir os palpites). Mantido para NÃO quebrar o fluxo manual que existe: sem isto
+//      o sanitizador apagaria o sorteio real assim que o Eduardo o cadastrasse.
+function phaseDrawIsOfficial(phase) {
+  if (!phase) return false;
+  if (phase.officialDraw && phase.officialDraw.validatedAt) return true;
+  return phase.cutoffAt !== null && phase.cutoffAt !== undefined;
+}
+
+// Remove ties fantasma das fases com sorteio pendente. Muta `s` e devolve true se mudou algo.
+// Toca EXCLUSIVAMENTE `phases[<fase com gate>].ties`: entradas, `paid`, `deletedIds`, auditLog,
+// espnSync e as outras fases (inclusive oitavas) ficam intactos — garantido por teste.
+// Não apaga palpite de participante: palpites moram em `entry.picks`, não em `phase.ties`.
+function enforceDrawLifecycle(s) {
+  if (!s || !s.phases) return false;
+  let changed = false;
+  for (const phaseId of DRAW_GATED_PHASES) {
+    const phase = s.phases[phaseId];
+    if (!phase || !phase.ties) continue;
+    if (phaseDrawIsOfficial(phase)) continue;
+    if (Object.keys(phase.ties).length === 0) continue;
+    phase.ties = {};
+    changed = true;
+  }
+  return changed;
+}
+
 function state() {
   try {
     const r = localStorage.getItem(C.storeKey);
@@ -83,6 +142,10 @@ function state() {
       s.phases[p.id].ties = s.phases[p.id].ties || {};
     });
     s.espnSync = s.espnSync && typeof s.espnSync === "object" ? s.espnSync : { activePhaseId: null };
+    // CHOKEPOINT 1/4 (leitura + render): sanea o que sai do localStorage, então um cache
+    // contaminado deixa de renderizar confronto fabricado já no primeiro reload — sem depender de
+    // um save acontecer antes. Só em memória; a limpeza é persistida no primeiro saveState().
+    enforceDrawLifecycle(s);
     return s;
   } catch { return emptyState(); }
 }
@@ -93,6 +156,10 @@ function state() {
 // usado -- correto para o fluxo de PARTICIPANTE (saveEntry), onde "remoto vence" é a proteção
 // certa contra cache velho, não uma mutação dirigida.
 function saveState(s, opts = {}) {
+  // CHOKEPOINT 2/4 (gravação local): impede que um tie fantasma seja regravado no localStorage —
+  // e, como o payload remoto deriva deste objeto, é a primeira barreira contra re-contaminar a
+  // produção a partir de um navegador com cache sujo.
+  enforceDrawLifecycle(s);
   s.meta = s.meta || {};
   s.meta.updatedAt = new Date().toISOString();
   s.meta.version = C.siteVersion;
@@ -253,6 +320,11 @@ async function saveRemoteState(s, opts = {}) {
     // perder a entrada do participante. O risco de sobrescrita volta só neste caso degradado.
     console.warn("[CDB2026] pre-save remote read failed, saving local snapshot as-is", err);
   }
+  // CHOKEPOINT 4/4 (payload remoto): última barreira antes do POST. `payload` pode vir de
+  // `applyMutationOverRemote()`, que NÃO passa por mergeStates — sem isto, uma mutação dirigida
+  // (ex.: marcar pagamento) feita num navegador com cache sujo carregaria os ties fantasma junto
+  // e re-contaminaria a produção. É exatamente o cenário do teste 8.
+  enforceDrawLifecycle(payload);
   const r = await fetchJson(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
@@ -369,10 +441,17 @@ function mergeStates(local, remote, opts = {}) {
   for (const f of ESPN_SYNC_ONCE_FLAGS) {
     espnSync[f] = !!(local.espnSync?.[f] || remote.espnSync?.[f]);
   }
-  return {
+  const merged = {
     entries, deletedIds, paid, phases, espnSync, auditLog,
     meta: (local.meta?.updatedAt || "") > (remote.meta?.updatedAt || "") ? local.meta : remote.meta,
   };
+  // CHOKEPOINT 3/4 (merge): o ponto onde a contaminação sobrevivia. `ties` é UNIÃO nas duas
+  // direções e não tem tombstone, então um tie que só existe local passava por aqui intacto —
+  // tanto ao CARREGAR (o reparo do banco nunca chegava ao navegador) quanto ao SALVAR (o tie
+  // fantasma era reenviado para a produção). Saneando a saída do merge, as duas direções ficam
+  // cobertas de uma vez, sem precisar inventar semântica de tombstone para ties agora.
+  enforceDrawLifecycle(merged);
+  return merged;
 }
 
 // ─── Mutação administrativa dirigida (Fase 2.1 §2) ───────────────────────────────────────────
@@ -459,6 +538,14 @@ function applyAdminMutation(state, mutation) {
     case "add-tie":
     case "espn-add-tie": {
       const ph = phaseOf(mutation.phaseId);
+      // INVARIANTE DE SORTEIO: numa fase com gate (quartas), não aceitar confronto enquanto o
+      // sorteio não for oficial. FALHA EXPLÍCITA de propósito, em vez de aceitar e deixar o
+      // sanitizador apagar depois: silenciosamente descartar o cadastro do admin seria pior que
+      // recusar — ele acharia que salvou. A mensagem diz o que fazer (registrar o cutoff da fase
+      // ou a proveniência oficial do sorteio) antes de cadastrar os confrontos.
+      if (DRAW_GATED_PHASES.has(mutation.phaseId) && !phaseDrawIsOfficial(ph)) {
+        throw new Error("QF_DRAW_NOT_OFFICIAL");
+      }
       s.phases[mutation.phaseId] = { ...ph, ties: { ...ph.ties, [mutation.tieId]: mutation.tie } };
       break;
     }
