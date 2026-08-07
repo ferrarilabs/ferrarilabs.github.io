@@ -1,5 +1,75 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.99 — 2026-08-07 — HOTFIX: invariante de ciclo de vida do sorteio (quartas fantasma)
+
+Eduardo, 2026-08-07: "próxima partida bahia X santos ainda aparece apesar das correcoes no banco".
+
+**O banco estava certo.** Leitura read-only da produção confirmou o reparo íntegro: 12 entradas,
+oitavas 8 ties, quartas 0 ties com `cutoffAt = null`, semifinal 0, final 0, nenhum id sintético.
+E o par é IMPOSSÍVEL no bracket real — o Bahia foi eliminado na fase-5 (`Bahia × Remo`,
+`qualified = B`) e não está entre os 16 times das oitavas. Confronto fabricado, portanto.
+
+O que ele via vinha do **localStorage do próprio navegador**: `findAllUpcomingMatchesOnNextDay()`
+lê só `state()`, nunca a ESPN nem o Supabase.
+
+Por que o reparo do banco não alcançava o navegador — três causas somadas:
+
+1. `mergeStates` faz **união** de ties nas duas direções (`{...localP.ties, ...remoteP.ties}`) e
+   ties **não têm tombstone** (entradas têm, via `deletedIds`). O remoto nunca conseguia apagar um
+   tie que existia só local.
+2. `healPhantomTies()` é **one-shot** (`if (s.espnSync?.healedPhantomTies) return false`) — a flag
+   já era `true` naquele navegador, então nunca rodava de novo.
+3. Mesmo rodando, ele **pula quartas**: `const known = DATA.knownConfrontos?.[phaseId]; if (!known)
+   return;` — não há lista curada para quartas porque o sorteio não aconteceu. A fase mais
+   vulnerável a confronto fabricado era exatamente a que o healer se recusava a tocar.
+
+E **não era cosmético**: o caminho de save também faz união, então qualquer save de admin naquele
+navegador empurraria os ties sintéticos de volta para a produção.
+
+### Correção
+
+Invariante explícito: enquanto uma fase com sorteio (hoje só `quartas`) não tiver sorteio oficial,
+`ties` **deve** estar vazio. Qualquer confronto ali é fantasma por definição — tradução direta da
+regra "nunca fabricar confrontos".
+
+- `enforceDrawLifecycle(s)` + `phaseDrawIsOfficial(phase)` + `DRAW_GATED_PHASES` (`js/app.js`).
+- Aplicado nos **quatro** pontos de passagem, não só na UI: `state()` (leitura/render),
+  `saveState()` (gravação local), `mergeStates()` (merge — onde a contaminação sobrevivia) e
+  `saveRemoteState()` (payload remoto — pega `applyMutationOverRemote`, que não passa por merge).
+- Sorteio é oficial por **proveniência** (`phase.officialDraw.validatedAt`, campo novo aditivo para
+  a ingestão da CBF, Batch 2/3) **ou** por `cutoffAt !== null` (o fluxo manual que o admin já usa —
+  sem isto o sanitizador apagaria o sorteio real assim que fosse cadastrado).
+- `add-tie`/`espn-add-tie` numa fase com gate sem sorteio oficial agora **lança**
+  `QF_DRAW_NOT_OFFICIAL`. Falha explícita de propósito: aceitar e deixar o sanitizador apagar
+  depois faria o admin achar que salvou.
+- Escopo cirúrgico: toca **exclusivamente** `phases[fase-com-gate].ties`. Entradas, `paid`,
+  `deletedIds`, auditLog, espnSync e as outras fases (inclusive oitavas) ficam intactos — coberto
+  por teste. Palpites moram em `entry.picks`, não em `phase.ties`, então nada de palpite se perde.
+- Semifinal/Final **não** entram no gate: não têm sorteio, resolvem deterministicamente pelos
+  vencedores (Batch 4). Gate próprio, trabalho separado.
+
+**Não** há limpeza automática ampla de localStorage no startup — o sanitizador é estreito. Para
+recuperação manual de emergência (ver `docs/bolao/CDB2026_DRAW_LIFECYCLE.md`):
+
+```js
+localStorage.removeItem("bolao_cdb2026_state"); location.reload();
+```
+
+### Testes
+
+`scripts/audit_draw_lifecycle.mjs`, 13 checks — os 8 cenários pedidos (tie sintético saneado;
+payload persistido limpo; oitavas/entries/paid intactos; sorteio oficial válido sobrevive por
+proveniência E por cutoff; reload contaminado não renderiza nem persiste; save de admin comum não
+re-contamina) mais contratos: semifinal/final fora do gate, `phaseDrawIsOfficial` recusa
+null/vazio, o guard de `add-tie`, e verificação de que os quatro chokepoints realmente aplicam o
+invariante (pega alguém removendo um deles no futuro).
+
+Validado também em **browser real** com localStorage contaminado: após reload, nenhuma menção a
+"Bahia" na página, `#nextTieCard` oculto, e o próprio localStorage saneado (0 ties em quartas) sem
+apagar mais nada.
+
+Scoring intocado; `audit_scoring.py` dos três apps segue passando.
+
 ## v3.98 — 2026-08-07 — Topbar: o container .nav-secondary vazio também fica oculto
 
 Achado por `audit_visual_consistency.mjs` na primeira rodada confiável da suíte (ver
