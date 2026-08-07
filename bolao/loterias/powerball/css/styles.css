@@ -65,6 +65,14 @@ button:hover { opacity: .88; }
    O <select> nativo saiu do index.html. O botão herda EXATAMENTE os tokens que a regra antiga
    de `.bolao-switcher select` usava (bg3/border2/999px/7px 14px/12px/700) para o header não
    mudar de aparência — a troca é de mecânica e acessibilidade, não de visual. */
+/* .bolao-switcher ficou sem nenhuma regra própria depois que o <select> nativo saiu — como item
+   flex sem `min-width: 0`, o navegador não deixava encolher abaixo do texto do botão (min-width
+   inicial de item flex é `auto`, isto é, o tamanho do conteúdo). Resultado: a caixa toda
+   (`.bolao-switcher` → `.pb-select` → `.pb-select__button`/`.pb-select__listbox`, todos width:100%
+   em cascata) vazava até 450px numa tela de 390px. `min-width: 0` é a correção padrão para item
+   flex encolher normalmente; `.pb-select__value` já tem overflow:hidden + ellipsis para truncar
+   o texto quando isso acontece. */
+.bolao-switcher { min-width: 0; flex: 1 1 auto; }
 .pb-select { position: relative; }
 
 .pb-select__button {
@@ -120,7 +128,11 @@ button:hover { opacity: .88; }
 
 @media (max-width: 720px) {
   .pb-select, .pb-select__button { width: 100%; max-width: none; }
-  .pb-select__listbox { max-width: none; }
+  /* max-width: none (não 100%) deixava a listbox crescer além da tela com opções
+     longas (ex.: "01/08/2026 22:59 ET — Resultado: 8 30 41 48 54 | PB 4"),
+     cortando o texto na borda direita — confirmado 450px de caixa numa tela de
+     390px. 100% trava no tamanho do botão, que já ocupa a largura toda aqui. */
+  .pb-select__listbox { max-width: 100%; }
 }
 
 main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
