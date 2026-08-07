@@ -1,3 +1,4 @@
+// Pipeline de cache-bust validado ponta a ponta em 2026-08-07 (ver .github/workflows/sync_version.yml).
 window.CDB2026_CONFIG = {
   siteVersion: "v3.98",
   appName: "Bolão Copa do Brasil 2026",
