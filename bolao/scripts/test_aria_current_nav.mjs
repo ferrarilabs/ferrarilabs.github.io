@@ -50,6 +50,24 @@ const APPS = {
   cdb2026: { path: "/bolao/cdb2026/", targets: ["ranking", "games", "rules", "probs"] },
 };
 
+// Espera o layout ASSENTAR antes de medir overflow (fix de flakiness, 2026-08-07).
+// Antes: `await page.waitForTimeout(300)` depois do clique. Isso passa sozinho e falha quando as
+// suítes rodam em cadeia (`npm run test:browser`), porque com várias instâncias de Chromium
+// disputando CPU o render demora mais que os 300ms fixos e a medição pega o layout no MEIO da
+// troca de seção — reportando um overflow horizontal que não existe no estado final. Mesma classe
+// de defeito (e mesma correção) do settleLayout() em audit_visual_consistency.mjs: esperar
+// CONDIÇÃO, não tempo.
+async function settleAfterClick(page) {
+  await page.evaluate(() => document.fonts && document.fonts.ready);
+  // Dois frames: um para o estilo/layout recalcular, outro para estabilizar.
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+  // A seção alvo precisa estar realmente visível antes de medir qualquer geometria.
+  await page.waitForFunction(() => {
+    const active = document.querySelector(".page.active");
+    return !!active && active.getBoundingClientRect().height > 0;
+  }, null, { timeout: 5000 });
+}
+
 let failures = 0;
 function check(label, condition, detail) {
   if (condition) {
@@ -113,7 +131,7 @@ async function testApp(browser, appId, app) {
   await context.route("**://*.emailjs.com/**", r => r.fulfill({ status: 200, contentType: "application/json", body: "{}" }));
 
   await page.goto(`http://localhost:${PORT}${app.path}`, { waitUntil: "load", timeout: 15000 });
-  await page.waitForTimeout(500);
+  await settleAfterClick(page);
 
   // 1 + 2: initial state
   let state = await navState(page);
@@ -128,7 +146,7 @@ async function testApp(browser, appId, app) {
 
     // 3: real mouse click
     await btn.click({ timeout: 1500 }).catch(() => {});
-    await page.waitForTimeout(300);
+    await settleAfterClick(page);
     state = await navState(page);
     check(`click->${target}: exactly one aria-current afterward`, state.ariaCurrentCount === 1, `found ${state.ariaCurrentCount}`);
     check(`click->${target}: aria-current moved to the clicked section`, state.ariaCurrentSection === target, `is "${state.ariaCurrentSection}"`);
@@ -159,7 +177,7 @@ async function testApp(browser, appId, app) {
     const focusedIsRightButton = await page.evaluate((sec) => document.activeElement?.dataset?.section === sec, keyboardTarget);
     check(`keyboard focus lands on [data-section="${keyboardTarget}"]`, focusedIsRightButton);
     await page.keyboard.press("Enter");
-    await page.waitForTimeout(300);
+    await settleAfterClick(page);
     state = await navState(page);
     check(`keyboard Enter->${keyboardTarget}: exactly one aria-current afterward`, state.ariaCurrentCount === 1, `found ${state.ariaCurrentCount}`);
     check(`keyboard Enter->${keyboardTarget}: aria-current moved via keyboard activation, not just mouse`, state.ariaCurrentSection === keyboardTarget, `is "${state.ariaCurrentSection}"`);

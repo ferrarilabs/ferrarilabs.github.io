@@ -809,57 +809,74 @@ function normalizeEspnTeamName(name) {
   return ESPN_SCOREBOARD_NAME_ALIASES[name] || name;
 }
 
+// ─── MIGRAÇÃO PARA O SNAPSHOT SERVER-SIDE (2026-08-07) ──────────────────────
+// Este era o pior caso da plataforma: a produção chamava
+// `https://site.api.espn.com/apis/v2/sports/soccer/bra.1/standings` DIRETO do navegador e o
+// browser bloqueava por CORS em toda carga de página. As barras de probabilidade dependem da
+// tabela (`only when standings are loaded`), então elas simplesmente DESAPARECIAM em produção,
+// sem mensagem nenhuma para o usuário. Não era hipótese: o smoke ao vivo registrava
+// `Access to fetch ... has been blocked` neste endpoint.
+//
+// Agora lê `data/espn-standings-normalized.json`, gerado server-side por
+// bolao/shared/scripts/espn_provider.py (`normalize_standings`). O parse dos `stats[]` da ESPN
+// (rank/points/gamesPlayed/goalsFor/...) já acontece lá, UMA vez, e o snapshot chega com os campos
+// finais — por isso o `getStat()` que existia aqui sai: manter dois parsers da mesma coisa é
+// exatamente o tipo de duplicação que causa divergência silenciosa.
+//
+// O que NÃO muda e continua sendo lógica DESTE app (não do provider):
+//   - o desempate determinístico (rank -> saldo -> gols pró -> nome), porque a classificação
+//     provisória G4/SA6/Z4 é fatiada por índice deste array e um empate de rank da ESPN podia
+//     errar a fronteira entre zonas (achado de auditoria, 2026-07-14);
+//   - o aviso de time da ESPN sem correspondência em DATA.teams;
+//   - o contrato de falha: devolve `null`, que todos os chamadores já tratam como "sem tabela
+//     neste ciclo". Nenhum dado é inventado.
+// Adaptador do snapshot achatado para a forma crua da ESPN que o código a jusante já esperava
+// (`ev.competitions[0].competitors[]`) — mesma técnica aplicada na Copa e no CDB2026. Troca a
+// FONTE sem tocar em scoring nem em nenhuma lógica de rodada.
+function snapshotEventsToEspnShape(matches) {
+  return matches.map(m => ({
+    id: m.id,
+    date: m.date,
+    competitions: [{
+      date: m.date,
+      status: {
+        clock: m.clockSec, period: m.period, displayClock: m.clockStr,
+        type: {
+          state: m.state, name: m.statusName, description: m.statusDescription,
+          shortDetail: m.statusShortDetail, detail: m.statusDetail, completed: m.completed,
+        },
+      },
+      venue: { fullName: m.venue, address: { city: m.city } },
+      competitors: [
+        { homeAway: "home", team: { id: m.homeTeamId, displayName: m.homeTeam }, score: m.homeScore, winner: m.homeWinner },
+        { homeAway: "away", team: { id: m.awayTeamId, displayName: m.awayTeam }, score: m.awayScore, winner: m.awayWinner },
+      ],
+      details: m.details || [],
+    }],
+  }));
+}
+
 async function fetchStandings() {
   try {
     const r = await fetchJson(C.espn.standingsUrl);
-    const data = await r.json();
-    const entries = data?.children?.[0]?.standings?.entries || [];
-    const parsed = entries.map(e => {
-      const getStat = (...names) => {
-        for (const nm of names) {
-          const hit = (e.stats || []).find(s => s.name === nm);
-          if (hit) return hit.value ?? 0;
-        }
-        return 0;
-      };
-      return {
-        name:   e.team?.displayName || "",
-        abbr:   e.team?.abbreviation || "",
-        logo:   e.team?.logos?.[0]?.href || "",
-        rank:   getStat("rank") || 99,
-        points: getStat("points"),
-        // Sem "|| 1" -- um time com 0 jogos de verdade (início de temporada/recém-promovido) tem
-        // que aparecer como 0 na coluna "J" da tabela, não 1 (achado em auditoria, 2026-07-14).
-        // A divisão em buildRatings() (linha ~817) já tem sua própria proteção independente
-        // (Math.max(tm.played || 1, 1)) contra dividir por zero -- não depende deste valor.
-        played: getStat("gamesPlayed", "GP"),
-        wins:   getStat("wins"),
-        draws:  getStat("ties", "draws"),
-        losses: getStat("losses"),
-        gf:     getStat("pointsFor", "goalsFor"),
-        ga:     getStat("pointsAgainst", "goalsAgainst"),
-        gd:     getStat("pointDifferential", "goalDifferential"),
-      };
-    // Ordenar só por `rank` da ESPN não é suficiente -- achado em auditoria (2026-07-14): logo
-    // após uma rodada terminar, a ESPN pode devolver ranks empatados por um instante (antes do
-    // desempate deles terminar de aplicar do lado deles), e a classificação PROVISÓRIA (G4/SA6/Z4)
-    // é fatiada por índice fixo direto deste array -- um empate de rank podia errar a fronteira
-    // entre zonas. Desempate próprio e determinístico: saldo de gols → gols pró → nome (nunca hoje
-    // era a fonte oficial de pontuação, que sempre vem do resultado travado pelo admin).
-    }).filter(entry => entry.name).sort((a, b) =>
-      a.rank - b.rank || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name, "pt-BR")
-    );
-    // DATA.teams (lista fixa usada no formulário de palpite) e o nome ao vivo da ESPN (usado pra
-    // pontuar) nunca são checados um contra o outro -- achado em auditoria (2026-07-14). Se a ESPN
-    // mudar o `displayName` de um time, todo mundo que apostou nele passa a pontuar zero
-    // silenciosamente (comparação por igualdade exata de string em scoreEntry()). Aviso no console
-    // é o mínimo pra não deixar isso passar batido -- não é um erro fatal, o time ainda aparece na
-    // tabela normalmente, só não bate com nenhuma opção do formulário.
+    const snap = await r.json();
+    const rows = Array.isArray(snap?.matches) ? snap.matches : null;
+    if (!rows) throw new Error("snapshot de classificação sem linhas");
+    if (snap.stale) console.warn(`[BR2026] snapshot de classificação marcado stale (${snap.staleReason || "?"}) — usando último dado bom conhecido`);
+    const parsed = rows
+      .map(e => ({
+        name: e.name || "", abbr: e.abbr || "", logo: e.logo || "",
+        rank: e.rank || 99, points: e.points || 0, played: e.played || 0,
+        wins: e.wins || 0, draws: e.draws || 0, losses: e.losses || 0,
+        gf: e.gf || 0, ga: e.ga || 0, gd: e.gd || 0,
+      }))
+      .filter(entry => entry.name)
+      .sort((a, b) => a.rank - b.rank || b.gd - a.gd || b.gf - a.gf || a.name.localeCompare(b.name, "pt-BR"));
     const knownTeams = new Set(DATA.teams || []);
     const unknown = parsed.filter(tm => !knownTeams.has(tm.name)).map(tm => tm.name);
     if (unknown.length) console.warn("[BR2026] Time(s) da ESPN sem correspondência em DATA.teams:", unknown);
     return parsed.length ? parsed : null;
-  } catch (err) { console.warn("[BR2026] Standings fetch failed", err); return null; }
+  } catch (err) { console.warn("[BR2026] leitura do snapshot de classificação falhou", err); return null; }
 }
 
 // Minute-by-minute plays feed (goals/cards/subs) — ported from Copa's extractMatchPlays
@@ -936,23 +953,27 @@ function livePlaysHtml(plays, homeTeam, awayTeam, mid) {
 // same day. Only called for matches currently live, so a normal poll with nothing in progress
 // never adds extra network calls. Fails soft: any error just means this cycle falls back to
 // comp.details alone.
-async function fetchEspnEventSummary(eventId) {
-  try {
-    const summaryUrl = C.espn.scoreboardUrl.replace(/\/scoreboard(\?.*)?$/, "/summary");
-    const r = await fetchJson(`${summaryUrl}?event=${eventId}`);
-    const data = await r.json();
-    return Array.isArray(data?.keyEvents) ? data.keyEvents : null;
-  } catch (err) {
-    console.warn(`[BR2026] ESPN event summary fetch failed for event ${eventId}`, err);
-    return null;
-  }
+// APOSENTADA na migração para o snapshot (2026-08-07). Buscava os `keyEvents` por partida no
+// endpoint summary da ESPN — a única fonte de SUBSTITUIÇÕES (`comp.details` só traz gols e cartões)
+// — e era uma chamada de NAVEGADOR para a ESPN, exatamente a dependência que esta migração remove e
+// que a produção já não conseguia completar (CORS).
+//
+// Consequência aceita e registrada: no feed ao vivo aparecem gols e cartões, não substituições.
+// `extractMatchPlays()` já cai para `comp.details` quando não recebe keyEvents — mesmo
+// comportamento que qualquer falha de rede sempre produziu. Restaurar as substituições exige o
+// provider server-side buscar o summary por evento (fan-out N+1, hoje fora de escopo).
+async function fetchEspnEventSummary(_eventId) {
+  return null;
 }
 
 async function fetchScoreboard() {
   try {
-    const r = await fetchJson(C.espn.scoreboardUrl + "?limit=20");
-    const data = await r.json();
-    const events = data?.events || [];
+    // Snapshot: já é a temporada inteira, então NÃO precisa (nem aceita) "?limit=20".
+    const r = await fetchJson(C.espn.scoreboardUrl);
+    const snap = await r.json();
+    if (!Array.isArray(snap?.matches)) return null; // forma inesperada: melhor nada que lixo
+    if (snap.stale) console.warn(`[BR2026] snapshot de jogos marcado stale (${snap.staleReason || "?"})`);
+    const events = snapshotEventsToEspnShape(snap.matches);
     const liveEventIds = events
       .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
       .map(ev => ev.id)
@@ -1343,10 +1364,14 @@ async function fetchSchedule() {
     }
   } catch { /* corrupt/unparseable cache entry — fall through and refetch */ }
   try {
+    // Mesmo snapshot do scoreboard: ele já cobre a temporada inteira, que era exatamente o que a
+    // `scheduleUrl` (dates=20260101-20261231&limit=500) buscava. Um arquivo, uma fonte.
     const r = await fetchJson(C.espn.scheduleUrl, { cache: "no-store" });
     if (!r.ok) return;
-    const data = await r.json();
-    _schedule = (data.events || []).map(ev => {
+    const snap = await r.json();
+    if (!Array.isArray(snap?.matches)) return; // forma inesperada: mantém o cache anterior
+    if (snap.stale) console.warn(`[BR2026] snapshot de calendário marcado stale (${snap.staleReason || "?"})`);
+    _schedule = snapshotEventsToEspnShape(snap.matches).map(ev => {
       const comp = ev.competitions?.[0];
       if (!comp) return null;
       const comps = comp.competitors || [];
