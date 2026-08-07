@@ -15,26 +15,20 @@
       .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
   }
 
+  // BATCH 5 (2026-08-07): formato USD canônico `US$ X.XX`, decidido pelo Eduardo. Antes daqui era
+  // `"US$" + toLocaleString` — sem casas decimais e sem espaço (`US$5`), enquanto o EMAIL deste mesmo
+  // bolão mandava `$5.00`. Mesmo valor, dois formatos, dependendo de onde o participante olhasse.
+  // A regra agora vive em bolao/shared/js/money.js (uma implementação por runtime, mantidas em
+  // sincronia por test_money_interop.mjs).
   function fmtUsd(n) {
-    if (n === null || n === undefined) return "—";
-    return "US$" + n.toLocaleString("en-US");
+    return window.BOLAO_MONEY.usd(n);
   }
 
   // Valores grandes (prêmios) em formato compacto: K/M/B, arredondado a 1 casa
   // decimal (sem casas quando o resultado é inteiro). Valores pequenos (< $1.000,
   // ex.: contribuição de cada participante) ficam por extenso, sem abreviar.
   function fmtUsdCompact(n) {
-    if (n === null || n === undefined) return "—";
-    var abs = Math.abs(n);
-    var sign = n < 0 ? "-" : "";
-    var value, suffix;
-    if (abs >= 1e9) { value = abs / 1e9; suffix = "B"; }
-    else if (abs >= 1e6) { value = abs / 1e6; suffix = "M"; }
-    else if (abs >= 1e3) { value = abs / 1e3; suffix = "K"; }
-    else { return fmtUsd(n); }
-    var rounded = Math.round(value * 10) / 10;
-    var text = rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1);
-    return sign + "US$" + text + suffix;
+    return window.BOLAO_MONEY.usdCompact(n);
   }
 
   function loadLocalOverrides() {
@@ -278,7 +272,7 @@
     rows.push(
       [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
       [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
-      ["$" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M", "Jackpot"]
+      [fmtUsdCompact(draw.drawing.jackpot), "Jackpot"]
     );
     el.innerHTML = rows.map(function (row) {
       return '<div class="pb-summary-item"><div class="v">' + row[0] + '</div><div class="l">' + row[1] + "</div></div>";
@@ -576,7 +570,7 @@
   }
 
   function shareText(draw, gt) {
-    return "🎟️ Bolão " + gt.label + " — Jackpot $" + (draw.drawing.jackpot / 1e6).toFixed(0) +
+    return "🎟️ Bolão " + gt.label + " — Jackpot " + fmtUsdCompact(draw.drawing.jackpot) +
       "M\nSorteio: " + draw.drawing.drawDateLabel +
       "\nParticipantes: " + draw.participants.length +
       "\nTotal arrecadado: " + fmtUsd(draw.finance.totalArrecadado) +
@@ -597,12 +591,12 @@
     var draw = getEffectiveDraw(DRAWS[idx]);
     var gt = applyTheme(draw.gameType);
 
-    document.getElementById("pbJackpot").textContent = "$" + (draw.drawing.jackpot / 1e6).toFixed(0) + "M";
+    document.getElementById("pbJackpot").textContent = fmtUsdCompact(draw.drawing.jackpot);
     document.getElementById("pbDrawDate").textContent = draw.drawing.drawDateLabel;
 
     var cashValueLabel = draw.drawing.cashValue != null
-      ? "$" + (draw.drawing.cashValue / 1e6).toFixed(1) + "M"
-      : "$" + ((draw.drawing.jackpot * 0.505) / 1e6).toFixed(1) + "M (estimado)";
+      ? fmtUsdCompact(draw.drawing.cashValue)
+      : fmtUsdCompact(draw.drawing.jackpot * 0.505) + " (estimado)";
     document.getElementById("pbJackpotOptions").innerHTML =
       '<span class="pb-jackpot-opt"><strong>Anuidade</strong> (30 anos): $' + (draw.drawing.jackpot / 1e6).toFixed(0) + "M</span>" +
       '<span class="pb-jackpot-opt"><strong>Lump Sum</strong> (à vista): ' + cashValueLabel + "</span>";

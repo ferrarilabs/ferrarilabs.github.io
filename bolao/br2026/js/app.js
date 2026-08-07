@@ -2312,7 +2312,8 @@ function renderRanking() {
   // na Copa, que mostra no cabeçalho do Ranking.
   const paidCount = entries.filter(e => (s.paid || {})[e.id]).length;
   const potEl = $("potValue");
-  if (potEl) potEl.textContent = `$${paidCount * (C.entryFee || 5)}`;
+  // BATCH 5: era `$65` (dólar nu, sem centavos) — agora o formato canônico `US$ 65.00`.
+  if (potEl) potEl.textContent = window.BOLAO_MONEY.usd(paidCount * (C.entryFee || 5));
 
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
 

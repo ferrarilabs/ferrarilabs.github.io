@@ -58,7 +58,7 @@ if ('serviceWorker' in navigator) {
       <div>
         <span class="pb-status-badge" id="pbStatusBadge">ATIVO</span>
         <div class="pb-jackpot">
-          <span id="pbJackpot">$707M</span>
+          <!-- BATCH 5: placeholder canônico; o JS sobrescreve com fmtUsdCompact(). --><span id="pbJackpot">US$ 707M</span>
           <small>Jackpot estimado — Sorteio <span id="pbDrawDate"></span></small>
         </div>
         <div class="pb-jackpot-options" id="pbJackpotOptions"></div>
@@ -137,6 +137,8 @@ if ('serviceWorker' in navigator) {
 </main>
 
 <script src="js/data.js?v=246bbf6"></script>
+<!-- Formatador USD canônico compartilhado (BATCH 5) — precisa carregar ANTES de app.js. -->
+<script src="../../shared/js/money.js"></script>
 <script src="js/app.js?v=246bbf6"></script>
 </body>
 </html>

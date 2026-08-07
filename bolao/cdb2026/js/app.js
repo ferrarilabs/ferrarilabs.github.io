@@ -1717,7 +1717,8 @@ function renderRanking() {
   // na Copa, que mostra no cabeçalho do Ranking.
   const paidCount = entries.filter(e => (s.paid || {})[e.id]).length;
   const potEl = $("potValue");
-  if (potEl) potEl.textContent = `$${paidCount * (C.entryFee || 5)}`;
+  // BATCH 5: era `$65` (dólar nu, sem centavos) — agora o formato canônico `US$ 65.00`.
+  if (potEl) potEl.textContent = window.BOLAO_MONEY.usd(paidCount * (C.entryFee || 5));
 
   if (!entries.length) { box.innerHTML = `<p class="muted">${esc(t("noEntries"))}</p>`; return; }
 
@@ -1965,7 +1966,7 @@ function renderRules() {
           <tr><td>🥉 3º</td><td>${Math.round(pr.third * 100)}%</td></tr>
         </tbody>
       </table>
-      <p class="muted" style="font-size:12px">Entrada: US$ ${C.entryFee}. Pot proporcional ao número de participantes.</p>
+      <p class="muted" style="font-size:12px">Entrada: ${window.BOLAO_MONEY.usd(C.entryFee)}. Pot proporcional ao número de participantes.</p>
     </div>
     <div class="card">
       <h3>${esc(t("rulesCutoff"))}</h3>

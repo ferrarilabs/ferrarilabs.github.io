@@ -1720,7 +1720,11 @@ function buildPodiumEmailHtml(info, s) {
   const labelPt = { 1: "Campeão", 2: "Vice-campeão", 3: "3º lugar" };
   const labelEn = { 1: "Champion", 2: "Runner-up", 3: "3rd place" };
   const labelEs = { 1: "Campeón", 2: "Subcampeón", 3: "3er lugar" };
-  const amt = a => `$${a.toFixed(2).replace(/\.00$/, "")}`;
+  // BATCH 5 (2026-08-07): formato USD canônico `US$ X.XX`. Esta lambda existia TRÊS vezes neste
+  // arquivo (aqui, no .podium-amount e na tabela de conferência), cada uma com `$` e removendo
+  // `.00` — três cópias da mesma regra é como a plataforma acabou com quatro formatos diferentes.
+  // Agora todas as três chamam o formatador compartilhado (bolao/shared/js/money.js).
+  const amt = a => window.BOLAO_MONEY.usd(a);
   // Real World Cup podium (which TEAM finished champion/runnerUp/third) -- used only for the
   // "Assim como <time>..." congrats line (Eduardo, 2026-07-18), a creative pairing between the
   // real podium and the bolão's own money podium. Cosmetic copy only, never affects payouts.
@@ -2000,7 +2004,7 @@ function renderPodiumBanner() {
       <div class="podium-medal">${meta.medal}</div>
       <div class="podium-place">${escapeHtml(t(meta.labelKey))}</div>
       <div class="podium-name">${escapeHtml(p.entryName)}</div>
-      <div class="podium-amount">$${p.amount.toFixed(2).replace(/\.00$/, "")}</div>
+      <div class="podium-amount">${window.BOLAO_MONEY.usd(p.amount)}</div>
       ${tiedNote}
     </div>`;
   }).join("");
@@ -2019,7 +2023,8 @@ function renderRanking() {
   if (!box) return;
   const paidCount = s.entries.filter(e => s.paid[e.id]).length;
   const potEl = $("#potValue");
-  if (potEl) potEl.textContent = `$${paidCount * (CONFIG.entryFee || 5)}`;
+  // BATCH 5: era `$0`/`$65` (dólar nu, sem centavos) — agora o formato canônico `US$ 0.00`.
+  if (potEl) potEl.textContent = window.BOLAO_MONEY.usd(paidCount * (CONFIG.entryFee || 5));
   if (!s.entries.length) { box.innerHTML = `<div class="card"><p>${escapeHtml(t("noEntries"))}</p></div>`; return; }
   // Tiebreak cascade: total points → most exact scores → most correct
   // champion/runner-up/3rd picks. Still tied after all three? Shared position —
@@ -3046,7 +3051,7 @@ function moneyProbHtml(info) {
     return `<tr>
       <td>${escapeHtml(r.entryName)}</td>
       <td class="prob-pct-champ">${pct}%</td>
-      <td>$${r.expected.toFixed(2).replace(/\.00$/, "")}</td>
+      <td>${window.BOLAO_MONEY.usd(r.expected)}</td>
     </tr>`;
   }).join("");
   const subtitle = t("moneyProbSubtitle")

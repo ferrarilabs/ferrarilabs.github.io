@@ -17,6 +17,11 @@ Business rule: only play next drawing if jackpot accumulates (configured per dra
 """
 
 import json, os, sys, time, urllib.request, re, logging
+import sys as _sys
+from pathlib import Path as _Path
+# Formatador USD canônico compartilhado (BATCH 5) — ver bolao/shared/scripts/money.py
+_sys.path.insert(0, str(_Path(__file__).parent.parent.parent.parent / "shared" / "scripts"))
+import money as _money
 from datetime import datetime
 from pathlib import Path
 
@@ -418,7 +423,9 @@ def log_email_sent(recipient_email, recipient_name, subject, draw_id, status, de
 def fmtUsd(n):
     if n is None or n == 0:
         return "$0"
-    return f"${n:,.0f}" if n >= 1000 else f"${n}"
+    # BATCH 5: formato USD canônico `US$ X.XX` (bolao/shared/scripts/money.py). Antes era
+    # `${n:,.0f}` acima de 1000 e `${n}` abaixo — duas formas, ambas sem `US`, ambas sem centavos.
+    return _money.usd(n)
 
 
 def build_html(draw):
