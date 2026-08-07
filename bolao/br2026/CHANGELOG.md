@@ -1,5 +1,33 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.92 — 2026-08-07 — HOTFIX: origem de produção errada no guard de test isolation
+
+O guard de test isolation entregue na versão anterior usava
+`PRODUCTION_ORIGIN = "https://ferrarilabs.github.io"`. **Essa não é a origem de produção.** O
+`CNAME` na raiz do repo aponta para `www.ferrarilabs.com`, e o github.io (e o apex) respondem
+**301** para lá. Ou seja: nenhuma página de produção executa em `ferrarilabs.github.io`, e o guard
+estava bloqueando **toda** gravação remota de **todos** os participantes reais, nos três apps.
+
+Pior: em silêncio. O guard devolve `skipped` em vez de rejeitar, então `saveState()` não caía no
+`.catch()` e nem o toast de `syncFailed` aparecia — o participante via "salvo" com o dado só no
+navegador dele. Exatamente a classe de falha que a AUDIT-04 já tinha corrigido neste arquivo.
+
+Detectado na **verificação ao vivo** pós-deploy (o `curl` na produção mostrou o 301 para
+`www.ferrarilabs.com`), não pela suíte — a suíte comparava o guard com um literal transcrito, então
+concordava com o erro. Janela de exposição: entre o deploy da versão anterior e este.
+
+- `js/app.js`: `PRODUCTION_ORIGIN` (string) → `PRODUCTION_ORIGINS` (allowlist) contendo
+  `www.ferrarilabs.com` (canônico, do CNAME), o apex e o github.io. Os dois últimos só
+  redirecionam hoje, mas se o CNAME for removido a produção passa a servir do github.io e o guard
+  não pode virar bloqueio total. Match por igualdade dentro da lista — nunca substring.
+- `bolao/scripts/audit_test_isolation.mjs`: passa a **ler o `CNAME`** e falhar se o domínio real
+  não estiver na allowlist. É o check que faltava; verificado por controle negativo — restaurar o
+  valor errado faz a suíte falhar em 3 checks nos três apps. 36 checks.
+
+Lição registrada: um guard de segurança que decide sobre a identidade do ambiente tem de derivar
+essa identidade de uma fonte de verdade versionada (aqui, o `CNAME`), nunca de um literal — e
+nenhuma verificação de deploy pode ser considerada completa sem checagem ao vivo.
+
 ## v1.91 — 2026-08-07 — TEST ISOLATION (P0): gravação remota fail closed fora da produção
 
 Propagação da correção P0 aberta pelo incidente de produção do CDB2026 (ver

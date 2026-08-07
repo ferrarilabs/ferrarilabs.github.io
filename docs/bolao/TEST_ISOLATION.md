@@ -19,11 +19,27 @@ Não havia flag de teste, porque não existia nenhuma.
 > Gravação remota é **NEGADA por padrão** sempre que a origem não é a produção **ou** o navegador
 > está sob automação. Só um override explícito, digitado no console, libera.
 
+### A origem de produção vem do `CNAME` — não é `ferrarilabs.github.io`
+
+Isto já causou um incidente próprio (copa2026 v4.172 / br2026 v1.92 / cdb2026 v3.97). A primeira
+versão do guard usou `https://ferrarilabs.github.io` como origem de produção. **Não é.** O `CNAME`
+na raiz do repo aponta para `www.ferrarilabs.com`, e tanto o github.io quanto o apex respondem
+**301** para lá — nenhuma página de produção executa neles. O guard bloqueou toda gravação de todos
+os participantes reais, nos três apps, **em silêncio** (devolve `skipped`, não rejeita, então nem o
+toast de `syncFailed` aparecia).
+
+`PRODUCTION_ORIGINS` é uma allowlist com o domínio canônico do `CNAME`, o apex e o github.io — os
+dois últimos porque, se o `CNAME` for removido, a produção passa a servir do github.io e o guard não
+pode virar um bloqueio total. Match por **igualdade** dentro da lista, nunca substring.
+
+`bolao/scripts/audit_test_isolation.mjs` **lê o `CNAME`** e falha se o domínio real não estiver na
+allowlist. Ao trocar o domínio do site, a suíte acusa — a lista não pode mais divergir em silêncio.
+
 Contexto não-produção:
 
 | Condição | Exemplo | Resultado |
 |---|---|---|
-| `location.origin !== "https://ferrarilabs.github.io"` | `localhost:8080`, `127.0.0.1`, `file://` | **BLOQUEADO** |
+| `location.origin` fora de `PRODUCTION_ORIGINS` | `localhost:8080`, `127.0.0.1`, `file://` | **BLOQUEADO** |
 | `navigator.webdriver` verdadeiro | Playwright, Puppeteer, Selenium | **BLOQUEADO** |
 | Produção real, sem automação | participante de verdade | permitido |
 

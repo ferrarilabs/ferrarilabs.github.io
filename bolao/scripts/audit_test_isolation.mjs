@@ -64,6 +64,23 @@ function extractConst(src, name) {
   if (!m) throw new Error(`const ${name} não encontrada`);
   return `const ${name} = ${m[1]};`;
 }
+/** Extrai um array literal de strings de nível superior (`const NOME = [ "a", "b" ];`). */
+function extractConstArray(src, name) {
+  const m = src.match(new RegExp(`\\nconst ${name} = \\[([\\s\\S]*?)\\];`));
+  if (!m) throw new Error(`const ${name} (array) não encontrada`);
+  return `const ${name} = [${m[1]}];`;
+}
+/**
+ * O domínio de produção REAL, lido do CNAME na raiz do repo — a única fonte de verdade.
+ * Este é o check que faltava na primeira versão do guard: PRODUCTION_ORIGIN estava fixado em
+ * ferrarilabs.github.io, que responde 301 para www.ferrarilabs.com, então o guard bloqueava a
+ * produção inteira em silêncio. Só a verificação ao vivo pegou. Agora a suíte pega.
+ */
+function cnameOrigin() {
+  const host = readFileSync(join(REPO, "CNAME"), "utf8").trim();
+  if (!host) throw new Error("CNAME vazio");
+  return `https://${host}`;
+}
 
 /**
  * Monta o gate REAL de um app dentro de um contexto onde `location`, `navigator` e
@@ -80,16 +97,16 @@ function buildGate(app, { origin, webdriver = false, override = undefined, sessi
         return ${override === undefined ? "null" : JSON.stringify(override)};
       },
     };
-    ${extractConst(src, "PRODUCTION_ORIGIN")}
+    ${extractConstArray(src, "PRODUCTION_ORIGINS")}
     ${extractConst(src, "ALLOW_PROD_WRITES_KEY")}
     ${extractFn(src, "productionWriteBlockReason")}
     ${extractFn(src, "productionWritesAllowed")}
-    return { productionWritesAllowed, productionWriteBlockReason, PRODUCTION_ORIGIN, ALLOW_PROD_WRITES_KEY };
+    return { productionWritesAllowed, productionWriteBlockReason, PRODUCTION_ORIGINS, ALLOW_PROD_WRITES_KEY };
   `;
   return new Function(code)();
 }
 
-const PROD = "https://ferrarilabs.github.io";
+const PROD = cnameOrigin(); // o domínio real, não um literal transcrito
 
 for (const app of APPS) {
   console.log(`\n── ${app} ──`);
@@ -161,12 +178,23 @@ for (const app of APPS) {
       `chave de override "${g.ALLOW_PROD_WRITES_KEY}" não é namespaced por ${app}`);
   });
 
-  test(`[${app}] a origem de produção não é um wildcard nem substring frouxa`, () => {
+  test(`[${app}] o domínio do CNAME está na allowlist (guard contra bloqueio total da produção)`, () => {
+    // O check que faltava. Se o CNAME mudar e a allowlist não, a produção para de sincronizar
+    // EM SILÊNCIO (o guard devolve `skipped`, não rejeita, então não há nem toast de erro).
     const g = buildGate(app, { origin: PROD });
-    assertEqual(g.PRODUCTION_ORIGIN, PROD, "origem de produção inesperada");
-    // Um atacante/typo hospedando ferrarilabs.github.io.evil.com não pode passar.
-    assertEqual(buildGate(app, { origin: "https://ferrarilabs.github.io.evil.com" })
+    assert(g.PRODUCTION_ORIGINS.includes(PROD),
+      `o domínio real de produção (${PROD}, lido do CNAME) NÃO está em PRODUCTION_ORIGINS ` +
+      `(${g.PRODUCTION_ORIGINS.join(", ")}) — este guard bloquearia TODA gravação de produção`);
+    assertEqual(g.productionWritesAllowed().allowed, true,
+      `gravação bloqueada na origem real de produção (${PROD})`);
+  });
+
+  test(`[${app}] a origem de produção não é um wildcard nem substring frouxa`, () => {
+    // Um atacante/typo hospedando <dominio>.evil.com não pode passar.
+    assertEqual(buildGate(app, { origin: `${PROD}.evil.com` })
       .productionWritesAllowed().allowed, false, "match de origem é por substring — frouxo");
+    assertEqual(buildGate(app, { origin: "https://evil.com" })
+      .productionWritesAllowed().allowed, false, "origem arbitrária foi aceita");
   });
 }
 
