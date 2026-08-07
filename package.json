@@ -1,0 +1,16 @@
+{
+  "name": "ferrarilabs-site-tooling",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Dev/audit tooling ONLY. The site itself stays framework-free and build-free (see docs/bolao/adr/ADR-001-vanilla-javascript.md) — GitHub Pages serves the HTML/CSS/JS as-is and never reads this file. It exists so the browser-based audit suites are reproducible instead of depending on whatever Playwright happened to be installed on a given machine.",
+  "scripts": {
+    "test:node": "node bolao/scripts/audit_test_isolation.mjs && node bolao/cdb2026/scripts/audit_entry_roster_freeze.mjs && node bolao/cdb2026/scripts/audit_golden_master.mjs && node bolao/cdb2026/scripts/audit_state_merge.mjs && node bolao/cdb2026/scripts/test_aggregate_hero.mjs && node bolao/scripts/check_shared_visual_contract.mjs && node bolao/scripts/cachebust.integration.test.mjs && node bolao/cdb2026/scripts/check_cachebust.test.mjs",
+    "test:scoring": "python3 bolao/copa2026/scripts/audit_scoring.py && python3 bolao/br2026/scripts/audit_scoring.py && python3 bolao/cdb2026/scripts/audit_scoring.py && python3 bolao/cdb2026/scripts/audit_integrity.py",
+    "test:browser": "node bolao/scripts/audit_structural_parity.mjs && node bolao/scripts/test_aria_current_nav.mjs && node bolao/scripts/audit_visual_consistency.mjs",
+    "test": "npm run test:scoring && npm run test:node && npm run test:browser",
+    "setup:browser": "playwright install chromium"
+  },
+  "devDependencies": {
+    "playwright": "^1.56.0"
+  }
+}

@@ -27,7 +27,7 @@ import { mkdirSync, existsSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { loadChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
+import { launchChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const EVIDENCE_VISUAL = join(ROOT, "docs", "bolao", "evidence", "visual");
@@ -125,8 +125,7 @@ function buildHtml({ screen, vpLabel, cells }) {
 
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
-  const chromium = await loadChromium();
-  const browser = await chromium.launch({ executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH || "/opt/pw-browsers/chromium", headless: true });
+  const browser = await launchChromium();
 
   const results = [];
   try {

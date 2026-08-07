@@ -1,0 +1,124 @@
+/**
+ * static_server.mjs — servidor estático fail-closed para as suítes de browser.
+ *
+ * ============================================================================
+ * POR QUE ISTO EXISTE (achado real, 2026-08-07)
+ * ============================================================================
+ *
+ * Seis scripts faziam:
+ *
+ *     const p = spawn("python3", ["-m", "http.server", String(PORT)], { cwd: ROOT, stdio: "ignore" });
+ *     setTimeout(() => resolve(p), 700);
+ *
+ * Três defeitos compostos:
+ *
+ *   1. `stdio: "ignore"` joga fora o stderr do python — inclusive
+ *      "OSError: [Errno 48] Address already in use".
+ *   2. O `setTimeout` resolve mesmo que o processo tenha morrido.
+ *   3. Ninguém verifica QUEM está atendendo na porta.
+ *
+ * Resultado observado: um `http.server 8191` esquecido rodando desde outro dia, iniciado de OUTRO
+ * diretório, continuava atendendo. O `audit_visual_consistency.mjs` "subia" o servidor dele (falhava
+ * em silêncio), o Chromium conversava com o servidor VELHO e a suíte media um checkout ANTIGO por
+ * dias — reportando divergências que já estavam corrigidas no disco, e (pior) podendo aprovar como
+ * EQUAL algo que regrediu. Uma suíte que mede o repositório errado é pior que suíte nenhuma: ela
+ * gera confiança falsa.
+ *
+ * É a MESMA classe de falha do P0 de test isolation: um harness conversando em silêncio com a
+ * coisa errada porque nada verificava a identidade do alvo. Ver docs/bolao/TEST_ISOLATION.md.
+ *
+ * ============================================================================
+ * GARANTIAS
+ * ============================================================================
+ *
+ *   - Porta ocupada => ERRO, nunca reuso silencioso. A mensagem diz qual porta e como achar o
+ *     processo culpado.
+ *   - O servidor é confirmado VIVO antes de retornar (não um sleep otimista).
+ *   - O conteúdo servido é confirmado IDÊNTICO ao do disco (sentinela). Isto pega um servidor
+ *     estranho que por acaso sirva o mesmo repo em outro commit/worktree — o caso real acima.
+ *   - `stop()` é idempotente e mata o processo que ESTE módulo criou.
+ */
+
+import { spawn } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { createConnection } from "node:net";
+
+/** Sentinela: um arquivo que existe em qualquer checkout e muda entre commits. */
+const SENTINEL_PATH = "bolao/cdb2026/index.html";
+
+function portInUse(port, timeoutMs = 600) {
+  return new Promise(resolve => {
+    const sock = createConnection({ host: "127.0.0.1", port });
+    const done = v => { sock.destroy(); resolve(v); };
+    sock.setTimeout(timeoutMs);
+    sock.once("connect", () => done(true));
+    sock.once("timeout", () => done(false));
+    sock.once("error", () => done(false));
+  });
+}
+
+async function waitForServer(port, tries = 40, delayMs = 100) {
+  for (let i = 0; i < tries; i++) {
+    if (await portInUse(port)) return true;
+    await new Promise(r => setTimeout(r, delayMs));
+  }
+  return false;
+}
+
+/**
+ * Sobe um http.server em `root` na `port`, ou lança.
+ * @returns {Promise<{proc: import("node:child_process").ChildProcess, stop: () => void, baseUrl: string}>}
+ */
+export async function startStaticServer(port, root) {
+  if (await portInUse(port)) {
+    throw new Error(
+      `[static_server] A porta ${port} JÁ ESTÁ EM USO. Recusando continuar: se este harness ` +
+      `prosseguisse, o browser conversaria com um servidor que NÃO é este checkout e a suíte ` +
+      `mediria o repositório errado (foi exatamente o que aconteceu em 2026-08-07 com um ` +
+      `http.server 8191 esquecido de outro dia).\n` +
+      `Ache o processo:  lsof -nP -iTCP:${port} -sTCP:LISTEN\n` +
+      `Encerre-o:        kill <PID>   (ou: pkill -f "http.server ${port}")`
+    );
+  }
+
+  const proc = spawn("python3", ["-m", "http.server", String(port)], { cwd: root, stdio: ["ignore", "ignore", "pipe"] });
+  let stderr = "";
+  proc.stderr?.on("data", d => { stderr += String(d); });
+  let exited = null;
+  proc.on("exit", code => { exited = code; });
+  proc.on("error", () => { exited = -1; });
+
+  const stop = () => { try { proc.kill(); } catch { /* já morto — nada a fazer */ } };
+
+  if (!(await waitForServer(port))) {
+    stop();
+    throw new Error(
+      `[static_server] O servidor não subiu na porta ${port}` +
+      (exited !== null ? ` (processo saiu com código ${exited})` : "") +
+      (stderr.trim() ? `.\nstderr do python:\n${stderr.trim()}` : ".")
+    );
+  }
+
+  // Confirma que quem atende é ESTE checkout, não um servidor estranho que ganhou a corrida.
+  let served;
+  try {
+    const r = await fetch(`http://localhost:${port}/${SENTINEL_PATH}`);
+    served = await r.text();
+  } catch (err) {
+    stop();
+    throw new Error(`[static_server] Servidor na porta ${port} não respondeu à sentinela: ${err.message}`);
+  }
+  const onDisk = readFileSync(join(root, SENTINEL_PATH), "utf8");
+  if (served !== onDisk) {
+    stop();
+    throw new Error(
+      `[static_server] O servidor na porta ${port} está servindo um conteúdo DIFERENTE do disco ` +
+      `(sentinela: ${SENTINEL_PATH}). Provavelmente outro servidor/worktree ganhou a porta. ` +
+      `Recusando medir o repositório errado.\n` +
+      `Ache o processo:  lsof -nP -iTCP:${port} -sTCP:LISTEN`
+    );
+  }
+
+  return { proc, stop, baseUrl: `http://localhost:${port}` };
+}
