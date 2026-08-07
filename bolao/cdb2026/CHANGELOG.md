@@ -1,5 +1,31 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.98 — 2026-08-07 — Topbar: o container .nav-secondary vazio também fica oculto
+
+Achado por `audit_visual_consistency.mjs` na primeira rodada confiável da suíte (ver
+`fix(test-infra)` no mesmo dia: a suíte vinha medindo um checkout velho por causa de um
+`http.server` esquecido, então este item estava mascarado).
+
+Os dois botões Participantes/Pagamento já eram `style="display:none"` desde 2026-08-01 (pedido do
+Eduardo: "Deixe aparecer somente os mesmos botões que estão disponíveis no br2026"). Mas só os
+FILHOS estavam ocultos — o container `.nav-secondary` continuava com
+`display:flex; width:100%; padding:2px 2px 0` DENTRO do `.topbar`, consumindo o `gap` da barra:
+uma faixa invisível que deixava o topbar do CDB2026 10px mais alto que Copa/BR2026
+(118.5px vs 108.5px). Copa/BR2026 não têm nem o container.
+
+Correção: `style="display:none"` no container também. Medido por probe DOM ao vivo depois do
+patch — os três apps agora em 108.5px, `.nav-secondary` fora do fluxo. Nenhuma funcionalidade
+removida: as seções `#participants`/`#payment` continuam existindo e o listener genérico de
+`init()` (`$$("[data-section]")`) segue intacto; para reexibir, remover os `style` do container e
+dos filhos.
+
+Também removida a entrada `topbar:height` de `ALLOWLIST.json`: ela existia para justificar
+exatamente esta divergência (esperava `cdb2026: 144.5px`, de quando os botões ainda apareciam) e
+agora não suprime nada — a própria justificativa dela previa este momento ("se este valor voltar a
+mudar, a entrada fica obsoleta e a auditoria vai corretamente flagrar de novo para revisão").
+
+Scoring intocado. `audit_scoring.py` dos três apps segue passando.
+
 ## v3.97 — 2026-08-07 — HOTFIX: origem de produção errada no guard de test isolation
 
 O guard de test isolation entregue na versão anterior usava

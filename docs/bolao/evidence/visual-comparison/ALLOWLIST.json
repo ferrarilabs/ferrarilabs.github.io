@@ -1,11 +1,28 @@
 {
   "$schema": "PR120-final review (evidence/allowlist hardening round) — versioned allowlist for bolao/scripts/audit_visual_consistency.mjs. This file is the ONLY mechanism that can suppress a DIVERGENT finding — no other allowlist, inline object, or code comment does this; see the script's classify()/validateAllowlistEntry() functions. Every entry is validated strictly: exact app set, expectedType-appropriate value check, required fields, approvalStatus==='approved', reviewBy not expired. Any allowlist entry that goes unused by a real finding in a given run, or that fails validation, makes the script exit non-zero — this file cannot silently accumulate stale suppressions.",
-  "fields": ["component", "property", "apps", "expectedType", "expected", "justification", "docRef", "owner", "approvalStatus", "approvedBy", "reviewDate", "reviewBy"],
+  "fields": [
+    "component",
+    "property",
+    "apps",
+    "expectedType",
+    "expected",
+    "justification",
+    "docRef",
+    "owner",
+    "approvalStatus",
+    "approvedBy",
+    "reviewDate",
+    "reviewBy"
+  ],
   "entries": [
     {
       "component": "main",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "content-driven",
       "expected": null,
       "justification": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'.",
@@ -17,25 +34,19 @@
       "reviewBy": "2027-08-03"
     },
     {
-      "component": "topbar",
-      "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
-      "expectedType": "exact",
-      "expected": { "copa2026": "108.5px", "br2026": "108.5px", "cdb2026": "144.5px" },
-      "justification": "`.topbar` CSS is byte-identical across all three apps (display:flex; align-items:center; gap:10px; padding:10px 18px; flex-wrap:wrap — verified by diffing the three stylesheets' .topbar rules directly). The height difference (Copa/BR2026 108.5px vs CDB2026 144.5px at 1280x900) is caused by the nav/brand/switcher row wrapping onto a different number of lines depending on translated label lengths at that exact viewport width, not a token difference. Re-measured 2026-08-05 after CDB2026's pre-existing '.nav-secondary' (Participantes/Pagamento compact links, landed on main separately from this branch — see bolao/cdb2026/index.html's own 'Fase 2.1 §7' comment) pushed the wrap from 2 lines (118.5px) to 3 (144.5px); CDB2026 genuinely has more topbar-area navigational content than Copa/BR2026 by product design, not a CSS regression. If this value ever drifts again (a label changes, a button is added/removed), this entry goes stale and the audit will correctly flag it DIVERGENT again for re-review — that is the intended behavior of expectedType:exact, not a bug.",
-      "docRef": "PR120-final review item 3 (verbatim task text, generalized from admin-toolbar to any nav/toolbar wrapping case); bolao/{copa2026,br2026,cdb2026}/css/styles.css .topbar rule (identical)",
-      "owner": "Platform",
-      "approvalStatus": "approved",
-      "approvedBy": "Eduardo",
-      "reviewDate": "2026-08-03",
-      "reviewBy": "2027-08-03"
-    },
-    {
       "component": "admin-toolbar",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "88.5px", "br2026": "46.5px", "cdb2026": "46.5px" },
+      "expected": {
+        "copa2026": "88.5px",
+        "br2026": "46.5px",
+        "cdb2026": "46.5px"
+      },
       "justification": "Copa's admin toolbar has 12 buttons (CSV/JSON/HTML export variants, API-Football, ESPN sync, result emails, force sync, clear data); BR2026/CDB2026 have 4 (export CSV/JSON, force sync, clear data) — a real, intentional difference in which admin tools exist per app, not a shared design token. `.admin-toolbar` CSS itself (display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px) is identical across all three. PR120-final review item 3 explicitly instructs: 'não compare... altura de toolbar com quantidade diferente de botões' — item 6 repeats this. If Copa's tool count ever drops enough to fit one row (or BR2026/CDB2026's grows past one row), this exact value goes stale and re-flags for review, which is correct.",
       "docRef": "PR120-final review item 3 and item 6 (verbatim task text)",
       "owner": "Platform",
@@ -47,7 +58,11 @@
     {
       "component": "card-base",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "content-driven",
       "expected": null,
       "justification": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here.",
@@ -61,7 +76,11 @@
     {
       "component": "tabs-nav",
       "property": "gridTemplateColumns",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
       "expected": {
         "copa2026": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px",
@@ -79,7 +98,11 @@
     {
       "component": "admin-card-row",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "content-driven",
       "expected": null,
       "justification": "Two FORMALIZED design-system variants (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'): Copa renders each admin entry as `admin-entry-full` (a complete `.card.admin-entry`, multi-row spaced layout); BR2026/CDB2026 render `admin-entry-dense` (a single-line `.admin-row` list) — both are documented, permitted variants of the same component, not a token drift on one shared component. Same synthetic fixture content (2 fictional entries, same field names) is used for all three; only the variant differs, by design, per the design system doc's own stated criteria for when each is appropriate.",
@@ -93,7 +116,11 @@
     {
       "component": "game-card",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "content-driven",
       "expected": null,
       "justification": "Verified with a live DOM probe (not assumed): margin/padding/gap/border-radius/colors/fonts are all EQUAL (confirmed via audit_visual_consistency.mjs's own computed-style output) — the height gap is pure fixture-content length, not a token. Copa's first .game-card__header wraps a match-badge + a longer 'Fase de grupos — Grupo A' phase label onto its own content width; BR2026's header is a single short 'Partida N' label. Copa's .game-card__metadata has 1 pill (date only, this fixture's first match has no venue set); BR2026's has 2 (date + venue). Different synthetic fixture text length per app, same class of exclusion as main/card-base/admin-toolbar height above — not a CSS/token bug, and not fixable by aligning a design token since there is none to align.",
@@ -107,9 +134,17 @@
     {
       "component": "status-badge",
       "property": "gap",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "normal", "br2026": "4px", "cdb2026": "4px" },
+      "expected": {
+        "copa2026": "normal",
+        "br2026": "4px",
+        "cdb2026": "4px"
+      },
       "justification": "`gap` only has a visible effect with 2+ flex children to space apart. Confirmed by reading each app's renderer: all three produce a single `<span>` with ONLY a text node inside (childElementCount:0, verified live via Playwright probe). Copa's `.status-chip` doesn't set display/gap at all (plain inline text pill); BR2026/CDB2026's `.game-status` sets `display:inline-flex; gap:4px` (kept for potential future icon use, CONSISTENCY_MATRIX item 67). With no second child to space, `gap:4px` is currently inert — zero rendered visual effect. All other properties of this exact badge state are already EQUAL across all three apps.",
       "docRef": "docs/bolao/CONSISTENCY_MATRIX.md item 67; bolao/{br2026,cdb2026}/js/app.js badge template (verbatim, single text node)",
       "owner": "Platform",
@@ -121,9 +156,17 @@
     {
       "component": "status-badge",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "auto", "br2026": "26.5px", "cdb2026": "26.5px" },
+      "expected": {
+        "copa2026": "auto",
+        "br2026": "26.5px",
+        "cdb2026": "26.5px"
+      },
       "justification": "Copa's `.status-chip` has no `display` declared (default inline span) so `height` never resolves past the keyword 'auto'; BR2026/CDB2026's `.game-status` explicitly sets `display:inline-flex`, which DOES resolve a concrete used height. Same root cause, same CONSISTENCY_MATRIX item 72 structural difference, as the minHeight entry directly above -- newly surfaced after the copa2026 fixture storeKey fix let Copa's games section render its real archived match data through this harness for the first time this round. Zero visual difference (both render the badge at its natural content-driven size; 'auto' vs '26.5px' is the same rendered outcome via two different CSS mechanisms).",
       "docRef": "docs/bolao/CONSISTENCY_MATRIX.md item 72 (INTENTIONALLY_DIFFERENT DOM structure); ALLOWLIST.json status-badge:minHeight entry above (same root cause)",
       "owner": "Platform",
@@ -135,7 +178,11 @@
     {
       "component": "ranking-row",
       "property": "height",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "content-driven",
       "expected": null,
       "justification": "`.rank-row` CSS itself is byte-identical (`display:grid; grid-template-columns:48px 1fr auto auto; gap:10px` in all three -- verified by diffing the stylesheets directly). The height gap is a real, intentional per-app business rule, not a token: BR2026/CDB2026 gate the 'Ver palpites' button on `isPastCutoff()`/`isPastEntryCutoff()` (privacy protection -- picks stay hidden from other participants until the reveal cutoff, so no one can copy another entrant's picks before submissions close) and this harness's synthetic fixture doesn't simulate a past-cutoff state for either. Copa is fully concluded/archived (cutoff long past for the real tournament), so its ranking row always renders the 4th column. Same class of exclusion as main/card-base height above -- state-driven, not CSS-driven.",
@@ -149,7 +196,11 @@
     {
       "component": "ranking-row",
       "property": "gridTemplateColumns",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "content-driven",
       "expected": null,
       "justification": "Same root cause as ranking-row:height directly above: the grid-template-columns RULE (`48px 1fr auto auto`) is identical CSS in all three apps, but the 4th `auto` track resolves to the 'Ver palpites' button's real width in Copa (cutoff always past, button always rendered) and collapses to `0px` in BR2026/CDB2026 in this harness run (their own picks-reveal cutoff gate -- see ranking-row:height entry -- isn't simulated, so the button doesn't render at all, and an empty `auto` track has zero width). Content-driven column sizing, not a token divergence -- will resolve identically to Copa's the moment either app's synthetic run simulates a past-cutoff state.",
@@ -163,9 +214,17 @@
     {
       "component": "admin-card-row",
       "property": "fontSize",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "15px", "br2026": "14px", "cdb2026": "14px" },
+      "expected": {
+        "copa2026": "15px",
+        "br2026": "14px",
+        "cdb2026": "14px"
+      },
       "justification": "Same formalized `admin-entry-full` vs `admin-entry-dense` variant as admin-card-row:height above (see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'). `admin-entry-full` reuses Copa's `.card` base font-size (15px, same as every other `.card` in Copa); `admin-entry-dense` is a plain list row with the base body font-size (14px). Newly surfaced after the copa2026 fixture storeKey fix let Copa's admin-card-row render real comparable content for the first time this round -- not a new divergence, the same pre-existing documented one, just previously masked by the harness bug (Copa's admin-card-row was N/A, not compared, before the fix).",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78",
       "owner": "Platform",
@@ -177,9 +236,17 @@
     {
       "component": "admin-card-row",
       "property": "lineHeight",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "22.5px", "br2026": "21px", "cdb2026": "21px" },
+      "expected": {
+        "copa2026": "22.5px",
+        "br2026": "21px",
+        "cdb2026": "21px"
+      },
       "justification": "Direct consequence of the fontSize divergence in the entry immediately above (1.5x line-height ratio applied to each variant's own base font-size) -- same `admin-entry-full` vs `admin-entry-dense` variant, same docRef.",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; ALLOWLIST.json admin-card-row:fontSize entry above (same root cause)",
       "owner": "Platform",
@@ -191,9 +258,17 @@
     {
       "component": "admin-card-row",
       "property": "padding",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "18px", "br2026": "8px 0px", "cdb2026": "8px 0px" },
+      "expected": {
+        "copa2026": "18px",
+        "br2026": "8px 0px",
+        "cdb2026": "8px 0px"
+      },
       "justification": "`admin-entry-full` is a padded `.card` (18px all sides, same as every other `.card` in the platform); `admin-entry-dense` is a plain list row with vertical-only padding (8px top/bottom, 0 horizontal -- it isn't a boxed card). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'.",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78",
       "owner": "Platform",
@@ -205,9 +280,17 @@
     {
       "component": "admin-card-row",
       "property": "margin",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "0px 0px 10px", "br2026": "0px", "cdb2026": "0px" },
+      "expected": {
+        "copa2026": "0px 0px 10px",
+        "br2026": "0px",
+        "cdb2026": "0px"
+      },
       "justification": "`admin-entry-full` cards stack with a bottom margin (10px, same as other `.card` instances); `admin-entry-dense` rows are spaced by the dense-list container's own `gap` instead of per-row margin (see admin-card-row:gap below). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'.",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78",
       "owner": "Platform",
@@ -219,9 +302,17 @@
     {
       "component": "admin-card-row",
       "property": "gap",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "normal", "br2026": "8px", "cdb2026": "8px" },
+      "expected": {
+        "copa2026": "normal",
+        "br2026": "8px",
+        "cdb2026": "8px"
+      },
       "justification": "`admin-entry-full` (a `.card`) isn't a flex/grid container itself, so `gap` computes to `normal`; `admin-entry-dense`'s dense-list row IS a flex row (spacing icon/name/actions inline), hence a real 8px gap. Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'.",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78",
       "owner": "Platform",
@@ -233,9 +324,17 @@
     {
       "component": "admin-card-row",
       "property": "borderRadius",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "18px", "br2026": "0px", "cdb2026": "0px" },
+      "expected": {
+        "copa2026": "18px",
+        "br2026": "0px",
+        "cdb2026": "0px"
+      },
       "justification": "`admin-entry-full` is a rounded `.card` (18px, same token as every other `.card`); `admin-entry-dense` is an unrounded list row (0px -- it's a row in a list, not a boxed card). Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'.",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78",
       "owner": "Platform",
@@ -247,9 +346,17 @@
     {
       "component": "admin-card-row",
       "property": "backgroundColor",
-      "apps": ["copa2026", "br2026", "cdb2026"],
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
       "expectedType": "exact",
-      "expected": { "copa2026": "rgb(13, 32, 40)", "br2026": "rgba(0, 0, 0, 0)", "cdb2026": "rgba(0, 0, 0, 0)" },
+      "expected": {
+        "copa2026": "rgb(13, 32, 40)",
+        "br2026": "rgba(0, 0, 0, 0)",
+        "cdb2026": "rgba(0, 0, 0, 0)"
+      },
       "justification": "`admin-entry-full` has its own `.card` background token (same as every other `.card`); `admin-entry-dense` rows are transparent, relying on the dense-list container's own background instead of a per-row fill. Formalized variant, see docs/bolao/DESIGN_SYSTEM.md § 'Admin entry row — full vs. dense variant'.",
       "docRef": "docs/bolao/DESIGN_SYSTEM.md § Admin entry row — full vs. dense variant; docs/bolao/CONSISTENCY_MATRIX.md item 78",
       "owner": "Platform",
@@ -257,6 +364,132 @@
       "approvedBy": "Eduardo",
       "reviewDate": "2026-08-03",
       "reviewBy": "2027-08-03"
+    },
+    {
+      "component": "form-heading",
+      "property": "height",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "input-text",
+      "property": "backgroundColor",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "input-text",
+      "property": "color",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "input-text",
+      "property": "height",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "input-text",
+      "property": "minHeight",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "select",
+      "property": "height",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "select",
+      "property": "minHeight",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "Consequência DIRETA e INTENCIONAL do congelamento permanente do roster (Batch 0, cdb2026 v3.94+: CONFIG.entryRosterFrozen). Verificado por probe DOM ao vivo em 2026-08-07 (não inferido): em cdb2026 `#entryName` tem readOnly=true e seu `.card` ancestral tem classList.contains('hidden')=true; em br2026 os dois são false. Duas causas distintas, ambas corretas: (1) `#newEntryCard` nasce oculto (fail closed — se o JS não rodar, nenhum formulário de inscrição aparece) e só é revelado por renderNewEntryCard() quando há entrada existente carregada para edição, então altura/minHeight não resolvem para valor usado ('auto'/0px); (2) os campos de identidade são readOnly porque a identidade da entrada é IMUTÁVEL no self-service congelado, e `bolao/shared/css/forms.css:37` (`input[readonly] { background: var(--bg); color: var(--muted); }`) é a regra COMPARTILHADA do design system estilizando corretamente um campo readonly. Copa2026 está arquivada (nenhum formulário ativo) e BR2026 encerrou inscrições sem reabertura de palpites — nenhuma das duas tem roster congelado com identidade readOnly, então a diferença é TOURNAMENT_SPECIFIC, não deriva de token. Corrigir isto no CSS/UI seria REVERTER um controle de integridade que protege dinheiro real.",
+      "docRef": "bolao/cdb2026/js/config.js CONFIG.entryRosterFrozen; bolao/cdb2026/js/app.js renderNewEntryCard()/saveEntry(); bolao/shared/css/forms.css:37; docs/bolao/CONSISTENCY_MATRIX.md § Congelamento permanente do roster; bolao/cdb2026/CHANGELOG.md v3.94-v3.95",
+      "owner": "Platform",
+      "approvalStatus": "pending",
+      "approvedBy": "",
+      "reviewDate": "2026-08-07",
+      "reviewBy": "2027-08-07"
     }
   ]
 }

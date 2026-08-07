@@ -76,7 +76,17 @@
        Restaurado (2026-08-06, achado por Eduardo em print). Mesmo atributo data-section, mesmo
        listener genérico de init() (`$$("[data-section]")`), nenhuma funcionalidade removida --
        as seções #participants/#payment continuam existindo e renderizando normalmente. -->
-  <div class="nav-secondary" aria-label="Mais opções">
+  <!-- 2026-08-07: o CONTAINER também fica oculto, não só os dois botões. Esconder apenas os
+       filhos deixava um `.nav-secondary` vazio com `display:flex; width:100%; padding:2px 2px 0`
+       DENTRO do .topbar: uma faixa invisível que ainda consumia o gap:10px da barra e mantinha o
+       topbar do CDB2026 10px mais alto que Copa/BR2026 (118.5px vs 108.5px) — flagrado como
+       DIVERGENT por audit_visual_consistency.mjs quando a suíte voltou a rodar. Como Copa/BR2026
+       não têm nem o container (ver comentário acima) e o pedido do Eduardo foi "deixe aparecer
+       somente os mesmos botões que estão disponíveis no br2026", ocultar o container é a
+       implementação fiel do pedido, não uma mudança de escopo. Nenhuma funcionalidade removida:
+       as seções #participants/#payment continuam existindo e o listener genérico de init()
+       (`$$("[data-section]")`) segue intacto — para reexibir, remova este style e o dos filhos. -->
+  <div class="nav-secondary" aria-label="Mais opções" style="display:none">
     <button type="button" class="nav-secondary-link" data-section="participants" data-i18n="navParticipants" style="display:none">Participantes</button>
     <button type="button" class="nav-secondary-link" data-section="payment" data-i18n="navPayment" style="display:none">Pagamento</button>
   </div>
