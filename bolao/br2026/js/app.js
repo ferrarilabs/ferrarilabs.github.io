@@ -892,7 +892,12 @@ function snapshotEventsToEspnShape(matches) {
 
 async function fetchStandings() {
   try {
-    const r = await fetchJson(C.espn.standingsUrl);
+    // `cache: "no-cache"` — REVALIDA sempre. Sem isto o navegador servia a cópia em cache por até
+    // 10 minutos (o GitHub Pages manda `cache-control: max-age=600` no snapshot), então o poll de
+    // 60s relia o MESMO arquivo: relógio parado, placar velho e lances do jogo sem aparecer.
+    // `no-cache` (e não `no-store`) porque o snapshot tem ~900 KB e só muda quando o cron commita:
+    // revalidar devolve 304 barato quando não mudou, e 200 com dado novo quando mudou.
+    const r = await fetchJson(C.espn.standingsUrl, { cache: "no-cache" });
     const snap = await r.json();
     const rows = Array.isArray(snap?.matches) ? snap.matches : null;
     if (!rows) throw new Error("snapshot de classificação sem linhas");
@@ -1003,7 +1008,7 @@ async function fetchEspnEventSummary(_eventId) {
 async function fetchScoreboard() {
   try {
     // Snapshot: já é a temporada inteira, então NÃO precisa (nem aceita) "?limit=20".
-    const r = await fetchJson(C.espn.scoreboardUrl);
+    const r = await fetchJson(C.espn.scoreboardUrl, { cache: "no-cache" });  // ver comentário em fetchStandings()
     const snap = await r.json();
     if (!Array.isArray(snap?.matches)) return null; // forma inesperada: melhor nada que lixo
     if (snap.stale) console.warn(`[BR2026] snapshot de jogos marcado stale (${snap.staleReason || "?"})`);
