@@ -233,6 +233,39 @@ test("[cdb2026] AUTORIDADE `espnSync`: flags 'roda uma vez' são OR, nunca volta
      "um flag de migração já executada voltou a false — a rotina 'roda uma vez' rodaria de novo (AUDIT-01)");
 });
 
+// ═══ 2b. O CASO REAL, ENCONTRADO EM PRODUÇÃO ════════════════════════════════
+test("[br2026] `roundEmail` (escrito pelo CRON em Python) sobrevive ao merge do NAVEGADOR", () => {
+  // Este não é um campo hipotético: foi encontrado no estado de PRODUÇÃO do BR2026 em 2026-08-08,
+  // 1KB, com `pendingBatch` / `baseline` / `sentGameIds` / `sentBatches`.
+  //
+  // Quem escreve é `bolao/br2026/scripts/send_round_email.py` — um cron, direto no Supabase. Quem
+  // apagava era o NAVEGADOR: `roundEmail` nunca esteve na lista de campos que o `mergeStates()`
+  // reconstruía, então qualquer participante que abrisse a página e salvasse devolvia ao Supabase
+  // um estado SEM ele.
+  //
+  // A consequência não é cosmética: `sentGameIds`/`sentBatches` são o registro de IDEMPOTÊNCIA do
+  // envio. Perder esse registro significa poder REENVIAR email de rodada já enviado para
+  // participantes reais, e perder `baseline` significa calcular movimento de ranking contra
+  // referência errada. É um defeito entre dois escritores (cron e navegador) que nenhum teste de um
+  // caminho só poderia ver.
+  const { mergeStates } = loadMerge("br2026");
+  const remote = baseState("br2026", "R");
+  remote.roundEmail = {                                    // como o cron grava
+    baseline: { g4: ["A", "B"], z4: ["Y", "Z"] },
+    sentGameIds: ["401", "402"], sentBatches: [{ id: "b1", sentAt: "2026-08-01T00:00:00Z" }],
+    pendingBatch: null,
+  };
+  const local = baseState("br2026", "L");                  // navegador, sem ideia do campo
+  for (const opts of [{}, { preferRemoteResults: true }]) {
+    const out = mergeStates(clone(local), clone(remote), opts);
+    assert(out.roundEmail, `opts=${JSON.stringify(opts)}: o merge do navegador apagou roundEmail`);
+    eq(JSON.stringify(out.roundEmail.sentGameIds), JSON.stringify(remote.roundEmail.sentGameIds),
+       "o registro de idempotência de envio foi alterado — email de rodada pode ser reenviado");
+    eq(JSON.stringify(out.roundEmail.baseline), JSON.stringify(remote.roundEmail.baseline),
+       "a baseline de movimento do ranking foi perdida");
+  }
+});
+
 // ═══ 3. CONTRATO DE CÓDIGO: a forma que falhou 4x não pode voltar ══════════
 test("CONTRATO: todo mergeStates() monta o retorno a partir de um SPREAD, não de lista à mão", () => {
   const offenders = [];

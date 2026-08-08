@@ -2,6 +2,18 @@
 
 ## v1.97 — 2026-08-08 — Invariantes de estado: nenhum campo de topo se perde no merge
 
+**SEGUNDO DEFEITO REAL, encontrado no estado de PRODUÇÃO durante a verificação:** o campo
+`roundEmail` — escrito pelo CRON (`scripts/send_round_email.py`, direto no Supabase) e contendo
+`pendingBatch`/`baseline`/`sentGameIds`/`sentBatches` — nunca esteve na lista de campos que o
+`mergeStates()` do NAVEGADOR reconstruía. Ou seja: qualquer participante que abrisse a página e
+salvasse devolvia ao Supabase um estado SEM ele.
+
+`sentGameIds`/`sentBatches` são o registro de IDEMPOTÊNCIA do envio. Perdê-lo significa poder
+REENVIAR email de rodada já enviado a participantes reais; perder `baseline` significa calcular
+movimento de ranking contra referência errada. Defeito entre dois escritores (cron e navegador) que
+nenhum teste de um caminho só enxergaria. A base por spread fecha isso, e há teste de regressão
+específico com o formato real do campo.
+
 **DEFEITO REAL DE DINHEIRO, corrigido aqui:** o merge de `paid` era um spread
 (`{...remote.paid, ...local.paid}`), ou seja "local sempre vence". Um `false` local VELHO
 sobrescrevia um `true` remoto mais NOVO do admin — o navegador de um participante que abriu a
