@@ -29,7 +29,7 @@ CONFIG = {
 
 if __name__ == "__main__":
     outcome = ep.run_sync(CONFIG)
-    print(f"[copa2026] sync outcome: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason}")
+    print(f"[copa2026] sync outcome: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason} liveUpstream={outcome.liveUpstream}")
     if outcome.problems:
         print(f"[copa2026] problems: {outcome.problems}")
     sys.exit(0)
