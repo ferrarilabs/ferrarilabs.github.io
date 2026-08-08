@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T21:50:37Z",
-  "sourceUpdatedAt": "2026-08-08T21:50:37Z",
+  "generatedAt": "2026-08-08T22:36:20Z",
+  "sourceUpdatedAt": "2026-08-08T22:36:20Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1953acd3120e678f535d1bba909f1e5c76163b5833ede849953bcba07dd81112",
+  "payloadHash": "af03a37cbec940e182ff209f915f014e944ddb79bfc919969de406084bfa8a25",
   "matches": [
     {
       "id": "401840808",
@@ -35195,25 +35195,25 @@
     {
       "id": "401841181",
       "date": "2026-08-08T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Grêmio",
       "awayTeam": "São Paulo",
       "homeTeamId": "6273",
       "awayTeamId": "2026",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 1,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 2700.0,
-      "clockStr": "45'+4'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -35229,8 +35229,179 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Jonathan Calleri",
-              "shortName": "J. Calleri"
+              "displayName": "Marcos Antonio",
+              "shortName": "Marcos Antonio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Mathías Villasanti",
+              "shortName": "M. Villasanti"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2821.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wallace",
+              "shortName": "Wallace"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 4500.0,
+            "displayValue": "75'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano",
+              "shortName": "Luciano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 4818.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Diego Caito",
+              "shortName": "Diego Caito"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Free-kick"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5133.0,
+            "displayValue": "86'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cristian Pavón",
+              "shortName": "C. Pavón"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marlon",
+              "shortName": "Marlon"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "André Silva",
+              "shortName": "A. Silva"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wálter Kannemann",
+              "shortName": "W. Kannemann"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Robert Arboleda",
+              "shortName": "R. Arboleda"
             }
           ]
         }
@@ -35239,26 +35410,46 @@
     {
       "id": "401841178",
       "date": "2026-08-08T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sat, August 8th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "20'",
+      "statusDetail": "20'",
       "completed": false,
       "homeTeam": "Remo",
       "awayTeam": "Atlético-MG",
       "homeTeamId": "4936",
       "awayTeamId": "7632",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Mangueirão",
       "city": "Belém",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1200.0,
+      "clockStr": "20'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 136.0,
+            "displayValue": "3'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jajá",
+              "shortName": "Jajá"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841184",
