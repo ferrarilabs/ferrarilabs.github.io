@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)
 
-Gerado em 2026-08-07T20:16:08.936Z · commit `98ebf89` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-08T13:45:33.603Z · commit `33c08f0` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).
 
@@ -8,20 +8,15 @@ Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação difere
 
 | Status | Quantidade |
 |---|---|
-| EQUAL | 322 |
+| EQUAL | 326 |
 | EQUIVALENT | 0 |
 | JUSTIFIED | 24 |
-| DIVERGENT | 4 |
+| DIVERGENT | 0 |
 | N/A | 70 |
 
 ## Divergências não aprovadas (DIVERGENT) — bloqueiam exit 0
 
-| Componente | Propriedade | copa2026 | br2026 | cdb2026 |
-|---|---|---|---|---|
-| Topbar | gap | `10px` | `8px 12px` | `8px 12px` |
-| Topbar | height | `110.5px` | `108.5px` | `108.5px` |
-| Topbar | gridTemplateColumns | `none` | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` |
-| Brand / logo | margin | `0px 407.156px 0px 0px` | `0px` | `0px` |
+Nenhuma. Todas as diferenças encontradas são EQUAL, EQUIVALENT ou JUSTIFIED (ver `ALLOWLIST.json`).
 
 ## Divergências aprovadas (JUSTIFIED) — ver ALLOWLIST.json
 
@@ -67,13 +62,13 @@ Seletores: copa2026=`.topbar`, br2026=`.topbar`, cdb2026=`.topbar`
 | letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
 | padding | `10px 18px` | `10px 18px` | `10px 18px` | EQUAL | — |
 | margin | `0px` | `0px` | `0px` | EQUAL | — |
-| gap | `10px` | `8px 12px` | `8px 12px` | DIVERGENT | — |
+| gap | `8px 12px` | `8px 12px` | `8px 12px` | EQUAL | — |
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(7, 20, 27, 0.94)` | `rgba(7, 20, 27, 0.94)` | `rgba(7, 20, 27, 0.94)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `110.5px` | `108.5px` | `108.5px` | DIVERGENT | — |
+| height | `108.5px` | `108.5px` | `108.5px` | EQUAL | — |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
-| gridTemplateColumns | `none` | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | DIVERGENT | — |
+| gridTemplateColumns | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | `627.562px 177.578px 260.859px 142px` | EQUAL | — |
 
 ### Brand / logo (`brand`)
 
@@ -87,7 +82,7 @@ Seletores: copa2026=`.brand`, br2026=`.brand`, cdb2026=`.brand`
 | lineHeight | `24px` | `24px` | `24px` | EQUAL | — |
 | letterSpacing | `normal` | `normal` | `normal` | EQUAL | — |
 | padding | `0px` | `0px` | `0px` | EQUAL | — |
-| margin | `0px 407.156px 0px 0px` | `0px` | `0px` | DIVERGENT | — |
+| margin | `0px` | `0px` | `0px` | EQUAL | — |
 | gap | `8px` | `8px` | `8px` | EQUAL | — |
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
@@ -239,7 +234,7 @@ Seletores: copa2026=`main`, br2026=`main`, cdb2026=`main`
 | borderRadius | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `8328.97px` | `1749px` | `4615.88px` | JUSTIFIED | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
+| height | `8328.97px` | `1791px` | `4653.88px` | JUSTIFIED | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03] |
 | minHeight | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | EQUAL | — |
 
