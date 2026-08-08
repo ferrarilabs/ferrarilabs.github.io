@@ -21,6 +21,11 @@ window.CDB2026_I18N = {
     countdownSec: "s",
     matchStarted: "Em andamento",
     waitingDraw: "Aguardando sorteio oficial",
+    // Batch 2 — estados explícitos do ciclo de vida do sorteio das quartas.
+    drawCountdownTitle: "Sorteio das Quartas de Final em",
+    drawWaiting: "Aguardando a definição da data do sorteio das quartas pela CBF.",
+    drawAwaitingPublication: "O sorteio já ocorreu — aguardando a publicação oficial da CBF para liberar os confrontos.",
+    drawIngestedPending: "Sorteio recebido, aguardando validação da fonte oficial.",
     phaseAlreadyConcluded: "Fase já concluída antes do início deste bolão — não fez parte do período de palpites.",
     // Form
     entryTitle: "Nova entrada",
