@@ -22,29 +22,76 @@
 // Usage: node scripts/audit_pii_repo_wide.mjs
 
 import { execSync } from "node:child_process";
+/**
+ * KNOWN LIMITATIONS — read before trusting a clean run.
+ *
+ * This gate is a line-oriented pattern scanner over TRACKED files. It is a useful last line of
+ * defence, not proof of absence. Specifically it does NOT detect:
+ *
+ *   1. PII inside binary or opaque files — images, PDFs, .zip/.bundle archives. Screenshots of an
+ *      admin or ranking screen can render participant names and are invisible here.
+ *   2. Values split across lines, or assembled at runtime by concatenation / template literals.
+ *   3. Encoded or encrypted payloads (base64 blobs, compressed JSON).
+ *   4. PII in git HISTORY. Only the current tree is scanned; a value committed and later removed
+ *      stays in history and is not reported.
+ *   5. UNTRACKED files. Local backups and scratch artefacts are out of scope by design.
+ *   6. Real names that are not on the private participant list, and payment references not on the
+ *      private payment list. Those lists live OUTSIDE this repo and are supplied by the operator;
+ *      when they are absent, those two categories silently cannot fire.
+ *   7. Semantic PII — a free-text field describing a person without an email or a listed name.
+ *
+ * FAILURE MODE TO WATCH: adding a real domain to ALLOWED_EMAIL_SUFFIXES converts this gate from
+ * noisy to silent. That already happened once with `@email.com`, which suppressed 11 addresses.
+ * Only RFC-2606 / RFC-6761 reserved names belong on that list. `scripts/test_audit_pii_repo_wide.mjs`
+ * locks this invariant.
+ */
+
 import fs from "node:fs";
+import { createHash } from "node:crypto";
 
 const ALLOWED_EMAILS = new Set([
   "emferrari@gmail.com", // site owner — deliberate public institutional contact
 ]);
-// Generic placeholder domains/TLDs used throughout the codebase's forms, docs,
-// and fixtures — never a real recipient.
-const ALLOWED_EMAIL_SUFFIXES = [".invalid", "@example.com", "@email.com"];
+// RFC-2606 / RFC-6761 reserved names ONLY. These cannot receive mail, so an address
+// using one is synthetic by definition. Anything else is treated as a real address.
+//
+// `@email.com` was REMOVED from this list: email.com is a LIVE webmail domain, so
+// allowlisting it silently suppressed real addresses (a false NEGATIVE — strictly worse
+// than the noise it saved). `.test` was ADDED: RFC 6761 reserves it exactly as `.invalid`,
+// and the bolao/shared/scripts/ suite uses @example.test / @x.test throughout — their
+// absence made this detector 100% false-positive and trained reviewers to ignore it.
+export const ALLOWED_EMAIL_SUFFIXES = [
+  ".invalid", ".test", ".example", ".localhost",
+  "@example.com", "@example.org", "@example.net",
+];
 
 // Files that are themselves detector source (their pattern strings would self-match)
 // or genuinely-synthetic fixtures already verified by hand.
 const SELF_EXCLUDE = new Set([
   "scripts/audit_pii_repo_wide.mjs",
+  // A SUÍTE do detector também é fonte do detector, pelo mesmo motivo já registrado acima. O teste
+  // de RECALL só prova alguma coisa se usar endereços de domínio REAL (`REDACTED_EMAIL`,
+  // `erin@example.com`): é exatamente isso que ele precisa afirmar que o detector pega. Sem esta
+  // entrada o gate se auto-denuncia — 17 achados, todos no próprio arquivo de teste — e fica
+  // vermelho para sempre, bloqueando toda a suíte por um falso positivo estrutural.
+  // NÃO é uma brecha para esconder vazamento: qualquer endereço colado aqui está, por construção,
+  // num arquivo cujo único conteúdo são fixtures do detector, e o teste de precisão/recall ao lado
+  // falha se as fixtures deixarem de ser fixtures.
+  "scripts/test_audit_pii_repo_wide.mjs",
   "bolao/loterias/powerball/scripts/audit_pii_tests.mjs",
 ]);
 
-function mask(value) {
+// Never reveal any character of a matched value. The previous implementation exposed the
+// first and last character plus the length, which for a short address or a transaction ID
+// is a meaningful partial disclosure — and this output lands in CI logs. A short digest is
+// enough to correlate two findings or confirm a fix, without disclosing anything.
+export function mask(value) {
   if (!value) return "(empty)";
-  if (value.length <= 2) return "*".repeat(value.length);
-  return `${value[0]}${"*".repeat(Math.max(1, value.length - 2))}${value[value.length - 1]} (len ${value.length})`;
+  const digest = createHash("sha256").update(String(value)).digest("hex").slice(0, 8);
+  return `<redacted sha256:${digest} len:${String(value).length}>`;
 }
 
-function isAllowedEmail(addr) {
+export function isAllowedEmail(addr) {
   if (ALLOWED_EMAILS.has(addr)) return true;
   return ALLOWED_EMAIL_SUFFIXES.some((suf) => addr.toLowerCase().endsWith(suf));
 }
@@ -163,4 +210,8 @@ function main() {
   console.log(`✓ Repo-wide PII/secret audit passed — scanned ${files.length} tracked files, 0 findings.`);
 }
 
-main();
+// Only scan when run directly. Importing this module (e.g. from its test) must not execute.
+import { fileURLToPath } from "node:url";
+if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
+  main();
+}

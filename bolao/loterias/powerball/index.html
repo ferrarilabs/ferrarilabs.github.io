@@ -20,6 +20,18 @@
 ">
 <link rel="icon" href="data:,">
 <title>Bolão do Ferrari — Powerball</title>
+<!-- BATCH 8: o Powerball era o único dos quatro apps FORA do framework visual compartilhado — tinha
+     uma cópia manual dos mesmos tokens e das mesmas regras base no seu próprio styles.css. Era essa
+     duplicação, e não 25 decisões de design, a causa real de toda a divergência medida contra a
+     Copa (golden master). Ordem idêntica à dos outros três apps; o styles.css local fica por último
+     e passa a conter só o que é genuinamente do Powerball (`pb-*`, `--lot-accent*`). -->
+<link rel="stylesheet" href="../../shared/css/tokens.css">
+<link rel="stylesheet" href="../../shared/css/reset.css">
+<link rel="stylesheet" href="../../shared/css/shell.css">
+<link rel="stylesheet" href="../../shared/css/navigation.css">
+<link rel="stylesheet" href="../../shared/css/components.css">
+<link rel="stylesheet" href="../../shared/css/forms.css">
+<link rel="stylesheet" href="../../shared/css/responsive.css">
 <link rel="stylesheet" href="css/styles.css?v=8ad3f40">
 <script>
 // Registra Service Worker para cache-busting permanente
