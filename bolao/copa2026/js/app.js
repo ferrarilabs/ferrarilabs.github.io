@@ -259,7 +259,25 @@ function mergeStates(local, remote, opts = {}) {
   }
   const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
 
+  // ─── BASE POR SPREAD (auditoria de invariantes de estado, 2026-08-08) ───────────────────────
+  // Este objeto era montado ENUMERANDO campos à mão. Foi assim que a MESMA classe de defeito
+  // apareceu quatro vezes no CDB2026: um campo novo, ausente da lista, era DESCARTADO em silêncio a
+  // cada merge — flags de espnSync (AUDIT-01), cutoffOffsetMs, e officialDraw duas vezes. Nada
+  // falhava; o dado simplesmente evaporava.
+  //
+  // A base agora é um spread das DUAS entradas, então qualquer campo de topo futuro é carregado
+  // adiante automaticamente. Todos os campos abaixo continuam sendo resolvidos EXPLICITAMENTE e
+  // sobrescrevem o spread, portanto o comportamento de todo campo hoje conhecido é IDÊNTICO ao de
+  // antes — o spread só decide o destino de campo que ninguém enumerou.
+  //
+  // Ordem: fora do load o local vence (pode ter trabalho ainda não sincronizado); no load o remoto
+  // vence (é o estado curado pelo admin). Mesma precedência que os campos explícitos já usam.
+  const carriedForward = opts.preferRemoteResults
+    ? { ...(local || {}), ...(remote || {}) }
+    : { ...(remote || {}), ...(local || {}) };
+
   return {
+    ...carriedForward,
     entries: Object.values(byId).sort((a, b) => (a.createdAt || "") > (b.createdAt || "") ? 1 : -1),
     deletedIds: [...tombstones],
     deletedResults: [...resultTombstones],
