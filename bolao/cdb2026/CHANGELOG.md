@@ -1,5 +1,29 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.110 — 2026-08-08 — Campos de pênalti (trabalho aprovado que estava fora da main)
+
+Encontrado pela reconstrução de requisitos do Batch 10, não por uma lista de tarefas: o commit
+`b16d463` ("Implements Eduardo's explicit authorization") vivia só na branch
+`football-operational-hardening`. Era **requisito aprovado, implementado, testado e nunca integrado**.
+
+Importa agora: a Copa do Brasil é mata-mata, as quartas estão pendentes, e até este commit o admin
+não tinha onde registrar o placar de pênaltis — só `qualifiedTeamId`. O código dizia literalmente
+"CDB2026 has NO admin-enterable penalty-score field anywhere in its data model".
+
+O desenho original foi preservado inteiro:
+
+- `penaltiesHome`/`penaltiesAway`/`penaltiesWinnerTeamId` são **aditivos e opcionais**. Confronto
+  travado antes desta versão resolve byte a byte igual (`penalties: null`).
+- Sempre **chaveados por TIME** (teamA/teamB), nunca por mandante do jogo de volta — assim uma
+  inversão de mando entre os jogos não pode trocar de quem é cada contagem. Mesma garantia de
+  orientação que o agregado já tinha.
+- Pênalti **NUNCA entra no agregado**. São campos irmãos, e há teste específico para o modo de falha
+  que isso evita: mostrar "6×5" em vez de "agregado 1×1 + pênaltis 5×4".
+- No admin, os campos só aparecem quando o agregado está empatado, e um placar de pênaltis que
+  discorda do vencedor escolhido é **recusado**, não salvo em silêncio.
+
+`test_penalty_fields.mjs` (10 checagens) entrou em `test:node` e no `verify`.
+
 ## v3.109 — 2026-08-08 — `<th scope="col">` em todas as tabelas renderizadas
 
 Cabeçalho de tabela sem `scope` deixa o leitor de tela sem a associação entre célula e cabeçalho:
