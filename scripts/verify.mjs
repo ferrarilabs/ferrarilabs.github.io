@@ -106,6 +106,8 @@ const CHECKS = [
     why: "cross-app structural parity", requires: "browser" },
   { id: "aria-nav", group: "browser", cmd: ["node", "bolao/scripts/test_aria_current_nav.mjs"],
     why: "ARIA current-nav", requires: "browser" },
+  { id: "accessibility", group: "browser", cmd: ["node", "bolao/scripts/audit_accessibility.mjs"],
+    why: "four-app a11y + responsive matrix (Batch 9)", requires: "browser" },
   { id: "visual-consistency", group: "browser", cmd: ["node", "bolao/scripts/audit_visual_consistency.mjs"],
     why: "visual consistency", requires: "browser" },
   { id: "draw-combo", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_draw_combo.mjs"],
