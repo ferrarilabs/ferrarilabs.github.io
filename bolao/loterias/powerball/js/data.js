@@ -189,7 +189,7 @@ window.POWERBALL_DRAWS = [
 
     // 15 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -US$ 2.00 do sorteio 08-03)", data: "04/08/2026", hora: "—", status: "organizador", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -US$ 2.00 do sorteio 08-03)", data: "04/08/2026", hora: "8:32 AM", status: "organizador", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", status: "verificado", state: "NC" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", status: "verificado", state: "FL" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", status: "verificado", state: "NC" },
@@ -314,7 +314,7 @@ window.POWERBALL_DRAWS = [
     },
 
     participants: [
-      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "06/08/2026", hora: "—", status: "organizador", state: "NC" },
+      { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "06/08/2026", hora: "8:58 AM", status: "organizador", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "2:10 PM", status: "verificado", state: "NC" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "8:59 AM", status: "verificado", state: "FL" },
       // Camila pagou $12 no total; $10 é a cota deste sorteio (valor abaixo),
@@ -329,7 +329,8 @@ window.POWERBALL_DRAWS = [
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:30 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "10:21 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "6:49 PM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "06/08/2026", hora: "9:06 AM", status: "verificado", state: "FL" }
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "06/08/2026", hora: "9:06 AM", status: "verificado", state: "FL" },
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "08/08/2026", hora: "12:12 AM", status: "verificado", state: "NC" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -346,10 +347,10 @@ window.POWERBALL_DRAWS = [
     // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
     // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
-      totalArrecadado: 140, // 14 participantes x $10 (contribuição alocada a este sorteio), 06/08/2026
+      totalArrecadado: 150, // 15 participantes x $10 (contribuição alocada a este sorteio); Rodrigo Hajj entrou em 08/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 158, // nada foi gasto ainda: 140 + 18 - 0 = 158
+      valorGuardadoProximoSorteio: 168, // nada foi gasto ainda: 150 + 18 - 0 = 168
       // Camila Ribeiro pagou $12; $2 não são cota, prêmio, saldo anterior, crédito
       // automático do próximo sorteio, nem dívida pessoal — ficam explicitamente
       // pendentes de classificação, fora de totalArrecadado/valorGuardadoProximoSorteio.
