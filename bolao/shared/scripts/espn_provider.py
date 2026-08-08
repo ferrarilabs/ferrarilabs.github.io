@@ -288,6 +288,19 @@ class RefreshOutcome:
     generatedAt: str
     sourceFetchedAt: Optional[str]
     problems: list[str] = field(default_factory=list)
+    # Quantos confrontos o UPSTREAM trouxe com jogo em andamento nesta busca. Existe por causa de
+    # um episódio concreto (2026-08-08 19:22 UTC): uma execução reportou `wrote=False unchanged`
+    # enquanto havia jogo ao vivo de verdade, e as execuções vizinhas, com o MESMO código e o MESMO
+    # arquivo anterior, gravaram normalmente. As evidências descartam bug de hash (seria
+    # determinístico e teria reprovado sempre), falha de fetch e validação (ambas marcam stale=True)
+    # e corrida de commit (nada havia sido commitado ainda). Sobra "o upstream devolveu, naquele
+    # instante e para aquele runner, uma cópia sem o jogo ao vivo" — não reproduzível daqui.
+    #
+    # O problema real não era o episódio (a execução seguinte se recupera sozinha): era que
+    # `unchanged` com jogo ao vivo acontecendo é INDISTINGUÍVEL de `unchanged` numa madrugada sem
+    # jogo nenhum. Agora dá para distinguir, e o próximo caso fica diagnosticável em vez de virar
+    # nota de rodapé.
+    liveUpstream: Optional[int] = None
 
 
 def payload_hash(matches) -> str:
@@ -364,12 +377,14 @@ def build_snapshot(
 
     normalized = normalize_scoreboard(fetch_result.data, aliases) if kind == "scoreboard" else normalize_standings(fetch_result.data, aliases)
     new_hash = payload_hash(normalized)
+    live_upstream = sum(1 for m in normalized if isinstance(m, dict) and m.get("state") == "in") if kind == "scoreboard" else None
     snap = _base_snapshot(
         competition_id=competition_id, provider=provider, generated_at=generated_at,
         source_updated_at=fetch_result.fetchedAt, stale=False, stale_reason=None,
         matches=normalized, payload_hash_val=new_hash,
     )
-    return snap, RefreshOutcome(True, False, "refreshed", generated_at, fetch_result.fetchedAt)
+    return snap, RefreshOutcome(True, False, "refreshed", generated_at, fetch_result.fetchedAt,
+                                liveUpstream=live_upstream)
 
 
 def is_schema_compatible(snapshot: Optional[dict]) -> bool:
@@ -484,7 +499,11 @@ def run_sync(config: dict) -> RefreshOutcome:
             and previous.get("payloadHash")
             and previous.get("payloadHash") == snapshot.get("payloadHash")):
         outcome.wrote = False
-        outcome.reason = "unchanged"
+        # `unchanged` COM jogo ao vivo no upstream é suspeito: durante um jogo o placar/relógio
+        # mudam, então o payload normalizado deveria mudar também. Marcado com um motivo próprio
+        # para aparecer no log e poder ser vigiado, em vez de se confundir com o `unchanged`
+        # legítimo de quando não há jogo nenhum.
+        outcome.reason = ("unchanged-while-live" if outcome.liveUpstream else "unchanged")
         return outcome
     write_snapshot_atomic(output_path, snapshot)
     return outcome

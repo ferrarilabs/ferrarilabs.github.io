@@ -33,7 +33,7 @@ CONFIG = {
 
 if __name__ == "__main__":
     outcome = ep.run_sync(CONFIG)
-    print(f"[cdb2026] sync outcome: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason}")
+    print(f"[cdb2026] sync outcome: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason} liveUpstream={outcome.liveUpstream}")
     if outcome.problems:
         print(f"[cdb2026] problems: {outcome.problems}")
     sys.exit(0)  # a stale-but-preserved result is not a hard failure for CI — see run_sync() docstring

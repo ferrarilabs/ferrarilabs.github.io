@@ -49,7 +49,7 @@ if __name__ == "__main__":
     exit_code = 0
     for label, cfg in configs:
         outcome = ep.run_sync(cfg)
-        print(f"[br2026:{label}] sync outcome: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason}")
+        print(f"[br2026:{label}] sync outcome: wrote={outcome.wrote} stale={outcome.stale} reason={outcome.reason} liveUpstream={outcome.liveUpstream}")
         if outcome.problems:
             print(f"[br2026:{label}] problems: {outcome.problems}")
     sys.exit(exit_code)
