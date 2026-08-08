@@ -48,6 +48,10 @@ if ('serviceWorker' in navigator) {
 </head>
 <body>
 
+<!-- Pular para o conteúdo: os três apps de futebol já tinham; o Powerball era o único sem.
+     O CSS de .skip-link já vem do framework compartilhado. -->
+<a href="#conteudo" class="skip-link">Pular para o conteúdo</a>
+
 <header class="topbar">
   <div class="brand"><span id="pbLogo" aria-hidden="true">🎟️</span> <h1>Bolão do Ferrari</h1></div>
   <!-- BATCH 6 (2026-08-07): dropdown customizado, pedido do Eduardo. Substitui o <select> nativo
@@ -64,7 +68,7 @@ if ('serviceWorker' in navigator) {
   </a>
 </header>
 
-<main>
+<main id="conteudo">
   <section class="card pb-hero">
     <div class="pb-hero-grid">
       <div>
@@ -100,21 +104,21 @@ if ('serviceWorker' in navigator) {
       <table class="pb-table">
         <thead>
           <tr>
-            <th rowspan="2">Nome</th>
-            <th rowspan="2">Valor</th>
-            <th rowspan="2">Método</th>
-            <th rowspan="2">Data / Hora</th>
-            <th rowspan="2">Status</th>
-            <th colspan="3" class="pb-th-group">Opção 1 · Lump Sum (à vista)</th>
-            <th colspan="3" class="pb-th-group">Opção 2 · Anuidade (30 anos)</th>
+            <th rowspan="2" scope="col">Nome</th>
+            <th rowspan="2" scope="col">Valor</th>
+            <th rowspan="2" scope="col">Método</th>
+            <th rowspan="2" scope="col">Data / Hora</th>
+            <th rowspan="2" scope="col">Status</th>
+            <th colspan="3" scope="colgroup" class="pb-th-group">Opção 1 · Lump Sum (à vista)</th>
+            <th colspan="3" scope="colgroup" class="pb-th-group">Opção 2 · Anuidade (30 anos)</th>
           </tr>
           <tr>
-            <th>Bruto</th>
-            <th>Impostos</th>
-            <th>Líquido</th>
-            <th>Total Bruto</th>
-            <th>Total Líquido</th>
-            <th>Média Mensal Líquida</th>
+            <th scope="col">Bruto</th>
+            <th scope="col">Impostos</th>
+            <th scope="col">Líquido</th>
+            <th scope="col">Total Bruto</th>
+            <th scope="col">Total Líquido</th>
+            <th scope="col">Média Mensal Líquida</th>
           </tr>
         </thead>
         <tbody id="pbParticipantsBody"></tbody>
@@ -145,8 +149,11 @@ if ('serviceWorker' in navigator) {
     <p class="pb-pending">Resultado e prêmio são buscados e calculados automaticamente na fonte oficial (NY Open Data) — sem digitação manual.</p>
   </section>
 
-  <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
 </main>
+
+<footer>
+  <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
+</footer>
 
 <script src="js/data.js?v=03f0b63"></script>
 <!-- Formatador USD canônico compartilhado (BATCH 5) — precisa carregar ANTES de app.js. -->

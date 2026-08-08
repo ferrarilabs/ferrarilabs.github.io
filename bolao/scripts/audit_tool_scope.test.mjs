@@ -44,6 +44,7 @@ const TOOLS = [
   { file: "bolao/scripts/check_shared_visual_contract.mjs", what: "contrato de CSS compartilhado" },
   { file: "bolao/scripts/audit_visual_consistency.mjs", what: "consistência visual em runtime" },
   { file: "bolao/scripts/audit_structural_parity.mjs", what: "paridade estrutural" },
+  { file: "bolao/scripts/audit_accessibility.mjs", what: "acessibilidade + matriz responsiva (Batch 9)" },
 ];
 
 /**
@@ -79,8 +80,13 @@ function declaredApps(file) {
   const src = readFileSync(join(ROOT, file), "utf8");
   const arr = src.match(/const APPS\s*=\s*\[([\s\S]*?)\]/);
   if (arr) return new Set([...arr[1].matchAll(/["']([^"']+)["']/g)].map(m => m[1]));
+  // A chave pode vir com ou sem aspas — `loterias/powerball` PRECISA de aspas (tem barra), e a
+  // primeira versão desta regex só casava chave nua. O efeito foi o guard acusar uma suíte que de
+  // fato cobria os quatro apps. Falha na direção segura (acusa a menos, nunca a mais), mas
+  // continuava sendo um leitor incapaz de ler exatamente o app que motivou o guard.
   const obj = src.match(/const APPS\s*=\s*\{([\s\S]*?)\n\};/);
-  if (obj) return new Set([...obj[1].matchAll(/^\s{2}([A-Za-z0-9_/-]+)\s*:/gm)].map(m => m[1]));
+  if (obj) return new Set([...obj[1].matchAll(/^\s{2}(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_/-]+))\s*:/gm)]
+    .map(m => m[1] ?? m[2] ?? m[3]));
   throw new Error(`não achei uma declaração APPS em ${file}`);
 }
 
@@ -147,6 +153,22 @@ test("todo app que põe <h1> dentro de .brand está coberto pelo reset compartil
     const nav = readFileSync(join(ROOT, "bolao/shared/css/navigation.css"), "utf8");
     assert(/\.brand h1\s*\{/.test(nav),
       `${app} tem <h1> dentro de .brand mas o framework não tem o reset — foi exatamente esta a regressão`);
+  }
+});
+
+// Regressão do PRÓPRIO leitor: `loterias/powerball` só existe como chave COM aspas (tem barra), e a
+// primeira versão da regex lia só chave nua — o guard acusava uma suíte que cobria os 4 apps.
+// Um leitor de escopo que não consegue ler o app que motivou o guard é pior que inútil.
+test("REGRESSÃO: o leitor entende chave com aspas, com apóstrofo e nua", () => {
+  const probe = (body) => {
+    const src = `const APPS = {\n${body}\n};`;
+    const m = src.match(/const APPS\s*=\s*\{([\s\S]*?)\n\};/);
+    return new Set([...m[1].matchAll(/^\s{2}(?:"([^"]+)"|'([^']+)'|([A-Za-z0-9_/-]+))\s*:/gm)]
+      .map(x => x[1] ?? x[2] ?? x[3]));
+  };
+  const got = probe('  "loterias/powerball": {},\n  \'br2026\': {},\n  copa2026: {},');
+  for (const k of ["loterias/powerball", "br2026", "copa2026"]) {
+    assert(got.has(k), `o leitor de APPS não enxerga a chave ${k}`);
   }
 });
 

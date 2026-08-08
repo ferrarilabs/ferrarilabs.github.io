@@ -44,7 +44,12 @@
 <a href="#entry" class="skip-link" data-i18n="skipToContent">Pular para o conteúdo</a>
 
 <header class="topbar">
-  <div class="brand">🏆 <strong>Bolão do Ferrari</strong> <span>Copa 2026</span></div>
+  <!-- <h1> na marca (e não <strong>) porque a Copa está ARQUIVADA: o modo arquivado esconde
+     a seção #entry, e com ela o <h1> do hero — a página no ar ficava sem nenhum heading
+     acessível acima de h2. `.brand h1` do framework zera margem e herda a tipografia, então
+     não há mudança visual. NÃO propagado para BR2026/CDB2026: lá o <h1> do hero está
+     visível, e um segundo <h1> visível seria pior, não melhor. -->
+  <div class="brand">🏆 <h1>Bolão do Ferrari</h1> <span>Copa 2026</span></div>
   <div class="bolao-switcher">
     <!-- Copa 2026 encerrada e arquivada (v4.157/158/159) — Eduardo: "Deixe o default do site como
          o Brasileiro agora", depois confirmou que queria redirect de verdade em /bolao/, não só o
