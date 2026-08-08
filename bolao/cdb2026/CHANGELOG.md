@@ -1,5 +1,52 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.107 — 2026-08-08 — Batch 4: progressão determinística quartas → semifinal → final
+
+Fecha o Batch 4. As primitivas do motor (`bf331a5`) estavam prontas mas não ligadas; agora existem o
+caminho de registro, a persistência provada, a UI honesta e a matriz de testes.
+
+**Topologia é DADO OFICIAL, nunca convenção.** A Copa do Brasil tem UM sorteio (a partir das
+quartas): semifinal e final não têm sorteio próprio, seus participantes são DERIVADOS dos
+vencedores. Mas o mapeamento vencedor-de-QF → vaga-de-SF é publicação oficial da CBF, que ainda não
+saiu. Por isso `register-bracket-topology` **exige** `slots` explícito e nunca deriva `qf-1×qf-2` /
+`qf-3×qf-4` nem qualquer outra convenção — supor isso seria fabricar chaveamento oficial, a mesma
+classe de erro que inventar confronto.
+
+- **`register-bracket-topology`** (semifinal/final apenas): valida contra os confrontos que
+  REALMENTE existem na fase predecessora e recusa (nunca conserta) topologia malformada, predecessor
+  desconhecido, predecessor duplicado, auto-referência/ciclo, predecessor de fase errada
+  (`TOPOLOGY_WRONG_PHASE`, código próprio) e topologia incompleta. Grava proveniência completa
+  (autoridade CBF, fonte, ingestedAt/validatedAt, `topologyFingerprint`).
+- **Idempotência e correção controlada**, mesmo contrato do Batch 3: registro idêntico (inclusive em
+  ordem diferente) é no-op; registro diferente sobre topologia validada é REJEITADO, salvo correção
+  com motivo E autorizador — que fica registrada com o fingerprint anterior.
+- **Identidade derivada, nunca copiada.** Uma correção autorizada de resultado de quartas muda
+  sozinha o participante da semifinal, e da semifinal muda sozinha o da final. Nenhum nome de clube é
+  guardado na fase seguinte, então não existe identidade duplicada velha para limpar.
+- **UI honesta.** Vaga não resolvida mostra a dependência ("Vencedor de Santos × Grêmio") ou "A
+  definir"; novas chaves `winnerOfPrefix`, `toBeDefined` e `topologyUnpublished`. **Sem topologia
+  registrada nenhum card de confronto futuro é desenhado** — a fase diz que o chaveamento oficial
+  ainda não foi publicado.
+
+**DEFEITO REAL ENCONTRADO E CORRIGIDO no caminho de persistência:** `applyMutationOverRemote()`
+ainda montava o objeto de fase ENUMERANDO campos (`{cutoffAt, cutoffOffsetMs, ties}`) — a mesma
+classe de regressão que o Batch 4 já tinha fechado em `mergeStates()`. Como a base ali é o remoto e
+`officialDraw` não estava na lista, **qualquer mutação administrativa** (marcar um pagamento, travar
+um confronto, em qualquer fase) apagava a proveniência do sorteio oficial das quartas, fazendo um
+bracket legítimo voltar a parecer não-oficial e liberando o sanitizador contra ele. Agora é spread,
+igual ao merge: `officialDraw`, `topology` e qualquer campo de fase futuro são carregados adiante.
+
+`bolao/cdb2026/scripts/audit_bracket_progression.mjs` — 36 checagens, em `npm run test:node`:
+topologia (ausente/válida/malformada/desconhecida/duplicada/circular/fase errada/incompleta/
+re-registro/correção), resolução (nenhum, um, vários e todos os resultados; um e os dois lados da
+semifinal; final resolvida e concluída), resultado incompleto, jogo adiado, classificação por
+pênaltis, correção autorizada propagando pela cadeia, persistência `save → remoto → merge → reload`,
+rótulo sem chave crua de tradução, e as não-regressões que protegem dinheiro: entradas, palpites,
+pagamentos e pontuação intocados, e nenhuma identidade de time fabricada em nenhum caminho de falha.
+
+Produção não muda: sem sorteio publicado e sem topologia registrada, quartas/semifinal/final seguem
+vazias e o torneio segue em WAITING. Nenhuma topologia sintética foi injetada.
+
 ## v3.106 — 2026-08-07 — Centavos só quando existem de verdade
 
 Eduardo: "os centavos continuam aparecendo, só deve aparecer no prêmio final".

@@ -260,8 +260,16 @@ test("13 nenhum caminho fabrica confronto: só register-official-draw insere tie
   // register-official-draw. Nenhum deriva par de time a partir de classificados.
   assert(/register-official-draw/.test(body), "o caminho oficial de registro desapareceu");
   assert(/QF_DRAW_NOT_OFFICIAL/.test(body), "o gate fail-closed de add-tie desapareceu");
-  assert(!/qualified.*=>.*teamA|derive|autoPair|shuffle|random/i.test(body),
+  // Batch 4: `derive`/`derivada` passou a aparecer legitimamente na PROSA da mutação de topologia
+  // (`register-bracket-topology`), que não escreve confronto nenhum — só `phases[x].topology`. O
+  // heurístico de palavra solta dava falso positivo por causa disso, então a checagem passou a ser
+  // ESTRUTURAL: nenhuma atribuição a `ties` pode vir de emparelhamento de classificados.
+  assert(!/qualified\s*(\.[A-Za-z]+\(|\[)[^\n]*team[AB]|autoPair|shuffle|random/i.test(body),
     "apareceu no admin algo que parece derivar/sortear confronto");
+  const topoBranch = body.slice(body.indexOf('case "register-bracket-topology"'),
+                                body.indexOf('case "set-cutoff"'));
+  assert(topoBranch.length > 0, "a mutação de topologia desapareceu");
+  assert(!/\bties\s*:/.test(topoBranch), "a mutação de topologia escreve confronto (só pode escrever topology)");
   // E o próprio arquivo não tem gerador de par aleatório.
   assert(!/Math\.random/.test(src), "Math.random apareceu no app — sorteio não se fabrica");
 });

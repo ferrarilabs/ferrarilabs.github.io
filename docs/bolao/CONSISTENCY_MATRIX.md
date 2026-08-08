@@ -2238,3 +2238,11 @@ maior severidade.
 | Item | Categoria | Situação |
 |---|---|---|
 | `PRODUCTION_ORIGINS` (allowlist) em vez de `PRODUCTION_ORIGIN` (string), derivado do `CNAME` | **SECURITY — CORRIGIDO NOS TRÊS** | copa2026 v4.172, br2026 v1.92, cdb2026 v3.97. A primeira versão do guard usou `ferrarilabs.github.io`, que responde 301 para `www.ferrarilabs.com` (o `CNAME` real): o guard bloqueava TODA gravação de produção nos três apps, em silêncio. Pego na verificação ao vivo, não pela suíte. `audit_test_isolation.mjs` agora lê o `CNAME` e falha se o domínio real não estiver na allowlist (verificado por controle negativo). |
+
+## BATCH 4 — progressão QF → SF → Final (CDB2026 v3.107) — 2026-08-08
+
+| Área | Categoria | Situação |
+|---|---|---|
+| Modelo de topologia + `register-bracket-topology` + resolução de participante derivada | **TOURNAMENT_SPECIFIC — não propagado** | Só a Copa do Brasil tem fase derivada sem sorteio próprio (um único sorteio, a partir das quartas). A Copa do Mundo tem bracket completo desde o sorteio de grupos e está arquivada; o BR2026 é liga de pontos corridos e não tem conceito de confronto eliminatório. Propagar seria copiar lógica de torneio, o que a regra do golden master proíbe explicitamente. |
+| Objeto de fase montado por SPREAD em `applyMutationOverRemote()` (defeito corrigido) | **PLATFORM_SHARED por classe — auditado nos três, aplicável só ao CDB2026** | Copa2026 e BR2026 **não têm** `applyMutationOverRemote()` nem estado por fase (`phases[].officialDraw`): verificado por busca direta nos dois `app.js`, zero ocorrências. Não existe equivalente para corrigir. A classe de regressão ("campo novo some porque o objeto é reconstruído enumerando campos") permanece registrada como risco geral — ao introduzir estado por fase em qualquer app, montar por spread. |
+| Chaves i18n `winnerOfPrefix` / `toBeDefined` / `topologyUnpublished` | **TOURNAMENT_SPECIFIC** | Só fazem sentido onde existe vaga derivada não resolvida. CDB2026 tem um único locale (`pt-BR`); as três chaves existem nele e são cobertas por teste que falha se um rótulo cru vazar. |
