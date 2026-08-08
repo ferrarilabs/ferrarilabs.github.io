@@ -68,7 +68,7 @@ export function buildParticipantConfirmationPayload({ participant, draw, estimat
  * correctionReason is only ever shown alongside that computed diff, never as
  * a standalone typed description (round-1 bug 3).
  */
-export function buildTicketPublicationPayload({ draw, participants, tickets, publicationVersion, proofUrl, correctionReason, previousHash, previousTickets }) {
+export function buildTicketPublicationPayload({ draw, participants, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets }) {
   const totalShares = participants.reduce((s, p) => s + (p.cotas || 0), 0);
   const f = draw.finance;
   const totalArrecadado = f.totalArrecadado;
@@ -142,6 +142,11 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
     financialSummary,
     tickets: manifest.tickets,
     proofUrl: proofUrl || (draw.sharedTickets ? draw.sharedTickets.proofUrl : null),
+    // Reaches the actual email content (render.mjs) — previously this only reached
+    // the send-time validation gate (validateAttachmentsAndLinks in publish_tickets.mjs)
+    // and never the payload, so the delivered email always said "comprovante não
+    // informado" even when a real attestation + real receipt backed the send.
+    operatorAttestation: operatorAttestation || null,
     correctionReason: correctionReason || null,
     previousHash: previousHash || null,
     previousHashShort: shortHash(previousHash),
