@@ -89,7 +89,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
   }
 
   const { shared, perRecipient } = buildTicketPublicationPayload({
-    draw, participants: eligible, tickets, publicationVersion, proofUrl, correctionReason, previousHash, previousTickets,
+    draw, participants: eligible, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets,
   });
 
   // onlyParticipant restricts the SEND, not the payload/summary computed above — each

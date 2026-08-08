@@ -366,14 +366,17 @@ ${showInlineTickets
 <p style="font-size:13px;line-height:1.6;">Este sorteio teve <strong>${payload.tickets.length} jogos</strong> — a lista completa não cabe no corpo deste e-mail (limite do provedor); confira todos os números no <strong>PDF ou CSV anexado a esta publicação</strong>, ambos gerados junto com este envio e assinados pelo mesmo código de conferência abaixo.</p>`}
 <h3 style="color:${BLUE};margin:16px 0 8px;">Comprovantes e auditoria</h3>
 <p style="font-size:13px;line-height:1.8;">
-${payload.proofUrl ? (isRealUrl(payload.proofUrl)
+${payload.proofUrl && isRealUrl(payload.proofUrl)
     ? `<a href="${esc(payload.proofUrl)}" style="color:${BLUE};">Ver comprovantes de compra</a><br>`
-    : `Comprovante de compra: <em>${esc(payload.proofUrl)}</em> (endereço de exemplo, não é um link real neste teste)<br>`)
-  : "Comprovante de compra: não informado nesta publicação.<br>"}
-PDF, CSV e manifesto JSON desta publicação são gerados junto com este envio (ver <code>email-previews/</code> / anexos administrativos) — nenhum link de download é enviado dentro do corpo do e-mail nesta versão.
+    : payload.proofUrl
+    ? `Comprovante de compra: <em>${esc(payload.proofUrl)}</em> (endereço de exemplo, não é um link real neste teste)<br>`
+    : payload.operatorAttestation
+    ? `${esc(payload.operatorAttestation)}<br>`
+    : "Comprovante de compra: não informado nesta publicação.<br>"}
+PDF, CSV e manifesto JSON desta publicação foram gerados junto com este envio e conferidos antes de enviar — nenhum link de download é enviado dentro do corpo do e-mail nesta versão.
 </p>
 <h3 style="color:${BLUE};margin:16px 0 8px;">Como conferir</h3>
-<p style="font-size:13px;line-height:1.5;">Este código identifica exatamente esta versão dos bilhetes. Caso qualquer número seja alterado, o código também mudará.<br>
+<p style="font-size:13px;line-height:1.5;">Este código identifica exatamente esta versão dos bilhetes. Caso qualquer número seja alterado, o código também mudará.${payload.operatorAttestation ? " Os números acima foram conferidos, um a um, contra o comprovante descrito na seção anterior antes deste código ser gerado." : ""}<br>
 Código (resumido): <code style="background:#f0f0f0;padding:2px 4px;border-radius:4px;">${esc(payload.manifestHashShort)}</code></p>
 <p style="font-size:12px;color:#999;">Publicado em ${friendlyDate(payload.generatedAtUtc)}<br>Registro UTC: ${esc(payload.generatedAtUtc)}</p>`;
   return shell({ title: isCorrection ? "Correção dos bilhetes — Powerball" : "Bilhetes publicados — Powerball", bodyHtml: body, testMode });
@@ -418,6 +421,8 @@ export function renderTicketPublicationText(payload, testMode) {
       ? ["Jogos:", ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, powerPlay)}`)]
       : [`Este sorteio teve ${payload.tickets.length} jogos — a lista completa não cabe no corpo deste e-mail (limite do provedor).`,
          "Confira todos os números no PDF ou CSV anexado a esta publicação, assinados pelo mesmo código de conferência abaixo."]),
+    "",
+    payload.proofUrl ? `Comprovante: ${payload.proofUrl}` : payload.operatorAttestation ? `Comprovante: ${payload.operatorAttestation}` : "Comprovante de compra: não informado nesta publicação.",
     "",
     `Hash (resumido): ${payload.manifestHashShort}`,
     `Publicado em ${friendlyDate(payload.generatedAtUtc)}`,
