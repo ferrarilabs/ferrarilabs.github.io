@@ -196,11 +196,33 @@ await atest("runPublishTickets excludes cancelled / cota<=0 / invalid-email part
 });
 if (fs.existsSync(TMP_OUTBOX)) fs.unlinkSync(TMP_OUTBOX);
 
-test("the REAL 2026-08-05 draw finance, unmodified, is correctly BLOCKED by the reconciliation gate (round-1 bug 2 regression)", () => {
+// This used to assert against the REAL current draw's own finance object,
+// unmodified — meaningful back when that object genuinely had the round-1
+// bug (totalArrecadado=138 vs valorUtilizado=153+saldo=1, no accounting for
+// carried-forward credit). Both root causes are now fixed: js/data.js's
+// finance for real draws is complete (creditoSorteioAnterior recorded when a
+// draw is funded partly by a prior draw's leftover balance + confirmed
+// prize), and validateFinancialReconciliation() was taught to add that field
+// into the "funds available" side (2026-08-08, Eduardo's call — see the
+// function's own doc comment). So the real draw now correctly RECONCILES,
+// which is the desired outcome, not a regression — pinning this test to "the
+// current real draw must be broken" would have made it fail forever after a
+// legitimate fix, and would silently stop testing anything once the real
+// data changed shape again. Guards the original bug directly instead, via a
+// synthetic finance object with the exact reported numbers and no
+// creditoSorteioAnterior — the actual invariant worth protecting.
+test("a draw with the original round-1-bug finance shape (no creditoSorteioAnterior) is correctly BLOCKED", () => {
   const draw = loadDrawSnapshot(realDraw.id);
-  const r = validateTicketPublication({ draw, participants: draw.participants, tickets: [{ numbers: [1, 2, 3, 4, 5], special: 1 }] });
+  const brokenDraw = { ...draw, finance: { totalArrecadado: 138, valorUtilizado: 153, valorGuardadoProximoSorteio: 1, reembolso: 0, outrasDestinacoes: 0 } };
+  const r = validateTicketPublication({ draw: brokenDraw, participants: draw.participants, tickets: [{ numbers: [1, 2, 3, 4, 5], special: 1 }] });
   assert.equal(r.ok, false);
   assert.ok(r.errors.some((e) => e.includes("FINANCE_NOT_RECONCILED")));
+});
+
+test("the REAL current draw's own finance (with creditoSorteioAnterior accounted for) reconciles and is NOT blocked", () => {
+  const draw = loadDrawSnapshot(realDraw.id);
+  const r = validateTicketPublication({ draw, participants: draw.participants, tickets: [{ numbers: [1, 2, 3, 4, 5], special: 1 }] });
+  assert.equal(r.ok, true, r.errors.join("; "));
 });
 
 test("validateTicketPublication blocks when no tickets / no participants / invalid ticket", () => {
