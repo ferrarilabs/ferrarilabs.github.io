@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T21:11:59Z",
-  "sourceUpdatedAt": "2026-08-08T21:11:59Z",
+  "generatedAt": "2026-08-08T21:50:37Z",
+  "sourceUpdatedAt": "2026-08-08T21:50:37Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "4728a183088941accce95b498386775aeea890e88c97459ffcf11b884e325b13",
+  "payloadHash": "1953acd3120e678f535d1bba909f1e5c76163b5833ede849953bcba07dd81112",
   "matches": [
     {
       "id": "401840808",
@@ -35195,25 +35195,25 @@
     {
       "id": "401841181",
       "date": "2026-08-08T19:00Z",
-      "state": "post",
-      "statusName": "STATUS_FULL_TIME",
-      "statusDescription": "Full Time",
-      "statusShortDetail": "FT",
-      "statusDetail": "FT",
-      "completed": true,
+      "state": "in",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
+      "completed": false,
       "homeTeam": "Grêmio",
       "awayTeam": "São Paulo",
       "homeTeamId": "6273",
       "awayTeamId": "2026",
-      "homeScore": 2,
+      "homeScore": 0,
       "awayScore": 1,
-      "homeWinner": true,
+      "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 5400.0,
-      "clockStr": "90'+7'",
-      "period": 2,
+      "clockSec": 2700.0,
+      "clockStr": "45'+4'",
+      "period": 1,
       "details": [
         {
           "type": {
@@ -35229,179 +35229,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Marcos Antonio",
-              "shortName": "Marcos Antonio"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "6273"
-          },
-          "clock": {
-            "value": 2700.0,
-            "displayValue": "45'+5'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Mathías Villasanti",
-              "shortName": "M. Villasanti"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Goal - Header"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "6273"
-          },
-          "clock": {
-            "value": 2821.0,
-            "displayValue": "48'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Wallace",
-              "shortName": "Wallace"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "2026"
-          },
-          "clock": {
-            "value": 4500.0,
-            "displayValue": "75'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Luciano",
-              "shortName": "Luciano"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "6273"
-          },
-          "clock": {
-            "value": 4818.0,
-            "displayValue": "81'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Diego Caito",
-              "shortName": "Diego Caito"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Goal - Free-kick"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "6273"
-          },
-          "clock": {
-            "value": 5133.0,
-            "displayValue": "86'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Cristian Pavón",
-              "shortName": "C. Pavón"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "6273"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+1'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Marlon",
-              "shortName": "Marlon"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "2026"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+2'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "André Silva",
-              "shortName": "A. Silva"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "6273"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+5'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Wálter Kannemann",
-              "shortName": "W. Kannemann"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "2026"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+5'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Robert Arboleda",
-              "shortName": "R. Arboleda"
+              "displayName": "Jonathan Calleri",
+              "shortName": "J. Calleri"
             }
           ]
         }
