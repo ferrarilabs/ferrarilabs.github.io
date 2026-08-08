@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T20:26:36Z",
-  "sourceUpdatedAt": "2026-08-08T20:26:36Z",
+  "generatedAt": "2026-08-08T21:02:44Z",
+  "sourceUpdatedAt": "2026-08-08T21:02:44Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "cb2272a8fa772b9eb16ed3b02ad0836b7425cbf940c5aa724d910f3ede296dcd",
+  "payloadHash": "eadbcd182dae7b96275e9071ad8190e1fee33fe6b00a7a9a488c66698a9b9da2",
   "matches": [
     {
       "id": "401840808",
@@ -35198,21 +35198,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "52'",
-      "statusDetail": "52'",
+      "statusShortDetail": "90'+5'",
+      "statusDetail": "90'+5'",
       "completed": false,
       "homeTeam": "Grêmio",
       "awayTeam": "São Paulo",
       "homeTeamId": "6273",
       "awayTeamId": "2026",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 3120.0,
-      "clockStr": "52'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
@@ -35269,6 +35269,101 @@
             {
               "displayName": "Wallace",
               "shortName": "Wallace"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 4500.0,
+            "displayValue": "75'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano",
+              "shortName": "Luciano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 4818.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Diego Caito",
+              "shortName": "Diego Caito"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Free-kick"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5133.0,
+            "displayValue": "86'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cristian Pavón",
+              "shortName": "C. Pavón"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marlon",
+              "shortName": "Marlon"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "André Silva",
+              "shortName": "A. Silva"
             }
           ]
         }
