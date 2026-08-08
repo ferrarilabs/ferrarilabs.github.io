@@ -1,5 +1,28 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.105 — 2026-08-07 — Símbolo dos valores volta a `$` (decisão revisada)
+
+Eduardo, depois de ver o `US$ ` em produção: "agora mostra US$ ao invés de $ em todos os sites".
+Decisão revisada — os **valores formatados** voltam a `$`: `$5.00`, `$1,250.00`, `$856M`.
+
+Toda a infraestrutura do Batch 5 continua valendo: um formatador canônico por runtime, paridade
+navegador/Node/Python garantida pelo teste de interop, e arredondamento half-up explícito. Só o
+prefixo mudou — em UM lugar por runtime, que era exatamente o objetivo de centralizar.
+
+**Divergência DELIBERADA, registrada a pedido dele:** a prose do i18n ("Valor: US$ 5 por entrada",
+presente desde 2026-07-11) continua com `US$` e **sem centavos** — escolha explícita do Eduardo
+("prose sem centavos, valores com"). Então numa mesma tela a frase diz `US$ 5` e o valor calculado
+diz `$60.00`. Isto é intencional; não "unificar" por conta própria numa próxima passada.
+
+Também revertida a linha de taxa de entrada do CDB2026 para prose (`Entrada: US$ 5.`) em vez da saída
+do formatador — ela é frase, não valor calculado.
+
+E corrigida uma inconsistência de espaçamento que existia antes de tudo isto: o Powerball mostrava
+`US$10 cada` (sem espaço) contra `US$ 5 por entrada` dos três bolões. Agora `US$ 10 cada`.
+
+Verificado em browser nos quatro apps: valores `$0.00`/`$856M`/`$140.00`, prose `US$ 5`/`US$ 10`,
+nenhum `US$` sem espaço restante.
+
 ## v3.104 — 2026-08-07 — BATCH 3: ingestão do sorteio oficial da CBF (auditável, fail-closed)
 
 **Caracterização da fonte primeiro** (documentada em `docs/bolao/CDB2026_CBF_INGESTION.md`):

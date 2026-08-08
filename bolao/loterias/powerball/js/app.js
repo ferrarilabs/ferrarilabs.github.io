@@ -263,7 +263,9 @@
     var el = document.getElementById("pbSummary");
     var rows = [
       [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"],
-      [totalCotas, "Cotas (US$10 cada)"],
+      // Prose, não valor calculado: segue o padrão do i18n dos outros apps ("US$ N", sem centavos).
+      // Antes era "US$10" sem espaço — inconsistente com "US$ 5 por entrada" dos três bolões.
+      [totalCotas, "Cotas (US$ 10 cada)"],
       [draw.participants.length, "Participantes"]
     ];
     if (draw.finance.creditoSorteioAnterior) {
