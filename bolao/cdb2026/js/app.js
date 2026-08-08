@@ -257,7 +257,7 @@ function topologyFingerprint(slots) {
  * Recusa (nunca conserta): vaga malformada, confronto predecessor desconhecido, predecessor
  * duplicado (dois lados esperando o mesmo vencedor), auto-referência/ciclo, contagem errada de vagas.
  */
-function validateTopology(slots, { predecessorTieIds, expectedSlots }) {
+function validateTopology(slots, { predecessorTieIds, expectedSlots, foreignTieIds }) {
   if (!slots || typeof slots !== "object" || Array.isArray(slots)) {
     throw drawIngestError("TOPOLOGY_MALFORMED", "slots ausente ou não é objeto");
   }
@@ -266,6 +266,10 @@ function validateTopology(slots, { predecessorTieIds, expectedSlots }) {
     throw drawIngestError("TOPOLOGY_SLOT_COUNT", `esperava ${expectedSlots} vagas, veio ${entries.length}`);
   }
   const known = new Set(predecessorTieIds || []);
+  // Confrontos que EXISTEM, mas em outra fase. Apontar a semifinal para um confronto da final (ou
+  // vice-versa) não é "confronto desconhecido" — é dependência na fase errada, e merece código
+  // próprio: o diagnóstico é diferente (topologia registrada na fase errada vs. id inventado).
+  const foreign = new Set(foreignTieIds || []);
   const used = new Set();
   for (const [slotId, slot] of entries) {
     if (!slotId) throw drawIngestError("TOPOLOGY_MALFORMED", "id de vaga vazio");
@@ -276,7 +280,10 @@ function validateTopology(slots, { predecessorTieIds, expectedSlots }) {
         throw drawIngestError("TOPOLOGY_MALFORMED", `${slotId}.${side} sem winnerOf`);
       }
       if (from === slotId) throw drawIngestError("TOPOLOGY_CIRCULAR", `${slotId} depende de si mesmo`);
-      if (!known.has(from)) throw drawIngestError("TOPOLOGY_UNKNOWN_TIE", `${slotId}.${side} -> ${from}`);
+      if (!known.has(from)) {
+        throw drawIngestError(foreign.has(from) ? "TOPOLOGY_WRONG_PHASE" : "TOPOLOGY_UNKNOWN_TIE",
+                              `${slotId}.${side} -> ${from}`);
+      }
       if (used.has(from)) throw drawIngestError("TOPOLOGY_DUPLICATE_PREDECESSOR", from);
       used.add(from);
     }
@@ -290,6 +297,23 @@ function validateTopology(slots, { predecessorTieIds, expectedSlots }) {
     out[slotId] = { sideA: { winnerOf: slot.sideA.winnerOf }, sideB: { winnerOf: slot.sideB.winnerOf } };
   }
   return out;
+}
+
+/**
+ * Decide o que fazer quando uma topologia é registrada sobre uma que já existe. Mesmo contrato do
+ * `officialDrawReingestDecision()` do Batch 3, e pelo mesmo motivo: registro idêntico é no-op
+ * (idempotente), registro DIFERENTE sobre topologia já validada é recusado, e só uma correção
+ * explícita — com motivo E autorizador — pode substituí-la, ficando registrada na proveniência.
+ * Sem isto, um segundo registro sobrescreveria em silêncio um mapeamento oficial já publicado.
+ */
+function topologyReregisterDecision(phase, incomingSlots, correction = null) {
+  const current = phase && phase.topology;
+  const locked = !!(current && topologyProvenanceIsValid(current.provenance) && current.slots);
+  if (!locked) return { action: "register" };
+  const currentFp = current.provenance.topologyFingerprint || topologyFingerprint(current.slots);
+  if (topologyFingerprint(incomingSlots) === currentFp) return { action: "noop" };
+  if (correction && correction.reason && correction.authorizedBy) return { action: "correct" };
+  return { action: "reject", code: "TOPOLOGY_LOCKED_DIFFERENT" };
 }
 
 // ── 4. QUALIFICAÇÃO (modelo canônico existente, só LIDO aqui) ───────────────
@@ -343,10 +367,22 @@ function derivedPhaseView(s, phaseId) {
 // ── 5. RENDERIZAÇÃO (rótulo honesto) ────────────────────────────────────────
 // Vaga não resolvida mostra a DEPENDÊNCIA, nunca um clube. "Vencedor de <confronto>" quando se sabe
 // de quem depende; "A definir" quando nem isso.
-function participantLabel(part) {
+// `tieLabel` é só APRESENTAÇÃO da dependência ("Santos × Grêmio" em vez de "qf-1"); a identidade
+// continua vindo de `part`, nunca de texto. Ausente, cai no id do confronto — nunca em um clube.
+function participantLabel(part, tieLabel) {
   if (part && part.resolved) return part.team;
-  if (part && part.winnerOf) return `${t("winnerOfPrefix")} ${part.winnerOf}`;
+  if (part && part.winnerOf) return `${t("winnerOfPrefix")} ${tieLabel || part.winnerOf}`;
   return t("toBeDefined");
+}
+
+// Nome legível de um confronto predecessor, lido do estado canônico. Nunca inventa clube: se o
+// confronto ainda não tem os dois lados, devolve null e o rótulo cai de volta no id.
+function tieDisplayName(s, tieId) {
+  for (const phase of Object.values(s?.phases || {})) {
+    const tie = phase?.ties?.[tieId];
+    if (tie) return tie.teamA && tie.teamB ? `${tie.teamA} × ${tie.teamB}` : null;
+  }
+  return null;
 }
 
 // ─── BATCH 3: INGESTÃO DO SORTEIO OFICIAL DA CBF ────────────────────────────
@@ -910,7 +946,16 @@ function applyMutationOverRemote(local, remote, mutation) {
     // travar um confronto, etc., em qualquer fase) apagaria silenciosamente o override de
     // reabertura de cutoff de toda fase que o tivesse, reintroduzindo exatamente o bug que
     // f2f8512 corrigiu, só que pelo caminho de mutação dirigida em vez do merge de snapshot.
-    phases[p.id] = { cutoffAt: remoteP.cutoffAt ?? null, cutoffOffsetMs: remoteP.cutoffOffsetMs, ties: { ...(remoteP.ties || {}) } };
+    //
+    // ─── MELHORIA ESTRUTURAL (Batch 4): mesmo spread de mergeStates() ────────────────────────
+    // Este objeto também era montado ENUMERANDO campos, e é a MESMA classe de regressão: como a
+    // base aqui é o remoto e a lista não incluía `officialDraw`, qualquer mutação administrativa
+    // (marcar um pagamento, travar um confronto — em QUALQUER fase) apagava a proveniência do
+    // sorteio oficial das quartas, fazendo o bracket legítimo voltar a parecer não-oficial e
+    // liberando o sanitizador contra ele. O spread carrega adiante `officialDraw`, a `topology` do
+    // Batch 4 e qualquer campo de fase futuro; `ties` é copiado à parte só para não compartilhar
+    // referência com o remoto.
+    phases[p.id] = { ...remoteP, cutoffAt: remoteP.cutoffAt ?? null, ties: { ...(remoteP.ties || {}) } };
   });
   const base = {
     entries, deletedIds, auditLog,
@@ -1029,6 +1074,62 @@ function applyAdminMutation(state, mutation) {
       };
       if (!officialDrawProvenanceIsValid(od)) throw new Error("OFFICIAL_DRAW_INVALID_PROVENANCE");
       s.phases[mutation.phaseId] = { ...ph, ties: { ...ties }, officialDraw: od };
+      break;
+    }
+    // ─── Batch 4: registrar a TOPOLOGIA oficial de uma fase derivada ────────
+    // A composição da semifinal/final é DERIVADA (não há sorteio próprio), mas o MAPEAMENTO
+    // vencedor-de-QF → vaga-de-SF é DADO OFICIAL da competição, não convenção de implementação.
+    // Por isso `mutation.slots` é OBRIGATÓRIO: esta mutação nunca deriva qf-1×qf-2 / qf-3×qf-4 nem
+    // qualquer outra convenção. Enquanto a CBF não publicar o mapeamento, não existe topologia — e
+    // a fase permanece honestamente sem confronto, igual às quartas sem sorteio.
+    case "register-bracket-topology": {
+      const phaseId = mutation.phaseId;
+      const predecessorId = DERIVED_PHASES[phaseId];
+      if (!predecessorId) throw drawIngestError("TOPOLOGY_PHASE_NOT_DERIVED", String(phaseId));
+      if (!mutation.slots) throw drawIngestError("TOPOLOGY_REQUIRED", "topologia oficial não fornecida");
+      const ph = phaseOf(phaseId);
+      const predecessorTieIds = Object.keys(s.phases?.[predecessorId]?.ties || {});
+      if (!predecessorTieIds.length) {
+        throw drawIngestError("TOPOLOGY_PREDECESSOR_EMPTY", predecessorId);
+      }
+      if (predecessorTieIds.length % 2 !== 0) {
+        throw drawIngestError("TOPOLOGY_PREDECESSOR_ODD", `${predecessorId}: ${predecessorTieIds.length}`);
+      }
+      // Ids de confronto de QUALQUER outra fase, para distinguir "id inventado" de "dependência na
+      // fase errada" (ver validateTopology).
+      const foreignTieIds = [];
+      for (const [pid, p] of Object.entries(s.phases || {})) {
+        if (pid === predecessorId) continue;
+        foreignTieIds.push(...Object.keys(p?.ties || {}));
+      }
+      // COMPLETUDE: exigir exatamente metade das vagas E proibir predecessor repetido (validateTopology)
+      // faz com que toda topologia aceita consuma cada confronto predecessor exatamente uma vez.
+      // Topologia parcial nunca fica registrada pela metade.
+      const slots = validateTopology(mutation.slots, {
+        predecessorTieIds, foreignTieIds, expectedSlots: predecessorTieIds.length / 2,
+      });
+      const decision = topologyReregisterDecision(ph, slots, mutation.correction);
+      if (decision.action === "reject") throw drawIngestError(decision.code);
+      if (decision.action === "noop") break;
+      const nowIso = new Date().toISOString();
+      const provenance = {
+        authority: "CBF",
+        source: mutation.source || "manual-admin",
+        sourceUrl: mutation.sourceUrl || ph.topology?.provenance?.sourceUrl || null,
+        publishedAt: mutation.publishedAt || null,
+        ingestedAt: nowIso,
+        validatedAt: nowIso,
+        validatedBy: mutation.validatedBy || "admin",
+        topologyFingerprint: topologyFingerprint(slots),
+        ...(decision.action === "correct" ? { correction: {
+          reason: String(mutation.correction.reason),
+          authorizedBy: String(mutation.correction.authorizedBy),
+          correctedAt: nowIso,
+          previousTopologyFingerprint: ph.topology?.provenance?.topologyFingerprint || null,
+        } } : {}),
+      };
+      if (!topologyProvenanceIsValid(provenance)) throw drawIngestError("TOPOLOGY_INVALID_PROVENANCE");
+      s.phases[phaseId] = { ...ph, topology: { slots, provenance } };
       break;
     }
     case "set-cutoff": {
@@ -2735,6 +2836,22 @@ function renderGamesSection() {
     });
     html += `<h3 class="games-round-header" data-visual-role="game-stage">${esc(phase.name)}</h3>`;
     if (!ties.length) {
+      // ── Batch 4: fase DERIVADA sem confronto cadastrado ──────────────────────────────────
+      // Com topologia oficial registrada, a vaga já EXISTE mesmo sem clube definido — mostrá-la
+      // como "Vencedor de X × Y" é informação verdadeira e derivada do estado canônico. SEM
+      // topologia registrada nada é desenhado: a alternativa seria supor qf-1×qf-2, que é
+      // fabricar chaveamento oficial (mesma classe de erro que inventar confronto).
+      if (DERIVED_PHASES[phase.id]) {
+        const view = derivedPhaseView(s, phase.id);
+        if (!view.topologyKnown) {
+          html += `<p class="muted" style="margin-bottom:14px">${esc(t("topologyUnpublished"))}</p>`;
+          return;
+        }
+        html += view.slots.map(slot => `<p class="muted" style="margin-bottom:14px">
+          ${esc(participantLabel(slot.sideA, tieDisplayName(s, slot.sideA.winnerOf)))} × ${esc(participantLabel(slot.sideB, tieDisplayName(s, slot.sideB.winnerOf)))}
+        </p>`).join("");
+        return;
+      }
       const msg = (DATA.phasesConcludedNoData || []).includes(phase.id) ? "phaseAlreadyConcluded" : "waitingDraw";
       html += `<p class="muted" style="margin-bottom:14px">${esc(t(msg))}</p>`;
       return;
