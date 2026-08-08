@@ -290,13 +290,25 @@ ${f.outrasDestinacoes ? `<tr><td>Outras destinações</td><td style="text-align:
 </table>`;
 }
 
+// EmailJS hard-rejects (HTTP 413 "Variables size limit") any template_params
+// payload over 50KB. Below this count, every ticket rendered as an inline
+// ball-circle row still fits comfortably; above it (this bolão bought 56 for
+// 2026-08-08, pushing a full render to ~160KB) it doesn't, so the full listing
+// gets replaced by a summary + pointer to the attached PDF/CSV instead —
+// Eduardo's explicit call (2026-08-08), the same simplification already
+// applied to the result email's full-ticket-list section. Threshold picked
+// conservatively below where two other draws (14-15 tickets each) still sit,
+// so their emails are unaffected.
+const INLINE_TICKET_LIST_MAX = 25;
+
 export function renderTicketPublicationHtml(payload, testMode) {
   const f = payload.financialSummary;
   const isCorrection = payload.templateId === "tickets-corrected";
   const powerPlay = !!f.costPerTicket;
-  const ticketsHtml = payload.tickets.map((t, i) =>
+  const showInlineTickets = payload.tickets.length <= INLINE_TICKET_LIST_MAX;
+  const ticketsHtml = showInlineTickets ? payload.tickets.map((t, i) =>
     `<tr><td style="padding:8px 8px;color:#666;font-size:12px;width:60px;vertical-align:middle;">Jogo ${String(i + 1).padStart(2, "0")}</td><td style="padding:8px 8px;">${ballsRowHtml(t, powerPlay)}</td></tr>`
-  ).join("");
+  ).join("") : "";
 
   let diffHtml = "";
   if (isCorrection && payload.diff) {
@@ -346,8 +358,11 @@ ${diffHtml}
 <tr><td style="color:#666;">Custo total</td><td>${usd(f.ticketCostTotal)}</td></tr>
 </table>
 ${reconciliationHtml(f)}
-<h3 style="color:${BLUE};margin:16px 0 8px;">Conjunto completo ${isCorrection ? "revisado" : "de jogos"}</h3>
-<table role="presentation" width="100%" cellpadding="0" style="font-size:13px;border-collapse:collapse;">${ticketsHtml}</table>
+${showInlineTickets
+  ? `<h3 style="color:${BLUE};margin:16px 0 8px;">Conjunto completo ${isCorrection ? "revisado" : "de jogos"}</h3>
+<table role="presentation" width="100%" cellpadding="0" style="font-size:13px;border-collapse:collapse;">${ticketsHtml}</table>`
+  : `<h3 style="color:${BLUE};margin:16px 0 8px;">Conjunto completo ${isCorrection ? "revisado" : "de jogos"}</h3>
+<p style="font-size:13px;line-height:1.6;">Este sorteio teve <strong>${payload.tickets.length} jogos</strong> — a lista completa não cabe no corpo deste e-mail (limite do provedor); confira todos os números no <strong>PDF ou CSV anexado a esta publicação</strong>, ambos gerados junto com este envio e assinados pelo mesmo código de conferência abaixo.</p>`}
 <h3 style="color:${BLUE};margin:16px 0 8px;">Comprovantes e auditoria</h3>
 <p style="font-size:13px;line-height:1.8;">
 ${payload.proofUrl ? (isRealUrl(payload.proofUrl)
@@ -367,6 +382,7 @@ export function renderTicketPublicationText(payload, testMode) {
   const f = payload.financialSummary;
   const isCorrection = payload.templateId === "tickets-corrected";
   const powerPlay = !!f.costPerTicket;
+  const showInlineTickets = payload.tickets.length <= INLINE_TICKET_LIST_MAX;
   const lines = [
     testMode ? "TESTE ADMINISTRATIVO — Esta mensagem não representa uma publicação ou envio de produção." : null,
     isCorrection ? `Correção dos bilhetes — Versão ${payload.publicationVersion}` : `Bilhetes publicados — Powerball ${payload.drawDateLabel} — ${payload.tickets.length} jogos`,
@@ -396,8 +412,10 @@ export function renderTicketPublicationText(payload, testMode) {
     `  Saldo reservado: ${usd(f.saldoReservado)}`,
     `  Diferença não conciliada: ${usd(f.diferencaNaoConciliada)}`,
     "",
-    "Jogos:",
-    ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, powerPlay)}`),
+    ...(showInlineTickets
+      ? ["Jogos:", ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, powerPlay)}`)]
+      : [`Este sorteio teve ${payload.tickets.length} jogos — a lista completa não cabe no corpo deste e-mail (limite do provedor).`,
+         "Confira todos os números no PDF ou CSV anexado a esta publicação, assinados pelo mesmo código de conferência abaixo."]),
     "",
     `Hash (resumido): ${payload.manifestHashShort}`,
     `Publicado em ${friendlyDate(payload.generatedAtUtc)}`,
