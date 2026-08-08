@@ -69,6 +69,15 @@ export const ALLOWED_EMAIL_SUFFIXES = [
 // or genuinely-synthetic fixtures already verified by hand.
 const SELF_EXCLUDE = new Set([
   "scripts/audit_pii_repo_wide.mjs",
+  // A SUÍTE do detector também é fonte do detector, pelo mesmo motivo já registrado acima. O teste
+  // de RECALL só prova alguma coisa se usar endereços de domínio REAL (`REDACTED_EMAIL`,
+  // `erin@example.com`): é exatamente isso que ele precisa afirmar que o detector pega. Sem esta
+  // entrada o gate se auto-denuncia — 17 achados, todos no próprio arquivo de teste — e fica
+  // vermelho para sempre, bloqueando toda a suíte por um falso positivo estrutural.
+  // NÃO é uma brecha para esconder vazamento: qualquer endereço colado aqui está, por construção,
+  // num arquivo cujo único conteúdo são fixtures do detector, e o teste de precisão/recall ao lado
+  // falha se as fixtures deixarem de ser fixtures.
+  "scripts/test_audit_pii_repo_wide.mjs",
   "bolao/loterias/powerball/scripts/audit_pii_tests.mjs",
 ]);
 

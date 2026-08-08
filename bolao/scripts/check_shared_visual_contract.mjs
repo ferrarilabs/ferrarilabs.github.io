@@ -47,7 +47,12 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = join(__dirname, "..", "..");
 
-const APPS = ["copa2026", "br2026", "cdb2026"];
+// BATCH 8 (2026-08-08): `loterias/powerball` entrou aqui. Ele era o único dos QUATRO apps fora do
+// framework compartilhado — mantinha uma cópia manual dos mesmos tokens e das mesmas regras base no
+// seu próprio styles.css, e portanto ficava de fora justamente do contrato que existe para impedir
+// esse tipo de duplicação. Enquanto esteve fora, "0 violations" nunca significou o que parecia. O
+// caminho tem barra porque o Powerball mora um nível mais fundo que os apps de futebol.
+const APPS = ["copa2026", "br2026", "cdb2026", "loterias/powerball"];
 
 // Canonical protected selectors — the shared component identities established in
 // bolao/shared/css/{navigation,shell,components,forms,admin}.css during phases 2-4. Listed as
