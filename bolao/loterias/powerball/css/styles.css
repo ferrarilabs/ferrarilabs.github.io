@@ -5,61 +5,24 @@
    Powerball usados só como destaque de marca no hero.
    ============================================================ */
 
-*, *::before, *::after { box-sizing: border-box; }
+/* BATCH 8 — Este arquivo continha uma CÓPIA MANUAL dos tokens e das regras base do framework
+   compartilhado (`bolao/shared/css/*`). Era exatamente essa duplicação que produzia a divergência
+   contra a Copa: dois lugares descrevendo o mesmo componente, drifting sem ninguém perceber — a
+   mesma classe de falha que `check_shared_visual_contract.mjs` já existe para pegar nos outros três
+   apps. Removido daqui: `:root` (tokens), box-sizing, `html/body`, `button`, `.topbar`, `.brand`,
+   `main`, `.card`, `.whatsapp-btn`, `.secondary`. Todos passam a vir do framework.
+   O que fica: só o que é genuinamente do Powerball. */
 
 :root {
-  --bg:        #07141b;
-  --bg2:       #0d2028;
-  --bg3:       #10252d;
-  --border:    #1f3b45;
-  --border2:   #29444d;
-  --green:     #2fe56e;
-  --green-dk:  #03130b;
-  --gold:      #f59e0b;
-  --text:      #eef7f1;
-  --muted:     #9cb2b9;
-  --red:       #ff6b6b;
-  --danger-bg: #3d1520;
-  --danger-tx: #ffdbe1;
-  --danger-br: #8e2d42;
-  /* Marca da loteria ativa (definida em runtime por app.js conforme gameType) */
+  /* Marca da loteria ativa (definida em runtime por app.js conforme gameType). Único token
+     próprio do Powerball — não existe equivalente nos apps de futebol. */
   --lot-accent: #CE1141;
   --lot-accent2: #003DA5;
 }
 
-html, body { overflow-x: hidden; overflow-x: clip; }
-body {
-  margin: 0;
-  font-family: Inter, system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 15px;
-  line-height: 1.5;
-}
-
-button, input, select, textarea { font: inherit; }
-button {
-  border: 0; border-radius: 12px; padding: 11px 18px;
-  background: var(--green); color: var(--green-dk);
-  font-weight: 900; cursor: pointer; transition: opacity .15s;
-}
-button:hover { opacity: .88; }
-
-.topbar {
-  position: sticky; top: 0; z-index: 20;
-  background: rgba(7,20,27,.94);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; gap: 10px;
-  padding: 10px 18px; flex-wrap: wrap;
-}
-.brand {
-  display: flex; gap: 8px; align-items: center;
-  margin-right: auto; font-weight: 900; font-size: 16px; white-space: nowrap;
-}
-.brand h1 { margin: 0; font: inherit; }
-#pbLogo { font-size: 20px; line-height: 1; }
+/* `.brand span` do framework deixa o span em 12px/muted (é o subtítulo nos apps de futebol).
+   Aqui o span é o emoji do logo, não texto de apoio — mantém o tamanho próprio. */
+#pbLogo { font-size: 20px; line-height: 1; color: var(--text); }
 
 /* ── BATCH 6: dropdown customizado de sorteio (2026-08-07) ──
    O <select> nativo saiu do index.html. O botão herda EXATAMENTE os tokens que a regra antiga
@@ -135,15 +98,10 @@ button:hover { opacity: .88; }
   .pb-select__listbox { max-width: 100%; }
 }
 
-main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
-
-.card {
-  background: var(--bg2);
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  padding: 18px;
-  margin-bottom: 18px;
-}
+/* `main` e `.card` vêm do shell compartilhado. Único acréscimo: o respiro extra no rodapé, que
+   existe porque esta página é rolagem única e longa (sem tabs), então o último card não pode
+   encostar no fim do viewport. É layout, não identidade de componente. */
+main { padding-bottom: 60px; }
 
 .pb-hero {
   background: linear-gradient(135deg, var(--lot-accent) 0%, var(--lot-accent2) 130%);
@@ -172,7 +130,12 @@ main { max-width: 980px; margin: 0 auto; padding: 18px 16px 60px; }
 .pb-countdown-nums .n { font-size: 1.4rem; font-weight: 900; }
 .pb-countdown-nums .u { font-size: .62rem; opacity: .85; text-transform: uppercase; }
 
-.section-title { margin: 0 0 14px; font-size: 1rem; font-weight: 900; color: var(--text); }
+/* Heading de seção. Os apps de futebol usam `<h2>` puro; o Powerball usa `<h2 class="section-title">`.
+   A regra local ficou VAZIA de propósito: tipo, peso, cor e margem vêm todos do `h2` canônico do
+   reset compartilhado. O que existia aqui (1rem/900/margem própria) não era decisão de design — era
+   a cópia manual tendo drifted do golden master. A classe permanece no HTML só como gancho
+   semântico; se voltar a precisar de regra própria, ela precisa de justificativa, não de herança
+   acidental. */
 
 .pb-table-wrap { overflow-x: auto; }
 table.pb-table { width: 100%; border-collapse: collapse; font-size: .86rem; min-width: 760px; }
@@ -233,18 +196,9 @@ table.pb-table tr:hover td { background: var(--bg3); }
 .pb-summary-item .l { font-size: .74rem; color: var(--muted); margin-top: 2px; }
 
 .pb-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
-.whatsapp-btn {
-  display: inline-flex; gap: 6px; align-items: center;
-  background: #25D366; color: #000; text-decoration: none; border: none;
-  border-radius: 999px; padding: 8px 14px; font-weight: 900; font-size: .82rem; cursor: pointer;
-  white-space: nowrap;
-}
-.whatsapp-btn img { width: 18px; height: 18px; }
-.secondary {
-  background: var(--bg3); color: var(--text); border: 1px solid var(--border2);
-  border-radius: 12px; padding: 11px 18px; font-weight: 900; font-size: .85rem;
-  text-decoration: none; display: inline-flex; align-items: center; cursor: pointer;
-}
+/* `.whatsapp-btn` e `.secondary` vêm do framework (navigation.css / forms.css). A cópia local
+   tinha drifted: `.82rem`/`8px 14px` contra `13px`/`8px 13px` do canônico, e `.85rem` contra o
+   tamanho herdado do `button`. Nenhuma dessas diferenças foi decidida — é drift de token. */
 
 .pb-modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,.65);
