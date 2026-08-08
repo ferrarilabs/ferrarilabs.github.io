@@ -37,13 +37,15 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
   const draw = syntheticDraw || loadDrawSnapshot(drawId);
   const tickets = (syntheticDraw && syntheticDraw.__tickets) ? syntheticDraw.__tickets : ticketsFromDraw(draw);
   const participants = draw.participants;
-  // onlyParticipant (Eduardo, 2026-08-08): send to himself first for review, everyone
-  // else afterward on his go-ahead. Filters AFTER the normal eligibility rules (still
-  // needs a valid email/cotas>0/not cancelled), not instead of them. The idempotency
-  // key (poolId+drawId+version+participantId) is identical whether this run restricts
-  // to one name or not, so a later full run correctly skips him as already-sent and
-  // only reaches the remaining recipients — no separate "resend to the rest" mode needed.
-  const eligible = eligibleRecipients(participants).filter((p) => !onlyParticipant || p.name === onlyParticipant);
+  // eligible is always the FULL real pool (minus the standing email/cotas/cancelled
+  // rules) — it feeds the shared financial summary (participant count, total shares,
+  // valor por cota, etc.), which must reflect the whole bolão regardless of who this
+  // particular run happens to email. onlyParticipant restricts WHO gets sent to below,
+  // never what the summary numbers say — an earlier version filtered eligible itself,
+  // which quietly shrank "Participantes ativos"/"Total de cotas"/"Valor por cota" down
+  // to 1 whenever restricted to a single recipient (Eduardo caught this in the actual
+  // delivered email: pool-wide totals showing his own single share's numbers).
+  const eligible = eligibleRecipients(participants);
 
   const validation = validateTicketPublication({ draw, participants: eligible, tickets });
   if (!validation.ok) return { ok: false, errors: validation.errors, invalidRecipients: validation.invalidRecipients };
@@ -90,8 +92,13 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
     draw, participants: eligible, tickets, publicationVersion, proofUrl, correctionReason, previousHash, previousTickets,
   });
 
+  // onlyParticipant restricts the SEND, not the payload/summary computed above — each
+  // person's own payload (their cotas/valor/percentage) is already personalized per
+  // recipient in perRecipient, and is unaffected either way.
+  const recipientsToSend = onlyParticipant ? perRecipient.filter((p) => p.participantId === onlyParticipant) : perRecipient;
+
   const results = [];
-  for (const payload of perRecipient) {
+  for (const payload of recipientsToSend) {
     const idempotencyKey = idempotencyKeyForPublication(draw.gameType, draw.id, publicationVersion, payload.templateVersion) + `:${payload.participantId}`;
     const { job, created } = enqueueEmailJob({
       poolId: draw.gameType,

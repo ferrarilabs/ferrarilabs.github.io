@@ -282,6 +282,7 @@ function reconciliationHtml(f) {
 <h3 style="color:${BLUE};margin:16px 0 8px;">Reconciliação</h3>
 <table role="presentation" width="100%" cellpadding="5" style="font-size:13px;border-collapse:collapse;font-family:monospace;">
 <tr><td>Total arrecadado</td><td style="text-align:right;">${usd(f.totalArrecadado)}</td></tr>
+${f.creditoSorteioAnterior ? `<tr><td>Crédito do sorteio anterior</td><td style="text-align:right;">${usd(f.creditoSorteioAnterior)}</td></tr>` : ""}
 <tr><td>Valor utilizado</td><td style="text-align:right;">${usd(f.valorUsado)}</td></tr>
 <tr><td>Saldo reservado</td><td style="text-align:right;">${usd(f.saldoReservado)}</td></tr>
 ${f.reembolso ? `<tr><td>Reembolso</td><td style="text-align:right;">${usd(f.reembolso)}</td></tr>` : ""}
@@ -408,6 +409,7 @@ export function renderTicketPublicationText(payload, testMode) {
     `  Total de cotas: ${f.totalShares}`,
     `  Valor por cota: ${usd(f.valorPorCota)}`,
     `  Total arrecadado: ${usd(f.totalArrecadado)}`,
+    ...(f.creditoSorteioAnterior ? [`  Crédito do sorteio anterior: ${usd(f.creditoSorteioAnterior)}`] : []),
     `  Valor usado: ${usd(f.valorUsado)}`,
     `  Saldo reservado: ${usd(f.saldoReservado)}`,
     `  Diferença não conciliada: ${usd(f.diferencaNaoConciliada)}`,
