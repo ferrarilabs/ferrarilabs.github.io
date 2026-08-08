@@ -1,29 +1,49 @@
-# bolao_provider_snapshot.yml — football-hardening readiness follow-up, item 8.
+# bolao_provider_snapshot.yml — refresh do snapshot normalizado da ESPN.
 #
-# NOT ACTIVE ON A SCHEDULE. workflow_dispatch only — this branch does not activate any new
-# production cron. Enabling a real `schedule:` trigger is a deliberate, separate, reviewed step
-# after this workflow has been run manually a few times and its dry-run output inspected.
+# ─── 2026-08-08: O PASSO ADIADO FOI FEITO (schedule + commit-back) ───────────────────────────
 #
-# Purpose: runs each app's sync_espn.py (checkpoint C's shared ESPN provider wrapper) to refresh
-# the normalized snapshot. Intended eventual schedule (NOT active here): every 10-15 min during
-# each app's live-match window, same cadence as the existing result-email crons.
+# Este arquivo dizia, no próprio cabeçalho: "NOT ACTIVE ON A SCHEDULE... Enabling a real
+# `schedule:` trigger is a deliberate, separate, reviewed step". Esse passo nunca aconteceu.
 #
-# Script:              bolao/{copa2026,br2026,cdb2026}/scripts/sync_espn.py
-# Backend repository:  none (writes a local JSON snapshot file — no Supabase/DB involved at all;
-#                       this step is pure read from ESPN + local file write, see
-#                       bolao/shared/scripts/espn_provider.py)
-# Secrets used:         none (ESPN's public endpoints need no credential)
-# Concurrency:          one group per app, queued not cancelled — two overlapping snapshot
-#                       refreshes for the SAME app must never race each other's atomic write
-# Timeout:              10 minutes (provider fetch has its own internal timeout+retry, this is
-#                       an outer safety bound)
-# Failure recovery:     espn_provider.py's own stale-preservation (build_snapshot()) means a
-#                       failed fetch never corrupts the last-known-good snapshot — the next
-#                       scheduled run (once a real schedule exists) retries automatically
+# Enquanto isso, a migração da ESPN (37ab46a) passou os TRÊS apps a LEREM este snapshot em vez de
+# chamarem a ESPN do navegador. Ou seja: a única fonte de dado de jogo dos apps virou um arquivo
+# que nada atualizava. Medido em 2026-08-08: `bolao/br2026/data/espn-normalized.json` tinha UM
+# único commit em toda a história — o da própria migração. Congelado desde então.
+#
+# EFEITO PARA O USUÁRIO, relatado pelo Eduardo com um jogo acontecendo ao vivo: `_liveMatches`
+# nunca era preenchido, então o hero de jogo ao vivo NUNCA aparecia em nenhum dos apps, as barras
+# de probabilidade ao vivo ficavam sem dado, e os crons de email de resultado liam um snapshot
+# permanentemente velho.
+#
+# É a mesma classe de falha que esta sprint inteira perseguiu: o workflow rodava, imprimia
+# `wrote=True reason=refreshed` e terminava VERDE — mas escrevia num runner efêmero, sem
+# `contents: write` e sem passo de commit. Número honesto sobre um efeito que havia sumido.
+#
+# ─── Desenho ────────────────────────────────────────────────────────────────────────────────
+#
+# Script:        bolao/{br2026,cdb2026}/scripts/sync_espn.py
+# Backend:       nenhum — leitura pública da ESPN + escrita de JSON local. Sem Supabase, sem
+#                credencial, sem dado de participante em lugar nenhum deste caminho.
+# Cadência:      */10 nas janelas de jogo, a MESMA dos crons de email de resultado já existentes
+#                (cdb2026_result_emails.yml), que é exatamente o que o cabeçalho original previa.
+# Commit:        só quando o arquivo MUDA. Fora de janela o snapshot vem idêntico
+#                (`wrote=False reason=unchanged`) e um commit vazio a cada 10 min seria ruído no
+#                histórico e um deploy inútil.
+# Copa2026:      DELIBERADAMENTE FORA do schedule. O torneio terminou e o app está arquivado
+#                (CONFIG.archived) — atualizar o snapshot dele não teria efeito nenhum e só
+#                geraria churn. Continua disponível por workflow_dispatch, para o caso de alguém
+#                precisar reprocessar algo histórico.
+# Concorrência:  um grupo por app, enfileirado e não cancelado — duas atualizações do MESMO app
+#                nunca podem correr contra a escrita atômica uma da outra.
+# Falha:         `build_snapshot()` do espn_provider.py preserva o último snapshot bom, então um
+#                fetch que falha nunca corrompe o arquivo; a próxima execução tenta de novo.
 
 name: Bolão — Provider Snapshot (dry-run capable)
 
 on:
+  schedule:
+    - cron: "*/10 16-23 * * *"   # 13h-20h BRT
+    - cron: "*/10 0-5 * * *"     # 21h-02h BRT
   workflow_dispatch:
     inputs:
       app:
@@ -38,32 +58,80 @@ on:
         default: true
 
 concurrency:
-  group: bolao-provider-snapshot-${{ github.event.inputs.app }}
+  # `github.event.inputs.app` é vazio numa execução agendada; o sufixo do app entra no nome do JOB
+  # (matriz) e o grupo aqui separa agendado de manual para não se cancelarem.
+  group: bolao-provider-snapshot-${{ github.event.inputs.app || 'scheduled' }}
   cancel-in-progress: false
 
 permissions:
-  contents: read
+  # Era `contents: read` — e é por isso que nem o dispatch manual conseguia persistir coisa
+  # alguma: o workflow terminava verde tendo escrito só no disco do runner.
+  contents: write
+  # Um push feito com o GITHUB_TOKEN NUNCA dispara outro workflow (proteção anti-loop do GitHub),
+  # então o deploy do Pages tem de ser PEDIDO explicitamente. Mesma lição já registrada e resolvida
+  # em sync_version.yml. Sem isto o snapshot novo chega à main mas não ao ar — meio caminho para o
+  # mesmo bug.
+  actions: write
 
 jobs:
   refresh-snapshot:
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    environment: ${{ github.event.inputs.dry_run == 'true' && 'test' || 'production' }}
+    strategy:
+      # Numa execução agendada roda os dois apps ativos; num dispatch manual roda só o escolhido.
+      fail-fast: false
+      matrix:
+        app: ${{ github.event_name == 'schedule' && fromJSON('["br2026","cdb2026"]') || fromJSON('[""]') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve app / dry-run
+        id: cfg
+        run: |
+          APP="${{ matrix.app || github.event.inputs.app }}"
+          # Execução agendada não tem inputs: commita de verdade. Dispatch manual respeita a caixa.
+          if [ "${{ github.event_name }}" = "schedule" ]; then DRY="false"; else DRY="${{ github.event.inputs.dry_run }}"; fi
+          echo "app=$APP" >> "$GITHUB_OUTPUT"
+          echo "dry=$DRY" >> "$GITHUB_OUTPUT"
+          echo "Refreshing '$APP' (dry_run=$DRY)"
 
       - name: Run sync_espn.py
-        working-directory: bolao/${{ github.event.inputs.app }}/scripts
+        working-directory: bolao/${{ steps.cfg.outputs.app }}/scripts
         run: python3 sync_espn.py
 
       - name: Report (dry-run — snapshot NOT committed)
-        if: github.event.inputs.dry_run == 'true'
+        if: steps.cfg.outputs.dry == 'true'
         run: |
-          echo "Dry run: snapshot file was written locally by sync_espn.py but this workflow" \
-               "will NOT commit/push it (no git commit step below runs in dry-run mode)."
-          cat bolao/${{ github.event.inputs.app }}/data/espn-normalized.json
+          echo "Dry run: o snapshot foi escrito localmente por sync_espn.py, mas este workflow"
+          echo "NÃO vai commitar/publicar (o passo de commit abaixo não roda em dry-run)."
+          cat "bolao/${{ steps.cfg.outputs.app }}/data/espn-normalized.json"
 
-      # Real commit-back step intentionally NOT included in this readiness pass — see item 8's
-      # own note: a real "commit the refreshed snapshot" step needs its own dedicated review
-      # (same reasoning as durable_persist.py not being wired into production email workflows
-      # without a separate staged rollout).
+      - name: Commit refreshed snapshot
+        id: commit
+        if: steps.cfg.outputs.dry != 'true'
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "bolao/${{ steps.cfg.outputs.app }}/data/"
+          if git diff --cached --quiet; then
+            echo "Snapshot inalterado — nada a commitar."
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+          else
+            # NUNCA escrever o marcador literal de skip-ci nesta mensagem: o GitHub varre a
+            # mensagem inteira e pularia os workflows deste próprio commit (lição já registrada).
+            git commit -m "chore(espn): refresh ${{ steps.cfg.outputs.app }} snapshot"
+            # Outra execução pode ter commitado no intervalo; rebase antes de empurrar.
+            git pull --rebase --autostash origin main
+            git push
+            echo "committed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Trigger Pages deploy for the refreshed snapshot
+        if: steps.commit.outputs.committed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh workflow run "Deploy GitHub Pages" --ref main
+          echo "Deploy GitHub Pages dispatched for the refreshed snapshot."
