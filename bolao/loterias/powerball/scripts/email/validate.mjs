@@ -67,15 +67,31 @@ export function eligibleRecipients(participants) {
 
 /**
  * Hard reconciliation gate (round-1 bug 2): publication must be BLOCKED
- * whenever totalArrecadado != valorUtilizado + saldoReservado + reembolso +
- * outrasDestinacoes. Never fabricates a balancing number.
+ * whenever totalArrecadado + creditoSorteioAnterior != valorUtilizado +
+ * saldoReservado + reembolso + outrasDestinacoes. Never fabricates a
+ * balancing number.
+ *
+ * creditoSorteioAnterior (Eduardo, 2026-08): a draw can be funded partly by
+ * money carried forward from a PRIOR draw — leftover unspent balance plus
+ * any CONFIRMED prize won there (never an unconfirmed one; see js/data.js's
+ * own comment on that field for the audit trail). That's a second funding
+ * source alongside totalArrecadado, not part of it — folding it into
+ * totalArrecadado would misstate "contribution collected for this draw" on
+ * the public page, which reads that field directly. Added on the "funds
+ * available" side of the equation instead. Absent/0 (every draw before
+ * 2026-08-08, and any future draw funded solely by its own collection)
+ * behaves identically to before this field existed — the two regression
+ * tests in audit_email_tests_round2.mjs (arrecadado=138/utilizado=153/
+ * saldo=1, and arrecadado=100/utilizado=50/saldo=40, neither carrying this
+ * field) still correctly fail.
  */
 export function validateFinancialReconciliation(finance) {
   const f = finance || {};
+  const available = (f.totalArrecadado || 0) + (f.creditoSorteioAnterior || 0);
   const reconciled = (f.valorUtilizado || 0) + (f.valorGuardadoProximoSorteio || 0) + (f.reembolso || 0) + (f.outrasDestinacoes || 0);
-  const diff = Number((f.totalArrecadado - reconciled).toFixed(2));
+  const diff = Number((available - reconciled).toFixed(2));
   if (diff !== 0) {
-    return { ok: false, errors: [`FINANCE_NOT_RECONCILED: totalArrecadado(${f.totalArrecadado}) != valorUtilizado+saldo+reembolso+outras(${reconciled}), diff=${diff}`], diff };
+    return { ok: false, errors: [`FINANCE_NOT_RECONCILED: totalArrecadado+creditoSorteioAnterior(${available}) != valorUtilizado+saldo+reembolso+outras(${reconciled}), diff=${diff}`], diff };
   }
   return { ok: true, errors: [], diff: 0 };
 }

@@ -53,19 +53,29 @@ test("the next draw (2026-08-08) exists, is in planning, and appears distinctly 
   assert.equal(drawSelectorLabel(next), "Próximo sorteio — 08/08/2026 22:59 ET — Em planejamento");
 });
 
-test("the next draw starts empty: no participants, no tickets, no result, no winners", () => {
+// The next draw genuinely fills in over its lifecycle — participants join and tickets get
+// bought for real before the drawing happens (that's the whole point of the app), so pinning
+// this to "0 participants, 0 tickets" only held in the narrow window right after the draw
+// object was first created. result/profit staying null until the actual drawing IS still a
+// standing invariant (the site's own auto-fetch flow is what sets them, only after the draw
+// date passes) — kept below. The "did we copy-paste the previous draw's data" safety check
+// that "starts empty" was really guarding is preserved as its own test just after this one,
+// checked by non-overlap instead of by emptiness.
+test("the next draw has no result/winners yet — set only after the real drawing happens", () => {
   const next = draws.find((d) => d.id === "2026-08-08");
-  assert.equal(next.participants.length, 0);
-  assert.equal(next.sharedTickets.series.length, 0);
   assert.equal(next.result, null);
   assert.equal(next.profit, null);
 });
 
-test("previous draw's tickets do not leak into the new draw (different serials, different ticket data entirely)", () => {
+test("previous draw's tickets do not leak into the new draw (no shared serials — new draw's own real purchase, not a copy-paste)", () => {
   const prev = draws.find((d) => d.id === "2026-08-05");
   const next = draws.find((d) => d.id === "2026-08-08");
   assert.ok(prev.sharedTickets.series.length > 0, "sanity: previous draw should have real tickets");
-  assert.equal(next.sharedTickets.series.length, 0, "new draw must not inherit any of the previous draw's ticket series");
+  const prevSerials = new Set(prev.sharedTickets.series.map((s) => s.serial));
+  const nextSerials = next.sharedTickets.series.map((s) => s.serial);
+  nextSerials.forEach((serial) => {
+    assert.ok(!prevSerials.has(serial), `serial ${serial} appears in both draws — looks like a copy-paste, not a real independent purchase`);
+  });
 });
 
 test("previous draw's official result stays accessible and unmodified", () => {
@@ -88,17 +98,29 @@ test("next-draw date computed from the real Mon/Wed/Sat schedule, not hardcoded/
 });
 
 console.log("\nFinancial carry-forward reconciliation:");
-test("carryForward = previousBalance + confirmedPrizes - alreadyUsed, difference $0.00 exactly", () => {
+// Originally asserted valorGuardadoProximoSorteio === the full carry-forward, true only
+// while nothing had been spent yet from the 08-08 draw. That draw has since had a real
+// ticket purchase recorded (56 tickets, $168 — see js/data.js), so "nothing spent yet" no
+// longer holds; pinning the test to that transient state would fail forever after a real,
+// correct update. The two invariants that actually hold regardless of spending: (1) the
+// CREDIT amount itself is fixed at the moment it's carried forward — previousBalance +
+// confirmedPrizes, never affected by what's later done with it; (2) the full draw ledger
+// still reconciles (totalArrecadado + creditoSorteioAnterior === valorUtilizado +
+// valorGuardadoProximoSorteio), which is exactly what validateFinancialReconciliation()
+// in scripts/email/validate.mjs enforces before any real send.
+test("creditoSorteioAnterior = previousBalance + confirmedPrizes, fixed regardless of spending", () => {
   const prev = draws.find((d) => d.id === "2026-08-05");
   const next = draws.find((d) => d.id === "2026-08-08");
   const previousBalance = prev.finance.valorGuardadoProximoSorteio;
   const confirmedPrizes = prev.result.premiosGanhos; // official, confirmed — never an estimate
-  const alreadyUsed = 0; // nothing spent from this credit yet
-  const carryForward = previousBalance + confirmedPrizes - alreadyUsed;
-  assert.equal(next.finance.creditoSorteioAnterior, carryForward);
-  assert.equal(next.finance.valorGuardadoProximoSorteio, carryForward, "nothing spent yet, so the reserved balance equals the full carry-forward");
-  const difference = next.finance.creditoSorteioAnterior - (previousBalance + confirmedPrizes - alreadyUsed);
-  assert.equal(difference, 0);
+  assert.equal(next.finance.creditoSorteioAnterior, previousBalance + confirmedPrizes);
+});
+test("ledger reconciles: totalArrecadado + creditoSorteioAnterior === valorUtilizado + valorGuardadoProximoSorteio", () => {
+  const next = draws.find((d) => d.id === "2026-08-08");
+  const f = next.finance;
+  const available = f.totalArrecadado + (f.creditoSorteioAnterior || 0);
+  const reconciled = f.valorUtilizado + f.valorGuardadoProximoSorteio;
+  assert.equal(available, reconciled);
 });
 test("never counts an unconfirmed prize — this only used prev.result.premiosGanhos (official, already checkedAt-stamped)", () => {
   const prev = draws.find((d) => d.id === "2026-08-05");
