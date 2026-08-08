@@ -14,6 +14,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import { loadDrawSnapshot } from "./snapshot.mjs";
 import { eligibleRecipients } from "./validate.mjs";
@@ -35,7 +36,9 @@ async function main() {
   const publicationVersion = Number(args["version"] || 1);
   const dryRun = process.argv.includes("--dry-run");
   const onlyParticipant = args["only"]; // e.g. --only "Eduardo Ferrari" — put --dry-run LAST on the command line, see parseArgs
-  if (!drawId) { console.error('Usage: --draw-id <id> --version <n> [--only "Participant Name"] [--dry-run]'); process.exit(1); }
+  const receiptPath = args["receipt"]; // e.g. --receipt /path/to/comprovante.pdf — the real lottery/bank receipt, copied into the evidence folder alongside the generated files
+  if (!drawId) { console.error('Usage: --draw-id <id> --version <n> [--only "Participant Name"] [--receipt <path>] [--dry-run]'); process.exit(1); }
+  if (receiptPath && !fs.existsSync(receiptPath)) { console.error(`Receipt file not found: ${receiptPath}`); process.exit(1); }
 
   const draw = loadDrawSnapshot(drawId);
   if (!draw) { console.error(`Draw ${drawId} not found`); process.exit(1); }
@@ -70,6 +73,18 @@ async function main() {
   ];
   fs.writeFileSync(pdfPath, buildTextPdf(pdfLines, { title: "Powerball tickets" }));
 
+  let receiptNote = "";
+  if (receiptPath) {
+    const receiptBytes = fs.readFileSync(receiptPath);
+    const receiptDestName = "comprovante" + path.extname(receiptPath);
+    const receiptDestPath = path.join(outDir, receiptDestName);
+    fs.writeFileSync(receiptDestPath, receiptBytes);
+    const receiptHash = crypto.createHash("sha256").update(receiptBytes).digest("hex");
+    console.log(`  - ${receiptDestPath} (real receipt, copied from ${receiptPath})`);
+    console.log(`  Receipt SHA-256: ${receiptHash}`);
+    receiptNote = ` Comprovante original (PDF da loteria/banco) copiado como ${receiptDestName}, SHA-256 ${receiptHash.slice(0, 16)}…`;
+  }
+
   console.log(`Generated evidence files in ${outDir}:`);
   console.log(`  - ${jsonPath}`);
   console.log(`  - ${csvPath}`);
@@ -79,7 +94,7 @@ async function main() {
   const operatorAttestation =
     `Comprovantes de ${tickets.length} bilhetes (séries do sorteio ${draw.id}) colados por Eduardo Ferrari ` +
     `diretamente na conversa e transcritos para js/data.js; cada bilhete conferido individualmente contra o ` +
-    `texto colado antes do commit. Nenhum link ou PDF de terceiros existe para este comprovante — ver nota em ` +
+    `texto colado antes do commit.${receiptNote} Nenhum link público existe para este comprovante — ver nota em ` +
     `docs/bolao/loterias/POWERBALL_EMAIL_ARCHITECTURE.md.`;
 
   // outbox.mjs's own header comment: "scripts/email/outbox.json (git-ignored in

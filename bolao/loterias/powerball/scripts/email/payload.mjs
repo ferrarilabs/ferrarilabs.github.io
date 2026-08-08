@@ -72,11 +72,17 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
   const totalShares = participants.reduce((s, p) => s + (p.cotas || 0), 0);
   const f = draw.finance;
   const totalArrecadado = f.totalArrecadado;
+  const creditoSorteioAnterior = f.creditoSorteioAnterior || 0;
   const valorUsado = f.valorUtilizado;
   const saldoReservado = f.valorGuardadoProximoSorteio;
   const reembolso = f.reembolso || 0;
   const outrasDestinacoes = f.outrasDestinacoes || 0;
-  const diferencaNaoConciliada = Number((totalArrecadado - (valorUsado + saldoReservado + reembolso + outrasDestinacoes)).toFixed(2));
+  // Same fix as validateFinancialReconciliation() in validate.mjs (Eduardo, 2026-08-08):
+  // this display computation had the identical bug — didn't add creditoSorteioAnterior
+  // (funds carried forward from a prior draw) into the "available" side, so a fully
+  // reconciled draw (150 + 18 = 168 = 168 + 0) showed a fabricated "-$18 não conciliado"
+  // in the sent email. Eduardo caught this by reading the actual delivered email.
+  const diferencaNaoConciliada = Number(((totalArrecadado + creditoSorteioAnterior) - (valorUsado + saldoReservado + reembolso + outrasDestinacoes)).toFixed(2));
   const valorPorCota = totalShares > 0 ? Number((totalArrecadado / totalShares).toFixed(2)) : 0;
   // js/data.js has always named this field valorPorTicket (never costPerTicket) —
   // confirmed found this the hard way: reading the wrong name here made
@@ -109,6 +115,7 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
     totalShares,
     valorPorCota,
     totalArrecadado,
+    creditoSorteioAnterior,
     valorUsado,
     saldoReservado,
     reembolso,
