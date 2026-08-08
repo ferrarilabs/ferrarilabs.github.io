@@ -2137,7 +2137,7 @@ th{background:#07151c;color:#fff;text-align:left}
 <div class="podcard champ"><div>🥇 ${esc(t("pickLabelChampion"))}</div><div class="team-name">${esc(predicted.champion || "—")}</div></div>
 <div class="podcard"><div>🥈 ${esc(t("pickLabelRunnerUp"))}</div><div class="team-name" style="color:#fff">${esc(predicted.runnerUp || "—")}</div></div>
 </div></div>
-<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th></tr></thead>
+<table><th scope="col"ead><tr><th scope="col">${esc(t("receiptColMatch"))}</th><th scope="col">${esc(t("receiptColScore"))}</th></tr></thead>
 <tbody>${rows.join("") || `<tr><td colspan="2">—</td></tr>`}</tbody></table>
 <div class="notice">${esc(t("receiptFooterNote"))}</div>
 </div></body></html>`;
@@ -2451,7 +2451,7 @@ function renderPickDisplay(entry, detail) {
     ? `<tr><td>${esc(label)}</td><td>${esc(team)}</td><td>—</td><td style="text-align:center">${ptsCell(d)}</td></tr>`
     : "";
 
-  return `<table><thead><tr><th>${esc(t("receiptColMatch"))}</th><th>${esc(t("receiptColScore"))}</th><th>${esc(t("receiptColReal"))}</th><th style="text-align:center">Pts</th></tr></thead>
+  return `<table><th scope="col"ead><tr><th scope="col">${esc(t("receiptColMatch"))}</th><th scope="col">${esc(t("receiptColScore"))}</th><th scope="col">${esc(t("receiptColReal"))}</th><th scope="col" style="text-align:center">Pts</th></tr></thead>
     <tbody>
       ${bonusRow("🏆 " + t("pickLabelChampion"), predicted.champion, detail?.champion)}
       ${bonusRow("🥈 " + t("pickLabelRunnerUp"), predicted.runnerUp, detail?.runnerUp)}
@@ -3492,10 +3492,10 @@ function renderLiveRankingHero() {
     <div class="live-header">🏆 ${esc(t("liveRankingHeroTitle"))}</div>
     <div class="live-ranking-scroll">
       <table class="live-ranking-table">
-        <thead><tr>
-          <th style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
-          <th>${esc(t("liveRankingHeroEntryCol"))}</th>
-          <th style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
+        <th scope="col"ead><tr>
+          <th scope="col" style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
+          <th scope="col">${esc(t("liveRankingHeroEntryCol"))}</th>
+          <th scope="col" style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>

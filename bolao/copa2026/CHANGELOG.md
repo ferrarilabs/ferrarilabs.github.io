@@ -1,5 +1,18 @@
 # CHANGELOG
 
+## v4.178 — 2026-08-08 — `<th scope="col">` em todas as tabelas renderizadas
+
+Cabeçalho de tabela sem `scope` deixa o leitor de tela sem a associação entre célula e cabeçalho:
+numa tabela de ranking ou classificação, a pessoa ouve os números sem saber de que coluna são.
+
+Encontrado pela suíte de acessibilidade dos quatro apps — e vale registrar COMO: a tabela do
+ranking ao vivo do BR2026 só existe no DOM quando há jogo ao vivo, e não havia jogo ao vivo em
+lugar nenhum porque o snapshot da ESPN estava congelado. Assim que o snapshot voltou a ser
+publicado, a tabela apareceu e o defeito com ela. Um bug estava escondendo o outro.
+
+Todas as tabelas destes apps têm cabeçalho só na primeira linha (nenhuma tem cabeçalho de linha),
+então `scope="col"` é o valor correto em todas.
+
 ## v4.177 — 2026-08-08 — Invariantes de estado: nenhum campo de topo se perde no merge
 
 **Classe de defeito com histórico, não precaução teórica.** O mesmo erro apareceu QUATRO vezes no

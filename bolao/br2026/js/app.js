@@ -1851,10 +1851,10 @@ function renderLiveRankingHero() {
     <div class="live-header">🏆 ${esc(t("liveRankingHeroTitle"))}</div>
     <div class="live-ranking-scroll">
       <table class="live-ranking-table">
-        <thead><tr>
-          <th style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
-          <th>${esc(t("liveRankingHeroEntryCol"))}</th>
-          <th style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
+        <th scope="col"ead><tr>
+          <th scope="col" style="text-align:center">${esc(t("liveRankingHeroPosCol"))}</th>
+          <th scope="col">${esc(t("liveRankingHeroEntryCol"))}</th>
+          <th scope="col" style="text-align:center">${esc(t("liveRankingHeroPtsCol"))}</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -2103,10 +2103,10 @@ function renderStandingsCard() {
     <h3>${esc(t("standingsTitle"))}</h3>
     <div class="standings-wrap">
       <table class="standings-table">
-        <thead><tr>
-          <th class="td-pos">#</th><th class="td-mov">${esc(t("standingsMovCol"))}</th>
-          <th class="td-team">${esc(t("team"))}</th><th class="td-pts">Pts</th>
-          <th>J</th><th>V</th><th>E</th><th>D</th><th>GP</th><th>GC</th><th>SG</th>
+        <th scope="col"ead><tr>
+          <th scope="col" class="td-pos">#</th><th scope="col" class="td-mov">${esc(t("standingsMovCol"))}</th>
+          <th scope="col" class="td-team">${esc(t("team"))}</th><th scope="col" class="td-pts">Pts</th>
+          <th scope="col">J</th><th scope="col">V</th><th scope="col">E</th><th scope="col">D</th><th scope="col">GP</th><th scope="col">GC</th><th scope="col">SG</th>
         </tr></thead>
         <tbody>${rows}</tbody>
       </table>
@@ -2462,7 +2462,7 @@ function renderPickDisplay(entry, detail, resultSet) {
       return `<tr class="${cellClass(d)}"><td>${esc(labels[i] || String(i + 1))}</td><td><b>${esc(team || "—")}</b></td><td style="text-align:center">${ptsCell(d)}</td></tr>`;
     }).join("");
     return `<h4 style="margin:14px 0 4px">${esc(title)}</h4>
-      <table><thead><tr><th>${esc(t("receiptColPos"))}</th><th>${esc(t("receiptColTeam"))}</th><th style="text-align:center">Pts</th></tr></thead><tbody>${rows}</tbody></table>`;
+      <table><th scope="col"ead><tr><th scope="col">${esc(t("receiptColPos"))}</th><th scope="col">${esc(t("receiptColTeam"))}</th><th scope="col" style="text-align:center">Pts</th></tr></thead><tbody>${rows}</tbody></table>`;
   };
 
   const hasSA6 = sa6.some(Boolean);
@@ -2505,7 +2505,7 @@ function renderPickDisplay(entry, detail, resultSet) {
         <span>${esc(t("accuracyExactLabel"))}: <b>${acc.exactPositions}</b></span>
       </div>
       ${top5.length ? `<h4 style="margin:14px 0 4px">${esc(t("accuracyTopDivergencesTitle"))}</h4>
-      <table><thead><tr><th>${esc(t("receiptColTeam"))}</th><th>${esc(t("accuracyColPicked"))}</th><th>${esc(t("accuracyColCurrent"))}</th></tr></thead>
+      <table><th scope="col"ead><tr><th scope="col">${esc(t("receiptColTeam"))}</th><th scope="col">${esc(t("accuracyColPicked"))}</th><th scope="col">${esc(t("accuracyColCurrent"))}</th></tr></thead>
       <tbody>${divRows}</tbody></table>` : ""}`;
   }
 
@@ -2921,7 +2921,7 @@ function receiptHtml(entry) {
   const sa6rows = groupRows(sa6, sa6.map((_, i) => `Sul-Am. ${i + 1}`));
   const z4rows  = groupRows(z4,  [t("pos17"), t("pos18"), t("pos19"), t("pos20")]);
   const groupTable = (title, rows) => `<h3 style="margin:18px 0 6px;color:#07151c">${esc(title)}</h3>
-    <table><thead><tr><th>${esc(t("receiptColPos"))}</th><th>${esc(t("receiptColTeam"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
+    <table><th scope="col"ead><tr><th scope="col">${esc(t("receiptColPos"))}</th><th scope="col">${esc(t("receiptColTeam"))}</th></tr></thead><tbody>${rows}</tbody></table>`;
 
   return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8">
 <title>${esc(t("receiptTitle"))}</title>
@@ -3119,7 +3119,7 @@ function renderProbSection() {
 
   box.innerHTML = `
     <table class="prob-table">
-      <thead>
+      <th scope="col"ead>
         <tr>
           <th scope="col">${esc(t("team"))}</th>
           <th scope="col">${esc(t("probsG4"))}</th>
