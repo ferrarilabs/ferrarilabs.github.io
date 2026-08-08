@@ -7,7 +7,9 @@
  * As duas implementações são comparadas por bolao/shared/scripts/test_money_interop.mjs contra a
  * mesma tabela de valores — divergir faz a suíte falhar.
  */
-export const CURRENCY_PREFIX = "US$ ";
+// "$" nos valores formatados — ver o comentário longo em bolao/shared/js/money.js para a decisão
+// e para a divergência DELIBERADA com a prose do i18n.
+export const CURRENCY_PREFIX = "$";
 
 // Arredondamento para centavos explícito e half-up — ver o comentário em bolao/shared/js/money.js.
 // O teste de interop pegou `5.005` divergindo entre Intl (5.01) e Python (5.00).

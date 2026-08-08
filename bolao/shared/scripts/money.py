@@ -8,7 +8,9 @@ As três implementações são comparadas por bolao/shared/scripts/test_money_in
 este módulo via python3) contra a mesma tabela de valores — divergir faz a suíte falhar.
 """
 
-CURRENCY_PREFIX = "US$ "
+# "$" nos valores formatados — ver bolao/shared/js/money.js para a decisão e para a divergência
+# DELIBERADA com a prose do i18n.
+CURRENCY_PREFIX = "$"
 
 
 def _round_cents(a):

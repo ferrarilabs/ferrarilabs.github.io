@@ -72,18 +72,19 @@ const py = pythonResults(VALUES);
 
 console.log("\nFormatador USD canônico — interop navegador / Node / Python\n");
 
-test("o formato canônico é exatamente `US$ X.XX`", () => {
-  eq(mjs.usd(5), "US$ 5.00", "5");
-  eq(mjs.usd(20), "US$ 20.00", "20");
-  eq(mjs.usd(1250), "US$ 1,250.00", "1250 (separador de milhar)");
-  eq(mjs.usd(65), "US$ 65.00", "65 (o pote do CDB2026)");
+test("o formato canônico dos VALORES é exatamente `$X.XX`", () => {
+  // Decisão revisada pelo Eduardo depois de ver `US$ ` em produção: valores formatados usam `$`.
+  eq(mjs.usd(5), "$5.00", "5");
+  eq(mjs.usd(20), "$20.00", "20");
+  eq(mjs.usd(1250), "$1,250.00", "1250 (separador de milhar)");
+  eq(mjs.usd(65), "$65.00", "65 (o pote do CDB2026)");
 });
 
-test("prefixo com espaço e identificável como USD (não `$`, não `US$5`)", () => {
-  eq(mjs.CURRENCY_PREFIX, "US$ ", "prefixo canônico");
-  eq(browser.CURRENCY_PREFIX, "US$ ", "prefixo do navegador");
-  if (/^\$\d/.test(mjs.usd(5))) throw new Error("voltou a usar `$` sem `US`");
-  if (/^US\$\d/.test(mjs.usd(5))) throw new Error("faltou o espaço depois de US$");
+test("prefixo é `$` sem espaço, igual nos três runtimes", () => {
+  eq(mjs.CURRENCY_PREFIX, "$", "prefixo canônico");
+  eq(browser.CURRENCY_PREFIX, "$", "prefixo do navegador");
+  // Duas casas SEMPRE nos valores: `$5` (sem centavos) era um dos quatro formatos divergentes.
+  if (!/^\$\d+\.\d{2}$/.test(mjs.usd(5))) throw new Error(`formato inesperado: ${mjs.usd(5)}`);
 });
 
 test("Node e navegador concordam em todos os valores", () => {
@@ -109,17 +110,17 @@ test("entradas inválidas viram — nos três runtimes (nunca `US$ NaN`)", () =>
 });
 
 test("negativos preservam o sinal ANTES do prefixo", () => {
-  eq(mjs.usd(-1250.5), "-US$ 1,250.50", "negativo");
-  eq(mjs.usdCompact(-2.25e9), "-US$ 2.3B", "negativo compacto");
+  eq(mjs.usd(-1250.5), "-$1,250.50", "negativo");
+  eq(mjs.usdCompact(-2.25e9), "-$2.3B", "negativo compacto");
 });
 
 test("variante compacta: mesmo prefixo, fronteiras K/M/B corretas", () => {
-  eq(mjs.usdCompact(999), "US$ 999.00", "abaixo de 1000 delega para usd()");
-  eq(mjs.usdCompact(1000), "US$ 1K", "fronteira K");
-  eq(mjs.usdCompact(1e6), "US$ 1M", "fronteira M");
-  eq(mjs.usdCompact(707e6), "US$ 707M", "jackpot real");
-  eq(mjs.usdCompact(1e9), "US$ 1B", "fronteira B");
-  eq(mjs.usdCompact(2.25e9), "US$ 2.3B", "arredonda a 1 casa");
+  eq(mjs.usdCompact(999), "$999.00", "abaixo de 1000 delega para usd()");
+  eq(mjs.usdCompact(1000), "$1K", "fronteira K");
+  eq(mjs.usdCompact(1e6), "$1M", "fronteira M");
+  eq(mjs.usdCompact(707e6), "$707M", "jackpot real");
+  eq(mjs.usdCompact(1e9), "$1B", "fronteira B");
+  eq(mjs.usdCompact(2.25e9), "$2.3B", "arredonda a 1 casa");
 });
 
 test("arredondamento de centavos é consistente entre runtimes", () => {

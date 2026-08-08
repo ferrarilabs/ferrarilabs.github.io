@@ -26,7 +26,16 @@
 (function (root) {
   "use strict";
 
-  var CURRENCY_PREFIX = "US$ ";  // com espaço: "US$ 5.00", não "US$5.00"
+  // DECISÃO DE PRODUTO (Eduardo, 2026-08-07, revisada depois de ver em produção): os VALORES
+  // FORMATADOS usam "$" — `$5.00`, `$1,250.00`. Ele avaliou o `US$ ` no ar e preferiu o símbolo
+  // curto nos números.
+  //
+  // Consequência que ficou registrada e foi aceita: a PROSE do i18n ("Valor: US$ 5 por entrada",
+  // presente desde 2026-07-11) continua com `US$` e sem centavos, por escolha explícita dele
+  // ("prose sem centavos, valores com"). Então numa mesma tela a frase diz `US$ 5` e o valor
+  // calculado diz `$60.00`. Isso é intencional, não um resto de migração — não "unificar" por conta
+  // própria.
+  var CURRENCY_PREFIX = "$";
 
   /**
    * Arredondamento para centavos EXPLÍCITO e half-up, feito antes de formatar.

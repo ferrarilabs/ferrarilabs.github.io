@@ -2301,7 +2301,7 @@ function renderRules() {
           <tr><td>🥉 3º</td><td>${Math.round(pr.third * 100)}%</td></tr>
         </tbody>
       </table>
-      <p class="muted" style="font-size:12px">Entrada: ${window.BOLAO_MONEY.usd(C.entryFee)}. Pot proporcional ao número de participantes.</p>
+      <p class="muted" style="font-size:12px">Entrada: US$ ${C.entryFee}. Pot proporcional ao número de participantes.</p>
     </div>
     <div class="card">
       <h3>${esc(t("rulesCutoff"))}</h3>
