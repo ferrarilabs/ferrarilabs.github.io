@@ -209,6 +209,126 @@ function drawLifecycle(s, phaseId = "quartas", now = Date.now()) {
            ties: tieCount, provenance: od || null, reason: "nenhum sorteio oficial marcado" };
 }
 
+// ─── BATCH 3: INGESTÃO DO SORTEIO OFICIAL DA CBF ────────────────────────────
+// CARACTERIZAÇÃO DA FONTE (feita em 2026-08-07, e é o motivo do desenho abaixo):
+//   - `cbf.com.br/futebol-brasileiro/tabelas/copa-do-brasil/2026` responde 200, mas o HTML é uma
+//     casca: 82 KB SEM nenhum dado estruturado (zero JSON-LD, zero __NEXT_DATA__), sem nome de time
+//     e sem a palavra "quartas". O conteúdo é renderizado no cliente.
+//   - A CBF tem um CMS Strapi em `cms.cbf.com.br/api/` que responde de verdade (menus, logo), mas
+//     NENHUMA coleção de competição/partida/chave está exposta — `campeonatos`, `partidas`, `jogos`,
+//     `tabelas`, `confrontos`, `chaves` todas devolvem 404.
+//   - E, hoje, o sorteio das quartas ainda não aconteceu, então não existe nem um exemplar real de
+//     resposta para escrever parser contra.
+//
+// Escrever um scraper contra uma superfície que não dá para observar seria fragilidade especulativa
+// só para poder chamar o batch de "automatizado". A instrução é o contrário: autoridade oficial +
+// auditabilidade + ingestão segura. Então o caminho é o 3 da ordem de preferência: INGESTÃO
+// CONTROLADA a partir da fonte oficial, com validação estrita e proveniência.
+//
+// SEAM DELIBERADO: `normalizeCbfDraw()` é PURO e não sabe de onde os pares vieram. No dia em que uma
+// superfície estruturada estável da CBF for identificada, o fetcher automático entrega os pares para
+// ESTA MESMA função e todo o contrato de validação/normalização/hash continua valendo — sem tocar em
+// nada abaixo. É por isso que a validação não vive dentro de um parser.
+
+// Os 8 clubes classificados vêm do RESULTADO das oitavas, nunca de uma lista digitada. Se as oitavas
+// não estiverem completas, não há classificados — e sem classificados não há sorteio a validar.
+function qualifiedTeamsForQuartas(s) {
+  const ties = Object.values(s?.phases?.oitavas?.ties || {});
+  const out = [];
+  for (const t of ties) {
+    if (!t || !t.qualifiedTeamId || !t.teamA || !t.teamB) continue;
+    out.push(t.qualifiedTeamId === "A" ? t.teamA : t.teamB);
+  }
+  return out;
+}
+
+// Erro de ingestão com código estável, para o teste (e o admin) distinguirem o MOTIVO da recusa.
+function drawIngestError(code, detail) {
+  const err = new Error(detail ? `${code}: ${detail}` : code);
+  err.code = code;
+  return err;
+}
+
+/**
+ * Normaliza um sorteio oficial em UMA forma canônica. PURA e determinística.
+ *
+ * Aceita os pares em formatos diferentes de propósito (array de arrays, array de objetos, mapa) —
+ * a MESMA chave de bracket sai de qualquer um deles, porque a identidade do bracket é o conjunto de
+ * confrontos, não a formatação da fonte.
+ *
+ * Recusa (nunca "conserta") : quantidade errada de confrontos, clube desconhecido, clube repetido,
+ * confronto incompleto, autoridade que não seja a CBF. Falha = torneio continua esperando.
+ */
+function normalizeCbfDraw({ pairs, qualified, expectedTies = 4 }) {
+  if (!Array.isArray(qualified) || qualified.length !== expectedTies * 2) {
+    throw drawIngestError("QUALIFIED_SET_INVALID",
+      `esperava ${expectedTies * 2} classificados, veio ${Array.isArray(qualified) ? qualified.length : typeof qualified}`);
+  }
+  const known = new Set(qualified);
+  if (known.size !== qualified.length) throw drawIngestError("QUALIFIED_SET_DUPLICATE");
+
+  // Aceita as três formas de entrada e reduz a uma lista de [a, b].
+  let list;
+  if (Array.isArray(pairs)) {
+    list = pairs.map(p => Array.isArray(p) ? p : [p?.teamA, p?.teamB]);
+  } else if (pairs && typeof pairs === "object") {
+    list = Object.values(pairs).map(p => [p?.teamA, p?.teamB]);
+  } else {
+    throw drawIngestError("SOURCE_MALFORMED", "pares ausentes ou em formato irreconhecível");
+  }
+
+  if (list.length !== expectedTies) {
+    throw drawIngestError(list.length < expectedTies ? "DRAW_PARTIAL" : "DRAW_EXTRA_TIES",
+      `esperava ${expectedTies} confrontos, veio ${list.length}`);
+  }
+
+  const seen = new Set();
+  const normalized = list.map(([a, b]) => {
+    const teamA = typeof a === "string" ? a.trim() : "";
+    const teamB = typeof b === "string" ? b.trim() : "";
+    if (!teamA || !teamB) throw drawIngestError("TIE_INCOMPLETE");
+    if (teamA === teamB) throw drawIngestError("TIE_SELF_PAIR", teamA);
+    for (const team of [teamA, teamB]) {
+      if (!known.has(team)) throw drawIngestError("TEAM_UNKNOWN", team);
+      if (seen.has(team)) throw drawIngestError("TEAM_DUPLICATE", team);
+      seen.add(team);
+    }
+    return { teamA, teamB };
+  });
+  if (seen.size !== qualified.length) {
+    throw drawIngestError("DRAW_INCOMPLETE_COVERAGE",
+      `${seen.size} clubes usados de ${qualified.length} classificados`);
+  }
+
+  // Ordenação canônica: ordena os confrontos por par normalizado para que a MESMA lista chegando em
+  // ordem diferente produza os MESMOS ids e o MESMO bracketHash. Sem isto, "mesmo bracket, fonte
+  // formatada diferente" daria hash diferente e a idempotência do Batch 3 seria falsa.
+  const ordered = normalized
+    .map(t => ({ ...t, _key: [t.teamA, t.teamB].slice().sort().join("~") }))
+    .sort((x, y) => x._key.localeCompare(y._key));
+
+  const ties = {};
+  ordered.forEach((t, i) => {
+    // Ids deterministicos e derivados só do bracket — nunca da ordem da fonte.
+    ties[`qf-${i + 1}`] = { teamA: t.teamA, teamB: t.teamB };
+  });
+  return ties;
+}
+
+// Uma re-ingestão é "idêntica" quando o CONJUNTO de confrontos bate — comparado por bracketHash, não
+// por ordem nem por ids. Um bracket travado que recebe o mesmo sorteio de novo é no-op; se veio
+// diferente, é recusado, e só uma correção explícita e autorizada pode substituir.
+function officialDrawReingestDecision(phase, incomingTies, correction = null) {
+  const locked = !!(phase && officialDrawProvenanceIsValid(phase.officialDraw));
+  if (!locked) return { action: "ingest" };
+  const currentHash = phase.officialDraw.bracketHash || bracketFingerprint(phase.ties);
+  if (bracketFingerprint(incomingTies) === currentHash) return { action: "noop" };
+  if (correction && correction.reason && correction.authorizedBy) {
+    return { action: "correct" };
+  }
+  return { action: "reject", code: "BRACKET_LOCKED_DIFFERENT" };
+}
+
 // O bracket é autoritativo só no estado LOCKED. `phaseDrawIsOfficial()` (acima) continua sendo o
 // gate do SANITIZADOR e aceita também `cutoffAt` — de propósito, para não apagar o cadastro manual
 // que o admin já fazia antes deste modelo existir. As duas perguntas são diferentes:
@@ -711,13 +831,30 @@ function applyAdminMutation(state, mutation) {
     // `officialDraw` pela metade que o ciclo de vida teria de adivinhar.
     case "register-official-draw": {
       const ph = phaseOf(mutation.phaseId);
-      const ties = mutation.ties && typeof mutation.ties === "object" ? mutation.ties : null;
+      // BATCH 3: os confrontos passam OBRIGATORIAMENTE pelo normalizador/validador. `mutation.pairs`
+      // é o caminho canônico (qualquer formato de fonte); `mutation.ties` continua aceito para o
+      // fluxo manual já existente, mas é validado do mesmo jeito — ingestão não pode contornar a
+      // validação, que é exatamente o que "não deixe o ingest burlar a validação" exige.
+      const qualified = Array.isArray(mutation.qualified) && mutation.qualified.length
+        ? mutation.qualified
+        : qualifiedTeamsForQuartas(s);
+      let ties;
+      if (mutation.pairs || mutation.validateAgainstQualified !== false) {
+        ties = normalizeCbfDraw({ pairs: mutation.pairs || mutation.ties, qualified });
+      } else {
+        ties = mutation.ties && typeof mutation.ties === "object" ? mutation.ties : null;
+      }
       if (!ties || Object.keys(ties).length === 0) {
         throw new Error("OFFICIAL_DRAW_NO_TIES");
       }
       for (const t of Object.values(ties)) {
         if (!t || !t.teamA || !t.teamB) throw new Error("OFFICIAL_DRAW_INCOMPLETE_TIE");
       }
+      // Re-ingestão sobre bracket já travado: idêntica = no-op; diferente = recusada, salvo correção
+      // explícita e autorizada. Nunca sobrescreve um bracket oficial em silêncio.
+      const decision = officialDrawReingestDecision(ph, ties, mutation.correction);
+      if (decision.action === "reject") throw drawIngestError(decision.code);
+      if (decision.action === "noop") break;
       const prev = ph.officialDraw && typeof ph.officialDraw === "object" ? ph.officialDraw : {};
       const nowIso = new Date().toISOString();
       const od = {
@@ -730,6 +867,14 @@ function applyAdminMutation(state, mutation) {
         validatedAt: nowIso,
         validatedBy: mutation.validatedBy || "admin",
         bracketHash: bracketFingerprint(ties),
+        // Correção controlada fica REGISTRADA na proveniência — substituir um bracket oficial não
+        // pode ser indistinguível de registrá-lo pela primeira vez.
+        ...(decision.action === "correct" ? { correction: {
+          reason: String(mutation.correction.reason),
+          authorizedBy: String(mutation.correction.authorizedBy),
+          correctedAt: nowIso,
+          previousBracketHash: ph.officialDraw?.bracketHash || null,
+        } } : {}),
       };
       if (!officialDrawProvenanceIsValid(od)) throw new Error("OFFICIAL_DRAW_INVALID_PROVENANCE");
       s.phases[mutation.phaseId] = { ...ph, ties: { ...ties }, officialDraw: od };

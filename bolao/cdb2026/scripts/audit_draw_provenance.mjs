@@ -66,18 +66,28 @@ const sandbox = new Function(`
   ${extractFn("drawBracketIsLocked")}
   ${extractFn("phaseDrawIsOfficial")}
   ${extractFn("enforceDrawLifecycle")}
+  ${extractFn("qualifiedTeamsForQuartas")}
+  ${extractFn("drawIngestError")}
+  ${extractFn("normalizeCbfDraw")}
+  ${extractFn("officialDrawReingestDecision")}
   ${extractFn("applyAdminMutation")}
   return { DRAW_LIFECYCLE, drawLifecycle, drawBracketIsLocked, officialDrawProvenanceIsValid,
-           bracketFingerprint, phaseDrawIsOfficial, enforceDrawLifecycle, applyAdminMutation };
+           bracketFingerprint, phaseDrawIsOfficial, enforceDrawLifecycle, applyAdminMutation,
+           normalizeCbfDraw, qualifiedTeamsForQuartas, officialDrawReingestDecision };
 `)();
 const { DRAW_LIFECYCLE: LC, drawLifecycle, drawBracketIsLocked, officialDrawProvenanceIsValid,
         bracketFingerprint, phaseDrawIsOfficial, enforceDrawLifecycle, applyAdminMutation } = sandbox;
 
 const NOW = Date.parse("2026-08-10T12:00:00Z");
+// O bracket real das quartas tem 4 confrontos e 8 clubes. O fixture antigo tinha 2 — irreal, e o
+// validador do Batch 3 passa a recusá-lo corretamente.
 const REAL_TIES = {
   "qf-1": { teamA: "Santos", teamB: "Grêmio" },
   "qf-2": { teamA: "Palmeiras", teamB: "Vasco" },
+  "qf-3": { teamA: "Cruzeiro", teamB: "Flamengo" },
+  "qf-4": { teamA: "Corinthians", teamB: "Fluminense" },
 };
+const QUALIFIED8 = ["Santos", "Grêmio", "Palmeiras", "Vasco", "Cruzeiro", "Flamengo", "Corinthians", "Fluminense"];
 
 function baseState(quartas = {}) {
   return JSON.parse(JSON.stringify({
@@ -85,7 +95,8 @@ function baseState(quartas = {}) {
     deletedIds: [], paid: { e1: true }, auditLog: [],
     espnSync: { activePhaseId: "oitavas" },
     phases: {
-      oitavas: { cutoffAt: "2026-08-01T20:30:00.000Z", ties: { t1: { teamA: "Santos", teamB: "Remo", qualifiedTeamId: "A" } } },
+      oitavas: { cutoffAt: "2026-08-01T20:30:00.000Z", ties: Object.fromEntries(
+        QUALIFIED8.map((team, i) => [`o${i + 1}`, { teamA: team, teamB: `Eliminado${i + 1}`, qualifiedTeamId: "A" }])) },
       quartas: { cutoffAt: null, ties: {}, ...quartas },
       semifinal: { cutoffAt: null, ties: {} },
       final: { cutoffAt: null, ties: {} },
@@ -162,7 +173,7 @@ test("6 proveniência validada -> QUARTERFINAL_BRACKET_LOCKED", () => {
   const s = baseState({ ties: { ...REAL_TIES }, officialDraw: validProvenance() });
   const lc = drawLifecycle(s, "quartas", NOW);
   eq(lc.state, LC.LOCKED, "estado errado");
-  eq(lc.ties, 2, "confrontos oficiais não contabilizados");
+  eq(lc.ties, 4, "confrontos oficiais não contabilizados");
   eq(drawBracketIsLocked(s, "quartas", NOW), true, "bracket deveria estar travado");
 });
 
@@ -170,12 +181,12 @@ test("6 proveniência validada -> QUARTERFINAL_BRACKET_LOCKED", () => {
 test("7 registro manual oficial funciona e produz proveniência completa", () => {
   const s = baseState();
   const out = applyAdminMutation(s, { type: "register-official-draw", phaseId: "quartas",
-    ties: REAL_TIES, source: "manual-admin", sourceUrl: "https://www.cbf.com.br/…",
+    ties: REAL_TIES, qualified: QUALIFIED8, source: "manual-admin", sourceUrl: "https://www.cbf.com.br/…",
     scheduledAt: "2026-08-09T18:00:00Z", validatedBy: "admin" });
   const od = out.phases.quartas.officialDraw;
   assert(officialDrawProvenanceIsValid(od), "proveniência gerada é inválida");
   eq(od.authority, "CBF", "autoridade errada");
-  eq(Object.keys(out.phases.quartas.ties).length, 2, "confrontos não registrados");
+  eq(Object.keys(out.phases.quartas.ties).length, 4, "confrontos não registrados");
   eq(drawBracketIsLocked(out, "quartas", NOW), true, "não travou após registro manual");
   eq(od.bracketHash, bracketFingerprint(REAL_TIES), "bracketHash não corresponde ao bracket");
 });
@@ -183,7 +194,8 @@ test("7 registro manual oficial funciona e produz proveniência completa", () =>
 test("7b registro oficial REJEITA bracket vazio ou confronto incompleto", () => {
   for (const ties of [null, {}, { "qf-1": { teamA: "Santos" } }, { "qf-1": {} }]) {
     let threw = false;
-    try { applyAdminMutation(baseState(), { type: "register-official-draw", phaseId: "quartas", ties }); }
+    try { applyAdminMutation(baseState(), { type: "register-official-draw", phaseId: "quartas",
+      ties, qualified: QUALIFIED8 }); }
     catch { threw = true; }
     assert(threw, `aceitou bracket inválido: ${JSON.stringify(ties)}`);
   }
@@ -238,7 +250,7 @@ test("11 cutoff manual continua permitindo confrontos (não quebra o fluxo do ad
 test("12 bracket oficial validado é PRESERVADO pelo sanitizador", () => {
   const s = baseState({ ties: { ...REAL_TIES }, officialDraw: validProvenance() });
   eq(enforceDrawLifecycle(s), false, "sanitizador mexeu num bracket oficial");
-  eq(Object.keys(s.phases.quartas.ties).length, 2, "sanitizador apagou o bracket oficial");
+  eq(Object.keys(s.phases.quartas.ties).length, 4, "sanitizador apagou o bracket oficial");
 });
 
 // ── 13. nenhum confronto fabricado ─────────────────────────────────────────
