@@ -78,6 +78,8 @@ const CHECKS = [
     why: "no canonical state field is lost by any merge path (4x recurring defect class)" },
   { id: "aggregate-hero", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_aggregate_hero.mjs"], why: "aggregate hero rendering" },
   { id: "visual-contract", group: "app", cmd: ["node", "bolao/scripts/check_shared_visual_contract.mjs"], why: "shared visual contract" },
+  { id: "live-freshness", group: "app", cmd: ["node", "bolao/scripts/audit_live_freshness.test.mjs"],
+    why: "live snapshot polling must revalidate — stale cache froze the live clock/score/plays" },
   { id: "tool-scope", group: "app", cmd: ["node", "bolao/scripts/audit_tool_scope.test.mjs"],
     why: "cross-app audit tools cannot silently shrink their app scope" },
   { id: "cachebust", group: "app", cmd: ["node", "bolao/scripts/cachebust.integration.test.mjs"], why: "cache-bust integration" },

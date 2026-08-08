@@ -1,5 +1,30 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.111 — 2026-08-08 — Relógio, placar e lances ao vivo voltam a atualizar sozinhos
+
+Eduardo, com jogo acontecendo: *"o hero ao vivo tá com o relógio parado e o placar não atualiza
+automaticamente e nem os lances do jogo aparecem (gol cartão substituição), isso tudo existia e
+funcionava"*.
+
+**TRÊS sintomas, UMA causa.** Antes da migração da ESPN o navegador chamava a API da ESPN, que manda
+`cache-control: max-age=1`. Depois da migração ele passou a ler um arquivo estático servido pelo
+GitHub Pages com `cache-control: max-age=600`. O laço de poll continuou rodando a cada 60 s — e
+relendo a MESMA cópia em cache por até dez minutos.
+
+Por isso o relógio congelava, o placar ficava velho, e os lances não apareciam: eles estavam no
+snapshot mais novo que o navegador simplesmente não buscava.
+
+O dado sempre esteve correto — o normalizador preserva `details` (gol, cartão, jogador, minuto),
+verificado no arquivo real. Faltava o navegador chegar até ele.
+
+Os fetches de snapshot passam a usar `cache: "no-cache"` (revalidar), e não `no-store`: o arquivo
+tem ~900 KB e só muda quando o cron commita, então revalidar devolve 304 barato na maioria dos
+polls e 200 com dado novo quando há novidade.
+
+`bolao/scripts/audit_live_freshness.test.mjs` (6 checagens) trava isso, com controle negativo: o
+teste falha se alguém remover a revalidação. Existe porque o sintoma só aparece durante um jogo ao
+vivo, em produção, depois de dez minutos — ninguém notaria a tempo de novo.
+
 ## v3.110 — 2026-08-08 — Campos de pênalti (trabalho aprovado que estava fora da main)
 
 Encontrado pela reconstrução de requisitos do Batch 10, não por uma lista de tarefas: o commit

@@ -3783,7 +3783,10 @@ async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
   try {
-    const r = await fetchJson(url);
+    // `cache: "no-cache"` — REVALIDA sempre. Sem isto o navegador servia a cópia em cache por até
+    // 10 minutos (`cache-control: max-age=600` do GitHub Pages), então o poll relia o MESMO arquivo
+    // e o placar/relógio ao vivo congelavam. Revalidar devolve 304 barato quando nada mudou.
+    const r = await fetchJson(url, { cache: "no-cache" });
     if (!r.ok) return null;
     const snap = await r.json();
     if (!snap || !Array.isArray(snap.matches)) return null; // forma inesperada: melhor nada que lixo
