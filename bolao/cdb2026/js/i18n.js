@@ -78,6 +78,7 @@ window.CDB2026_I18N = {
     liveRankingHeroEntryCol: "Participante",
     liveRankingHeroPtsCol: "Pts",
     gamesAggregate:    "Agregado",
+    gamesPenalties:    "Pênaltis",
     gamesAdvances:     "Classificado",
     gamesLeg1: "Jogo de ida",
     gamesLeg2: "Jogo de volta",
