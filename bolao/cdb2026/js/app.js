@@ -3352,11 +3352,18 @@ async function pollLiveTies() {
   const nextRawHistory = {};
   const nextLive = found.map(({ tieId, tie, phaseId, leg, homeTeam, awayTeam, ev }) => {
     const key = `${tieId}:${leg}`;
-    const rawFresh = { clockSeconds: ev.clockSec, pollTime: now, period: ev.period };
+    // `pollTime` é a hora da OBSERVAÇÃO, não a do fetch. Com snapshot as duas divergem, e é essa
+    // divergência que quebra o relógio: buscando o mesmo snapshot duas vezes, `clockSeconds` não
+    // muda, e com `pollTime = now` o `detectClockPaused()` via tempo real passando contra relógio
+    // parado e declarava PAUSADO — congelando o relógio na tela. Ancorado em `observedAt`
+    // (`generatedAt` do snapshot), dois polls do mesmo snapshot dão o mesmo instante, nada é
+    // declarado pausado, e o relógio corre a partir da observação real.
+    const observedAt = ev.observedAt || now;
+    const rawFresh = { clockSeconds: ev.clockSec, pollTime: observedAt, period: ev.period };
     const clockPaused = detectClockPaused(rawFresh, _cdbRawClockHistory[key]);
-    if (ev.clockSec != null) nextRawHistory[key] = { clockSeconds: ev.clockSec, pollTime: now };
+    if (ev.clockSec != null) nextRawHistory[key] = { clockSeconds: ev.clockSec, pollTime: observedAt };
     const prevMerged = prevById.get(key) || clockCache[key];
-    const merged = mergeLiveClock({ clockSeconds: ev.clockSec, pollTime: now, period: ev.period, clockPaused }, prevMerged);
+    const merged = mergeLiveClock({ clockSeconds: ev.clockSec, pollTime: observedAt, period: ev.period, clockPaused }, prevMerged);
     // Achado por Eduardo (2026-08-02, print): relógio mostrava "90:11 (+1)" com um evento já
     // listado logo abaixo em "90'+5'" -- a ESPN às vezes devolve `status.clock` (usado pro
     // relógio) atrasado em relação ao `clock.value` de cada evento em `details`/`keyEvents`
@@ -3791,7 +3798,11 @@ async function fetchEspnCandidates() {
     const snap = await r.json();
     if (!snap || !Array.isArray(snap.matches)) return null; // forma inesperada: melhor nada que lixo
     if (snap.stale) console.warn(`[CDB2026] snapshot ESPN marcado stale (${snap.staleReason || "?"}) — usando último dado bom conhecido`);
-    const events = snapshotEventsToEspnShape(snap.matches);
+    // QUANDO o dado foi observado. Antes da migração da ESPN "buscar" e "observar" eram o mesmo
+    // instante; com snapshot, não são — e tratar a hora do fetch como hora da observação congela o
+    // relógio ao vivo (ver o comentário em pollLiveTies).
+    const observedAt = Date.parse(snap.generatedAt || "") || Date.now();
+    const events = snapshotEventsToEspnShape(snap.matches).map(ev => ({ ...ev, observedAt }));
     const liveEventIds = events
       .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
       .map(ev => ev.id)
@@ -3860,7 +3871,7 @@ async function fetchEspnCandidates() {
         state: evState,
         liveHomeScore: evState === "in" && home?.score != null ? parseInt(home.score, 10) : null,
         liveAwayScore: evState === "in" && away?.score != null ? parseInt(away.score, 10) : null,
-        clockSec, period, isHalftime, isPenalties, postponed,
+        clockSec, period, isHalftime, isPenalties, postponed, observedAt: ev.observedAt,
         clockStr: comp.status?.displayClock || "",
         plays: extractMatchPlays(comp, keyEventsById[ev.id]),
       };
