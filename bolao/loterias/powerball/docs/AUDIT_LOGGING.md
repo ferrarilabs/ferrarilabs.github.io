@@ -191,17 +191,17 @@ All logs are read-only from the frontend (RLS policies in place):
 
 1. **Check local log:**
    ```bash
-   cat bolao/loterias/powerball/logs/send_result_email_*.log | grep "recipient@email.com"
+   cat bolao/loterias/powerball/logs/send_result_email_*.log | grep "recipient@example.com"
    ```
 
 2. **Check email_log in Supabase:**
    ```sql
-   SELECT * FROM email_log WHERE recipient_email = 'recipient@email.com' ORDER BY sent_at DESC LIMIT 5;
+   SELECT * FROM email_log WHERE recipient_email = 'recipient@example.com' ORDER BY sent_at DESC LIMIT 5;
    ```
 
 3. **Check audit_log for errors:**
    ```sql
-   SELECT * FROM audit_log WHERE entity_id = 'recipient@email.com' AND status = 'failed';
+   SELECT * FROM audit_log WHERE entity_id = 'recipient@example.com' AND status = 'failed';
    ```
 
 ### Participant count mismatch
