@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T21:02:44Z",
-  "sourceUpdatedAt": "2026-08-08T21:02:44Z",
+  "generatedAt": "2026-08-08T21:11:59Z",
+  "sourceUpdatedAt": "2026-08-08T21:11:59Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "eadbcd182dae7b96275e9071ad8190e1fee33fe6b00a7a9a488c66698a9b9da2",
+  "payloadHash": "4728a183088941accce95b498386775aeea890e88c97459ffcf11b884e325b13",
   "matches": [
     {
       "id": "401840808",
@@ -35195,24 +35195,24 @@
     {
       "id": "401841181",
       "date": "2026-08-08T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "90'+5'",
-      "statusDetail": "90'+5'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Grêmio",
       "awayTeam": "São Paulo",
       "homeTeamId": "6273",
       "awayTeamId": "2026",
       "homeScore": 2,
       "awayScore": 1,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
       "clockSec": 5400.0,
-      "clockStr": "90'+5'",
+      "clockStr": "90'+7'",
       "period": 2,
       "details": [
         {
@@ -35364,6 +35364,44 @@
             {
               "displayName": "André Silva",
               "shortName": "A. Silva"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wálter Kannemann",
+              "shortName": "W. Kannemann"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Robert Arboleda",
+              "shortName": "R. Arboleda"
             }
           ]
         }
