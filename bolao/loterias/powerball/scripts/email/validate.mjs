@@ -47,8 +47,12 @@ export function validateTicketPublication({ draw, participants, tickets, nowIso 
     const recon = validateFinancialReconciliation(draw.finance);
     if (!recon.ok) errors.push(...recon.errors);
   }
-  if (tickets && draw.sharedTickets && draw.sharedTickets.costPerTicket != null && draw.finance) {
-    const costCheck = validateTicketCostTotal({ ticketCount: tickets.length, costPerTicket: draw.sharedTickets.costPerTicket, ticketCostTotal: draw.finance.valorUtilizado });
+  // js/data.js names this field valorPorTicket, not costPerTicket (see the matching
+  // fix + comment in payload.mjs) — this check was silently never running against
+  // real draws before, since the field it looked for never existed under that name.
+  const sharedCostPerTicket = draw.sharedTickets ? (draw.sharedTickets.valorPorTicket ?? draw.sharedTickets.costPerTicket ?? null) : null;
+  if (tickets && draw.sharedTickets && sharedCostPerTicket != null && draw.finance) {
+    const costCheck = validateTicketCostTotal({ ticketCount: tickets.length, costPerTicket: sharedCostPerTicket, ticketCostTotal: draw.finance.valorUtilizado });
     if (!costCheck.ok) errors.push(...costCheck.errors);
   }
   return {
@@ -157,13 +161,29 @@ function isRealReachableUrl(url) {
  * CSV/JSON must either be attached (attachments array of {filename, exists})
  * or referenced by a real URL. `existsFn` defaults to Node's fs.existsSync
  * for local paths but can be overridden for testing.
+ *
+ * operatorAttestation (Eduardo, 2026-08-08): this bolão's actual proof never
+ * takes URL form — Eduardo pastes the lottery/bank receipt directly into the
+ * conversation and it's transcribed into js/data.js there, cross-checked
+ * against the pasted numbers; there both is and never will be a hosted link
+ * or PDF to point at unless he manually prints an email. Requiring proofUrl
+ * unconditionally would permanently block every real send this app will
+ * ever make. Kept the SAME two-real-outcomes shape as proofUrl (reject empty
+ * or vague) instead of just accepting any truthy string: a written
+ * attestation is only meaningful proof if it says what was verified.
  */
-export function validateAttachmentsAndLinks({ proofUrl, attachments = [] }, existsFn) {
+export function validateAttachmentsAndLinks({ proofUrl, operatorAttestation, attachments = [] }, existsFn) {
   const errors = [];
-  if (!proofUrl) {
-    errors.push("PROOF_URL_MISSING");
-  } else if (!isRealReachableUrl(proofUrl)) {
-    errors.push(`PROOF_URL_NOT_REAL: ${proofUrl} (must not be empty, localhost, or a reserved/placeholder domain like .invalid/.example/.test/.local)`);
+  if (proofUrl) {
+    if (!isRealReachableUrl(proofUrl)) {
+      errors.push(`PROOF_URL_NOT_REAL: ${proofUrl} (must not be empty, localhost, or a reserved/placeholder domain like .invalid/.example/.test/.local)`);
+    }
+  } else if (operatorAttestation) {
+    if (typeof operatorAttestation !== "string" || operatorAttestation.trim().length < 20) {
+      errors.push("OPERATOR_ATTESTATION_TOO_VAGUE: must be a specific, non-empty description of how the operator verified the proof (min 20 chars) — e.g. what receipt was checked, against what, by whom, when");
+    }
+  } else {
+    errors.push("PROOF_MISSING: must provide either proofUrl (a real reachable URL) or operatorAttestation (a specific written verification note)");
   }
 
   const required = ["pdf", "csv", "json"];

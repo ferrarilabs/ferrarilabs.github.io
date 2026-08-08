@@ -78,7 +78,13 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
   const outrasDestinacoes = f.outrasDestinacoes || 0;
   const diferencaNaoConciliada = Number((totalArrecadado - (valorUsado + saldoReservado + reembolso + outrasDestinacoes)).toFixed(2));
   const valorPorCota = totalShares > 0 ? Number((totalArrecadado / totalShares).toFixed(2)) : 0;
-  const costPerTicket = draw.sharedTickets ? draw.sharedTickets.costPerTicket : null;
+  // js/data.js has always named this field valorPorTicket (never costPerTicket) —
+  // confirmed found this the hard way: reading the wrong name here made
+  // powerPlay (derived from this being truthy, see render.mjs) silently render
+  // as "Não" for every real ticket, when every one of this bolão's tickets is
+  // actually always bought WITH Power Play. costPerTicket kept as a fallback
+  // in case some future draw source ever does use that name.
+  const costPerTicket = draw.sharedTickets ? (draw.sharedTickets.valorPorTicket ?? draw.sharedTickets.costPerTicket ?? null) : null;
   const ticketCostTotal = costPerTicket != null ? costPerTicket * tickets.length : valorUsado;
 
   const manifest = {

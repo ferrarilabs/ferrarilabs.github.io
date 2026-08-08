@@ -260,10 +260,27 @@ console.log("\nProduction attachment/link gate (round 4):");
 const { validateAttachmentsAndLinks } = await import("./email/validate.mjs");
 const { runPublishTickets } = await import("./email/publish_tickets.mjs");
 
-test("blocks when proofUrl is empty", () => {
+test("blocks when proofUrl is empty and no operatorAttestation is given either", () => {
+  // 2026-08-08: proofUrl is no longer the only accepted proof — a written
+  // operatorAttestation is also valid (this bolão's real proof is pasted
+  // receipts, never a URL). Neither given here, so still correctly blocked,
+  // just under the more accurate PROOF_MISSING (not PROOF_URL_MISSING).
   const r = validateAttachmentsAndLinks({ proofUrl: "", attachments: [] });
   assert.equal(r.ok, false);
-  assert.ok(r.errors.some((e) => e.includes("PROOF_URL_MISSING")));
+  assert.ok(r.errors.some((e) => e.includes("PROOF_MISSING")));
+});
+test("operatorAttestation alone (no proofUrl) satisfies the proof requirement when specific enough", () => {
+  const r = validateAttachmentsAndLinks({
+    proofUrl: undefined,
+    operatorAttestation: "Comprovante Zelle conferido manualmente por Eduardo Ferrari em 08/08/2026 contra os 56 bilhetes do sorteio.",
+    attachments: [{ kind: "pdf", filePath: "/real.pdf" }, { kind: "csv", filePath: "/real.csv" }, { kind: "json", filePath: "/real.json" }],
+  }, (p) => true);
+  assert.equal(r.ok, true, JSON.stringify(r.errors));
+});
+test("a vague/short operatorAttestation is rejected just like an empty one", () => {
+  const r = validateAttachmentsAndLinks({ proofUrl: undefined, operatorAttestation: "ok", attachments: [] });
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes("OPERATOR_ATTESTATION_TOO_VAGUE")));
 });
 test("blocks when proofUrl is localhost", () => {
   const r = validateAttachmentsAndLinks({ proofUrl: "http://localhost:8099/proof.jpg", attachments: [] });

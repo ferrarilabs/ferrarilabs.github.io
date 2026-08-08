@@ -15,7 +15,7 @@ import { buildParticipantConfirmationPayload, buildTicketPublicationPayload, sha
 import { renderParticipantConfirmationHtml, renderParticipantConfirmationText, renderTicketPublicationHtml } from "./email/render.mjs";
 import { enqueueEmailJob, findByIdempotencyKey, idempotencyKeyForParticipant, listJobs } from "./email/outbox.mjs";
 import { runParticipantConfirmation } from "./email/send_participant_confirmation.mjs";
-import { runPublishTickets } from "./email/publish_tickets.mjs";
+import { runPublishTickets, ticketsFromDraw } from "./email/publish_tickets.mjs";
 import { buildTextPdf } from "./email/pdf.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -173,7 +173,12 @@ const RECONCILED_FINANCE_STUB = { totalArrecadado: 6, valorUtilizado: 6, valorGu
 await atest("runPublishTickets: one job per eligible recipient, multi-cota participant still gets exactly one", async () => {
   const draw = loadDrawSnapshot(realDraw.id);
   const dupCotas = { ...draw.participants[0], cotas: 3 };
-  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, result: null, participants: [dupCotas, ...draw.participants.slice(1)] };
+  // sharedTickets.valorPorTicket nulled out: this test is about idempotency/dedup, not
+  // ticket-cost reconciliation — the real draw's 56 real tickets stay attached (still
+  // needed so runPublishTickets has real tickets to build payloads from) but with the
+  // stubbed-down RECONCILED_FINANCE_STUB they'd otherwise fail the (correctly working,
+  // since the costPerTicket field-name fix) cost-consistency check below.
+  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, result: null, sharedTickets: { ...draw.sharedTickets, valorPorTicket: null }, participants: [dupCotas, ...draw.participants.slice(1)] };
   const r = await runPublishTickets({ drawId: realDraw.id, publicationVersion: 999, testMode: true, dryRun: true, outboxFile: TMP_OUTBOX, syntheticDraw: patchedDraw });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const names = r.results.map((x) => x.participant);
@@ -186,7 +191,7 @@ await atest("runPublishTickets excludes cancelled / cota<=0 / invalid-email part
   const cancelled = { ...draw.participants[0], name: "Cancelled Person", email: "cancelled@example.com", status: "cancelado" };
   const zeroCota = { ...draw.participants[1], name: "Zero Cota", email: "zero@example.com", cotas: 0 };
   const badEmail = { ...draw.participants[2], name: "Bad Email", email: "—" };
-  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, result: null, participants: [...draw.participants, cancelled, zeroCota, badEmail] };
+  const patchedDraw = { ...draw, finance: RECONCILED_FINANCE_STUB, result: null, sharedTickets: { ...draw.sharedTickets, valorPorTicket: null }, participants: [...draw.participants, cancelled, zeroCota, badEmail] };
   const r = await runPublishTickets({ drawId: realDraw.id, publicationVersion: 998, testMode: true, dryRun: true, outboxFile: TMP_OUTBOX, syntheticDraw: patchedDraw });
   assert.equal(r.ok, true, JSON.stringify(r.errors));
   const names = r.results.map((x) => x.participant);
@@ -221,7 +226,13 @@ test("a draw with the original round-1-bug finance shape (no creditoSorteioAnter
 
 test("the REAL current draw's own finance (with creditoSorteioAnterior accounted for) reconciles and is NOT blocked", () => {
   const draw = loadDrawSnapshot(realDraw.id);
-  const r = validateTicketPublication({ draw, participants: draw.participants, tickets: [{ numbers: [1, 2, 3, 4, 5], special: 1 }] });
+  // Real tickets (not a synthetic 1-ticket stand-in): now that the costPerTicket
+  // field-name bug is fixed, validateTicketPublication's ticket-cost check actually
+  // runs, and a fake ticket count would legitimately mismatch this real draw's real
+  // valorUtilizado — using the draw's own real tickets is both more correct and
+  // exercises that check with numbers that are supposed to agree.
+  const tickets = ticketsFromDraw(draw);
+  const r = validateTicketPublication({ draw, participants: draw.participants, tickets });
   assert.equal(r.ok, true, r.errors.join("; "));
 });
 

@@ -9,4 +9,5 @@ __pycache__/
 *.pyc
 node_modules/
 *private-participant-data.local.json
+bolao/loterias/powerball/scripts/email/generated/
 verify-summary.json
