@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T22:36:20Z",
-  "sourceUpdatedAt": "2026-08-08T22:36:20Z",
+  "generatedAt": "2026-08-08T23:03:49Z",
+  "sourceUpdatedAt": "2026-08-08T23:03:49Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "af03a37cbec940e182ff209f915f014e944ddb79bfc919969de406084bfa8a25",
+  "payloadHash": "f0b100760fbbf50e7faf0176646f369054f1375517dc5f28ac5504ca393261a7",
   "matches": [
     {
       "id": "401840808",
@@ -35411,24 +35411,24 @@
       "id": "401841178",
       "date": "2026-08-08T21:30Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "20'",
-      "statusDetail": "20'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "70'",
+      "statusDetail": "70'",
       "completed": false,
       "homeTeam": "Remo",
       "awayTeam": "Atlético-MG",
       "homeTeamId": "4936",
       "awayTeamId": "7632",
       "homeScore": 1,
-      "awayScore": 0,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Mangueirão",
       "city": "Belém",
-      "clockSec": 1200.0,
-      "clockStr": "20'",
-      "period": 1,
+      "clockSec": 4200.0,
+      "clockStr": "70'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -35446,6 +35446,44 @@
             {
               "displayName": "Jajá",
               "shortName": "Jajá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 2028.0,
+            "displayValue": "34'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Reiner",
+              "shortName": "Reiner"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 2259.0,
+            "displayValue": "38'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bernard",
+              "shortName": "Bernard"
             }
           ]
         }
