@@ -72,19 +72,26 @@ const py = pythonResults(VALUES);
 
 console.log("\nFormatador USD canônico — interop navegador / Node / Python\n");
 
-test("o formato canônico dos VALORES é exatamente `$X.XX`", () => {
-  // Decisão revisada pelo Eduardo depois de ver `US$ ` em produção: valores formatados usam `$`.
-  eq(mjs.usd(5), "$5.00", "5");
-  eq(mjs.usd(20), "$20.00", "20");
-  eq(mjs.usd(1250), "$1,250.00", "1250 (separador de milhar)");
-  eq(mjs.usd(65), "$65.00", "65 (o pote do CDB2026)");
+test("valores inteiros SEM centavos; centavos só quando existem", () => {
+  // Eduardo: "os centavos continuam aparecendo, só deve aparecer no prêmio final". O prêmio final é
+  // justamente o valor que cai em centavo quebrado (70% do pote), então basta sumir com o `.00`.
+  eq(mjs.usd(5), "$5", "5");
+  eq(mjs.usd(20), "$20", "20");
+  eq(mjs.usd(65), "$65", "65 (o pote do CDB2026)");
+  eq(mjs.usd(1250), "$1,250", "1250 (separador de milhar, sem centavos)");
+  eq(mjs.usd(0), "$0", "zero");
+  // com centavos de verdade:
+  eq(mjs.usd(80.5), "$80.50", "prêmio final 70% do pote");
+  eq(mjs.usd(11.5), "$11.50", "3º lugar");
+  eq(mjs.usd(1250.5), "$1,250.50", "milhar com centavos");
 });
 
 test("prefixo é `$` sem espaço, igual nos três runtimes", () => {
   eq(mjs.CURRENCY_PREFIX, "$", "prefixo canônico");
   eq(browser.CURRENCY_PREFIX, "$", "prefixo do navegador");
   // Duas casas SEMPRE nos valores: `$5` (sem centavos) era um dos quatro formatos divergentes.
-  if (!/^\$\d+\.\d{2}$/.test(mjs.usd(5))) throw new Error(`formato inesperado: ${mjs.usd(5)}`);
+  if (!/^\$\d+$/.test(mjs.usd(5))) throw new Error(`inteiro deveria vir sem centavos: ${mjs.usd(5)}`);
+  if (!/^\$\d+\.\d{2}$/.test(mjs.usd(5.5))) throw new Error(`fracionário deveria ter 2 casas: ${mjs.usd(5.5)}`);
 });
 
 test("Node e navegador concordam em todos os valores", () => {
@@ -111,11 +118,12 @@ test("entradas inválidas viram — nos três runtimes (nunca `US$ NaN`)", () =>
 
 test("negativos preservam o sinal ANTES do prefixo", () => {
   eq(mjs.usd(-1250.5), "-$1,250.50", "negativo");
+  eq(mjs.usd(-1250), "-$1,250", "negativo inteiro");
   eq(mjs.usdCompact(-2.25e9), "-$2.3B", "negativo compacto");
 });
 
 test("variante compacta: mesmo prefixo, fronteiras K/M/B corretas", () => {
-  eq(mjs.usdCompact(999), "$999.00", "abaixo de 1000 delega para usd()");
+  eq(mjs.usdCompact(999), "$999", "abaixo de 1000 delega para usd()");
   eq(mjs.usdCompact(1000), "$1K", "fronteira K");
   eq(mjs.usdCompact(1e6), "$1M", "fronteira M");
   eq(mjs.usdCompact(707e6), "$707M", "jackpot real");

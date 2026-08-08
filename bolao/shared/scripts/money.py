@@ -37,7 +37,12 @@ def usd(n):
     if v != v or v in (float("inf"), float("-inf")):  # NaN/inf
         return "—"
     sign = "-" if v < 0 else ""
-    return f"{sign}{CURRENCY_PREFIX}{_round_cents(abs(v)):,.2f}"
+    a = _round_cents(abs(v))
+    # Centavos aparecem SÓ quando existem de verdade (Eduardo, 2026-08-07: "os centavos continuam
+    # aparecendo, só deve aparecer no prêmio final"). `$60`, não `$60.00`; mas `$80.50` mantém os centavos.
+    # O prêmio final é justamente o valor que cai em centavo quebrado (70% do pote), então a regra "some
+    # com o `.00`" entrega o pedido sem precisar de um formatador especial por contexto.
+    return f"{sign}{CURRENCY_PREFIX}{a:,.0f}" if a == int(a) else f"{sign}{CURRENCY_PREFIX}{a:,.2f}"
 
 
 def usd_compact(n):

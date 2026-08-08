@@ -1,5 +1,21 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.106 — 2026-08-07 — Centavos só quando existem de verdade
+
+Eduardo: "os centavos continuam aparecendo, só deve aparecer no prêmio final".
+
+`usd()` passa a omitir `.00` em valor inteiro e manter 2 casas só quando há centavo quebrado:
+
+    $0 · $5 · $60 · $115 · $1,250        (inteiros, sem centavos)
+    $80.50 · $11.50 · $1,250.50          (centavos reais preservados)
+
+O prêmio final é exatamente o valor que cai em centavo quebrado (70% do pote), então "sumir com o
+`.00`" atende o pedido sem inventar um formatador por contexto — que teria voltado a espalhar regra de
+formatação pelo código, o problema que o Batch 5 resolveu.
+
+É também o comportamento que a Copa tinha originalmente (`toFixed(2).replace(/\.00$/, "")`), agora
+promovido a regra canônica dos três runtimes e coberto pelo teste de interop.
+
 ## v3.105 — 2026-08-07 — Símbolo dos valores volta a `$` (decisão revisada)
 
 Eduardo, depois de ver o `US$ ` em produção: "agora mostra US$ ao invés de $ em todos os sites".
