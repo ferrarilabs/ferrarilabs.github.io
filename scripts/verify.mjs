@@ -70,6 +70,8 @@ const CHECKS = [
   { id: "draw-provenance-patterns", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs"],
     why: "precision/recall of the tie-fabrication patterns" },
   { id: "cbf-ingestion", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_cbf_ingestion.mjs"], why: "CBF draw ingestion" },
+  { id: "penalty-fields", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_penalty_fields.mjs"],
+    why: "CDB2026 penalty scores stay separate from the regulation aggregate" },
   { id: "golden-master", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_golden_master.mjs"], why: "golden-master state" },
   { id: "state-merge", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_state_merge.mjs"], why: "state merge semantics" },
   { id: "state-invariants", group: "app", cmd: ["node", "bolao/scripts/audit_state_invariants.mjs"],
