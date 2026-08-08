@@ -129,6 +129,18 @@ const EXPECTED = [
     events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
     hourWindows: { evening: [21, 23], overnight: [0, 4] },
   },
+  {
+    // 2026-08-08: era UNSCHEDULED, e a nota lá já dizia que a defasagem do snapshot era ilimitada
+    // (DG-04). O efeito real foi medido no mesmo dia: `bolao/br2026/data/espn-normalized.json`
+    // tinha UM único commit em toda a história (o da migração), então o hero de jogo ao vivo nunca
+    // podia aparecer em app nenhum. O schedule existe agora, na MESMA janela dos emails de
+    // resultado — as duas coisas dependem exatamente do mesmo dado.
+    file: "bolao_provider_snapshot.yml",
+    why: "the ESPN snapshot is the ONLY match-data source the browsers read; it must refresh " +
+         "every day in the match window or live matches can never appear",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [16, 23], overnight: [0, 5] },
+  },
 ];
 
 /**
@@ -144,9 +156,6 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
-  ["bolao_provider_snapshot.yml",
-   "Manual-only by design (the file says so). NOTE: this means the ESPN snapshot the browser reads " +
-   "is refreshed only when a human dispatches it, so cache staleness is unbounded — tracked as DG-04."],
   ["deploy-pages.yml", "Triggered by push to main."],
   ["sync_version.yml", "Triggered by push to main, path-filtered."],
 ]);
