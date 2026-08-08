@@ -88,11 +88,18 @@ const CHECKS = [
   { id: "durable-persist", group: "notifications", cmd: ["python3", "bolao/shared/scripts/test_durable_persist.py"], why: "durable persistence" },
   { id: "durable-notif-repo", group: "notifications", cmd: ["node", "bolao/shared/scripts/test_durable_notification_repository.mjs"], why: "durable notification repository" },
 
-  // ── environment-dependent: SKIPPED, never silently passed ────────────────────
+  // Estes DOIS estavam marcados `requires: "network"` e por isso eram sempre PULADOS — mas nenhum
+  // dos dois toca a rede. `test_espn_provider.py` diz no próprio cabeçalho "no network calls, no
+  // real ESPN data" e injeta openers falsos (`fetch_json(..., opener=fake_opener_ok(...))`);
+  // `test_pipeline_health.mjs` não tem uma única referência a fetch/http. Os dois passam offline —
+  // e passavam, via `npm run test:provider`, enquanto o agregador os reportava como skip.
+  // Um teste pulado NÃO é verde: eram 2 suítes reais sumindo do total sem ninguém perceber.
   { id: "espn-provider", group: "provider", cmd: ["python3", "bolao/shared/scripts/test_espn_provider.py"],
-    why: "ESPN provider contract", requires: "network" },
+    why: "ESPN provider contract" },
   { id: "pipeline-health", group: "provider", cmd: ["node", "bolao/shared/scripts/test_pipeline_health.mjs"],
-    why: "provider pipeline health", requires: "network" },
+    why: "provider pipeline health" },
+
+  // ── environment-dependent: SKIPPED, never silently passed ────────────────────
   { id: "structural-parity", group: "browser", cmd: ["node", "bolao/scripts/audit_structural_parity.mjs"],
     why: "cross-app structural parity", requires: "browser" },
   { id: "aria-nav", group: "browser", cmd: ["node", "bolao/scripts/test_aria_current_nav.mjs"],
@@ -101,6 +108,8 @@ const CHECKS = [
     why: "visual consistency", requires: "browser" },
   { id: "draw-combo", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_draw_combo.mjs"],
     why: "Powerball draw combos", requires: "browser" },
+  { id: "combo-lifecycle", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs"],
+    why: "Powerball combobox listener lifecycle (Batch 9)", requires: "browser" },
   { id: "live-prob-bars", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_live_prob_bars.mjs"],
     why: "live probability bars", requires: "browser" },
 ];
