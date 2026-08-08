@@ -215,7 +215,23 @@ function mergeStates(local, remote, opts = {}) {
     const localTs  = existing.updatedAt || existing.createdAt || "";
     if (remoteTs > localTs) byId[e.id] = e;
   }
-  const paid = { ...(remote.paid || {}), ...(local.paid || {}) };
+  // any-true-wins por chave (união das chaves dos dois lados), NUNCA spread. Um spread
+  // (`{...remote.paid, ...local.paid}`) faz "local sempre vence", então um `false` local VELHO
+  // sobrescreve um `true` remoto mais NOVO do admin: o navegador de um participante que carregou a
+  // página antes do pagamento ser confirmado reverte a confirmação ao salvar. Dinheiro real.
+  //
+  // Este é o AUDIT-02 (auditoria de 2026-08). `docs/bolao/PROJECT_MEMORY.md` já DESCREVIA o merge da
+  // plataforma como any-true-wins e a Copa (`copa2026/js/app.js`, mergedPaid) já implementava assim
+  // de verdade; o CDB2026 foi corrigido na época. O BR2026 ficou para trás e continuou com o spread
+  // até a auditoria de invariantes de estado (2026-08-08) exercitar a regra em vez de só descrevê-la.
+  //
+  // LIMITAÇÃO CONHECIDA, idêntica à dos outros dois apps: any-true-wins protege contra reversão
+  // acidental por cache velho e, por isso mesmo, nunca permite `true -> false` por este caminho —
+  // desmarcar um pagamento é ação explícita de admin, não resultado de merge de snapshot.
+  const paid = {};
+  for (const k of new Set([...Object.keys(remote.paid || {}), ...Object.keys(local.paid || {})])) {
+    paid[k] = !!(local.paid?.[k] || remote.paid?.[k]);
+  }
   let results;
   if (opts.preferRemoteResults) {
     results = remote.results?.locked ? remote.results : (local.results?.locked ? local.results : remote.results || local.results);
@@ -229,7 +245,25 @@ function mergeStates(local, remote, opts = {}) {
     auditMap.set(entry.ts, entry);
   }
   const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+  // ─── BASE POR SPREAD (auditoria de invariantes de estado, 2026-08-08) ───────────────────────
+  // Este objeto era montado ENUMERANDO campos à mão. Foi assim que a MESMA classe de defeito
+  // apareceu quatro vezes no CDB2026: um campo novo, ausente da lista, era DESCARTADO em silêncio a
+  // cada merge — flags de espnSync (AUDIT-01), cutoffOffsetMs, e officialDraw duas vezes. Nada
+  // falhava; o dado simplesmente evaporava.
+  //
+  // A base agora é um spread das DUAS entradas, então qualquer campo de topo futuro é carregado
+  // adiante automaticamente. Todos os campos abaixo continuam sendo resolvidos EXPLICITAMENTE e
+  // sobrescrevem o spread, portanto o comportamento de todo campo hoje conhecido é IDÊNTICO ao de
+  // antes — o spread só decide o destino de campo que ninguém enumerou.
+  //
+  // Ordem: fora do load o local vence (pode ter trabalho ainda não sincronizado); no load o remoto
+  // vence (é o estado curado pelo admin). Mesma precedência que os campos explícitos já usam.
+  const carriedForward = opts.preferRemoteResults
+    ? { ...(local || {}), ...(remote || {}) }
+    : { ...(remote || {}), ...(local || {}) };
+
   return {
+    ...carriedForward,
     entries: Object.values(byId),
     deletedIds: [...deleted],
     paid,

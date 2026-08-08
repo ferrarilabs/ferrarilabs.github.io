@@ -1,5 +1,33 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.97 — 2026-08-08 — Invariantes de estado: nenhum campo de topo se perde no merge
+
+**DEFEITO REAL DE DINHEIRO, corrigido aqui:** o merge de `paid` era um spread
+(`{...remote.paid, ...local.paid}`), ou seja "local sempre vence". Um `false` local VELHO
+sobrescrevia um `true` remoto mais NOVO do admin — o navegador de um participante que abriu a
+página antes do pagamento ser confirmado revertia a confirmação ao salvar.
+
+Este é o AUDIT-02. O `PROJECT_MEMORY.md` já DESCREVIA o merge da plataforma como any-true-wins, a
+Copa já implementava assim de verdade e o CDB2026 foi corrigido na época. O BR2026 ficou para trás e
+ninguém notou, porque a regra estava escrita na documentação e não em um teste. Agora está nos dois.
+
+**Classe de defeito com histórico, não precaução teórica.** O mesmo erro apareceu QUATRO vezes no
+CDB2026: o objeto devolvido por `mergeStates()` era montado ENUMERANDO campos, então um campo novo,
+ausente da lista, era descartado em silêncio a cada merge — flags de `espnSync` (AUDIT-01),
+`cutoffOffsetMs`, e `officialDraw` duas vezes. Nada falhava; o dado evaporava.
+
+Copa2026 e BR2026 nunca tinham sido auditados para isso e tinham exatamente a mesma forma de código.
+A base do retorno passa a ser um SPREAD das duas entradas. Todos os campos conhecidos continuam
+resolvidos explicitamente e sobrescrevem o spread, então o comportamento de tudo que existe hoje é
+IDÊNTICO — o spread só decide o destino de campo que ninguém enumerou.
+
+`bolao/scripts/audit_state_invariants.mjs` (18 checagens, nos três apps) prova a PROPRIEDADE, não a
+lista: inventa um campo de topo que o código não conhece e exige que ele sobreviva. Também executa a
+matriz de autoridade que antes só existia como comentário — `paid` any-true-wins, `deletedIds` união
+(exclusão nunca ressuscita), `cutoffAt` sempre o mais tarde, `officialDraw`/`topology`/
+`cutoffOffsetMs` por fase, flags "roda uma vez" por OR — e tem um teste de contrato que falha se
+algum `mergeStates()` voltar a enumerar campos à mão.
+
 ## v1.96 — 2026-08-07 — Centavos só quando existem de verdade
 
 Eduardo: "os centavos continuam aparecendo, só deve aparecer no prêmio final".

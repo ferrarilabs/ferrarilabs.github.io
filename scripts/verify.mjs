@@ -72,6 +72,8 @@ const CHECKS = [
   { id: "cbf-ingestion", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_cbf_ingestion.mjs"], why: "CBF draw ingestion" },
   { id: "golden-master", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_golden_master.mjs"], why: "golden-master state" },
   { id: "state-merge", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_state_merge.mjs"], why: "state merge semantics" },
+  { id: "state-invariants", group: "app", cmd: ["node", "bolao/scripts/audit_state_invariants.mjs"],
+    why: "no canonical state field is lost by any merge path (4x recurring defect class)" },
   { id: "aggregate-hero", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_aggregate_hero.mjs"], why: "aggregate hero rendering" },
   { id: "visual-contract", group: "app", cmd: ["node", "bolao/scripts/check_shared_visual_contract.mjs"], why: "shared visual contract" },
   { id: "tool-scope", group: "app", cmd: ["node", "bolao/scripts/audit_tool_scope.test.mjs"],
