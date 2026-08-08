@@ -39,6 +39,11 @@ import { execSync } from "node:child_process";
  *      private payment list. Those lists live OUTSIDE this repo and are supplied by the operator;
  *      when they are absent, those two categories silently cannot fire.
  *   7. Semantic PII — a free-text field describing a person without an email or a listed name.
+ *   8. (ATÉ 2026-08-08 esta era uma lacuna NÃO declarada.) Identificadores de bilhete de loteria.
+ *      Agora existe o detector `lottery-ticket-serial`, mas com exposição DECLARADA para o arquivo
+ *      onde os seriais reais vivem hoje — ver DECLARED_EXPOSURES. Um serial que apareça em qualquer
+ *      OUTRO arquivo dispara. Isto torna a exposição conhecida VISÍVEL em vez de simplesmente
+ *      ausente do scan: uma rodada limpa não deve implicar mais do que ela prova.
  *
  * FAILURE MODE TO WATCH: adding a real domain to ALLOWED_EMAIL_SUFFIXES converts this gate from
  * noisy to silent. That already happened once with `@email.com`, which suppressed 11 addresses.
@@ -126,7 +131,32 @@ const PATTERN_DETECTORS = [
   // policy term ("never use the service_role key"), which is not a leak.
   { name: "service-role-key-value", re: /service_role[^\n]{0,60}eyJ[A-Za-z0-9_-]{10,}/g },
   { name: "private-key-material", re: /-----BEGIN (RSA |EC )?PRIVATE KEY-----/g },
+  // Serial de bilhete Powerball: 17 caracteres hexadecimais em maiúsculas, num campo `serial`.
+  // Deliberadamente ancorado ao NOME DO CAMPO — 17 hex soltos aparecem em hash, id e fingerprint
+  // por todo o repositório, e um detector sem âncora seria ruído puro.
+  { name: "lottery-ticket-serial", re: /\bserial\s*[:=]\s*["'][0-9A-F]{12,20}["']/g },
 ];
+
+/**
+ * EXPOSIÇÕES DECLARADAS: identificador real que HOJE vive num arquivo versionado, com o motivo e o
+ * estado da decisão. Não é uma desculpa — é o contrário de silêncio. Sem esta tabela o scan
+ * simplesmente não veria os seriais e uma rodada limpa daria a impressão errada.
+ *
+ * Regra: a entrada precisa nomear o arquivo EXATO. Um serial que apareça em qualquer outro lugar
+ * dispara normalmente.
+ */
+const DECLARED_EXPOSURES = {
+  "lottery-ticket-serial": {
+    "bolao/loterias/powerball/js/data.js":
+      "Seriais REAIS de bilhetes Powerball comprados com o fundo do bolão. São renderizados na " +
+      "página (app.js ~413) de propósito: é a evidência com que cada participante confere quais " +
+      "bilhetes o bolão comprou — dinheiro real, transparência deliberada. MAS o repositório é " +
+      "PÚBLICO e a própria página se declara privada, então publicá-los é uma decisão de risco do " +
+      "operador, não uma escolha de implementação. Apagá-los unilateralmente destruiria evidência " +
+      "operacional que participantes usam. Registrado como HA-4 para o Eduardo decidir. " +
+      "NÃO remover esta entrada sem que a decisão dele esteja registrada.",
+  },
+};
 
 // Placeholder tokens that are always safe even if they match a pattern detector
 // (they show up in doc examples / masked reports, not real data).
@@ -171,6 +201,7 @@ function main() {
     // 5-9. pattern-based secret/tx-id shapes
     const TX_ID_CONTEXT_RE = /zelle|cash\s?app|venmo|txid|transa[çc][ãa]o|transaction/i;
     for (const { name, re } of PATTERN_DETECTORS) {
+      if (DECLARED_EXPOSURES[name]?.[file]) continue;   // exposição conhecida e registrada
       re.lastIndex = 0;
       let m;
       while ((m = re.exec(content))) {
