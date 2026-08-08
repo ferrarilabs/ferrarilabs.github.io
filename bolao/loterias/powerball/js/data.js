@@ -333,24 +333,57 @@ window.POWERBALL_DRAWS = [
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "08/08/2026", hora: "12:12 AM", status: "verificado", state: "NC" }
     ],
 
-    // Nenhum ticket comprado ainda.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "08/08/2026 22:59 ET",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "2F9A732E08768E8FF", qtd: 1, jogos: "1",
+          numeros: ["29-32-40-47-59 — PB 20"]
+        },
+        {
+          serial: "2389B6EFC635C761F", qtd: 5, jogos: "1–5",
+          numeros: [
+            "20-38-39-46-57 — PB 23", "25-26-46-59-65 — PB 22", "26-27-38-45-47 — PB 25",
+            "27-30-34-54-57 — PB 03", "28-41-42-49-51 — PB 17"
+          ]
+        },
+        {
+          serial: "23E483B8A39B5342C", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-10-20-51-64 — PB 12", "01-12-13-43-56 — PB 24", "01-15-39-54-66 — PB 18",
+            "01-28-35-38-40 — PB 06", "02-11-47-50-55 — PB 26", "02-16-32-35-51 — PB 14",
+            "02-24-31-53-67 — PB 07", "02-27-56-65-68 — PB 10", "03-14-28-43-45 — PB 19",
+            "03-23-27-48-49 — PB 11", "03-33-36-62-69 — PB 03", "03-50-52-53-63 — PB 05",
+            "04-05-14-39-63 — PB 17", "04-07-24-32-49 — PB 02", "04-23-45-46-58 — PB 10",
+            "04-30-31-55-64 — PB 14", "05-07-10-57-68 — PB 20", "05-13-24-64-65 — PB 01",
+            "05-17-40-44-58 — PB 04", "06-08-13-37-69 — PB 25", "06-15-22-48-61 — PB 17",
+            "06-19-31-49-56 — PB 09", "06-25-55-57-62 — PB 13", "07-11-36-42-54 — PB 25",
+            "07-12-29-34-66 — PB 05", "08-10-25-35-39 — PB 24", "08-12-17-50-51 — PB 15",
+            "08-15-16-33-60 — PB 18", "09-12-46-55-67 — PB 13", "09-21-48-58-68 — PB 08",
+            "09-23-36-38-50 — PB 21", "09-37-53-56-60 — PB 23", "10-22-37-41-43 — PB 22",
+            "11-24-48-52-59 — PB 06", "11-26-44-61-62 — PB 07", "13-17-47-52-54 — PB 01",
+            "13-20-29-33-44 — PB 21", "14-26-35-36-41 — PB 08", "14-31-44-60-69 — PB 16",
+            "15-21-41-52-64 — PB 09", "16-22-30-53-65 — PB 19", "16-34-43-62-63 — PB 15",
+            "17-21-30-33-42 — PB 03", "18-19-22-50-69 — PB 04", "18-21-23-34-67 — PB 26",
+            "18-29-42-58-61 — PB 08", "18-40-49-60-63 — PB 12", "19-25-28-61-68 — PB 16",
+            "19-37-42-59-66 — PB 11", "20-32-45-66-67 — PB 02"
+          ]
+        }
+      ]
     },
 
-    // carryForward = saldo remanescente do sorteio anterior (valorGuardadoProximoSorteio,
-    // $2) + prêmios CONFIRMADOS do sorteio anterior (premiosGanhos oficial, $16) -
-    // qualquer valor já distribuído/utilizado deste saldo ($0, nada foi gasto ainda) = $18.
-    // Nunca conta um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial
-    // e premiosGanhos confirmado, então esse valor é seguro de usar aqui.
+    // 56 tickets (1 + 5 + 50) x US$3 (Power Play) = US$168. carryForward = saldo
+    // remanescente do sorteio anterior (valorGuardadoProximoSorteio, $2) + prêmios
+    // CONFIRMADOS do sorteio anterior (premiosGanhos oficial, $16) = $18. Nunca conta
+    // um prêmio não confirmado — o sorteio 2026-08-05 já tem resultado oficial e
+    // premiosGanhos confirmado, então esse valor é seguro de usar aqui.
     finance: {
       totalArrecadado: 150, // 15 participantes x $10 (contribuição alocada a este sorteio); Rodrigo Hajj entrou em 08/08/2026
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 168, // nada foi gasto ainda: 150 + 18 - 0 = 168
+      valorUtilizado: 168, // 56 tickets x $3 (Power Play)
+      valorGuardadoProximoSorteio: 0, // 150 + 18 - 168 = 0
       // Camila Ribeiro pagou $12; $2 não são cota, prêmio, saldo anterior, crédito
       // automático do próximo sorteio, nem dívida pessoal — ficam explicitamente
       // pendentes de classificação, fora de totalArrecadado/valorGuardadoProximoSorteio.
