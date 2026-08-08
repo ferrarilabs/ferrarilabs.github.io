@@ -34,7 +34,8 @@ async function main() {
   const drawId = args["draw-id"];
   const publicationVersion = Number(args["version"] || 1);
   const dryRun = process.argv.includes("--dry-run");
-  if (!drawId) { console.error("Usage: --draw-id <id> --version <n> [--dry-run]"); process.exit(1); }
+  const onlyParticipant = args["only"]; // e.g. --only "Eduardo Ferrari" — put --dry-run LAST on the command line, see parseArgs
+  if (!drawId) { console.error('Usage: --draw-id <id> --version <n> [--only "Participant Name"] [--dry-run]'); process.exit(1); }
 
   const draw = loadDrawSnapshot(drawId);
   if (!draw) { console.error(`Draw ${drawId} not found`); process.exit(1); }
@@ -97,6 +98,7 @@ async function main() {
     publicationVersion,
     testMode: false,
     dryRun,
+    onlyParticipant,
     operatorAttestation,
     outboxFile: realOutboxFile,
     attachments: [
@@ -106,7 +108,7 @@ async function main() {
     ],
   });
 
-  console.log("\n" + (dryRun ? "DRY RUN RESULT" : "SEND RESULT") + ":");
+  console.log("\n" + (dryRun ? "DRY RUN RESULT" : "SEND RESULT") + (onlyParticipant ? ` (restricted to: ${onlyParticipant})` : "") + ":");
   console.log("ok:", result.ok);
   if (!result.ok) {
     console.log("errors:", JSON.stringify(result.errors, null, 2));

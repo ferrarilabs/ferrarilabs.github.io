@@ -33,11 +33,17 @@ export function ticketsFromDraw(draw) {
   return out;
 }
 
-export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw }) {
+export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw, onlyParticipant }) {
   const draw = syntheticDraw || loadDrawSnapshot(drawId);
   const tickets = (syntheticDraw && syntheticDraw.__tickets) ? syntheticDraw.__tickets : ticketsFromDraw(draw);
   const participants = draw.participants;
-  const eligible = eligibleRecipients(participants);
+  // onlyParticipant (Eduardo, 2026-08-08): send to himself first for review, everyone
+  // else afterward on his go-ahead. Filters AFTER the normal eligibility rules (still
+  // needs a valid email/cotas>0/not cancelled), not instead of them. The idempotency
+  // key (poolId+drawId+version+participantId) is identical whether this run restricts
+  // to one name or not, so a later full run correctly skips him as already-sent and
+  // only reaches the remaining recipients — no separate "resend to the rest" mode needed.
+  const eligible = eligibleRecipients(participants).filter((p) => !onlyParticipant || p.name === onlyParticipant);
 
   const validation = validateTicketPublication({ draw, participants: eligible, tickets });
   if (!validation.ok) return { ok: false, errors: validation.errors, invalidRecipients: validation.invalidRecipients };
