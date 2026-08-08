@@ -22,7 +22,7 @@ const EMAILJS = {
   templateId: "template_xq7yzzb",
 };
 
-function ticketsFromDraw(draw) {
+export function ticketsFromDraw(draw) {
   const out = [];
   (draw.sharedTickets ? draw.sharedTickets.series : []).forEach((s) => {
     (s.numeros || []).forEach((str) => {
@@ -33,7 +33,7 @@ function ticketsFromDraw(draw) {
   return out;
 }
 
-export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw }) {
+export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw }) {
   const draw = syntheticDraw || loadDrawSnapshot(drawId);
   const tickets = (syntheticDraw && syntheticDraw.__tickets) ? syntheticDraw.__tickets : ticketsFromDraw(draw);
   const participants = draw.participants;
@@ -46,9 +46,17 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
   // sends only. The fixture-driven admin test path intentionally uses
   // example.invalid as a documented placeholder and must not be blocked by
   // this; a real (non-test) send with the same placeholder MUST be blocked.
+  //
+  // operatorAttestation/attachments (Eduardo, 2026-08-08): this app's real
+  // proof is never a URL — Eduardo pastes the lottery/bank receipt into the
+  // conversation, transcribed into js/data.js there. Both params default to
+  // undefined/[] so every EXISTING caller (all current tests, none of which
+  // pass either) sees byte-identical behavior to before this change; only a
+  // caller that explicitly builds real local PDF/CSV/JSON files and passes
+  // them (see scripts/email/send_ticket_publication_real.mjs) uses this path.
   if (!testMode) {
     const attachmentCheck = validateAttachmentsAndLinks(
-      { proofUrl, attachments: [] }, // real attachment wiring (PDF/CSV/JSON URLs or file paths) is not yet built — see POWERBALL_EMAIL_OPERATIONS_RUNBOOK.md
+      { proofUrl, operatorAttestation, attachments: attachments || [] },
       (p) => fs.existsSync(p)
     );
     if (!attachmentCheck.ok) {
