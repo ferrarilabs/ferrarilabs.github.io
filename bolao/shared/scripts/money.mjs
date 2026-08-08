@@ -17,12 +17,18 @@ function roundCents(abs) {
   return Math.round(abs * 100) / 100;
 }
 
+// Centavos aparecem SÓ quando existem de verdade (Eduardo, 2026-08-07: "os centavos continuam
+// aparecendo, só deve aparecer no prêmio final"). `$60`, não `$60.00`; mas `$80.50` mantém os centavos.
+// O prêmio final é justamente o valor que cai em centavo quebrado (70% do pote), então a regra "some
+// com o `.00`" entrega o pedido sem precisar de um formatador especial por contexto.
 export function usd(n) {
   if (n === null || n === undefined || n === "" || !isFinite(Number(n))) return "—";
   const v = Number(n);
   const sign = v < 0 ? "-" : "";
-  return sign + CURRENCY_PREFIX + roundCents(Math.abs(v)).toLocaleString("en-US", {
-    minimumFractionDigits: 2, maximumFractionDigits: 2,
+  const abs = roundCents(Math.abs(v));
+  const whole = abs % 1 === 0;
+  return sign + CURRENCY_PREFIX + abs.toLocaleString("en-US", {
+    minimumFractionDigits: whole ? 0 : 2, maximumFractionDigits: 2,
   });
 }
 
