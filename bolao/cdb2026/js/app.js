@@ -209,6 +209,146 @@ function drawLifecycle(s, phaseId = "quartas", now = Date.now()) {
            ties: tieCount, provenance: od || null, reason: "nenhum sorteio oficial marcado" };
 }
 
+// ─── BATCH 4: PROGRESSÃO DETERMINÍSTICA DO BRACKET ──────────────────────────
+// A Copa do Brasil tem UM sorteio a partir das quartas. NÃO existe sorteio de semifinal nem de
+// final: os participantes das fases seguintes são DERIVADOS dos vencedores.
+//
+// Mas "derivado" não é o mesmo que "convencional". O mapeamento vencedor-de-QF -> vaga-de-SF é DADO
+// OFICIAL DA COMPETIÇÃO, não convenção de implementação. A CBF ainda não publicou nem o sorteio nem
+// esse mapeamento, então ele é registrado como TOPOLOGIA AUTORITATIVA quando publicado, e fica
+// explicitamente NÃO RESOLVIDO até lá. Assumir qf-1×qf-2 / qf-3×qf-4 seria inventar topologia
+// oficial — a mesma classe de erro que fabricar confrontos.
+//
+// CINCO PREOCUPAÇÕES SEPARADAS de propósito (era a exigência):
+//   1. topologia      — quem enfrenta quem nas fases seguintes (dado oficial, registrado)
+//   2. resolução      — de que time é a vaga AGORA (derivado, nunca copiado)
+//   3. resultado      — placar/agregado/pênaltis (modelo canônico existente, intocado)
+//   4. qualificação   — quem avançou (`tie.qualifiedTeamId`, modelo canônico existente)
+//   5. renderização   — como mostrar vaga não resolvida (honestamente)
+// Misturar 3 com 4 seria equiparar placar a classificação, o que o regulamento não faz (agregado,
+// pênaltis, jogo adiado). Este módulo NUNCA calcula resultado nem toca em scoring.
+
+const TOPOLOGY_REQUIRED_FIELDS = ["authority", "source", "ingestedAt", "validatedAt"];
+
+// Fases cuja composição é DERIVADA (sem sorteio próprio) e a fase de onde cada uma deriva.
+const DERIVED_PHASES = Object.freeze({ semifinal: "quartas", final: "semifinal" });
+
+function topologyProvenanceIsValid(prov) {
+  if (!prov || typeof prov !== "object") return false;
+  for (const f of TOPOLOGY_REQUIRED_FIELDS) if (!prov[f]) return false;
+  if (prov.authority !== "CBF") return false;
+  for (const f of ["ingestedAt", "validatedAt"]) {
+    if (Number.isNaN(new Date(prov[f]).getTime())) return false;
+  }
+  return true;
+}
+
+// Hash determinístico da topologia: ordena as vagas e normaliza cada lado, para que a MESMA
+// topologia registrada em ordem diferente produza o mesmo hash (idempotência de re-registro).
+function topologyFingerprint(slots) {
+  const rows = Object.entries(slots || {})
+    .map(([slotId, slot]) => `${slotId}=${[slot?.sideA?.winnerOf, slot?.sideB?.winnerOf].join("+")}`)
+    .sort();
+  return rows.length ? `${rows.length}:${hashString(rows.join("|"))}` : "";
+}
+
+/**
+ * Valida uma topologia contra os confrontos que REALMENTE existem na fase predecessora.
+ * Recusa (nunca conserta): vaga malformada, confronto predecessor desconhecido, predecessor
+ * duplicado (dois lados esperando o mesmo vencedor), auto-referência/ciclo, contagem errada de vagas.
+ */
+function validateTopology(slots, { predecessorTieIds, expectedSlots }) {
+  if (!slots || typeof slots !== "object" || Array.isArray(slots)) {
+    throw drawIngestError("TOPOLOGY_MALFORMED", "slots ausente ou não é objeto");
+  }
+  const entries = Object.entries(slots);
+  if (expectedSlots != null && entries.length !== expectedSlots) {
+    throw drawIngestError("TOPOLOGY_SLOT_COUNT", `esperava ${expectedSlots} vagas, veio ${entries.length}`);
+  }
+  const known = new Set(predecessorTieIds || []);
+  const used = new Set();
+  for (const [slotId, slot] of entries) {
+    if (!slotId) throw drawIngestError("TOPOLOGY_MALFORMED", "id de vaga vazio");
+    for (const side of ["sideA", "sideB"]) {
+      const ref = slot && slot[side];
+      const from = ref && ref.winnerOf;
+      if (!from || typeof from !== "string") {
+        throw drawIngestError("TOPOLOGY_MALFORMED", `${slotId}.${side} sem winnerOf`);
+      }
+      if (from === slotId) throw drawIngestError("TOPOLOGY_CIRCULAR", `${slotId} depende de si mesmo`);
+      if (!known.has(from)) throw drawIngestError("TOPOLOGY_UNKNOWN_TIE", `${slotId}.${side} -> ${from}`);
+      if (used.has(from)) throw drawIngestError("TOPOLOGY_DUPLICATE_PREDECESSOR", from);
+      used.add(from);
+    }
+    if (slot.sideA.winnerOf === slot.sideB.winnerOf) {
+      throw drawIngestError("TOPOLOGY_DUPLICATE_PREDECESSOR", slot.sideA.winnerOf);
+    }
+  }
+  // Normaliza: ordena as vagas por id e mantém só os campos com significado.
+  const out = {};
+  for (const [slotId, slot] of entries.sort((a, b) => a[0].localeCompare(b[0]))) {
+    out[slotId] = { sideA: { winnerOf: slot.sideA.winnerOf }, sideB: { winnerOf: slot.sideB.winnerOf } };
+  }
+  return out;
+}
+
+// ── 4. QUALIFICAÇÃO (modelo canônico existente, só LIDO aqui) ───────────────
+// Placar NÃO é qualificação. Quem avançou é `tie.qualifiedTeamId` ("A"/"B"), que o admin grava ao
+// travar o confronto — depois de agregado/pênaltis, e nunca para jogo adiado/incompleto. Este módulo
+// só lê; não recalcula nem infere vencedor a partir de gols.
+function tieQualifiedTeam(s, tieId) {
+  for (const phase of Object.values(s?.phases || {})) {
+    const tie = phase?.ties?.[tieId];
+    if (!tie) continue;
+    if (!tie.qualifiedTeamId) return null;                       // sem resultado autoritativo
+    return tie.qualifiedTeamId === "A" ? (tie.teamA || null) : (tie.teamB || null);
+  }
+  return null;                                                    // confronto inexistente
+}
+
+// ── 2. RESOLUÇÃO DE PARTICIPANTE ────────────────────────────────────────────
+// SEMPRE derivada do estado canônico, NUNCA de nome copiado. É isto que faz uma correção de
+// resultado autorizada propagar sozinha: se `qualifiedTeamId` muda de A para B, toda vaga a jusante
+// passa a resolver para B na próxima leitura, sem limpeza manual e sem identidade duplicada velha.
+function resolveParticipant(s, ref) {
+  const from = ref && ref.winnerOf;
+  if (!from) return { resolved: false, team: null, winnerOf: null, reason: "sem referência" };
+  const team = tieQualifiedTeam(s, from);
+  return team
+    ? { resolved: true, team, winnerOf: from, reason: null }
+    : { resolved: false, team: null, winnerOf: from, reason: "predecessor sem qualificação" };
+}
+
+/**
+ * Visão derivada de uma fase (semifinal/final). PURA.
+ * Devolve { phaseId, topologyKnown, slots: [{ slotId, sideA, sideB, bothResolved }] }.
+ * Sem topologia registrada => `topologyKnown: false` e NENHUMA vaga inventada.
+ */
+function derivedPhaseView(s, phaseId) {
+  const phase = s?.phases?.[phaseId];
+  const topo = phase && phase.topology;
+  const valid = !!(topo && topologyProvenanceIsValid(topo.provenance) && topo.slots);
+  if (!valid) {
+    return { phaseId, topologyKnown: false, slots: [],
+             reason: topo ? "topologia registrada sem proveniência validada" : "topologia oficial não publicada" };
+  }
+  const slots = Object.entries(topo.slots).map(([slotId, slot]) => {
+    const sideA = resolveParticipant(s, slot.sideA);
+    const sideB = resolveParticipant(s, slot.sideB);
+    return { slotId, sideA, sideB, bothResolved: sideA.resolved && sideB.resolved };
+  });
+  return { phaseId, topologyKnown: true, slots, reason: null };
+}
+
+// ── 5. RENDERIZAÇÃO (rótulo honesto) ────────────────────────────────────────
+// Vaga não resolvida mostra a DEPENDÊNCIA, nunca um clube. "Vencedor de <confronto>" quando se sabe
+// de quem depende; "A definir" quando nem isso.
+function participantLabel(part) {
+  if (part && part.resolved) return part.team;
+  if (part && part.winnerOf) return `${t("winnerOfPrefix")} ${part.winnerOf}`;
+  return t("toBeDefined");
+}
+
 // ─── BATCH 3: INGESTÃO DO SORTEIO OFICIAL DA CBF ────────────────────────────
 // CARACTERIZAÇÃO DA FONTE (feita em 2026-08-07, e é o motivo do desenho abaixo):
 //   - `cbf.com.br/futebol-brasileiro/tabelas/copa-do-brasil/2026` responde 200, mas o HTML é uma
@@ -689,10 +829,21 @@ function mergeStates(local, remote, opts = {}) {
     //
     // Precedência: no LOAD o remoto é a verdade (é o estado curado pelo admin); fora do load
     // preserva o local, que pode conter um registro oficial ainda não sincronizado.
-    const officialDraw = opts.preferRemoteResults
-      ? (remoteP.officialDraw ?? localP.officialDraw)
-      : (localP.officialDraw ?? remoteP.officialDraw);
-    phases[p.id] = { cutoffAt, cutoffOffsetMs, ties, ...(officialDraw ? { officialDraw } : {}) };
+    // ─── MELHORIA ESTRUTURAL (Batch 4): fim da classe de regressão "campo novo somiu no merge" ───
+    // Este objeto era montado ENUMERANDO campos à mão. Três vezes um campo novo foi silenciosamente
+    // descartado a cada merge por não estar na lista: os flags de espnSync (AUDIT-01), o
+    // `cutoffOffsetMs` (hotfix de 2026-08-01) e o `officialDraw` (Batch 2, pego pelo teste 9). Cada
+    // vez o sintoma foi diferente e caro de achar.
+    //
+    // Agora a base é um SPREAD, então qualquer campo de fase — incluindo `topology` do Batch 4 e
+    // qualquer coisa futura — é carregado adiante automaticamente. Só os três campos que precisam de
+    // precedência ESPECÍFICA são resolvidos explicitamente e sobrescrevem o spread.
+    //
+    // A ordem do spread já dá a precedência certa para todo o resto: no load o remoto vence (é o
+    // estado curado pelo admin), fora do load o local vence (pode ter trabalho ainda não
+    // sincronizado) — exatamente a regra que `officialDraw` tinha escrita à mão antes.
+    const carried = opts.preferRemoteResults ? { ...localP, ...remoteP } : { ...remoteP, ...localP };
+    phases[p.id] = { ...carried, cutoffAt, cutoffOffsetMs, ties };
   });
   // TODOS os flags de migração "roda uma vez" precisam estar listados aqui. Este objeto é
   // reconstruído do zero (não é spread), então qualquer flag esquecido é DESCARTADO a cada
