@@ -1,5 +1,44 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.104 — 2026-08-07 — BATCH 3: ingestão do sorteio oficial da CBF (auditável, fail-closed)
+
+**Caracterização da fonte primeiro** (documentada em `docs/bolao/CDB2026_CBF_INGESTION.md`):
+`cbf.com.br/futebol-brasileiro/tabelas/copa-do-brasil/2026` responde 200 mas é casca — 82 KB sem
+nenhum dado estruturado, sem nome de time, sem a palavra "quartas" (renderizado no cliente). A CBF
+tem CMS Strapi em `cms.cbf.com.br/api/` que responde de verdade (menus, logo), porém **nenhuma**
+coleção de competição existe: `campeonatos`, `partidas`, `jogos`, `tabelas`, `confrontos`, `chaves`
+todas 404. E o sorteio ainda não aconteceu, então não há exemplar real de resposta para parsear.
+
+Logo: das três opções da ordem de preferência, (1) e (2) não existem hoje. Escrever scraper contra
+superfície não observável seria fragilidade especulativa só para chamar o batch de "automatizado".
+Optado por **(3) ingestão controlada com validação estrita e proveniência**.
+
+**Seam deliberado:** `normalizeCbfDraw()` é PURO e não sabe da origem dos pares (aceita array de
+arrays, array de objetos ou mapa). Quando uma superfície estruturada estável da CBF existir, o fetcher
+automático entrega os pares para ESTA MESMA função e todo o contrato continua valendo. É por isso que
+a validação não vive dentro de um parser.
+
+Garantias:
+- Os 8 classificados vêm do **resultado das oitavas** (`qualifiedTeamId`), nunca de lista digitada.
+  Oitavas incompletas ⇒ ingestão impossível.
+- Exatamente 4 confrontos; cada classificado aparece **uma única vez**.
+- **Ordenação canônica** ⇒ ids determinísticos e `bracketHash` estável: o mesmo bracket em
+  formatação/ordem/lados diferentes dá o **mesmo** hash (a identidade é o conjunto, não a formatação).
+- Recusa com código estável, sem nunca "consertar": `DRAW_PARTIAL`, `DRAW_EXTRA_TIES`,
+  `TEAM_DUPLICATE`, `TEAM_UNKNOWN`, `TIE_INCOMPLETE`, `TIE_SELF_PAIR`, `SOURCE_MALFORMED`,
+  `QUALIFIED_SET_INVALID`, `DRAW_INCOMPLETE_COVERAGE`.
+- Falha ⇒ **nenhuma** mutação; o torneio segue em `WAITING_FOR_QUARTERFINAL_DRAW`.
+- Re-ingestão idêntica sobre bracket travado ⇒ no-op. Diferente ⇒ recusada
+  (`BRACKET_LOCKED_DIFFERENT`), salvo correção com `reason` **e** `authorizedBy` — que fica registrada
+  em `officialDraw.correction` com o `previousBracketHash`.
+- A ingestão não toca entradas, palpites, pagamentos nem outras fases.
+- `register-official-draw` agora valida SEMPRE pelo normalizador: ingestão não pode burlar validação.
+
+Testes: `scripts/audit_cbf_ingestion.mjs`, 23 checks cobrindo os 12 cenários pedidos, incluindo
+contrato de que nada deriva o bracket da ESPN, de aleatoriedade ou do emparelhamento programático dos
+classificados. O fixture do Batch 2 foi corrigido de 2 para 4 confrontos — 2 era irreal e o validador
+novo passa a recusá-lo corretamente.
+
 ## v3.103 — 2026-08-07 — BATCH 2: ciclo de vida explícito do sorteio + proveniência oficial
 
 Antes disto o "estado" do sorteio das quartas só existia IMPLICITAMENTE, espalhado em condições de
