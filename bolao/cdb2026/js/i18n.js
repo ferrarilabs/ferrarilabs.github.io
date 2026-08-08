@@ -26,6 +26,14 @@ window.CDB2026_I18N = {
     drawWaiting: "Aguardando a definição da data do sorteio das quartas pela CBF.",
     drawAwaitingPublication: "O sorteio já ocorreu — aguardando a publicação oficial da CBF para liberar os confrontos.",
     drawIngestedPending: "Sorteio recebido, aguardando validação da fonte oficial.",
+    // Batch 4 — vaga de fase derivada (semifinal/final) ainda não resolvida. Mostra a DEPENDÊNCIA,
+    // nunca um clube: "Vencedor de Santos × Grêmio" enquanto o confronto não tem classificado.
+    winnerOfPrefix: "Vencedor de",
+    toBeDefined: "A definir",
+    // Topologia oficial (mapeamento vencedor-de-quartas → vaga de semifinal) ainda não publicada
+    // pela CBF. Não é o mesmo que "aguardando sorteio": aqui o confronto não existe porque o dado
+    // oficial não existe — e inventá-lo seria fabricar chaveamento.
+    topologyUnpublished: "A CBF ainda não publicou o chaveamento desta fase — os confrontos só aparecem quando o mapeamento oficial for divulgado.",
     phaseAlreadyConcluded: "Fase já concluída antes do início deste bolão — não fez parte do período de palpites.",
     // Form
     entryTitle: "Nova entrada",
