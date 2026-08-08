@@ -34,6 +34,13 @@
   text-overflow: ellipsis;
 }
 .brand span { color: var(--muted); font-size: 12px; font-weight: var(--font-weight-regular); }
+/* O nome do bolão dentro da marca pode ser um `<h1>` real (é o caso do Powerball, e é a marcação
+   MAIS correta: dá à página um h1 de verdade em vez de um `<strong>` decorativo). Sem esta regra o
+   `<h1>` traz o tamanho e as margens do user-agent — 2em e margem de bloco — e a marca explode para
+   ~65px de altura dentro de um topbar de 94px. Foi exatamente o que aconteceu quando o Powerball
+   migrou para o framework: a regra equivalente existia só na cópia local dele. Ela pertence aqui —
+   qualquer app pode querer o h1 na marca, e a identidade do componente fica num lugar só. */
+.brand h1 { margin: 0; font: inherit; }
 
 .whatsapp-btn {
   display: inline-flex;
