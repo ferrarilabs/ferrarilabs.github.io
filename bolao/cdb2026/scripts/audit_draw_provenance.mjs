@@ -18,6 +18,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { detectTieFabrication } from "./draw_provenance_patterns.mjs";
 
 const APP_JS = join(dirname(fileURLToPath(import.meta.url)), "..", "js", "app.js");
 const src = readFileSync(APP_JS, "utf8");
@@ -264,8 +265,14 @@ test("13 nenhum caminho fabrica confronto: só register-official-draw insere tie
   // (`register-bracket-topology`), que não escreve confronto nenhum — só `phases[x].topology`. O
   // heurístico de palavra solta dava falso positivo por causa disso, então a checagem passou a ser
   // ESTRUTURAL: nenhuma atribuição a `ties` pode vir de emparelhamento de classificados.
-  assert(!/qualified\s*(\.[A-Za-z]+\(|\[)[^\n]*team[AB]|autoPair|shuffle|random/i.test(body),
-    "apareceu no admin algo que parece derivar/sortear confronto");
+  //
+  // Os padrões moram em `draw_provenance_patterns.mjs` e são medidos por
+  // `test_draw_provenance_patterns.mjs` (precisão e recall). Motivo: a versão estrutural anterior
+  // exigia a ordem `qualified` … `teamA` e por isso NÃO pegava a ordem inversa
+  // (`ties[id] = { teamA: qualified... }`) — um falso negativo. Fonte única evita divergir de novo.
+  const fabricated = detectTieFabrication(body);
+  assert(fabricated.length === 0,
+    `apareceu no admin algo que parece derivar/sortear confronto: ${fabricated.join(", ")}`);
   const topoBranch = body.slice(body.indexOf('case "register-bracket-topology"'),
                                 body.indexOf('case "set-cutoff"'));
   assert(topoBranch.length > 0, "a mutação de topologia desapareceu");

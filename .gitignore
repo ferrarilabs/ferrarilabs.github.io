@@ -9,3 +9,4 @@ __pycache__/
 *.pyc
 node_modules/
 *private-participant-data.local.json
+verify-summary.json

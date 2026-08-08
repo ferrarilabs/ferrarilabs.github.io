@@ -55,7 +55,30 @@ button {
 }
 button:hover { opacity: .88; }
 button:disabled { opacity: .45; cursor: not-allowed; }
-button.secondary { background: var(--bg3); color: var(--text); border: 1px solid var(--border2); }
+/* `a.secondary` existe porque o Powerball usa a MESMA affordance de botão secundário num link
+   real (`<a class="secondary">` para o site oficial do sorteio) — semanticamente correto: navega
+   para outro site, não executa ação. Sem esta regra o link não herdaria nada da regra `button`
+   acima e ficaria sem estilo nenhum. Dar a regra ao framework é o certo aqui em vez de um
+   override local do Powerball: qualquer app pode precisar de um link com aparência de botão
+   secundário, e a identidade do componente continua num lugar só. */
+button.secondary,
+a.secondary {
+  background: var(--bg3);
+  color: var(--text);
+  border: 1px solid var(--border2);
+}
+a.secondary {
+  /* O que o `a` não herda da regra `button` (que casa só com o elemento button). */
+  border-radius: var(--radius-lg);
+  padding: 11px 18px;
+  font-weight: var(--font-weight-black);
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+}
+a.secondary:hover { opacity: .88; }
 button.danger { background: var(--danger-bg); color: var(--danger-tx); border: 1px solid var(--danger-br); }
 button.small-btn { padding: 7px 11px; font-size: 12px; border-radius: var(--radius-md); white-space: nowrap; }
 
