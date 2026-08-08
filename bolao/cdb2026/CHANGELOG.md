@@ -1,5 +1,28 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.112 — 2026-08-08 — O relógio ao vivo congelava PORQUE o poll estava funcionando
+
+Eduardo, com print: *"Relógio e placar ainda estáticos, isso estava funcionando 100% na cdb essa
+semana porém quebrou novamente."*
+
+O modelo de relógio foi escrito quando o navegador falava DIRETO com a ESPN. Ali "buscar" e
+"observar" eram o mesmo instante, então ancorar a interpolação na hora do fetch estava certo. Depois
+da migração o navegador passou a ler um snapshot que pode ter sido gerado minutos antes — e a
+premissa deixou de valer sem que uma linha do relógio mudasse.
+
+A consequência é contraintuitiva: buscando o MESMO snapshot duas vezes, `clockSeconds` não muda.
+Com a âncora na hora do fetch, `detectClockPaused()` comparava 60 s de tempo real contra 0 s de
+relógio e concluía — coerentemente — que o jogo estava PARADO. Aí `liveClockDisplay()` parava de
+interpolar. **O relógio congelava exatamente porque o poll estava funcionando.**
+
+Correção: ancorar em `observedAt`, que é o `generatedAt` do snapshot. Dois polls do mesmo snapshot
+passam a dar o mesmo instante de observação — `realElapsed` é 0, nada é declarado pausado, e o
+relógio corre continuamente a partir da observação real. O teto de interpolação continua impedindo
+que um snapshot velho faça o relógio disparar.
+
+`bolao/scripts/audit_live_clock.test.mjs` (10 checagens) cobre os dois apps e, principalmente,
+garante que a correção NÃO cegou a detecção real de intervalo/paralisação.
+
 ## v3.111 — 2026-08-08 — Relógio, placar e lances ao vivo voltam a atualizar sozinhos
 
 Eduardo, com jogo acontecendo: *"o hero ao vivo tá com o relógio parado e o placar não atualiza

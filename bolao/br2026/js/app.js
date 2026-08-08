@@ -1012,6 +1012,11 @@ async function fetchScoreboard() {
     const snap = await r.json();
     if (!Array.isArray(snap?.matches)) return null; // forma inesperada: melhor nada que lixo
     if (snap.stale) console.warn(`[BR2026] snapshot de jogos marcado stale (${snap.staleReason || "?"})`);
+    // QUANDO o dado foi observado de verdade. Antes da migração da ESPN, "buscar" e "observar"
+    // eram o mesmo instante — o navegador falava com a ESPN. Agora ele lê um snapshot que pode ter
+    // sido gerado minutos antes, e tratar a hora do fetch como hora da observação quebra o relógio
+    // (ver o comentário em liveClockDisplay/detectClockPaused).
+    const observedAt = Date.parse(snap.generatedAt || "") || Date.now();
     const events = snapshotEventsToEspnShape(snap.matches);
     const liveEventIds = events
       .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
@@ -1050,6 +1055,7 @@ async function fetchScoreboard() {
         clockSec,
         clockStr:  comp.status?.displayClock || "",
         period, isHalftime, isPenalties,
+        observedAt,
         plays: extractMatchPlays(comp, keyEventsById[ev.id]),
       };
     }).filter(Boolean);
@@ -1107,12 +1113,26 @@ async function pollAll() {
       if (!Object.keys(_brRawClockHistory).length) _brRawClockHistory = loadRawClockCache();
       const nextRawHistory = {};
       const nextLive = rawLive.map(m => {
-        const rawFresh = { clockSeconds: m.clockSec, pollTime: now, period: m.period };
+        // `pollTime` é a hora em que o dado foi OBSERVADO, não a hora do fetch. Com o snapshot,
+        // as duas deixaram de ser a mesma coisa — e essa diferença é o bug inteiro:
+        //
+        // Buscando o mesmo snapshot duas vezes seguidas, `clockSeconds` não muda. Com `pollTime =
+        // now`, `detectClockPaused()` via 60 s de tempo real contra 0 s de relógio e concluía
+        // PAUSADO — então `liveClockDisplay()` parava de interpolar e o relógio congelava. E,
+        // quando não congelava, a interpolação reiniciava do mesmo ponto a cada poll, andando ~60 s
+        // e voltando. Foi exatamente o relatado: "relógio parado, placar não atualiza".
+        //
+        // Ancorando em `observedAt` (o `generatedAt` do snapshot): dois polls do MESMO snapshot dão
+        // o mesmo `pollTime`, então `realElapsed` é 0 e nada é declarado pausado; e o relógio corre
+        // continuamente a partir do instante real da observação. O teto de interpolação
+        // (BR_MAX_INTERPOLATION_MS) continua impedindo que um snapshot velho faça o relógio disparar.
+        const observedAt = m.observedAt || now;
+        const rawFresh = { clockSeconds: m.clockSec, pollTime: observedAt, period: m.period };
         const clockPaused = detectClockPaused(rawFresh, _brRawClockHistory[m.id]);
-        if (m.clockSec != null) nextRawHistory[m.id] = { clockSeconds: m.clockSec, pollTime: now };
+        if (m.clockSec != null) nextRawHistory[m.id] = { clockSeconds: m.clockSec, pollTime: observedAt };
         const prevMerged = prevById.get(m.id) || clockCache[m.id];
-        const merged = mergeLiveClock({ clockSeconds: m.clockSec, pollTime: now, period: m.period, clockPaused }, prevMerged);
-        return { ...m, clockSeconds: merged.clockSeconds, pollTime: now, clockPaused };
+        const merged = mergeLiveClock({ clockSeconds: m.clockSec, pollTime: observedAt, period: m.period, clockPaused }, prevMerged);
+        return { ...m, clockSeconds: merged.clockSeconds, pollTime: observedAt, clockPaused };
       });
       _brRawClockHistory = nextRawHistory;
       saveRawClockCache(_brRawClockHistory);

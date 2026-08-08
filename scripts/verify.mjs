@@ -80,6 +80,8 @@ const CHECKS = [
   { id: "visual-contract", group: "app", cmd: ["node", "bolao/scripts/check_shared_visual_contract.mjs"], why: "shared visual contract" },
   { id: "live-freshness", group: "app", cmd: ["node", "bolao/scripts/audit_live_freshness.test.mjs"],
     why: "live snapshot polling must revalidate — stale cache froze the live clock/score/plays" },
+  { id: "live-clock", group: "app", cmd: ["node", "bolao/scripts/audit_live_clock.test.mjs"],
+    why: "live clock must keep running when the same snapshot is re-fetched" },
   { id: "tool-scope", group: "app", cmd: ["node", "bolao/scripts/audit_tool_scope.test.mjs"],
     why: "cross-app audit tools cannot silently shrink their app scope" },
   { id: "cachebust", group: "app", cmd: ["node", "bolao/scripts/cachebust.integration.test.mjs"], why: "cache-bust integration" },
