@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T21:02:44Z",
-  "sourceUpdatedAt": "2026-08-08T21:02:44Z",
+  "generatedAt": "2026-08-08T23:42:40Z",
+  "sourceUpdatedAt": "2026-08-08T23:42:40Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "25ddb33b95ced32b7323e9cbefd2795296d78a34fd910c2120c5750fcb5bad18",
+  "payloadHash": "05b18310fb50dafed032071e07a05ee839d8856546d4b55b259e5553658af0e4",
   "matches": [
     {
       "name": "Palmeiras",
@@ -121,10 +121,24 @@
       "gd": 2.0
     },
     {
+      "name": "Atlético-MG",
+      "abbr": "CAM",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
+      "rank": 9.0,
+      "points": 29.0,
+      "played": 21.0,
+      "wins": 8.0,
+      "draws": 5.0,
+      "losses": 8.0,
+      "gf": 27.0,
+      "ga": 27.0,
+      "gd": 0.0
+    },
+    {
       "name": "Corinthians",
       "abbr": "COR",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/874.png",
-      "rank": 9.0,
+      "rank": 10.0,
       "points": 29.0,
       "played": 21.0,
       "wins": 7.0,
@@ -133,20 +147,6 @@
       "gf": 22.0,
       "ga": 20.0,
       "gd": 2.0
-    },
-    {
-      "name": "Atlético-MG",
-      "abbr": "CAM",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
-      "rank": 10.0,
-      "points": 28.0,
-      "played": 20.0,
-      "wins": 8.0,
-      "draws": 4.0,
-      "losses": 8.0,
-      "gf": 25.0,
-      "ga": 25.0,
-      "gd": 0.0
     },
     {
       "name": "Coritiba",
@@ -247,10 +247,24 @@
       "gd": -4.0
     },
     {
+      "name": "Remo",
+      "abbr": "REMO",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
+      "rank": 18.0,
+      "points": 22.0,
+      "played": 22.0,
+      "wins": 5.0,
+      "draws": 7.0,
+      "losses": 10.0,
+      "gf": 26.0,
+      "ga": 36.0,
+      "gd": -10.0
+    },
+    {
       "name": "Vasco da Gama",
       "abbr": "VAS",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3454.png",
-      "rank": 18.0,
+      "rank": 19.0,
       "points": 21.0,
       "played": 20.0,
       "wins": 5.0,
@@ -259,20 +273,6 @@
       "gf": 23.0,
       "ga": 31.0,
       "gd": -8.0
-    },
-    {
-      "name": "Remo",
-      "abbr": "REMO",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
-      "rank": 19.0,
-      "points": 21.0,
-      "played": 21.0,
-      "wins": 5.0,
-      "draws": 6.0,
-      "losses": 10.0,
-      "gf": 24.0,
-      "ga": 34.0,
-      "gd": -10.0
     },
     {
       "name": "Chapecoense",
