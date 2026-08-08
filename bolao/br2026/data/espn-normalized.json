@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-08T19:55:54Z",
-  "sourceUpdatedAt": "2026-08-08T19:55:54Z",
+  "generatedAt": "2026-08-08T20:26:36Z",
+  "sourceUpdatedAt": "2026-08-08T20:26:36Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "70d1a728339d681c0e4140a4e7157eeaee0872ececdfc6f906ae35f882e2b356",
+  "payloadHash": "cb2272a8fa772b9eb16ed3b02ad0836b7425cbf940c5aa724d910f3ede296dcd",
   "matches": [
     {
       "id": "401840808",
@@ -35196,25 +35196,83 @@
       "id": "401841181",
       "date": "2026-08-08T19:00Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "26'",
-      "statusDetail": "26'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "52'",
+      "statusDetail": "52'",
       "completed": false,
       "homeTeam": "Grêmio",
       "awayTeam": "São Paulo",
       "homeTeamId": "6273",
       "awayTeamId": "2026",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena do Grêmio",
       "city": "Porto Alegre",
-      "clockSec": 1560.0,
-      "clockStr": "26'",
-      "period": 1,
-      "details": []
+      "clockSec": 3120.0,
+      "clockStr": "52'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2026"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcos Antonio",
+              "shortName": "Marcos Antonio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Mathías Villasanti",
+              "shortName": "M. Villasanti"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2821.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wallace",
+              "shortName": "Wallace"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841178",
