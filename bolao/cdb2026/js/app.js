@@ -114,6 +114,110 @@ function phaseDrawIsOfficial(phase) {
   return phase.cutoffAt !== null && phase.cutoffAt !== undefined;
 }
 
+// ─── ESTADO EXPLÍCITO DO CICLO DE VIDA DO SORTEIO (Batch 2) ─────────────────
+// Antes disto o "estado" do sorteio das quartas só existia implicitamente, espalhado em condições
+// de UI (`ties` vazio? `cutoffAt` nulo? countdown some?). Isso é frágil de duas formas: não dá para
+// TESTAR o estado, e duas telas podem discordar entre si sobre em que ponto do torneio estamos.
+// Agora existe uma derivação única, pura e testável — a UI consome, nunca decide.
+//
+// A Copa do Brasil tem UM sorteio a partir daqui: o das quartas. Semifinal e final NÃO têm sorteio
+// (resolvem por vencedores — Batch 4), por isso este ciclo de vida é específico das quartas.
+const DRAW_LIFECYCLE = Object.freeze({
+  WAITING: "WAITING_FOR_QUARTERFINAL_DRAW",       // não há nem data oficial marcada
+  SCHEDULED: "QUARTERFINAL_DRAW_SCHEDULED",       // data marcada, ainda no futuro -> countdown
+  AWAITING_PUBLICATION: "QUARTERFINAL_DRAW_AWAITING_PUBLICATION", // data passou, CBF não publicou
+  INGESTED: "QUARTERFINAL_DRAW_INGESTED",         // chegou, mas proveniência ainda não validada
+  LOCKED: "QUARTERFINAL_BRACKET_LOCKED",          // validado -> bracket autoritativo
+});
+
+// Proveniência mínima e AUDITÁVEL. Só campos que servem para provar de onde veio o bracket:
+//   authority   — quem tem autoridade (sempre "CBF" para este torneio)
+//   source      — como chegou ("cbf-publication" | "manual-admin")
+//   sourceUrl   — onde verificar (publicação oficial)
+//   scheduledAt — quando o sorteio acontece/aconteceu (dirige o countdown)
+//   publishedAt — quando a CBF publicou o resultado do sorteio
+//   ingestedAt  — quando entrou neste sistema
+//   validatedAt — quando a proveniência foi conferida (é isto que torna o bracket oficial)
+//   validatedBy — quem/o quê conferiu
+//   bracketHash — impressão digital do conjunto de confrontos no momento da validação; permite
+//                 detectar depois que o bracket mudou sem passar por uma correção controlada
+// Nada além disso. Campo sem uso probatório não entra.
+const OFFICIAL_DRAW_REQUIRED_FIELDS = ["authority", "source", "scheduledAt", "ingestedAt", "validatedAt"];
+
+// Hash estável do conjunto de confrontos. Ordena os pares para que a MESMA chave de bracket seja
+// produzida independentemente da ordem de inserção — dois ingests do mesmo sorteio oficial têm de
+// dar o mesmo hash (exigência de idempotência do Batch 3).
+function bracketFingerprint(ties) {
+  const pairs = Object.values(ties || {})
+    .filter(t => t && t.teamA && t.teamB)
+    .map(t => [t.teamA, t.teamB].sort().join("~"))
+    .sort();
+  return pairs.length ? `${pairs.length}:${hashString(pairs.join("|"))}` : "";
+}
+
+// Proveniência é VÁLIDA só se todos os campos probatórios existirem e forem datas plausíveis.
+// Malformada = tratada como NÃO validada (fail closed): um objeto `officialDraw` pela metade nunca
+// pode destravar o bracket.
+function officialDrawProvenanceIsValid(od) {
+  if (!od || typeof od !== "object") return false;
+  for (const f of OFFICIAL_DRAW_REQUIRED_FIELDS) {
+    if (!od[f]) return false;
+  }
+  if (od.authority !== "CBF") return false;          // só a CBF tem autoridade sobre este sorteio
+  for (const f of ["scheduledAt", "ingestedAt", "validatedAt"]) {
+    if (Number.isNaN(new Date(od[f]).getTime())) return false;
+  }
+  return true;
+}
+
+/**
+ * Deriva o estado do ciclo de vida do sorteio. PURA: não muta nada, não lê relógio global além de
+ * `now` (injetável para teste).
+ * Devolve { state, scheduledAt, countdownMs, ties, provenance, reason }.
+ */
+function drawLifecycle(s, phaseId = "quartas", now = Date.now()) {
+  const phase = (s && s.phases && s.phases[phaseId]) || null;
+  const od = phase && phase.officialDraw;
+  const tieCount = phase && phase.ties ? Object.keys(phase.ties).length : 0;
+  const scheduledMs = od && od.scheduledAt ? new Date(od.scheduledAt).getTime() : NaN;
+  const hasSchedule = Number.isFinite(scheduledMs);
+
+  // Validado + proveniência íntegra = bracket oficial e travado. Só aqui o bracket é autoritativo.
+  if (officialDrawProvenanceIsValid(od)) {
+    return { state: DRAW_LIFECYCLE.LOCKED, scheduledAt: od.scheduledAt, countdownMs: null,
+             ties: tieCount, provenance: od, reason: "proveniência oficial validada" };
+  }
+  // Chegou algo (ingestedAt) mas a proveniência não fecha -> NÃO é oficial. Fica explícito em vez
+  // de silenciosamente parecer "esperando sorteio".
+  if (od && od.ingestedAt) {
+    return { state: DRAW_LIFECYCLE.INGESTED, scheduledAt: od.scheduledAt || null, countdownMs: null,
+             ties: tieCount, provenance: od,
+             reason: "sorteio ingerido, proveniência incompleta ou não validada" };
+  }
+  if (hasSchedule && scheduledMs > now) {
+    return { state: DRAW_LIFECYCLE.SCHEDULED, scheduledAt: od.scheduledAt,
+             countdownMs: scheduledMs - now, ties: tieCount, provenance: od,
+             reason: "sorteio oficial marcado" };
+  }
+  if (hasSchedule) {
+    // A data passou e a CBF ainda não publicou. Estado próprio: nem "sem data", nem "oficial".
+    return { state: DRAW_LIFECYCLE.AWAITING_PUBLICATION, scheduledAt: od.scheduledAt,
+             countdownMs: 0, ties: tieCount, provenance: od,
+             reason: "data do sorteio passou, publicação oficial ainda não registrada" };
+  }
+  return { state: DRAW_LIFECYCLE.WAITING, scheduledAt: null, countdownMs: null,
+           ties: tieCount, provenance: od || null, reason: "nenhum sorteio oficial marcado" };
+}
+
+// O bracket é autoritativo só no estado LOCKED. `phaseDrawIsOfficial()` (acima) continua sendo o
+// gate do SANITIZADOR e aceita também `cutoffAt` — de propósito, para não apagar o cadastro manual
+// que o admin já fazia antes deste modelo existir. As duas perguntas são diferentes:
+//   phaseDrawIsOfficial  -> "posso ter confrontos aqui?"      (permissivo, protege trabalho do admin)
+//   drawBracketIsLocked  -> "este bracket é oficial e provado?" (estrito, exige proveniência)
+function drawBracketIsLocked(s, phaseId = "quartas", now = Date.now()) {
+  return drawLifecycle(s, phaseId, now).state === DRAW_LIFECYCLE.LOCKED;
+}
+
 // Remove ties fantasma das fases com sorteio pendente. Muta `s` e devolve true se mudou algo.
 // Toca EXCLUSIVAMENTE `phases[<fase com gate>].ties`: entradas, `paid`, `deletedIds`, auditLog,
 // espnSync e as outras fases (inclusive oitavas) ficam intactos — garantido por teste.
@@ -456,7 +560,19 @@ function mergeStates(local, remote, opts = {}) {
     const cutoffOffsetMs = opts.preferRemoteResults
       ? (remoteP.cutoffOffsetMs ?? localP.cutoffOffsetMs)
       : (localP.cutoffOffsetMs ?? remoteP.cutoffOffsetMs);
-    phases[p.id] = { cutoffAt, cutoffOffsetMs, ties };
+    // `officialDraw` (Batch 2) TEM de ser carregado adiante. `phases[p.id]` é reconstruído campo a
+    // campo, não por spread, então um campo esquecido é DESCARTADO a cada merge — mesmo bug do
+    // AUDIT-01 (flags de espnSync) e do cutoffOffsetMs. Aqui a consequência seria pior: o bracket
+    // oficial das quartas perderia a proveniência no próximo sync e voltaria a parecer NÃO oficial,
+    // destravando o sanitizador contra confrontos legítimos. Pego pelo teste 9 de
+    // audit_draw_provenance.mjs.
+    //
+    // Precedência: no LOAD o remoto é a verdade (é o estado curado pelo admin); fora do load
+    // preserva o local, que pode conter um registro oficial ainda não sincronizado.
+    const officialDraw = opts.preferRemoteResults
+      ? (remoteP.officialDraw ?? localP.officialDraw)
+      : (localP.officialDraw ?? remoteP.officialDraw);
+    phases[p.id] = { cutoffAt, cutoffOffsetMs, ties, ...(officialDraw ? { officialDraw } : {}) };
   });
   // TODOS os flags de migração "roda uma vez" precisam estar listados aqui. Este objeto é
   // reconstruído do zero (não é spread), então qualquer flag esquecido é DESCARTADO a cada
@@ -570,6 +686,53 @@ function applyAdminMutation(state, mutation) {
     }
     case "set-payment": {
       s.paid[mutation.entryId] = !!mutation.value;
+      break;
+    }
+    // ─── Batch 2: agendar o sorteio oficial ────────────────────────────────
+    // Só marca a DATA. NÃO cria confronto nenhum e NÃO torna o bracket oficial — é exatamente o
+    // estado QUARTERFINAL_DRAW_SCHEDULED (countdown). Fabricar par a partir de uma data seria
+    // inventar sorteio.
+    case "set-draw-schedule": {
+      const ph = phaseOf(mutation.phaseId);
+      const prev = ph.officialDraw && typeof ph.officialDraw === "object" ? ph.officialDraw : {};
+      s.phases[mutation.phaseId] = { ...ph, officialDraw: {
+        ...prev,
+        authority: "CBF",
+        source: mutation.source || prev.source || "cbf-publication",
+        sourceUrl: mutation.sourceUrl || prev.sourceUrl || null,
+        scheduledAt: mutation.scheduledAt || null,
+      } };
+      break;
+    }
+    // ─── Batch 2/3: registrar o sorteio oficial (ingestão validada) ─────────
+    // ÚNICO caminho que torna o bracket das quartas autoritativo. Exige o conjunto de confrontos E
+    // a proveniência completa; grava `bracketHash` para que uma alteração posterior do bracket seja
+    // detectável. Fail closed: proveniência incompleta é REJEITADA aqui em vez de virar um
+    // `officialDraw` pela metade que o ciclo de vida teria de adivinhar.
+    case "register-official-draw": {
+      const ph = phaseOf(mutation.phaseId);
+      const ties = mutation.ties && typeof mutation.ties === "object" ? mutation.ties : null;
+      if (!ties || Object.keys(ties).length === 0) {
+        throw new Error("OFFICIAL_DRAW_NO_TIES");
+      }
+      for (const t of Object.values(ties)) {
+        if (!t || !t.teamA || !t.teamB) throw new Error("OFFICIAL_DRAW_INCOMPLETE_TIE");
+      }
+      const prev = ph.officialDraw && typeof ph.officialDraw === "object" ? ph.officialDraw : {};
+      const nowIso = new Date().toISOString();
+      const od = {
+        authority: "CBF",
+        source: mutation.source || "manual-admin",
+        sourceUrl: mutation.sourceUrl || prev.sourceUrl || null,
+        scheduledAt: mutation.scheduledAt || prev.scheduledAt || nowIso,
+        publishedAt: mutation.publishedAt || null,
+        ingestedAt: nowIso,
+        validatedAt: nowIso,
+        validatedBy: mutation.validatedBy || "admin",
+        bracketHash: bracketFingerprint(ties),
+      };
+      if (!officialDrawProvenanceIsValid(od)) throw new Error("OFFICIAL_DRAW_INVALID_PROVENANCE");
+      s.phases[mutation.phaseId] = { ...ph, ties: { ...ties }, officialDraw: od };
       break;
     }
     case "set-cutoff": {
@@ -1646,11 +1809,38 @@ function renderCountdown() {
   if (!box) return;
   const card = box.closest(".count-card");
   const ms   = entryCutoffMs();
-  if (ms === null) {
+  // Batch 2 — PRECEDÊNCIA EXPLÍCITA. O que importa é: existe prazo de palpite ABERTO agora?
+  //   1. Sim (cutoff no futuro)            -> contagem do prazo de palpite (comportamento antigo).
+  //   2. Não (sem cutoff OU cutoff vencido) -> o que interessa é o ESTADO DO SORTEIO.
+  //
+  // Antes daqui o caso 2 só cobria `ms === null`. Com o cutoff da fase ativa JÁ VENCIDO (oitavas
+  // encerradas, que é exatamente a situação real ao esperar o sorteio das quartas) o código caía no
+  // ramo `diff <= 0` e ESCONDIA a caixa inteira — então a contagem regressiva do sorteio e as
+  // mensagens de estado nunca apareciam justamente quando eram úteis. Achado por verificação em
+  // browser, não pelos testes unitários: os dois primeiros passavam porque exercitavam a derivação,
+  // não a renderização.
+  const entryDeadlineOpen = ms !== null && ms - Date.now() > 0;
+  if (!entryDeadlineOpen) {
+    // A mensagem vem do ESTADO DERIVADO. Antes daqui mostrava sempre o mesmo "waitingDraw" genérico,
+    // mesmo quando já existia data oficial marcada
+    // — o participante não tinha como saber se faltava a CBF marcar, se o sorteio ia acontecer em 3
+    // dias, ou se já ocorreu e faltava publicação. Agora a mensagem vem do estado derivado, e um
+    // sorteio AGENDADO ganha contagem regressiva de verdade (mesmo componente .count-grid).
     card?.classList.remove("hidden");
-    box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t("waitingDraw"))}</span>`;
+    const lc = drawLifecycle(state());
+    if (lc.state === DRAW_LIFECYCLE.SCHEDULED && lc.countdownMs > 0) {
+      box.innerHTML = `<div class="count-label">${esc(t("drawCountdownTitle"))}</div>` +
+                      countdownTimerHtml(lc.countdownMs);
+      return;
+    }
+    const msgKey = lc.state === DRAW_LIFECYCLE.AWAITING_PUBLICATION ? "drawAwaitingPublication"
+                 : lc.state === DRAW_LIFECYCLE.INGESTED ? "drawIngestedPending"
+                 : lc.state === DRAW_LIFECYCLE.WAITING ? "drawWaiting"
+                 : "waitingDraw";
+    box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t(msgKey))}</span>`;
     return;
   }
+  // Aqui `entryDeadlineOpen` é true, então `diff > 0` por construção.
   const diff = ms - Date.now();
   // Mesmo padrão da Copa (updateCountdown(), bolao/js/app.js) e do BR2026 (v1.56): esconde a
   // caixa inteira depois do prazo em vez de deixar "Encerrado" solto ocupando o mesmo espaço

@@ -1,5 +1,58 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.103 — 2026-08-07 — BATCH 2: ciclo de vida explícito do sorteio + proveniência oficial
+
+Antes disto o "estado" do sorteio das quartas só existia IMPLICITAMENTE, espalhado em condições de
+UI (`ties` vazio? `cutoffAt` nulo? o countdown apareceu?). Frágil de duas formas: não dava para
+testar o estado, e duas telas podiam discordar sobre em que ponto do torneio estamos.
+
+Agora existe uma derivação única, PURA e testável — a UI consome, nunca decide:
+
+    WAITING_FOR_QUARTERFINAL_DRAW            sem data oficial marcada
+    QUARTERFINAL_DRAW_SCHEDULED              data marcada no futuro -> contagem regressiva
+    QUARTERFINAL_DRAW_AWAITING_PUBLICATION   data passou, CBF ainda não publicou
+    QUARTERFINAL_DRAW_INGESTED               chegou, proveniência não validada -> NÃO é oficial
+    QUARTERFINAL_BRACKET_LOCKED              proveniência validada -> bracket autoritativo
+
+**Proveniência mínima e auditável** (`phases.quartas.officialDraw`): `authority` (sempre "CBF"),
+`source`, `sourceUrl`, `scheduledAt`, `publishedAt`, `ingestedAt`, `validatedAt`, `validatedBy` e
+`bracketHash`. Só campos com valor probatório — nada decorativo. `bracketHash` é a impressão digital
+do conjunto de confrontos no momento da validação, então uma alteração posterior do bracket sem
+correção controlada é detectável. Proveniência incompleta ou com autoridade diferente de CBF é
+tratada como NÃO validada (fail closed).
+
+Duas mutações administrativas novas:
+- `set-draw-schedule` — marca só a DATA. Não cria confronto e não torna oficial (é o estado
+  SCHEDULED). Fabricar par a partir de uma data seria inventar sorteio.
+- `register-official-draw` — ÚNICO caminho que torna o bracket autoritativo. Exige o conjunto de
+  confrontos E proveniência completa; rejeita bracket vazio ou confronto incompleto.
+
+Registro manual segue suportado (`source: "manual-admin"`).
+
+**Duas perguntas distintas, ambas preservadas:** `phaseDrawIsOfficial()` continua PERMISSIVO (aceita
+também `cutoffAt`) porque é o gate do sanitizador e protege o cadastro manual que o admin já fazia;
+`drawBracketIsLocked()` é ESTRITO e exige proveniência. Confundir as duas apagaria trabalho legítimo.
+
+### Dois defeitos reais encontrados pelos próprios testes
+
+1. **`mergeStates()` descartava `officialDraw`.** `phases[id]` é reconstruído campo a campo, não por
+   spread, então o campo novo era perdido a CADA merge — o bracket oficial perderia a proveniência no
+   próximo sync e voltaria a parecer não-oficial, destravando o sanitizador contra confrontos
+   legítimos. Mesmo bug do AUDIT-01 (flags de espnSync) e do `cutoffOffsetMs`. Corrigido com
+   precedência remoto-no-load / local-fora-do-load.
+2. **A contagem regressiva do sorteio nunca aparecia.** O ramo novo só cobria `cutoffAt === null`; com
+   o cutoff da fase ativa JÁ VENCIDO (oitavas encerradas — exatamente a situação real de espera pelo
+   sorteio) o código caía em `diff <= 0` e ESCONDIA a caixa inteira. Precedência agora é explícita:
+   prazo de palpite ABERTO vence; caso contrário mostra o estado do sorteio. **Achado por verificação
+   em browser, não pelos testes unitários** — eles exercitavam a derivação, não a renderização.
+
+Testes: `scripts/audit_draw_provenance.mjs`, 17 checks cobrindo os 13 cenários pedidos (sem
+agendamento; agendado no futuro; expirado sem publicação; proveniência malformada em 9 variações;
+ingerido sem validação; validado; registro manual; rejeição de bracket inválido; agendar não fabrica;
+reload; merge; estado contaminado; compatibilidade com cutoff; interação com o sanitizador; nenhum
+confronto fabricado — incluindo a ausência de `Math.random` no app). Verificado também em browser
+real nos três estados visíveis.
+
 ## v3.102 — 2026-08-07 — BATCH 5: formato USD canônico `US$ X.XX`
 
 Decisão de produto do Eduardo: o formato humano canônico é **`US$ X.XX`** (`US$ 5.00`,
