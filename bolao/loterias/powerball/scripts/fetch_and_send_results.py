@@ -9,9 +9,20 @@ Usage:
   python3 fetch_and_send_results.py --force-resend     # resend last email even if already sent
 """
 
-import json, sys, time, urllib.request, urllib.parse, re
+import json, sys, time, urllib.request, urllib.parse, re, os
 from datetime import datetime, timedelta
 import subprocess
+
+# CAMINHOS ANCORADOS NA RAIZ DO REPO, não no diretório de trabalho.
+#
+# O workflow roda com `working-directory: bolao/loterias/powerball/scripts`, mas o script abria
+# "bolao/loterias/powerball/js/data.js" — caminho relativo à RAIZ. Da pasta scripts isso é
+# FileNotFoundError. O bug estava mascarado: a execução morria antes, no encoding da URL, e nunca
+# chegava aqui. Consertado o primeiro, este seria o próximo a aparecer.
+REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+DATA_JS_PATH = os.path.join(REPO_ROOT, "bolao", "loterias", "powerball", "js", "data.js")
+DATA_JS_REL = "bolao/loterias/powerball/js/data.js"
+SEND_EMAIL_SCRIPT = os.path.join(REPO_ROOT, "bolao", "loterias", "powerball", "scripts", "send_result_email.py")
 
 POWERBALL_API = "https://data.ny.gov/resource/d6yy-54nr.json"
 MEGAMILLIONS_API = "https://data.ny.gov/resource/5xaw-6ayf.json"
@@ -65,7 +76,7 @@ def fetch_official_result(game_type):
 
 def load_data_js():
     """Load data.js content."""
-    with open("bolao/loterias/powerball/js/data.js", "r", encoding="utf-8") as f:
+    with open(DATA_JS_PATH, "r", encoding="utf-8") as f:
         return f.read()
 
 def parse_draws(content):
@@ -144,15 +155,24 @@ def write_result_into_data_js(content, draw_id, result_obj):
     )
     return content[:abs_at] + literal + content[abs_at + len("result: null"):], None
 
-def get_last_incomplete_draw(draws):
-    """Get the last draw that doesn't have a completed result yet and we're participating in."""
+def get_last_incomplete_draw(draws, force_resend=False):
+    """Último sorteio em que participamos e que ainda precisa de resultado.
+
+    Com `force_resend`, devolve o último sorteio em que participamos MESMO que já tenha resultado.
+    Sem isso o `--force-resend` era inalcançável: a seleção descartava todo sorteio já resolvido,
+    então a função devolvia None e o fluxo terminava em "No incomplete draw found" antes de chegar
+    à checagem de reenvio. Ou seja, a opção existia na linha de comando e no workflow e não tinha
+    como funcionar.
+    """
     for draw in reversed(draws):
-        # Skip if no result yet
-        if draw.get("result") is None or draw["result"].get("numbers") is None:
-            # Check if we have tickets/participation in this draw
-            has_tickets = draw.get("sharedTickets") or draw.get("participants")
-            if has_tickets:
-                return draw
+        has_tickets = draw.get("sharedTickets") or draw.get("participants")
+        if not has_tickets:
+            continue
+        resolved = draw.get("result") is not None and draw["result"].get("numbers") is not None
+        if force_resend:
+            return draw          # reenvio: o alvo é o último sorteio nosso, resolvido ou não
+        if not resolved:
+            return draw
     return None
 
 
@@ -166,7 +186,7 @@ def compute_prize_via_node(draw_id, official):
     """
     script = """
 const fs=require('fs'),vm=require('vm');const sb={window:{}};vm.createContext(sb);
-vm.runInContext(fs.readFileSync('bolao/loterias/powerball/js/data.js','utf8'),sb);
+vm.runInContext(fs.readFileSync(process.argv[3],'utf8'),sb);
 const [drawId, officialJson] = process.argv.slice(1);
 const off = JSON.parse(officialJson);
 const draw = sb.window.POWERBALL_DRAWS.find(d => d.id === drawId);
@@ -187,7 +207,7 @@ const breakdown = Object.entries(counts).map(([k,v]) => v + 'x ' + k);
 process.stdout.write(JSON.stringify({ total, jackpotHit, breakdown }));
 """
     try:
-        out = subprocess.run(["node", "-e", script, draw_id, json.dumps(official)],
+        out = subprocess.run(["node", "-e", script, draw_id, json.dumps(official), DATA_JS_PATH],
                              capture_output=True, text=True, timeout=20)
         if out.returncode != 0:
             print(f"❌ Node falhou ao calcular prêmio: {out.stderr.strip()[:200]}")
@@ -218,7 +238,7 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
         return False
 
     # Find the draw that needs a result (and we're participating in)
-    target_draw = get_last_incomplete_draw(draws)
+    target_draw = get_last_incomplete_draw(draws, force_resend=force_resend)
     if not target_draw:
         print("ℹ️  No incomplete draw found OR not participating in any incomplete draw")
         return False
@@ -278,19 +298,19 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
         print(f"❌ Não escrevi o data.js: {err}")
         return False
 
-    with open("bolao/loterias/powerball/js/data.js", "w", encoding="utf-8") as f:
+    with open(DATA_JS_PATH, "w", encoding="utf-8") as f:
         f.write(updated_content)
 
     print(f"✓ Updated data.js with new result")
 
     # Commit the change
     try:
-        subprocess.run(["git", "add", "bolao/loterias/powerball/js/data.js"], check=True)
+        subprocess.run(["git", "-C", REPO_ROOT, "add", DATA_JS_REL], check=True)
         subprocess.run([
-            "git", "commit", "-m",
+            "git", "-C", REPO_ROOT, "commit", "-m",
             f"Auto: Add Powerball result {target_draw['id']} ({official['numbers']} | PB{official['special']})"
         ], check=True)
-        subprocess.run(["git", "push"], check=True)
+        subprocess.run(["git", "-C", REPO_ROOT, "push"], check=True)
         print(f"✓ Committed and pushed data.js")
     except subprocess.CalledProcessError as e:
         print(f"⚠️  Git operation failed: {e}")
@@ -310,7 +330,7 @@ def main():
             print(f"\n📧 Sending result emails...\n")
             subprocess.run([
                 "python3",
-                "bolao/loterias/powerball/scripts/send_result_email.py",
+                SEND_EMAIL_SCRIPT,
                 "--send-all",
                 game_type
             ])
