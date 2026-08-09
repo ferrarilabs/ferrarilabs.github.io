@@ -450,7 +450,12 @@ window.POWERBALL_DRAWS = [
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "10:03:04 AM", status: "verificado", state: "NC" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:04:07 AM", status: "verificado", state: "NC" },
       { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "09/08/2026", hora: "11:23:59 AM", status: "verificado", state: "FL" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:49 AM", status: "verificado", state: "FL" }
+      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:49 AM", status: "verificado", state: "FL" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:10 PM", status: "verificado", state: "NC" },
+      // Zelle veio da conta empresarial "PS Place LLC" (memo "JORGE FL") — confirmado
+      // pelo Eduardo que é o Jorge, mesma pessoa dos sorteios anteriores.
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:13 PM", status: "verificado", state: "FL" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "12:14 PM", status: "verificado", state: "NC" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -462,7 +467,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 80,
+      totalArrecadado: 110,
       creditoSorteioAnterior: 24,
       valorUtilizado: 0,
       valorGuardadoProximoSorteio: 0,
