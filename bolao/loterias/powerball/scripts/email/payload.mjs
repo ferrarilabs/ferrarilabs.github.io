@@ -54,7 +54,12 @@ export function buildParticipantConfirmationPayload({ participant, draw, estimat
     jackpot: draw.drawing.jackpot,
     cashValue: draw.drawing.cashValue != null ? draw.drawing.cashValue : Math.round(draw.drawing.jackpot * 0.505),
     estimates,
-    siteUrl: siteUrl || "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+    // Origem CANÔNICA de produção (CNAME). `ferrarilabs.github.io` responde 301 para cá, então o
+    // link antigo funcionava — mas era o domínio errado num email que vai para participante, e
+    // comparar/usar `github.io` como se fosse produção já causou incidente neste repositório.
+    // (Os headers Origin/Referer do send.mjs seguem em github.io de propósito: são a allowlist do
+    // EmailJS, não link visível.)
+    siteUrl: siteUrl || "https://www.ferrarilabs.com/bolao/loterias/powerball/",
     generatedAtUtc: new Date().toISOString(),
   };
 }
@@ -265,7 +270,7 @@ export function buildDrawResultPayload({ draw, participants, official, prizeTabl
       estimatedNextDrawCredit,
     },
     proofUrl: draw.sharedTickets ? draw.sharedTickets.proofUrl : null,
-    siteUrl: siteUrl || "https://ferrarilabs.github.io/bolao/loterias/powerball/",
+    siteUrl: siteUrl || "https://www.ferrarilabs.com/bolao/loterias/powerball/",
     generatedAtUtc: new Date().toISOString(),
   };
 
