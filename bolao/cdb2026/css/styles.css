@@ -607,5 +607,14 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 }
 
 @media (max-width: 500px) {
-  .count-grid { grid-template-columns: repeat(2, 1fr); }
+  /* 2026-08-09 — O ÓRFÃO DO CONTADOR. Aqui havia `repeat(2, 1fr)`, override local que a Copa
+     (referência visual canônica) NUNCA teve: ela mantém 4 colunas em qualquer largura.
+     Com 4 células (D/H/M/S) duas colunas dão 2×2, que parece proposital. Mas quando falta menos
+     de UM DIA a célula de dias some, sobram 3 — e 3 em duas colunas viram 2 + 1 órfã. Foi o que o
+     Eduardo fotografou no iPhone: "00 H" e "12 MIN" numa linha e "59 S" sozinho embaixo, ocupando
+     a região central do card onde deveria estar o placar.
+     O layout quebrava exatamente na hora em que o contador mais importa — perto do jogo.
+     Cabe: 4 × 52px (min-width da célula) + 3 × 8px de gap = 232px, dentro dos ~288px úteis de um
+     viewport de 320px. Medido em Chromium a 320px e 390px. */
+  .count-grid { grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-columns: none; }
 }

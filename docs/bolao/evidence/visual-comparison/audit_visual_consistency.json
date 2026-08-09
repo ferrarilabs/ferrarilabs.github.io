@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-09T14:17:33.219Z",
-  "commit": "e499603",
+  "generatedAtUtc": "2026-08-09T14:27:37.998Z",
+  "commit": "b4a74d1",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -1102,7 +1102,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "1791px",
+          "height": "2236.28px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },

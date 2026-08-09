@@ -130,6 +130,8 @@ const CHECKS = [
     why: "visual consistency", requires: "browser" },
   { id: "prob-bar-geometry", group: "browser", cmd: ["node", "bolao/scripts/audit_prob_bar_geometry.mjs"],
     why: "barra de probabilidade com espessura uniforme e porcentagem nunca cortada", requires: "browser" },
+  { id: "countdown-layout", group: "browser", cmd: ["node", "bolao/scripts/audit_countdown_layout.mjs"],
+    why: "contador regressivo sem celula orfa — quebrava justamente perto do jogo", requires: "browser" },
   { id: "draw-combo", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_draw_combo.mjs"],
     why: "Powerball draw combos", requires: "browser" },
   { id: "combo-lifecycle", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs"],
