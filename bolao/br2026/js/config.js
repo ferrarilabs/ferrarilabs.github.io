@@ -74,6 +74,15 @@ window.BR2026_CONFIG = {
     stateId: "br2026",
     localFallback: true
   },
+  // ─── LIVE DATA PLANE V2 ─────────────────────────────────────────────────────────────────
+  // Gateway próprio do Ferrari Labs. O navegador fala SÓ com ele — nunca com a ESPN.
+  // `enabled:false` derruba para o snapshot commitado sem tocar em código (rollback de 1 linha).
+  liveGateway: {
+    enabled: true,
+    url: "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/live-football",
+    competition: "br2026",
+  },
+
   espn: {
     leagueSlug: "bra.1",
     season: 2026,

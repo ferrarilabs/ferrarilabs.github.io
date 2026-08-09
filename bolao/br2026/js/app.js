@@ -1058,13 +1058,100 @@ async function fetchEspnEventSummary(_eventId) {
   return null;
 }
 
+// ─── HIERARQUIA DE FONTES (LIVE DATA PLANE V2, 2026-08-09) ──────────────────────────────────
+//
+// 1. gateway Ferrari Labs — dado sob demanda, segundos de idade
+// 2. snapshot commitado    — bootstrap e emergência APENAS
+//
+// O navegador NUNCA fala com a ESPN: o gateway normaliza server-side e o CSP não permite outra
+// coisa (`connect-src 'self' + emailjs + *.supabase.co`).
+//
+// POR QUE ISTO EXISTE: medido em 2026-08-09, o cron do GitHub entregou intervalos de 24 a 47
+// minutos apesar de declarar dez, e um snapshot de produção foi observado com 138 minutos
+// enquanto dois jogos já rolavam. Enquanto o dado ao vivo dependesse do agendador, o hero
+// continuaria sumindo — e nenhuma lógica de retenção resolve o caso do primeiro visitante que
+// chega no meio de um jogo que o app NUNCA observou ao vivo.
+//
+// Entra AQUI, e não num laço novo: o polling existente já tem token de supersessão, backoff e
+// re-arme no foco. Um segundo laço seria o defeito de timers acumulados de volta.
+//
+// `_liveObservedAt` guarda o carimbo da observação corrente — uma resposta atrasada com carimbo
+// MAIS VELHO é descartada, senão o placar andaria para trás quando duas requisições retornassem
+// fora de ordem.
+let _liveObservedAt = 0;
+let _liveSource = "none";
+let _liveHealth = { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutiveFailures: 0, lastError: null };
+
+// ─── OBSERVABILIDADE (sanitizada) ───────────────────────────────────────────────────────────
+// Objetivo declarado: responder "por que o hero sumiu?" em menos de dois minutos, sem reproduzir
+// nada. Só estado de infraestrutura e da partida — nenhum dado de participante, e-mail, pagamento
+// ou credencial passa por aqui.
+function publishLiveHealth() {
+  try {
+    const live = _liveMatches && _liveMatches[0];
+    window.__BOLAO_LIVE_HEALTH__ = {
+      version: 1,
+      competition: C.liveGateway?.competition || "br2026",
+      gateway: { enabled: !!C.liveGateway?.enabled, status: _liveHealth.gatewayStatus,
+                 lastOkAt: _liveHealth.lastGatewayOkAt, consecutiveFailures: _liveHealth.consecutiveFailures,
+                 lastError: _liveHealth.lastError },
+      source: _liveSource,
+      observedAt: _liveObservedAt ? new Date(_liveObservedAt).toISOString() : null,
+      ageSeconds: _liveObservedAt ? Math.round((Date.now() - _liveObservedAt) / 1000) : null,
+      snapshotOk: _snapshotOk,
+      match: live ? { id: live.id, home: live.homeTeam, away: live.awayTeam,
+                      score: `${live.homeScore}-${live.awayScore}`, clock: live.clockStr } : null,
+      liveMatches: (_liveMatches || []).length,
+    };
+  } catch { /* diagnóstico nunca pode derrubar o app */ }
+}
+
+async function fetchFromGateway() {
+  const g = C.liveGateway;
+  if (!g || !g.enabled || !g.url) return null;
+  try {
+    const r = await fetchJson(`${g.url}?competition=${encodeURIComponent(g.competition)}`,
+                              { cache: "no-store", timeoutMs: 5000 });
+    const body = await r.json();
+    // Contrato versionado: schema desconhecido é REJEITADO, nunca interpretado com otimismo.
+    if (!body || body.schemaVersion !== 1) return null;
+    // `matches: null` = a fonte não sabe. NUNCA é "não há jogo" — foi assim que o hero sumia.
+    if (!r.ok || body.matches === null) return null;
+    const ts = Date.parse(body.observedAt || "") || 0;
+    if (!ts || ts <= _liveObservedAt) return null;   // fora de ordem ou repetida: descarta
+    _liveObservedAt = ts;
+    _liveSource = "gateway";
+    _liveHealth.gatewayStatus = body.stale ? "STALE" : "OK";
+    _liveHealth.lastGatewayOkAt = new Date().toISOString();
+    _liveHealth.consecutiveFailures = 0;
+    _liveHealth.lastError = null;
+    return { matches: body.matches, generatedAt: body.observedAt, stale: !!body.stale };
+  } catch (e) {
+    _liveHealth.gatewayStatus = "UNREACHABLE";
+    _liveHealth.consecutiveFailures++;
+    _liveHealth.lastError = String(e?.message || e).slice(0, 80);
+    return null;
+  }  // gateway fora do ar cai para o snapshot, nunca derruba a tela
+}
+
 async function fetchScoreboard() {
   try {
-    // Snapshot: já é a temporada inteira, então NÃO precisa (nem aceita) "?limit=20".
-    const r = await fetchJson(C.espn.scoreboardUrl, { cache: "no-cache" });  // ver comentário em fetchStandings()
-    const snap = await r.json();
-    if (!Array.isArray(snap?.matches)) { _snapshotOk = false; return null; } // forma inesperada
-    _snapshotOk = true;
+    // FONTE 1: gateway (dado sob demanda). FONTE 2: snapshot commitado (bootstrap/emergência).
+    //
+    // As duas produzem o MESMO schema normalizado — `normalize.js` do gateway é byte a byte
+    // idêntico ao `espn_provider.py` que gera o snapshot, verificado por teste de interop contra
+    // payload real. Por isso a origem só decide de ONDE vem `snap`; todo o mapeamento abaixo
+    // (resumo de lances, intervalo, pênaltis, relógio) é o mesmo caminho, sem duplicação.
+    let snap = await fetchFromGateway();
+    if (snap) {
+      _snapshotOk = true;
+    } else {
+      const r = await fetchJson(C.espn.scoreboardUrl, { cache: "no-cache" });  // ver comentário em fetchStandings()
+      snap = await r.json();
+      if (!Array.isArray(snap?.matches)) { _snapshotOk = false; return null; } // forma inesperada
+      _snapshotOk = true;
+      _liveSource = "snapshot";
+    }
     if (snap.stale) console.warn(`[BR2026] snapshot de jogos marcado stale (${snap.staleReason || "?"})`);
     // QUANDO o dado foi observado de verdade. Antes da migração da ESPN, "buscar" e "observar"
     // eram o mesmo instante — o navegador falava com a ESPN. Agora ele lê um snapshot que pode ter
@@ -1194,6 +1281,7 @@ async function pollAll() {
       saveLiveClockCache(Object.fromEntries(nextLive.map(m => [m.id, m])));
 
       _liveMatches = nextLive;
+      publishLiveHealth();
       // Overlay fetched match states onto the schedule cache (including "post" so a finished
       // game doesn't stay stuck as "ao vivo" until the 5-min TTL expires). Matched by ESPN's
       // stable event id first — team-name comparison is only a fallback for rows the id can't
