@@ -189,6 +189,9 @@ table.pb-table tr:hover td { background: var(--bg3); }
 .pb-status-pill.verificado { background: rgba(47,229,110,.15); color: var(--green); }
 .pb-status-pill.organizador { background: rgba(0,61,165,.2); color: #7fa8ff; }
 .pb-status-pill.recorrente { background: rgba(245,158,11,.15); color: var(--gold); }
+/* Participação registrada com pagamento ainda não confirmado. Cor de atenção (não verde): o verde
+   é reservado para "verificado", e usar verde aqui afirmaria pagamento que não aconteceu. */
+.pb-status-pill.pendente { background: rgba(245,158,11,.15); color: var(--gold); }
 
 .pb-summary-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
 .pb-summary-item { background: var(--bg3); border: 1px solid var(--border2); border-radius: 12px; padding: 14px; text-align: center; }

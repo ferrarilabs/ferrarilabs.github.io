@@ -400,6 +400,69 @@ window.POWERBALL_DRAWS = [
       breakdown: ["2x Powerball"]
     },
     profit: null
+  },
+
+  // ── Próximo sorteio: segunda-feira, 10/08/2026 ──────────────────────────────────────────
+  // Powerball sorteia segunda/quarta/sábado às 22:59 ET; o próximo dia dessa lista após o
+  // sábado 08/08 é segunda 10/08. Data, jackpot ($905M) e cash value ($391.9M) confirmados
+  // diretamente em powerball.com em 09/08/2026 — a mesma página que confirma o resultado de
+  // 08/08 (5 9 35 54 63 | PB 7, Power Play 3x) que já está gravado acima.
+  //
+  // creditoSorteioAnterior = valorGuardadoProximoSorteio do 08/08 ($0) + prêmios CONFIRMADOS do
+  // 08/08 ($24, resultado oficial já gravado) - nada distribuído ($0) = $24. Os $2 de
+  // `ajustesPendentes` do 08/08 NÃO entram: continuam fora de totalArrecadado/valorGuardado até
+  // serem classificados.
+  //
+  // PARTICIPAÇÃO REGISTRADA SEM PAGAMENTO: o Eduardo entrou neste sorteio em 09/08/2026 08:40 AM
+  // (America/New_York). `valor` e `metodo` ficam NULOS de propósito — o quanto ele vai contribuir
+  // e por qual meio ainda não foi definido, e inventar um número seria afirmar pagamento que não
+  // aconteceu. O valor por cota varia a cada sorteio ($20 no 08/03, $8 no 08/05, $10 no 08/08),
+  // então nem por padrão histórico dá para derivar. A UI mostra "—/Pagamento pendente".
+  {
+    id: "2026-08-10",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-08-09T08:40:00-04:00",
+    previousDrawId: "2026-08-08",
+    drawing: {
+      name: "Powerball Jackpot",
+      jackpot: 905000000,
+      cashValue: 391900000,
+      drawDateIso: "2026-08-10T22:59:00-04:00",
+      drawDateLabel: "10/08/2026 22:59 ET"
+    },
+
+    participants: [
+      {
+        name: "Eduardo Ferrari",
+        cotas: 1,
+        valor: null,
+        metodo: null,
+        data: "09/08/2026",
+        hora: "8:40 AM",
+        status: "pendente",
+        state: "NC"
+      }
+    ],
+
+    // Nenhum ticket comprado ainda.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 0,
+      creditoSorteioAnterior: 24,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 

@@ -366,16 +366,23 @@
     var sorted = draw.participants.slice().sort(function (a, b) {
       return parseEntryTimestamp(a) - parseEntryTimestamp(b);
     });
-    console.log("DEBUG renderTable:", draw.id, "participants:", sorted.length, "names:", sorted.map(p => p.name).join(", "));
     tbody.innerHTML = sorted.map(function (p) {
-      var statusClass = p.status === "organizador" ? "organizador" : "verificado";
-      var statusLabel = p.status === "organizador" ? "Organizador" : "✓ Verificado";
+      // "pendente" é um status próprio: participação registrada, pagamento ainda não confirmado.
+      // Sem ele, qualquer participante novo cairia em "✓ Verificado" — afirmação falsa sobre dinheiro.
+      var statusClass = p.status === "organizador" ? "organizador"
+        : p.status === "pendente" ? "pendente" : "verificado";
+      var statusLabel = p.status === "organizador" ? "Organizador"
+        : p.status === "pendente" ? "Pagamento pendente" : "✓ Verificado";
       var prize = calculatePrizePerParticipant(draw, p);
       var stateLabel = p.state ? " (" + p.state + ")" : "";
       return "<tr>" +
         '<td data-label="Nome">' + p.name + stateLabel + "</td>" +
-        '<td data-label="Valor">' + fmtUsd(p.valor) + "</td>" +
-        '<td data-label="Método" class="pb-td-mobile-hide">' + p.metodo + "</td>" +
+        // Participação registrada COM PAGAMENTO PENDENTE: `valor`/`metodo` nulos são um estado
+        // legítimo — alguém entrou no sorteio e a contribuição ainda não foi definida/confirmada.
+        // Antes disto o modelo obrigava os dois campos, então registrar participação sem pagamento
+        // exigiria inventar um valor. Renderizar "—/Pendente" é honesto; "$NaN" ou "undefined" não.
+        '<td data-label="Valor">' + (p.valor == null ? "—" : fmtUsd(p.valor)) + "</td>" +
+        '<td data-label="Método" class="pb-td-mobile-hide">' + (p.metodo == null ? "Pendente" : p.metodo) + "</td>" +
         '<td data-label="Data / Hora">' + p.data + (p.hora !== "—" ? " " + p.hora : "") + "</td>" +
         '<td data-label="Status"><span class="pb-status-pill ' + statusClass + '">' + statusLabel + "</span></td>" +
         '<td data-label="Lump Sum Bruto" class="pb-td-mobile-hide">' + fmtUsdCompact(prize.lumpSumBruto) + "</td>" +
