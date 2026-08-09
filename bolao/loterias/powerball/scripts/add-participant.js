@@ -4,12 +4,12 @@
  * Script para injetar novos participantes na próxima rodada do Powerball pool
  *
  * Uso:
- *   node add-participant.js --draw-id 2026-08-05 --name "John Doe" --email "john@example.com" --tx-id "<redacted>"
+ *   node add-participant.js --draw-id 2026-08-05 --name "John Doe" --email "john@example.com" --tx-id "EXAMPLE-TXID-0001"
  *   node add-participant.js --draw-id 2026-08-05 --csv participants.csv
  *
  * CSV Format (txId column optional, but see warning below if omitted):
  *   name,email,txId
- *   John Doe,john@example.com,<redacted>
+ *   John Doe,john@example.com,EXAMPLE-TXID-0001
  *   Jane Smith,jane@example.com,
  *
  * txId (Zelle/Venmo/Cash App transaction number, or the equivalent for
