@@ -119,7 +119,13 @@ test("nenhum `emailjs.send` fora dos arquivos inventariados", () => {
   const tracked = execFileSync("git", ["ls-files", "--", "*.js", "*.mjs", "*.html"], { encoding: "utf8" })
     .split("\n").filter(Boolean);
   const extras = tracked.filter((f) => {
-    if (BROWSER_SENDERS.includes(f) || f.includes("/scripts/")) return false;
+    // Auto-exclusão: este arquivo contém `emailjs.send` nas fixtures de mutação, por construção —
+    // mesmo motivo pelo qual o gate de PII se auto-exclui. E `f.includes("/scripts/")` não casava
+    // `scripts/...` (sem barra inicial), então o gate acusava a si mesmo assim que virou arquivo
+    // rastreado. Falha só apareceu DEPOIS do commit — antes disso o arquivo era untracked e
+    // `git ls-files` não o via.
+    if (f === "scripts/audit_email_send_safety.mjs") return false;
+    if (BROWSER_SENDERS.includes(f) || /(^|\/)scripts\//.test(f)) return false;
     try { return /emailjs\.send\s*\(/.test(readFileSync(f, "utf8")); } catch { return false; }
   });
   assert(extras.length === 0, `sender de navegador fora do inventário: ${extras.join(", ")}`);
