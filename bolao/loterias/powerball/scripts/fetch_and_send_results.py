@@ -254,7 +254,8 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
     # Check if official result matches the target draw's date
     # For now, assume the latest API result is for the incomplete draw
 
-    if target_draw.get("result") and target_draw["result"].get("numbers"):
+    existing_result = target_draw.get("result") if target_draw.get("result") and target_draw["result"].get("numbers") else None
+    if existing_result:
         print(f"ℹ️  Draw {target_draw['id']} already has a result")
         if not force_resend:
             return False
@@ -290,6 +291,14 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
 
     if dry_run:
         print("🏜️  DRY RUN — Not saving changes")
+        return True
+
+    # REENVIO com o resultado JÁ GRAVADO e correto: não há o que escrever — o `result: null` não
+    # existe mais, e o guard de escrita (corretamente) recusaria. Segue direto para o email.
+    # Sem isto, `--force-resend` chegava até aqui e morria no guard, sem enviar nada.
+    if existing_result and existing_result.get("numbers") == official["numbers"] \
+            and existing_result.get("special") == official["special"]:
+        print("↩️  Resultado já gravado e idêntico ao oficial — nada a escrever, seguindo para o email")
         return True
 
     # Escrita CIRÚRGICA — ver write_result_into_data_js sobre por que não se reescreve o array.
