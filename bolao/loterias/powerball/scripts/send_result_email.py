@@ -16,7 +16,7 @@ Email is sent ONLY if the draw has a completed result with winning tickets and p
 Business rule: only play next drawing if jackpot accumulates (configured per draw).
 """
 
-import json, os, sys, time, urllib.request, re, logging, subprocess
+import json, os, sys, time, urllib.request, urllib.parse, re, logging, subprocess
 import sys as _sys
 from pathlib import Path as _Path
 # Formatador USD canônico compartilhado (BATCH 5) — ver bolao/shared/scripts/money.py
@@ -141,12 +141,20 @@ def load_participants_from_supabase(draw_id):
     logger.info(f"Loading participants from Supabase for draw {draw_id}")
     try:
         # Query: get all users participating in this powerball draw
+        # QUERY CODIFICADA. O subselect tem espaços ("SELECT id FROM bolao_types WHERE ...") e ia
+        # cru na URL: o urllib recusava antes de qualquer rede e o script caía SEMPRE no fallback
+        # do env privado, sem que ninguém percebesse. É a MESMA falha de encoding do
+        # fetch_and_send_results.py — terceira ocorrência da mesma causa neste fluxo.
+        # Consequência real: a lista de participantes vinha sempre do secret, que estava
+        # desatualizado (14 de 15 — faltava quem entrou no sorteio mais recente).
         url = (
             f"{SUPABASE_URL}/rest/v1/user_bolao_participation?"
-            f"select=users(id,name,email)&"
-            f"bolao_type_id=in.(SELECT id FROM bolao_types WHERE code='powerball')&"
-            f"bolao_draw_id=eq.{draw_id}&"
-            f"status=eq.active"
+            + urllib.parse.urlencode({
+                "select": "users(id,name,email)",
+                "bolao_type_id": "in.(SELECT id FROM bolao_types WHERE code='powerball')",
+                "bolao_draw_id": f"eq.{draw_id}",
+                "status": "eq.active",
+            })
         )
         req = urllib.request.Request(
             url,
@@ -306,6 +314,47 @@ def get_prize(mainMatches, specialMatch, multiplier):
     return None
 
 
+
+def _derive_winning_tickets(draw):
+    """Lista de bilhetes premiados, calculada a partir do sorteio e do resultado.
+
+    Usa a MESMA `prizeTable` do js/data.js (via Node) — a regra de prêmio continua vivendo num
+    lugar só. Devolve None se não der para calcular, para o chamador tratar como erro em vez de
+    seguir com uma lista vazia que pareceria "nenhum ganhador".
+    """
+    result = draw.get("result") or {}
+    if not result.get("numbers"):
+        return None
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+    data_js = os.path.join(repo_root, "bolao", "loterias", "powerball", "js", "data.js")
+    script = """
+const fs=require('fs'),vm=require('vm');const sb={window:{}};vm.createContext(sb);
+vm.runInContext(fs.readFileSync(process.argv[2],'utf8'),sb);
+const draw = sb.window.POWERBALL_DRAWS.find(d => d.id === process.argv[1]);
+if (!draw) { process.exit(1); }
+const gt = sb.window.LOTTERY_GAME_TYPES[draw.gameType];
+const off = draw.result; const out = [];
+(draw.sharedTickets && draw.sharedTickets.series || []).forEach(s => (s.numeros||[]).forEach(str => {
+  const m = String(str).match(/^([\\d\\s-]+?)\\s*—\\s*(?:PB|MB)\\s*(\\d+)$/);
+  if (!m) return;
+  const nums = m[1].trim().split(/[\\s-]+/).map(Number);
+  const main = nums.filter(n => off.numbers.indexOf(n) !== -1).length;
+  const sp = Number(m[2]) === off.special;
+  const r = gt.prizeTable(main, sp, off.multiplier || 1);
+  if (r && r.amount) out.push(str);
+}));
+process.stdout.write(JSON.stringify(out));
+"""
+    try:
+        out = subprocess.run(["node", "-e", script, draw["id"], data_js],
+                             capture_output=True, text=True, timeout=20)
+        if out.returncode != 0:
+            return None
+        return json.loads(out.stdout)
+    except Exception:
+        return None
+
+
 def validate_data(draw, participants=None):
     """Verify data consistency before any send."""
     if not draw:
@@ -319,8 +368,16 @@ def validate_data(draw, participants=None):
     if not draw.get("result", {}).get("numbers"):
         errors.append("❌ Result numbers not found")
 
+    # `winningTickets` é DERIVÁVEL do sorteio + resultado; exigir que alguém o tenha digitado é
+    # transformar dado calculável em pré-requisito manual. Os sorteios antigos, hardcoded, traziam
+    # o campo pronto; os que vêm do data.js não — e foi isso que bloqueou o envio correto do 08/08
+    # depois que a fonte passou a ser o data.js. Deriva aqui, e só reclama se NEM ASSIM der.
     if not draw.get("winningTickets"):
-        errors.append("⚠ No winning tickets marked")
+        derived = _derive_winning_tickets(draw)
+        if derived is None:
+            errors.append("⚠ No winning tickets marked and could not derive them")
+        else:
+            draw["winningTickets"] = derived
 
     missing_emails = [p["name"] for p in participants if not p["email"]]
     if missing_emails:
