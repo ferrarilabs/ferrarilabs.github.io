@@ -4,11 +4,11 @@ Injetar novos participantes na próxima rodada do Powerball pool
 
 Uso:
   python3 add_participants.py --draw-id 2026-08-05 --csv new_participants.csv
-  python3 add_participants.py --draw-id 2026-08-05 --name "John Doe" --email "john@example.com" --tx-id "30343196142"
+  python3 add_participants.py --draw-id 2026-08-05 --name "John Doe" --email "john@example.com" --tx-id "EXAMPLE-TXID-0001"
 
 CSV Format (txId column optional, but see warning below if omitted):
   name,email,txId
-  John Doe,john@example.com,30343196142
+  John Doe,john@example.com,EXAMPLE-TXID-0001
   Jane Smith,jane@example.com,
 
 txId (Zelle/Venmo/Cash App transaction number, or equivalent) is part of the
