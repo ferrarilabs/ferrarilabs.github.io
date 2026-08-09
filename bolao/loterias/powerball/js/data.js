@@ -449,7 +449,8 @@ window.POWERBALL_DRAWS = [
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "9:54:35 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "10:03:04 AM", status: "verificado", state: "NC" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:04:07 AM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "09/08/2026", hora: "11:23:59 AM", status: "verificado", state: "FL" }
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "09/08/2026", hora: "11:23:59 AM", status: "verificado", state: "FL" },
+      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:49 AM", status: "verificado", state: "FL" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -461,7 +462,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 70,
+      totalArrecadado: 80,
       creditoSorteioAnterior: 24,
       valorUtilizado: 0,
       valorGuardadoProximoSorteio: 0,
