@@ -160,6 +160,68 @@ test("REGRESSÃO 2026-08-09: o sorteio ativo é o mais recente COM resultado do 
     "send_result_email.py faz para escolher o que enviar e para quem");
 });
 
+// ── 6. Modelo canônico de sorteio/participação (entrada operacional manual) ──
+test("todo sorteio tem os campos canônicos e ids únicos", () => {
+  const ids = DRAWS.map(d => d.id);
+  eq(new Set(ids).size, ids.length, "há id de sorteio duplicado");
+  for (const d of DRAWS) {
+    for (const k of ["id", "gameType", "drawing", "participants", "sharedTickets", "finance"]) {
+      assert(k in d, `sorteio ${d.id} sem campo canônico "${k}"`);
+    }
+    // `status` só é exigido enquanto o sorteio está EM ABERTO. O 2026-08-03 é anterior a esse
+    // campo existir no modelo e já está resolvido — exigi-lo retroativamente seria reescrever
+    // histórico para satisfazer um teste, e não corrige nada operacional.
+    const resolved = d.result && d.result.numbers;
+    if (!resolved) assert("status" in d, `sorteio em aberto ${d.id} sem "status"`);
+    assert(d.drawing.drawDateIso && d.drawing.drawDateLabel, `sorteio ${d.id} sem data`);
+    assert(typeof d.drawing.jackpot === "number", `sorteio ${d.id} sem jackpot numérico`);
+  }
+});
+
+test("participação PODE existir sem pagamento (valor/metodo nulos) e sem virar 'verificado'", () => {
+  // Registrar participação e confirmar pagamento são fatos DIFERENTES. Antes o modelo exigia
+  // `valor`/`metodo`, então registrar alguém que ainda não pagou obrigaria a inventar um valor —
+  // e o status cairia em "✓ Verificado", afirmando pagamento que não aconteceu.
+  const pend = DRAWS.flatMap(d => (d.participants || []).filter(p => p.valor == null || p.metodo == null));
+  for (const p of pend) {
+    eq(p.status, "pendente",
+      `${p.name} está sem valor/metodo mas o status não é "pendente" — a UI o mostraria como verificado`);
+  }
+  const appSrc = app;
+  assert(/p\.valor == null \? "—"/.test(appSrc), "a UI voltaria a renderizar $NaN para valor nulo");
+  assert(/p\.metodo == null \? "Pendente"/.test(appSrc), "a UI voltaria a renderizar undefined para metodo nulo");
+});
+
+test("nenhum participante 'verificado' está sem valor ou método", () => {
+  for (const d of DRAWS) {
+    for (const p of (d.participants || [])) {
+      if (p.status === "verificado") {
+        assert(p.valor != null && p.metodo != null,
+          `${p.name} em ${d.id} está marcado verificado sem valor/metodo — afirmação de pagamento sem dado`);
+      }
+    }
+  }
+});
+
+test("cada sorteio encadeia com o anterior e o crédito bate com o resultado dele", () => {
+  for (let i = 1; i < DRAWS.length; i++) {
+    const prev = DRAWS[i - 1], cur = DRAWS[i];
+    if (!cur.previousDrawId) continue;
+    eq(cur.previousDrawId, prev.id, `${cur.id} aponta para o sorteio anterior errado`);
+    if (prev.result && prev.result.numbers && cur.finance) {
+      const expected = (prev.finance.valorGuardadoProximoSorteio || 0) + (prev.result.premiosGanhos || 0);
+      eq(cur.finance.creditoSorteioAnterior, expected,
+        `crédito de ${cur.id} não bate: guardado(${prev.finance.valorGuardadoProximoSorteio}) + ` +
+        `prêmios(${prev.result.premiosGanhos}) do ${prev.id}`);
+    }
+  }
+});
+
+test("NENHUM console.log de debug no app do Powerball (regra do repo)", () => {
+  const hits = (app.match(/console\.log\(/g) || []).length;
+  eq(hits, 0, "há console.log em código de produção — o repo proíbe explicitamente");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ POWERBALL RESULT PIPELINE FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL CHECKS PASSED\n");
