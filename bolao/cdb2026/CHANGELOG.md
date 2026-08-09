@@ -1,5 +1,27 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.115 — 2026-08-09 — Contador regressivo: fim da célula órfã no mobile
+
+No print do iPhone do Eduardo o contador do próximo jogo aparecia como "00 H" e "12 MIN" numa
+linha e **"59 S" sozinho embaixo**, ocupando a região central do card onde deveria estar o placar.
+
+**Causa raiz:** `.count-grid` tinha `grid-template-columns: repeat(2, 1fr)` no mobile — override
+local que a Copa (referência visual canônica) nunca teve; ela mantém 4 colunas em qualquer largura.
+Com 4 células (D/H/M/S) duas colunas dão 2×2 e parecem propositais. Mas a célula de DIAS some
+quando falta menos de um dia: sobram 3, e 3 em duas colunas viram 2 + 1 órfã. **O layout quebrava
+exatamente quando o contador mais importa — perto do jogo**, que é por que ninguém tinha visto
+antes.
+
+**Correção:** `grid-auto-flow: column` + `grid-auto-columns: 1fr` — o grid passa a ter exatamente
+tantas colunas quantas células existirem, sempre numa linha só, com larguras iguais. Fica melhor
+que os 4 fixos da Copa, que deixariam um slot vazio quando há 3 células. Medido em Chromium: 320,
+390, 414, 768 e 1280px, uma linha em todos, sem estouro de texto.
+
+**Gate permanente:** `bolao/scripts/audit_countdown_layout.mjs` mede quantas LINHAS as células
+realmente ocupam, em vez de conferir o CSS — assim pega qualquer regressão futura,
+independentemente de como venha escrita. Validado por mutação: reintroduzindo `repeat(2, 1fr)`,
+falha com "contador quebrado em 2 linhas (3 células)".
+
 ## v3.114 — 2026-08-09 — Barra de probabilidade: espessura uniforme em toda a plataforma
 
 O Eduardo mandou um print do iPhone com barras de altura visivelmente diferente **na mesma tela**.
