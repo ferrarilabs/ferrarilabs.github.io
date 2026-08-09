@@ -697,6 +697,26 @@ function productionWritesAllowed() {
   if (override === "I UNDERSTAND") return { allowed: true, overridden: true, reason };
   return { allowed: false, reason };
 }
+// ─── AUD-01 (auditoria 2026-08-09): ENVIO DE E-MAIL TAMBÉM FALHA FECHADO ────────────────────
+//
+// A escrita no Supabase já era protegida por `productionWritesAllowed()` — fail-closed em origem
+// não-produção E quando `navigator.webdriver` é verdadeiro. O envio de e-mail não tinha nada.
+//
+// A assimetria é o problema: um harness automatizado abrindo a página de produção e submetendo
+// uma entrada tinha o ESTADO bloqueado e o E-MAIL enviado. Ou seja, a proteção existia para o
+// efeito reversível (gravação, que dá para desfazer) e faltava para o irreversível (mensagem que
+// já chegou na caixa de entrada de uma pessoa real). Neste repositório isso não é hipótese: um
+// envio errado já saiu para 15 pessoas.
+//
+// Mesmas condições do guard de gravação, nunca mais permissivas — delega à MESMA função, então
+// não há como as duas divergirem depois.
+function emailSendAllowed() {
+  var gate = productionWritesAllowed();
+  return gate.allowed
+    ? { allowed: true, overridden: !!gate.overridden }
+    : { allowed: false, reason: gate.reason };
+}
+
 
 async function saveRemoteState(s, opts = {}) {
   if (!C.database.enabled) return { ok: false, skipped: true };
@@ -2226,6 +2246,12 @@ function queueReceipt(entry) {
 
 async function sendReceipt(entry) {
   if (!C.emailjs.enabled || !window.emailjs) return;
+  // AUD-01: portão ANTES de qualquer chamada ao provedor. Zero chamadas quando bloqueado.
+  var _mail = emailSendAllowed();
+  if (!_mail.allowed) {
+    console.warn(`[CDB2026] EMAIL_SEND_BLOCKED — ${_mail.reason}. Nenhuma mensagem enviada.`);
+    return { status: "EMAIL_SEND_BLOCKED", reason: _mail.reason };
+  }
 
   const s = state();
   const html = receiptHtml(entry, s);

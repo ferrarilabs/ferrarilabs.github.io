@@ -15,7 +15,8 @@ non-zero — it never silently skips participants and reports "0 sent" as
 success, and it never logs a raw email address (only masked).
 """
 
-import json, os, sys, time, urllib.request
+import json
+import os, os, sys, time, urllib.request
 from collections import defaultdict
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -223,7 +224,37 @@ def build_html(payer, entries, lang, cc_label=""):
 </body></html>"""
 
 # ── EmailJS sender ────────────────────────────────────────────────────────────
+# ─── AUD-02: TRANSPORTE REAL FALHA FECHADO ──────────────────────────────────────────────────
+#
+# Descoberto pelo gate repo-wide (audit_email_send_safety.mjs), não pela auditoria original: este
+# sender ficou de fora da lista inicial e estava tão desprotegido quanto os outros três. É o motivo
+# de o gate enumerar TODOS os arquivos que falam com o provedor em vez de confiar numa lista feita
+# à mão — a lista à mão já tinha esquecido este.
+#
+# Autorização POSITIVA: envio real só com declaração explícita no ambiente. Qualquer execução não
+# declarada (teste, CI, local, interativa) não alcança o provedor.
+_TRANSPORT = None
+_ALLOW_ENV = "BOLAO_ALLOW_REAL_SEND"
+_ALLOW_TOKEN = "I UNDERSTAND"
+
+
+def real_send_allowed():
+    """(permitido, motivo). Fail-closed: só True com autorização explícita e fora de teste."""
+    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("BOLAO_TEST_RUN"):
+        return False, "processo de teste"
+    if os.environ.get(_ALLOW_ENV) == _ALLOW_TOKEN:
+        return True, None
+    return False, f"sem autorizacao explicita ({_ALLOW_ENV})"
+
+
 def send_email(addr, html):
+    # AUD-02: portão ANTES de qualquer chamada ao provedor.
+    if _TRANSPORT is None:
+        allowed, why = real_send_allowed()
+        if not allowed:
+            msg = f"EMAIL_SEND_BLOCKED: {why}. Nenhuma mensagem enviada."
+            print(f"BLOQUEADO {msg}")
+            return False, msg
     payload = json.dumps({
         "service_id":      EMAILJS_SVC,
         "template_id":     EMAILJS_TMPL,
@@ -238,6 +269,8 @@ def send_email(addr, html):
     req = urllib.request.Request(
         EMAILJS_URL, data=payload, headers=EMAILJS_HEADERS, method="POST"
     )
+    if _TRANSPORT is not None:
+        return _TRANSPORT(EMAILJS_URL, payload, EMAILJS_HEADERS)
     with urllib.request.urlopen(req, timeout=20) as r:
         return r.status
 

@@ -350,6 +350,26 @@ function productionWritesAllowed() {
   if (override === "I UNDERSTAND") return { allowed: true, overridden: true, reason };
   return { allowed: false, reason };
 }
+// ─── AUD-01 (auditoria 2026-08-09): ENVIO DE E-MAIL TAMBÉM FALHA FECHADO ────────────────────
+//
+// A escrita no Supabase já era protegida por `productionWritesAllowed()` — fail-closed em origem
+// não-produção E quando `navigator.webdriver` é verdadeiro. O envio de e-mail não tinha nada.
+//
+// A assimetria é o problema: um harness automatizado abrindo a página de produção e submetendo
+// uma entrada tinha o ESTADO bloqueado e o E-MAIL enviado. Ou seja, a proteção existia para o
+// efeito reversível (gravação, que dá para desfazer) e faltava para o irreversível (mensagem que
+// já chegou na caixa de entrada de uma pessoa real). Neste repositório isso não é hipótese: um
+// envio errado já saiu para 15 pessoas.
+//
+// Mesmas condições do guard de gravação, nunca mais permissivas — delega à MESMA função, então
+// não há como as duas divergirem depois.
+function emailSendAllowed() {
+  var gate = productionWritesAllowed();
+  return gate.allowed
+    ? { allowed: true, overridden: !!gate.overridden }
+    : { allowed: false, reason: gate.reason };
+}
+
 
 async function saveRemoteState(s, opts = {}) {
   if (!initDb()) return false;
@@ -1536,6 +1556,12 @@ function setupEmailJs() {
 }
 
 async function mailReceipt(id, target) {
+  // AUD-01: portão ANTES da chamada ao provedor. Zero chamadas quando bloqueado.
+  const _mail = emailSendAllowed();
+  if (!_mail.allowed) {
+    console.warn(`[Copa2026] EMAIL_SEND_BLOCKED — ${_mail.reason}. Nenhuma mensagem enviada.`);
+    return { status: "EMAIL_SEND_BLOCKED", reason: _mail.reason };
+  }
   const e = state().entries.find(x => x.id === id);
   if (!e) return;
   const to = target === "admin" ? CONFIG.adminEmail : e.participantEmail;
@@ -1555,6 +1581,12 @@ async function mailReceipt(id, target) {
 
 async function sendRemovalEmail(e, reason) {
   if (!isValidEmail(e.participantEmail) || !window.emailjs) return;
+  // AUD-01: portão ANTES da chamada ao provedor. Zero chamadas quando bloqueado.
+  const _mail = emailSendAllowed();
+  if (!_mail.allowed) {
+    console.warn(`[Copa2026] EMAIL_SEND_BLOCKED — ${_mail.reason}. Nenhuma mensagem enviada.`);
+    return { status: "EMAIL_SEND_BLOCKED", reason: _mail.reason };
+  }
   const html = `<div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto">
 <h2>${escapeHtml(t("removalEmailTitle"))}</h2>
 <p><b>${escapeHtml(t("receiptEntry"))}:</b> ${escapeHtml(e.entryName)}</p>
@@ -1790,6 +1822,12 @@ function buildPodiumEmailHtml(info, s) {
 async function sendResultEmailFromAdmin(testOnly) {
   if (!guardAdmin()) return;
   if (!window.emailjs) { showToast(t("emailjsNotLoaded"), "error"); return; }
+  const _mailAdmin = emailSendAllowed();
+  if (!_mailAdmin.allowed) {
+    console.warn(`[Copa2026] EMAIL_SEND_BLOCKED — ${_mailAdmin.reason}. Nenhuma mensagem enviada.`);
+    showToast(`${t("syncFailed") || "Envio bloqueado"}`, "warn", 8000);
+    return { status: "EMAIL_SEND_BLOCKED", reason: _mailAdmin.reason };
+  }
   const s = state();
   const completedResults = Object.entries(s.results || {}).filter(([, v]) => v?.advanceSide);
   if (!completedResults.length) { showToast(t("noKnockoutResults"), "warn"); return; }
@@ -3374,7 +3412,11 @@ async function saveEntry() {
       showToast(t("entryUpdated"), "success");
       // Send confirmation email to participant only (fire-and-forget, no admin copy)
       const toEmail = updatedEntry.participantEmail;
-      if (isValidEmail(toEmail) && window.emailjs && CONFIG.emailjs?.enabled) {
+      // AUD-01: o envio de edição também passa pelo portão. A gravação de estado acima já
+      // aconteceu de propósito — dado e notificação são resultados SEPARADOS e observáveis.
+      const _mailEdit = emailSendAllowed();
+      if (!_mailEdit.allowed) console.warn(`[Copa2026] EMAIL_SEND_BLOCKED — ${_mailEdit.reason}.`);
+      if (_mailEdit.allowed && isValidEmail(toEmail) && window.emailjs && CONFIG.emailjs?.enabled) {
         const html = buildEditEmailHtml(beforeEntry, updatedEntry, changes);
         const subject = `Palpites atualizados — ${emailSubjectSafe(beforeEntry.entryName)}`;
         emailjs.send(CONFIG.emailjs.serviceId, CONFIG.emailjs.participantTemplateId,
@@ -3463,9 +3505,24 @@ async function deleteEntry(id) {
   if (!s.deletedIds) s.deletedIds = [];
   s.deletedIds.push(id);
   saveState(s, { forceResults: true });
-  await sendRemovalEmail(e, reason).catch(() => {});
+  // AUD-03 (auditoria 2026-08-09): era `.catch(() => {})` seguido de um toast de SUCESSO
+  // incondicional. Ou seja: se o aviso ao participante falhasse, a tela afirmava que ele tinha
+  // sido enviado. Avisar alguém de que foi removido do bolão é justamente o tipo de mensagem
+  // cuja falha precisa ser vista — o participante descobriria a remoção por conta própria.
+  //
+  // A REMOÇÃO permanece feita mesmo se o e-mail falhar: são dois resultados diferentes e agora
+  // separadamente observáveis. Não faz sentido desfazer uma exclusão administrativa porque o
+  // provedor de e-mail está fora do ar; o que faz sentido é o admin SABER e avisar por outro meio.
+  let _removalMail;
+  try {
+    _removalMail = await sendRemovalEmail(e, reason);
+  } catch (err) {
+    console.warn("[Copa2026] falha ao enviar e-mail de remoção", err);
+    _removalMail = { status: "EMAIL_SEND_FAILED" };
+  }
   renderAll();
-  showToast(t("deleteEmailSent"), "success");
+  const _mailOk = !_removalMail || (_removalMail.status !== "EMAIL_SEND_BLOCKED" && _removalMail.status !== "EMAIL_SEND_FAILED");
+  showToast(_mailOk ? t("deleteEmailSent") : t("deleteEmailNotSent"), _mailOk ? "success" : "warn", _mailOk ? 3500 : 9000);
 }
 
 async function forceSyncFromRemote() {

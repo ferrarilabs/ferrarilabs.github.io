@@ -23,4 +23,8 @@ jobs:
 
       - name: Send round-completion emails (auto ESPN detection)
         working-directory: bolao/br2026/scripts
+        env:
+          # AUD-02: autorizacao POSITIVA e explicita do envio real. O sender falha fechado sem
+          # isto — teste, execucao local e qualquer job nao declarado nao alcancam o provedor.
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
         run: python3 send_round_email.py --auto

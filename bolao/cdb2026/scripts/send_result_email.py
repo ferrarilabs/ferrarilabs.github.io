@@ -34,7 +34,8 @@ Usage:
   and unlocks the tie (qualifiedTeamId cleared) if it had been locked from that leg's data.
 """
 
-import json, re, sys, time, urllib.request
+import json
+import os, re, sys, time, urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -713,12 +714,50 @@ def build_html(state, phase_id, tie_id, leg, tie_just_decided):
 
 
 # ── Email sender — identical mechanism to the Copa's script ──────────────────
+# ─── AUD-02 (auditoria 2026-08-09): TRANSPORTE REAL FALHA FECHADO ───────────────────────────
+#
+# O sender do Powerball já tinha trava (`_SEND_AUTHORIZED` + detecção de pytest). Este não tinha
+# NADA: bastava executar o script — num teste, numa máquina local, por engano — para o provedor
+# ser chamado de verdade e a mensagem chegar em gente real. Este repositório já viveu isso: um
+# envio errado saiu para 15 pessoas.
+#
+# AUTORIZAÇÃO POSITIVA, não heurística negativa. O envio real só acontece quando alguém DECLARA
+# que quer, via variável de ambiente, e a declaração vive no workflow de produção — não no código.
+# Assim o padrão de qualquer execução não declarada (teste, CI, local, interativa) é: não envia.
+#
+# `_TRANSPORT` existe para o teste exercitar toda a lógica de montagem/envio sem rede: injetando
+# um transporte falso, o caminho inteiro roda e nada sai. Sem ele, um teste que quisesse cobrir
+# essa lógica teria de alcançar o provedor — que é exatamente o que não pode acontecer.
+_TRANSPORT = None          # teste injeta um callable(url, body, headers) -> (status, texto)
+_ALLOW_ENV = "BOLAO_ALLOW_REAL_SEND"
+_ALLOW_TOKEN = "I UNDERSTAND"
+
+
+def real_send_allowed():
+    """(permitido, motivo). Fail-closed: só True com autorização explícita e fora de teste."""
+    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("BOLAO_TEST_RUN"):
+        return False, "processo de teste"
+    if os.environ.get(_ALLOW_ENV) == _ALLOW_TOKEN:
+        return True, None
+    return False, f"sem autorizacao explicita ({_ALLOW_ENV})"
+
+
 def send_email(addr, subject, html):
+    # AUD-02: portão ANTES de qualquer chamada ao provedor. Zero chamadas quando bloqueado.
+    if _TRANSPORT is None:
+        allowed, why = real_send_allowed()
+        if not allowed:
+            msg = f"EMAIL_SEND_BLOCKED: {why}. Nenhuma mensagem enviada."
+            print(f"BLOQUEADO {msg}")
+            return False, msg
     addr = addr.strip().rstrip(",").strip()
     body = json.dumps({
         "service_id":  EMAILJS_SVC, "template_id": EMAILJS_TMPL, "user_id": EMAILJS_KEY,
         "template_params": {"to_email": addr, "entry_name": subject, "receipt_code": subject, "html_message": html},
     }).encode()
+    # AUD-02: transporte injetável — o teste exercita todo o caminho sem tocar na rede.
+    if _TRANSPORT is not None:
+        return _TRANSPORT(EMAILJS_URL, body, EMAILJS_HEADERS)
     req = urllib.request.Request(EMAILJS_URL, data=body, headers=EMAILJS_HEADERS, method="POST")
     with urllib.request.urlopen(req, timeout=20) as r:
         return r.status
