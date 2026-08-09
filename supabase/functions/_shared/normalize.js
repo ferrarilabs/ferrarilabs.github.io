@@ -35,9 +35,15 @@ const DETAIL_ATHLETE_FIELDS = ["displayName", "shortName"];
 export const SCHEMA_VERSION = 1;
 
 /** Competições permitidas. Id desconhecido é REJEITADO — o gateway nunca vira proxy aberto. */
+// Slugs COPIADOS de `bolao/<app>/js/config.js` (`espn.leagueSlug`), não digitados de memória.
+// Eu escrevi `bra.copa_do_brasil` na primeira versão — com "s" — e o gateway devolveu 503 para o
+// CDB2026 em produção. O valor correto é `bra.copa_do_brazil`, com "z", e estava no config do app
+// o tempo todo. Digitar em vez de ler a fonte é como se inventa uma divergência.
+//
+// Verificados contra a ESPN em 2026-08-09: os três retornam HTTP 200.
 export const ALLOWED_COMPETITIONS = Object.freeze({
   br2026: "bra.1",
-  cdb2026: "bra.copa_do_brasil",
+  cdb2026: "bra.copa_do_brazil",
   copa2026: "fifa.world",
 });
 
