@@ -280,6 +280,18 @@
     ];
     if (draw.finance.creditoSorteioAnterior) {
       rows.push([fmtUsd(draw.finance.creditoSorteioAnterior), "Crédito do sorteio anterior"]);
+      // 2026-08-09, pedido do Eduardo: "tem que considerar os $24 que ganhamos do sorteio
+      // anterior para jogar no próximo". O crédito já estava GRAVADO e exibido, mas só como
+      // linha solta — nada dizia que ele podia ser gasto em ticket, e "Total arrecadado $0"
+      // ao lado dava a impressão de que não havia com que comprar nada.
+      //
+      // Esta linha é DERIVADA na hora de exibir; não altera nenhum valor guardado. Os montantes
+      // canônicos (arrecadado, crédito, utilizado) continuam sendo os únicos que existem no
+      // data.js — o que muda é a soma ficar visível em vez de ter que ser feita de cabeça.
+      var disponivel = draw.finance.totalArrecadado +
+                       draw.finance.creditoSorteioAnterior -
+                       draw.finance.valorUtilizado;
+      rows.push([fmtUsd(disponivel), "Disponível para tickets"]);
     }
     rows.push(
       [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],

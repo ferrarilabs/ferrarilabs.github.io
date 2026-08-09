@@ -1790,10 +1790,10 @@ function renderLiveCard() {
       // Mesmo limiar de 12% usado nas outras 3 chamadas de prob-bars deste arquivo (renderGamesSection,
       // renderNextGameCard, renderRanking) -- faltava aqui, causando o nome do time estourar a fatia
       // estreita da barra (achado 2026-07-16, ex.: "Palmeiras 12%" cortado pra "neiras").
-      const barLabel = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+      const barLabel = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
       probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
         <div class="prob-bar home" style="width:${hPct}%">${barLabel(hPct, homeLbl)}</div>
-        <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+        <div class="prob-bar draw"  style="width:${dPct}%"><span class="prob-bar__name">Emp </span><span class="prob-bar__pct">${dPct}%</span></div>
         <div class="prob-bar away"  style="width:${aPct}%">${barLabel(aPct, awayLbl)}</div>
       </div>`;
     }
@@ -1968,10 +1968,10 @@ function renderNextGameCard() {
       const hPct = Math.round(mpNext.pH * 100), dPct = Math.round(mpNext.pD * 100), aPct = Math.round(mpNext.pA * 100);
       const hLbl = esc(next.homeTeam.length > 12 ? next.homeTeam.slice(0, 12) + "…" : next.homeTeam);
       const aLbl = esc(next.awayTeam.length > 12 ? next.awayTeam.slice(0, 12) + "…" : next.awayTeam);
-      const bl = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+      const bl = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
       return `<div class="prob-bars" role="group" aria-label="Probabilidades">
         <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl)}</div>
-        <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+        <div class="prob-bar draw"  style="width:${dPct}%"><span class="prob-bar__name">Emp </span><span class="prob-bar__pct">${dPct}%</span></div>
         <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
       </div>`;
     })() : "";
@@ -2034,10 +2034,10 @@ function renderNextGameCard() {
           const hPct = Math.round(mp.pH * 100), dPct = Math.round(mp.pD * 100), aPct = Math.round(mp.pA * 100);
           const hLbl = esc(g.homeTeam.length > 12 ? g.homeTeam.slice(0, 12) + "…" : g.homeTeam);
           const aLbl = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
-          const bl = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+          const bl = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
           return `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
             <div class="prob-bar home" style="width:${hPct}%">${bl(hPct, hLbl)}</div>
-            <div class="prob-bar draw"  style="width:${dPct}%">Emp ${dPct}%</div>
+            <div class="prob-bar draw"  style="width:${dPct}%"><span class="prob-bar__name">Emp </span><span class="prob-bar__pct">${dPct}%</span></div>
             <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
           </div>`;
         })() : "";
@@ -2228,10 +2228,10 @@ function renderGamesSection() {
         const aLabel = esc(g.awayTeam.length > 12 ? g.awayTeam.slice(0, 12) + "…" : g.awayTeam);
         // No team badge in the bar (matches bolao/js/app.js's probBarsMarkup) —
         // drop the name below 12% to avoid overflow, same threshold too.
-        const barLabel = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+        const barLabel = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
         probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
           <div class="prob-bar home" style="width:${hPct}%" title="${esc(g.homeTeam)}: ${hPct}%">${barLabel(hPct, hLabel)}</div>
-          <div class="prob-bar draw"  style="width:${dPct}%" title="Emp: ${dPct}%">Emp ${dPct}%</div>
+          <div class="prob-bar draw"  style="width:${dPct}%" title="Emp: ${dPct}%"><span class="prob-bar__name">Emp </span><span class="prob-bar__pct">${dPct}%</span></div>
           <div class="prob-bar away"  style="width:${aPct}%" title="${esc(g.awayTeam)}: ${aPct}%">${barLabel(aPct, aLabel)}</div>
         </div>`;
       }

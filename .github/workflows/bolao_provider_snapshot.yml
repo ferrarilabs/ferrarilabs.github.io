@@ -42,8 +42,28 @@ name: Bolão — Provider Snapshot (dry-run capable)
 
 on:
   schedule:
-    - cron: "*/10 16-23 * * *"   # 13h-20h BRT
-    - cron: "*/10 0-5 * * *"     # 21h-02h BRT
+    # ─── 2026-08-09: JANELA REMOVIDA. Roda o dia inteiro. ────────────────────────────────────
+    #
+    # Estas duas linhas eram `*/10 16-23` e `*/10 0-5` (UTC) — copiadas dos crons de email, que
+    # foram desenhados para rodada NOTURNA. O efeito: entre 06:00 e 16:00 UTC nada rodava.
+    #
+    # Em 2026-08-09, domingo, Cruzeiro×Mirassol começou às 14:00 UTC (10:00 EDT / 11:00 BRT) —
+    # exatamente dentro do ponto cego. O snapshot ficou 468 minutos velho, continuou dizendo
+    # `state: "pre"` com o jogo rolando, e o hero de jogo ao vivo sumiu da tela do Eduardo. Foi a
+    # SEGUNDA vez que ele relata o mesmo sintoma, com causa diferente da primeira (a primeira era
+    # o workflow não commitar; esta é o workflow nem acordar).
+    #
+    # A correção não é mover a janela para caber o jogo de hoje — seria a terceira vez errando o
+    # mesmo alvo, porque a próxima tabela vai ter um horário que a janela nova também não cobre.
+    # A janela é uma otimização que só faz sentido se a economia valer o risco, e aqui não vale:
+    # o passo commita SOMENTE quando o conteúdo muda (`wrote=False reason=unchanged` fora de
+    # jogo), então rodar 24h não gera commit, nem deploy, nem ruído — só algumas execuções de
+    # ~13s a mais num repositório público, onde Actions não é cobrado.
+    #
+    # O gate que impede a regressão de voltar por outro caminho:
+    # `bolao/scripts/audit_snapshot_window_coverage.mjs` lê os jogos REAIS do snapshot e falha se
+    # existir partida cuja janela ao vivo não seja coberta por este cron.
+    - cron: "*/10 * * * *"
   workflow_dispatch:
     inputs:
       app:

@@ -1,5 +1,31 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.102 — 2026-08-09 — Barra de probabilidade: espessura uniforme em toda a plataforma
+
+O Eduardo mandou um print do iPhone com barras de altura visivelmente diferente **na mesma tela**.
+Medido em Chromium a 390px: 30px, 31px, 44px e 56px — e o mesmo jogo (Bahia×Vasco) renderizava
+44px numa seção e 56px em outra.
+
+**Causa raiz:** o limiar que decide manter o nome do time é PERCENTUAL (`pct >= 12`), mas o que
+decide se o rótulo CABE é PIXEL. Um segmento de 17% num viewport de 390px tem ~56px — não cabe
+"Vasco da Gam… 17%". Com `white-space: normal` no mobile, o rótulo quebrava em três linhas e
+esticava a linha inteira, porque `.prob-bars` estava em `height: auto`. Como a largura vem da
+probabilidade, cada partida esticava um tanto diferente. A espessura desigual era **sintoma de um
+limiar medido na unidade errada**, não um problema de altura.
+
+**Correção:** nome e porcentagem viraram elementos separados (`.prob-bar__name` / `.prob-bar__pct`).
+A porcentagem tem `flex: none` e nunca encolhe nem quebra; o nome tem `min-width: 0` e encolhe com
+reticências até sumir. Com isso o rótulo não pode mais crescer em altura, e a altura voltou a ser
+FIXA no mobile — resolvendo o dilema que a quebra de linha da Fase 7 tentava resolver, sem
+reintroduzir o corte de texto que a motivou.
+
+Nada de scoring, regra de torneio ou probabilidade foi tocado — só a montagem do rótulo e o CSS.
+
+**Gate permanente:** `bolao/scripts/audit_prob_bar_geometry.mjs` mede os 3 apps em 3 viewports e
+trava DUAS propriedades ao mesmo tempo — toda barra com a mesma altura E a porcentagem nunca
+cortada. Travar só a altura deixaria passar a "correção" preguiçosa de esconder o rótulo de todo
+mundo, que também igualaria as alturas e seria uma piora.
+
 ## v1.101 — 2026-08-09 — Relógio ao vivo fail-closed: número congelado deixa de parecer ao vivo
 
 O teto de interpolação já impedia o relógio de disparar quando o dado ficava velho. Mas **capar não

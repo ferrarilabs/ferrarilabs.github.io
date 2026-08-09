@@ -2742,7 +2742,7 @@ function probBarsMarkup(pA, pD, pB, a, b, drawLabel) {
   // A narrow slice can't fit "Team NN%" without spilling out of its own bar —
   // below this threshold, drop just the name and keep the number (the title
   // tooltip still carries the full "Team: NN%" either way).
-  const label = (pct, name) => pct >= 12 ? `${name} ${pct}%` : `${pct}%`;
+  const label = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
   return `<div class="prob-bars" role="group" aria-label="${escapeHtml(t("probBarsLabel"))}">
   <div class="prob-bar home" style="width:${pH}%" title="${escapeHtml(a)}: ${pH}%">${label(pH, sA)}</div>
   <div class="prob-bar draw"  style="width:${pDr}%" title="${escapeHtml(drawLabel)}: ${pDr}%">${label(pDr, drawLabel)}</div>
