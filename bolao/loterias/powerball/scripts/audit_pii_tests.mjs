@@ -13,6 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { execFileSync } from "node:child_process";
 
 const ROOT = path.resolve(new URL(".", import.meta.url).pathname, "..");
 
@@ -40,23 +41,50 @@ const KNOWN_REAL_TX_IDS = [
   "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE",
 ];
 
-const IGNORE_DIRS = new Set(["node_modules", "logs", ".git"]);
 const IGNORE_FILES = new Set([
-  "private-participant-data.local.json", // gitignored, local-only sidecar — allowed to hold real PII
   "audit_pii_tests.mjs", // this file — its own allowlist source (KNOWN_REAL_TX_IDS) would self-flag
 ]);
 
-function walk(dir, out = []) {
-  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
-    if (IGNORE_DIRS.has(entry.name)) continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      walk(full, out);
-    } else if (!IGNORE_FILES.has(entry.name)) {
-      out.push(full);
-    }
-  }
-  return out;
+// ─── PII_SCAN_SCOPE (reescrito 2026-08-09) ──────────────────────────────────────────────────
+//
+// ANTES: `walk()` percorria o filesystem, pulando só uma lista fixa de nomes (`logs`,
+// `node_modules`, um sidecar específico). Isso confundia duas perguntas MUITO diferentes:
+//
+//     "existe PII em algum lugar do meu disco?"          ← o que ele media
+//     "PII pode entrar no artefato público?"             ← o que ele deveria medir
+//
+// Consequência prática, reproduzida em 2026-08-09: um artefato de e-mail em
+// `scripts/email/generated/` — diretório coberto pelo .gitignore, não rastreado, nunca
+// publicado, evidência operacional legítima de um envio real — fazia o gate falhar. Um gate que
+// falha por evidência privada correta acaba sendo desligado ou contornado, e aí para de proteger
+// o que importa.
+//
+// AGORA o conjunto é o mesmo que o Git considera publicável:
+//
+//     rastreados            (git ls-files --cached)
+//   + não rastreados        (--others)
+//   − ignorados             (--exclude-standard)
+//
+// Os "não rastreados e não ignorados" são essenciais e é por isso que NÃO basta olhar só os
+// rastreados: um arquivo novo com PII, ainda sem `git add`, é exatamente o que um gate de
+// pré-commit precisa pegar — e olhar só o índice o deixaria passar.
+//
+// Nada de exceção fixa para `scripts/email/generated/`: a política segue a intenção declarada no
+// .gitignore, então qualquer futuro diretório de evidência privada já nasce coberto, sem editar
+// este arquivo. E se alguém remover a entrada do .gitignore, o conteúdo volta a ser escaneado
+// automaticamente — que é o comportamento correto, porque aí ele passou a ser publicável.
+export function publishableFiles(root) {
+  const out = execFileSync(
+    "git", ["ls-files", "--cached", "--others", "--exclude-standard", "-z", "--", "."],
+    { cwd: root, encoding: "utf8", maxBuffer: 64 * 1024 * 1024 },
+  );
+  return out.split("\0")
+    .filter(Boolean)
+    .filter((rel) => !IGNORE_FILES.has(path.basename(rel)))
+    // Um caminho pode constar do índice e já ter sido apagado do disco (`git rm` ainda não
+    // commitado). Ler isso lançaria; e um arquivo que não existe não publica nada.
+    .filter((rel) => fs.existsSync(path.join(root, rel)))
+    .map((rel) => path.join(root, rel));
 }
 
 const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
@@ -66,8 +94,8 @@ function isAllowedEmail(addr) {
   return ALLOWED_EMAIL_SUFFIXES.some((suf) => addr.endsWith(suf));
 }
 
-function main() {
-  const files = walk(ROOT);
+export function main() {
+  const files = publishableFiles(ROOT);
   const failures = [];
 
   const dataJsPath = path.join(ROOT, "js", "data.js");
@@ -116,4 +144,8 @@ function main() {
   console.log(`✓ PII audit passed — scanned ${files.length} files under ${path.relative(process.cwd(), ROOT)}, no public PII found.`);
 }
 
-main();
+// Só executa quando chamado diretamente — importar este módulo (o meta-teste faz isso para
+// exercitar `publishableFiles`) não pode disparar o gate nem chamar process.exit().
+if (process.argv[1] && path.resolve(process.argv[1]) === path.resolve(new URL(import.meta.url).pathname)) {
+  main();
+}
