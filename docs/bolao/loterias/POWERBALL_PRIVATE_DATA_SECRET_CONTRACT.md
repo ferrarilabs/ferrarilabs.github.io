@@ -115,6 +115,23 @@ identically. **Not independently re-verified end-to-end in this pass** (would
 require a real send or a very deep mock) — flagged as a P0.2/regression-test
 follow-up, not asserted as proven here.
 
+## txId is mandatory for every real payment (Eduardo, 2026-08-09)
+
+`txId` (the Zelle/Venmo/Cash App transaction number, or the platform's
+equivalent) is not optional metadata — it is the audit trail that proves a
+recorded payment actually happened. Every real participant payment
+registered in the sidecar (or the secret) must carry its real `txId`, taken
+from the actual confirmation email/notification, not a placeholder.
+
+This was a real gap: `add-participant.js` and `add_participants.py` used to
+hardcode `txId: "—"` for every participant they added, with no way to pass a
+real one in — so anyone using the "official" CLI path would silently lose
+the audit trail even when a real payment existed. Both scripts now accept
+`--tx-id` (single entry) or a `txId` CSV column (batch), and warn loudly if a
+participant is saved without one. `"—"` remains valid only for participants
+with no real payment yet (self-funded/organizer/"Saldo anterior" carry-over)
+— never as a stand-in for "didn't bother to look up the real number."
+
 ## Not automated in this pass
 
 "No unexpected extra recipient" (a name present in the private data but not

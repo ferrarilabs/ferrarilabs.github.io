@@ -4,12 +4,19 @@ Injetar novos participantes na próxima rodada do Powerball pool
 
 Uso:
   python3 add_participants.py --draw-id 2026-08-05 --csv new_participants.csv
-  python3 add_participants.py --draw-id 2026-08-05 --name "John Doe" --email "john@example.com"
+  python3 add_participants.py --draw-id 2026-08-05 --name "John Doe" --email "john@example.com" --tx-id "30343196142"
 
-CSV Format:
-  name,email
-  John Doe,john@example.com
-  Jane Smith,jane@example.com
+CSV Format (txId column optional, but see warning below if omitted):
+  name,email,txId
+  John Doe,john@example.com,30343196142
+  Jane Smith,jane@example.com,
+
+txId (Zelle/Venmo/Cash App transaction number, or equivalent) is part of the
+full audit trail for real money — every real payment must carry one. It's
+not required by this script because some participants genuinely have none
+(self-funded/carried balance, "Saldo anterior" — the default `metodo`
+below), but omitting it for anyone who actually paid is a bug, not a
+shortcut; the script warns loudly when it's missing.
 """
 
 import json
@@ -116,6 +123,7 @@ def main():
     parser.add_argument('--csv', help='CSV file with participant data (name,email)')
     parser.add_argument('--name', help='Participant name')
     parser.add_argument('--email', help='Participant email')
+    parser.add_argument('--tx-id', dest='tx_id', help='Transaction number (Zelle/Venmo/Cash App) — part of the audit trail')
 
     args = parser.parse_args()
 
@@ -134,14 +142,16 @@ def main():
                 if row.get('name') and row.get('email'):
                     participants.append({
                         'name': row['name'].strip(),
-                        'email': row['email'].strip()
+                        'email': row['email'].strip(),
+                        'txId': row['txId'].strip() if row.get('txId') else None
                     })
 
     # Load from command line
     elif args.name and args.email:
         participants.append({
             'name': args.name,
-            'email': args.email
+            'email': args.email,
+            'txId': args.tx_id or None
         })
 
     else:
@@ -174,7 +184,7 @@ def main():
             sidecar = {}
     sidecar.setdefault(args.draw_id, {})
     for p in participants:
-        sidecar[args.draw_id][p['name']] = {"email": p['email'], "txId": "—"}
+        sidecar[args.draw_id][p['name']] = {"email": p['email'], "txId": p.get('txId') or "—"}
     with open(sidecar_path, 'w', encoding='utf-8') as f:
         json.dump(sidecar, f, ensure_ascii=False, indent=2)
 
@@ -182,6 +192,14 @@ def main():
     print(f"✅ Added {len(participants)} participant(s) to draw {args.draw_id} (public data.js — no email/txId):")
     for p in participants:
         print(f"   ✓ {p['name']}")
+
+    missing_tx_id = [p for p in participants if not p.get('txId')]
+    if missing_tx_id:
+        print(f"\n⚠️  {len(missing_tx_id)} participant(s) saved with NO transaction ID — this breaks the audit trail for real money:")
+        for p in missing_tx_id:
+            print(f"   - {p['name']}")
+        print(f"   If they actually paid (Zelle/Venmo/Cash App), re-run with --tx-id (or a txId CSV column) and fix the sidecar entry.")
+        print(f"   Only skip this for participants with no real payment yet (e.g. \"Saldo anterior\"/self-funded).")
 
     print(f"\n⚠️  Emails were written ONLY to {sidecar_path} (local, gitignored, NOT committed).")
     print(f"   Merge this file's contents into the GitHub secret manually:")
