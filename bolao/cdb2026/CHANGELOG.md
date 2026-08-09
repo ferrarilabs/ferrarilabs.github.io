@@ -1,5 +1,36 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.118 — 2026-08-09 — Gravação remota que não acontece deixa de parecer sucesso
+
+O Eduardo registrou a data do sorteio da CBF pelo painel admin do CDB2026 e a tela confirmou.
+Horas depois, o estado canônico no Supabase seguia com `officialDraw: null` — a alteração nunca
+saiu do navegador dele, e **nada na interface disse isso**.
+
+Duas falhas independentes, do mesmo formato — silêncio num caminho de gravação:
+
+1. **Caso PULADO não era tratado.** `saveRemoteState()` devolve `{ok:false, skipped:true}` quando
+   a gravação remota é bloqueada (isolamento de teste) ou desligada. Isso **resolve** a promessa;
+   o chamador só tinha `.catch()`, então o caso passava direto e a tela mostrava "salvo".
+2. **BR2026 estava pior:** `.catch(() => {})` engolia até erro real, e `saveRemoteState()` não
+   checava `r.ok` — um 401/403 do RLS era tratado como sucesso. A correção equivalente existia no
+   CDB2026 desde a auditoria de 2026-08 (AUDIT-04) e nunca foi propagada. É o app que movimenta
+   pagamento.
+
+Agora os dois casos são visíveis, com mensagens distintas: `syncBlocked` ("salvo neste dispositivo,
+mas NÃO sincronizado — ninguém mais vai ver") e `syncFailed`.
+
+**Bônus de diagnóstico:** o upsert passou a gravar `updated_at`. A coluna existia e o app nunca a
+escrevia, então ficava congelada na criação da linha — durante este próprio incidente ela dizia
+14/07 enquanto o conteúdo tinha dados de 01/08, e a única pergunta que importava ("quando o estado
+canônico mudou pela última vez?") não tinha resposta confiável.
+
+O portão de isolamento de produção continua fail-closed: a correção torna o bloqueio **visível**,
+nunca mais permissivo.
+
+**Gate permanente:** `bolao/scripts/audit_remote_write_visibility.mjs` (13 checagens), incluindo o
+registro explícito de por que a Copa2026 (arquivada) fica de fora — e uma assertiva que falha se
+ela deixar de estar arquivada, para a exceção não sobreviver ao motivo dela.
+
 ## v3.116 — 2026-08-09 — Relógio ao vivo: dado velho congela o minuto, nunca o apaga
 
 Print de produção do Eduardo: card do Cruzeiro 1 × 1 Mirassol marcado **AO VIVO**, feed de lances

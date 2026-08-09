@@ -266,5 +266,6 @@ window.CDB2026_I18N = {
     espnSyncLockedCount: "confronto(s) travado(s) automaticamente",
     espnSyncLockedToast: "Resultado travado automaticamente pela ESPN!",
     espnAutoTag: "(via ESPN)",
+    syncBlocked: "Salvo neste dispositivo, mas NÃO sincronizado com o servidor. Ninguém mais vai ver esta alteração — avise o organizador antes de considerá-la feita.",
   },
 };
