@@ -64,6 +64,15 @@ mkdirSync(join(repo, "evidencia-privada"), { recursive: true });
 writeFileSync(join(repo, "evidencia-privada", "outbox.json"), '{"to":"privado@example.invalid"}\n');
 // 6. IGNORADO por padrão de nome
 writeFileSync(join(repo, "sidecar.local.json"), '{"to":"sidecar@example.invalid"}\n');
+// 7. RASTREADO, mas DENTRO de um diretório ignorado. Caso real, descoberto na integração:
+//    `bolao/loterias/*/logs/` está no .gitignore, e mesmo assim um dos logs está rastreado —
+//    `.gitignore` não vale para arquivo já rastreado. Esse arquivo É publicável, e o `walk()`
+//    antigo o isentava por pular o diretório inteiro pelo nome. Uma lista fixa de diretórios erra
+//    nos DOIS sentidos ao mesmo tempo: varre evidência ignorada e isenta arquivo publicado.
+mkdirSync(join(repo, "evidencia-privada", "sub"), { recursive: true });
+writeFileSync(join(repo, "evidencia-privada", "sub", "rastreado.log"), "linha de log\n");
+git(repo, "add", "-f", join("evidencia-privada", "sub", "rastreado.log"));
+git(repo, "commit", "-qm", "log rastreado dentro de diretorio ignorado");
 
 const encontrados = new Set(publishableFiles(repo).map((f) => relative(repo, f)));
 
@@ -91,6 +100,14 @@ test("arquivo ignorado por PADRÃO DE NOME também fica fora", () => {
     "seguida genericamente");
 });
 
+test("arquivo RASTREADO dentro de diretório ignorado CONTINUA na varredura", () => {
+  // Não é sutileza teórica: é o caso do log rastreado em `bolao/loterias/powerball/logs/`, que o
+  // scanner antigo isentava. Arquivo rastreado é publicado, esteja onde estiver.
+  assert(encontrados.has(join("evidencia-privada", "sub", "rastreado.log")),
+    "um arquivo RASTREADO ficou fora da varredura só por morar num diretório ignorado — " +
+    "gitignore não se aplica a arquivo já rastreado, e esse arquivo vai para o repositório público");
+});
+
 test("arquivos seguros (rastreado e não rastreado) continuam na varredura", () => {
   assert(encontrados.has("rastreado-seguro.js"), "rastreado seguro sumiu da varredura");
     assert(encontrados.has("novo-seguro.css"), "não rastreado seguro sumiu da varredura");
@@ -104,10 +121,23 @@ test("a varredura não encolheu para 'quase nada' (proteção contra falso-verde
     JSON.stringify([...encontrados]));
 });
 
-test("nenhum dos ignorados aparece, sob nenhum caminho", () => {
-  for (const f of encontrados) {
-    assert(!f.startsWith("evidencia-privada"), `caminho ignorado vazou: ${f}`);
-    assert(!f.endsWith(".local.json"), `caminho ignorado vazou: ${f}`);
+test("nenhum arquivo EFETIVAMENTE ignorado aparece na varredura", () => {
+  // Esta assertiva já foi grosseira demais: dizia "nenhum caminho sob `evidencia-privada/`", o
+  // que confunde PREFIXO DE CAMINHO com ESTADO DE IGNORADO. O caso do log rastreado dentro de
+  // diretório ignorado provou a diferença — e o critério certo é perguntar ao Git, não ao caminho.
+  const efetivamenteIgnorados = [
+    join("evidencia-privada", "outbox.json"),
+    "sidecar.local.json",
+  ];
+  for (const f of efetivamenteIgnorados) {
+    assert(!encontrados.has(f), `arquivo ignorado e não rastreado vazou para a varredura: ${f}`);
+  }
+  // E confirma junto ao Git que esses arquivos são mesmo ignorados — senão esta lista poderia
+  // envelhecer e o teste passaria afirmando coisa nenhuma.
+  for (const f of efetivamenteIgnorados) {
+    const out = execFileSync("git", ["check-ignore", "--no-index", "-q", "--", f],
+      { cwd: repo, stdio: ["ignore", "ignore", "ignore"] , encoding: "utf8"});
+    void out; // check-ignore devolve 0 quando o caminho é ignorado; erro seria lançado se não fosse
   }
 });
 
