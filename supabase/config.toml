@@ -1,0 +1,8 @@
+# Projeto Supabase do Ferrari Labs. Só a configuração da Edge Function do gateway de dados ao
+# vivo — nada de banco, auth ou storage é gerenciado a partir daqui.
+project_id = "cmhqkkfczotdnssupkni"
+
+[functions.live-football]
+# Dado esportivo PÚBLICO: sem JWT. Exigir token obrigaria o navegador a portar credencial para
+# ler placar, o que seria pior em segurança, não melhor.
+verify_jwt = false
