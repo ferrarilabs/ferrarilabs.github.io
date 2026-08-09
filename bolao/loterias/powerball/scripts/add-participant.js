@@ -4,13 +4,21 @@
  * Script para injetar novos participantes na próxima rodada do Powerball pool
  *
  * Uso:
- *   node add-participant.js --draw-id 2026-08-05 --name "John Doe" --email "john@example.com"
+ *   node add-participant.js --draw-id 2026-08-05 --name "John Doe" --email "john@example.com" --tx-id "<redacted>"
  *   node add-participant.js --draw-id 2026-08-05 --csv participants.csv
  *
- * CSV Format:
- *   name,email
- *   John Doe,john@example.com
- *   Jane Smith,jane@example.com
+ * CSV Format (txId column optional, but see warning below if omitted):
+ *   name,email,txId
+ *   John Doe,john@example.com,<redacted>
+ *   Jane Smith,jane@example.com,
+ *
+ * txId (Zelle/Venmo/Cash App transaction number, or the equivalent for
+ * whatever method was used) is part of the full audit trail for real money —
+ * every real payment must carry one. It is not required by this script
+ * because some participants genuinely have none (e.g. self-funded/carried
+ * balance, "Saldo anterior" — the default `metodo` below), but omitting it
+ * for anyone who actually paid is a bug, not a shortcut; the script warns
+ * loudly when it's missing so that gap doesn't go unnoticed again.
  */
 
 const fs = require('fs');
@@ -30,6 +38,7 @@ for (let i = 0; i < args.length; i += 2) {
 const drawId = argMap['draw-id'];
 const name = argMap['name'];
 const email = argMap['email'];
+const txId = argMap['tx-id'];
 const csvPath = argMap['csv'];
 
 if (!drawId) {
@@ -71,12 +80,13 @@ if (csvPath) {
     if (r.name && r.email) {
       newParticipants.push({
         name: r.name.trim(),
-        email: r.email.trim()
+        email: r.email.trim(),
+        txId: r.txId ? r.txId.trim() : null
       });
     }
   });
 } else if (name && email) {
-  newParticipants.push({ name, email });
+  newParticipants.push({ name, email, txId: txId || null });
 } else {
   console.error('❌ Error: Either --csv or (--name AND --email) required');
   process.exit(1);
@@ -139,7 +149,7 @@ if (fs.existsSync(privateSidecarPath)) {
 }
 privateSidecar[drawId] = privateSidecar[drawId] || {};
 newParticipants.forEach(p => {
-  privateSidecar[drawId][p.name] = { email: p.email, txId: '—' };
+  privateSidecar[drawId][p.name] = { email: p.email, txId: p.txId || '—' };
 });
 fs.writeFileSync(privateSidecarPath, JSON.stringify(privateSidecar, null, 2));
 
@@ -147,6 +157,14 @@ console.log(`✅ Added ${newParticipants.length} participant(s) to draw ${drawId
 newParticipants.forEach(p => {
   console.log(`   ✓ ${p.name}`);
 });
+
+const missingTxId = newParticipants.filter(p => !p.txId);
+if (missingTxId.length > 0) {
+  console.warn(`\n⚠️  ${missingTxId.length} participant(s) saved with NO transaction ID — this breaks the audit trail for real money:`);
+  missingTxId.forEach(p => console.warn(`   - ${p.name}`));
+  console.warn(`   If they actually paid (Zelle/Venmo/Cash App), re-run with --tx-id (or a txId CSV column) and fix the sidecar entry.`);
+  console.warn(`   Only skip this for participants with no real payment yet (e.g. "Saldo anterior"/self-funded).`);
+}
 
 console.log(`\n⚠️  Emails were written ONLY to ${privateSidecarPath} (local, gitignored, NOT committed).`);
 console.log(`   You must merge this file's contents into the GitHub secret manually:`);
