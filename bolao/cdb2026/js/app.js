@@ -3427,21 +3427,17 @@ function nudgeScrollReflow() {
 // "58:11 (+14)" e crescendo, jogo já no intervalo real havia minutos.
 const CDB_MAX_INTERPOLATION_MS = 3 * LIVE_TIE_POLL_INTERVAL_MS;
 function liveClockDisplay(l) {
-  // FAIL CLOSED: observação velha demais não prova o minuto atual — ver o comentário equivalente
-  // no BR2026. Capar a interpolação impede o relógio de disparar, mas um número congelado continua
-  // PARECENDO ao vivo. Passado o teto, o que sabemos é "o dado está velho", e é isso que se diz.
-  // Intervalo/pênaltis continuam válidos: são estados declarados pela fonte, não valores que o
-  // tempo invalida.
-  const observationTooOld = (Date.now() - (l.pollTime || Date.now())) > CDB_MAX_INTERPOLATION_MS;
-  const clock = l.isHalftime ? t("liveHalftime")
-    : l.isPenalties ? t("livePenalties")
-    : (observationTooOld && !l.clockPaused) ? t("liveClockStale")
-    : l.clockSeconds != null
-      ? formatMatchClock(
-          l.clockPaused ? l.clockSeconds : l.clockSeconds + Math.floor(Math.min(Date.now() - (l.pollTime || Date.now()), CDB_MAX_INTERPOLATION_MS) / 1000),
-          l.period ?? null, 0)
-      : l.clockStr;
-  return clock;
+  // Mesma semântica compartilhada do BR2026 — ver bolao/shared/js/live_clock.js. Este app tinha
+  // o MESMO defeito, por cópia: passado o teto de interpolação, o relógio inteiro virava a
+  // mensagem de atraso e o minuto confirmado pela fonte desaparecia da tela.
+  const r = window.BOLAO_LIVE_CLOCK.resolveLiveClock(l, {
+    maxInterpolationMs: CDB_MAX_INTERPOLATION_MS,
+  });
+  const S = window.BOLAO_LIVE_CLOCK.STATE;
+  if (r.state === S.HALFTIME) return t("liveHalftime");
+  if (r.state === S.PENALTIES) return t("livePenalties");
+  if (r.state === S.UNKNOWN) return t("liveClockStale");
+  return r.seconds != null ? formatMatchClock(r.seconds, l.period ?? null, 0) : l.clockStr;
 }
 
 // ─── Live ranking movement ───────────────────────────────────────────────────
