@@ -13,6 +13,7 @@ import { loadRealPrizeCalculator } from "./email/prize-calc-bridge.mjs";
 import { buildDrawResultPayload, computeTicketResults, allTicketsForDraw } from "./email/payload.mjs";
 import { renderDrawResultSubject, renderDrawResultHtml, renderDrawResultText } from "./email/render.mjs";
 import { financialReconciliation, computeEligibility, runDrawResultSend, idempotencyKeyForResult } from "./email/send_draw_result.mjs";
+import { usd } from "../../../shared/scripts/money.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TMP_LEDGER = path.join(__dirname, "email", ".test-result-ledger.json");
@@ -28,6 +29,31 @@ async function atest(name, fn) {
 }
 
 console.log("Powerball draw-result email — round 4 tests (2026-08-06 real send)\n");
+
+// ─── Dado privado SINTÉTICO, injetado antes da primeira leitura (2026-08-09) ────────────────
+//
+// Desde o hotfix de PII, `js/data.js` (público) não carrega e-mail de participante — eles vêm do
+// secret. Estes testes chamam `computeEligibility`, que agora BLOQUEIA quando o conjunto de
+// destinatários está incompleto (trava nova contra envio parcial — foi assim que o reenvio
+// alcançou 14 de 15). Sem contato resolvível, a trava dispara e os testes falham por falta de
+// fixture, não por defeito.
+//
+// A resposta certa é dar fixture ao teste, nunca afrouxar a trava. Contatos sintéticos em domínio
+// reservado (.invalid), derivados dos próprios participantes: hermético, sem endereço real, e
+// exercita o caminho de merge de verdade.
+//
+// Precisa vir ANTES de `loadAllDraws()` — `snapshot.mjs` faz cache do mapa privado no 1º uso.
+{
+  const { DRAWS: RAW } = loadRealPrizeCalculator();
+  process.env.POWERBALL_PRIVATE_PARTICIPANT_DATA = JSON.stringify(
+    Object.fromEntries(RAW.map((d) => [
+      d.id,
+      Object.fromEntries((d.participants || []).map((p, i) => [
+        p.name, { email: `p${i + 1}.${d.id}@example.invalid`, txId: `EXAMPLE-TXID-${i + 1}` },
+      ])),
+    ])),
+  );
+}
 
 const draws = loadAllDraws();
 const draw = draws.find((d) => d.id === "2026-08-05");
@@ -135,7 +161,16 @@ test("HTML includes a real link/button to the site to see all games", () => {
   const { perRecipient } = buildDrawResultPayload({ draw, participants: draw.participants, official, prizeTableFn: gt.prizeTable });
   const html = renderDrawResultHtml(perRecipient[0], false);
   assert.ok(html.includes("Ver todos os jogos e detalhes no site"));
-  assert.ok(html.includes("https://ferrarilabs.github.io/bolao/loterias/powerball/"));
+  // 2026-08-09: esta linha afirmava `https://ferrarilabs.github.io/...`. O teste não estava só
+  // desatualizado — estava travando a origem ERRADA. Produção é `https://www.ferrarilabs.com`
+  // (definida pelo CNAME); `ferrarilabs.github.io` responde 301 e não executa nenhuma página de
+  // produção. O CLAUDE.md registra que assumir a origem github.io já causou um incidente neste
+  // repositório. O produto já usa a origem canônica (`payload.mjs`, `siteUrl` padrão); era o
+  // teste que exigia o endereço legado.
+  assert.ok(html.includes("https://www.ferrarilabs.com/bolao/loterias/powerball/"),
+    "o link do e-mail precisa apontar para a origem canônica de produção");
+  assert.ok(!html.includes("ferrarilabs.github.io"),
+    "a origem legada github.io voltou ao e-mail — ela só responde 301 e já causou um incidente");
   assert.ok(!html.includes("localhost"));
 });
 
@@ -145,7 +180,12 @@ test("winning tickets still show hits, tier, and prize amount as cards", () => {
   const html = renderDrawResultHtml(perRecipient[0], false);
   assert.ok(html.includes("Jogos premiados"));
   assert.ok(html.includes("Acertos:"));
-  assert.ok(html.includes("Powerball — $8.00"));
+  // Valor formatado pela regra canônica de dinheiro, não por literal: em 2026-08-07 o Eduardo
+  // decidiu "centavos só quando existem de verdade" (commit ec6be2f), então `$8.00` virou `$8`.
+  // Consultar `usd()` em vez de escrever o literal impede este teste de envelhecer de novo se a
+  // regra mudar — e faz ele falhar se o e-mail formatar por conta própria.
+  assert.ok(html.includes(`Powerball — ${usd(8)}`),
+    `esperava "Powerball — ${usd(8)}" no HTML`);
 });
 
 test("zero-winner case shows a clear message, not an empty section", () => {
