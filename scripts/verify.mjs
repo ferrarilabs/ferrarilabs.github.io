@@ -56,6 +56,10 @@ const CHECKS = [
     why: "no third-party address inside any test fixture; provider unreachable from tests" },
   { id: "powerball-pii", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_pii_tests.mjs"],
     why: "Powerball private-data contract" },
+  { id: "powerball-pii-scope", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs"],
+    why: "escopo da varredura de PII = rastreados + nao-rastreados - ignorados; restringir escopo e a direcao perigosa" },
+  { id: "powerball-draw-model", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/audit_draw_model_tests.mjs"],
+    why: "ciclo de vida do sorteio e rotulo do seletor — nunca esteve no runner, por isso ficou 9/2 sem ninguem ver" },
 
   // ── scheduling ───────────────────────────────────────────────────────────────
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],
