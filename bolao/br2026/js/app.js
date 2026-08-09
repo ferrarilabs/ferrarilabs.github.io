@@ -1726,29 +1726,26 @@ function scheduleMC() {
 // Vasco×Fluminense): relógio "58:11 (+14)" e crescendo, jogo já no intervalo real.
 const BR_MAX_INTERPOLATION_MS = 3 * (C.espn?.pollIntervalMs || 60000);
 function liveClockDisplay(m) {
-  const elapsedMs = Math.min(Date.now() - (m.pollTime || Date.now()), BR_MAX_INTERPOLATION_MS);
-  // FAIL CLOSED: se a observação for velha demais para PROVAR o minuto atual, não invente um.
+  // A DECISÃO de qual valor mostrar vive em bolao/shared/js/live_clock.js — uma só para os três
+  // apps. Aqui fica apenas a FORMATAÇÃO e o i18n, que são locais.
   //
-  // O teto de interpolação (BR_MAX_INTERPOLATION_MS) impede o relógio de disparar, mas capar não é
-  // o mesmo que ser honesto: um número congelado continua PARECENDO ao vivo, e foi exatamente
-  // esse o sintoma relatado ("relógio parado"). Passado o teto, a informação que temos é "o dado
-  // está velho" — e é isso que a tela deve dizer.
-  //
-  // Intervalo e pênaltis seguem válidos mesmo com dado velho: são estados declarados pela fonte,
-  // não valores que o tempo invalida.
-  const observationTooOld = (Date.now() - (m.pollTime || Date.now())) > BR_MAX_INTERPOLATION_MS;
-  const clock = m.isHalftime ? t("liveHalftime")
-    : m.isPenalties ? t("livePenalties")
-    : (observationTooOld && !m.clockPaused) ? t("liveClockStale")
-    : m.clockSeconds != null
-      ? formatMatchClock(
-          m.clockPaused ? m.clockSeconds : m.clockSeconds + Math.floor(elapsedMs / 1000),
-          m.period ?? null, 0)
-      : m.clockStr;
-  const sec = m.isHalftime || m.isPenalties || m.clockPaused
-    ? m.clockSeconds
-    : m.clockSeconds != null ? m.clockSeconds + Math.floor(elapsedMs / 1000) : null;
-  return { clock, sec, stale: observationTooOld };
+  // 2026-08-09: o bug do print (card AO VIVO, feed com 48', centro dizendo "Atualização
+  // pendente") vinha daqui. Passado o teto de interpolação, este código substituía o relógio
+  // INTEIRO pela mensagem de atraso — apagava o minuto que a fonte já havia confirmado.
+  // Capar a interpolação estava certo; apagar o fato observado, não. Agora o minuto confirmado
+  // CONGELA e continua visível, e o atraso vira indicação secundária.
+  const r = window.BOLAO_LIVE_CLOCK.resolveLiveClock(m, {
+    maxInterpolationMs: BR_MAX_INTERPOLATION_MS,
+  });
+  const S = window.BOLAO_LIVE_CLOCK.STATE;
+
+  const clock = r.state === S.HALFTIME ? t("liveHalftime")
+    : r.state === S.PENALTIES ? t("livePenalties")
+    : r.state === S.UNKNOWN ? t("liveClockStale")
+    : r.seconds != null ? formatMatchClock(r.seconds, m.period ?? null, 0)
+    : m.clockStr;
+
+  return { clock, sec: r.seconds, stale: r.stale, state: r.state };
 }
 
 function renderLiveCard() {
@@ -1776,7 +1773,7 @@ function renderLiveCard() {
   </div>`;
 
   const rows = _liveMatches.map(m => {
-    const { clock, sec } = liveClockDisplay(m);
+    const { clock, sec, stale: clockStale } = liveClockDisplay(m);
     // In-play probability bars (only when standings are loaded)
     let probBarsHtml = "";
     if (_standings.length >= 20) {
@@ -1818,6 +1815,7 @@ function renderLiveCard() {
         <div class="live-center">
           <span class="live-badge">${esc(t("liveNow"))}</span>
           <span class="live-clock">${esc(clock)}</span>
+          ${clockStale ? `<span class="live-clock-stale" title="${esc(t("liveClockStale"))}">${esc(t("liveClockStale"))}</span>` : ""}
         </div>
         <div class="live-score">${m.awayScore}</div>
         ${teamColHtml(m.awayTeam)}

@@ -110,6 +110,14 @@ for (const app of APPS) {
   const ceilingName = app === "br2026" ? "BR_MAX_INTERPOLATION_MS" : "CDB_MAX_INTERPOLATION_MS";
   const ceiling = 180000;
   const fnSrc = extractFn(src, "liveClockDisplay");
+  // 2026-08-09: `liveClockDisplay()` passou a delegar a DECISÃO ao módulo compartilhado
+  // (bolao/shared/js/live_clock.js). O sandbox precisa fornecê-lo, senão a extração falha com
+  // "window is not defined" — que foi o que aconteceu, e é falha de harness, não de produto.
+  // Carregar o módulo REAL aqui (em vez de esboçar um) é o que mantém esta suíte medindo o
+  // produto: se a semântica compartilhada mudar, estes testes acompanham ou falham.
+  const sharedSandbox = {};
+  new Function("globalThis", "window", readFileSync(join(ROOT, "bolao", "shared", "js", "live_clock.js"), "utf8"))
+    .call(sharedSandbox, sharedSandbox, undefined);
   const harness = `
     const ${ceilingName} = ${ceiling};
     const T = { liveHalftime: "Intervalo", livePenalties: "Pênaltis", liveClockStale: "Atualização pendente" };
@@ -120,7 +128,7 @@ for (const app of APPS) {
     }
     ${fnSrc}
     return liveClockDisplay;`;
-  const rawClockOf = new Function(harness)();
+  const rawClockOf = new Function("window", harness)(sharedSandbox);
   // BR2026 devolve `{ clock, sec, stale }` e CDB2026 devolve a string direto — normaliza aqui em
   // vez de escrever dois conjuntos de asserção quase iguais.
   const clockOf = (m) => { const r = rawClockOf(m); return (r && typeof r === "object") ? r.clock : r; };
@@ -155,12 +163,26 @@ for (const app of APPS) {
     assert(/^7[01]:/.test(String(out)), `pausado deveria congelar em ~70:xx, veio ${out}`);
   });
 
-  test(`[${app}] FAIL CLOSED: observação velha demais vira "Atualização pendente"`, () => {
-    // É a regra central: capar a interpolação impede o relógio de disparar, mas um número
-    // congelado continua PARECENDO ao vivo. Passado o teto, diz-se a verdade.
+  // 2026-08-09 — ESTA ASSERTIVA ESTAVA ERRADA E CAUSOU UM BUG VISÍVEL.
+  //
+  // Ela exigia que, passado o teto, o relógio VIRASSE a mensagem de atraso. O produto obedeceu, e
+  // o resultado foi o print do Eduardo: card AO VIVO, feed com lances aos 48', e no centro
+  // "Atualização pendente" — a tela tinha o minuto e não o mostrava.
+  //
+  // O erro foi tratar "não sei se ainda é 48'" como "não sei nada". A intenção original (não
+  // exibir minuto inventado) continua correta e continua travada abaixo; o que muda é que a
+  // resposta certa é CONGELAR no último confirmado, não apagá-lo.
+  test(`[${app}] observação velha CONGELA no último minuto confirmado, não o apaga`, () => {
     const out = clockOf({ pollTime: now - (ceiling + 60000), clockSeconds: 30 * 60, period: 1 });
-    eq(String(out), "Atualização pendente",
-       "com observação além do teto o relógio ainda exibe um minuto inventado");
+    assert(/30:00/.test(String(out)),
+      `o minuto confirmado sumiu da tela: ${out} — é o bug do print de 2026-08-09`);
+  });
+
+  test(`[${app}] observação velha NÃO inventa minuto novo (o teto continua valendo)`, () => {
+    // 10 minutos locais depois de um 30' confirmado seguem mostrando 30', nunca 40'.
+    const out = clockOf({ pollTime: now - (ceiling + 10 * 60000), clockSeconds: 30 * 60, period: 1 });
+    assert(/30:00/.test(String(out)),
+      `o relógio local inventou minuto de futebol: ${out}`);
   });
 
   test(`[${app}] logo ABAIXO do teto ainda mostra o relógio (não é agressivo demais)`, () => {

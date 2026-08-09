@@ -188,12 +188,24 @@
    nunca encolhe nem quebra; o nome (`min-width:0`) encolhe com reticências até sumir.
    Assim o dado que importa fica sempre legível SEM que o rótulo possa crescer em altura
    — que era exatamente o dilema que a quebra de linha tentava resolver na Fase 7. */
+/* 2026-08-09 (2ª rodada) — SEPARAÇÃO ESTRUTURAL entre nome e porcentagem.
+   No print do Eduardo o rótulo lia "Cru... 16%" com o número quase encostado nas reticências.
+   A separação vinha só de um espaço no TEXTO — e espaço em texto é a primeira coisa que some
+   quando o nome é truncado por `text-overflow: ellipsis`: as reticências substituem justamente
+   os últimos caracteres, inclusive o espaço. Ou seja, a separação desaparecia exatamente nos
+   segmentos estreitos, que são os que mais precisam dela.
+   Agora quem separa é o `gap` do flex container: ele não pode ser truncado, não depende do
+   conteúdo, e vale igual em todos os segmentos. O espaço no texto continua no markup apenas
+   para o texto acessível (`textContent` lido por leitor de tela), não para o layout. */
+.prob-bar { gap: 6px; }
 .prob-bar__name {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* `flex: none` — a porcentagem nunca encolhe nem quebra. É o dado que importa: um nome truncado
+   ainda comunica o time; um número truncado não comunica nada. */
 .prob-bar__pct { flex: none; }
 .prob-bar.home { background: #16a34a; color: #fff; }
 .prob-bar.draw { background: #475569; color: #fff; }
@@ -301,4 +313,20 @@
 @keyframes toast-in {
   from { opacity: 0; transform: translateX(20px); }
   to { opacity: 1; transform: translateX(0); }
+}
+
+/* Indicação SECUNDÁRIA de observação atrasada no card ao vivo (2026-08-09).
+   Antes, quando o snapshot envelhecia, a mensagem de atraso SUBSTITUÍA o relógio e o minuto
+   confirmado sumia da tela — foi o bug do print (AO VIVO, feed com 48', centro sem minuto).
+   Agora o minuto confirmado continua no lugar dele, congelado, e o atraso vira uma linha
+   discreta abaixo: menor, apagada, sem competir com o número. Quem olha rápido vê o minuto;
+   quem olha com atenção vê que ele não é deste segundo. */
+.live-clock-stale {
+  display: block;
+  font-size: 10px;
+  font-weight: var(--font-weight-regular);
+  color: var(--muted);
+  line-height: 1.2;
+  margin-top: 2px;
+  white-space: nowrap;
 }

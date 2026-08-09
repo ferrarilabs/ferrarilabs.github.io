@@ -1,5 +1,56 @@
 # CHANGELOG
 
+## v4.180 — 2026-08-09 — Relógio ao vivo: dado velho congela o minuto, nunca o apaga
+
+Print de produção do Eduardo: card do Cruzeiro 1 × 1 Mirassol marcado **AO VIVO**, feed de lances
+com 48', 27', 26' — e no centro, onde deveria estar o minuto, "Atualização pendente". A tela sabia
+que o jogo estava ao vivo, sabia o placar, sabia os lances, e mesmo assim não dizia o minuto que
+ela própria acabara de exibir no feed.
+
+**Causa raiz:** uma correção anterior passando do ponto. O problema original era o relógio disparar
+sozinho (interpolar minutos com o relógio local depois que a fonte parava de atualizar). A correção
+capou a interpolação — certo — e, passado o teto, **substituiu o relógio inteiro** pela mensagem de
+atraso — errado.
+
+São três perguntas diferentes que o código tratava como uma:
+
+- a partida está ao vivo? → a **fonte declara**; não expira com o tempo
+- qual o último minuto confirmado? → **fato observado**; também não expira
+- há quanto tempo não observamos a fonte? → só **isto** envelhece
+
+"Não sei se ainda é 48'" nunca justificou apagar "a última confirmação foi 48'".
+
+**Correção:** a decisão passou para `bolao/shared/js/live_clock.js` — uma semântica só para os três
+apps, com estados explícitos (`LIVE_FRESH`, `LIVE_STALE`, `HALFTIME`, `PENALTIES`, `FINAL`,
+`UNKNOWN`). Passado o teto, o minuto **congela no último confirmado** e continua visível; o atraso
+vira uma linha secundária discreta abaixo. `UNKNOWN` — a mensagem genérica sozinha — ficou
+reservado ao único caso em que ela é honesta: sem minuto confirmado E sem estado declarado.
+
+O relógio local continua proibido de inventar minuto: 15 minutos locais depois de um 48' confirmado
+seguem mostrando 48', nunca 63'.
+
+**Gates permanentes (as duas metades, porque uma só não pega este bug):**
+- `bolao/scripts/audit_live_clock_semantics.mjs` — 22 checagens: matriz de estados, fronteira exata
+  do limiar (teto−1s / teto / teto+1s), intervalo e pênaltis sobrevivendo a dado velho, e a
+  reprodução literal do print.
+- `bolao/scripts/audit_live_card_dom.mjs` — 54 checagens em navegador real, com snapshot sintético
+  interceptado (sem rede, sem gancho de teste em código de produção): o pipeline inteiro, de parse
+  a render.
+
+## v4.181 — 2026-08-09 — Separação estrutural entre nome do time e porcentagem
+
+No mesmo print, o rótulo lia "Cru... 16%" com o número quase encostado nas reticências. A separação
+vinha só de um espaço no TEXTO — e espaço em texto é a primeira coisa que some quando o nome é
+truncado por `text-overflow: ellipsis`, porque as reticências substituem justamente os últimos
+caracteres. A separação desaparecia exatamente nos segmentos estreitos, que são os que mais
+precisam dela.
+
+Agora quem separa é o `gap` do flex container: não pode ser truncado, não depende do conteúdo, vale
+igual em todos os segmentos. O espaço no texto continua no markup apenas para o texto acessível.
+
+Medido em navegador real em 320/375/390/430/899/900/901/1024px: separação ≥ 4px em todo segmento,
+porcentagem nunca cortada, todas as barras com a mesma altura, zero overflow horizontal.
+
 ## v4.179 — 2026-08-09 — Barra de probabilidade: espessura uniforme em toda a plataforma
 
 O Eduardo mandou um print do iPhone com barras de altura visivelmente diferente **na mesma tela**.
