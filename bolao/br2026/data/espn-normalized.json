@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-09T21:44:10Z",
-  "sourceUpdatedAt": "2026-08-09T21:44:10Z",
+  "generatedAt": "2026-08-09T22:11:45Z",
+  "sourceUpdatedAt": "2026-08-09T22:11:45Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b6726e5480e47f5338bd3a930f09234c12c216165ffd984dc683b5292cbe51b6",
+  "payloadHash": "5dd7a8475bc92d8763b9d14d40321d3cbf3a17b9b9e5e2f179a244a4d2f7b0d6",
   "matches": [
     {
       "id": "401840808",
@@ -36298,8 +36298,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "6'",
-      "statusDetail": "6'",
+      "statusShortDetail": "38'",
+      "statusDetail": "38'",
       "completed": false,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Corinthians",
@@ -36311,10 +36311,49 @@
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 360.0,
-      "clockStr": "6'",
+      "clockSec": 2280.0,
+      "clockStr": "38'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 557.0,
+            "displayValue": "10'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Garro",
+              "shortName": "R. Garro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 975.0,
+            "displayValue": "17'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ramires",
+              "shortName": "Ramires"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841182",
@@ -36322,23 +36361,100 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "9'",
-      "statusDetail": "9'",
+      "statusShortDetail": "40'",
+      "statusDetail": "40'",
       "completed": false,
       "homeTeam": "Santos",
       "awayTeam": "Athletico Paranaense",
       "homeTeamId": "2674",
       "awayTeamId": "3458",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio Vila Belmiro (Urbano Caldeira)",
       "city": "Santos",
-      "clockSec": 540.0,
-      "clockStr": "9'",
+      "clockSec": 2400.0,
+      "clockStr": "40'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 830.0,
+            "displayValue": "14'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 1190.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Adonis Frias",
+              "shortName": "A. Frias"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 1517.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 2031.0,
+            "displayValue": "34'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841187",
