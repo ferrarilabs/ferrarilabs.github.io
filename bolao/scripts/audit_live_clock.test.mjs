@@ -101,6 +101,79 @@ for (const app of APPS) {
   });
 }
 
+// ── MATRIZ DE ESTADOS DO RELÓGIO ────────────────────────────────────────────
+// O relógio é montado por `liveClockDisplay()`, que fecha sobre `t()` e sobre o teto de
+// interpolação do app. Extrai a função real e roda contra fixtures — nada de reimplementar a
+// lógica no teste, que só provaria que duas cópias concordam.
+for (const app of APPS) {
+  const src = readFileSync(join(ROOT, "bolao", app, "js", "app.js"), "utf8");
+  const ceilingName = app === "br2026" ? "BR_MAX_INTERPOLATION_MS" : "CDB_MAX_INTERPOLATION_MS";
+  const ceiling = 180000;
+  const fnSrc = extractFn(src, "liveClockDisplay");
+  const harness = `
+    const ${ceilingName} = ${ceiling};
+    const T = { liveHalftime: "Intervalo", livePenalties: "Pênaltis", liveClockStale: "Atualização pendente" };
+    function t(k) { return T[k] || k; }
+    function formatMatchClock(sec, period) {
+      const m = Math.floor(sec / 60), s = sec % 60;
+      return String(m).padStart(2, "0") + ":" + String(s).padStart(2, "0");
+    }
+    ${fnSrc}
+    return liveClockDisplay;`;
+  const rawClockOf = new Function(harness)();
+  // BR2026 devolve `{ clock, sec, stale }` e CDB2026 devolve a string direto — normaliza aqui em
+  // vez de escrever dois conjuntos de asserção quase iguais.
+  const clockOf = (m) => { const r = rawClockOf(m); return (r && typeof r === "object") ? r.clock : r; };
+  const now = Date.now();
+  const fresh = (over) => ({ pollTime: now - 5000, clockSeconds: 0, period: 1, ...over });
+
+  test(`[${app}] 45' do primeiro tempo mostra o minuto, não intervalo`, () => {
+    const out = clockOf(fresh({ clockSeconds: 45 * 60, period: 1 }));
+    assert(/^4[56]:/.test(String(out)), `esperava ~45:xx, veio ${out}`);
+  });
+
+  test(`[${app}] INTERVALO mostra "Intervalo", mesmo com observação velha`, () => {
+    const out = clockOf({ pollTime: now - 30 * 60000, clockSeconds: 45 * 60, period: 1, isHalftime: true });
+    eq(String(out), "Intervalo",
+       "intervalo é estado declarado pela fonte — dado velho não o invalida");
+  });
+
+  test(`[${app}] segundo tempo continua contando a partir do minuto da fonte`, () => {
+    const out = clockOf(fresh({ clockSeconds: 46 * 60, period: 2 }));
+    assert(/^4[67]:/.test(String(out)), `esperava ~46:xx no 2º tempo, veio ${out}`);
+  });
+
+  test(`[${app}] 90' não vira "Atualização pendente" com dado fresco`, () => {
+    const out = clockOf(fresh({ clockSeconds: 90 * 60, period: 2 }));
+    assert(!/pendente/i.test(String(out)), `90' com dado fresco virou estado de stale: ${out}`);
+  });
+
+  test(`[${app}] relógio PAUSADO congela e NÃO vira stale`, () => {
+    // Pausado é informação real da fonte (paralisação); não é ausência de informação.
+    const out = clockOf({ pollTime: now - 30 * 60000, clockSeconds: 70 * 60, period: 2, clockPaused: true });
+    assert(!/pendente/i.test(String(out)), `pausado virou stale: ${out}`);
+    assert(/^7[01]:/.test(String(out)), `pausado deveria congelar em ~70:xx, veio ${out}`);
+  });
+
+  test(`[${app}] FAIL CLOSED: observação velha demais vira "Atualização pendente"`, () => {
+    // É a regra central: capar a interpolação impede o relógio de disparar, mas um número
+    // congelado continua PARECENDO ao vivo. Passado o teto, diz-se a verdade.
+    const out = clockOf({ pollTime: now - (ceiling + 60000), clockSeconds: 30 * 60, period: 1 });
+    eq(String(out), "Atualização pendente",
+       "com observação além do teto o relógio ainda exibe um minuto inventado");
+  });
+
+  test(`[${app}] logo ABAIXO do teto ainda mostra o relógio (não é agressivo demais)`, () => {
+    const out = clockOf({ pollTime: now - (ceiling - 10000), clockSeconds: 30 * 60, period: 1 });
+    assert(!/pendente/i.test(String(out)), `virou stale antes do teto: ${out}`);
+  });
+
+  test(`[${app}] pênaltis são preservados mesmo com dado velho`, () => {
+    const out = clockOf({ pollTime: now - 30 * 60000, clockSeconds: 120 * 60, period: 5, isPenalties: true });
+    eq(String(out), "Pênaltis", "estado de pênaltis perdido");
+  });
+}
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ LIVE CLOCK SUITE FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL CHECKS PASSED\n");
