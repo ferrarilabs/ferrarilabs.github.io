@@ -29,16 +29,58 @@ import {
   resolveGatewayResponse, validateRequest, espnUrlFor, FRESH_TTL_MS,
 } from "../_shared/gateway_core.js";
 
-// Cache em memória do isolate. Não é compartilhado entre instâncias, e isso é aceitável nesta
-// escala: com TTL de 15s e o volume real do Ferrari Labs, o pior caso é um punhado de fetches
-// extras à ESPN por minuto. Um cache distribuído (KV/Redis) seria infraestrutura nova para
-// resolver um problema que este projeto não tem.
-const cache = new Map<string, { payload: unknown; observedAt: string; storedAt: number }>();
+// ─── CACHE COMPARTILHADO EM TABELA (decidido por medição, não por documentação) ─────────────
+//
+// A primeira versão usava um `Map` em memória do isolate, e uma sonda implantada em produção
+// provou que isso NÃO funciona aqui: 10 requisições seguidas produziram 10 isolates distintos,
+// todos com 3–6ms de vida. O `Map` nunca sobreviveria a uma requisição.
+//
+// A Web Cache API também não serve, e este é o achado que justifica ter medido em vez de inferir:
+// `globalThis.caches` EXISTE (uma checagem por `typeof` diria "suportado"), mas `caches.open()`
+// lança `Web Cache is not available in this context`. Construir a camada de confiabilidade sobre
+// ela teria produzido um defeito que só apareceria em produção, provavelmente durante um jogo.
+//
+// Por que o cache importa — e não é sobre volume de requisição à ESPN:
+//   · último-bom-conhecido COMPARTILHADO entre visitantes;
+//   · o PRIMEIRO visitante no meio do jogo precisa ver o estado atual sem que nenhum navegador
+//     tenha observado a partida antes;
+//   · falha temporária da fonte não pode virar apagão para todo mundo ao mesmo tempo;
+//   · proteção contra 429.
+// Cache local de navegador ou de isolate não satisfaz nenhum desses.
+//
+// A tabela é EXCLUSIVA de dado esportivo público, separada de `bolao_state` de propósito. RLS
+// restringe a escrita às três competições conhecidas: o pior caso possível com a anon key é
+// sobrescrever cache esportivo público com outro dado esportivo público.
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+const CACHE_TABLE = "live_sports_cache";
 
-// Coalescência: requisições simultâneas que caem no mesmo cache-miss compartilham UM único fetch
-// à ESPN, em vez de uma por visitante. Sem isto, o instante em que o TTL vence vira uma pequena
-// avalanche sobre a fonte.
-const inFlight = new Map<string, Promise<unknown>>();
+async function readSharedCache(competition: string) {
+  try {
+    const r = await fetch(
+      `${SUPABASE_URL}/rest/v1/${CACHE_TABLE}?competition=eq.${competition}&select=payload,observed_at,stored_at`,
+      { headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}` },
+        signal: AbortSignal.timeout(2500) });
+    if (!r.ok) return null;
+    const rows = await r.json();
+    const row = rows?.[0];
+    if (!row) return null;
+    return { payload: row.payload, observedAt: row.observed_at, storedAt: Date.parse(row.stored_at) };
+  } catch { return null; }  // cache indisponível degrada para buscar na fonte, nunca derruba a resposta
+}
+
+async function writeSharedCache(competition: string, payload: any, observedAt: string) {
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/${CACHE_TABLE}`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}`,
+                 "content-type": "application/json", Prefer: "resolution=merge-duplicates" },
+      body: JSON.stringify({ competition, payload, observed_at: observedAt,
+                             stored_at: new Date().toISOString() }),
+      signal: AbortSignal.timeout(2500),
+    });
+  } catch { /* falha ao gravar cache não pode falhar a resposta ao visitante */ }
+}
 
 const CORS = {
   // A origem canônica de produção. `ferrarilabs.github.io` responde 301 e não executa página
@@ -68,37 +110,27 @@ Deno.serve(async (req: Request) => {
   const url = new URL(req.url);
   const competition = url.searchParams.get("competition") ?? "";
 
+
   const check = validateRequest(competition, req.method);
   if (!check.ok) return json({ error: check.error, schemaVersion: 1 }, check.status);
 
   const now = Date.now();
-  const cached = cache.get(competition) ?? null;
+  const cached = await readSharedCache(competition);
 
-  // Se já existe um fetch em voo para esta competição, espera por ELE em vez de abrir outro.
-  let pending = inFlight.get(competition);
-  if (!pending) {
-    pending = resolveGatewayResponse({
-      competition,
-      cached,
-      now,
-      fetchRaw: () => fetch(espnUrlFor(competition)!, {
-        signal: AbortSignal.timeout(6000),   // a ESPN pendurada não pode pendurar o visitante
-        headers: { accept: "application/json" },
-      }),
-    }).finally(() => inFlight.delete(competition));
-    inFlight.set(competition, pending);
-  }
+  const result = await resolveGatewayResponse({
+    competition,
+    cached,
+    now,
+    fetchRaw: () => fetch(espnUrlFor(competition)!, {
+      signal: AbortSignal.timeout(6000),   // a ESPN pendurada não pode pendurar o visitante
+      headers: { accept: "application/json" },
+    }),
+  });
 
-  const result = await pending as Awaited<ReturnType<typeof resolveGatewayResponse>>;
-
-  // Só promove a "último bom conhecido" o que passou por validação de forma — é o que impede
-  // que um HTTP 200 com corpo quebrado destrua uma observação boa anterior.
+  // Só promove a "último bom conhecido" o que passou por validação de forma — é o que impede que
+  // um HTTP 200 com corpo quebrado destrua uma observação boa anterior.
   if (result.shouldStore) {
-    cache.set(competition, {
-      payload: result.payload,
-      observedAt: result.payload.observedAt!,
-      storedAt: now,
-    });
+    await writeSharedCache(competition, result.payload, result.payload.observedAt!);
   }
 
   // Log operacional sem nenhum dado privado: só saúde, status da fonte e se veio do cache.
