@@ -329,7 +329,44 @@
     };
   }
 
+
+  /**
+   * ─── PREDICADOS CANÔNICOS DE ESTADO DE PARTIDA ─────────────────────────────────────────────
+   *
+   * Todo consumidor que precise saber em que estado uma partida está chama AQUI. Antes deste
+   * módulo havia 21 lugares decidindo isso por conta própria, e o hero sumiu quatro vezes porque
+   * não existia uma decisão para consertar — existiam vinte e uma.
+   *
+   * DISTINÇÃO QUE IMPORTA: nem toda leitura de `state` é uma decisão de estado AO VIVO. Consultas
+   * de TABELA ("qual o próximo jogo?", "quais partidas contam para a classificação?", "quais
+   * confrontos faltam?") leem o mesmo campo para responder outra pergunta, e passá-las por um
+   * resolvedor de estado ao vivo conflaria as duas. Essas permanecem locais, documentadas.
+   */
+  function isFinalMatch(m) { return terminalOf(m) === STATE.FINAL; }
+  function isPostponedMatch(m) { return terminalOf(m) === STATE.POSTPONED; }
+  function isScheduledMatch(m) { return !!m && m.state === "pre" && !terminalOf(m); }
+
+  /**
+   * Adaptador para o formato de EVENTO da ESPN (`ev.competitions[0].status.type.*`), que os apps
+   * ainda manipulam em alguns caminhos. Converte para a forma normalizada e delega — assim o
+   * predicado continua sendo um só, e não nascem dois dialetos da mesma regra.
+   */
+  function eventToMatchShape(ev) {
+    var comp = (ev && ev.competitions && ev.competitions[0]) || null;
+    if (!comp) return null;
+    var t = (comp.status && comp.status.type) || {};
+    return { id: ev.id, state: t.state, statusName: t.name, completed: t.completed,
+             postponed: ev.postponed === true };
+  }
+  function isLiveEvent(ev) { return isLiveMatch(eventToMatchShape(ev)); }
+  function isFinalEvent(ev) { return isFinalMatch(eventToMatchShape(ev)); }
   root.BOLAO_FOOTBALL_LIVE = {
+    isFinalMatch: isFinalMatch,
+    isPostponedMatch: isPostponedMatch,
+    isScheduledMatch: isScheduledMatch,
+    eventToMatchShape: eventToMatchShape,
+    isLiveEvent: isLiveEvent,
+    isFinalEvent: isFinalEvent,
     STATE: STATE, SOURCE: SOURCE, POLL: POLL,
     STALE_AFTER_MS: STALE_AFTER_MS,
     CRITICAL_STALE_AFTER_MS: CRITICAL_STALE_AFTER_MS,

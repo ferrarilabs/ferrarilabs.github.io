@@ -117,6 +117,10 @@ window.CDB2026_CONFIG = {
   // (`resultSource: "espn-auto"`, `lockedBy: "espn-auto"`), sem clique do admin. Também existe
   // poll de 60s do card ao vivo (`pollLiveTies()`), que é só exibição e nunca grava estado.
   // Slug verificado contra a API real em 2026-08 (142 jogos retornados).
+  // LIVE DATA PLANE V2 — o navegador fala só com o gateway do Ferrari Labs, nunca com a ESPN.
+  // `enabled:false` derruba para o snapshot commitado sem tocar em código.
+  liveGateway: { enabled: true, url: "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/live-football", competition: "cdb2026" },
+
   espn: {
     leagueSlug: "bra.copa_do_brazil",
     // Snapshot NORMALIZADO gerado server-side (bolao/shared/scripts/espn_provider.py +

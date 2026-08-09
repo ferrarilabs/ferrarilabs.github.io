@@ -1160,7 +1160,7 @@ async function fetchScoreboard() {
     const observedAt = Date.parse(snap.generatedAt || "") || Date.now();
     const events = snapshotEventsToEspnShape(snap.matches);
     const liveEventIds = events
-      .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
+      .filter(ev => window.BOLAO_FOOTBALL_LIVE.isLiveEvent(ev))
       .map(ev => ev.id)
       .filter(Boolean);
     const keyEventsById = {};
@@ -1238,7 +1238,7 @@ async function pollAll() {
     }
 
     if (matches !== null) {
-      const rawLive = matches.filter(m => m.state === "in");
+      const rawLive = matches.filter(m => window.BOLAO_FOOTBALL_LIVE.isLiveMatch(m));
       // Window state machine keyed off baseline presence (not _liveMatches, which resets to []
       // on every page load) so a reload mid-match keeps the same frozen baseline instead of
       // silently adopting a fresh, already-live one. See docs/bolao/BR2026_LIVE_STANDINGS.md
@@ -2222,12 +2222,12 @@ function renderNextGameCard() {
       // real bug, Eduardo screenshot 2026-07-29: "aparece jogos que terminaram mas nem foram
       // jogados ainda, foram adiados pelo jeito" -- the 4 rescheduled games due today showed as
       // "Encerrado 0-0" in "Jogos de hoje" instead of "Adiado".
-      if (g.postponed) {
+      if (window.BOLAO_FOOTBALL_LIVE.isPostponedMatch(g)) {
         return `<div class="today-game today-game-post">
           <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>—</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
           <span class="today-game-time muted">${esc(t("gamePostponed"))}</span>
         </div>`;
-      } else if (g.state === "post") {
+      } else if (window.BOLAO_FOOTBALL_LIVE.isFinalMatch(g)) {
         return `<div class="today-game today-game-post">
           <div class="today-game-teams muted">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span>${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
           <span class="today-game-time muted">${esc(t("gameFinal"))}</span>
@@ -2423,13 +2423,13 @@ function renderGamesSection() {
       // class is kept (distinct typography/color per state, unchanged), .game-card__score is
       // added alongside it.
       let scoreOrTime, statusHtml;
-      if (g.postponed) {
+      if (window.BOLAO_FOOTBALL_LIVE.isPostponedMatch(g)) {
         scoreOrTime = `<span class="game-card__score game-time muted">—</span>`;
         statusHtml  = `<span class="game-status postponed">${esc(t("gamePostponed"))}</span>`;
-      } else if (g.state === "in") {
+      } else if (window.BOLAO_FOOTBALL_LIVE.isLiveMatch(g)) {
         scoreOrTime = `<span class="game-card__score is-live game-score-live">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status live">${esc(t("gameLive"))}${g.clockStr ? " · " + esc(g.clockStr) : ""}</span>`;
-      } else if (g.state === "post") {
+      } else if (window.BOLAO_FOOTBALL_LIVE.isFinalMatch(g)) {
         scoreOrTime = `<span class="game-card__score game-score-final">${g.homeScore ?? 0} – ${g.awayScore ?? 0}</span>`;
         statusHtml  = `<span class="game-status post">${esc(t("gameFinal"))}</span>`;
       } else {

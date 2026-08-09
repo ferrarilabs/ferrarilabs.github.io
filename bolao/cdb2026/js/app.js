@@ -2970,7 +2970,7 @@ function renderGamesSection() {
             : esc(fmtDate(m.kickoff));
         const statusLabel = state === "postponed" ? t("gamePostponed")
           : state === "live" ? `${t("gameLive")}${live ? " · " + liveClockDisplay(live) : ""}`
-          : state === "post" ? t("gameFinal")
+          : window.BOLAO_FOOTBALL_LIVE.isFinalMatch({ state }) ? t("gameFinal")
           : t("gamePending");
         const isNext = `${tieId}:${leg}` === nextKey;
         const legVariant = leg === "second" ? " game-card--second-leg" : leg === "first" ? " game-card--first-leg" : "";
@@ -3371,7 +3371,7 @@ async function fetchLiveTies(s) {
       const away = leg === "second" ? tie.teamA : tie.teamB;
       const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away);
       if (!ev) return;
-      if (ev.postponed) { postponedKeys.add(`${tieId}:${leg}`); return; }
+      if (window.BOLAO_FOOTBALL_LIVE.isPostponedMatch(ev)) { postponedKeys.add(`${tieId}:${leg}`); return; }
       if (ev.state !== "in") return;
       found.push({ tieId, tie, phaseId, leg, homeTeam: home, awayTeam: away, ev });
     });
@@ -3829,6 +3829,53 @@ function snapshotEventsToEspnShape(matches) {
   }));
 }
 
+// ─── HIERARQUIA DE FONTES (LIVE DATA PLANE V2) ──────────────────────────────────────────────
+// 1. gateway Ferrari Labs (segundos)  2. snapshot commitado (bootstrap/emergência)
+// Mesma implementação do BR2026. O navegador NUNCA fala com a ESPN.
+// `_liveObservedAt` descarta resposta atrasada: ordem de chegada não é verdade.
+let _liveObservedAt = 0;
+let _liveSource = "none";
+let _liveHealth = { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutiveFailures: 0, lastError: null };
+
+function publishLiveHealth() {
+  try {
+    window.__BOLAO_LIVE_HEALTH__ = {
+      version: 1, competition: C.liveGateway?.competition || "cdb2026",
+      gateway: { enabled: !!C.liveGateway?.enabled, status: _liveHealth.gatewayStatus,
+                 lastOkAt: _liveHealth.lastGatewayOkAt, consecutiveFailures: _liveHealth.consecutiveFailures,
+                 lastError: _liveHealth.lastError },
+      source: _liveSource,
+      observedAt: _liveObservedAt ? new Date(_liveObservedAt).toISOString() : null,
+      ageSeconds: _liveObservedAt ? Math.round((Date.now() - _liveObservedAt) / 1000) : null,
+    };
+  } catch { /* diagnóstico nunca derruba o app */ }
+}
+
+async function fetchLiveFromGateway() {
+  const g = C.liveGateway;
+  if (!g || !g.enabled || !g.url) return null;
+  try {
+    const r = await fetchJson(`${g.url}?competition=${encodeURIComponent(g.competition)}`,
+                              { cache: "no-store", timeoutMs: 5000 });
+    const body = await r.json();
+    if (!body || body.schemaVersion !== 1) return null;      // schema desconhecido: rejeita
+    if (!r.ok || body.matches === null) return null;         // `null` = não sabemos, nunca "sem jogo"
+    const ts = Date.parse(body.observedAt || "") || 0;
+    if (!ts || ts <= _liveObservedAt) return null;           // fora de ordem: descarta
+    _liveObservedAt = ts; _liveSource = "gateway";
+    _liveHealth.gatewayStatus = body.stale ? "STALE" : "OK";
+    _liveHealth.lastGatewayOkAt = new Date().toISOString();
+    _liveHealth.consecutiveFailures = 0; _liveHealth.lastError = null;
+    publishLiveHealth();
+    return { matches: body.matches, generatedAt: body.observedAt, stale: !!body.stale };
+  } catch (e) {
+    _liveHealth.gatewayStatus = "UNREACHABLE"; _liveHealth.consecutiveFailures++;
+    _liveHealth.lastError = String(e?.message || e).slice(0, 80);
+    publishLiveHealth();
+    return null;
+  }
+}
+
 async function fetchEspnCandidates() {
   const url = C.espn?.scoreboardUrl;
   if (!url) return null;
@@ -3836,9 +3883,15 @@ async function fetchEspnCandidates() {
     // `cache: "no-cache"` — REVALIDA sempre. Sem isto o navegador servia a cópia em cache por até
     // 10 minutos (`cache-control: max-age=600` do GitHub Pages), então o poll relia o MESMO arquivo
     // e o placar/relógio ao vivo congelavam. Revalidar devolve 304 barato quando nada mudou.
-    const r = await fetchJson(url, { cache: "no-cache" });
-    if (!r.ok) return null;
-    const snap = await r.json();
+    // FONTE 1: gateway. As duas produzem o MESMO schema normalizado (interop JS≡Python
+    // verificado contra payload real), então só muda de ONDE vem `snap`.
+    let snap = await fetchLiveFromGateway();
+    if (!snap) {
+      const r = await fetchJson(url, { cache: "no-cache" });
+      if (!r.ok) return null;
+      snap = await r.json();
+      _liveSource = "snapshot"; publishLiveHealth();
+    }
     if (!snap || !Array.isArray(snap.matches)) return null; // forma inesperada: melhor nada que lixo
     if (snap.stale) console.warn(`[CDB2026] snapshot ESPN marcado stale (${snap.staleReason || "?"}) — usando último dado bom conhecido`);
     // QUANDO o dado foi observado. Antes da migração da ESPN "buscar" e "observar" eram o mesmo
@@ -3847,7 +3900,7 @@ async function fetchEspnCandidates() {
     const observedAt = Date.parse(snap.generatedAt || "") || Date.now();
     const events = snapshotEventsToEspnShape(snap.matches).map(ev => ({ ...ev, observedAt }));
     const liveEventIds = events
-      .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
+      .filter(ev => window.BOLAO_FOOTBALL_LIVE.isLiveEvent(ev))
       .map(ev => ev.id)
       .filter(Boolean);
     const keyEventsById = {};

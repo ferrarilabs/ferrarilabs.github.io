@@ -114,6 +114,8 @@ const CHECKS = [
     why: "gateway: cache, degradacao, injecao de falha da ESPN, seguranca contra proxy aberto" },
   { id: "football-live-store", group: "app", cmd: ["node", "bolao/scripts/audit_football_live_store.mjs"],
     why: "cenarios de aceitacao do LIVE DATA PLANE V2: primeira visita no meio do jogo, sem scheduler, fora de ordem, falha de fonte" },
+  { id: "live-decision-scope", group: "app", cmd: ["node", "bolao/scripts/audit_live_decision_scope.mjs"],
+    why: "21 pontos decidiam LIVE independentemente; consolidado para 9 consultas de tabela declaradas — nao pode crescer" },
   { id: "remote-write-visibility", group: "app", cmd: ["node", "bolao/scripts/audit_remote_write_visibility.mjs"],
     why: "gravacao remota que nao acontece nao pode parecer sucesso — incidente do agendamento CBF 2026-08-09" },
   { id: "snapshot-window", group: "app", cmd: ["node", "bolao/scripts/audit_snapshot_window_coverage.mjs"],
