@@ -134,10 +134,15 @@ test("o destaque só acontece quando existe resultado oficial", () => {
     "o destaque não checa mais se há resultado — marcaria acerto antes do sorteio");
 });
 
-test("o rótulo do dropdown mostra o resultado quando ele existe", () => {
-  const fn = app.slice(app.indexOf("function drawSelectorLabel"), app.indexOf("function drawSelectorLabel") + 700);
-  assert(/Resultado:/.test(fn), "o rótulo do dropdown não mostra mais o resultado");
-  assert(/hasResult/.test(fn), "o rótulo não distingue mais sorteio com e sem resultado");
+test("o rótulo do dropdown é COMPACTO e não embute resultado", () => {
+  // Este teste foi INVERTIDO em 2026-08-09. Antes exigia "Resultado:" no rótulo; o Eduardo pediu o
+  // desenho original de volta — o seletor serve para ESCOLHER o sorteio, não para exibi-lo (o
+  // resultado tem seção própria logo abaixo). Um teste que trava o comportamento antigo depois de
+  // uma decisão de produto vira obstáculo, não proteção.
+  const fn = app.slice(app.indexOf("function drawSelectorLabel"), app.indexOf("function drawSelectorLabel") + 1400);
+  assert(!/Resultado:/.test(fn), "o rótulo do seletor voltou a embutir o resultado do sorteio");
+  assert(/gt\.icon/.test(fn) && /gt\.label/.test(fn), "o rótulo perdeu o formato ícone + nome do jogo");
+  assert(/hasResult/.test(fn), "o rótulo não distingue mais sorteio já realizado do próximo");
 });
 
 // ── 5. FONTE ÚNICA — o envio errado de 2026-08-09 ──────────────────────────
@@ -178,14 +183,48 @@ test("todo sorteio tem os campos canônicos e ids únicos", () => {
   }
 });
 
+test("REGRA DE DONO: participação do organizador é auto-financiada, nunca 'pendente'", () => {
+  // Decisão explícita do Eduardo (2026-08-09): a participação dele representa fundo próprio.
+  // A regra é o PAPEL (`status: "organizador"`), não o nome — um "if name === 'Eduardo Ferrari'"
+  // seria um hack frágil que quebraria numa troca de organizador ou num homônimo.
+  for (const d of DRAWS) {
+    for (const p of (d.participants || [])) {
+      if (p.status !== "organizador") continue;
+      // "Saldo anterior" também é fundo do PRÓPRIO organizador (dinheiro dele de uma rodada
+      // anterior), só descrito por outra via. O que a regra proíbe é o organizador aparecer com
+      // transferência de TERCEIRO como origem da própria cota.
+      assert(p.metodo && /fundo próprio|organizador|saldo anterior/i.test(p.metodo),
+        `${p.name} em ${d.id} é organizador mas o método não indica recurso próprio: ${p.metodo}`);
+    }
+  }
+  // E o organizador nunca pode aparecer como pagamento pendente.
+  const org = DRAWS.flatMap(d => (d.participants || []).filter(p => p.status === "organizador"));
+  assert(org.length > 0, "fixture inútil: nenhum organizador para verificar");
+  for (const p of org) eq(p.status === "pendente", false, `${p.name} listado como pendente sendo organizador`);
+});
+
+test("REGRA DE DONO: saber COMO é financiado não exige saber QUANTO", () => {
+  // O valor por cota varia a cada sorteio, então `valor` pode ser nulo mesmo com a fonte de
+  // financiamento conhecida. São dois fatos diferentes e o modelo precisa aceitar essa separação —
+  // senão registrar o organizador obrigaria inventar um número.
+  const d10 = DRAWS.find(d => d.id === "2026-08-10");
+  const ed = (d10.participants || [])[0];
+  eq(ed.status, "organizador", "a participação do organizador no 10/08 mudou de papel");
+  assert(ed.metodo, "o organizador ficou sem método de financiamento");
+  eq(ed.valor, null, "o valor por cota do 10/08 ainda não foi definido — não deve estar preenchido");
+});
+
 test("participação PODE existir sem pagamento (valor/metodo nulos) e sem virar 'verificado'", () => {
   // Registrar participação e confirmar pagamento são fatos DIFERENTES. Antes o modelo exigia
   // `valor`/`metodo`, então registrar alguém que ainda não pagou obrigaria a inventar um valor —
   // e o status cairia em "✓ Verificado", afirmando pagamento que não aconteceu.
-  const pend = DRAWS.flatMap(d => (d.participants || []).filter(p => p.valor == null || p.metodo == null));
-  for (const p of pend) {
+  // "Pendente" é para quem não tem NEM origem NEM valor. Ter a origem conhecida (ex.: fundo
+  // próprio do organizador) com o valor por cota ainda não definido é um estado diferente e
+  // legítimo — saber COMO é financiado não exige saber QUANTO.
+  const semNada = DRAWS.flatMap(d => (d.participants || []).filter(p => p.valor == null && p.metodo == null));
+  for (const p of semNada) {
     eq(p.status, "pendente",
-      `${p.name} está sem valor/metodo mas o status não é "pendente" — a UI o mostraria como verificado`);
+      `${p.name} está sem valor E sem método mas o status não é "pendente" — a UI o mostraria como verificado`);
   }
   const appSrc = app;
   assert(/p\.valor == null \? "—"/.test(appSrc), "a UI voltaria a renderizar $NaN para valor nulo");

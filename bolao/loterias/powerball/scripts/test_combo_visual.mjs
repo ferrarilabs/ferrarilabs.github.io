@@ -84,14 +84,45 @@ for (const engineName of ["chromium", "webkit"]) {
     return { ctx, page };
   };
 
-  await test(`[${engineName}] a opção selecionada tem EXATAMENTE um marcador`, async () => {
+  await test(`[${engineName}] NENHUMA opção tem checkbox/checkmark`, async () => {
+    // Regra final do Eduardo (2026-08-09): o desenho original nunca teve checkbox nem ✓.
+    // Isto SUPERA o critério anterior de "exatamente um indicador".
     const { ctx, page } = await open({ width: 390, height: 844 });
     const opts = await page.evaluate(MARKER_PROBE);
-    const sel = opts.filter(o => o.selected);
-    eq(sel.length, 1, "número de opções marcadas como selecionadas");
-    eq(sel[0].markers, 1,
-      `a opção selecionada tem ${sel[0].markers} marcadores de seleção — era exatamente isto que ` +
-      `o Eduardo descreveu como "double checkbox"`);
+    eq(opts.filter(o => o.selected).length, 1, "número de opções marcadas como selecionadas");
+    const comMarca = opts.filter(o => o.markers > 0);
+    eq(comMarca.length, 0,
+      `${comMarca.length} opção(ões) exibindo glifo de seleção — o desenho pedido não tem nenhum`);
+    await ctx.close();
+  });
+
+  await test(`[${engineName}] a seleção continua CLARA sem glifo (fundo + peso + aria)`, async () => {
+    const { ctx, page } = await open({ width: 390, height: 844 });
+    const opts = await page.evaluate(MARKER_PROBE);
+    const sel = opts.find(o => o.selected), other = opts.find(o => !o.selected);
+    assert(sel.bg !== other.bg || sel.color !== other.color,
+      "sem glifo E sem diferença de fundo/cor, a opção escolhida ficaria indistinguível");
+    await ctx.close();
+  });
+
+  await test(`[${engineName}] o seletor é COMPACTO: uma linha por opção, sem resultado embutido`, async () => {
+    const { ctx, page } = await open({ width: 390, height: 844 });
+    const d = await page.evaluate(() => {
+      const opts = [...document.querySelectorAll('#pbDrawListbox [role="option"]')];
+      return {
+        closed: document.getElementById("pbDrawLabel").textContent.trim(),
+        texts: opts.map(o => o.textContent.trim()),
+        heights: opts.map(o => Math.round(o.getBoundingClientRect().height)),
+      };
+    });
+    // Nada de "Resultado: 5 9 35 54 63 | PB 7" dentro do seletor — isso tem seção própria.
+    assert(!/Resultado:/i.test(d.closed), `o seletor fechado embute resultado: ${d.closed}`);
+    for (const t of d.texts) {
+      assert(!/Resultado:/i.test(t), `opção embute resultado: ${t}`);
+      assert(t.length <= 46, `opção longa demais (${t.length} chars): ${t}`);
+    }
+    // Uma linha: nenhuma opção deve ser muito mais alta que o alvo de toque mínimo.
+    for (const h of d.heights) assert(h <= 56, `opção com ${h}px — quebrou em várias linhas`);
     await ctx.close();
   });
 
@@ -114,7 +145,7 @@ for (const engineName of ["chromium", "webkit"]) {
     const act = opts.find(o => o.active && !o.selected);
     assert(act, "não consegui mover a navegação para fora da opção selecionada");
     // Só a selecionada carrega marcador; a navegada usa anel, não marcador.
-    eq(sel.markers, 1, "a selecionada perdeu ou ganhou marcador ao navegar");
+    eq(sel.markers, 0, "apareceu glifo na selecionada — o desenho pedido não tem nenhum");
     eq(act.markers, 0,
       "a opção só NAVEGADA está exibindo marcador de seleção — duas linhas marcadas ao mesmo " +
       "tempo é o que lê como indicador duplicado");
@@ -129,8 +160,10 @@ for (const engineName of ["chromium", "webkit"]) {
     await page.click("#pbDrawButton");
     await page.waitForTimeout(400);
     const opts = await page.evaluate(MARKER_PROBE);
-    eq(opts.filter(o => o.markers > 0).length, 1, "sobrou marcador na opção antiga");
+    eq(opts.filter(o => o.markers > 0).length, 0, "apareceu glifo de seleção");
     eq(opts.filter(o => o.selected).length, 1, "mais de uma opção marcada como selecionada");
+    const sel = opts.find(o => o.selected);
+    assert(sel.bg !== opts.find(o => !o.selected).bg, "a nova seleção não ficou visualmente distinta");
     await ctx.close();
   });
 

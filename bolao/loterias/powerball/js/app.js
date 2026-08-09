@@ -59,16 +59,26 @@
   // completed draws get "<data> — Resultado: N N N N N | PB N". Each draw's
   // own `id` is the option's value, so there is never a duplicate/ambiguous
   // selection even if two draws share a display date format.
+  // Rótulo COMPACTO do seletor — restaurado ao desenho original (2026-08-09).
+  //
+  // Era assim antes do dropdown customizado: `icone + label + " — " + data`. Depois o rótulo
+  // passou a embutir o resultado inteiro ("— Resultado: 5 9 35 54 63 | PB 7"), o que transformou
+  // cada opção num cartão de resultado de várias linhas. O Eduardo pediu o compacto de volta: o
+  // seletor serve para ESCOLHER o sorteio, não para exibi-lo — o resultado já tem seção própria
+  // logo abaixo.
+  //
+  // Sem marcador de seleção no texto: o antigo `"✓ "` indicava "tem resultado", não seleção, e
+  // confundia com a marca de escolha. Seleção agora é só estilo (fundo + peso + aria-selected).
   function drawSelectorLabel(d, effectiveDraw) {
+    var gt = GAME_TYPES[d.gameType] || GAME_TYPES.powerball;
+    // Só a DATA: o horário é o mesmo (22:59 ET) em todo sorteio do Powerball, então repetir isso
+    // em cada linha ocupa espaço sem distinguir nada.
+    var date = String(d.drawing.drawDateLabel || "").split(" ")[0];
+    var label = gt.icon + " " + gt.label + " — " + date;
+    // Distinção sutil e única: qual ainda não foi sorteado. Sem isso não dá para saber, olhando a
+    // lista, qual é o próximo — e essa é a informação operacional que importa aqui.
     var hasResult = effectiveDraw.result && effectiveDraw.result.numbers;
-    if (d.status === "planejamento" && !hasResult) {
-      return "Próximo sorteio — " + d.drawing.drawDateLabel + " — Em planejamento";
-    }
-    if (hasResult) {
-      var nums = effectiveDraw.result.numbers.slice().sort(function (a, b) { return a - b; }).join(" ");
-      return d.drawing.drawDateLabel + " — Resultado: " + nums + " | PB " + effectiveDraw.result.special;
-    }
-    return d.drawing.drawDateLabel + " — Aguardando sorteio";
+    return hasResult ? label : label + " · próximo";
   }
 
   // ─── BATCH 6: dropdown customizado de sorteio ───────────────────────────────
