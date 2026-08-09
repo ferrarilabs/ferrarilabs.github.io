@@ -442,7 +442,12 @@ window.POWERBALL_DRAWS = [
         hora: "8:40 AM",
         status: "organizador",
         state: "NC"
-      }
+      },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "9:00:45 AM", status: "verificado", state: "NC" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "9:42:55 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "9:46:39 AM", status: "verificado", state: "NC" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "9:54:35 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "10:03:04 AM", status: "verificado", state: "NC" }
     ],
 
     // Nenhum ticket comprado ainda.
@@ -454,7 +459,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 0,
+      totalArrecadado: 50,
       creditoSorteioAnterior: 24,
       valorUtilizado: 0,
       valorGuardadoProximoSorteio: 0,
