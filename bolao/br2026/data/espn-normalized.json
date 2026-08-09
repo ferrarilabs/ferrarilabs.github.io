@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-09T14:30:47Z",
-  "sourceUpdatedAt": "2026-08-09T14:30:47Z",
+  "generatedAt": "2026-08-09T14:40:08Z",
+  "sourceUpdatedAt": "2026-08-09T14:40:08Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "adc7f90afa3cf22f0de6907634889cfdb341b56f58f16104cd972c32698d58ed",
+  "payloadHash": "a4e0071c19feac9174908098f0009dd72ef5182e110850dca5b5edb49874e8de",
   "matches": [
     {
       "id": "401840808",
@@ -35919,8 +35919,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "28'",
-      "statusDetail": "28'",
+      "statusShortDetail": "39'",
+      "statusDetail": "39'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Mirassol",
@@ -35932,8 +35932,8 @@
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 1680.0,
-      "clockStr": "28'",
+      "clockSec": 2340.0,
+      "clockStr": "39'",
       "period": 1,
       "details": [
         {
