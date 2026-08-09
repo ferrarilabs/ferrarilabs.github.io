@@ -36,11 +36,49 @@ console.log("Powerball email architecture — automated tests\n");
 // -------- 1. Prize calc reuse (real function, matrix, not reinvented) --------
 console.log("Prize calculation (reused from js/app.js):");
 const { calculatePrizePerParticipant, DRAWS } = loadRealPrizeCalculator();
-// The last draw in DRAWS is now the 2026-08-08 planning-stage draw (empty
-// participants, no result, added 2026-08-06) — these tests exercise
-// participant/ticket flows, so they target the most recent COMPLETED draw
-// with participants instead, not just "whichever draw is last".
-const realDraw = DRAWS.filter((d) => d.participants && d.participants.length > 0).slice(-1)[0];
+// ─── SELEÇÃO DO SORTEIO ALVO (corrigida 2026-08-09) ─────────────────────────────────────────
+//
+// O comentário anterior dizia que estes testes miram "the most recent COMPLETED draw with
+// participants". O código NÃO fazia isso — filtrava só por `participants.length > 0`. Enquanto o
+// sorteio aberto ficava sem participantes, o resultado coincidia com a intenção, e a divergência
+// entre o comentário e o código era invisível.
+//
+// Em 2026-08-09 o sorteio aberto (10/08) ganhou 7 participantes reais. `realDraw` passou a
+// apontar para um sorteio SEM bilhetes e SEM resultado, e 6 testes caíram de uma vez — nenhum
+// deles por defeito de produto. É a mesma classe do `drawSelectorLabel` "kept in sync manually":
+// uma intenção escrita em prosa que nenhum mecanismo garantia.
+//
+// Agora o predicado é o mesmo que a aplicação usa para "já sorteado" — PRESENÇA DE RESULTADO,
+// nunca `status`, que em produção está obsoleto (o 08/08 tem `status: "planejamento"` COM
+// resultado oficial gravado).
+const isSettled = (d) => !!(d.result && d.result.numbers);
+const realDraw = DRAWS.filter((d) => isSettled(d) && d.participants && d.participants.length > 0).slice(-1)[0];
+if (!realDraw) {
+  console.error("Nenhum sorteio liquidado COM participantes em data.js — sem fixture, estes testes " +
+    "não afirmam nada. Falhando em vez de passar vazio.");
+  process.exit(1);
+}
+
+// ─── DADO PRIVADO SINTÉTICO (2026-08-09) ────────────────────────────────────────────────────
+//
+// Três testes procuram um participante com e-mail (`isValidEmail(p.email)`) ou com `txId`. Desde
+// o hotfix de PII (P0.1), `js/data.js` — que é público — não carrega mais esses campos: eles vêm
+// do secret (`POWERBALL_PRIVATE_PARTICIPANT_DATA`) ou de um sidecar local gitignorado.
+//
+// Consequência: esses testes passavam onde o secret existe (CI) e falhavam com um
+// `Cannot read properties of undefined (reading 'name')` em qualquer máquina sem ele. Verde
+// dependente de ambiente — e a mensagem de erro não dizia nada sobre a causa real.
+//
+// Correção: o teste passa a INJETAR um mapa privado sintético, derivado dos próprios
+// participantes do sorteio alvo. Assim ele exercita o caminho de merge de verdade
+// (`withPrivateFields`), é hermético em qualquer máquina, e não depende do secret nem o expõe.
+// Endereços em domínio reservado (.invalid) — nenhum endereço real entra em fixture.
+process.env.POWERBALL_PRIVATE_PARTICIPANT_DATA = JSON.stringify({
+  [realDraw.id]: Object.fromEntries(realDraw.participants.map((p, i) => [
+    p.name,
+    { email: `participante${i + 1}@example.invalid`, txId: `EXAMPLE-TXID-${String(i + 1).padStart(4, "0")}` },
+  ])),
+});
 
 test("known state (NC) returns full estimate matching the real function's own output shape", () => {
   const p = realDraw.participants.find((x) => x.state === "NC");
@@ -224,16 +262,43 @@ test("a draw with the original round-1-bug finance shape (no creditoSorteioAnter
   assert.ok(r.errors.some((e) => e.includes("FINANCE_NOT_RECONCILED")));
 });
 
-test("the REAL current draw's own finance (with creditoSorteioAnterior accounted for) reconciles and is NOT blocked", () => {
-  const draw = loadDrawSnapshot(realDraw.id);
-  // Real tickets (not a synthetic 1-ticket stand-in): now that the costPerTicket
-  // field-name bug is fixed, validateTicketPublication's ticket-cost check actually
-  // runs, and a fake ticket count would legitimately mismatch this real draw's real
-  // valorUtilizado — using the draw's own real tickets is both more correct and
-  // exercises that check with numbers that are supposed to agree.
-  const tickets = ticketsFromDraw(draw);
-  const r = validateTicketPublication({ draw, participants: draw.participants, tickets });
+// 2026-08-09: este teste passou a falhar com `DRAW_ALREADY_CONCLUDED` quando a seleção de
+// `realDraw` foi corrigida para mirar um sorteio LIQUIDADO. Não é defeito de produto nem do
+// alvo novo — é que `validateTicketPublication` guarda o Fluxo B (publicação de bilhetes), que
+// por definição roda ANTES do sorteio. Um sorteio já realizado ser bloqueado ali é o
+// comportamento certo, e a asserção original ("não é bloqueado") só era compatível com um
+// sorteio ainda aberto.
+//
+// O que este teste quer provar continua válido e vale a pena: as finanças REAIS de um sorteio
+// real reconciliam, com `creditoSorteioAnterior` entrando do lado dos fundos disponíveis. Então
+// ele exercita o mesmo sorteio real no ESTADO EM QUE O FLUXO B RODA — o dia anterior ao
+// sorteio, `result: null` — mantendo 100% dos números reais de finanças e bilhetes. Mesma
+// técnica já usada acima (`patchedDraw`), nada sintético no que está sendo verificado.
+test("as finanças REAIS de um sorteio real reconciliam (crédito anterior contabilizado) e não bloqueiam a publicação", () => {
+  const settled = loadDrawSnapshot(realDraw.id);
+  const beforeDrawing = { ...settled, result: null }; // o estado em que o Fluxo B de fato roda
+  // Bilhetes reais, não um substituto de 1 bilhete: a checagem de custo por bilhete roda de
+  // verdade, e uma contagem falsa divergiria legitimamente do `valorUtilizado` real.
+  const tickets = ticketsFromDraw(beforeDrawing);
+  const r = validateTicketPublication({ draw: beforeDrawing, participants: beforeDrawing.participants, tickets });
   assert.equal(r.ok, true, r.errors.join("; "));
+});
+
+// Contrapartida da correção acima — o bloqueio que ela revelou é uma garantia de segurança real e
+// não estava coberta por teste nenhum: publicar bilhetes DEPOIS do resultado anunciaria como
+// "apostas em jogo" bilhetes cuja sorte já está decidida.
+test("publicar bilhetes de um sorteio JÁ REALIZADO é bloqueado, e especificamente por isso", () => {
+  const settled = loadDrawSnapshot(realDraw.id);
+  const r = validateTicketPublication({
+    draw: settled, participants: settled.participants, tickets: ticketsFromDraw(settled),
+  });
+  assert.equal(r.ok, false, "um sorteio já realizado não pode passar pelo fluxo de publicação de bilhetes");
+  assert.ok(r.errors.some((e) => e.includes("DRAW_ALREADY_CONCLUDED")),
+    `bloqueado pelo motivo errado: ${r.errors.join("; ")}`);
+  // E o bloqueio NÃO pode ser por finanças — se fosse, o teste acima estaria mascarando um
+  // problema financeiro real atrás do motivo "já concluído".
+  assert.ok(!r.errors.some((e) => e.includes("FINANCE_NOT_RECONCILED")),
+    `as finanças do sorteio real não reconciliam: ${r.errors.join("; ")}`);
 });
 
 test("validateTicketPublication blocks when no tickets / no participants / invalid ticket", () => {

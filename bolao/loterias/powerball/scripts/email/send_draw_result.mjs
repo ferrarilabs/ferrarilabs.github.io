@@ -56,7 +56,49 @@ export function computeEligibility(drawId) {
   eligible.forEach((p) => { const e = p.email.toLowerCase(); emailCounts[e] = (emailCounts[e] || 0) + 1; });
   const duplicateEmails = Object.entries(emailCounts).filter(([, c]) => c > 1).map(([e]) => e);
 
-  return { ok: true, draw, eligible, excluded, duplicateEmails };
+  // ─── COMPLETUDE DO CONJUNTO DE DESTINATÁRIOS (2026-08-09) ─────────────────────────────────
+  //
+  // ESTE É O DEFEITO QUE CAUSOU O INCIDENTE. Até aqui, `computeEligibility` devolvia `ok: true`
+  // depois de EXCLUIR silenciosamente quem não tinha e-mail resolvível, e o envio seguia para os
+  // demais. Foi exatamente assim que o reenvio corrigido alcançou **14 de 15** pessoas: a que
+  // faltava não gerou erro, gerou uma linha em `excluded` que ninguém bloqueava (HA-6).
+  //
+  // "Faltou contato" e "essa pessoa não é destinatária" são coisas diferentes e estavam no mesmo
+  // balde:
+  //
+  //   NÃO-DESTINATÁRIO LEGÍTIMO — decisão de negócio já tomada, registrada no dado:
+  //     `status: "cancelado"`  ·  `cotas <= 0`
+  //     Excluir está certo. O conjunto continua completo.
+  //
+  //   CONTATO AUSENTE/INVÁLIDO — a pessoa É participante e não conseguimos alcançá-la:
+  //     e-mail ausente, "—", ou malformado (tipicamente: o contato não está no secret privado)
+  //     Excluir está ERRADO. O conjunto está incompleto, e envio parcial é pior que nenhum: cria
+  //     um grupo que sabe o resultado e outro que não, e o segundo descobre por terceiros.
+  //
+  // Regra: se QUALQUER participante cair no segundo caso, o envio inteiro é bloqueado antes da
+  // primeira chamada ao provedor. Tudo ou nada. O lado Python já fazia isso (`expected_membership`
+  // + `build_send_plan` em send_result_email.py); o lado JS nunca teve equivalente.
+  //
+  // A correção NÃO é remover a pessoa nem afrouxar a checagem — é parar e conseguir o contato.
+  const expected = (draw.participants || []).filter(
+    (p) => Number(p.cotas) > 0 && p.status !== "cancelado",
+  );
+  const unreachable = excluded.filter((x) => x.reason === "INVALID_EMAIL");
+  if (unreachable.length > 0 || eligible.length !== expected.length) {
+    return {
+      ok: false,
+      status: "RECIPIENT_SET_INCOMPLETE",
+      expectedCount: expected.length,
+      resolvedCount: eligible.length,
+      unreachableCount: unreachable.length,
+      message:
+        `Conjunto de destinatários incompleto: ${expected.length} participante(s) deveriam receber, ` +
+        `${eligible.length} têm contato resolvível. Envio BLOQUEADO — nenhuma mensagem enviada. ` +
+        `Envio parcial é pior que nenhum envio; resolva o contato faltante antes de tentar de novo.`,
+    };
+  }
+
+  return { ok: true, draw, eligible, excluded, duplicateEmails, expectedCount: expected.length };
 }
 
 export async function runDrawResultSend({ drawId, ledgerPath, dryRun = true, singleParticipant = null }) {
