@@ -388,7 +388,35 @@
     }).join("");
   }
 
-  function renderSharedTickets(draw) {
+  // Destaque de acerto no bilhete. Pedido do Eduardo (2026-08-09, depois do sorteio de 08/08):
+  // "não marcou os bilhetes venceram em negrito". Antes disto os números do bilhete eram texto
+  // corrido — não havia nenhuma marcação de acerto, nem sequer CSS para isso.
+  //
+  // Só destaca quando o sorteio JÁ TEM resultado oficial gravado. Sem resultado não há acerto a
+  // mostrar, e inventar destaque antes do sorteio seria pior que não ter.
+  function highlightTicketNumbers(numeroStr, result, gt) {
+    if (!result || !result.numbers || !result.numbers.length) return esc(numeroStr);
+    var parsed = parseTicketNumeros(numeroStr);
+    if (!parsed) return esc(numeroStr);
+    var mainHits = parsed.numbers.filter(function (n) { return result.numbers.indexOf(n) !== -1; }).length;
+    var pbHit = parsed.special === result.special;
+    // Reconstrói a string marcando cada bola individualmente, preservando o formato original
+    // ("01-14-27-63-64 — PB 25") em vez de reescrevê-lo.
+    var m = numeroStr.match(/^([\d\s-]+?)\s*—\s*(PB|MB)\s*(\d+)$/);
+    if (!m) return esc(numeroStr);
+    var balls = m[1].trim().split(/[\s-]+/).map(function (b) {
+      var hit = result.numbers.indexOf(Number(b)) !== -1;
+      return hit ? '<b class="pb-hit">' + esc(b) + "</b>" : esc(b);
+    }).join("-");
+    var pbTxt = pbHit ? '<b class="pb-hit pb-hit--special">' + esc(m[3]) + "</b>" : esc(m[3]);
+    var prize = gt && gt.prizeTable ? gt.prizeTable(mainHits, pbHit, result.multiplier || 1) : null;
+    var tag = prize && prize.amount
+      ? ' <span class="pb-ticket-prize">' + esc(prize.label) + " · " + fmtUsd(prize.amount) + "</span>"
+      : "";
+    return balls + " — " + esc(m[2]) + " " + pbTxt + tag;
+  }
+
+  function renderSharedTickets(draw, gt) {
     var t = draw.sharedTickets;
     // Planning-stage draw: no tickets purchased yet (empty series, no
     // compradoPor/dataComprovante) — show a clear pending message instead of
@@ -403,7 +431,11 @@
 
     document.getElementById("pbTicketsBody").innerHTML = t.series.map(function (s) {
       var numsHtml = s.numeros && s.numeros.length
-        ? "<ul>" + s.numeros.map(function (n, i) { return "<li>Jogo " + (i + 1) + ": " + n + "</li>"; }).join("") +
+        ? "<ul>" + s.numeros.map(function (n, i) {
+            var body = highlightTicketNumbers(n, draw.result, gt);
+            var won = body.indexOf("pb-ticket-prize") !== -1;
+            return '<li' + (won ? ' class="pb-ticket-won"' : "") + ">Jogo " + (i + 1) + ": " + body + "</li>";
+          }).join("") +
           (s.qtd > s.numeros.length ? '<li class="pb-pending">+ ' + (s.qtd - s.numeros.length) + " ticket(s) desse serial ainda não cadastrado(s)</li>" : "") +
           "</ul>"
         : '<div class="pb-pending">Números individuais deste serial ainda não cadastrados.</div>';
@@ -605,7 +637,7 @@
 
     renderSummary(draw);
     renderTable(draw);
-    renderSharedTickets(draw);
+    renderSharedTickets(draw, gt);
     renderResult(draw, gt);
     wireResultRetry();
     tick(draw, gt);

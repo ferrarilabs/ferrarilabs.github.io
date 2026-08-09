@@ -366,3 +366,21 @@ table.pb-table tr:hover td { background: var(--bg3); }
   .pb-admin-panel { max-width: 100%; }
   .pb-modal-content { max-width: 90vw; }
 }
+
+/* ── Acerto no bilhete (2026-08-09) ──────────────────────────────────────────
+   Pedido do Eduardo depois do sorteio de 08/08: "não marcou os bilhetes venceram em negrito".
+   Antes disto os números do bilhete eram texto corrido, sem nenhuma marcação de acerto.
+   Verde é o acento da plataforma; a bola especial usa o vermelho do Powerball para se distinguir
+   das cinco brancas, como no próprio bilhete. */
+.pb-hit {
+  color: var(--green);
+  font-weight: 900;
+}
+.pb-hit--special { color: var(--lot-accent); }
+.pb-ticket-won { background: rgba(47, 229, 110, .08); border-radius: 6px; }
+.pb-ticket-prize {
+  color: var(--green);
+  font-weight: 900;
+  font-size: .78rem;
+  white-space: nowrap;
+}
