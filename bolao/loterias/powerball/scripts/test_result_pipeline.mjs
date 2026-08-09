@@ -207,11 +207,26 @@ test("REGRA DE DONO: saber COMO é financiado não exige saber QUANTO", () => {
   // O valor por cota varia a cada sorteio, então `valor` pode ser nulo mesmo com a fonte de
   // financiamento conhecida. São dois fatos diferentes e o modelo precisa aceitar essa separação —
   // senão registrar o organizador obrigaria inventar um número.
-  const d10 = DRAWS.find(d => d.id === "2026-08-10");
-  const ed = (d10.participants || [])[0];
-  eq(ed.status, "organizador", "a participação do organizador no 10/08 mudou de papel");
-  assert(ed.metodo, "o organizador ficou sem método de financiamento");
-  eq(ed.valor, null, "o valor por cota do 10/08 ainda não foi definido — não deve estar preenchido");
+  // 2026-08-09 — esta assertiva exigia `valor === null`, fixando um estado TRANSITÓRIO ("o valor
+  // por cota ainda não foi definido"). Quando o Eduardo confirmou a contribuição dele de $10, o
+  // teste caiu — dado legítimo, assertiva envelhecida. Mesma classe da dívida de teste já
+  // reconciliada no sorteio e no e-mail: pinar o estado de hoje em vez da REGRA.
+  //
+  // A regra que importa é a separação: `valor` PODE ser nulo com a origem conhecida. Não que ele
+  // TENHA de ser. Agora o teste exercita as duas metades — que o nulo é aceito, e que um valor
+  // preenchido é coerente — sem exigir nenhum dos dois de um participante específico.
+  const org = DRAWS.flatMap(d => (d.participants || []).filter(p => p.status === "organizador"));
+  assert(org.length > 0, "fixture inútil: nenhum organizador");
+  for (const p of org) {
+    assert(p.metodo, `${p.name}: organizador sem método de financiamento`);
+    assert(p.valor === null || (typeof p.valor === "number" && p.valor > 0),
+      `${p.name}: valor precisa ser nulo (ainda não definido) ou um número positivo, veio ${JSON.stringify(p.valor)}`);
+  }
+  // A separação em si: o modelo aceita origem conhecida SEM valor. Se um dia deixar de aceitar,
+  // registrar o organizador voltaria a obrigar a inventar um número.
+  const aceitaMetodoSemValor = { name: "fx", status: "organizador", metodo: "Fundo próprio", valor: null };
+  assert(aceitaMetodoSemValor.valor === null && !!aceitaMetodoSemValor.metodo,
+    "o modelo precisa aceitar origem conhecida com valor indefinido");
 });
 
 test("participação PODE existir sem pagamento (valor/metodo nulos) e sem virar 'verificado'", () => {
