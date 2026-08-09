@@ -413,11 +413,10 @@ window.POWERBALL_DRAWS = [
   // `ajustesPendentes` do 08/08 NÃO entram: continuam fora de totalArrecadado/valorGuardado até
   // serem classificados.
   //
-  // PARTICIPAÇÃO REGISTRADA SEM PAGAMENTO: o Eduardo entrou neste sorteio em 09/08/2026 08:40 AM
-  // (America/New_York). `valor` e `metodo` ficam NULOS de propósito — o quanto ele vai contribuir
-  // e por qual meio ainda não foi definido, e inventar um número seria afirmar pagamento que não
-  // aconteceu. O valor por cota varia a cada sorteio ($20 no 08/03, $8 no 08/05, $10 no 08/08),
-  // então nem por padrão histórico dá para derivar. A UI mostra "—/Pagamento pendente".
+  // O Eduardo entrou neste sorteio em 09/08/2026 08:40 AM (America/New_York), inicialmente sem
+  // valor/método definidos (ficaram nulos até ele decidir quanto ia contribuir). Mais tarde no
+  // mesmo dia ele confirmou $10 — mesmo valor por cota dos demais participantes — via fundo
+  // próprio (sem transferência bancária, por isso sem txId no sidecar privado).
   {
     id: "2026-08-10",
     gameType: "powerball",
@@ -436,7 +435,7 @@ window.POWERBALL_DRAWS = [
       {
         name: "Eduardo Ferrari",
         cotas: 1,
-        valor: null,
+        valor: 10,
         metodo: "Fundo próprio (organizador)",
         data: "09/08/2026",
         hora: "8:40 AM",
@@ -467,7 +466,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 110,
+      totalArrecadado: 120,
       creditoSorteioAnterior: 24,
       valorUtilizado: 0,
       valorGuardadoProximoSorteio: 0,
