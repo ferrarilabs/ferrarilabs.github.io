@@ -11,3 +11,9 @@ node_modules/
 *private-participant-data.local.json
 bolao/loterias/powerball/scripts/email/generated/
 verify-summary.json
+
+# Artefatos locais do Supabase CLI. `supabase link` grava aqui a string de conexão do pooler, que
+# CONTÉM CREDENCIAL. Descoberto pelo gate repo-wide de PII em 2026-08-09: o arquivo não era
+# rastreado nem ignorado, e a semântica de publicação do Git o classifica como publicável — que é
+# precisamente a categoria certa. Ignorar é o correto: é estado local de ferramenta, nunca fonte.
+supabase/.temp/

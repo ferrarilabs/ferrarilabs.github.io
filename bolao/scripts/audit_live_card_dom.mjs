@@ -82,9 +82,21 @@ function syntheticSnapshot(ageMinutes) {
 async function openWithFixture(width, ageMinutes = 15) {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
   const page = await ctx.newPage();
+  // Intercepta as DUAS fontes. Desde o LIVE DATA PLANE V2 o app prefere o gateway, então
+  // interceptar só o snapshot deixaria o teste receber dado REAL de produção — foi exatamente o
+  // que aconteceu quando a hierarquia mudou, e o teste passou a medir o jogo de verdade em vez
+  // da fixture. Uma suíte que consulta produção não é determinística.
   await page.route("**/data/espn-normalized.json*", async (route) => {
     await route.fulfill({ status: 200, contentType: "application/json",
       body: JSON.stringify(syntheticSnapshot(ageMinutes)) });
+  });
+  await page.route("**/functions/v1/live-football*", async (route) => {
+    const snap = syntheticSnapshot(ageMinutes);
+    await route.fulfill({ status: 200, contentType: "application/json",
+      body: JSON.stringify({ schemaVersion: 1, competition: "br2026", provider: "espn",
+        observedAt: snap.generatedAt, servedAt: snap.generatedAt,
+        ageSeconds: ageMinutes * 60, stale: ageMinutes > 1, staleReason: null,
+        matches: snap.matches }) });
   });
   await page.goto(`http://localhost:${PORT}/bolao/br2026/`, { waitUntil: "load" });
   await page.waitForTimeout(2500);
