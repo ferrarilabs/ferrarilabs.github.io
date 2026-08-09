@@ -21,6 +21,7 @@ import {
 } from "./email/render.mjs";
 import { enqueueEmailJob, recordEmailResult, idempotencyKeyForParticipant } from "./email/outbox.mjs";
 import { sendEmailJob } from "./email/send.mjs";
+import { usd } from "../../../shared/scripts/money.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TMP_OUTBOX = path.join(__dirname, "email", ".test-outbox-round3.json");
@@ -92,18 +93,25 @@ test("retry (same idempotencyKey) preserves the original expectedSubject, never 
 await atest("the provider call actually receives entry_name/receipt_code/email_subject all equal to the rendered subject (network mocked)", async () => {
   const confirmPayload = buildParticipantConfirmationPayload({ participant: fx.participants[0], draw: draw1, estimates });
   const subject = renderParticipantConfirmationSubject(confirmPayload, true);
-  const originalFetch = global.fetch;
+  // 2026-08-09: era `global.fetch = mock` com try/finally. Trocado por INJEÇÃO explícita —
+  // `sendEmailJob` agora aceita `transport`. Duas razões:
+  //   1. monkey-patch global vaza se o teste lançar antes do finally, e a próxima suíte do mesmo
+  //      processo herdaria um fetch adulterado;
+  //   2. a trava fail-closed nova recusa envio quando o processo é de TESTE e não há transporte
+  //      injetado — passar `transport` é justamente como um teste declara "eu sei o que estou
+  //      exercitando", em vez de depender de lembrar de mockar.
+  // Destinatário passou a ser endereço reservado (.invalid): fixture não carrega endereço real,
+  // nem mesmo o do próprio organizador.
   let capturedBody = null;
-  global.fetch = async (url, opts) => {
+  const transport = async (url, opts) => {
     capturedBody = JSON.parse(opts.body);
     return { ok: true, status: 200, text: async () => "OK" };
   };
-  try {
-    await sendEmailJob({ recipient: "emferrari@gmail.com" }, { publicKey: "x", serviceId: "y", templateId: "z", htmlMessage: "<p>x</p>", subject });
-  } finally {
-    global.fetch = originalFetch;
-  }
-  assert.ok(capturedBody, "fetch was not called");
+  await sendEmailJob(
+    { recipient: "destinatario@example.invalid" },
+    { publicKey: "x", serviceId: "y", templateId: "z", htmlMessage: "<p>x</p>", subject, transport },
+  );
+  assert.ok(capturedBody, "o transporte injetado não foi chamado");
   assert.equal(capturedBody.template_params.entry_name, subject);
   assert.equal(capturedBody.template_params.receipt_code, subject);
   assert.equal(capturedBody.template_params.email_subject, subject);
@@ -215,16 +223,39 @@ test("proofUrl on a reserved/placeholder domain (.invalid) is shown as text, nev
   assert.ok(!html.includes('href="https://example.invalid/proof.jpg"'), "a .invalid URL must never be rendered as a clickable href");
 });
 
-test("every dollar amount in both HTML emails uses exactly two decimal places", () => {
+// 2026-08-09 — REQUISITO SUPERADO, não teste quebrado.
+//
+// A asserção era "todo valor tem exatamente 2 casas decimais". Ela falhava em `$10`. Mas o
+// produto está certo e o teste é que ficou para trás: em 2026-08-07 (commit ec6be2f) o Eduardo
+// pediu explicitamente "os centavos continuam aparecendo, só deve aparecer no prêmio final", e a
+// regra canônica passou a ser **centavos só quando existem de verdade**:
+//
+//     $0 · $5 · $60 · $115 · $1,250      inteiros, sem centavos
+//     $80.50 · $11.50 · $1,250.50        centavos reais preservados
+//
+// Trocar "2 casas" por "qualquer coisa" seria enfraquecer o teste. Em vez disso ele passa a
+// verificar contra a FUNÇÃO CANÔNICA do produto (`bolao/shared/scripts/money.mjs`), a mesma que
+// o e-mail usa: todo valor no HTML tem que ser exatamente o que `usd()` produziria para aquele
+// número. Assim o teste não pode divergir da regra de novo — se a regra mudar, ele acompanha; se
+// o e-mail formatar por conta própria, ele falha.
+test("todo valor em dólar nos e-mails segue a regra canônica de dinheiro (centavos só quando existem)", () => {
   const confirmPayload = buildParticipantConfirmationPayload({ participant: fx.participants[0], draw: draw1, estimates });
   const confirmHtml = renderParticipantConfirmationHtml(confirmPayload, true);
   const { perRecipient } = buildTicketPublicationPayload({ draw: draw1, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
   const pubHtml = renderTicketPublicationHtml(perRecipient[0], true);
   [confirmHtml, pubHtml].forEach((html) => {
     const dollarAmounts = [...html.matchAll(/\$[\d,]+(\.\d+)?/g)].map((m) => m[0]);
-    assert.ok(dollarAmounts.length > 0, "expected at least one dollar amount");
-    dollarAmounts.forEach((amt) => assert.ok(/\.\d{2}$/.test(amt), `dollar amount missing exactly 2 decimals: ${amt}`));
-    assert.ok(!html.includes("US$"), 'must never mix in "US$" prefix style');
+    assert.ok(dollarAmounts.length > 0, "esperava ao menos um valor em dólar");
+    dollarAmounts.forEach((amt) => {
+      const n = Number(amt.replace(/[$,]/g, ""));
+      assert.equal(amt, usd(n),
+        `valor fora da regra canônica: o e-mail escreveu ${amt}, mas usd(${n}) produz ${usd(n)}`);
+    });
+    // Um valor com centavo quebrado tem que continuar mostrando os centavos — senão "centavos só
+    // quando existem" viraria "nunca mostra centavos", que perderia o prêmio final.
+    assert.equal(usd(80.5), "$80.50", "a regra canônica parou de preservar centavos reais");
+    assert.equal(usd(115), "$115", "a regra canônica voltou a inventar centavos em valor inteiro");
+    assert.ok(!html.includes("US$"), 'nunca misturar o prefixo "US$"');
   });
 });
 
