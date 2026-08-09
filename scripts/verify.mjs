@@ -52,6 +52,8 @@ const CHECKS = [
     why: "pre-send contract: all-or-nothing recipients, fail-closed mode, provider unreachable from tests" },
   { id: "powerball-result-pipeline", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_result_pipeline.mjs"],
     why: "Powerball draw result: fetch, prize computation, surgical write, ticket highlight" },
+  { id: "fixture-privacy", group: "security", cmd: ["node", "scripts/test_fixture_privacy.mjs"],
+    why: "no third-party address inside any test fixture; provider unreachable from tests" },
   { id: "powerball-pii", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_pii_tests.mjs"],
     why: "Powerball private-data contract" },
 

@@ -16,9 +16,14 @@ import path from "node:path";
 
 const ROOT = path.resolve(new URL(".", import.meta.url).pathname, "..");
 
+// Um placeholder com domínio `email.com` foi REMOVIDO desta allowlist em 2026-08-09. Ele se
+// justificava por exemplos de query no AUDIT_LOGGING.md que não existem mais (verificado), e
+// `email.com` é domínio REAL — a suíte do gate repo-wide inclusive tem uma regressão afirmando que
+// ele nunca pode entrar em allowlist. Entrada obsoleta afrouxa o detector em troca de nada.
+// (O endereço em si não é citado aqui de propósito: escrevê-lo no comentário o reintroduziria no
+// arquivo, que é exatamente o que o teste de privacidade de fixture procura.)
 const ALLOWED_EMAILS = new Set([
   "emferrari@gmail.com", // site owner — already the public admin contact everywhere
-  "recipient@email.com", // generic doc placeholder (AUDIT_LOGGING.md query examples)
 ]);
 
 const ALLOWED_EMAIL_SUFFIXES = [
