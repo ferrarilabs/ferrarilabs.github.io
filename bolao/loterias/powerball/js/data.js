@@ -437,10 +437,10 @@ window.POWERBALL_DRAWS = [
         name: "Eduardo Ferrari",
         cotas: 1,
         valor: null,
-        metodo: null,
+        metodo: "Fundo próprio (organizador)",
         data: "09/08/2026",
         hora: "8:40 AM",
-        status: "pendente",
+        status: "organizador",
         state: "NC"
       }
     ],
