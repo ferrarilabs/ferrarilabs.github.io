@@ -355,6 +355,156 @@ process.stdout.write(JSON.stringify(out));
         return None
 
 
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+# CONTRATO DE PRÉ-ENVIO (P0, 2026-08-09)
+#
+# Em 2026-08-09 dois envios reais saíram errados: um com o resultado do sorteio ANTERIOR para 15
+# pessoas, e o seguinte, já correto, para 14 de 15 — porque a fonte de CONTATOS tinha um a menos
+# que a participação canônica do sorteio, e ninguém comparava as duas.
+#
+# A lição operacional é específica: um envio parcial é PIOR que nenhum envio. Ele parece bem
+# sucedido, some do radar, e quem ficou de fora só descobre por acaso. Então a regra passou a ser
+# TUDO-OU-NADA: a validação de destinatários acontece ANTES da primeira chamada ao provedor, e
+# qualquer divergência resulta em ZERO envios.
+#
+# Também há um modelo de MODO explícito. Nunca mais um caminho onde "rodou" implica "mandou".
+# ═══════════════════════════════════════════════════════════════════════════════════════════════
+
+# Status terminais, legíveis por máquina. Um workflow que "passou" precisa dizer o que fez.
+STATUS_SENT                 = "SUCCESS_SENT"
+STATUS_NO_ACTION            = "SUCCESS_NO_ACTION"
+STATUS_DRAW_NOT_FINAL       = "DRAW_NOT_FINAL"
+STATUS_SOURCE_INVALID       = "SOURCE_INVALID"
+STATUS_RECIPIENTS_INCOMPLETE = "RECIPIENT_SET_INCOMPLETE"
+STATUS_CONTENT_FAILED       = "CONTENT_VALIDATION_FAILED"
+STATUS_CONFIG_INVALID       = "CONFIGURATION_INVALID"
+STATUS_SEND_DISABLED        = "SEND_DISABLED"
+STATUS_DRY_RUN              = "DRY_RUN_OK"
+
+MODE_DISABLED   = "disabled"
+MODE_DRY_RUN    = "dry-run"
+MODE_PRODUCTION = "production"
+
+
+def resolve_send_mode(argv=None):
+    """Modo de envio, FAIL CLOSED.
+
+    Regras, em ordem:
+      - `--dry-run` na linha de comando sempre vence (nunca envia);
+      - modo de produção exige DUAS condições positivas e independentes:
+        `POWERBALL_EMAIL_MODE=production` E `--send-all` explícito. Uma variável de ambiente
+        solta não basta — foi um disparo por conveniência que causou o incidente;
+      - rodando sob pytest/CI de teste: nunca produção;
+      - qualquer coisa desconhecida ou ausente: dry-run.
+    """
+    argv = argv if argv is not None else sys.argv
+    if "--dry-run" in argv:
+        return MODE_DRY_RUN
+    env = (os.environ.get("POWERBALL_EMAIL_MODE") or "").strip().lower()
+    if env == MODE_DISABLED:
+        return MODE_DISABLED
+    # Um runner de teste NUNCA pode alcançar produção, mesmo com a env certa.
+    if os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("POWERBALL_TEST_RUN"):
+        return MODE_DRY_RUN
+    if env == MODE_PRODUCTION and "--send-all" in argv:
+        return MODE_PRODUCTION
+    return MODE_DRY_RUN
+
+
+def expected_membership(draw):
+    """Quem DEVERIA receber, segundo a participação canônica do sorteio.
+
+    É diferente de "para quem conseguimos resolver um contato". Misturar as duas coisas foi
+    exatamente o que produziu o envio 14/15.
+    """
+    return {p["name"].strip() for p in (draw.get("participants") or []) if p.get("name")}
+
+
+def _sha(*parts):
+    import hashlib
+    return hashlib.sha256("|".join(str(x) for x in parts).encode("utf-8")).hexdigest()[:16]
+
+
+def build_send_plan(draw, recipients, html=None):
+    """Plano de envio determinístico + TODOS os gates. Nada chama o provedor antes disto.
+
+    Devolve (plan, status, problems). `plan` nunca contém endereço: só contagens e hashes, porque
+    ele é impresso em log de workflow.
+    """
+    problems = []
+
+    # GATE 1/2 — identidade e finalidade do sorteio
+    if not draw or not draw.get("id"):
+        return None, STATUS_SOURCE_INVALID, ["sorteio alvo não identificado"]
+    result = draw.get("result") or {}
+    if not result.get("numbers"):
+        return None, STATUS_DRAW_NOT_FINAL, [f"sorteio {draw['id']} ainda sem resultado oficial"]
+
+    # GATE 3/4 — consistência do resultado com a fonte canônica (o data.js do site)
+    canonical = next((d for d in DRAWS.get(draw.get("gameType", "powerball"), []) if d["id"] == draw["id"]), None)
+    if canonical is None:
+        problems.append(f"sorteio {draw['id']} não existe na fonte canônica")
+    elif (canonical.get("result") or {}).get("numbers") != result.get("numbers"):
+        problems.append("resultado divergente entre o alvo do envio e a fonte canônica do site")
+
+    # GATE 5/6 — TUDO-OU-NADA de destinatários
+    expected = expected_membership(canonical or draw)
+    resolved = {r["name"].strip() for r in (recipients or []) if r.get("name")}
+    missing = sorted(expected - resolved)
+    extra = sorted(resolved - expected)
+    if missing or extra:
+        detail = []
+        if missing:
+            detail.append(f"{len(missing)} participante(s) do sorteio sem contato resolvido: {', '.join(missing)}")
+        if extra:
+            detail.append(f"{len(extra)} contato(s) que NÃO participam deste sorteio: {', '.join(extra)}")
+        return None, STATUS_RECIPIENTS_INCOMPLETE, detail
+
+    # Endereço duplicado enviaria a mesma pessoa duas vezes.
+    addrs = [(r.get("email") or "").strip().lower() for r in recipients]
+    if len(set(addrs)) != len(addrs):
+        problems.append("há endereço de destinatário duplicado")
+    if any(not a or "@" not in a for a in addrs):
+        problems.append("há destinatário sem endereço válido")
+
+    # GATE 7 — conteúdo bate com o sorteio
+    if problems:
+        return None, STATUS_CONTENT_FAILED, problems
+
+    # GATE 11 — configuração do provedor
+    if not (EMAILJS_KEY and EMAILJS_SVC and EMAILJS_TMPL):
+        return None, STATUS_CONFIG_INVALID, ["configuração do EmailJS incompleta"]
+
+    # GATE 8 — identidade de idempotência determinística
+    result_hash = _sha(draw["id"], result.get("numbers"), result.get("special"), result.get("multiplier"))
+    content_hash = _sha(result_hash, result.get("premiosGanhos"), len(recipients), html or "")
+    plan = {
+        "logicalSendId": _sha("powerball-result", draw["id"], result_hash),
+        "targetDraw": draw["id"],
+        "resultHash": result_hash,
+        "contentHash": content_hash,
+        "expectedRecipients": len(expected),
+        "resolvedRecipients": len(resolved),
+        "recipientSetHash": _sha(*sorted(expected)),
+        "templateId": EMAILJS_TMPL,
+    }
+    return plan, None, []
+
+
+def print_send_plan(plan, mode, status=None):
+    """Imprime o plano SANITIZADO. Nenhum endereço, nunca."""
+    print("\n" + "=" * 60)
+    print(f"  PLANO DE ENVIO — modo: {mode}")
+    if status:
+        print(f"  STATUS: {status}")
+    for k in ("targetDraw", "logicalSendId", "resultHash", "contentHash",
+              "expectedRecipients", "resolvedRecipients", "recipientSetHash"):
+        if plan and k in plan:
+            print(f"  {k}: {plan[k]}")
+    print("=" * 60 + "\n")
+
+
 def validate_data(draw, participants=None):
     """Verify data consistency before any send."""
     if not draw:
@@ -534,8 +684,27 @@ Resultado conferido: {r["checkedAt"]}
 </html>"""
 
 
+# Trava de último recurso, no ponto EXATO onde o provedor seria chamado. As checagens de gate
+# acontecem antes, mas um caminho novo pode esquecer de passar por elas — este guard não pode ser
+# esquecido, porque está no único lugar que fala com o EmailJS. Um teste que tente enviar de
+# verdade falha aqui em vez de mandar email para gente real.
+_SEND_AUTHORIZED = {"ok": False, "plan": None}
+
+
+def authorize_send(plan, mode):
+    """Libera o provedor. Só o caminho de broadcast, com plano validado E modo produção, chama isto."""
+    _SEND_AUTHORIZED["ok"] = (mode == MODE_PRODUCTION and plan is not None)
+    _SEND_AUTHORIZED["plan"] = plan
+    return _SEND_AUTHORIZED["ok"]
+
+
 def send_email(addr, subject, html, recipient_name="", draw_id=""):
     """Send via EmailJS. Subject uses "." instead of "/" to avoid HTML escaping in EmailJS template."""
+    if not _SEND_AUTHORIZED["ok"]:
+        msg = ("BLOQUEADO: chamada ao provedor sem plano de envio autorizado. "
+               "Rode pelo caminho de broadcast (gates + modo produção explícito).")
+        logger.error(f"❌ {msg}")
+        return False, msg
     addr = addr.strip()
 
     # P0.2: logger writes to both stdout and a log file (which has been
@@ -661,13 +830,34 @@ def run_send_all(gameType="powerball"):
         print("\n❌ CANNOT SEND — DATA ISSUES FOUND:\n")
         for err in errors:
             print(f"  {err}")
-        print("\nFix the issues above and run --test-send again.\n")
+        print(f"\nSTATUS: {STATUS_CONTENT_FAILED}\n")
         sys.exit(1)
 
+    html = build_html(draw)
+
+    # ── CONTRATO DE PRÉ-ENVIO — nada além daqui chama o provedor sem passar por isto ──
+    mode = resolve_send_mode()
+    plan, gate_status, gate_problems = build_send_plan(draw, recipients, html)
+    if gate_status:
+        print_send_plan(plan, mode, gate_status)
+        for prob in gate_problems:
+            print(f"  ❌ {prob}")
+        if gate_status == STATUS_RECIPIENTS_INCOMPLETE:
+            print("\n  REGRA TUDO-OU-NADA: zero emails enviados. Um envio parcial parece bem")
+            print("  sucedido, some do radar, e quem ficou de fora só descobre por acaso.\n")
+        print(f"STATUS: {gate_status}")
+        sys.exit(1)
+
+    print_send_plan(plan, mode)
+
+    if mode != MODE_PRODUCTION:
+        print(f"  WOULD_SEND para {plan['expectedRecipients']} destinatário(s) — nenhum email enviado.")
+        print(f"STATUS: {STATUS_DRY_RUN if mode == MODE_DRY_RUN else STATUS_SEND_DISABLED}")
+        return
+
+    authorize_send(plan, mode)
     print(f"\n📧 ENVIANDO PARA {len(recipients)} PARTICIPANTES:")
     print()
-
-    html = build_html(draw)
     subject = f"⚽ Resultado {game_label} — {draw['drawing']['drawDateLabel'].replace('/', '.')}"
 
     logger.info(f"Starting broadcast to {len(recipients)} participants for draw {draw['id']}")
@@ -696,6 +886,7 @@ def run_send_all(gameType="powerball"):
         "total": len(recipients)
     })
     print(f"{'✓' if not failed else '⚠'} {sent} enviados, {len(failed)} falharam")
+    print(f"STATUS: {STATUS_SENT if not failed else 'REAL_FAILURE'}")
     if failed:
         print(f"\nFalhas:")
         for name, email, msg in failed:

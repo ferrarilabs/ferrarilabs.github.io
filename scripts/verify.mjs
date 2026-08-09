@@ -48,6 +48,8 @@ const CHECKS = [
     why: "repo-wide PII/secret scan over tracked files" },
   { id: "pii-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_pii_repo_wide.mjs"],
     why: "precision/recall of the PII gate itself (a broken gate is worse than none)" },
+  { id: "powerball-email-gates", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_email_send_gates.py"],
+    why: "pre-send contract: all-or-nothing recipients, fail-closed mode, provider unreachable from tests" },
   { id: "powerball-result-pipeline", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_result_pipeline.mjs"],
     why: "Powerball draw result: fetch, prize computation, surgical write, ticket highlight" },
   { id: "powerball-pii", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_pii_tests.mjs"],
