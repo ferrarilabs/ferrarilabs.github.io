@@ -1787,9 +1787,13 @@ function renderLiveCard() {
       const homeLbl = esc(m.homeTeam.split(" ")[0]);
       const awayLbl = esc(m.awayTeam.split(" ")[0]);
       const hPct = Math.round(pH * 100), dPct = Math.round(pD * 100), aPct = Math.round(pA * 100);
-      // Mesmo limiar de 12% usado nas outras 3 chamadas de prob-bars deste arquivo (renderGamesSection,
-      // renderNextGameCard, renderRanking) -- faltava aqui, causando o nome do time estourar a fatia
-      // estreita da barra (achado 2026-07-16, ex.: "Palmeiras 12%" cortado pra "neiras").
+      // O limiar de 12% que este comentário descrevia foi REMOVIDO em 2026-08-09. Ele existia para
+      // impedir que o nome do time estourasse a fatia estreita (achado 2026-07-16: "Palmeiras 12%"
+      // virava "neiras"), mas media na unidade errada — percentual como proxy de pixel. Errava nas
+      // duas direções: mantinha o nome onde não cabia (17% de 330px = 56px, no mobile) e o
+      // descartava onde sobrava espaço (10% de 1200px = 120px, no desktop). Agora nome e
+      // porcentagem são elementos separados e o CSS resolve: a porcentagem nunca encolhe, o nome
+      // encolhe com reticências até sumir. Ver `.prob-bar__name` em shared/css/components.css.
       const barLabel = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
       probBarsHtml = `<div class="prob-bars" role="group" aria-label="Probabilidades da partida">
         <div class="prob-bar home" style="width:${hPct}%">${barLabel(hPct, homeLbl)}</div>
