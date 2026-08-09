@@ -83,11 +83,22 @@
      ganhava isso do sistema; num listbox customizado é responsabilidade nossa. */
   min-height: 40px; display: flex; align-items: center;
 }
-/* `is-active` = opção sob navegação (teclado/hover). NÃO é seleção. */
-.pb-select__option.is-active { background: var(--bg3); }
-/* `is-selected` = o sorteio realmente escolhido. */
+/* SELEÇÃO vs NAVEGAÇÃO — são estados diferentes e precisam PARECER diferentes.
+   Antes os dois usavam preenchimento: ao abrir, a opção escolhida recebia `is-selected` E
+   `is-active` juntos, e ao navegar com as setas duas linhas ficavam marcadas ao mesmo tempo —
+   uma com fundo, outra com verde+✓. Duas marcações simultâneas de "estado" leem como indicador
+   de seleção duplicado, que foi exatamente a queixa.
+   Agora: SELEÇÃO = verde + ✓ (um indicador só, o da escolha real).
+          NAVEGAÇÃO = anel de foco, sem preenchimento que compita com a seleção. */
+.pb-select__option.is-active {
+  outline: 2px solid var(--border2);
+  outline-offset: -2px;
+}
+/* `is-selected` = o sorteio realmente escolhido. UM indicador: verde + ✓. */
 .pb-select__option.is-selected { color: var(--green); font-weight: 800; }
 .pb-select__option.is-selected::after { content: " ✓"; margin-left: auto; padding-left: 8px; }
+/* Selecionada E sob navegação: o anel usa o verde para não parecer um segundo estado. */
+.pb-select__option.is-selected.is-active { outline-color: var(--green); }
 
 @media (max-width: 720px) {
   .pb-select, .pb-select__button { width: 100%; max-width: none; }
