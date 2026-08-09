@@ -140,6 +140,26 @@ test("o rótulo do dropdown mostra o resultado quando ele existe", () => {
   assert(/hasResult/.test(fn), "o rótulo não distingue mais sorteio com e sem resultado");
 });
 
+// ── 5. FONTE ÚNICA — o envio errado de 2026-08-09 ──────────────────────────
+test("send_result_email.py lê os sorteios do data.js, não de uma cópia própria", () => {
+  const py2 = readFileSync(join(ROOT, "bolao/loterias/powerball/scripts/send_result_email.py"), "utf8");
+  assert(/_load_draws_from_data_js/.test(py2),
+    "o script voltou a manter a própria lista de sorteios");
+  assert(!/^DRAWS = \{\s*$[\s\S]{200,}"drawDateIso"/m.test(py2),
+    "há de novo uma cópia hardcoded de sorteios no send_result_email.py — foi assim que 15 " +
+    "participantes receberam o resultado do sorteio ANTERIOR em 2026-08-09");
+});
+
+test("REGRESSÃO 2026-08-09: o sorteio ativo é o mais recente COM resultado do data.js", () => {
+  // O envio errado aconteceu porque a cópia hardcoded parava em 05/08: `get_active_draw()`
+  // devolvia 05/08 e mandava o resultado anterior, para a lista de participantes anterior.
+  const resolved = DRAWS.filter(d => d.result && d.result.numbers);
+  const active = resolved[resolved.length - 1];
+  eq(active.id, "2026-08-08",
+    "o sorteio ativo deixou de ser o mais recente com resultado — é este o cálculo que o " +
+    "send_result_email.py faz para escolher o que enviar e para quem");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ POWERBALL RESULT PIPELINE FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL CHECKS PASSED\n");

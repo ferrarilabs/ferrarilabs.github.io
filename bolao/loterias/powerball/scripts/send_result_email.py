@@ -16,7 +16,7 @@ Email is sent ONLY if the draw has a completed result with winning tickets and p
 Business rule: only play next drawing if jackpot accumulates (configured per draw).
 """
 
-import json, os, sys, time, urllib.request, re, logging
+import json, os, sys, time, urllib.request, re, logging, subprocess
 import sys as _sys
 from pathlib import Path as _Path
 # Formatador USD canônico compartilhado (BATCH 5) — ver bolao/shared/scripts/money.py
@@ -83,61 +83,38 @@ def _load_email_overrides():
 
 PARTICIPANT_EMAIL_OVERRIDES = _load_email_overrides()
 
-DRAWS = {
-    "powerball": [
-        # Completed draw — 01/08/2026
-        {
-            "id": "2026-08-01",
-            "gameType": "powerball",
-            "drawing": {
-                "name": "Powerball Jackpot",
-                "jackpot": 707000000,
-                "drawDateIso": "2026-08-01T22:59:00-04:00",
-                "drawDateLabel": "01/08/2026 22:59 ET"
-            },
-            "result": {
-                "numbers": [8, 30, 41, 48, 54],
-                "special": 4,
-                "multiplier": 2,
-                "checkedAt": "04/08/2026 07:25 ET",
-                "premiosGanhos": 16,
-                "jackpotHit": False,
-                "breakdown": ["Powerball ($8)", "Powerball ($8)"]
-            },
-            "winningTickets": [
-                "03-24-29-57-66 — PB 04",
-                "23-32-33-63-69 — PB 04"
-            ]
-        },
-        # Completed draw — 05/08/2026 (id matches js/data.js's "2026-08-05" entry)
-        {
-            "id": "2026-08-05",
-            "gameType": "powerball",
-            "drawing": {
-                "name": "Powerball Jackpot",
-                "jackpot": 786000000,
-                "drawDateIso": "2026-08-05T22:59:00-04:00",
-                "drawDateLabel": "05/08/2026 22:59 ET"
-            },
-            "result": {
-                "numbers": [14, 20, 59, 60, 61],
-                "special": 25,
-                "multiplier": 2,
-                "checkedAt": "05/08/2026 23:13 ET",
-                "premiosGanhos": 16,
-                "jackpotHit": False,
-                "breakdown": ["Powerball ($8)", "Powerball ($8)"]
-            },
-            "winningTickets": [
-                "16-40-45-64-67 — PB 25",
-                "02-27-37-66-69 — PB 25"
-            ]
-        }
-    ],
-    "megamillions": [
-        # Placeholder for future Mega Millions draws
-    ]
-}
+# ─── FONTE ÚNICA: js/data.js ────────────────────────────────────────────────────────────────
+# Aqui existia uma CÓPIA HARDCODED dos sorteios, mantida à mão em paralelo ao js/data.js.
+#
+# Ela causou um envio errado real em 2026-08-09: a cópia ia só até o sorteio de 05/08, então
+# `get_active_draw()` devolveu 05/08 e os 15 participantes receberam de novo o resultado do sorteio
+# ANTERIOR (14-20-59-60-61 | PB 25, $16) em vez do de 08/08 (5-9-35-54-63 | PB 7, $24). A lista de
+# destinatários também veio do sorteio errado.
+#
+# É EXATAMENTE a classe de falha que o CLAUDE.md deste repositório já registra para este mesmo
+# arquivo no futebol: "send_result_email.py had silently drifted from the site's own scoring logic
+# (CHANGELOG v4.57)". Duas cópias da mesma verdade divergem — é questão de tempo, não de cuidado.
+#
+# Agora os sorteios vêm do js/data.js, lido pelo Node (o arquivo é JavaScript de verdade: chaves sem
+# aspas, comentários, vírgulas finais — nenhum parser JSON dá conta).
+def _load_draws_from_data_js():
+    repo_root = os.path.abspath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "..", ".."))
+    data_js = os.path.join(repo_root, "bolao", "loterias", "powerball", "js", "data.js")
+    reader = (
+        "const fs=require('fs'),vm=require('vm');const sb={window:{}};vm.createContext(sb);"
+        "vm.runInContext(fs.readFileSync(process.argv[1],'utf8'),sb);"
+        "process.stdout.write(JSON.stringify(sb.window.POWERBALL_DRAWS||[]));"
+    )
+    out = subprocess.run(["node", "-e", reader, data_js], capture_output=True, text=True, timeout=20)
+    if out.returncode != 0:
+        raise RuntimeError(f"não consegui ler data.js: {out.stderr.strip()[:200]}")
+    draws = json.loads(out.stdout)
+    grouped = {}
+    for d in draws:
+        grouped.setdefault(d.get("gameType", "powerball"), []).append(d)
+    return grouped
+
+DRAWS = _load_draws_from_data_js()
 
 def _mask(value):
     """Never log a raw email — first char + last char + length only (P0.2)."""
