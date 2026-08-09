@@ -1,5 +1,22 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.101 — 2026-08-09 — Relógio ao vivo fail-closed: número congelado deixa de parecer ao vivo
+
+O teto de interpolação já impedia o relógio de disparar quando o dado ficava velho. Mas **capar não
+é o mesmo que ser honesto**: passado o teto, a tela continuava exibindo um minuto congelado que
+*parece* ao vivo — e era exatamente esse o sintoma relatado ("relógio parado").
+
+Agora, quando a observação é velha demais para PROVAR o minuto atual, a tela diz
+**"Atualização pendente"** em vez de um número inventado.
+
+Intervalo, pênaltis e relógio pausado continuam sendo exibidos mesmo com dado velho: são estados
+DECLARADOS pela fonte, não valores que o tempo invalida. A distinção importa — tratá-los como
+"stale" esconderia informação verdadeira.
+
+Matriz de testes determinística nos dois apps: 45' do 1º tempo · intervalo com dado velho · 2º
+tempo · 90' com dado fresco · pausado congela sem virar stale · fail-closed acima do teto · logo
+abaixo do teto ainda mostra o relógio (não é agressivo demais) · pênaltis preservados.
+
 ## v1.100 — 2026-08-08 — O relógio ao vivo congelava PORQUE o poll estava funcionando
 
 Eduardo, com print: *"Relógio e placar ainda estáticos, isso estava funcionando 100% na cdb essa

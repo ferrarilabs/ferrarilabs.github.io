@@ -63,6 +63,9 @@ window.CDB2026_I18N = {
     nextGameLabel:     "Próxima partida",
     nextGamesLabel:    "Próximos jogos",
     liveNow: "AO VIVO",
+    // Fonte de dado velha demais para provar o minuto atual da partida. Mostrar um número
+    // congelado ali seria pior: pareceria ao vivo e estaria errado.
+    liveClockStale: "Atualização pendente",
     liveHalftime: "Intervalo",
     livePenalties: "Pênaltis",
     // Ranking — movimento do participante (mesmas chaves/textos do BR2026, ver

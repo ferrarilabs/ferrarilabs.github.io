@@ -3427,8 +3427,15 @@ function nudgeScrollReflow() {
 // "58:11 (+14)" e crescendo, jogo já no intervalo real havia minutos.
 const CDB_MAX_INTERPOLATION_MS = 3 * LIVE_TIE_POLL_INTERVAL_MS;
 function liveClockDisplay(l) {
+  // FAIL CLOSED: observação velha demais não prova o minuto atual — ver o comentário equivalente
+  // no BR2026. Capar a interpolação impede o relógio de disparar, mas um número congelado continua
+  // PARECENDO ao vivo. Passado o teto, o que sabemos é "o dado está velho", e é isso que se diz.
+  // Intervalo/pênaltis continuam válidos: são estados declarados pela fonte, não valores que o
+  // tempo invalida.
+  const observationTooOld = (Date.now() - (l.pollTime || Date.now())) > CDB_MAX_INTERPOLATION_MS;
   const clock = l.isHalftime ? t("liveHalftime")
     : l.isPenalties ? t("livePenalties")
+    : (observationTooOld && !l.clockPaused) ? t("liveClockStale")
     : l.clockSeconds != null
       ? formatMatchClock(
           l.clockPaused ? l.clockSeconds : l.clockSeconds + Math.floor(Math.min(Date.now() - (l.pollTime || Date.now()), CDB_MAX_INTERPOLATION_MS) / 1000),

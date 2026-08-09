@@ -225,6 +225,9 @@ window.BR2026_I18N = {
     syncDone: "Sincronizado!",
     // Live
     liveNow: "AO VIVO",
+    // Fonte de dado velha demais para provar o minuto atual da partida. Mostrar um número
+    // congelado ali seria pior: pareceria ao vivo e estaria errado.
+    liveClockStale: "Atualização pendente",
     liveHalftime: "Intervalo",
     livePenalties: "Pênaltis",
     liveMatchesLabel: "jogos ao vivo agora",

@@ -1727,8 +1727,19 @@ function scheduleMC() {
 const BR_MAX_INTERPOLATION_MS = 3 * (C.espn?.pollIntervalMs || 60000);
 function liveClockDisplay(m) {
   const elapsedMs = Math.min(Date.now() - (m.pollTime || Date.now()), BR_MAX_INTERPOLATION_MS);
+  // FAIL CLOSED: se a observação for velha demais para PROVAR o minuto atual, não invente um.
+  //
+  // O teto de interpolação (BR_MAX_INTERPOLATION_MS) impede o relógio de disparar, mas capar não é
+  // o mesmo que ser honesto: um número congelado continua PARECENDO ao vivo, e foi exatamente
+  // esse o sintoma relatado ("relógio parado"). Passado o teto, a informação que temos é "o dado
+  // está velho" — e é isso que a tela deve dizer.
+  //
+  // Intervalo e pênaltis seguem válidos mesmo com dado velho: são estados declarados pela fonte,
+  // não valores que o tempo invalida.
+  const observationTooOld = (Date.now() - (m.pollTime || Date.now())) > BR_MAX_INTERPOLATION_MS;
   const clock = m.isHalftime ? t("liveHalftime")
     : m.isPenalties ? t("livePenalties")
+    : (observationTooOld && !m.clockPaused) ? t("liveClockStale")
     : m.clockSeconds != null
       ? formatMatchClock(
           m.clockPaused ? m.clockSeconds : m.clockSeconds + Math.floor(elapsedMs / 1000),
@@ -1737,7 +1748,7 @@ function liveClockDisplay(m) {
   const sec = m.isHalftime || m.isPenalties || m.clockPaused
     ? m.clockSeconds
     : m.clockSeconds != null ? m.clockSeconds + Math.floor(elapsedMs / 1000) : null;
-  return { clock, sec };
+  return { clock, sec, stale: observationTooOld };
 }
 
 function renderLiveCard() {
