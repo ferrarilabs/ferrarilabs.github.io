@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-09T16:02:40Z",
-  "sourceUpdatedAt": "2026-08-09T16:02:40Z",
+  "generatedAt": "2026-08-09T16:49:54Z",
+  "sourceUpdatedAt": "2026-08-09T16:49:54Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "028d5383f0a483c22e525a6fbea5f992a705472bf63bb6746dee427c7e11f60c",
+  "payloadHash": "7b0a9d421476ad4ee98f175c41dcb747f3605f385fa9e476fbadeaa2133c9b3f",
   "matches": [
     {
       "id": "401840808",
@@ -35916,25 +35916,25 @@
     {
       "id": "401841183",
       "date": "2026-08-09T14:00Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Mirassol",
       "homeTeamId": "2022",
       "awayTeamId": "9169",
-      "homeScore": 1,
+      "homeScore": 3,
       "awayScore": 1,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 2700.0,
-      "clockStr": "45'+7'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -35990,6 +35990,120 @@
             {
               "displayName": "Reinaldo",
               "shortName": "Reinaldo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2841.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaique Kenji",
+              "shortName": "Kaique Kenji"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 4061.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Elias Lira Nogueira Junior",
+              "shortName": "E. Lira Nogueira Junior"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4531.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio Jorge",
+              "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5003.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wesley Ribeiro",
+              "shortName": "W. Ribeiro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5080.0,
+            "displayValue": "85'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wesley Ribeiro",
+              "shortName": "W. Ribeiro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Shaylon",
+              "shortName": "Shaylon"
             }
           ]
         }
