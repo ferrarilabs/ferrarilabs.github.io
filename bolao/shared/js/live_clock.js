@@ -146,7 +146,110 @@
     return null;
   }
 
+
+  // ═══ RETENÇÃO DO ÚLTIMO ESTADO AO VIVO CONFIRMADO ═══════════════════════════════════════════
+  //
+  // POR QUE: o hero de jogo ao vivo já sumiu da tela do Eduardo três vezes, e a terceira expôs a
+  // fragilidade estrutural — ele era controlado por `_liveMatches.length > 0`, ou seja, pela
+  // observação ATUAL e por mais nada. Qualquer falha transitória a montante (snapshot velho,
+  // fetch que falhou, payload que omitiu a partida) apagava um jogo que estava acontecendo.
+  //
+  // O INVARIANTE: ausência de evidência nova não é evidência de que a partida acabou.
+  //
+  // Uma vez que uma observação VÁLIDA confirmou "esta partida está ao vivo", o hero continua
+  // visível com o ÚLTIMO ESTADO CONFIRMADO até que aconteça uma de duas coisas:
+  //   a) uma observação autoritativa diga explicitamente que acabou/foi adiada/suspensa; ou
+  //   b) o TTL de retenção expire — e aí o estado degrada para desconhecido, NUNCA para um
+  //      resultado inventado.
+  //
+  // TTL = 15 MINUTOS. Escolhido a partir de medição, não de palpite: em 2026-08-09 os intervalos
+  // reais entre execuções do cron do GitHub foram 24, 28, 34, 38, 40 e 47 minutos — o agendador
+  // não entrega os `*/10` declarados. Reter por 15 min cobre com folga a falha TRANSITÓRIA (um
+  // fetch que falhou, um payload incompleto) sem chegar perto de sustentar um jogo encerrado na
+  // tela: um tempo de futebol dura 45 min, então 15 min nunca atravessa uma partida inteira.
+  //
+  // ISTO NÃO É UMA SEGUNDA FONTE DE VERDADE. É cache de apresentação: qualquer observação válida
+  // nova SEMPRE substitui o retido, inclusive para pior (FINAL, adiado). O snapshot normalizado
+  // continua sendo a autoridade.
+  var RETENTION_TTL_MS = 15 * 60 * 1000;
+
+  var FEATURED = {
+    LIVE_CONFIRMED: "LIVE_CONFIRMED",
+    LIVE_RETAINED: "LIVE_RETAINED",
+    FINAL: "FINAL",
+    POSTPONED: "POSTPONED",
+    SUSPENDED: "SUSPENDED",
+    SCHEDULED: "SCHEDULED",
+    SOURCE_UNAVAILABLE: "SOURCE_UNAVAILABLE",
+    UNKNOWN: "UNKNOWN",
+  };
+
+  // Estados TERMINAIS declarados pela fonte. Só eles tiram o hero do ar antes do TTL — e nunca
+  // se infere nenhum deles pela passagem do tempo.
+  function terminalState(m) {
+    if (!m) return null;
+    if (m.postponed) return FEATURED.POSTPONED;
+    if (m.suspended) return FEATURED.SUSPENDED;
+    if (m.isFinal || m.state === "post" || m.completed === true) return FEATURED.FINAL;
+    return null;
+  }
+
+  function observationIsUsable(m) {
+    // Observação malformada é DESCARTADA, não aceita como "sem jogo ao vivo". Aceitar lixo como
+    // ausência é como um payload quebrado apagaria o hero.
+    return !!(m && m.id && (m.homeTeam || m.awayTeam));
+  }
+
+  /**
+   * @param {object} args
+   *   observed  partida ao vivo na observação ATUAL (ou null se não veio nenhuma)
+   *   retained  último estado confirmado ao vivo ({match, confirmedAt}) ou null
+   *   now       timestamp
+   *   sourceOk  a observação atual é confiável? (false = fetch falhou / payload inválido)
+   * @returns {{state, match, retained, reason, ageMs}}
+   */
+  function resolveFeaturedMatchState(args) {
+    args = args || {};
+    var now = args.now != null ? args.now : Date.now();
+    var observed = observationIsUsable(args.observed) ? args.observed : null;
+    var retained = args.retained || null;
+    var sourceOk = args.sourceOk !== false;
+
+    // 1. Observação atual válida e ao vivo: autoridade máxima. Substitui o retido sempre.
+    if (sourceOk && observed) {
+      var term = terminalState(observed);
+      if (term) return { state: term, match: observed, retained: false, reason: "OBSERVED_TERMINAL", ageMs: 0 };
+      return { state: FEATURED.LIVE_CONFIRMED, match: observed, retained: false, reason: "OBSERVED_LIVE", ageMs: 0 };
+    }
+
+    // 2. Sem observação ao vivo agora. Havia uma confirmada antes?
+    if (retained && retained.match) {
+      var age = now - (retained.confirmedAt || 0);
+      // 2a. A observação atual, sendo válida, diz explicitamente que a partida terminou?
+      if (sourceOk && args.terminalForRetained) {
+        return { state: args.terminalForRetained, match: retained.match, retained: true,
+                 reason: "TERMINAL_CONFIRMED", ageMs: age };
+      }
+      // 2b. Dentro do TTL: mantém no ar com o último confirmado. `<=` é deliberado — no instante
+      //     exato do TTL ainda vale; a expiração é ESTRITAMENTE depois.
+      if (age <= RETENTION_TTL_MS) {
+        return { state: FEATURED.LIVE_RETAINED, match: retained.match, retained: true,
+                 reason: sourceOk ? "OMITTED_FROM_SNAPSHOT" : "SOURCE_UNAVAILABLE", ageMs: age };
+      }
+      // 2c. TTL expirado: degrada para desconhecido. NÃO inventa resultado nem mantém "ao vivo".
+      return { state: FEATURED.UNKNOWN, match: null, retained: false, reason: "RETENTION_EXPIRED", ageMs: age };
+    }
+
+    // 3. Nunca houve confirmação. Fonte ruim é diferente de "não há jogo".
+    if (!sourceOk) return { state: FEATURED.SOURCE_UNAVAILABLE, match: null, retained: false, reason: "SOURCE_UNAVAILABLE", ageMs: 0 };
+    return { state: FEATURED.UNKNOWN, match: null, retained: false, reason: "NO_LIVE_MATCH", ageMs: 0 };
+  }
+
   root.BOLAO_LIVE_CLOCK = {
+    FEATURED: FEATURED,
+    RETENTION_TTL_MS: RETENTION_TTL_MS,
+    resolveFeaturedMatchState: resolveFeaturedMatchState,
+    terminalState: terminalState,
     STATE: STATE,
     resolveLiveClock: resolveLiveClock,
     clockFeedConsistency: clockFeedConsistency,
