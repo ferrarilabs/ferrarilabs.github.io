@@ -3768,7 +3768,7 @@ function extractEspnOdds(events) {
     const normA = normalizeTeamName(teamA), normB = normalizeTeamName(teamB);
     for (const ev of events) {
       const comp = ev.competitions?.[0];
-      if (!comp || comp.status?.type?.state === "post") continue;
+      if (!comp || window.BOLAO_FOOTBALL_LIVE.isFinalEvent(ev)) continue;
       const odds = comp.odds?.[0];
       if (!odds?.moneyline) continue;
       const [c0, c1] = comp.competitors || [];
@@ -4600,7 +4600,7 @@ async function pollLiveScores() {
   // fetchEspnEventSummary) only for matches currently live, so a normal poll with nothing in
   // progress never adds extra network calls.
   const liveEventIds = events
-    .filter(ev => ev.competitions?.[0]?.status?.type?.state === "in")
+    .filter(ev => window.BOLAO_FOOTBALL_LIVE.isLiveEvent(ev))
     .map(ev => ev.id)
     .filter(Boolean);
   const keyEventsById = {};
