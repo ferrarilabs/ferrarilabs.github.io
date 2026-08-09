@@ -108,6 +108,8 @@ const CHECKS = [
     why: "live clock must keep running when the same snapshot is re-fetched" },
   { id: "live-clock-semantics", group: "app", cmd: ["node", "bolao/scripts/audit_live_clock_semantics.mjs"],
     why: "matriz de estados do relogio ao vivo: dado velho CONGELA no ultimo minuto confirmado, nunca o apaga" },
+  { id: "live-hero-reliability", group: "app", cmd: ["node", "bolao/scripts/audit_live_hero_reliability.mjs"],
+    why: "hero nao pode sumir por falha transitoria: retencao de ultimo estado confirmado, TTL 15min, sem inventar resultado" },
   { id: "remote-write-visibility", group: "app", cmd: ["node", "bolao/scripts/audit_remote_write_visibility.mjs"],
     why: "gravacao remota que nao acontece nao pode parecer sucesso — incidente do agendamento CBF 2026-08-09" },
   { id: "snapshot-window", group: "app", cmd: ["node", "bolao/scripts/audit_snapshot_window_coverage.mjs"],

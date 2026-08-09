@@ -726,6 +726,10 @@ function accuracyMetrics(entry, g4Result, z4Result, sa6Result) {
 // ─── ESPN polling ────────────────────────────────────────────────────────────
 let _standings  = [];   // sorted by rank (1st = index 0)
 let _liveMatches = [];  // currently live matches
+// A última busca do snapshot foi confiável? Distingue "a fonte falhou" (não sabemos) de "a fonte
+// respondeu e não há jogo ao vivo" (sabemos). Sem esta distinção, um fetch que falha e um domingo
+// sem jogo produzem o mesmo estado — e um deles deveria manter o hero no ar.
+let _snapshotOk = true;
 let _schedule   = [];   // full season events from ESPN
 let _scheduleTs = 0;    // last schedule fetch timestamp
 let _mcResult   = null; // Monte Carlo result cache
@@ -1059,7 +1063,8 @@ async function fetchScoreboard() {
     // Snapshot: já é a temporada inteira, então NÃO precisa (nem aceita) "?limit=20".
     const r = await fetchJson(C.espn.scoreboardUrl, { cache: "no-cache" });  // ver comentário em fetchStandings()
     const snap = await r.json();
-    if (!Array.isArray(snap?.matches)) return null; // forma inesperada: melhor nada que lixo
+    if (!Array.isArray(snap?.matches)) { _snapshotOk = false; return null; } // forma inesperada
+    _snapshotOk = true;
     if (snap.stale) console.warn(`[BR2026] snapshot de jogos marcado stale (${snap.staleReason || "?"})`);
     // QUANDO o dado foi observado de verdade. Antes da migração da ESPN, "buscar" e "observar"
     // eram o mesmo instante — o navegador falava com a ESPN. Agora ele lê um snapshot que pode ter
@@ -1109,6 +1114,7 @@ async function fetchScoreboard() {
       };
     }).filter(Boolean);
   } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
+    _snapshotOk = false;  // falha de rede/parse: NÃO é "não há jogo ao vivo"
 }
 
 let _pollInFlight = false;
@@ -1797,13 +1803,76 @@ function liveClockDisplay(m) {
   return { clock, sec: r.seconds, stale: r.stale, state: r.state };
 }
 
+// ─── CACHE DE RESILIÊNCIA DO HERO AO VIVO (2026-08-09) ──────────────────────────────────────
+//
+// O hero era controlado por `_liveMatches.length > 0` — a observação ATUAL e nada mais. Qualquer
+// falha transitória a montante apagava um jogo em andamento da tela. Já aconteceu três vezes.
+//
+// Diagnóstico que motivou isto: em 2026-08-09 o cron do GitHub entregou intervalos REAIS de 24 a
+// 47 minutos apesar de declarar `*/10`. Depender só da observação atual é depender de um
+// agendador que a plataforma não garante.
+//
+// `sessionStorage`, TTL 15 min: sobrevive a rerender e a reload da página, morre ao fechar a aba.
+// Guarda SÓ dado de partida — nunca nada de participante. A autoridade continua sendo o snapshot;
+// isto é cache de apresentação e qualquer observação válida nova o substitui.
+const HERO_CACHE_KEY = "br2026_last_live_hero_v1";
+
+function readRetainedHero() {
+  try {
+    const raw = sessionStorage.getItem(HERO_CACHE_KEY);
+    if (!raw) return null;
+    const c = JSON.parse(raw);
+    if (!c || !c.match || !c.confirmedAt) return null;
+    return c;
+  } catch { return null; }  // cache ilegível conta como ausente — nunca derruba o render
+}
+
+function writeRetainedHero(match) {
+  try {
+    sessionStorage.setItem(HERO_CACHE_KEY, JSON.stringify({
+      match, confirmedAt: Date.now(), competition: "br2026",
+    }));
+  } catch { /* cota cheia/modo restrito: seguir sem cache é degradação aceitável */ }
+}
+
+function clearRetainedHero() {
+  try { sessionStorage.removeItem(HERO_CACHE_KEY); } catch { /* idem acima */ }
+}
+
 function renderLiveCard() {
   const card = $("liveMatchCard");
   if (!card) return;
-  if (!_liveMatches.length) { card.classList.add("hidden"); return; }
 
-  const header = _liveMatches.length > 1
-    ? `<div class="live-header">🔴 ${_liveMatches.length} ${esc(t("liveMatchesLabel"))}</div>` : "";
+  // Resolvedor compartilhado: decide se o hero fica no ar usando a observação atual E o último
+  // estado confirmado. Ausência de evidência nova não é evidência de que a partida acabou.
+  const LC = window.BOLAO_LIVE_CLOCK;
+  const observed = _liveMatches.length ? _liveMatches[0] : null;
+  const resolved = LC.resolveFeaturedMatchState({
+    observed,
+    retained: readRetainedHero(),
+    sourceOk: _snapshotOk !== false,
+    now: Date.now(),
+  });
+
+  // Observabilidade: da próxima vez que alguém perguntar "por que o hero sumiu?", a resposta
+  // está no DOM, sem precisar reproduzir nada. Nenhum dado privado aqui.
+  card.dataset.heroState = resolved.state;
+  card.dataset.heroReason = resolved.reason;
+  card.dataset.heroRetained = String(resolved.retained);
+  if (resolved.match?.id) card.dataset.heroMatchId = String(resolved.match.id);
+
+  if (resolved.state === LC.FEATURED.LIVE_CONFIRMED && observed) writeRetainedHero(observed);
+  if (resolved.state === LC.FEATURED.FINAL || resolved.state === LC.FEATURED.POSTPONED
+      || resolved.state === LC.FEATURED.SUSPENDED || resolved.reason === "RETENTION_EXPIRED") {
+    clearRetainedHero();
+  }
+
+  const heroMatches = resolved.match ? [resolved.match] : [];
+  if (!heroMatches.length) { card.classList.add("hidden"); return; }
+  const _heroRetained = resolved.retained;
+
+  const header = heroMatches.length > 1
+    ? `<div class="live-header">🔴 ${heroMatches.length} ${esc(t("liveMatchesLabel"))}</div>` : "";
 
   // Posição atual na tabela + seta de movimento por time, mesma fonte (calculateLiveStandings)
   // já usada na tabela de classificação — Eduardo pediu explicitamente "mostrar a posicao atual
@@ -1821,8 +1890,9 @@ function renderLiveCard() {
     ${teamPosHtml(teamName)}
   </div>`;
 
-  const rows = _liveMatches.map(m => {
-    const { clock, sec, stale: clockStale } = liveClockDisplay(m);
+  const rows = heroMatches.map(m => {
+    const { clock, sec, stale: _clockStale } = liveClockDisplay(m);
+    const clockStale = _clockStale || _heroRetained;
     // In-play probability bars (only when standings are loaded)
     let probBarsHtml = "";
     if (_standings.length >= 20) {
@@ -1908,7 +1978,20 @@ function renderLiveCard() {
 function renderLiveRankingHero() {
   const card = $("liveRankingHero");
   if (!card) return;
-  if (!_liveMatches.length) { card.classList.add("hidden"); return; }
+  // MESMO resolvedor do hero de partida. Este segundo hero tinha a MESMA condição frágil
+  // (`_liveMatches.length`) e teria continuado sumindo por falha transitória depois de o outro
+  // ser corrigido — foi o teste de contrato que o encontrou, não a leitura do código.
+  const _LC = window.BOLAO_LIVE_CLOCK;
+  const _res = _LC.resolveFeaturedMatchState({
+    observed: _liveMatches.length ? _liveMatches[0] : null,
+    retained: readRetainedHero(),
+    sourceOk: _snapshotOk !== false,
+    now: Date.now(),
+  });
+  card.dataset.heroState = _res.state;
+  card.dataset.heroReason = _res.reason;
+  const _aoVivo = _res.state === _LC.FEATURED.LIVE_CONFIRMED || _res.state === _LC.FEATURED.LIVE_RETAINED;
+  if (!_aoVivo) { card.classList.add("hidden"); return; }
 
   const s = state();
   const deleted = new Set(s.deletedIds || []);
