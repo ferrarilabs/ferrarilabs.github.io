@@ -495,6 +495,69 @@
     return { total: total, jackpotHit: jackpotHit, breakdown: breakdown, ticketsChecked: tickets.length };
   }
 
+
+  // ── "Números que mais acertamos" (sugestão do Alan Rech, aprovada) ─────────────────────────
+  // Informativo. NÃO toca prêmio, investimento, lucro, participação nem email.
+  //
+  // Reusa `allTickets()` e o mesmo resultado canônico que o destaque de acerto e o cálculo de
+  // prêmio já consomem — nenhuma segunda lógica de conferência. Duas implementações da mesma
+  // pergunta divergiriam, e este repositório já pagou caro por isso mais de uma vez.
+  //
+  // Denominador = bilhetes VÁLIDOS deste sorteio (não participantes, não histórico). Se alguém tem
+  // vários bilhetes, cada bilhete conta separado — a pergunta é sobre bilhetes, não sobre pessoas.
+  function computeHitStats(draw, gt) {
+    var r = draw && draw.result;
+    if (!r || !r.numbers || !r.numbers.length) return null;
+    var tickets = allTickets(draw);
+    if (!tickets.length) return { total: 0, whites: [], special: null };
+
+    var whites = r.numbers.map(function (n) {
+      var count = tickets.filter(function (t) { return t.numbers.indexOf(n) !== -1; }).length;
+      return { n: n, count: count, pct: (count / tickets.length) * 100 };
+    });
+    // Ordem: mais acertados primeiro; empate pelo próprio número, para ser determinístico.
+    whites.sort(function (a, b) { return (b.count - a.count) || (a.n - b.n); });
+
+    var spCount = tickets.filter(function (t) { return t.special === r.special; }).length;
+    return {
+      total: tickets.length,
+      whites: whites,
+      special: { n: r.special, count: spCount, pct: (spCount / tickets.length) * 100 }
+    };
+  }
+
+  // Sem casas decimais quando o número é redondo — "50%" e não "50.0%".
+  function fmtPct(v) {
+    var r = Math.round(v * 10) / 10;
+    return (r % 1 === 0 ? r.toFixed(0) : r.toFixed(1)) + "%";
+  }
+
+  function renderHitStats(draw, gt) {
+    var box = document.getElementById("pbHitStats");
+    var body = document.getElementById("pbHitStatsBody");
+    if (!box || !body) return;
+    var stats = computeHitStats(draw, gt);
+    // Sorteio sem resultado ou sem bilhete: esconde. Mostrar "0 de 0 · 0%" seria estatística
+    // fabricada sobre um sorteio que ainda não aconteceu.
+    if (!stats || !stats.total) { box.style.display = "none"; body.innerHTML = ""; return; }
+    box.style.display = "";
+
+    var rows = stats.whites.map(function (w) {
+      return '<tr><td data-label="Número"><span class="pb-hit-ball">' + w.n + "</span></td>" +
+        '<td data-label="Bilhetes">' + w.count + " de " + stats.total + "</td>" +
+        '<td data-label="Frequência">' + fmtPct(w.pct) + "</td></tr>";
+    }).join("");
+    // O Powerball é campo DIFERENTE das cinco brancas — não entra na mesma ordenação, e usa a
+    // linguagem visual própria dele.
+    var sp = stats.special;
+    rows += '<tr class="pb-hit-stats__special"><td data-label="Número">' +
+      '<span class="pb-hit-ball pb-hit-ball--special">' + sp.n + "</span> " +
+      (gt && gt.specialBallLabel ? gt.specialBallLabel : "Powerball") + "</td>" +
+      '<td data-label="Bilhetes">' + sp.count + " de " + stats.total + "</td>" +
+      '<td data-label="Frequência">' + fmtPct(sp.pct) + "</td></tr>";
+    body.innerHTML = rows;
+  }
+
   function fetchOfficialResult(draw, gt) {
     var dateStr = draw.drawing.drawDateIso.slice(0, 10); // YYYY-MM-DD
     var url = gt.resultsApi + "?$order=draw_date DESC&$limit=20";
@@ -510,6 +573,8 @@
 
   function renderResultPending(state, message) {
     document.getElementById("pbResultDisplay").style.display = "none";
+    var hs = document.getElementById("pbHitStats");
+    if (hs) hs.style.display = "none";   // sem resultado não há estatística honesta a mostrar
     var pending = document.getElementById("pbResultPending");
     pending.style.display = "";
     document.getElementById("pbResultPendingMsg").textContent = message;
@@ -529,6 +594,8 @@
         sortedNums.join("-") + "  ·  " + gt.specialBallLabel + " " + r.special +
         (r.multiplier ? "  ·  Power Play " + r.multiplier + "x" : "");
       document.getElementById("pbResultChecked").textContent = "Conferido automaticamente em " + r.checkedAt;
+
+      renderHitStats(draw, gt);
 
       var profitEl = document.getElementById("pbResultProfit");
       if (r.jackpotHit) {

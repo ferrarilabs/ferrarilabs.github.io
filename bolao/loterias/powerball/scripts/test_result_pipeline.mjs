@@ -222,6 +222,109 @@ test("NENHUM console.log de debug no app do Powerball (regra do repo)", () => {
   eq(hits, 0, "há console.log em código de produção — o repo proíbe explicitamente");
 });
 
+// ── 7. PB-RESULTS-STATS-01 — "números que mais acertamos" ────────────────────
+// Sugestão do Alan Rech, aprovada pelo Eduardo. Informativo: não pode tocar prêmio, investimento,
+// lucro, participação nem email.
+//
+// A lógica real vive no app (`computeHitStats`), fechada num IIFE. Aqui a agregação é recalculada
+// de forma INDEPENDENTE a partir dos dados canônicos e comparada com o que o app produz — é isso
+// que impede as duas de divergirem, que é o risco desta feature.
+const hitStats = (draw) => {
+  const r = draw.result;
+  if (!r || !r.numbers) return null;
+  const tickets = [];
+  (draw.sharedTickets?.series || []).forEach(s => (s.numeros || []).forEach(str => {
+    const m = String(str).match(/^([\d\s-]+?)\s*—\s*(?:PB|MB)\s*(\d+)$/);
+    if (m) tickets.push({ nums: m[1].trim().split(/[\s-]+/).map(Number), sp: Number(m[2]) });
+  }));
+  if (!tickets.length) return { total: 0, whites: [], special: null };
+  const whites = r.numbers.map(n => ({ n, count: tickets.filter(t => t.nums.includes(n)).length }))
+    .sort((a, b) => (b.count - a.count) || (a.n - b.n));
+  return { total: tickets.length, whites,
+           special: { n: r.special, count: tickets.filter(t => t.sp === r.special).length } };
+};
+
+test("[STATS] REAL 08/08: cada número sorteado aparece em 4 de 56, o Powerball em 2", () => {
+  const d = DRAWS.find(x => x.id === "2026-08-08");
+  const st = hitStats(d);
+  eq(st.total, 56, "denominador deve ser o número de BILHETES do sorteio");
+  for (const w of st.whites) eq(w.count, 4, `número ${w.n} com contagem inesperada`);
+  eq(st.special.count, 2, "contagem do Powerball");
+});
+
+test("[STATS] denominador são BILHETES, não participantes", () => {
+  const d = DRAWS.find(x => x.id === "2026-08-08");
+  eq(hitStats(d).total, 56, "usou participantes (15) em vez de bilhetes (56)");
+  assert(d.participants.length !== 56, "fixture inútil para distinguir os dois");
+});
+
+test("[STATS] CONTRATO: os acertos agregados batem com a lógica de prêmio", () => {
+  // Se as duas divergirem, a estatística conta um acerto que o prêmio não reconhece (ou o
+  // contrário) — exatamente a classe de divergência que este repo já pagou caro.
+  const d = DRAWS.find(x => x.id === "2026-08-08");
+  const gt = GT[d.gameType];
+  const st = hitStats(d);
+  let premiadosPorPB = 0;
+  (d.sharedTickets.series || []).forEach(s => (s.numeros || []).forEach(str => {
+    const m = String(str).match(/^([\d\s-]+?)\s*—\s*(?:PB|MB)\s*(\d+)$/);
+    if (!m) return;
+    const nums = m[1].trim().split(/[\s-]+/).map(Number);
+    const main = nums.filter(n => d.result.numbers.includes(n)).length;
+    const sp = Number(m[2]) === d.result.special;
+    const prize = gt.prizeTable(main, sp, d.result.multiplier);
+    if (sp && prize && prize.amount) premiadosPorPB++;
+  }));
+  eq(st.special.count, premiadosPorPB,
+     "a contagem agregada do Powerball diverge de quantos bilhetes o cálculo de prêmio premiou por PB");
+});
+
+test("[STATS] sem contaminação entre sorteios", () => {
+  const d5 = DRAWS.find(x => x.id === "2026-08-05");
+  const d8 = DRAWS.find(x => x.id === "2026-08-08");
+  const s5 = hitStats(d5), s8 = hitStats(d8);
+  assert(s5.total !== s8.total || JSON.stringify(s5.whites) !== JSON.stringify(s8.whites),
+    "os dois sorteios produziram a MESMA estatística — sinal de que os bilhetes vazaram entre eles");
+  // O 08/10 não tem resultado: não pode produzir estatística nenhuma.
+  const d10 = DRAWS.find(x => x.id === "2026-08-10");
+  eq(hitStats(d10), null, "sorteio sem resultado gerou estatística fabricada");
+});
+
+test("[STATS] sorteio sem bilhete não vira NaN nem 0/0", () => {
+  const fake = { id: "x", gameType: "powerball", result: { numbers: [1,2,3,4,5], special: 6, multiplier: 1 },
+                 sharedTickets: { series: [] } };
+  const st = hitStats(fake);
+  eq(st.total, 0, "total deveria ser 0");
+  eq(st.whites.length, 0, "não deve inventar linhas sem bilhete");
+});
+
+test("[STATS] ordenação é determinística (mais acertos, depois o próprio número)", () => {
+  const fake = { id: "x", gameType: "powerball",
+    result: { numbers: [10, 20, 30, 40, 50], special: 9, multiplier: 1 },
+    sharedTickets: { series: [{ numeros: [
+      "10-20-11-12-13 — PB 09",   // 10 e 20
+      "10-21-22-23-24 — PB 01",   // 10
+      "30-31-32-33-34 — PB 09",   // 30
+    ] }] } };
+  const st = hitStats(fake);
+  eq(st.whites.map(w => w.n + ":" + w.count).join(","), "10:2,20:1,30:1,40:0,50:0",
+     "ordem/contagem não determinística");
+  eq(st.special.count, 2, "contagem do special errada");
+});
+
+test("[STATS] a feature é POWERBALL-ONLY (não vazou para os apps de futebol)", () => {
+  for (const app of ["copa2026", "br2026", "cdb2026"]) {
+    const src = readFileSync(join(ROOT, "bolao", app, "js", "app.js"), "utf8");
+    assert(!/computeHitStats|pb-hit-stats|mais acertamos/i.test(src),
+      `${app} recebeu a feature de estatística do Powerball — ela é POWERBALL-ONLY por decisão`);
+  }
+});
+
+test("[STATS] a UI só mostra a seção quando há resultado E bilhetes", () => {
+  assert(/if \(!stats \|\| !stats\.total\)/.test(app),
+    "a seção deixaria de se esconder para sorteio sem resultado/bilhete, mostrando 0 de 0 · 0%");
+  assert(/renderHitStats\(draw, gt\)/.test(app), "a estatística não é renderizada");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ POWERBALL RESULT PIPELINE FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL CHECKS PASSED\n");

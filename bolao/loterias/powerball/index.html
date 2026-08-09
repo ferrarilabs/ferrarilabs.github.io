@@ -140,6 +140,25 @@ if ('serviceWorker' in navigator) {
       <p class="pb-result-numbers" id="pbResultNumbers"></p>
       <p class="pb-modal-sub" id="pbResultChecked"></p>
       <p id="pbResultProfit"></p>
+
+      <!-- "Números que mais acertamos" — sugestão do Alan Rech, aprovada pelo Eduardo.
+           Informativo: não altera prêmio, investimento, lucro nem qualquer cálculo financeiro. -->
+      <div id="pbHitStats" class="pb-hit-stats" style="display:none">
+        <h3 class="pb-hit-stats__title">🎯 Números que mais acertamos</h3>
+        <div class="pb-table-wrap">
+          <table class="pb-table pb-hit-stats__table">
+            <caption class="sr-only">Quantos bilhetes do bolão continham cada número sorteado</caption>
+            <thead>
+              <tr>
+                <th scope="col">Número</th>
+                <th scope="col">Bilhetes</th>
+                <th scope="col">Frequência</th>
+              </tr>
+            </thead>
+            <tbody id="pbHitStatsBody"></tbody>
+          </table>
+        </div>
+      </div>
     </div>
 
     <div id="pbResultPending">
