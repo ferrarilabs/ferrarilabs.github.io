@@ -612,6 +612,56 @@ def fmtUsd(n):
     return _money.usd(n)
 
 
+
+# ── BOLAS VISUAIS NO EMAIL ────────────────────────────────────────────────────────────────────
+# O Eduardo viu o email de resultado e pediu as bolas familiares no lugar do texto corrido
+# ("5-9-35-54-63 · Powerball 7 · Power Play 3x").
+#
+# O caminho de entrega SUPORTA HTML: o EmailJS recebe `html_message` e o email já usa `<div>` com
+# estilo inline. Não havia limitação técnica — só ninguém tinha feito.
+#
+# TÉCNICA: `<table>` com estilo INLINE, espelhando `ballCellHtml()` do render.mjs (que já foi
+# validado em preview). Cliente de email não é navegador: flexbox, grid e folha externa são
+# inconfiáveis; tabela com largura/altura fixa e `border-radius` é o denominador comum que o Gmail
+# web, o Gmail mobile e os clientes genéricos renderizam.
+#
+# DEGRADAÇÃO: se o `border-radius` cair (cliente muito antigo), sobram quadrados com os números
+# legíveis — a informação continua lá. E o `alt`/texto do resumo textual permanece para leitor de
+# tela e para o fallback em texto puro.
+_BALL_SIZE = 32
+_PB_BALL_SIZE = 36
+_PB_RED = "#CE1141"
+
+
+def _ball_cell(value, size, background, color, border=None):
+    border_css = f"border:1px solid {border};" if border else ""
+    return (
+        f'<td style="width:{size}px;height:{size}px;min-width:{size}px;text-align:center;'
+        f'vertical-align:middle;padding:0;">'
+        f'<div style="width:{size}px;height:{size}px;line-height:{size}px;border-radius:50%;'
+        f'background:{background};{border_css}color:{color};font-size:13px;font-weight:bold;'
+        f'text-align:center;font-family:Arial,Helvetica,sans-serif;">{value}</div></td>'
+    )
+
+
+def result_balls_html(numbers, special, multiplier, special_label="Powerball"):
+    """Linha de bolas do resultado, segura para cliente de email."""
+    spacer = '<td style="width:6px;min-width:6px;">&nbsp;</td>'
+    cells = "".join(
+        _ball_cell(n, _BALL_SIZE, "#f2f2f2", "#1a1a1a", "#cccccc") + spacer
+        for n in sorted(numbers)
+    )
+    cells += _ball_cell(special, _PB_BALL_SIZE, _PB_RED, "#ffffff")
+    row = ('<table role="presentation" cellpadding="0" cellspacing="0" '
+           f'style="border-collapse:collapse;"><tr>{cells}</tr></table>')
+    # Resumo textual ao lado das bolas: acessível a leitor de tela e sobrevive a qualquer
+    # degradação de estilo. A informação nunca depende só do desenho.
+    plain = f'{"-".join(str(n) for n in sorted(numbers))} · {special_label} {special}'
+    caption = (f'<div style="font-size:11px;color:#666;margin-top:6px;">{plain}'
+               f' · Power Play <strong>{multiplier}x</strong></div>')
+    return row + caption
+
+
 def build_html(draw):
     """Build result email in Portuguese (PT only)."""
     r = draw["result"]
@@ -621,6 +671,7 @@ def build_html(draw):
     nums_sorted = sorted(r["numbers"])
     special_label = "Powerball" if draw["gameType"] == "powerball" else "Mega Ball"
     result_line = f'{"-".join(str(n) for n in nums_sorted)}  ·  {special_label} {r["special"]}  ·  Power Play {r["multiplier"]}x'
+    result_balls = result_balls_html(r["numbers"], r["special"], r["multiplier"], special_label)
 
     header_title = f"{game_icon} Loteria {game_label} — Resultado do Sorteio"
     header_date = draw["drawing"]["drawDateLabel"]
@@ -658,7 +709,7 @@ def build_html(draw):
 
 <div style="background:white;border:1px solid #cbd5e1;border-radius:6px;padding:14px;margin:16px 0">
   <div style="font-size:11px;color:#666;text-transform:uppercase;margin-bottom:6px">{result_label}</div>
-  <div style="font-size:18px;font-weight:bold;font-family:monospace;letter-spacing:2px">{result_line}</div>
+  {result_balls}
 </div>
 
 {"" if not draw.get("winningTickets") else f'''<div style="background:white;border:1px solid #cbd5e1;border-radius:6px;padding:14px;margin:16px 0">
