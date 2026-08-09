@@ -176,6 +176,25 @@
   text-overflow: ellipsis;
   border-radius: var(--radius-sm);
 }
+
+/* Fix 2026-08-09 — ESPESSURA DESIGUAL DAS BARRAS (relatado com print pelo Eduardo:
+   Bahia×Vasco renderizava 44px e 56px enquanto os outros jogos ficavam em 30px).
+   CAUSA RAIZ: o limiar que decide manter o nome do time é PERCENTUAL (>=12%), mas o
+   que decide se o rótulo cabe é PIXEL. 17% de ~330px = 56px de largura — não cabe
+   "Vasco da Gam… 17%", então o rótulo quebrava em 3 linhas e ESTICAVA a linha inteira
+   (`.prob-bars { height:auto }` no mobile). Como a largura depende da probabilidade,
+   cada partida esticava um tanto diferente — daí a espessura desigual.
+   CORREÇÃO: nome e porcentagem viram elementos separados. A porcentagem (`flex:none`)
+   nunca encolhe nem quebra; o nome (`min-width:0`) encolhe com reticências até sumir.
+   Assim o dado que importa fica sempre legível SEM que o rótulo possa crescer em altura
+   — que era exatamente o dilema que a quebra de linha tentava resolver na Fase 7. */
+.prob-bar__name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.prob-bar__pct { flex: none; }
 .prob-bar.home { background: #16a34a; color: #fff; }
 .prob-bar.draw { background: #475569; color: #fff; }
 .prob-bar.away { background: #1d4ed8; color: #fff; }

@@ -2689,7 +2689,7 @@ function tieProbBarsHtml(nameA, nameB, format) {
   const hPct = Math.round(pHome * 100), aPct = Math.round(pAway * 100);
   const sA = esc(nameA.length > 14 ? nameA.slice(0, 14) + "…" : nameA);
   const sB = esc(nameB.length > 14 ? nameB.slice(0, 14) + "…" : nameB);
-  const label = (pct, name) => pct >= 20 ? `${name} ${pct}%` : `${pct}%`;
+  const label = (pct, name) => `<span class="prob-bar__name">${name} </span><span class="prob-bar__pct">${pct}%</span>`;
   return `<div class="prob-bars" role="group" aria-label="${esc(t("probBarsLabel"))}">
     <div class="prob-bar home" style="width:${hPct}%" title="${esc(nameA)}: ${hPct}%">${label(hPct, sA)}</div>
     <div class="prob-bar away" style="width:${aPct}%" title="${esc(nameB)}: ${aPct}%">${label(aPct, sB)}</div>

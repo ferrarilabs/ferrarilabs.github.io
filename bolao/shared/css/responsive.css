@@ -99,17 +99,15 @@
     border: none;
   }
 
-  /* Prob-bar segments get too narrow for "Team NN%" on a phone-width
-     screen — let the label wrap onto two lines instead of being
-     clipped mid-word by text-overflow: ellipsis. */
-  .prob-bars { height: auto; min-height: 30px; }
+  /* 2026-08-09: a quebra de linha que existia aqui (`white-space:normal` +
+     `height:auto`) resolvia a legibilidade mas causava ESPESSURA DESIGUAL entre
+     partidas — ver o comentário em components.css `.prob-bar__name`. Agora o nome
+     encolhe com reticências e a porcentagem nunca quebra, então a altura pode voltar
+     a ser FIXA: toda barra da plataforma tem a mesma espessura, em qualquer jogo. */
+  .prob-bars { height: 30px; }
   .prob-bar {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
     font-size: 10px;
-    line-height: 1.25;
-    padding: 3px 4px;
+    padding: 0 4px;
   }
 }
 
