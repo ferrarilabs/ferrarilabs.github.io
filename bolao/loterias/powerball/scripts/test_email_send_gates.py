@@ -196,5 +196,46 @@ class NoParallelDrawSource(unittest.TestCase):
                          "o resultado de 05/08 em 2026-08-09")
 
 
+class ResultEmailBalls(unittest.TestCase):
+    """As bolas visuais do email de resultado — pedido do Eduardo depois de ver o email real."""
+
+    def setUp(self):
+        self.draw = sre.get_active_draw("powerball")
+        self.html = sre.build_html(self.draw)
+
+    def test_cinco_bolas_brancas_e_uma_vermelha(self):
+        self.assertEqual(self.html.count("background:#f2f2f2"), 5, "número de bolas brancas")
+        self.assertEqual(self.html.count("background:#CE1141"), 1, "deveria haver UMA bola vermelha (Powerball)")
+
+    def test_os_numeros_certos_aparecem_nas_bolas(self):
+        r = self.draw["result"]
+        for n in r["numbers"]:
+            self.assertIn(f">{n}</div>", self.html, f"o número {n} não aparece como bola")
+        self.assertIn(f'>{r["special"]}</div>', self.html, "o Powerball não aparece como bola")
+
+    def test_power_play_presente(self):
+        self.assertIn("Power Play", self.html)
+        self.assertIn(f'{self.draw["result"]["multiplier"]}x', self.html)
+
+    def test_resumo_textual_sobrevive_a_degradacao_de_estilo(self):
+        # Se o cliente de email ignorar o estilo, a informação não pode sumir junto — e leitor de
+        # tela não lê um <div> redondo, lê o texto.
+        r = self.draw["result"]
+        plain = "-".join(str(n) for n in sorted(r["numbers"]))
+        self.assertIn(plain, self.html, "sumiu o resumo textual do resultado")
+
+    def test_usa_tabela_e_estilo_inline_nao_flex_nem_folha_externa(self):
+        # Cliente de email não é navegador: flex/grid e CSS externo são inconfiáveis.
+        balls = sre.result_balls_html([1, 2, 3, 4, 5], 6, 2)
+        self.assertIn("<table", balls, "as bolas precisam ser tabela para o Gmail renderizar")
+        self.assertIn("style=", balls, "o estilo precisa ser inline")
+        self.assertNotIn("display:flex", balls, "flex não é confiável em cliente de email")
+        self.assertNotIn("<link", balls, "folha externa não carrega em email")
+
+    def test_nenhum_dado_de_contato_no_html(self):
+        self.assertNotIn("@", self.html.split("Abrir página")[0],
+                         "há endereço no corpo do email de resultado")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
