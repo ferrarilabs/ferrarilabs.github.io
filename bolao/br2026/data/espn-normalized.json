@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-09T14:15:18Z",
-  "sourceUpdatedAt": "2026-08-09T14:15:18Z",
+  "generatedAt": "2026-08-09T14:30:47Z",
+  "sourceUpdatedAt": "2026-08-09T14:30:47Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "910a2b7d14151949fe232521e471bb9901565fef3e213598ae55969568182059",
+  "payloadHash": "adc7f90afa3cf22f0de6907634889cfdb341b56f58f16104cd972c32698d58ed",
   "matches": [
     {
       "id": "401840808",
@@ -35919,21 +35919,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "13'",
-      "statusDetail": "13'",
+      "statusShortDetail": "28'",
+      "statusDetail": "28'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Mirassol",
       "homeTeamId": "2022",
       "awayTeamId": "9169",
       "homeScore": 1,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 780.0,
-      "clockStr": "13'",
+      "clockSec": 1680.0,
+      "clockStr": "28'",
       "period": 1,
       "details": [
         {
@@ -35952,6 +35952,44 @@
             {
               "displayName": "João Marcelo",
               "shortName": "João Marcelo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 1530.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gerson",
+              "shortName": "Gerson"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 1567.0,
+            "displayValue": "27'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Reinaldo",
+              "shortName": "Reinaldo"
             }
           ]
         }
