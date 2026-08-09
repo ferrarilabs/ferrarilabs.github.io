@@ -51,6 +51,10 @@ jobs:
       # ── Step 1: Send emails (auto ESPN detection or manual override) ──────────
       - name: Send result emails
         working-directory: bolao/copa2026/scripts
+        env:
+          # AUD-02: autorizacao POSITIVA e explicita do envio real. O sender falha fechado sem
+          # isto — teste, execucao local e qualquer job nao declarado nao alcancam o provedor.
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
         run: |
           MID="${{ github.event.inputs.match_id }}"
           if [ -n "$MID" ]; then

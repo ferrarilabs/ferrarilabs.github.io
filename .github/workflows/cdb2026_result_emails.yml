@@ -48,6 +48,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Send result emails
+        env:
+          # AUD-02: autorizacao POSITIVA e explicita do envio real. O sender falha fechado sem
+          # isto — teste, execucao local e qualquer job nao declarado nao alcancam o provedor.
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
         working-directory: bolao/cdb2026/scripts
         run: |
           TIE="${{ github.event.inputs.tie_id }}"
