@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-09T06:25:22Z",
-  "sourceUpdatedAt": "2026-08-09T06:25:22Z",
+  "generatedAt": "2026-08-09T14:15:18Z",
+  "sourceUpdatedAt": "2026-08-09T14:15:18Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "00777b9a49fd078f8d54462e2640be287c55cfc1c043ff8e30a360ff7fab651c",
+  "payloadHash": "910a2b7d14151949fe232521e471bb9901565fef3e213598ae55969568182059",
   "matches": [
     {
       "id": "401840808",
@@ -35916,26 +35916,46 @@
     {
       "id": "401841183",
       "date": "2026-08-09T14:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, August 9th at 10:00 AM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "13'",
+      "statusDetail": "13'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Mirassol",
       "homeTeamId": "2022",
       "awayTeamId": "9169",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 780.0,
+      "clockStr": "13'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 682.0,
+            "displayValue": "12'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Marcelo",
+              "shortName": "João Marcelo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841186",
