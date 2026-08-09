@@ -160,7 +160,15 @@ test("descrição de correção não corresponde ao diff → the rendered before
 test("hash não corresponde ao manifesto → fails", () => {
   const draw = fixtureAsDraw(fx, 1);
   const { shared } = buildTicketPublicationPayload({ draw, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
-  const tampered = shared.manifestHash.slice(0, -1) + "0";
+  // 2026-08-09 — TESTE FLAKY, ~1 em 16 execuções (medido: 1 falha em 40).
+  // Era `hash.slice(0, -1) + "0"`. Quando o hash real JÁ TERMINA em "0", o "adulterado" fica
+  // idêntico ao original e o `notEqual` abaixo reprova — falha aleatória, sem nenhum defeito de
+  // produto. Como o hash varia entre execuções, o teste ficava vermelho de vez em quando, o que é
+  // pior que vermelho sempre: vira ruído que se aprende a ignorar.
+  // A adulteração agora é garantidamente diferente do original, qualquer que seja o último dígito.
+  const last = shared.manifestHash.slice(-1);
+  const tampered = shared.manifestHash.slice(0, -1) + (last === "0" ? "1" : "0");
+  assert.notEqual(tampered, shared.manifestHash, "a adulteração precisa ser mesmo diferente");
   const { sha256, ...withoutHash } = shared.manifest;
   const recomputed = sha256Hex(stableStringify(withoutHash));
   assert.notEqual(tampered, recomputed);

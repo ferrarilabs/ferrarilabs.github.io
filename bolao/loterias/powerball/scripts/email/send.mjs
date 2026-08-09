@@ -39,7 +39,55 @@
 
 const EMAILJS_URL = "https://api.emailjs.com/api/v1.0/email/send";
 
-export async function sendEmailJob(job, { publicKey, serviceId, templateId, htmlMessage, subject }) {
+// ─── TRAVA FAIL-CLOSED (2026-08-09) ─────────────────────────────────────────────────────────
+//
+// O lado Python já tinha isso (`_SEND_AUTHORIZED` + detecção de `PYTEST_CURRENT_TEST` em
+// send_result_email.py). O lado JS não tinha NADA: `sendEmailJob` chamava `fetch` direto, e a
+// única coisa que impedia uma suíte de alcançar a EmailJS era cada teste lembrar de trocar
+// `global.fetch` por um mock.
+//
+// Verificado empiricamente em 2026-08-09 (guard de rede no `--import`): **nenhuma das quatro
+// suítes faz chamada não mockada hoje.** Ou seja, isto não conserta um vazamento em curso — fecha
+// a porta pela qual o próximo entraria. A convenção "lembre de mockar" é exatamente o tipo de
+// disciplina sem mecanismo que já falhou neste repositório (o `drawSelectorLabel` "kept in sync
+// manually" ficou dessincronizado e três testes passaram verde por meses).
+//
+// O risco não é hipotético: um envio real errado já saiu para 15 pessoas, e as credenciais reais
+// ficam disponíveis no ambiente de CI onde as suítes rodam.
+//
+// DESENHO — injeção em vez de monkey-patch global:
+//   - produção chama `sendEmailJob(job, opts)` sem `transport` e usa `fetch`, exatamente como antes;
+//   - teste passa `transport` explicitamente e exercita todo o caminho, sem tocar em `global.fetch`;
+//   - rodando sob um entrypoint de TESTE e SEM `transport`, a função **recusa** em vez de enviar.
+//
+// A recusa devolve o mesmo formato de resultado de uma falha de envio (`ok:false` + `error`), com
+// status próprio e legível por máquina — nunca pode ser confundida com sucesso.
+function isTestRuntime() {
+  if (process.env.POWERBALL_TEST_RUN || process.env.NODE_TEST_CONTEXT) return true;
+  const entry = String(process.argv[1] || "");
+  const base = entry.slice(entry.lastIndexOf("/") + 1);
+  return /^(audit|test)_/.test(base) || /\.test\.(mjs|js)$/.test(base);
+}
+
+export const SEND_BLOCKED_IN_TEST = "SEND_BLOCKED_IN_TEST_RUNTIME";
+
+export async function sendEmailJob(job, { publicKey, serviceId, templateId, htmlMessage, subject, transport } = {}) {
+  const fetchImpl = transport || globalThis.fetch;
+
+  if (!transport && isTestRuntime()) {
+    return {
+      ok: false,
+      status: SEND_BLOCKED_IN_TEST,
+      providerStatus: null,
+      providerMessageId: null,
+      error:
+        "Envio recusado: processo de teste sem transporte injetado. Passe `transport` para " +
+        "exercitar o caminho de envio, ou use dryRun. O provedor real nunca é alcançável a " +
+        "partir de teste, mesmo com credencial válida no ambiente.",
+      expectedSubject: subject,
+    };
+  }
+
   const body = {
     service_id: serviceId,
     template_id: templateId,
@@ -53,7 +101,7 @@ export async function sendEmailJob(job, { publicKey, serviceId, templateId, html
     },
   };
   try {
-    const res = await fetch(EMAILJS_URL, {
+    const res = await fetchImpl(EMAILJS_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
