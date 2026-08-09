@@ -398,3 +398,19 @@ table.pb-table tr:hover td { background: var(--bg3); }
   font-size: .78rem;
   white-space: nowrap;
 }
+
+/* ── "Números que mais acertamos" (2026-08-09) ───────────────────────────────
+   Sugestão do Alan Rech, aprovada pelo Eduardo. Informativo — não altera nenhum cálculo.
+   Sem biblioteca de gráfico: tabela compacta, que já é responsiva pelo .pb-table-wrap. */
+.pb-hit-stats { margin-top: 18px; }
+.pb-hit-stats__title { margin: 0 0 10px; font-size: var(--font-size-h3); font-weight: var(--font-weight-bold); color: var(--text); }
+.pb-hit-stats__table { min-width: 0; }          /* cabe sem rolagem: só 3 colunas */
+.pb-hit-ball {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 30px; height: 30px; padding: 0 6px; border-radius: 999px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  font-weight: 900; font-size: .82rem; color: var(--text);
+}
+/* O Powerball é campo distinto das cinco brancas — mesma linguagem do bilhete real. */
+.pb-hit-ball--special { background: var(--lot-accent); border-color: var(--lot-accent); color: #fff; }
+.pb-hit-stats__special td { border-top: 1px solid var(--border2); }
