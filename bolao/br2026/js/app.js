@@ -100,7 +100,22 @@ function saveState(s, opts = {}) {
   s.meta.updatedAt = new Date().toISOString();
   s.meta.version = C.siteVersion;
   localStorage.setItem(C.storeKey, JSON.stringify(s));
-  if (C.database.enabled && !opts.localOnly) saveRemoteState(s).catch(() => {});
+  if (C.database.enabled && !opts.localOnly) {
+    // Era `.catch(() => {})` — engolia ATÉ erro real. E mesmo com o catch corrigido faltaria
+    // metade: uma gravação PULADA (isolamento de teste, database desligado) resolve com sucesso,
+    // então o `.catch` nunca dispara e a tela mostra "salvo" normalmente. Foi exatamente esse o
+    // modo de falha vivido no CDB2026 — um agendamento registrado no admin que nunca chegou à
+    // fonte canônica, sem erro nenhum na tela. Agora os DOIS casos são visíveis.
+    saveRemoteState(s).then(res => {
+      if (res && res.skipped) {
+        console.warn(`[BR2026] gravação remota PULADA — ${res.reason}`);
+        showToast(t("syncBlocked"), "warn", 8000);
+      }
+    }).catch(err => {
+      console.warn("[BR2026] Supabase save failed", err);
+      showToast(t("syncFailed"), "warn", 8000);
+    });
+  }
   renderAll();
 }
 
@@ -177,7 +192,7 @@ function productionWritesAllowed() {
 }
 
 async function saveRemoteState(s) {
-  if (!C.database.enabled) return;
+  if (!C.database.enabled) return { ok: false, skipped: true, reason: "database.enabled=false" };
   // TEST ISOLATION: fail closed antes de qualquer escrita remota. O estado local já foi gravado
   // por saveState(), então nada é perdido — só não vaza para a produção.
   const gate = productionWritesAllowed();
@@ -185,17 +200,31 @@ async function saveRemoteState(s) {
     console.warn(`[BR2026] TEST ISOLATION: gravação remota BLOQUEADA — ${gate.reason}. ` +
       `Estado salvo apenas localmente. Para liberar deliberadamente: ` +
       `sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
-    return;
+    return { ok: false, skipped: true, reason: gate.reason };
   }
   if (gate.overridden) {
     console.warn(`[BR2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
   }
   const { url, anonKey, table, stateId } = C.database;
-  await fetchJson(`${url}/rest/v1/${table}`, {
+  const r = await fetchJson(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({ id: stateId, state: s })
+    // `updated_at` explícito (2026-08-09): a coluna existe mas o app nunca a escrevia, então ela
+    // ficava congelada na criação da linha. Consequência real: ao investigar "registrei e não
+    // pegou" no CDB2026, o `updated_at` dizia 14/07 enquanto o conteúdo tinha dados de 01/08 —
+    // a única pergunta que importava ("quando o estado canônico mudou pela última vez?") não
+    // tinha resposta confiável. Escrever aqui custa um campo e torna o diagnóstico imediato.
+    body: JSON.stringify({ id: stateId, state: s, updated_at: new Date().toISOString() })
   });
+  // `await fetch()` NÃO rejeita em 4xx/5xx. Sem esta checagem, um 401/403 do RLS era tratado como
+  // SUCESSO e o participante via "salvo" com o dado só no navegador dele. O CDB2026 já corrigia
+  // isto desde a auditoria de 2026-08 (AUDIT-04); nunca foi propagado para cá — e este é o app
+  // que movimenta pagamento.
+  if (!r.ok) {
+    const body = await r.text().catch(() => "");
+    throw new Error(`Supabase respondeu ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+  }
+  return { ok: true };
 }
 function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);

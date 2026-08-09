@@ -104,6 +104,8 @@ const CHECKS = [
     why: "live clock must keep running when the same snapshot is re-fetched" },
   { id: "live-clock-semantics", group: "app", cmd: ["node", "bolao/scripts/audit_live_clock_semantics.mjs"],
     why: "matriz de estados do relogio ao vivo: dado velho CONGELA no ultimo minuto confirmado, nunca o apaga" },
+  { id: "remote-write-visibility", group: "app", cmd: ["node", "bolao/scripts/audit_remote_write_visibility.mjs"],
+    why: "gravacao remota que nao acontece nao pode parecer sucesso — incidente do agendamento CBF 2026-08-09" },
   { id: "snapshot-window", group: "app", cmd: ["node", "bolao/scripts/audit_snapshot_window_coverage.mjs"],
     why: "o cron do snapshot tem que cobrir TODO horario de jogo real — janela cega apagou o hero ao vivo 2x" },
   { id: "draw-countdown", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_draw_countdown.mjs"],

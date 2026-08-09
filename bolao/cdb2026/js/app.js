@@ -569,7 +569,18 @@ function saveState(s, opts = {}) {
     // e o participante/admin via a mesma mensagem de sucesso de sempre, sem saber que nada foi
     // sincronizado. Achado na auditoria de 2026-08 (AUDIT-04). O dado local já está gravado
     // acima, então a falha remota nunca perde a entrada -- só precisa ser VISÍVEL.
-    saveRemoteState(s, { mutation: opts.mutation }).catch(err => {
+    // A auditoria de 2026-08 (AUDIT-04) corrigiu o caso de ERRO. Faltava o caso PULADO: quando
+    // a gravação remota é bloqueada (isolamento de teste) ou desligada, esta promessa RESOLVE
+    // com `{skipped:true}` — o `.catch` não dispara e a tela mostra "salvo" como sempre.
+    // Modo de falha real, vivido em 2026-08-09: um agendamento de sorteio registrado no admin
+    // que nunca chegou ao Supabase, sem erro nenhum. Silêncio em caminho de gravação é o mesmo
+    // defeito de sempre — um verde que não corresponde a efeito.
+    saveRemoteState(s, { mutation: opts.mutation }).then(res => {
+      if (res && res.skipped) {
+        console.warn(`[CDB2026] gravação remota PULADA — ${res.reason || "database desabilitado"}`);
+        showToast(t("syncBlocked"), "warn", 8000);
+      }
+    }).catch(err => {
       console.warn("[CDB2026] Supabase save failed", err);
       showToast(t("syncFailed"), "warn", 8000);
     });
@@ -730,7 +741,10 @@ async function saveRemoteState(s, opts = {}) {
   const r = await fetchJson(`${url}/rest/v1/${table}`, {
     method: "POST",
     headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify({ id: stateId, state: payload })
+    // `updated_at` explícito — ver o comentário equivalente no BR2026. A coluna existia e o app
+    // nunca a escrevia: ao diagnosticar "registrei e não pegou", ela dizia 14/07 com conteúdo de
+    // 01/08 dentro. A pergunta "quando o estado canônico mudou?" precisa ter resposta.
+    body: JSON.stringify({ id: stateId, state: payload, updated_at: new Date().toISOString() })
   });
   // `await fetch()` NÃO rejeita em 4xx/5xx -- sem esta checagem, um 401/403 (RLS), 400 ou 500
   // era tratado como sucesso e o participante via "salvo" com o dado só no navegador dele.
