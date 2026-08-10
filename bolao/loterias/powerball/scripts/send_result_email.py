@@ -31,7 +31,10 @@ EMAILJS_KEY   = "GBZFujsJBET6modve"
 EMAILJS_SVC   = "service_o4hyzxr"
 EMAILJS_TMPL  = "template_xq7yzzb"
 ADMIN_EMAIL   = "emferrari@gmail.com"
-SITE_URL      = "https://ferrarilabs.github.io/bolao/loterias/powerball/"
+# ORIGEM CANONICA. `ferrarilabs.github.io` responde 301 para `www.ferrarilabs.com` (CNAME na
+# raiz do repo), entao o link antigo custava um salto extra a cada participante -- e alguns
+# clientes de email tratam redirecionamento como sinal de phishing. Ver docs/bolao/TEST_ISOLATION.md.
+SITE_URL      = "https://www.ferrarilabs.com/bolao/loterias/powerball/"
 
 EMAILJS_HEADERS = {
     "Content-Type": "application/json",
@@ -39,6 +42,11 @@ EMAILJS_HEADERS = {
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
         "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
     ),
+    # NAO trocar para www.ferrarilabs.com sem antes conferir a allowlist de dominios no painel
+    # do EmailJS. Estes dois campos nao sao cosmeticos: o EmailJS valida a Origin contra os
+    # dominios cadastrados, e um valor nao cadastrado faz a chamada ser recusada. O link visivel
+    # ao participante (SITE_URL) ja usa a origem canonica -- estes headers sao outra decisao,
+    # com outro risco, e mudam junto com a configuracao do painel.
     "Origin":  "https://ferrarilabs.github.io",
     "Referer": "https://ferrarilabs.github.io/bolao/loterias/powerball/",
 }
