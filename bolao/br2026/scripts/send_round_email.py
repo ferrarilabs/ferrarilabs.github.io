@@ -426,6 +426,18 @@ def _parse_iso(s):
 # `for update skip locked` da RPC, e migrar para ela e a primeira coisa a fazer quando a
 # autenticacao existir. Registrado como risco residual, nao como resolvido.
 class SupabaseStateRoundLedgerRepo:
+    """FALLBACK HISTORICO. Persiste em `bolao_state.roundEmail.ledger` (JSON).
+
+    E duravel -- sobrevive ao runner efemero do GitHub Actions -- mas NAO e atomico: o claim e
+    read-modify-write sobre um documento. Duas execucoes exatamente simultaneas poderiam ambas
+    reivindicar.
+
+    Desde F7 (2026-08-10) o caminho canonico e `AtomicNotifRepo`, que usa as RPCs do Postgres com
+    `for update skip locked`. Este repositorio permanece apenas como leitura de evidencia
+    historica e como fallback de DEGRADACAO -- e envio real com ele e PROIBIDO
+    (ver `atomic_ledger_available()`).
+    """
+
     def __init__(self, state):
         self._state = state
         self._ledger = state.setdefault("roundEmail", {}).setdefault("ledger", {})
@@ -442,15 +454,63 @@ class SupabaseStateRoundLedgerRepo:
 
     def claim_atomic(self, key, owner, lease_until, now_ms):
         rec = self._ledger.get(key)
-        if rec is None:
-            return None
-        if rec.get("leaseUntil") and rec["leaseUntil"] > now_ms:
+        if rec is None or (rec.get("leaseUntil") and rec["leaseUntil"] > now_ms):
             return None
         if rec.get("state") != "READY":
             return None
         nxt = dict(rec, state="CLAIMED", claimedBy=owner, leaseUntil=lease_until, updatedAt=now_ms)
         self._ledger[key] = nxt
         return json.loads(json.dumps(nxt))
+
+
+# ─── REPOSITORIO ATOMICO (F7) ──────────────────────────────────────────────────────────────────
+#
+# Fala com `bolao_notif_jobs` EXCLUSIVAMENTE pelas RPCs `security definer` da migracao 010.
+# Nenhum SELECT direto na tabela: a RLS nao tem policy alguma, entao leitura direta com a anon
+# key devolve lista vazia -- e um repositorio que "nao encontra nada" e pior que um que falha,
+# porque pareceria autorizar reenvio.
+#
+# A atomicidade do claim vem de `for update skip locked` DENTRO da RPC, no banco. Nunca deste
+# codigo Python.
+def _rpc(name, args):
+    body = json.dumps(args).encode()
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/rpc/{name}", data=body, method="POST",
+        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}",
+                 "Content-Type": "application/json"})
+    with urllib.request.urlopen(req, timeout=20) as r:
+        raw = r.read()
+        return json.loads(raw) if raw else None
+
+
+def atomic_ledger_available():
+    """(disponivel, motivo). Envio real EXIGE isto -- ver REAL_SEND_REQUIRES_ATOMIC_LEDGER."""
+    try:
+        _rpc("bolao_notif_health", {"p_pool_id": "br2026"})
+        return True, None
+    except Exception as e:
+        return False, f"{type(e).__name__}: {str(e)[:80]}"
+
+
+# Mapeia o status do banco para o vocabulario do resolver canonico.
+_STATUS_MAP = {
+    "sent": "SENT", "processing": "SENDING", "pending": "OPEN",
+    "failed_retryable": "OPEN", "failed_permanent": "FAILED", "suppressed": "SENT",
+}
+
+
+def notification_states_from_atomic():
+    """Estado por rodada lido do ledger ATOMICO. Levanta se indisponivel -- nunca devolve vazio.
+
+    Um dicionario vazio seria interpretado como "nenhuma rodada foi notificada", e o
+    reconciliador proporia reenviar a temporada inteira. Falhar alto e a unica resposta segura.
+    """
+    rows = _rpc("bolao_notif_status_by_pool", {"p_pool_id": "br2026"})
+    if rows is None:
+        raise RuntimeError("ledger atomico indisponivel: RPC nao respondeu")
+    return {r["idempotency_key"]: {"status": _STATUS_MAP.get(r["status"], "OPEN"),
+                                   "source": "ATOMIC_LEDGER"}
+            for r in rows}
 
 
 def _observations_for_round(round_def, raw_games):
@@ -512,15 +572,23 @@ def run_auto(dry_run=False):
     ledger = RoundLedger(repo, now=lambda: int(datetime.now(timezone.utc).timestamp() * 1000),
                          log=_emit)
 
-    # Estado de notificacao: ledger novo tem precedencia; o legado preenche o historico.
+    # ── LEDGER ATOMICO E A FONTE CANONICA (F7) ─────────────────────────────────────────────────
+    #
+    # O JSON legado permanece como evidencia historica, mas quem responde "esta rodada ja foi
+    # notificada?" e o banco. Se o ledger atomico estiver indisponivel, o envio real e PROIBIDO:
+    # decidir reenvio a partir de um estado que nao conseguimos ler e como se duplica e-mail para
+    # gente real.
+    atomic_ok, atomic_why = atomic_ledger_available()
+    print(f"LEDGER ATOMICO: {'disponivel' if atomic_ok else 'INDISPONIVEL — ' + str(atomic_why)}")
+    if not atomic_ok and not dry_run:
+        print("🛑 REAL_SEND_REQUIRES_ATOMIC_LEDGER: envio real bloqueado sem o ledger atomico.")
+        sys.exit(1)
+
     notif_states = {}
     migrated, mig = LEGACY.migrate(legacy, manifest)
     notif_states.update(migrated)
-    for key, rec in (legacy.get("ledger") or {}).items():
-        notif_states[key] = {"status": "SENT" if rec.get("state") == ROUND_STATE["SENT"]
-                             else "PARTIAL" if rec.get("state") == ROUND_STATE["PARTIAL"]
-                             else "SENDING" if rec.get("state") in (ROUND_STATE["CLAIMED"], ROUND_STATE["SENDING"])
-                             else "OPEN"}
+    if atomic_ok:
+        notif_states.update(notification_states_from_atomic())
 
     print(f"Migracao do legado: SENT={mig['roundsMarkedSent']} "
           f"PRE_FEATURE={len(mig['roundsPreFeature'])} "
