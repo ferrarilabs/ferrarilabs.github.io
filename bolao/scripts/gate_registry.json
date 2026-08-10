@@ -267,6 +267,9 @@
     },
     "bolao/scripts/test_ops_logging.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_responsive_matrix.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
