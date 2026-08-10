@@ -58,7 +58,32 @@ async function main() {
   // producing two different manifest hashes for byte-identical ticket data. That's exactly
   // what happened on the first version of this fix: the hash quoted in the delivered email
   // didn't match the hash of the file actually hosted at the linked URL.
-  const publishedAtUtc = new Date().toISOString();
+  //
+  // Second-order version of the same bug, found 2026-08-10 running this script twice for the
+  // same draw-id/version (once to Eduardo alone, once to the remaining 14): each INVOCATION
+  // got its own fresh publishedAtUtc, so the second run's manifest/hash differed from the
+  // first even though the ticket data never changed — the 14 new recipients' emails quoted a
+  // hash the already-published public file didn't have yet (fixed by a follow-up commit, but
+  // only because someone was watching). Fixed at the root: if this draw-id/version was already
+  // published (its public manifest.json already exists), REUSE that exact publishedAtUtc
+  // instead of generating a new one, so re-running the script for the same version — to reach
+  // more recipients, or to retry a failed send — always reproduces the identical manifest/hash.
+  // Only a genuinely NEW version (different publicationVersion, e.g. after a real correction)
+  // gets a new timestamp.
+  const existingPublicManifestPath = path.join(__dirname, "..", "..", "tickets", `${drawId}-v${publicationVersion}`, "manifest.json");
+  let publishedAtUtc = new Date().toISOString();
+  if (fs.existsSync(existingPublicManifestPath)) {
+    try {
+      const existing = JSON.parse(fs.readFileSync(existingPublicManifestPath, "utf8"));
+      if (existing.publishedAtUtc) {
+        publishedAtUtc = existing.publishedAtUtc;
+        console.log(`Reusing publishedAtUtc from existing publication: ${publishedAtUtc}`);
+      }
+    } catch {
+      // Malformed existing file — fall through to a fresh timestamp rather than crash;
+      // this only affects hash STABILITY across re-runs, never correctness of a single run.
+    }
+  }
 
   const { shared } = buildTicketPublicationPayload({
     draw, participants: eligible, tickets, publicationVersion, publishedAtUtc,
