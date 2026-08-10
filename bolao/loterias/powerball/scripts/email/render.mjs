@@ -363,7 +363,14 @@ ${showInlineTickets
   ? `<h3 style="color:${BLUE};margin:16px 0 8px;">Conjunto completo ${isCorrection ? "revisado" : "de jogos"}</h3>
 <table role="presentation" width="100%" cellpadding="0" style="font-size:13px;border-collapse:collapse;">${ticketsHtml}</table>`
   : `<h3 style="color:${BLUE};margin:16px 0 8px;">Conjunto completo ${isCorrection ? "revisado" : "de jogos"}</h3>
-<p style="font-size:13px;line-height:1.6;">Este sorteio teve <strong>${payload.tickets.length} jogos</strong> — a lista completa não cabe no corpo deste e-mail (limite do provedor); confira todos os números no <strong>PDF ou CSV anexado a esta publicação</strong>, ambos gerados junto com este envio e assinados pelo mesmo código de conferência abaixo.</p>`}
+<p style="font-size:13px;line-height:1.6;">Este sorteio teve <strong>${payload.tickets.length} jogos</strong> — a lista completa não cabe no corpo deste e-mail (limite do provedor); confira todos os números ${
+    isRealUrl(payload.ticketsPdfUrl) || isRealUrl(payload.ticketsCsvUrl)
+      ? `no ${[
+          isRealUrl(payload.ticketsPdfUrl) ? `<a href="${esc(payload.ticketsPdfUrl)}" style="color:${BLUE};">PDF</a>` : null,
+          isRealUrl(payload.ticketsCsvUrl) ? `<a href="${esc(payload.ticketsCsvUrl)}" style="color:${BLUE};">CSV</a>` : null,
+        ].filter(Boolean).join(" ou ")}`
+      : "no <strong>PDF ou CSV</strong> desta publicação"
+  }, ambos gerados junto com este envio e assinados pelo mesmo código de conferência abaixo.</p>`}
 <h3 style="color:${BLUE};margin:16px 0 8px;">Comprovantes e auditoria</h3>
 <p style="font-size:13px;line-height:1.8;">
 ${payload.proofUrl && isRealUrl(payload.proofUrl)
@@ -373,7 +380,13 @@ ${payload.proofUrl && isRealUrl(payload.proofUrl)
     : payload.operatorAttestation
     ? `${esc(payload.operatorAttestation)}<br>`
     : "Comprovante de compra: não informado nesta publicação.<br>"}
-PDF, CSV e manifesto JSON desta publicação foram gerados junto com este envio e conferidos antes de enviar — nenhum link de download é enviado dentro do corpo do e-mail nesta versão.
+${isRealUrl(payload.ticketsPdfUrl) || isRealUrl(payload.ticketsCsvUrl) || isRealUrl(payload.ticketsManifestUrl)
+    ? `Arquivos desta publicação: ${[
+        isRealUrl(payload.ticketsPdfUrl) ? `<a href="${esc(payload.ticketsPdfUrl)}" style="color:${BLUE};">PDF</a>` : null,
+        isRealUrl(payload.ticketsCsvUrl) ? `<a href="${esc(payload.ticketsCsvUrl)}" style="color:${BLUE};">CSV</a>` : null,
+        isRealUrl(payload.ticketsManifestUrl) ? `<a href="${esc(payload.ticketsManifestUrl)}" style="color:${BLUE};">manifesto JSON</a>` : null,
+      ].filter(Boolean).join(" · ")} — cada um assinado pelo mesmo código de conferência abaixo.`
+    : "PDF, CSV e manifesto JSON desta publicação foram gerados junto com este envio e conferidos antes de enviar — nenhum link de download foi gerado para esta publicação."}
 </p>
 <h3 style="color:${BLUE};margin:16px 0 8px;">Como conferir</h3>
 <p style="font-size:13px;line-height:1.5;">Este código identifica exatamente esta versão dos bilhetes. Caso qualquer número seja alterado, o código também mudará.${payload.operatorAttestation ? " Os números acima foram conferidos, um a um, contra o comprovante descrito na seção anterior antes deste código ser gerado." : ""}<br>
@@ -420,9 +433,21 @@ export function renderTicketPublicationText(payload, testMode) {
     ...(showInlineTickets
       ? ["Jogos:", ...payload.tickets.map((t, i) => `  Jogo ${String(i + 1).padStart(2, "0")}: ${ticketPlainLine(t, powerPlay)}`)]
       : [`Este sorteio teve ${payload.tickets.length} jogos — a lista completa não cabe no corpo deste e-mail (limite do provedor).`,
-         "Confira todos os números no PDF ou CSV anexado a esta publicação, assinados pelo mesmo código de conferência abaixo."]),
+         isRealUrl(payload.ticketsPdfUrl) || isRealUrl(payload.ticketsCsvUrl)
+           ? `Confira todos os números: ${[
+               isRealUrl(payload.ticketsPdfUrl) ? `PDF ${payload.ticketsPdfUrl}` : null,
+               isRealUrl(payload.ticketsCsvUrl) ? `CSV ${payload.ticketsCsvUrl}` : null,
+             ].filter(Boolean).join(" | ")}`
+           : "Confira todos os números no PDF ou CSV desta publicação, assinados pelo mesmo código de conferência abaixo."]),
     "",
     payload.proofUrl ? `Comprovante: ${payload.proofUrl}` : payload.operatorAttestation ? `Comprovante: ${payload.operatorAttestation}` : "Comprovante de compra: não informado nesta publicação.",
+    ...(isRealUrl(payload.ticketsPdfUrl) || isRealUrl(payload.ticketsCsvUrl) || isRealUrl(payload.ticketsManifestUrl)
+      ? [`Arquivos: ${[
+          isRealUrl(payload.ticketsPdfUrl) ? `PDF ${payload.ticketsPdfUrl}` : null,
+          isRealUrl(payload.ticketsCsvUrl) ? `CSV ${payload.ticketsCsvUrl}` : null,
+          isRealUrl(payload.ticketsManifestUrl) ? `Manifesto JSON ${payload.ticketsManifestUrl}` : null,
+        ].filter(Boolean).join(" | ")}`]
+      : []),
     "",
     `Hash (resumido): ${payload.manifestHashShort}`,
     `Publicado em ${friendlyDate(payload.generatedAtUtc)}`,

@@ -33,7 +33,7 @@ export function ticketsFromDraw(draw) {
   return out;
 }
 
-export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw, onlyParticipant }) {
+export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw, onlyParticipant, ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl }) {
   const draw = syntheticDraw || loadDrawSnapshot(drawId);
   const tickets = (syntheticDraw && syntheticDraw.__tickets) ? syntheticDraw.__tickets : ticketsFromDraw(draw);
   const participants = draw.participants;
@@ -90,6 +90,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
 
   const { shared, perRecipient } = buildTicketPublicationPayload({
     draw, participants: eligible, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets,
+    ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl,
   });
 
   // onlyParticipant restricts the SEND, not the payload/summary computed above — each

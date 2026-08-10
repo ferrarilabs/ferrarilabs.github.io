@@ -73,7 +73,7 @@ export function buildParticipantConfirmationPayload({ participant, draw, estimat
  * correctionReason is only ever shown alongside that computed diff, never as
  * a standalone typed description (round-1 bug 3).
  */
-export function buildTicketPublicationPayload({ draw, participants, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets }) {
+export function buildTicketPublicationPayload({ draw, participants, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets, ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl }) {
   const totalShares = participants.reduce((s, p) => s + (p.cotas || 0), 0);
   const f = draw.finance;
   const totalArrecadado = f.totalArrecadado;
@@ -147,6 +147,16 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
     financialSummary,
     tickets: manifest.tickets,
     proofUrl: proofUrl || (draw.sharedTickets ? draw.sharedTickets.proofUrl : null),
+    // Real download links for the full ticket list. EmailJS's REST API has no attachment
+    // mechanism (confirmed: send.mjs's request body has no `attachments` field, only
+    // template_params) — a 2026-08-10 real send went out claiming the PDF/CSV were
+    // "anexados" when nothing was actually attached, caught by Eduardo reading the
+    // delivered email. Fixed by hosting the files as static assets under this app's own
+    // GitHub Pages path (see send_ticket_publication_real.mjs) and linking to them here
+    // instead of claiming an attachment that can't exist over this transport.
+    ticketsPdfUrl: ticketsPdfUrl || null,
+    ticketsCsvUrl: ticketsCsvUrl || null,
+    ticketsManifestUrl: ticketsManifestUrl || null,
     // Reaches the actual email content (render.mjs) — previously this only reached
     // the send-time validation gate (validateAttachmentsAndLinks in publish_tickets.mjs)
     // and never the payload, so the delivered email always said "comprovante não

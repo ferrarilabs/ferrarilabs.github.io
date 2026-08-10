@@ -1,16 +1,23 @@
 #!/usr/bin/env node
 // send_ticket_publication_real.mjs — real (non-fixture) "tickets published"
-// send for a real draw. Generates real local PDF/CSV/JSON evidence files
-// from the draw's own actual ticket data (no external hosting needed — see
-// validateAttachmentsAndLinks' operatorAttestation doc comment for why),
-// then calls runPublishTickets with those files + a written attestation.
+// send for a real draw. Generates real PDF/CSV/JSON evidence files from the
+// draw's own actual ticket data, in two places:
+//   - scripts/email/generated/ (gitignored, local-only audit trail)
+//   - bolao/loterias/powerball/tickets/ (git-tracked, served by GitHub Pages)
+// The second copy exists because EmailJS's REST API has no attachment
+// mechanism — see the note next to SITE_BASE below — so the email links to
+// these public URLs instead of claiming a nonexistent attachment.
+// operatorAttestation (proof of PAYMENT, a different artifact) still has no
+// public URL — see its own doc comment.
 //
 // Usage:
 //   node send_ticket_publication_real.mjs --draw-id 2026-08-08 --version 1 --dry-run
 //   node send_ticket_publication_real.mjs --draw-id 2026-08-08 --version 1
 //
-// --dry-run renders everything (including writing the real attachment files
-// and running the full validation gate) but does not call the EmailJS API.
+// --dry-run renders everything (including writing the real files and running
+// the full validation gate) but does not call the EmailJS API. The public
+// tickets/ files ARE written even on a dry run (harmless, deterministic
+// content) — commit them only once you're ready to actually send.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -60,6 +67,31 @@ async function main() {
   fs.writeFileSync(jsonPath, JSON.stringify(shared.manifest, null, 2));
   fs.writeFileSync(csvPath, manifestToCsv(shared.manifest));
 
+  // Public, git-tracked copies — EmailJS's REST API has no attachment mechanism (confirmed:
+  // send.mjs's request body only ever had `template_params`, never `attachments`), so a real
+  // send on 2026-08-10 went out claiming the PDF/CSV were "anexados" when nothing was actually
+  // attached (Eduardo caught it reading the delivered email). The fix is to host these files
+  // as ordinary static assets on this app's own GitHub Pages path and link to them from the
+  // email body instead. The ticket numbers/serials themselves are already public via js/data.js
+  // (declared exposure HA-4, scripts/audit_pii_repo_wide.mjs) — publishing the same numbers a
+  // second time here as static files is not a new decision, just the same already-accepted risk.
+  //
+  // IMPORTANT: these files must be committed AND PUSHED before the real send runs, or the links
+  // in the email will 404 until the next deploy. This script only writes them; committing/pushing
+  // is a separate, visible step (see CLAUDE.md git discipline) — never done silently by this script.
+  const publicDir = path.join(__dirname, "..", "..", "tickets", `${drawId}-v${publicationVersion}`);
+  fs.mkdirSync(publicDir, { recursive: true });
+  const publicJsonPath = path.join(publicDir, "manifest.json");
+  const publicCsvPath = path.join(publicDir, "tickets.csv");
+  const publicPdfPath = path.join(publicDir, "tickets.pdf");
+  fs.writeFileSync(publicJsonPath, JSON.stringify(shared.manifest, null, 2));
+  fs.writeFileSync(publicCsvPath, manifestToCsv(shared.manifest));
+
+  const SITE_BASE = "https://www.ferrarilabs.com/bolao/loterias/powerball";
+  const ticketsPdfUrl = `${SITE_BASE}/tickets/${drawId}-v${publicationVersion}/tickets.pdf`;
+  const ticketsCsvUrl = `${SITE_BASE}/tickets/${drawId}-v${publicationVersion}/tickets.csv`;
+  const ticketsManifestUrl = `${SITE_BASE}/tickets/${drawId}-v${publicationVersion}/manifest.json`;
+
   const pdfLines = [
     `Powerball — Bilhetes publicados`,
     `Draw: ${draw.id}  Versão: ${publicationVersion}`,
@@ -71,7 +103,9 @@ async function main() {
     "Tickets:",
     ...shared.tickets.map((t, i) => `  #${i + 1}: ${t.numbers.join("-")} — PB ${t.special}${t.serial ? " [" + t.serial + "]" : ""}`),
   ];
-  fs.writeFileSync(pdfPath, buildTextPdf(pdfLines, { title: "Powerball tickets" }));
+  const pdfBytes = buildTextPdf(pdfLines, { title: "Powerball tickets" });
+  fs.writeFileSync(pdfPath, pdfBytes);
+  fs.writeFileSync(publicPdfPath, pdfBytes);
 
   let receiptNote = "";
   if (receiptPath) {
@@ -90,6 +124,13 @@ async function main() {
   console.log(`  - ${csvPath}`);
   console.log(`  - ${pdfPath}`);
   console.log(`  Manifest SHA-256: ${shared.manifestHash}`);
+  console.log(`\nPublic (git-tracked) copies in ${publicDir} — COMMIT AND PUSH these before sending, or the links below 404:`);
+  console.log(`  - ${publicJsonPath}`);
+  console.log(`  - ${publicCsvPath}`);
+  console.log(`  - ${publicPdfPath}`);
+  console.log(`  PDF:      ${ticketsPdfUrl}`);
+  console.log(`  CSV:      ${ticketsCsvUrl}`);
+  console.log(`  Manifest: ${ticketsManifestUrl}`);
 
   const operatorAttestation =
     `Comprovantes de ${tickets.length} bilhetes (séries do sorteio ${draw.id}) colados por Eduardo Ferrari ` +
@@ -121,6 +162,9 @@ async function main() {
       { kind: "csv", filePath: csvPath },
       { kind: "json", filePath: jsonPath },
     ],
+    ticketsPdfUrl,
+    ticketsCsvUrl,
+    ticketsManifestUrl,
   });
 
   console.log("\n" + (dryRun ? "DRY RUN RESULT" : "SEND RESULT") + (onlyParticipant ? ` (restricted to: ${onlyParticipant})` : "") + ":");
