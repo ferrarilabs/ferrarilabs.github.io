@@ -2,7 +2,20 @@
 
 ## Context and threat model
 
-This is an informal friends/family app deployed as a static site. There is no server-side auth, no payments processed by the app, and no sensitive financial data stored. The threat model is:
+This is an informal friends/family app deployed as a static site. There is no server-side auth and no payments are processed by the app.
+
+**It does store personal data, and this document said otherwise until 2026-08-10.** Verified
+against production on that date, every entry in `bolao_state` carries `participantEmail`,
+`payerName` and `paymentMethod`. The anon key is public by construction — it ships in
+`js/config.js` to every browser — so anyone able to read that row can enumerate the participants'
+e-mail addresses. That is a real exposure, tracked as finding **F10**, and it is not remediated
+yet. Do not read the rest of this document as saying the public state is empty of PII.
+
+What is *not* stored: card numbers, bank credentials, or anything the app itself charges — money
+changes hands outside the app (Zelle/Venmo/PIX), and only the payer's name and the method are
+recorded.
+
+The threat model is:
 
 - **In scope:** XSS, accidental credential exposure, admin session hijacking, data tampering by a malicious participant.
 - **Out of scope:** Server-side attacks (there is no server), DDoS, MITM (GitHub Pages uses HTTPS), legal liability (app is explicitly informal).
@@ -88,8 +101,8 @@ frame-ancestors 'none';
 |---|---|---|
 | Admin password auth is client-side only | Low (informal app) | SHA-256 + lockout + session expiry |
 | Cutoff date enforcement is client-side | Low (clock manipulation) | Honor system; admin can delete fraudulent entries |
-| Supabase anon key is public | Accepted | RLS limits to single row; no sensitive data |
-| EmailJS key is public | Accepted | Rate limiting; no financial data in emails |
+| Supabase anon key is public, and `bolao_state` contains participant e-mail + payer name | **Open (F10)** | RLS limits access to a single row, but that row is anonymously readable and holds PII. Mitigation is a public/private split — designed, not yet applied. |
+| EmailJS key is public | Accepted | Rate limiting; e-mails carry results and ranking, no payment credentials |
 | API-Football key exposed if set | Medium | Keep disabled; use proxy for production |
 
 ## Receipts and evidence

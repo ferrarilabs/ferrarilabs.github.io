@@ -261,6 +261,9 @@
     },
     "bolao/shared/scripts/test_round_ledger_interop.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_security_docs_match_reality.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
