@@ -27,6 +27,7 @@ casar num sorteio que ainda não ocorreu.
 Executar: POWERBALL_TEST_RUN=1 python3 test_result_draw_identity.py
 """
 
+import json
 import os
 import sys
 import unittest
@@ -168,6 +169,89 @@ class AutorizacaoDeEnvio(unittest.TestCase):
         import send_result_email as S
         modo = getattr(S, "_SEND_AUTHORIZED", None) or getattr(S, "real_send_allowed", None)
         self.assertIsNotNone(modo, "o sender perdeu a trava de autorizacao explicita")
+
+
+
+class EntregaParcialHistorica(unittest.TestCase):
+    """POWERBALL_PARTIAL_HISTORICAL_DELIVERY_RECOVERY.
+
+    Caso real: em 2026-08-09 o resultado de 08/08 saiu para 14 dos 15 participantes. O Eduardo
+    confirmou pelo Gmail SENT que Rodrigo Hajj nao recebeu. O ledger nao existia entao; o estado
+    foi reconstruido dos fatos na migracao 019.
+
+    O que estes testes impedem: uma automacao que, vendo o job incompleto, reenvie para todos.
+    Isso entregaria o mesmo e-mail duas vezes a 14 pessoas reais.
+
+    Exercitam as FUNCOES DE PRODUCAO (retryable_recipients / settle) com o banco substituido --
+    uma versao que filtra uma lista montada aqui dentro nao provaria nada sobre o codigo que roda.
+    """
+
+    LEDGER_0808 = {"rows": [{"r": (
+        [{"entryRef": f"Participante {i}", "state": "ACCEPTED",
+          "provenance": "HISTORICAL_GMAIL_SENT_EVIDENCE", "providerMessageId": None}
+         for i in range(14)]
+        + [{"entryRef": "Rodrigo Hajj", "state": "PENDING"}])}]}
+
+    def fake_sql(self, retorno):
+        """Substitui o acesso ao banco preservando o formato de saida da CLI."""
+        import powerball_notification as P
+        gravacoes = []
+
+        def _sql(stmt):
+            if stmt.strip().lower().startswith("update"):
+                gravacoes.append(stmt)
+                return ""
+            return json.dumps(retorno)
+
+        self._orig_sql = P._sql
+        P._sql = _sql
+        self.addCleanup(lambda: setattr(P, "_sql", self._orig_sql))
+        return gravacoes
+
+    def test_catchup_alveja_somente_quem_nao_recebeu(self):
+        import powerball_notification as P
+        self.fake_sql(self.LEDGER_0808)
+        alvos = P.retryable_recipients("2026-08-08")
+        self.assertEqual(alvos, ["Rodrigo Hajj"])
+        self.assertEqual(len(alvos), 1, "PROVIDER_CALLS tem de ser 1, jamais 15")
+
+    def test_nenhum_dos_14_entregues_entra_no_retry(self):
+        import powerball_notification as P
+        self.fake_sql(self.LEDGER_0808)
+        alvos = P.retryable_recipients("2026-08-08")
+        for i in range(14):
+            self.assertNotIn(f"Participante {i}", alvos,
+                             "quem ja recebeu jamais pode ser reenviado")
+
+    def test_job_com_um_pendente_nunca_deriva_para_sent(self):
+        import powerball_notification as P
+        gravacoes = self.fake_sql(self.LEDGER_0808)
+        r = P.settle("2026-08-08")
+        self.assertEqual(r["accepted"], 14)
+        self.assertEqual(r["total"], 15)
+        self.assertNotEqual(r["status"], P.SENT, "14 de 15 nunca pode virar SENT")
+        self.assertEqual(r["status"], P.FAILED_RETRYABLE)
+        self.assertTrue(gravacoes, "settle precisa persistir o estado derivado")
+        self.assertNotIn("'sent'::bolao_notif_status", gravacoes[0])
+
+    def test_so_apos_o_15o_aceite_o_job_conclui(self):
+        import powerball_notification as P
+        completo = {"rows": [{"r": [{"entryRef": f"P{i}", "state": "ACCEPTED"}
+                                    for i in range(15)]}]}
+        self.fake_sql(completo)
+        self.assertEqual(P.settle("2026-08-08")["status"], P.SENT)
+
+    def test_incerto_trava_para_revisao_humana_em_vez_de_reenviar(self):
+        import powerball_notification as P
+        incerto = {"rows": [{"r": [{"entryRef": "P1", "state": "ACCEPTED"},
+                                   {"entryRef": "P2", "state": "UNCERTAIN"}]}]}
+        self.fake_sql(incerto)
+        r = P.settle("2026-08-08")
+        self.assertEqual(r["status"], P.FAILED_PERMANENT)
+        self.assertIn("revisao humana", r["reason"])
+        self.fake_sql(incerto)
+        self.assertNotIn("P2", P.retryable_recipients("2026-08-08"),
+                         "UNCERTAIN nunca e reenviado automaticamente")
 
 
 if __name__ == "__main__":

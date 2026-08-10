@@ -246,6 +246,33 @@ def settle(draw_id):
             "reason": motivo}
 
 
+def reconcile_orphaned_sending(draw_id):
+    """SENDING orfao -> UNCERTAIN. Chamado ao reassumir um job cujo dono morreu.
+
+    Um destinatario em SENDING significa: o transporte foi iniciado e o processo morreu antes de
+    registrar o desfecho. NAO se sabe se o provedor aceitou. As duas leituras otimistas sao
+    erradas:
+
+      tratar como reenviavel  -> manda o mesmo e-mail duas vezes para quem ja recebeu
+      tratar como aceito      -> declara entregue algo que talvez nunca tenha saido
+
+    UNCERTAIN e a unica leitura honesta, e UNCERTAIN nao e reenviado automaticamente -- vai para
+    revisao humana. Devolve quantos foram reconciliados.
+    """
+    saida = _sql(f"select payload_snapshot->'recipients' as r from bolao_notif_jobs "
+                 f"where idempotency_key = '{draw_key(draw_id)}';")
+    try:
+        dados = json.loads(saida[saida.index("{"):saida.rindex("}") + 1])
+        recs = dados.get("rows", [{}])[0].get("r") or []
+    except Exception:
+        return 0
+    orfaos = [r["entryRef"] for r in recs if r.get("state") == R_SENDING]
+    for ref in orfaos:
+        record_recipient(draw_id, ref, R_UNCERTAIN,
+                         error="transporte interrompido: desfecho desconhecido")
+    return len(orfaos)
+
+
 def retryable_recipients(draw_id):
     """Só quem é SEGURO reenviar. ACCEPTED e UNCERTAIN ficam de fora, sempre."""
     saida = _sql(f"select payload_snapshot->'recipients' as r from bolao_notif_jobs "

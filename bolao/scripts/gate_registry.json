@@ -281,7 +281,24 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_result_draw_identity.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Identidade de sorteio (P0 de 2026-08-10) + POWERBALL_PARTIAL_HISTORICAL_DELIVERY_RECOVERY: a entrega parcial de 2026-08-08 (14 de 15) nunca pode virar reenvio para os 14. Exercita retryable_recipients/settle reais com o banco substituido; mutacao-testado."
+    },
+    "bolao/loterias/powerball/scripts/test_crash_matrix.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Matriz A-M contra a orquestracao real. Encontrou o `or esperados` que reenviava para 15."
+    },
+    "bolao/loterias/powerball/scripts/test_ledger_actual_consumer.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "POWERBALL_NOTIFICATION_LEDGER_ACTUAL_CONSUMER. Duble observador sobre o ledger real; falha se run_lifecycle parar de consumi-lo."
+    },
+    "bolao/loterias/powerball/scripts/test_result_email_visual.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "PB-R1. Achou o link do e-mail apontando para origem que responde 301."
+    },
+    "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "PB-R3 + POWERBALL_NO_FAKE_EMAIL_GATE. Cobre o YAML, que nenhum teste Python alcancava."
     }
   }
 }

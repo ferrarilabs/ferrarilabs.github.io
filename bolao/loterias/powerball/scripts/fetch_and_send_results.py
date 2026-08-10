@@ -579,7 +579,25 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         rel["notificationState"] = "ALREADY_CLAIMED"
         return rel
 
-    alvos = deps.ledger.retryable_recipients(draw_id) or esperados
+    # Um dono anterior pode ter morrido no meio do transporte. Antes de decidir para quem
+    # enviar, resolve os orfaos: SENDING vira UNCERTAIN, que nao e reenviado automaticamente.
+    if hasattr(deps.ledger, "reconcile_orphaned_sending"):
+        deps.ledger.reconcile_orphaned_sending(draw_id)
+
+    alvos = deps.ledger.retryable_recipients(draw_id)
+
+    # SEM FALLBACK. Ate 2026-08-10 esta linha era `retryable_recipients(...) or esperados`, e a
+    # lista VAZIA -- que significa "todos ja foram aceitos" -- e falsa em Python, entao o `or`
+    # caia para TODOS os destinatarios. Um crash depois do aceite e antes do settle reenviava o
+    # mesmo e-mail para as 15 pessoas. Era a catastrofe de 08/08 codificada na orquestracao.
+    # Nada a reenviar significa nada a reenviar: fecha o job a partir do estado por destinatario.
+    if not alvos:
+        final = deps.ledger.settle(draw_id)
+        rel["notificationState"] = final["status"]
+        rel["reason"] = final.get("reason") or "nada pendente: conclusao reconstruida do estado"
+        rel["providerCalls"] = 0
+        return rel
+
     for ref in alvos:
         deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_SENDING)
     saida = deps.send_email(game_type, alvos)

@@ -13,7 +13,11 @@
     "test:provider": "python3 bolao/shared/scripts/test_espn_provider.py && node bolao/shared/scripts/test_pipeline_health.mjs",
     "sync:espn": "python3 bolao/copa2026/scripts/sync_espn.py && python3 bolao/br2026/scripts/sync_espn.py && python3 bolao/cdb2026/scripts/sync_espn.py",
     "verify": "node scripts/verify.mjs",
-    "verify:json": "node scripts/verify.mjs --json-out=verify-summary.json"
+    "verify:json": "node scripts/verify.mjs --json-out=verify-summary.json",
+    "test:powerball-crash-matrix": "python3 bolao/loterias/powerball/scripts/test_crash_matrix.py",
+    "test:powerball-ledger-consumer": "python3 bolao/loterias/powerball/scripts/test_ledger_actual_consumer.py",
+    "test:powerball-email-visual": "python3 bolao/loterias/powerball/scripts/test_result_email_visual.py",
+    "test:powerball-workflow-arming": "python3 bolao/loterias/powerball/scripts/test_workflow_arming_contract.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"
