@@ -303,6 +303,14 @@
     "bolao/loterias/powerball/scripts/test_cross_draw_resolution.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Resolucao entre sorteios. Achado no preflight real: sorteio novo sem entrada no segredo dava RESOLVED=0."
+    },
+    "bolao/loterias/powerball/scripts/test_production_workflow_health.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Achado das 3 falhas de 2026-08-10: caminho de producao dependia de `supabase link` local."
+    },
+    "bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Executa settle/set_recipient no Postgres real sob pool sintetico. Fecha a lacuna do N23."
     }
   }
 }

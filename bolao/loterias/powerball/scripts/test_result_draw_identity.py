@@ -193,19 +193,39 @@ class EntregaParcialHistorica(unittest.TestCase):
         + [{"entryRef": "Rodrigo Hajj", "state": "PENDING"}])}]}
 
     def fake_sql(self, retorno):
-        """Substitui o acesso ao banco preservando o formato de saida da CLI."""
+        """Substitui o BANCO na costura de RPC.
+
+        Desde a migracao 020 o ledger fala por RPC, nao pela CLI do Supabase -- que dependia de
+        `supabase link` e derrubou tres execucoes do workflow real em 2026-08-10. Estes testes
+        falsificavam `_sql` e por isso exercitavam um caminho que nao existe mais em producao.
+        """
         import powerball_notification as P
+        recs = retorno["rows"][0]["r"]
         gravacoes = []
 
-        def _sql(stmt):
-            if stmt.strip().lower().startswith("update"):
-                gravacoes.append(stmt)
-                return ""
-            return json.dumps(retorno)
+        def _rpc(nome, args):
+            if nome == "get_bolao_notif_recipients":
+                return recs
+            if nome == "settle_bolao_notif":
+                total = len(recs)
+                ok = sum(1 for r in recs if r.get("state") == "ACCEPTED")
+                unc = sum(1 for r in recs if r.get("state") == "UNCERTAIN")
+                if unc:
+                    st, motivo = "failed_permanent", "NOTIFICATION_UNCERTAIN: requer revisao humana"
+                elif total and ok == total:
+                    st, motivo = "sent", None
+                elif ok:
+                    st, motivo = "failed_retryable", "PARTIAL: nem todos aceitos"
+                else:
+                    st, motivo = "failed_retryable", "nenhum destinatario aceito"
+                gravacoes.append(st)
+                return [{"status": st, "accepted": ok, "total": total,
+                         "uncertain": unc, "reason": motivo}]
+            raise AssertionError(f"RPC inesperada: {nome}")
 
-        self._orig_sql = P._sql
-        P._sql = _sql
-        self.addCleanup(lambda: setattr(P, "_sql", self._orig_sql))
+        self._orig_rpc = P._rpc
+        P._rpc = _rpc
+        self.addCleanup(lambda: setattr(P, "_rpc", self._orig_rpc))
         return gravacoes
 
     def test_catchup_alveja_somente_quem_nao_recebeu(self):
@@ -232,7 +252,7 @@ class EntregaParcialHistorica(unittest.TestCase):
         self.assertNotEqual(r["status"], P.SENT, "14 de 15 nunca pode virar SENT")
         self.assertEqual(r["status"], P.FAILED_RETRYABLE)
         self.assertTrue(gravacoes, "settle precisa persistir o estado derivado")
-        self.assertNotIn("'sent'::bolao_notif_status", gravacoes[0])
+        self.assertNotIn("sent", gravacoes)
 
     def test_so_apos_o_15o_aceite_o_job_conclui(self):
         import powerball_notification as P

@@ -111,7 +111,12 @@ def _rpc(name, args):
 
 
 def _sql(statement):
-    """Execução privilegiada via sessão da CLI do Supabase. Credencial nunca é impressa."""
+    """APENAS DESENVOLVIMENTO LOCAL. Nao usar em caminho de producao.
+
+    Depende de `supabase link`, um vinculo que existe na maquina do desenvolvedor e NAO existe
+    no runner do GitHub Actions. Tres execucoes do workflow real falharam em 2026-08-10 porque o
+    ledger escrevia por aqui. Toda operacao de producao passou para RPC (migracao 020).
+    """
     with tempfile.NamedTemporaryFile("w", suffix=".sql", delete=False, encoding="utf-8") as fh:
         fh.write(statement + "\n")
         caminho = fh.name
@@ -167,8 +172,12 @@ def ensure_job(draw_id, result, recipient_refs, finance=None):
         "deliverySemantics": DELIVERY_SEMANTICS,
     }).replace("'", "''")
 
-    _sql(f"select enqueue_bolao_notif('{POOL}', '{draw_id}', 'draw-result', 1, "
-         f"'AGGREGATE', '{chave}', '{payload}'::jsonb, 'powerball-result', 1, 5, 1);")
+    _rpc("enqueue_bolao_notif", {
+        "p_pool_id": POOL, "p_entity_id": draw_id, "p_event_type": "draw-result",
+        "p_event_version": 1, "p_entry_ref": "AGGREGATE", "p_idempotency_key": chave,
+        "p_payload": json.loads(payload.replace("''", "'")),
+        "p_template_id": "powerball-result", "p_template_version": 1,
+        "p_max_attempts": 5, "p_schema_version": 1})
     return {"key": chave, "status": (existente or {}).get("status", PENDING),
             "created": existente is None, "contentHash": ch}
 
@@ -179,9 +188,8 @@ def check_content_immutability(draw_id, result, recipient_refs, finance=None):
     if not existente or existente["status"] == PENDING:
         return True, None
     esperado = content_hash(draw_id, result, recipient_refs, finance)
-    saida = _sql(f"select payload_snapshot->>'contentHash' as h from bolao_notif_jobs "
-                 f"where idempotency_key = '{draw_key(draw_id)}';")
-    if esperado not in saida:
+    atual = _rpc("get_bolao_notif_content_hash", {"p_idempotency_key": draw_key(draw_id)})
+    if atual != esperado:
         return False, "CONTENT_CONFLICT: job ativo com conteudo diferente do calculado agora"
     return True, None
 
@@ -198,52 +206,34 @@ def claim(draw_id, worker, lease_seconds=600):
 
 
 def record_recipient(draw_id, entry_ref, state, provider_message_id=None, error=None):
-    """Disposição de UM destinatário. Endereço nunca entra aqui — só a referência opaca."""
+    """Disposicao de UM destinatario. Endereco nunca entra aqui -- so a referencia opaca.
+
+    Via RPC: a validacao (estado valido, ref sem '@', job existente) vive no banco, e 0 linhas
+    afetadas LEVANTA em vez de virar sucesso silencioso.
+    """
     if "@" in str(entry_ref):
         raise ValueError("entry_ref precisa ser opaco")
-    patch = json.dumps({"state": state, "providerMessageId": provider_message_id,
-                        "lastError": (error or "")[:120]}).replace("'", "''")
-    _sql(f"""
-update bolao_notif_jobs
-   set payload_snapshot = jsonb_set(payload_snapshot, '{{recipients}}',
-     (select coalesce(jsonb_agg(case when r->>'entryRef' = '{entry_ref}'
-                                     then r || '{patch}'::jsonb else r end order by ord), '[]'::jsonb)
-      from jsonb_array_elements(payload_snapshot->'recipients') with ordinality as t(r, ord)))
- where idempotency_key = '{draw_key(draw_id)}';""")
+    _rpc("set_bolao_notif_recipient", {
+        "p_idempotency_key": draw_key(draw_id), "p_entry_ref": entry_ref,
+        "p_state": state, "p_provider_message_id": provider_message_id,
+        "p_error": (error or "")[:120]})
+
+
+def _recipients(draw_id):
+    return _rpc("get_bolao_notif_recipients", {"p_idempotency_key": draw_key(draw_id)}) or []
 
 
 def settle(draw_id):
-    """Deriva o estado do JOB a partir das disposições por destinatário.
+    """Deriva o estado do JOB a partir das disposicoes por destinatario.
 
-    Parcial NUNCA vira concluído; qualquer UNCERTAIN trava para revisão humana.
+    A regra vive no banco (migracao 020), junto do dado que ela le. Parcial NUNCA vira concluido;
+    qualquer UNCERTAIN trava para revisao humana.
     """
-    saida = _sql(f"select payload_snapshot->'recipients' as r from bolao_notif_jobs "
-                 f"where idempotency_key = '{draw_key(draw_id)}';")
-    try:
-        dados = json.loads(saida[saida.index("{"):saida.rindex("}") + 1])
-        recs = dados.get("rows", [{}])[0].get("r") or []
-    except Exception:
-        recs = []
-    total = len(recs)
-    aceitos = sum(1 for r in recs if r.get("state") == R_ACCEPTED)
-    incertos = sum(1 for r in recs if r.get("state") == R_UNCERTAIN)
-
-    if incertos:
-        novo, motivo = FAILED_PERMANENT, "NOTIFICATION_UNCERTAIN: requer revisao humana"
-    elif total and aceitos == total:
-        novo, motivo = SENT, None
-    elif aceitos:
-        novo, motivo = FAILED_RETRYABLE, "PARTIAL: nem todos aceitos"
-    else:
-        novo, motivo = FAILED_RETRYABLE, "nenhum destinatario aceito"
-
-    _sql(f"update bolao_notif_jobs set status = '{novo}'::bolao_notif_status, "
-         f"sent_at = case when '{novo}' = 'sent' then now() else sent_at end, "
-         f"last_error = {'null' if not motivo else repr(motivo).replace(chr(34), chr(39))}, "
-         f"claimed_by = null, lease_expires_at = null "
-         f"where idempotency_key = '{draw_key(draw_id)}';")
-    return {"status": novo, "accepted": aceitos, "total": total, "uncertain": incertos,
-            "reason": motivo}
+    linhas = _rpc("settle_bolao_notif", {"p_idempotency_key": draw_key(draw_id)}) or []
+    r = linhas[0] if isinstance(linhas, list) and linhas else (linhas or {})
+    return {"status": r.get("status"), "accepted": r.get("accepted", 0),
+            "total": r.get("total", 0), "uncertain": r.get("uncertain", 0),
+            "reason": r.get("reason")}
 
 
 def reconcile_orphaned_sending(draw_id):
@@ -259,13 +249,7 @@ def reconcile_orphaned_sending(draw_id):
     UNCERTAIN e a unica leitura honesta, e UNCERTAIN nao e reenviado automaticamente -- vai para
     revisao humana. Devolve quantos foram reconciliados.
     """
-    saida = _sql(f"select payload_snapshot->'recipients' as r from bolao_notif_jobs "
-                 f"where idempotency_key = '{draw_key(draw_id)}';")
-    try:
-        dados = json.loads(saida[saida.index("{"):saida.rindex("}") + 1])
-        recs = dados.get("rows", [{}])[0].get("r") or []
-    except Exception:
-        return 0
+    recs = _recipients(draw_id)
     orfaos = [r["entryRef"] for r in recs if r.get("state") == R_SENDING]
     for ref in orfaos:
         record_recipient(draw_id, ref, R_UNCERTAIN,
@@ -275,12 +259,6 @@ def reconcile_orphaned_sending(draw_id):
 
 def retryable_recipients(draw_id):
     """Só quem é SEGURO reenviar. ACCEPTED e UNCERTAIN ficam de fora, sempre."""
-    saida = _sql(f"select payload_snapshot->'recipients' as r from bolao_notif_jobs "
-                 f"where idempotency_key = '{draw_key(draw_id)}';")
-    try:
-        dados = json.loads(saida[saida.index("{"):saida.rindex("}") + 1])
-        recs = dados.get("rows", [{}])[0].get("r") or []
-    except Exception:
-        return []
+    recs = _recipients(draw_id)
     return [r["entryRef"] for r in recs
             if r.get("state") in (R_PENDING, R_FAILED)]

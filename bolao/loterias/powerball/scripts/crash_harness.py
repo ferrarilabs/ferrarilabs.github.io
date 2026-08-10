@@ -164,6 +164,73 @@ class FakeDB:
                         break
             return saida
 
+        if name == "enqueue_bolao_notif":
+            self._mark("db:enqueue")
+            chave = args["p_idempotency_key"]
+            with self.lock:
+                if chave not in self.jobs:      # idempotente por chave, como o unique index
+                    self.jobs[chave] = {
+                        "pool_id": args["p_pool_id"], "entity_id": args["p_entity_id"],
+                        "idempotency_key": chave, "status": "pending", "claimed_by": None,
+                        "lease_expires_at": None, "payload_snapshot": args.get("p_payload") or {},
+                        "sent_at": None, "last_error": None}
+            return None
+
+        if name == "get_bolao_notif_recipients":
+            self._mark("db:read_recipients")
+            j = self.jobs.get(args["p_idempotency_key"])
+            return (j or {}).get("payload_snapshot", {}).get("recipients", [])
+
+        if name == "get_bolao_notif_content_hash":
+            self._mark("db:read_hash")
+            j = self.jobs.get(args["p_idempotency_key"])
+            return (j or {}).get("payload_snapshot", {}).get("contentHash")
+
+        if name == "set_bolao_notif_recipient":
+            self._mark("db:record_recipient")
+            chave = args["p_idempotency_key"]
+            if "@" in str(args["p_entry_ref"]):
+                raise AssertionError("entry_ref nao pode ser endereco")
+            with self.lock:
+                j = self.jobs.get(chave)
+                if not j:
+                    # Espelha a RPC real: 0 linhas LEVANTA, nao vira sucesso silencioso.
+                    raise RuntimeError(f"nenhum job com a chave {chave}")
+                for r in j["payload_snapshot"].get("recipients", []):
+                    if r.get("entryRef") == args["p_entry_ref"]:
+                        r.update({"state": args["p_state"],
+                                  "providerMessageId": args.get("p_provider_message_id"),
+                                  "lastError": (args.get("p_error") or "")[:120]})
+            return 1
+
+        if name == "settle_bolao_notif":
+            self._mark("db:settle")
+            chave = args["p_idempotency_key"]
+            with self.lock:
+                j = self.jobs.get(chave)
+                if not j:
+                    raise RuntimeError(f"nenhum job com a chave {chave}")
+                recs = j["payload_snapshot"].get("recipients", [])
+                total = len(recs)
+                ok = sum(1 for r in recs if r.get("state") == "ACCEPTED")
+                unc = sum(1 for r in recs if r.get("state") == "UNCERTAIN")
+                if unc:
+                    st, motivo = "failed_permanent", "NOTIFICATION_UNCERTAIN: requer revisao humana"
+                elif total and ok == total:
+                    st, motivo = "sent", None
+                elif ok:
+                    st, motivo = "failed_retryable", "PARTIAL: nem todos aceitos"
+                else:
+                    st, motivo = "failed_retryable", "nenhum destinatario aceito"
+                j["status"] = st
+                j["claimed_by"] = None
+                j["lease_expires_at"] = None
+                j["last_error"] = motivo
+                if st == "sent":
+                    j["sent_at"] = datetime.now(timezone.utc).isoformat()
+            return [{"status": st, "accepted": ok, "total": total,
+                     "uncertain": unc, "reason": motivo}]
+
         raise AssertionError(f"RPC nao reconhecida: {name}")
 
     # ── consultas de asserção ─────────────────────────────────────────────
