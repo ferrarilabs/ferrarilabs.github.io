@@ -1,5 +1,37 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.114 — 2026-08-10 — BR2026 passa a usar de verdade o store ao vivo compartilhado
+
+`football_live_store.js` era carregado pelo `index.html`, tinha suíte de unidade verde, e os apps
+chamavam seus predicados. Tudo isso passava em auditoria — e `createStore()` **nunca era chamado
+por app nenhum**. Cada app mantinha a própria hierarquia de fontes, o próprio laço de poll, o
+próprio carimbo de observação e a própria saúde de fonte. A biblioteca canônica era decorativa: os
+defeitos corrigidos nela (FINAL que regredia para AO VIVO, `stop()` que não parava, cache
+envenenado aceito) não protegiam produção nenhuma, porque produção não passava por ela.
+
+Agora existe **uma** autoridade de dado ao vivo. Saíram do `app.js`: `fetchFromGateway()`,
+`schedulePoll()`, `_pollChainToken`, `_pollBackoffMs`, `_pollFailed`, `_liveObservedAt`,
+`_liveSource` e o fallback de snapshot. O app não decide fonte, não agenda poll ao vivo, não
+guarda carimbo de observação e não classifica frescor — consome observações e desenha.
+
+**A classificação continuou separada, de propósito.** A tabela do Brasileirão não é dado de
+partida ao vivo: não decide AO VIVO/FINAL/PRE, não alimenta o hero nem o relógio. Empurrá-la para
+dentro do store só para reduzir a contagem de timers deixaria a arquitetura menos coesa.
+`refreshStandingsOnly()` tem cadência própria de 60s e nunca busca placar.
+
+Comportamento preservado e **provado**, não assumido: a suíte
+`audit_br_live_behavior_parity.mjs` foi escrita antes da migração e rodada contra o código
+antigo (13/13). Depois da migração ela passa 13/13 **sem uma linha alterada** — primeira visita
+no meio do jogo, gateway 500 caindo para snapshot, fonte totalmente indisponível, dado de 20
+minutos, FINAL que não regride, retomada de bfcache sem multiplicar timer, classificação, e
+nenhuma requisição do navegador para a ESPN.
+
+Três gates existentes precisaram mudar de lugar, não de rigor: `audit_live_decision_scope`,
+`audit_live_freshness` e `audit_live_clock` exigiam que o **app** contivesse a consulta ao
+gateway, a validação de schema e a âncora de relógio. Exigir isso do app passou a ser exigir a
+duplicação que esta mudança elimina — agora eles verificam que o app delega a um store que
+comprovadamente faz as três coisas.
+
 ## v1.113 — 2026-08-10 — Cache persistido passa a ser tratado como entrada não confiável
 
 O cliente validava `schemaVersion === 1` e `matches !== null`, e aceitava qualquer coisa dentro

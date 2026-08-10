@@ -1072,14 +1072,10 @@ async function fetchEspnEventSummary(_eventId) {
 // continuaria sumindo — e nenhuma lógica de retenção resolve o caso do primeiro visitante que
 // chega no meio de um jogo que o app NUNCA observou ao vivo.
 //
-// Entra AQUI, e não num laço novo: o polling existente já tem token de supersessão, backoff e
-// re-arme no foco. Um segundo laço seria o defeito de timers acumulados de volta.
-//
-// `_liveObservedAt` guarda o carimbo da observação corrente — uma resposta atrasada com carimbo
-// MAIS VELHO é descartada, senão o placar andaria para trás quando duas requisições retornassem
-// fora de ordem.
-let _liveObservedAt = 0;
-let _liveSource = "none";
+// A hierarquia acima e a monotonicidade de observacao vivem no FootballLiveStore compartilhado
+// desde 2026-08-10 (F12). O que sobra aqui e PROJECAO do estado do store para o diagnostico
+// publicado -- nao ha mais carimbo nem fonte mantidos a mao. Duas verdades sobre a mesma coisa
+// divergem; era o que acontecia antes.
 let _liveHealth = { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutiveFailures: 0, lastError: null };
 
 // ─── OBSERVABILIDADE (sanitizada) ───────────────────────────────────────────────────────────
@@ -1088,6 +1084,7 @@ let _liveHealth = { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutive
 // ou credencial passa por aqui.
 function publishLiveHealth() {
   try {
+    const st = _liveStore ? _liveStore.getState() : null;
     const live = _liveMatches && _liveMatches[0];
     window.__BOLAO_LIVE_HEALTH__ = {
       version: 1,
@@ -1095,9 +1092,9 @@ function publishLiveHealth() {
       gateway: { enabled: !!C.liveGateway?.enabled, status: _liveHealth.gatewayStatus,
                  lastOkAt: _liveHealth.lastGatewayOkAt, consecutiveFailures: _liveHealth.consecutiveFailures,
                  lastError: _liveHealth.lastError },
-      source: _liveSource,
-      observedAt: _liveObservedAt ? new Date(_liveObservedAt).toISOString() : null,
-      ageSeconds: _liveObservedAt ? Math.round((Date.now() - _liveObservedAt) / 1000) : null,
+      source: st ? st.source : "none",
+      observedAt: st ? st.observedAt : null,
+      ageSeconds: st && st.ageMs != null ? Math.round(st.ageMs / 1000) : null,
       snapshotOk: _snapshotOk,
       match: live ? { id: live.id, home: live.homeTeam, away: live.awayTeam,
                       score: `${live.homeScore}-${live.awayScore}`, clock: live.clockStr } : null,
@@ -1106,59 +1103,74 @@ function publishLiveHealth() {
   } catch { /* diagnóstico nunca pode derrubar o app */ }
 }
 
-async function fetchFromGateway() {
-  const g = C.liveGateway;
-  if (!g || !g.enabled || !g.url) return null;
-  try {
-    const r = await fetchJson(`${g.url}?competition=${encodeURIComponent(g.competition)}`,
-                              { cache: "no-store", timeoutMs: 5000 });
-    const body = await r.json();
-    // Contrato versionado: schema desconhecido é REJEITADO, nunca interpretado com otimismo.
-    if (!body || body.schemaVersion !== 1) return null;
-    // `matches: null` = a fonte não sabe. NUNCA é "não há jogo" — foi assim que o hero sumia.
-    if (!r.ok || body.matches === null) return null;
-    const ts = Date.parse(body.observedAt || "") || 0;
-    if (!ts || ts <= _liveObservedAt) return null;   // fora de ordem ou repetida: descarta
-    _liveObservedAt = ts;
-    _liveSource = "gateway";
-    _liveHealth.gatewayStatus = body.stale ? "STALE" : "OK";
-    _liveHealth.lastGatewayOkAt = new Date().toISOString();
-    _liveHealth.consecutiveFailures = 0;
-    _liveHealth.lastError = null;
-    return { matches: body.matches, generatedAt: body.observedAt, stale: !!body.stale };
-  } catch (e) {
-    _liveHealth.gatewayStatus = "UNREACHABLE";
-    _liveHealth.consecutiveFailures++;
-    _liveHealth.lastError = String(e?.message || e).slice(0, 80);
+// ─── AQUISICAO AO VIVO: DELEGADA AO STORE COMPARTILHADO (F12, 2026-08-10) ───────────────────
+//
+// Antes deste ponto o BR2026 mantinha sua PROPRIA hierarquia de fontes, seu proprio laco de
+// poll, seu proprio carimbo de observacao e sua propria saude de fonte -- uma copia paralela do
+// que `bolao/shared/js/football_live_store.js` ja fazia. A biblioteca canonica era carregada,
+// testada e nunca instanciada: os defeitos corrigidos nela (FINAL que regredia para AO VIVO,
+// stop() que nao parava, cache envenenado aceito) nao protegiam producao nenhuma.
+//
+// Agora existe UMA autoridade de dado ao vivo. O app nao decide fonte, nao agenda poll ao vivo,
+// nao guarda observedAt e nao classifica frescor -- so consome observacoes e desenha.
+//
+// A CLASSIFICACAO da tabela continua sendo uma preocupacao SEPARADA, com seu proprio ritmo
+// (ver startStandingsRefresh()): nao e dado de partida ao vivo e nunca decide AO VIVO/FINAL/PRE.
+let _liveStore = null;
+
+function initLiveStore() {
+  const g = C.liveGateway || {};
+  const F = window.BOLAO_FOOTBALL_LIVE;
+  if (!F || typeof F.createStore !== "function") {
+    console.warn("[BR2026] FootballLiveStore indisponivel — sem dado ao vivo nesta sessao.");
     return null;
-  }  // gateway fora do ar cai para o snapshot, nunca derruba a tela
+  }
+  _liveStore = F.createStore({
+    competition: g.competition || "br2026",
+    gatewayUrl: g.enabled ? g.url : null,
+    snapshotUrl: C.espn.scoreboardUrl,   // fonte 3: bootstrap/emergencia, o store decide quando
+  });
+  _liveStore.subscribe(onLiveObservation);
+  _liveStore.start();
+  return _liveStore;
 }
 
-async function fetchScoreboard() {
+/**
+ * Projeta a saude publicada a partir do estado do store. `_liveHealth` deixou de ser mantido a
+ * mao -- havia duas verdades sobre a mesma coisa, e elas divergiam.
+ */
+function liveHealthFromStore() {
+  if (!_liveStore) {
+    return { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutiveFailures: 0, lastError: null };
+  }
+  const st = _liveStore.getState();
+  const h = st.health || {};
+  let status = "OK";
+  if (h.lastError) status = /NETWORK|HTTP_/.test(String(h.lastError)) ? "UNREACHABLE" : "DEGRADED";
+  else if (st.stale) status = "STALE";
+  return {
+    gatewayStatus: status,
+    lastGatewayOkAt: h.gatewayLastOkAt || null,
+    consecutiveFailures: h.consecutiveFailures || 0,
+    lastError: h.lastError || null,
+  };
+}
+
+/**
+ * Mapeia uma OBSERVACAO do store para a forma rica que a UI do BR2026 espera (lances, intervalo,
+ * penaltis, relogio). E adaptador de apresentacao: NAO busca nada, NAO decide fonte, NAO
+ * classifica AO VIVO/FINAL. Toda decisao dessas pertence ao store compartilhado.
+ */
+async function mapObservationToLiveMatches(rawMatches, observedAtIso) {
   try {
-    // FONTE 1: gateway (dado sob demanda). FONTE 2: snapshot commitado (bootstrap/emergência).
-    //
-    // As duas produzem o MESMO schema normalizado — `normalize.js` do gateway é byte a byte
-    // idêntico ao `espn_provider.py` que gera o snapshot, verificado por teste de interop contra
-    // payload real. Por isso a origem só decide de ONDE vem `snap`; todo o mapeamento abaixo
-    // (resumo de lances, intervalo, pênaltis, relógio) é o mesmo caminho, sem duplicação.
-    let snap = await fetchFromGateway();
-    if (snap) {
-      _snapshotOk = true;
-    } else {
-      const r = await fetchJson(C.espn.scoreboardUrl, { cache: "no-cache" });  // ver comentário em fetchStandings()
-      snap = await r.json();
-      if (!Array.isArray(snap?.matches)) { _snapshotOk = false; return null; } // forma inesperada
-      _snapshotOk = true;
-      _liveSource = "snapshot";
-    }
-    if (snap.stale) console.warn(`[BR2026] snapshot de jogos marcado stale (${snap.staleReason || "?"})`);
+    if (!Array.isArray(rawMatches)) { _snapshotOk = false; return null; }
+    _snapshotOk = true;
     // QUANDO o dado foi observado de verdade. Antes da migração da ESPN, "buscar" e "observar"
     // eram o mesmo instante — o navegador falava com a ESPN. Agora ele lê um snapshot que pode ter
     // sido gerado minutos antes, e tratar a hora do fetch como hora da observação quebra o relógio
     // (ver o comentário em liveClockDisplay/detectClockPaused).
-    const observedAt = Date.parse(snap.generatedAt || "") || Date.now();
-    const events = snapshotEventsToEspnShape(snap.matches);
+    const observedAt = Date.parse(observedAtIso || "") || Date.now();
+    const events = snapshotEventsToEspnShape(rawMatches);
     const liveEventIds = events
       .filter(ev => window.BOLAO_FOOTBALL_LIVE.isLiveEvent(ev))
       .map(ev => ev.id)
@@ -1200,43 +1212,93 @@ async function fetchScoreboard() {
         plays: extractMatchPlays(comp, keyEventsById[ev.id]),
       };
     }).filter(Boolean);
-  } catch (err) { console.warn("[BR2026] Scoreboard fetch failed", err); return null; }
-    _snapshotOk = false;  // falha de rede/parse: NÃO é "não há jogo ao vivo"
+  } catch (err) {
+    console.warn("[BR2026] Falha ao mapear observacao ao vivo", err);
+    _snapshotOk = false;  // falha de parse: NÃO é "não há jogo ao vivo"
+    return null;
+  }
 }
 
 let _pollInFlight = false;
 
-async function pollAll() {
-  if (_pollInFlight) return; // a poll is already running — never overlap requests
-  if (document.hidden) return; // resource hygiene — no network work while the tab isn't visible
+// ─── CLASSIFICACAO: preocupacao SEPARADA, com ritmo proprio (F12) ────────────────────────────
+//
+// A tabela do Brasileirao NAO e dado de partida ao vivo. Ela nao decide AO VIVO/FINAL/PRE, nao
+// alimenta o hero nem o relogio, e nao e fonte de verdade de partida. Por isso ela NAO entrou no
+// FootballLiveStore: forcar a classificacao para dentro do store so para reduzir a contagem de
+// timers deixaria a arquitetura menos coesa, nao mais.
+//
+// O que este atualizador nao pode fazer, e o gate estrutural verifica: buscar placar ao vivo.
+const STANDINGS_REFRESH_MS = 60000;   // mesma cadencia do laco unico anterior
+let _standingsTimer = null;
+
+function startStandingsRefresh() {
+  if (_standingsTimer) { clearTimeout(_standingsTimer); _standingsTimer = null; }
+  const tick = async () => {
+    await refreshStandingsOnly();
+    _standingsTimer = setTimeout(tick, STANDINGS_REFRESH_MS);
+  };
+  _standingsTimer = setTimeout(tick, STANDINGS_REFRESH_MS);
+}
+
+function stopStandingsRefresh() {
+  if (_standingsTimer) { clearTimeout(_standingsTimer); _standingsTimer = null; }
+}
+
+/** Busca APENAS a classificacao. Nunca toca em placar/partida. */
+async function refreshStandingsOnly() {
+  if (document.hidden) return;   // higiene de recurso, igual ao laco anterior
+  const standings = await fetchStandings();
+  if (standings) applyStandings(standings);
+  renderStandingsCard();
+  renderRanking();
+  renderLiveRankingHero();
+  nudgeScrollReflow();
+}
+
+/**
+ * ORDEM CRITICA preservada da implementacao anterior: `_standings` tem de ser atualizado ANTES
+ * de captureStandingsBaseline() rodar, porque aquela funcao le a variavel de modulo, nao o valor
+ * recem-buscado. Com os dois blocos trocados (como ja esteve), a PRIMEIRA vez que um jogo ficava
+ * ao vivo capturava a baseline com `_standings` vazio, e as setas de movimento ficavam mudas no
+ * primeiro minuto de qualquer jogo -- achado real de 2026-07-17.
+ */
+function applyStandings(standings) {
+  _standings    = standings;
+  _matchProbs   = {};
+  _ratingsCache = null;
+  _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([, v]) => v));
+  scheduleMC();
+}
+
+/** Chamado pelo store a cada observacao aceita. O app nao agenda nada aqui. */
+async function onLiveObservation(snapshot) {
+  if (_pollInFlight) return;
   _pollInFlight = true;
   try {
-    const [standings, matches] = await Promise.all([fetchStandings(), fetchScoreboard()]);
-    // Antes exigia os DOIS endpoints falhando ao mesmo tempo pra engajar o backoff -- achado em
-    // auditoria (2026-07-14): um dos dois falhando sozinho, de forma persistente (ex.: tabela 200
-    // mas calendário 5xx), nunca reduzia a frequência do poll, batendo na ESPN a cada 60s
-    // indefinidamente sem nenhum recuo.
-    _pollFailed = !standings || matches === null;
+    _liveHealth = liveHealthFromStore();
+    const matches = await mapObservationToLiveMatches(snapshot.matches, snapshot.observedAt);
+    await applyLiveMatches(matches);
+    publishLiveHealth();
+    renderLiveCard();
+    renderLiveRankingHero();
+    renderStandingsCard();
+    renderRanking();
+    if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
+    nudgeScrollReflow();
+  } catch (err) {
+    console.warn("[BR2026] Falha ao aplicar observacao ao vivo", err);
+  } finally {
+    _pollInFlight = false;
+  }
+}
 
-    // _standings must be updated BEFORE captureStandingsBaseline() runs below -- that function
-    // reads the _standings module variable, not the `standings` local just fetched. Achado real
-    // (2026-07-17, Eduardo: "no ranking também ninguém mexeu"): com esses dois blocos na ordem
-    // trocada (como estava antes), a PRIMEIRA vez que um jogo ficava ao vivo (página recém
-    // carregada, _standings ainda `[]` do valor inicial) capturava a baseline com `_standings`
-    // vazio -- captureStandingsBaseline() via `_standings.length < 20`, guarda `null` de novo e
-    // desiste sem quebrar nada -- só que o `_standings = standings` que preencheria os 20 times
-    // só rodava DEPOIS, tarde demais pra esse poll. A baseline só se estabelecia no poll SEGUINTE
-    // (mais 60s depois, usando os dados que ESTE poll deveria ter usado desde o início). Efeito:
-    // "Ranking ao vivo"/setas de movimento ficavam mudos ("–") no primeiro minuto de qualquer
-    // jogo ao vivo, sempre — não permanente, mas um atraso real e evitável.
-    if (standings) {
-      _standings    = standings;
-      _matchProbs   = {};
-      _ratingsCache = null;
-      _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([,v]) => v));
-      scheduleMC();
-    }
-
+/**
+ * Aplica as partidas ja mapeadas ao estado da UI (relogio interpolado, cache, overlay no
+ * calendario). Nao busca nada. A classificacao NAO passa por aqui -- ver refreshStandingsOnly().
+ */
+async function applyLiveMatches(matches) {
+  {
     if (matches !== null) {
       const rawLive = matches.filter(m => window.BOLAO_FOOTBALL_LIVE.isLiveMatch(m));
       // Window state machine keyed off baseline presence (not _liveMatches, which resets to []
@@ -1300,22 +1362,6 @@ async function pollAll() {
       });
     }
 
-    if (standings) {
-      _standings    = standings;
-      _matchProbs   = {};
-      _ratingsCache = null;
-      _teamLogos    = Object.fromEntries(standings.map(t => [t.name, t.logo]).filter(([,v]) => v));
-      scheduleMC();
-    }
-
-    renderLiveCard();
-    renderLiveRankingHero();
-    renderStandingsCard();
-    renderRanking();
-    if (_schedule.length) { renderGamesSection(); renderNextGameCard(); }
-    nudgeScrollReflow();
-  } finally {
-    _pollInFlight = false;
   }
 }
 
@@ -1332,37 +1378,22 @@ function nudgeScrollReflow() {
   requestAnimationFrame(() => { if (window.scrollY > 0) window.scrollBy(0, 0); });
 }
 
-// Self-scheduling loop (not setInterval) so a slow poll can't overlap the next tick, and so a
-// failed poll backs off instead of hammering ESPN every 60s. Same single loop as always — this
-// does not add a second/parallel polling path.
-let _pollBackoffMs = 0;
-let _pollFailed    = false;
-// Bumped every time schedulePoll() (re)starts the chain -- lets a resume (see
-// resumeLivePolling() below) safely supersede whatever link is currently pending instead of
-// running two overlapping poll chains if the old one turns out to still be alive.
-let _pollChainToken = 0;
-function schedulePoll() {
-  const myToken = ++_pollChainToken;
-  const base  = C.espn.pollIntervalMs;
-  const delay = _pollFailed ? Math.min(base * 4, base + _pollBackoffMs) : base;
-  _pollBackoffMs = _pollFailed ? Math.min(_pollBackoffMs + base, base * 4) : 0;
-  setTimeout(async () => {
-    if (myToken !== _pollChainToken) return; // superseded by a fresher chain -- stop here
-    await pollAll();
-    schedulePoll();
-  }, delay);
-}
-
-// Re-arm ESPN polling right away on resume (tab focus, becoming visible, or restored from
-// bfcache) instead of waiting out whatever's left of the current 60s cycle -- or forever, if the
-// pending setTimeout link didn't survive an iOS Safari bfcache freeze at all. Copa already has
-// this exact fix for its own poll loop (startLiveScorePolling(), called from focus/pageshow
-// after a real past incident); BR2026's focus/pageshow handlers only resynced Supabase, leaving
-// ESPN scores/clock free to go stale until a manual reload. Eduardo, 2026-07-25: "have to
-// refresh to get an updated score and clocks are not in sync with the actual game time."
+// ─── RETOMADA (foco, visibilidade, bfcache) ─────────────────────────────────────────────────
+//
+// O laco de poll ao vivo (backoff, token de supersessao, cadencia adaptativa) mudou-se para o
+// FootballLiveStore compartilhado -- ele ja tem singleton de timer, backoff exponencial limitado
+// e guarda de `started` contra reagendamento apos stop().
+//
+// O que continua sendo responsabilidade daqui e RE-ARMAR na retomada. O motivo original nao
+// mudou: o `setTimeout` pendente nao sobrevive ao congelamento de bfcache do iOS Safari, e sem
+// isto placar e relogio ficavam parados ate um reload manual (Eduardo, 2026-07-25: "have to
+// refresh to get an updated score and clocks are not in sync with the actual game time").
+//
+// `refresh()` do store nao cria laco novo: ele reusa o singleton de timer.
 function resumeLivePolling() {
-  pollAll();
-  schedulePoll();
+  if (_liveStore) _liveStore.refresh();
+  refreshStandingsOnly();
+  startStandingsRefresh();
 }
 
 // ─── Live club-standings movement ────────────────────────────────────────────
@@ -3549,8 +3580,9 @@ async function init() {
   renderAll();
 
   // ESPN: poll immediately, then self-reschedule (backoff on failure, paused while hidden)
-  pollAll();
-  schedulePoll();
+  initLiveStore();          // dono unico da aquisicao ao vivo
+  refreshStandingsOnly();   // classificacao: preocupacao separada, ritmo proprio
+  startStandingsRefresh();
   // Resume promptly on focus instead of waiting out the rest of a paused interval
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { resumeLivePolling(); debouncedReload(); } });
   window.addEventListener("focus", resumeLivePolling);
@@ -3589,7 +3621,7 @@ async function init() {
 // Read-only test hooks — pure functions only, no state mutation exposed. Used by
 // bolao/br2026/scripts/audit_live_standings_and_ranking.py and Playwright regression tests. See
 // docs/bolao/BR2026_LIVE_STANDINGS.md "Testes".
-window.__BR2026_TESTHOOKS__ = { calculateLiveStandings, zoneForPosition, rankEntries, calculateRankingMovement, scoreEntry, pollAll, accuracyMetrics };
+window.__BR2026_TESTHOOKS__ = { calculateLiveStandings, zoneForPosition, rankEntries, calculateRankingMovement, scoreEntry, accuracyMetrics, refreshStandingsOnly };
 
 init();
 

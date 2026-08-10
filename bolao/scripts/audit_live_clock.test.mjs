@@ -89,8 +89,17 @@ for (const app of APPS) {
     assert(/observedAt/.test(src),
       "não há âncora de observação — o relógio voltou a assumir que buscar == observar, que é falso " +
       "desde a migração da ESPN");
-    assert(/Date\.parse\(snap\.generatedAt/.test(src),
-      "`observedAt` não vem do `generatedAt` do snapshot");
+    // O invariante e "observedAt vem da FONTE, nunca da hora do fetch". Desde F12 o BR2026 recebe
+    // esse carimbo do FootballLiveStore, que por sua vez o tira de `body.observedAt` (gateway) ou
+    // de `snap.generatedAt` (snapshot). Exigir a string literal no app seria exigir de volta a
+    // hierarquia duplicada; o que importa e que a ancora continue vindo da fonte.
+    const storeSrc = readFileSync(join(ROOT, "bolao/shared/js/football_live_store.js"), "utf8");
+    const ancoraLocal = /Date\.parse\(snap\.generatedAt/.test(src);
+    const ancoraDelegada = /createStore\s*\(/.test(src)
+      && /observedAt:\s*snap\.generatedAt/.test(storeSrc)
+      && /Date\.parse\(observedAtIso/.test(src);
+    assert(ancoraLocal || ancoraDelegada,
+      "`observedAt` não vem do `generatedAt` do snapshot (nem direto, nem via store)");
     assert(/pollTime: observedAt/.test(src),
       "`pollTime` voltou a receber a hora do fetch em vez da hora da observação");
   });

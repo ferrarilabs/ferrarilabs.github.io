@@ -93,10 +93,24 @@ for (const app of POLLING_APPS) {
 
 test("[br2026] o laço de poll existe e tem intervalo definido", () => {
   const src = readFileSync(join(ROOT, "bolao/br2026/js/app.js"), "utf8");
-  const cfg = readFileSync(join(ROOT, "bolao/br2026/js/config.js"), "utf8");
-  assert(/function schedulePoll\(/.test(src), "schedulePoll() sumiu — nada reataria o poll ao vivo");
-  assert(/pollIntervalMs/.test(cfg), "pollIntervalMs sumiu da config");
-  // Revalidar não adianta se o poll parar quando a aba volta do bfcache.
+  const store = readFileSync(join(ROOT, "bolao/shared/js/football_live_store.js"), "utf8");
+
+  // Desde F12 o laço ao vivo do BR2026 vive no FootballLiveStore compartilhado. O invariante
+  // continua o mesmo — tem de existir UM laço com cadência definida, e ele tem de voltar depois
+  // do bfcache — mas o dono mudou. Aceitar só `schedulePoll()` no app seria exigir de volta a
+  // duplicação que F12 removeu.
+  const laçoLocal = /function schedulePoll\(/.test(src);
+  const laçoDelegado = /createStore\s*\(/.test(src) && /function schedule\(/.test(store);
+  assert(laçoLocal || laçoDelegado, "nenhum laço de poll ao vivo — local nem delegado");
+
+  const cadencia = laçoDelegado
+    ? /POLL\s*=\s*\{[\s\S]*?LIVE:\s*\d/.test(store)
+    : /pollIntervalMs/.test(readFileSync(join(ROOT, "bolao/br2026/js/config.js"), "utf8"));
+  assert(cadencia, "cadência de poll não está definida em lugar nenhum");
+
+  // Revalidar não adianta se o poll parar quando a aba volta do bfcache. Esta parte NÃO migrou:
+  // re-armar na retomada continua sendo responsabilidade do app, porque só ele ouve
+  // focus/pageshow.
   assert(/resumeLivePolling/.test(src), "resumeLivePolling() sumiu — o poll não voltaria após focus/bfcache");
 });
 
