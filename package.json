@@ -20,7 +20,8 @@
     "test:powerball-workflow-arming": "python3 bolao/loterias/powerball/scripts/test_workflow_arming_contract.py",
     "test:powerball-cross-draw": "python3 bolao/loterias/powerball/scripts/test_cross_draw_resolution.py",
     "test:powerball-workflow-health": "python3 bolao/loterias/powerball/scripts/test_production_workflow_health.py",
-    "test:powerball-settle-real-db": "python3 bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py"
+    "test:powerball-settle-real-db": "python3 bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py",
+    "test:powerball-anon-denied": "python3 bolao/loterias/powerball/scripts/test_anon_notification_denied.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"

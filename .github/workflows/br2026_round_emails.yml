@@ -37,4 +37,8 @@ jobs:
       # BOLAO_ALLOW_REAL_SEND.
       - name: Reconciliar rodadas (dry-run — nenhum e-mail e enviado)
         working-directory: bolao/br2026/scripts
+        env:
+          # N24: as RPCs de notificacao deixaram de ser executaveis por `anon`. Sem esta
+          # credencial o ledger falha FECHADA -- que e o desfecho correto, nao um bug.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 send_round_email.py --dry-run

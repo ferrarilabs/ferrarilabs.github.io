@@ -472,11 +472,23 @@ class SupabaseStateRoundLedgerRepo:
 #
 # A atomicidade do claim vem de `for update skip locked` DENTRO da RPC, no banco. Nunca deste
 # codigo Python.
+def _ledger_key():
+    """Credencial do ledger de notificacao. NUNCA impressa.
+
+    N24 (2026-08-10): as RPCs de notificacao deixaram de ser executaveis por `anon` -- a anon key
+    e publica e permitia a qualquer um marcar notificacao como enviada, suprimindo o e-mail de
+    resultado. O caminho confiavel usa SUPABASE_SERVICE_ROLE_KEY, que so existe no runner.
+    Sem ela a chamada falha FECHADA, que e o desfecho correto: sem credencial nao ha ledger, e
+    sem ledger nao se envia.
+    """
+    return (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip() or ANON_KEY
+
+
 def _rpc(name, args):
     body = json.dumps(args).encode()
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/rpc/{name}", data=body, method="POST",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}",
+        headers={"apikey": _ledger_key(), "Authorization": f"Bearer {_ledger_key()}",
                  "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=20) as r:
         raw = r.read()
