@@ -26,7 +26,7 @@ import { fileURLToPath } from "node:url";
 import { loadDrawSnapshot } from "./snapshot.mjs";
 import { eligibleRecipients } from "./validate.mjs";
 import { buildTicketPublicationPayload, manifestToCsv } from "./payload.mjs";
-import { buildTextPdf } from "./pdf.mjs";
+import { buildTextPdf, ticketPublicationPdfBlocks } from "./pdf.mjs";
 import { runPublishTickets, ticketsFromDraw } from "./publish_tickets.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -52,8 +52,16 @@ async function main() {
   const tickets = ticketsFromDraw(draw);
   const eligible = eligibleRecipients(draw.participants);
 
+  // Computed ONCE and reused for both the files written to disk below AND the actual
+  // send further down (passed through as publishedAtUtc) — otherwise buildTicketPublication
+  // Payload's own `new Date().toISOString()` default would run twice a few ms apart,
+  // producing two different manifest hashes for byte-identical ticket data. That's exactly
+  // what happened on the first version of this fix: the hash quoted in the delivered email
+  // didn't match the hash of the file actually hosted at the linked URL.
+  const publishedAtUtc = new Date().toISOString();
+
   const { shared } = buildTicketPublicationPayload({
-    draw, participants: eligible, tickets, publicationVersion,
+    draw, participants: eligible, tickets, publicationVersion, publishedAtUtc,
     proofUrl: undefined, // no URL ever exists for this bolão — see operatorAttestation instead
   });
 
@@ -92,18 +100,16 @@ async function main() {
   const ticketsCsvUrl = `${SITE_BASE}/tickets/${drawId}-v${publicationVersion}/tickets.csv`;
   const ticketsManifestUrl = `${SITE_BASE}/tickets/${drawId}-v${publicationVersion}/manifest.json`;
 
-  const pdfLines = [
-    `Powerball — Bilhetes publicados`,
-    `Draw: ${draw.id}  Versão: ${publicationVersion}`,
-    `Hash SHA-256: ${shared.manifestHash}`,
-    "",
-    "Resumo financeiro:",
-    ...Object.entries(shared.financialSummary).map(([k, v]) => `  ${k}: ${v}`),
-    "",
-    "Tickets:",
-    ...shared.tickets.map((t, i) => `  #${i + 1}: ${t.numbers.join("-")} — PB ${t.special}${t.serial ? " [" + t.serial + "]" : ""}`),
-  ];
-  const pdfBytes = buildTextPdf(pdfLines, { title: "Powerball tickets" });
+  const pdfBytes = buildTextPdf(ticketPublicationPdfBlocks({
+    drawId: draw.id,
+    publicationVersion,
+    isCorrection: false,
+    drawDateLabel: draw.drawing.drawDateLabel,
+    manifestHash: shared.manifestHash,
+    financialSummary: shared.financialSummary,
+    tickets: shared.tickets,
+    generatedAtUtc: shared.generatedAtUtc,
+  }), { title: "Powerball tickets" });
   fs.writeFileSync(pdfPath, pdfBytes);
   fs.writeFileSync(publicPdfPath, pdfBytes);
 
@@ -147,7 +153,17 @@ async function main() {
   // committing anything). Pointing this script's outbox at the already-gitignored
   // generated/ directory instead keeps the documented intent — never a real send
   // into the tracked, publicly-committed outbox.json.
-  const realOutboxFile = path.join(outDir, "outbox.json");
+  //
+  // dry-run gets its OWN file, never the real one (bug found 2026-08-10): a --dry-run
+  // still calls enqueueEmailJob (that's how it proves the idempotency key/payload shape
+  // without sending), which persisted a "pending" job under the exact idempotency key the
+  // REAL send for the same draw-id/version would later reuse — so the real send saw
+  // `created: false`, silently treated the recipient as already-deduped, and never called
+  // EmailJS at all. Twice, on two different draws, both reported as "FAILED: undefined"
+  // (a deduped push has no `ok`/`error` field, so the CLI's `r.ok ? "sent" : "FAILED: " +
+  // r.error` prints that for a case that isn't really a failure). Separating the files
+  // makes a dry-run structurally unable to block a later real send for the same job.
+  const realOutboxFile = path.join(outDir, dryRun ? "outbox.dryrun.json" : "outbox.json");
 
   const result = await runPublishTickets({
     drawId,
@@ -165,6 +181,7 @@ async function main() {
     ticketsPdfUrl,
     ticketsCsvUrl,
     ticketsManifestUrl,
+    publishedAtUtc,
   });
 
   console.log("\n" + (dryRun ? "DRY RUN RESULT" : "SEND RESULT") + (onlyParticipant ? ` (restricted to: ${onlyParticipant})` : "") + ":");
@@ -174,7 +191,12 @@ async function main() {
     process.exit(1);
   }
   console.log("recipients:", result.results.length);
-  result.results.forEach((r) => console.log(`  - ${r.participant}: ${dryRun ? "(dry-run)" : r.ok ? "sent" : "FAILED: " + r.error}`));
+  // A `deduped: true` result (same idempotencyKey already recorded — a legitimate re-run
+  // safety net, not a failure) has no `ok`/`error` field. Report it as its own case instead
+  // of falling into the FAILED branch and printing the misleading "FAILED: undefined".
+  result.results.forEach((r) => console.log(
+    `  - ${r.participant}: ${dryRun ? "(dry-run)" : r.deduped ? "already sent (deduped, same idempotency key)" : r.ok ? "sent" : "FAILED: " + r.error}`
+  ));
 }
 
 main();

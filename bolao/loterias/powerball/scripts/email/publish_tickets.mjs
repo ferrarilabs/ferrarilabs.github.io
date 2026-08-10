@@ -14,7 +14,7 @@ import { buildTicketPublicationPayload, manifestToCsv } from "./payload.mjs";
 import { renderTicketPublicationSubject, renderTicketPublicationHtml, renderTicketPublicationText } from "./render.mjs";
 import { enqueueEmailJob, recordEmailResult, idempotencyKeyForPublication } from "./outbox.mjs";
 import { sendEmailJob } from "./send.mjs";
-import { buildTextPdf } from "./pdf.mjs";
+import { buildTextPdf, ticketPublicationPdfBlocks } from "./pdf.mjs";
 
 const EMAILJS = {
   publicKey: "GBZFujsJBET6modve",
@@ -33,7 +33,7 @@ export function ticketsFromDraw(draw) {
   return out;
 }
 
-export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw, onlyParticipant, ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl }) {
+export async function runPublishTickets({ drawId, publicationVersion, testMode, overrideRecipient, proofUrl, operatorAttestation, attachments, correctionReason, previousHash, previousTickets, outboxFile, dryRun, syntheticDraw, onlyParticipant, ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl, publishedAtUtc }) {
   const draw = syntheticDraw || loadDrawSnapshot(drawId);
   const tickets = (syntheticDraw && syntheticDraw.__tickets) ? syntheticDraw.__tickets : ticketsFromDraw(draw);
   const participants = draw.participants;
@@ -90,7 +90,7 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
 
   const { shared, perRecipient } = buildTicketPublicationPayload({
     draw, participants: eligible, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets,
-    ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl,
+    ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl, publishedAtUtc,
   });
 
   // onlyParticipant restricts the SEND, not the payload/summary computed above — each
@@ -130,18 +130,16 @@ export async function runPublishTickets({ drawId, publicationVersion, testMode, 
   }
 
   const csv = manifestToCsv(shared.manifest);
-  const pdfLines = [
-    `Powerball — ${shared.templateId === "tickets-corrected" ? "CORREÇÃO" : "Bilhetes publicados"}`,
-    `Draw: ${draw.id}  Versão: ${publicationVersion}`,
-    `Hash SHA-256: ${shared.manifestHash}`,
-    "",
-    "Resumo financeiro:",
-    ...Object.entries(shared.financialSummary).map(([k, v]) => `  ${k}: ${v}`),
-    "",
-    "Tickets:",
-    ...shared.tickets.map((t, i) => `  #${i + 1}: ${t.numbers.join("-")} — PB ${t.special}`),
-  ];
-  const pdf = buildTextPdf(pdfLines, { title: "Powerball tickets" });
+  const pdf = buildTextPdf(ticketPublicationPdfBlocks({
+    drawId: draw.id,
+    publicationVersion,
+    isCorrection: shared.templateId === "tickets-corrected",
+    drawDateLabel: draw.drawing.drawDateLabel,
+    manifestHash: shared.manifestHash,
+    financialSummary: shared.financialSummary,
+    tickets: shared.tickets,
+    generatedAtUtc: shared.generatedAtUtc,
+  }), { title: "Powerball tickets" });
 
   return { ok: true, shared, results, csv, pdf, manifest: shared.manifest };
 }
