@@ -457,7 +457,7 @@ window.POWERBALL_DRAWS = [
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "12:14 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:45 PM", status: "verificado", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Dinheiro (cash)", data: "10/08/2026", hora: "12:26 PM", status: "verificado", state: "NC" },
-      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Dinheiro (cash)", data: "10/08/2026", hora: "12:26 PM", status: "verificado", state: "NC" }
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "10/08/2026", hora: "3:03:24 PM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
