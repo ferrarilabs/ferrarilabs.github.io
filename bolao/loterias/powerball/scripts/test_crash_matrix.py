@@ -493,6 +493,28 @@ class MatrizDeCrash(Base):
                          "DATA_MUTATIONS = 0")
         self.registrar("M", "notificacao concluida", "n/a", e1, e2, rel2)
 
+    def test_job_marcado_como_acao_manual_nao_e_tocado(self):
+        """A marca do 08/08: decisao de negocio, nunca retry automatico.
+
+        Sem ela, cada execucao agendada -- de 10 em 10 minutos -- alvejaria o job parcial
+        historico, seria recusada pelo transporte, e falharia. Ruido constante e como a falha
+        de verdade passa despercebida.
+        """
+        e1 = self.provedor()
+        P.ensure_job(SORTEIO, RESULTADO, NOMES, {"total": 45})
+        for n in NOMES[:14]:
+            P.record_recipient(SORTEIO, n, P.R_ACCEPTED)
+        self.db.job(CHAVE)["status"] = P.FAILED_RETRYABLE
+        self.db.job(CHAVE)["payload_snapshot"]["requiresManualAction"] = True
+
+        rel, _ = self.rodar(e1)
+        self.assertEqual(rel["notificationState"], "AGUARDA_ACAO_MANUAL")
+        self.assertEqual(sum(len(c) for c in e1.chamadas), 0,
+                         "o ciclo automatico tocou um job que exige decisao humana")
+        self.assertEqual(self.db.counts(CHAVE)["ACCEPTED"], 14, "nada mudou")
+        self.assertIn("AGUARDA_ACAO_MANUAL", F.ESTADOS_OK,
+                      "decisao pendente nao e falha de infraestrutura")
+
     # ── HISTORICO 08/08 — 14 de 15 ────────────────────────────────────────
     def test_historico_0808_reenvia_somente_o_faltante(self):
         e1 = self.provedor()

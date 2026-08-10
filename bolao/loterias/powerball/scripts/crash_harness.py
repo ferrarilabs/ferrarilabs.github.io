@@ -181,6 +181,11 @@ class FakeDB:
             j = self.jobs.get(args["p_idempotency_key"])
             return (j or {}).get("payload_snapshot", {}).get("recipients", [])
 
+        if name == "get_bolao_notif_manual_flag":
+            self._mark("db:manual_flag")
+            j = self.jobs.get(args["p_idempotency_key"])
+            return bool((j or {}).get("payload_snapshot", {}).get("requiresManualAction"))
+
         if name == "get_bolao_notif_content_hash":
             self._mark("db:read_hash")
             j = self.jobs.get(args["p_idempotency_key"])
