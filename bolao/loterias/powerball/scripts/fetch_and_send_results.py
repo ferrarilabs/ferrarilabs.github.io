@@ -514,7 +514,14 @@ def _default_send_email(game_type, entry_refs):
     if not alvo:
         return {"accepted": [], "failed": [], "uncertain": [],
                 "stdout": "TRANSPORTE_RECUSADO: lista de alvos vazia"}
-    if esperados and alvo != set(esperados):
+    if not esperados:
+        # FALHA FECHADA. A versao anterior era `if esperados and ...`: com o conjunto esperado
+        # desconhecido, o guard simplesmente nao rodava e a difusao acontecia. Nao saber quem
+        # deveria receber e a razao MAIS forte para nao difundir, nao a mais fraca.
+        return {"accepted": [], "failed": list(alvo), "uncertain": [],
+                "stdout": ("TRANSPORTE_RECUSADO: nao foi possivel determinar o conjunto esperado "
+                           "de destinatarios; difundir as cegas reenviaria para quem ja recebeu")}
+    if alvo != set(esperados):
         # Envio parcial pedido a um transporte que so difunde.
         return {"accepted": [], "failed": list(alvo), "uncertain": [],
                 "stdout": (f"TRANSPORTE_INCAPAZ_DE_ALVEJAR: pedido para {len(alvo)} de "
