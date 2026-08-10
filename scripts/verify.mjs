@@ -183,6 +183,8 @@ const CHECKS = [
     why: "F8: so o gateway confiavel escreve no cache ao vivo; anon nunca" },
   { id: "br2026-narrow-persistence", group: "security", cmd: ["node", "bolao/scripts/audit_br2026_narrow_persistence.mjs"],
     why: "F10/N22: BR2026 le projecao publica e so grava por RPC estreita" },
+  { id: "powerball-anon-denied", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_anon_notification_denied.py"],
+    why: "N24: anon key publica nao pode mutar nem ler o ledger de notificacao (12 ataques concretos)" },
   { id: "powerball-workflow-health", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_production_workflow_health.py"],
     why: "POWERBALL_RECENT_PRODUCTION_WORKFLOW_HEALTH: sem dependencia de CLI local; estado normal nao vira falha" },
   { id: "powerball-settle-real-db", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py"],
