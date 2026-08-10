@@ -1492,7 +1492,7 @@ th{background:#07151c;color:#fff;text-align:left}
 <div class="podcard"><div>${escapeHtml(t("receiptThird"))}</div><div class="team-name">${escapeHtml(pod.third||"—")}</div></div>
 <div class="podcard"><div>${escapeHtml(t("receiptFourth"))}</div><div class="team-name">${escapeHtml(pod.fourth||"—")}</div></div>
 </div></div>
-<table><th scope="col"ead><tr><th scope="col">${escapeHtml(t("receiptGame"))}</th><th scope="col">${escapeHtml(t("receiptTeamA"))}</th><th scope="col">${escapeHtml(t("receiptScore"))}</th><th scope="col">${escapeHtml(t("receiptTeamB"))}</th><th scope="col">${escapeHtml(t("receiptWinner"))}</th></tr></thead>
+<table><thead><tr><th scope="col">${escapeHtml(t("receiptGame"))}</th><th scope="col">${escapeHtml(t("receiptTeamA"))}</th><th scope="col">${escapeHtml(t("receiptScore"))}</th><th scope="col">${escapeHtml(t("receiptTeamB"))}</th><th scope="col">${escapeHtml(t("receiptWinner"))}</th></tr></thead>
 <tbody>${rows}</tbody></table>
 <div class="notice"><b>${escapeHtml(t("receiptRuleLabel"))}:</b> ${escapeHtml(t("receiptRuleText"))}</div>
 <div class="notice" style="margin-top:12px"><b>${escapeHtml(t("receiptLegendTitle"))}:</b> ${escapeHtml(t("receiptLegendExact"))} &middot; ${escapeHtml(t("receiptLegendAdvance"))} &middot; ${escapeHtml(t("receiptLegendOneTeam"))} &middot; ${escapeHtml(t("receiptLegendChampion"))} &middot; ${escapeHtml(t("receiptLegendRunnerUp"))} &middot; ${escapeHtml(t("receiptLegendThird"))} &middot; ${escapeHtml(t("receiptLegendFourth"))}</div>
@@ -1731,10 +1731,10 @@ function buildResultEmailHtml(s, testMode) {
       <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} ${lastWinnerVerbPt}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Pontuação — Último jogo (${lastLabel})</div>
-    <table ${tbl}><th scope="col"ead><tr ${thead}><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Palpite</th><th scope="col" ${th} style="text-align:center">Pts</th><th scope="col" ${th}>Detalhes</th></tr></thead><tbody>${breakdownPt}</tbody></table>
+    <table ${tbl}><thead><tr ${thead}><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Palpite</th><th scope="col" ${th} style="text-align:center">Pts</th><th scope="col" ${th}>Detalhes</th></tr></thead><tbody>${breakdownPt}</tbody></table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Placar exato = 10 pts · Avanço correto = 5 pts · Gols exatos de 1 time = 1 pt <em>(por time, não por gol)</em></div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Ranking atual (${matchCount} de 32 jogos)</div>
-    <table ${tbl}><th scope="col"ead><tr ${thead}><th scope="col" ${th} style="text-align:center">#</th><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
+    <table ${tbl}><thead><tr ${thead}><th scope="col" ${th} style="text-align:center">#</th><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:2px;background:#dbeafe;margin:24px 0"></div>
     <div style="font-size:15px;font-weight:700;color:#1d4ed8;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #dbeafe">🇺🇸 English</div>
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
@@ -1743,10 +1743,10 @@ function buildResultEmailHtml(s, testMode) {
       <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} ${lastWinnerVerbEn}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Scoring — Latest match (${lastLabel})</div>
-    <table ${tbl}><th scope="col"ead><tr ${thead}><th scope="col" ${th}>Entry</th><th scope="col" ${th} style="text-align:center">Pick</th><th scope="col" ${th} style="text-align:center">Pts</th><th scope="col" ${th}>Details</th></tr></thead><tbody>${breakdownEn}</tbody></table>
+    <table ${tbl}><thead><tr ${thead}><th scope="col" ${th}>Entry</th><th scope="col" ${th} style="text-align:center">Pick</th><th scope="col" ${th} style="text-align:center">Pts</th><th scope="col" ${th}>Details</th></tr></thead><tbody>${breakdownEn}</tbody></table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Exact score = 10 pts · Correct advance = 5 pts · Exact goals of 1 team = 1 pt <em>(per team, not per goal)</em></div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Current ranking (${matchCount} of 32 matches played)</div>
-    <table ${tbl}><th scope="col"ead><tr ${thead}><th scope="col" ${th} style="text-align:center">#</th><th scope="col" ${th}>Entry</th><th scope="col" ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
+    <table ${tbl}><thead><tr ${thead}><th scope="col" ${th} style="text-align:center">#</th><th scope="col" ${th}>Entry</th><th scope="col" ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:2px;background:#dbeafe;margin:24px 0"></div>
     <div style="font-size:15px;font-weight:700;color:#1d4ed8;margin-bottom:14px;padding-bottom:6px;border-bottom:2px solid #dbeafe">🇲🇽 Español</div>
     <div style="background:white;border:1px solid #e2e8f0;border-radius:10px;padding:14px 16px;margin-bottom:16px">
@@ -1755,10 +1755,10 @@ function buildResultEmailHtml(s, testMode) {
       <div style="font-size:13px;color:#16a34a;margin-top:4px">✓ ${escapeHtml(lastWinner)} ${lastWinnerVerbEs}</div>
     </div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">Puntuación — Último partido (${lastLabel})</div>
-    <table ${tbl}><th scope="col"ead><tr ${thead}><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Pronóstico</th><th scope="col" ${th} style="text-align:center">Pts</th><th scope="col" ${th}>Detalles</th></tr></thead><tbody>${breakdownEs}</tbody></table>
+    <table ${tbl}><thead><tr ${thead}><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Pronóstico</th><th scope="col" ${th} style="text-align:center">Pts</th><th scope="col" ${th}>Detalles</th></tr></thead><tbody>${breakdownEs}</tbody></table>
     <div style="font-size:11px;color:#9ca3af;margin-top:-14px;margin-bottom:20px">Marcador exacto = 10 pts · Avance correcto = 5 pts · Goles exactos de 1 equipo = 1 pt <em>(por equipo, no por gol)</em></div>
     <div style="font-size:12px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:6px">🏅 Clasificación actual (${matchCount} de 32 partidos)</div>
-    <table ${tbl}><th scope="col"ead><tr ${thead}><th scope="col" ${th} style="text-align:center">#</th><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
+    <table ${tbl}><thead><tr ${thead}><th scope="col" ${th} style="text-align:center">#</th><th scope="col" ${th}>Entrada</th><th scope="col" ${th} style="text-align:center">Total</th></tr></thead><tbody>${rankingRows}</tbody></table>
     <div style="height:1px;background:#e2e8f0;margin:20px 0"></div>
     <div style="text-align:center;font-size:12px;color:#9ca3af"><a href="https://ferrarilabs.github.io/bolao/copa2026/" style="color:#1d4ed8;text-decoration:none">ferrarilabs.github.io/bolao/copa2026/</a> · Bolão do Ferrari · Copa 2026</div>
   </div>
@@ -2186,7 +2186,7 @@ function picksTable(entry) {
         ${pod.runnerUp ? `<span>🥈 ${escapeHtml(pod.runnerUp)}</span>` : ""}
         ${pod.third    ? `<span>🥉 ${escapeHtml(pod.third)}</span>`    : ""}
       </div>` : "";
-  return `<table><th scope="col"ead><tr><th scope="col">${escapeHtml(t("receiptGame"))}</th><th scope="col">${escapeHtml(t("receiptTeamA"))}</th><th scope="col">${escapeHtml(t("receiptScore"))}</th><th scope="col">${escapeHtml(t("receiptTeamB"))}</th><th scope="col">${escapeHtml(t("receiptWinner"))}</th><th scope="col">${escapeHtml(t("pickRealLabel"))}</th><th scope="col">${escapeHtml(t("pickPointsLabel"))}</th></tr></thead><tbody>${rows}</tbody></table>
+  return `<table><thead><tr><th scope="col">${escapeHtml(t("receiptGame"))}</th><th scope="col">${escapeHtml(t("receiptTeamA"))}</th><th scope="col">${escapeHtml(t("receiptScore"))}</th><th scope="col">${escapeHtml(t("receiptTeamB"))}</th><th scope="col">${escapeHtml(t("receiptWinner"))}</th><th scope="col">${escapeHtml(t("pickRealLabel"))}</th><th scope="col">${escapeHtml(t("pickPointsLabel"))}</th></tr></thead><tbody>${rows}</tbody></table>
 <p class="footer-note" style="margin-top:8px">🎯 ${escapeHtml(t("pickExactCount").replace("{n}", exactCount))}</p>${podHtml}`;
 }
 
@@ -2572,7 +2572,7 @@ function backupCsv()   { downloadBlob(`bolao-backup-${new Date().toISOString().s
 function masterCsv()   { downloadBlob(`bolao-master-${new Date().toISOString().slice(0,10)}.csv`, toCsv(exportRows(false)), "text/csv"); }
 function masterHtml()  {
   const trs = exportRows(false).map(r => `<tr><td>${escapeHtml(r.entryName)}</td><td>${escapeHtml(r.payerName)}</td><td>${r.score}</td><td>${r.paid}</td><td>${escapeHtml(r.receiptCode)}</td></tr>`).join("\n");
-  downloadBlob("master-list.html", `<!doctype html><html><head><meta charset="utf-8"><title>Master List</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}td,th{padding:8px;border:1px solid #ddd}th{background:#07151c;color:#fff}</style></head><body><h1>Master List — Bolão Copa 2026</h1><p>${new Date().toLocaleString(currentLang)}</p><table><th scope="col"ead><tr><th scope="col">${t("receiptEntry")}</th><th scope="col">${t("payerName")}</th><th scope="col">${t("points")}</th><th scope="col">${t("paymentPaid")}</th><th scope="col">${t("receiptCode")}</th></tr></thead><tbody>${trs}</tbody></table></body></html>`, "text/html");
+  downloadBlob("master-list.html", `<!doctype html><html><head><meta charset="utf-8"><title>Master List</title><style>body{font-family:Arial;padding:20px}table{border-collapse:collapse;width:100%}td,th{padding:8px;border:1px solid #ddd}th{background:#07151c;color:#fff}</style></head><body><h1>Master List — Bolão Copa 2026</h1><p>${new Date().toLocaleString(currentLang)}</p><table><thead><tr><th scope="col">${t("receiptEntry")}</th><th scope="col">${t("payerName")}</th><th scope="col">${t("points")}</th><th scope="col">${t("paymentPaid")}</th><th scope="col">${t("receiptCode")}</th></tr></thead><tbody>${trs}</tbody></table></body></html>`, "text/html");
 }
 
 /* ============================================================
@@ -3117,7 +3117,7 @@ function moneyProbHtml(info) {
     <h3>${escapeHtml(t("moneyProbTitle"))}</h3>
     <p class="muted" style="font-size:12px;margin-bottom:10px">${escapeHtml(subtitle)}</p>
     <table class="prob-table">
-      <th scope="col"ead><tr><th scope="col">${escapeHtml(t("moneyProbEntry"))}</th><th scope="col">${escapeHtml(t("moneyProbChance"))}</th><th scope="col">${escapeHtml(t("moneyProbExpected"))}</th></tr></thead>
+      <thead><tr><th scope="col">${escapeHtml(t("moneyProbEntry"))}</th><th scope="col">${escapeHtml(t("moneyProbChance"))}</th><th scope="col">${escapeHtml(t("moneyProbExpected"))}</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <p class="prob-disclaimer">${escapeHtml(t("moneyProbDisclaimer"))}</p>
@@ -3240,7 +3240,7 @@ function renderProbs() {
 ${moneyProbHtml(computeMoneyProbabilities(state()))}
 <p class="muted" style="font-size:12px;margin-bottom:12px">🎲 ${N.toLocaleString()} simulações${lastCalcStr}${polyNote}${oddsNote}</p>
 <table class="prob-table">
-  <th scope="col"ead><tr>
+  <thead><tr>
     <th scope="col"></th>
     <th scope="col" title="${escapeHtml(t("probsChamp"))}">${escapeHtml(t("probsChamp"))}</th>
     ${polyHeader}
@@ -3343,7 +3343,7 @@ function buildEditEmailHtml(beforeEntry, updatedEntry, changes) {
   const changesHtml = changes.length
     ? `<h3 style="margin-top:20px">Alterações (${changes.length}):</h3>
 <table style="width:100%;border-collapse:collapse;font-size:13px">
-  <th scope="col"ead><tr>
+  <thead><tr>
     <th scope="col" style="padding:6px 10px;text-align:left;background:#07151c">Jogo</th>
     <th scope="col" style="padding:6px 10px;text-align:left;background:#07151c">Antes</th>
     <th scope="col" style="padding:6px 10px;text-align:left;background:#07151c">Depois</th>
@@ -4237,7 +4237,7 @@ function liveMatchPointsTable(matchId, liveGoalsA, liveGoalsB) {
       : escapeHtml(row.pickStr);
     return `<tr><td style="text-align:center">${row.provPos}${rankArrowHtml(row.arrow, row.delta)}</td><td>${escapeHtml(row.name)}</td><td>${pickCell}</td><td style="text-align:center"><b class="pick-pts${row.livePts > 0 ? " pos" : ""}">${row.livePts}</b></td></tr>`;
   }).join("");
-  return `<table><th scope="col"ead><tr><th scope="col" style="text-align:center">${escapeHtml(t("livePosCol"))}</th><th scope="col">${escapeHtml(t("liveEntryCol"))}</th><th scope="col">${escapeHtml(t("livePickCol"))}</th><th scope="col" style="text-align:center">${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
+  return `<table><thead><tr><th scope="col" style="text-align:center">${escapeHtml(t("livePosCol"))}</th><th scope="col">${escapeHtml(t("liveEntryCol"))}</th><th scope="col">${escapeHtml(t("livePickCol"))}</th><th scope="col" style="text-align:center">${escapeHtml(t("livePointsCol"))}</th></tr></thead><tbody>${trs}</tbody></table>
 <p class="footer-note" style="margin-top:8px">${escapeHtml(t("liveProvisionalNote"))}</p>`;
 }
 
