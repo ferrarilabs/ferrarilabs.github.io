@@ -17,7 +17,8 @@
     "test:powerball-crash-matrix": "python3 bolao/loterias/powerball/scripts/test_crash_matrix.py",
     "test:powerball-ledger-consumer": "python3 bolao/loterias/powerball/scripts/test_ledger_actual_consumer.py",
     "test:powerball-email-visual": "python3 bolao/loterias/powerball/scripts/test_result_email_visual.py",
-    "test:powerball-workflow-arming": "python3 bolao/loterias/powerball/scripts/test_workflow_arming_contract.py"
+    "test:powerball-workflow-arming": "python3 bolao/loterias/powerball/scripts/test_workflow_arming_contract.py",
+    "test:powerball-cross-draw": "python3 bolao/loterias/powerball/scripts/test_cross_draw_resolution.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"

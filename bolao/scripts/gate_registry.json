@@ -299,6 +299,10 @@
     "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "PB-R3 + POWERBALL_NO_FAKE_EMAIL_GATE. Cobre o YAML, que nenhum teste Python alcancava."
+    },
+    "bolao/loterias/powerball/scripts/test_cross_draw_resolution.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Resolucao entre sorteios. Achado no preflight real: sorteio novo sem entrada no segredo dava RESOLVED=0."
     }
   }
 }
