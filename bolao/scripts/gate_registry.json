@@ -1,0 +1,252 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Registro canonico de gates. Existe porque 17 gates existiam sem nunca rodar (N11), incluindo gates de seguranca de email e PII. Ver audit_gate_registry.mjs.",
+  "entries": {
+    "bolao/br2026/scripts/audit_scoring.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/br2026/scripts/test_recipient_completeness.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/br2026/scripts/test_round_state.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_bracket_progression.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_cbf_ingestion.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_draw_lifecycle.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_draw_provenance.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_entry_roster_freeze.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_golden_master.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_integrity.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_remote_authoritative.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_scoring.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/audit_state_merge.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/check_cachebust.mjs": {
+      "classification": "NON_GATE_HELPER",
+      "reason": "Wrapper de CLI retrocompatibilidade: importa tudo de bolao/scripts/cachebust.mjs, que ja e exercitado por cachebust.integration.test.mjs e por check_cachebust.test.mjs."
+    },
+    "bolao/cdb2026/scripts/check_cachebust.test.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_aggregate_hero.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_draw_countdown.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_live_prob_bars.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_penalty_fields.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_result_email_source.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/visual/check_manifest.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Verificador de manifesto visual: depende de artefatos de captura gerados sob demanda por scripts/visual/, nao de codigo-fonte. Rodado junto com a geracao de evidencia visual. ACHADO ABERTO em 2026-08-10: acusa overflow horizontal em cdb2026/Jogos@320x568 e @375x667."
+    },
+    "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/copa2026/scripts/audit_scoring.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/copa2026/scripts/test_bracket_correction_routing.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_draw_model_tests.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_email_tests.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_email_tests_round2.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_email_tests_round3.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_email_tests_round4.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_pii_tests.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/audit_scoring.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/email/test_private_data_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_combo_visual.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_draw_combo.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_email_safety_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_email_send_gates.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_result_pipeline.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_send_result_email_gating.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_accessibility.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_countdown_layout.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_football_live_store.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_html_table_structure.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_card_dom.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_clock.test.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_clock_semantics.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_decision_scope.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_freshness.test.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_gateway.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_hero_reliability.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_prob_bar_geometry.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_remote_write_visibility.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_shared_store_adoption.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Gate estrutural de F12/F13 (adocao do store compartilhado). Vermelho por desenho enquanto a migracao BR/CDB nao termina; registrar um gate vermelho na suite destroi o sinal dela. DEVE migrar para REGISTERED_AND_EXECUTED assim que F12/F13 fecharem."
+    },
+    "bolao/scripts/audit_snapshot_window_coverage.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_state_invariants.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_structural_parity.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_test_isolation.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_tool_scope.test.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_visual_consistency.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/check_shared_visual_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/test_aria_current_nav.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/test_python_sender_failclosed.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_cache_poisoning.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_durable_notification_repository.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_durable_persist.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_espn_provider.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_live_store_lifecycle.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_money_interop.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_notification_outbox_interop.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_notification_pipeline.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_notification_repository.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_notification_repository.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_notification_repository_interop.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_notification_worker.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_pipeline_health.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/audit_email_send_safety.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/audit_pii_repo_wide.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/test_audit_pii_repo_wide.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/test_fixture_privacy.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    }
+  }
+}
