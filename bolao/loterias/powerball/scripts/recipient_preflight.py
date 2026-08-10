@@ -50,36 +50,35 @@ def load_draws():
         os.unlink(caminho)
 
 
-def resolvable_contacts():
-    """Chaves com contato resolvível dentro do segredo. NUNCA devolve o valor."""
+def resolvable_contacts(draw_id):
+    """Nomes com contato resolvivel. NUNCA devolve o endereco.
+
+    REUSA `load_participants_from_private_env()` do sender -- o parser autoritativo. A primeira
+    versao disto reimplementava a leitura do segredo com uma varredura recursiva generica, e
+    discordava do sender: colhia a CHAVE do campo ("email") em vez do nome do participante, e
+    reportava RESOLVED = 0 para um segredo perfeitamente valido. Dois parsers para o mesmo dado
+    e uma divergencia esperando acontecer -- ou o preflight mente sobre estar completo, ou mente
+    sobre estar faltando. Aqui existe um parser so.
+    """
     raw = os.environ.get("POWERBALL_PRIVATE_PARTICIPANT_DATA", "")
     if not raw.strip():
         return None, "SEGREDO_AUSENTE"
     try:
-        dados = json.loads(raw)
-    except json.JSONDecodeError as e:
+        import send_result_email as S
+    except Exception as e:
+        return None, f"SENDER_ILEGIVEL: {type(e).__name__}"
+    try:
+        participantes = S.load_participants_from_private_env(draw_id)
+    except Exception as e:
         return None, f"SEGREDO_ILEGIVEL: {type(e).__name__}"
 
-    chaves = set()
-
-    def coletar(no):
-        if isinstance(no, dict):
-            for k, v in no.items():
-                if isinstance(v, str) and "@" in v:
-                    chaves.add(k.strip().lower())
-                else:
-                    coletar(v)
-        elif isinstance(no, list):
-            for item in no:
-                if isinstance(item, dict):
-                    nome = item.get("nome") or item.get("name")
-                    email = item.get("email") or item.get("participantEmail")
-                    if nome and isinstance(email, str) and "@" in email:
-                        chaves.add(str(nome).strip().lower())
-                coletar(item)
-
-    coletar(dados)
-    return chaves, None
+    nomes = set()
+    for p in participantes or []:
+        nome = p.get("name") or p.get("nome")
+        email = p.get("email") or p.get("participantEmail")
+        if nome and isinstance(email, str) and "@" in email:
+            nomes.add(str(nome).strip().lower())
+    return nomes, None
 
 
 def main():
@@ -106,7 +105,7 @@ def main():
     esperados = [str(p.get("nome") or p.get("name") or "").strip() for p in participantes]
     esperados = [n for n in esperados if n]
 
-    chaves, erro = resolvable_contacts()
+    chaves, erro = resolvable_contacts(alvo['id'])
     print(f"POWERBALL_RECIPIENT_PREFLIGHT — sorteio {alvo['id']}")
     print(f"  EXPECTED = {len(esperados)}")
 
