@@ -72,6 +72,19 @@ class TransporteObedeceOAlvo(unittest.TestCase):
         self.assertIn("--send-all", self.invocacoes[0])
         self.assertEqual(set(r["accepted"]), set(TODOS))
 
+    def test_conjunto_esperado_desconhecido_falha_fechado(self):
+        """A condicao era `if esperados and ...`: conjunto vazio DESLIGAVA o guard.
+
+        Descoberto sondando com dados reais -- mockar subprocess.run quebrou `load_data_js`
+        (que roda node), `esperados` veio vazio, e o transporte difundiu com alvo de 1 pessoa.
+        Nao saber quem deveria receber e a razao mais forte para nao difundir, nao a mais fraca.
+        """
+        F.parse_draws = lambda *a, **k: []          # nao da para determinar o esperado
+        r = F._default_send_email("powerball", ["P14"])
+        self.assertEqual(self.invocacoes, [], "difundiu sem saber quem deveria receber")
+        self.assertEqual(r["accepted"], [])
+        self.assertIn("TRANSPORTE_RECUSADO", r["stdout"])
+
     def test_a_saida_do_sender_e_ecoada(self):
         """Antes ficava capturada e invisivel: envio real sem rastro nenhum no log."""
         import inspect
