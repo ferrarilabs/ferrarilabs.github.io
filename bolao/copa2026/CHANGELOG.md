@@ -1,5 +1,15 @@
 # CHANGELOG
 
+## v4.186 — 2026-08-10 — Link "Admin" do rodapé abaixo do alvo mínimo de toque
+
+A matriz de 14 larguras (nova) mediu o botão `.footer-admin-link` em **33×17px** em todas as
+larguras de celular — abaixo do mínimo de 24px. O gate de acessibilidade existente não pegava
+porque mede um conjunto diferente de seletores.
+
+Correção mínima e local: `padding: 6px 4px` + `min-height: 24px` + `display: inline-block`. A
+área tocável cresce sem mudar a aparência — o link continua lendo como texto de rodapé, que é a
+intenção do design arquivado. Nenhuma outra regra do Copa foi alterada.
+
 ## v4.185 — 2026-08-10 — Cache persistido passa a ser tratado como entrada não confiável
 
 O cliente validava `schemaVersion === 1` e `matches !== null`, e aceitava qualquer coisa dentro

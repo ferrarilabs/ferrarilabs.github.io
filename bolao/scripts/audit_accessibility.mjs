@@ -43,7 +43,9 @@ const APPS = {
 };
 
 // 899/900/901/902 juntos de propósito: é a borda que já enganou a suíte visual.
-const WIDTHS = [320, 360, 375, 390, 430, 768, 899, 900, 901, 902, 1024, 1280, 1600];
+// 393 (Pixel 8 / iPhone 15) e 414 (iPhone Plus) faltavam. 1600 fica: ja estava coberto e
+// remover largura de uma suite de acessibilidade e perder cobertura sem ganho.
+const WIDTHS = [320, 360, 375, 390, 393, 414, 430, 768, 899, 900, 901, 902, 1024, 1280, 1600];
 
 let pass = 0, fail = 0;
 const failures = [];
