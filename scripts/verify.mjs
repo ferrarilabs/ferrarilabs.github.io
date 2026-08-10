@@ -177,6 +177,8 @@ const CHECKS = [
   // Achado N21: estes 21 rodavam em `npm run test:*` e NAO em `npm run verify`. O agregador
   // canonico e o que um revisor executa -- ele reportava verde enquanto 21 gates, entre eles
   // os de seguranca de email, PII e ledger de notificacao, nao rodavam.
+  { id: "package-readiness", group: "security", cmd: ["node", "bolao/scripts/audit_review_package_readiness.mjs"],
+    why: "F20: insumos do pacote de review prontos; geracao pos-auth e mecanica" },
   { id: "gate-registry", group: "security", cmd: ["node", "bolao/scripts/audit_gate_registry.mjs"],
     why: "meta-gate: nenhum gate pode existir sem classificacao (17 orfaos achados em 2026-08-10)" },
   { id: "security-docs-reality", group: "security", cmd: ["node", "bolao/scripts/audit_security_docs_match_reality.mjs"],
