@@ -29,7 +29,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import powerball_notification as P
 
-POOL_SINTETICO = "__test__settle"
+POOL_SINTETICO = "__test__settle"  # `delete_canary_job` so apaga chaves com este prefixo
 
 
 class SettleNoBancoReal(unittest.TestCase):
@@ -61,7 +61,18 @@ class SettleNoBancoReal(unittest.TestCase):
         self.addCleanup(self.limpar)
 
     def limpar(self):
-        P._sql(f"delete from bolao_notif_jobs where idempotency_key = '{self.chave}';")
+        """Limpeza por RPC, nao pela CLI.
+
+        A primeira versao usava _sql() -- a mesma dependencia de `supabase link` que derrubou
+        tres execucoes do workflow. Os 8 testes passavam no runner e a LIMPEZA derrubava o job.
+        `delete_canary_job` so aceita chave sintetica: um erro de digitacao aqui nao pode apagar
+        notificacao real.
+        """
+        try:
+            P._rpc("delete_canary_job", {"p_idempotency_key": self.chave})
+        except Exception:
+            # Job sintetico orfao nao justifica derrubar o gate; nenhum app le este pool.
+            pass
 
     def criar(self, estados):
         recs = [{"entryRef": f"ref-{i}", "state": e} for i, e in enumerate(estados)]
