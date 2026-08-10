@@ -264,6 +264,9 @@
     },
     "bolao/scripts/audit_security_docs_match_reality.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/test_ops_logging.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
