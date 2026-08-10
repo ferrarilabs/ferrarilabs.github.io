@@ -167,6 +167,11 @@
     opts = opts || {};
     var competition = opts.competition;
     var gatewayUrl = opts.gatewayUrl;
+    // Fonte 3 da hierarquia declarada no cabecalho deste arquivo. Ate 2026-08-10 o store so
+    // conhecia o gateway, e cada app mantinha o fallback de snapshot por conta propria -- que e
+    // exatamente a hierarquia duplicada que F12/F13 existem para eliminar. Passando `snapshotUrl`
+    // o store passa a ser dono da hierarquia INTEIRA, e o app fica sem nenhuma decisao de fonte.
+    var snapshotUrl = opts.snapshotUrl || null;
     var now = opts.now || function () { return Date.now(); };
     var fetchImpl = opts.fetch || (typeof fetch !== "undefined" ? fetch.bind(root) : null);
 
@@ -353,8 +358,13 @@
             ? "UNSUPPORTED_SCHEMA_" + v.reason.replace("SCHEMA_NAO_SUPORTADO_", "")
             : "CACHE_INVALIDO:" + v.reason;
           consecutiveFailures++;
+          // Payload invalido do gateway (inclusive corpo de erro HTTP, que nao passa na
+          // validacao) cai para o snapshot commitado, como qualquer outra falha de gateway.
+          // Jamais promove o payload invalido -- o fallback e a alternativa segura, nao um jeito
+          // de aceitar o dado ruim.
+          var fellBack = await refreshFromSnapshot();
           emit();
-          return false;   // fallback seguro -- jamais promove payload invalido
+          return fellBack;
         }
 
         if (!r.ok || !body || body.matches === null || body.status === "SOURCE_UNAVAILABLE") {
@@ -362,8 +372,9 @@
           // sumia: um erro virava "não há jogo".
           lastError = (body && body.staleReason) || ("HTTP_" + r.status);
           consecutiveFailures++;
+          var fell = await refreshFromSnapshot();
           emit();
-          return false;
+          return fell;
         }
 
         lastGatewayOkAt = new Date(now()).toISOString();
@@ -381,7 +392,39 @@
       } catch (e) {
         lastError = "NETWORK";
         consecutiveFailures++;
+        var recovered = await refreshFromSnapshot();
         emit();
+        return recovered;
+      }
+    }
+
+    /**
+     * Fonte 3: snapshot commitado. BOOTSTRAP E EMERGENCIA APENAS -- nunca o transporte ao vivo.
+     *
+     * So e consultado quando o gateway falhou nesta rodada. Entra pelo mesmo `ingest()`, entao
+     * herda de graca a regra de monotonicidade e a protecao de estado terminal: um snapshot velho
+     * NAO consegue fazer o placar andar para tras nem ressuscitar um jogo ja encerrado.
+     */
+    async function refreshFromSnapshot() {
+      if (!snapshotUrl || !fetchImpl) return false;
+      try {
+        var r = await fetchImpl(snapshotUrl, { cache: "no-cache" });
+        if (!r || !r.ok) return false;
+        var snap = await r.json();
+        if (!snap || !Array.isArray(snap.matches)) return false;
+        var v = validateGatewayBody(
+          { schemaVersion: snap.schemaVersion, matches: snap.matches, observedAt: snap.generatedAt },
+          null
+        );
+        if (!v.ok) { lastError = "SNAPSHOT_INVALIDO:" + v.reason; return false; }
+        return ingest({
+          matches: snap.matches,
+          observedAt: snap.generatedAt,
+          source: SOURCE.SNAPSHOT,
+          stale: true,
+          staleReason: snap.staleReason || "GATEWAY_INDISPONIVEL",
+        });
+      } catch (e) {
         return false;
       }
     }
