@@ -17,3 +17,8 @@ verify-summary.json
 # rastreado nem ignorado, e a semântica de publicação do Git o classifica como publicável — que é
 # precisamente a categoria certa. Ignorar é o correto: é estado local de ferramenta, nunca fonte.
 supabase/.temp/
+
+# AGENTS.md e gerado externamente e nao pertence ao repositorio (contrato conhecido).
+# Foi comitado por engano em 7d17dc0 por um `git add -A`; removido do indice e ignorado
+# para que um staging normal nao volte a inclui-lo. O arquivo local permanece intacto.
+AGENTS.md
