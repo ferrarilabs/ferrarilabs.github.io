@@ -124,19 +124,8 @@ jobs:
           #   ledger       claim atomico; aceito NUNCA e reenviado; parcial nunca vira concluido
           #   completude   conjunto incompleto de destinatarios bloqueia tudo
           #   credencial   sem SUPABASE_SERVICE_ROLE_KEY o ledger falha FECHADO
-          # ARMADO em 2026-08-10, apos os 13 portoes verdes reexecutados contra o main atual.
-          #
-          # O que protege o envio, mesmo armado:
-          #   identidade   o resultado tem de ser DAQUELE sorteio; nunca "o mais recente"
-          #   tempo        nada antes de 22:59 ET + 10 min de carencia de publicacao
-          #   ledger       claim atomico; aceito NUNCA reenvia; parcial nunca vira concluido
-          #   transporte   alvo parcial RECUSA em vez de difundir; sem conjunto esperado, recusa
-          #   completude   destinatario sem contato bloqueia o envio inteiro
-          #   credencial   sem SUPABASE_SERVICE_ROLE_KEY o ledger falha FECHADO
-          #   acao manual  o 08/08 esta marcado; o ciclo automatico nao o toca
-          #
-          # DESARMAR = remover esta linha. Nada mais precisa mudar.
-          POWERBALL_EMAIL_MODE: production
+          # DESARMADO 2026-08-10 19:10 ET: falhas do workflow em producao ainda abertas.
+          # Armar = POWERBALL_EMAIL_MODE: production
         run: |
           DRY_RUN=""
           FORCE_RESEND=""
