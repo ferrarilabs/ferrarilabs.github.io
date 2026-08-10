@@ -81,19 +81,11 @@ jobs:
           # secret is the only remaining source, injected as an env var, never written
           # to a file or committed.
           POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
-          # ARMADO em 2026-08-10. Sem esta variavel o sender roda o ciclo inteiro e RECUSA enviar
-          # -- que era o estado ate aqui. Armar foi autorizado pelo Eduardo apos os portoes:
-          # matriz de crash A-M, consumidor real do ledger, PB-R1/R2/R3, NO_FAKE_EMAIL,
-          # preflight de destinatarios (15/15 no proprio Actions) e FULL VERIFY.
-          #
-          # DESARMAR = remover esta linha. Nada mais precisa mudar.
-          #
-          # O que ainda protege o envio, mesmo armado:
-          #   - identidade do sorteio: o resultado tem de ser DAQUELE sorteio, nunca "o ultimo"
-          #   - portao temporal: nada antes de drawDateIso + 10 min de carencia
-          #   - ledger duravel: claim atomico, um envio por destinatario, aceito nunca reenvia
-          #   - completude: conjunto incompleto de destinatarios bloqueia tudo
-          POWERBALL_EMAIL_MODE: production
+          # DESARMADO em 2026-08-10 a pedido do Eduardo. Armar = acrescentar aqui:
+          #     POWERBALL_EMAIL_MODE: production
+          # Sem essa variavel o ciclo roda inteiro e o sender RECUSA enviar.
+          # Bloqueio pendente: as 3 falhas do workflow em producao precisam estar explicadas,
+          # e POWERBALL_RECENT_PRODUCTION_WORKFLOW_HEALTH precisa passar.
         run: |
           DRY_RUN=""
           FORCE_RESEND=""
