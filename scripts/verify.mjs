@@ -179,6 +179,8 @@ const CHECKS = [
   // os de seguranca de email, PII e ledger de notificacao, nao rodavam.
   { id: "package-readiness", group: "security", cmd: ["node", "bolao/scripts/audit_review_package_readiness.mjs"],
     why: "F20: insumos do pacote de review prontos; geracao pos-auth e mecanica" },
+  { id: "live-cache-write-authority", group: "security", cmd: ["node", "bolao/scripts/audit_live_cache_write_authority.mjs"],
+    why: "F8: so o gateway confiavel escreve no cache ao vivo; anon nunca" },
   { id: "gate-registry", group: "security", cmd: ["node", "bolao/scripts/audit_gate_registry.mjs"],
     why: "meta-gate: nenhum gate pode existir sem classificacao (17 orfaos achados em 2026-08-10)" },
   { id: "security-docs-reality", group: "security", cmd: ["node", "bolao/scripts/audit_security_docs_match_reality.mjs"],

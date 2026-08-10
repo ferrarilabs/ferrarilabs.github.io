@@ -48,11 +48,30 @@ import {
 //   · proteção contra 429.
 // Cache local de navegador ou de isolate não satisfaz nenhum desses.
 //
-// A tabela é EXCLUSIVA de dado esportivo público, separada de `bolao_state` de propósito. RLS
-// restringe a escrita às três competições conhecidas: o pior caso possível com a anon key é
-// sobrescrever cache esportivo público com outro dado esportivo público.
+// A tabela é EXCLUSIVA de dado esportivo público, separada de `bolao_state` de propósito.
+//
+// ─── F8, 2026-08-10: A ESCRITA DEIXOU DE USAR A ANON KEY ────────────────────────────────────
+//
+// O raciocínio anterior ("o pior caso é sobrescrever cache esportivo por outro cache esportivo")
+// subestimava o dano. Uma sonda de segurança feita com a anon key PÚBLICA substituiu o payload
+// de `br2026` por `{"__probe__": "..."}` — zero partidas, forma inválida. Qualquer pessoa com a
+// chave que vai no `js/config.js` de todo navegador podia apagar o placar ao vivo de todo mundo,
+// e a única barreira era a validação no cliente.
+//
+// A leitura continua com a anon key: é dado público e a policy de SELECT permanece.
+// A ESCRITA passa a usar a service-role key, que só existe no ambiente da Edge Function e nunca
+// chega ao navegador. Com isso as policies de INSERT/UPDATE para `anon` podem ser removidas —
+// e foram.
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SUPABASE_ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
+// Presente por padrão no runtime de Edge Functions. Nunca é servida ao cliente.
+//
+// SEM FALLBACK PARA A ANON KEY. Um `?? SUPABASE_ANON` pareceria defensivo e seria uma armadilha:
+// a escrita seria tentada com uma credencial que a migração 011 acabou de proibir, o REST
+// devolveria 401, o `catch` do writeSharedCache engoliria, e o cache simplesmente pararia de ser
+// atualizado — em silêncio, por tempo indeterminado. Ausente a chave, é melhor não escrever e
+// dizer isso alto.
+const SUPABASE_WRITE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const CACHE_TABLE = "live_sports_cache";
 
 async function readSharedCache(competition: string) {
@@ -70,10 +89,16 @@ async function readSharedCache(competition: string) {
 }
 
 async function writeSharedCache(competition: string, payload: any, observedAt: string) {
+  if (!SUPABASE_WRITE_KEY) {
+    // Visível no log da função. A resposta ao visitante segue normal — só o cache compartilhado
+    // deixa de ser alimentado, e alguém precisa saber disso.
+    console.error("[live-football] SUPABASE_SERVICE_ROLE_KEY ausente: cache NAO sera gravado");
+    return;
+  }
   try {
     await fetch(`${SUPABASE_URL}/rest/v1/${CACHE_TABLE}`, {
       method: "POST",
-      headers: { apikey: SUPABASE_ANON, Authorization: `Bearer ${SUPABASE_ANON}`,
+      headers: { apikey: SUPABASE_WRITE_KEY, Authorization: `Bearer ${SUPABASE_WRITE_KEY}`,
                  "content-type": "application/json", Prefer: "resolution=merge-duplicates" },
       body: JSON.stringify({ competition, payload, observed_at: observedAt,
                              stored_at: new Date().toISOString() }),
