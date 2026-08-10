@@ -247,6 +247,9 @@
     },
     "scripts/test_fixture_privacy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_br_live_behavior_parity.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
