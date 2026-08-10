@@ -460,18 +460,51 @@ window.POWERBALL_DRAWS = [
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Dinheiro (cash)", data: "10/08/2026", hora: "12:26 PM", status: "verificado", state: "NC" }
     ],
 
-    // Nenhum ticket comprado ainda.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "10/08/2026 22:59 ET",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "207F604D666D98DE7", qtd: 8, jogos: "1–8",
+          numeros: [
+            "22-26-47-61-67 — PB 02", "23-26-27-34-69 — PB 18", "24-25-46-49-58 — PB 09",
+            "27-38-39-46-65 — PB 04", "28-31-45-54-56 — PB 05", "33-41-42-47-64 — PB 06",
+            "34-35-42-63-65 — PB 16", "40-41-51-53-60 — PB 26"
+          ]
+        },
+        {
+          serial: "2F4D8C413A888EA86", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-06-16-57-62 — PB 03", "01-10-24-41-63 — PB 01", "01-22-59-64-69 — PB 11",
+            "01-28-50-53-55 — PB 05", "02-07-31-46-68 — PB 13", "02-13-35-59-66 — PB 09",
+            "02-16-28-33-51 — PB 20", "02-26-49-55-64 — PB 07", "03-05-35-52-58 — PB 22",
+            "03-10-18-38-51 — PB 06", "03-20-23-36-56 — PB 16", "03-22-28-39-68 — PB 12",
+            "04-09-36-43-67 — PB 19", "04-17-27-55-58 — PB 15", "04-23-29-47-54 — PB 15",
+            "04-25-31-32-37 — PB 11", "05-06-11-44-59 — PB 16", "05-07-30-32-50 — PB 24",
+            "05-12-19-38-66 — PB 05", "06-14-39-49-63 — PB 18", "06-17-19-36-41 — PB 23",
+            "07-15-16-40-64 — PB 13", "07-45-62-65-66 — PB 08", "08-15-56-60-69 — PB 17",
+            "08-17-21-43-52 — PB 24", "08-35-40-44-67 — PB 13", "08-48-49-54-59 — PB 21",
+            "09-11-24-39-54 — PB 10", "09-12-16-42-55 — PB 25", "09-18-27-45-48 — PB 02",
+            "10-21-34-47-56 — PB 26", "10-29-48-57-68 — PB 17", "10-31-40-61-62 — PB 23",
+            "11-12-32-47-62 — PB 07", "11-14-29-34-51 — PB 21", "11-40-52-65-68 — PB 03",
+            "12-43-53-58-63 — PB 19", "13-18-24-60-61 — PB 08", "13-23-32-45-52 — PB 20",
+            "13-42-44-50-69 — PB 14", "14-20-25-43-61 — PB 22", "14-36-37-53-57 — PB 01",
+            "15-21-22-35-50 — PB 25", "15-25-30-36-45 — PB 12", "17-34-44-57-60 — PB 04",
+            "18-26-29-37-58 — PB 07", "19-20-37-52-62 — PB 23", "19-21-33-46-48 — PB 14",
+            "20-30-33-38-67 — PB 06", "21-27-30-49-66 — PB 10"
+          ]
+        }
+      ]
     },
 
+    // 58 tickets (8 + 50) x US$3 (Power Play) = US$174. Arrecadado US$150 + crédito de
+    // US$24 do sorteio anterior (2026-08-08) = US$174 disponível — bate exato, nada sobra.
+    // Comprovante NC Education Lottery, pedido #2CBCCF0B2A2761EDD.
     finance: {
       totalArrecadado: 150,
       creditoSorteioAnterior: 24,
-      valorUtilizado: 0,
+      valorUtilizado: 174,
       valorGuardadoProximoSorteio: 0,
       ajustesPendentes: 0
     },
