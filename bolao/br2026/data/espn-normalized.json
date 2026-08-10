@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-09T23:56:35Z",
-  "sourceUpdatedAt": "2026-08-09T23:56:35Z",
+  "generatedAt": "2026-08-10T01:38:23Z",
+  "sourceUpdatedAt": "2026-08-10T01:38:23Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "fb8b7591c7841a2ac62331e2fc93aa2a6fd3e40627e47fdd01ed4361a5bf6c60",
+  "payloadHash": "e0dc2919da1fd554f3e0a849dea6ace898c6767fa1dd03c154a0dd92486d3a48",
   "matches": [
     {
       "id": "401840808",
@@ -36535,24 +36535,24 @@
     {
       "id": "401841187",
       "date": "2026-08-09T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "66'",
-      "statusDetail": "66'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Flamengo",
       "awayTeam": "Vitória",
       "homeTeamId": "819",
       "awayTeamId": "3457",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 3960.0,
-      "clockStr": "66'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
       "period": 2,
       "details": [
         {
@@ -36590,6 +36590,44 @@
             {
               "displayName": "Zé Vitor",
               "shortName": "Zé Vitor"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4718.0,
+            "displayValue": "79'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gonzalo Plata",
+              "shortName": "G. Plata"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4772.0,
+            "displayValue": "80'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Henrique",
+              "shortName": "Bruno Henrique"
             }
           ]
         }
