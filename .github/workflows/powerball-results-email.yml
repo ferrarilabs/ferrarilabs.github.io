@@ -124,7 +124,8 @@ jobs:
           #   ledger       claim atomico; aceito NUNCA e reenviado; parcial nunca vira concluido
           #   completude   conjunto incompleto de destinatarios bloqueia tudo
           #   credencial   sem SUPABASE_SERVICE_ROLE_KEY o ledger falha FECHADO
-          POWERBALL_EMAIL_MODE: production
+          # DESARMADO 2026-08-10: a validacao controlada alvejou o 08/08 e chamou o provedor.
+          # Armar = POWERBALL_EMAIL_MODE: production
         run: |
           DRY_RUN=""
           FORCE_RESEND=""
