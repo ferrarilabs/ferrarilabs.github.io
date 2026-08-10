@@ -124,6 +124,50 @@
       }
     }
 
+    // Ciclo de vida terminal já confirmado, por id de partida. Ver enforceTerminalMonotonicity().
+    var terminalById = {};
+
+    /**
+     * TERMINAL_STATE_NON_REGRESSION.
+     *
+     * A regra de timestamp sozinha protege contra resposta ATRASADA que chega fora de ordem.
+     * Ela não protege contra o caso oposto, que é real: o upstream declara FINAL às 22h05 e,
+     * numa observação MAIS NOVA às 22h06, volta a declarar a mesma partida como `in`. Pela regra
+     * de timestamp a observação nova é aceita, e o ciclo de vida anda para trás — o hero volta a
+     * dizer AO VIVO num jogo que já acabou. Foi assim que o comentário anterior aqui errou: ele
+     * argumentava que nenhum caso especial era necessário, mas cobria só metade do problema.
+     *
+     * Uma vez que a fonte declarou terminal (FINAL/adiado) para uma partida, o CICLO DE VIDA
+     * daquela partida não regride. O que continua podendo ser corrigido é o FATO: placar, minuto,
+     * detalhes — correções pós-jogo do provedor são legítimas e não devem ser descartadas. Por
+     * isso preservamos os campos novos e reimpomos apenas os campos que determinam o terminal.
+     */
+    function enforceTerminalMonotonicity(matches) {
+      if (!Array.isArray(matches)) return matches;
+      var out = [];
+      for (var i = 0; i < matches.length; i++) {
+        var m = matches[i];
+        var known = m && m.id ? terminalById[m.id] : null;
+        var t = terminalOf(m);
+        if (t && m && m.id) {
+          terminalById[m.id] = { state: t, statusName: m.statusName, matchState: m.state, postponed: !!m.postponed };
+          out.push(m);
+          continue;
+        }
+        if (!known) { out.push(m); continue; }
+        // Regressão: a observação nova diz não-terminal para uma partida já encerrada. Mantém o
+        // ciclo de vida, absorve os fatos novos.
+        var fixed = {};
+        for (var k in m) if (Object.prototype.hasOwnProperty.call(m, k)) fixed[k] = m[k];
+        fixed.state = known.matchState;
+        fixed.statusName = known.statusName;
+        fixed.postponed = known.postponed;
+        if (known.state === STATE.FINAL) fixed.completed = true;
+        out.push(fixed);
+      }
+      return out;
+    }
+
     /**
      * Aceita uma observação apenas se for ESTRITAMENTE mais nova que a corrente.
      *
@@ -139,12 +183,8 @@
       var ts = parseTs(obs.observedAt);
       if (!ts) return false;
       if (current && ts <= current.observedTs) return false;   // fora de ordem: descarta
-      // A monotonicidade TERMINAL é garantida pela regra de timestamp acima: uma observação
-      // atrasada (`ts <= current.observedTs`) já foi descartada, então um FINAL registrado não
-      // pode ser revertido por uma resposta antiga que chegou depois. Não é preciso caso especial
-      // — e um caso especial aqui seria uma segunda regra de precedência, que é como se criam
-      // divergências.
       obs.observedTs = ts;
+      obs.matches = enforceTerminalMonotonicity(obs.matches);
       current = obs;
       var lv = firstLive(obs.matches);
       if (lv && lv.id) lastLiveMatchId = lv.id;
@@ -294,10 +334,16 @@
     }
 
     function schedule() {
+      // STOP_DURING_INFLIGHT_REFRESH: `stop()` pode ter acontecido enquanto o refresh que nos
+      // chamou estava em voo. Sem esta guarda, o `.then(schedule)` de start() e o `schedule()`
+      // do tick ressuscitam o laço DEPOIS do stop — a store fica polindo para sempre, invisível,
+      // e cada start/stop de um rerender deixa mais um laço órfão para trás.
+      if (!started) return;
       // SINGLETON: limpa antes de agendar. Sem isto, cada rerender/troca de idioma/troca de aba
       // criaria mais um laço — o defeito de timers acumulados que já apareceu neste repositório.
       if (timer) { clearTimeout(timer); timer = null; }
       timer = setTimeout(async function tick() {
+        if (!started) return;
         await refresh();
         schedule();
       }, nextIntervalMs());
@@ -312,6 +358,7 @@
     function stop() {
       started = false;
       if (timer) { clearTimeout(timer); timer = null; }
+      listeners = [];
     }
 
     return {
