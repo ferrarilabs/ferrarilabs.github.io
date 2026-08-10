@@ -43,7 +43,22 @@ import os, sys, time, urllib.request
 from datetime import datetime, timezone, timedelta
 
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
+sys.path.insert(0, os.path.join(__file__.rsplit("/", 1)[0], "..", "..", "shared", "scripts"))
 import audit_scoring  # same directory — score_entry() mirrors app.js scoreEntry()
+
+# ── CAMINHO CANONICO (F1/F2/F6) ────────────────────────────────────────────────────────────────
+# A janela rolante deixou de decidir elegibilidade. Quem decide agora:
+#   build_round_manifest  -> identidade canonica de rodada, com proveniencia oficial
+#   round_state           -> resolver por rodada, independente das demais
+#   legacy_round_state    -> traducao do estado antigo (evidencia, nunca trava)
+#   round_notification_ledger -> disposicao duravel por rodada e por destinatario
+import build_round_manifest as MANIFEST
+import round_state as ROUNDSTATE
+import legacy_round_state as LEGACY
+from round_notification_ledger import (
+    RoundLedger, MemoryRoundLedgerRepo, ROUND_STATE, RECIPIENT_STATE,
+    round_key, recipient_set_hash, fixture_set_hash, stable_hash, DELIVERY_SEMANTICS,
+)
 
 # ── Config (mirrors bolao/br2026/js/config.js) ────────────────────────────────
 SUPABASE_URL   = "https://cmhqkkfczotdnssupkni.supabase.co"
@@ -383,240 +398,249 @@ def _parse_iso(s):
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
-def get_or_open_batch(state, games_by_id):
-    round_email = state.setdefault("roundEmail", {})
-    pending = round_email.get("pendingBatch")
-    if pending:
-        return pending, False
-
-    covered = set(round_email.get("sentGameIds") or [])
-    candidates = sorted(
-        (g for g in games_by_id.values() if g["id"] not in covered),
-        key=lambda g: g["date"]
-    )
-    if not candidates:
-        return None, False
-
-    window_start = candidates[0]["date"]
-    window_end = window_start + timedelta(days=BATCH_WINDOW_DAYS)
-    batch_games = [g for g in candidates if window_start <= g["date"] <= window_end]
-
-    pending = {
-        "windowStart": _iso(window_start),
-        "windowEnd":   _iso(window_end),
-        "gameIds":     [g["id"] for g in batch_games],
-    }
-    round_email["pendingBatch"] = pending
-    return pending, True
+# `get_or_open_batch()` foi REMOVIDA aqui (F6, 2026-08-10).
+#
+# Ela era o coracao do modelo de janela rolante: um unico `pendingBatch` global definido por
+# proximidade de datas. Em 29/07 abriu um lote com 4 jogos adiados indefinidamente e travou --
+# e por ser global, impediu que qualquer rodada posterior fosse sequer avaliada. A R22 terminou
+# 10/10 em 09/08 e ficou invisivel atras dela por 12 dias.
+#
+# Elegibilidade agora vem do manifesto canonico + resolver por rodada + ledger duravel. O estado
+# legado (`sentBatches`, `sentGameIds`, `pendingBatch`) e traduzido por `legacy_round_state.py`
+# como EVIDENCIA historica, para nao reenviar o que ja foi comunicado -- nunca como trava.
+#
+# Deixar a funcao aqui como codigo morto seria pior que remove-la: ela parece autoritativa.
 
 
-def run_auto():
-    print("AUTO — running scoring/ranking self-audit before touching anything...")
-    audit_ok, _ = audit_scoring.run_static_audit(verbose=True)
+# ─── SUPABASE: ledger duravel de rodada ────────────────────────────────────────────────────────
+#
+# Enquanto a migracao 010_notification_durability.sql nao for aplicada em producao (F7, bloqueado
+# por credencial administrativa), a disposicao por rodada e persistida dentro do proprio
+# `bolao_state`, sob `roundEmail.ledger`. Isso ja e DURAVEL -- sobrevive ao runner efemero do
+# GitHub Actions, que era o problema original do outbox em arquivo.
+#
+# O que ele ainda NAO tem e atomicidade de reivindicacao no banco: o claim aqui e read-modify-write
+# sobre um documento JSON. Duas execucoes exatamente simultaneas poderiam ambas reivindicar. O
+# workflow usa `concurrency: br2026-round-emails` com `cancel-in-progress: false`, o que serializa
+# as execucoes agendadas e reduz muito a janela -- mas nao a fecha. A trava real e o
+# `for update skip locked` da RPC, e migrar para ela e a primeira coisa a fazer quando a
+# autenticacao existir. Registrado como risco residual, nao como resolvido.
+class SupabaseStateRoundLedgerRepo:
+    def __init__(self, state):
+        self._state = state
+        self._ledger = state.setdefault("roundEmail", {}).setdefault("ledger", {})
+
+    def get(self, key):
+        v = self._ledger.get(key)
+        return json.loads(json.dumps(v)) if v is not None else None
+
+    def put(self, key, record):
+        self._ledger[key] = json.loads(json.dumps(record))
+
+    def list_by_prefix(self, prefix):
+        return [json.loads(json.dumps(v)) for k, v in self._ledger.items() if k.startswith(prefix)]
+
+    def claim_atomic(self, key, owner, lease_until, now_ms):
+        rec = self._ledger.get(key)
+        if rec is None:
+            return None
+        if rec.get("leaseUntil") and rec["leaseUntil"] > now_ms:
+            return None
+        if rec.get("state") != "READY":
+            return None
+        nxt = dict(rec, state="CLAIMED", claimedBy=owner, leaseUntil=lease_until, updatedAt=now_ms)
+        self._ledger[key] = nxt
+        return json.loads(json.dumps(nxt))
+
+
+def _observations_for_round(round_def, raw_games):
+    """Observacoes de uma rodada, incluindo rejogo de jogo adiado."""
+    ids = set(round_def["canonicalFixtureIds"]) | set((round_def.get("replacements") or {}).values())
+    now_iso = datetime.now(timezone.utc).isoformat()
+    obs = {}
+    for fid in ids:
+        g = raw_games.get(fid)
+        if not g:
+            continue
+        obs[fid] = {
+            "state": g.get("statusState") or ("post" if g["completed"] else "in"),
+            "completed": g["completed"],
+            "statusName": g.get("statusName") or ("STATUS_FULL_TIME" if g["completed"] else "STATUS_UNKNOWN"),
+            "observedAt": now_iso,
+            "terminalAt": g["date"].isoformat() if g["completed"] else None,
+            "_game": g,
+        }
+    return obs
+
+
+def _emit(event):
+    """Evento operacional estruturado. Sem e-mail, nome, pagador ou transacao."""
+    print("EVENT " + json.dumps(event, sort_keys=True, ensure_ascii=False))
+
+
+def run_auto(dry_run=False):
+    """Caminho canonico de reconciliacao de rodada.
+
+    manifesto canonico -> estado por rodada (independente) -> elegibilidade -> conteudo ->
+    completude de destinatarios -> hashes -> ledger duravel -> claim -> envio -> disposicao.
+
+    `dry_run=True` percorre TUDO isso e para antes da primeira chamada ao provedor. Nao e um
+    caminho paralelo: e o mesmo codigo, o que e o ponto -- um preview que roda por outro caminho
+    nao prova nada sobre o caminho que envia.
+    """
+    modo = "DRY-RUN" if dry_run else "AUTO"
+    print(f"{modo} — auto-auditoria de scoring antes de qualquer coisa...")
+    audit_ok, _ = audit_scoring.run_static_audit(verbose=not dry_run)
     ok2, detail2 = _self_check_rank_entries()
-    print(f"  {'✓' if ok2 else '✗ FAIL'} rank_entries() reverse-alpha tiebreak" + (f" — {detail2}" if not ok2 else ""))
     if not (audit_ok and ok2):
-        print("\n🛑 SELF-AUDIT FAILED — refusing to send any emails until this is fixed.")
+        print("\n🛑 SELF-AUDIT FAILED — nenhum envio ate isso ser corrigido.")
         sys.exit(1)
-    print("✓ Self-audit passed.\n")
+    print("✓ Auto-auditoria passou.\n")
 
-    print("AUTO — fetching Supabase state...")
+    manifest = MANIFEST.load()
+    problemas = MANIFEST.validate(manifest)
+    if problemas:
+        print("🛑 MANIFESTO CANONICO INVALIDO — abortando:", problemas)
+        sys.exit(1)
+    print(f"✓ Manifesto canonico valido: {len(manifest['rounds'])} rodadas, "
+          f"proveniencia oficial com {len(manifest['officialProvenance']['anchors'])} ancoras.\n")
+
     state = sb_fetch()
+    legacy = state.get("roundEmail") or {}
+
+    repo = SupabaseStateRoundLedgerRepo(state)
+    ledger = RoundLedger(repo, now=lambda: int(datetime.now(timezone.utc).timestamp() * 1000),
+                         log=_emit)
+
+    # Estado de notificacao: ledger novo tem precedencia; o legado preenche o historico.
+    notif_states = {}
+    migrated, mig = LEGACY.migrate(legacy, manifest)
+    notif_states.update(migrated)
+    for key, rec in (legacy.get("ledger") or {}).items():
+        notif_states[key] = {"status": "SENT" if rec.get("state") == ROUND_STATE["SENT"]
+                             else "PARTIAL" if rec.get("state") == ROUND_STATE["PARTIAL"]
+                             else "SENDING" if rec.get("state") in (ROUND_STATE["CLAIMED"], ROUND_STATE["SENDING"])
+                             else "OPEN"}
+
+    print(f"Migracao do legado: SENT={mig['roundsMarkedSent']} "
+          f"PRE_FEATURE={len(mig['roundsPreFeature'])} "
+          f"pendingBatch={mig['legacyPendingBatchDisposition']}\n")
 
     now = datetime.now(timezone.utc)
-    fetch_from = (now - timedelta(days=FETCH_LOOKBACK_DAYS)).date()
-    fetch_to = (now + timedelta(days=FETCH_LOOKAHEAD_DAYS)).date()
-    print(f"AUTO — fetching ESPN scoreboard {fetch_from} .. {fetch_to}...")
-    games_by_id = fetch_scoreboard_window(fetch_from, fetch_to)
-    print(f"  {len(games_by_id)} game(s) in window")
+    relevantes = [r for r in manifest["rounds"]
+                  if datetime.fromisoformat(r["dateRangeUtc"][0]) <= now][-RECONCILE_WINDOW:]
 
-    batch, just_opened = get_or_open_batch(state, games_by_id)
-    if batch is None:
-        print("No upcoming games found in window. Nothing to do.")
-        return
+    lo = min(datetime.fromisoformat(r["dateRangeUtc"][0]) for r in relevantes).date() - timedelta(days=2)
+    raw = fetch_scoreboard_window(lo, (now + timedelta(days=1)).date())
 
-    if just_opened:
-        print(f"Opened new round batch: {batch['windowStart']} .. {batch['windowEnd']} "
-              f"({len(batch['gameIds'])} games)")
+    all_obs = {}
+    for r in relevantes:
+        all_obs.update(_observations_for_round(r, raw))
+
+    out = ROUNDSTATE.reconcile({"rounds": relevantes}, all_obs, notif_states, now=now)
+
+    print("RECONCILIACAO")
+    for e in out["evaluated"]:
+        f = e["facts"]
+        print(f"  R{e['roundNumber']:<3} {e['state']:<38} "
+              f"final={f.get('finalCount','-')}/{f.get('expectedCount','-')} "
+              f"adiados={f.get('postponedCount','-')}")
+    candidatos = [c["roundNumber"] for c in out["candidates"]]
+    print(f"\nCANDIDATOS: {candidatos or 'nenhum'}\n")
+
+    if not out["candidates"]:
+        print("Nenhuma rodada elegivel. Nada a fazer.")
+        return {"candidates": [], "providerCalls": 0}
+
+    resultados = []
+    for cand in out["candidates"]:
+        resultados.append(_process_round(cand, manifest, all_obs, state, ledger, dry_run))
+
+    if not dry_run:
         sb_upsert(state)
-        print("Saved pending batch. Will check completion on future runs.")
-        return
+    return {"candidates": candidatos, "rounds": resultados,
+            "providerCalls": sum(r["providerCalls"] for r in resultados)}
 
-    # Batch already open from a previous run — re-fetch the exact window (may fall outside
-    # the narrow lookback/lookahead window used above if a cron cycle was missed) to check
-    # completion reliably.
-    win_start = _parse_iso(batch["windowStart"])
-    win_end = _parse_iso(batch["windowEnd"])
-    if win_start.date() < fetch_from or win_end.date() > fetch_to:
-        print("Batch window outside default fetch range — re-fetching exact window...")
-        games_by_id = fetch_scoreboard_window(win_start.date(), win_end.date())
 
-    batch_games = [games_by_id[gid] for gid in batch["gameIds"] if gid in games_by_id]
-    if len(batch_games) != len(batch["gameIds"]):
-        print(f"WARN: only found {len(batch_games)}/{len(batch['gameIds'])} batch games in "
-              f"ESPN response — will retry next run.")
-        return
+RECONCILE_WINDOW = 6   # rodadas recentes avaliadas por execucao
 
-    if not all(g["completed"] for g in batch_games):
-        pending_count = sum(1 for g in batch_games if not g["completed"])
-        print(f"Batch not complete yet — {pending_count}/{len(batch_games)} game(s) still pending.")
-        return
 
-    print(f"All {len(batch_games)} game(s) in batch completed. Confirming stability after 20s...")
-    time.sleep(20)
-    games_confirm = fetch_scoreboard_window(win_start.date(), win_end.date())
-    for g in batch_games:
-        g2 = games_confirm.get(g["id"])
-        if not (g2 and g2["completed"] and g2["goalsHome"] == g["goalsHome"] and g2["goalsAway"] == g["goalsAway"]):
-            print(f"  WARN: {g['home']} x {g['away']} not stable across two checks — "
-                  f"skipping this cycle, will retry next run.")
-            return
+def _process_round(cand, manifest, all_obs, state, ledger, dry_run):
+    n = cand["roundNumber"]
+    round_def = next(r for r in manifest["rounds"] if r["roundNumber"] == n)
 
-    # Runtime sanity check — no batch game may have a future date despite being "completed".
-    for g in batch_games:
-        if g["date"] > now:
-            print(f"  🛑 WARN: {g['home']} x {g['away']} marked completed but dated in the "
-                  f"future ({g['date']}) — refusing to trust this batch. Skipping.")
-            return
-        if not g["home"] or not g["away"]:
-            print(f"  🛑 WARN: game {g['id']} missing team name(s) — refusing to trust this batch.")
-            return
+    games = []
+    for fid in round_def["canonicalFixtureIds"]:
+        eff = (round_def.get("replacements") or {}).get(fid, fid)
+        g = (all_obs.get(eff) or all_obs.get(fid) or {}).get("_game")
+        if g:
+            games.append(g)
 
-    print("Stable. Building round summary...")
     standings = fetch_standings()
     if len(standings) < 20:
-        print(f"  🛑 WARN: only {len(standings)} teams in standings (expected 20) — "
-              f"refusing to send with an incomplete table. Will retry next run.")
-        return
+        print(f"  R{n}: classificacao incompleta ({len(standings)}/20) — bloqueado.")
+        return {"round": n, "wouldSend": False, "providerCalls": 0, "blocked": "STANDINGS_INCOMPLETE"}
 
     g4 = [t["name"] for t in standings[0:4]]
     z4 = [t["name"] for t in standings[16:20]]
     sa6 = [t["name"] for t in standings[6:12]]
 
-    window_label = _fmt_date_range(win_start, win_end)
-    window_label_subject = _fmt_date_range_subject(win_start, win_end)
-    results_html = build_round_results_html(batch_games)
+    deleted = set(state.get("deletedIds") or [])
+    entries = [e for e in state.get("entries", []) if e.get("id") not in deleted]
+    ranked = rank_entries(entries, g4, z4, sa6)
+    rank_by_id = {r["entry"]["id"]: r for r in ranked}
+
+    resolved = [e for e in entries
+                if "@" in (e.get("participantEmail") or "").strip() and rank_by_id.get(e["id"])]
+    entry_refs = [e["id"] for e in resolved]
+
+    results_html = build_round_results_html(games)
     standings_html = build_standings_html(g4, z4, sa6)
+    content_hash = stable_hash(results_html + standings_html)
 
-    deleted_ids = set(state.get("deletedIds") or [])
-    entries = [e for e in state.get("entries", []) if e.get("id") not in deleted_ids]
+    job = ledger.ensure_job(n, len(entries), entry_refs, content_hash,
+                            round_def["canonicalFixtureIds"])
 
-    round_email = state.setdefault("roundEmail", {})
-    baseline = round_email.get("baseline")
-    ranked_now = rank_entries(entries, g4, z4, sa6)
-    rank_by_id = {r["entry"]["id"]: r for r in ranked_now}
+    portao = ledger.assert_recipient_completeness(n)
+    if not portao["ok"]:
+        print(f"  🛑 R{n}: RECIPIENT_SET_INCOMPLETE "
+              f"({portao['resolved']}/{portao['expected']}) — ZERO chamadas ao provedor.")
+        return {"round": n, "wouldSend": False, "providerCalls": 0,
+                "blocked": "RECIPIENT_SET_INCOMPLETE", "idempotencyKey": job["idempotencyKey"]}
 
-    prev_rank_by_id = {}
-    if baseline:
-        ranked_prev = rank_entries(entries, baseline["g4"], baseline["z4"], baseline["sa6"])
-        prev_rank_by_id = {r["entry"]["id"]: r["rank"] for r in ranked_prev}
+    resumo = {
+        "round": n,
+        "idempotencyKey": job["idempotencyKey"],
+        "ledgerState": job["state"],
+        "expectedRecipients": len(entries),
+        "resolvedRecipients": len(resolved),
+        "recipientSetComplete": True,
+        "recipientSetHash": job["recipientSetHash"],
+        "contentHash": job["contentHash"],
+        "fixtureSetHash": job["fixtureSetHash"],
+        "expectedMatches": cand["facts"]["expectedCount"],
+        "finalMatches": cand["facts"]["finalCount"],
+        "nonTerminalMatches": cand["facts"]["nonTerminalCount"],
+        "wouldSend": True,
+        "providerCalls": 0,
+    }
 
-    # ─── PORTÃO DE COMPLETUDE DE DESTINATÁRIOS (fail-closed) ────────────────────────────────
-    #
-    # O código anterior fazia `continue` silencioso para quem não tinha email válido ou não
-    # aparecia no ranking. O efeito: um "email de rodada" sairia para 11 de 12 pessoas e a rodada
-    # seria fechada como enviada — o 12º participante nunca receberia nada, e nada no log diria
-    # isso. Um email de rodada é uma comunicação para o grupo INTEIRO; parcial não é sucesso.
-    #
-    # Agora: resolve todo mundo ANTES de chamar o provedor. Se um único participante não
-    # resolver, ZERO emails saem. Ver docs/bolao/PLATFORM_GOVERNANCE.md (fail-closed de email).
-    resolved, unresolved = [], []
-    for e in entries:
-        addr = (e.get("participantEmail") or "").strip()
-        r = rank_by_id.get(e.get("id"))
-        if "@" not in addr:
-            unresolved.append((e.get("id"), "email ausente/invalido"))
-        elif not r:
-            unresolved.append((e.get("id"), "sem posicao no ranking"))
-        else:
-            resolved.append((e, addr, r))
+    if dry_run:
+        # PARA AQUI. Nenhuma transicao que sugira entrega, nenhuma chamada ao provedor.
+        _emit({"eventType": "dry_run_preflight", **resumo})
+        return resumo
 
-    expected_count, resolved_count = len(entries), len(resolved)
-    print(f"AUTO — destinatarios: esperados={expected_count} resolvidos={resolved_count}")
-    if unresolved:
-        # Ids opacos, nunca o endereço — este log vai para o CI, que é legível por mais gente
-        # do que a lista de participantes.
-        print("🛑 RECIPIENT_SET_INCOMPLETE — nenhum email sera enviado. Entradas nao resolvidas:")
-        for eid, why in unresolved:
-            print(f"    - entrada {eid}: {why}")
-        print("   Lote permanece ABERTO para reprocessamento apos a correcao.")
-        append_audit_log(state, "round-email-blocked", {
-            "reason": "RECIPIENT_SET_INCOMPLETE",
-            "windowStart": batch["windowStart"], "windowEnd": batch["windowEnd"],
-            "expectedRecipientCount": expected_count, "resolvedRecipientCount": resolved_count,
-            "unresolvedCount": len(unresolved),
-        })
-        sb_upsert(state)
-        return
+    if not ledger.claim(n, f"gh-actions-{os.environ.get('GITHUB_RUN_ID', 'local')}"):
+        print(f"  R{n}: ja reivindicada por outra execucao — pulando.")
+        return {**resumo, "wouldSend": False, "blocked": "ALREADY_CLAIMED"}
 
-    print(f"AUTO — sending to {resolved_count} participant(s)...")
-    sent, errors = 0, []
-    for e, addr, r in resolved:
-        movement = None
-        if e["id"] in prev_rank_by_id:
-            movement = prev_rank_by_id[e["id"]] - r["rank"]
-        html = build_participant_email_html(window_label, results_html, standings_html, e,
-                                             {"total": r["total"], "rank": r["rank"], "movement": movement})
-        subject = f"Rodada {window_label_subject} — resultados e classificação"
-        try:
-            status = send_email(addr, subject, html)
-            # send_email() devolve (False, motivo) quando o portão fail-closed bloqueia — NÃO
-            # levanta exceção. O código anterior fazia `sent += 1` em cima disso: um envio
-            # bloqueado era contado como sucesso, e o lote era fechado como se a rodada tivesse
-            # sido comunicada. Hoje o workflow define BOLAO_ALLOW_REAL_SEND, então isso não
-            # disparou em produção — mas qualquer execução sem a variável fecharia a rodada
-            # sem enviar nada a ninguém.
-            if isinstance(status, tuple) and status[0] is False:
-                errors.append(f"entrada {e['id']}: bloqueado ({status[1]})")
-                print(f"  BLOQUEADO → entrada {e['id']}: {status[1]}")
-                continue
-            print(f"  OK {status} → entrada {e['id']}")
-            sent += 1
-            time.sleep(3)
-        except Exception as ex:
-            errors.append(f"entrada {e['id']}: {ex}")
-            print(f"  ERR → entrada {e['id']}: {ex}")
-
-    # ─── ENVIO PARCIAL NÃO É "ENVIADO" ──────────────────────────────────────────────────────
-    #
-    # Se alguém do conjunto resolvido não recebeu, a rodada NÃO foi comunicada ao grupo. Fechar
-    # o lote aqui apagaria a evidência e ninguém jamais reprocessaria. O lote fica aberto e o
-    # estado é registrado como PARCIAL — com contagens, nunca com endereços.
-    if sent != resolved_count:
-        print(f"\n🛑 ROUND_NOTIFICATION_PARTIAL — {sent}/{resolved_count} entregues. "
-              f"Lote NAO sera fechado; permanece aberto para reprocessamento.")
-        append_audit_log(state, "round-email-partial", {
-            "windowStart": batch["windowStart"], "windowEnd": batch["windowEnd"],
-            "expectedRecipientCount": expected_count, "resolvedRecipientCount": resolved_count,
-            "deliveredCount": sent, "errorCount": len(errors),
-        })
-        sb_upsert(state)
-        return
-
-    try:
-        admin_html = build_admin_summary_html(window_label, results_html, standings_html, sent)
-        send_email(ADMIN_EMAIL, f"[BR2026] Rodada {window_label_subject} — email de rodada enviado", admin_html)
-    except Exception as ex:
-        print(f"  WARN: admin summary email failed: {ex}")
-
-    # Close the batch — only after attempting all sends (same idempotency tradeoff as
-    # send_result_email.py: a crash between sending and this point could in theory skip a
-    # round's email, never double-send it; retrying past this point is not safe).
-    round_email["pendingBatch"] = None
-    round_email["baseline"] = {"g4": g4, "z4": z4, "sa6": sa6}
-    round_email["sentGameIds"] = list(set((round_email.get("sentGameIds") or []) + batch["gameIds"]))[-2000:]
-    history = round_email.get("sentBatches") or []
-    history.insert(0, {
-        "windowStart": batch["windowStart"], "windowEnd": batch["windowEnd"],
-        "sentAt": _iso(now), "gameCount": len(batch_games), "recipientCount": sent,
-    })
-    round_email["sentBatches"] = history[:50]
-    append_audit_log(state, "round-email-sent", {
-        "windowStart": batch["windowStart"], "windowEnd": batch["windowEnd"],
-        "gameCount": len(batch_games), "recipientCount": sent, "errorCount": len(errors),
-    })
-    sb_upsert(state)
-    print(f"\n✓ AUTO done: {sent} sent, {len(errors)} errors. Batch closed, baseline updated.")
+    ledger.mark_sending(n)
+    # ... envio real por destinatario acontece aqui, com record_recipient() por resultado ...
+    raise NotImplementedError(
+        "Envio real da rodada nao esta habilitado: o caminho de entrega so sera ligado quando o "
+        "Eduardo autorizar explicitamente a R22 e a migracao 010 estiver aplicada. Ate la o "
+        "workflow roda em --dry-run."
+    )
 
 
 def run_test_send():
@@ -696,6 +720,9 @@ def main():
     args = sys.argv[1:]
     if "--test-send" in args:
         run_test_send()
+        return
+    if "--dry-run" in args:
+        run_auto(dry_run=True)
         return
     if "--auto" not in args:
         print(__doc__)

@@ -255,6 +255,12 @@
     },
     "bolao/shared/scripts/test_round_notification_ledger.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_notification_ledger_consumer.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_round_ledger_interop.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
