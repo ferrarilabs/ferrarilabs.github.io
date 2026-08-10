@@ -615,16 +615,63 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     return rel
 
 
+# ── SEMANTICA DE SAIDA ─────────────────────────────────────────────────────────────────────────
+#
+# "Ainda nao ha resultado" e um ESTADO DE NEGOCIO NORMAL, nao uma falha de infraestrutura. O cron
+# roda de 10 em 10 minutos por varias horas em cada noite de sorteio; a esmagadora maioria dessas
+# execucoes acontece antes do sorteio. Se cada uma delas aparecesse vermelha no GitHub Actions, o
+# painel viraria ruido -- e ruido constante e como uma falha DE VERDADE passa despercebida.
+#
+# O criterio nao e "deu tudo certo?", e "alguem precisa agir?".
+ESTADOS_OK = {
+    None,                      # nada a fazer ainda
+    "READY_DRY_RUN",           # dry-run chegou ate onde podia
+    "ALREADY_COMPLETED",       # ja notificado; nova execucao e no-op por desenho
+    "ALREADY_CLAIMED",         # outra execucao esta com o lease; nao e conflito
+    "sent",                    # concluido
+    "NENHUM_SORTEIO_COM_RESULTADO",
+}
+ESTADOS_ATENCAO = {
+    "RECIPIENT_SET_INCOMPLETE",   # falta contato -- alguem tem de arrumar antes do sorteio
+    "CONTENT_CONFLICT",           # conteudo divergente de um job ativo
+    "LEDGER_INDISPONIVEL",        # sem idempotencia duravel nao se envia
+    "failed_retryable",
+    "failed_permanent",           # UNCERTAIN: exige revisao humana
+}
+
+
 def main():
     dry_run = "--dry-run" in sys.argv
     force_resend = "--force-resend" in sys.argv
-    rel = run_lifecycle("powerball", dry_run=dry_run, force_resend=force_resend)
+    try:
+        rel = run_lifecycle("powerball", dry_run=dry_run, force_resend=force_resend)
+    except Exception as e:
+        # Excecao inesperada NUNCA vira verde. Foi assim que tres execucoes falharam em
+        # 2026-08-10: o ledger tentou usar a CLI do Supabase, que so existe na maquina de
+        # desenvolvimento, e o RuntimeError subiu ate aqui sem tratamento nenhum.
+        print(f"\n🛑 FALHA INESPERADA: {type(e).__name__}: {e}")
+        print("   PROVIDER_CALLS = 0 (a excecao ocorreu antes de qualquer envio)"
+              if "send" not in str(e).lower() else "   VERIFICAR se houve chamada ao provedor")
+        return 2
+
     print("\n" + "=" * 60)
     for k in ("resultReconciled", "notificationState", "providerCalls", "wouldSend", "reason"):
         print(f"  {k}: {rel.get(k)}")
+
+    estado = rel.get("notificationState")
+    if estado in ESTADOS_ATENCAO:
+        print(f"  EXIT: 1 — '{estado}' exige atencao operacional")
+        print("=" * 60)
+        return 1
+    if estado not in ESTADOS_OK:
+        # Estado novo que ninguem classificou. Nao se assume que e benigno.
+        print(f"  EXIT: 2 — estado NAO CLASSIFICADO: '{estado}'")
+        print("=" * 60)
+        return 2
+    print(f"  EXIT: 0 — '{estado}' e um estado normal, nada a fazer")
     print("=" * 60)
     return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

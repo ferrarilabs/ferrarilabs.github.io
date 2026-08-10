@@ -106,15 +106,23 @@ class NoFakeEmail(unittest.TestCase):
     def test_o_workflow_declara_o_modo_de_envio_explicitamente(self):
         """Armar e um ato deliberado e visivel no YAML, nunca um efeito colateral.
 
-        Enquanto POWERBALL_EMAIL_MODE nao estiver no ambiente do passo de envio, o workflow roda
-        o ciclo inteiro e o sender RECUSA -- que e o estado desarmado correto.
+        Le o YAML COMO YAML. A primeira versao disto perguntava se a string
+        "POWERBALL_EMAIL_MODE" aparecia no arquivo -- e o comentario que explica como armar
+        contem essa string, entao o gate reportou ARMADO logo depois de eu desarmar. Casar
+        string contra comentario e exatamente o falso-verde que esta sessao existe para matar,
+        e eu o escrevi aqui. Agora so conta a chave real no `env:` do passo de envio.
         """
-        src = open(WF, encoding="utf-8").read()
-        armado = "POWERBALL_EMAIL_MODE" in src
-        if armado:
-            self.assertRegex(src, r"POWERBALL_EMAIL_MODE:\s*production",
+        import yaml
+        wf = yaml.safe_load(open(WF, encoding="utf-8"))
+        passos = wf["jobs"]["fetch-and-send"]["steps"]
+        envio = [p for p in passos if "fetch_and_send_results.py" in str(p.get("run", ""))]
+        self.assertEqual(len(envio), 1, "esperado exatamente um passo de envio")
+        env = envio[0].get("env") or {}
+        modo = env.get("POWERBALL_EMAIL_MODE")
+        if modo is not None:
+            self.assertEqual(modo, "production",
                              "se declarado, tem de ser explicitamente 'production'")
-        print(f"\n    ESTADO DO WORKFLOW: {'ARMADO' if armado else 'DESARMADO (sender recusa)'}")
+        print(f"\n    ESTADO DO WORKFLOW: {'ARMADO' if modo else 'DESARMADO (sender recusa)'}")
 
 
 if __name__ == "__main__":
