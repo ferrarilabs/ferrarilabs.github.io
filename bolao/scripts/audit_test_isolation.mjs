@@ -111,9 +111,14 @@ const PROD = cnameOrigin(); // o domínio real, não um literal transcrito
 for (const app of APPS) {
   console.log(`\n── ${app} ──`);
 
-  test(`[${app}] o guard existe e está DENTRO de saveRemoteState (o chokepoint)`, () => {
+  test(`[${app}] o guard existe e está DENTRO do chokepoint de escrita`, () => {
     const src = readFileSync(join(REPO, "bolao", app, "js", "app.js"), "utf8");
-    const body = extractFn(src, "saveRemoteState");
+    // O chokepoint mudou de nome no BR2026 com F10/N22 (2026-08-10): `saveRemoteState` gravava o
+    // documento inteiro e foi REMOVIDA; agora toda mutacao passa por `callNarrowRpc`. O
+    // invariante nao mudou -- o guard tem de estar dentro do unico ponto que fala com o remoto,
+    // ANTES da primeira chamada. Procurar pelo nome antigo exigiria de volta a funcao removida.
+    const nome = /function\s+callNarrowRpc\s*\(/.test(src) ? "callNarrowRpc" : "saveRemoteState";
+    const body = extractFn(src, nome);
     assert(body.includes("productionWritesAllowed()"),
       "saveRemoteState() não consulta o guard — a fronteira não é a fronteira");
     // O guard precisa vir ANTES de qualquer fetch remoto, senão já vazou.

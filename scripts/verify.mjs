@@ -181,6 +181,8 @@ const CHECKS = [
     why: "F20: insumos do pacote de review prontos; geracao pos-auth e mecanica" },
   { id: "live-cache-write-authority", group: "security", cmd: ["node", "bolao/scripts/audit_live_cache_write_authority.mjs"],
     why: "F8: so o gateway confiavel escreve no cache ao vivo; anon nunca" },
+  { id: "br2026-narrow-persistence", group: "security", cmd: ["node", "bolao/scripts/audit_br2026_narrow_persistence.mjs"],
+    why: "F10/N22: BR2026 le projecao publica e so grava por RPC estreita" },
   { id: "gate-registry", group: "security", cmd: ["node", "bolao/scripts/audit_gate_registry.mjs"],
     why: "meta-gate: nenhum gate pode existir sem classificacao (17 orfaos achados em 2026-08-10)" },
   { id: "security-docs-reality", group: "security", cmd: ["node", "bolao/scripts/audit_security_docs_match_reality.mjs"],

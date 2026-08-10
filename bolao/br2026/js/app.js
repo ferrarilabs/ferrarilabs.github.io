@@ -84,6 +84,7 @@ function applyI18n() {
 
 // ─── State ──────────────────────────────────────────────────────────────────
 let _editingEntry = null;
+let _entryClientRef = null;   // idempotencia de submissao (N22)
 // IDs de entrada com o detalhe de palpites expandido no ranking — mesmo padrão da Copa
 // (bolao/js/app.js), sobrevive a re-renders (sync, troca de idioma) até o usuário fechar.
 const _openRankDetails = new Set();
@@ -100,22 +101,14 @@ function saveState(s, opts = {}) {
   s.meta.updatedAt = new Date().toISOString();
   s.meta.version = C.siteVersion;
   localStorage.setItem(C.storeKey, JSON.stringify(s));
-  if (C.database.enabled && !opts.localOnly) {
-    // Era `.catch(() => {})` — engolia ATÉ erro real. E mesmo com o catch corrigido faltaria
-    // metade: uma gravação PULADA (isolamento de teste, database desligado) resolve com sucesso,
-    // então o `.catch` nunca dispara e a tela mostra "salvo" normalmente. Foi exatamente esse o
-    // modo de falha vivido no CDB2026 — um agendamento registrado no admin que nunca chegou à
-    // fonte canônica, sem erro nenhum na tela. Agora os DOIS casos são visíveis.
-    saveRemoteState(s).then(res => {
-      if (res && res.skipped) {
-        console.warn(`[BR2026] gravação remota PULADA — ${res.reason}`);
-        showToast(t("syncBlocked"), "warn", 8000);
-      }
-    }).catch(err => {
-      console.warn("[BR2026] Supabase save failed", err);
-      showToast(t("syncFailed"), "warn", 8000);
-    });
-  }
+  // N22: `saveState()` NAO grava mais no remoto. Ele persiste localmente e redesenha.
+  //
+  // Antes, toda chamada empurrava o documento JSON inteiro para o Supabase -- e era por isso que
+  // a anon key publica bastava para reescrever entries, paid, results e roundEmail de uma vez.
+  // Agora quem quer mudar o estado canonico chama a RPC ESTREITA correspondente e depois
+  // recarrega; nao existe mais um caminho generico de gravacao.
+  //
+  // O `opts.localOnly` deixou de ter efeito pratico e continua aceito para nao quebrar chamadores.
   renderAll();
 }
 
@@ -123,7 +116,11 @@ function saveState(s, opts = {}) {
 async function loadRemoteState() {
   if (!C.database.enabled) return;
   try {
-    const { url, anonKey, table, stateId } = C.database;
+    const { url, anonKey, stateId } = C.database;
+    // F10: le a PROJECAO PUBLICA. Ela devolve o mesmo documento sem os quatro campos privados de
+    // cada entrada, entao ranking, palpites, pago e estado de rodada continuam funcionando --
+    // some apenas o que o navegador nunca precisou ter.
+    const table = C.database.readTable || C.database.table;
     // Timeout de rede (item 50 do CONSISTENCY_MATRIX.md, 2026-07-15) -- este era o único fetch
     // do arquivo sem AbortController; sem timeout, uma resposta pendurada do Supabase travaria
     // o load/save indefinidamente, diferente dos fetches da ESPN que já passavam por fetchJson().
@@ -211,41 +208,51 @@ function emailSendAllowed() {
 }
 
 
-async function saveRemoteState(s) {
+// ─── ESCRITA REMOTA: SUBSTITUICAO DE DOCUMENTO INTEIRO REMOVIDA (N22, 2026-08-10) ───────────
+//
+// `saveRemoteState()` fazia POST do documento JSON COMPLETO com merge-duplicates. Qualquer
+// portador da anon key -- que vai neste mesmo arquivo, servido a todo navegador -- podia
+// reescrever entries, paid, results, officialDraw e roundEmail de uma vez so.
+//
+// Agora nao existe escrita generica. Cada mutacao chama uma RPC estreita que altera UM aspecto e
+// e incapaz de tocar no resto:
+//
+//   PUBLICO  : submit_entry  (unica mutacao anonima legitima)
+//   OPERADOR : op_confirm_payment, op_update_entry, op_remove_entry, op_set_results, ...
+//              revogadas de anon; rodam por script com credencial privilegiada.
+//
+// FALHA FECHADA: se a RPC falhar, a funcao lanca. Nao ha caminho que volte a gravar o documento
+// inteiro, nem fallback silencioso -- um "salvo" falso com o dado so no navegador do participante
+// e exatamente o defeito que este app ja teve (AUDIT-04).
+async function callNarrowRpc(fnName, args) {
   if (!C.database.enabled) return { ok: false, skipped: true, reason: "database.enabled=false" };
-  // TEST ISOLATION: fail closed antes de qualquer escrita remota. O estado local já foi gravado
-  // por saveState(), então nada é perdido — só não vaza para a produção.
   const gate = productionWritesAllowed();
   if (!gate.allowed) {
-    console.warn(`[BR2026] TEST ISOLATION: gravação remota BLOQUEADA — ${gate.reason}. ` +
-      `Estado salvo apenas localmente. Para liberar deliberadamente: ` +
-      `sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
+    console.warn(`[BR2026] TEST ISOLATION: mutacao remota BLOQUEADA — ${gate.reason}. ` +
+      `Para liberar deliberadamente: sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
     return { ok: false, skipped: true, reason: gate.reason };
   }
   if (gate.overridden) {
-    console.warn(`[BR2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
+    console.warn(`[BR2026] TEST ISOLATION: override ATIVO — mutando a PRODUCAO a partir de ${gate.reason}`);
   }
-  const { url, anonKey, table, stateId } = C.database;
-  const r = await fetchJson(`${url}/rest/v1/${table}`, {
+  const { url, anonKey } = C.database;
+  const r = await fetchJson(`${url}/rest/v1/rpc/${fnName}`, {
     method: "POST",
-    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-    // `updated_at` explícito (2026-08-09): a coluna existe mas o app nunca a escrevia, então ela
-    // ficava congelada na criação da linha. Consequência real: ao investigar "registrei e não
-    // pegou" no CDB2026, o `updated_at` dizia 14/07 enquanto o conteúdo tinha dados de 01/08 —
-    // a única pergunta que importava ("quando o estado canônico mudou pela última vez?") não
-    // tinha resposta confiável. Escrever aqui custa um campo e torna o diagnóstico imediato.
-    body: JSON.stringify({ id: stateId, state: s, updated_at: new Date().toISOString() })
+    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args),
   });
-  // `await fetch()` NÃO rejeita em 4xx/5xx. Sem esta checagem, um 401/403 do RLS era tratado como
-  // SUCESSO e o participante via "salvo" com o dado só no navegador dele. O CDB2026 já corrigia
-  // isto desde a auditoria de 2026-08 (AUDIT-04); nunca foi propagado para cá — e este é o app
-  // que movimenta pagamento.
+  // `await fetch()` NAO rejeita em 4xx/5xx. Sem esta checagem um 401/403 do RLS viraria SUCESSO
+  // e o participante veria "salvo" com o dado so no navegador dele.
   if (!r.ok) {
     const body = await r.text().catch(() => "");
-    throw new Error(`Supabase respondeu ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+    const err = new Error(`RPC ${fnName} respondeu ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
+    err.httpStatus = r.status;
+    err.serverBody = body;
+    throw err;
   }
-  return { ok: true };
+  return { ok: true, data: await r.json().catch(() => null) };
 }
+
 function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   // Achado 2026-07-16 (Eduardo: renomeou duas entradas direto no Supabase, "não aparece
@@ -563,14 +570,60 @@ async function saveEntry() {
       ? { ..._editingEntry, entryName, payerName, participantEmail: email, paymentMethod, picks: { g4, sa6, z4 }, updatedAt: now }
       : { id: uuid(), entryName, payerName, participantEmail: email, paymentMethod, picks: { g4, sa6, z4 }, createdAt: now };
 
+    // ─── N22: submissao pela RPC ESTREITA ────────────────────────────────────────────────────
+    //
+    // O servidor valida competicao, nome, e-mail, forma dos palpites, metodo de pagamento e
+    // prazo, e ATRIBUI o id. Campo privilegiado nao tem por onde entrar: `submit_entry` monta a
+    // entrada campo a campo, entao `paid`, `results` e `officialDraw` sao inalcancaveis daqui.
+    //
+    // A edicao de entrada existente e operacao de OPERADOR (o botao so aparece no painel admin,
+    // atras de guardAdmin) e saiu do navegador -- ver o aviso em renderAdminEntries().
     if (_editingEntry) {
-      const idx = s.entries.findIndex(e => e.id === entry.id);
-      if (idx >= 0) s.entries[idx] = entry; else s.entries.push(entry);
-    } else {
-      s.entries.push(entry);
+      showToast(t("adminWriteMoved"), "warn", 10000);
+      if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
+      return;
     }
 
-    saveState(s);
+    // `clientRef` torna o reenvio idempotente: recarregar a pagina no meio do envio, ou clicar
+    // duas vezes, devolve a MESMA entrada em vez de criar uma segunda.
+    const clientRef = _entryClientRef || (_entryClientRef = uuid());
+    let rpc;
+    try {
+      rpc = await callNarrowRpc("submit_entry", {
+        p_pool_id: C.database.stateId,
+        p_entry_name: entryName,
+        p_participant_email: email,
+        p_picks: { g4, sa6, z4 },
+        p_payer_name: payerName || null,
+        p_payment_method: paymentMethod || null,
+        p_client_ref: clientRef,
+      });
+    } catch (err) {
+      // Erro de VALIDACAO do servidor (400) e diferente de falha de infraestrutura: o primeiro
+      // e culpa do formulario e tem de aparecer para quem preencheu.
+      const validacao = err.httpStatus === 400;
+      console.warn("[BR2026] submit_entry falhou", err);
+      showToast(validacao ? t("entryRejected") : t("syncFailed"), "warn", 9000);
+      if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
+      return;
+    }
+
+    if (rpc.skipped) {
+      showToast(t("syncBlocked"), "warn", 8000);
+      if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
+      return;
+    }
+
+    // `created:false` = reenvio idempotente. Nao e erro, mas tambem nao e uma entrada nova --
+    // dizer "cadastrado!" nos dois casos esconderia um clique duplo do participante.
+    const criada = rpc.data && rpc.data.created !== false;
+    entry.id = (rpc.data && rpc.data.entryId) || entry.id;
+    _entryClientRef = null;
+
+    // O estado canonico agora vive no servidor; recarrega em vez de assumir o que gravamos.
+    await loadRemoteState();
+    renderAll();
+    if (!criada) showToast(t("entryAlreadyRegistered"), "info", 7000);
 
     if (C.emailjs.enabled && window.emailjs) {
       sendReceipt(entry).catch(err => console.warn("[BR2026] Email failed", err));
@@ -2962,11 +3015,12 @@ function renderAdminPayments(s) {
   box.querySelectorAll("[data-toggle-paid]").forEach(btn =>
     btn.addEventListener("click", () => {
       if (!guardAdmin()) return;
-      const s2 = state();
-      s2.paid  = s2.paid || {};
-      if (s2.paid[btn.dataset.togglePaid]) delete s2.paid[btn.dataset.togglePaid];
-      else s2.paid[btn.dataset.togglePaid] = true;
-      saveState(s2);
+      // N22: escrita de operador saiu do navegador publico. O controle continua visivel
+      // (para nao esconder o estado) mas nao grava -- a operacao correta e o script de
+      // operador, que usa a RPC estreita com credencial privilegiada.
+      showToast(t("adminWriteMoved"), "warn", 10000);
+      return;
+
     })
   );
 }
@@ -3073,9 +3127,12 @@ function renderAdminResults(s) {
     }
     if (!tripleConfirm(t("confirmLockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
-    s2.results = { locked: true, g4, sa6, z4, lockedAt: new Date().toISOString() };
-    appendAdminAuditLog(s2, "lock-results", { g4, sa6, z4 });
-    saveState(s2);
+      // N22: escrita de operador saiu do navegador publico. O controle continua visivel
+      // (para nao esconder o estado) mas nao grava -- a operacao correta e o script de
+      // operador, que usa a RPC estreita com credencial privilegiada.
+      showToast(t("adminWriteMoved"), "warn", 10000);
+      return;
+
     showToast(t("resultsSaved"), "success");
     renderAdmin();
   });
@@ -3085,8 +3142,12 @@ function renderAdminResults(s) {
     if (!tripleConfirm(t("confirmUnlockResults"), t("tripleConfirmDetail"))) return;
     const s2 = state();
     appendAdminAuditLog(s2, "unlock-results", { previousG4: s2.results?.g4, previousSa6: s2.results?.sa6, previousZ4: s2.results?.z4, previousLockedAt: s2.results?.lockedAt });
-    s2.results = { ...s2.results, locked: false };
-    saveState(s2);
+      // N22: escrita de operador saiu do navegador publico. O controle continua visivel
+      // (para nao esconder o estado) mas nao grava -- a operacao correta e o script de
+      // operador, que usa a RPC estreita com credencial privilegiada.
+      showToast(t("adminWriteMoved"), "warn", 10000);
+      return;
+
     renderAdmin();
   });
 }
@@ -3126,8 +3187,12 @@ function renderAdminEntries(s) {
       if (!guardAdmin()) return;
       if (!confirm(t("confirmDelete"))) return;
       const s2 = state();
-      s2.deletedIds = [...(s2.deletedIds || []), btn.dataset.del];
-      saveState(s2);
+      // N22: escrita de operador saiu do navegador publico. O controle continua visivel
+      // (para nao esconder o estado) mas nao grava -- a operacao correta e o script de
+      // operador, que usa a RPC estreita com credencial privilegiada.
+      showToast(t("adminWriteMoved"), "warn", 10000);
+      return;
+
       renderAdmin();
     })
   );
