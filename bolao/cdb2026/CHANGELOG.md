@@ -1,5 +1,25 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.121 — 2026-08-10 — Os arquivos compartilhados estavam fora do cache-bust
+
+Os cinco arquivos locais de cada app (`css/styles.css`, `js/config.js`, `js/data.js`,
+`js/i18n.js`, `js/app.js`) recebiam `?v=<hash>`. Os **onze compartilhados** — os três módulos JS
+e os oito CSS em `../shared/` — não recebiam nada, e nem sequer entravam no cálculo do hash.
+
+O efeito prático era sério: a correção do `football_live_store.js` publicada horas antes
+(FINAL não regride para AO VIVO, `stop()` que realmente para) **não chegaria** a nenhum navegador
+que já tivesse o arquivo em cache. Correção commitada, deployada, e invisível no cliente.
+
+Agora os onze entram no hash e recebem tag. Uma mudança em qualquer módulo compartilhado muda o
+tag dos três apps — que é a semântica correta, já que os três o consomem. O bot
+`sync_version.yml` já chamava exatamente este módulo, então passa a cobrir os compartilhados sem
+alteração no workflow.
+
+Gates novos em `cachebust.integration.test.mjs`: `SHARED_ASSET_CHANGE_INVALIDATES_CACHE` (mexer
+só num módulo compartilhado tem de mudar o tag e reescrever o HTML) e uma guarda contra
+regressão por omissão, que varre os três `index.html` reais e falha se qualquer referência a
+`../shared/` estiver sem `?v=`. Provado falhando contra o estado anterior.
+
 ## v3.120 — 2026-08-10 — FootballLiveStore: FINAL voltava a AO VIVO, e stop() não parava
 
 Dois defeitos de corrida/ordem no módulo compartilhado, ambos reproduzidos antes da correção.

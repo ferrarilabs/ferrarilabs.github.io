@@ -42,7 +42,32 @@ const DEFAULT_BOLAO_ROOT = join(SCRIPTS_ROOT, ".."); // .../bolao
 
 // Fixed order matters for a stable hash — do not reorder without accepting that every existing
 // tag becomes stale (harmless, just a one-time re-tag, not a correctness issue).
-const CRITICAL_FILES = ["css/styles.css", "js/config.js", "js/data.js", "js/i18n.js", "js/app.js"];
+const APP_FILES = ["css/styles.css", "js/config.js", "js/data.js", "js/i18n.js", "js/app.js"];
+
+// Módulos de runtime COMPARTILHADOS pelos três apps, referenciados como "../shared/...".
+//
+// Achado F18 (auditoria independente, 2026-08-10): estes onze arquivos não tinham `?v=` nenhum
+// enquanto os cinco locais tinham. Consequência real: a correção de FINAL-não-regride e do
+// stop() em football_live_store.js (v4.183/v1.108/v3.120) NÃO chegaria a nenhum navegador que
+// já tivesse o arquivo em cache — a correção estaria commitada, deployada e ausente do cliente.
+//
+// Entram no hash E recebem tag: uma mudança em qualquer módulo compartilhado passa a mudar o
+// tag dos TRÊS apps, que é a semântica correta, já que os três o consomem.
+const SHARED_FILES = [
+  "../shared/js/money.js",
+  "../shared/js/live_clock.js",
+  "../shared/js/football_live_store.js",
+  "../shared/css/tokens.css",
+  "../shared/css/reset.css",
+  "../shared/css/shell.css",
+  "../shared/css/navigation.css",
+  "../shared/css/components.css",
+  "../shared/css/forms.css",
+  "../shared/css/admin.css",
+  "../shared/css/responsive.css",
+];
+
+const CRITICAL_FILES = [...APP_FILES, ...SHARED_FILES];
 
 // The three bolão apps this module governs. Powerball is deliberately excluded — see file header.
 const APPS = ["copa2026", "br2026", "cdb2026"];
@@ -129,7 +154,7 @@ function checkApp(app, { write = false, bolaoRoot = DEFAULT_BOLAO_ROOT } = {}) {
 }
 
 export {
-  CRITICAL_FILES, APPS, DEFAULT_BOLAO_ROOT,
+  CRITICAL_FILES, APP_FILES, SHARED_FILES, APPS, DEFAULT_BOLAO_ROOT,
   appRoot, computeTagFromFiles, computeAppTag,
   escapeRe, tagRegex, currentTags, rewriteTags, checkApp,
 };
