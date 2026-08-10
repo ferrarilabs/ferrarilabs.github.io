@@ -109,11 +109,22 @@ jobs:
           # RPCs de notificacao. Sem esta variavel o ciclo falha FECHADO em vez de silenciosamente
           # nao gravar -- que era o modo de falha perigoso.
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          # DESARMADO em 2026-08-10 a pedido do Eduardo. Armar = acrescentar aqui:
-          #     POWERBALL_EMAIL_MODE: production
-          # Sem essa variavel o ciclo roda inteiro e o sender RECUSA enviar.
-          # Bloqueio pendente: as 3 falhas do workflow em producao precisam estar explicadas,
-          # e POWERBALL_RECENT_PRODUCTION_WORKFLOW_HEALTH precisa passar.
+          # ARMADO em 2026-08-10, apos o corte de seguranca do N24 e todos os portoes verdes:
+          #   corte N24            anon revogado de TODAS as RPCs de notificacao (migracao 021)
+          #   canario pos-corte    SERVICE_ROLE=PASS, ANON=DENIED, provado NO RUNNER
+          #   matriz de crash A-M  20 testes, 2a execucao medida, 6/6 mutacoes capturadas
+          #   preflight 08/10      15/15, MISSING=[]
+          #   FULL VERIFY          101 gates
+          #
+          # DESARMAR = remover esta linha. Nada mais precisa mudar.
+          #
+          # O que ainda protege o envio, mesmo armado:
+          #   identidade   o resultado tem de ser DAQUELE sorteio, nunca "o ultimo"
+          #   tempo        nada antes de drawDateIso + 10 min de carencia
+          #   ledger       claim atomico; aceito NUNCA e reenviado; parcial nunca vira concluido
+          #   completude   conjunto incompleto de destinatarios bloqueia tudo
+          #   credencial   sem SUPABASE_SERVICE_ROLE_KEY o ledger falha FECHADO
+          POWERBALL_EMAIL_MODE: production
         run: |
           DRY_RUN=""
           FORCE_RESEND=""
