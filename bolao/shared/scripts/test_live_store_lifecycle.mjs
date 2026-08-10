@@ -168,5 +168,89 @@ function gatewayBody(matches, observedAt) {
   }
 }
 
+// ─── HIERARQUIA DE FONTES: o store e dono do fallback de snapshot (F12) ──────────────────────
+{
+  console.log("\nSOURCE_HIERARCHY_OWNED_BY_STORE");
+
+  const snapBody = {
+    schemaVersion: 1, generatedAt: "2026-08-09T22:00:00Z", staleReason: null,
+    matches: [match("77", { state: "in", statusName: "STATUS_FIRST_HALF" })],
+  };
+
+  // Gateway 500 -> cai para o snapshot, sem o app decidir nada.
+  {
+    const s = Store.createStore({
+      competition: "bra.1", gatewayUrl: "https://example.invalid/live",
+      snapshotUrl: "https://example.invalid/snapshot.json",
+      fetch: async (url) => url.includes("snapshot")
+        ? { ok: true, status: 200, json: async () => snapBody }
+        : { ok: false, status: 500, json: async () => ({}) },
+    });
+    await s.refresh();
+    const st = s.getState(); s.stop();
+    check("gateway 500 -> store cai sozinho para o snapshot",
+      st.source === "snapshot" && st.state !== "SOURCE_UNAVAILABLE", `source=${st.source} state=${st.state}`);
+  }
+
+  // Gateway lanca excecao -> mesmo caminho.
+  {
+    const s = Store.createStore({
+      competition: "bra.1", gatewayUrl: "https://example.invalid/live",
+      snapshotUrl: "https://example.invalid/snapshot.json",
+      fetch: async (url) => {
+        if (url.includes("snapshot")) return { ok: true, status: 200, json: async () => snapBody };
+        throw new Error("rede caiu");
+      },
+    });
+    await s.refresh();
+    const st = s.getState(); s.stop();
+    check("excecao de rede no gateway -> snapshot", st.source === "snapshot", `source=${st.source}`);
+  }
+
+  // O snapshot herda a monotonicidade: nao ressuscita jogo encerrado.
+  {
+    const s = Store.createStore({
+      competition: "bra.1", gatewayUrl: "https://example.invalid/live",
+      snapshotUrl: "https://example.invalid/snapshot.json",
+      fetch: (() => {
+        let n = 0;
+        return async (url) => {
+          if (url.includes("snapshot")) {
+            return { ok: true, status: 200, json: async () => ({
+              schemaVersion: 1, generatedAt: "2026-08-09T23:00:00Z",
+              matches: [match("77", { state: "in", statusName: "STATUS_SECOND_HALF" })] }) };
+          }
+          n++;
+          if (n === 1) {
+            return { ok: true, status: 200, json: async () => gatewayBody(
+              [match("77", { state: "post", completed: true, statusName: "STATUS_FULL_TIME" })],
+              "2026-08-09T22:30:00Z") };
+          }
+          return { ok: false, status: 500, json: async () => ({}) };
+        };
+      })(),
+    });
+    await s.refresh();              // gateway: FINAL
+    await s.refresh();              // gateway falha -> snapshot diz "ao vivo", mais novo
+    const st = s.getState(); s.stop();
+    check("snapshot mais novo NAO ressuscita jogo encerrado", st.state === "FINAL", `state=${st.state}`);
+  }
+
+  // Snapshot malformado nao vira observacao.
+  {
+    const s = Store.createStore({
+      competition: "bra.1", gatewayUrl: "https://example.invalid/live",
+      snapshotUrl: "https://example.invalid/snapshot.json",
+      fetch: async (url) => url.includes("snapshot")
+        ? { ok: true, status: 200, json: async () => ({ schemaVersion: 1, generatedAt: "x", matches: [{ lixo: 1 }] }) }
+        : { ok: false, status: 500, json: async () => ({}) },
+    });
+    await s.refresh();
+    const st = s.getState(); s.stop();
+    check("snapshot malformado e rejeitado, nao promovido",
+      st.source !== "snapshot", `source=${st.source} err=${st.health.lastError}`);
+  }
+}
+
 console.log(`\n  ${passed} passed, ${failures.length} failed`);
 if (failures.length) process.exit(1);

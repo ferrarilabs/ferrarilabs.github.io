@@ -250,6 +250,9 @@
     },
     "bolao/scripts/audit_br_live_behavior_parity.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_gate_registry.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
