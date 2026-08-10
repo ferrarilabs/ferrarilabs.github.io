@@ -1,5 +1,31 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.115 — 2026-08-10 — O e-mail de rodada passa a usar o ledger durável de verdade
+
+A plataforma já tinha `notification_repository`, `durable_notification_repository`,
+`notification_worker` e a SQL `010_notification_durability.sql` — tudo bem escrito, testado, e com
+**zero consumidores em produção**. `grep` por essas classes nos três apps e nos workflows
+retornava vazio. Mesma forma do defeito do FootballLiveStore: capacidade implementada, testada e
+nunca chamada.
+
+`send_round_email.py` — o ponto de entrada real do cron — agora executa o pipeline canônico:
+manifesto versionado (com proveniência oficial) → resolver por rodada → migração do estado legado
+como evidência → ledger durável → portão de destinatários → claim com lease.
+
+`get_or_open_batch()` foi **removida**. Era o coração da janela rolante: um `pendingBatch` global
+que travou em 29/07 com 4 jogos adiados e escondeu a R22 por 12 dias. Deixá-la como código morto
+seria pior que removê-la — ela parece autoritativa.
+
+O `--dry-run` é modo de primeira classe do **mesmo** caminho, não um atalho paralelo: um preview
+que roda por outro código não prova nada sobre o código que envia. O workflow do cron passou a
+rodar em dry-run, e `BOLAO_ALLOW_REAL_SEND` foi removida do job — duas travas independentes em
+vez de uma.
+
+O ledger existe em Node e Python porque o caminho de envio é Python e os gates são Node.
+`test_round_ledger_interop.mjs` executa as duas implementações sobre os mesmos casos e falha se
+um hash, chave ou transição divergir — este repositório já perdeu essa aposta uma vez, quando
+`send_result_email.py` derivou silenciosamente da pontuação do `app.js`.
+
 ## v1.114 — 2026-08-10 — BR2026 passa a usar de verdade o store ao vivo compartilhado
 
 `football_live_store.js` era carregado pelo `index.html`, tinha suíte de unidade verde, e os apps

@@ -21,10 +21,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Send round-completion emails (auto ESPN detection)
+      # DRY-RUN ate autorizacao explicita do Eduardo.
+      #
+      # O caminho de reconciliacao e o CANONICO e o MESMO que envia: manifesto versionado ->
+      # resolver por rodada -> ledger duravel -> portao de destinatarios. O que o --dry-run faz e
+      # parar antes da primeira chamada ao provedor. Nao e um caminho paralelo; um preview que
+      # roda por outro caminho nao prova nada sobre o caminho que envia.
+      #
+      # BOLAO_ALLOW_REAL_SEND foi REMOVIDO deste job de proposito. Com a variavel ausente, o
+      # portao fail-closed do sender bloqueia o provedor mesmo que alguem troque a flag por
+      # engano -- duas travas independentes, nao uma.
+      #
+      # Para religar o envio real: (1) autorizacao explicita do Eduardo, (2) migracao
+      # 010_notification_durability.sql aplicada, (3) trocar --dry-run por --auto e devolver
+      # BOLAO_ALLOW_REAL_SEND.
+      - name: Reconciliar rodadas (dry-run — nenhum e-mail e enviado)
         working-directory: bolao/br2026/scripts
-        env:
-          # AUD-02: autorizacao POSITIVA e explicita do envio real. O sender falha fechado sem
-          # isto — teste, execucao local e qualquer job nao declarado nao alcancam o provedor.
-          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
-        run: python3 send_round_email.py --auto
+        run: python3 send_round_email.py --dry-run

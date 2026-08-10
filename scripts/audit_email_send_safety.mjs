@@ -157,13 +157,33 @@ for (const f of PYTHON_SENDERS) {
   });
 }
 
-test("os workflows de PRODUÇÃO carregam a autorização (senão o cron quebra em silêncio)", () => {
-  // Sem esta checagem, apertar a trava quebraria a entrega agendada — e o sintoma seria
-  // "nenhum e-mail chegou", que é justamente o tipo de falha que ninguém percebe na hora.
+test("a autorização acompanha o MODO do workflow (envio declara; dry-run não pode declarar)", () => {
+  // Invariante original: um workflow que ENVIA precisa declarar a autorização, senão a entrega
+  // agendada para em silêncio — falha que ninguém percebe na hora.
+  //
+  // Refinado em 2026-08-10 (F6): o workflow do BR2026 deixou de enviar. Ele roda o reconciliador
+  // canônico em `--dry-run` até o Eduardo autorizar a R22 e a migração 010 ser aplicada. Exigir a
+  // autorização nele seria exigir que um job que não envia carregue a chave que permite enviar —
+  // o oposto de fail-closed.
+  //
+  // A regra ficou mais forte, não mais fraca: o modo e a autorização precisam CONCORDAR.
   for (const w of PRODUCTION_WORKFLOWS) {
-    const y = readFileSync(w, "utf8");
-    assert(/BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(y),
-      `${w} invoca um sender mas não declara a autorização — a entrega agendada pararia`);
+    const bruto = readFileSync(w, "utf8");
+    // YAML EXECUTAVEL apenas. O workflow documenta em comentario como religar o envio
+    // ("trocar --dry-run por --auto"), e ler comentario faria o gate concluir que o job envia.
+    const y = bruto.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
+    const declara = /BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(y);
+    const soDryRun = /--dry-run/.test(y) && !/--auto\b/.test(y);
+
+    if (soDryRun) {
+      assert(!declara,
+        `${w} roda apenas em dry-run mas declara BOLAO_ALLOW_REAL_SEND — o envio real ficaria ` +
+        `a uma flag de distância, sem segunda trava`);
+    } else {
+      assert(declara,
+        `${w} invoca um sender em modo de envio mas não declara a autorização — a entrega ` +
+        `agendada pararia em silêncio`);
+    }
   }
 });
 

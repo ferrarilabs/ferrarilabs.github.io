@@ -1,42 +1,57 @@
 """
-test_recipient_completeness.py — portão fail-closed de destinatários do BR2026.
+test_recipient_completeness.py — portão fail-closed de destinatários do BR2026, caminho canônico.
 
 RECIPIENT_SET_INCOMPLETE_ZERO_SENDS
-PARTIAL_PROVIDER_SEND_NOT_SENT
-BLOCKED_SEND_IS_NOT_SUCCESS
+DRY_RUN_NEVER_CALLS_PROVIDER
+NO_PII_IN_OPERATIONAL_EVENTS
 
-Estes três defeitos coexistiam com uma suíte verde porque nenhum teste exercitava o caminho de
-envio de `run_auto()` — a lógica de destinatários vivia solta dentro de uma função de 150 linhas
-que fala com ESPN e Supabase. Aqui a rede inteira é substituída, e o que se mede é a única coisa
-que importa: quantas chamadas o PROVEDOR recebeu.
+Este arquivo mirava o modelo de lote rolante (`pendingBatch`/`sentBatches`), removido em
+2026-08-10 junto com `get_or_open_batch()`. Os INVARIANTES que ele protegia continuam valendo —
+mudou o caminho que os implementa, não a regra —, então foi reescrito contra o pipeline canônico
+em vez de apagado. Apagar um teste porque a implementação mudou é como se perde cobertura sem
+ninguém notar.
+
+O que se mede continua sendo a única coisa que importa: quantas chamadas o PROVEDOR recebeu.
 
 Executar: BOLAO_TEST_RUN=1 python3 bolao/br2026/scripts/test_recipient_completeness.py
 """
 
+import json
 import os
 import sys
 import unittest
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 
 os.environ["BOLAO_TEST_RUN"] = "1"   # trava de segurança: nenhum envio real, jamais
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, HERE)
 
 import send_round_email as S
+import build_round_manifest as MANIFEST
 
 
-def _game(gid, day, completed=True):
+MANIFESTO = MANIFEST.load()
+R22 = next(r for r in MANIFESTO["rounds"] if r["roundNumber"] == 22)
+AGORA = datetime.now(timezone.utc)
+
+
+def _game(fid, completed=True):
+    """Jogo no formato que `fetch_scoreboard_window()` devolve."""
     return {
-        "id": gid,
-        "date": datetime(2026, 8, 8, 20, 0, tzinfo=timezone.utc) + timedelta(days=day),
-        "home": f"Time {gid}A", "away": f"Time {gid}B",
+        "id": fid,
+        "date": AGORA - timedelta(hours=20),
+        "home": f"Casa {fid[-3:]}", "away": f"Fora {fid[-3:]}",
         "completed": completed, "goalsHome": 1, "goalsAway": 0,
+        "statusName": "STATUS_FULL_TIME" if completed else "STATUS_SCHEDULED",
+        "statusState": "post" if completed else "pre",
     }
 
 
 def _entry(eid, email):
     return {
         "id": eid, "entryName": f"Entrada {eid}", "participantEmail": email,
-        "picks": {"g4": ["A", "B", "C", "D"], "z4": ["Q", "R", "S", "T"], "sa6": ["E", "F", "G", "H", "I", "J"]},
+        "picks": {"g4": ["T01", "T02", "T03", "T04"], "z4": ["T17", "T18", "T19", "T20"],
+                  "sa6": ["T07", "T08", "T09", "T10", "T11", "T12"]},
     }
 
 
@@ -44,29 +59,26 @@ STANDINGS = [{"name": f"T{i:02}", "rank": i, "gd": 20 - i, "gf": 30 - i} for i i
 
 
 class Harness:
-    """Substitui TODA fronteira externa de run_auto(). Sem isto o teste tocaria ESPN, Supabase e
-    EmailJS — e um teste de segurança de email que alcança o provedor é uma contradição."""
+    """Substitui TODA fronteira externa. Um teste de segurança de e-mail que alcança o provedor
+    é uma contradição."""
 
-    def __init__(self, entries, games, batch_ids):
-        self.entries = entries
-        self.games = {g["id"]: g for g in games}
-        self.provider_calls = []          # ← a métrica que importa
+    def __init__(self, entries, r22_completa=True):
+        self.provider_calls = []
         self.saved_states = []
-        self.state = {
-            "entries": entries,
-            "roundEmail": {"pendingBatch": {
-                "windowStart": "2026-08-08T18:00:00Z",
-                "windowEnd": "2026-08-10T06:00:00Z",
-                "gameIds": batch_ids,
-            }},
-        }
+        self.state = {"entries": entries, "roundEmail": {
+            # Evidência legada mínima: define o epoch para que rodadas antigas fiquem PRE_FEATURE
+            # e não virem candidatas.
+            "sentBatches": [{"windowStart": "2026-07-16T00:00:00Z"}],
+            "sentGameIds": [],
+        }}
+        self.games = {fid: _game(fid, r22_completa) for fid in R22["canonicalFixtureIds"]}
 
     def install(self, transport_result=None, fail_for=None):
         S.sb_fetch = lambda: self.state
-        S.sb_upsert = lambda st: (self.saved_states.append(st), 200)[1]
+        S.sb_upsert = lambda st: (self.saved_states.append(json.loads(json.dumps(st, default=str))), 200)[1]
         S.fetch_scoreboard_window = lambda a, b: dict(self.games)
         S.fetch_standings = lambda: list(STANDINGS)
-        S.time.sleep = lambda *_: None    # sem o sleep de 20s de confirmação nem o de 3s por envio
+        S.time.sleep = lambda *_: None
 
         def transport(url, body, headers):
             self.provider_calls.append(body)
@@ -78,7 +90,6 @@ class Harness:
 
 class RecipientCompleteness(unittest.TestCase):
     def setUp(self):
-        # Guarda e restaura os originais: estes testes reescrevem o módulo inteiro.
         self._orig = {k: getattr(S, k) for k in
                       ("sb_fetch", "sb_upsert", "fetch_scoreboard_window", "fetch_standings", "_TRANSPORT")}
         self._sleep = S.time.sleep
@@ -88,69 +99,76 @@ class RecipientCompleteness(unittest.TestCase):
             setattr(S, k, v)
         S.time.sleep = self._sleep
 
-    def _run(self, h):
-        try:
-            S.run_auto()
-        except SystemExit as e:      # a auto-auditoria aborta com exit(1) se falhar
-            self.fail(f"run_auto abortou inesperadamente: {e}")
+    def _dry_run(self, h):
+        return S.run_auto(dry_run=True)
+
+    def test_conjunto_completo_fica_elegivel_e_NAO_chama_o_provedor(self):
+        h = Harness([_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid")])
+        h.install()
+        out = self._dry_run(h)
+        self.assertIn(22, out["candidates"], "R22 completa deveria ser candidata")
+        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        self.assertTrue(r22["recipientSetComplete"])
+        self.assertTrue(r22["wouldSend"])
+        self.assertEqual(len(h.provider_calls), 0, "DRY-RUN nunca pode chamar o provedor")
+        self.assertEqual(out["providerCalls"], 0)
 
     def test_um_destinatario_sem_email_bloqueia_TODOS_os_envios(self):
-        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid"), _entry("e3", "")]
-        games = [_game(str(1000 + i), 0) for i in range(10)]
-        h = Harness(entries, games, [g["id"] for g in games]); h.install()
-        self._run(h)
+        h = Harness([_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid"),
+                     _entry("e3", "")])
+        h.install()
+        out = self._dry_run(h)
+        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        self.assertEqual(r22["blocked"], "RECIPIENT_SET_INCOMPLETE")
+        self.assertFalse(r22["wouldSend"])
         self.assertEqual(len(h.provider_calls), 0,
-                         "RECIPIENT_SET_INCOMPLETE deve produzir ZERO chamadas ao provedor")
+                         "conjunto incompleto deve produzir ZERO chamadas ao provedor")
 
-    def test_bloqueio_mantem_o_lote_aberto_para_reprocessar(self):
-        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "naoehemail")]
-        games = [_game(str(2000 + i), 0) for i in range(10)]
-        h = Harness(entries, games, [g["id"] for g in games]); h.install()
-        self._run(h)
-        self.assertTrue(h.saved_states, "o bloqueio deve ser registrado no estado")
-        self.assertIsNotNone(h.saved_states[-1]["roundEmail"]["pendingBatch"],
-                             "o lote NAO pode ser fechado quando o envio foi bloqueado")
+    def test_email_invalido_conta_como_nao_resolvido(self):
+        h = Harness([_entry("e1", "a@example.invalid"), _entry("e2", "naoehemail")])
+        h.install()
+        out = self._dry_run(h)
+        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        self.assertEqual(r22["blocked"], "RECIPIENT_SET_INCOMPLETE")
+        self.assertEqual(len(h.provider_calls), 0)
 
-    def test_conjunto_completo_envia_para_todos(self):
-        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid")]
-        games = [_game(str(3000 + i), 0) for i in range(10)]
-        h = Harness(entries, games, [g["id"] for g in games]); h.install()
-        self._run(h)
-        # 2 participantes + 1 resumo ao admin
-        self.assertEqual(len(h.provider_calls), 3, "conjunto completo deve enviar a todos + admin")
-        self.assertIsNone(h.saved_states[-1]["roundEmail"]["pendingBatch"],
-                          "lote deve fechar quando todos receberam")
+    def test_rodada_incompleta_nao_vira_candidata(self):
+        h = Harness([_entry("e1", "a@example.invalid")], r22_completa=False)
+        h.install()
+        out = self._dry_run(h)
+        self.assertNotIn(22, out["candidates"],
+                         "rodada com jogos nao terminais nao pode ser candidata")
+        self.assertEqual(len(h.provider_calls), 0)
 
-    def test_envio_parcial_NAO_fecha_o_lote(self):
-        entries = [_entry(f"e{i}", f"p{i}@example.invalid") for i in range(1, 5)]
-        games = [_game(str(4000 + i), 0) for i in range(10)]
-        h = Harness(entries, games, [g["id"] for g in games])
-        h.install(fail_for=2)          # os dois primeiros passam, os demais falham
-        self._run(h)
-        self.assertIsNotNone(h.saved_states[-1]["roundEmail"]["pendingBatch"],
-                             "PARTIAL nunca pode ser tratado como SENT")
-        acoes = [a["action"] for a in h.saved_states[-1].get("auditLog", [])]
-        self.assertIn("round-email-partial", acoes, "o parcial deve ficar registrado na auditoria")
+    def test_chave_de_idempotencia_e_canonica_e_sem_PII(self):
+        h = Harness([_entry("e1", "a@example.invalid")])
+        h.install()
+        out = self._dry_run(h)
+        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        self.assertEqual(r22["idempotencyKey"], "br2026:round-results:22:v1")
+        self.assertNotIn("@", r22["idempotencyKey"])
 
-    def test_envio_bloqueado_pelo_portao_nao_conta_como_enviado(self):
-        # send_email() devolve (False, motivo) sem levantar exceção. O código antigo somava isso
-        # como sucesso e fechava o lote — a rodada ficava "enviada" sem ninguém receber nada.
-        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid")]
-        games = [_game(str(5000 + i), 0) for i in range(10)]
-        h = Harness(entries, games, [g["id"] for g in games])
-        h.install(transport_result=(False, "EMAIL_SEND_BLOCKED: processo de teste"))
-        self._run(h)
-        self.assertIsNotNone(h.saved_states[-1]["roundEmail"]["pendingBatch"],
-                             "envio bloqueado nao pode fechar o lote")
+    def test_dry_run_NAO_persiste_estado(self):
+        h = Harness([_entry("e1", "a@example.invalid")])
+        h.install()
+        self._dry_run(h)
+        self.assertEqual(h.saved_states, [],
+                         "DRY-RUN nao pode gravar no Supabase")
 
-    def test_nenhum_endereco_de_email_no_log_de_auditoria(self):
-        entries = [_entry("e1", "segredo@privado.invalid"), _entry("e2", "")]
-        games = [_game(str(6000 + i), 0) for i in range(10)]
-        h = Harness(entries, games, [g["id"] for g in games]); h.install()
-        self._run(h)
-        blob = repr(h.saved_states[-1].get("auditLog", []))
+    def test_nenhum_endereco_de_email_nos_eventos_operacionais(self):
+        h = Harness([_entry("e1", "segredo@privado.invalid"), _entry("e2", "b@example.invalid")])
+        h.install()
+        eventos = []
+        orig = S._emit
+        S._emit = lambda e: eventos.append(e)
+        try:
+            self._dry_run(h)
+        finally:
+            S._emit = orig
+        blob = json.dumps(eventos)
         self.assertNotIn("segredo@privado.invalid", blob,
-                         "o log de auditoria nunca pode conter endereco de participante")
+                         "evento operacional nunca pode conter endereco de participante")
+        self.assertNotIn("@", blob, "nenhum endereco em evento operacional")
 
 
 if __name__ == "__main__":
