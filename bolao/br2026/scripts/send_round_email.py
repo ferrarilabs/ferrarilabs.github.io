@@ -102,6 +102,11 @@ def fetch_scoreboard_window(date_from, date_to):
             "completed": bool(status.get("completed")),
             "goalsHome": home.get("score"),
             "goalsAway": away.get("score"),
+            # Status bruto preservado: colapsar tudo em `completed` apagava a distincao entre
+            # "ainda vai acontecer" e "adiado indefinidamente" -- que e exatamente a distincao
+            # que travou a R21 e escondeu a R22. O resolver canonico precisa do nome do status.
+            "statusName": status.get("name"),
+            "statusState": status.get("state"),
         }
     return games
 
