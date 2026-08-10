@@ -260,11 +260,19 @@ function main() {
         reason: `script not found: ${c.cmd[1]}`, ms: 0 });
       continue;
     }
+    // Suites de navegador levam MUITO mais tempo e disputam CPU entre si: numa execucao medida,
+    // `accessibility` levou 114s e `responsive-14-width` 93s, e a suite seguinte ficou esperando
+    // um Chromium. Com teto unico de 300s, QUAL suite estourava variava de execucao para execucao
+    // -- um agregado nao-deterministico e uma fabrica de vermelho falso, e vermelho falso ensina
+    // a reexecutar ate passar, que e como um vermelho VERDADEIRO passa despercebido.
+    // O teto maior nao afrouxa gate nenhum: cada suite continua tendo de passar inteira.
+    const limite = c.requires === "browser" || c.group === "browser" ? 900000 : 300000;
     const t0 = Date.now();
-    const r = spawnSync(c.cmd[0], c.cmd.slice(1), { encoding: "utf8", timeout: 300000 });
+    const r = spawnSync(c.cmd[0], c.cmd.slice(1), { encoding: "utf8", timeout: limite });
     const ms = Date.now() - t0;
     if (r.error && r.error.code === "ETIMEDOUT") {
-      results.push({ id: c.id, group: c.group, status: "FAILED", reason: "timed out after 300s", ms });
+      results.push({ id: c.id, group: c.group, status: "FAILED",
+                     reason: `timed out after ${limite / 1000}s`, ms });
     } else if (r.error) {
       results.push({ id: c.id, group: c.group, status: "FAILED", reason: `spawn error: ${r.error.code}`, ms });
     } else if (r.status === 0) {
