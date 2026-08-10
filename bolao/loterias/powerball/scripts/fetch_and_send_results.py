@@ -513,20 +513,22 @@ def _default_send_email(game_type, entry_refs):
     alvo = set(entry_refs or [])
     if not alvo:
         return {"accepted": [], "failed": [], "uncertain": [],
-                "stdout": "TRANSPORTE_RECUSADO: lista de alvos vazia"}
+                "stdout": "TRANSPORTE_RECUSADO: lista de alvos vazia", "providerInvoked": False}
     if not esperados:
         # FALHA FECHADA. A versao anterior era `if esperados and ...`: com o conjunto esperado
         # desconhecido, o guard simplesmente nao rodava e a difusao acontecia. Nao saber quem
         # deveria receber e a razao MAIS forte para nao difundir, nao a mais fraca.
         return {"accepted": [], "failed": list(alvo), "uncertain": [],
                 "stdout": ("TRANSPORTE_RECUSADO: nao foi possivel determinar o conjunto esperado "
-                           "de destinatarios; difundir as cegas reenviaria para quem ja recebeu")}
+                           "de destinatarios; difundir as cegas reenviaria para quem ja recebeu"),
+                "providerInvoked": False}
     if alvo != set(esperados):
         # Envio parcial pedido a um transporte que so difunde.
         return {"accepted": [], "failed": list(alvo), "uncertain": [],
                 "stdout": (f"TRANSPORTE_INCAPAZ_DE_ALVEJAR: pedido para {len(alvo)} de "
                            f"{len(esperados)} destinatarios, mas --send-all difunde para todos. "
-                           f"Recusado para nao reenviar a quem ja recebeu.")}
+                           f"Recusado para nao reenviar a quem ja recebeu."),
+                "providerInvoked": False}
 
     proc = subprocess.run(["python3", SEND_EMAIL_SCRIPT, "--send-all", game_type],
                           capture_output=True, text=True)
@@ -540,7 +542,7 @@ def _default_send_email(game_type, entry_refs):
         print(proc.stderr[-1500:])
     aceitos = [] if proc.returncode != 0 else list(entry_refs)
     return {"accepted": aceitos, "failed": [] if proc.returncode == 0 else list(entry_refs),
-            "uncertain": [], "stdout": proc.stdout[-400:], "returncode": proc.returncode}
+            "uncertain": [], "stdout": proc.stdout[-400:], "returncode": proc.returncode, "providerInvoked": True}
 
 
 def _ultimo_sorteio_com_resultado():
@@ -673,7 +675,20 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     for ref in alvos:
         deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_SENDING)
     saida = deps.send_email(game_type, alvos)
-    rel["providerCalls"] = len(alvos)
+
+    # CHAMADAS REAIS, nao pretendidas. Ate 2026-08-10 esta linha era `len(alvos)`, atribuida
+    # antes de olhar o desfecho -- entao o relatorio afirmava `providerCalls: 1` mesmo quando o
+    # transporte tinha RECUSADO e nenhum provedor fora tocado. Foi por isso que eu li a validacao
+    # controlada como "o provedor foi chamado" e passei horas tratando entrega que nunca houve.
+    # Um contador de efeito colateral tem de contar o efeito, nunca a intencao.
+    tocou = saida.get("providerInvoked")
+    if tocou is None:
+        # Sem declaracao explicita, deduz do desfecho: recusa nao produz aceito nem falha vinda
+        # do provedor. Transportes que recusam devolvem `failed` com stdout de recusa.
+        recusou = str(saida.get("stdout", "")).startswith("TRANSPORTE_")
+        tocou = not recusou
+    rel["providerCalls"] = len(alvos) if tocou else 0
+    rel["providerRefused"] = not tocou
     for ref in saida.get("accepted", []):
         deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_ACCEPTED)
     for ref in saida.get("failed", []):
