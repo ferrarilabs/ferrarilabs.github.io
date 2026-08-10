@@ -57,6 +57,22 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
 
+      # PREFLIGHT DE DESTINATARIOS — roda ANTES, no unico ambiente que tem o segredo.
+      #
+      # Sem isto, a primeira vez que se descobre que falta contato de alguem e no meio do envio,
+      # com o portao de completude bloqueando tudo corretamente mas tarde demais para corrigir
+      # antes do sorteio. Imprime apenas CONTAGENS e nomes de exibicao -- nunca endereco, nunca
+      # o conteudo do segredo.
+      #
+      # `continue-on-error`: um conjunto incompleto NAO deve derrubar o job, porque o passo
+      # seguinte ja falha fechado sozinho. O valor aqui e o DIAGNOSTICO visivel no log.
+      - name: Preflight de destinatarios (nao envia nada)
+        working-directory: bolao/loterias/powerball/scripts
+        continue-on-error: true
+        env:
+          POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
+        run: python3 recipient_preflight.py
+
       - name: Fetch and send results
         working-directory: bolao/loterias/powerball/scripts
         env:
