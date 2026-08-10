@@ -452,25 +452,161 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
 
     return True
 
+# ─── ORQUESTRACAO (P0, 2026-08-10) ───────────────────────────────────────────────────────────
+#
+# O `main()` anterior era:
+#
+#     if check_and_update_results(...):      # gravou o resultado?
+#         subprocess.run([... send_result_email ...])   # entao manda o e-mail
+#
+# Isso e, literalmente, `result exists == notification completed`. Duas execucoes que gravassem
+# o resultado -- ou uma que gravasse e outra que lesse o estado antes do push -- mandariam o
+# e-mail duas vezes para 15 pessoas. E se o provedor aceitasse e o processo morresse antes do
+# commit, nada no sistema saberia que ja tinha enviado.
+#
+# Agora sao DOIS fatos independentes e duraveis:
+#
+#     reconciliacao do RESULTADO  -- grava no data.js, idempotente
+#     ciclo da NOTIFICACAO        -- job no ledger, com claim atomico e disposicao por
+#                                    destinatario
+#
+# Resultado valido pode ficar gravado com a notificacao pendente (destinatarios incompletos, por
+# exemplo). Falha de notificacao NUNCA reverte um resultado oficial.
+#
+# `deps` existe para o teste exercitar ESTA funcao -- a mesma que o workflow chama -- sem tocar
+# em rede, banco ou provedor. Um teste que reimplementasse a orquestracao provaria o teste, nao
+# o produto.
+class Deps:
+    """Fronteiras externas injetaveis. O padrao e a producao."""
+    def __init__(self, ledger=None, send_email=None, resolve_recipients=None):
+        if ledger is None:
+            import powerball_notification as _pn
+            ledger = _pn
+        self.ledger = ledger
+        self.send_email = send_email or _default_send_email
+        self.resolve_recipients = resolve_recipients or _default_resolve_recipients
+
+
+def _default_send_email(game_type, entry_refs):
+    """Producao: delega ao sender, que tem os proprios portoes de autorizacao."""
+    proc = subprocess.run(["python3", SEND_EMAIL_SCRIPT, "--send-all", game_type],
+                          capture_output=True, text=True)
+    aceitos = [] if proc.returncode != 0 else list(entry_refs)
+    return {"accepted": aceitos, "failed": [] if proc.returncode == 0 else list(entry_refs),
+            "uncertain": [], "stdout": proc.stdout[-400:]}
+
+
+def _default_resolve_recipients(draw):
+    """Referencias OPACAS dos participantes. Endereco nunca passa por aqui."""
+    return [str(p.get("nome") or p.get("name") or "").strip()
+            for p in (draw.get("participants") or [])
+            if (p.get("nome") or p.get("name"))]
+
+
+def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps=None):
+    """Ciclo completo: reconcilia resultado, depois trata a notificacao. Devolve o relatorio.
+
+    E ESTA a funcao que o workflow chama. Qualquer caminho de envio passa por aqui.
+    """
+    deps = deps or Deps()
+    rel = {"resultReconciled": False, "notificationState": None, "providerCalls": 0,
+           "wouldSend": False, "reason": None}
+
+    # ── FATO 1: RESULTADO ──────────────────────────────────────────────────────────────────
+    reconciliou = check_and_update_results(game_type, dry_run=dry_run, force_resend=force_resend)
+    rel["resultReconciled"] = bool(reconciliou)
+
+    # O sorteio alvo e seu resultado, LIDOS do estado canonico -- nao do retorno acima. Um
+    # resultado reconciliado numa execucao ANTERIOR tem de continuar o ciclo de notificacao;
+    # parar aqui porque "nada mudou agora" foi o defeito que deixou notificacao pendente para
+    # sempre.
+    draws = parse_draws(load_data_js()) or []
+    alvo = None
+    for d in reversed(draws):
+        if not (d.get("participants") or d.get("sharedTickets")):
+            continue
+        if (d.get("result") or {}).get("numbers"):
+            alvo = d
+            break
+    if not alvo:
+        rel["reason"] = "NENHUM_SORTEIO_COM_RESULTADO"
+        return rel
+
+    result = alvo["result"]
+    draw_id = alvo["id"]
+
+    # ── FATO 2: NOTIFICACAO ────────────────────────────────────────────────────────────────
+    disponivel, porque = deps.ledger.ledger_available()
+    if not disponivel:
+        # Sem ledger nao ha idempotencia duravel. Enviar as cegas e o defeito original.
+        rel["notificationState"] = "LEDGER_INDISPONIVEL"
+        rel["reason"] = porque
+        return rel
+
+    ja = deps.ledger.get_job(draw_id)
+    if ja and ja["status"] == deps.ledger.SENT:
+        rel["notificationState"] = "ALREADY_COMPLETED"
+        rel["reason"] = "notificacao ja concluida para este sorteio"
+        return rel
+
+    esperados = deps.resolve_recipients(alvo)
+    resolvidos = deps.resolve_recipients(alvo)   # resolucao real de contato acontece no sender
+    completo = len(esperados) == len(resolvidos) and len(esperados) > 0
+
+    ok_conteudo, motivo = deps.ledger.check_content_immutability(
+        draw_id, result, esperados, alvo.get("finance"))
+    if not ok_conteudo:
+        rel["notificationState"] = "CONTENT_CONFLICT"
+        rel["reason"] = motivo
+        return rel
+
+    deps.ledger.ensure_job(draw_id, result, esperados, alvo.get("finance"))
+
+    if not completo:
+        rel["notificationState"] = "RECIPIENT_SET_INCOMPLETE"
+        rel["reason"] = f"esperados={len(esperados)} resolvidos={len(resolvidos)}"
+        return rel
+
+    rel["wouldSend"] = True
+    if dry_run:
+        rel["notificationState"] = "READY_DRY_RUN"
+        return rel
+
+    worker = f"gha-{os.environ.get('GITHUB_RUN_ID', 'local')}"
+    reivindicado = deps.ledger.claim(draw_id, worker)
+    if not reivindicado:
+        # Outra execucao esta com o lease. NOOP, nao erro.
+        rel["notificationState"] = "ALREADY_CLAIMED"
+        return rel
+
+    alvos = deps.ledger.retryable_recipients(draw_id) or esperados
+    for ref in alvos:
+        deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_SENDING)
+    saida = deps.send_email(game_type, alvos)
+    rel["providerCalls"] = len(alvos)
+    for ref in saida.get("accepted", []):
+        deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_ACCEPTED)
+    for ref in saida.get("failed", []):
+        deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_FAILED)
+    for ref in saida.get("uncertain", []):
+        deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_UNCERTAIN)
+
+    final = deps.ledger.settle(draw_id)
+    rel["notificationState"] = final["status"]
+    rel["reason"] = final.get("reason")
+    return rel
+
+
 def main():
     dry_run = "--dry-run" in sys.argv
     force_resend = "--force-resend" in sys.argv
-    game_type = "powerball"  # Default to powerball for now
+    rel = run_lifecycle("powerball", dry_run=dry_run, force_resend=force_resend)
+    print("\n" + "=" * 60)
+    for k in ("resultReconciled", "notificationState", "providerCalls", "wouldSend", "reason"):
+        print(f"  {k}: {rel.get(k)}")
+    print("=" * 60)
+    return 0
 
-    # Check for new results and update if needed
-    if check_and_update_results(game_type, dry_run=dry_run, force_resend=force_resend):
-        # If result was updated, send email
-        if not dry_run:
-            print(f"\n📧 Sending result emails...\n")
-            subprocess.run([
-                "python3",
-                SEND_EMAIL_SCRIPT,
-                "--send-all",
-                game_type
-            ])
-    else:
-        if not dry_run:
-            print(f"✓ No new results to process")
 
 if __name__ == "__main__":
     main()
