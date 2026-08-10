@@ -183,6 +183,8 @@ const CHECKS = [
     why: "F8: so o gateway confiavel escreve no cache ao vivo; anon nunca" },
   { id: "br2026-narrow-persistence", group: "security", cmd: ["node", "bolao/scripts/audit_br2026_narrow_persistence.mjs"],
     why: "F10/N22: BR2026 le projecao publica e so grava por RPC estreita" },
+  { id: "powerball-result-identity", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_result_draw_identity.py"],
+    why: "P0 2026-08-10: resultado tem de ser DAQUELE sorteio; nunca o mais recente" },
   { id: "gate-registry", group: "security", cmd: ["node", "bolao/scripts/audit_gate_registry.mjs"],
     why: "meta-gate: nenhum gate pode existir sem classificacao (17 orfaos achados em 2026-08-10)" },
   { id: "security-docs-reality", group: "security", cmd: ["node", "bolao/scripts/audit_security_docs_match_reality.mjs"],

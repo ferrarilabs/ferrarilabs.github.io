@@ -47,32 +47,130 @@ GAME_TYPES = {
     }
 }
 
-def fetch_official_result(game_type):
-    """Fetch latest result from official API."""
+# ─── P0, 2026-08-10: NUNCA CONFIAR NO "MAIS RECENTE" ────────────────────────────────────────
+#
+# O codigo anterior pedia `$order=draw_date DESC&$limit=1`, jogava fora o `draw_date` no parse, e
+# aplicava o que voltasse ao ultimo sorteio incompleto. O comentario no lugar da checagem dizia,
+# literalmente: "For now, assume the latest API result is for the incomplete draw".
+#
+# Reproduzido em 2026-08-10 as 15:11 ET: a API devolvia o resultado de 08/08
+# ([5,9,35,54,63] PB 7) e havia DOIS sorteios incompletos -- 08/08 e 08/10. Como
+# `get_last_incomplete_draw` itera em `reversed(draws)`, o alvo seria o 08/10, e o resultado do
+# dia 8 seria gravado no sorteio do dia 10 -- com premio calculado contra os bilhetes errados,
+# e-mail anunciando numeros que nao sao daquele sorteio, e o 08/08 ficando sem resultado para
+# sempre.
+#
+# A identidade do sorteio e o `draw_date` da propria fonte, comparado com o `drawDateIso`
+# canonico do data.js. Nao por ordenacao, nao por dia da semana, nao por numeros.
+DRAW_PUBLICATION_GRACE_MINUTES = 10   # tempo para a fonte oficial publicar apos o sorteio
+
+
+def _draw_date_key(iso_or_date):
+    """Normaliza para YYYY-MM-DD. A fonte devolve '2026-08-08T00:00:00.000' (meia-noite, sem
+    fuso); o canonico e '2026-08-10T22:59:00-04:00'. Comparar strings inteiras nunca casaria."""
+    return str(iso_or_date)[:10]
+
+
+def fetch_official_result(game_type, expected_draw_date):
+    """Resultado oficial DAQUELE sorteio, ou None.
+
+    Devolve tambem `drawDate` para que o chamador possa reconferir -- um resultado sem identidade
+    e exatamente o que causou este incidente.
+    """
     if game_type not in GAME_TYPES:
         print(f"❌ Unknown game type: {game_type}")
-        return None
+        return None, "TIPO_DESCONHECIDO"
 
     config = GAME_TYPES[game_type]
+    alvo = _draw_date_key(expected_draw_date)
     try:
-        # A query da Socrata precisa ser CODIFICADA. Sem isto o espaço em "draw_date DESC" vai
-        # cru na URL e o urllib recusa antes de qualquer rede:
-        #   "URL can't contain control characters ... (found at least ' ')"
-        # O erro era capturado pelo `except` abaixo, virava um print de ❌ e o script seguia com
-        # exit 0 — então o workflow ficava VERDE tendo falhado em toda execução. Foi assim que o
-        # resultado do sorteio de 08/08 nunca foi gravado nem enviado por email.
-        # (O navegador funcionava porque o `fetch()` dele codifica o espaço sozinho — por isso a
-        # página mostrava o resultado e o cron não.)
-        url = f"{config['api']}?" + urllib.parse.urlencode({"$order": "draw_date DESC", "$limit": 1})
+        # Filtro por data EXATA na propria fonte. Se a API mudar a ordenacao, ou passar a incluir
+        # sorteios futuros, ou devolver a lista noutra ordem, nada disso muda o resultado aqui.
+        #
+        # A query da Socrata precisa ser CODIFICADA. Sem isto o espaco vai cru na URL e o urllib
+        # recusa antes de qualquer rede -- o erro virava print e o script seguia com exit 0, entao
+        # o workflow ficava VERDE tendo falhado. Foi assim que o sorteio de 08/08 nunca foi gravado.
+        url = f"{config['api']}?" + urllib.parse.urlencode({
+            "$where": f"draw_date between '{alvo}T00:00:00' and '{alvo}T23:59:59'",
+            "$limit": 10,
+        })
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=10) as r:
+        with urllib.request.urlopen(req, timeout=15) as r:
             data = json.loads(r.read())
-            if not data:
-                return None
-            return config["parse"](data[0])
     except Exception as e:
         print(f"❌ API error: {e}")
-        return None
+        return None, "FONTE_INDISPONIVEL"
+
+    exatos = [row for row in data if _draw_date_key(row.get("draw_date")) == alvo]
+    if not exatos:
+        return None, "NOT_READY"
+    if len(exatos) > 1:
+        # Dois registros para a mesma data e ambiguidade da fonte, nao um detalhe a resolver
+        # escolhendo um. Falha fechada.
+        print(f"❌ AMBIGUOUS_UPSTREAM_RESULT: {len(exatos)} registros para {alvo}")
+        return None, "AMBIGUOUS_UPSTREAM_RESULT"
+
+    row = exatos[0]
+    if not row.get("draw_date"):
+        return None, "SEM_DATA_NA_FONTE"
+    try:
+        parsed = config["parse"](row)
+    except Exception as e:
+        print(f"❌ resultado malformado na fonte: {e}")
+        return None, "RESULTADO_MALFORMADO"
+    parsed["drawDate"] = _draw_date_key(row["draw_date"])
+    return parsed, "OK"
+
+
+def validate_result(game_type, result):
+    """(ok, motivo). Rejeita payload malformado ANTES de qualquer persistencia."""
+    faixa = {"powerball": (69, 26), "megamillions": (70, 25)}[game_type]
+    nums = result.get("numbers")
+    if not isinstance(nums, list) or len(nums) != 5:
+        return False, "esperados 5 numeros brancos"
+    if not all(isinstance(n, int) for n in nums):
+        return False, "numeros brancos precisam ser inteiros"
+    if len(set(nums)) != 5:
+        return False, "numeros brancos repetidos"
+    if not all(1 <= n <= faixa[0] for n in nums):
+        return False, f"numero branco fora da faixa 1..{faixa[0]}"
+    esp = result.get("special")
+    if not isinstance(esp, int) or not (1 <= esp <= faixa[1]):
+        return False, f"bola especial fora da faixa 1..{faixa[1]}"
+    mult = result.get("multiplier", 1)
+    if not isinstance(mult, int) or not (1 <= mult <= 10):
+        return False, "multiplicador fora da faixa 1..10"
+    if sorted(nums) != nums:
+        return False, "numeros brancos nao estao normalizados"
+    return True, None
+
+
+def draw_has_occurred(draw, now=None):
+    """(ocorreu, detalhe). Portao TEMPORAL, independente do portao de identidade.
+
+    Ambos sao obrigatorios: a fonte poderia publicar cedo por engano, e a identidade poderia
+    casar num sorteio que ainda nao aconteceu.
+    """
+    from datetime import datetime, timezone, timedelta
+    # `drawDateIso` vive dentro de `drawing` no data.js. Aceita os dois niveis para nao depender
+    # da forma exata do documento -- mas EXIGE que exista: sem instante canonico nao ha portao
+    # temporal, e sem portao temporal um resultado publicado cedo por engano entraria.
+    iso = (draw.get("drawing") or {}).get("drawDateIso") or draw.get("drawDateIso")
+    if not iso:
+        return False, "sorteio sem drawDateIso canonico (nem em draw.drawing)"
+    try:
+        quando = datetime.fromisoformat(iso)
+    except ValueError:
+        return False, f"drawDateIso ilegivel: {iso}"
+    agora = now or datetime.now(timezone.utc)
+    if quando.tzinfo is None:
+        quando = quando.replace(tzinfo=timezone.utc)
+    liberado = quando + timedelta(minutes=DRAW_PUBLICATION_GRACE_MINUTES)
+    if agora < liberado:
+        return False, (f"sorteio em {iso}; liberado a partir de {liberado.isoformat()} "
+                       f"(+{DRAW_PUBLICATION_GRACE_MINUTES}min); agora {agora.isoformat()}")
+    return True, None
+
 
 def load_data_js():
     """Load data.js content."""
@@ -222,43 +320,70 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
     """Check API for new results and update data.js if found."""
     print(f"\n🔍 Checking {game_type.upper()} for new results...\n")
 
-    # Fetch official result
-    official = fetch_official_result(game_type)
-    if not official:
-        print(f"ℹ️  No result available from API yet")
-        return False
-
-    print(f"✓ Official result: {official['numbers']} | Special {official['special']} (Multiplier {official['multiplier']}x)")
-
-    # Load and parse data.js
+    # ─── ORDEM CORRIGIDA (P0, 2026-08-10) ────────────────────────────────────────────────────
+    #
+    # Antes: buscava o resultado MAIS RECENTE e so depois procurava o alvo. Agora identifica o
+    # ALVO primeiro e pede a fonte por aquele sorteio especifico. A pergunta deixou de ser "qual
+    # o ultimo resultado?" e passou a ser "existe resultado PARA ESTE sorteio?".
     content = load_data_js()
     draws = parse_draws(content)
     if not draws:
         print("❌ Could not parse POWERBALL_DRAWS from data.js")
         return False
 
-    # Find the draw that needs a result (and we're participating in)
     target_draw = get_last_incomplete_draw(draws, force_resend=force_resend)
     if not target_draw:
         print("ℹ️  No incomplete draw found OR not participating in any incomplete draw")
         return False
 
-    # Double-check we have participation
     has_tickets = target_draw.get("sharedTickets") or target_draw.get("participants")
     if not has_tickets:
         print(f"ℹ️  Draw {target_draw['id']} has no tickets/participation — skipping")
         return False
 
-    print(f"📋 Found incomplete draw we're playing: {target_draw['id']}")
+    _lbl = (target_draw.get("drawing") or {}).get("drawDateLabel") or target_draw.get("drawDateLabel", "?")
+    print(f"📋 Sorteio alvo: {target_draw['id']}  ({_lbl})")
 
-    # Check if official result matches the target draw's date
-    # For now, assume the latest API result is for the incomplete draw
+    # PORTAO 1 — TEMPORAL. Antes da hora oficial + carencia, nao existe resultado legitimo.
+    ocorreu, porque = draw_has_occurred(target_draw)
+    if not ocorreu:
+        print(f"⏳ RESULT_STATUS = DRAW_NOT_OCCURRED_OR_NOT_READY\n   {porque}")
+        print("   DATA_MUTATIONS = 0 | EMAILS_SENT = 0")
+        return False
 
+    # PORTAO 2 — IDENTIDADE. So o resultado DAQUELE sorteio serve.
+    official, status = fetch_official_result(game_type, target_draw["id"])
+    if official is None:
+        print(f"⏳ RESULT_STATUS = {status}")
+        print("   DATA_MUTATIONS = 0 | EMAILS_SENT = 0")
+        return False
+
+    if _draw_date_key(official["drawDate"]) != _draw_date_key(target_draw["id"]):
+        # Cinto e suspensorio: a consulta ja filtra por data, mas confiar num filtro remoto sem
+        # reconferir localmente foi exatamente a classe de erro deste incidente.
+        print(f"❌ DRAW_DATE_MISMATCH: fonte={official['drawDate']} alvo={target_draw['id']}")
+        return False
+
+    valido, motivo = validate_result(game_type, official)
+    if not valido:
+        print(f"❌ RESULTADO_INVALIDO: {motivo}")
+        return False
+
+    print(f"✓ Resultado oficial DE {official['drawDate']}: {official['numbers']} | "
+          f"Special {official['special']} (Multiplier {official['multiplier']}x)")
+
+    # IMUTABILIDADE: resultado ja gravado nao e sobrescrito automaticamente.
     existing_result = target_draw.get("result") if target_draw.get("result") and target_draw["result"].get("numbers") else None
     if existing_result:
-        print(f"ℹ️  Draw {target_draw['id']} already has a result")
-        if not force_resend:
+        mesmo = (sorted(existing_result.get("numbers") or []) == sorted(official["numbers"])
+                 and existing_result.get("special") == official["special"])
+        if mesmo:
+            print(f"✓ IDEMPOTENTE: {target_draw['id']} ja tem exatamente este resultado. Nada a fazer.")
             return False
+        print(f"❌ RESULT_CONFLICT: {target_draw['id']} ja tem resultado DIFERENTE do que a fonte "
+              f"devolve agora. NAO sera sobrescrito automaticamente — use o caminho de correcao "
+              f"do operador.")
+        return False
 
     print(f"\n✏️  Updating draw {target_draw['id']} with official result...")
 

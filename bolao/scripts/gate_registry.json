@@ -279,6 +279,9 @@
     },
     "bolao/scripts/audit_br2026_narrow_persistence.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_result_draw_identity.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
