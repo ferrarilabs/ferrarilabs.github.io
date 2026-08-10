@@ -56,6 +56,8 @@ const allScripts = Object.entries(pkg.scripts || {})
   .map(([, cmd]) => cmd)
   .join(" && ");
 
+const verifySrc = readFileSync(join(ROOT, "scripts/verify.mjs"), "utf8");
+
 const registry = existsSync(REGISTRY_PATH)
   ? JSON.parse(readFileSync(REGISTRY_PATH, "utf8"))
   : { entries: {} };
@@ -89,6 +91,15 @@ for (const path of discovered) {
     if (!allScripts.includes(path)) {
       failures.push(
         `${path}: classificado REGISTERED_AND_EXECUTED mas NÃO aparece em nenhum script do package.json`
+      );
+    }
+    // E no AGREGADOR CANONICO. Achado N21 (2026-08-10): 21 gates rodavam em `npm run test:*` e
+    // estavam ausentes de `npm run verify` -- entre eles os de seguranca de email, PII e ledger
+    // de notificacao. `verify` e o que um revisor executa; ele reportava verde enquanto esses 21
+    // nunca rodavam. Estar numa lista e nao na outra e um orfao com outro nome.
+    if (!verifySrc.includes(path)) {
+      failures.push(
+        `${path}: ausente de scripts/verify.mjs — o agregador canônico não o executa`
       );
     }
   } else if (!entry.reason || entry.reason.length < 20) {
