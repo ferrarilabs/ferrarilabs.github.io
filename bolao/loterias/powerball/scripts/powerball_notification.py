@@ -99,11 +99,37 @@ def content_hash(draw_id, result, recipient_refs, finance=None):
 
 
 # ── Acesso ao banco ───────────────────────────────────────────────────────────
+#
+# N24 (2026-08-10): TODA RPC de notificacao da migracao 010 era executavel por `anon` --
+# inclusive `mark_bolao_notif_sent`. A anon key e publica: vai em todo `config.js` servido ao
+# navegador. Qualquer portador podia marcar a notificacao como enviada e SUPRIMIR
+# permanentemente o e-mail de resultado dos 15 participantes.
+#
+# O ledger passou a exigir credencial privilegiada, que existe SO no runner do GitHub Actions,
+# vinda de `secrets.SUPABASE_SERVICE_ROLE_KEY`. Nunca em arquivo, nunca em config.js, nunca no
+# navegador, nunca em log.
+
+
+def _service_key():
+    """Credencial privilegiada, se o ambiente a tiver. NUNCA e impressa nem logada."""
+    return (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip() or None
+
+
+def has_privileged_credential():
+    """Presenca, nunca o valor. Usado por diagnostico e pelos portoes."""
+    return _service_key() is not None
+
+
 def _rpc(name, args):
-    """RPC anônima (as de leitura/enqueue são chamáveis por desenho)."""
+    """RPC do ledger. Usa a credencial privilegiada quando existe.
+
+    Sem ela sobra a anon key, que apos a migracao 021 NAO tem mais execute nas RPCs de
+    notificacao -- entao a chamada falha fechada, em vez de silenciosamente nao gravar.
+    """
+    chave = _service_key() or ANON_KEY
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/rpc/{name}", data=json.dumps(args).encode(), method="POST",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}",
+        headers={"apikey": chave, "Authorization": f"Bearer {chave}",
                  "Content-Type": "application/json"})
     with urllib.request.urlopen(req, timeout=25) as r:
         raw = r.read()

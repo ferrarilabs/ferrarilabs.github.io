@@ -28,6 +28,11 @@ on:
         required: false
         type: boolean
         default: false
+      post_cutover:
+        description: "Canario: exigir que anon esteja NEGADO no ledger (apos a migracao 021)"
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: powerball-results
@@ -73,6 +78,18 @@ jobs:
           POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
         run: python3 recipient_preflight.py
 
+      # CANARIO DO LEDGER — prova, de dentro do runner, que a credencial privilegiada
+      # funciona. Nada disto e provavel da maquina de desenvolvimento: local existe um
+      # `supabase link` que o runner nao tem, e nao existe a credencial que o runner tem. Foi
+      # essa assimetria que deixou o ledger inoperante em producao com a suite verde localmente.
+      #
+      # Grava e apaga um job SINTETICO. Nunca toca notificacao real. Nunca imprime a credencial.
+      - name: Canario do ledger (nao envia nada)
+        working-directory: bolao/loterias/powerball/scripts
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 ledger_canary.py ${{ inputs.post_cutover && '--post-cutover' || '' }}
+
       - name: Fetch and send results
         working-directory: bolao/loterias/powerball/scripts
         env:
@@ -81,6 +98,11 @@ jobs:
           # secret is the only remaining source, injected as an env var, never written
           # to a file or committed.
           POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
+          # N24: o ledger exige credencial privilegiada. A anon key e publica (vai em todo
+          # config.js servido ao navegador) e, apos a migracao 021, nao tem mais execute nas
+          # RPCs de notificacao. Sem esta variavel o ciclo falha FECHADO em vez de silenciosamente
+          # nao gravar -- que era o modo de falha perigoso.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           # DESARMADO em 2026-08-10 a pedido do Eduardo. Armar = acrescentar aqui:
           #     POWERBALL_EMAIL_MODE: production
           # Sem essa variavel o ciclo roda inteiro e o sender RECUSA enviar.
