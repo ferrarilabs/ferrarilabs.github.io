@@ -1,5 +1,24 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.119 — 2026-08-10 — Todo `<thead>` da plataforma estava corrompido
+
+Auditoria independente apontou um `<th scope="col"ead>` no repositório. Eram **22**, nos três
+apps — e não sobrou nenhum `<thead>` válido: a contagem de `</thead>` batia exatamente com a de
+tags corrompidas em cada arquivo.
+
+A causa foi um replace em massa de `<th` para `<th scope="col"`, feito para satisfazer o gate de
+acessibilidade, que casou também dentro de `<thead>`. O gate de acessibilidade continuou verde
+porque todo `<th>` de fato tinha `scope` — inclusive o que não era um `<th>`. Os validadores de
+HTML estático também não viam nada, porque essas tabelas (recibos, ranking, palpites) são montadas
+em template literals dentro de `js/app.js`.
+
+Correção: as 22 ocorrências viraram `<thead>` de novo, restaurando o balanceamento exato com os
+`</thead>` existentes. Novo gate `bolao/scripts/audit_html_table_structure.mjs` valida o HTML
+**gerado**, não só os arquivos `.html`: detecta lixo colado após valor de atributo, exige
+balanceamento de `<thead>`/`<tbody>`/`<table>`, mantém a exigência de `scope` em todo `<th>` e
+falha se parar de encontrar tabelas (um gate que perde cobertura é falso-verde). Provado contra o
+código antigo antes de entrar na suíte. Entrou em `npm run test:node`.
+
 ## v3.118 — 2026-08-09 — Gravação remota que não acontece deixa de parecer sucesso
 
 O Eduardo registrou a data do sorteio da CBF pelo painel admin do CDB2026 e a tela confirmou.
