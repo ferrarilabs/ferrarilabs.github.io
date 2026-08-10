@@ -346,7 +346,12 @@
         // `schemaVersion === 1` prova apenas que alguem escreveu o numero 1.
         var v = validateGatewayBody(body, competition);
         if (!v.ok) {
-          lastError = "CACHE_INVALIDO:" + v.reason;
+          // Schema desconhecido mantem o codigo de erro historico: e um contrato ja observado
+          // por gates existentes e por diagnostico de producao. Os demais motivos de rejeicao
+          // (forma poluida) sao novos e ganham o prefixo CACHE_INVALIDO.
+          lastError = /^SCHEMA_NAO_SUPORTADO_/.test(v.reason)
+            ? "UNSUPPORTED_SCHEMA_" + v.reason.replace("SCHEMA_NAO_SUPORTADO_", "")
+            : "CACHE_INVALIDO:" + v.reason;
           consecutiveFailures++;
           emit();
           return false;   // fallback seguro -- jamais promove payload invalido
