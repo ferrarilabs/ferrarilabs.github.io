@@ -73,7 +73,7 @@ export function buildParticipantConfirmationPayload({ participant, draw, estimat
  * correctionReason is only ever shown alongside that computed diff, never as
  * a standalone typed description (round-1 bug 3).
  */
-export function buildTicketPublicationPayload({ draw, participants, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets, ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl }) {
+export function buildTicketPublicationPayload({ draw, participants, tickets, publicationVersion, proofUrl, operatorAttestation, correctionReason, previousHash, previousTickets, ticketsPdfUrl, ticketsCsvUrl, ticketsManifestUrl, publishedAtUtc, siteUrl }) {
   const totalShares = participants.reduce((s, p) => s + (p.cotas || 0), 0);
   const f = draw.finance;
   const totalArrecadado = f.totalArrecadado;
@@ -102,7 +102,13 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
     poolId: draw.gameType,
     drawId: draw.id,
     publicationVersion,
-    publishedAtUtc: new Date().toISOString(),
+    // Callers that need the SAME manifest (and therefore the same hash) written to disk
+    // BEFORE the email is built — e.g. to host the files this send links to — must pass
+    // the same publishedAtUtc into both calls. Otherwise two calls a few ms apart each get
+    // their own `new Date().toISOString()`, producing two different hashes for identical
+    // ticket data — the exact bug found 2026-08-10 (public file hash didn't match the hash
+    // quoted in the sent email).
+    publishedAtUtc: publishedAtUtc || new Date().toISOString(),
     tickets: tickets.map((t) => ({ numbers: t.numbers.slice().sort((a, b) => a - b), special: t.special, serial: t.serial || null })),
   };
   const manifestHash = sha256Hex(stableStringify(manifest));
@@ -139,6 +145,11 @@ export function buildTicketPublicationPayload({ draw, participants, tickets, pub
     drawDateLabel: draw.drawing.drawDateLabel,
     drawDateIso: draw.drawing.drawDateIso,
     jackpot: draw.drawing.jackpot,
+    // Missing from this template until 2026-08-10 (Eduardo, reviewing the actual email as a
+    // participant: "não mostra o jackpot... não tem link pro site") — both fields already
+    // existed on the OTHER two templates (confirmation, draw-result), just never threaded
+    // through this one.
+    siteUrl: siteUrl || "https://www.ferrarilabs.com/bolao/loterias/powerball/",
     totalShares,
     publicationVersion,
     manifest,
