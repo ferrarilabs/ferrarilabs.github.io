@@ -246,6 +246,50 @@ def load_participants_from_private_env(draw_id):
         private_data = json.loads(raw)
         draw_entries = private_data.get(draw_id, {})
 
+        # RESOLUCAO ENTRE SORTEIOS (2026-08-10).
+        #
+        # O segredo e {draw_id: {nome: {campos}}}. Quando um sorteio novo e criado no data.js e
+        # ninguem acrescenta a entrada correspondente no segredo, este dict vem VAZIO -- e o
+        # portao de completude, corretamente, bloqueia o envio inteiro. O sintoma e silencioso:
+        # o preflight de 2026-08-10 reportou RESOLVED = 0 de 15 participantes.
+        #
+        # O e-mail de uma pessoa nao muda entre sorteios. Entao, para os nomes que este sorteio
+        # espera e que nao estao na sua propria entrada, procura-se o endereco nas entradas dos
+        # outros sorteios.
+        #
+        # FALHA FECHADA NA AMBIGUIDADE: se o mesmo nome aparece com enderecos DIFERENTES em
+        # sorteios diferentes, nao se escolhe um. Nao ha como saber qual e o atual, e adivinhar
+        # manda o resultado de dinheiro real para o endereco errado. O nome fica sem resolver e
+        # o portao de completude faz o resto.
+        if not draw_entries:
+            logger.warning(
+                f"⚠ Sem entrada propria para o sorteio {draw_id} no segredo — "
+                f"resolvendo nomes pelos demais sorteios (endereco estavel por pessoa)")
+            por_nome = {}
+            ambiguos = set()
+            for outro_id, entradas in private_data.items():
+                if not isinstance(entradas, dict) or outro_id == draw_id:
+                    continue
+                for nome, campos in entradas.items():
+                    if not isinstance(campos, dict):
+                        continue
+                    email = campos.get("email")
+                    if not email:
+                        continue
+                    chave = _normalize_name(nome)
+                    anterior = por_nome.get(chave)
+                    if anterior and anterior[1].get("email") != email:
+                        ambiguos.add(chave)
+                    por_nome[chave] = (nome, campos)
+            for chave in ambiguos:
+                por_nome.pop(chave, None)
+            if ambiguos:
+                logger.error(
+                    f"❌ {len(ambiguos)} nome(s) com endereco divergente entre sorteios "
+                    f"(hashes: {[_short_hash(c) for c in ambiguos]}) — nao resolvidos de proposito")
+            draw_entries = {nome: campos for nome, campos in por_nome.values()}
+            logger.info(f"✓ {len(draw_entries)} nome(s) resolvidos por referencia cruzada")
+
         # P0.2 gate: collision detection on the normalized matching key BEFORE
         # resolving any participant. Two distinct raw names that normalize to
         # the same key is a fail-closed condition for this draw's private
