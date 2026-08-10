@@ -167,8 +167,7 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_shared_store_adoption.mjs": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Gate estrutural de F12/F13 (adocao do store compartilhado). Vermelho por desenho enquanto a migracao BR/CDB nao termina; registrar um gate vermelho na suite destroi o sinal dela. DEVE migrar para REGISTERED_AND_EXECUTED assim que F12/F13 fecharem."
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_snapshot_window_coverage.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"

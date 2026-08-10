@@ -3833,47 +3833,68 @@ function snapshotEventsToEspnShape(matches) {
 // 1. gateway Ferrari Labs (segundos)  2. snapshot commitado (bootstrap/emergência)
 // Mesma implementação do BR2026. O navegador NUNCA fala com a ESPN.
 // `_liveObservedAt` descarta resposta atrasada: ordem de chegada não é verdade.
-let _liveObservedAt = 0;
-let _liveSource = "none";
+// Carimbo de observacao e fonte vivem no store compartilhado desde F13 -- havia duas verdades
+// sobre a mesma coisa, e elas divergiam.
 let _liveHealth = { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutiveFailures: 0, lastError: null };
 
 function publishLiveHealth() {
   try {
+    const _st = _liveStore ? _liveStore.getState() : null;
     window.__BOLAO_LIVE_HEALTH__ = {
       version: 1, competition: C.liveGateway?.competition || "cdb2026",
       gateway: { enabled: !!C.liveGateway?.enabled, status: _liveHealth.gatewayStatus,
                  lastOkAt: _liveHealth.lastGatewayOkAt, consecutiveFailures: _liveHealth.consecutiveFailures,
                  lastError: _liveHealth.lastError },
-      source: _liveSource,
-      observedAt: _liveObservedAt ? new Date(_liveObservedAt).toISOString() : null,
-      ageSeconds: _liveObservedAt ? Math.round((Date.now() - _liveObservedAt) / 1000) : null,
+      source: _st ? _st.source : "none",
+      observedAt: _st ? _st.observedAt : null,
+      ageSeconds: _st && _st.ageMs != null ? Math.round(_st.ageMs / 1000) : null,
     };
   } catch { /* diagnóstico nunca derruba o app */ }
 }
 
-async function fetchLiveFromGateway() {
-  const g = C.liveGateway;
-  if (!g || !g.enabled || !g.url) return null;
-  try {
-    const r = await fetchJson(`${g.url}?competition=${encodeURIComponent(g.competition)}`,
-                              { cache: "no-store", timeoutMs: 5000 });
-    const body = await r.json();
-    if (!body || body.schemaVersion !== 1) return null;      // schema desconhecido: rejeita
-    if (!r.ok || body.matches === null) return null;         // `null` = não sabemos, nunca "sem jogo"
-    const ts = Date.parse(body.observedAt || "") || 0;
-    if (!ts || ts <= _liveObservedAt) return null;           // fora de ordem: descarta
-    _liveObservedAt = ts; _liveSource = "gateway";
-    _liveHealth.gatewayStatus = body.stale ? "STALE" : "OK";
-    _liveHealth.lastGatewayOkAt = new Date().toISOString();
-    _liveHealth.consecutiveFailures = 0; _liveHealth.lastError = null;
-    publishLiveHealth();
-    return { matches: body.matches, generatedAt: body.observedAt, stale: !!body.stale };
-  } catch (e) {
-    _liveHealth.gatewayStatus = "UNREACHABLE"; _liveHealth.consecutiveFailures++;
-    _liveHealth.lastError = String(e?.message || e).slice(0, 80);
-    publishLiveHealth();
+// ─── AQUISICAO AO VIVO: DELEGADA AO STORE COMPARTILHADO (F13, 2026-08-10) ───────────────────
+//
+// O CDB2026 mantinha sua propria hierarquia de fontes e seu proprio carimbo de observacao --
+// copia paralela do que football_live_store.js ja fazia. A biblioteca canonica era carregada e
+// nunca instanciada, entao os defeitos corrigidos nela nao protegiam este app.
+//
+// Estado de torneio (chaveamento, sorteio oficial, entradas, palpites, pagamentos) NAO passa por
+// aqui e nao foi tocado: o store so conhece observacao de partida.
+let _liveStore = null;
+
+function initLiveStore() {
+  const g = C.liveGateway || {};
+  const F = window.BOLAO_FOOTBALL_LIVE;
+  if (!F || typeof F.createStore !== "function") {
+    console.warn("[CDB2026] FootballLiveStore indisponivel — sem dado ao vivo nesta sessao.");
     return null;
   }
+  _liveStore = F.createStore({
+    competition: g.competition || "cdb2026",
+    gatewayUrl: g.enabled ? g.url : null,
+    snapshotUrl: C.espn?.scoreboardUrl || null,
+  });
+  _liveStore.subscribe(() => { pollLiveTies(); });
+  _liveStore.start();
+  return _liveStore;
+}
+
+/** Projeta a saude publicada do estado do store. Deixou de ser mantida a mao. */
+function liveHealthFromStore() {
+  if (!_liveStore) {
+    return { gatewayStatus: "UNKNOWN", lastGatewayOkAt: null, consecutiveFailures: 0, lastError: null };
+  }
+  const st = _liveStore.getState();
+  const h = st.health || {};
+  let status = "OK";
+  if (h.lastError) status = /NETWORK|HTTP_/.test(String(h.lastError)) ? "UNREACHABLE" : "DEGRADED";
+  else if (st.stale) status = "STALE";
+  return {
+    gatewayStatus: status,
+    lastGatewayOkAt: h.gatewayLastOkAt || null,
+    consecutiveFailures: h.consecutiveFailures || 0,
+    lastError: h.lastError || null,
+  };
 }
 
 async function fetchEspnCandidates() {
@@ -3883,16 +3904,15 @@ async function fetchEspnCandidates() {
     // `cache: "no-cache"` — REVALIDA sempre. Sem isto o navegador servia a cópia em cache por até
     // 10 minutos (`cache-control: max-age=600` do GitHub Pages), então o poll relia o MESMO arquivo
     // e o placar/relógio ao vivo congelavam. Revalidar devolve 304 barato quando nada mudou.
-    // FONTE 1: gateway. As duas produzem o MESMO schema normalizado (interop JS≡Python
-    // verificado contra payload real), então só muda de ONDE vem `snap`.
-    let snap = await fetchLiveFromGateway();
-    if (!snap) {
-      const r = await fetchJson(url, { cache: "no-cache" });
-      if (!r.ok) return null;
-      snap = await r.json();
-      _liveSource = "snapshot"; publishLiveHealth();
-    }
-    if (!snap || !Array.isArray(snap.matches)) return null; // forma inesperada: melhor nada que lixo
+    // FONTE UNICA DE OBSERVACAO: o store compartilhado, que ja resolveu a hierarquia
+    // (gateway -> snapshot commitado), a monotonicidade e a protecao de estado terminal.
+    const st = _liveStore ? _liveStore.getState() : null;
+    _liveHealth = liveHealthFromStore();
+    publishLiveHealth();
+    const snap = st && Array.isArray(st.matches)
+      ? { matches: st.matches, generatedAt: st.observedAt, stale: st.stale }
+      : null;
+    if (!snap || !Array.isArray(snap.matches)) return null; // sem observacao: melhor nada que lixo
     if (snap.stale) console.warn(`[CDB2026] snapshot ESPN marcado stale (${snap.staleReason || "?"}) — usando último dado bom conhecido`);
     // QUANDO o dado foi observado. Antes da migração da ESPN "buscar" e "observar" eram o mesmo
     // instante; com snapshot, não são — e tratar a hora do fetch como hora da observação congela o
@@ -5052,8 +5072,10 @@ async function init() {
   // (pollLiveScores/pollAll), separado do sync de resultado FINAL a cada 5 min
   // (autoSyncEspnFull, acima) -- concerns diferentes: este é só pra exibição em tempo real
   // enquanto o jogo está rolando, nunca grava nada no estado/Supabase.
+  // O laco ao vivo passou a ser do store compartilhado (F13): ele tem singleton de timer,
+  // cadencia adaptativa, backoff limitado e guarda contra reagendamento apos stop().
+  initLiveStore();
   pollLiveTies();
-  setInterval(() => { if (!document.hidden) pollLiveTies(); }, LIVE_TIE_POLL_INTERVAL_MS);
 
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
   $("paymentMethod")?.addEventListener("change", renderPaymentBox);

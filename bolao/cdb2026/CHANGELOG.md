@@ -1,5 +1,23 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.123 — 2026-08-10 — CDB2026 passa a usar de verdade o store ao vivo compartilhado
+
+Mesmo defeito do BR2026: `football_live_store.js` era carregado, testado e nunca instanciado. O
+CDB mantinha sua própria hierarquia de fontes (`fetchLiveFromGateway` + fallback de snapshot),
+seu próprio carimbo `_liveObservedAt` e sua própria `_liveSource`.
+
+Agora `initLiveStore()` instancia o store compartilhado, que resolve gateway → snapshot,
+monotonicidade de observação e proteção de estado terminal. `fetchEspnCandidates()` lê a
+observação do store em vez de buscar; `publishLiveHealth()` projeta o estado do store; o
+`setInterval` local de 60s deu lugar à cadência adaptativa do store, que tem singleton de timer,
+backoff limitado e guarda contra reagendamento depois de `stop()`.
+
+**Estado de torneio não foi tocado.** Sorteio oficial, topologia do chaveamento, entradas,
+palpites, pagamentos e estado de pago não passam pelo store — ele só conhece observação de
+partida. O diff não altera nenhuma linha relacionada a esses campos.
+
+`ACTIVE_APPS_USING_SHARED_LIVE_STORE = 2 de 2`.
+
 ## v3.122 — 2026-08-10 — Cache persistido passa a ser tratado como entrada não confiável
 
 O cliente validava `schemaVersion === 1` e `matches !== null`, e aceitava qualquer coisa dentro
