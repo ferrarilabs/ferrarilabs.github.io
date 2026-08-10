@@ -57,8 +57,17 @@ class SettleNoBancoReal(unittest.TestCase):
             raise RuntimeError(f"credencial presente mas ledger inacessivel: {motivo}")
 
     def setUp(self):
-        self.chave = f"{POOL_SINTETICO}:draw-result:{uuid.uuid4().hex[:12]}:v1"
+        # Rastreia TODAS as chaves criadas, nao so a atual. Um teste reatribui self.chave num
+        # laco, e o cleanup registrado com a chave original deixava as anteriores orfas -- sete
+        # jobs sinteticos acumularam no banco antes de eu notar.
+        self.chaves = []
+        self.chave = self.nova_chave()
         self.addCleanup(self.limpar)
+
+    def nova_chave(self):
+        k = f"{POOL_SINTETICO}:draw-result:{uuid.uuid4().hex[:12]}:v1"
+        self.chaves.append(k)
+        return k
 
     def limpar(self):
         """Limpeza por RPC, nao pela CLI.
@@ -69,7 +78,8 @@ class SettleNoBancoReal(unittest.TestCase):
         notificacao real.
         """
         try:
-            P._rpc("delete_canary_job", {"p_idempotency_key": self.chave})
+            for k in self.chaves:
+                P._rpc("delete_canary_job", {"p_idempotency_key": k})
         except Exception:
             # Job sintetico orfao nao justifica derrubar o gate; nenhum app le este pool.
             pass
@@ -115,10 +125,9 @@ class SettleNoBancoReal(unittest.TestCase):
         for estados, esperado in [(["ACCEPTED"], "sent"),
                                   (["FAILED"], "failed_retryable"),
                                   (["UNCERTAIN"], "failed_permanent")]:
-            self.chave = f"{POOL_SINTETICO}:draw-result:{uuid.uuid4().hex[:12]}:v1"
+            self.chave = self.nova_chave()
             self.criar(estados)
             self.assertEqual(self.settle()["status"], esperado)
-            self.limpar()
 
     # ── validacao de entrada, executada de verdade ────────────────────────
     def test_endereco_de_email_e_recusado_pelo_banco(self):
