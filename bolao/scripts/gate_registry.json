@@ -315,6 +315,10 @@
     "bolao/loterias/powerball/scripts/test_anon_notification_denied.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "N24. Usa a anon key publica real contra o banco real: mark_bolao_notif_sent suprimia o e-mail dos 15."
+    },
+    "bolao/loterias/powerball/scripts/test_transport_honors_targets.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "A fronteira que a matriz de crash substituia por um duble. _default_send_email ignorava entry_refs e difundia para todos."
     }
   }
 }

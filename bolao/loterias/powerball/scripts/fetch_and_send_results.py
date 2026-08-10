@@ -488,12 +488,59 @@ class Deps:
 
 
 def _default_send_email(game_type, entry_refs):
-    """Producao: delega ao sender, que tem os proprios portoes de autorizacao."""
+    """Transporte de producao.
+
+    ─── O DEFEITO QUE ISTO FECHA (2026-08-10) ──────────────────────────────────────────────────
+
+    A versao anterior recebia `entry_refs` e IGNORAVA: chamava `send_result_email.py --send-all`,
+    que difunde para TODOS os participantes do sorteio ativo. Todo o alvejamento por destinatario
+    do ledger -- o mecanismo que existe para que os 14 que ja receberam o resultado de 08/08 nunca
+    recebam de novo -- era descartado exatamente na fronteira onde importa.
+
+    Na validacao controlada com o workflow armado, o ciclo calculou `alvos = ['Rodrigo Hajj']`,
+    reportou `providerCalls: 1`, e chamou um transporte que teria mirado os 15.
+
+    Nem a matriz de crash nem o gate de consumidor pegaram isso: os dois injetam um `send_email`
+    falso. Provaram que o ledger e consumido; nunca provaram que o TRANSPORTE obedece a lista.
+
+    ─── POR QUE FALHA FECHADA ──────────────────────────────────────────────────────────────────
+
+    O sender so sabe difundir. Enquanto ele nao souber enviar para um subconjunto, entregar a ele
+    uma lista parcial e mentir sobre o que vai acontecer. Entao: se o alvo nao for exatamente o
+    conjunto completo, o transporte RECUSA em vez de difundir.
+    """
+    esperados = _default_resolve_recipients(_ultimo_sorteio_com_resultado() or {})
+    alvo = set(entry_refs or [])
+    if not alvo:
+        return {"accepted": [], "failed": [], "uncertain": [],
+                "stdout": "TRANSPORTE_RECUSADO: lista de alvos vazia"}
+    if esperados and alvo != set(esperados):
+        # Envio parcial pedido a um transporte que so difunde.
+        return {"accepted": [], "failed": list(alvo), "uncertain": [],
+                "stdout": (f"TRANSPORTE_INCAPAZ_DE_ALVEJAR: pedido para {len(alvo)} de "
+                           f"{len(esperados)} destinatarios, mas --send-all difunde para todos. "
+                           f"Recusado para nao reenviar a quem ja recebeu.")}
+
     proc = subprocess.run(["python3", SEND_EMAIL_SCRIPT, "--send-all", game_type],
                           capture_output=True, text=True)
+    # A saida do sender e ECOADA. Antes ficava capturada e invisivel, entao um envio real nao
+    # deixava rastro nenhum no log do workflow -- impossivel auditar depois se saiu e-mail.
+    if proc.stdout:
+        print("--- saida do sender ---")
+        print(proc.stdout[-3000:])
+    if proc.stderr:
+        print("--- erros do sender ---")
+        print(proc.stderr[-1500:])
     aceitos = [] if proc.returncode != 0 else list(entry_refs)
     return {"accepted": aceitos, "failed": [] if proc.returncode == 0 else list(entry_refs),
-            "uncertain": [], "stdout": proc.stdout[-400:]}
+            "uncertain": [], "stdout": proc.stdout[-400:], "returncode": proc.returncode}
+
+
+def _ultimo_sorteio_com_resultado():
+    for d in reversed(parse_draws(load_data_js()) or []):
+        if (d.get("participants") or d.get("sharedTickets")) and (d.get("result") or {}).get("numbers"):
+            return d
+    return None
 
 
 def _default_resolve_recipients(draw):
