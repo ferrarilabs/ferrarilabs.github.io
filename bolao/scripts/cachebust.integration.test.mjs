@@ -36,7 +36,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { checkApp, computeTagFromFiles, CRITICAL_FILES } from "./cachebust.mjs";
+import { checkApp, computeTagFromFiles, CRITICAL_FILES, SHARED_FILES, DEFAULT_BOLAO_ROOT } from "./cachebust.mjs";
 
 const SCRIPTS_ROOT = dirname(fileURLToPath(import.meta.url)); // bolao/scripts
 const REPO_ROOT = join(SCRIPTS_ROOT, "..", ".."); // repo root
@@ -54,14 +54,30 @@ function makeFixtureRoot() {
   writeFileSync(join(appDir, "js", "data.js"), "window.DATA=[1,2,3];");
   writeFileSync(join(appDir, "js", "i18n.js"), "window.I18N={};");
   writeFileSync(join(appDir, "js", "app.js"), "console.log('app');");
+
+  // Modulos COMPARTILHADOS (F18). O fixture precisa espelhar a arvore real: os tres apps
+  // referenciam "../shared/..." e esses arquivos passaram a entrar no hash e a receber tag.
+  mkdirSync(join(tmp, "shared", "js"), { recursive: true });
+  mkdirSync(join(tmp, "shared", "css"), { recursive: true });
+  for (const rel of SHARED_FILES) {
+    writeFileSync(join(appDir, rel), `/* ${rel} */`);
+  }
+
+  const sharedCssLinks = SHARED_FILES.filter(f => f.endsWith(".css"))
+    .map(f => `  <link rel="stylesheet" href="${f}">`).join("\n");
+  const sharedJsTags = SHARED_FILES.filter(f => f.endsWith(".js"))
+    .map(f => `  <script src="${f}"></script>`).join("\n");
+
   writeFileSync(
     join(appDir, "index.html"),
     `<!doctype html><html><head>
+${sharedCssLinks}
   <link rel="stylesheet" href="css/styles.css">
 </head><body>
   <script src="js/config.js"></script>
   <script src="js/data.js"></script>
   <script src="js/i18n.js"></script>
+${sharedJsTags}
   <script defer src="js/app.js"></script>
 </body></html>`
   );
@@ -183,4 +199,47 @@ test("5d. check_cachebust.mjs (CDB2026 wrapper) and cachebust.mjs (shared module
   const viaShared = computeTagFromFiles(join(bolaoRoot, "cdb2026"));
   const viaCheckApp = checkApp("cdb2026", { write: false, bolaoRoot }).expected;
   assert.equal(viaCheckApp, viaShared, "checkApp() and computeTagFromFiles() must agree — they are the same underlying computation");
+});
+
+test("6. SHARED_ASSET_CHANGE_INVALIDATES_CACHE — mexer num modulo compartilhado muda o tag", () => {
+  // F18. Antes desta correcao os arquivos de ../shared/ nao entravam no hash NEM recebiam ?v=.
+  // O efeito pratico era grave: a correcao do football_live_store.js (FINAL nao regride, stop()
+  // que realmente para) ficaria commitada, deployada e invisivel para todo navegador que ja
+  // tivesse o arquivo em cache. Uma correcao que nao chega ao cliente nao e uma correcao.
+  const tmp = makeFixtureRoot();
+  try {
+    const appDir = join(tmp, FIXTURE_APP);
+    checkApp(FIXTURE_APP, { write: true, bolaoRoot: tmp });
+    const tagBefore = computeTagFromFiles(appDir);
+
+    // Muda APENAS um modulo compartilhado — nenhum arquivo local do app.
+    writeFileSync(join(appDir, "../shared/js/football_live_store.js"), "/* comportamento novo */");
+    const tagAfter = computeTagFromFiles(appDir);
+
+    assert.notEqual(tagAfter, tagBefore,
+      "mudanca em modulo compartilhado TEM de mudar o tag do app");
+
+    const before = checkApp(FIXTURE_APP, { bolaoRoot: tmp });
+    assert.equal(before.ok, false, "o checker tem de acusar o app como desatualizado");
+
+    checkApp(FIXTURE_APP, { write: true, bolaoRoot: tmp });
+    const html = readFileSync(join(appDir, "index.html"), "utf8");
+    assert.match(html, new RegExp(`football_live_store\\.js\\?v=${tagAfter}"`),
+      "o HTML tem de passar a referenciar a versao nova do modulo compartilhado");
+  } finally {
+    rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("6b. todo asset compartilhado do index.html real carrega ?v=", () => {
+  // Guarda contra regressao por omissao: adicionar um novo modulo compartilhado ao HTML sem
+  // registra-lo em SHARED_FILES o deixaria de fora do cache-bust silenciosamente.
+  for (const app of ["copa2026", "br2026", "cdb2026"]) {
+    const html = readFileSync(join(DEFAULT_BOLAO_ROOT, app, "index.html"), "utf8");
+    const refs = [...html.matchAll(/(?:src|href)="(\.\.\/shared\/[^"]+\.(?:js|css))(\?v=[a-f0-9]+)?"/g)];
+    assert.ok(refs.length > 0, `${app}: nenhuma referencia compartilhada encontrada`);
+    for (const m of refs) {
+      assert.ok(m[2], `${app}: ${m[1]} sem ?v= — ficou fora do cache-bust`);
+    }
+  }
 });
