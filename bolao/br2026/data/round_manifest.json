@@ -813,5 +813,70 @@
       "replacements": {}
     }
   ],
-  "rejected": []
+  "rejected": [],
+  "officialProvenance": {
+    "rule": "ATRIBUICAO OFICIAL DE RODADA = verdade de negocio. Particao round-robin = validador de integridade. Ordem de id de evento = auxilio de implementacao. Datas = metadado. Nenhum jogo e classificado como Rodada N apenas porque um algoritmo particiona os 380 jogos em 38 blocos validos.",
+    "verifiedAt": "2026-08-10",
+    "anchors": [
+      {
+        "roundNumber": 22,
+        "fixtureId": "401841187",
+        "fixture": "Flamengo x Vitória",
+        "officialResult": "2-0",
+        "officialDate": "2026-08-09",
+        "venue": "Maracanã",
+        "officialRoundLabel": "22ª RODADA",
+        "sources": [
+          "http://www.fferj.com.br/videos/brasileiro-serie-a-2026---22--rodada---flamengo-2x0-vitoria (Federação de Futebol do Estado do Rio de Janeiro)",
+          "https://exame.com/esporte/22a-rodada-do-brasileirao-2026-horarios-jogos-e-onde-assistir/"
+        ],
+        "agreesWithGeneratedPartition": true
+      },
+      {
+        "roundNumber": 21,
+        "fixtureId": "401841174",
+        "fixture": "Corinthians x Athletico-PR",
+        "officialResult": "0-0",
+        "officialDate": "2026-07-30",
+        "venue": "Neo Química Arena",
+        "officialRoundLabel": "21ª rodada",
+        "sources": [
+          "https://muitainformacao.com.br/esporte/brasileirao-2026-corinthians-empata-com-athletico-pr-e-cruzeiro-vence-coritiba-na-21a-rodada/",
+          "https://exame.com/esporte/jogos-do-brasileirao-2026-veja-o-calendario-da-21a-rodada-e-a-tabela-atualizada/"
+        ],
+        "agreesWithGeneratedPartition": true
+      },
+      {
+        "roundNumber": 21,
+        "fixtureId": "401841173",
+        "fixture": "Coritiba x Cruzeiro",
+        "officialResult": "0-1",
+        "officialDate": "2026-07-31",
+        "venue": "Couto Pereira",
+        "officialRoundLabel": "21ª rodada",
+        "sources": [
+          "https://maquinadoesporte.com.br/onde-assistir/coritiba-x-cruzeiro-onde-assistir-ao-jogo-da-21a-rodada-do-brasileirao/"
+        ],
+        "agreesWithGeneratedPartition": true
+      }
+    ],
+    "postponementCorroboration": {
+      "roundNumber": 21,
+      "officialStatement": "Quatro jogos da 21a rodada adiados pela participacao de Santos, Red Bull Bragantino, Vasco e Gremio nos playoffs da Copa Sul-Americana.",
+      "source": "https://muitainformacao.com.br/esporte/brasileirao-2026-corinthians-empata-com-athletico-pr-e-cruzeiro-vence-coritiba-na-21a-rodada/",
+      "postponedFixtureIds": [
+        "401841168",
+        "401841169",
+        "401841175",
+        "401841176"
+      ],
+      "postponedFixtures": [
+        "Atlético-MG x Red Bull Bragantino",
+        "São Paulo x Santos",
+        "Chapecoense x Vasco da Gama",
+        "Botafogo x Grêmio"
+      ],
+      "note": "Os quatro clubes citados pela fonte oficial sao exatamente os quatro presentes nos jogos que o upstream marca STATUS_POSTPONED nesta rodada — corroboracao independente tanto do numero da rodada quanto da causa do adiamento."
+    }
+  }
 }

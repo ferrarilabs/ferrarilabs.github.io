@@ -187,6 +187,29 @@ def validate(manifest):
         if not prov.get(k):
             problems.append(f"provenance.{k} ausente ou vazio")
 
+    # CANONICAL_ROUND_MANIFEST_OFFICIAL_PROVENANCE.
+    # A particao round-robin prova INTEGRIDADE (o agrupamento e consistente), nao IDENTIDADE
+    # (que o bloco k e a rodada k). Um deslocamento uniforme de +-1 satisfaria a particao e
+    # ainda assim atribuiria a rodada errada a todo jogo -- e a numeracao vai para o assunto
+    # de um email a 11 pessoas. Por isso a verdade de negocio sao as ancoras oficiais, e a
+    # particao e apenas o validador.
+    prov_off = manifest.get("officialProvenance") or {}
+    anchors = prov_off.get("anchors") or []
+    if not anchors:
+        problems.append("officialProvenance.anchors ausente — manifesto sem verdade de negocio")
+    for a in anchors:
+        fid, expected_round = a.get("fixtureId"), a.get("roundNumber")
+        if not a.get("sources"):
+            problems.append(f"ancora {fid} sem fonte oficial citada")
+        found = next((r for r in rounds if fid in (r.get("canonicalFixtureIds") or [])), None)
+        if found is None:
+            problems.append(f"ancora oficial {fid} nao existe em nenhuma rodada do manifesto")
+        elif found["roundNumber"] != expected_round:
+            problems.append(
+                f"CONFLITO DE PROVENIENCIA: fonte oficial diz que {fid} e R{expected_round}, "
+                f"manifesto gerado diz R{found['roundNumber']}"
+            )
+
     seen = {}
     numbers = []
     for r in rounds:

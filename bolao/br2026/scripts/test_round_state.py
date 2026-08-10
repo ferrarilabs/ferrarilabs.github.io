@@ -228,6 +228,43 @@ class ManifestContract(unittest.TestCase):
         self.assertEqual(round_of("401841173"), 21, "lote travado de 29-31/07")
         self.assertEqual(round_of("401841187"), 22, "rodada concluida em 09/08")
 
+
+    def test_PROVENIENCIA_OFICIAL_presente_e_coerente(self):
+        """CANONICAL_ROUND_MANIFEST_OFFICIAL_PROVENANCE.
+
+        A particao round-robin prova integridade, nao identidade: um deslocamento uniforme de
+        +-1 satisfaz a particao e atribui a rodada errada a todos os 380 jogos. A verdade de
+        negocio sao as ancoras oficiais.
+        """
+        prov = self.m.get("officialProvenance") or {}
+        anchors = prov.get("anchors") or []
+        self.assertTrue(anchors, "manifesto sem ancora oficial nao tem verdade de negocio")
+        for a in anchors:
+            self.assertTrue(a.get("sources"), f"ancora {a.get('fixtureId')} sem fonte")
+            found = next(r for r in self.m["rounds"]
+                         if a["fixtureId"] in r["canonicalFixtureIds"])
+            self.assertEqual(found["roundNumber"], a["roundNumber"],
+                             f"fonte oficial e manifesto discordam sobre {a['fixtureId']}")
+
+    def test_deslocamento_uniforme_seria_detectado(self):
+        import copy
+        bad = copy.deepcopy(self.m)
+        ids = [r["canonicalFixtureIds"] for r in bad["rounds"]]
+        for i, r in enumerate(bad["rounds"]):
+            r["canonicalFixtureIds"] = ids[(i + 1) % len(ids)]
+        problems = M.validate(bad)
+        self.assertTrue(any("CONFLITO DE PROVENIENCIA" in p for p in problems),
+                        "um deslocamento de rodada tem de falhar, mesmo com a particao intacta")
+
+    def test_adiamentos_da_R21_corroborados_por_fonte_oficial(self):
+        c = (self.m.get("officialProvenance") or {}).get("postponementCorroboration") or {}
+        self.assertEqual(c.get("roundNumber"), 21)
+        self.assertEqual(len(c.get("postponedFixtureIds") or []), 4)
+        r21 = next(r for r in self.m["rounds"] if r["roundNumber"] == 21)
+        for fid in c["postponedFixtureIds"]:
+            self.assertIn(fid, r21["canonicalFixtureIds"],
+                          "jogo adiado citado pela fonte oficial tem de estar na R21")
+
     def test_proveniencia_registrada(self):
         p = self.m["provenance"]
         for k in ("source", "method", "retrievedAt"):
