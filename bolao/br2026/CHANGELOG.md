@@ -1,5 +1,37 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.116 — 2026-08-10 — O ledger de notificação vira atômico no banco (F7)
+
+A migração `010_notification_durability.sql` foi **aplicada em produção**. O ledger de rodada
+deixou de viver em `bolao_state.roundEmail.ledger` (JSON, read-modify-write) e passou a ser
+`bolao_notif_jobs`, com claim atômico via `for update skip locked` dentro da RPC.
+
+Verificado contra o banco real, não contra o texto do SQL: RLS habilitada com **zero policies**,
+`anon` não lê nem escreve, nenhuma coluna de contato, unicidade de idempotência, campos de lease,
+`provider_message_id`, `schema_version`, 7 RPCs `security definer`.
+
+**Um detalhe que quase passou:** `SELECT`, `UPDATE` e `DELETE` anônimos devolvem `200`/`204` na
+tabela nova — mas isso é o PostgREST dizendo "zero linhas casaram", porque a RLS torna tudo
+invisível. Provado criando um job pela RPC, tentando alterá-lo e apagá-lo como `anon`, e
+confirmando que ele sobreviveu intacto. Ler código de status como se fosse resultado foi
+exatamente o erro que causou o incidente do F8 horas antes.
+
+**Defeito real encontrado na 010 ao executá-la:** `release_expired_bolao_notif` nunca funcionou —
+o `CASE` devolve `text` e a coluna é do enum `bolao_notif_status`, sem conversão implícita. Toda
+chamada falhava com `42804`. O impacto seria silencioso: jobs cujo runner morreu ficariam presos
+em `processing` para sempre, porque a única rotina que os liberaria não roda. Corrigido na `014`.
+Os testes de contrato liam o texto do SQL e não podiam pegar isso.
+
+Histórico migrado (`012`): 20 rodadas marcadas como já notificadas, 18 por serem anteriores ao
+recurso e 2 por evidência do `sentGameIds`. O JSON legado **permanece intacto** — é a fonte desta
+migração e a evidência histórica.
+
+`REAL_SEND_REQUIRES_ATOMIC_LEDGER` agora é operacional: sem o ledger atômico, o envio real
+aborta. Ler estado que não conseguimos ler e decidir reenvio a partir disso é como se duplica
+e-mail para gente real.
+
+Round 22 segue em dry-run, sem autorização de envio.
+
 ## v1.115 — 2026-08-10 — O e-mail de rodada passa a usar o ledger durável de verdade
 
 A plataforma já tinha `notification_repository`, `durable_notification_repository`,
