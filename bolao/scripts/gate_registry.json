@@ -310,7 +310,7 @@
     },
     "bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py": {
       "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Executa settle/set_recipient no Postgres real sob pool sintetico. Fecha a lacuna do N23."
+      "coverage": "Executa settle/set_recipient no Postgres real sob pool sintetico. Fecha a lacuna do N23. Executa APENAS no GitHub Actions (credencial privilegiada); localmente pula, dizendo alto que pulou."
     },
     "bolao/loterias/powerball/scripts/test_anon_notification_denied.py": {
       "classification": "REGISTERED_AND_EXECUTED",

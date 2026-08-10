@@ -62,11 +62,26 @@ class SemDependenciaDeCliLocal(unittest.TestCase):
                           "_sql() ainda usa --linked sem estar marcado como caminho apenas local")
 
     def test_o_workflow_nao_invoca_a_cli_do_supabase(self):
+        """Olha os comandos `run:`, nao o texto do arquivo.
+
+        A primeira versao disto procurava "supabase link" no YAML inteiro -- e casava com o
+        COMENTARIO que explica por que essa dependencia foi removida. Gate vermelho por causa da
+        propria documentacao do defeito que ele protege. E a terceira vez nesta sessao que eu
+        escrevo um gate que le prosa em vez de codigo.
+        """
+        import yaml
         wf = os.path.join(HERE, "..", "..", "..", "..",
                           ".github", "workflows", "powerball-results-email.yml")
-        src = open(wf, encoding="utf-8").read()
-        self.assertNotIn("supabase link", src)
-        self.assertNotIn("supabase db query", src)
+        conf = yaml.safe_load(open(wf, encoding="utf-8"))
+        for passo in conf["jobs"]["fetch-and-send"]["steps"]:
+            cmd = str(passo.get("run", ""))
+            # Dentro de um bloco `run:`, linha iniciada por # tambem e comentario.
+            codigo = "\n".join(l for l in cmd.splitlines()
+                                if not l.strip().startswith("#"))
+            self.assertNotIn("supabase link", codigo,
+                             f"passo '{passo.get('name')}' invoca a CLI do Supabase")
+            self.assertNotIn("supabase db query", codigo,
+                             f"passo '{passo.get('name')}' invoca a CLI do Supabase")
 
 
 class SemanticaDeSaida(unittest.TestCase):

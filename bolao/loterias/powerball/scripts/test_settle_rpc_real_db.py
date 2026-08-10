@@ -37,9 +37,24 @@ class SettleNoBancoReal(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        """Sem credencial privilegiada este gate NAO PODE rodar -- e isso tem de ser barulhento.
+
+        Depois da revogacao do N24 a anon key perdeu execute nas RPCs, entao rodando na maquina
+        de desenvolvimento este arquivo pulava os 8 testes e imprimia OK. Um gate que nao executa
+        nada e reporta verde e exatamente o falso-verde que esta sessao inteira existe para matar
+        -- e eu cheguei a reportar este gate como PASS quando ele nao tinha rodado teste nenhum.
+
+        Onde ele roda de verdade: no passo de canario do GitHub Actions, que tem a credencial.
+        Localmente pula, mas dizendo alto que pulou.
+        """
+        if not P.has_privileged_credential():
+            print("\n  ⚠ SETTLE_RPC_REAL_DB = NAO EXECUTADO (sem credencial privilegiada).",
+                  "\n    Este gate so tem valor no GitHub Actions. NAO conte como PASS.")
+            raise unittest.SkipTest(
+                "sem SUPABASE_SERVICE_ROLE_KEY — roda no canario do GitHub Actions")
         ok, motivo = P.ledger_available()
         if not ok:
-            raise unittest.SkipTest(f"ledger indisponivel: {motivo}")
+            raise RuntimeError(f"credencial presente mas ledger inacessivel: {motivo}")
 
     def setUp(self):
         self.chave = f"{POOL_SINTETICO}:draw-result:{uuid.uuid4().hex[:12]}:v1"
