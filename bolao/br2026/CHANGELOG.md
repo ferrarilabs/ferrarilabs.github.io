@@ -1,5 +1,41 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.110 — 2026-08-10 — Rodada canônica: a R21 adiada deixa de esconder a R22
+
+A rodada que terminou em 09/08 não recebeu email. A investigação mostrou que nenhuma rodada
+receberia: o modelo antigo mantinha UM `pendingBatch` global definido por janela de datas, e o
+lote aberto em 29/07 continha 4 jogos adiados indefinidamente. Como só fechava com
+`all(completed)`, travou — e por ser único e global, impediu que qualquer rodada posterior fosse
+sequer avaliada.
+
+**Identidade canônica de rodada.** Novo `data/round_manifest.json`, versionado, 38 rodadas, 380
+jogos. A pertinência não vem de proximidade de datas: vem da propriedade estrutural de que uma
+rodada é uma partição dos 20 clubes em 10 jogos, cada clube exatamente uma vez. O gerador
+(`build_round_manifest.py`) rejeita qualquer bloco que não satisfaça a partição — foi assim que
+descobrimos que ordenar por data embaralha 26 dos 38 blocos, e que a ordem correta é a do id de
+evento. Datas ficaram como metadado.
+
+**Adiado pertence para sempre à rodada de origem.** Dois jogos da R4 adiados em 25/02 e
+rejogados em julho com ids novos: o manifesto mapeia `replacements`, e o rejogo satisfaz o jogo
+canônico sem migrar de rodada.
+
+**Cada rodada tem seu próprio ciclo de vida.** `round_state.py` é um resolver puro com dez
+estados. A R21 fica em `ROUND_WAITING_FOR_POSTPONED_MATCH` e a R22 fica
+`ROUND_READY_TO_NOTIFY` de forma independente. Fonte indisponível e jogo ausente nunca viram
+completo.
+
+**Reconciliação, não observação de transição.** Não é mais preciso estar rodando no instante em
+que a rodada termina: cron perdido, runner fora do ar ou provedor caído são recuperados na
+execução seguinte, porque o estado é derivado dos fatos.
+
+**Migração do estado legado.** `legacy_round_state.py` traduz `sentGameIds`/`sentBatches` para
+chaves de idempotência por rodada — sem isso o primeiro catch-up reenviaria rodadas já
+comunicadas (medido: R17–R20 apareceram como candidatas). O `pendingBatch` travado virou
+evidência histórica, não trava. Rodadas anteriores ao recurso ficam fora do escopo por epoch.
+
+Dry-run real contra produção: candidatos = [22], exatamente uma rodada. Nenhum email enviado.
+Gates novos: `test_round_state.py` (26 asserções). Nada foi enviado nesta versão.
+
 ## v1.109 — 2026-08-10 — Email de rodada: parcial deixa de parecer completo
 
 Três defeitos no caminho de envio de `send_round_email.py`, todos convivendo com a suíte verde
