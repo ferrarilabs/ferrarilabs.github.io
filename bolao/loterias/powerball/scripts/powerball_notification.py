@@ -283,6 +283,20 @@ def reconcile_orphaned_sending(draw_id):
     return len(orfaos)
 
 
+def requires_manual_action(draw_id):
+    """O job esta marcado como pendente de decisao humana?
+
+    Existe para a entrega parcial historica de 08/08: 14 receberam, o Rodrigo nao. Isso nao e um
+    retry -- e uma decisao do Eduardo. Sem esta marca o ciclo automatico alvejaria aquele job a
+    cada execucao agendada, seria recusado pelo transporte, e falharia de 10 em 10 minutos.
+    """
+    recs = _recipients(draw_id)
+    if not recs:
+        return False
+    marca = _rpc("get_bolao_notif_manual_flag", {"p_idempotency_key": draw_key(draw_id)})
+    return bool(marca)
+
+
 def retryable_recipients(draw_id):
     """Só quem é SEGURO reenviar. ACCEPTED e UNCERTAIN ficam de fora, sempre."""
     recs = _recipients(draw_id)

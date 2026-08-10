@@ -598,6 +598,24 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         return rel
 
     ja = deps.ledger.get_job(draw_id)
+
+    # AÇÃO MANUAL PENDENTE — o ciclo automatico nao toca.
+    #
+    # O job de 2026-08-08 e uma entrega parcial historica: 14 receberam, o Rodrigo nao. Reenviar
+    # sozinho e errado por dois motivos. Primeiro, o transporte atual so difunde, entao "reenviar
+    # para um" nao existe -- ou manda para os 15 de novo, ou nao manda. Segundo, e uma decisao de
+    # negocio do Eduardo, nao um retry.
+    #
+    # Sem esta guarda, cada execucao agendada -- de 10 em 10 minutos, a noite toda -- alvejaria o
+    # 08/08 (o ultimo sorteio COM resultado ate o de hoje sair), tentaria o catch-up, seria
+    # corretamente recusada pelo transporte, e sairia com codigo 1. Falha vermelha a cada 10
+    # minutos esconde a falha de verdade quando ela vier.
+    if deps.ledger.requires_manual_action(draw_id):
+        rel["notificationState"] = "AGUARDA_ACAO_MANUAL"
+        rel["reason"] = ("entrega parcial historica: exige decisao explicita, "
+                         "nao retry automatico")
+        return rel
+
     if ja and ja["status"] == deps.ledger.SENT:
         rel["notificationState"] = "ALREADY_COMPLETED"
         rel["reason"] = "notificacao ja concluida para este sorteio"
@@ -684,6 +702,7 @@ ESTADOS_OK = {
     "ALREADY_CLAIMED",         # outra execucao esta com o lease; nao e conflito
     "sent",                    # concluido
     "NENHUM_SORTEIO_COM_RESULTADO",
+    "AGUARDA_ACAO_MANUAL",     # decisao de negocio pendente nao e falha de infraestrutura
 }
 ESTADOS_ATENCAO = {
     "RECIPIENT_SET_INCOMPLETE",   # falta contato -- alguem tem de arrumar antes do sorteio
