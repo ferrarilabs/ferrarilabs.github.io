@@ -95,7 +95,7 @@ class RecipientCompleteness(unittest.TestCase):
             self.fail(f"run_auto abortou inesperadamente: {e}")
 
     def test_um_destinatario_sem_email_bloqueia_TODOS_os_envios(self):
-        entries = [_entry("e1", "a@x.com"), _entry("e2", "b@x.com"), _entry("e3", "")]
+        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid"), _entry("e3", "")]
         games = [_game(str(1000 + i), 0) for i in range(10)]
         h = Harness(entries, games, [g["id"] for g in games]); h.install()
         self._run(h)
@@ -103,7 +103,7 @@ class RecipientCompleteness(unittest.TestCase):
                          "RECIPIENT_SET_INCOMPLETE deve produzir ZERO chamadas ao provedor")
 
     def test_bloqueio_mantem_o_lote_aberto_para_reprocessar(self):
-        entries = [_entry("e1", "a@x.com"), _entry("e2", "naoehemail")]
+        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "naoehemail")]
         games = [_game(str(2000 + i), 0) for i in range(10)]
         h = Harness(entries, games, [g["id"] for g in games]); h.install()
         self._run(h)
@@ -112,7 +112,7 @@ class RecipientCompleteness(unittest.TestCase):
                              "o lote NAO pode ser fechado quando o envio foi bloqueado")
 
     def test_conjunto_completo_envia_para_todos(self):
-        entries = [_entry("e1", "a@x.com"), _entry("e2", "b@x.com")]
+        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid")]
         games = [_game(str(3000 + i), 0) for i in range(10)]
         h = Harness(entries, games, [g["id"] for g in games]); h.install()
         self._run(h)
@@ -122,7 +122,7 @@ class RecipientCompleteness(unittest.TestCase):
                           "lote deve fechar quando todos receberam")
 
     def test_envio_parcial_NAO_fecha_o_lote(self):
-        entries = [_entry(f"e{i}", f"p{i}@x.com") for i in range(1, 5)]
+        entries = [_entry(f"e{i}", f"p{i}@example.invalid") for i in range(1, 5)]
         games = [_game(str(4000 + i), 0) for i in range(10)]
         h = Harness(entries, games, [g["id"] for g in games])
         h.install(fail_for=2)          # os dois primeiros passam, os demais falham
@@ -135,7 +135,7 @@ class RecipientCompleteness(unittest.TestCase):
     def test_envio_bloqueado_pelo_portao_nao_conta_como_enviado(self):
         # send_email() devolve (False, motivo) sem levantar exceção. O código antigo somava isso
         # como sucesso e fechava o lote — a rodada ficava "enviada" sem ninguém receber nada.
-        entries = [_entry("e1", "a@x.com"), _entry("e2", "b@x.com")]
+        entries = [_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid")]
         games = [_game(str(5000 + i), 0) for i in range(10)]
         h = Harness(entries, games, [g["id"] for g in games])
         h.install(transport_result=(False, "EMAIL_SEND_BLOCKED: processo de teste"))
@@ -144,12 +144,12 @@ class RecipientCompleteness(unittest.TestCase):
                              "envio bloqueado nao pode fechar o lote")
 
     def test_nenhum_endereco_de_email_no_log_de_auditoria(self):
-        entries = [_entry("e1", "segredo@privado.com"), _entry("e2", "")]
+        entries = [_entry("e1", "segredo@privado.invalid"), _entry("e2", "")]
         games = [_game(str(6000 + i), 0) for i in range(10)]
         h = Harness(entries, games, [g["id"] for g in games]); h.install()
         self._run(h)
         blob = repr(h.saved_states[-1].get("auditLog", []))
-        self.assertNotIn("segredo@privado.com", blob,
+        self.assertNotIn("segredo@privado.invalid", blob,
                          "o log de auditoria nunca pode conter endereco de participante")
 
 
