@@ -252,6 +252,13 @@
     },
     "bolao/scripts/audit_gate_registry.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_round_notification_ledger.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/round_notification_ledger.mjs": {
+      "classification": "NON_GATE_HELPER",
+      "reason": "Modulo de dominio do ledger de rodada (F6), nao e gate. Exercitado por test_round_notification_ledger.mjs."
     }
   }
 }
