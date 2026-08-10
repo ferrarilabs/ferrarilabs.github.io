@@ -1,5 +1,27 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.109 — 2026-08-10 — Email de rodada: parcial deixa de parecer completo
+
+Três defeitos no caminho de envio de `send_round_email.py`, todos convivendo com a suíte verde
+porque nenhum teste exercitava esse caminho.
+
+**Destinatário sumia em silêncio.** Quem não tivesse email válido ou não aparecesse no ranking
+era pulado com um `continue` — o email de rodada sairia para 11 de 12 pessoas e o lote seria
+fechado como enviado. Agora todo o conjunto é resolvido ANTES da primeira chamada ao provedor:
+se um único participante não resolver, ZERO emails saem e o lote fica aberto.
+
+**Envio bloqueado contava como sucesso.** `send_email()` devolve `(False, motivo)` quando o
+portão fail-closed bloqueia, sem levantar exceção — e o código somava isso como enviado. Qualquer
+execução sem `BOLAO_ALLOW_REAL_SEND` fecharia a rodada sem ninguém receber nada.
+
+**Parcial fechava o lote.** Se metade das entregas falhasse, o lote era fechado assim mesmo e
+ninguém jamais reprocessaria. Agora entrega incompleta vira `ROUND_NOTIFICATION_PARTIAL`, o lote
+permanece aberto e o resumo ao admin só sai quando a entrega foi de fato completa.
+
+Logs passaram a usar id de entrada em vez de endereço de email. Gate novo
+`test_recipient_completeness.py`: 6 asserções sobre a contagem de chamadas ao provedor,
+provadas falhando 4/6 contra o código antigo.
+
 ## v1.108 — 2026-08-10 — FootballLiveStore: FINAL voltava a AO VIVO, e stop() não parava
 
 Dois defeitos de corrida/ordem no módulo compartilhado, ambos reproduzidos antes da correção.

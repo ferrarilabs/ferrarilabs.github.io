@@ -506,15 +506,47 @@ def run_auto():
         ranked_prev = rank_entries(entries, baseline["g4"], baseline["z4"], baseline["sa6"])
         prev_rank_by_id = {r["entry"]["id"]: r["rank"] for r in ranked_prev}
 
-    print(f"AUTO — sending to {len(entries)} participant(s)...")
-    sent, errors = 0, []
+    # ─── PORTÃO DE COMPLETUDE DE DESTINATÁRIOS (fail-closed) ────────────────────────────────
+    #
+    # O código anterior fazia `continue` silencioso para quem não tinha email válido ou não
+    # aparecia no ranking. O efeito: um "email de rodada" sairia para 11 de 12 pessoas e a rodada
+    # seria fechada como enviada — o 12º participante nunca receberia nada, e nada no log diria
+    # isso. Um email de rodada é uma comunicação para o grupo INTEIRO; parcial não é sucesso.
+    #
+    # Agora: resolve todo mundo ANTES de chamar o provedor. Se um único participante não
+    # resolver, ZERO emails saem. Ver docs/bolao/PLATFORM_GOVERNANCE.md (fail-closed de email).
+    resolved, unresolved = [], []
     for e in entries:
         addr = (e.get("participantEmail") or "").strip()
+        r = rank_by_id.get(e.get("id"))
         if "@" not in addr:
-            continue
-        r = rank_by_id.get(e["id"])
-        if not r:
-            continue
+            unresolved.append((e.get("id"), "email ausente/invalido"))
+        elif not r:
+            unresolved.append((e.get("id"), "sem posicao no ranking"))
+        else:
+            resolved.append((e, addr, r))
+
+    expected_count, resolved_count = len(entries), len(resolved)
+    print(f"AUTO — destinatarios: esperados={expected_count} resolvidos={resolved_count}")
+    if unresolved:
+        # Ids opacos, nunca o endereço — este log vai para o CI, que é legível por mais gente
+        # do que a lista de participantes.
+        print("🛑 RECIPIENT_SET_INCOMPLETE — nenhum email sera enviado. Entradas nao resolvidas:")
+        for eid, why in unresolved:
+            print(f"    - entrada {eid}: {why}")
+        print("   Lote permanece ABERTO para reprocessamento apos a correcao.")
+        append_audit_log(state, "round-email-blocked", {
+            "reason": "RECIPIENT_SET_INCOMPLETE",
+            "windowStart": batch["windowStart"], "windowEnd": batch["windowEnd"],
+            "expectedRecipientCount": expected_count, "resolvedRecipientCount": resolved_count,
+            "unresolvedCount": len(unresolved),
+        })
+        sb_upsert(state)
+        return
+
+    print(f"AUTO — sending to {resolved_count} participant(s)...")
+    sent, errors = 0, []
+    for e, addr, r in resolved:
         movement = None
         if e["id"] in prev_rank_by_id:
             movement = prev_rank_by_id[e["id"]] - r["rank"]
@@ -523,12 +555,38 @@ def run_auto():
         subject = f"Rodada {window_label_subject} — resultados e classificação"
         try:
             status = send_email(addr, subject, html)
-            print(f"  OK {status} → {addr}")
+            # send_email() devolve (False, motivo) quando o portão fail-closed bloqueia — NÃO
+            # levanta exceção. O código anterior fazia `sent += 1` em cima disso: um envio
+            # bloqueado era contado como sucesso, e o lote era fechado como se a rodada tivesse
+            # sido comunicada. Hoje o workflow define BOLAO_ALLOW_REAL_SEND, então isso não
+            # disparou em produção — mas qualquer execução sem a variável fecharia a rodada
+            # sem enviar nada a ninguém.
+            if isinstance(status, tuple) and status[0] is False:
+                errors.append(f"entrada {e['id']}: bloqueado ({status[1]})")
+                print(f"  BLOQUEADO → entrada {e['id']}: {status[1]}")
+                continue
+            print(f"  OK {status} → entrada {e['id']}")
             sent += 1
             time.sleep(3)
         except Exception as ex:
-            errors.append(f"{addr}: {ex}")
-            print(f"  ERR → {addr}: {ex}")
+            errors.append(f"entrada {e['id']}: {ex}")
+            print(f"  ERR → entrada {e['id']}: {ex}")
+
+    # ─── ENVIO PARCIAL NÃO É "ENVIADO" ──────────────────────────────────────────────────────
+    #
+    # Se alguém do conjunto resolvido não recebeu, a rodada NÃO foi comunicada ao grupo. Fechar
+    # o lote aqui apagaria a evidência e ninguém jamais reprocessaria. O lote fica aberto e o
+    # estado é registrado como PARCIAL — com contagens, nunca com endereços.
+    if sent != resolved_count:
+        print(f"\n🛑 ROUND_NOTIFICATION_PARTIAL — {sent}/{resolved_count} entregues. "
+              f"Lote NAO sera fechado; permanece aberto para reprocessamento.")
+        append_audit_log(state, "round-email-partial", {
+            "windowStart": batch["windowStart"], "windowEnd": batch["windowEnd"],
+            "expectedRecipientCount": expected_count, "resolvedRecipientCount": resolved_count,
+            "deliveredCount": sent, "errorCount": len(errors),
+        })
+        sb_upsert(state)
+        return
 
     try:
         admin_html = build_admin_summary_html(window_label, results_html, standings_html, sent)
