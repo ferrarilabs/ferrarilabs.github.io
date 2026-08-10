@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.107",
+  siteVersion: "v1.108",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,

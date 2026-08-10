@@ -1,5 +1,25 @@
 # CHANGELOG
 
+## v4.183 — 2026-08-10 — FootballLiveStore: FINAL voltava a AO VIVO, e stop() não parava
+
+Dois defeitos de corrida/ordem no módulo compartilhado, ambos reproduzidos antes da correção.
+
+**FINAL regredia.** `ingest()` aceitava qualquer observação estritamente mais nova. O comentário
+no código argumentava que a regra de timestamp bastava — mas ela só protege contra resposta
+ATRASADA. O caso real é o oposto: o upstream declara FINAL às 22h05 e, numa observação mais NOVA
+às 22h06, volta a declarar `in`. Medido no código antigo: FINAL → LIVE_CRITICAL_STALE, e
+FINAL → PRE virava NO_LIVE_MATCH. O hero voltava a dizer AO VIVO num jogo encerrado.
+Agora o ciclo de vida terminal por partida não regride, enquanto correção de placar pós-jogo
+continua sendo aceita — o fato muda, o ciclo não.
+
+**stop() não parava.** `start()` fazia `refresh().then(schedule)`. Um `stop()` durante o refresh
+em voo era ignorado pelo `.then`, que agendava um timer novo depois. Medido: `timers=1` após
+stop. Cada start/stop de rerender deixava um laço órfão polindo para sempre. Agora `schedule()` e
+o tick verificam `started`, e `stop()` também zera os listeners.
+
+Gate novo `bolao/shared/scripts/test_live_store_lifecycle.mjs` (STOP_DURING_INFLIGHT_REFRESH,
+TERMINAL_STATE_NON_REGRESSION) — 8 asserções, provadas falhando 5/8 contra o código antigo.
+
 ## v4.182 — 2026-08-10 — Todo `<thead>` da plataforma estava corrompido
 
 Auditoria independente apontou um `<th scope="col"ead>` no repositório. Eram **22**, nos três
