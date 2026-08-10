@@ -92,12 +92,26 @@ test("CONSUMER_ISOLATION: nenhum app fala com a ESPN diretamente", () => {
 });
 
 test("SOURCE_HIERARCHY: os apps ativos preferem o gateway", () => {
+  // Ate a migracao F12 (2026-08-10) este teste exigia que o PROPRIO app contivesse a consulta ao
+  // gateway, a validacao de schema e a distincao entre "nao sabemos" e "nao ha jogo". Exigir isso
+  // do app passou a ser exigir a duplicacao que F12 eliminou: agora essas tres coisas vivem no
+  // FootballLiveStore compartilhado, uma vez, e o app so consome.
+  //
+  // O invariante NAO foi afrouxado -- mudou de lugar e ficou mais forte: o app tem de delegar a
+  // um store que comprovadamente faz as tres coisas. Quem verifica o store sao
+  // test_live_store_lifecycle.mjs, test_cache_poisoning.mjs e audit_football_live_store.mjs;
+  // quem verifica que o app realmente instancia o store e audit_shared_store_adoption.mjs.
+  const storeSrc = readFileSync(join(ROOT, "bolao/shared/js/football_live_store.js"), "utf8");
+  assert(/schemaVersion !== 1/.test(storeSrc), "o store compartilhado nao valida o schema");
+  assert(/matches === null/.test(storeSrc),
+    'o store nao distingue "nao sabemos" de "nao ha jogo" — e o bug de origem');
+
   for (const app of ["br2026", "cdb2026"]) {
     const src = readFileSync(join(ROOT, "bolao", app, "js", "app.js"), "utf8");
-    assert(/liveGateway/.test(src) && /schemaVersion !== 1/.test(src),
-      `${app} não consulta o gateway ou não valida o schema`);
-    assert(/matches === null/.test(src),
-      `${app} não distingue "não sabemos" de "não há jogo" — é o bug de origem`);
+    const delega = /createStore\s*\(/.test(src);
+    const proprio = /liveGateway/.test(src) && /schemaVersion !== 1/.test(src) && /matches === null/.test(src);
+    assert(delega || proprio,
+      `${app} nao delega ao store compartilhado NEM implementa a hierarquia corretamente`);
   }
 });
 
