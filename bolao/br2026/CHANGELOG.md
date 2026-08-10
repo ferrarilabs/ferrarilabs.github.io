@@ -1,5 +1,41 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.117 — 2026-08-10 — O navegador deixa de receber PII e de reescrever o estado (F10/N22)
+
+Duas mudanças de segurança, feitas juntas porque separá-las abriria uma janela.
+
+**Leitura.** O app lê `bolao_state_public`, uma projeção que remove `participantEmail`,
+`payerName`, `paymentMethod` e `paymentTo` de cada entrada. Medido no navegador real: 11 entradas
+carregadas com apenas `id`, `entryName`, `picks`, `createdAt`. Os 46 e-mails da plataforma
+deixaram de ser anonimamente enumeráveis por este app.
+
+**Escrita.** `saveRemoteState()` foi removida. Ela fazia POST do documento JSON **inteiro** com
+`merge-duplicates` — e a anon key vai neste mesmo `js/config.js`, servido a todo navegador. Quem
+tivesse a chave podia reescrever entradas, pagamentos, resultados e estado de notificação de uma
+vez só.
+
+Agora a submissão pública chama `submit_entry`, uma RPC que valida competição, nome, e-mail,
+forma dos palpites, método de pagamento e prazo — e **atribui o id**. A entrada é montada campo a
+campo no servidor, então `paid`, `results` e `officialDraw` não têm por onde entrar. `clientRef`
+torna o reenvio idempotente: clicar duas vezes devolve a mesma entrada, e a tela diz isso em vez
+de fingir um cadastro novo.
+
+**As cinco operações de administrador saíram do navegador.** Marcar/desmarcar pago, travar/
+destravar resultados e excluir entrada não gravam mais daqui — o controle continua visível para
+não esconder o estado, mas avisa para onde a operação foi. O substituto é
+`scripts/operator_cli.py`, com dry-run por padrão, diff sem PII, validação, log de auditoria e
+saída não-zero em falha. `confirm-payment` e `unconfirm-payment` são comandos separados de
+propósito: um booleano vindo de texto ambíguo é como se marca a pessoa errada.
+
+Provado em produção: dry-run das cinco operações sem mutar nada; `--apply` de ida e volta num
+pagamento real **sem nenhuma chave divergente** fora de `meta.updatedAt` e `auditLog`; duas
+submissões simultâneas criam duas entradas sem perder nenhuma; o mesmo `clientRef` não duplica.
+
+Três gates existentes mudaram de lugar, não de rigor — `audit_remote_write_visibility`,
+`audit_test_isolation` e a checagem de carimbo de atualização exigiam a forma antiga do upsert.
+Exigi-la seria exigir de volta a vulnerabilidade removida. O carimbo agora é do **servidor**, o
+que é mais forte: o cliente não pode mais mentir sobre o instante.
+
 ## v1.116 — 2026-08-10 — O ledger de notificação vira atômico no banco (F7)
 
 A migração `010_notification_durability.sql` foi **aplicada em produção**. O ledger de rodada

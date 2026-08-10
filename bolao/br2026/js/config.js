@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.116",
+  siteVersion: "v1.117",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -70,7 +70,13 @@ window.BR2026_CONFIG = {
     provider: "supabase",
     url: "https://cmhqkkfczotdnssupkni.supabase.co",
     anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
-    table: "bolao_state",
+    // LEITURA: projecao publica, SEM participantEmail/payerName/paymentMethod/paymentTo.
+    // O navegador deixou de receber PII (F10, 2026-08-10). A tabela crua `bolao_state` continua
+    // existindo, mas este app nao a le mais.
+    readTable: "bolao_state_public",
+    // ESCRITA: nao existe mais tabela de escrita. Toda mutacao passa por RPC estreita (N22).
+    // `submit_entry` e a unica chamavel pelo navegador; as de operador vivem em script.
+    table: "bolao_state_public",
     stateId: "br2026",
     localFallback: true
   },

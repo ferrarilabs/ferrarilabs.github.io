@@ -46,35 +46,54 @@ console.log("\nVisibilidade de gravação remota\n");
 
 for (const app of APPS) {
   const src = readFileSync(join(ROOT, "bolao", app, "js", "app.js"), "utf8");
+  // Desde F10/N22 (2026-08-10) o BR2026 nao grava mais o documento inteiro: cada mutacao passa
+  // por RPC estreita (`callNarrowRpc`). Os invariantes abaixo continuam OBRIGATORIOS -- resposta
+  // checada, gravacao pulada visivel, erro visivel, carimbo de atualizacao -- mas mudaram de
+  // lugar. Exigir a forma antiga seria exigir de volta o upsert de documento completo, que e
+  // exatamente a vulnerabilidade removida.
+  const narrow = /function\s+callNarrowRpc\s*\(/.test(src);
 
   test(`[${app}] a resposta do Supabase é CHECADA (4xx/5xx não é sucesso)`, () => {
     // `await fetch()` não rejeita em 4xx/5xx. Sem isto, o RLS negando a escrita vira "salvo".
     assert(/if \(!r\.ok\)/.test(src),
-      "a resposta do POST não é checada — um 401/403 do RLS voltaria a passar por sucesso");
-    assert(/throw new Error\(`Supabase respondeu \$\{r\.status\}/.test(src),
+      "a resposta não é checada — um 401/403 do RLS voltaria a passar por sucesso");
+    assert(narrow ? /throw err;/.test(src)
+                  : /throw new Error\(`Supabase respondeu \$\{r\.status\}/.test(src),
       "a falha do provedor não vira erro propagável");
   });
 
   test(`[${app}] gravação PULADA é reportada ao usuário, não só ao console`, () => {
     // O caso que faltava: `{skipped:true}` resolve, então `.catch` nunca dispara.
-    assert(/\.then\(res =>[\s\S]{0,400}res\.skipped/.test(src),
+    assert(narrow ? /\.skipped/.test(src)
+                  : /\.then\(res =>[\s\S]{0,400}res\.skipped/.test(src),
       "o caminho de gravação pulada não é inspecionado — a tela mostraria 'salvo' sem ter salvo");
     assert(/showToast\(t\("syncBlocked"\)/.test(src),
       "não há aviso visível quando a alteração fica só no navegador");
   });
 
   test(`[${app}] gravação com ERRO é reportada ao usuário`, () => {
-    assert(/showToast\(t\("syncFailed"\)/.test(src),
+    // A chave precisa chegar a um toast. Exigir a forma literal `showToast(t("syncFailed")`
+    // rejeitaria um aviso MAIS preciso -- o BR2026 usa um ternario para separar erro de
+    // validacao (culpa do formulario) de falha de infraestrutura, e as duas viram toast.
+    assert(/showToast\([^;]*t\("syncFailed"\)/.test(src),
       "falha de sincronização volta a ser silenciosa");
     assert(!/saveRemoteState\([^)]*\)\.catch\(\(\) => \{\}\)/.test(src),
       "voltou o `.catch(() => {})` que engole erro real");
   });
 
-  test(`[${app}] o upsert grava \`updated_at\``, () => {
+  test(`[${app}] o carimbo de atualização é gravado`, () => {
     // Sem isto não há como responder "quando o estado canônico mudou pela última vez?" — foi o
-    // que atrasou o diagnóstico deste incidente: a coluna dizia 14/07 com conteúdo de 01/08.
-    assert(/updated_at: new Date\(\)\.toISOString\(\)/.test(src),
-      "o upsert não escreve `updated_at`; a coluna congela na criação da linha");
+    // que atrasou o diagnóstico de um incidente: a coluna dizia 14/07 com conteúdo de 01/08.
+    // Com RPC estreita quem carimba é o SERVIDOR (`_bolao_touch` + `update ... updated_at`),
+    // o que é mais forte: o cliente não pode mais mentir sobre o instante.
+    if (narrow) {
+      const sql = readFileSync(join(ROOT, "bolao/shared/sql/017_n22_narrow_mutations.sql"), "utf8");
+      assert(/_bolao_touch/.test(sql) && /updated_at = now\(\)/.test(sql),
+        "as RPCs estreitas não carimbam updated_at no servidor");
+    } else {
+      assert(/updated_at: new Date\(\)\.toISOString\(\)/.test(src),
+        "o upsert não escreve `updated_at`; a coluna congela na criação da linha");
+    }
   });
 
   test(`[${app}] as duas chaves de i18n existem`, () => {

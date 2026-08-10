@@ -249,5 +249,8 @@ window.BR2026_I18N = {
     probsLastRun: "Calculado às",
     syncBlocked: "Salvo neste dispositivo, mas NÃO sincronizado com o servidor. Ninguém mais vai ver esta alteração — avise o organizador antes de considerá-la feita.",
     syncFailed: "Salvo neste dispositivo, mas a sincronização com o servidor falhou. Seus dados não estão perdidos — mantenha esta aba aberta e avise o organizador.",
+    adminWriteMoved: "Esta ação passou a ser feita por script de operador — o painel do navegador ficou somente leitura. Peça ao organizador.",
+    entryRejected: "Não foi possível registrar. Confira nome, e-mail e palpites — o servidor recusou os dados enviados.",
+    entryAlreadyRegistered: "Esta inscrição já estava registrada. Nada foi duplicado.",
   },
 };

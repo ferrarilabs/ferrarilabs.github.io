@@ -276,6 +276,9 @@
     },
     "bolao/scripts/audit_live_cache_write_authority.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_br2026_narrow_persistence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
