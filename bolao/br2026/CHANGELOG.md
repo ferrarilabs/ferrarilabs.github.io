@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.111 — 2026-08-10 — Proveniência oficial: a partição prova integridade, não identidade
+
+O manifesto da v1.110 agrupava as rodadas por partição round-robin dos 20 clubes. Isso prova que
+o agrupamento é **consistente** — não prova que o bloco k é a rodada k. Um deslocamento uniforme
+de ±1 satisfaz a partição perfeitamente e atribui a rodada errada aos 380 jogos. E o número da
+rodada vai no assunto de um email para 11 pessoas.
+
+Regra agora explícita no manifesto: **atribuição oficial = verdade de negócio**; partição
+round-robin = validador de integridade; ordem de id de evento = auxílio de implementação;
+datas = metadado.
+
+Três âncoras verificadas contra fonte oficial e citadas no manifesto:
+Flamengo 2×0 Vitória, 09/08, Maracanã = **22ª rodada** (FFERJ, Exame);
+Corinthians 0×0 Athletico-PR, 30/07 = **21ª rodada**; Coritiba 0×1 Cruzeiro, 31/07, Couto
+Pereira = **21ª rodada**. As três concordam com a partição gerada.
+
+Corroboração adicional e independente do adiamento: a fonte oficial registra que quatro jogos da
+21ª rodada foram adiados pela participação de Santos, Red Bull Bragantino, Vasco e Grêmio nos
+playoffs da Sul-Americana — exatamente os quatro clubes dos jogos que o upstream marca
+`STATUS_POSTPONED`. Confirma o número da rodada e a causa do travamento.
+
+O validador agora falha com `CONFLITO DE PROVENIENCIA` se manifesto e fonte oficial discordarem,
+e recusa manifesto sem âncora ou com âncora sem fonte citada. Provado contra um deslocamento
+uniforme de +1: 3 conflitos detectados com a partição intacta.
+
 ## v1.110 — 2026-08-10 — Rodada canônica: a R21 adiada deixa de esconder a R22
 
 A rodada que terminou em 09/08 não recebeu email. A investigação mostrou que nenhuma rodada
