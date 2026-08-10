@@ -88,7 +88,13 @@ jobs:
         working-directory: bolao/loterias/powerball/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python3 ledger_canary.py ${{ inputs.post_cutover && '--post-cutover' || '' }}
+        run: |
+          # As RPCs do ledger executadas contra o Postgres REAL. So execucao revela erro de
+          # tipo, cast que nao existe e enum que nao aceita texto -- foi assim que o N23 passou
+          # despercebido por testes que liam o TEXTO do SQL. Roda aqui porque e aqui que a
+          # credencial existe; na maquina de desenvolvimento este gate pula.
+          python3 test_settle_rpc_real_db.py
+          python3 ledger_canary.py ${{ inputs.post_cutover && '--post-cutover' || '' }}
 
       - name: Fetch and send results
         working-directory: bolao/loterias/powerball/scripts
