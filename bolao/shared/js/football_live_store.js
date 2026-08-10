@@ -94,6 +94,74 @@
     return isFinite(t) ? t : 0;
   }
 
+
+  // ─── VALIDACAO DE PAYLOAD PERSISTIDO ────────────────────────────────────────────────────────
+  //
+  // O conteudo do cache do gateway (`live_sports_cache`) e ENTRADA NAO CONFIAVEL, mesmo vindo do
+  // nosso proprio banco: e dado persistido, potencialmente gravado por outro caminho, e lido
+  // muito depois de escrito. `schemaVersion === 1` prova apenas que alguem escreveu o numero 1.
+  //
+  // A checagem anterior aceitava qualquer coisa dentro de `matches` desde que a versao batesse.
+  // Um payload envenenado com objetos arbitrarios, de outra competicao, ou com `state` invalido
+  // era servido a tela como se fosse observacao legitima.
+  //
+  // Regra: cache invalido e REJEITADO e provoca fallback seguro. Nunca e convertido numa lista
+  // vazia de partidas -- lista vazia significa "sabemos que nao ha jogo", que e uma afirmacao
+  // forte e falsa neste caso.
+  var VALID_STATES = { pre: 1, in: 1, post: 1 };
+
+  function validateMatch(m) {
+    if (!m || typeof m !== "object" || Array.isArray(m)) return "nao e objeto";
+    if (typeof m.id !== "string" && typeof m.id !== "number") return "id ausente/invalido";
+    if (String(m.id).length === 0) return "id vazio";
+    if (m.state !== undefined && m.state !== null && !VALID_STATES[m.state]) {
+      return "state fora do contrato: " + String(m.state).slice(0, 20);
+    }
+    if (m.completed !== undefined && typeof m.completed !== "boolean") return "completed nao booleano";
+    if (m.postponed !== undefined && typeof m.postponed !== "boolean") return "postponed nao booleano";
+    if (m.statusName !== undefined && m.statusName !== null && typeof m.statusName !== "string") {
+      return "statusName nao textual";
+    }
+    for (var i = 0; i < SCORE_FIELDS.length; i++) {
+      var v = m[SCORE_FIELDS[i]];
+      if (v === undefined || v === null) continue;
+      if (typeof v === "number") { if (!isFinite(v) || v < 0 || v > 99) return SCORE_FIELDS[i] + " fora de faixa"; continue; }
+      if (typeof v === "string") { if (!/^\d{1,2}$/.test(v)) return SCORE_FIELDS[i] + " textual invalido"; continue; }
+      return SCORE_FIELDS[i] + " de tipo invalido";
+    }
+    if (m.date !== undefined && m.date !== null && typeof m.date !== "string") return "date nao textual";
+    return null;
+  }
+
+  var SCORE_FIELDS = ["homeScore", "awayScore", "goalsHome", "goalsAway"];
+
+  /**
+   * Valida um corpo vindo do gateway/cache. Devolve {ok, reason, matches}.
+   * `expectedCompetition` opcional: rejeita dado de OUTRA competicao servido no lugar certo.
+   */
+  function validateGatewayBody(body, expectedCompetition) {
+    if (!body || typeof body !== "object") return { ok: false, reason: "CORPO_NAO_E_OBJETO" };
+    if (body.schemaVersion !== 1) return { ok: false, reason: "SCHEMA_NAO_SUPORTADO_" + body.schemaVersion };
+    if (expectedCompetition && body.competition && body.competition !== expectedCompetition) {
+      return { ok: false, reason: "COMPETICAO_DIVERGENTE_" + String(body.competition).slice(0, 24) };
+    }
+    // `matches: null` NAO e invalido: e a fonte declarando que nao sabe. Distinto de poluido.
+    if (body.matches === null) return { ok: true, reason: null, matches: null };
+    if (!Array.isArray(body.matches)) return { ok: false, reason: "MATCHES_NAO_E_ARRAY" };
+    if (typeof body.observedAt !== "string" || !isFinite(Date.parse(body.observedAt))) {
+      return { ok: false, reason: "OBSERVED_AT_AUSENTE_OU_INVALIDO" };
+    }
+    var ids = {};
+    for (var i = 0; i < body.matches.length; i++) {
+      var why = validateMatch(body.matches[i]);
+      if (why) return { ok: false, reason: "PARTIDA_INVALIDA[" + i + "]: " + why };
+      var id = String(body.matches[i].id);
+      if (ids[id]) return { ok: false, reason: "ID_DUPLICADO_" + id };
+      ids[id] = 1;
+    }
+    return { ok: true, reason: null, matches: body.matches };
+  }
+
   // ─── STORE ────────────────────────────────────────────────────────────────────────────────
   function createStore(opts) {
     opts = opts || {};
@@ -274,13 +342,14 @@
         });
         var body = await r.json();
 
-        // Contrato versionado: versão desconhecida é REJEITADA explicitamente, nunca interpretada
-        // com otimismo. Interpretar errado um schema futuro seria pior que não usar o dado.
-        if (body && body.schemaVersion !== 1) {
-          lastError = "UNSUPPORTED_SCHEMA_" + body.schemaVersion;
+        // Contrato versionado + validacao de FORMA. Cache persistido e entrada nao confiavel:
+        // `schemaVersion === 1` prova apenas que alguem escreveu o numero 1.
+        var v = validateGatewayBody(body, competition);
+        if (!v.ok) {
+          lastError = "CACHE_INVALIDO:" + v.reason;
           consecutiveFailures++;
           emit();
-          return false;
+          return false;   // fallback seguro -- jamais promove payload invalido
         }
 
         if (!r.ok || !body || body.matches === null || body.status === "SOURCE_UNAVAILABLE") {
@@ -421,5 +490,7 @@
     terminalOf: terminalOf,
     firstLive: firstLive,
     createStore: createStore,
+    validateGatewayBody: validateGatewayBody,
+    validateMatch: validateMatch,
   };
 })(typeof window !== "undefined" ? window : globalThis);

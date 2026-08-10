@@ -1,5 +1,29 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.122 — 2026-08-10 — Cache persistido passa a ser tratado como entrada não confiável
+
+O cliente validava `schemaVersion === 1` e `matches !== null`, e aceitava qualquer coisa dentro
+de `matches`. Esse número prova apenas que alguém escreveu 1 — e o conteúdo do cache do gateway
+é dado persistido, potencialmente gravado por outro caminho e lido muito depois de escrito.
+
+Medido no código anterior, com um payload envenenado de `schemaVersion: 1`, o store devolvia
+estado `LIVE_CRITICAL_STALE` e expunha à tela um objeto arbitrário como partida ao vivo —
+`completed: "talvez"`, `homeScore: -999`, `statusName` sendo um objeto. Agora o mesmo payload
+produz `SOURCE_UNAVAILABLE` com `CACHE_INVALIDO:PARTIDA_INVALIDA[0]: completed nao booleano`.
+
+`validateGatewayBody()` no módulo compartilhado valida versão de schema, competição, forma do
+array, id presente e único, `state` dentro do contrato, tipos de `completed`/`postponed`/
+`statusName`, faixa de placar e `observedAt` parseável. Cache inválido é rejeitado e provoca
+fallback seguro — **nunca** é convertido numa lista vazia de partidas, porque lista vazia
+significa "sabemos que não há jogo", afirmação forte e falsa nesse caso. `matches: null` segue
+válido: é a fonte declarando que não sabe.
+
+Gate novo `test_cache_poisoning.mjs` (CACHE_POISON_REJECTED): 28 asserções, 23 payloads
+envenenados distintos, mais a verificação ponta a ponta pelo store.
+
+Enquanto a escrita anônima em `live_sports_cache` não estiver negada no banco, esta validação é
+a barreira no cliente.
+
 ## v3.121 — 2026-08-10 — Os arquivos compartilhados estavam fora do cache-bust
 
 Os cinco arquivos locais de cada app (`css/styles.css`, `js/config.js`, `js/data.js`,
