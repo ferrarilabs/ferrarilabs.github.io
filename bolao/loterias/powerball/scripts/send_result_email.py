@@ -244,6 +244,69 @@ def _expected_names_for_draw(draw_id):
                 return {p["name"].strip() for p in (d.get("participants") or []) if p.get("name")}
     return set()
 
+SUPPLEMENTARY_CONTACTS_ENV = "POWERBALL_PRIVATE_CONTACTS_EXTRA"
+
+
+def _merge_supplementary_contacts(private_data, draw_id):
+    """Contatos ADITIVOS, para quem entrou depois da ultima escrita do segredo principal.
+
+    POR QUE ISTO EXISTE
+    -------------------
+    O segredo `POWERBALL_PRIVATE_PARTICIPANT_DATA` e a fonte canonica de contato, e um segredo do
+    GitHub so pode ser ESCRITO, nunca lido. Para acrescentar uma pessoa seria preciso reescrever o
+    valor inteiro -- e quem nao tem o conteudo atual apagaria todo mundo no processo.
+
+    Foi exatamente o caso do participante que entrou em 11/08 no sorteio de 12/08: o preflight
+    passou a reportar `RESOLVED = 8 de 9, MISSING = [<nome>]`, e o portao TUDO-OU-NADA bloquearia
+    o e-mail de resultado para as nove pessoas.
+
+    Aqui entra um segredo SUPLEMENTAR, com formato simples `{"Nome": "email"}`, que so ACRESCENTA:
+
+      - o segredo principal SEMPRE vence em caso de conflito (esta e a fonte canonica);
+      - so entram nomes que o sorteio realmente espera (mesma regra do filtro de participacao);
+      - a ausencia do suplementar nao muda nada.
+
+    NAO substitui a consolidacao no segredo principal -- e o caminho seguro para acrescentar sem
+    poder ler. Quando o principal for reescrito com todo mundo, este pode ficar vazio.
+    """
+    bruto = (os.environ.get(SUPPLEMENTARY_CONTACTS_ENV) or "").strip()
+    if not bruto:
+        return private_data
+    try:
+        extra = json.loads(bruto)
+    except Exception:
+        logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e JSON valido — ignorado")
+        return private_data
+    if not isinstance(extra, dict):
+        logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e um objeto — ignorado")
+        return private_data
+
+    esperados = {_normalize_name(n): n for n in _expected_names_for_draw(draw_id)}
+    if not esperados:
+        return private_data
+
+    ja = {_normalize_name(n) for n in (private_data.get(draw_id) or {})}
+    entrada = dict(private_data.get(draw_id) or {})
+    acrescentados = 0
+    for nome, email in extra.items():
+        chave = _normalize_name(nome)
+        if chave not in esperados:
+            continue                      # nao joga este sorteio
+        if chave in ja:
+            continue                      # o segredo canonico ja resolve; ele vence
+        if not isinstance(email, str) or "@" not in email:
+            continue
+        entrada[esperados[chave]] = {"email": email.strip()}
+        acrescentados += 1
+
+    if acrescentados:
+        # Nome de exibicao apenas -- nunca o endereco.
+        logger.info(f"✓ {acrescentados} contato(s) suplementar(es) aplicado(s) a {draw_id}")
+        private_data = dict(private_data)
+        private_data[draw_id] = entrada
+    return private_data
+
+
 def _short_hash(value):
     """Non-reversible short identifier for logs — never the raw name/email."""
     import hashlib
@@ -269,6 +332,7 @@ def load_participants_from_private_env(draw_id):
 
     try:
         private_data = json.loads(raw)
+        private_data = _merge_supplementary_contacts(private_data, draw_id)
         draw_entries = private_data.get(draw_id, {})
 
         # RESOLUCAO ENTRE SORTEIOS (2026-08-10).
