@@ -219,6 +219,19 @@ def _normalize_name(name):
     (MATCHING_MODEL = TRANSITIONAL_NAME_BASED)."""
     return " ".join((name or "").split()).casefold()
 
+def _expected_names_for_draw(draw_id):
+    """Nomes que ESTE sorteio espera, segundo a fonte canonica (data.js).
+
+    Mesma verdade que `expected_membership`, alcancavel a partir do `draw_id` sozinho -- o
+    carregador de contatos so recebe o id, e precisa do conjunto esperado para nao resolver
+    endereco de quem nao joga este sorteio.
+    """
+    for lista in DRAWS.values():
+        for d in lista:
+            if d.get("id") == draw_id:
+                return {p["name"].strip() for p in (d.get("participants") or []) if p.get("name")}
+    return set()
+
 def _short_hash(value):
     """Non-reversible short identifier for logs — never the raw name/email."""
     import hashlib
@@ -287,6 +300,28 @@ def load_participants_from_private_env(draw_id):
                 logger.error(
                     f"❌ {len(ambiguos)} nome(s) com endereco divergente entre sorteios "
                     f"(hashes: {[_short_hash(c) for c in ambiguos]}) — nao resolvidos de proposito")
+            # SO OS NOMES DESTE SORTEIO (2026-08-11).
+            #
+            # Sem este filtro a resolucao cruzada devolve a UNIAO dos participantes de TODOS os
+            # sorteios -- um superconjunto. Em 2026-08-10 ela trouxe 16 contatos para um sorteio de
+            # 15 participantes, e o portao TUDO-OU-NADA do `build_send_plan` recusou o envio
+            # inteiro com "1 contato(s) que NAO participam deste sorteio". Zero e-mails sairam.
+            #
+            # A intencao declarada acima sempre foi "para os nomes que ESTE sorteio espera,
+            # procura-se o endereco nas entradas dos outros sorteios". O codigo e que nao
+            # filtrava: resolvia todo nome que existisse em qualquer outro sorteio.
+            #
+            # O filtro e por nome esperado, nao por endereco: quem nao joga este sorteio nao pode
+            # entrar no conjunto de destinatarios por nenhum caminho.
+            esperados = {_normalize_name(n) for n in _expected_names_for_draw(draw_id)}
+            if esperados:
+                fora = [c for c in por_nome if c not in esperados]
+                for chave in fora:
+                    por_nome.pop(chave, None)
+                if fora:
+                    logger.info(
+                        f"✓ {len(fora)} contato(s) de outros sorteios descartados — nao participam "
+                        f"de {draw_id}")
             draw_entries = {nome: campos for nome, campos in por_nome.values()}
             logger.info(f"✓ {len(draw_entries)} nome(s) resolvidos por referencia cruzada")
 

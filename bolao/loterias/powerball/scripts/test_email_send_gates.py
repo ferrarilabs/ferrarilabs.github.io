@@ -189,9 +189,27 @@ class NoParallelDrawSource(unittest.TestCase):
         self.assertIn("2026-08-10", ids, "o script não enxerga o sorteio mais novo do data.js")
 
     def test_replay_historico_escolhe_o_alvo_certo(self):
-        # Com 08/10 em aberto (sem resultado), o alvo tem de continuar sendo 08/08.
+        """O alvo e o sorteio mais recente COM resultado -- derivado, nunca um id fixo.
+
+        Isto exigia o literal "2026-08-08", com o comentario "com 08/10 em aberto, o alvo tem de
+        continuar sendo 08/08". A premissa deixou de valer em 2026-08-11, quando o resultado de
+        08/10 foi gravado durante a recuperacao do incidente de notificacao, e o gate virou
+        vermelho acusando de erro a escolha CORRETA. Gate que apodrece a cada sorteio treina todo
+        mundo a ignorar o vermelho.
+
+        A propriedade real, que nao apodrece: o alvo tem resultado, e nenhum sorteio com resultado
+        e mais recente que ele. O envio errado de 2026-08-09 foi exatamente escolher um sorteio
+        anterior ao mais recente resolvido -- e e isso que fica protegido.
+        """
+        resolvidos = [d for d in sre.DRAWS["powerball"]
+                      if (d.get("result") or {}).get("numbers")]
+        self.assertTrue(resolvidos, "nenhum sorteio com resultado no data.js")
+        esperado = max(resolvidos, key=lambda d: d["id"])["id"]
+
         active = sre.get_active_draw("powerball")
-        self.assertEqual(active["id"], "2026-08-08",
+        self.assertTrue((active.get("result") or {}).get("numbers"),
+                        "get_active_draw devolveu um sorteio SEM resultado")
+        self.assertEqual(active["id"], esperado,
                          "get_active_draw escolheu o sorteio errado — foi esse cálculo que mandou "
                          "o resultado de 05/08 em 2026-08-09")
 

@@ -118,14 +118,29 @@ def main():
 
     faltando = [n for n in esperados if n.lower() not in chaves]
     print(f"  RESOLVED = {len(esperados) - len(faltando)}")
-    if faltando:
+
+    # EXTRA — o outro lado do portao TUDO-OU-NADA (2026-08-11).
+    #
+    # O `build_send_plan` recusa o envio inteiro tanto por `missing` quanto por `extra`
+    # (contato resolvido que NAO participa do sorteio). Este preflight so olhava `missing`, entao
+    # em 2026-08-10 imprimiu "MISSING = [] / RESULT = PASS" para um conjunto que o sender
+    # recusaria minutos depois -- e recusou, com 0 e-mails enviados.
+    #
+    # Um preflight que aprova o que o sender bloqueia nao e um preflight, e um falso verde.
+    # Os dois lados do portao tem de ser verificados aqui.
+    esperados_lower = {n.lower() for n in esperados}
+    sobrando = sorted(c for c in chaves if c not in esperados_lower)
+
+    if faltando or sobrando:
         # Nome de exibicao apenas -- nunca endereco.
         print(f"  MISSING  = {faltando}")
+        print(f"  EXTRA    = {sobrando}")
         print(f"  RESULT   = RECIPIENT_SET_INCOMPLETE")
         print(f"  PROVIDER_CALLS = 0")
         return 1
 
     print(f"  MISSING  = []")
+    print(f"  EXTRA    = []")
     print(f"  RESULT   = PASS")
     print(f"  PROVIDER_CALLS = 0  (preflight nunca envia)")
     return 0

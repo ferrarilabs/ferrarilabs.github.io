@@ -4,6 +4,59 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Powerball — incidente de notificação do sorteio 2026-08-10 (2026-08-11)
+
+Incidente P0: o e-mail de resultado do sorteio de 10/08 não saiu. Quatro execuções agendadas
+depois do sorteio terminaram **verdes** (`exit 0`) sem enviar nada.
+
+### Causa raiz (cadeia, não um bug só)
+
+1. **Janela do cron mais estreita que a latência da fonte.** O agendamento cobre da noite do
+   sorteio (22:00 UTC) até 06:50 UTC do dia seguinte. O `data.ny.gov` só publicou a linha do
+   sorteio de 10/08 **depois** da última execução (07:11 UTC). Não existe execução de
+   *catch-up* fora da noite do sorteio: um sorteio que fica pronto tarde nunca é revisitado.
+2. **`NOT_READY` sai com `exit 0`** — correto para o caso normal (a maioria das execuções é
+   antes do sorteio), mas significa que o modo de falha acima é invisível no painel do Actions.
+3. Enquanto 10/08 não tinha resultado, o alvo da notificação era o 08/08, que está em
+   `AGUARDA_ACAO_MANUAL` (entrega parcial histórica). O log do ciclo então exibia
+   `sorteio avaliado = 2026-08-08` para uma execução cujo alvo anunciado era 10/08.
+
+### Corrigido
+
+- **`send_result_email.py`** — a resolução de contato entre sorteios devolvia a UNIÃO dos
+  participantes de todos os sorteios. Para o sorteio de 10/08 (15 participantes) devolveu 16
+  contatos, e o portão TUDO-OU-NADA do `build_send_plan` recusou o envio inteiro com
+  "1 contato(s) que NÃO participam deste sorteio". **Zero e-mails.** A intenção declarada no
+  próprio comentário sempre foi resolver o endereço *dos nomes que este sorteio espera*; o
+  código é que não filtrava. Agora filtra pela participação canônica do `data.js`.
+- **`recipient_preflight.py`** — verificava apenas `MISSING`, nunca `EXTRA`. Reportou
+  `RESOLVED = 15/15 · PASS` para um conjunto que o sender recusaria minutos depois. Um
+  preflight que aprova o que o sender bloqueia é um falso verde. Agora verifica os dois lados
+  do portão.
+- **`fetch_and_send_results.py`** — `providerInvoked` era `True` fixo para qualquer desfecho do
+  sender, inclusive para os portões que retornam **antes** de qualquer chamada ao provedor. O
+  ciclo afirmou `chamadas ao provedor TENTADAS = 15` com nenhuma chamada feita. Agora o
+  desfecho é lido do `STATUS:` que o próprio sender imprime.
+
+### Gates
+
+- `test_cross_draw_resolution.py` — novo caso de regressão para o superconjunto. Os casos
+  existentes não pegavam o defeito porque todos usavam um `draw_id` inexistente no `data.js`:
+  sem participação canônica não havia o que filtrar. Mutação verificada (some o filtro → vermelho).
+- `test_result_pipeline.mjs`, `test_email_send_gates.py` — três expectativas fixas em
+  `"2026-08-08"` viraram vermelhas sozinhas quando o resultado de 10/08 foi gravado, acusando de
+  erro a escolha correta. Passaram a derivar o alvo (mais recente COM resultado, por data) em vez
+  de comparar com um id que apodrece a cada sorteio.
+
+### Não corrigido (registrado)
+
+- Rótulo do combobox instável na janela entre a hora do sorteio e a gravação do resultado: o
+  sufixo `· próximo` some após `Escape`. Reproduzido em `test_combo_lifecycle.mjs` com o 10/08
+  ainda sem resultado; não reproduzível com o resultado gravado. Defeito de UI, fora do escopo
+  deste patch de notificação — não misturado aqui de propósito.
+
+---
+
 ## v4.0-clean — 2026-06-27
 
 Full clean rebuild from scratch. No code carried over from v3.x.

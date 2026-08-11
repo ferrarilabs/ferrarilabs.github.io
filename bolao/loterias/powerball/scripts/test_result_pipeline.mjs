@@ -158,11 +158,23 @@ test("send_result_email.py lê os sorteios do data.js, não de uma cópia própr
 test("REGRESSÃO 2026-08-09: o sorteio ativo é o mais recente COM resultado do data.js", () => {
   // O envio errado aconteceu porque a cópia hardcoded parava em 05/08: `get_active_draw()`
   // devolvia 05/08 e mandava o resultado anterior, para a lista de participantes anterior.
+  // A expectativa era o literal "2026-08-08". Comparar um valor DERIVADO do data.js com um id
+  // fixo nao testava a propriedade: testava a data do ultimo sorteio, e ficava vermelho sozinho
+  // toda vez que um sorteio novo recebia resultado -- foi o que aconteceu em 2026-08-11, quando o
+  // resultado de 08/10 foi gravado durante a recuperacao do incidente de notificacao. Um gate que
+  // apodrece a cada sorteio ensina a ignorar o vermelho, que e como o vermelho de verdade passa.
+  //
+  // A propriedade que importa: o sorteio ativo e o mais recente POR DATA entre os que tem
+  // resultado. O envio errado de 2026-08-09 foi exatamente uma divergencia entre a ORDEM DO ARRAY
+  // e a ORDEM CRONOLOGICA -- e isto pega essa classe, sem depender de qual sorteio e o ultimo.
   const resolved = DRAWS.filter(d => d.result && d.result.numbers);
+  assert(resolved.length > 0, "nenhum sorteio com resultado no data.js");
   const active = resolved[resolved.length - 1];
-  eq(active.id, "2026-08-08",
-    "o sorteio ativo deixou de ser o mais recente com resultado — é este o cálculo que o " +
-    "send_result_email.py faz para escolher o que enviar e para quem");
+  const maisRecentePorData = resolved.reduce((a, b) => (b.id > a.id ? b : a));
+  eq(active.id, maisRecentePorData.id,
+    "o sorteio ativo deixou de ser o mais recente com resultado — a ordem do array divergiu da " +
+    "ordem cronológica, e é este o cálculo que o send_result_email.py faz para escolher o que " +
+    "enviar e para quem");
 });
 
 // ── 6. Modelo canônico de sorteio/participação (entrada operacional manual) ──
@@ -338,9 +350,17 @@ test("[STATS] sem contaminação entre sorteios", () => {
   const s5 = hitStats(d5), s8 = hitStats(d8);
   assert(s5.total !== s8.total || JSON.stringify(s5.whites) !== JSON.stringify(s8.whites),
     "os dois sorteios produziram a MESMA estatística — sinal de que os bilhetes vazaram entre eles");
-  // O 08/10 não tem resultado: não pode produzir estatística nenhuma.
-  const d10 = DRAWS.find(x => x.id === "2026-08-10");
-  eq(hitStats(d10), null, "sorteio sem resultado gerou estatística fabricada");
+  // Sorteio SEM resultado nao pode produzir estatistica nenhuma.
+  //
+  // Isto apontava para o id fixo "2026-08-10" -- o sorteio que, quando o teste foi escrito, ainda
+  // nao tinha resultado. Em 2026-08-11 o resultado de 08/10 foi gravado e o teste virou vermelho
+  // afirmando "estatistica fabricada" sobre uma estatistica perfeitamente legitima. O alvo do
+  // teste nao pode ser um sorteio que vai deixar de satisfazer a premissa na semana seguinte.
+  //
+  // O sorteio sem resultado agora e SINTETICO: a premissa vale para sempre e o gate nunca apodrece.
+  const semResultado = { id: "sintetico-sem-resultado", gameType: "powerball",
+                         result: null, sharedTickets: d8.sharedTickets };
+  eq(hitStats(semResultado), null, "sorteio sem resultado gerou estatística fabricada");
 });
 
 test("[STATS] sorteio sem bilhete não vira NaN nem 0/0", () => {
