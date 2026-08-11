@@ -136,10 +136,19 @@ test("plain-text ticket line uses explicit ' - ' separators and labeled Powerbal
   const { perRecipient } = buildTicketPublicationPayload({ draw: draw1, participants: fx.participants, tickets: fx.ticketVersions["1"], publicationVersion: 1 });
   const text = renderTicketPublicationText(perRecipient[0], true);
   assert.ok(text.includes("24 · 31 · 47 · 52 · 63 | Powerball: 17 | Power Play:"), `expected separator-based line, got:\n${text}`);
-  // Guard against the exact reported symptom, scoped to just the "Jogos:" ticket
-  // list (the manifest hash elsewhere in the text is hex/timestamp-derived and
-  // can incidentally contain a 6+ digit run by chance — not a rendering bug).
-  const jogosSection = text.slice(text.indexOf("Jogos:"), text.indexOf("Hash (resumido)"));
+  // Escopo: SO as linhas de jogo. A versao anterior fatiava de "Jogos:" ate
+  // indexOf("Hash (resumido)") -- rotulo que o renderizador deixou de emitir (hoje escreve
+  // "codigo de verificacao"). indexOf devolvia -1, e slice(ini, -1) em JS corta ate o penultimo
+  // caractere: o teste passou a varrer o texto INTEIRO, incluindo o codigo de verificacao, que e
+  // derivado de hash. Se aquele hash contivesse 6+ digitos seguidos -- por acaso, cerca de 1 em
+  // 8 execucoes -- o gate ficava vermelho. Ele vinha passando POR SORTE.
+  //
+  // Casar as linhas de jogo diretamente nao depende de nenhum rotulo vizinho: renomear cabecalho
+  // nao pode silenciosamente ampliar nem encolher o escopo de um gate.
+  const linhasDeJogo = text.split("\n").filter(l => /^\s*Jogo\s+\d+:/.test(l));
+  assert.ok(linhasDeJogo.length > 0,
+    `nenhuma linha "Jogo N:" encontrada — o formato mudou e este gate perdeu o alvo:\n${text}`);
+  const jogosSection = linhasDeJogo.join("\n");
   assert.ok(!/\d{6,}/.test(jogosSection), `no run of 6+ consecutive digits allowed in the ticket list:\n${jogosSection}`);
 });
 

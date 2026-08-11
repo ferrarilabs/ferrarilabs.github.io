@@ -323,6 +323,10 @@
     "bolao/loterias/powerball/scripts/test_lifecycle_observability.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."
+    },
+    "bolao/cdb2026/scripts/test_public_projection_and_submit.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "CDB2026 stage 4 aditivo. 12 entradas tem PII na tabela crua; 0 atravessa a projecao. Nao exercita o caminho feliz de submissao: gravaria em producao."
     }
   }
 }
