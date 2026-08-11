@@ -123,6 +123,9 @@
     "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_combo_next_label.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_combo_visual.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

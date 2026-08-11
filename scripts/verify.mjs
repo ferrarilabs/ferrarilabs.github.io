@@ -172,6 +172,8 @@ const CHECKS = [
     why: "Powerball draw combos", requires: "browser" },
   { id: "combo-lifecycle", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs"],
     why: "Powerball combobox listener lifecycle (Batch 9)", requires: "browser" },
+  { id: "combo-next-label", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_combo_next_label.mjs"],
+    why: "o sufixo '· próximo' some/aparece se dois renders derivarem o sorteio de formas diferentes", requires: "browser" },
   { id: "combo-visual", group: "browser", cmd: ["node", "bolao/loterias/powerball/scripts/test_combo_visual.mjs"],
     why: "Powerball combobox: exactly one selection marker, selection vs navigation distinct", requires: "browser" },
   { id: "live-prob-bars", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_live_prob_bars.mjs"],
