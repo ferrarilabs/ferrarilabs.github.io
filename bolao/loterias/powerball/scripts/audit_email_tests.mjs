@@ -110,10 +110,21 @@ test("missing state (undefined) also returns stateKnown:false", () => {
 });
 
 // -------- 2. Flow A validation / payload --------
+// ESTADO INEXISTENTE, de proposito (2026-08-11).
+//
+// Estes casos usavam "TX" como exemplo de estado NAO suportado. Deixou de ser: entrou um
+// participante real do Texas no sorteio de 12/08 e a tabela ganhou `TX: 0` (o Texas nao tem
+// imposto de renda estadual) -- produto correto, gate errado. O teste passou a reprovar a
+// mudanca certa.
+//
+// Qualquer sigla de estado REAL pode ganhar participante e suporte a qualquer momento. "ZZ" nao
+// e um estado americano e nunca vai ser, entao o caso nao pode apodrecer de novo.
+const ESTADO_NAO_SUPORTADO = "ZZ";
+
 console.log("\nFlow A — participant confirmation:");
 test("missing state blocks the send with PARTICIPANT_STATE_UNSUPPORTED", () => {
   const draw = loadDrawSnapshot(realDraw.id);
-  const participant = { name: "Blocked Test", email: "blocked@example.com", cotas: 1, valor: 10, data: "01/01/2026", hora: "—", status: "verificado", state: "TX" };
+  const participant = { name: "Blocked Test", email: "blocked@example.com", cotas: 1, valor: 10, data: "01/01/2026", hora: "—", status: "verificado", state: ESTADO_NAO_SUPORTADO };
   const draftDraw = { ...draw, participants: [...draw.participants, participant] };
   const estimates = calculatePrizePerParticipant(draftDraw, participant);
   const v = validateParticipantConfirmation({ participant, draw, estimates });
@@ -192,7 +203,7 @@ await atest("runParticipantConfirmation dry-run sends to only the participant's 
 });
 await atest("runParticipantConfirmation blocks on unsupported state and offers retry action", async () => {
   const draw = loadDrawSnapshot(realDraw.id);
-  const synth = { name: "Blocked Synth", email: "blocked2@example.com", cotas: 1, valor: 10, data: "01/01/2026", hora: "—", status: "verificado", state: "TX" };
+  const synth = { name: "Blocked Synth", email: "blocked2@example.com", cotas: 1, valor: 10, data: "01/01/2026", hora: "—", status: "verificado", state: ESTADO_NAO_SUPORTADO };
   const r = await runParticipantConfirmation({ drawId: realDraw.id, participantName: synth.name, overrideParticipant: synth, dryRun: true, outboxFile: TMP_OUTBOX });
   assert.equal(r.ok, false);
   assert.ok(r.errors.includes("PARTICIPANT_STATE_UNSUPPORTED"));
