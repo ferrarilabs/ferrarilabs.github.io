@@ -199,10 +199,27 @@ def cmd_apply_draw(a):
         erros.append(f"classificado ausente do sorteio: {sorted(faltando)}")
     if sobrando:
         erros.append(f"time no sorteio que NAO se classificou: {sorted(sobrando)}")
-    if (fases[fase].get("ties") or {}):
-        erros.append(f"a fase '{fase}' JA tem confrontos — recusando sobrescrever sorteio oficial")
-    if not origem.get("source") or not origem.get("fetchedAt"):
-        erros.append("sorteio sem procedencia (source/fetchedAt)")
+    # Reaplicar o MESMO sorteio e conclusao, nao sobrescrita.
+    #
+    # A primeira versao recusava qualquer fase que ja tivesse confrontos. Correto contra
+    # sobrescrever um sorteio por outro -- e errado para o caso que aconteceu de verdade: os
+    # confrontos foram gravados, o bloco de proveniencia foi para o lugar ERRADO (raiz do estado
+    # em vez de dentro da fase, que e onde `drawLifecycle()` le), e a reaplicacao para corrigir
+    # ficava barrada pela propria guarda.
+    ja_existentes = fases[fase].get("ties") or {}
+    if ja_existentes:
+        mesmos = set(ja_existentes.keys()) == {t["tieId"] for t in confrontos}
+        if not mesmos:
+            erros.append(f"a fase '{fase}' ja tem confrontos DIFERENTES — recusando sobrescrever "
+                         f"sorteio oficial")
+        elif any(t.get("qualifiedTeamId") for t in ja_existentes.values()):
+            erros.append(f"a fase '{fase}' ja tem confronto resolvido — reaplicar apagaria "
+                         f"resultado oficial")
+        else:
+            print("  ALREADY_APPLIED — mesmos confrontos ja gravados; completando a proveniencia.")
+    for campo in ("source", "fetchedAt", "scheduledAt"):
+        if not origem.get(campo):
+            erros.append(f"sorteio sem procedencia: falta '{campo}'")
 
     # ── ID DETERMINISTICO ────────────────────────────────────────────────────────────────────
     #
@@ -256,12 +273,34 @@ def cmd_apply_draw(a):
 
     agora = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
     estado["phases"][fase]["ties"] = novos
-    estado.setdefault("officialDraw", {})[fase] = {
-        "appliedAt": agora, "bracketHash": bracket_hash,
-        "source": origem.get("source"), "sourceUrl": origem.get("sourceUrl"),
-        "fetchedAt": origem.get("fetchedAt"), "event": origem.get("event"),
+
+    # PROVENIENCIA DENTRO DA FASE — e ali que `drawLifecycle()` a le (js/app.js:180:
+    # `phase && phase.officialDraw`). A primeira versao gravou na RAIZ do estado; os confrontos
+    # entraram, o app continuou exibindo "aguardando a publicacao oficial da CBF", e a pagina
+    # publica ficou sem palpite nenhum. Estado correto no banco e invisivel na tela e o mesmo que
+    # nao ter feito nada.
+    #
+    # Os cinco campos sao exigidos por `officialDrawProvenanceIsValid()`; sem os cinco o ciclo
+    # cai em INGESTED ("proveniencia incompleta") em vez de LOCKED, e o bracket nao vira oficial.
+    estado["phases"][fase]["officialDraw"] = {
+        "authority": "CBF",
+        "source": origem.get("source"),
+        "sourceUrl": origem.get("sourceUrl"),
         "corroboratedBy": origem.get("corroboratedBy"),
+        "event": origem.get("event"),
+        "scheduledAt": origem["scheduledAt"],
+        "ingestedAt": origem.get("fetchedAt"),
+        "validatedAt": agora,
+        "validatedBy": a.actor,
+        "bracketHash": bracket_hash,
+        "note": origem.get("note"),
     }
+    # O bloco antigo na raiz, se existir, sai: duas verdades sobre o mesmo sorteio em lugares
+    # diferentes e a divergencia esperando acontecer.
+    if isinstance(estado.get("officialDraw"), dict):
+        estado["officialDraw"].pop(fase, None)
+        if not estado["officialDraw"]:
+            estado.pop("officialDraw", None)
     estado.setdefault("auditLog", []).append({
         "type": "apply-official-draw", "actor": a.actor, "at": agora,
         "clientRef": f"official-draw:{fase}:{bracket_hash}", "source": "operator-cli",
