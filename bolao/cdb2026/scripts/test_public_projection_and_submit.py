@@ -91,28 +91,45 @@ class ProjecaoPublica(unittest.TestCase):
                       "o sorteio oficial da CBF sumiu da projecao")
 
 
-class SubmissaoRecusaEntradaInvalida(unittest.TestCase):
-    """Todas estas validacoes levantam ANTES do update. Nenhuma pode gravar."""
+class EdicaoDePalpitesRecusaEntradaInvalida(unittest.TestCase):
+    """A operacao anonima REAL do CDB2026: editar palpites de uma entrada existente.
+
+    O roster esta congelado (`entryRosterFrozen: true`), entao inscricao nova nao existe neste
+    produto -- `applyAdminMutation` recusa o ramo de append com ENTRY_ROSTER_FROZEN. Uma RPC de
+    criacao seria superficie de ataque para uma operacao que o app nao executa; por isso
+    `submit_cdb_entry` (migracao 024) foi removida na 025.
+
+    Todas as validacoes abaixo levantam ANTES do update. Nenhuma pode gravar em producao.
+    """
 
     def negar(self, args, porque):
-        ok, corpo, http = _rpc("submit_cdb_entry", args)
+        ok, corpo, http = _rpc("cdb_update_entry_picks", args)
         self.assertFalse(ok, f"aceitou entrada invalida ({porque}) — http={http}")
 
+    def test_sem_entry_id_recusa(self):
+        self.negar({"p_entry_id": "", "p_client_ref": "x", "p_picks": {}}, "sem entrada alvo")
+
     def test_sem_client_ref_recusa(self):
-        self.negar({"p_client_ref": "", "p_name": "Fulano"}, "sem client_ref nao ha idempotencia")
-
-    def test_nome_vazio_recusa(self):
-        self.negar({"p_client_ref": "x", "p_name": ""}, "nome vazio")
-
-    def test_nome_de_uma_letra_recusa(self):
-        self.negar({"p_client_ref": "x", "p_name": "A"}, "nome curto demais")
-
-    def test_nome_absurdamente_longo_recusa(self):
-        self.negar({"p_client_ref": "x", "p_name": "N" * 500}, "nome longo demais")
+        self.negar({"p_entry_id": "abc", "p_client_ref": "", "p_picks": {}},
+                   "sem client_ref nao ha idempotencia")
 
     def test_picks_que_nao_e_objeto_recusa(self):
-        self.negar({"p_client_ref": "x", "p_name": "Fulano", "p_picks": "nao-e-objeto"},
+        self.negar({"p_entry_id": "abc", "p_client_ref": "x", "p_picks": "nao-e-objeto"},
                    "picks precisa ser objeto")
+
+    def test_entrada_inexistente_recusa(self):
+        self.negar({"p_entry_id": "nao-existe-999", "p_client_ref": "x", "p_picks": {}},
+                   "nao se cria entrada por esta via")
+
+    def test_picks_gigante_recusa(self):
+        """O bolao inteiro vive numa unica linha jsonb: payload absurdo e uso indevido."""
+        self.negar({"p_entry_id": "abc", "p_client_ref": "x", "p_picks": {"f": "z" * 21000}},
+                   "teto de tamanho")
+
+    def test_a_rpc_de_criacao_nao_existe_mais(self):
+        ok, _, http = _rpc("submit_cdb_entry", {"p_client_ref": "x", "p_name": "Fulano"})
+        self.assertEqual(http, 404,
+                         "submit_cdb_entry voltou — cria entrada, operacao que o app nao faz")
 
 
 class SuperficieAnonima(unittest.TestCase):
@@ -123,11 +140,12 @@ class SuperficieAnonima(unittest.TestCase):
             ok, _, http = _rpc(nome, {})
             self.assertFalse(ok, f"anon executa {nome}() — http={http}")
 
-    def test_a_submissao_publica_existe_e_e_alcancavel(self):
-        """Existir e ser alcancavel: se so existisse, o app nao teria caminho de inscricao."""
-        ok, corpo, http = _rpc("submit_cdb_entry", {"p_client_ref": "", "p_name": ""})
-        self.assertNotEqual(http, 404, "submit_cdb_entry nao existe ou nao e alcancavel por anon")
-        self.assertNotIn(http, (401, 403), "anon perdeu acesso a submissao publica")
+    def test_a_edicao_de_palpites_existe_e_e_alcancavel(self):
+        """Existir e ser alcancavel: se so existisse, o participante perderia o caminho legitimo."""
+        ok, corpo, http = _rpc("cdb_update_entry_picks",
+                               {"p_entry_id": "", "p_client_ref": "", "p_picks": {}})
+        self.assertNotEqual(http, 404, "cdb_update_entry_picks nao existe ou nao e alcancavel")
+        self.assertNotIn(http, (401, 403), "anon perdeu acesso a edicao legitima de palpites")
 
 
 if __name__ == "__main__":
