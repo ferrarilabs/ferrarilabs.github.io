@@ -121,6 +121,70 @@ class ResolucaoEntreSorteios(unittest.TestCase):
         finally:
             S.DRAWS = original
 
+    def test_suplemento_nao_cancela_a_resolucao_cruzada(self):
+        """REGRESSAO 2026-08-11 — medida EM PRODUCAO, causada por mim.
+
+        O segredo suplementar (`POWERBALL_PRIVATE_CONTACTS_EXTRA`) existe para acrescentar quem
+        entrou depois da ultima escrita do segredo principal, que so pode ser ESCRITO, nunca lido.
+
+        A primeira versao aplicava o suplemento ANTES, sobre o dicionario inteiro. O sorteio novo
+        nao tem entrada propria no segredo -- entao o suplemento CRIAVA uma, com uma pessoa so.
+        `draw_entries` deixava de ser vazio, a resolucao entre sorteios era PULADA, e o preflight
+        de producao caiu de 9/9 para 1/10:
+
+            EXPECTED = 10  RESOLVED = 1  MISSING = [os outros nove]
+
+        Acrescentar um contato apagou nove. O suplemento tem de ser ADITIVO de verdade: entra
+        depois de todas as fontes canonicas terem falado, e so onde ainda falta.
+        """
+        original = S.DRAWS
+        S.DRAWS = {"powerball": [{"id": SORTEIO_INEXISTENTE, "gameType": "powerball",
+                                  "participants": [{"name": "Ana"}, {"name": "Bruno"},
+                                                   {"name": "Novato"}]}]}
+        os.environ["POWERBALL_PRIVATE_CONTACTS_EXTRA"] = json.dumps(
+            {"Novato": "novato@example.invalid"})
+        try:
+            # Ana e Bruno so existem em OUTRO sorteio: dependem da resolucao cruzada.
+            segredo({"2026-08-08": {"Ana": {"email": ANA}, "Bruno": {"email": BRUNO}}})
+            r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
+            self.assertEqual(self.nomes(r), {"Ana", "Bruno", "Novato"},
+                             "o suplemento cancelou a resolucao entre sorteios — acrescentar um "
+                             "contato nao pode apagar os outros")
+        finally:
+            os.environ.pop("POWERBALL_PRIVATE_CONTACTS_EXTRA", None)
+            S.DRAWS = original
+
+    def test_suplemento_nunca_vence_o_segredo_canonico(self):
+        """O principal e a fonte canonica; o suplemento so preenche buraco."""
+        original = S.DRAWS
+        S.DRAWS = {"powerball": [{"id": SORTEIO_INEXISTENTE, "gameType": "powerball",
+                                  "participants": [{"name": "Ana"}]}]}
+        os.environ["POWERBALL_PRIVATE_CONTACTS_EXTRA"] = json.dumps(
+            {"Ana": "impostor@example.invalid"})
+        try:
+            segredo({SORTEIO_INEXISTENTE: {"Ana": {"email": ANA}}})
+            r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
+            self.assertEqual([p["email"] for p in r], [ANA],
+                             "o suplemento sobrescreveu o endereco canonico")
+        finally:
+            os.environ.pop("POWERBALL_PRIVATE_CONTACTS_EXTRA", None)
+            S.DRAWS = original
+
+    def test_suplemento_ignora_quem_nao_joga_o_sorteio(self):
+        original = S.DRAWS
+        S.DRAWS = {"powerball": [{"id": SORTEIO_INEXISTENTE, "gameType": "powerball",
+                                  "participants": [{"name": "Ana"}]}]}
+        os.environ["POWERBALL_PRIVATE_CONTACTS_EXTRA"] = json.dumps(
+            {"Nao Participa": "x@example.invalid"})
+        try:
+            segredo({SORTEIO_INEXISTENTE: {"Ana": {"email": ANA}}})
+            r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
+            self.assertEqual(self.nomes(r), {"Ana"},
+                             "o suplemento injetou alguem que nao joga este sorteio")
+        finally:
+            os.environ.pop("POWERBALL_PRIVATE_CONTACTS_EXTRA", None)
+            S.DRAWS = original
+
     def test_fixtures_nao_usam_dominio_real(self):
         """Gate de PII sobre este proprio arquivo: ja flagrei fixture com dominio real duas vezes."""
         src = open(__file__, encoding="utf-8").read()
