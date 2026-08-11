@@ -183,6 +183,8 @@ const CHECKS = [
     why: "F8: so o gateway confiavel escreve no cache ao vivo; anon nunca" },
   { id: "br2026-narrow-persistence", group: "security", cmd: ["node", "bolao/scripts/audit_br2026_narrow_persistence.mjs"],
     why: "F10/N22: BR2026 le projecao publica e so grava por RPC estreita" },
+  { id: "powerball-observability", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_lifecycle_observability.py"],
+    why: "O log do Actions tem de responder a noite inteira sozinho, sem PII e sem segredo" },
   { id: "powerball-transport-targets", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_transport_honors_targets.py"],
     why: "O transporte REAL tem de obedecer a lista do ledger; alvo parcial recusa em vez de difundir" },
   { id: "powerball-anon-denied", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_anon_notification_denied.py"],
