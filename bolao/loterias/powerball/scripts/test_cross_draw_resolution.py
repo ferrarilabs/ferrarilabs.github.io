@@ -28,6 +28,18 @@ ANA = "ana@example.invalid"
 BRUNO = "bruno@example.invalid"
 
 
+# Sorteio que NUNCA existira no data.js.
+#
+# Estes casos exercitam a resolucao cruzada quando o sorteio alvo nao tem participacao canonica
+# -- e para isso o id precisa nao existir. Antes era "2026-08-12", que era inexistente no dia em
+# que os testes foram escritos e virou um sorteio REAL no dia seguinte, com 7 participantes. Os
+# testes passaram a falhar sozinhos: o filtro por participacao, funcionando corretamente,
+# descartava Ana e Bruno.
+#
+# Um id datado dentro do horizonte da competicao vira dado real mais cedo ou mais tarde.
+SORTEIO_INEXISTENTE = "2099-12-31"
+
+
 def segredo(d):
     os.environ["POWERBALL_PRIVATE_PARTICIPANT_DATA"] = json.dumps(d)
 
@@ -40,15 +52,15 @@ class ResolucaoEntreSorteios(unittest.TestCase):
         return {p.get("name") or p.get("nome") for p in participantes or []}
 
     def test_entrada_propria_tem_prioridade(self):
-        segredo({"2026-08-12": {"Ana": {"email": ANA}},
+        segredo({SORTEIO_INEXISTENTE: {"Ana": {"email": ANA}},
                  "2026-08-10": {"Ana": {"email": "antigo@example.invalid"}}})
-        r = S.load_participants_from_private_env("2026-08-12")
+        r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
         self.assertEqual([p["email"] for p in r], [ANA],
                          "existindo entrada propria, nao se olha para outros sorteios")
 
     def test_sorteio_sem_entrada_resolve_pelos_outros(self):
         segredo({"2026-08-08": {"Ana": {"email": ANA}, "Bruno": {"email": BRUNO}}})
-        r = S.load_participants_from_private_env("2026-08-12")
+        r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
         self.assertEqual(self.nomes(r), {"Ana", "Bruno"},
                          "sorteio novo sem entrada no segredo tem de resolver pelos anteriores")
 
@@ -56,14 +68,14 @@ class ResolucaoEntreSorteios(unittest.TestCase):
         """A propriedade central: na duvida, ninguem e escolhido."""
         segredo({"2026-08-05": {"Ana": {"email": ANA}},
                  "2026-08-08": {"Ana": {"email": "outro@example.invalid"}}})
-        r = S.load_participants_from_private_env("2026-08-12")
+        r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
         self.assertEqual(self.nomes(r), set(),
                          "endereco divergente entre sorteios nao pode ser adivinhado")
 
     def test_divergencia_de_um_nao_derruba_os_demais(self):
         segredo({"2026-08-05": {"Ana": {"email": ANA}, "Bruno": {"email": BRUNO}},
                  "2026-08-08": {"Ana": {"email": "outro@example.invalid"}}})
-        r = S.load_participants_from_private_env("2026-08-12")
+        r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
         self.assertEqual(self.nomes(r), {"Bruno"},
                          "so o nome ambiguo fica de fora")
 
@@ -71,17 +83,17 @@ class ResolucaoEntreSorteios(unittest.TestCase):
         segredo({"2026-08-03": {"Ana": {"email": ANA}},
                  "2026-08-05": {"Ana": {"email": ANA}},
                  "2026-08-08": {"Ana": {"email": ANA}}})
-        r = S.load_participants_from_private_env("2026-08-12")
+        r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
         self.assertEqual([p["email"] for p in r], [ANA],
                          "mesmo endereco repetido nao e divergencia")
 
     def test_segredo_vazio_nao_inventa_ninguem(self):
         segredo({})
-        self.assertEqual(S.load_participants_from_private_env("2026-08-12") or [], [])
+        self.assertEqual(S.load_participants_from_private_env(SORTEIO_INEXISTENTE) or [], [])
 
     def test_nome_sem_email_nao_e_resolvido(self):
         segredo({"2026-08-08": {"Ana": {"cotas": 2}}})
-        self.assertEqual(self.nomes(S.load_participants_from_private_env("2026-08-12")), set())
+        self.assertEqual(self.nomes(S.load_participants_from_private_env(SORTEIO_INEXISTENTE)), set())
 
     def test_nao_resolve_quem_nao_participa_do_sorteio(self):
         """REGRESSAO 2026-08-11 — o superconjunto que bloqueou o e-mail do sorteio de 08/10.
@@ -97,11 +109,11 @@ class ResolucaoEntreSorteios(unittest.TestCase):
         ficava invisivel. Aqui o sorteio alvo EXISTE e tem participacao definida.
         """
         original = S.DRAWS
-        S.DRAWS = {"powerball": [{"id": "2026-08-12", "gameType": "powerball",
+        S.DRAWS = {"powerball": [{"id": SORTEIO_INEXISTENTE, "gameType": "powerball",
                                   "participants": [{"name": "Ana"}]}]}
         try:
             segredo({"2026-08-08": {"Ana": {"email": ANA}, "Bruno": {"email": BRUNO}}})
-            r = S.load_participants_from_private_env("2026-08-12")
+            r = S.load_participants_from_private_env(SORTEIO_INEXISTENTE)
             self.assertEqual(
                 self.nomes(r), {"Ana"},
                 "Bruno nao participa de 2026-08-12; resolver o contato dele transforma o "
