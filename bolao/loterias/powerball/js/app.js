@@ -38,12 +38,15 @@
   // um numero aqui seria afirmar valor de dinheiro que ninguem divulgou.
   //
   // Sem isto, `fmtUsdCompact(null)` e `null * 0.505` renderizavam "$NaN" na tela inicial.
-  var JACKPOT_A_ANUNCIAR = "a anunciar";
+  // "a anunciar" descrevia o sorteio como indefinido. Mas o sorteio E definido -- data, hora e
+  // bolao aberto sao conhecidos; o que falta e uma leitura do premio, que o refresh_jackpot.py
+  // busca da fonte oficial de forma automatica. O texto certo fala do DADO, nao do evento.
+  var JACKPOT_ATUALIZANDO = "Atualizando jackpot…";
   function temJackpot(draw) {
     return typeof draw.drawing.jackpot === "number" && isFinite(draw.drawing.jackpot);
   }
   function fmtJackpot(draw) {
-    return temJackpot(draw) ? fmtUsdCompact(draw.drawing.jackpot) : JACKPOT_A_ANUNCIAR;
+    return temJackpot(draw) ? fmtUsdCompact(draw.drawing.jackpot) : JACKPOT_ATUALIZANDO;
   }
 
   function loadLocalOverrides() {
@@ -743,7 +746,7 @@
       // Anuidade e lump sum sao DERIVADOS do jackpot. Sem ele nao ha o que comparar, e mostrar
       // "$NaN" ou "$0" seria pior que nao mostrar.
       document.getElementById("pbJackpotOptions").textContent =
-        "Prêmio ainda não divulgado pela loteria.";
+        "Buscando o prêmio oficial da loteria…";
     } else {
       var cashValueLabel = draw.drawing.cashValue != null
         ? fmtUsdCompact(draw.drawing.cashValue)

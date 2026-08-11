@@ -130,6 +130,15 @@ const EXPECTED = [
     hourWindows: { evening: [21, 23], overnight: [0, 4] },
   },
   {
+    // Atualizacao de jackpot do sorteio ABERTO. Nao envia e-mail e nao toca em resultado; se
+    // deixar de rodar, a pagina publica de um bolao aberto volta a mostrar estado de espera com
+    // o valor oficial ja disponivel -- que foi o defeito de 2026-08-11.
+    file: "powerball_jackpot_refresh.yml",
+    why: "sem esta atualizacao o sorteio ABERTO exibe estado de espera com o jackpot oficial ja publicado",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [18, 23], overnight: [0, 6] },
+  },
+  {
     // 2026-08-08: era UNSCHEDULED, e a nota lá já dizia que a defasagem do snapshot era ilimitada
     // (DG-04). O efeito real foi medido no mesmo dia: `bolao/br2026/data/espn-normalized.json`
     // tinha UM único commit em toda a história (o da migração), então o hero de jogo ao vivo nunca
@@ -158,6 +167,10 @@ const DORMANT = new Map([
 const UNSCHEDULED = new Map([
   ["deploy-pages.yml", "Triggered by push to main."],
   ["sync_version.yml", "Triggered by push to main, path-filtered."],
+  ["cdb2026_operator.yml",
+   "Operacao de operador do CDB2026 (snapshot, sorteio oficial, abertura de palpites). E disparada " +
+   "por uma DECISAO humana -- aplicar um sorteio oficial nao tem cadencia. Agendar isto seria " +
+   "gravar estado de competicao por relogio, que e exatamente o que nao pode acontecer."],
 ]);
 
 const workflows = loadWorkflows();
