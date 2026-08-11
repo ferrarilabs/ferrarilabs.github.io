@@ -317,8 +317,9 @@ window.POWERBALL_DRAWS = [
       { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "06/08/2026", hora: "8:58 AM", status: "organizador", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "2:10 PM", status: "verificado", state: "NC" },
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "8:59:45 AM", status: "verificado", state: "FL" },
-      // Camila pagou $12 no total; $10 é a cota deste sorteio (valor abaixo),
-      // os outros $2 são um ajuste não alocado — ver finance.ajustesPendentes.
+      // Camila pagou $12 no total no mesmo Zelle; $10 é a cota deste sorteio (valor
+      // abaixo). Os outros $2 são de outra coisa, não relacionada ao bolão -- confirmado
+      // pelo Eduardo em 11/08/2026 (não é ajuste pendente do bolão).
       { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:09:06 AM", status: "verificado", state: "NC" },
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:10:00 AM", status: "verificado", state: "NC" },
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:16:06 AM", status: "verificado", state: "NC" },
@@ -384,10 +385,9 @@ window.POWERBALL_DRAWS = [
       creditoSorteioAnterior: 18, // 2 (saldo) + 16 (prêmios confirmados) - 0 (nada usado ainda)
       valorUtilizado: 168, // 56 tickets x $3 (Power Play)
       valorGuardadoProximoSorteio: 0, // 150 + 18 - 168 = 0
-      // Camila Ribeiro pagou $12; $2 não são cota, prêmio, saldo anterior, crédito
-      // automático do próximo sorteio, nem dívida pessoal — ficam explicitamente
-      // pendentes de classificação, fora de totalArrecadado/valorGuardadoProximoSorteio.
-      ajustesPendentes: 2
+      // Camila Ribeiro pagou $12 no mesmo Zelle; $2 são de outra coisa, não relacionada
+      // ao bolão -- confirmado pelo Eduardo em 11/08/2026. Não é pendência do bolão.
+      ajustesPendentes: 0
     },
 
     result: {
@@ -409,9 +409,7 @@ window.POWERBALL_DRAWS = [
   // 08/08 (5 9 35 54 63 | PB 7, Power Play 3x) que já está gravado acima.
   //
   // creditoSorteioAnterior = valorGuardadoProximoSorteio do 08/08 ($0) + prêmios CONFIRMADOS do
-  // 08/08 ($24, resultado oficial já gravado) - nada distribuído ($0) = $24. Os $2 de
-  // `ajustesPendentes` do 08/08 NÃO entram: continuam fora de totalArrecadado/valorGuardado até
-  // serem classificados.
+  // 08/08 ($24, resultado oficial já gravado) - nada distribuído ($0) = $24.
   //
   // O Eduardo entrou neste sorteio em 09/08/2026 08:40 AM (America/New_York), inicialmente sem
   // valor/método definidos (ficaram nulos até ele decidir quanto ia contribuir). Mais tarde no
