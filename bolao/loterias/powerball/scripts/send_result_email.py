@@ -247,7 +247,7 @@ def _expected_names_for_draw(draw_id):
 SUPPLEMENTARY_CONTACTS_ENV = "POWERBALL_PRIVATE_CONTACTS_EXTRA"
 
 
-def _merge_supplementary_contacts(private_data, draw_id):
+def _merge_supplementary_contacts(draw_entries, draw_id):
     """Contatos ADITIVOS, para quem entrou depois da ultima escrita do segredo principal.
 
     POR QUE ISTO EXISTE
@@ -271,22 +271,22 @@ def _merge_supplementary_contacts(private_data, draw_id):
     """
     bruto = (os.environ.get(SUPPLEMENTARY_CONTACTS_ENV) or "").strip()
     if not bruto:
-        return private_data
+        return draw_entries
     try:
         extra = json.loads(bruto)
     except Exception:
         logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e JSON valido — ignorado")
-        return private_data
+        return draw_entries
     if not isinstance(extra, dict):
         logger.error(f"❌ {SUPPLEMENTARY_CONTACTS_ENV} nao e um objeto — ignorado")
-        return private_data
+        return draw_entries
 
     esperados = {_normalize_name(n): n for n in _expected_names_for_draw(draw_id)}
     if not esperados:
-        return private_data
+        return draw_entries
 
-    ja = {_normalize_name(n) for n in (private_data.get(draw_id) or {})}
-    entrada = dict(private_data.get(draw_id) or {})
+    ja = {_normalize_name(n) for n in (draw_entries or {})}
+    entrada = dict(draw_entries or {})
     acrescentados = 0
     for nome, email in extra.items():
         chave = _normalize_name(nome)
@@ -302,9 +302,8 @@ def _merge_supplementary_contacts(private_data, draw_id):
     if acrescentados:
         # Nome de exibicao apenas -- nunca o endereco.
         logger.info(f"✓ {acrescentados} contato(s) suplementar(es) aplicado(s) a {draw_id}")
-        private_data = dict(private_data)
-        private_data[draw_id] = entrada
-    return private_data
+        return entrada
+    return draw_entries
 
 
 def _short_hash(value):
@@ -332,7 +331,6 @@ def load_participants_from_private_env(draw_id):
 
     try:
         private_data = json.loads(raw)
-        private_data = _merge_supplementary_contacts(private_data, draw_id)
         draw_entries = private_data.get(draw_id, {})
 
         # RESOLUCAO ENTRE SORTEIOS (2026-08-10).
@@ -400,6 +398,17 @@ def load_participants_from_private_env(draw_id):
                         f"de {draw_id}")
             draw_entries = {nome: campos for nome, campos in por_nome.values()}
             logger.info(f"✓ {len(draw_entries)} nome(s) resolvidos por referencia cruzada")
+
+        # SUPLEMENTO POR ULTIMO, e so para quem ainda ficou sem contato.
+        #
+        # A primeira versao aplicava isto ANTES, sobre `private_data`. Efeito medido em producao:
+        # o sorteio de 12/08 nao tem entrada propria no segredo, entao o suplemento CRIAVA uma --
+        # com uma pessoa so. `draw_entries` deixava de ser vazio, a resolucao entre sorteios era
+        # PULADA, e o preflight caiu de 9/9 para 1/10. Acrescentar um contato apagou nove.
+        #
+        # O suplemento e aditivo de verdade: entra depois de todas as fontes canonicas terem
+        # falado, e so onde ainda falta.
+        draw_entries = _merge_supplementary_contacts(draw_entries, draw_id)
 
         # P0.2 gate: collision detection on the normalized matching key BEFORE
         # resolving any participant. Two distinct raw names that normalize to
