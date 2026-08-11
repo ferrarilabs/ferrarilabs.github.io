@@ -190,20 +190,20 @@ window.POWERBALL_DRAWS = [
     // 15 participantes com cotas de US$10 cada (sorteio secundário)
     participants: [
       { name: "Eduardo Ferrari", cotas: 1, valor: 8, metodo: "Saldo anterior (cobriu -US$ 2.00 do sorteio 08-03)", data: "04/08/2026", hora: "8:32 AM", status: "organizador", state: "NC" },
-      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33 AM", status: "verificado", state: "NC" },
-      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35 AM", status: "verificado", state: "FL" },
-      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37 AM", status: "verificado", state: "NC" },
-      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:38 AM", status: "verificado", state: "NC" },
-      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", status: "verificado", state: "NC" },
-      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40 AM", status: "verificado", state: "NC" },
+      { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:33:07 AM", status: "verificado", state: "NC" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:35:41 AM", status: "verificado", state: "FL" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:37:12 AM", status: "verificado", state: "NC" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:38:45 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40:09 AM", status: "verificado", state: "NC" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:40:10 AM", status: "verificado", state: "NC" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "8:45 AM", status: "verificado", state: "NC" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:57 AM", status: "verificado", state: "NC" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "04/08/2026", hora: "8:57:41 AM", status: "verificado", state: "NC" },
       { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:09 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "9:20 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:51 AM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "04/08/2026", hora: "1:15 PM", status: "verificado", state: "FL" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "04/08/2026", hora: "1:15:33 PM", status: "verificado", state: "FL" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "04/08/2026", hora: "10:47 PM", status: "verificado", state: "NC" },
-      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "05/08/2026", hora: "11:19 AM", status: "verificado", state: "NC" }
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "05/08/2026", hora: "11:19:57 AM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
@@ -316,21 +316,21 @@ window.POWERBALL_DRAWS = [
     participants: [
       { name: "Eduardo Ferrari", cotas: 1, valor: 10, metodo: "Fundo próprio (organizador)", data: "06/08/2026", hora: "8:58 AM", status: "organizador", state: "NC" },
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "2:10 PM", status: "verificado", state: "NC" },
-      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "8:59 AM", status: "verificado", state: "FL" },
+      { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "8:59:45 AM", status: "verificado", state: "FL" },
       // Camila pagou $12 no total; $10 é a cota deste sorteio (valor abaixo),
       // os outros $2 são um ajuste não alocado — ver finance.ajustesPendentes.
-      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:09 AM", status: "verificado", state: "NC" },
-      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:10 AM", status: "verificado", state: "NC" },
-      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:16 AM", status: "verificado", state: "NC" },
-      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:23 AM", status: "verificado", state: "NC" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:36 AM", status: "verificado", state: "NC" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11 AM", status: "verificado", state: "FL" },
+      { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:09:06 AM", status: "verificado", state: "NC" },
+      { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:10:00 AM", status: "verificado", state: "NC" },
+      { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:16:06 AM", status: "verificado", state: "NC" },
+      { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:23:28 AM", status: "verificado", state: "NC" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:36:44 AM", status: "verificado", state: "NC" },
+      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11:28 AM", status: "verificado", state: "FL" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:26 AM", status: "verificado", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:30 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "10:21 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "6:49 PM", status: "verificado", state: "NC" },
       { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "06/08/2026", hora: "9:06 AM", status: "verificado", state: "FL" },
-      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "08/08/2026", hora: "12:12 AM", status: "verificado", state: "NC" }
+      { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "08/08/2026", hora: "12:12:45 AM", status: "verificado", state: "NC" }
     ],
 
     sharedTickets: {
@@ -552,7 +552,8 @@ window.POWERBALL_DRAWS = [
       { name: "Simone Hirle da Costa", cotas: 1, valor: 10, metodo: "Venmo", data: "11/08/2026", hora: "10:00:30 AM", status: "verificado", state: "NC" },
       { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "10:03:42 AM", status: "verificado", state: "NC" },
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "10:25:42 AM", status: "verificado", state: "NC" },
-      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "12:29 PM", status: "verificado", state: "TX" }
+      { name: "Thiago Locatelli", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "12:29 PM", status: "verificado", state: "TX" },
+      { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "12:34 PM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -565,7 +566,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 80,
+      totalArrecadado: 90,
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 24,
