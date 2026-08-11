@@ -10,7 +10,19 @@ import urllib.request
 import urllib.error
 
 SUPABASE_URL = "https://cmhqkkfczotdnssupkni.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNtaHFra2ZjemF0ZG5zc3Vwa25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE2ODQyNjI0MzcsImV4cCI6MTk5OTgzODQzN30.sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
+# CHAVE ANON PUBLICA (corrigida em 2026-08-11).
+#
+# Aqui existia um JWT MALFORMADO: cabecalho/payload de JWT com a chave publicavel colada no lugar
+# da ASSINATURA, e com `ref` "cmhqkkfczatdnssupkni" -- um caractere diferente do projeto real
+# ("cmhqkkfczotdnssupkni"). Medido: aquela chave devolve 401 em toda requisicao; esta devolve 200.
+#
+# O estrago nao era so o log de auditoria "falhando em silencio". Foi esse 401 que derrubou a
+# LEITURA de participantes no Supabase e forcou o fallback para o segredo de ambiente -- o
+# caminho que continha o defeito de superconjunto que impediu o e-mail do sorteio de 10/08 de
+# sair para 15 pessoas. A chave quebrada estava a montante do incidente inteiro.
+#
+# Publica por construcao: vai em todo config.js servido ao navegador. Nao e segredo.
+SUPABASE_ANON_KEY = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
 
 def add_user(name, email):
     """Add user to users table if not exists."""

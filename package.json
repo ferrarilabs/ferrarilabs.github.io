@@ -30,7 +30,8 @@
     "test:cdb-tie-id-parity": "node bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs",
     "test:cdb-phase-lifecycle": "node bolao/cdb2026/scripts/test_phase_lifecycle.mjs",
     "test:powerball-metadata-concurrency": "python3 bolao/loterias/powerball/scripts/test_metadata_concurrency.py",
-    "test:powerball-combo-next-label": "node bolao/loterias/powerball/scripts/test_combo_next_label.mjs"
+    "test:powerball-combo-next-label": "node bolao/loterias/powerball/scripts/test_combo_next_label.mjs",
+    "test:anon-key-shape": "node bolao/scripts/test_anon_key_shape.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.0"
