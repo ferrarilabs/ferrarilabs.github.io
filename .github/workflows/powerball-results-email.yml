@@ -95,6 +95,11 @@ jobs:
         continue-on-error: true
         env:
           POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
+          # Contatos ADITIVOS para quem entrou depois da ultima escrita do segredo principal. Um
+          # segredo do GitHub so pode ser ESCRITO: acrescentar uma pessoa exigiria reescrever o
+          # valor inteiro, e quem nao tem o conteudo atual apagaria todo mundo. Este e o caminho
+          # seguro. O principal sempre vence em caso de conflito.
+          POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
         run: python3 recipient_preflight.py
 
       # CANARIO DO LEDGER — prova, de dentro do runner, que a credencial privilegiada
@@ -123,6 +128,9 @@ jobs:
           # secret is the only remaining source, injected as an env var, never written
           # to a file or committed.
           POWERBALL_PRIVATE_PARTICIPANT_DATA: ${{ secrets.POWERBALL_PRIVATE_PARTICIPANT_DATA }}
+          # Mesmo suplemento do preflight -- os dois TEM de ver o mesmo conjunto. Preflight que
+          # aprova o que o sender recusa (ou o contrario) e falso verde; ja aconteceu neste fluxo.
+          POWERBALL_PRIVATE_CONTACTS_EXTRA: ${{ secrets.POWERBALL_PRIVATE_CONTACTS_EXTRA }}
           # N24: o ledger exige credencial privilegiada. A anon key e publica (vai em todo
           # config.js servido ao navegador) e, apos a migracao 021, nao tem mais execute nas
           # RPCs de notificacao. Sem esta variavel o ciclo falha FECHADO em vez de silenciosamente
