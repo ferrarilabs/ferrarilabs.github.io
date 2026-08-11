@@ -340,22 +340,36 @@ def cmd_open_picks(a):
     print(f"  fase                {a.phase}")
     print(f"  confrontos          {len(ties)}")
     print(f"  activePhase atual   {estado.get('activePhase')}")
+    print(f"  espnSync.activePhaseId atual {(estado.get('espnSync') or {}).get('activePhaseId')}"
+          f"   <- e ESTE que o app le")
     if not ties:
         print("  🛑 fase sem confrontos — abrir palpites agora mostraria tela vazia.")
         return 1
 
     inv_antes = invariantes(estado)
     if a.dry_run:
-        print("\n  DRY RUN — activePhase passaria a ser " + a.phase)
+        print(f"\n  DRY RUN — espnSync.activePhaseId e activePhase passariam a ser {a.phase}")
         print("=" * 70)
         return 0
 
     agora = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+    # O CAMPO QUE O APP REALMENTE LE (2026-08-11).
+    #
+    # `entryCutoffMs()` no js/app.js le `s.espnSync.activePhaseId`, NAO `s.activePhase`. A primeira
+    # versao deste comando gravou so `activePhase`: o banco passou a dizer "quartas", o app
+    # continuou em "oitavas" -- cujo prazo venceu em 01/08 -- e portanto tratava a entrada como
+    # ENCERRADA. Os quatro confrontos estavam em producao, o formulario existia no DOM, e nenhum
+    # participante via nada.
+    #
+    # Os dois campos sao gravados: `espnSync.activePhaseId` porque e o que decide, e `activePhase`
+    # porque ja existe no documento e deixa-lo divergente e a proxima armadilha.
+    estado.setdefault("espnSync", {})["activePhaseId"] = a.phase
     estado["activePhase"] = a.phase
     estado.setdefault("auditLog", []).append({
         "type": "set-active-phase", "actor": a.actor, "at": agora,
         "clientRef": f"open-picks:{a.phase}", "source": "operator-cli",
-        "payload": {"phaseId": a.phase},
+        "payload": {"phaseId": a.phase, "fields": ["espnSync.activePhaseId", "activePhase"]},
     })
     grava_estado(estado)
 
@@ -363,6 +377,8 @@ def cmd_open_picks(a):
     problemas = compara(inv_antes, invariantes(depois), permitido=set())
     if depois.get("activePhase") != a.phase:
         problemas.append("activePhase nao gravou")
+    if (depois.get("espnSync") or {}).get("activePhaseId") != a.phase:
+        problemas.append("espnSync.activePhaseId nao gravou — o app continuaria na fase anterior")
     if problemas:
         print(f"\n  🛑 INVARIANTES VIOLADAS: {problemas}")
         return 2

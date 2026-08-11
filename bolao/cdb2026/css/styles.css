@@ -135,6 +135,10 @@ main { overflow-x: hidden; overflow-y: visible; }
 }
 .count-grid span { font-size: 10px; color: var(--muted); text-transform: uppercase; }
 .count-closed { color: var(--muted); font-weight: 700; font-size: 14px; }
+/* Prazo pendente da tabela oficial: é um estado ABERTO, então não usa o cinza de "encerrado".
+   A regra vem em destaque; a origem da hora exata vem abaixo, menor e discreta. */
+.count-pending { display: block; color: var(--green); font-weight: 700; font-size: 14px; }
+.count-pending-note { display: block; margin-top: 4px; color: var(--muted); font-size: 12px; line-height: 1.35; }
 
 /* ── Pages ── */
 /* .page / h1-h3 / .section-head / .section-head-row base rules moved to

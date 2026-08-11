@@ -26,6 +26,17 @@ window.CDB2026_I18N = {
     drawWaiting: "Aguardando a definição da data do sorteio das quartas pela CBF.",
     drawAwaitingPublication: "O sorteio já ocorreu — aguardando a publicação oficial da CBF para liberar os confrontos.",
     drawIngestedPending: "Sorteio recebido, aguardando validação da fonte oficial.",
+    // 2026-08-11 — sorteio oficial APLICADO, tabela detalhada da CBF ainda não publicada.
+    //
+    // Sem estas três chaves a tela caía em "Aguardando sorteio oficial" com os quatro confrontos
+    // já em produção e o formulário aberto logo abaixo: a página contradizia a si mesma e o
+    // participante concluía que não havia o que fazer ali.
+    //
+    // A regra do prazo é conhecida e definitiva; só a HORA depende da CBF. Então a mensagem
+    // afirma a regra e diz de onde virá a hora — nunca inventa um horário.
+    picksOpenTitle: "Palpites abertos",
+    cutoffPendingRule: "Prazo: até 1 hora antes do primeiro jogo das quartas de final.",
+    cutoffPendingNote: "O horário exato aparece aqui assim que a CBF publicar a tabela detalhada.",
     // Batch 4 — vaga de fase derivada (semifinal/final) ainda não resolvida. Mostra a DEPENDÊNCIA,
     // nunca um clube: "Vencedor de Santos × Grêmio" enquanto o confronto não tem classificado.
     winnerOfPrefix: "Vencedor de",
