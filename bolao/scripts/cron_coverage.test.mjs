@@ -130,6 +130,14 @@ const EXPECTED = [
     hourWindows: { evening: [21, 23], overnight: [0, 4] },
   },
   {
+    // Vigia da tabela oficial das quartas do CDB. Se deixar de rodar, os palpites nunca abrem
+    // sozinhos e a transicao volta a depender de alguem perceber que a CBF publicou.
+    file: "cdb2026_schedule_watch.yml",
+    why: "sem este vigia a abertura dos palpites das quartas volta a depender de intervencao manual",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [16, 23], overnight: [0, 6] },
+  },
+  {
     // Atualizacao de jackpot do sorteio ABERTO. Nao envia e-mail e nao toca em resultado; se
     // deixar de rodar, a pagina publica de um bolao aberto volta a mostrar estado de espera com
     // o valor oficial ja disponivel -- que foi o defeito de 2026-08-11.

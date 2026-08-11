@@ -34,9 +34,13 @@ window.CDB2026_I18N = {
     //
     // A regra do prazo é conhecida e definitiva; só a HORA depende da CBF. Então a mensagem
     // afirma a regra e diz de onde virá a hora — nunca inventa um horário.
+    // OVERRIDE de negocio (2026-08-11): palpite NAO abre sem data E horario oficiais. Enquanto a
+    // CBF nao publica a tabela detalhada, a tela mostra os confrontos sorteados e diz exatamente
+    // o que falta -- sem prometer prazo, sem inventar horario, e sem anunciar abertura.
+    schedulePendingTitle: "Aguardando datas e horários",
+    schedulePendingRule: "Sorteio das quartas concluído — os confrontos já estão definidos.",
+    schedulePendingNote: "Os palpites abrem assim que a CBF divulgar as datas e os horários oficiais. O prazo será 1 hora antes do primeiro jogo.",
     picksOpenTitle: "Palpites abertos",
-    cutoffPendingRule: "Prazo: até 1 hora antes do primeiro jogo das quartas de final.",
-    cutoffPendingNote: "O horário exato aparece aqui assim que a CBF publicar a tabela detalhada.",
     // Batch 4 — vaga de fase derivada (semifinal/final) ainda não resolvida. Mostra a DEPENDÊNCIA,
     // nunca um clube: "Vencedor de Santos × Grêmio" enquanto o confronto não tem classificado.
     winnerOfPrefix: "Vencedor de",

@@ -4,17 +4,20 @@
  *
  * O DEFEITO QUE ISTO FECHA (2026-08-11, produção)
  * ----------------------------------------------
- * `cutoffAt === null` carregava DOIS significados opostos:
+ * `cutoffAt === null` carregava DOIS significados diferentes, e o app não os distinguia:
  *
- *   a) "a fase ainda nem foi sorteada"                  -> palpites FECHADOS
- *   b) "foi sorteada, a CBF não publicou a tabela"      -> palpites ABERTOS
+ *   a) "a fase ainda nem foi sorteada"
+ *   b) "foi sorteada, a CBF ainda não publicou a tabela detalhada"
  *
- * Com o sorteio oficial das quartas já aplicado e nenhum kickoff publicado, o app tratou (b) como
- * (a): a página dizia "Aguardando sorteio oficial" com os quatro confrontos em produção e o
- * formulário renderizado logo abaixo. Nenhum participante conseguia palpitar.
+ * Com o sorteio das quartas já aplicado, o app tratou (b) como (a) e exibiu "Aguardando sorteio
+ * oficial" — afirmando que o sorteio não tinha acontecido, com os quatro confrontos em produção.
  *
- * A correção NÃO pode ser "null significa aberto": as fases futuras também têm cutoff null e o
- * sorteio delas nem aconteceu. O estado é derivado de fatos independentes.
+ * REGRA DE NEGÓCIO (override do Eduardo, 2026-08-11): em (b) o palpite continua FECHADO. Sem
+ * data e horário oficiais não existe prazo, e um formulário aberto sem prazo aceitaria palpite
+ * depois de a bola rolar. O que muda em (b) não é a abertura — é a MENSAGEM: os confrontos
+ * aparecem e a tela diz que falta a CBF publicar as datas.
+ *
+ * A abertura depende de prazo CONHECIDO, e nada mais abre sem ele.
  *
  * As funções são recortadas do app.js REAL — não reescritas aqui.
  *
@@ -90,13 +93,33 @@ const estado = (quartas, activePhaseId = "quartas") => ({
 console.log("\nCDB2026 — ciclo de vida da fase de palpite\n");
 
 // ── O CASO EXATO DE PRODUÇÃO ─────────────────────────────────────────────────────────────────
-test("REGRESSÃO: sorteio aplicado + tabela da CBF pendente => PALPITES ABERTOS", () => {
+test("sorteio aplicado + tabela da CBF pendente => estado próprio, palpites FECHADOS", () => {
+  // REGRA DE NEGÓCIO (override explícito do Eduardo, 2026-08-11): palpite não abre sem data E
+  // horário oficiais. Antes disso este caso abria — e estava errado por um motivo concreto: sem
+  // `cutoffMs` não existe prazo para fechar, então o formulário aceitaria palpite depois de a
+  // bola rolar. "Aberto sem prazo" é um bolão sem regra.
+  //
+  // O estado continua sendo PRÓPRIO (não "aguardando sorteio"): o sorteio aconteceu, os quatro
+  // confrontos existem, e a tela precisa dizer a verdade sobre o que falta.
   const s = estado({ ties: QUATRO, cutoffAt: null, officialDraw: PROV_OK });
   const lc = phaseLifecycle(s, "quartas", AGORA);
   eq(lc.state, PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING, "estado derivado");
-  eq(lc.open, true, "os palpites TÊM de estar abertos — foi este o defeito em produção");
+  eq(lc.open, false, "sem data/horário oficial NÃO se abre palpite");
   eq(lc.cutoffKnown, false, "o prazo exato legitimamente ainda não existe");
-  eq(lc.ties, 4, "os quatro confrontos oficiais");
+  eq(lc.ties, 4, "os quatro confrontos oficiais continuam visíveis");
+});
+
+test("REGRESSÃO: nenhum caminho abre palpite sem prazo conhecido", () => {
+  // A propriedade que o override exige, afirmada diretamente: se não há cutoff, não há abertura.
+  // Vale para qualquer combinação de sorteio/fase — é a invariante, não um caso.
+  for (const [rot, st] of [
+    ["sorteado + fase corrente", estado({ ties: QUATRO, cutoffAt: null, officialDraw: PROV_OK })],
+    ["sorteado + fase não corrente", estado({ ties: QUATRO, cutoffAt: null, officialDraw: PROV_OK }, "semifinal")],
+    ["sem sorteio", estado({ ties: QUATRO, cutoffAt: null })],
+  ]) {
+    const lc = phaseLifecycle(st, "quartas", AGORA);
+    eq(lc.open, false, `abriu palpite sem prazo conhecido (${rot})`);
+  }
 });
 
 // ── A PROPRIEDADE QUE IMPEDE A CORREÇÃO PREGUIÇOSA ───────────────────────────────────────────
@@ -176,14 +199,18 @@ test("fase sorteada que NÃO é a corrente fica fechada", () => {
 test("a UI tem mensagem própria para prazo pendente (não reusa 'aguardando sorteio')", () => {
   assert(/PHASE_LIFECYCLE\.DRAW_LOCKED_CUTOFF_PENDING/.test(src),
     "renderCountdown não trata o estado de prazo pendente");
-  assert(/picksOpenTitle/.test(src) && /cutoffPendingRule/.test(src),
-    "faltam as chaves de texto do estado aberto-com-prazo-pendente");
+  assert(/schedulePendingTitle/.test(src) && /schedulePendingRule/.test(src),
+    "faltam as chaves de texto do estado sorteado-sem-tabela");
   const i18n = readFileSync(join(HERE, "..", "js", "i18n.js"), "utf8");
-  for (const k of ["picksOpenTitle", "cutoffPendingRule", "cutoffPendingNote"]) {
+  for (const k of ["schedulePendingTitle", "schedulePendingRule", "schedulePendingNote"]) {
     assert(new RegExp(`${k}:`).test(i18n), `chave i18n ausente: ${k}`);
   }
   assert(/1 hora antes do primeiro jogo/.test(i18n),
     "a mensagem não afirma a REGRA do prazo — é o único fato conhecido enquanto a CBF não publica");
+  // O texto NÃO pode anunciar abertura enquanto o prazo não existe.
+  const bloco = i18n.slice(i18n.indexOf("schedulePendingTitle"), i18n.indexOf("picksOpenTitle"));
+  assert(!/palpites abertos/i.test(bloco),
+    "a mensagem de espera anuncia palpites abertos — é exatamente o que o override proíbe");
 });
 
 test("o portão de entrada deriva do ciclo de vida, não só do relógio", () => {
