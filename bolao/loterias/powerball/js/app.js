@@ -31,6 +31,21 @@
     return window.BOLAO_MONEY.usdCompact(n);
   }
 
+  // JACKPOT AINDA NAO ANUNCIADO (2026-08-11).
+  //
+  // Um sorteio recem-aberto existe ANTES de a loteria anunciar o premio: o bolao abre, as
+  // pessoas entram, os bilhetes vem depois. O jackpot e dado publicado por terceiro -- inventar
+  // um numero aqui seria afirmar valor de dinheiro que ninguem divulgou.
+  //
+  // Sem isto, `fmtUsdCompact(null)` e `null * 0.505` renderizavam "$NaN" na tela inicial.
+  var JACKPOT_A_ANUNCIAR = "a anunciar";
+  function temJackpot(draw) {
+    return typeof draw.drawing.jackpot === "number" && isFinite(draw.drawing.jackpot);
+  }
+  function fmtJackpot(draw) {
+    return temJackpot(draw) ? fmtUsdCompact(draw.drawing.jackpot) : JACKPOT_A_ANUNCIAR;
+  }
+
   function loadLocalOverrides() {
     try {
       return JSON.parse(localStorage.getItem(LOCAL_KEY) || "{}");
@@ -296,7 +311,7 @@
     rows.push(
       [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
       [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
-      [fmtUsdCompact(draw.drawing.jackpot), "Jackpot"]
+      [fmtJackpot(draw), "Jackpot"]
     );
     el.innerHTML = rows.map(function (row) {
       return '<div class="pb-summary-item"><div class="v">' + row[0] + '</div><div class="l">' + row[1] + "</div></div>";
@@ -700,8 +715,8 @@
   }
 
   function shareText(draw, gt) {
-    return "🎟️ Bolão " + gt.label + " — Jackpot " + fmtUsdCompact(draw.drawing.jackpot) +
-      "M\nSorteio: " + draw.drawing.drawDateLabel +
+    return "🎟️ Bolão " + gt.label + " — Jackpot " + fmtJackpot(draw) +
+      "\nSorteio: " + draw.drawing.drawDateLabel +
       "\nParticipantes: " + draw.participants.length +
       "\nTotal arrecadado: " + fmtUsd(draw.finance.totalArrecadado) +
       "\nGuardado p/ próximo sorteio: " + fmtUsd(draw.finance.valorGuardadoProximoSorteio) +
@@ -721,15 +736,22 @@
     var draw = getEffectiveDraw(DRAWS[idx]);
     var gt = applyTheme(draw.gameType);
 
-    document.getElementById("pbJackpot").textContent = fmtUsdCompact(draw.drawing.jackpot);
+    document.getElementById("pbJackpot").textContent = fmtJackpot(draw);
     document.getElementById("pbDrawDate").textContent = draw.drawing.drawDateLabel;
 
-    var cashValueLabel = draw.drawing.cashValue != null
-      ? fmtUsdCompact(draw.drawing.cashValue)
-      : fmtUsdCompact(draw.drawing.jackpot * 0.505) + " (estimado)";
-    document.getElementById("pbJackpotOptions").innerHTML =
-      '<span class="pb-jackpot-opt"><strong>Anuidade</strong> (30 anos): $' + (draw.drawing.jackpot / 1e6).toFixed(0) + "M</span>" +
-      '<span class="pb-jackpot-opt"><strong>Lump Sum</strong> (à vista): ' + cashValueLabel + "</span>";
+    if (!temJackpot(draw)) {
+      // Anuidade e lump sum sao DERIVADOS do jackpot. Sem ele nao ha o que comparar, e mostrar
+      // "$NaN" ou "$0" seria pior que nao mostrar.
+      document.getElementById("pbJackpotOptions").textContent =
+        "Prêmio ainda não divulgado pela loteria.";
+    } else {
+      var cashValueLabel = draw.drawing.cashValue != null
+        ? fmtUsdCompact(draw.drawing.cashValue)
+        : fmtUsdCompact(draw.drawing.jackpot * 0.505) + " (estimado)";
+      document.getElementById("pbJackpotOptions").innerHTML =
+        '<span class="pb-jackpot-opt"><strong>Anuidade</strong> (30 anos): $' + (draw.drawing.jackpot / 1e6).toFixed(0) + "M</span>" +
+        '<span class="pb-jackpot-opt"><strong>Lump Sum</strong> (à vista): ' + cashValueLabel + "</span>";
+    }
 
     renderSummary(draw);
     renderTable(draw);

@@ -191,7 +191,18 @@ test("todo sorteio tem os campos canônicos e ids únicos", () => {
     const resolved = d.result && d.result.numbers;
     if (!resolved) assert("status" in d, `sorteio em aberto ${d.id} sem "status"`);
     assert(d.drawing.drawDateIso && d.drawing.drawDateLabel, `sorteio ${d.id} sem data`);
-    assert(typeof d.drawing.jackpot === "number", `sorteio ${d.id} sem jackpot numérico`);
+    // JACKPOT: obrigatorio no sorteio RESOLVIDO, opcional no sorteio EM ABERTO.
+    //
+    // Exigi-lo sempre acoplava abrir o bolao a um dado que nem existe ainda: o premio e anunciado
+    // pela loteria, e o bolao abre ANTES disso -- as pessoas entram, os bilhetes vem depois.
+    // A alternativa seria inventar um numero, que e afirmar valor de dinheiro que ninguem
+    // divulgou. Quando presente, tem de ser numero de verdade; nunca string, nunca 0 de mentira.
+    if (d.drawing.jackpot !== null && d.drawing.jackpot !== undefined) {
+      assert(typeof d.drawing.jackpot === "number" && isFinite(d.drawing.jackpot) && d.drawing.jackpot > 0,
+        `sorteio ${d.id} tem jackpot não-numérico ou inválido`);
+    } else {
+      assert(!resolved, `sorteio RESOLVIDO ${d.id} está sem jackpot — o prêmio já era conhecido`);
+    }
   }
 });
 
