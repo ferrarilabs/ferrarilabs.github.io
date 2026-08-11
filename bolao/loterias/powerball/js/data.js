@@ -509,7 +509,15 @@ window.POWERBALL_DRAWS = [
       ajustesPendentes: 0
     },
 
-    result: null,
+    result: {
+      numbers: [6, 37, 54, 55, 64],
+      special: 10,
+      multiplier: 3,
+      checkedAt: "11/08/2026 11:07 ET",
+      premiosGanhos: 24,
+      jackpotHit: false,
+      breakdown: ["1x 1 + Powerball", "1x Powerball"]
+    },
     profit: null
   }
 ];
