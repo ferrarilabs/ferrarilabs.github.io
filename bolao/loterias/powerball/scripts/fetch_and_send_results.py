@@ -559,6 +559,49 @@ def _default_resolve_recipients(draw):
             if (p.get("nome") or p.get("name"))]
 
 
+def _obs(rel, **campos):
+    """Acumula o registro de observabilidade do ciclo.
+
+    Existe para que a pergunta "o que aconteceu naquela noite?" seja respondivel SO pelo log do
+    GitHub Actions, sem acesso ao banco e sem reproduzir nada. Cada campo responde uma pergunta
+    concreta que ja precisei responder e nao consegui.
+
+    Nunca recebe endereco de e-mail, segredo, token ou payload privado -- so contagens,
+    referencias opacas e estados.
+    """
+    rel.setdefault("obs", {}).update(campos)
+
+
+def _imprime_obs(rel):
+    o = rel.get("obs", {})
+    print("\n" + "=" * 60)
+    print("  REGISTRO DO CICLO (sem PII, sem segredo)")
+    print("=" * 60)
+    for chave, rotulo in [
+            ("drawEvaluated",        "sorteio avaliado"),
+            ("drawTimePassed",       "hora do sorteio ja passou"),
+            ("drawTimeReason",       "  detalhe do portao temporal"),
+            ("upstreamResultExists", "resultado existia na fonte"),
+            ("upstreamResultDate",   "  data devolvida pela fonte"),
+            ("upstreamStatus",       "  status da consulta"),
+            ("resultReconciled",     "resultado reconciliado agora"),
+            ("idempotencyKey",       "chave de idempotencia"),
+            ("jobStatusBefore",      "estado do job ao entrar"),
+            ("expectedRecipients",   "destinatarios esperados"),
+            ("resolvedRecipients",   "destinatarios resolvidos"),
+            ("claimedRecipients",    "destinatarios reivindicados"),
+            ("providerCallsAttempted", "chamadas ao provedor TENTADAS"),
+            ("providerRefused",      "  transporte recusou"),
+            ("acceptedCount",        "aceitos"),
+            ("failedCount",          "falhados"),
+            ("uncertainCount",       "incertos"),
+            ("finalState",           "estado final do ciclo"),
+            ("exitReason",           "motivo da saida")]:
+        if chave in o:
+            print(f"    {rotulo:<34} {o[chave]}")
+    print("=" * 60)
+
+
 def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps=None):
     """Ciclo completo: reconcilia resultado, depois trata a notificacao. Devolve o relatorio.
 
@@ -590,6 +633,12 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
 
     result = alvo["result"]
     draw_id = alvo["id"]
+    ocorreu, porque_tempo = draw_has_occurred(alvo)
+    _obs(rel, drawEvaluated=draw_id, drawTimePassed=ocorreu, drawTimeReason=porque_tempo,
+         upstreamResultExists=bool((result or {}).get("numbers")),
+         upstreamResultDate=(result or {}).get("drawDate", draw_id),
+         resultReconciled=rel["resultReconciled"],
+         idempotencyKey=deps.ledger.draw_key(draw_id) if hasattr(deps.ledger, "draw_key") else None)
 
     # ── FATO 2: NOTIFICACAO ────────────────────────────────────────────────────────────────
     disponivel, porque = deps.ledger.ledger_available()
@@ -612,6 +661,8 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     # 08/08 (o ultimo sorteio COM resultado ate o de hoje sair), tentaria o catch-up, seria
     # corretamente recusada pelo transporte, e sairia com codigo 1. Falha vermelha a cada 10
     # minutos esconde a falha de verdade quando ela vier.
+    _obs(rel, jobStatusBefore=(ja or {}).get("status", "NENHUM"))
+
     if deps.ledger.requires_manual_action(draw_id):
         rel["notificationState"] = "AGUARDA_ACAO_MANUAL"
         rel["reason"] = ("entrega parcial historica: exige decisao explicita, "
@@ -626,6 +677,8 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     esperados = deps.resolve_recipients(alvo)
     resolvidos = deps.resolve_recipients(alvo)   # resolucao real de contato acontece no sender
     completo = len(esperados) == len(resolvidos) and len(esperados) > 0
+
+    _obs(rel, expectedRecipients=len(esperados), resolvedRecipients=len(resolvidos))
 
     ok_conteudo, motivo = deps.ledger.check_content_immutability(
         draw_id, result, esperados, alvo.get("finance"))
@@ -672,6 +725,7 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         rel["providerCalls"] = 0
         return rel
 
+    _obs(rel, claimedRecipients=len(alvos))
     for ref in alvos:
         deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_SENDING)
     saida = deps.send_email(game_type, alvos)
@@ -699,6 +753,12 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     final = deps.ledger.settle(draw_id)
     rel["notificationState"] = final["status"]
     rel["reason"] = final.get("reason")
+    _obs(rel, providerCallsAttempted=rel["providerCalls"],
+         providerRefused=rel.get("providerRefused", False),
+         acceptedCount=len(saida.get("accepted", [])),
+         failedCount=len(saida.get("failed", [])),
+         uncertainCount=len(saida.get("uncertain", [])),
+         finalState=final["status"], exitReason=final.get("reason"))
     return rel
 
 
@@ -742,6 +802,8 @@ def main():
               if "send" not in str(e).lower() else "   VERIFICAR se houve chamada ao provedor")
         return 2
 
+    _obs(rel, finalState=rel.get("notificationState"), exitReason=rel.get("reason"))
+    _imprime_obs(rel)
     print("\n" + "=" * 60)
     for k in ("resultReconciled", "notificationState", "providerCalls", "wouldSend", "reason"):
         print(f"  {k}: {rel.get(k)}")

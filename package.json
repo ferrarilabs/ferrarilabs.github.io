@@ -22,7 +22,8 @@
     "test:powerball-workflow-health": "python3 bolao/loterias/powerball/scripts/test_production_workflow_health.py",
     "test:powerball-settle-real-db": "python3 bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py",
     "test:powerball-anon-denied": "python3 bolao/loterias/powerball/scripts/test_anon_notification_denied.py",
-    "test:powerball-transport-targets": "python3 bolao/loterias/powerball/scripts/test_transport_honors_targets.py"
+    "test:powerball-transport-targets": "python3 bolao/loterias/powerball/scripts/test_transport_honors_targets.py",
+    "test:powerball-observability": "python3 bolao/loterias/powerball/scripts/test_lifecycle_observability.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"

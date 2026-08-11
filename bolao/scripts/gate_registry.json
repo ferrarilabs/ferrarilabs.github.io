@@ -319,6 +319,10 @@
     "bolao/loterias/powerball/scripts/test_transport_honors_targets.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "A fronteira que a matriz de crash substituia por um duble. _default_send_email ignorava entry_refs e difundia para todos."
+    },
+    "bolao/loterias/powerball/scripts/test_lifecycle_observability.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."
     }
   }
 }
