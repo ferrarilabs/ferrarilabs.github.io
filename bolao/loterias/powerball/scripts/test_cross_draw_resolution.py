@@ -83,6 +83,32 @@ class ResolucaoEntreSorteios(unittest.TestCase):
         segredo({"2026-08-08": {"Ana": {"cotas": 2}}})
         self.assertEqual(self.nomes(S.load_participants_from_private_env("2026-08-12")), set())
 
+    def test_nao_resolve_quem_nao_participa_do_sorteio(self):
+        """REGRESSAO 2026-08-11 — o superconjunto que bloqueou o e-mail do sorteio de 08/10.
+
+        A resolucao cruzada colhia TODO nome presente em qualquer outra entrada do segredo, e nao
+        apenas os nomes que ESTE sorteio espera. Em producao devolveu 16 contatos para um sorteio
+        de 15 participantes; o portao TUDO-OU-NADA do `build_send_plan` recusou o envio inteiro
+        com "1 contato(s) que NAO participam deste sorteio" e ZERO e-mails sairam no dia seguinte
+        ao sorteio.
+
+        Os testes anteriores deste arquivo nao pegavam isso porque todos usam um `draw_id` que
+        nao existe no data.js -- sem participacao canonica nao ha o que filtrar, e o defeito
+        ficava invisivel. Aqui o sorteio alvo EXISTE e tem participacao definida.
+        """
+        original = S.DRAWS
+        S.DRAWS = {"powerball": [{"id": "2026-08-12", "gameType": "powerball",
+                                  "participants": [{"name": "Ana"}]}]}
+        try:
+            segredo({"2026-08-08": {"Ana": {"email": ANA}, "Bruno": {"email": BRUNO}}})
+            r = S.load_participants_from_private_env("2026-08-12")
+            self.assertEqual(
+                self.nomes(r), {"Ana"},
+                "Bruno nao participa de 2026-08-12; resolver o contato dele transforma o "
+                "conjunto num superconjunto e o portao TUDO-OU-NADA bloqueia o envio inteiro")
+        finally:
+            S.DRAWS = original
+
     def test_fixtures_nao_usam_dominio_real(self):
         """Gate de PII sobre este proprio arquivo: ja flagrei fixture com dominio real duas vezes."""
         src = open(__file__, encoding="utf-8").read()

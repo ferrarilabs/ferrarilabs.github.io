@@ -540,9 +540,31 @@ def _default_send_email(game_type, entry_refs):
     if proc.stderr:
         print("--- erros do sender ---")
         print(proc.stderr[-1500:])
+    # PROVIDER_INVOKED — EFEITO, nao intencao (2026-08-11).
+    #
+    # Esta chave era `True` fixo, para qualquer desfecho do sender. Mas o sender tem portoes
+    # PROPRIOS, em `build_send_plan`, que retornam ANTES de qualquer chamada ao provedor:
+    # conjunto de destinatarios incompleto, sorteio nao final, conteudo divergente, configuracao
+    # invalida. No ciclo de recuperacao do sorteio de 08/10 o sender parou em
+    # RECIPIENT_SET_INCOMPLETE, nenhum e-mail saiu, e o registro do ciclo afirmou
+    # "chamadas ao provedor TENTADAS = 15".
+    #
+    # E a MESMA classe de defeito que o comentario acima ja documenta para `providerCalls`: um
+    # contador de efeito colateral que conta a intencao mente exatamente quando se precisa dele,
+    # que e depois de uma falha. Aqui o desfecho e lido do STATUS que o proprio sender imprime.
+    PRE_PROVEDOR = {"RECIPIENT_SET_INCOMPLETE", "DRAW_NOT_FINAL", "SOURCE_INVALID",
+                    "CONTENT_VALIDATION_FAILED", "CONFIGURATION_INVALID",
+                    "SEND_DISABLED", "DRY_RUN_OK", "SUCCESS_NO_ACTION"}
+    status_sender = ""
+    for linha in (proc.stdout or "").splitlines():
+        if linha.startswith("STATUS: "):
+            status_sender = linha[len("STATUS: "):].strip()
+    tocou_provedor = status_sender not in PRE_PROVEDOR
+
     aceitos = [] if proc.returncode != 0 else list(entry_refs)
     return {"accepted": aceitos, "failed": [] if proc.returncode == 0 else list(entry_refs),
-            "uncertain": [], "stdout": proc.stdout[-400:], "returncode": proc.returncode, "providerInvoked": True}
+            "uncertain": [], "stdout": proc.stdout[-400:], "returncode": proc.returncode,
+            "senderStatus": status_sender, "providerInvoked": tocou_provedor}
 
 
 def _ultimo_sorteio_com_resultado():
