@@ -341,7 +341,8 @@
   // Fontes: NC Dept. of Revenue (3,99% flat); FL não tributa renda pessoa física.
   var STATE_TAX_RATES = {
     FL: 0,      // Florida — sem imposto de renda estadual
-    NC: 0.0399  // North Carolina — 3,99% flat sobre a renda (inclui prêmios de loteria)
+    NC: 0.0399, // North Carolina — 3,99% flat sobre a renda (inclui prêmios de loteria)
+    TX: 0       // Texas — sem imposto de renda estadual
   };
   var FEDERAL_TAX_RATE = 0.37; // Faixa federal mais alta, aplicável a prêmios deste porte
 
