@@ -44,6 +44,8 @@ const val = (p) => { const a = ARGS.find((x) => x.startsWith(p)); return a ? a.s
  */
 const CHECKS = [
   // ── security / leakage ───────────────────────────────────────────────────────
+  { id: "anon-key-shape", group: "security", cmd: ["node", "bolao/scripts/test_anon_key_shape.mjs"],
+    why: "chave anon malformada devolve 401 em tudo; foi ela que derrubou a leitura de participantes e esta a montante do incidente de 10/08" },
   { id: "pii-gate", group: "security", cmd: ["node", "scripts/audit_pii_repo_wide.mjs"],
     why: "repo-wide PII/secret scan over tracked files" },
   { id: "pii-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_pii_repo_wide.mjs"],
