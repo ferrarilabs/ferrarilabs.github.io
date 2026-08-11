@@ -38,6 +38,21 @@ RECIPIENT_STATE = {
 
 DELIVERY_SEMANTICS = "AT_MOST_ONCE_UNTIL_ACCEPT/UNCERTAIN_AFTER_PROVIDER_ACCEPT"
 
+# ── DE QUE ESTADOS UMA RODADA PODE SER REIVINDICADA (2026-08-11) ──────────────────────────────
+#
+# Era `state != "READY" -> recusa`. Com isso PARTIAL e FAILED nunca mais podiam ser reivindicados:
+# a retentativa era estruturalmente inalcancavel e QUALQUER entrega parcial ficava encalhada para
+# sempre, sem nenhum erro -- o job simplesmente nunca mais era tocado. O defeito so aparece na
+# SEGUNDA execucao, que e precisamente o que nenhum teste exercitava.
+#
+# PARTIAL e FAILED sao retentaveis: quem ja foi ACEITO esta registrado por destinatario e fica
+# fora do conjunto reenviavel, entao reivindicar de novo nao pode duplicar entrega.
+#
+# SENT nao entra: nao ha o que reenviar.
+# NEEDS_MANUAL_REVIEW nao entra: significa UNCERTAIN, e decisao humana nao e retry -- mesma regra
+# que protege o job parcial historico de 08/08 no Powerball.
+CLAIMABLE_STATES = ("READY", "PARTIAL", "FAILED")
+
 _U32 = 0xFFFFFFFF
 
 
@@ -109,7 +124,7 @@ class MemoryRoundLedgerRepo:
             return None
         if rec.get("leaseUntil") and rec["leaseUntil"] > now_ms:
             return None
-        if rec.get("state") != "READY":
+        if rec.get("state") not in CLAIMABLE_STATES:
             return None
         nxt = dict(rec, state="CLAIMED", claimedBy=owner, leaseUntil=lease_until, updatedAt=now_ms)
         self._store[key] = nxt

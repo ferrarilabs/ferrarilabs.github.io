@@ -96,12 +96,27 @@ console.log("BR_NOTIFICATION_LEDGER_ACTUAL_CONSUMER\n");
 {
   check("o dry-run existe como modo de primeira classe do MESMO caminho",
     /def run_auto\(dry_run=False\)/.test(code) && /--dry-run/.test(code));
-  const dryRunNoWorkflow = /--dry-run/.test(workflow);
-  const autorizacaoRemovida = !/BOLAO_ALLOW_REAL_SEND:\s*"/.test(workflow);
-  check("o cron roda em dry-run enquanto a entrega não é autorizada", dryRunNoWorkflow);
-  check("BOLAO_ALLOW_REAL_SEND não está declarado no job (segunda trava independente)",
-    autorizacaoRemovida,
-    "a variável de autorização voltou ao workflow — o envio real ficaria a uma flag de distância");
+  // ARMADO em 2026-08-11. Estas duas assercoes exigiam `--dry-run` no workflow e AUSENCIA de
+  // `BOLAO_ALLOW_REAL_SEND` -- ou seja, provavam que a entrega estava desligada. Com a
+  // autorizacao explicita do Eduardo (apos auditoria independente de scoring e de conteudo da
+  // R22), a propriedade desejada inverteu. Manter a assercao antiga so faria a suite exigir que
+  // o produto continuasse quebrado.
+  //
+  // O que substitui: a autorizacao tem de ser EXPLICITA e a trava do sender tem de continuar
+  // existindo. Duas travas independentes continuam sendo duas -- a diferenca e que agora ambas
+  // estao deliberadamente abertas, e nao acidentalmente.
+  check("a autorização de envio é explícita e literal no job",
+    /BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
+    "o envio real depende de um token literal; qualquer outro valor mantém o sender fechado");
+
+  check("o token de autorização é o MESMO que o sender exige",
+    /_ALLOW_TOKEN\s*=\s*"I UNDERSTAND"/.test(sender),
+    "o workflow e o sender divergiram no token — o envio ficaria bloqueado em silêncio");
+
+  check("o sender continua fail-closed por padrão (sem a variável, não envia)",
+    /def real_send_allowed\(/.test(code) &&
+    /return False, f?"?sem autorizacao explicita/.test(code),
+    "a trava do sender deixou de ser fail-closed");
 }
 
 // ─── 6. Nenhum PII na identidade nem nos eventos ─────────────────────────────────────────────

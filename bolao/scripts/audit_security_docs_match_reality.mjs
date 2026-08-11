@@ -87,18 +87,49 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
   const workflow = read(".github/workflows/br2026_round_emails.yml");
   const wf = workflow.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
 
-  check("o caminho de envio real está desabilitado enquanto o ledger não é atômico",
-    /NotImplementedError/.test(code),
-    "o envio real ficou alcançável com o ledger JSON read-modify-write");
+  // ARMADO em 2026-08-11 (autorizacao explicita do Eduardo para a R22 em diante, apos
+  // auditoria independente de scoring e conteudo). Ate aqui este bloco exigia
+  // `NotImplementedError` no sender e ausencia de `--auto`/`BOLAO_ALLOW_REAL_SEND` no workflow.
+  //
+  // Essas tres assercoes provavam "o envio real e inalcancavel". Essa propriedade deixou de ser
+  // a desejada -- o envio real e o objetivo agora. Apagar as assercoes sem substituir deixaria
+  // o bloco com nome de portao e nenhum portao dentro, que e pior do que nao ter portao.
+  //
+  // O que continua tendo de ser verdade, e passa a ser verificado aqui:
 
-  check("o cron não roda em modo de envio", !/--auto\b/.test(wf), "workflow voltou a --auto");
+  check("o envio real EXIGE o ledger atômico — sem ele, bloqueia",
+    /atomic_ledger_available\(/.test(code) &&
+    /REAL_SEND_REQUIRES_ATOMIC_LEDGER/.test(code),
+    "o envio real ficou alcançável sem checar a atomicidade do ledger");
 
-  check("o job do cron não declara autorização de envio",
-    !/BOLAO_ALLOW_REAL_SEND/.test(wf));
+  check("o cron roda o sender canônico em modo de envio",
+    /send_round_email\.py\s+--auto\b/.test(wf),
+    "o workflow deixou de chamar o sender canônico com --auto");
 
-  check("o risco de atomicidade está registrado no próprio código, não só em documento",
-    /for update skip locked/i.test(sender) && /atomicidade/i.test(sender),
-    "o sender não explica por que o ledger atual não basta para envio real");
+  check("o transporte é checado ANTES de reivindicar a rodada",
+    code.indexOf("real_send_allowed()") < code.indexOf("ledger.claim("),
+    "descobrir o bloqueio depois do claim deixa a rodada presa em SENDING sem nenhuma tentativa");
+
+  check("ACEITO e INCERTO nunca entram no conjunto reenviável",
+    /REENVIAVEL\s*=\s*\(RECIPIENT_STATE\["PENDING"\],\s*RECIPIENT_STATE\["FAILED"\]\)/.test(code),
+    "o conjunto reenviável passou a incluir ACCEPTED ou UNCERTAIN — isso duplica entrega");
+
+  // A regex anterior (`!/alvos\s*or\s*resolved/`) NAO pegava a mutacao real, que escreve
+  // `] or resolved`. Foi medido: mutando o codigo, este gate continuava verde. A propriedade
+  // agora vive numa funcao pura (`alvos_reenviaveis`) com teste direto em
+  // bolao/br2026/scripts/test_round_delivery_loop.py; aqui fica so a exigencia de que a selecao
+  // continue passando por ela, em vez de voltar a ser embutida e inauditavel.
+  check("a seleção de alvos passa pela função pura auditável",
+    /alvos = alvos_reenviaveis\(/.test(code) && /^def alvos_reenviaveis\(/m.test(code),
+    "a seleção de destinatários voltou a ser embutida no laço, onde o claim mascara mutações");
+
+  check("destinatário é marcado SENDING antes da chamada ao provedor",
+    code.indexOf('RECIPIENT_STATE["SENDING"])') < code.indexOf("saida = send_email("),
+    "sem SENDING antes do POST, um crash no meio do transporte fica indistinguível de 'não tentado'");
+
+  check("SENDING órfão é reconciliado para UNCERTAIN, nunca para reenvio",
+    /transporte interrompido/.test(code) &&
+    /RECIPIENT_STATE\["UNCERTAIN"\]/.test(code));
 
   // O portão fail-closed do provedor continua existindo, independentemente do resto.
   check("o portão fail-closed do provedor continua no lugar",
