@@ -519,6 +519,48 @@ window.POWERBALL_DRAWS = [
       breakdown: ["1x 1 + Powerball", "1x Powerball"]
     },
     profit: null
+  },
+
+  {
+    id: "2026-08-12",
+    gameType: "powerball",
+    status: "planejamento",
+    createdAt: "2026-08-11T10:26:07-04:00",
+    previousDrawId: "2026-08-10",
+
+    drawing: {
+      name: "Powerball Jackpot",
+      // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
+      jackpot: null,
+      cashValue: null,
+      drawDateIso: "2026-08-12T22:59:00-04:00",
+      drawDateLabel: "12/08/2026 22:59 ET"
+    },
+
+    // BOLAO ABERTO, ainda sem ninguem. Estado valido: participantes entram progressivamente.
+    participants: [],
+
+    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
+    // de ja existirem jogos.
+    sharedTickets: {
+      compradoPor: null,
+      dataComprovante: null,
+      valorPorTicket: 3,
+      series: []
+    },
+
+    finance: {
+      totalArrecadado: 0,
+      // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
+      // arbitrado aqui.
+      creditoSorteioAnterior: 24,
+      valorUtilizado: 0,
+      valorGuardadoProximoSorteio: 0,
+      ajustesPendentes: 0
+    },
+
+    result: null,
+    profit: null
   }
 ];
 

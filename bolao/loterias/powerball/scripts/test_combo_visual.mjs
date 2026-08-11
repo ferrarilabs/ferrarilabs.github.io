@@ -139,7 +139,21 @@ for (const engineName of ["chromium", "webkit"]) {
     const { ctx, page } = await open({ width: 390, height: 844 });
     // Navega para uma opção que NÃO é a selecionada.
     await page.keyboard.press("ArrowUp");
-    await page.waitForTimeout(300);
+    // ESPERA A CONDICAO, NAO O RELOGIO.
+    //
+    // Era `waitForTimeout(300)`. Sob carga -- e a verify roda varias suites de navegador em
+    // paralelo -- 300ms nao bastavam para o anel de foco ser aplicado, e o teste falhava
+    // dizendo "a navegacao nao tem indicacao visivel propria" sobre uma UI perfeitamente
+    // correta. Passava sozinho e falhava na suite completa: intermitencia que ensina a
+    // reexecutar ate passar, que e como uma falha de verdade some.
+    //
+    // Timeout honesto e generoso: se o anel realmente nao aparecer, o teste falha de verdade.
+    await page.waitForFunction(() => {
+      const opts = [...document.querySelectorAll('#pbDrawListbox [role="option"]')];
+      const act = opts.find(o => o.classList.contains("is-active") &&
+                                 o.getAttribute("aria-selected") !== "true");
+      return !!act && getComputedStyle(act).outlineStyle !== "none";
+    }, { timeout: 8000 });
     const opts = await page.evaluate(MARKER_PROBE);
     const sel = opts.find(o => o.selected);
     const act = opts.find(o => o.active && !o.selected);
