@@ -93,6 +93,8 @@ const CHECKS = [
   { id: "draw-provenance", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_draw_provenance.mjs"], why: "official draw provenance" },
   { id: "draw-provenance-patterns", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs"],
     why: "precision/recall of the tie-fabrication patterns" },
+  { id: "cdb-phase-lifecycle", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_phase_lifecycle.mjs"],
+    why: "cutoffAt=null significava tanto 'sem sorteio' quanto 'prazo pendente'; o segundo caso deixou 12 pessoas sem conseguir palpitar" },
   { id: "cdb-tie-id-parity", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs"],
     why: "id de confronto divergente entre app.js e operator_cli.py cria confronto PARALELO, com palpites divididos" },
   { id: "cbf-ingestion", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_cbf_ingestion.mjs"], why: "CBF draw ingestion" },

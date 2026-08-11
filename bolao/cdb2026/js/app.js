@@ -1386,9 +1386,81 @@ function entryCutoffMs() {
   const phaseId = s.espnSync?.activePhaseId || "fase-1";
   return effectivePhaseCutoffMs(s, phaseId);
 }
+
+// ─── CICLO DE VIDA DA FASE DE PALPITE ────────────────────────────────────────────────────────
+//
+// O DEFEITO QUE ISTO FECHA (2026-08-11):
+//
+// `cutoffAt === null` carregava DOIS significados opostos e o código não conseguia distingui-los:
+//
+//   a) "a fase ainda nem foi sorteada"          -> palpites têm de ficar FECHADOS
+//   b) "a fase foi sorteada, mas a CBF ainda    -> palpites têm de ficar ABERTOS
+//       não publicou a tabela detalhada"
+//
+// Com o sorteio oficial das quartas aplicado e sem kickoff publicado, a página continuou dizendo
+// "Aguardando sorteio oficial" — o caso (b) sendo tratado como (a). Os quatro confrontos estavam
+// em produção, o formulário existia no DOM, e nenhum participante conseguia ver nada.
+//
+// A correção não é "null significa aberto". Isso abriria fases FUTURAS, que também têm cutoff
+// null e cujo sorteio nem aconteceu. O estado é DERIVADO de fatos independentes: existe sorteio
+// oficial validado? é a fase corrente? o prazo é conhecido? já passou?
+const PHASE_LIFECYCLE = Object.freeze({
+  WAITING_FOR_OFFICIAL_DRAW: "WAITING_FOR_OFFICIAL_DRAW",
+  DRAW_LOCKED_CUTOFF_PENDING: "DRAW_LOCKED_CUTOFF_PENDING",
+  PICKS_OPEN: "PICKS_OPEN",
+  PICKS_CLOSED: "PICKS_CLOSED",
+});
+
+/**
+ * Estado de palpite de UMA fase. PURA: não lê relógio global além de `now` (injetável).
+ * @returns {{state:string, cutoffMs:number|null, cutoffKnown:boolean, ties:number, open:boolean}}
+ */
+function phaseLifecycle(s, phaseId, now = Date.now()) {
+  const phase = s?.phases?.[phaseId] || null;
+  const ties = phase?.ties ? Object.keys(phase.ties).length : 0;
+  const drawLocked = officialDrawProvenanceIsValid(phase?.officialDraw) && ties > 0;
+  const cutoffMs = phase ? effectivePhaseCutoffMs(s, phaseId) : null;
+  const cutoffKnown = cutoffMs !== null;
+  const isCurrent = (s?.espnSync?.activePhaseId || null) === phaseId;
+
+  // Sem sorteio oficial validado não há o que palpitar — vale para as fases futuras, que também
+  // têm cutoff null. É esta condição, e não o cutoff, que impede abrir uma fase não sorteada.
+  if (!drawLocked) {
+    return { state: PHASE_LIFECYCLE.WAITING_FOR_OFFICIAL_DRAW, cutoffMs: null,
+             cutoffKnown: false, ties, open: false };
+  }
+  if (cutoffKnown && now >= cutoffMs) {
+    return { state: PHASE_LIFECYCLE.PICKS_CLOSED, cutoffMs, cutoffKnown: true, ties, open: false };
+  }
+  // Fase sorteada mas que NÃO é a corrente: histórica ou ainda não liberada pelo operador.
+  // Não abre por conta própria.
+  if (!isCurrent) {
+    return { state: PHASE_LIFECYCLE.PICKS_CLOSED, cutoffMs, cutoffKnown, ties, open: false };
+  }
+  if (!cutoffKnown) {
+    // O caso (b): sorteio validado, fase corrente, prazo pendente da tabela oficial da CBF.
+    return { state: PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING, cutoffMs: null,
+             cutoffKnown: false, ties, open: true };
+  }
+  return { state: PHASE_LIFECYCLE.PICKS_OPEN, cutoffMs, cutoffKnown: true, ties, open: true };
+}
+
+/** Ciclo de vida da fase CORRENTE — o que a UI e o portão de submissão consultam. */
+function activePhaseLifecycle(now = Date.now()) {
+  const s = state();
+  return phaseLifecycle(s, s.espnSync?.activePhaseId || "fase-1", now);
+}
+// "A entrada está FECHADA agora?" — fonte única, derivada do ciclo de vida da fase.
+//
+// Era `ms !== null && Date.now() > ms`: só o prazo. Isso tratava "fase sem sorteio" e "fase
+// sorteada com prazo pendente" como a MESMA coisa (ambas cutoff null => não passou => aberto),
+// e dependia de `activePhaseId` apontar sempre para uma fase legítima para não abrir uma fase
+// não sorteada. O ciclo de vida decide com os dois fatos, não com um.
+//
+// O nome fica: dezenas de chamadas dependem dele, e renomear tudo num patch de produção que abre
+// palpite para 12 pessoas é risco sem retorno.
 function isPastEntryCutoff() {
-  const ms = entryCutoffMs();
-  return ms !== null && Date.now() > ms;
+  return !activePhaseLifecycle().open;
 }
 // ENTRY ROSTER FREEZE — ver CONFIG.entryRosterFrozen em js/config.js.
 // Fonte de verdade única para "pode criar UMA ENTRADA NOVA?". Deliberadamente NÃO consulta
@@ -2294,6 +2366,26 @@ function renderCountdown() {
   // mensagens de estado nunca apareciam justamente quando eram úteis. Achado por verificação em
   // browser, não pelos testes unitários: os dois primeiros passavam porque exercitavam a derivação,
   // não a renderização.
+  // PRAZO PENDENTE ≠ SORTEIO PENDENTE (2026-08-11).
+  //
+  // Com o sorteio das quartas já aplicado e a tabela detalhada da CBF ainda não publicada, este
+  // bloco caía no ramo "sem cutoff" e exibia "Aguardando sorteio oficial" — afirmando ao
+  // participante que o sorteio não tinha acontecido, com os quatro confrontos já em produção e o
+  // formulário aberto logo abaixo. Contradição na mesma tela.
+  //
+  // O estado é derivado, não inferido do cutoff: sorteio validado + fase corrente + prazo ainda
+  // desconhecido é ABERTO, e a mensagem tem de dizer a REGRA do prazo, já que a hora exata
+  // legitimamente ainda não existe.
+  const lcFase = activePhaseLifecycle();
+  if (lcFase.state === PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING) {
+    card?.classList.remove("hidden");
+    box.innerHTML =
+      `<div class="count-label">${esc(t("picksOpenTitle"))}</div>` +
+      `<span class="count-pending">${esc(t("cutoffPendingRule"))}</span>` +
+      `<span class="count-pending-note">${esc(t("cutoffPendingNote"))}</span>`;
+    return;
+  }
+
   const entryDeadlineOpen = ms !== null && ms - Date.now() > 0;
   if (!entryDeadlineOpen) {
     // A mensagem vem do ESTADO DERIVADO. Antes daqui mostrava sempre o mesmo "waitingDraw" genérico,

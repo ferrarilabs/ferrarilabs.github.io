@@ -157,7 +157,19 @@ test("o contador mostra dias quando faltam dias, e some com eles quando não fal
 
 // ── Contrato de UI: a contagem do SORTEIO é diferente da do CUTOFF ──────────
 test("CONTRATO: a UI usa o estado derivado do sorteio, não uma data inventada", () => {
-  const render = src.slice(src.indexOf("function renderCountdown"), src.indexOf("function renderCountdown") + 3000);
+  // Recorte por BALANCEAMENTO DE CHAVES, não por contagem de caracteres.
+  //
+  // Era `slice(i, i + 3000)`. Ao acrescentar o estado de prazo-pendente, as mensagens de espera
+  // saíram da janela e o gate reprovou código correto, afirmando que a UI "perdeu as mensagens
+  // honestas" — elas estavam lá, 300 caracteres adiante. Terceira vez que um recorte por posição
+  // reprova o que deveria proteger; ancorar na estrutura da função não tem esse modo de falha.
+  const _i = src.indexOf("function renderCountdown");
+  let _d = 0, _started = false, _end = _i;
+  for (let j = _i; j < src.length; j++) {
+    if (src[j] === "{") { _d++; _started = true; }
+    else if (src[j] === "}") { _d--; if (_started && _d === 0) { _end = j + 1; break; } }
+  }
+  const render = src.slice(_i, _end);
   assert(/drawLifecycle\(/.test(render), "a UI deixou de consultar o ciclo de vida do sorteio");
   assert(/DRAW_LIFECYCLE\.SCHEDULED/.test(render) && /countdownMs > 0/.test(render),
     "a UI não renderiza mais a contagem do sorteio agendado");
