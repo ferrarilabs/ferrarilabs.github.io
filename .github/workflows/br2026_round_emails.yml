@@ -21,24 +21,42 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # DRY-RUN ate autorizacao explicita do Eduardo.
+      # ARMADO em 2026-08-11. As tres condicoes que este bloco exigia foram cumpridas:
+      #
+      #   (1) autorizacao explicita do Eduardo  dada nesta data, para a rodada 22 em diante
+      #   (2) migracao 010_notification_durability.sql aplicada
+      #                                         provado em execucao: "LEDGER ATOMICO: disponivel",
+      #                                         job criado com idempotencyKey por rodada
+      #   (3) --dry-run -> --auto e BOLAO_ALLOW_REAL_SEND devolvido
+      #
+      # Auditoria que precedeu o armamento (rodada 22):
+      #   scoring    TRES implementacoes independentes concordam nas 11 entradas, pontos e
+      #              posicoes: reimplementacao a partir da regra, o Python que monta o e-mail, e
+      #              o scoreEntry/rankEntries do js/app.js que o site mostra. 0 divergencias.
+      #   tabela     20 times, ranks 1..20, snapshot NAO stale, e identica a uma tabela
+      #              recomputada dos 215 jogos concluidos do scoreboard -- nao e tabela velha.
+      #   conteudo   10/10 jogos com placar, 11 entradas, sem PII no corpo, sem placeholder,
+      #              linguagem de projecao presente. contentHash 3c16184814d9cc6a, o mesmo que
+      #              a execucao em dry-run do Actions calculou.
       #
       # O caminho de reconciliacao e o CANONICO e o MESMO que envia: manifesto versionado ->
-      # resolver por rodada -> ledger duravel -> portao de destinatarios. O que o --dry-run faz e
-      # parar antes da primeira chamada ao provedor. Nao e um caminho paralelo; um preview que
-      # roda por outro caminho nao prova nada sobre o caminho que envia.
+      # resolver por rodada -> ledger duravel -> portao de destinatarios. O --dry-run parava
+      # antes da primeira chamada ao provedor; nao era um caminho paralelo.
       #
-      # BOLAO_ALLOW_REAL_SEND foi REMOVIDO deste job de proposito. Com a variavel ausente, o
-      # portao fail-closed do sender bloqueia o provedor mesmo que alguem troque a flag por
-      # engano -- duas travas independentes, nao uma.
+      # O que continua protegendo o envio, mesmo armado:
+      #   rodada        so rodada canonica COMPLETA notifica; adiado de R21 nao libera nada
+      #   ledger        idempotencia por rodada (br2026:round-results:<n>:v1); aceito nunca reenvia
+      #   completude    destinatario sem contato bloqueia a rodada inteira, zero chamadas
+      #   parcial       entrega parcial nunca vira 'sent'
+      #   credencial    sem SUPABASE_SERVICE_ROLE_KEY o ledger falha FECHADO
       #
-      # Para religar o envio real: (1) autorizacao explicita do Eduardo, (2) migracao
-      # 010_notification_durability.sql aplicada, (3) trocar --dry-run por --auto e devolver
-      # BOLAO_ALLOW_REAL_SEND.
-      - name: Reconciliar rodadas (dry-run — nenhum e-mail e enviado)
+      # DESARMAR = trocar --auto por --dry-run e remover BOLAO_ALLOW_REAL_SEND. Duas travas
+      # independentes, como antes.
+      - name: Reconciliar rodadas (envio real de rodada completa)
         working-directory: bolao/br2026/scripts
         env:
           # N24: as RPCs de notificacao deixaram de ser executaveis por `anon`. Sem esta
           # credencial o ledger falha FECHADA -- que e o desfecho correto, nao um bug.
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python3 send_round_email.py --dry-run
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 send_round_email.py --auto

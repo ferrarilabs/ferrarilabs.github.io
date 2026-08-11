@@ -58,6 +58,7 @@ import legacy_round_state as LEGACY
 from round_notification_ledger import (
     RoundLedger, MemoryRoundLedgerRepo, ROUND_STATE, RECIPIENT_STATE,
     round_key, recipient_set_hash, fixture_set_hash, stable_hash, DELIVERY_SEMANTICS,
+    CLAIMABLE_STATES,
 )
 
 # ── Config (mirrors bolao/br2026/js/config.js) ────────────────────────────────
@@ -456,7 +457,9 @@ class SupabaseStateRoundLedgerRepo:
         rec = self._ledger.get(key)
         if rec is None or (rec.get("leaseUntil") and rec["leaseUntil"] > now_ms):
             return None
-        if rec.get("state") != "READY":
+        # Mesma regra do repositorio canonico: PARTIAL/FAILED sao retentaveis, SENT e
+        # NEEDS_MANUAL_REVIEW nao. Ver CLAIMABLE_STATES em round_notification_ledger.py.
+        if rec.get("state") not in CLAIMABLE_STATES:
             return None
         nxt = dict(rec, state="CLAIMED", claimedBy=owner, leaseUntil=lease_until, updatedAt=now_ms)
         self._ledger[key] = nxt
@@ -596,6 +599,22 @@ def run_auto(dry_run=False):
         print("🛑 REAL_SEND_REQUIRES_ATOMIC_LEDGER: envio real bloqueado sem o ledger atomico.")
         sys.exit(1)
 
+    # ── LEASES EXPIRADOS, ANTES DE QUALQUER DECISAO (2026-08-11) ───────────────────────────────
+    #
+    # `recover_expired_leases()` existia, era testado isoladamente e NENHUM caminho de producao o
+    # chamava. Um mecanismo de seguranca que ninguem executa nao e seguranca -- e um comentario
+    # caro. Consequencia real: um runner que morresse no meio do envio deixava a rodada em
+    # SENDING para sempre. SENDING nao e reivindicavel (e correto: pode ter havido entrega), e
+    # como nada recuperava o lease, aquela rodada nunca mais seria tocada por execucao nenhuma.
+    #
+    # Aqui, uma vez por execucao e antes de escolher candidatos: lease vencido em CLAIMED volta
+    # para READY (nada saiu), e lease vencido em SENDING vira NEEDS_MANUAL_REVIEW com os
+    # destinatarios pendentes marcados UNCERTAIN -- nunca reenvio automatico.
+    recuperados = ledger.recover_expired_leases()
+    if recuperados:
+        print(f"LEASES EXPIRADOS RECUPERADOS: {len(recuperados)} "
+              f"({[r['idempotencyKey'].split(':')[-2] for r in recuperados]})")
+
     notif_states = {}
     migrated, mig = LEGACY.migrate(legacy, manifest)
     notif_states.update(migrated)
@@ -643,6 +662,28 @@ def run_auto(dry_run=False):
 
 
 RECONCILE_WINDOW = 6   # rodadas recentes avaliadas por execucao
+
+
+# Estados de destinatario que e SEGURO (re)enviar.
+#
+# ACCEPTED fica de fora: o provedor ja aceitou, reenviar duplica e-mail de dinheiro real.
+# UNCERTAIN fica de fora: pode ter havido entrega; a decisao e humana, nao um retry.
+REENVIAVEL = (RECIPIENT_STATE["PENDING"], RECIPIENT_STATE["FAILED"])
+
+
+def alvos_reenviaveis(resolvidos, estado_por_ref):
+    """Quem ainda pode receber, nesta tentativa.
+
+    Funcao PURA e separada de proposito: enquanto a selecao vivia embutida no laco, a unica
+    forma de exercita-la era por `_process_round`, e ali o portao de `claim` mascarava o
+    resultado -- uma mutacao que trocava a selecao por "manda para todos" continuava verde,
+    porque o claim ja tinha barrado a segunda execucao antes de a selecao importar. Um gate que
+    nao enxerga a propria mutacao que existe para impedir nao e um gate.
+
+    Lista vazia significa NADA A ENVIAR. Nunca "entao manda para todos": foi esse `or` que
+    reenviou o resultado do Powerball para as 15 pessoas do sorteio de 08/08.
+    """
+    return [e for e in resolvidos if estado_por_ref.get(e["id"]) in REENVIAVEL]
 
 
 def _process_round(cand, manifest, all_obs, state, ledger, dry_run):
@@ -710,17 +751,109 @@ def _process_round(cand, manifest, all_obs, state, ledger, dry_run):
         _emit({"eventType": "dry_run_preflight", **resumo})
         return resumo
 
+    # ── PORTAO DE TRANSPORTE, ANTES DE REIVINDICAR ─────────────────────────────────────────
+    #
+    # Descobrir que o transporte esta bloqueado DEPOIS do claim/mark_sending deixaria a rodada
+    # presa em SENDING sem que uma unica mensagem tivesse sido tentada. SENDING nao e reenviavel
+    # por desenho (vira UNCERTAIN), entao seria preciso uma pessoa para destravar uma rodada que
+    # nunca chegou perto do provedor. O portao vem antes de qualquer transicao de estado.
+    permitido, porque_bloqueio = real_send_allowed()
+    if _TRANSPORT is None and not permitido:
+        print(f"  R{n}: TRANSPORTE_BLOQUEADO ({porque_bloqueio}) — ZERO chamadas ao provedor, "
+              f"ledger intocado.")
+        return {**resumo, "wouldSend": False, "providerCalls": 0, "blocked": "TRANSPORT_BLOCKED"}
+
     if not ledger.claim(n, f"gh-actions-{os.environ.get('GITHUB_RUN_ID', 'local')}"):
         print(f"  R{n}: ja reivindicada por outra execucao — pulando.")
         return {**resumo, "wouldSend": False, "blocked": "ALREADY_CLAIMED"}
 
     ledger.mark_sending(n)
-    # ... envio real por destinatario acontece aqui, com record_recipient() por resultado ...
-    raise NotImplementedError(
-        "Envio real da rodada nao esta habilitado: o caminho de entrega so sera ligado quando o "
-        "Eduardo autorizar explicitamente a R22 e a migracao 010 estiver aplicada. Ate la o "
-        "workflow roda em --dry-run."
-    )
+
+    # ── ORFAOS DE UMA EXECUCAO ANTERIOR ────────────────────────────────────────────────────
+    #
+    # Um dono anterior pode ter morrido ENTRE a chamada ao provedor e o registro do desfecho.
+    # Nesse caso o destinatario ficou em SENDING e a unica leitura honesta e UNCERTAIN: pode ter
+    # recebido. Reenviar "por via das duvidas" e o que duplica e-mail de dinheiro real; e por
+    # isso que UNCERTAIN sai do conjunto reenviavel e vai para revisao humana.
+    reg = ledger.get(n)
+    for r in reg["recipients"]:
+        if r["state"] == RECIPIENT_STATE["SENDING"]:
+            ledger.record_recipient(n, r["entryRef"], RECIPIENT_STATE["UNCERTAIN"],
+                                    error="transporte interrompido: desfecho desconhecido")
+
+    # ── SO QUEM E SEGURO ENVIAR ────────────────────────────────────────────────────────────
+    #
+    # ACCEPTED nunca reenvia. UNCERTAIN nunca reenvia automaticamente. Sobra PENDING (nunca
+    # tentado) e FAILED (falhou de forma reenviavel). Lista vazia NAO significa "manda para
+    # todos" -- significa que nao ha nada a fazer, e o job se conclui a partir do estado por
+    # destinatario. Essa confusao (`or todos`) foi exatamente o defeito que reenviou o e-mail
+    # do Powerball para 15 pessoas.
+    reg = ledger.get(n)
+    estado_por_ref = {r["entryRef"]: r["state"] for r in reg["recipients"]}
+    alvos = alvos_reenviaveis(resolved, estado_por_ref)
+
+    if not alvos:
+        final = ledger.settle(n)
+        print(f"  R{n}: nada pendente — conclusao reconstruida do estado ({final['state']}).")
+        return {**resumo, "wouldSend": False, "providerCalls": 0,
+                "ledgerState": final["state"], "accepted": 0, "failed": 0, "uncertain": 0}
+
+    ini = datetime.fromisoformat(round_def["dateRangeUtc"][0])
+    fim = datetime.fromisoformat(round_def["dateRangeUtc"][1])
+    window_label = _fmt_date_range(ini, fim)
+    assunto = f"Rodada {_fmt_date_range_subject(ini, fim)} — resultados e classificação"
+
+    provider_calls = aceitos = falhados = incertos = 0
+    print(f"  R{n}: enviando para {len(alvos)} destinatario(s) "
+          f"(de {len(resolved)} resolvidos; os demais ja tem desfecho registrado)")
+
+    for e in alvos:
+        ref = e["id"]
+        html = build_participant_email_html(window_label, results_html, standings_html,
+                                            e, rank_by_id[ref])
+        # SENDING ANTES da chamada. Se o processo morrer agora, a proxima execucao encontra
+        # SENDING e o reconcilia para UNCERTAIN -- nunca para "reenviar".
+        ledger.record_recipient(n, ref, RECIPIENT_STATE["SENDING"])
+        try:
+            saida = send_email((e.get("participantEmail") or "").strip(), assunto, html)
+        except Exception as exc:
+            # Excecao DEPOIS de POST enviado: nao da para saber se o provedor aceitou.
+            provider_calls += 1
+            incertos += 1
+            ledger.record_recipient(n, ref, RECIPIENT_STATE["UNCERTAIN"],
+                                    error=f"{type(exc).__name__}: {str(exc)[:160]}")
+            print(f"    ? {rank_by_id[ref]['entry'].get('entryName','')}: INCERTO ({type(exc).__name__})")
+            continue
+
+        # `send_email` devolve (False, motivo) quando o portao bloqueia -- ai o provedor NAO foi
+        # tocado -- e um status HTTP inteiro quando tocou. Contar a intencao em vez do efeito foi
+        # o defeito que fez o ciclo do Powerball relatar 15 chamadas tendo feito zero.
+        bloqueado = isinstance(saida, tuple) and saida[0] is False
+        if bloqueado:
+            falhados += 1
+            ledger.record_recipient(n, ref, RECIPIENT_STATE["FAILED"], error=str(saida[1])[:160])
+            continue
+
+        provider_calls += 1
+        status = saida[0] if isinstance(saida, tuple) else saida
+        if isinstance(status, int) and 200 <= status < 300:
+            aceitos += 1
+            ledger.record_recipient(n, ref, RECIPIENT_STATE["ACCEPTED"], provider_message_id=str(status))
+            print(f"    ✓ {rank_by_id[ref]['entry'].get('entryName','')}")
+        else:
+            falhados += 1
+            ledger.record_recipient(n, ref, RECIPIENT_STATE["FAILED"], error=f"HTTP {status}")
+            print(f"    ✗ {rank_by_id[ref]['entry'].get('entryName','')}: HTTP {status}")
+
+    final = ledger.settle(n)
+    resultado = {**resumo, "providerCalls": provider_calls, "ledgerState": final["state"],
+                 "accepted": aceitos, "failed": falhados, "uncertain": incertos}
+    _emit({"eventType": "round_send_completed", **resultado})
+    print(f"\nNOTIFICATION_RUN app=br2026 round={n} roundComplete=true "
+          f"expected={len(entries)} targeted={len(alvos)} providerCalls={provider_calls} "
+          f"accepted={aceitos} failed={falhados} uncertain={incertos} "
+          f"status={final['state']} key={job['idempotencyKey']}")
+    return resultado
 
 
 def run_test_send():

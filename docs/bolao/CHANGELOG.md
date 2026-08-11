@@ -4,6 +4,62 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## BR2026 — rodada 22: o laço de entrega não existia (2026-08-11)
+
+Autorizado o envio real das rodadas completas do BR2026, a partir da R22. A auditoria que
+precedeu o armamento encontrou um defeito bem maior que o esperado.
+
+### O laço de entrega por destinatário nunca foi escrito
+
+`send_round_email.py` tinha, no lugar da entrega, um comentário
+(`# ... envio real por destinatario acontece aqui ...`) seguido de `raise NotImplementedError`.
+O workflow rodava em `--dry-run` e **toda a suíte passava**, porque nenhum teste chegava perto
+do único trecho que importa quando o e-mail sai. Ter apenas trocado `--dry-run` por `--auto`
+teria reivindicado a rodada, marcado `SENDING` e estourado — deixando a R22 num estado órfão
+que só uma pessoa destrava.
+
+Implementado o laço real: alvo por destinatário, `SENDING` antes do POST, desfecho registrado
+depois, `settle` no fim, e `providerCalls` contando invocação e não intenção.
+
+### Dois defeitos estruturais achados no caminho
+
+- **Entrega parcial era irrecuperável.** `claim_atomic` só aceitava `state == "READY"`, então
+  `PARTIAL` e `FAILED` nunca mais podiam ser reivindicados: a retentativa era estruturalmente
+  inalcançável e qualquer entrega parcial ficava encalhada para sempre, sem erro nenhum. O
+  defeito só aparece na SEGUNDA execução — que era exatamente o que nenhum teste exercitava.
+  Corrigido nos dois repositórios Python (`CLAIMABLE_STATES = READY|PARTIAL|FAILED`); a RPC SQL
+  da migração 010 já estava correta. `SENT` e `NEEDS_MANUAL_REVIEW` continuam fora.
+- **`recover_expired_leases()` não tinha chamador de produção.** Existia, era testado
+  isoladamente, e nenhum caminho o executava. Um runner que morresse no meio do envio deixava a
+  rodada em `SENDING` para sempre. Agora roda uma vez por execução, antes de escolher candidatos.
+
+### Gates
+
+- Novo `test_round_delivery_loop.py` (12 casos), com o transporte injetado no limite EXTERNO —
+  tudo antes dele é código de produção. Cobre: aceito nunca reenvia, só o que falhou é
+  retentado, parcial nunca vira `SENT`, exceção após o POST vira `UNCERTAIN`, `SENDING` órfão
+  com lease vencido vai para revisão humana, transporte bloqueado não toca no ledger.
+- **Um teste falso-verde meu, medido e corrigido durante o trabalho:** a primeira versão de
+  "lista vazia não vira difusão" passava pelo motivo errado — o `claim` barrava a segunda
+  execução antes de a seleção rodar, então a mutação `... or resolved` continuava verde. E a
+  regex do gate de fonte também não pegava (a mutação escreve `] or resolved`). A seleção virou
+  função pura (`alvos_reenviaveis`) com teste direto; as duas mutações agora derrubam a suíte.
+- Dois gates que exigiam "envio desligado" (`NotImplementedError`, ausência de `--auto` e de
+  `BOLAO_ALLOW_REAL_SEND`) foram reescritos para exigir as invariantes do mundo armado, em vez
+  de apagados — um bloco com nome de portão e nenhum portão dentro é pior que nenhum portão.
+
+### Auditoria independente da R22 (pré-requisito do envio)
+
+- **Scoring:** três implementações concordam nas 11 entradas, pontos e posições — reimplementação
+  a partir da regra, o Python que monta o e-mail, e o `scoreEntry`/`rankEntries` do `js/app.js`.
+  `SCORE_MISMATCHES = 0`, `RANK_MISMATCHES = 0`.
+- **Tabela:** 20 times, ranks 1..20, snapshot não-stale, e idêntica a uma tabela recomputada dos
+  215 jogos concluídos do scoreboard — não é tabela velha.
+- **Conteúdo:** 10/10 jogos com placar, 11 entradas, sem PII no corpo, sem placeholder, linguagem
+  de projeção presente. `contentHash 3c16184814d9cc6a`, o mesmo que o dry-run do Actions calculou.
+
+---
+
 ## Powerball — incidente de notificação do sorteio 2026-08-10 (2026-08-11)
 
 Incidente P0: o e-mail de resultado do sorteio de 10/08 não saiu. Quatro execuções agendadas

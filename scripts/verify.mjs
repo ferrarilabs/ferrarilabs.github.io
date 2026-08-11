@@ -225,6 +225,8 @@ const CHECKS = [
     why: "F6: as duas implementacoes do ledger (Node/Python) nao podem derivar" },
   { id: "ledger-consumer", group: "notifications", cmd: ["node", "bolao/scripts/audit_notification_ledger_consumer.mjs"],
     why: "F6: o cron real alcanca o reconciliador canonico e o ledger duravel" },
+  { id: "br-delivery-loop", group: "notifications", cmd: ["python3", "bolao/br2026/scripts/test_round_delivery_loop.py"],
+    why: "o laco de entrega por destinatario: aceito nunca reenvia, parcial nunca vira SENT, incerto falha fechado" },
   { id: "br-round-state", group: "scoring", cmd: ["python3", "bolao/br2026/scripts/test_round_state.py"],
     why: "F1/F2: identidade canonica de rodada, proveniencia oficial, R21 nao bloqueia R22" },
   { id: "br-recipient-completeness", group: "security", cmd: ["python3", "bolao/br2026/scripts/test_recipient_completeness.py"],
