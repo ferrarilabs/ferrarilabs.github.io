@@ -166,5 +166,67 @@ class SettleNoBancoReal(unittest.TestCase):
         self.assertEqual(por_ref["ref-1"]["state"], "PENDING", "gravou no destinatario errado")
 
 
+class ClaimNaoTocaJobManual(unittest.TestCase):
+    """Migracao 023, executada contra o Postgres real.
+
+    `claim_bolao_notif` reivindica ate p_limit jobs do pool. O chamador filtra o retorno, mas os
+    outros ja foram reivindicados: status vira processing e attempt_count incrementa. Processar o
+    sorteio de hoje corroia o job historico de 08/08 -- ele ja estava em 3 de 5 tentativas quando
+    isto foi descoberto. Duas execucoes agendadas depois, o catch-up do Rodrigo teria ficado
+    permanentemente inelegivel.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        if not P.has_privileged_credential():
+            raise unittest.SkipTest("sem credencial — roda no canario do GitHub Actions")
+
+    def setUp(self):
+        self.chaves = []
+        self.addCleanup(self.limpar)
+
+    def limpar(self):
+        for k in self.chaves:
+            try:
+                P._rpc("delete_canary_job", {"p_idempotency_key": k})
+            except Exception:
+                pass
+
+    def criar(self, manual):
+        k = f"{POOL_SINTETICO}:draw-result:{uuid.uuid4().hex[:12]}:v1"
+        self.chaves.append(k)
+        payload = {"recipients": [{"entryRef": "ref-0", "state": "PENDING"}]}
+        if manual:
+            payload["requiresManualAction"] = True
+        P._rpc("enqueue_bolao_notif", {
+            "p_pool_id": POOL_SINTETICO, "p_entity_id": "x", "p_event_type": "draw-result",
+            "p_event_version": 1, "p_entry_ref": "AGGREGATE", "p_idempotency_key": k,
+            "p_payload": payload, "p_template_id": "t", "p_template_version": 1,
+            "p_max_attempts": 5, "p_schema_version": 1})
+        return k
+
+    def test_job_marcado_nao_e_reivindicado_nem_de_passagem(self):
+        manual = self.criar(manual=True)
+        normal = self.criar(manual=False)
+        linhas = P._rpc("claim_bolao_notif", {"p_pool_id": POOL_SINTETICO,
+                                              "p_worker": "teste", "p_limit": 10,
+                                              "p_lease_seconds": 60}) or []
+        chaves = {l["idempotency_key"] for l in linhas}
+        self.assertIn(normal, chaves, "o job normal deveria ter sido reivindicado")
+        self.assertNotIn(manual, chaves, "o job que aguarda decisao humana foi reivindicado")
+
+    def test_o_contador_de_tentativas_do_job_marcado_nao_e_corroido(self):
+        manual = self.criar(manual=True)
+        for _ in range(3):
+            P._rpc("claim_bolao_notif", {"p_pool_id": POOL_SINTETICO, "p_worker": "teste",
+                                         "p_limit": 10, "p_lease_seconds": 60})
+        estado = [l for l in (P._rpc("bolao_notif_status_by_pool",
+                                     {"p_pool_id": POOL_SINTETICO}) or [])
+                  if l["idempotency_key"] == manual]
+        self.assertTrue(estado)
+        self.assertEqual(estado[0]["status"], "pending",
+                         "o job marcado saiu de pending -- foi reivindicado")
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
