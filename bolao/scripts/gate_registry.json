@@ -8,6 +8,9 @@
     "bolao/br2026/scripts/test_recipient_completeness.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/br2026/scripts/test_round_delivery_loop.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/br2026/scripts/test_round_state.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -63,6 +66,10 @@
     "bolao/cdb2026/scripts/test_penalty_fields.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_public_projection_and_submit.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "CDB2026 stage 4 aditivo. 12 entradas tem PII na tabela crua; 0 atravessa a projecao. Nao exercita o caminho feliz de submissao: gravaria em producao."
+    },
     "bolao/cdb2026/scripts/test_result_email_source.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -103,11 +110,23 @@
     "bolao/loterias/powerball/scripts/email/test_private_data_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_anon_notification_denied.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "N24. Usa a anon key publica real contra o banco real: mark_bolao_notif_sent suprimia o e-mail dos 15."
+    },
     "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_combo_visual.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_crash_matrix.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Matriz A-M contra a orquestracao real. Encontrou o `or esperados` que reenviava para 15."
+    },
+    "bolao/loterias/powerball/scripts/test_cross_draw_resolution.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Resolucao entre sorteios. Achado no preflight real: sorteio novo sem entrada no segredo dava RESOLVED=0."
     },
     "bolao/loterias/powerball/scripts/test_draw_combo.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -118,8 +137,28 @@
     "bolao/loterias/powerball/scripts/test_email_send_gates.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_ledger_actual_consumer.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "POWERBALL_NOTIFICATION_LEDGER_ACTUAL_CONSUMER. Duble observador sobre o ledger real; falha se run_lifecycle parar de consumi-lo."
+    },
+    "bolao/loterias/powerball/scripts/test_lifecycle_observability.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."
+    },
     "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_production_workflow_health.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Achado das 3 falhas de 2026-08-10: caminho de producao dependia de `supabase link` local."
+    },
+    "bolao/loterias/powerball/scripts/test_result_draw_identity.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Identidade de sorteio (P0 de 2026-08-10) + POWERBALL_PARTIAL_HISTORICAL_DELIVERY_RECOVERY: a entrega parcial de 2026-08-08 (14 de 15) nunca pode virar reenvio para os 14. Exercita retryable_recipients/settle reais com o banco substituido; mutacao-testado."
+    },
+    "bolao/loterias/powerball/scripts/test_result_email_visual.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "PB-R1. Achou o link do e-mail apontando para origem que responde 301."
     },
     "bolao/loterias/powerball/scripts/test_result_pipeline.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -127,7 +166,25 @@
     "bolao/loterias/powerball/scripts/test_send_result_email_gating.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Executa settle/set_recipient no Postgres real sob pool sintetico. Fecha a lacuna do N23. Executa APENAS no GitHub Actions (credencial privilegiada); localmente pula, dizendo alto que pulou."
+    },
+    "bolao/loterias/powerball/scripts/test_transport_honors_targets.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "A fronteira que a matriz de crash substituia por um duble. _default_send_email ignorava entry_refs e difundia para todos."
+    },
+    "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "PB-R3 + POWERBALL_NO_FAKE_EMAIL_GATE. Cobre o YAML, que nenhum teste Python alcancava."
+    },
     "bolao/scripts/audit_accessibility.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_br2026_narrow_persistence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_br_live_behavior_parity.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_countdown_layout.mjs": {
@@ -136,7 +193,13 @@
     "bolao/scripts/audit_football_live_store.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/audit_gate_registry.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/audit_html_table_structure.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_live_cache_write_authority.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_live_card_dom.mjs": {
@@ -160,10 +223,22 @@
     "bolao/scripts/audit_live_hero_reliability.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/audit_notification_ledger_consumer.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/audit_prob_bar_geometry.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_remote_write_visibility.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_responsive_matrix.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_review_package_readiness.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_security_docs_match_reality.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_shared_store_adoption.mjs": {
@@ -191,6 +266,9 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/test_aria_current_nav.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/test_ops_logging.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/test_python_sender_failclosed.py": {
@@ -235,6 +313,12 @@
     "bolao/shared/scripts/test_pipeline_health.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_round_ledger_interop.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_round_notification_ledger.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/audit_email_send_safety.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -246,87 +330,6 @@
     },
     "scripts/test_fixture_privacy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_br_live_behavior_parity.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_gate_registry.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/shared/scripts/test_round_notification_ledger.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_notification_ledger_consumer.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/shared/scripts/test_round_ledger_interop.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_security_docs_match_reality.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/test_ops_logging.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_responsive_matrix.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_review_package_readiness.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_live_cache_write_authority.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_br2026_narrow_persistence.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/powerball/scripts/test_result_draw_identity.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Identidade de sorteio (P0 de 2026-08-10) + POWERBALL_PARTIAL_HISTORICAL_DELIVERY_RECOVERY: a entrega parcial de 2026-08-08 (14 de 15) nunca pode virar reenvio para os 14. Exercita retryable_recipients/settle reais com o banco substituido; mutacao-testado."
-    },
-    "bolao/loterias/powerball/scripts/test_crash_matrix.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Matriz A-M contra a orquestracao real. Encontrou o `or esperados` que reenviava para 15."
-    },
-    "bolao/loterias/powerball/scripts/test_ledger_actual_consumer.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "POWERBALL_NOTIFICATION_LEDGER_ACTUAL_CONSUMER. Duble observador sobre o ledger real; falha se run_lifecycle parar de consumi-lo."
-    },
-    "bolao/loterias/powerball/scripts/test_result_email_visual.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "PB-R1. Achou o link do e-mail apontando para origem que responde 301."
-    },
-    "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "PB-R3 + POWERBALL_NO_FAKE_EMAIL_GATE. Cobre o YAML, que nenhum teste Python alcancava."
-    },
-    "bolao/loterias/powerball/scripts/test_cross_draw_resolution.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Resolucao entre sorteios. Achado no preflight real: sorteio novo sem entrada no segredo dava RESOLVED=0."
-    },
-    "bolao/loterias/powerball/scripts/test_production_workflow_health.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Achado das 3 falhas de 2026-08-10: caminho de producao dependia de `supabase link` local."
-    },
-    "bolao/loterias/powerball/scripts/test_settle_rpc_real_db.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Executa settle/set_recipient no Postgres real sob pool sintetico. Fecha a lacuna do N23. Executa APENAS no GitHub Actions (credencial privilegiada); localmente pula, dizendo alto que pulou."
-    },
-    "bolao/loterias/powerball/scripts/test_anon_notification_denied.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "N24. Usa a anon key publica real contra o banco real: mark_bolao_notif_sent suprimia o e-mail dos 15."
-    },
-    "bolao/loterias/powerball/scripts/test_transport_honors_targets.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "A fronteira que a matriz de crash substituia por um duble. _default_send_email ignorava entry_refs e difundia para todos."
-    },
-    "bolao/loterias/powerball/scripts/test_lifecycle_observability.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."
-    },
-    "bolao/cdb2026/scripts/test_public_projection_and_submit.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "CDB2026 stage 4 aditivo. 12 entradas tem PII na tabela crua; 0 atravessa a projecao. Nao exercita o caminho feliz de submissao: gravaria em producao."
     }
   }
 }

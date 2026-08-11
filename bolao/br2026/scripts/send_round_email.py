@@ -528,6 +528,43 @@ def notification_states_from_atomic():
             for r in rows}
 
 
+# Estado do ledger de RODADA (JSON, em bolao_state.roundEmail.ledger) traduzido para o
+# vocabulario do reconciliador.
+_ROUND_LEDGER_STATUS_MAP = {
+    ROUND_STATE["SENT"]: "SENT",
+    ROUND_STATE["PARTIAL"]: "PARTIAL",
+    ROUND_STATE["SENDING"]: "SENDING",
+    ROUND_STATE["CLAIMED"]: "SENDING",
+    ROUND_STATE["NEEDS_MANUAL_REVIEW"]: "SENDING",   # nunca reenvia sozinho
+}
+
+
+def notification_states_from_round_ledger(ledger, manifest):
+    """Disposicao por rodada segundo o ledger que REALMENTE registrou o envio (2026-08-11).
+
+    O ledger atomico (`bolao_notif_status_by_pool`) nao tem linha nenhuma para o BR2026: nada
+    enfileira rodada la. Quem registra a entrega e o `RoundLedger` sobre
+    `bolao_state.roundEmail.ledger` -- duravel, mas invisivel para o reconciliador.
+
+    Consequencia observada em producao logo apos o envio da R22: a rodada continuava aparecendo
+    como ROUND_READY_TO_NOTIFY e como CANDIDATO em toda execucao. O reenvio so nao acontecia
+    porque o `claim` recusa estado terminal -- ou seja, a protecao contra duplicata estava
+    dependendo do ultimo portao, e nao da primeira decisao.
+
+    Mesclar isto e seguro por construcao: so ACRESCENTA estados terminais, e um estado terminal
+    a mais so pode IMPEDIR envio, nunca provocar um.
+    """
+    estados = {}
+    for r in manifest["rounds"]:
+        rec = ledger.get(r["roundNumber"])
+        if not rec:
+            continue
+        traduzido = _ROUND_LEDGER_STATUS_MAP.get(rec.get("state"))
+        if traduzido:
+            estados[rec["idempotencyKey"]] = {"status": traduzido, "source": "ROUND_LEDGER"}
+    return estados
+
+
 def _observations_for_round(round_def, raw_games):
     """Observacoes de uma rodada, incluindo rejogo de jogo adiado."""
     ids = set(round_def["canonicalFixtureIds"]) | set((round_def.get("replacements") or {}).values())
@@ -620,6 +657,9 @@ def run_auto(dry_run=False):
     notif_states.update(migrated)
     if atomic_ok:
         notif_states.update(notification_states_from_atomic())
+    # POR ULTIMO: o ledger que efetivamente registrou a entrega desta rodada. Ver a docstring --
+    # sem isto, uma rodada JA ENVIADA continua sendo proposta como candidata em toda execucao.
+    notif_states.update(notification_states_from_round_ledger(ledger, manifest))
 
     print(f"Migracao do legado: SENT={mig['roundsMarkedSent']} "
           f"PRE_FEATURE={len(mig['roundsPreFeature'])} "
@@ -764,8 +804,16 @@ def _process_round(cand, manifest, all_obs, state, ledger, dry_run):
         return {**resumo, "wouldSend": False, "providerCalls": 0, "blocked": "TRANSPORT_BLOCKED"}
 
     if not ledger.claim(n, f"gh-actions-{os.environ.get('GITHUB_RUN_ID', 'local')}"):
-        print(f"  R{n}: ja reivindicada por outra execucao — pulando.")
-        return {**resumo, "wouldSend": False, "blocked": "ALREADY_CLAIMED"}
+        # `claim` recusa por dois motivos MUITO diferentes: outra execucao esta com o lease, ou o
+        # job ja esta num estado terminal. Reportar os dois como "ja reivindicada por outra
+        # execucao" mandou eu procurar uma corrida que nao existia, logo depois do envio da R22.
+        estado = (ledger.get(n) or {}).get("state")
+        if estado in (ROUND_STATE["SENT"], ROUND_STATE["NEEDS_MANUAL_REVIEW"]):
+            motivo, rotulo = f"ja concluida ({estado})", "ALREADY_COMPLETED"
+        else:
+            motivo, rotulo = "lease ativo de outra execucao", "ALREADY_CLAIMED"
+        print(f"  R{n}: {motivo} — pulando, zero chamadas ao provedor.")
+        return {**resumo, "wouldSend": False, "providerCalls": 0, "blocked": rotulo}
 
     ledger.mark_sending(n)
 

@@ -264,6 +264,38 @@ class LacoDeEntrega(unittest.TestCase):
         self.assertEqual(r.get("blocked"), "TRANSPORT_BLOCKED")
         self.assertEqual(led.get(RODADA)["state"], antes, "o ledger foi mexido mesmo bloqueado")
 
+    def test_rodada_enviada_nao_volta_a_ser_candidata(self):
+        """REGRESSAO 2026-08-11, observada EM PRODUCAO logo apos o envio da R22.
+
+        O reconciliador lia o estado de notificacao do ledger ATOMICO, que nao tem linha nenhuma
+        para o BR2026 -- nada enfileira rodada la. Quem registrou a entrega foi o `RoundLedger`
+        sobre `bolao_state.roundEmail.ledger`. Resultado: a R22, ja enviada para 11 pessoas,
+        continuava aparecendo como ROUND_READY_TO_NOTIFY e como CANDIDATO em toda execucao.
+
+        Nao houve reenvio porque o `claim` recusa estado terminal -- mas a protecao contra
+        duplicata estava dependendo do ULTIMO portao em vez da primeira decisao. Um portao a
+        menos entre um e-mail de dinheiro real e 11 pessoas.
+        """
+        entries = [entrada(i) for i in range(3)]
+        led = faz_ledger()
+        roda(led, entries, Transporte(200))
+        self.assertEqual(led.get(RODADA)["state"], ROUND_STATE["SENT"])
+
+        manifest = {"rounds": [{"roundNumber": RODADA}]}
+        estados = S.notification_states_from_round_ledger(led, manifest)
+        self.assertEqual(estados.get("br2026:round-results:22:v1", {}).get("status"), "SENT",
+                         "a rodada enviada nao foi reportada como SENT ao reconciliador")
+
+    def test_incerto_nao_e_reportado_como_reenviavel(self):
+        """NEEDS_MANUAL_REVIEW nunca pode virar 'OPEN' para o reconciliador."""
+        entries = [entrada(0)]
+        led = faz_ledger()
+        roda(led, entries, Transporte(RuntimeError("caiu")))
+        self.assertEqual(led.get(RODADA)["state"], ROUND_STATE["NEEDS_MANUAL_REVIEW"])
+        estados = S.notification_states_from_round_ledger(led, {"rounds": [{"roundNumber": RODADA}]})
+        self.assertNotIn(estados.get("br2026:round-results:22:v1", {}).get("status"),
+                         (None, "OPEN"), "um job em revisao humana virou candidato a reenvio")
+
     def test_fixtures_nao_usam_dominio_real(self):
         import re
         src = open(__file__, encoding="utf-8").read()
