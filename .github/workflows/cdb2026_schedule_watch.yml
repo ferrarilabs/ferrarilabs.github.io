@@ -1,0 +1,59 @@
+name: Bolão CDB2026 — Vigia a tabela oficial das quartas
+
+# POR QUE ESTE WORKFLOW EXISTE
+#
+# O sorteio das quartas ja aconteceu; a CBF ainda nao publicou datas e horarios. Pela regra de
+# negocio o palpite NAO abre sem prazo -- sem horario nao ha o que fechar.
+#
+# Sem este vigia, alguem teria de PERCEBER que a CBF publicou e voltar para rodar um comando.
+# Isso nao e automacao, e um alarme na cabeca de uma pessoa -- e foi exatamente essa classe de
+# dependencia que fez o e-mail do Powerball de 10/08 nao sair.
+#
+# "Ainda nao publicaram" e estado de negocio NORMAL: sai com exit 0 e nao gera e-mail de falha.
+# Payload contraditorio (confronto que nao existe no sorteio oficial) permanece vermelho.
+#
+# NAO ENVIA E-MAIL. So materializa datas/horarios e o prazo.
+
+on:
+  schedule:
+    # De 2 em 2 horas. A publicacao pode sair a qualquer hora do dia; de 2 em 2 horas a janela
+    # maxima de atraso e pequena perto do intervalo ate o primeiro jogo (semanas), e o custo por
+    # execucao e uma consulta. Cadencia menor seria polling por ansiedade.
+    - cron: '40 */2 * * *'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Materializar de verdade (sem isto, dry-run)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cdb2026-operator      # mesmo grupo do CLI de operador: os dois escrevem o mesmo estado
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Reconcilia a tabela oficial
+        working-directory: bolao/cdb2026/scripts
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          MODO="--dry-run"
+          [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
+          # No agendado, materializa de verdade: o objetivo do vigia e a transicao acontecer
+          # sozinha. O dry-run existe para o disparo manual.
+          [ "${{ github.event_name }}" = "schedule" ] && MODO="--apply"
+          python3 reconcile_official_schedule.py $MODO

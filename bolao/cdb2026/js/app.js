@@ -1438,9 +1438,21 @@ function phaseLifecycle(s, phaseId, now = Date.now()) {
     return { state: PHASE_LIFECYCLE.PICKS_CLOSED, cutoffMs, cutoffKnown, ties, open: false };
   }
   if (!cutoffKnown) {
-    // O caso (b): sorteio validado, fase corrente, prazo pendente da tabela oficial da CBF.
+    // O caso (b): sorteio validado, fase corrente, tabela detalhada da CBF ainda não publicada.
+    //
+    // REGRA DE NEGÓCIO (Eduardo, 2026-08-11, override explícito): palpite NÃO abre sem data E
+    // horário oficiais confirmados. `open: false`.
+    //
+    // A versão anterior abria aqui, e estava errada por um motivo concreto: sem `cutoffMs` não
+    // existe prazo para fechar. Um formulário aberto sem prazo aceita palpite depois de o jogo
+    // ter começado — e o único momento em que alguém descobriria isso é depois de valer dinheiro.
+    // "Aberto sem prazo" não é um estado intermediário simpático; é um bolão sem regra.
+    //
+    // Os confrontos oficiais CONTINUAM visíveis: o sorteio aconteceu e esconder isso seria tão
+    // falso quanto abrir sem prazo. O que a tela diz é o que é verdade: já há confronto, ainda
+    // não há data.
     return { state: PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING, cutoffMs: null,
-             cutoffKnown: false, ties, open: true };
+             cutoffKnown: false, ties, open: false };
   }
   return { state: PHASE_LIFECYCLE.PICKS_OPEN, cutoffMs, cutoffKnown: true, ties, open: true };
 }
@@ -2378,11 +2390,13 @@ function renderCountdown() {
   // legitimamente ainda não existe.
   const lcFase = activePhaseLifecycle();
   if (lcFase.state === PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING) {
+    // Sorteio feito, tabela detalhada pendente. Nem "aguardando sorteio" (falso: o sorteio
+    // aconteceu) nem "palpites abertos" (falso: nao ha prazo, entao nao ha o que abrir).
     card?.classList.remove("hidden");
     box.innerHTML =
-      `<div class="count-label">${esc(t("picksOpenTitle"))}</div>` +
-      `<span class="count-pending">${esc(t("cutoffPendingRule"))}</span>` +
-      `<span class="count-pending-note">${esc(t("cutoffPendingNote"))}</span>`;
+      `<div class="count-label">${esc(t("schedulePendingTitle"))}</div>` +
+      `<span class="count-pending">${esc(t("schedulePendingRule"))}</span>` +
+      `<span class="count-pending-note">${esc(t("schedulePendingNote"))}</span>`;
     return;
   }
 
