@@ -153,6 +153,10 @@ class FakeDB:
                         continue                      # lease ativo nao se rouba
                     if j["status"] not in ("pending", "failed_retryable", "processing"):
                         continue
+                    # Espelha a migracao 023: job que aguarda decisao humana nunca e
+                    # reivindicado -- nem de passagem, ao processar outro sorteio.
+                    if j.get("payload_snapshot", {}).get("requiresManualAction"):
+                        continue
                     if j["status"] == "processing" and not ativo:
                         pass                          # lease vencido: reivindicavel
                     j["status"] = "processing"

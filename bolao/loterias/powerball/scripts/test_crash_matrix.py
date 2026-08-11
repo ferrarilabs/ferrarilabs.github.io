@@ -515,6 +515,43 @@ class MatrizDeCrash(Base):
         self.assertIn("AGUARDA_ACAO_MANUAL", F.ESTADOS_OK,
                       "decisao pendente nao e falha de infraestrutura")
 
+    def test_sorteio_novo_tem_prioridade_sobre_o_marcado_como_manual(self):
+        """O cenario de hoje a noite, exatamente.
+
+        O ciclo alveja o ULTIMO sorteio com resultado. Enquanto o 08/10 nao tiver resultado, esse
+        e o 08/08 -- marcado como acao manual, e o ciclo para ali, corretamente. Assim que o
+        resultado do 08/10 for reconciliado, o alvo TEM de passar a ser o 08/10, senao a marca do
+        08/08 bloquearia o e-mail de hoje para as 15 pessoas.
+        """
+        antigo = {"id": "2026-08-08", "drawing": {"drawDateIso": "2026-08-08T22:59:00-04:00"},
+                  "participants": [{"nome": n} for n in NOMES],
+                  "result": dict(RESULTADO)}
+        novo = {"id": SORTEIO, "drawing": {"drawDateIso": "2026-08-12T22:59:00-04:00"},
+                "participants": [{"nome": n} for n in NOMES],
+                "result": {"numbers": [7, 8, 9, 10, 11], "special": 3, "multiplier": 2}}
+        self.draws = [antigo, novo]
+
+        # O 08/08 existe, esta parcial e marcado como manual.
+        P.ensure_job("2026-08-08", RESULTADO, NOMES, None)
+        chave_antiga = P.draw_key("2026-08-08")
+        for n in NOMES[:14]:
+            P.record_recipient("2026-08-08", n, P.R_ACCEPTED)
+        self.db.job(chave_antiga)["status"] = P.FAILED_RETRYABLE
+        self.db.job(chave_antiga)["payload_snapshot"]["requiresManualAction"] = True
+
+        e1 = self.provedor()
+        rel, _ = self.rodar(e1)
+
+        self.assertEqual(rel["obs"]["drawEvaluated"], SORTEIO,
+                         "o ciclo alvejou o sorteio antigo em vez do novo")
+        self.assertEqual(rel["notificationState"], "sent")
+        self.assertEqual(self.db.counts(CHAVE)["ACCEPTED"], 15,
+                         "o sorteio novo tem de ser entregue aos 15")
+        # E o historico continua intocado.
+        antes = [r for r in self.db.recipients(chave_antiga) if r.get("state") == "ACCEPTED"]
+        self.assertEqual(len(antes), 14, "o job historico foi alterado")
+        self.assertEqual(self.db.job(chave_antiga)["status"], P.FAILED_RETRYABLE)
+
     # ── HISTORICO 08/08 — 14 de 15 ────────────────────────────────────────
     def test_historico_0808_reenvia_somente_o_faltante(self):
         e1 = self.provedor()
