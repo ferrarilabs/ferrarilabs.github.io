@@ -64,11 +64,13 @@ Tax calculations use federal + state rates:
 - **State Taxes**:
   - **NC (North Carolina)**: 3.99%
   - **FL (Florida)**: 0% (no state income tax)
+  - **TX (Texas)**: 0% (no state income tax)
   - **Other States**: Look up current rate; update this doc
 
 **Total Effective Tax Rates:**
 - NC residents: 37% + 3.99% = **40.99%**
 - FL residents: 37% + 0% = **37%**
+- TX residents: 37% + 0% = **37%**
 
 ### Prize Display Formula
 
@@ -164,6 +166,10 @@ When adding a new participant:
 ### Florida (FL)
 - Tax Rate: 37% (no state income tax)
 - Used for Florida residents (e.g., Jorge Augusto Junqueira Ferreira, Alan Rech)
+
+### Texas (TX)
+- Tax Rate: 37% (no state income tax)
+- Used for Texas residents (e.g., Thiago Locatelli)
 
 ### Other States
 - Research current income tax rate
