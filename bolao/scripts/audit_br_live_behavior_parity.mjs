@@ -106,6 +106,26 @@ const heroText = (page) => page.evaluate(() => {
   return el && !el.classList.contains("hidden") ? (el.innerText || "") : "";
 });
 
+/**
+ * Espera o hero ficar visível ANTES de ler.
+ *
+ * `heroText()` sozinho é uma leitura instantânea: se a renderização ainda não aconteceu, devolve
+ * "" — e o teste reprova com `hero=""` uma UI perfeitamente correta. Passava sozinho e falhava
+ * dentro da verify, que roda várias suítes de navegador em paralelo: intermitência que ensina a
+ * reexecutar até passar, que é exatamente como uma falha de verdade passa despercebida.
+ *
+ * Timeout honesto: se o hero realmente não aparecer, o teste falha de verdade.
+ */
+const heroTextQuandoPronto = async (page, timeout = 8000) => {
+  try {
+    await page.waitForFunction(() => {
+      const el = document.getElementById("liveMatchCard");
+      return el && !el.classList.contains("hidden") && (el.innerText || "").trim().length > 0;
+    }, { timeout });
+  } catch { /* deixa a asserção reportar o conteúdo real, com a mensagem do próprio teste */ }
+  return heroText(page);
+};
+
 console.log("BR_LIVE_BEHAVIOR_PRESERVED — comportamento observável, independente de implementação\n");
 
 // ─── 1. Primeira visita no meio do jogo (o caso que a arquitetura antiga não resolvia) ───────
@@ -154,7 +174,7 @@ console.log("BR_LIVE_BEHAVIOR_PRESERVED — comportamento observável, independe
 // ─── 4. Observação velha: o minuto confirmado não é apagado ──────────────────────────────────
 {
   const { ctx, page } = await open({ gateway: gatewayBody([match()], 20) });
-  const hero = await heroText(page);
+  const hero = await heroTextQuandoPronto(page);
   check("STALE_SOURCE: partida permanece visível com dado de 20 min",
     hero.includes(HOME), `hero=${JSON.stringify(hero.slice(0, 120))}`);
   await ctx.close();
