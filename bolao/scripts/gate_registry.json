@@ -151,6 +151,9 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."
     },
+    "bolao/loterias/powerball/scripts/test_metadata_concurrency.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

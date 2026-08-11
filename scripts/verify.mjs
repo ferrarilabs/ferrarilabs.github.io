@@ -243,6 +243,8 @@ const CHECKS = [
     why: "origem canonica do email de resultado do CDB" },
   { id: "copa-bracket-correction", group: "app", cmd: ["python3", "bolao/copa2026/scripts/test_bracket_correction_routing.py"],
     why: "roteamento de correcao de chaveamento (Copa arquivada)" },
+  { id: "powerball-metadata-concurrency", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_metadata_concurrency.py"],
+    why: "o atualizador de jackpot escreve no mesmo data.js que outra sessao edita; snapshot velho apagaria participante que ja pagou" },
   { id: "powerball-open-draw", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs"],
     why: "o sorteio ABERTO tem de mostrar jackpot oficial com procedencia, nunca estado de espera com o dado disponivel" },
   { id: "powerball-scoring", group: "scoring", cmd: ["python3", "bolao/loterias/powerball/scripts/audit_scoring.py"],

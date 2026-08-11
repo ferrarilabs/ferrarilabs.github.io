@@ -61,7 +61,21 @@ for (const app of APPS) {
     const ctx = await browser.newContext({ viewport: { width, height: 844 }, serviceWorkers: "block" });
     const page = await ctx.newPage();
     await page.goto(`http://localhost:${PORT}/bolao/${app}/`, { waitUntil: "load" });
-    await page.waitForTimeout(1200);
+    // ESPERA A CONDIÇÃO, NÃO O RELÓGIO.
+    //
+    // Era `waitForTimeout(1200)`. Sob a carga da verify (várias suítes de navegador em paralelo)
+    // 1200ms não bastavam: o contador era medido antes da fonte carregar, as células ficavam mais
+    // largas do que ficarão, e o gate acusava "contador quebrado em 4 linhas" numa UI correta.
+    // Passava sozinho e falhava na suíte completa — o tipo de intermitência que ensina a
+    // reexecutar até passar, que é como uma falha de verdade passa despercebida.
+    //
+    // Espera o contador existir COM células e as fontes estarem prontas; timeout honesto.
+    await page.waitForFunction(() => {
+      const g = document.querySelector(".count-grid");
+      return g && g.children.length > 0;
+    }, { timeout: 8000 }).catch(() => {});
+    await page.evaluate(() => document.fonts && document.fonts.ready).catch(() => {});
+    await page.waitForTimeout(300);
     const grids = await page.evaluate(PROBE);
     if (grids.length === 0) { await ctx.close(); continue; }
     medidos += grids.length;
