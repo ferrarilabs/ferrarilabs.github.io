@@ -16,6 +16,25 @@ on:
     # Saturday 22:00-06:00 UTC (18:00-02:00 EDT) + Sun 02:59 UTC is Sat 22:59 EDT
     - cron: '*/10 22-23 * * 6'  # Saturday 22:00-23:50 UTC
     - cron: '*/10 0-6 * * 0'    # Sunday 00:00-06:50 UTC (covers Sat 20:00-02:50 EDT)
+    # ─── CATCH-UP DIARIO (P0, 2026-08-11) ────────────────────────────────────────────────────
+    #
+    # BUG QUE ISTO FECHA: as janelas acima cobrem a NOITE do sorteio e terminam 06:50 UTC. Elas
+    # assumem que o resultado oficial e publicado nessa janela. Em 2026-08-10 nao foi: o
+    # data.ny.gov so publicou a linha do sorteio DEPOIS da ultima execucao agendada (07:11 UTC).
+    #
+    # A partir dai nao existia mais nenhuma execucao ate a proxima noite de sorteio -- entao o
+    # resultado ficou disponivel e o e-mail simplesmente nunca saiu. E pior: cada execucao
+    # daquela noite terminou VERDE, porque "resultado ainda nao publicado" e um estado normal que
+    # sai com exit 0. Nenhum alarme, nenhuma falha, e 15 pessoas sem o e-mail.
+    #
+    # O modo de falha nao era a janela ser curta -- era nao existir NENHUMA revisita depois dela.
+    # Quatro execucoes por dia fecham a lacuna sem virar polling agressivo: com o sorteio ja
+    # notificado, cada uma custa uma consulta e sai em ALREADY_COMPLETED com providerCalls = 0.
+    #
+    # A seguranca nao depende desta cadencia. Depende dos portoes de identidade (o resultado tem
+    # de ser DAQUELE sorteio), tempo (nada antes de 22:59 ET + carencia) e ledger (aceito nunca
+    # reenvia). Executar mais vezes nao pode duplicar e-mail; executar de menos pode perde-lo.
+    - cron: '0 8,12,16,20 * * *'
   workflow_dispatch:
     inputs:
       dry_run:

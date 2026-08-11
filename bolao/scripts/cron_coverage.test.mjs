@@ -299,6 +299,60 @@ test("REGRESSION: the historical Tue+Sat-only Powerball schedule is rejected", (
     `expected the Monday gap to be detected, got: ${labels.join(", ")}`);
 });
 
+test("Powerball has DAILY catch-up coverage after the draw-night window closes", () => {
+  // THE 2026-08-10 DEFECT. The draw-night windows end at 06:50 UTC and silently assume the
+  // official source publishes within them. data.ny.gov published the 08-10 row AFTER the last
+  // scheduled run (07:11 UTC), and no run existed again until the next draw night — so the
+  // result sat there, available, and the email never went out. Every run that night was GREEN,
+  // because "not published yet" is a normal state that exits 0.
+  //
+  // Draw-night coverage alone cannot detect this: the previous version of this file asserted
+  // exactly that and passed throughout the incident. What must be true is that the schedule
+  // REVISITS the day AFTER the overnight window closes.
+  const w = byFile.get("powerball-results-email.yml");
+  const crons = w.crons.map(parseCron);
+
+  // Hours 7..21 UTC — the blind spot between the overnight window (ends 06:50) and the next
+  // evening window (starts 22:00). At least one cron must fire in there, every day of the week.
+  const cobreHora = (h, dow) => crons.some((c) => firesAt(c, dow, h, 1));
+
+  const diasSemCatchUp = [];
+  for (let dow = 0; dow <= 6; dow++) {
+    const horasCobertas = [];
+    for (let h = 7; h <= 21; h++) if (cobreHora(h, dow)) horasCobertas.push(h);
+    if (horasCobertas.length === 0) diasSemCatchUp.push(dow);
+  }
+  assert(diasSemCatchUp.length === 0,
+    `sem catch-up diurno nos dias (UTC dow): ${diasSemCatchUp.join(", ")} — ` +
+    "um resultado publicado tarde nao seria revisitado, que foi exatamente o 2026-08-10");
+
+  // E o intervalo entre revisitas nao pode virar um novo buraco de meio dia.
+  const horasCatchUp = [];
+  for (let h = 7; h <= 21; h++) if (cobreHora(h, 1)) horasCatchUp.push(h);
+  const maiorSalto = Math.max(...horasCatchUp.slice(1).map((h, i) => h - horasCatchUp[i]));
+  assert(maiorSalto <= 6,
+    `maior intervalo entre revisitas e ${maiorSalto}h — grande demais para um e-mail de resultado`);
+});
+
+test("REGRESSION: draw-night-only coverage is rejected as insufficient", () => {
+  // Acceptance criterion for the test above: the schedule as it existed DURING the incident --
+  // correct draw-night coverage, zero catch-up -- must be rejected. Without this, the new test
+  // could be trivially satisfied and would not encode the defect it exists for.
+  const noIncidente = [
+    "*/10 22-23 * * 1", "*/10 0-6 * * 2",
+    "*/10 22-23 * * 3", "*/10 0-6 * * 4",
+    "*/10 22-23 * * 6", "*/10 0-6 * * 0",
+  ].map(parseCron);
+
+  const cobreHora = (h, dow) => noIncidente.some((c) => firesAt(c, dow, h, 1));
+  let algumaHoraDiurna = false;
+  for (let dow = 0; dow <= 6; dow++)
+    for (let h = 7; h <= 21; h++) if (cobreHora(h, dow)) algumaHoraDiurna = true;
+
+  assert(!algumaHoraDiurna,
+    "o cronograma do incidente foi considerado coberto — este teste nao pega o defeito que existe para pegar");
+});
+
 test("timezone assumption is documented in the workflow itself", () => {
   // The UTC↔ET offset arithmetic is hand-written and unverifiable from the cron alone. The only
   // defence is that the intent is written down next to it.
