@@ -148,5 +148,39 @@ class SuperficieAnonima(unittest.TestCase):
         self.assertNotIn(http, (401, 403), "anon perdeu acesso a edicao legitima de palpites")
 
 
+class MutacaoDeOperadorNegadaAAnon(unittest.TestCase):
+    """A camada de operador do CDB (migracao 026) roda so com credencial privilegiada.
+
+    A senha de admin do CDB protege a UI, nao o banco: ela vive no navegador, e o navegador
+    carrega a anon key publica. Enquanto a autorizacao morar so no cliente, qualquer portador da
+    chave contorna a tela inteira com uma chamada HTTP. Por isso a fronteira e o grant.
+    """
+
+    def negar(self, tipo, payload):
+        ok, corpo, http = _rpc("cdb_apply_operator_mutation",
+                               {"p_type": tipo, "p_payload": payload,
+                                "p_actor": "atacante", "p_client_ref": "ataque"})
+        self.assertFalse(ok, f"anon executou {tipo} — http={http}")
+        self.assertEqual(http, 401, f"{tipo} respondeu {http}; esperado 401")
+
+    def test_anon_nao_marca_pagamento(self):
+        self.negar("set-payment", {"entryId": "x", "value": True})
+
+    def test_anon_nao_apaga_entrada(self):
+        self.negar("delete-entry", {"entryId": "x"})
+
+    def test_anon_nao_muda_cutoff(self):
+        self.negar("set-cutoff", {"phaseId": "quartas", "cutoffAt": None})
+
+    def test_anon_nao_trava_confronto(self):
+        self.negar("lock-tie", {"phaseId": "quartas", "tieId": "t"})
+
+    def test_anon_nao_remove_confronto(self):
+        self.negar("remove-tie", {"phaseId": "quartas", "tieId": "t"})
+
+    def test_anon_nao_muda_fase_ativa(self):
+        self.negar("set-active-phase", {"phaseId": "final"})
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)
