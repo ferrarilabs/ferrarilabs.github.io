@@ -63,6 +63,9 @@
     "bolao/cdb2026/scripts/test_live_prob_bars.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_penalty_fields.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -144,6 +147,9 @@
     "bolao/loterias/powerball/scripts/test_lifecycle_observability.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."
+    },
+    "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"

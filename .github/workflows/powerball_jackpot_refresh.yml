@@ -1,0 +1,68 @@
+name: Powerball — Atualiza jackpot do sorteio aberto
+
+# POR QUE ESTE WORKFLOW EXISTE
+#
+# O bolao abre ANTES de a loteria anunciar o proximo jackpot. Sem alguem copiando o valor oficial,
+# a pagina publica de um bolao ABERTO ficava mostrando um estado de espera com o dado ja
+# disponivel -- defeito de produto, e um que so se resolve com o operador acordado.
+#
+# NAO ENVIA E-MAIL. NAO TOCA EM RESULTADO. NAO TOCA EM PARTICIPANTE NEM EM BILHETE.
+# So os metadados de premio do sorteio ABERTO, e so quando a fonte oficial anuncia EXATAMENTE
+# aquele sorteio.
+
+on:
+  schedule:
+    # De 6 em 6 horas. O jackpot muda no maximo uma vez por sorteio (tres vezes por semana);
+    # cadencia maior seria ruido, menor deixaria a pagina desatualizada por meio dia.
+    - cron: '25 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview sem gravar"
+        required: false
+        type: boolean
+        default: false
+
+concurrency:
+  # Grupo COMPARTILHADO com o workflow de resultado: os dois escrevem no mesmo data.js. Sem isto,
+  # uma atualizacao de jackpot e uma gravacao de resultado podem colidir no push.
+  group: powerball-data-js
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Configure git
+        run: |
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Atualiza jackpot
+        working-directory: bolao/loterias/powerball/scripts
+        run: |
+          DRY=""
+          [ "${{ github.event.inputs.dry_run }}" = "true" ] && DRY="--dry-run"
+          python3 refresh_jackpot.py ${DRY:---apply}
+
+      - name: Commit se mudou
+        run: |
+          # `--quiet` devolve 1 quando HA mudanca. Nada a fazer NAO e falha: a fonte publica o
+          # mesmo jackpot durante dias, entao a esmagadora maioria das execucoes nao muda nada.
+          if git diff --quiet -- bolao/loterias/powerball/js/data.js; then
+            echo "NO_CHANGE — data.js intocado."
+            exit 0
+          fi
+          git add bolao/loterias/powerball/js/data.js
+          git commit -m "Auto: atualiza jackpot do sorteio aberto do Powerball"
+          git pull --rebase --autostash origin main
+          git push

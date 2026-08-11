@@ -531,8 +531,11 @@ window.POWERBALL_DRAWS = [
     drawing: {
       name: "Powerball Jackpot",
       // jackpot/cashValue sao publicados pela loteria; ficam null ate serem informados.
-      jackpot: null,
-      cashValue: null,
+      jackpot: 975000000,
+      cashValue: 422300000,
+      jackpotSource: "powerball_official",
+      jackpotFetchedAt: "2026-08-11T15:26:03Z",
+      jackpotDrawId: "2026-08-12",
       drawDateIso: "2026-08-12T22:59:00-04:00",
       drawDateLabel: "12/08/2026 22:59 ET"
     },

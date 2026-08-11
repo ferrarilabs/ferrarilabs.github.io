@@ -1,0 +1,87 @@
+name: Bolão CDB2026 — Operador (confiável, servidor)
+
+# POR QUE ESTE WORKFLOW EXISTE
+#
+# As operacoes de operador do CDB2026 precisam da credencial PRIVILEGIADA, e ela so existe aqui.
+# Na maquina de desenvolvimento nao ha service_role -- foi essa assimetria que ja deixou o ledger
+# do Powerball inoperante em producao com a suite verde localmente.
+#
+# A alternativa era o operador aplicar o sorteio pela escrita anonima do documento inteiro no
+# navegador: exatamente o buraco que o Stage 4 existe para fechar.
+#
+# NUNCA envia e-mail. Cada comando tem --dry-run e verifica invariantes depois de gravar.
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Operacao"
+        required: true
+        type: choice
+        options:
+          - snapshot
+          - apply-draw
+          - open-picks
+      phase:
+        description: "Fase (para open-picks)"
+        required: false
+        default: "quartas"
+        type: string
+      draw_file:
+        description: "Arquivo do sorteio (para apply-draw)"
+        required: false
+        default: "bolao/cdb2026/data/quartas-draw-2026.json"
+        type: string
+      apply:
+        description: "APLICAR de verdade (sem isto, dry-run)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cdb2026-operator
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  operate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # A paridade do id de confronto e pre-requisito de QUALQUER gravacao: um id divergente do
+      # que a sincronizacao da ESPN vai gerar cria confronto PARALELO, com os palpites das
+      # pessoas divididos entre os dois.
+      - name: Paridade do id de confronto (app.js x operator_cli.py)
+        run: node bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs
+
+      - name: Executa operacao
+        working-directory: bolao/cdb2026/scripts
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          MODO="--dry-run"
+          [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
+          case "${{ inputs.command }}" in
+            snapshot)
+              # Sem --out: a baseline bruta tem PII (e-mail, pagamento) e NAO pode virar artefato
+              # de workflow. O que sai no log sao contagens e hashes.
+              python3 operator_cli.py snapshot
+              ;;
+            apply-draw)
+              python3 operator_cli.py apply-draw \
+                --file "${{ github.workspace }}/${{ inputs.draw_file }}" \
+                --actor "gha-${{ github.run_id }}" $MODO
+              ;;
+            open-picks)
+              python3 operator_cli.py open-picks --phase "${{ inputs.phase }}" \
+                --actor "gha-${{ github.run_id }}" $MODO
+              ;;
+          esac

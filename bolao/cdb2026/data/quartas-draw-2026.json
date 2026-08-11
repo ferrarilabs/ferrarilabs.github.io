@@ -1,0 +1,42 @@
+{
+  "phaseId": "quartas",
+  "qualifiedFrom": "oitavas",
+  "provenance": {
+    "event": "Sorteio das quartas de final da Copa do Brasil 2026 (masculina), realizado pela CBF na manha de terca-feira, 2026-08-11",
+    "source": "CBF (sorteio oficial), lido por cobertura jornalistica — o cbf.com.br e renderizado no cliente e o CMS da CBF nao expoe colecao de confrontos (caracterizado em 2026-08-07, ver audit_cbf_ingestion.mjs)",
+    "sourceUrl": "https://www.cnnbrasil.com.br/esportes/futebol/copa-do-brasil/copa-do-brasil-2026-veja-confrontos-das-quartas-e-caminho-ate-a-final/",
+    "corroboratedBy": "https://www.gazetaesportiva.com/campeonatos/copa-do-brasil/copa-do-brasil-2026-sorteio-quartas-de-final/",
+    "fetchedAt": "2026-08-11T16:10:00Z",
+    "note": "Os oito times batem EXATAMENTE com os classificados das oitavas gravados no estado. Mando de campo do jogo de IDA conforme as duas fontes: 'clubes a esquerda jogam a partida de ida em casa'. Datas/horarios detalhados NAO foram publicados de forma consistente pelas fontes (uma diz semanas de 26/08 e 03/09, outra traz datas divergentes), entao kickoff fica null ate a tabela detalhada oficial da CBF sair."
+  },
+  "ties": [
+    {
+      "tieId": "espn-gremio_internacional",
+      "teamA": "Internacional",
+      "teamB": "Grêmio",
+      "firstKickoff": null,
+      "secondKickoff": null
+    },
+    {
+      "tieId": "espn-atletico-mg_cruzeiro",
+      "teamA": "Cruzeiro",
+      "teamB": "Atlético-MG",
+      "firstKickoff": null,
+      "secondKickoff": null
+    },
+    {
+      "tieId": "espn-vasco_vitoria",
+      "teamA": "Vasco",
+      "teamB": "Vitória",
+      "firstKickoff": null,
+      "secondKickoff": null
+    },
+    {
+      "tieId": "espn-palmeiras_santos",
+      "teamA": "Palmeiras",
+      "teamB": "Santos",
+      "firstKickoff": null,
+      "secondKickoff": null
+    }
+  ]
+}

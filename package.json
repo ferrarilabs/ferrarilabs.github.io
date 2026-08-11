@@ -25,7 +25,9 @@
     "test:powerball-transport-targets": "python3 bolao/loterias/powerball/scripts/test_transport_honors_targets.py",
     "test:powerball-observability": "python3 bolao/loterias/powerball/scripts/test_lifecycle_observability.py",
     "test:cdb-public-projection": "python3 bolao/cdb2026/scripts/test_public_projection_and_submit.py",
-    "test:br-delivery-loop": "python3 bolao/br2026/scripts/test_round_delivery_loop.py"
+    "test:br-delivery-loop": "python3 bolao/br2026/scripts/test_round_delivery_loop.py",
+    "test:powerball-open-draw": "node bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs",
+    "test:cdb-tie-id-parity": "node bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs"
   },
   "devDependencies": {
     "playwright": "^1.56.0"
