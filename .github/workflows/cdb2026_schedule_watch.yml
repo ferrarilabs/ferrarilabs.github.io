@@ -32,6 +32,16 @@ on:
         required: false
         default: false
         type: boolean
+      only_missing:
+        description: "So quem NAO tem credencial viva (nao rotaciona quem ja esta com link bom)"
+        required: false
+        default: false
+        type: boolean
+      key_version:
+        description: "Versao da chave de negocio (subir = decisao deliberada de reenviar)"
+        required: false
+        default: "1"
+        type: string
 
 concurrency:
   group: cdb2026-operator      # mesmo grupo do CLI de operador: os dois escrevem o mesmo estado
@@ -96,6 +106,8 @@ jobs:
           # estado terminal do convite original -- que continua `sent` e continua descrevendo
           # doze e-mails realmente entregues. O que falhou depois foi o link, nao a entrega.
           [ "${{ inputs.correction }}" = "true" ] && MODO="--apply --correction"
+          [ "${{ inputs.only_missing }}" = "true" ] && MODO="$MODO --only-missing"
+          MODO="$MODO --key-version ${{ inputs.key_version || '1' }}"
           rc=0
           python3 send_invitation_email.py $MODO || rc=$?
           # 3 = "ainda nao ha prazo publicado". Estado de negocio NORMAL: e o caso esperado em

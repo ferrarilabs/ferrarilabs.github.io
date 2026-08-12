@@ -84,11 +84,32 @@ def main():
     if not elegiveis:
         print("🛑 nenhuma entrada elegivel")
         return 2
-    alvo = elegiveis[0]
+    # ── NUNCA TOMAR EMPRESTADA UMA CREDENCIAL VIVA ──────────────────────────────────────────
+    #
+    # Este canario emite, revoga e remove a credencial da entrada que usa. Enquanto ninguem tinha
+    # link valido isso era inofensivo. Depois que a correcao foi enviada, a versao anterior deste
+    # arquivo pegou `elegiveis[0]` -- uma pessoa real, com link recem-entregue -- e o revogou no
+    # bloco `finally`. O link dela morreu por causa do proprio verificador.
+    #
+    # O token em claro nao existe em lugar nenhum depois do envio, entao NAO ha como devolver o
+    # que foi revogado: o unico conserto e emitir outro e mandar outro e-mail. Um verificador que
+    # so pode ser desfeito incomodando a pessoa nao pode escolher a vitima por indice.
+    #
+    # Entao ele so usa entrada SEM credencial viva. Se todas tiverem, ele PULA a parte destrutiva
+    # e diz isso -- perder cobertura e melhor que quebrar o acesso de alguem.
+    vivas = INV.already_invited_ids()
+    alvo = next((e for e in elegiveis if e["id"] not in vivas), None)
+    if alvo is None:
+        print("\n  ⊘ todas as entradas tem credencial VIVA — parte destrutiva PULADA.")
+        print("     (revogar para testar mataria um link ja entregue, e o token em claro nao")
+        print("      existe mais para ser devolvido)")
+        print("\n  PRODUCTION_TOKEN_ROUND_TRIP = SKIPPED_TO_PROTECT_LIVE_LINKS")
+        print("=" * 74)
+        return 0
     eid = alvo["id"]
-    print(f"  entrada de teste   {eid[:8]}…  (somente leitura)")
+    print(f"  entrada de teste   {eid[:8]}…  (sem credencial viva; somente leitura)")
 
-    original_viva = eid in INV.already_invited_ids()
+    original_viva = False
 
     try:
         # ── 1. emissao e leitura pelo caminho do navegador ──────────────────────────────────
