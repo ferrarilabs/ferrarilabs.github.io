@@ -399,6 +399,10 @@
     "bolao/scripts/test_no_real_email_in_verification.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "3 mutacoes reais pegas (canario chamando send_email, guarda apontando para arquivo inexistente, guarda que detecta mas nao sai). A primeira versao tinha um ponto cego: aceitava a palavra EMAIL_KILL_SWITCH em QUALQUER lugar, inclusive na prosa que eu mesmo escrevi explicando o incidente — gate que le prosa mede prosa. Agora exige a guarda em codigo executavel."
+    },
+    "bolao/cdb2026/scripts/check_access_credentials.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Mede, contra a PRODUCAO, quantas credenciais de acesso estao vivas x revogadas — responde se os convites entregues AUTENTICAM. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe no runner. Executado pelo workflow m8m9_probe.yml com if:always(). Nao envia e-mail e nao muta nada: so le. Criado no incidente de 2026-08-12, quando doze convites foram entregues com links que nao autenticavam e nada media isso."
     }
   }
 }
