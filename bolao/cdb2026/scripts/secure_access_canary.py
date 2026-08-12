@@ -138,9 +138,22 @@ def main():
         # pelo SERVIDOR a partir do prazo publicado. Fase sem prazo recusa; fase com prazo aberto
         # aceita; prazo vencido recusa. Qualquer um dos tres e um resultado valido aqui; o que
         # nao pode acontecer e o servidor ignorar o prazo.
+        # ── ESCREVE OS PALPITES QUE JA ESTAVAM LA ───────────────────────────────────────────
+        #
+        # A versao anterior gravava um valor sintetico (`{"quartas": {"canario": True}}`).
+        # Enquanto a fase estava FECHADA isso era inofensivo: a escrita era recusada e o canario
+        # so media a recusa. No minuto em que a tabela oficial materializou e os palpites
+        # abriram, a MESMA linha passou a ser aceita -- e SUBSTITUIU os palpites reais de um
+        # participante (8 matches e 8 qualified viraram uma chave de teste).
+        #
+        # Um canario cuja seguranca dependia de a operacao estar bloqueada nao era um canario
+        # seguro; era um canario com sorte. Agora ele salva de volta EXATAMENTE o que leu, entao
+        # exercita o caminho de escrita inteiro e o conteudo final e identico ao inicial, com a
+        # fase aberta ou fechada.
+        palpites_atuais = (r or {}).get("picks") if isinstance(r, dict) else None
         st, r = rpc("cdb_save_my_picks",
                     {"p_token": token, "p_client_ref": "canario-1",
-                     "p_picks": {"quartas": {"canario": True}}})
+                     "p_picks": palpites_atuais if palpites_atuais is not None else {}})
         msg = json.dumps(r or {})
         aceitou = 200 <= st < 300
         recusou_por_prazo = st >= 400 and ("FASE_FECHADA" in msg or "PRAZO" in msg.upper())
