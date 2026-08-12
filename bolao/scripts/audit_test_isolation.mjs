@@ -119,8 +119,27 @@ for (const app of APPS) {
     // ANTES da primeira chamada. Procurar pelo nome antigo exigiria de volta a funcao removida.
     const nome = /function\s+callNarrowRpc\s*\(/.test(src) ? "callNarrowRpc" : "saveRemoteState";
     const body = extractFn(src, nome);
+
+    // ── ESCRITA REMOVIDA É MAIS FORTE QUE ESCRITA GUARDADA ──────────────────────────────────
+    //
+    // 2026-08-12, copa2026: `saveRemoteState()` virou uma lápide que lança incondicionalmente —
+    // o navegador não grava mais nada, e operação privilegiada passa pelo runtime confiável.
+    //
+    // Exigir `productionWritesAllowed()` aí dentro seria exigir um guard para uma escrita que
+    // não existe, e o único jeito de satisfazer isso seria RESSUSCITAR o caminho de escrita para
+    // poder guardá-lo. Um gate que empurra nessa direção está trabalhando contra o que protege.
+    //
+    // Então o invariante é o fim, não o meio: ou o app não escreve, ou escreve consultando o
+    // guard antes. A lápide precisa lançar SEM CONDIÇÃO — um `if` ali dentro seria uma porta.
+    const lapide = /^\s*throw new Error\(/m.test(body) && !/\bif\s*\(/.test(body);
+    if (lapide) {
+      assert(!/fetchJson|fetch\(/.test(body),
+        `${nome}() lança mas ainda alcança a rede — lápide que fala com o servidor não é lápide`);
+      return;   // escrita removida: não há fronteira a guardar porque não há travessia
+    }
+
     assert(body.includes("productionWritesAllowed()"),
-      "saveRemoteState() não consulta o guard — a fronteira não é a fronteira");
+      `${nome}() não consulta o guard — a fronteira não é a fronteira`);
     // O guard precisa vir ANTES de qualquer fetch remoto, senão já vazou.
     const gateAt = body.indexOf("productionWritesAllowed()");
     const fetchAt = body.search(/fetchJson|fetch\(/);
