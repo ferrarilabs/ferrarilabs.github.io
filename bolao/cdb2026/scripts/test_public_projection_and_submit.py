@@ -140,12 +140,48 @@ class SuperficieAnonima(unittest.TestCase):
             ok, _, http = _rpc(nome, {})
             self.assertFalse(ok, f"anon executa {nome}() — http={http}")
 
-    def test_a_edicao_de_palpites_existe_e_e_alcancavel(self):
-        """Existir e ser alcancavel: se so existisse, o participante perderia o caminho legitimo."""
+    def test_a_edicao_por_ID_ESCOLHIDO_pelo_chamador_esta_NEGADA(self):
+        """REGRESSAO 2026-08-12 — este teste exigia o OPOSTO, e o oposto era o buraco.
+
+        `cdb_update_entry_picks(p_entry_id, ...)` grava os palpites da entrada que o CHAMADOR
+        escolher e nao autoriza nada. Os ids sao publicos (saem na projecao). Medido em producao:
+        com um id inexistente ela devolvia ENTRY_NOT_FOUND para anon -- ou seja, executava. Com um
+        dos 12 ids reais, sobrescreveria os palpites de um participante.
+
+        A versao anterior deste teste afirmava que anon PRECISAVA alcancar essa funcao, chamando-a
+        de "caminho legitimo". Nao era: o app deployado nunca a chamou. O gate protegia a
+        vulnerabilidade.
+        """
         ok, corpo, http = _rpc("cdb_update_entry_picks",
-                               {"p_entry_id": "", "p_client_ref": "", "p_picks": {}})
-        self.assertNotEqual(http, 404, "cdb_update_entry_picks nao existe ou nao e alcancavel")
-        self.assertNotIn(http, (401, 403), "anon perdeu acesso a edicao legitima de palpites")
+                               {"p_entry_id": "x", "p_client_ref": "x", "p_picks": {}})
+        self.assertIn(http, (401, 403),
+                      f"anon voltou a alcancar edicao por id escolhido pelo chamador (http={http})")
+
+    def test_o_caminho_seguro_do_participante_e_alcancavel(self):
+        """O substituto tem de existir E ser alcancavel, senao o participante fica sem caminho."""
+        ok, corpo, http = _rpc("cdb_my_entry", {"p_token": "t" * 64})
+        self.assertNotEqual(http, 404, "cdb_my_entry nao existe ou nao e alcancavel por anon")
+        self.assertNotIn(http, (401, 403), "anon perdeu o caminho seguro de leitura")
+        self.assertIsNone(corpo, "token invalido devolveu conteudo — falha deve ser generica")
+
+    def test_a_escrita_segura_nao_aceita_alvo_escolhido(self):
+        """A RPC de escrita nao pode ter parametro de entrada: alvo escolhivel = alvo do atacante."""
+        ok, corpo, http = _rpc("cdb_save_my_picks",
+                               {"p_token": "t" * 64, "p_client_ref": "x", "p_picks": {},
+                                "p_entry_id": "vitima"})
+        self.assertGreaterEqual(http, 400,
+                                "cdb_save_my_picks aceitou p_entry_id — voltou a ser escolhivel")
+
+    def test_tabela_de_credenciais_invisivel_para_anon(self):
+        import urllib.request, urllib.error
+        req = urllib.request.Request(
+            f"{SUPABASE_URL}/rest/v1/cdb_entry_access?select=entry_id",
+            headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}"})
+        try:
+            with urllib.request.urlopen(req, timeout=20) as r:
+                self.fail(f"anon leu a tabela de credenciais (http={r.status})")
+        except urllib.error.HTTPError as e:
+            self.assertIn(e.code, (401, 403), f"esperado 401/403, veio {e.code}")
 
 
 class MutacaoDeOperadorNegadaAAnon(unittest.TestCase):
