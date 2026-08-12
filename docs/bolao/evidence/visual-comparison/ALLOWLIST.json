@@ -194,24 +194,6 @@
       "reviewBy": "2027-08-03"
     },
     {
-      "component": "ranking-row",
-      "property": "gridTemplateColumns",
-      "apps": [
-        "copa2026",
-        "br2026",
-        "cdb2026"
-      ],
-      "expectedType": "content-driven",
-      "expected": null,
-      "justification": "Same root cause as ranking-row:height directly above: the grid-template-columns RULE (`48px 1fr auto auto`) is identical CSS in all three apps, but the 4th `auto` track resolves to the 'Ver palpites' button's real width in Copa (cutoff always past, button always rendered) and collapses to `0px` in BR2026/CDB2026 in this harness run (their own picks-reveal cutoff gate -- see ranking-row:height entry -- isn't simulated, so the button doesn't render at all, and an empty `auto` track has zero width). Content-driven column sizing, not a token divergence -- will resolve identically to Copa's the moment either app's synthetic run simulates a past-cutoff state.",
-      "docRef": "ALLOWLIST.json ranking-row:height entry above (same root cause)",
-      "owner": "Platform",
-      "approvalStatus": "approved",
-      "approvedBy": "Eduardo",
-      "reviewDate": "2026-08-03",
-      "reviewBy": "2027-08-03"
-    },
-    {
       "component": "admin-card-row",
       "property": "fontSize",
       "apps": [
