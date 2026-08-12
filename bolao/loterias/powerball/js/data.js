@@ -455,7 +455,8 @@ window.POWERBALL_DRAWS = [
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "12:14:40 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:45 PM", status: "verificado", state: "NC" },
       // Samuel pagou os $10 deste sorteio junto com os $10 do 2026-08-12 num unico Zelle de
-      // $20 (txId 30376865303), recebido em 12/08/2026 -- corrigido de "cash" para Zelle.
+      // $20, recebido em 12/08/2026 -- corrigido de "cash" para Zelle. A referencia da
+      // transacao fica SO no segredo privado: este arquivo e servido publicamente.
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" },
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "10/08/2026", hora: "3:03:24 PM", status: "verificado", state: "NC" }
     ],
@@ -559,8 +560,8 @@ window.POWERBALL_DRAWS = [
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "11/08/2026", hora: "5:09:10 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:54 PM", status: "verificado", state: "NC" },
       { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:55 PM", status: "verificado", state: "FL" },
-      // Os outros $10 deste mesmo Zelle de $20 (txId 30376865303) cobrem o sorteio 2026-08-10
-      // -- ver correcao la.
+      // Os outros $10 deste mesmo Zelle de $20 cobrem o sorteio 2026-08-10 -- ver correcao la.
+      // Referencia da transacao: apenas no segredo privado, nunca aqui.
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" },
       { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "9:37 AM", status: "verificado", state: "NC" }
     ],
