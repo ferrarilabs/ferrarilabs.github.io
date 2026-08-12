@@ -21,6 +21,36 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const APP_JS = join(dirname(fileURLToPath(import.meta.url)), "..", "js", "app.js");
+
+// ── O ESCRITOR DO NAVEGADOR FOI REMOVIDO (cdb2026, 2026-08-12) ──────────────────────────────
+//
+// `saveRemoteState()` virou lapide: lanca incondicionalmente, porque o navegador nao grava mais
+// documento inteiro (mutacao estreita + cdb_save_my_picks). Os casos que sao SOBRE ele deixam de
+// existir junto com ele.
+//
+// Os invariantes que eles protegiam NAO sumiram -- mudaram de camada:
+//
+//   resultado / cutoff / travamento  ->  cdb_apply_operator_mutation (bolao/shared/sql/026, 028)
+//                                        + 20260812200000_lock_tie_never_overwrites
+//   palpite do participante          ->  cdb_save_my_picks (20260812170000)
+//   resposta checada / carimbo       ->  bolao/scripts/audit_remote_write_visibility.mjs
+//
+// Os casos sobre MERGE continuam rodando: `mergeStates()` esta vivo e e o que reconcilia o remoto
+// na leitura (app.js ~700). Reconstruir aqui um escritor fiel seria reimplementar codigo apagado
+// de proposito -- e um gate que exige a forma antiga empurra alguem a ressuscita-la.
+const ESCRITOR_REMOVIDO = (() => {
+  const src = readFileSync(APP_JS, "utf8");
+  const i = src.indexOf("async function saveRemoteState(");
+  if (i < 0) return true;
+  const corpo = src.slice(i, src.indexOf("\n}", i));
+  return corpo.includes("throw new Error(") && !corpo.includes("fetchJson");
+})();
+
+if (ESCRITOR_REMOVIDO) {
+  console.log("\n  \u2298 PULADOS: os casos sobre o ESCRITOR do navegador (removido no cdb2026).");
+  console.log("     Invariantes migraram para cdb_apply_operator_mutation / cdb_save_my_picks.");
+  console.log("     Os casos de mergeStates() continuam valendo e rodam normalmente.\n");
+}
 const src = readFileSync(APP_JS, "utf8");
 
 /** Extract a top-level `function name(...) { ... }` by brace-matching from the real app.js.
@@ -207,7 +237,7 @@ console.log("Running CDB2026 state-merge / display-orientation audit...\n");
 // `state` column outright (`Prefer: resolution=merge-duplicates` resolves the ROW conflict, it
 // does not merge the JSON). A client that loaded before someone else's change silently erased
 // it. Exercised against the REAL saveRemoteState() with fetch/localStorage stubbed.
-{
+if (!ESCRITOR_REMOVIDO) {
   const saveRemoteState = makeSaveRemoteStateFactory();
 
   // Remote holds an admin payment mark AND another participant's entry this client never saw.
@@ -268,7 +298,7 @@ console.log("Running CDB2026 state-merge / display-orientation audit...\n");
 // docs/bolao/CDB2026_MODERNIZATION_REPORT_2026-08.md for the classification and the
 // architectural recommendation (RPC with row version / optimistic concurrency) — NOT
 // implemented automatically, per explicit instruction.
-{
+if (!ESCRITOR_REMOVIDO) {
   const saveRemoteStateFactory = makeSaveRemoteStateFactory();
 
   // Server starts at V0. Both clients' pre-save reads are served V0 — neither has seen the
@@ -325,7 +355,7 @@ console.log("Running CDB2026 state-merge / display-orientation audit...\n");
 // do admin, resultado esperado é o valor NOVO — provando que applyMutationOverRemote() não
 // reaplica nenhuma regra de "remoto vence"/"any-true-wins" pensada pra proteger contra cache de
 // PARTICIPANTE quando quem está gravando é o próprio admin corrigindo um dado.
-{
+if (!ESCRITOR_REMOVIDO) {
   const saveRemoteState = makeSaveRemoteStateFactory();
   async function postedStateFor(remote, mutation) {
     let posted = null;

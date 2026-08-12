@@ -173,6 +173,11 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["cdb2026_restore_picks.yml",
+   "Restauracao de palpites de UMA entrada, a partir de backup verificado. Acionamento humano " +
+   "com entrada e conteudo passados a mao. NAO agendado de proposito: um script que restaura " +
+   "palpite sozinho e um script que pode desfazer o palpite de alguem sem ninguem pedir. " +
+   "Criado em 2026-08-12, quando um canario substituiu os palpites reais de um participante."],
   ["copa2026_operator.yml",
    "CLI de operador da Copa: so roda por acionamento humano com uma operacao escolhida a mao " +
    "(workflow_dispatch com input `command`). Agendar seria executar mutacao de operador sem " +
