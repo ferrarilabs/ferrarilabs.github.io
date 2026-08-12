@@ -108,3 +108,35 @@ outra sessão, possivelmente ainda em revisão. Empurrar migração alheia não 
 **Consequência operacional:** enquanto houver migração pendente de outra sessão, uma migração nova
 originada aqui só pode ser aplicada depois que a m14 for aplicada (ou retirada) por quem a
 escreveu. Isto é coordenação, não bloqueio técnico.
+
+## 2026-08-12 — reconciliação com o workstream de modernização
+
+`migration list --linked` acusou DRIFT = 2: `20260812120000` e `20260812150000` constavam como
+APLICADAS no remoto e não existiam em `main`.
+
+Não eram desconhecidas. São M15 (`match_location_tie_lock_provenance_and_the_official_draw`) e
+M16 (`normalized_read_surface`), aplicadas a partir do worktree canônico
+`ferrarilabs-db-modernization` (branch `db-modernization-architecture`), que é a origem
+arquitetural das migrações M1–M16.
+
+O banco é UM só; os worktrees são vários. Quem aplica de um worktree deixa `main` descrevendo um
+passado que não é o do banco — e a próxima pessoa a rodar `migration list` a partir de `main` vê
+"drift" e não tem como saber se é uma migração perdida ou de outro fluxo.
+
+**Ação:** os dois arquivos foram COPIADOS para `supabase/migrations/` em `main`. Nenhum registro
+remoto foi tocado, nenhum `repair`, nenhum replay — `db push --dry-run` confirma
+`upToDate: true`, porque as duas já constam no histórico remoto.
+
+Estado após a reconciliação: LOCAL = 24, REMOTE = 24, PENDING = 0, DRIFT = 0.
+
+**Migrações de integração de aplicação adicionadas nesta sessão** (autoria: `main`, não o
+workstream de modernização):
+
+- `20260812090000_m8m9_trusted_producer_bridge.sql` — RPCs `SECURITY DEFINER` em `public` que
+  dão ao produtor confiável acesso a `audit.audit_events` e `bolao.outbox_events`. Os schemas
+  seguem NÃO expostos no PostgREST (medido: 406 `Invalid schema` para toda chave, service_role
+  inclusive), então a `anon` continua sem alcance às tabelas; a ponte é revogada de
+  `anon`/`authenticated` e concedida só a `service_role`.
+- `20260812100000_m8m9_canary_purge.sql` — remove eventos de canário da fila. O prefixo
+  `canary:` é soldado no corpo, não parâmetro: uma função que apaga notificação com prefixo
+  livre seria uma porta para apagar a fila inteira.
