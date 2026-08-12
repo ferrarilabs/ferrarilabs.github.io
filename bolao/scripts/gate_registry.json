@@ -351,6 +351,10 @@
     },
     "scripts/test_fixture_privacy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_invitation_email.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "12 mutacoes reais, todas pegas. Cobre os portoes (prazo publicado, prazo no futuro, sorteio completo, credencial privilegiada), idempotencia (nao reemite para quem tem link vivo) e nao-vazamento (token fora do stdout, e-mail mascarado, token no fragmento e nao no query). Carrega o modulo compilando o TEXTO do arquivo: o cache de bytecode do macOS vive fora do repo e invalida por (mtime, tamanho), entao mutacao de 1 char por 1 char pode servir bytecode velho e produzir gate falso-verde."
     }
   }
 }

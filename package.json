@@ -32,7 +32,8 @@
     "test:powerball-metadata-concurrency": "python3 bolao/loterias/powerball/scripts/test_metadata_concurrency.py",
     "test:powerball-combo-next-label": "node bolao/loterias/powerball/scripts/test_combo_next_label.mjs",
     "test:anon-key-shape": "node bolao/scripts/test_anon_key_shape.mjs",
-    "test:cdb-trusted-state-access": "node bolao/cdb2026/scripts/test_trusted_state_access.mjs"
+    "test:cdb-trusted-state-access": "node bolao/cdb2026/scripts/test_trusted_state_access.mjs",
+    "test:cdb-invitation-email": "python3 bolao/cdb2026/scripts/test_invitation_email.py"
   },
   "devDependencies": {
     "playwright": "^1.56.0"
