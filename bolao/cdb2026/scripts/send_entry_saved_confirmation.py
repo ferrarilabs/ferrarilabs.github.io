@@ -260,12 +260,27 @@ def processa_um(lease_owner, verbose=True):
             m8m9._rpc("settle_delivery", {"p_delivery_id": delivery_id,
                                           "p_status": "accepted", "p_provider_msg_id": msg_id})
             m8m9.settle(eid, "success", provider_message_id=msg_id)
-            # A permissão se consome: valia para UMA validação.
-            m8m9._rpc("cdb_close_confirmation_allowance", {"p_entry_id": entry_id})
-            m8m9.emit_audit("cdb.entry_saved_confirmation.sent", "outbox_event",
-                            aggregate_key=ev["idempotency_key"],
-                            metadata={"app": APP, "recipientHash": hashlib.sha256(
-                                addr.strip().lower().encode()).hexdigest()[:12]})
+            # A permissão se consome: valia para UMA validação. Se este fechamento falhar, a
+            # permissão fica aberta — mas o teto de e-mails continua UM, porque a reserva em
+            # `notification_deliveries` já existe e recusa o próximo. Por isso o aviso é ruidoso
+            # e não fatal: perder o fechamento degrada a defesa, não a rompe.
+            try:
+                m8m9._rpc("cdb_close_confirmation_allowance", {"p_entry_id": entry_id})
+            except Exception as e:  # noqa: BLE001
+                print(f"  AVISO: entrega OK, permissão NÃO fechou ({type(e).__name__}: {e}) — "
+                      f"fechar à mão; a unicidade de entrega segue impedindo segundo envio")
+            # O e-mail JÁ SAIU. A partir daqui nada pode desfazer a operação, e escrituração que
+            # falha não pode virar exceção que sobe: o `except` lá embaixo tentaria devolver o
+            # evento à fila, ele já está 'sent', e o consumidor terminaria gritando sobre uma
+            # entrega que deu certo. Registrar é importante; é menos importante que não mentir
+            # sobre o que aconteceu.
+            try:
+                m8m9.emit_audit("cdb_entry_saved_confirmation.sent", "outbox_event",
+                                aggregate_key=ev["idempotency_key"],
+                                metadata={"app": APP, "recipientHash": hashlib.sha256(
+                                    addr.strip().lower().encode()).hexdigest()[:12]})
+            except Exception as e:  # noqa: BLE001
+                print(f"  AVISO: entrega OK, auditoria falhou ({type(e).__name__}: {e})")
             if verbose:
                 print(f"  ENVIADO ({msg_id}) — permissão fechada")
             return "ENVIADO", chamadas
