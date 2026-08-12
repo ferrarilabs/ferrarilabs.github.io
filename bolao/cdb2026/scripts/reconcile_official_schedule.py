@@ -191,7 +191,22 @@ def main():
         "payload": {"phaseId": FASE, "firstKickoff": primeiro, "cutoffAt": cutoff_iso},
     })
 
-    OP.grava_estado(estado)
+    # MUTACOES ESTREITAS, uma por fato. Isto era `OP.grava_estado(estado)` -- um PATCH do
+    # documento inteiro herdado do operator_cli, com a mesma janela de perda entre a leitura e a
+    # gravacao. Cada chamada abaixo carrega o seu proprio client_ref, entao um retry do reconciler
+    # nao aplica nada duas vezes.
+    for tid, quando in idas.items():
+        OP._rpc("backfill-kickoff", {"phaseId": FASE, "tieId": tid, "leg": "first", "kickoff": quando},
+                f"schedule:{FASE}:{tid}:first:{quando}", a.actor)
+        jogos = sorted(achados[tid])
+        if len(jogos) > 1:
+            OP._rpc("backfill-kickoff", {"phaseId": FASE, "tieId": tid, "leg": "second", "kickoff": jogos[1][0]},
+                    f"schedule:{FASE}:{tid}:second:{jogos[1][0]}", a.actor)
+    OP._rpc("set-cutoff", {"phaseId": FASE, "cutoffAt": cutoff_iso},
+            f"schedule-cutoff:{FASE}:{cutoff_iso}", a.actor)
+    OP._rpc("set-schedule-provenance",
+            {"phaseId": FASE, "scheduleProvenance": estado["phases"][FASE]["scheduleProvenance"]},
+            f"schedule-prov:{FASE}:{primeiro}", a.actor)
     depois = OP.le_estado()
     problemas = OP.compara(inv_antes, OP.invariantes(depois), permitido=set())
     if (depois["phases"][FASE].get("cutoffAt")) != cutoff_iso:

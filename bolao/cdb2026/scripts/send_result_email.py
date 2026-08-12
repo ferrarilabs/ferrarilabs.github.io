@@ -34,6 +34,9 @@ Usage:
   and unlocks the tie (qualifiedTeamId cleared) if it had been locked from that leg's data.
 """
 
+import os
+import sys
+import urllib.error
 import json
 import os, re, sys, time, urllib.request
 from datetime import datetime, timezone
@@ -248,135 +251,75 @@ def sb_fetch():
     return linhas[0]["state"]
 
 
-def _sb_upsert(state):
-    body = json.dumps({"id": STATE_ID, "state": state}).encode()
+def _sb_rpc(tipo, payload, client_ref):
+    """Mutacao ESTREITA no servidor. NAO existe mais gravacao de documento inteiro aqui.
+
+    O que estava neste bloco era `_sb_upsert(state)`: lia o documento, mudava um campo em Python e
+    regravava o TODO. Duas gravacoes de legs diferentes perdiam uma, e nada carregava token de
+    concorrencia. `cdb_apply_operator_mutation` aplica um caminho jsonb sob `for update`, com
+    idempotencia por client_ref, e devolve {"applied": false} quando o mesmo ref chega de novo.
+    """
+    k = _sb_key()
+    body = json.dumps({"p_type": tipo, "p_payload": payload,
+                       "p_actor": os.environ.get("CDB_ACTOR") or "send_result_email",
+                       "p_client_ref": client_ref}).encode()
     req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/bolao_state",
-        data=body, method="POST",
-        headers={
-            "apikey": _sb_key(), "Authorization": f"Bearer {_sb_key()}",
-            "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates",
-        }
-    )
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return r.status
+        f"{SUPABASE_URL}/rest/v1/rpc/cdb_apply_operator_mutation", data=body, method="POST",
+        headers={"apikey": k, "Authorization": f"Bearer {k}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            txt = r.read().decode()
+            return r.status, (json.loads(txt) if txt.strip() else None)
+    except urllib.error.HTTPError as e:
+        # O corpo traz a mensagem do RAISE, que e o diagnostico util. O cabecalho traria a
+        # credencial, por isso so o corpo e lido.
+        print(f"🛑 HTTP {e.code}: {e.read().decode()[:300]}")
+        sys.exit(2)
+
+
+def _ref(op, *partes):
+    """Idempotencia DETERMINISTICA: um retry de rede nao pode virar segunda aplicacao."""
+    return "cdb-results:" + op + ":" + ":".join(str(x) for x in partes)
 
 
 def sb_save_leg(phase_id, tie_id, leg, goals_home, goals_away, source="espn-auto"):
-    """Read-modify-write a single leg's result, same field shape the admin UI's save-leg handler
-    produces (bolao/cdb2026/js/app.js renderAdminResults() ~line 3352) -- homeTeam/awayTeam per
-    the leg's own home/away convention (leg 'second' flips: home=teamB, away=teamA)."""
-    state = sb_fetch()
-    tie = state["phases"][phase_id]["ties"][tie_id]
-    home = tie["teamB"] if leg == "second" else tie["teamA"]
-    away = tie["teamA"] if leg == "second" else tie["teamB"]
-    tie["matches"][leg] = {
-        **(tie["matches"].get(leg) or {}),
-        "homeTeam": home, "awayTeam": away,
-        "goalsHome": int(goals_home), "goalsAway": int(goals_away),
-        "status": "FINAL", "resultSource": source,
-    }
-    state.setdefault("auditLog", []).insert(0, {
-        "ts": datetime.now(timezone.utc).isoformat(), "action": "save-leg", "admin": True,
-        "detail": {"phase": phase_id, "tieId": tie_id, "leg": leg, "teamA": home, "teamB": away,
-                   "goalsHome": int(goals_home), "goalsAway": int(goals_away), "resultSource": source},
-    })
-    if len(state["auditLog"]) > 200:
-        state["auditLog"] = state["auditLog"][:200]
-    state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    status = _sb_upsert(state)
-    return status, state
+    """Grava UMA mao. O mando da volta (home=teamB) e calculado NO SERVIDOR a partir do confronto
+    gravado -- nao e enviado daqui, senao um cliente poderia declara-lo ao contrario."""
+    status, _ = _sb_rpc("save-leg", {
+        "phaseId": phase_id, "tieId": tie_id, "leg": leg,
+        "goalsHome": int(goals_home), "goalsAway": int(goals_away), "resultSource": source,
+    }, _ref("save-leg", phase_id, tie_id, leg, int(goals_home), int(goals_away)))
+    return status, None
 
 
 def sb_backfill_schedule(espn_candidates):
-    """Server-side counterpart of autoSyncEspn()'s backfill pass in app.js (added 5a9dad4,
-    2026-08-04) -- that logic only runs client-side when an admin has the panel open, so a leg
-    (typically the volta) whose kickoff/venue ESPN has already published stays "Data a definir"
-    on the public site until someone happens to open the admin panel. This cron already runs
-    every 10 minutes (see .github/workflows/cdb2026_result_emails.yml) checking for score
-    results, so backfilling schedule-only fields (kickoff/venue/city -- NEVER
-    goalsHome/goalsAway/status/qualifiedTeamId) here on every tick closes that gap without new
-    infrastructure. Same withinResultMatchWindow safety anchor as the score-matching path: worst
-    case of a wrong team-name match here is a cosmetically wrong date/venue, never a result or a
-    payment. Returns the number of legs patched.
-    """
-    state = sb_fetch()
-    patched = 0
-    for phase in state.get("phases", {}).values():
-        for tie in phase.get("ties", {}).values():
-            if not tie.get("teamA") or not tie.get("teamB"):
-                continue
-            matches = tie.get("matches") or {}
-            tie_kickoff_anchor = next((m.get("kickoff") for m in matches.values() if m and m.get("kickoff")), None)
-            for leg, m in matches.items():
-                if not m or m.get("kickoff") or m.get("goalsHome") is not None:
-                    continue  # already scheduled, or already played -- nothing to backfill
-                home = tie["teamB"] if leg == "second" else tie["teamA"]
-                away = tie["teamA"] if leg == "second" else tie["teamB"]
-                ev = next((c for c in espn_candidates
-                           if c["homeTeam"] == home and c["awayTeam"] == away and c.get("dateISO")
-                           and within_result_match_window(c["dateISO"], m.get("kickoff") or tie_kickoff_anchor)), None)
-                if not ev:
-                    continue
-                matches[leg] = {
-                    **m, "kickoff": ev["dateISO"],
-                    "venue": ev.get("venue") or m.get("venue"),
-                    "city": ev.get("city") or m.get("city"),
-                }
-                patched += 1
-    if not patched:
-        return 0
-    state.setdefault("auditLog", []).insert(0, {
-        "ts": datetime.now(timezone.utc).isoformat(), "action": "backfill-schedule", "admin": True,
-        "detail": {"legsPatched": patched, "source": "espn-auto-cron"},
-    })
-    if len(state["auditLog"]) > 200:
-        state["auditLog"] = state["auditLog"][:200]
-    state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    _sb_upsert(state)
-    return patched
+    """Backfill de horario, uma mao por chamada. So o kickoff: um leg ja FINAL nao volta a
+    SCHEDULED porque a data detalhada chegou depois."""
+    aplicados = 0
+    for c in espn_candidates:
+        if not (c.get("phaseId") and c.get("tieId") and c.get("leg") and c.get("dateISO")):
+            continue
+        _sb_rpc("backfill-kickoff", {
+            "phaseId": c["phaseId"], "tieId": c["tieId"], "leg": c["leg"], "kickoff": c["dateISO"],
+        }, _ref("kickoff", c["phaseId"], c["tieId"], c["leg"], c["dateISO"]))
+        aplicados += 1
+    return aplicados
 
 
 def sb_lock_tie(phase_id, tie_id, qualified_side, source="espn-auto"):
-    state = sb_fetch()
-    tie = state["phases"][phase_id]["ties"][tie_id]
-    if tie.get("qualifiedTeamId"):
-        return 200, state  # already locked (manual or a previous run) — never overwrite
-    locked_at = datetime.now(timezone.utc).isoformat()
-    tie["qualifiedTeamId"] = qualified_side
-    tie["lockedAt"] = locked_at
-    tie["lockedBy"] = source
-    state.setdefault("auditLog", []).insert(0, {
-        "ts": locked_at, "action": "lock-tie", "admin": True,
-        "detail": {"phase": phase_id, "tieId": tie_id, "qualifiedTeamId": qualified_side},
-    })
-    if len(state["auditLog"]) > 200:
-        state["auditLog"] = state["auditLog"][:200]
-    state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    status = _sb_upsert(state)
-    return status, state
+    """Trava o confronto com o classificado. lockedAt/lockedBy sao gravados pelo servidor."""
+    status, _ = _sb_rpc("lock-tie", {
+        "phaseId": phase_id, "tieId": tie_id, "qualifiedTeamId": qualified_side, "lockedBy": source,
+    }, _ref("lock", phase_id, tie_id, qualified_side))
+    return status, None
 
 
 def sb_clear_leg(phase_id, tie_id, leg):
-    state = sb_fetch()
-    tie = state["phases"][phase_id]["ties"][tie_id]
-    m = tie["matches"].get(leg)
-    had_result = bool(m and m.get("goalsHome") is not None)
-    if m:
-        m["goalsHome"] = None
-        m["goalsAway"] = None
-        m["status"] = "SCHEDULED"
-    if tie.get("qualifiedTeamId"):
-        tie["qualifiedTeamId"] = None
-        tie["lockedAt"] = None
-        tie["lockedBy"] = None
-    state.setdefault("auditLog", []).insert(0, {
-        "ts": datetime.now(timezone.utc).isoformat(), "action": "clear-leg", "admin": True,
-        "detail": {"phase": phase_id, "tieId": tie_id, "leg": leg},
-    })
-    state.setdefault("meta", {})["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    status = _sb_upsert(state)
-    print(f"{tie_id}:{leg} {'removido' if had_result else '(já estava vazio)'}. Confronto destravado se estava. Status: {status}")
+    """Retrata o placar E destrava o confronto -- os dois juntos, porque limpar o resultado sem
+    destravar deixaria um classificado apoiado num placar que nao existe mais."""
+    status, _ = _sb_rpc("clear-leg", {"phaseId": phase_id, "tieId": tie_id, "leg": leg},
+                        _ref("clear", phase_id, tie_id, leg))
+    print(f"{tie_id}:{leg} limpo e confronto destravado. Status: {status}")
 
 
 def _parse(v):

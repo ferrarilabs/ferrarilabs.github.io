@@ -65,10 +65,19 @@ def le_estado():
     return d[0]["state"]
 
 
-def grava_estado(estado):
-    _req("PATCH", f"/rest/v1/bolao_state?id=eq.{STATE_ID}",
-         {"state": estado, "updated_at": datetime.now(timezone.utc).isoformat()},
-         {"Prefer": "return=minimal"})
+def _rpc(tipo, payload, client_ref, actor="operator-cli"):
+    """Mutacao ESTREITA no servidor. Este CLI nao grava mais o documento inteiro.
+
+    Aqui havia `grava_estado(estado)`: um PATCH do documento completo. Era o mesmo formato que o
+    copa2026 aposentou, e a comparacao de invariantes que este arquivo faz depois de gravar era
+    DETECCAO, nao prevencao -- a janela de perda continuava aberta entre a leitura e o PATCH.
+
+    `cdb_apply_operator_mutation` aplica um caminho jsonb sob `for update`, com idempotencia por
+    client_ref. Nenhum documento sai daqui.
+    """
+    _, d = _req("POST", "/rest/v1/rpc/cdb_apply_operator_mutation",
+                {"p_type": tipo, "p_payload": payload, "p_actor": actor, "p_client_ref": client_ref})
+    return d
 
 
 def _hash(o):
@@ -272,7 +281,7 @@ def cmd_apply_draw(a):
         return 0
 
     agora = datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-    estado["phases"][fase]["ties"] = novos
+    estado["phases"][fase]["ties"] = novos  # so para as invariantes locais abaixo
 
     # PROVENIENCIA DENTRO DA FASE — e ali que `drawLifecycle()` a le (js/app.js:180:
     # `phase && phase.officialDraw`). A primeira versao gravou na RAIZ do estado; os confrontos
@@ -282,7 +291,9 @@ def cmd_apply_draw(a):
     #
     # Os cinco campos sao exigidos por `officialDrawProvenanceIsValid()`; sem os cinco o ciclo
     # cai em INGESTED ("proveniencia incompleta") em vez de LOCKED, e o bracket nao vira oficial.
-    estado["phases"][fase]["officialDraw"] = {
+    # Montado aqui e enviado INTEIRO para set-official-draw; a copia local so alimenta as
+    # invariantes impressas abaixo.
+    draw_obj = {
         "authority": "CBF",
         "source": origem.get("source"),
         "sourceUrl": origem.get("sourceUrl"),
@@ -295,6 +306,7 @@ def cmd_apply_draw(a):
         "bracketHash": bracket_hash,
         "note": origem.get("note"),
     }
+    estado["phases"][fase]["officialDraw"] = draw_obj
     # O bloco antigo na raiz, se existir, sai: duas verdades sobre o mesmo sorteio em lugares
     # diferentes e a divergencia esperando acontecer.
     if isinstance(estado.get("officialDraw"), dict):
@@ -307,7 +319,23 @@ def cmd_apply_draw(a):
         "payload": {"phaseId": fase, "ties": len(novos), "bracketHash": bracket_hash},
     })
 
-    grava_estado(estado)
+    # UMA MUTACAO ESTREITA POR CONFRONTO, e depois a procedencia. Antes disto era um PATCH do
+    # documento inteiro: se qualquer outra coisa gravasse entre a leitura e o PATCH, sumia.
+    #
+    # A ordem importa. Os confrontos entram primeiro e a procedencia por ultimo, porque
+    # `enforceDrawLifecycle` no app.js APAGA as ties de uma fase que nao tenha
+    # officialDraw.validatedAt -- gravar a procedencia antes das ties abriria uma janela em que a
+    # fase esta validada e vazia, e um navegador que lesse nesse instante persistiria o vazio.
+    for tid, t in novos.items():
+        _rpc("create-tie", {
+            "phaseId": fase, "tieId": tid,
+            "teamA": t["teamA"], "teamB": t["teamB"],
+            "kickoffFirst": (t.get("matches") or {}).get("first", {}).get("kickoff"),
+            "kickoffSecond": (t.get("matches") or {}).get("second", {}).get("kickoff"),
+        }, f"apply-draw:{fase}:{tid}:{bracket_hash}", a.actor)
+    _rpc("set-official-draw", {"phaseId": fase, "officialDraw": draw_obj},
+         f"official-draw:{fase}:{bracket_hash}", a.actor)
+
     depois = le_estado()
     inv_depois = invariantes(depois)
     imprime_invariantes("\n  invariantes depois", inv_depois)
@@ -371,7 +399,10 @@ def cmd_open_picks(a):
         "clientRef": f"open-picks:{a.phase}", "source": "operator-cli",
         "payload": {"phaseId": a.phase, "fields": ["espnSync.activePhaseId", "activePhase"]},
     })
-    grava_estado(estado)
+    # `set-active-phase` grava os DOIS campos no servidor desde 028 -- `activePhase` e
+    # `espnSync.activePhaseId`. Era exatamente a divergencia que este arquivo documenta: o banco
+    # dizia "quartas", o app continuava em "oitavas" e ninguem via os palpites abertos.
+    _rpc("set-active-phase", {"phaseId": a.phase}, f"open-picks:{a.phase}", a.actor)
 
     depois = le_estado()
     problemas = compara(inv_antes, invariantes(depois), permitido=set())

@@ -38,6 +38,9 @@ Usage:
                                              # Supabase state -- safe to run any time.
 """
 
+import os
+import sys
+import urllib.error
 import json
 import os, sys, time, urllib.request
 from datetime import datetime, timezone, timedelta
@@ -225,27 +228,50 @@ def _self_check_rank_entries():
 def sb_fetch():
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state?id=eq.{STATE_ID}&select=state",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}"}
+        headers={"apikey": _service_key(), "Authorization": f"Bearer {_service_key()}"}
     )
     with urllib.request.urlopen(req, timeout=15) as r:
         rows = json.loads(r.read())
         return rows[0]["state"] if rows else {}
 
 
-def sb_upsert(state):
-    if "meta" not in state or not isinstance(state["meta"], dict):
-        state["meta"] = {}
-    state["meta"]["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    body = json.dumps({"id": STATE_ID, "state": state}).encode()
+def _service_key():
+    """A credencial PRIVILEGIADA, so do ambiente. Nunca impressa, nunca em argv, nunca em arquivo."""
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        print("🛑 SUPABASE_SERVICE_ROLE_KEY ausente — gravacao exige runtime confiavel.")
+        sys.exit(2)
+    return k
+
+
+def sb_append_audit(action, detail, client_ref):
+    """Acrescenta UMA entrada de auditoria, do lado do servidor.
+
+    Isto era `sb_upsert(state)`: regravava o DOCUMENTO INTEIRO, com a chave anon PUBLICA, num cron
+    DIARIO, para acrescentar uma linha de log. O unico campo de negocio que mudava era `auditLog`
+    (+ meta.updatedAt, que `_bolao_touch` ja faz no servidor).
+
+    Duas consequencias, e as duas eram reais:
+      1. era um gravador de documento inteiro sem token de concorrencia -- qualquer coisa gravada
+         entre a leitura e o POST sumia;
+      2. rodava com a chave que vai em todo navegador, entao nao era "automacao servidor" em
+         sentido nenhum -- era o mesmo acesso que qualquer visitante tem.
+
+    Alem disso, desde que as policies do br2026 sairam, este caminho ja estava MORTO: a leitura
+    devolvia 0 linhas e a gravacao era negada. Nao esta a ser consertado um job que funcionava.
+    """
+    k = _service_key()
+    body = json.dumps({"p_pool_id": STATE_ID, "p_action": action,
+                       "p_detail": detail, "p_client_ref": client_ref}).encode()
     req = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/bolao_state", data=body, method="POST",
-        headers={
-            "apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}",
-            "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates",
-        }
-    )
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return r.status
+        f"{SUPABASE_URL}/rest/v1/rpc/op_append_audit", data=body, method="POST",
+        headers={"apikey": k, "Authorization": f"Bearer {k}", "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        print(f"🛑 HTTP {e.code}: {e.read().decode()[:300]}")
+        sys.exit(2)
 
 
 def append_audit_log(state, action, detail):
@@ -696,7 +722,8 @@ def run_auto(dry_run=False):
         resultados.append(_process_round(cand, manifest, all_obs, state, ledger, dry_run))
 
     if not dry_run:
-        sb_upsert(state)
+        sb_append_audit('round-email', {'rounds': len(resultados)},
+                         f"round-email:{datetime.now(timezone.utc).date().isoformat()}")
     return {"candidates": candidatos, "rounds": resultados,
             "providerCalls": sum(r["providerCalls"] for r in resultados)}
 
