@@ -261,66 +261,83 @@ def sb_fetch():
         return json.loads(r.read())[0]["state"]
 
 
-def _sb_upsert(state):
-    """Write full state blob to Supabase. Returns HTTP status."""
-    body = json.dumps({"id": "main", "state": state}).encode()
-    req  = urllib.request.Request(
-        f"{SUPABASE_URL}/rest/v1/bolao_state",
-        data=body, method="POST",
-        headers={
-            "apikey":          ANON_KEY,
-            "Authorization":   f"Bearer {ANON_KEY}",
-            "Content-Type":    "application/json",
-            "Prefer":          "resolution=merge-duplicates",
-        }
-    )
-    with urllib.request.urlopen(req, timeout=15) as r:
-        return r.status
+def _service_key():
+    """A credencial PRIVILEGIADA, e so para mutacao.
+
+    As leituras continuam na chave anon: elas nao precisam de privilegio e exigi-lo faria os
+    caminhos so-de-leitura (gerar relatorio, montar e-mail) pararem sem o secret. Menor
+    privilegio por caminho, nao por processo.
+    """
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        print("🛑 SUPABASE_SERVICE_ROLE_KEY ausente — gravacao de resultado exige runtime confiavel.")
+        sys.exit(2)
+    return k
+
+
+def _sb_rpc(fn, args):
+    """Chamada de RPC estreita. NAO existe mais gravacao de documento inteiro neste arquivo.
+
+    O que estava aqui antes era `_sb_upsert(state)`: lia o documento, mudava um campo em Python e
+    regravava o TODO com a chave anon. Duas consequencias, e ambas morderam:
+
+      1. Era o SEGUNDO gravador de documento inteiro da mesma linha -- o navegador e o outro --
+         sem token de concorrencia comum. Qualquer coisa que o navegador tivesse escrito entre o
+         `sb_fetch()` e o POST era silenciosamente desfeita.
+      2. Nao enviava `updated_at`. A coluna ficava com o valor antigo enquanto
+         `state.meta.updatedAt` avancava, e o navegador compara `updated_at` -- entao uma
+         gravacao NOVA do Python podia ser julgada velha e sobrescrita.
+
+    A RPC aplica o caminho jsonb no servidor sob `for update`, e atualiza a coluna e o meta
+    juntos. Nenhuma das duas consequencias sobrevive a isso.
+    """
+    k = _service_key()
+    body = json.dumps(args).encode()
+    req = urllib.request.Request(
+        f"{SUPABASE_URL}/rest/v1/rpc/{fn}", data=body, method="POST",
+        headers={"apikey": k, "Authorization": f"Bearer {k}",
+                 "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            txt = r.read().decode()
+            return r.status, (json.loads(txt) if txt.strip() else None)
+    except urllib.error.HTTPError as e:
+        # O corpo traz a mensagem do RAISE, que e o diagnostico util. O cabecalho traria a
+        # credencial, e por isso so o corpo e lido.
+        print(f"🛑 HTTP {e.code}: {e.read().decode()[:300]}")
+        sys.exit(2)
+
+
+def _client_ref(op, chave):
+    """Idempotencia deterministica: um retry de rede nao pode virar segunda aplicacao."""
+    return f"copa-results:{op}:{chave}"
 
 
 def sb_update_result(mid, goalsA, goalsB, advanceSide):
-    """Upsert a single match result into Supabase. advanceSide: 'A' or 'B'."""
-    state   = sb_fetch()
-    results = state.get("results") or {}
-    results[str(mid)] = {
-        "goalsA":       int(goalsA),
-        "goalsB":       int(goalsB),
-        "advanceSide":  advanceSide.upper(),
-    }
-    # Remove from tombstone if it was previously cleared
-    deleted = set(state.get("deletedResults") or [])
-    deleted.discard(str(mid))
-    state["results"] = results
-    state["deletedResults"] = sorted(deleted)
-    # Update meta.updatedAt so the app's timestamp-based sync guards detect
-    # the change and trigger a re-render on all connected browsers.
-    if "meta" not in state or not isinstance(state["meta"], dict):
-        state["meta"] = {}
-    state["meta"]["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    return _sb_upsert(state)
+    """Grava UM resultado, por caminho estreito no servidor. advanceSide: 'A' ou 'B'."""
+    mid = str(mid)
+    resultado = {"goalsA": int(goalsA), "goalsB": int(goalsB), "advanceSide": advanceSide.upper()}
+    # A RPC tambem levanta a lapide em `deletedResults` e toca meta/updated_at -- o que este
+    # arquivo fazia a mao antes de regravar o documento inteiro.
+    status, _ = _sb_rpc("copa_apply_operator_mutation", {
+        "p_type": "set-result",
+        "p_payload": {"matchId": mid, "result": resultado},
+        "p_actor": os.environ.get("COPA_ACTOR") or "send_result_email",
+        "p_client_ref": _client_ref("set", f"{mid}:{resultado['goalsA']}-{resultado['goalsB']}-{resultado['advanceSide']}"),
+    })
+    return status
 
 
 def sb_clear_result(mid):
-    """Remove a result from Supabase and tombstone it so the site respects the removal."""
+    """Retira um resultado e sepulta o id, para que o navegador com cache tambem o largue."""
     mid = str(mid)
-    state   = sb_fetch()
-    results = state.get("results") or {}
-    deleted = set(state.get("deletedResults") or [])
-
-    had_result = mid in results
-    results.pop(mid, None)
-    deleted.add(mid)
-
-    state["results"] = results
-    state["deletedResults"] = sorted(deleted)
-    if "meta" not in state or not isinstance(state["meta"], dict):
-        state["meta"] = {}
-    state["meta"]["updatedAt"] = datetime.now(timezone.utc).isoformat()
-    status = _sb_upsert(state)
-    if had_result:
-        print(f"M{mid} removido do Supabase (tombstone adicionado). Status: {status}")
-    else:
-        print(f"M{mid} já não existia em results. Tombstone adicionado. Status: {status}")
+    status, _ = _sb_rpc("copa_apply_operator_mutation", {
+        "p_type": "clear-result",
+        "p_payload": {"matchId": mid},
+        "p_actor": os.environ.get("COPA_ACTOR") or "send_result_email",
+        "p_client_ref": _client_ref("clear", mid),
+    })
+    print(f"M{mid} removido do Supabase (tombstone adicionado). Status: {status}")
 
 
 # ── Scoring ───────────────────────────────────────────────────────────────────

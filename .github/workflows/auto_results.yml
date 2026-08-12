@@ -55,6 +55,13 @@ jobs:
           # AUD-02: autorizacao POSITIVA e explicita do envio real. O sender falha fechado sem
           # isto — teste, execucao local e qualquer job nao declarado nao alcancam o provedor.
           BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+          # COPA-PY-WRITER: gravar resultado agora passa por copa_apply_operator_mutation, que e
+          # service_role. Antes este passo regravava o DOCUMENTO INTEIRO com a chave anon publica
+          # — segundo gravador da mesma linha, sem token de concorrencia, e sem enviar
+          # `updated_at`, que e justamente a coluna que o navegador consulta para decidir quem e
+          # mais novo. As LEITURAS continuam na chave anon: menor privilegio por caminho.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          COPA_ACTOR: gha-${{ github.run_id }}
         run: |
           MID="${{ github.event.inputs.match_id }}"
           if [ -n "$MID" ]; then
