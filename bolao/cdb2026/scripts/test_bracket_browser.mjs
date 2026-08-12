@@ -35,7 +35,7 @@ import { startStaticServer } from "../../scripts/static_server.mjs";
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 const RAIZ = join(AQUI, "..", "..", "..");
-const PORT = 8231;
+const PORT = 8253;   // único: ver bolao/scripts/test_harness_ports_unique.mjs
 
 let pass = 0, fail = 0;
 const test = (n, f) => { try { f(); console.log(`  ✓ ${n}`); pass++; }
