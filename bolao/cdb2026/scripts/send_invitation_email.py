@@ -260,7 +260,7 @@ def _fmt_prazo(cutoff_iso):
     return f"{dias[d.weekday()]}, {d.day:02d}/{d.month:02d} às {d.hour:02d}h{d.minute:02d} (Brasília)"
 
 
-def build_html(entry, state, cutoff_iso, link):
+def build_html(entry, state, cutoff_iso, link, correcao=False):
     fase = (state.get("phases") or {}).get(FASE) or {}
     confrontos = (fase.get("ties") or {}).values()
 
@@ -280,6 +280,15 @@ def build_html(entry, state, cutoff_iso, link):
     nome = entry.get("entryName") or "Participante"
     prazo = _fmt_prazo(cutoff_iso)
 
+    # Dizer o que aconteceu, sem fazer a pessoa adivinhar qual dos dois links vale.
+    aviso = ("" if not correcao else
+             '<div style="background:#fef2f2;border-left:3px solid #dc2626;border-radius:6px;'
+             'padding:12px 14px;margin:0 0 18px">'
+             '<div style="font-size:13px;color:#991b1b;line-height:1.55">'
+             '<strong>O link do e-mail anterior não funcionava.</strong> Era um problema técnico '
+             'nosso, não algo que você fez. Use o botão deste e-mail — o link antigo foi '
+             'desativado.</div></div>')
+
     return f"""
 <div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
             background:#f8fafc;padding:24px 12px">
@@ -292,6 +301,7 @@ def build_html(entry, state, cutoff_iso, link):
       <div style="font-size:22px;font-weight:800;color:#0f172a">As quartas estão definidas</div>
     </div>
 
+    {aviso}
     <p style="color:#334155;font-size:15px;line-height:1.6;margin:0 0 16px">
       Olá, <strong>{nome}</strong> — a CBF sorteou as quartas de final e os palpites já estão
       abertos.
@@ -360,6 +370,8 @@ def main():
     p.add_argument("--apply", action="store_true")
     p.add_argument("--reissue", action="store_true",
                    help="emite token NOVO para quem já tem (invalida o link anterior)")
+    p.add_argument("--correction", action="store_true",
+                   help="reenvio de ACESSO: o convite ja saiu, mas o link nao autenticava")
     args = p.parse_args()
     if not args.dry_run and not args.apply:
         p.error("escolha --dry-run ou --apply")
@@ -388,7 +400,11 @@ def main():
 
     elegiveis = eligible_entries(state)
     ja = already_invited_ids()
-    alvos = [e for e in elegiveis if args.reissue or e.get("id") not in ja]
+    # Correcao rota TODO MUNDO: o defeito era sistemico (nenhum dos doze links autenticava), e
+    # deixar alguem de fora exigiria provar individualmente que o link dele funcionava -- prova
+    # que nao temos, porque o token em claro nao existe em lugar nenhum depois do envio.
+    reemitir = args.reissue or args.correction
+    alvos = [e for e in elegiveis if reemitir or e.get("id") not in ja]
 
     print(f"\n  prazo publicado       {cutoff}  ({_fmt_prazo(cutoff)})")
     print(f"  entradas elegíveis    {len(elegiveis)}")
@@ -421,9 +437,10 @@ def main():
     # de mandar metade dos convites, a execução seguinte recomputa a MESMA chave, reencontra a
     # obrigação e não cria uma segunda. É o equivalente recuperável da atomicidade que um
     # documento JSON gravado por REST não pode dar (ver m8m9.py, "O LIMITE TRANSACIONAL").
-    chave = m8m9.key_cdb_picks_open("quarterfinal")
+    chave = (m8m9.key_cdb_access_correction("quarterfinal") if args.correction
+             else m8m9.key_cdb_picks_open("quarterfinal"))
     evento_id, criado = m8m9.emit_outbox(
-        chave, "cdb2026.picks_open_invitation",
+        chave, "cdb2026.access_correction" if args.correction else "cdb2026.picks_open_invitation",
         payload={"phaseId": FASE, "cutoffAt": cutoff, "recipientCount": len(alvos)},
         correlation_id=corr)
     print(f"  obrigação durável     {'criada' if criado else 'já existia'}")
@@ -431,7 +448,9 @@ def main():
     # O ledger POR DESTINATÁRIO continua sendo a autoridade de transporte: `already_invited_ids()`
     # decide quem recebe. O outbox envolve o envio, nunca o duplica -- se ele também escolhesse
     # destinatário haveria dois caminhos para o mesmo e-mail.
-    trabalho = m8m9.claim(f"cdb-invitation-{os.getpid()}", event_type="cdb2026.picks_open_invitation")
+    trabalho = m8m9.claim(f"cdb-invitation-{os.getpid()}",
+                          event_type="cdb2026.access_correction" if args.correction
+                          else "cdb2026.picks_open_invitation")
     if trabalho is None:
         # Outro processo está com o lease. Sair é o certo: dois consumidores enviando o mesmo
         # convite é exatamente o que a reivindicação atômica existe para impedir.
@@ -449,9 +468,10 @@ def main():
         token = None
         try:
             token = issue_token(eid, f"convite quartas; emitido {carimbo}")
-            html = build_html(e, state, cutoff, f"{SITE_URL}#t={token}")
-            st, _ = send_email(e["participantEmail"],
-                               "Copa do Brasil 2026 — quartas de final", html)
+            html = build_html(e, state, cutoff, f"{SITE_URL}#t={token}", correcao=args.correction)
+            assunto = ("Copa do Brasil 2026 — seu link de acesso (corrigido)" if args.correction
+                       else "Copa do Brasil 2026 — quartas de final")
+            st, _ = send_email(e["participantEmail"], assunto, html)
             if st in (200, "ok") or (isinstance(st, int) and 200 <= st < 300):
                 print(f"  ✓ {nome}")
                 enviados += 1

@@ -169,6 +169,20 @@ def key_cdb_picks_open(phase_id, year=2026, version=1):
     return f"cdb2026:{phase_id}-picks-open:{year}:v{version}"
 
 
+def key_cdb_access_correction(phase_id, year=2026, version=1):
+    """Correcao de ACESSO e um evento de negocio DIFERENTE do convite original.
+
+    Reusar a chave do convite corromperia o registro do que ja aconteceu: aquele evento esta
+    `sent` e descreve doze e-mails realmente entregues. O que falhou depois nao foi a entrega --
+    foi o link. Sao fatos distintos e merecem linhas distintas, senao a auditoria passa a contar
+    uma historia em que a primeira entrega nao ocorreu.
+
+    Tambem e o que da semantica exatamente-uma-vez a correcao POR SI: reenviar a correcao duas
+    vezes e impedido pela mesma unicidade, sem depender do estado do convite original.
+    """
+    return f"cdb2026:{phase_id}-access-correction:{year}:v{version}"
+
+
 def key_cdb_result(phase_id, tie_id, leg, version=1):
     return f"cdb2026:result:{phase_id}:{tie_id}:{leg}:v{version}"
 
