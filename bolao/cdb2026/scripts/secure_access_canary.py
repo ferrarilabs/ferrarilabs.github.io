@@ -101,8 +101,18 @@ def main():
     # ── emite credencial ──────────────────────────────────────────────────────────────────
     token = secrets.token_urlsafe(32)          # >=256 bits de entropia
     token_hash = hashlib.sha256(token.encode()).hexdigest()
+    # `revoked_at: None` e OBRIGATORIO, pela mesma razao que no sender.
+    #
+    # `merge-duplicates` atualiza as colunas ENVIADAS e preserva as demais. Se esta entrada ja
+    # tiver uma linha revogada -- e depois do incidente de 2026-08-12 as doze tinham --, o token
+    # novo nasce morto e o canario reprova em `ACESSO_NEGADO` sem que nada esteja errado com o
+    # que ele testa.
+    #
+    # Este bug existiu DUAS VEZES porque a emissao estava duplicada: uma copia aqui, outra no
+    # sender. Consertei o sender e este arquivo continuou quebrado. Duas copias da mesma regra
+    # sao duas oportunidades de errar, e so uma delas costuma ser lembrada.
     st, _ = req("POST", "/rest/v1/cdb_entry_access",
-                {"entry_id": alvo["id"], "token_hash": token_hash,
+                {"entry_id": alvo["id"], "token_hash": token_hash, "revoked_at": None,
                  "note": "canario automatico; revogado no fim da execucao"},
                 privilegiada=True, extra={"Prefer": "resolution=merge-duplicates,return=minimal"})
     check("credencial emitida pelo caminho privilegiado", st in (200, 201, 204), f"http={st}")
@@ -150,10 +160,14 @@ def main():
         # seguro; era um canario com sorte. Agora ele salva de volta EXATAMENTE o que leu, entao
         # exercita o caminho de escrita inteiro e o conteudo final e identico ao inicial, com a
         # fase aberta ou fechada.
-        palpites_atuais = (r or {}).get("picks") if isinstance(r, dict) else None
+        # Re-le a PROPRIA entrada agora, em vez de reaproveitar o `r` que sobrou das checagens
+        # de falha generica acima -- aquele `r` e None de proposito, e mandar `{}` para o save
+        # APAGARIA os palpites da pessoa em vez de reescrever os mesmos.
+        _, _atual = rpc("cdb_my_entry", {"p_token": token})
+        palpites_atuais = (_atual or {}).get("picks") if isinstance(_atual, dict) else None
         st, r = rpc("cdb_save_my_picks",
                     {"p_token": token, "p_client_ref": "canario-1",
-                     "p_picks": palpites_atuais if palpites_atuais is not None else {}})
+                     "p_picks": palpites_atuais if palpites_atuais is not None else None})
         msg = json.dumps(r or {})
         aceitou = 200 <= st < 300
         recusou_por_prazo = st >= 400 and ("FASE_FECHADA" in msg or "PRAZO" in msg.upper())
