@@ -139,6 +139,12 @@ def main():
     # numera as semifinais. Fica registrado na proveniencia para ninguem ler como fato da CBF.
     provenancia = {
         "authority": "CBF",
+        # `source` e OBRIGATORIO para o app: topologyProvenanceIsValid() exige
+        # ["authority", "source", "ingestedAt", "validatedAt"]. Sem ele a topologia fica gravada
+        # e a tela continua dizendo que o chaveamento nao saiu -- pior que nao registrar, porque
+        # parece configurado.
+        "source": "CBF (sorteio oficial de 2026-08-11, que definiu o caminho ate a final), "
+                  "lido por cobertura jornalistica de DUAS fontes independentes",
         "event": "Sorteio das quartas de final da Copa do Brasil 2026, realizado pela CBF em "
                  "2026-08-11, que definiu tambem o caminho ate a final",
         "channel": "cobertura jornalistica — o cbf.com.br nao expoe os confrontos de forma "
@@ -170,6 +176,16 @@ def main():
     if not (200 <= st < 300):
         print(f"\n🛑 registro recusado: http={st} {json.dumps(r or {})[:220]}")
         return 1
+    # Topologia ja registrada com as MESMAS vagas: atualiza so a proveniencia. As vagas sao o
+    # fato e permanecem imutaveis; a proveniencia descreve de onde o fato veio.
+    if isinstance(r, dict) and r.get("applied") is False:
+        print(f"  (ja registrada — refrescando proveniencia)")
+        st2, r2 = req("POST", "/rest/v1/rpc/cdb_refresh_topology_provenance", {
+            "p_phase_id": "semifinal", "p_slots": slots, "p_provenance": provenancia})
+        if not (200 <= st2 < 300):
+            print(f"\n🛑 refresh recusado: http={st2} {json.dumps(r2 or {})[:220]}")
+            return 1
+        r = r2
     print(f"\n  resultado  {json.dumps(r)}")
     print("\n  TOPOLOGY_STATUS = REGISTERED")
     print("=" * 76)
