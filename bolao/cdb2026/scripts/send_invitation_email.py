@@ -59,7 +59,28 @@ EMAILJS_URL = "https://api.emailjs.com/api/v1.0/email/send"
 EMAILJS_KEY = "GBZFujsJBET6modve"
 EMAILJS_SVC = "service_o4hyzxr"
 EMAILJS_TMPL = "template_xq7yzzb"
-EMAILJS_HEADERS = {"Content-Type": "application/json", "origin": "https://www.ferrarilabs.com"}
+# ── ESTES HEADERS NAO SAO COSMETICOS ────────────────────────────────────────────────────────
+#
+# O EmailJS valida a Origin contra a allowlist de dominios cadastrada no painel dele. Um valor
+# fora da lista faz a chamada ser RECUSADA com 403 -- foi o que aconteceu na primeira tentativa
+# real: os 12 convites voltaram "HTTP Error 403: Forbidden", nenhum saiu.
+#
+# Eu tinha escrito `origin: https://www.ferrarilabs.com`, a origem canonica de PRODUCAO. Ela esta
+# certa para o LINK que o participante ve (SITE_URL, mais abaixo) e errada aqui: quem decide este
+# valor e o painel do provedor, nao o CNAME do site. `send_result_email.py` -- que ja entregou de
+# verdade -- carrega um comentario avisando exatamente isso, e eu troquei assim mesmo.
+#
+# Copiados verbatim dos senders comprovados (Powerball 15/15 em 10/08, e o de resultado do CDB).
+# NAO trocar para www.ferrarilabs.com sem antes conferir a allowlist no painel do EmailJS.
+EMAILJS_HEADERS = {
+    "Content-Type": "application/json",
+    "User-Agent": (
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+        "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36"
+    ),
+    "Origin":  "https://ferrarilabs.github.io",
+    "Referer": "https://ferrarilabs.github.io/bolao/cdb2026/",
+}
 
 _TRANSPORT = None  # teste injeta callable(url, body, headers) -> (status, texto)
 _ALLOW_ENV = "BOLAO_ALLOW_REAL_SEND"
