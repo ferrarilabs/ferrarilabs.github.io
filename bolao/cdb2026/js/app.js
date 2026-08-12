@@ -2052,9 +2052,10 @@ function renderPickForm() {
     if (DERIVED_PHASES[phase.id] && !ties.length) {
       const virt = virtualDerivedTies(s, phase.id, getPickValues());
       if (!virt.topologyKnown) {
-        html += `<div class="pick-group">
-          <div class="pick-group-header champion-header">${esc(phase.name)}</div>
-          <p class="muted small-text">${esc(t("topologyUnpublished"))}</p></div>`;
+        // O grupo e o cabecalho JA foram emitidos acima. Abrir outro aqui rendia duas secoes
+        // "SEMIFINAL" na tela -- uma do renderizador de fase, outra deste ramo. Cada fase logica
+        // tem UM dono de secao, e o dono e o laco de fases.
+        html += `<p class="muted small-text">${esc(t("topologyUnpublished"))}</p></div>`;
         return;
       }
       ties = virt.ties;
@@ -2063,8 +2064,7 @@ function renderPickForm() {
 
     if (!ties.length && pendentesDerivadas.length) {
       // Nenhum confronto fechado ainda: mostra de QUEM cada vaga depende. Nunca um clube.
-      html += `<div class="pick-group">
-        <div class="pick-group-header champion-header">${esc(phase.name)}</div>`;
+      // (Sem reabrir grupo: a secao desta fase ja esta aberta.)
       html += pendentesDerivadas.map(pd => `<p class="muted small-text" data-derived-slot="${esc(pd.slotId)}">
         ${esc(participantLabel(pd.a, predecessorLabel(s, pd.sideA.winnerOf, getPickValues())))}
         × ${esc(participantLabel(pd.b, predecessorLabel(s, pd.sideB.winnerOf, getPickValues())))}
@@ -2088,6 +2088,10 @@ function renderPickForm() {
       html += `<p class="muted small-text">${esc(t("waitingDraw"))}</p></div>`;
       return;
     }
+    // Na FINAL ninguem avanca para lugar nenhum: quem vence e CAMPEAO. Rotular a escolha como
+    // "quem se classifica" descrevia uma fase seguinte que nao existe -- e o bonus tambem e
+    // outro (pódio, nao classificacao).
+    const ehFinal = phase.id === "final";
     ties.forEach(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return;
       const savedMatches = picksAtuais().matches?.[tieId] || {};
@@ -2134,12 +2138,12 @@ function renderPickForm() {
       html += `<div class="pick-row tie-row open tie-pick-block open" id="tie-${esc(tieId)}" data-tie-id="${esc(tieId)}" data-format="${esc(phase.format)}">
         ${legInputs}
         ${aggBlock}
-        <select class="pk-qualified" aria-label="${esc(t("pickAdvanceLabel"))}">
-          <option value="">${esc(t("pickSelectAdvance"))}</option>
+        <select class="pk-qualified" aria-label="${esc(t(ehFinal ? "pickChampionLabel" : "pickAdvanceLabel"))}">
+          <option value="">${esc(t(ehFinal ? "pickSelectChampion" : "pickSelectAdvance"))}</option>
           <option value="A" ${savedQual === "A" ? "selected" : ""}>${esc(tie.teamA)}</option>
           <option value="B" ${savedQual === "B" ? "selected" : ""}>${esc(tie.teamB)}</option>
         </select>
-        <span class="pick-pts-hint">${esc(t("pickHintTie"))}</span>
+        <span class="pick-pts-hint">${esc(t(ehFinal ? "pickHintFinal" : "pickHintTie"))}</span>
       </div>`;
     });
     html += `</div>`;

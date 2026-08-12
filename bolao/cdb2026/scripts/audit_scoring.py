@@ -41,13 +41,60 @@ scoring tiers, only the platform-shared values (10/5/1) happened to already line
 CHANGELOG.md for the full incident trail, both directions.
 """
 import re
+import pathlib
 import sys
 from datetime import datetime, timezone
 
-# Transcribed from bolao/cdb2026/js/config.js `scoring` block — keep in sync by hand.
+# Valores AUTORITATIVOS das regras do bolao. Transcritos aqui de proposito -- este arquivo e a
+# referencia contra a qual o config.js e conferido, nao uma copia que segue o config.
 MATCH_SCORING = {"exact": 10, "result": 5, "side": 1}
 TIE_BONUS = 5
 PODIUM_BONUS = {"champion": 30, "runnerUp": 20}
+
+
+def check_config_matches_rules():
+    """O config.js REALMENTE vale o que as regras dizem?
+
+    Ate 2026-08-12 este arquivo apenas TRANSCREVIA os valores ("keep in sync by hand") e nunca
+    olhava o config. Medido por mutacao: trocar `exact: 10` por 15, ou `champion: 30` por 25, no
+    config.js -- e a auditoria continuava VERDE. Ela conferia estrutura e exclusividade mutua,
+    nunca os numeros que pagam.
+
+    Duas copias da mesma constante e uma divergencia esperando acontecer; a diferenca aqui e que
+    a divergencia sai em dinheiro. Agora a transcricao acima e a AUTORIDADE, e o config e
+    conferido contra ela.
+    """
+    import re
+    problemas = []
+    cfg = (pathlib.Path(__file__).resolve().parents[1] / "js" / "config.js").read_text()
+    bloco = cfg[cfg.index("scoring:"):]
+    bloco = bloco[:bloco.index("emailjs:")]
+
+    def num(campo):
+        m = re.search(rf"\b{campo}\s*:\s*(\d+)", bloco)
+        if not m:
+            problemas.append(f"nao achei `{campo}` no bloco scoring do config.js")
+            return None
+        return int(m.group(1))
+
+    esperado = {
+        "exact": MATCH_SCORING["exact"], "result": MATCH_SCORING["result"],
+        "side": MATCH_SCORING["side"], "tieBonus": TIE_BONUS,
+        "champion": PODIUM_BONUS["champion"], "runnerUp": PODIUM_BONUS["runnerUp"],
+    }
+    for campo, valor in esperado.items():
+        real = num(campo)
+        if real is not None and real != valor:
+            problemas.append(
+                f"config.js diz {campo}={real}; as regras dizem {valor}. Se a regra mudou, ela "
+                "muda NOS DOIS lugares no mesmo commit -- e mudanca de scoring exige "
+                "autorizacao explicita do Eduardo")
+
+    # Sem terceiro lugar na Copa do Brasil: um bonus de 3o/4o aqui seria outra competicao.
+    if re.search(r"\b(third|fourth|terceiro|quarto)\s*:", bloco):
+        problemas.append("apareceu bonus de 3o/4o lugar — a Copa do Brasil nao tem disputa de terceiro")
+
+    return (not problemas), "; ".join(problemas)
 
 
 def match_points(pick, result):
@@ -251,6 +298,7 @@ def check_result_shape(result):
 
 def run_static_audit(verbose=True):
     checks = [
+        ("config.js vale o que as regras dizem", check_config_matches_rules),
         ("Match points mutually exclusive (exact/result/side/miss)", check_match_points_mutually_exclusive),
         ("Tie bonus + podium bonus applied and summed", check_tie_bonus_and_podium_applied),
         ("Wrong qualifier pick scores no tie bonus", check_wrong_tie_pick_no_bonus),
