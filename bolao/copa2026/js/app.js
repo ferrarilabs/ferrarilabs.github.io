@@ -191,18 +191,21 @@ function saveLocalState(s) {
   localStorage.setItem(CONFIG.storeKey, JSON.stringify(s));
 }
 
-let syncTimer = null;
+// COPA-APP-ROUTING: `saveState()` NAO grava mais no remoto.
+//
+// O navegador do copa2026 carrega a MESMA chave anon publica que qualquer visitante e nunca se
+// autentica — `guardAdmin()` protege a interface, nao o banco. Enquanto esta funcao gravava o
+// DOCUMENTO INTEIRO, qualquer visitante podia reescrever o bolao, e nenhuma senha de admin
+// mudava isso.
+//
+// Toda mutacao privilegiada passou para o runtime confiavel (COPA-IDENTITY opcao (b)):
+// bolao/copa2026/scripts/operator_cli.py, que roda com service_role fora do navegador. O mesmo
+// caminho que o br2026 ja segue desde o N22.
+//
+// A escrita local permanece: o rascunho do participante e o cache de leitura continuam a
+// funcionar exatamente como antes.
 function saveState(s, opts = {}) {
   saveLocalState(s);
-  if (!dbEnabled()) return;
-  const snap = JSON.parse(JSON.stringify(s));
-  if (opts.forceResults) {
-    // Admin saves: fire immediately — no debounce so the fetch starts before any tab switch
-    saveRemoteState(snap, opts).catch(err => console.warn("Sync failed", err));
-    return;
-  }
-  clearTimeout(syncTimer);
-  syncTimer = setTimeout(() => saveRemoteState(snap, opts).catch(err => console.warn("Sync failed", err)), 400);
 }
 
 /* ── Supabase ── */
@@ -291,9 +294,14 @@ function mergeStates(local, remote, opts = {}) {
 async function loadRemoteState() {
   if (!initDb()) return false;
   const cfg = CONFIG.database;
+  // LEITURA SANITIZADA. `readTable` aponta para `bolao_state_public`, que remove
+  // participantEmail, payerName, paymentMethod e paymentTo. A view NAO foi enfraquecida para o
+  // painel de admin voltar a renderiza-los: quem precisa desses campos usa o runtime confiavel.
+  const readTable = cfg.readTable || cfg.table;
+  const sanitizado = readTable !== cfg.table;
   try {
     const { data, error } = await remoteDb
-      .from(cfg.table).select("state,updated_at")
+      .from(readTable).select("state,updated_at")
       .eq("id", cfg.stateId || "main").maybeSingle();
     if (error) throw error;
     if (data?.state) {
@@ -303,11 +311,22 @@ async function loadRemoteState() {
       // preferRemoteResults: Supabase results (admin-managed) always win over
       // stale local cache — ensures corrections from Python script propagate.
       const merged = mergeStates(local, data.state, { preferRemoteResults: true });
+      // Marcador de projecao sanitizada, propagado do cdb2026. Enquanto ele estiver presente,
+      // nenhum caminho pode regravar o documento inteiro: fazer isso apagaria da linha viva os
+      // quatro campos que a view remove.
+      if (sanitizado) merged.__sanitized = true; else delete merged.__sanitized;
       saveLocalState(merged);
       return true;
     }
-    await saveRemoteState(state());
-    return true;
+    // A GRAVACAO DE VOLTA FOI REMOVIDA, e a remocao e o ponto.
+    //
+    // Aqui havia `await saveRemoteState(state())`: quando a leitura respondia SEM linha, o app
+    // enviava o localStorage DESTE navegador como documento autoritativo. Nada nesse caminho
+    // olhava para admin, prazo ou modo arquivado — bastava a leitura vir vazia. Apontar a
+    // leitura para outra relacao teria transformado isso numa sobrescrita de producao a partir
+    // de um cache de visitante, entao a rota nao foi repontada: foi apagada.
+    console.warn("[COPA2026] leitura remota sem linha para", cfg.stateId, "— mantendo o estado local.");
+    return false;
   } catch (err) { console.warn("Remote load failed", err); return false; }
 }
 
@@ -371,57 +390,22 @@ function emailSendAllowed() {
 }
 
 
-async function saveRemoteState(s, opts = {}) {
-  if (!initDb()) return false;
-  // TEST ISOLATION: fail closed antes de qualquer escrita remota. O estado local já foi gravado
-  // pelo chamador, então nada é perdido — só não vaza para a produção.
-  const gate = productionWritesAllowed();
-  if (!gate.allowed) {
-    console.warn(`[COPA2026] TEST ISOLATION: gravação remota BLOQUEADA — ${gate.reason}. ` +
-      `Estado salvo apenas localmente. Para liberar deliberadamente: ` +
-      `sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
-    return false;
-  }
-  if (gate.overridden) {
-    console.warn(`[COPA2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
-  }
-  const cfg = CONFIG.database;
-  try {
-    const { data: cur } = await remoteDb
-      .from(cfg.table).select("updated_at,state")
-      .eq("id", cfg.stateId || "main").maybeSingle();
-    if (cur) {
-      const remoteAt = cur.updated_at || cur.state?.meta?.updatedAt || "";
-      const localAt  = s.meta?.updatedAt || "";
-      if (remoteAt > localAt) {
-        const merged = mergeStates(s, cur.state || {});
-        saveLocalState(merged);
-        s = merged;
-      } else if (!opts.forceResults) {
-        // Non-admin save: preserve remote results and paid marks so participant
-        // entry saves never overwrite admin-managed data in Supabase.
-        const cur_state = cur.state || {};
-        const remoteResults = cur_state.results || {};
-        if (Object.keys(remoteResults).length > 0) {
-          s = { ...s, results: { ...remoteResults } };
-        }
-        const remotePaid = cur_state.paid || {};
-        if (Object.keys(remotePaid).length > 0) {
-          const mergedPaid = Object.assign({}, s.paid || {});
-          for (const k of Object.keys(remotePaid)) {
-            mergedPaid[k] = !!(mergedPaid[k] || remotePaid[k]);
-          }
-          s = { ...s, paid: mergedPaid };
-        }
-      }
-    }
-    const { error } = await remoteDb.from(cfg.table).upsert(
-      { id: cfg.stateId || "main", state: s, updated_at: new Date().toISOString() },
-      { onConflict: "id" }
-    );
-    if (error) throw error;
-    return true;
-  } catch (err) { console.warn("Remote save failed", err); return false; }
+/**
+ * FAIL-CLOSED. O copa2026 nao grava mais no banco a partir do navegador.
+ *
+ * Isto era um upsert do DOCUMENTO INTEIRO com a chave anon publica — o unico gravador fisico do
+ * app, alimentado por dez caminhos logicos. Foi substituido pelo runtime confiavel
+ * (operator_cli.py + copa2026_operator.yml), que aplica caminhos jsonb estreitos no servidor sob
+ * `for update`, com idempotencia por client_ref.
+ *
+ * O stub existe em vez de a funcao simplesmente sumir para que qualquer chamador esquecido FALHE
+ * ALTO, aqui, com esta mensagem — e nao com um ReferenceError sem explicacao no meio de uma acao
+ * de operador.
+ */
+async function saveRemoteState() {
+  throw new Error(
+    "COPA2026: gravacao remota pelo navegador foi removida (COPA-APP-ROUTING). " +
+    "Operacoes privilegiadas passam pelo runtime confiavel: bolao/copa2026/scripts/operator_cli.py");
 }
 
 async function reloadRemoteIfVisible() {
@@ -701,6 +685,21 @@ function toggleHero() {
 function isAdminActive() {
   return sessionStorage.getItem("adminOk") === "true" &&
          Number(sessionStorage.getItem("adminUntil") || "0") > Date.now();
+}
+
+/**
+ * Operacoes privilegiadas nao sao mais botoes.
+ *
+ * COPA-IDENTITY opcao (b): o navegador e anonimo para o banco, entao nao existe fronteira de
+ * seguranca que um botao possa cruzar. Estas acoes rodam pelo runtime confiavel. A funcao NAO
+ * apaga a funcionalidade em silencio — diz onde ela foi parar.
+ */
+const OPERATOR_CLI = "bolao/copa2026/scripts/operator_cli.py";
+function operatorOnly(comando) {
+  const msg = `Esta operacao agora roda pelo runtime confiavel: ${OPERATOR_CLI} ${comando}`;
+  console.info(`[COPA2026] ${msg}`);
+  try { showToast(msg, "info", 9000); } catch { /* toast indisponivel: o console ja registrou */ }
+  return true;
 }
 
 function guardAdmin() {
@@ -2515,6 +2514,7 @@ function updateRealCard(card) {
 }
 
 function commitRealResult(card) {
+  if (operatorOnly("set-result --match <id> --goals-a N --goals-b N")) return;
   const mid = card.dataset.realMatch;
   const ga = parseScore(card.querySelector('[data-real-field="goalsA"]')?.value);
   const gb = parseScore(card.querySelector('[data-real-field="goalsB"]')?.value);
@@ -3494,6 +3494,7 @@ function adminLogout() {
 
 async function deleteEntry(id) {
   if (!guardAdmin()) return;
+  if (operatorOnly("remove-entry --entry <id>")) return;
   const s = state();
   const e = s.entries.find(x => x.id === id);
   if (!e) return;
@@ -3535,6 +3536,7 @@ async function forceSyncFromRemote() {
 
 async function clearAllData() {
   if (!guardAdmin()) return;
+  if (operatorOnly("clear-all")) return;
   if (!confirm(t("clearDataConfirm"))) return;
   const s = state();
   const todayEntries = s.entries.filter(e => isToday(e.createdAt));
@@ -3551,6 +3553,7 @@ async function clearAllData() {
 
 function loadDemoData() {
   if (!guardAdmin()) return;
+  if (operatorOnly("(removido: dados sinteticos num bolao com dinheiro real)")) return;
   const s = state();
   ["Ana Demo", "Bruno Demo", "Carlos Demo"].forEach((name, idx) => {
     const picks = {}, winners = {}, losers = {};
@@ -3972,6 +3975,7 @@ function mapEspnToMatches(events) {
 
 async function runEspnUpdate({ silent = false } = {}) {
   if (!guardAdmin()) return;
+  if (operatorOnly("set-result --match <id> --goals-a N --goals-b N")) return;
   const events = await fetchEspnFixtures();
   if (!events) { if (!silent) showToast("Erro ao buscar ESPN. Verifique o console.", "error"); return; }
   const mapped = mapEspnToMatches(events);
@@ -4912,6 +4916,7 @@ function initEvents() {
     const paidBtn = e.target.closest("[data-paid]");
     if (paidBtn) {
       if (!guardAdmin()) return;
+      if (operatorOnly("set-payment --entry <id> --paid true|false")) return;
       const s = state();
       s.paid[paidBtn.dataset.paid] = !s.paid[paidBtn.dataset.paid];
       saveState(s, { forceResults: true });
