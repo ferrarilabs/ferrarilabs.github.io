@@ -1,0 +1,39 @@
+# Prontidão para a validação de UM e-mail — só leitura.
+#
+# Responde três perguntas antes de o operador clicar "Salvar entrada":
+#
+#   1. existe permissão nominal aberta?            (senão, salvar não gera evento nenhum)
+#   2. a chave de negócio real ainda está sem entrega?  (senão, o envio real viria como JA_ENTREGUE)
+#   3. a credencial de acesso dele está viva?      (senão, ele nem chega na tela de salvar —
+#                                                   foi exatamente o defeito P0 do convite)
+#
+# `BOLAO_ALLOW_REAL_SEND` NÃO é definida aqui e nenhum passo chama o consumidor com `--run`.
+# Este workflow é incapaz de mandar e-mail.
+
+name: CDB2026 — prontidão do comprovante (só leitura)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  conferir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Permissão, entregas e kill switch
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/send_entry_saved_confirmation.py --status
+
+      - name: Credenciais de acesso vivas
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/check_access_credentials.py
