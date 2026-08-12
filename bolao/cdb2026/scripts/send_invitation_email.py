@@ -385,6 +385,32 @@ def send_email(addr, subject, html):
         return r.status, "ok"
 
 
+# ── APROVACAO EM DUAS FASES (correcao/reenvio) ───────────────────────────────────────────────
+#
+# Notificacao inicial pode ser automatica -- ela acontece uma vez, quando o fato de negocio
+# acontece. CORRECAO nao: ela nasce de alguem achando que algo deu errado, e em 2026-08-12 esse
+# "alguem" fui eu, tres vezes seguidas, cada uma gerando e-mail para gente real.
+#
+# Entao correcao exige um manifesto IMUTAVEL aprovado a mao. `send=true` nao serve: um booleano
+# aprova qualquer coisa, inclusive uma lista de destinatarios que mudou depois que o humano
+# olhou. A aprovacao cita o evento, a CONTAGEM e o hash do conteudo -- se qualquer um mudar, a
+# aprovacao deixa de valer sozinha.
+def build_manifest(chave, alvos, cutoff):
+    """Identidade imutavel do lote. Ordenada, para nao depender da ordem de leitura do estado."""
+    corpo = {
+        "businessKey": chave,
+        "cutoffAt": cutoff,
+        "recipients": sorted(hashlib.sha256((e.get("participantEmail") or "").strip().lower()
+                                            .encode()).hexdigest()[:12] for e in alvos),
+    }
+    bruto = json.dumps(corpo, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(bruto.encode()).hexdigest(), len(alvos)
+
+
+def approval_token(chave, n, manifest_hash):
+    return f"{chave}:{n}:{manifest_hash[:8]}"
+
+
 # ── Orquestração ─────────────────────────────────────────────────────────────────────────────
 def main():
     p = argparse.ArgumentParser()
@@ -398,6 +424,10 @@ def main():
                    help="so quem NAO tem credencial viva (nao incomoda quem ja esta com link bom)")
     p.add_argument("--key-version", type=int, default=1,
                    help="versao da chave de negocio; subir = decisao deliberada de reenviar")
+    p.add_argument("--prepare", action="store_true",
+                   help="FASE 1: monta o manifesto imutavel e para. Nenhuma chamada ao provedor.")
+    p.add_argument("--approve", default="",
+                   help="FASE 2: aprovacao literal <evento>:<n>:<hash8> vinda de um --prepare")
     args = p.parse_args()
     if not args.dry_run and not args.apply:
         p.error("escolha --dry-run ou --apply")
@@ -458,6 +488,31 @@ def main():
         print(f"\n  🛑 envio real não autorizado: {motivo}")
         print("\n  CDB_INVITATION_STATUS = BLOCKED_UNAUTHORIZED")
         return 4
+
+    # ── FASE 1 / FASE 2: correção exige manifesto aprovado ─────────────────────────────────
+    if args.correction:
+        chave_prevista = m8m9.key_cdb_access_correction("quarterfinal", version=args.key_version)
+        mhash, n = build_manifest(chave_prevista, alvos, cutoff)
+        esperado = approval_token(chave_prevista, n, mhash)
+        if args.prepare:
+            print("\n  ── MANIFESTO (FASE 1) ──")
+            print(f"  evento         {chave_prevista}")
+            print(f"  destinatarios  {n}")
+            print(f"  manifest hash  {mhash[:16]}…")
+            print("\n  Para enviar, reexecute com:")
+            print(f"    --approve '{esperado}'")
+            print("\n  Nenhuma chamada ao provedor foi feita.")
+            print("\n  CDB_INVITATION_STATUS = MANIFEST_PREPARED")
+            return 0
+        if args.approve.strip() != esperado:
+            print("\n  🛑 APROVACAO AUSENTE OU INVALIDA para uma CORRECAO.")
+            print(f"     recebida  {args.approve.strip() or '(vazia)'}")
+            print(f"     esperada  {esperado}")
+            print("     Se a lista de destinatarios ou o conteudo mudou desde o --prepare, a")
+            print("     aprovacao anterior deixa de valer -- e isso e proposital.")
+            print("\n  CDB_INVITATION_STATUS = APPROVAL_REQUIRED")
+            return 5
+        print(f"  manifesto aprovado    {mhash[:16]}… ({n} destinatarios)")
 
     # ── A OBRIGAÇÃO VIRA LINHA ANTES DE QUALQUER PROVEDOR ────────────────────────────────────
     #
