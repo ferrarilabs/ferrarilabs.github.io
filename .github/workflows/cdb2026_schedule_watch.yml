@@ -87,7 +87,21 @@ jobs:
       #      que a pessoa tem na mao)
       # Entao a execucao de duas em duas horas nao manda nada ate a tabela sair, e manda uma
       # unica vez quando sair.
+      # DISJUNTOR, CAMADA 1 DE 2. A camada 2 vive dentro do proprio sender, antes de qualquer
+      # chamada ao provedor. Duas camadas porque uma so depende de quem edita o YAML lembrar.
+      - name: Disjuntor de e-mail do CDB
+        id: killswitch
+        run: |
+          if [ -f bolao/cdb2026/EMAIL_KILL_SWITCH ]; then
+            echo "ativo=true" >> "$GITHUB_OUTPUT"
+            echo "🛑 CDB_EMAIL_KILL_SWITCH ATIVO — nenhum e-mail do CDB sera enviado."
+            head -3 bolao/cdb2026/EMAIL_KILL_SWITCH
+          else
+            echo "ativo=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Convida quando (e so quando) o prazo estiver publicado
+        if: steps.killswitch.outputs.ativo != 'true'
         working-directory: bolao/cdb2026/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

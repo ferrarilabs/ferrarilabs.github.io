@@ -1,0 +1,34 @@
+ON
+
+CDB2026 — TRANSPORTE REAL DE E-MAIL BLOQUEADO
+=============================================
+
+Ativado em 2026-08-12 pelo incidente de tempestade de e-mail.
+
+O QUE ACONTECEU
+---------------
+O operador recebeu QUATRO e-mails do CDB em 45 minutos:
+
+  12:47 ET  convite original          (12 destinatarios)
+  13:18 ET  correcao                  (12 destinatarios)
+  13:22 ET  correcao dirigida         (so ele)
+  13:30 ET  correcao dirigida de novo (so ele)
+
+Os dois ultimos foram culpa dos VERIFICADORES. `token_roundtrip_canary.py` e
+`secure_access_canary.py` emitiam, usavam e REVOGAVAM a credencial de uma entrada real --
+escolhida por indice, que calhava de ser a do operador. A cada execucao o link dele morria, e
+eu "consertava" mandando outro e-mail.
+
+Um participante real nunca pode ser alvo de verificacao. O operador e participante, nao caixa
+de teste.
+
+COMO DESATIVAR
+--------------
+Apagar este arquivo, num commit deliberado, com o motivo escrito na mensagem. Nao ha variavel
+de ambiente que o contorne: a presenca do ARQUIVO e a trava, e ela viaja com o repositorio --
+sobrevive a rerun, redeploy, restart de processo e recuperacao de lease.
+
+O QUE ELE NAO BLOQUEIA
+----------------------
+Powerball e BR2026. O sorteio do Powerball e hoje e a entrega dele nao tem relacao com este
+incidente.
