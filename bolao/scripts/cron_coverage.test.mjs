@@ -173,6 +173,11 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["cdb2026_register_topology.yml",
+   "Registro da topologia oficial da semifinal (caminho ate a final definido no sorteio de " +
+   "2026-08-11). Ato UNICO e deliberado: a funcao recusa sobrescrever topologia ja registrada " +
+   "com outra diferente, porque mudar o caminho depois que participantes palpitaram reescreveria " +
+   "o significado dos palpites. Agendar nao faria sentido -- nao ha evento recorrente."],
   ["cdb2026_restore_picks.yml",
    "Restauracao de palpites de UMA entrada, a partir de backup verificado. Acionamento humano " +
    "com entrada e conteudo passados a mao. NAO agendado de proposito: um script que restaura " +
