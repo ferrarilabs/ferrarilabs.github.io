@@ -330,7 +330,7 @@ window.POWERBALL_DRAWS = [
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:30 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "10:21 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "6:49 PM", status: "verificado", state: "NC" },
-      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "06/08/2026", hora: "9:06 AM", status: "verificado", state: "FL" },
+      { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "07/08/2026", hora: "9:06:41 AM", status: "verificado", state: "FL" },
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "08/08/2026", hora: "12:12:45 AM", status: "verificado", state: "NC" }
     ],
 
@@ -452,7 +452,7 @@ window.POWERBALL_DRAWS = [
       // Zelle veio da conta empresarial "PS Place LLC" (memo "JORGE FL") — confirmado
       // pelo Eduardo que é o Jorge, mesma pessoa dos sorteios anteriores.
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:13 PM", status: "verificado", state: "FL" },
-      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "12:14 PM", status: "verificado", state: "NC" },
+      { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "12:14:40 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:45 PM", status: "verificado", state: "NC" },
       // Samuel pagou os $10 deste sorteio junto com os $10 do 2026-08-12 num unico Zelle de
       // $20 (txId <redacted>), recebido em 12/08/2026 -- corrigido de "cash" para Zelle.
