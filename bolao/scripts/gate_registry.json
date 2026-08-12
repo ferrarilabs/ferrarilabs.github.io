@@ -419,6 +419,10 @@
     "bolao/cdb2026/scripts/test_bracket_browser.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Navegador real, app real, fixture proprio (Supabase bloqueado na ROTA, entao nunca toca dado de participante). Percorre quartas->semifinal->final->campeao sem salvar, prova invalidacao a jusante, ausencia de 3o/4o lugar, preservacao do visual (.champion-header/.tie-row) e ausencia de overflow em 320/414/768. Existe porque o gate de unidade passava afirmando `teamName` -- o nome de campo do resolvedor -- enquanto o renderizador lia `team` e a tela mostrava undefined."
+    },
+    "bolao/scripts/test_harness_ports_unique.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Estatico. Nenhuma porta de harness declarada por duas suites. Criado depois de eu escolher 8231 para uma suite nova sem ver que audit_live_card_dom.mjs ja usava — custou tres execucoes de verify culpando orfaos de processo. Mutacao (reintroduzir a colisao): pega."
     }
   }
 }
