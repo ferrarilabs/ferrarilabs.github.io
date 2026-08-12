@@ -1,0 +1,34 @@
+# Prova do consumidor do comprovante — TRANSPORTE FALSO.
+#
+# Roda aqui, e não na máquina do operador, porque a `SUPABASE_SERVICE_ROLE_KEY` só existe como
+# secret do repositório. O teste precisa do banco real (fila, reserva, unicidade) e de provedor
+# nenhum.
+#
+# `BOLAO_ALLOW_REAL_SEND` NÃO é definida neste workflow, de propósito: se o transporte falso
+# falhasse em ser instalado, o envio real ainda assim seria recusado pela ausência dela. E o
+# próprio teste substitui `urllib.request.urlopen` por uma sentinela que levanta.
+#
+# Só `workflow_dispatch`: um teste que mexe na fila real não deve rodar sozinho a cada push.
+
+name: CDB2026 — prova do comprovante (transporte falso)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  provar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Seis cenários, nenhuma chamada real
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/test_entry_saved_confirmation.py
