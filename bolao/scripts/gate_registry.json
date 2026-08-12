@@ -79,6 +79,9 @@
     "bolao/cdb2026/scripts/test_result_email_source.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_trusted_state_access.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/visual/check_manifest.mjs": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Verificador de manifesto visual: depende de artefatos de captura gerados sob demanda por scripts/visual/, nao de codigo-fonte. Rodado junto com a geracao de evidencia visual. ACHADO ABERTO em 2026-08-10: acusa overflow horizontal em cdb2026/Jogos@320x568 e @375x667."

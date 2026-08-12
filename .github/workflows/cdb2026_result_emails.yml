@@ -52,6 +52,13 @@ jobs:
           # AUD-02: autorizacao POSITIVA e explicita do envio real. O sender falha fechado sem
           # isto — teste, execucao local e qualquer job nao declarado nao alcancam o provedor.
           BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+          # Desde a migracao 20260812080000 a `anon` nao le nem grava a linha crua do cdb2026 --
+          # ela carrega o e-mail, o pagador e o metodo de pagamento dos 12 participantes. Este
+          # sender e caminho CONFIAVEL e usa a credencial privilegiada, que so existe aqui.
+          #
+          # Sem esta variavel o job falhava com `IndexError: list index out of range`: a consulta
+          # anonima devolvia lista vazia e o script tratava "nao posso ver" como "nao existe".
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         working-directory: bolao/cdb2026/scripts
         run: |
           TIE="${{ github.event.inputs.tie_id }}"

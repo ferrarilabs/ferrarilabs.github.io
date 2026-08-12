@@ -95,6 +95,8 @@ const CHECKS = [
   { id: "draw-provenance", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_draw_provenance.mjs"], why: "official draw provenance" },
   { id: "draw-provenance-patterns", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs"],
     why: "precision/recall of the tie-fabrication patterns" },
+  { id: "cdb-trusted-state-access", group: "security", cmd: ["node", "bolao/cdb2026/scripts/test_trusted_state_access.mjs"],
+    why: "quem le a linha crua precisa da credencial privilegiada E o workflow tem de injeta-la; sem isso o job morre com IndexError" },
   { id: "cdb-phase-lifecycle", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_phase_lifecycle.mjs"],
     why: "cutoffAt=null significava tanto 'sem sorteio' quanto 'prazo pendente'; o segundo caso deixou 12 pessoas sem conseguir palpitar" },
   { id: "cdb-tie-id-parity", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs"],

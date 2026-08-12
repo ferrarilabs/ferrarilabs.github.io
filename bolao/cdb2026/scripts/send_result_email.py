@@ -209,13 +209,43 @@ def within_result_match_window(candidate_date_iso, known_kickoff_iso):
 
 
 # ── Supabase helpers ──────────────────────────────────────────────────────────
+def _sb_key():
+    """Credencial para a linha CRUA do cdb2026. NUNCA impressa.
+
+    Desde 2026-08-12 a `anon` nao enxerga nem grava essa linha (migracao
+    20260812080000): ela carrega participantEmail/payerName/paymentMethod dos 12 participantes,
+    e a chave publicavel vai em todo config.js servido ao navegador.
+
+    Este sender e um caminho CONFIAVEL -- roda no Actions, onde a credencial privilegiada existe.
+    Sem ela, falha FECHADO: continuar com a anon devolveria uma lista vazia e o script trataria
+    "nao posso ver" como "nao existe".
+    """
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        raise RuntimeError(
+            "SUPABASE_SERVICE_ROLE_KEY ausente. A linha crua do cdb2026 nao e acessivel pela "
+            "chave anon desde a migracao 20260812080000 — este sender precisa da credencial "
+            "privilegiada do runner.")
+    return k
+
+
 def sb_fetch():
+    k = _sb_key()
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state?id=eq.{STATE_ID}&select=state",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}"}
+        headers={"apikey": k, "Authorization": f"Bearer {k}"}
     )
     with urllib.request.urlopen(req, timeout=15) as r:
-        return json.loads(r.read())[0]["state"]
+        linhas = json.loads(r.read())
+    # LISTA VAZIA NAO E "ESTADO VAZIO". Era `[0]["state"]` direto, e quando a RLS passou a
+    # esconder a linha o script morreu com `IndexError: list index out of range` -- tres
+    # execucoes agendadas seguidas, com uma mensagem que nao dizia nada sobre permissao.
+    # "Nao consigo ver" e "nao existe" sao coisas diferentes, e so uma delas e um bug de dados.
+    if not linhas:
+        raise RuntimeError(
+            f"bolao_state[{STATE_ID}] devolveu ZERO linhas. Ou a linha sumiu, ou a credencial "
+            f"nao tem permissao de le-la. Nao ha estado para processar — recusando continuar.")
+    return linhas[0]["state"]
 
 
 def _sb_upsert(state):
@@ -224,7 +254,7 @@ def _sb_upsert(state):
         f"{SUPABASE_URL}/rest/v1/bolao_state",
         data=body, method="POST",
         headers={
-            "apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}",
+            "apikey": _sb_key(), "Authorization": f"Bearer {_sb_key()}",
             "Content-Type": "application/json", "Prefer": "resolution=merge-duplicates",
         }
     )

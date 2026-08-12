@@ -116,7 +116,29 @@ jobs:
             # disparar envio de email: todos os workflows de email são schedule/workflow_dispatch,
             # nenhum roda em push.
             git commit -m "chore: bump cache-bust version in index.html"
-            git push
+            # CORRIDA COM OUTRO COMMIT (corrigido 2026-08-12).
+            #
+            # `git push` puro falhava com "! [rejected] main -> main (fetch first)" sempre que
+            # outro commit legitimo chegava em main entre o checkout e o push -- o que acontece
+            # com frequencia aqui, porque varias sessoes e workflows escrevem no mesmo repo.
+            #
+            # Isso e um FALSO VERMELHO: nada esta errado, so chegou gente antes. E o operador
+            # recebia e-mail de falha do GitHub por isso. Ruido constante e como uma falha DE
+            # VERDADE passa despercebida.
+            #
+            # `--rebase --autostash` reaplica o bump por cima do que chegou; o commit toca apenas
+            # index.html, entao conflito real e improvavel. Tres tentativas cobrem uma rajada de
+            # commits concorrentes sem virar laco infinito.
+            ok=""
+            for tentativa in 1 2 3; do
+              if git pull --rebase --autostash origin main && git push; then ok="sim"; break; fi
+              echo "push recusado (tentativa $tentativa) — outro commit chegou em main; refazendo"
+              sleep 3
+            done
+            if [ -z "$ok" ]; then
+              echo "::error::nao consegui empurrar o bump de cache-bust apos 3 tentativas"
+              exit 1
+            fi
             echo "bumped=true" >> "$GITHUB_OUTPUT"
           fi
 
