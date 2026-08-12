@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812190000_delivery_uniqueness_and_rapid_send_breaker.sql
 --
 -- ═══ O QUE ACONTECEU (2026-08-12) ════════════════════════════════════════════════════════════

@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812170000_cdb_save_picks_uses_active_phase.sql
 --
 -- ═══ O DEFEITO, MEDIDO EM PRODUCAO ═══════════════════════════════════════════════════════════

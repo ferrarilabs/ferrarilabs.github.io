@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812220000_topology_provenance_refresh.sql
 --
 -- Re-registrar a MESMA topologia com proveniencia melhor documentada deve ATUALIZAR a

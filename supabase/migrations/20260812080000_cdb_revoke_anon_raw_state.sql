@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812080000_cdb_revoke_anon_raw_state.sql
 --
 -- ═══ O QUE ISTO FECHA ════════════════════════════════════════════════════════════════════════

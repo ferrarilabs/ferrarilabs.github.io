@@ -1,0 +1,2484 @@
+{
+  "meta": {
+    "workstream": "WS13",
+    "status": "REVIEW DRAFT — no Edge Function deployed, no production write of any kind",
+    "purpose": "The trusted server write boundary. WS12 deliberately left business invariants outside RLS; this makes them concrete, in transactions, with idempotency and a stated failure model.",
+    "principle": "One business transaction is ONE contract. Splitting it into several browser-driven writes because the tables are normalised is how a half-created entry with no fee snapshot comes to exist.",
+    "isolationStance": "READ COMMITTED everywhere, with row locks and constraints doing the work. SERIALIZABLE is not used anywhere: every conflict in this design is closed by a UNIQUE index or a FOR UPDATE on exactly the contended row, which is cheaper and does not require retry handling.",
+    "clientAuthority": "A client may supply request_id, idempotency_key, correlation_id and payload. It may NEVER supply the acting principal, the participant it acts for without a verified link, an operator identity, or a timestamp used for a cutoff decision.",
+    "rGap1": "OPEN. operator_evidence records that the RUNTIME checked an operator's authority. The database does not verify it, and this model does not claim otherwise.",
+    "findings": [
+      {
+        "id": "WS13-F1",
+        "finding": "reverseParticipantMerge locked participant_identity_links before participants — the opposite order from mergeParticipantIdentity. Two running concurrently would deadlock, which is precisely what the global lock order exists to prevent.",
+        "resolution": "the link is read unlocked to discover the ids, participants are locked first in sorted id order, and the link is locked afterwards with reversed_at re-checked under that lock. Found by the store refusing an out-of-order acquisition, not by review."
+      },
+      {
+        "id": "WS13-F2",
+        "finding": "adminCorrection checked the field allowlist before the money-field rule, so correcting expected_fee_amount returned FORBIDDEN ('not on the allowlist') instead of FINANCIAL_INVARIANT.",
+        "resolution": "the money check runs first. Both refuse, but only one tells the operator that a monetary correction must be a compensating record — and that is the whole point of the message."
+      },
+      {
+        "id": "WS13-F3",
+        "finding": "the IGNORE_DUPLICATE_KEY mutant was masked by defence in depth: the unique index on (participant_id, pool_id, entry_label) caught the second entry even with idempotency disabled.",
+        "resolution": "the fixture moved to recordPayment WITHOUT an external reference, where no unique index saves it. The masking is itself a good property and is now noted rather than removed."
+      },
+      {
+        "id": "WS13-F4",
+        "finding": "the ALLOW_OPERATOR_WITHOUT_EVIDENCE mutant was masked by a crash: with the evidence check bypassed, the implementation dereferenced operator_evidence.reason and threw a TypeError, so the mutant appeared killed for the wrong reason.",
+        "resolution": "the implementation reads evidence with optional chaining, so the mutant genuinely demonstrates the danger it names. A mutant killed by a crash proves nothing about the control."
+      },
+      {
+        "id": "WS13-F5",
+        "finding": "four NUL bytes had crept into write_contracts.mjs as composite-key separators. They worked correctly, which is why all 102 tests passed — but git classified the file as BINARY, so it could not be diffed or reviewed.",
+        "resolution": "replaced with JSON.stringify of the key parts: unambiguous (no id can forge a delimiter) and visible. Caught by `git diff --cached --stat` reporting 'Bin 0 -> 40420 bytes' during the commit gate, not by any test — a passing suite says nothing about whether a file is reviewable."
+      }
+    ]
+  },
+  "lockOrdering": {
+    "rule": "Always lock in this table order, and within a table by ascending id: pools → participants → participant_identity_links → payments → pool_entries → predictions → prize_allocations → audit_events → outbox_events.",
+    "why": "A fixed global order makes deadlock impossible between any two contracts here. The identity contracts additionally sort the two participant ids, because two merges over the same pair locking in opposite orders is the one deadlock this design would otherwise have."
+  },
+  "envelope": {
+    "clientSupplied": [
+      "request_id",
+      "idempotency_key",
+      "correlation_id",
+      "payload_version",
+      "payload"
+    ],
+    "serverGenerated": [
+      "all primary keys",
+      "all timestamps used for decisions",
+      "audit event ids and hashes",
+      "outbox event ids"
+    ],
+    "neverClientSupplied": [
+      "principal",
+      "auth_user_id",
+      "operator identity",
+      "cutoff comparison time",
+      "settlement status",
+      "unapplied balance"
+    ]
+  },
+  "idempotency": {
+    "scope": "per (contract, idempotency_key)",
+    "keyNamespace": "contract name is part of the key, so the same key in two contracts is two requests",
+    "payloadFingerprint": "sha256 over the canonicalised payload with sorted keys, excluding request_id and correlation_id",
+    "resultCaching": "the response is stored with the record and replayed verbatim on a matching retry",
+    "expiry": "24 hours for non-money contracts; 30 days for money-bearing ones, because a payment dispute arrives long after the request",
+    "conflictBehaviour": "same key + same fingerprint → replay the stored response with idempotent_replay=true. Same key + DIFFERENT fingerprint → IDEMPOTENCY_CONFLICT, never a second write.",
+    "commitRule": "the idempotency record is written INSIDE the business transaction. Writing it before commit would let a crash leave a request marked done that never happened; writing it after would let a retry double-write."
+  },
+  "contracts": [
+    {
+      "purpose": "Create one pool entry with its fee snapshot. One business transaction, not three browser writes: an entry without its snapshotted fee is an entry whose settlement is undefined.",
+      "principals": [
+        "authenticated",
+        "trusted_runtime"
+      ],
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "createEntry request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "pool_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "entry_label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "participant_email": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "email"
+          },
+          "display_name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "pool_id",
+          "entry_label",
+          "display_name"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "createEntry response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "pool_entry_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "settlement_status": {
+            "const": "unpaid"
+          },
+          "expected_fee_amount": {
+            "type": "string",
+            "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+            "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+          },
+          "expected_fee_currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pool_entry_id",
+          "expected_fee_amount",
+          "expected_fee_currency",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "No cross-row aggregate is read. Uniqueness is a constraint, the fee is read FOR SHARE, and the cutoff is a single-row read against the server clock. SERIALIZABLE would add retry cost and prevent nothing here.",
+      "locks": [
+        {
+          "table": "pools",
+          "mode": "FOR SHARE",
+          "key": "pool_id",
+          "why": "prevents the pool closing between the eligibility check and the insert"
+        },
+        {
+          "table": "pool_fee_schedule",
+          "mode": "FOR SHARE",
+          "key": "pool_id",
+          "why": "the in-force fee must not change between snapshot and insert"
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: principal is authenticated or trusted_runtime",
+        "idempotency: look up (contract, key); on hit compare payload fingerprint",
+        "SELECT pools FOR SHARE; require status = 'open'",
+        "SELECT competition_edition_phases; require SERVER now() < earliest cutoff_at, or no cutoff",
+        "SELECT pool_fee_schedule FOR SHARE WHERE effective_to IS NULL; require exactly one",
+        "resolve or INSERT participant by normalised email, else name — NEVER merge",
+        "INSERT pool_entries with the fee SNAPSHOT (amount + currency)",
+        "validate: settlement derives to 'unpaid'; no allocation exists",
+        "INSERT audit_events (entry_created)",
+        "INSERT outbox_events (participant_receipt, admin_notification)",
+        "record idempotency result IN THIS TRANSACTION",
+        "COMMIT"
+      ],
+      "invariants": [
+        "expected_fee_amount and expected_fee_currency are both set, or the row is not written",
+        "entry_label is non-blank: without it a deliberate second entry is indistinguishable from a duplicate",
+        "exactly one fee schedule in force, or FINANCIAL_INVARIANT",
+        "no participant is merged as a side effect of creating an entry"
+      ],
+      "audit": {
+        "required": true,
+        "action": "entry_created",
+        "aggregateType": "pool_entry",
+        "safeMetadata": [
+          "pool_id",
+          "entry_label_present",
+          "fee_currency"
+        ]
+      },
+      "outbox": {
+        "required": true,
+        "events": [
+          {
+            "type": "participant_receipt",
+            "dedupeKey": "entry:{pool_entry_id}:receipt"
+          },
+          {
+            "type": "admin_notification",
+            "dedupeKey": "entry:{pool_entry_id}:admin"
+          }
+        ],
+        "payloadPolicy": "references only. The recipient address is resolved at DELIVERY time from the participant row, so a queued payload never carries an email."
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CUTOFF_PASSED",
+        "UNSUPPORTED_STATE",
+        "DUPLICATE",
+        "IDEMPOTENCY_CONFLICT",
+        "FINANCIAL_INVARIANT",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "pool_entries",
+          "op": "INSERT"
+        },
+        {
+          "entity": "participants",
+          "op": "INSERT"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        },
+        {
+          "entity": "outbox_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "createEntry"
+    },
+    {
+      "purpose": "Record or replace one prediction for one subject, before the phase cutoff.",
+      "principals": [
+        "authenticated",
+        "trusted_runtime"
+      ],
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "submitPrediction request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "pool_entry_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "subject_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "subject_kind": {
+            "enum": [
+              "match",
+              "tie"
+            ]
+          },
+          "home_goals": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 99
+          },
+          "away_goals": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 0,
+            "maximum": 99
+          },
+          "advancing_team": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 40
+          },
+          "expected_version": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "pool_entry_id",
+          "subject_id",
+          "subject_kind"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "submitPrediction response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "prediction_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "replaced": {
+            "type": "boolean"
+          },
+          "version": {
+            "type": "integer"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "prediction_id",
+          "replaced",
+          "version",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "Two simultaneous submissions for one (entry, subject) are resolved by a UNIQUE index plus an upsert, not by isolation level. A UNIQUE index is raceless; SERIALIZABLE would turn a resolvable conflict into a retry.",
+      "locks": [
+        {
+          "table": "pool_entries",
+          "mode": "FOR SHARE",
+          "key": "pool_entry_id",
+          "why": "the entry must not be withdrawn mid-write"
+        },
+        {
+          "table": "predictions",
+          "mode": "UNIQUE (pool_entry_id, subject_id)",
+          "key": "(pool_entry_id, subject_id)",
+          "why": "the ONLY raceless way to make two simultaneous submissions converge instead of duplicating"
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: caller owns pool_entry_id via participant_auth_links, or is trusted_runtime",
+        "idempotency lookup",
+        "SELECT pool_entries FOR SHARE; require state='submitted' and deleted_at IS NULL",
+        "resolve subject → phase; require the subject belongs to the entry's pool's edition",
+        "require SERVER now() <= phase.cutoff_at — never a client timestamp",
+        "if expected_version supplied, require it matches (optimistic concurrency)",
+        "INSERT ... ON CONFLICT (pool_entry_id, subject_id) DO UPDATE, bumping version",
+        "INSERT audit_events (prediction_submitted)",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "exactly one subject: match XOR tie",
+        "goals are integers or null; a null stays null and never becomes 0",
+        "after the cutoff the write fails CLOSED — there is no 'grace' path",
+        "at most one prediction per (entry, subject), enforced by a unique index rather than by a read-then-write"
+      ],
+      "audit": {
+        "required": true,
+        "action": "prediction_submitted",
+        "aggregateType": "prediction",
+        "safeMetadata": [
+          "pool_entry_id",
+          "subject_id",
+          "replaced"
+        ]
+      },
+      "outbox": {
+        "required": false,
+        "why": "a receipt per pick would be noise, and a participant submitting 64 picks would generate 64 emails"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CUTOFF_PASSED",
+        "STALE_VERSION",
+        "UNSUPPORTED_STATE",
+        "IDEMPOTENCY_CONFLICT",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "predictions",
+          "op": "INSERT"
+        },
+        {
+          "entity": "predictions",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "submitPrediction"
+    },
+    {
+      "purpose": "Record that money arrived. Deliberately does NOT allocate: recording receipt and deciding what it settled are two different decisions, and conflating them is how money gets attributed to the wrong entry.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "recordPayment request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "payer_participant_id": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "null is legitimate: a third-party payer known only by name stays UNKNOWN-1 rather than being guessed"
+          },
+          "payer_name_as_recorded": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 120
+          },
+          "amount": {
+            "type": "string",
+            "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+            "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "kind": {
+            "enum": [
+              "contribution",
+              "refund",
+              "reversal",
+              "chargeback",
+              "adjustment"
+            ]
+          },
+          "method": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 40
+          },
+          "external_reference": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 120
+          },
+          "paid_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "channel": {
+            "enum": [
+              "operator_manual",
+              "provider_webhook",
+              "import"
+            ]
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "amount",
+          "currency",
+          "kind",
+          "paid_at",
+          "channel"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "recordPayment response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "payment_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "unapplied_amount": {
+            "type": "string",
+            "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+            "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "payment_id",
+          "unapplied_amount",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "Duplicate prevention is a UNIQUE index on external_reference plus the idempotency key. Neither needs a serializable snapshot, and both are stronger than one.",
+      "locks": [
+        {
+          "table": "payments",
+          "mode": "UNIQUE (external_reference) WHERE NOT NULL",
+          "key": "external_reference",
+          "why": "the same provider reference recorded twice is one real payment counted twice"
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; require operator_evidence when channel='operator_manual'",
+        "idempotency lookup with payload fingerprint",
+        "validate amount sign agrees with kind: refund/reversal/chargeback negative, others positive",
+        "validate currency is ISO-4217 and explicitly supplied — never defaulted",
+        "require paid_at is not in the future by the SERVER clock",
+        "INSERT payments (no allocation)",
+        "INSERT audit_events (payment_recorded)",
+        "INSERT outbox_events (admin_notification)",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "amount is exact decimal; a float amount is a wrong amount",
+        "amount and currency are both present or both absent (legacy assertions only)",
+        "sign matches kind",
+        "external_reference is unique where present",
+        "NO allocation is created: an unpaid-looking entry is not evidence that this payment settled it"
+      ],
+      "audit": {
+        "required": true,
+        "action": "payment_recorded",
+        "aggregateType": "payment",
+        "safeMetadata": [
+          "currency",
+          "kind",
+          "channel",
+          "has_external_reference"
+        ],
+        "forbiddenMetadata": [
+          "external_reference",
+          "payer_name_as_recorded",
+          "memo"
+        ],
+        "why": "the reference is FINANCIAL/EXTERNAL_REFERENCE class. The payment_id identifies the row; carrying the reference into a log that gets pasted into tickets adds exposure for no investigative gain."
+      },
+      "outbox": {
+        "required": true,
+        "events": [
+          {
+            "type": "admin_notification",
+            "dedupeKey": "payment:{payment_id}:admin"
+          }
+        ],
+        "payloadPolicy": "references only"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "DUPLICATE",
+        "FINANCIAL_INVARIANT",
+        "IDEMPOTENCY_CONFLICT",
+        "UNSUPPORTED_STATE",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "payments",
+          "op": "INSERT"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        },
+        {
+          "entity": "outbox_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "recordPayment"
+    },
+    {
+      "purpose": "Apply part or all of a payment to one entry. The per-payment invariant SUM(allocations) <= amount cannot be a CHECK constraint because it spans sibling rows, so the transaction is the only place it holds.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "allocatePayment request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "payment_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "pool_entry_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "allocated_amount": {
+            "type": "string",
+            "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+            "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "note": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "payment_id",
+          "pool_entry_id",
+          "allocated_amount",
+          "currency"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "allocatePayment response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "allocation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "payment_unapplied_amount": {
+            "type": "string",
+            "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+            "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+          },
+          "entry_settlement_status": {
+            "enum": [
+              "unpaid",
+              "partially_paid",
+              "settled",
+              "overpaid",
+              "legacy_asserted"
+            ]
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allocation_id",
+          "payment_unapplied_amount",
+          "entry_settlement_status",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "The over-spend race is closed by SELECT payments FOR UPDATE, which serialises exactly the two requests that conflict. SERIALIZABLE would serialise every allocation against every other and still need the same retry handling.",
+      "locks": [
+        {
+          "table": "payments",
+          "mode": "FOR UPDATE",
+          "key": "payment_id",
+          "why": "THE critical lock: two concurrent allocations against one payment must not both pass the remaining-balance check"
+        },
+        {
+          "table": "pool_entries",
+          "mode": "FOR SHARE",
+          "key": "pool_entry_id",
+          "why": "the entry's expected fee and currency must not change mid-allocation"
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; operator_evidence required",
+        "idempotency lookup",
+        "SELECT payments FOR UPDATE — serialises conflicting allocations",
+        "require payment.amount IS NOT NULL: a legacy assertion has no amount to allocate",
+        "SELECT pool_entries FOR SHARE",
+        "require allocation currency = payment currency = entry expected_fee_currency",
+        "require allocated_amount > 0",
+        "SUM existing allocations for this payment; require SUM + new <= payment.amount",
+        "INSERT payment_allocations",
+        "DERIVE entry settlement and payment unapplied balance — never store either",
+        "INSERT audit_events (payment_allocated)",
+        "INSERT outbox_events (participant_receipt) only if the entry became settled",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "SUM(allocations of payment) <= payment.amount, checked INSIDE the transaction under FOR UPDATE",
+        "all three currencies agree",
+        "allocated_amount > 0",
+        "settlement is DERIVED; no boolean is written anywhere",
+        "there is deliberately NO cap against the entry's expected fee: exceeding it is OVERPAID, a reportable state, not an error",
+        "a legacy_asserted payment cannot be allocated"
+      ],
+      "audit": {
+        "required": true,
+        "action": "payment_allocated",
+        "aggregateType": "payment_allocation",
+        "safeMetadata": [
+          "payment_id",
+          "pool_entry_id",
+          "currency",
+          "resulting_settlement"
+        ]
+      },
+      "outbox": {
+        "required": "conditional",
+        "events": [
+          {
+            "type": "participant_receipt",
+            "dedupeKey": "entry:{pool_entry_id}:settled",
+            "condition": "the allocation moved the entry to settled"
+          }
+        ],
+        "why": "a receipt per partial allocation would email someone three times for one payment"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CONFLICT",
+        "FINANCIAL_INVARIANT",
+        "IDEMPOTENCY_CONFLICT",
+        "UNSUPPORTED_STATE",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "payment_allocations",
+          "op": "INSERT"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        },
+        {
+          "entity": "outbox_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "allocatePayment"
+    },
+    {
+      "purpose": "Merge one participant into another after an operator has confirmed they are the same person. Never automatic: a wrong merge combines two people's money and the reversal is a manual reconstruction.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "mergeParticipantIdentity request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "surviving_participant_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "merged_participant_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "expected_surviving_canonical": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "optimistic concurrency: the caller states what it believes the survivor's canonical pointer is. A concurrent merge changes it and this request then fails STALE_VERSION rather than racing."
+          },
+          "expected_merged_canonical": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "confidence": {
+            "enum": [
+              "strong",
+              "moderate",
+              "weak"
+            ]
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "surviving_participant_id",
+          "merged_participant_id",
+          "confidence"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "mergeParticipantIdentity response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "link_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "repointed": {
+            "type": "object"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "link_id",
+          "repointed",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "Two merges touching the same participants are serialised by locking BOTH rows in a deterministic id order. Serializable would not prevent the cycle; the explicit cycle check does.",
+      "locks": [
+        {
+          "table": "participants",
+          "mode": "FOR UPDATE",
+          "key": "least(surviving, merged), greatest(surviving, merged)",
+          "why": "DETERMINISTIC ORDER by id. Two concurrent merges over the same pair locking in different orders would deadlock; sorting the ids makes that impossible."
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; operator_evidence REQUIRED with a reason",
+        "idempotency lookup",
+        "SELECT both participants FOR UPDATE in sorted id order",
+        "reject self-merge",
+        "reject if either is already superseded (ALREADY_MERGED)",
+        "walk canonical pointers; reject if this would close a cycle",
+        "if expected_*_canonical supplied, require they match (STALE_VERSION otherwise)",
+        "INSERT participant_identity_links with prior_state and prior_surviving_aliases",
+        "UPDATE merged.canonical_participant_id = surviving; set superseded_at",
+        "UPDATE surviving.aliases to inherit the merged display name",
+        "REPOINT pool_entries, payments, prize_allocations",
+        "deliberately DO NOT repoint ranking_snapshots or audit_events",
+        "INSERT audit_events (identity_merged) with the operator reason",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "operator evidence with a non-empty reason, or FORBIDDEN",
+        "no self-merge",
+        "neither participant already superseded",
+        "no cycle",
+        "the merged row is PRESERVED, never deleted — deletion would destroy the history the merge consolidates",
+        "prior_state captured so reversal restores rather than guesses",
+        "published ranking snapshots and audit rows are NOT repointed: a snapshot records a standing as published"
+      ],
+      "audit": {
+        "required": true,
+        "action": "identity_merged",
+        "aggregateType": "participant",
+        "reasonRequired": true,
+        "safeMetadata": [
+          "surviving_participant_id",
+          "merged_participant_id",
+          "confidence",
+          "repointed_counts"
+        ]
+      },
+      "outbox": {
+        "required": false,
+        "why": "a merge is internal bookkeeping; emailing a participant that their identities were consolidated invites confusion for no benefit"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CONFLICT",
+        "IDENTITY_AMBIGUOUS",
+        "STALE_VERSION",
+        "IDEMPOTENCY_CONFLICT",
+        "INTERNAL"
+      ],
+      "retrySafety": "NOT blindly retryable. A retry with a NEW idempotency key would perform a second merge. An ambiguous outcome must be resolved by reading state, not by retrying.",
+      "mutates": [
+        {
+          "entity": "participant_identity_links",
+          "op": "INSERT"
+        },
+        {
+          "entity": "participants",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "pool_entries",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "payments",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "prize_allocations",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "mergeParticipantIdentity"
+    },
+    {
+      "purpose": "Undo a confirmed merge, restoring the prior canonical mapping exactly. A first-class operation, not a repair script: reversibility is what makes the merge decision survivable.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "reverseParticipantMerge request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "link_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "expected_reversed_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "link_id"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "reverseParticipantMerge response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "link_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "restored_participant_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "link_id",
+          "restored_participant_id",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "READ COMMITTED. The link row is read unlocked to discover which participants are involved, then both participants are locked FOR UPDATE in sorted id order and the link is locked and re-verified. SERIALIZABLE would not prevent the reversed_at race any better than re-checking under the lock does, and would add retry handling for a conflict that two row locks already serialise.",
+      "locks": [
+        {
+          "table": "participants",
+          "mode": "FOR UPDATE",
+          "key": "sorted (surviving, merged)",
+          "why": "locked FIRST, in the same sorted-id order as the merge. An earlier draft locked the link table first — the opposite order — which would deadlock against a concurrent merge."
+        },
+        {
+          "table": "participant_identity_links",
+          "mode": "FOR UPDATE",
+          "key": "link_id",
+          "why": "locked after the participants, per the global order. reversed_at is re-checked under this lock, so a second reversal fails cleanly rather than racing."
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; operator_evidence REQUIRED",
+        "idempotency lookup",
+        "SELECT link WITHOUT a lock, to discover surviving and merged ids",
+        "SELECT both participants FOR UPDATE in sorted id order — participants before the link, per the global order",
+        "SELECT link FOR UPDATE; RE-CHECK reversed_at IS NULL under the lock",
+        "restore merged.display_name, email and aliases from link.prior_state",
+        "restore surviving.aliases from link.prior_surviving_aliases — NOT by subtraction, which would drop an alias gained from a different merge in between",
+        "clear merged.canonical_participant_id and superseded_at",
+        "mark link reversed_at, reversed_by, revert_reason — the link row is RETAINED",
+        "INSERT audit_events (identity_merge_reversed)",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "the link row is retained: that a merge happened and was undone is itself history",
+        "prior state restored exactly, not reconstructed",
+        "the survivor's alias set is restored from the snapshot, never computed by subtraction",
+        "facts created after the merge are not lost"
+      ],
+      "audit": {
+        "required": true,
+        "action": "identity_merge_reversed",
+        "aggregateType": "participant",
+        "reasonRequired": true,
+        "safeMetadata": [
+          "link_id",
+          "surviving_participant_id",
+          "merged_participant_id"
+        ]
+      },
+      "outbox": {
+        "required": false,
+        "why": "as with the merge, internal bookkeeping"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CONFLICT",
+        "STALE_VERSION",
+        "IDEMPOTENCY_CONFLICT",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "participant_identity_links",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "participants",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "reverseParticipantMerge"
+    },
+    {
+      "purpose": "Declare prize allocations for a pool, all rows in one transaction. A partial declaration is impossible by construction: paying out half a prize table is worse than paying none.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "recordPrize request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "pool_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "allocations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pool_entry_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                },
+                "participant_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                },
+                "rank": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "gross_amount": {
+                  "type": "string",
+                  "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+                  "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+                }
+              },
+              "required": [
+                "pool_entry_id",
+                "participant_id",
+                "rank",
+                "gross_amount"
+              ]
+            }
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "pool_id",
+          "currency",
+          "allocations"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "recordPrize response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "prize_allocation_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+            }
+          },
+          "total_gross": {
+            "type": "string",
+            "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+            "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "prize_allocation_ids",
+          "total_gross",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "The pool is locked FOR UPDATE, so the collected-total read and the prize insert cannot interleave with another declaration. That is exactly the conflict serializable would catch, achieved with one lock instead of a retry loop.",
+      "locks": [
+        {
+          "table": "pools",
+          "mode": "FOR UPDATE",
+          "key": "pool_id",
+          "why": "prevents two concurrent prize declarations both passing the collected-total check"
+        },
+        {
+          "table": "prize_allocations",
+          "mode": "UNIQUE (pool_id, rank) WHERE NOT superseded",
+          "key": "(pool_id, rank)",
+          "why": "makes a duplicate prize for one rank unrepresentable"
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; operator_evidence REQUIRED",
+        "idempotency lookup",
+        "SELECT pools FOR UPDATE; require a published final ranking exists",
+        "require no unsuperseded prize allocation already exists for this pool (ALREADY_DECLARED)",
+        "SUM allocated payments for the pool's entries = collected total",
+        "require SUM(gross_amount) <= collected total",
+        "require every allocation's currency matches, and participant matches its entry's participant",
+        "require ranks are distinct",
+        "INSERT all prize_allocations together",
+        "INSERT audit_events (prize_declared)",
+        "INSERT outbox_events per winner + admin",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "SUM(gross) <= collected: paying out more than was collected is unrecoverable",
+        "one currency for the whole declaration",
+        "ranks distinct",
+        "participant matches the entry's participant",
+        "all rows inserted together, so a partial declaration cannot exist",
+        "no second declaration while the first stands"
+      ],
+      "audit": {
+        "required": true,
+        "action": "prize_declared",
+        "aggregateType": "prize_allocation",
+        "reasonRequired": true,
+        "safeMetadata": [
+          "pool_id",
+          "currency",
+          "allocation_count",
+          "total_gross_currency"
+        ]
+      },
+      "outbox": {
+        "required": true,
+        "events": [
+          {
+            "type": "participant_receipt",
+            "dedupeKey": "prize:{prize_allocation_id}:receipt"
+          },
+          {
+            "type": "admin_notification",
+            "dedupeKey": "pool:{pool_id}:prizes"
+          }
+        ],
+        "payloadPolicy": "references only"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CONFLICT",
+        "DUPLICATE",
+        "FINANCIAL_INVARIANT",
+        "UNSUPPORTED_STATE",
+        "IDEMPOTENCY_CONFLICT",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "prize_allocations",
+          "op": "INSERT"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        },
+        {
+          "entity": "outbox_events",
+          "op": "INSERT"
+        }
+      ],
+      "name": "recordPrize"
+    },
+    {
+      "purpose": "Correct a specific field on a specific row. Deliberately NOT a general update endpoint: an endpoint that can change anything is a second, unaudited schema.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "adminCorrection request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "target_entity": {
+            "enum": [
+              "pool_entries",
+              "participants",
+              "pools",
+              "matches"
+            ]
+          },
+          "target_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "field": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 60
+          },
+          "new_value": {
+            "type": [
+              "string",
+              "integer",
+              "boolean",
+              "null"
+            ]
+          },
+          "expected_before_fingerprint": {
+            "type": "string",
+            "minLength": 16,
+            "maxLength": 64,
+            "description": "a digest of the row's current state. If the row changed since the operator looked at it, the correction is refused rather than silently overwriting someone else's change."
+          },
+          "expected_version": {
+            "type": "integer",
+            "minimum": 1
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "target_entity",
+          "target_id",
+          "field",
+          "new_value",
+          "expected_before_fingerprint",
+          "expected_version"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "adminCorrection response",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "corrected": {
+            "type": "boolean"
+          },
+          "new_version": {
+            "type": "integer"
+          },
+          "idempotent_replay": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "corrected",
+          "new_version",
+          "idempotent_replay"
+        ]
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "The row is locked FOR UPDATE and the fingerprint plus version are checked under that lock. Two corrections to one row therefore serialise, and the loser gets STALE_VERSION rather than a lost update.",
+      "locks": [
+        {
+          "table": "{target_entity}",
+          "mode": "FOR UPDATE",
+          "key": "target_id",
+          "why": "the fingerprint and version must be verified under the same lock that performs the write"
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; operator_evidence REQUIRED with a reason",
+        "idempotency lookup",
+        "require (target_entity, field) is on the CORRECTABLE ALLOWLIST",
+        "SELECT target FOR UPDATE",
+        "compute the row's current fingerprint; require it equals expected_before_fingerprint",
+        "require version = expected_version",
+        "refuse any money-bearing field: a monetary correction must be a COMPENSATING record, not a destructive edit",
+        "UPDATE the single field; bump version",
+        "INSERT audit_event_details with before/after snapshots (the redactable sidecar)",
+        "INSERT audit_events (admin_correction) with references only",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "the field is on an explicit allowlist",
+        "operator evidence with a reason",
+        "before-fingerprint and version both match, or STALE_VERSION",
+        "no money-bearing field may be corrected destructively",
+        "before/after go in the REDACTABLE sidecar, not in safe_metadata"
+      ],
+      "audit": {
+        "required": true,
+        "action": "admin_correction",
+        "aggregateType": "any",
+        "reasonRequired": true,
+        "safeMetadata": [
+          "target_entity",
+          "target_id",
+          "field"
+        ],
+        "detailsSidecar": true,
+        "why": "the before/after values may contain PII, so they belong in audit_event_details, which can be nulled for erasure without breaking the hash chain"
+      },
+      "outbox": {
+        "required": true,
+        "events": [
+          {
+            "type": "admin_notification",
+            "dedupeKey": "correction:{request_id}"
+          }
+        ],
+        "payloadPolicy": "references only"
+      },
+      "errors": [
+        "VALIDATION_FAILED",
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "NOT_FOUND",
+        "CONFLICT",
+        "STALE_VERSION",
+        "FINANCIAL_INVARIANT",
+        "UNSUPPORTED_STATE",
+        "IDEMPOTENCY_CONFLICT",
+        "INTERNAL"
+      ],
+      "correctableFields": {
+        "pool_entries": [
+          "entry_label"
+        ],
+        "participants": [
+          "display_name",
+          "email"
+        ],
+        "pools": [
+          "name",
+          "status"
+        ],
+        "matches": [
+          "status"
+        ]
+      },
+      "mutates": [
+        {
+          "entity": "pool_entries",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "participants",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "pools",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "matches",
+          "op": "UPDATE"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        },
+        {
+          "entity": "audit_event_details",
+          "op": "INSERT"
+        }
+      ],
+      "name": "adminCorrection"
+    },
+    {
+      "name": "importClassificationSnapshot",
+      "purpose": "Import one league classification for a competition edition, envelope and all club rows in a single transaction. A partial table is impossible by construction, because br2026's G4/Z4/SA6 zones are POSITION SLICES: nineteen rows instead of twenty silently moves the relegation boundary up one place and changes scores. Owned by the trusted sync runtime; an operator correction uses the same contract and produces a NEW snapshot rather than editing one.",
+      "principals": [
+        "trusted_runtime"
+      ],
+      "operatorSensitive": true,
+      "requestSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "importClassificationSnapshot request",
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "request_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied, for correlation only. Never authority: a client-chosen id cannot select a row, a participant or an actor."
+          },
+          "idempotency_key": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "CLIENT-supplied. Scoped per contract, so the same key in two contracts is two different requests."
+          },
+          "correlation_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "ties this write to its audit and outbox events"
+          },
+          "payload_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "actor": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "principal": {
+                "enum": [
+                  "authenticated",
+                  "trusted_runtime"
+                ]
+              },
+              "auth_user_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "the authenticated caller, verified from the JWT — never from the body"
+              },
+              "acting_participant_id": {
+                "type": "string",
+                "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+                "description": "which of the caller's LINKED participants this write is for. Required when a user owns several (WS12-OP-2)."
+              },
+              "operator_evidence": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "operator_id": {
+                    "type": "string",
+                    "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                  },
+                  "reason": {
+                    "type": "string",
+                    "minLength": 10
+                  },
+                  "approved_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "operator_id",
+                  "reason"
+                ],
+                "description": "R-GAP-1: the database cannot verify an operator. This is evidence the RUNTIME checked one, recorded so the audit trail attributes the act even though the database did not authenticate it."
+              }
+            },
+            "required": [
+              "principal"
+            ]
+          },
+          "pool_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+          },
+          "currency": {
+            "type": "string",
+            "pattern": "^[A-Z]{3}$"
+          },
+          "allocations": {
+            "type": "array",
+            "minItems": 1,
+            "maxItems": 20,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "pool_entry_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                },
+                "participant_id": {
+                  "type": "string",
+                  "pattern": "^[0-9a-zA-Z_-]{3,64}$"
+                },
+                "rank": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "gross_amount": {
+                  "type": "string",
+                  "pattern": "^-?\\d{1,12}\\.\\d{2}$",
+                  "description": "exact decimal as a string; never a float, because a float amount is a wrong amount"
+                }
+              },
+              "required": [
+                "pool_entry_id",
+                "participant_id",
+                "rank",
+                "gross_amount"
+              ]
+            }
+          },
+          "competition_edition_id": {
+            "type": "string",
+            "pattern": "^[0-9a-zA-Z_-]{3,64}$",
+            "description": "which season's table this is. Never inferred from the provider's competition ref, because one provider id spans every season."
+          },
+          "provider": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_-]{1,30}$"
+          },
+          "provider_competition_ref": {
+            "type": "string",
+            "maxLength": 64
+          },
+          "schema_version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "the snapshot shape. An unknown version is refused: the row shape decides position, position decides the zone boundary, and the boundary decides points."
+          },
+          "generated_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "the instant the provider produced this table. This is what orders snapshots, and ordering is the only thing that resolves a correction."
+          },
+          "source_updated_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "payload_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{16,64}$"
+          },
+          "is_stale": {
+            "type": "boolean",
+            "description": "the provider fetch failed and last-known-good was reused. Accepted as evidence, never authoritative for scoring."
+          },
+          "stale_reason": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "maxLength": 200
+          },
+          "rows": {
+            "type": "array",
+            "minItems": 1,
+            "description": "the club lines, in provider order. The contract resolves POSITION itself; a caller-supplied position is ignored, because position decides a zone boundary and must not be client-chosen.",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "club_name"
+              ],
+              "properties": {
+                "club_name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 120
+                },
+                "club_abbr": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "maxLength": 12
+                },
+                "provider_rank": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 1
+                },
+                "points": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "played": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "wins": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "draws": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "losses": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "goals_for": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "goals_against": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ],
+                  "minimum": 0
+                },
+                "goal_difference": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "expected_club_count": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1,
+            "description": "when supplied, a row count that disagrees is refused: the zones are position slices, so a missing club moves a boundary rather than merely omitting a row."
+          }
+        },
+        "required": [
+          "request_id",
+          "idempotency_key",
+          "actor",
+          "pool_id",
+          "currency",
+          "allocations",
+          "competition_edition_id",
+          "provider",
+          "schema_version",
+          "generated_at",
+          "rows"
+        ]
+      },
+      "responseSchema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "title": "importClassificationSnapshot response",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "classification_snapshot_id",
+          "club_count",
+          "replayed"
+        ],
+        "properties": {
+          "classification_snapshot_id": {
+            "type": "string"
+          },
+          "club_count": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "is_authoritative": {
+            "type": "boolean",
+            "description": "true when this becomes the latest non-stale snapshot for the edition"
+          },
+          "replayed": {
+            "type": "boolean"
+          }
+        }
+      },
+      "isolation": "READ COMMITTED",
+      "isolationWhy": "The edition row is locked FOR SHARE and the unique index on (competition_edition_id, provider, generated_at) makes a duplicate import for one instant unrepresentable. That covers the only conflict SERIALIZABLE would catch here — two syncs importing the same provider instant — with one lock and one index instead of a retry loop.",
+      "locks": [
+        {
+          "table": "competition_editions",
+          "mode": "FOR SHARE",
+          "key": "competition_edition_id",
+          "why": "the edition must not be concluded or archived between the eligibility check and the insert"
+        },
+        {
+          "table": "classification_snapshots",
+          "mode": "UNIQUE (competition_edition_id, provider, generated_at)",
+          "key": "(competition_edition_id, provider, generated_at)",
+          "why": "makes a second import of the same provider instant unrepresentable, so two concurrent syncs cannot both create 'the latest' snapshot"
+        },
+        {
+          "table": "competition_edition_standings",
+          "mode": "UNIQUE (classification_snapshot_id, position)",
+          "key": "(classification_snapshot_id, position)",
+          "why": "two clubs cannot share a position. This is the 2026-07-14 zone-boundary audit finding enforced by the database rather than by the importer's care."
+        }
+      ],
+      "steps": [
+        "BEGIN",
+        "authorize: trusted_runtime ONLY; operator_evidence REQUIRED when the caller is an operator correction",
+        "idempotency lookup",
+        "reject an unknown schema_version — the row shape decides position, and position decides points",
+        "SELECT competition_editions FOR SHARE; require the edition exists",
+        "resolve POSITION from provider_rank, goal_difference DESC, goals_for DESC, club_name ASC (the app's own tiebreak, not the provider's)",
+        "reject an unresolved tie: two clubs indistinguishable after all four keys would make a zone boundary arbitrary",
+        "reject a duplicate club_name within the request",
+        "reject a row whose goal_difference does not equal goals_for - goals_against",
+        "reject when expected_club_count is supplied and the row count disagrees",
+        "INSERT classification_snapshots with club_count = rows.length",
+        "INSERT every competition_edition_standings row together, positions 1..N contiguous",
+        "INSERT audit_events (classification_imported)",
+        "NO outbox event: a league table changing is not a notification anyone subscribed to, and emitting one per sync cycle would be a mass notification of routine data",
+        "record idempotency result",
+        "COMMIT"
+      ],
+      "invariants": [
+        "positions are contiguous 1..N with no gaps or duplicates — the zones are slices, so a gap moves a boundary",
+        "a club appears at most once per snapshot",
+        "club_count equals the number of standing rows actually inserted",
+        "goal_difference = goals_for - goals_against wherever all three are present",
+        "an unknown schema_version is refused rather than interpreted",
+        "no UPDATE and no DELETE: a correction is a NEW snapshot, and ordering by generated_at resolves it",
+        "a stale snapshot may be stored as evidence but never becomes the authoritative table for scoring"
+      ],
+      "audit": {
+        "required": true,
+        "action": "classification_imported",
+        "aggregateType": "classification_snapshot",
+        "reasonRequired": true,
+        "safeMetadata": [
+          "competition_edition_id",
+          "provider",
+          "generated_at",
+          "payload_hash",
+          "club_count",
+          "is_stale"
+        ],
+        "why": "the imported table decides zone boundaries and therefore scores, so every import is attributable. No club name or statistic goes into the audit event: the rows themselves are the record, and duplicating them in the audit would create a second copy to disagree with."
+      },
+      "outbox": {
+        "required": false,
+        "why": "nobody subscribed to a league table refresh. The sync runs on a cron, so an event per cycle would be routine data dressed as a notification — and the outbox exists for things that must be delivered exactly once."
+      },
+      "errors": [
+        "AUTH_REQUIRED",
+        "FORBIDDEN",
+        "VALIDATION_FAILED",
+        "UNSUPPORTED_STATE",
+        "NOT_FOUND",
+        "DUPLICATE",
+        "CONFLICT",
+        "IDEMPOTENCY_CONFLICT",
+        "INTERNAL"
+      ],
+      "mutates": [
+        {
+          "entity": "classification_snapshots",
+          "op": "INSERT"
+        },
+        {
+          "entity": "competition_edition_standings",
+          "op": "INSERT"
+        },
+        {
+          "entity": "audit_events",
+          "op": "INSERT"
+        }
+      ],
+      "errorNotes": {
+        "UNSUPPORTED_STATE": "an unknown snapshot schema_version. The shape decides position, position decides the zone boundary, and the boundary decides points — so an unrecognised shape is refused rather than interpreted.",
+        "DUPLICATE": "the same club twice in one request, or a second import of the same provider instant (the unique index on competition_edition_id, provider, generated_at).",
+        "CONFLICT": "an unresolved tie after all four ordering keys, a row count disagreeing with expected_club_count, or a goal difference that does not equal goals_for - goals_against.",
+        "NOT_FOUND": "the competition edition does not exist. A classification with no edition is position 1 of nothing."
+      }
+    }
+  ],
+  "errors": {
+    "VALIDATION_FAILED": {
+      "http": 400,
+      "retryable": false,
+      "clientMessage": "The request was not valid.",
+      "auditSeverity": "INFO"
+    },
+    "AUTH_REQUIRED": {
+      "http": 401,
+      "retryable": false,
+      "clientMessage": "Sign in required.",
+      "auditSeverity": "INFO"
+    },
+    "FORBIDDEN": {
+      "http": 403,
+      "retryable": false,
+      "clientMessage": "Not permitted.",
+      "auditSeverity": "WARN",
+      "why": "a FORBIDDEN on an operator-sensitive contract is worth a WARN: it may be a probe"
+    },
+    "NOT_FOUND": {
+      "http": 404,
+      "retryable": false,
+      "clientMessage": "Not found.",
+      "auditSeverity": "INFO",
+      "why": "deliberately indistinguishable from FORBIDDEN for a row the caller may not see, so a 404/403 difference cannot be used to enumerate"
+    },
+    "CONFLICT": {
+      "http": 409,
+      "retryable": true,
+      "clientMessage": "The item changed. Please try again.",
+      "auditSeverity": "INFO"
+    },
+    "DUPLICATE": {
+      "http": 409,
+      "retryable": false,
+      "clientMessage": "This has already been recorded.",
+      "auditSeverity": "INFO"
+    },
+    "LOCKED": {
+      "http": 423,
+      "retryable": true,
+      "clientMessage": "Busy, please retry.",
+      "auditSeverity": "INFO"
+    },
+    "CUTOFF_PASSED": {
+      "http": 422,
+      "retryable": false,
+      "clientMessage": "The deadline for this has passed.",
+      "auditSeverity": "INFO"
+    },
+    "FINANCIAL_INVARIANT": {
+      "http": 422,
+      "retryable": false,
+      "clientMessage": "This would produce an inconsistent financial state.",
+      "auditSeverity": "ERROR",
+      "why": "always ERROR: either a client is attacking a money path or a runtime contract is wrong, and both need a human"
+    },
+    "IDENTITY_AMBIGUOUS": {
+      "http": 409,
+      "retryable": false,
+      "clientMessage": "This needs review before it can proceed.",
+      "auditSeverity": "WARN"
+    },
+    "IDEMPOTENCY_CONFLICT": {
+      "http": 409,
+      "retryable": false,
+      "clientMessage": "This request was already made with different details.",
+      "auditSeverity": "WARN",
+      "why": "the same key with a different payload is either a client bug or a replay attempt"
+    },
+    "STALE_VERSION": {
+      "http": 409,
+      "retryable": true,
+      "clientMessage": "Someone else changed this. Reload and try again.",
+      "auditSeverity": "INFO"
+    },
+    "UNSUPPORTED_STATE": {
+      "http": 422,
+      "retryable": false,
+      "clientMessage": "Not possible in the current state.",
+      "auditSeverity": "INFO"
+    },
+    "INTERNAL": {
+      "http": 500,
+      "retryable": true,
+      "clientMessage": "Something went wrong.",
+      "auditSeverity": "ERROR",
+      "why": "the ONLY code a raw database error may map to, and the client message must never carry the underlying text"
+    }
+  }
+}

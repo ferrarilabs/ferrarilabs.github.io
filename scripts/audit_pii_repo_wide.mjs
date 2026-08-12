@@ -1,248 +1,82 @@
 #!/usr/bin/env node
-// audit_pii_repo_wide.mjs — Repo-wide PII / secret regression guard (P0 hotfix, 2026-08).
+// audit_pii_repo_wide.mjs — Repo-wide PII / secret regression guard.
 //
-// Scans every git-TRACKED file (via `git ls-files`, so gitignored/untracked
-// paths are excluded automatically — no need to hand-maintain a directory
-// skip-list) for:
-//   1. email addresses not on the allowlist
-//   2. an email/emailAddress/recipient field assigned a literal string value
-//      (as opposed to a variable/env-var reference)
-//   3. txId / confirmationId / external_reference fields with a literal value
-//   4. known real transaction-ID shapes (Zelle 11-digit refs, Cash App "#D-...",
-//      Venmo ~17-19 char alphanumeric refs) — pattern-based, not a fixed list,
-//      so it also catches IDs this repo hasn't seen redacted yet
-//   5. URLs with an embedded password or token
-//   6. the literal string "service_role"
-//   7. private key material (PEM headers)
+// Thin CLI over scripts/pii_detectors.mjs. O motor de deteccao vive la para poder ser testado;
+// este arquivo so decide QUAIS arquivos varrer e como sair.
 //
-// Never prints the actual matched value — only file path, detector name, and
-// a short masked preview (first char + last char + length), per the P0
-// mandate: "não imprimir os valores encontrados".
+// Varre todo arquivo RASTREADO pelo git (`git ls-files`, entao caminhos ignorados e nao rastreados
+// ficam de fora sem lista de excecao mantida a mao).
+//
+// Nunca imprime um valor encontrado — apenas caminho, detector, contagem e um preview mascarado
+// (primeiro char + ultimo char + tamanho), conforme o mandato permanente: "nao imprimir os valores
+// encontrados".
+//
+// ═══ ESTE ARQUIVO E O RESULTADO DE UMA RECONCILIACAO CROSS-WORKSTREAM (2026-08-12) ═══════════
+//
+// Dois workstreams editaram esta mesma superficie, por motivos diferentes, e ambos estavam certos:
+//
+//   - A campanha de DB extraiu os detectores para `pii_detectors.mjs` para que o motor pudesse ter
+//     um suite de testes proprio (`test_pii_detectors.mjs`), e reduziu este arquivo a um CLI.
+//   - Main endureceu a SEMANTICA dos detectores no arquivo monolitico: removeu `@email.com` da
+//     allowlist (dominio de webmail VIVO — suprimia 11 enderecos reais), adicionou o detector
+//     `lottery-ticket-serial`, e criou o mecanismo de EXPOSICAO DECLARADA por caminho.
+//
+// Tomar qualquer um dos lados inteiro teria perdido o outro. Escolher a versao da campanha teria
+// REINTRODUZIDO o falso negativo de `@email.com` e APAGADO o detector de serial de loteria — uma
+// regressao de seguranca criada pela integracao, com os dois branches passando sozinhos.
+//
+// A reconciliacao: o refactor da campanha foi preservado (motor testavel + CLI fino) E as duas
+// correcoes de main foram portadas PARA DENTRO do motor. Ver os comentarios em `pii_detectors.mjs`
+// sobre RESERVED_EMAIL_SUFFIXES e DECLARED_EXPOSURES.
+//
+// Este modulo REEXPORTA `isAllowedEmail`, `mask` e `ALLOWED_EMAIL_SUFFIXES` com os nomes que main
+// usava, porque `scripts/test_audit_pii_repo_wide.mjs` (de main) importa exatamente esses tres e
+// deve continuar passando SEM ser reescrito — ele e quem tranca o invariante do `@email.com`.
 //
 // Usage: node scripts/audit_pii_repo_wide.mjs
 
 import { execSync } from "node:child_process";
-/**
- * KNOWN LIMITATIONS — read before trusting a clean run.
- *
- * This gate is a line-oriented pattern scanner over TRACKED files. It is a useful last line of
- * defence, not proof of absence. Specifically it does NOT detect:
- *
- *   1. PII inside binary or opaque files — images, PDFs, .zip/.bundle archives. Screenshots of an
- *      admin or ranking screen can render participant names and are invisible here.
- *   2. Values split across lines, or assembled at runtime by concatenation / template literals.
- *   3. Encoded or encrypted payloads (base64 blobs, compressed JSON).
- *   4. PII in git HISTORY. Only the current tree is scanned; a value committed and later removed
- *      stays in history and is not reported.
- *   5. UNTRACKED files. Local backups and scratch artefacts are out of scope by design.
- *   6. Real names that are not on the private participant list, and payment references not on the
- *      private payment list. Those lists live OUTSIDE this repo and are supplied by the operator;
- *      when they are absent, those two categories silently cannot fire.
- *   7. Semantic PII — a free-text field describing a person without an email or a listed name.
- *   8. (ATÉ 2026-08-08 esta era uma lacuna NÃO declarada.) Identificadores de bilhete de loteria.
- *      Agora existe o detector `lottery-ticket-serial`, mas com exposição DECLARADA para o arquivo
- *      onde os seriais reais vivem hoje — ver DECLARED_EXPOSURES. Um serial que apareça em qualquer
- *      OUTRO arquivo dispara. Isto torna a exposição conhecida VISÍVEL em vez de simplesmente
- *      ausente do scan: uma rodada limpa não deve implicar mais do que ela prova.
- *
- * FAILURE MODE TO WATCH: adding a real domain to ALLOWED_EMAIL_SUFFIXES converts this gate from
- * noisy to silent. That already happened once with `@email.com`, which suppressed 11 addresses.
- * Only RFC-2606 / RFC-6761 reserved names belong on that list. `scripts/test_audit_pii_repo_wide.mjs`
- * locks this invariant.
- */
+import { readFileSync, realpathSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import {
+  scanFiles,
+  formatReport,
+  isReservedEmail,
+  mask,
+  RESERVED_EMAIL_SUFFIXES,
+} from "./pii_detectors.mjs";
 
-import fs from "node:fs";
-import { createHash } from "node:crypto";
+// ── Compatibilidade de nomes com o gate que vivia em main ────────────────────────────────────
+// Mesma funcao, mesmo dado, nome antigo. Nao duplicar a logica: reexportar.
+export { mask };
+export const ALLOWED_EMAIL_SUFFIXES = RESERVED_EMAIL_SUFFIXES;
+export const isAllowedEmail = isReservedEmail;
 
-const ALLOWED_EMAILS = new Set([
-  "emferrari@gmail.com", // site owner — deliberate public institutional contact
-]);
-// RFC-2606 / RFC-6761 reserved names ONLY. These cannot receive mail, so an address
-// using one is synthetic by definition. Anything else is treated as a real address.
-//
-// `@email.com` was REMOVED from this list: email.com is a LIVE webmail domain, so
-// allowlisting it silently suppressed real addresses (a false NEGATIVE — strictly worse
-// than the noise it saved). `.test` was ADDED: RFC 6761 reserves it exactly as `.invalid`,
-// and the bolao/shared/scripts/ suite uses @example.test / @x.test throughout — their
-// absence made this detector 100% false-positive and trained reviewers to ignore it.
-export const ALLOWED_EMAIL_SUFFIXES = [
-  ".invalid", ".test", ".example", ".localhost",
-  "@example.com", "@example.org", "@example.net",
-];
-
-// Files that are themselves detector source (their pattern strings would self-match)
-// or genuinely-synthetic fixtures already verified by hand.
-const SELF_EXCLUDE = new Set([
+// O motor de detecao e o proprio suite dele contem os padroes como assunto. Isto e bem mais estreito
+// que a lista de arquivos pulados que substituiu: nomeia so os arquivos onde o padrao E o conteudo,
+// e todo o resto — inclusive todo arquivo de fixture — e varrido por inteiro, com declaracoes por
+// detector onde uma fixture deliberada e inevitavel.
+const DETECTOR_SOURCES = [
+  "scripts/pii_detectors.mjs",
+  "scripts/test_pii_detectors.mjs",
   "scripts/audit_pii_repo_wide.mjs",
-  // A SUÍTE do detector também é fonte do detector, pelo mesmo motivo já registrado acima. O teste
-  // de RECALL só prova alguma coisa se usar endereços de domínio REAL (`REDACTED_EMAIL`,
-  // `erin@example.com`): é exatamente isso que ele precisa afirmar que o detector pega. Sem esta
-  // entrada o gate se auto-denuncia — 17 achados, todos no próprio arquivo de teste — e fica
-  // vermelho para sempre, bloqueando toda a suíte por um falso positivo estrutural.
-  // NÃO é uma brecha para esconder vazamento: qualquer endereço colado aqui está, por construção,
-  // num arquivo cujo único conteúdo são fixtures do detector, e o teste de precisão/recall ao lado
-  // falha se as fixtures deixarem de ser fixtures.
   "scripts/test_audit_pii_repo_wide.mjs",
   "bolao/loterias/powerball/scripts/audit_pii_tests.mjs",
-]);
-
-// Never reveal any character of a matched value. The previous implementation exposed the
-// first and last character plus the length, which for a short address or a transaction ID
-// is a meaningful partial disclosure — and this output lands in CI logs. A short digest is
-// enough to correlate two findings or confirm a fix, without disclosing anything.
-export function mask(value) {
-  if (!value) return "(empty)";
-  const digest = createHash("sha256").update(String(value)).digest("hex").slice(0, 8);
-  return `<redacted sha256:${digest} len:${String(value).length}>`;
-}
-
-export function isAllowedEmail(addr) {
-  if (ALLOWED_EMAILS.has(addr)) return true;
-  return ALLOWED_EMAIL_SUFFIXES.some((suf) => addr.toLowerCase().endsWith(suf));
-}
+];
 
 function trackedFiles() {
-  const out = execSync("git ls-files", { cwd: process.cwd(), encoding: "utf8" });
-  return out.split("\n").filter(Boolean);
+  return execSync("git ls-files", { cwd: process.cwd(), encoding: "utf8" }).split("\n").filter(Boolean);
 }
-
-const EMAIL_RE = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
-// field: "literal value" or field: 'literal value' — excludes obvious variable/template refs
-// Requires the field name to open a line (optionally indented) or follow a
-// typical object-literal delimiter ({ , [ ( or start of a line), so prose
-// like "test email: ..." in a comment doesn't false-positive.
-const LITERAL_FIELD_RE = (fieldNames) =>
-  new RegExp(`(?:^|[{,(\\[]\\s*|["']\\s*,\\s*)(${fieldNames})\\s*[:=]\\s*["']([^"'\`$\\{\\n][^"'\\n]*)["']`, "gim");
-
-const FIELD_DETECTORS = [
-  { name: "email-field-literal", re: LITERAL_FIELD_RE("email|emailAddress|recipient") },
-  { name: "txId-field-literal", re: LITERAL_FIELD_RE("txId|transactionId") },
-  { name: "confirmationId-field-literal", re: LITERAL_FIELD_RE("confirmationId") },
-  { name: "external-reference-field-literal", re: LITERAL_FIELD_RE("external_reference|externalReference") },
-];
-
-const PATTERN_DETECTORS = [
-  { name: "zelle-like-tx-id", re: /\b\d{11}\b/g },
-  { name: "cashapp-tx-id", re: /#D-[A-Z0-9]{6,}/g },
-  { name: "venmo-tx-id", re: /\b[0-9]{1}[A-Z]{2}\d{5,}[A-Z]{2}\d{5,}[A-Z]\b/g },
-  { name: "url-with-embedded-credential", re: /(?:https?|postgres(?:ql)?):\/\/[^:\s\/]+:[^@\s\/]+@[^\s"'<>]+/gi },
-  // Only flags service_role when paired with an actual JWT-shaped value nearby
-  // (starts "eyJ") — the bare word "service_role" appears throughout docs as a
-  // policy term ("never use the service_role key"), which is not a leak.
-  { name: "service-role-key-value", re: /service_role[^\n]{0,60}eyJ[A-Za-z0-9_-]{10,}/g },
-  { name: "private-key-material", re: /-----BEGIN (RSA |EC )?PRIVATE KEY-----/g },
-  // Serial de bilhete Powerball: 17 caracteres hexadecimais em maiúsculas, num campo `serial`.
-  // Deliberadamente ancorado ao NOME DO CAMPO — 17 hex soltos aparecem em hash, id e fingerprint
-  // por todo o repositório, e um detector sem âncora seria ruído puro.
-  { name: "lottery-ticket-serial", re: /\bserial\s*[:=]\s*["'][0-9A-F]{12,20}["']/g },
-];
-
-/**
- * EXPOSIÇÕES DECLARADAS: identificador real que HOJE vive num arquivo versionado, com o motivo e o
- * estado da decisão. Não é uma desculpa — é o contrário de silêncio. Sem esta tabela o scan
- * simplesmente não veria os seriais e uma rodada limpa daria a impressão errada.
- *
- * Regra: a entrada precisa nomear o arquivo EXATO. Um serial que apareça em qualquer outro lugar
- * dispara normalmente.
- */
-const DECLARED_EXPOSURES = {
-  "lottery-ticket-serial": {
-    "bolao/loterias/powerball/js/data.js":
-      "Seriais REAIS de bilhetes Powerball comprados com o fundo do bolão. São renderizados na " +
-      "página (app.js ~413) de propósito: é a evidência com que cada participante confere quais " +
-      "bilhetes o bolão comprou — dinheiro real, transparência deliberada. MAS o repositório é " +
-      "PÚBLICO e a própria página se declara privada, então publicá-los é uma decisão de risco do " +
-      "operador, não uma escolha de implementação. Apagá-los unilateralmente destruiria evidência " +
-      "operacional que participantes usam. Registrado como HA-4 para o Eduardo decidir. " +
-      "NÃO remover esta entrada sem que a decisão dele esteja registrada.",
-  },
-};
-
-// Placeholder tokens that are always safe even if they match a pattern detector
-// (they show up in doc examples / masked reports, not real data).
-const SAFE_LITERALS = new Set([
-  "example.invalid", "example.com", "john@example.com", "recipient@email.com",
-]);
 
 function main() {
-  const files = trackedFiles().filter((f) => !SELF_EXCLUDE.has(f));
-  const findings = []; // { file, detector, count, sample }
-
-  for (const file of files) {
-    let content;
-    try {
-      content = fs.readFileSync(file, "utf8");
-    } catch {
-      continue; // binary or unreadable
-    }
-    if (content.includes("\u0000")) continue; // binary heuristic
-
-    // 1. plain email addresses
-    const emails = content.match(EMAIL_RE) || [];
-    for (const addr of emails) {
-      if (!isAllowedEmail(addr)) {
-        findings.push({ file, detector: "email-address", sample: mask(addr) });
-      }
-    }
-
-    // 2-4. literal-valued sensitive fields
-    for (const { name, re } of FIELD_DETECTORS) {
-      let m;
-      re.lastIndex = 0;
-      while ((m = re.exec(content))) {
-        const value = m[2];
-        if (!value || SAFE_LITERALS.has(value) || isAllowedEmail(value)) continue;
-        if (value === "—" || value === "-" || value.trim() === "") continue;
-        if (value.includes("*")) continue; // already-masked placeholder (e.g. audit docs)
-        findings.push({ file, detector: name, sample: mask(value) });
-      }
-    }
-
-    // 5-9. pattern-based secret/tx-id shapes
-    const TX_ID_CONTEXT_RE = /zelle|cash\s?app|venmo|txid|transa[çc][ãa]o|transaction/i;
-    for (const { name, re } of PATTERN_DETECTORS) {
-      if (DECLARED_EXPOSURES[name]?.[file]) continue;   // exposição conhecida e registrada
-      re.lastIndex = 0;
-      let m;
-      while ((m = re.exec(content))) {
-        const v = m[0];
-        // Repeating-digit numbers (e.g. "33333333333") are obviously synthetic
-        // placeholders, not real transaction IDs.
-        if (/^(\d)\1+$/.test(v)) continue;
-        if (name === "zelle-like-tx-id" || name === "cashapp-tx-id" || name === "venmo-tx-id") {
-          // Real payment refs only ever appear near payment-context keywords
-          // (e.g. "Zelle", "txId") — bare 11-digit numbers alone are too broad
-          // a pattern (GH Actions run IDs, phone numbers, etc. also match).
-          const windowStart = Math.max(0, m.index - 80);
-          const windowEnd = Math.min(content.length, m.index + v.length + 80);
-          const window = content.slice(windowStart, windowEnd);
-          if (!TX_ID_CONTEXT_RE.test(window)) continue;
-        }
-        findings.push({ file, detector: name, sample: mask(v) });
-      }
-    }
-  }
-
-  if (findings.length > 0) {
-    console.error("❌ REPO-WIDE PII/SECRET AUDIT FAILED\n");
-    const byFileDetector = new Map();
-    for (const f of findings) {
-      const key = `${f.file} :: ${f.detector}`;
-      if (!byFileDetector.has(key)) byFileDetector.set(key, { file: f.file, detector: f.detector, count: 0, sample: f.sample });
-      byFileDetector.get(key).count++;
-    }
-    for (const { file, detector, count, sample } of byFileDetector.values()) {
-      console.error(`  - ${file} | ${detector} | count=${count} | sample=${sample}`);
-    }
-    console.error(`\n${findings.length} finding(s) across ${byFileDetector.size} (file, detector) pair(s).`);
-    process.exit(1);
-  }
-
-  console.log(`✓ Repo-wide PII/secret audit passed — scanned ${files.length} tracked files, 0 findings.`);
+  const result = scanFiles(trackedFiles(), (f) => readFileSync(f, "utf8"), { detectorSources: DETECTOR_SOURCES });
+  const report = formatReport(result);
+  if (!result.ok) { console.error(report); process.exit(1); }
+  console.log(report);
 }
 
-// Only scan when run directly. Importing this module (e.g. from its test) must not execute.
-import { fileURLToPath } from "node:url";
-if (process.argv[1] && fileURLToPath(import.meta.url) === fs.realpathSync(process.argv[1])) {
+// So varre quando executado diretamente. Importar este modulo (do teste, por exemplo) nao pode
+// executar o scan — invariante herdado de main e mantido de proposito.
+if (process.argv[1] && fileURLToPath(import.meta.url) === realpathSync(process.argv[1])) {
   main();
 }

@@ -1,0 +1,1355 @@
+{
+  "meta": {
+    "workstreams": "R (target RLS) and S (edge write contracts)",
+    "status": "DESIGN ONLY — no policy, grant or function has been created or applied anywhere",
+    "stance": "DEFAULT DENY. Every entity starts with RLS enabled and zero policies, which in PostgreSQL means nobody can read or write it. Access is then granted only where a named workload needs it. The current production posture is the opposite: six policies that are row ALLOWLISTS with no identity awareness, so authorization effectively lives in browser JavaScript (finding DR-1).",
+    "roles": {
+      "anon": "the unauthenticated browser, holding the public anon key. Must be assumed hostile: the key is in the page source, so anything anon can do, anyone on the internet can do.",
+      "authenticated": "a signed-in Supabase user. Not currently used by the platform; reserved so the model does not have to be redesigned when it is.",
+      "operator": "an administrator. Today identified by a client-side password hash, which is NOT an identity the database can verify — see R-GAP-1.",
+      "service": "the server runtime (Edge Functions) using the service_role key. Bypasses RLS by design, which is why every service path must be a narrow, audited contract rather than a general-purpose door."
+    },
+    "principle": "Financial and admin writes are SERVER-MEDIATED. anon may never INSERT, UPDATE or DELETE a payment, allocation, prize or identity link. The reason is not policy elegance: the anon key is public, so a policy permitting anon writes to a money table permits the internet to write to a money table.",
+    "readModelNote": "Reads that reports need are served through views owned by the service role, not by widening table-level policies. A view can project away email and external_reference; a policy cannot."
+  },
+  "entities": [
+    {
+      "name": "participants",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [
+          "SELECT_OWN"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "participants_service_all",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "the write path creates participants when an entry is submitted"
+        },
+        {
+          "name": "participants_self_select",
+          "role": "authenticated",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "auth.uid() = auth_user_id",
+          "why": "identity-aware self-read; the only participant-facing read that does not leak other people's contact data"
+        }
+      ],
+      "noDelete": "participants are never deleted. A merge supersedes; erasure redacts in place. Deleting one would orphan entries and destroy financial history.",
+      "notes": "anon gets NOTHING. Today anon can read participant names and emails through bolao_state; closing that is a behaviour change requiring the app to read through a projection instead."
+    },
+    {
+      "name": "participant_identity_links",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "identity_links_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "merges are performed by the server-mediated merge contract, which enforces the operator confirmation"
+        }
+      ],
+      "noDelete": "a link row is retained even after reversal — that a merge happened and was undone is history.",
+      "notes": "Operator gets SELECT only, NOT INSERT. A merge is an irreversible-by-default money-affecting act and must go through the contract that requires {operatorId, reason}, never a direct row insert."
+    },
+    {
+      "name": "participant_auth_links",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [
+          "SELECT_OWN"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "participant_auth_links_self_select",
+          "role": "authenticated",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "auth_user_id = auth.uid()",
+          "why": "KPLUS-F048: every ownership predicate in this model is a subquery over THIS table, and PostgreSQL applies RLS to a table referenced inside another table's policy — measured. Without this policy that subquery returns zero rows for every authenticated caller, so participants, pool_entries and predictions all become invisible to their own owner. Scoped to the caller's own links: a directory of who owns whom is an enumeration surface."
+        },
+        {
+          "name": "participant_auth_links_service_all",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "the runtime establishes and repairs the link between an auth identity and a participant"
+        }
+      ],
+      "noDelete": "A link is never deleted — revoking access is an UPDATE that supersedes it, so the provenance of who could once see what survives.",
+      "notes": "anon gets NOTHING: this table maps auth identities to participants, so read access to it is an enumeration of the user base. KPLUS-F047 — it was ratified as WS12-OP-2 and referenced by every ownership policy while existing in no model and no migration phase."
+    },
+    {
+      "name": "competitions",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "competitions_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "why": "competition names are public facts and the app renders them before any sign-in — one policy TO anon, authenticated, since a signed-in user must not see less than an anonymous one",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "competitions_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "reference and fixture data is written by the provider sync and by reference-data migrations, both running as service"
+        }
+      ],
+      "noDelete": "reference data is retired by a status flag, not deleted; deleting one would orphan every edition.",
+      "notes": "Genuinely public reference data. No PII, no money."
+    },
+    {
+      "name": "competition_editions",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "editions_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "why": "same as competitions — one policy TO anon, authenticated, since a signed-in user must not see less than an anonymous one",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "competition_editions_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "reference and fixture data is written by the provider sync and by reference-data migrations, both running as service"
+        }
+      ],
+      "noDelete": "retired by status.",
+      "notes": "Public reference data."
+    },
+    {
+      "name": "competition_edition_phases",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "phases_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "why": "the app must show cutoff times to everyone — one policy TO anon, authenticated, since a signed-in user must not see less than an anonymous one",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "competition_edition_phases_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "reference and fixture data is written by the provider sync and by reference-data migrations, both running as service"
+        }
+      ],
+      "noDelete": "retired by status.",
+      "notes": "cutoff_at is public on purpose — a hidden deadline is worse than a public one. But the cutoff must ALSO be enforced server-side; today it is client-only and bypassable by clock manipulation (R-GAP-2)."
+    },
+    {
+      "name": "classification_snapshots",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "classification_snapshots_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "why": "the league table is already published by the provider and the app renders its zones to every visitor; one policy covering both roles, since a signed-in user must not see less than an anonymous one"
+        },
+        {
+          "name": "classification_snapshots_service_insert",
+          "role": "service",
+          "commands": [
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "the sync runtime is the only writer. anon and authenticated have no INSERT at all, which is the control that stops a browser establishing official standings — they decide zone boundaries and therefore scores"
+        }
+      ],
+      "why": "the envelope of a retrieved league classification. Public to read; never writable from a browser, because a snapshot decides zone boundaries and therefore scores.",
+      "notes": "Public to read, because the provider already publishes this table and the app shows its zones to every visitor. Never writable from a browser: br2026's G4/Z4/SA6 are position slices of these rows, so a forged row moves a relegation boundary and therefore a score. Written only by the sync runtime; an operator correction goes through a named write contract that inserts a new snapshot rather than editing one.",
+      "noDelete": "DELETE is granted to nobody. A classification snapshot is provider evidence retrieved at an instant that cannot be re-retrieved, and it is exactly what a past round's zone boundaries were computed against; deleting it would erase the basis of scores already published. A correction is a NEW snapshot with a later generated_at, which ordering resolves — so nothing ever needs removing. UPDATE is likewise granted to nobody: the table is append-only."
+    },
+    {
+      "name": "competition_edition_standings",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "competition_edition_standings_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "roles": [
+            "anon",
+            "authenticated"
+          ],
+          "why": "the league table is already published by the provider and the app renders its zones to every visitor; one policy covering both roles, since a signed-in user must not see less than an anonymous one"
+        },
+        {
+          "name": "competition_edition_standings_service_insert",
+          "role": "service",
+          "commands": [
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "the sync runtime is the only writer. anon and authenticated have no INSERT at all, which is the control that stops a browser establishing official standings — they decide zone boundaries and therefore scores"
+        }
+      ],
+      "why": "the club rows of a classification snapshot. Public to read; never writable from a browser. br2026's G4/Z4/SA6 are position slices of these rows, so a forged row moves a relegation boundary.",
+      "notes": "Public to read, because the provider already publishes this table and the app shows its zones to every visitor. Never writable from a browser: br2026's G4/Z4/SA6 are position slices of these rows, so a forged row moves a relegation boundary and therefore a score. Written only by the sync runtime; an operator correction goes through a named write contract that inserts a new snapshot rather than editing one.",
+      "noDelete": "DELETE is granted to nobody. A classification snapshot is provider evidence retrieved at an instant that cannot be re-retrieved, and it is exactly what a past round's zone boundaries were computed against; deleting it would erase the basis of scores already published. A correction is a NEW snapshot with a later generated_at, which ordering resolves — so nothing ever needs removing. UPDATE is likewise granted to nobody: the table is append-only."
+    },
+    {
+      "name": "pools",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "pools_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "why": "a pool's existence, name and status are public — one policy TO anon, authenticated, since a signed-in user must not see less than an anonymous one",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "pools_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "reference and fixture data is written by the provider sync and by reference-data migrations, both running as service"
+        }
+      ],
+      "noDelete": "a pool with entries can never be deleted; it is closed.",
+      "notes": "Pool status drives the freeze; see the freeze_toggled contract."
+    },
+    {
+      "name": "pool_fee_schedule",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "fee_schedule_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "effective_to IS NULL",
+          "why": "the current price must be visible; historical prices need not be",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "fee_schedule_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "price changes go through a contract so they are audited"
+        }
+      ],
+      "noDelete": "a superseded schedule row is closed with effective_to, never deleted — entries snapshot the fee they were charged and the schedule is the evidence.",
+      "notes": "Operator has SELECT only: changing a price is a business decision that goes through a contract, so the change is audited. The CURRENT price is public on purpose: it is a published price, not a person's money, and the app renders it before any sign-in."
+    },
+    {
+      "name": "pool_entries",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [
+          "SELECT_OWN"
+        ],
+        "operator": [
+          "SELECT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "entries_service_all",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "entry creation and editing go through the create_entry contract, which enforces the cutoff server-side"
+        },
+        {
+          "name": "entries_self_select",
+          "role": "authenticated",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "participant_id IN (SELECT participant_id FROM participants WHERE auth_user_id = auth.uid())",
+          "why": "identity-aware; a participant may read their own entries"
+        }
+      ],
+      "noDelete": "withdrawal is a soft delete (deleted_at). A hard delete would remove an entry from a settled prize split with no trace.",
+      "notes": "anon may NOT insert. This is the biggest behaviour change in the model: today the browser writes entries directly. Server mediation is what makes the cutoff enforceable at all."
+    },
+    {
+      "name": "payments",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "payments_service_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "every payment is recorded by the record_payment contract so it is audited and idempotent"
+        }
+      ],
+      "noDelete": "a payment is reversed by a compensating row, never deleted. Deleting money movement destroys the audit trail that reconciliation depends on.",
+      "notes": "external_reference and memo are never exposed to any role but service; reports read a view that projects them away."
+    },
+    {
+      "name": "payment_allocations",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "allocations_service_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "allocation is the operation that decides which entry a payment settled; it must be transactional and audited"
+        }
+      ],
+      "noDelete": "an allocation is corrected by a compensating allocation, never deleted.",
+      "notes": "The per-payment invariant SUM(allocations) <= payment.amount is enforced in the allocate_payment contract's transaction, because a CHECK constraint cannot see sibling rows."
+    },
+    {
+      "name": "prize_allocations",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "prizes_service_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "declaring a prize creates an obligation to pay someone"
+        }
+      ],
+      "noDelete": "a prize declaration is superseded, never deleted.",
+      "notes": "A public projection (name + rank + gross) is a VIEW, not a widened policy — the view can hide paid_amount, which is nobody else's business."
+    },
+    {
+      "name": "ties",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "ties_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "why": "the bracket is public — one policy TO anon, authenticated, since a signed-in user must not see less than an anonymous one",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "ties_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "reference and fixture data is written by the provider sync and by reference-data migrations, both running as service"
+        }
+      ],
+      "noDelete": "competition facts are corrected, not deleted.",
+      "notes": "Public competition structure."
+    },
+    {
+      "name": "matches",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "matches_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "true",
+          "why": "fixtures are public — one policy TO anon, authenticated, since a signed-in user must not see less than an anonymous one",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "matches_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "reference and fixture data is written by the provider sync and by reference-data migrations, both running as service"
+        }
+      ],
+      "noDelete": "corrected, not deleted.",
+      "notes": "Written by the provider sync running as service."
+    },
+    {
+      "name": "match_results",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "results_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "is_official AND superseded_by_id IS NULL",
+          "why": "only the current official result is public; a superseded one would confuse a reader about which score counts",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "results_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "results are written by the provider sync and corrected through the record_result contract"
+        }
+      ],
+      "noDelete": "a wrong result is SUPERSEDED by a new row, never deleted — the correction history is why a score changed.",
+      "notes": "Operator has SELECT only: recording or correcting a result changes every score in the pool, so it goes through the record_result contract."
+    },
+    {
+      "name": "predictions",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [
+          "SELECT_OWN"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "predictions_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "the submit_prediction contract is the only place the cutoff can be enforced with a trusted clock"
+        },
+        {
+          "name": "predictions_self_select",
+          "role": "authenticated",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "pool_entry_id IN (SELECT pool_entry_id FROM pool_entries e JOIN participants p USING (participant_id) WHERE p.auth_user_id = auth.uid())",
+          "why": "a participant may read their own predictions"
+        }
+      ],
+      "noDelete": "a prediction is overwritten while open, frozen after cutoff; never deleted.",
+      "notes": "Other participants' predictions must NOT be readable before the cutoff — that would let someone copy a better player's picks. This is a fairness requirement, not a privacy one."
+    },
+    {
+      "name": "ranking_snapshots",
+      "rlsEnabled": true,
+      "forceRls": false,
+      "permissions": {
+        "anon": [
+          "SELECT"
+        ],
+        "authenticated": [
+          "SELECT"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "rankings_public_read",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "published_at IS NOT NULL",
+          "why": "a snapshot becomes public when it is published; an unpublished computation is a draft",
+          "roles": [
+            "anon",
+            "authenticated"
+          ]
+        },
+        {
+          "name": "rankings_service_append",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "snapshots are appended by the ranking job; no role may UPDATE one"
+        }
+      ],
+      "noDelete": "snapshots are immutable history. Even after an identity merge they are not re-pointed.",
+      "notes": "APPEND_ONLY: no UPDATE for any role, because editing a published standing rewrites what participants already acted on."
+    },
+    {
+      "name": "sync_state",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "sync_service_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "cursors are runtime state of the sync job"
+        }
+      ],
+      "noDelete": "a cursor is reset by update, not deletion.",
+      "notes": "Exposed to operators through the operational_health report so a stale provider snapshot is visible — that failure mode otherwise produces no signal at all."
+    },
+    {
+      "name": "audit_chain_head",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [],
+        "service": [
+          "SELECT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "audit_chain_head_runtime_maintain",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "The chain trigger reads and advances this row as part of every INSERT into audit_events, and FORCE ROW LEVEL SECURITY binds the table owner too — so with no policy the trigger fails for any non-superuser owner, which is what production runs as. SELECT and UPDATE only: there is exactly one row and it is created by the migration, so INSERT and DELETE are never needed and are not granted."
+        }
+      ],
+      "noDelete": "never. Deleting the head would strand the chain: the next append would start a second genesis and the log would silently become two chains.",
+      "notes": "Maintained solely by audit.compute_event_chain() during an INSERT into audit_events. The runtime can technically UPDATE this row directly, which would misdirect the next append; that is not prevented by permission but is DETECTED — the chain verifier walks previous_event_hash links and checks that the log has exactly one genesis and one open end, and event_count gives an independent count of links. A tampered head shows up as an orphan link or a count mismatch on the next verification. See ADR-K01."
+    },
+    {
+      "name": "audit_events",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "audit_append_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "the audit log is written by every contract and read by investigations"
+        }
+      ],
+      "noDelete": "never. A deletable audit log provides no evidence, and a hash-chained row cannot be removed without breaking the chain.",
+      "notes": "NO UPDATE for any role, including service: immutability is the property that makes the chain worth computing."
+    },
+    {
+      "name": "audit_event_details",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "audit_details_service",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "UPDATE is required here and only here, to null the snapshots for an erasure request"
+        }
+      ],
+      "noDelete": "the row is redacted in place, not deleted, so the reference from the chained event stays intact.",
+      "notes": "The ONE table where UPDATE is intentional. That is the whole reason the sidecar exists: it lets erasure happen without breaking the audit chain."
+    },
+    {
+      "name": "outbox_events",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "outbox_service_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "the worker leases, retries and completes events"
+        }
+      ],
+      "noDelete": "a delivered event is retained for its payload retention window, then its payload is dropped by a scheduled job — the row itself stays as delivery evidence.",
+      "notes": "Payload may contain a rendered email body, so it is service-only and expires at 90 days."
+    },
+    {
+      "name": "outbox_delivery_attempts",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "attempts_append_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "attempts are append-only delivery evidence"
+        }
+      ],
+      "noDelete": "never; the attempt history is the forensics.",
+      "notes": "NO UPDATE: an attempt happened or it did not."
+    },
+    {
+      "name": "request_idempotency",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "idempotency_service_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "the store is written and read only by the trusted write boundary"
+        }
+      ],
+      "noDelete": "not automatically. Pruning is an explicit, audited operation over a named set, and never over a money-bearing record.",
+      "notes": "NO UPDATE for any role: a completed request record is a statement about something that already happened."
+    },
+    {
+      "name": "migration_lineage",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT"
+        ]
+      },
+      "policies": [
+        {
+          "name": "migration_lineage_append_only",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT"
+          ],
+          "predicate": "true",
+          "why": "the backfill writes provenance as it writes rows; reconciliation reads it back"
+        }
+      ],
+      "noDelete": "never during the campaign. This table IS the backout mechanism — a run's rows are exactly those naming its migration_run_id — so deleting lineage destroys the ability to reverse the backfill it describes.",
+      "notes": "NO UPDATE for any role. Provenance that can be rewritten is not provenance. anon and authenticated get nothing: source paths and fingerprints describe participant data even though they never contain it."
+    },
+    {
+      "name": "classification_predictions",
+      "rlsEnabled": true,
+      "forceRls": true,
+      "permissions": {
+        "anon": [],
+        "authenticated": [
+          "SELECT_OWN"
+        ],
+        "operator": [
+          "SELECT"
+        ],
+        "service": [
+          "SELECT",
+          "INSERT",
+          "UPDATE"
+        ]
+      },
+      "policies": [
+        {
+          "name": "classification_predictions_service_write",
+          "role": "service",
+          "commands": [
+            "SELECT",
+            "INSERT",
+            "UPDATE"
+          ],
+          "predicate": "true",
+          "why": "the submit path is the only place the cutoff can be enforced against a trusted clock"
+        },
+        {
+          "name": "classification_predictions_self_select",
+          "role": "authenticated",
+          "commands": [
+            "SELECT"
+          ],
+          "predicate": "pool_entry_id IN (SELECT pool_entry_id FROM pool_entries e JOIN participants p USING (participant_id) WHERE p.auth_user_id = auth.uid())",
+          "why": "a participant may read their own zone picks, and only their own: reading another's before the deadline is the same fairness problem as reading their match picks"
+        }
+      ],
+      "noDelete": "a zone pick is overwritten while the round is open, never deleted — deleting one would erase what a participant staked their score on",
+      "notes": "Other participants' zone picks must NOT be readable before the cutoff — that would let someone copy a better player's G4/Z4 the same way reading their match picks would. This is a FAIRNESS requirement, not a privacy one: the picks contain no personal data, only club names, and the harm is to the competition rather than to the person. anon gets nothing because the browser has no identity to scope a row to."
+    }
+  ],
+  "gaps": [
+    {
+      "id": "R-GAP-1",
+      "gap": "there is no database-verifiable operator identity",
+      "detail": "the admin password is a SHA-256 hash checked in the browser. PostgreSQL cannot verify it, so every 'operator' permission in this model is really 'service acting on an operator's behalf' until a real auth mechanism exists.",
+      "consequence": "operator-only policies cannot be enforced by RLS alone today; they are enforced by the Edge Function that holds the service key.",
+      "decision": "OPERATOR DECISION REQUIRED: adopt Supabase Auth for operators, or accept that operator authority lives in the server runtime and document it."
+    },
+    {
+      "id": "R-GAP-2",
+      "gap": "the prediction cutoff is enforced client-side only",
+      "detail": "clock manipulation bypasses it, and the anon key allows a direct write today.",
+      "consequence": "the fairness guarantee the whole scoring model rests on is currently unenforced.",
+      "decision": "closed by the submit_prediction contract; requires the app to stop writing directly."
+    },
+    {
+      "id": "R-GAP-3",
+      "gap": "current production policies are identity-unaware row allowlists",
+      "detail": "finding DR-1: none of the six policies references auth.uid() or any claim, so authorization effectively lives in browser JavaScript.",
+      "consequence": "anyone with the public anon key can do whatever the policies permit, regardless of who they claim to be.",
+      "decision": "superseded by this model; migration is phase M11."
+    }
+  ],
+  "writeContracts": [
+    {
+      "id": "S-1",
+      "name": "create_entry",
+      "auth": "anon may CALL the endpoint; the endpoint runs as service. Rate-limited per IP and per email.",
+      "validation": [
+        "pool exists and status = open",
+        "phase cutoff has NOT passed, measured against the SERVER clock",
+        "entry_label present and non-blank",
+        "participant resolved or created; NEVER merged",
+        "expected_fee snapshotted from the in-force fee schedule"
+      ],
+      "transaction": "one transaction: participant upsert + pool_entry insert + audit event + outbox event",
+      "idempotency": "client-supplied request id; a repeat returns the original entry rather than creating a second one",
+      "audit": "entry_created (aggregate pool_entry)",
+      "outbox": "participant_receipt + admin_notification",
+      "errors": [
+        "POOL_CLOSED",
+        "CUTOFF_PASSED",
+        "LABEL_REQUIRED",
+        "RATE_LIMITED",
+        "VALIDATION_FAILED"
+      ],
+      "retry": "safe to retry with the same request id; the idempotency key makes a duplicate submit a no-op",
+      "why": "this is the contract that makes the cutoff real. A client-side cutoff is a suggestion."
+    },
+    {
+      "id": "S-2",
+      "name": "submit_prediction",
+      "auth": "anon may call with the entry's own token; runs as service",
+      "validation": [
+        "entry exists and is not withdrawn",
+        "match/tie belongs to the entry's edition",
+        "cutoff not passed by the SERVER clock",
+        "exactly one subject (match XOR tie)",
+        "goals are integers >= 0"
+      ],
+      "transaction": "one transaction: prediction upsert + audit event",
+      "idempotency": "natural: (pool_entry_id, subject) is unique, so a resubmit overwrites while open",
+      "audit": "prediction_submitted",
+      "outbox": "none — a receipt per pick would be noise",
+      "errors": [
+        "CUTOFF_PASSED",
+        "UNKNOWN_SUBJECT",
+        "ENTRY_WITHDRAWN",
+        "INVALID_GOALS"
+      ],
+      "retry": "idempotent while open; after the cutoff it fails closed",
+      "why": "predictions directly determine who is paid, so the lock must be enforced where the clock is trusted."
+    },
+    {
+      "id": "S-3",
+      "name": "record_payment",
+      "auth": "operator only, via the server runtime",
+      "validation": [
+        "amount is exact decimal and non-zero",
+        "sign agrees with kind (refunds negative)",
+        "currency is ISO-4217 and explicitly supplied — never defaulted",
+        "external_reference unique if present",
+        "payer participant resolved"
+      ],
+      "transaction": "one transaction: payment insert + audit event + outbox event",
+      "idempotency": "external_reference UNIQUE where not null; plus an operator-supplied request id",
+      "audit": "payment_recorded",
+      "outbox": "admin_notification",
+      "errors": [
+        "DUPLICATE_REFERENCE",
+        "SIGN_MISMATCH",
+        "CURRENCY_REQUIRED",
+        "AMOUNT_INVALID"
+      ],
+      "retry": "safe; the unique reference converts a duplicate into a no-op",
+      "why": "recording the same real payment twice would double the cash the pool believes it collected."
+    },
+    {
+      "id": "S-4",
+      "name": "allocate_payment",
+      "auth": "operator only, via the server runtime",
+      "validation": [
+        "payment and entry exist",
+        "same currency across payment, allocation and the entry's expected fee",
+        "SUM(allocations) <= payment.amount, checked inside the transaction",
+        "payment is not legacy_asserted (no amount to allocate)"
+      ],
+      "transaction": "one transaction: allocation insert + audit event; settlement is DERIVED afterwards, never written",
+      "idempotency": "operator-supplied request id; the transaction re-checks the invariant so a concurrent duplicate cannot both pass",
+      "audit": "payment_allocated",
+      "outbox": "participant_receipt when the allocation settles the entry",
+      "errors": [
+        "OVER_ALLOCATION",
+        "CURRENCY_MISMATCH",
+        "LEGACY_ASSERTED_HAS_NO_AMOUNT",
+        "UNKNOWN_ENTRY"
+      ],
+      "retry": "safe with the same request id",
+      "why": "the per-payment invariant cannot be a CHECK constraint because it spans sibling rows, so the transaction is the only place it holds."
+    },
+    {
+      "id": "S-5",
+      "name": "merge_identity",
+      "auth": "operator only; requires {operatorId, reason}",
+      "validation": [
+        "both participants exist",
+        "neither is already superseded",
+        "not a self-merge",
+        "would not close a cycle",
+        "reason is non-empty"
+      ],
+      "transaction": "one transaction: link insert + canonical pointer + re-point entries/payments/prizes + audit event. Snapshots and audit rows are deliberately NOT re-pointed.",
+      "idempotency": "the link's (surviving, merged) pair is unique among unreversed links",
+      "audit": "identity_merged, with the reason",
+      "outbox": "none — a merge is internal bookkeeping, not something to email anyone about",
+      "errors": [
+        "ALREADY_MERGED",
+        "SELF_MERGE",
+        "WOULD_CREATE_CYCLE",
+        "REASON_REQUIRED",
+        "UNKNOWN_PARTICIPANT"
+      ],
+      "retry": "NOT blindly retryable: a second call with a new request id would be a second merge. The client must treat an ambiguous result as 'check state first'.",
+      "why": "a merge moves money attribution between real people. It is the one contract where a silent retry is more dangerous than a visible failure."
+    },
+    {
+      "id": "S-6",
+      "name": "reverse_merge",
+      "auth": "operator only; requires {operatorId, reason}",
+      "validation": [
+        "link exists and is not already reversed",
+        "reason non-empty"
+      ],
+      "transaction": "one transaction: restore prior_state + clear canonical pointer + restore prior alias set + mark link reversed + audit event",
+      "idempotency": "a second reversal of the same link fails with ALREADY_REVERSED",
+      "audit": "identity_merge_reversed",
+      "outbox": "none",
+      "errors": [
+        "ALREADY_REVERSED",
+        "UNKNOWN_LINK",
+        "REASON_REQUIRED"
+      ],
+      "retry": "safe: the second attempt fails cleanly rather than reversing twice",
+      "why": "reversibility is what makes the merge decision survivable; restoring from prior_state means it does not have to be reconstructed."
+    },
+    {
+      "id": "S-7",
+      "name": "record_prize",
+      "auth": "operator only",
+      "validation": [
+        "pool has a published final ranking",
+        "sum of declared prizes <= collected total",
+        "shares sum to exactly 1",
+        "currency explicit and consistent",
+        "each prize maps to an existing entry whose participant matches"
+      ],
+      "transaction": "one transaction: prize_allocations insert (all rows together) + audit event + outbox events",
+      "idempotency": "one unreversed prize allocation per (pool, rank_position)",
+      "audit": "prize_declared",
+      "outbox": "participant_receipt per winner + admin_notification",
+      "errors": [
+        "RANKING_NOT_PUBLISHED",
+        "PRIZES_EXCEED_COLLECTED",
+        "SHARES_DO_NOT_SUM",
+        "CURRENCY_MISMATCH",
+        "ALREADY_DECLARED"
+      ],
+      "retry": "safe with the same request id; partial declaration is impossible because all rows are inserted together",
+      "why": "declaring prizes creates an obligation to pay real money; declaring more than was collected is unrecoverable."
+    },
+    {
+      "id": "S-8",
+      "name": "admin_correction",
+      "auth": "operator only; requires {operatorId, reason} AND names the specific field being corrected",
+      "validation": [
+        "target row exists",
+        "field is on an ALLOWLIST of correctable fields — a general-purpose update endpoint is not a contract",
+        "before and after values captured into the redactable sidecar",
+        "reason non-empty"
+      ],
+      "transaction": "one transaction: targeted update + audit event + sidecar detail",
+      "idempotency": "operator-supplied request id",
+      "audit": "admin_correction, with before/after in the sidecar and only references in safe_metadata",
+      "outbox": "admin_notification",
+      "errors": [
+        "FIELD_NOT_CORRECTABLE",
+        "REASON_REQUIRED",
+        "UNKNOWN_TARGET",
+        "WOULD_VIOLATE_INVARIANT"
+      ],
+      "retry": "safe with the same request id",
+      "why": "this is the highest-privilege operation available, so it is the one that most needs a field allowlist. An endpoint that can update anything is a second, unaudited schema."
+    }
+  ]
+}

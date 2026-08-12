@@ -1,0 +1,123 @@
+{
+  "version": 3,
+  "supersedes": 2,
+  "correctedOn": "2026-08-11",
+  "correctionReason": "KPLUS-F012. Version 2 listed `event_triggers_<UTC>.sql` among the companions and said they MUST accompany every backup — and that was true and insufficient. Nothing ever RESTORED the companion, no acceptance criterion asserted it, and the only place the rehearsal counted event triggers was a containment check where a count of 0 reads as GOOD. So a restore could be complete by this contract's own definition while carrying none of them, and every rehearsal to date was green with the loss in plain sight. The 2026-08-11 production read measured 7 event triggers in production against 0 in the restored baseline. Capture without replay is not backup scope; it is a note. Version 3 gives every companion an explicit restoreAction, and a companion may only say CAPTURE_ONLY if the reason is recorded next to it.",
+  "ownershipDoctrine": {
+    "rule": "Ownership is omitted at RESTORE time, not at dump time, for the custom-format archive.",
+    "why": "pg_dump's --no-owner is a plain-text-format option. Its own help text reads 'skip restoration of object ownership in plain-text format', and when emitting a custom-format archive pg_dump IGNORES the flag silently — no warning, exit code 0. Ownership is recorded in the archive TOC by design, because an archive is a catalog to be replayed selectively, not a script. The omission therefore belongs to pg_restore --no-owner.",
+    "consequence": "A custom-format archive containing ownership metadata is CORRECT, not defective. Reissuing the dump cannot remove it, whatever flags are passed. The property that actually matters is that the archive REPLAYS owner-free when the restore passes --no-owner, and that is mechanically checkable offline.",
+    "proof": "pg_restore -f - <archive> emits 12 ALTER … OWNER TO statements; pg_restore --no-owner -f - <archive> emits 0.",
+    "mandatoryRestoreFlag": "--no-owner",
+    "mandatoryRestoreFlagWhy": "The scratch target has no role identical to production's owner. Without this flag every ALTER … OWNER TO postgres either fails outright on a cluster lacking that role, or silently assigns ownership the rehearsal never intended to grant."
+  },
+  "artifacts": [
+    {
+      "id": "custom_archive",
+      "role": "THE RESTORE ARTEFACT",
+      "format": "custom",
+      "command": "pg_dump --format=custom --compress=9 --schema=public --no-blobs --no-subscriptions --no-tablespaces --quote-all-identifiers --serializable-deferrable --file=<PRIVATE>/bolao_public_<UTC>.dump",
+      "ownership": "PRESENT_IN_ARCHIVE_OMITTED_AT_RESTORE",
+      "ownershipVerification": "pg_restore --no-owner -f - <archive> | grep -c 'OWNER TO' == 0",
+      "acls": "INCLUDED",
+      "noOwnerFlagOmittedDeliberately": true,
+      "noOwnerFlagOmittedWhy": "pg_dump ignores it for this format. Passing it would document an intent the tool does not honour, which is exactly how BATCH-J-F2 arose — the flag was passed, silently ignored, and then recorded in the manifest as though it had taken effect."
+    },
+    {
+      "id": "plain_sql",
+      "role": "review / diff artefact — NOT the restore path",
+      "format": "plain",
+      "command": "pg_dump --format=plain --schema=public --quote-all-identifiers --no-subscriptions --no-tablespaces --no-blobs --no-owner --file=<PRIVATE>/bolao_public_<UTC>.sql",
+      "ownership": "OMITTED",
+      "ownershipVerification": "grep -c '^\\s*ALTER [A-Z ]* .*OWNER TO' == 0",
+      "acls": "INCLUDED",
+      "noOwnerFlagAdded": true,
+      "noOwnerFlagAddedWhy": "Here --no-owner DOES take effect, and version 1 never passed it to this artefact at all. This is the second half of F2's root cause: the flag was absent where it would have worked and present where it was ignored."
+    },
+    {
+      "id": "schema_only",
+      "role": "baseline comparison",
+      "format": "plain",
+      "command": "pg_dump --schema-only --schema=public --quote-all-identifiers --no-owner --file=<PRIVATE>/bolao_public_schema_<UTC>.sql",
+      "ownership": "OMITTED",
+      "ownershipVerification": "grep -c '^\\s*ALTER [A-Z ]* .*OWNER TO' == 0",
+      "acls": "INCLUDED",
+      "noOwnerFlagAdded": true,
+      "noOwnerFlagAddedWhy": "Same as plain_sql. Version 1 omitted it, which is why the schema companion carries 12 ownership statements."
+    },
+    {
+      "id": "companions",
+      "role": "objects pg_dump omits — MUST accompany every backup AND declare what happens to each at restore time",
+      "format": "psql output",
+      "members": [
+        {
+          "member": "event_triggers_<UTC>.sql",
+          "restoreAction": "REPLAY_APPLICATION_OWNED",
+          "generatedBy": "scripts/db/backup_scope.mjs — renderEventTriggerCompanion()",
+          "capturedBy": "backup_scope.eventTriggerCaptureSql()",
+          "replayOrder": "AFTER the custom archive — every function these attach to comes from the schema dump",
+          "verifiedBy": "A12 — backup_scope.eventTriggerFidelity(source, restored)",
+          "scope": "APPLICATION_OWNED only. A trigger whose function lives in a provider schema (extensions, graphql, storage, …) is RECORDED as a comment and never replayed: Supabase recreates it on any project it manages, replaying it fails on a bare PostgreSQL target and collides on a managed one.",
+          "why": "pg_dump --schema=public omits every event trigger — they are database-scoped, not schema-scoped. The FUNCTION survives the dump; only the attachment is lost, which is why the loss is invisible to a function-count check and why replaying is cheap."
+        },
+        {
+          "member": "roles_reference_<UTC>.csv",
+          "restoreAction": "CAPTURE_ONLY",
+          "captureOnlyWhy": "roles are cluster-global. Restoring them into a target that shares no role namespace is a cluster edit, not a restore. The capture exists so grants can be reconciled against roles that must pre-exist. KPLUS-F039 is the standing proof this omission has consequences: production's service_role has BYPASSRLS and the restored baseline's does not.",
+          "verifiedBy": "A9 grant reconciliation"
+        },
+        {
+          "member": "migration_ledger_<UTC>.csv",
+          "restoreAction": "CAPTURE_ONLY",
+          "captureOnlyWhy": "the ledger describes what was applied to the SOURCE. Replaying it into a target would assert a migration history the target never lived through.",
+          "verifiedBy": "manifest member digest"
+        },
+        {
+          "member": "row_counts_at_dump.txt",
+          "restoreAction": "CAPTURE_ONLY",
+          "captureOnlyWhy": "a measurement of the source, compared against the restore by A6 — it is evidence, not DDL.",
+          "verifiedBy": "A6 row-count comparison"
+        },
+        {
+          "member": "toc.txt",
+          "restoreAction": "CAPTURE_ONLY",
+          "captureOnlyWhy": "a rendering of the archive's own table of contents, kept for review.",
+          "verifiedBy": "manifest member digest"
+        }
+      ],
+      "ownership": "NOT_APPLICABLE",
+      "ownershipVerification": "n/a — these are captures, not restorable DDL",
+      "acls": "NOT_APPLICABLE",
+      "why": "pg_dump --schema=public omits event triggers, role attributes and the migration ledger. A restore without them produces a database that BEHAVES differently from the one backed up — proven on real PostgreSQL by NIGHT-26: without the event-trigger companion, a table created in the restored database lands with RLS OFF.",
+      "restoreActionVocabulary": [
+        "REPLAY_APPLICATION_OWNED",
+        "CAPTURE_ONLY"
+      ],
+      "rule": "Every member MUST declare a restoreAction. CAPTURE_ONLY MUST record captureOnlyWhy. A member that is captured, never replayed and never explained is KPLUS-F012 happening again."
+    }
+  ],
+  "rejectedFlags": [
+    {
+      "flag": "--no-privileges=false",
+      "verdict": "INVALID — pg_dump rejects it outright",
+      "evidence": "pg_dump: option `--no-privileges' doesn't allow an argument",
+      "why": "--no-privileges is a no_argument long option; there is no =false form. Version 1's documented command therefore could never have executed as written, which means the command that produced the existing bundle was NOT the command recorded in the design doc. To include ACLs, simply omit --no-privileges.",
+      "replacement": "omit the flag entirely"
+    }
+  ],
+  "manifestRules": {
+    "perArtifactFlags": "REQUIRED — one bundle-wide options line cannot describe artefacts built by different commands, and asserting one caused F2.",
+    "ownershipPerArtifact": "REQUIRED — stated per artefact, using the vocabulary PRESENT_IN_ARCHIVE_OMITTED_AT_RESTORE | OMITTED | NOT_APPLICABLE.",
+    "mechanicalVerifiability": "Every claim the manifest makes MUST be checkable by a command recorded next to it. A claim with no check is a claim that will eventually be false without anyone noticing — which is precisely what happened.",
+    "restoreCommandRecorded": "REQUIRED — the manifest must record the restore command including --no-owner, because for the custom archive the ownership guarantee lives in the RESTORE command and nowhere in the artefact.",
+    "companionRestoreAction": "REQUIRED per member — 'captured' is not a restore plan. KPLUS-F012 was precisely the gap between a companion existing and anything replaying it."
+  },
+  "eventTriggerScope": {
+    "productionCount": 7,
+    "productionCountMeasured": "2026-08-11, authorized read-only window, PROBE-2",
+    "restoredBaselineCount": 0,
+    "applicationVsProviderSplitInProduction": "UNKNOWN",
+    "whySplitUnknown": "PROBE-2 counted them; enumerating names and owning functions is a SECOND production read the window did not authorize. The split must NOT be inferred from the local cluster — that inference is the same error KPLUS-F012 is made of.",
+    "consequence": "The companion generator classifies at capture time, so it is correct whatever the split turns out to be. But the BACKUP SCOPE GAP cannot be declared closed for production until a capture has actually run against production."
+  }
+}
