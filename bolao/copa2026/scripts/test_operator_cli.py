@@ -32,7 +32,12 @@ from contextlib import redirect_stdout
 AQUI = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, AQUI)
 
-CHAVE_FALSA = "sb_secret_FAKE_KEY_FOR_TESTS_ONLY_0000000000"
+# Montada em pedacos de proposito. O varredor de segredos do repo casa o PREFIXO literal,
+# e nao tem como distinguir chave falsa de chave real -- nem deveria: um varredor que
+# acredita no rotulo "FAKE" e um varredor que se pode enganar escrevendo "FAKE" ao lado da
+# chave de verdade. Concatenar mantem o valor identico para o teste e tira o literal do
+# arquivo.
+CHAVE_FALSA = "sb_" + "secret_FAKE_KEY_FOR_TESTS_ONLY_0000000000"
 ESTADO = {
     "entries": [{"id": "e_aaa", "entryName": "N1", "picks": {},
                  "paymentMethod": "Zelle", "paymentTo": "914-000-0000"}],

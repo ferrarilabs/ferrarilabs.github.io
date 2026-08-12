@@ -173,6 +173,11 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["copa2026_operator.yml",
+   "CLI de operador da Copa: so roda por acionamento humano com uma operacao escolhida a mao " +
+   "(workflow_dispatch com input `command`). Agendar seria executar mutacao de operador sem " +
+   "ninguem ter pedido -- e a Copa esta ARQUIVADA desde 19/07, entao nao existe evento recorrente " +
+   "que justifique uma execucao automatica."],
   ["m8m9_probe.yml",
    "Diagnostico sob demanda de M8/M9: mede o alcance real do PostgREST para audit_events/" +
    "outbox_events e roda a matriz de queda contra a producao. Deliberadamente NAO agendado -- a " +

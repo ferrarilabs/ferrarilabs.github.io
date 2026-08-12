@@ -375,6 +375,14 @@
     "bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Afirma a SEQUENCIA emit_outbox -> provedor -> settle, nao so a existencia do evento. Cobre desfecho espelhando o ledger, UNCERTAIN terminal, recusa de transporte (providerCalls=0 e obrigacao retentavel). 2 mutacoes reais pegas; a de providerCalls so foi pega depois de adicionar o cenario de RECUSA -- com o transporte sempre aceitando, contar intencao e contar efeito dao o mesmo numero."
+    },
+    "bolao/copa2026/scripts/test_app_routing.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Roteamento do app da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel; registrado aqui para nao nascer invisivel."
+    },
+    "bolao/copa2026/scripts/test_operator_cli.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "CLI de operador da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel. A credencial de teste passou a ser montada por concatenacao: o varredor de segredos casa o prefixo literal e nao pode confiar no rotulo FAKE -- um varredor que acredita no rotulo e enganavel escrevendo o rotulo ao lado da chave real."
     }
   }
 }
