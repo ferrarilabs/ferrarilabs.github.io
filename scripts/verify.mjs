@@ -95,6 +95,8 @@ const CHECKS = [
   { id: "draw-provenance", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_draw_provenance.mjs"], why: "official draw provenance" },
   { id: "draw-provenance-patterns", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs"],
     why: "precision/recall of the tie-fabrication patterns" },
+  { id: "copa-private-readers", group: "security", cmd: ["python3", "bolao/copa2026/scripts/test_private_readers.py"],
+    why: "a chave publica vai em todo navegador; quem so a tem nao pode alcancar o documento privado" },
   { id: "copa-operator-cli", group: "app", cmd: ["python3", "bolao/copa2026/scripts/test_operator_cli.py"],
     why: "CLI de operador da Copa arquivada" },
   { id: "copa-app-routing", group: "app", cmd: ["node", "bolao/copa2026/scripts/test_app_routing.mjs"],
