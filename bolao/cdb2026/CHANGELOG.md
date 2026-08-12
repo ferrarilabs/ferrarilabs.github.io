@@ -1,5 +1,47 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.124 — 2026-08-12 — o comprovante de entrada salva sai do servidor, não do navegador
+
+O comprovante saía de `queueReceipt()` -> `sendReceipt()` -> EmailJS, com
+`to_email: entry.participantEmail`. Esse caminho dependia de o navegador conhecer o endereço do
+participante, e ele não conhece mais: `cdb_my_entry` devolve `id`, `entryName`, `picks` e
+`updatedAt`, e nada além disso. A omissão é a correção de PII deste incidente — reexpor o
+endereço para o cliente poder endereçar o e-mail desfaria exatamente o que foi consertado.
+
+Havia também um defeito meu: o ramo seguro de `saveEntry` retorna antes de `queueReceipt(entry)`,
+então nenhum participante recebia comprovante desde que o caminho seguro entrou. A correção não é
+reabrir o caminho antigo; é trocar o remetente de lado.
+
+    save seguro -> evento durável (MESMA transação) -> consumidor confiável -> 1 chamada -> liquidação
+
+- **O evento nasce dentro de `cdb_save_my_picks`**, depois do UPDATE. Outbox transacional de
+  verdade: ou o palpite e a obrigação de avisar valem juntos, ou nenhum dos dois. Não existe a
+  janela em que o palpite gravou e o aviso se perdeu. Save que falha não deixa evento nenhum.
+- **A chave de idempotência deriva da ENTRADA**, não do relógio:
+  `cdb2026:entry-saved-confirmation:<entryId>:v1`. Salvar dez vezes é um aviso. Chave com
+  timestamp faria de cada retry uma notificação nova — foi assim que o operador recebeu quatro
+  e-mails em 45 minutos em 2026-08-12.
+- **O payload não carrega endereço**, só o `entryId`. Quem traduz é
+  `cdb_confirmation_recipient()`, que só devolve endereço se existir permissão nominal para
+  aquela entrada. O portão está no banco: o consumidor é estruturalmente incapaz de alcançar
+  outro participante — não por disciplina, por ausência de caminho.
+- **A permissão se consome** na primeira entrega aceita. Somada ao `UNIQUE(app, business_key,
+  recipient_hash, generation)` de `notification_deliveries` e ao disjuntor de 45 minutos, o teto
+  de e-mails que este caminho pode produzir é UM.
+
+O `EMAIL_KILL_SWITCH` continua ATIVO e continua valendo para convite, correção, reenvio, link
+novo e broadcast. O comprovante passa por exceção NOMINAL, não categórica: vale para uma entrada
+nomeada, uma vez.
+
+Prova com transporte falso (30 verificações, nenhuma chamada real ao provedor): caminho feliz com
+exatamente 1 chamada; consumidor rerodado com 0; save repetido com 0; save que falha com 0;
+entrada de outro participante com 0 e endereço não devolvido; sem permissão com 0. O teste roda
+sob tipo de evento e chave de negócio de canário, para não consumir a única entrega real que
+existe para validar.
+
+**Nada de scoring, bracket ou regra de torneio foi tocado.** Auditorias das três aplicações
+passam.
+
 ## v3.123 — 2026-08-10 — CDB2026 passa a usar de verdade o store ao vivo compartilhado
 
 Mesmo defeito do BR2026: `football_live_store.js` era carregado, testado e nunca instanciado. O
