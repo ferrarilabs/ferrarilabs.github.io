@@ -39,10 +39,25 @@ echo "  HEAD          $SHA"
 
 # Árvore limpa: um pacote gerado sobre trabalho não commitado descreve um estado que não existe
 # em lugar nenhum, e o revisor não teria como reproduzi-lo.
-if [ -n "$(git status --porcelain)" ]; then
-  echo "  🛑 árvore suja — o pacote descreveria um estado irreproduzível."
-  git status --short | head -20
+# BLOQUEIA em arquivo RASTREADO modificado; AVISA em arquivo novo não rastreado.
+#
+# A distinção não é cosmética. O pacote é `git archive HEAD`: arquivo rastreado modificado torna
+# HEAD uma descrição FALSA do que foi testado — o revisor recebe uma versão que ninguém rodou.
+# Arquivo não rastreado, por definição, não entra no pacote; ele não pode falsear nada.
+#
+# E este repositório tem várias sessões escrevendo no mesmo checkout. Travar a geração porque
+# outra sessão deixou um `.sql` novo em cima da mesa seria deixar o trabalho de uma pessoa refém
+# do rascunho de outra, sem que isso proteja nada.
+SUJOS_RASTREADOS="$(git status --porcelain --untracked-files=no)"
+if [ -n "$SUJOS_RASTREADOS" ]; then
+  echo "  🛑 arquivos RASTREADOS modificados — o pacote descreveria um estado irreproduzível."
+  echo "$SUJOS_RASTREADOS" | head -20
   exit 1
+fi
+NAO_RASTREADOS="$(git ls-files --others --exclude-standard)"
+if [ -n "$NAO_RASTREADOS" ]; then
+  echo "  ⚠ arquivos NÃO rastreados presentes (excluídos do pacote, como manda o git archive):"
+  echo "$NAO_RASTREADOS" | sed 's/^/       /' | head -10
 fi
 
 git archive --format=tar HEAD | (mkdir -p "$TMP/pkg" && tar -x -C "$TMP/pkg")
