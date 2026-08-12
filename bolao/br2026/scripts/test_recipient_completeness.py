@@ -75,7 +75,7 @@ class Harness:
 
     def install(self, transport_result=None, fail_for=None):
         S.sb_fetch = lambda: self.state
-        S.sb_upsert = lambda st: (self.saved_states.append(json.loads(json.dumps(st, default=str))), 200)[1]
+        setattr(S, _ESCRITOR, lambda st: (self.saved_states.append(json.loads(json.dumps(st, default=str))), 200)[1])
         S.fetch_scoreboard_window = lambda a, b: dict(self.games)
         S.fetch_standings = lambda: list(STANDINGS)
         S.time.sleep = lambda *_: None
@@ -88,10 +88,26 @@ class Harness:
         S._TRANSPORT = transport
 
 
+# Ponto de escrita do sender. `sb_upsert` foi removido quando o BR2026 trocou gravacao de
+# documento inteiro por mutacao estreita; `sb_append_audit` e o que existe hoje. O teste precisa
+# apenas garantir que NENHUMA escrita real aconteca -- qual e o nome importa menos que existir um.
+_ESCRITOR = next(k for k in ("sb_upsert", "sb_append_audit") if hasattr(S, k))
+
+
 class RecipientCompleteness(unittest.TestCase):
     def setUp(self):
+        # `sb_upsert` deixou de existir: a gravacao de documento inteiro do BR2026 foi trocada
+        # por mutacao estreita (`sb_append_audit` + RPCs). Substituir o nome aqui NAO afrouxa
+        # nada -- estes casos sao sobre RESOLUCAO DE DESTINATARIO, e o que eles precisam e que
+        # nenhuma escrita real aconteca durante o teste. Exigir o nome antigo exigiria de volta o
+        # upsert de documento inteiro, que e exatamente o que foi removido.
+        _escritores = [k for k in ("sb_upsert", "sb_append_audit") if hasattr(S, k)]
+        assert _escritores, (
+            "nenhum ponto de escrita conhecido em send_round_email — se o nome mudou de novo, "
+            "atualize esta lista em vez de deixar o teste gravar de verdade")
         self._orig = {k: getattr(S, k) for k in
-                      ("sb_fetch", "sb_upsert", "fetch_scoreboard_window", "fetch_standings", "_TRANSPORT")}
+                      ["sb_fetch", *_escritores, "fetch_scoreboard_window", "fetch_standings",
+                       "_TRANSPORT"]}
         self._sleep = S.time.sleep
 
     def tearDown(self):
