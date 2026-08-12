@@ -11,6 +11,7 @@ Usage:
 
 import json, sys, time, urllib.request, urllib.parse, re, os
 from datetime import datetime, timedelta
+from pathlib import Path   # usado por _PonteM8M9._ponte(); ver o comentario la
 import subprocess
 
 # CAMINHOS ANCORADOS NA RAIZ DO REPO, não no diretório de trabalho.

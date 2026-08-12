@@ -159,6 +159,44 @@ def chaves_deterministicas():
 test("chaves de negócio são determinísticas (recuperáveis após queda)", chaves_deterministicas)
 
 
+
+# ── O CAMINHO DE PRODUCAO TEM DE SER EXECUTAVEL, NAO SO O DE TESTE ──────────────────────────
+def caminho_de_producao_resolve():
+    """O modo teste curto-circuita a ponte. Isso escondeu um NameError REAL.
+
+    `_PonteM8M9._ponte()` usa `Path(__file__)`, e o `from pathlib import Path` nunca chegou ao
+    arquivo. Todas as suites passaram -- porque em modo teste esse metodo nunca e chamado -- e o
+    defeito so apareceu no primeiro run agendado de PRODUCAO, em dia de sorteio:
+
+        NameError: name 'Path' is not defined
+
+    Fail-closed funcionou (PROVIDER_CALLS = 0, nada saiu), mas a automacao da noite estava morta.
+
+    Um duble de teste que nunca deixa o codigo real rodar nao prova que o codigo real roda. Este
+    caso executa o metodo FORA do modo teste, que e a unica forma de saber.
+    """
+    import importlib.util
+    import os as _os
+    spec = importlib.util.spec_from_file_location("lifecycle_prod", LIFECYCLE)
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    antes = {k: _os.environ.pop(k, None) for k in ("BOLAO_TEST_RUN", "PYTEST_CURRENT_TEST")}
+    try:
+        ponte = m._PonteM8M9()
+        assert ponte._modo_teste() is False, "ainda em modo teste — o caso nao mede nada"
+        alcancada = ponte._ponte()
+        assert hasattr(alcancada, "emit_audit") and hasattr(alcancada, "emit_outbox"), (
+            "a ponte resolveu para algo que nao e o modulo m8m9")
+    finally:
+        for k, v in antes.items():
+            if v is not None:
+                _os.environ[k] = v
+
+
+test("a ponte resolve FORA do modo teste (caminho de producao executavel)",
+     caminho_de_producao_resolve)
+
+
 print(f"\n  {ok} passed, {fail} failed\n")
 print("✓ M8M9 NO SILENT FALLBACK PASSED\n" if fail == 0 else "✗ M8M9 NO SILENT FALLBACK FAILED\n")
 sys.exit(0 if fail == 0 else 1)
