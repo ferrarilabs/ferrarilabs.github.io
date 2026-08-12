@@ -1,0 +1,102 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
+-- 20260812050000_expand_m13_pool_entry_cutoff.sql
+--
+-- EXPAND stage M13 — pool entry cutoff
+--
+-- ADDITIVE ONLY. This stage creates new objects in new schemas. It does not ALTER, DROP or read any
+-- legacy object, so legacy remains authoritative and fully available for fast rollback.
+--
+-- GENERATED. The body below is emitted byte-for-byte by
+-- `scripts/db/generate_migration_drafts.mjs` from model/target_model.json + model/access_model.json,
+-- and promoted by `scripts/db/promote_expand_stage.mjs`. Do not edit it here: run
+-- `node scripts/db/promote_expand_stage.mjs --check` and it will tell you this file has drifted from
+-- the model. Fix the model or the generator, then re-promote.
+--
+-- ROLLBACK (FULL_BEFORE_BACKFILL). FULL. ALTER TABLE bolao.pools DROP COLUMN entry_cutoff_at. Nothing references it and no row carries a value until the pool backfill runs.
+--
+-- ============================================================
+-- M13 — pool entry cutoff
+-- ============================================================
+--
+-- PURPOSE. Add bolao.pools.entry_cutoff_at — the frozen instant after which a pool refuses entries and
+--  prediction edits. Its source, bolao_state['br2026'].cutoffAt, had no target representation, which
+--  blocked the br2026 pool backfill (OP-Q22-1). It belongs on `pools` and not on `competition_editions`: an
+--  edition's starts_on/ends_on are the COMPETITION's dates, while an entry window is a pool rule, and one
+--  edition may host several pools with different windows.
+--
+-- DEPENDENCIES: M4
+-- TABLES CREATED: none (types only)
+--
+-- LOCK RISK. CREATE TABLE / CREATE TYPE take no lock on any existing object, so concurrent traffic is
+--  unaffected. FKs do take a brief ACCESS EXCLUSIVE lock on the REFERENCED table while the constraint is
+--  registered — participants and pools are referenced here — but that is catalogue-only and does not scan.
+--  Every index is built CONCURRENTLY outside the transaction. Expected worst-case lock on a live object: a
+--  sub-millisecond catalogue lock on referenced parents.
+-- TABLE REWRITE RISK. NONE. This phase creates new tables only; it never ALTERs an existing one, so no
+--  rewrite is possible.
+-- INDEX BUILD STRATEGY. CREATE INDEX CONCURRENTLY, one statement per index, each outside a transaction
+--  block. A concurrent build can fail and leave an INVALID index that is still maintained on write, so the
+--  postchecks assert pg_index.indisvalid for every index created here.
+-- CONSTRAINT VALIDATION STRATEGY. FKs, UNIQUEs and CHECKs are declared INLINE in CREATE TABLE and are
+--  therefore validated immediately. That is correct and deliberate HERE and only here: the table is brand
+--  new and empty, so validation scans zero rows and the NOT VALID / VALIDATE two-step would add ceremony
+--  with no benefit. Any LATER migration that adds a constraint to a POPULATED table must use ADD CONSTRAINT
+--  ... NOT VALID followed by a separate VALIDATE CONSTRAINT, because a plain ADD holds a lock for the whole
+--  scan — the static analyser enforces that distinction.
+-- RLS EFFECT. Every table is created with RLS ENABLED and ZERO policies, which in PostgreSQL denies all
+--  access to everyone except table owners and BYPASSRLS roles. Policies are a separate, later migration.
+--  This ordering is deliberate: a table that exists without RLS, even briefly, is an exposure window.
+-- ACL EFFECT. No GRANT is issued. Default privileges are revoked from PUBLIC. anon and authenticated
+--  receive nothing in this phase.
+-- PII EFFECT. No PII-bearing column is introduced.
+-- BACKFILL REQUIREMENT. the br2026 pool's value comes from bolao_state['br2026'].cutoffAt when the pool
+--  domain backfills. main and cdb2026 have no such key and stay NULL.
+-- APPLICATION COMPATIBILITY. TOTAL — an additive nullable column. The legacy app does not read the target
+--  schema.
+-- ROLLBACK STRATEGY (FULL_BEFORE_BACKFILL). FULL. ALTER TABLE bolao.pools DROP COLUMN entry_cutoff_at.
+--  Nothing references it and no row carries a value until the pool backfill runs.
+--
+-- PRECHECKS (all READ_ONLY, all must pass):
+--   1. every dependency in M4 is recorded as applied
+--   2. none of the tables this phase creates already exists
+--   3. a verified backup exists (restore_rehearsal.mjs preflight green)
+--   4. acceptance_checks.mjs structural counts match the recorded expectation
+--   5. supabase db diff is EMPTY before starting
+-- POSTCHECKS (all READ_ONLY):
+--   1. every table exists with RLS enabled and zero policies
+--   2. every FK and CHECK reports convalidated = true
+--   3. every index reports indisvalid = true
+--   4. no GRANT exists to anon or authenticated on any new table
+--   5. prePostValidate reports no UNACCOUNTED change
+-- FAIL-CLOSED CONDITIONS (stop, do not improvise):
+--   · any precheck fails
+--   · a table already exists (this phase was partially applied — establish state first)
+--   · an index reports indisvalid = false (drop it CONCURRENTLY and retry; do not proceed)
+--   · db diff is non-empty afterwards in any way not declared above
+--   · any statement errors — the transaction aborts and nothing is left half-created
+
+BEGIN;
+
+ALTER TABLE bolao."pools" ADD COLUMN IF NOT EXISTS "entry_cutoff_at" timestamptz;
+COMMENT ON COLUMN bolao."pools"."entry_cutoff_at" IS 'The frozen entry deadline for this pool: the instant after which entries and prediction edits are refused. NOT the edition''s schedule — competition_editions.starts_on/ends_on are the competition''s dates, and a pool''s entry window is a different fact that an edition could host several of.';
+-- SOURCE. bolao_state['br2026'].cutoffAt. Produced by freezeSeasonCutoff() in bolao/br2026/js/app.js, which
+--  computes (first upcoming kickoff - 1 hour) via computeSeasonCutoffIso() and writes it ONCE (`if
+--  (s.cutoffAt) return false`). Consumed by cutoffDate() -> isPastCutoff() -> `locked`, which disables the
+--  pick selects. It controls write eligibility.
+-- TIMEZONE. an absolute instant. computeSeasonCutoffIso() ends in Date#toISOString(), so the stored string
+--  is always UTC with a Z suffix (measured: 24 characters). timestamptz stores the instant; no timezone
+--  meaning is converted or guessed.
+-- NULL. NULL means no frozen cutoff exists for this pool. Two source states map here and the distinction is
+--  preserved in lineage, not in the column: KEY_ABSENT (main, cdb2026 — those pools do not use this
+--  mechanism at all) and JSON_NULL (the br2026 pre-freeze state, where the app falls back to
+--  CONFIG.cutoffIso). Neither is observable in production today: br2026 carries a value and the other two
+--  carry nothing.
+-- MUTABILITY. write-once by the app, but operator-mutable in practice — config.js records that the
+--  production value was extended by 45 minutes directly in Supabase. The column therefore must NOT be made
+--  immutable by a trigger.
+-- NO DEFAULT. deliberately no DEFAULT. A now() default would fabricate a deadline for every pool that has
+--  none, and that deadline would silently decide whether real entries were late.
+
+COMMIT;
