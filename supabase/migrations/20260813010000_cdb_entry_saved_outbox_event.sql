@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260813010000_cdb_entry_saved_outbox_event.sql
 --
 -- ═══ COMPROVANTE DE ENTRADA SALVA, DO LADO DO SERVIDOR ═══════════════════════════════════════
