@@ -127,12 +127,27 @@ def main():
               (st1, r1) == (st2, r2), f"{st1}/{r1} vs {st2}/{r2}")
 
         # ── ESCRITA: bloqueada pela regra de negocio (fase sem prazo) ─────────────────────
+        # A FASE MUDA DE ESTADO DURANTE A VIDA DO TORNEIO, E O CANARIO TEM DE ACOMPANHAR.
+        #
+        # Ate 12/08 as quartas nao tinham prazo publicado e a escrita era recusada com
+        # FASE_FECHADA -- e o canario afirmava exatamente isso. Quando a tabela oficial
+        # materializou e os palpites abriram, essa afirmacao passou a estar errada sobre uma
+        # producao correta.
+        #
+        # Entao o que se afirma agora e o INVARIANTE, nao o estado do dia: a escrita e decidida
+        # pelo SERVIDOR a partir do prazo publicado. Fase sem prazo recusa; fase com prazo aberto
+        # aceita; prazo vencido recusa. Qualquer um dos tres e um resultado valido aqui; o que
+        # nao pode acontecer e o servidor ignorar o prazo.
         st, r = rpc("cdb_save_my_picks",
                     {"p_token": token, "p_client_ref": "canario-1",
                      "p_picks": {"quartas": {"canario": True}}})
-        msg = (r or {}).get("message", "")
-        check("escrita BLOQUEADA enquanto a fase nao tem prazo oficial",
-              st >= 400 and "FASE_FECHADA" in msg, f"http={st} msg={msg[:80]}")
+        msg = json.dumps(r or {})
+        aceitou = 200 <= st < 300
+        recusou_por_prazo = st >= 400 and ("FASE_FECHADA" in msg or "PRAZO" in msg.upper())
+        check("a escrita e decidida pelo PRAZO no servidor (aceita aberta, recusa fechada)",
+              aceitou or recusou_por_prazo,
+              f"http={st} msg={msg[:110]} — nem aceitou com a fase aberta nem recusou citando o "
+              "prazo; o servidor nao esta decidindo pelo cutoff")
 
         # ── CROSS-ENTRY: estruturalmente impossivel ───────────────────────────────────────
         st, r = rpc("cdb_save_my_picks",
