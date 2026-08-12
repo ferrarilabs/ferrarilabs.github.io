@@ -80,6 +80,11 @@ jobs:
       # ── Step 2: Reopen site after R32 if M88 is done ─────────────────────────
       - name: Check if site needs to reopen after R32
         id: reopen
+        env:
+          # PRODMIG-Q38-READ: auto_reopen.py le o documento PRIVADO de `main` para saber se o M88
+          # terminou. Antes usava a chave anon PUBLICA — a mesma que vai no navegador. Agora exige
+          # a credencial privilegiada e falha fechado sem ela.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         working-directory: bolao/copa2026/scripts
         run: |
           output=$(python3 auto_reopen.py 2>&1)

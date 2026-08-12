@@ -255,7 +255,7 @@ def fetch_espn_results(saved_results=None):
 def sb_fetch():
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state?id=eq.main&select=state",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}"}
+        headers={"apikey": _service_key(), "Authorization": f"Bearer {_service_key()}"}
     )
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read())[0]["state"]
