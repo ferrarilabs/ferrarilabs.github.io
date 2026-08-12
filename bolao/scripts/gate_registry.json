@@ -415,6 +415,10 @@
     "bolao/scripts/test_delivery_uniqueness.py": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Mede contra a PRODUCAO a unicidade (app, evento, destinatario, geracao) e o disjuntor de anomalia de 45min; precisa de SUPABASE_SERVICE_ROLE_KEY e de concorrencia real (8 workers). Executado pelo workflow m8m9_probe.yml. Nao envia e-mail: enderecos sinteticos, chaves canary:, tudo removido no fim. Ultimo resultado: 13/13, 8 workers -> 1 reserva."
+    },
+    "bolao/cdb2026/scripts/test_bracket_browser.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Navegador real, app real, fixture proprio (Supabase bloqueado na ROTA, entao nunca toca dado de participante). Percorre quartas->semifinal->final->campeao sem salvar, prova invalidacao a jusante, ausencia de 3o/4o lugar, preservacao do visual (.champion-header/.tie-row) e ausencia de overflow em 320/414/768. Existe porque o gate de unidade passava afirmando `teamName` -- o nome de campo do resolvedor -- enquanto o renderizador lia `team` e a tela mostrava undefined."
     }
   }
 }

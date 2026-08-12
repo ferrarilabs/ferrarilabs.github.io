@@ -79,15 +79,15 @@ test("palpite de quartas NA TELA resolve a vaga da semifinal", () => {
   const r = sandbox.resolveParticipantPredicted(
     ESTADO, { winnerOf: "qf-1" }, { qualified: { "qf-1": "A" } });
   assert(r.resolved === true, "não resolveu");
-  assert(r.teamName === "Cruzeiro", `resolveu para ${r.teamName}`);
+  assert(r.team === "Cruzeiro", `resolveu para ${r.team}`);
   assert(r.fromPrediction === true, "não marcou que veio de palpite");
 });
 
 test("trocar o palpite troca o time na vaga (recomputo imediato)", () => {
   const a = sandbox.resolveParticipantPredicted(ESTADO, { winnerOf: "qf-1" }, { qualified: { "qf-1": "A" } });
   const b = sandbox.resolveParticipantPredicted(ESTADO, { winnerOf: "qf-1" }, { qualified: { "qf-1": "B" } });
-  assert(a.teamName === "Cruzeiro" && b.teamName === "Atlético-MG",
-    `A=${a.teamName} B=${b.teamName} — mudar o palpite não mudou a vaga`);
+  assert(a.team === "Cruzeiro" && b.team === "Atlético-MG",
+    `A=${a.team} B=${b.team} — mudar o palpite não mudou a vaga`);
 });
 
 test("sem palpite, a vaga fica NÃO resolvida (mostra a dependência)", () => {
@@ -101,6 +101,26 @@ test("valor de palpite inválido não vira clube", () => {
     const r = sandbox.resolveParticipantPredicted(ESTADO, { winnerOf: "qf-1" }, { qualified: { "qf-1": v } });
     assert(r.resolved === false, `aceitou qualified=${JSON.stringify(v)} como escolha`);
   }
+});
+
+// O NOME DO CAMPO E CONTRATO COM O RENDERIZADOR, NAO DETALHE INTERNO.
+//
+// A primeira versao deste gate afirmava `r.teamName` -- o nome que EU tinha escolhido no
+// resolvedor. `participantLabel()` le `part.team`. Resultado: o gate passava enquanto a producao
+// renderizava "undefined × Vencedor de Cruzeiro × Atlético-MG".
+//
+// Teste que espelha a implementacao concorda com ela ate quando ela esta errada. Entao aqui o
+// campo e amarrado a QUEM O CONSOME: se `participantLabel` mudar de campo, isto reprova.
+test("o campo resolvido é o mesmo que participantLabel() lê", () => {
+  const corpo = APP.slice(APP.indexOf("function participantLabel("));
+  const fim = corpo.indexOf("\n}");
+  const usado = /return part\.([a-zA-Z]+);/.exec(corpo.slice(0, fim));
+  assert(usado, "não consegui ler qual campo participantLabel() devolve");
+  const r = sandbox.resolveParticipantPredicted(
+    ESTADO, { winnerOf: "qf-1" }, { qualified: { "qf-1": "A" } });
+  assert(r[usado[1]] === "Cruzeiro",
+    `participantLabel() lê "${usado[1]}", mas o resolvedor não preenche esse campo ` +
+    `(tem: ${Object.keys(r).join(", ")}). É exatamente assim que a tela mostra "undefined".`);
 });
 
 test("confronto inexistente não resolve", () => {
