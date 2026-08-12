@@ -345,7 +345,29 @@ def build_html(entry, state, cutoff_iso, link, correcao=False):
 """
 
 
+# ── DISJUNTOR DURAVEL ────────────────────────────────────────────────────────────────────────
+#
+# A presenca do ARQUIVO e a trava, nao uma variavel de ambiente. Isso e deliberado: variavel some
+# entre execucoes, e o modo de falha deste incidente foi justamente automacao reexecutando. O
+# arquivo viaja com o repositorio e sobrevive a rerun, redeploy, restart e recuperacao de lease.
+KILL_SWITCH = Path(__file__).resolve().parents[1] / "EMAIL_KILL_SWITCH"
+
+
+def transport_blocked_by_kill_switch():
+    if KILL_SWITCH.exists():
+        return True, ("CDB_EMAIL_KILL_SWITCH ativo — ver bolao/cdb2026/EMAIL_KILL_SWITCH. "
+                      "Desativar exige apagar o arquivo num commit deliberado.")
+    return False, None
+
+
 def send_email(addr, subject, html):
+    # PRIMEIRO portao, antes de tudo. Vale inclusive com transporte injetado por teste: um teste
+    # que precise passar por aqui deve remover a trava explicitamente, nunca contorna-la.
+    bloqueado, motivo_ks = transport_blocked_by_kill_switch()
+    if bloqueado:
+        print(f"BLOQUEADO {motivo_ks}")
+        return False, motivo_ks
+
     if _TRANSPORT is None:
         permitido, motivo = real_send_allowed()
         if not permitido:

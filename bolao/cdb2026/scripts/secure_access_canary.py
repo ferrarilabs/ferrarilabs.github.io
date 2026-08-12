@@ -21,6 +21,26 @@ O QUE PROVA
 
 NAO MUTA palpite de ninguem. A unica escrita e na tabela de credenciais, e ela e desfeita.
 """
+
+# ══ PARTICIPANTE REAL NUNCA E ALVO DE VERIFICACAO ══════════════════
+#
+# 2026-08-12: este arquivo emitia, usava e REVOGAVA a credencial de uma entrada REAL, escolhida
+# por indice. Depois que os convites sairam, cada execucao matava o link de quem calhasse de ser
+# o primeiro da lista -- e calhou de ser o operador, duas vezes. Cada morte virou mais um e-mail
+# para ele: quatro em 45 minutos.
+#
+# O operador e participante, nao caixa de teste. Verificacao que so pode ser desfeita incomodando
+# uma pessoa nao e verificacao, e dano com relatorio.
+#
+# Enquanto existir link entregue, este verificador NAO opera sobre entrada real. Ele sai dizendo
+# isso. Perder cobertura e melhor que quebrar acesso de gente.
+import sys as _sys
+from pathlib import Path as _Path
+if (_Path(__file__).resolve().parents[1] / "EMAIL_KILL_SWITCH").exists():
+    print("⊘ CDB_EMAIL_KILL_SWITCH ativo — verificador que toca credencial real esta PARADO.")
+    print("  (ver bolao/cdb2026/EMAIL_KILL_SWITCH)")
+    _sys.exit(0)
+
 import hashlib
 import json
 import os
