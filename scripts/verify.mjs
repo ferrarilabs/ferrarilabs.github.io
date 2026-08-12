@@ -103,6 +103,8 @@ const CHECKS = [
     why: "roteamento do app arquivado da Copa" },
   { id: "powerball-outbox-order", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py"],
     why: "a obrigacao duravel tem de existir ANTES do provedor; criar depois tambem satisfaz \"o ciclo cria um evento\" e e justamente o caso que perde a obrigacao" },
+  { id: "no-whole-document-writers", group: "security", cmd: ["node", "bolao/scripts/test_no_whole_document_writers.mjs"],
+    why: "dois gravadores de documento inteiro sem token comum perdem o trabalho um do outro em silencio" },
   { id: "cdb-schedule-reconciler", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_schedule_reconciler.py"],
     why: "\"a fonte nao respondeu nada\" nao pode virar \"a CBF nao publicou\": janela larga demais esvazia a resposta em silencio, e um apelido divergente segura a tabela inteira" },
   { id: "cdb-trusted-ingestion", group: "security", cmd: ["python3", "bolao/cdb2026/scripts/test_trusted_result_ingestion.py"],

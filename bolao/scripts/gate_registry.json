@@ -391,6 +391,10 @@
     "bolao/cdb2026/scripts/test_schedule_reconciler.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "4 mutacoes reais, todas pegas. Fecha o defeito de 2026-08-12: a CBF havia publicado a tabela completa e o reconciliador seguia dizendo WAITING_FOR_OFFICIAL_SCHEDULE, com o vigia VERDE. Duas causas silenciosas — janela de 90d (a ESPN devolve lista vazia sem erro acima de ~60d; medido 7d:0 14d:3 21d:7 30d:8 45d:8 60d:8 90d:0) e 'Vasco da Gama' vs 'Vasco', que com recusa de publicacao parcial segurava os quatro confrontos."
+    },
+    "bolao/scripts/test_no_whole_document_writers.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Uma propriedade nos tres boloes e no ferramental compartilhado: nada grava o documento bolao_state inteiro; toda mutacao passa por RPC estreita que aplica um caminho jsonb no servidor sob `for update`. Dois gravadores de documento inteiro sem token de concorrencia comum perdem o trabalho um do outro em silencio. Adicionado pela sessao concorrente de modernizacao."
     }
   }
 }
