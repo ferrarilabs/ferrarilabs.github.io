@@ -383,6 +383,10 @@
     "bolao/copa2026/scripts/test_operator_cli.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "CLI de operador da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel. A credencial de teste passou a ser montada por concatenacao: o varredor de segredos casa o prefixo literal e nao pode confiar no rotulo FAKE -- um varredor que acredita no rotulo e enganavel escrevendo o rotulo ao lado da chave real."
+    },
+    "bolao/copa2026/scripts/test_private_readers.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Estatico, sem rede. Nenhum script le o documento PRIVADO bolao_state com a chave publica (que vai em todo navegador, entao quem so a tem nao tem nada que um visitante nao tenha); leitor de linha crua falha fechado sem service_role; leitores estreitos usam a view sanitizada; leitores de backup exigem allow-list explicita de pool, porque service_role ignora RLS e a lista deixa de ser recomendacao para virar a unica barreira. Adicionado por outra sessao."
     }
   }
 }
