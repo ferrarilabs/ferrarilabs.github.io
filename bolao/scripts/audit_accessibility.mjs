@@ -67,9 +67,45 @@ async function collect(appPath, width = 1280) {
   page.on("console", m => { if (m.type() === "error") consoleErrors.push(m.text()); });
   page.on("pageerror", e => consoleErrors.push(String(e)));
   await page.goto(`http://localhost:${PORT}${appPath}`, { waitUntil: "load" });
+
+  // ── A FOLHA DE ESTILO PRECISA ESTAR APLICADA ANTES DE MEDIR ────────────────────────────────
+  //
+  // 2026-08-12: este gate acusou `A.audit-report-link` com <24px em 1600px no copa2026. O CSS
+  // desse elemento torna isso IMPOSSÍVEL: `min-height:24px` + 6px de padding em cima e embaixo
+  // + borda dá ~38px. Uma medição impossível não é um defeito do produto — é a página sendo
+  // medida antes do CSS pintar.
+  //
+  // O sintoma já tinha aparecido em 414px em 2026-08-11 e foi tratado no CSS (inline-flex +
+  // min-height). Aquilo era necessário, mas curou o sintoma no lugar errado: a intermitência
+  // voltou noutra largura, porque a causa nunca esteve no CSS.
+  //
+  // `waitUntil:"load"` não garante REGRAS APLICÁVEIS: o <link> pode ter disparado o evento com
+  // o CSSOM ainda não montado, e o app carrega CSS com cache-bust `?v=`. Então esperamos a
+  // CONDIÇÃO — existir folha com regras legíveis — em vez de esperar o relógio.
+  await page.waitForFunction(() => [...document.styleSheets].some(s => {
+    try { return s.cssRules.length > 0; } catch { return false; }   // cross-origin: ignora
+  }), null, { timeout: 15000 });
+
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
   await page.waitForTimeout(1400);
+
+  // ── E O LAYOUT PRECISA TER PARADO DE SE MEXER ──────────────────────────────────────────────
+  //
+  // O app pinta em duas etapas (estado local primeiro, Supabase depois), então há um instante
+  // legítimo em que a geometria ainda muda. Exigir duas leituras CONSECUTIVAS IGUAIS distingue
+  // "pequeno de verdade" de "medido no meio do repaint": um alvo realmente pequeno mede igual
+  // as duas vezes.
+  const alvos = () => page.evaluate(() => [...document.querySelectorAll("a[href],button")]
+    .map(e => { const r = e.getBoundingClientRect(); return `${e.className}|${Math.round(r.width)}x${Math.round(r.height)}`; })
+    .join(";"));
+  let anterior = await alvos();
+  for (let i = 0; i < 10; i++) {
+    await page.waitForTimeout(150);
+    const agora = await alvos();
+    if (agora === anterior) break;
+    anterior = agora;
+  }
   const data = await page.evaluate(() => {
     const visible = el => {
       const s = getComputedStyle(el), r = el.getBoundingClientRect();
@@ -106,7 +142,24 @@ async function collect(appPath, width = 1280) {
     const smallTargets = interactive
       .filter(e => { const r = e.getBoundingClientRect(); return r.height < 24 || r.width < 24; })
       .filter(e => !isInlineException(e))
-      .map(e => `${e.tagName}${e.id ? "#" + e.id : ""}.${(e.className || "").toString().split(" ")[0]}`);
+      // DIAGNÓSTICO JUNTO DA ACUSAÇÃO (2026-08-12).
+      //
+      // Este gate acusou `A.audit-report-link` com <24px — cujo CSS (`min-height:24px` + padding
+      // + borda ≈ 38px) torna isso impossível. Reproduzir custou ~6 execuções de ~2 min cada, e
+      // no fim a acusação não dizia o suficiente para decidir entre as hipóteses: CSS não
+      // aplicado, fonte não carregada, ou repaint no meio da medição.
+      //
+      // As três deixam assinaturas DIFERENTES na altura medida e no `min-height` computado. Uma
+      // falha que carrega essas duas medidas se explica sozinha na primeira vez que aparecer —
+      // que é o que se quer de um defeito raro: não dá para pedir que ele volte na hora certa.
+      .map(e => {
+        const r = e.getBoundingClientRect(), cs = getComputedStyle(e);
+        const nome = `${e.tagName}${e.id ? "#" + e.id : ""}.${(e.className || "").toString().split(" ")[0]}`;
+        return `${nome} [${r.width.toFixed(1)}x${r.height.toFixed(1)}` +
+               ` min-h=${cs.minHeight} disp=${cs.display} pad=${cs.paddingTop}` +
+               ` font=${cs.fontSize}/${cs.fontFamily.split(",")[0]}` +
+               ` sheets=${document.styleSheets.length} fonts=${document.fonts.status}]`;
+      });
 
     const namelessControls = [...document.querySelectorAll("button,a[href]")].filter(visible).filter(e =>
       !e.textContent.trim() && !e.getAttribute("aria-label") && !e.getAttribute("aria-labelledby") &&
