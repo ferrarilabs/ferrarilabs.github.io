@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812090000_m8m9_trusted_producer_bridge.sql
 --
 -- ═══ O PROBLEMA MEDIDO, NÃO SUPOSTO ══════════════════════════════════════════════════════════

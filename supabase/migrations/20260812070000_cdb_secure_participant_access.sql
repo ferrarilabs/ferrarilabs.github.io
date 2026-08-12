@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812070000_cdb_secure_participant_access.sql
 --
 -- ═══ O QUE ISTO FECHA ════════════════════════════════════════════════════════════════════════

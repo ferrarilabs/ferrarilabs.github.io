@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812100000_m8m9_canary_purge.sql
 --
 -- ═══ POR QUE ISTO PRECISA EXISTIR ════════════════════════════════════════════════════════════

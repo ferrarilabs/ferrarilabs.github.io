@@ -1,0 +1,2037 @@
+{
+  "generated": "deterministic — no timestamp, so the digest changes only when the model does",
+  "policy": {
+    "SCHEMA": {
+      "anon": [],
+      "authenticated": [],
+      "service_role": [
+        "USAGE"
+      ],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "a whole privilege class was missing here, and its absence was silent: reaching any object requires USAGE on its schema first, so every grant this model emits inside bolao or audit was inert. Measured on the Q7 from-zero replay — M1 grants service_role EXECUTE on audit.event_hash_v1, has_function_privilege() returned TRUE, and the actual call returned 'permission denied for schema audit'. Only executing as the role exposed it; no ACL-string comparison could have.",
+      "whyBrowserRolesGetNothing": "anon and authenticated reach normalized data through views and RPCs rather than by traversing these schemas — the same reasoning as TABLE. When a stage creates that read surface, its grant is a separate reviewable decision made with evidence, not inherited from here.",
+      "whyNoCreate": "CREATE on a schema lets a principal add objects that later grants and default privileges would then apply to."
+    },
+    "TABLE": {
+      "anon": [],
+      "authenticated": [],
+      "service_role": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "browser roles reach the normalized tables through views and RPCs, never directly. service_role is the trusted runtime. TRUNCATE, REFERENCES and TRIGGER go to nobody but the owner — TRIGGER lets a principal attach code that fires for every writer."
+    },
+    "VIEW": {
+      "anon": [
+        "SELECT"
+      ],
+      "authenticated": [
+        "SELECT"
+      ],
+      "service_role": [
+        "SELECT"
+      ],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "views are the read surface and only the read surface. KPLUS-F058: a write privilege on a view is a write privilege on everything it selects from, executed with the view owner's authority and bypassing the underlying table's RLS."
+    },
+    "MATERIALIZED_VIEW": {
+      "anon": [],
+      "authenticated": [],
+      "service_role": [
+        "SELECT"
+      ],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "none exist today. Denied by default so the first one to appear is a deliberate grant rather than an inheritance."
+    },
+    "SEQUENCE": {
+      "anon": [],
+      "authenticated": [],
+      "service_role": [
+        "USAGE",
+        "SELECT"
+      ],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "USAGE is a write capability wearing a different name: it is what lets nextval() run, so a role with USAGE can insert into any table defaulting from it. service_role gets no UPDATE — resetting a sequence is an operator action."
+    },
+    "FUNCTION": {
+      "anon": [],
+      "authenticated": [],
+      "service_role": [],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "EXECUTE is granted per function, deliberately, never by default. PostgreSQL's built-in EXECUTE-to-PUBLIC must be revoked explicitly for every function: it is the one built-in default that hands out a capability, and on a SECURITY DEFINER function it hands out the owner's.",
+      "exceptions": "narrow RPCs (submit_cdb_entry, resolve_notification_recipients) are granted individually by the migration that creates them, and each such grant is a reviewable line."
+    },
+    "FOREIGN_TABLE": {
+      "anon": [],
+      "authenticated": [],
+      "service_role": [],
+      "owner": [
+        "ALL"
+      ],
+      "PUBLIC": [],
+      "inheritedByFutureObjects": false,
+      "why": "none exist. A foreign table reaches outside this database, so it is denied until someone argues for it."
+    }
+  },
+  "creatorRoles": [
+    {
+      "role": "postgres",
+      "why": "the owner of every relation the 2026-08-11 probe reported",
+      "confirmed": true,
+      "confirmedBy": "view probe — pg_get_userbyid(relowner) = 'postgres' for both views"
+    },
+    {
+      "role": "supabase_admin",
+      "why": "the platform's bootstrap role; conventionally the one that sets the initial defaults",
+      "confirmed": false,
+      "howToConfirm": "SELECT defaclrole::regrole FROM pg_default_acl — never read in production"
+    },
+    {
+      "role": "supabase_migrations",
+      "why": "may own objects applied through the CLI migration path",
+      "confirmed": false,
+      "howToConfirm": "same query"
+    }
+  ],
+  "evidence": {
+    "measuredAt": "2026-08-11",
+    "measured": [
+      "SELECT/INSERT/UPDATE/DELETE for anon, authenticated, service_role on 10 tables (PROBE-4)",
+      "SELECT/INSERT/UPDATE/DELETE for the same roles on 2 views (view probe)",
+      "EXECUTE on public.rls_auto_enable() for anon and authenticated (PROBE-3)",
+      "the 7 event triggers, enumerated",
+      "relation inventory of public by relkind: 10 tables, 2 views, 15 indexes, 0 matviews, 0 foreign tables, 0 partitioned tables"
+    ],
+    "unmeasured": [
+      "TRUNCATE / REFERENCES / TRIGGER on any production relation — PROBE-4 read four privileges, not seven",
+      "every SEQUENCE privilege — sequences were never enumerated, let alone their ACLs",
+      "EXECUTE on any function except rls_auto_enable",
+      "pg_default_acl — THE MECHANISM ITSELF HAS NEVER BEEN READ. The default-privilege behaviour modelled here is inferred from Supabase's documented bootstrap plus the observed effect that every relation in public carries anon CRUD.",
+      "which creator role owns the existing default privileges — decisive, because ALTER DEFAULT PRIVILEGES is per-role",
+      "PUBLIC's grants on anything"
+    ],
+    "inferenceStatus": "WELL_SUPPORTED_BUT_UNCONFIRMED",
+    "whyItMatters": "a remediation that alters defaults FOR ROLE postgres, when the existing defaults belong to supabase_admin, changes nothing and passes every local test that creates fixtures as postgres."
+  },
+  "exceptions": [
+    {
+      "relation": "bolao_state",
+      "role": "anon",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "cutover step 13 — the read cutover. Until then the browser's source of truth IS this document.",
+      "finding": "cutover choreography"
+    },
+    {
+      "relation": "bolao_state",
+      "role": "authenticated",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "cutover step 13 — the read cutover. authenticated reads the same document as anon today, and removing its read before step 13 is a read outage for signed-in users specifically.",
+      "finding": "cutover choreography"
+    },
+    {
+      "relation": "bolao_state",
+      "role": "service_role",
+      "privileges": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "until": "LEGACY_FROZEN at cutover step 19 — the trusted runtime mirrors into this document until then",
+      "finding": "KPLUS-F039"
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "anon",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "the F10 retirement gate (see F10_RETIREMENT_GATE) — this is the browser's PII-stripped read path",
+      "finding": "KPLUS-F058"
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "authenticated",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "the F10 retirement gate — the same gate as anon; a signed-in browser reads the same PII-stripped projection.",
+      "finding": "KPLUS-F058"
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "anon",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "the F10 retirement gate, plus CDB2026's own client migration — CDB2026 is in production",
+      "finding": "KPLUS-F058"
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "authenticated",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "the F10 retirement gate, plus CDB2026's own client migration — CDB2026 has been in production since 2026-07-19.",
+      "finding": "KPLUS-F058"
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "anon",
+      "privileges": [
+        "SELECT"
+      ],
+      "until": "indefinite — the payload is public sports data and the browser reads it directly by design",
+      "finding": "ADR-K10",
+      "permanent": true
+    }
+  ],
+  "rows": [
+    {
+      "relation": "bolao_state",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "EXPECTED_REVOKE",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "EXPECTED_REVOKE",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "diffClass": "LEGACY_COMPATIBILITY_EXCEPTION",
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao_entry_private",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao_entry_private",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "EXPECTED_REVOKE",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_entry_private",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao_notif_jobs",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_notif_jobs",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_notif_jobs",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "SELECT"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "LEGACY_COMPATIBILITY_EXCEPTION",
+      "actionRequired": []
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "EXPECTED_REVOKE",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "lottery_admin_audit",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_admin_audit",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_admin_audit",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "lottery_draws",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_draws",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_draws",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "lottery_participants",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_participants",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_participants",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "lottery_participations",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_participations",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_participations",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "lottery_payment_transactions",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_payment_transactions",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_payment_transactions",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "lottery_pools",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_pools",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE SELECT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "lottery_pools",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "anon",
+      "objectClass": "VIEW",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "authenticated",
+      "objectClass": "VIEW",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "service_role",
+      "objectClass": "VIEW",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "anon",
+      "objectClass": "VIEW",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "authenticated",
+      "objectClass": "VIEW",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "service_role",
+      "objectClass": "VIEW",
+      "current": [
+        "DELETE",
+        "INSERT",
+        "SELECT",
+        "UPDATE"
+      ],
+      "target": [
+        "SELECT"
+      ],
+      "diffClass": "PLATFORM_DEFAULT",
+      "actionRequired": [
+        "REVOKE DELETE",
+        "REVOKE INSERT",
+        "REVOKE UPDATE"
+      ]
+    },
+    {
+      "relation": "bolao.classification_snapshots",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.classification_snapshots",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.classification_snapshots",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.competition_edition_phases",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competition_edition_phases",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competition_edition_phases",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.competition_edition_standings",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competition_edition_standings",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competition_edition_standings",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.competition_editions",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competition_editions",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competition_editions",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.competitions",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competitions",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.competitions",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.match_results",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.match_results",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.match_results",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.matches",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.matches",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.matches",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.outbox_delivery_attempts",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.outbox_delivery_attempts",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.outbox_delivery_attempts",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.outbox_events",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.outbox_events",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.outbox_events",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.participant_identity_links",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.participant_identity_links",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.participant_identity_links",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.participants",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.participants",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.participants",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.payment_allocations",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.payment_allocations",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.payment_allocations",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.payments",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.payments",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.payments",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.pool_entries",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.pool_entries",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.pool_entries",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.pool_fee_schedule",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.pool_fee_schedule",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.pool_fee_schedule",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.pools",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.pools",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.pools",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.predictions",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.predictions",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.predictions",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.prize_allocations",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.prize_allocations",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.prize_allocations",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.ranking_snapshots",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.ranking_snapshots",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.ranking_snapshots",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.request_idempotency",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.request_idempotency",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.request_idempotency",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.sync_state",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.sync_state",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.sync_state",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao.ties",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.ties",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [],
+      "diffClass": null,
+      "actionRequired": []
+    },
+    {
+      "relation": "bolao.ties",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": [],
+      "target": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "diffClass": "EXPECTED_GRANT",
+      "actionRequired": [
+        "GRANT SELECT",
+        "GRANT INSERT",
+        "GRANT UPDATE",
+        "GRANT DELETE"
+      ]
+    },
+    {
+      "relation": "bolao_state",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_entry_private",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_entry_private",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_entry_private",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_notif_jobs",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_notif_jobs",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_notif_jobs",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "live_sports_cache",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_admin_audit",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_admin_audit",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_admin_audit",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_draws",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_draws",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_draws",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_participants",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_participants",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_participants",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_participations",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_participations",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_participations",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_payment_transactions",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_payment_transactions",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_payment_transactions",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_pools",
+      "role": "anon",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_pools",
+      "role": "authenticated",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "lottery_pools",
+      "role": "service_role",
+      "objectClass": "TABLE",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "anon",
+      "objectClass": "VIEW",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "authenticated",
+      "objectClass": "VIEW",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state_public",
+      "role": "service_role",
+      "objectClass": "VIEW",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "anon",
+      "objectClass": "VIEW",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "authenticated",
+      "objectClass": "VIEW",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    },
+    {
+      "relation": "bolao_state_public_cdb",
+      "role": "service_role",
+      "objectClass": "VIEW",
+      "current": null,
+      "target": [],
+      "diffClass": "UNKNOWN_BLOCKING",
+      "actionRequired": null
+    }
+  ]
+}
