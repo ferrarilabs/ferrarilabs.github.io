@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812200000_lock_tie_never_overwrites.sql
 --
 -- ═══ REGRESSAO REAL, ACHADA POR GATE (2026-08-12) ════════════════════════════════════════════
