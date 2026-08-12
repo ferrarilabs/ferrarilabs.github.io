@@ -94,7 +94,27 @@ def main():
     if len(entradas) < 2:
         print("🛑 preciso de ao menos duas entradas para provar isolamento")
         return 2
-    alvo, outra = entradas[0], entradas[1]
+    # ── NAO CANIBALIZAR CREDENCIAL VIVA (terceira vez que este erro aparece) ────────────────
+    #
+    # Este canario emite, REVOGA e remove a credencial da entrada que usa. Enquanto ninguem tinha
+    # link entregue isso era inofensivo. Depois da correcao de 2026-08-12 ele passou a matar, a
+    # cada execucao, o link de quem calhasse de ser `entradas[0]`.
+    #
+    # O token em claro nao existe depois do envio, entao revogar e IRREVERSIVEL sem incomodar a
+    # pessoa com outro e-mail. Mesmo raciocinio ja aplicado em token_roundtrip_canary.py -- e a
+    # terceira copia da emissao de credencial neste repositorio a repetir a mesma licao.
+    st_v, linhas_v = req("GET", "/rest/v1/cdb_entry_access?select=entry_id&revoked_at=is.null",
+                         privilegiada=True)
+    vivas = {l["entry_id"] for l in (linhas_v or [])} if st_v == 200 else set()
+    candidatos = [e for e in entradas if e["id"] not in vivas]
+    if not candidatos:
+        print("\n  ⊘ todas as entradas tem credencial VIVA — canario PULADO para nao matar")
+        print("     um link ja entregue (o token em claro nao existe mais para ser devolvido).")
+        print("\n  CDB_SECURE_SUBMISSION_CANARY = SKIPPED_TO_PROTECT_LIVE_LINKS")
+        print("=" * 70)
+        return 0
+    alvo = candidatos[0]
+    outra = next(e for e in entradas if e["id"] != alvo["id"])
     print(f"  entradas no estado        {len(entradas)}")
     print(f"  entrada de teste          {alvo['id'][:8]}…  (somente leitura)")
 
