@@ -64,6 +64,12 @@ window.BOLAO_CONFIG = {
     provider: "supabase",
     url: "https://cmhqkkfczotdnssupkni.supabase.co",
     anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
+    // LEITURA: projecao sanitizada. Remove participantEmail, payerName, paymentMethod e
+    // paymentTo — os quatro campos que a chave anon publica expunha a qualquer visitante.
+    readTable: "bolao_state_public",
+    // ESCRITA: nao existe mais. O navegador nao grava no banco (COPA-APP-ROUTING). `table`
+    // permanece porque a diferenca entre ele e `readTable` e o que arma o interlock
+    // `__sanitized`; toda mutacao privilegiada passa por bolao/copa2026/scripts/operator_cli.py.
     table: "bolao_state",
     stateId: "main",
     localFallback: true
