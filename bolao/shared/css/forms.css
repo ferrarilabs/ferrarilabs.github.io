@@ -70,6 +70,15 @@ a.secondary {
 a.secondary {
   /* O que o `a` não herda da regra `button` (que casa só com o elemento button). */
   border-radius: var(--radius-lg);
+  /* ALVO DE TOQUE GARANTIDO (2026-08-12).
+     Os 11px de padding vertical dão 22px SEM o conteúdo; a altura final dependia da métrica da
+     fonte. O gate de acessibilidade reprovava `a#pbPreviousResultsLink.secondary` como alvo
+     <24px em 899px de forma INTERMITENTE — passava sozinho e falhava sob a carga da verify,
+     conforme a webfont já tivesse carregado no instante da medição. Alvo de toque que depende de
+     timing de fonte é pequeno de verdade parte do tempo.
+     Mesma correção já aplicada em `.audit-report-link` da Copa; aqui vale para os quatro apps,
+     porque a regra é do framework. `min-height` só pode AUMENTAR o alvo — nenhum layout encolhe. */
+  min-height: 24px;
   padding: 11px 18px;
   font-weight: var(--font-weight-black);
   cursor: pointer;
