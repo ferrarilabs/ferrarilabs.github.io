@@ -32,6 +32,9 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 bolao/cdb2026/scripts/secure_access_canary.py
       - name: Credenciais de acesso do CDB (vivas x revogadas)
+        # `always()`: esta e a medida que diz se os convites entregues AUTENTICAM. Se um passo
+        # anterior falhar, e exatamente quando mais se precisa dela.
+        if: always()
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 bolao/cdb2026/scripts/check_access_credentials.py

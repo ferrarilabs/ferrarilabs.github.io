@@ -223,10 +223,21 @@ def already_invited_ids():
 def issue_token(entry_id, nota):
     """Emite credencial e devolve o token EM CLARO — que só existe nesta variável, nunca no banco."""
     token = secrets.token_urlsafe(32)  # >= 256 bits
+    # `revoked_at: None` e OBRIGATORIO no upsert, nao decorativo.
+    #
+    # `merge-duplicates` atualiza as colunas ENVIADAS e preserva as demais. Sem este campo, uma
+    # linha revogada numa tentativa anterior continua revogada depois de receber token novo: o
+    # convite sai, o provedor aceita, o relatorio diz 12/12 -- e os doze links nao autenticam.
+    #
+    # Foi o que aconteceu. A primeira tentativa real levou 403 do EmailJS; o caminho de erro
+    # revogou as credenciais (certo: link que ninguem recebeu nao deve ficar vivo). A tentativa
+    # seguinte entregou de verdade e reusou as MESMAS linhas, ainda com `revoked_at` preenchido.
+    # Sucesso no envio e sucesso na autenticacao sao coisas diferentes, e so a segunda importa
+    # para quem clica.
     st, r = _req(
         "POST", "/rest/v1/cdb_entry_access",
         {"entry_id": entry_id, "token_hash": hashlib.sha256(token.encode()).hexdigest(),
-         "note": nota},
+         "note": nota, "revoked_at": None},
         extra={"Prefer": "resolution=merge-duplicates,return=minimal"},
     )
     if st not in (200, 201, 204):
