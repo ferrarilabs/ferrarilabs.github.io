@@ -277,6 +277,12 @@ function buildAppHarness({ frozen, initialState, editing, inputs = {} }) {
     const calls = { saveState: [], toasts: [], alerts: [], sections: [], receipts: [], queueReceipt: 0, errors: [] };
     let _state = initialState;
     let _editingEntry = editing;
+    // Token de acesso seguro do participante (2026-08-12). Estes testes exercitam o caminho
+    // LEGADO de gravação (documento inteiro) com o roster congelado, então aqui ele é null --
+    // que é o valor real quando o participante não chegou por um link de convite. O caminho
+    // seguro (cdb_save_my_picks) tem cobertura própria no canário de produção.
+    let _accessToken = null;
+    async function cdbRpc() { throw new Error("cdbRpc não deve ser alcançada com _accessToken null"); }
     const C = { entryRosterFrozen: ${frozen}, emailjs: { enabled: false } };
     const window = {}; // sem emailjs: queueReceipt nunca é alcançado
     // console capturado: a rejeição esperada faz o app logar console.error — é comportamento
