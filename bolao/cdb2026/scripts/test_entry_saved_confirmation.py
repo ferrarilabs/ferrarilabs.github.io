@@ -8,9 +8,12 @@ O transporte é injetado por `set_transport()` e conta chamadas numa lista. O pr
 contatado. A regra vale inclusive — principalmente — para o endereço do próprio operador: ele é
 participante, não caixa de teste.
 
-`assert_zero_chamadas_reais()` roda no fim e falha o teste inteiro se qualquer chamada tiver
-escapado para `urllib`. Um teste que só *pretende* usar transporte falso não prova nada; este
-verifica.
+Além disso, `urllib.request.urlopen` é substituído por uma sentinela que LEVANTA. Um teste que
+só *pretende* usar transporte falso não prova nada; aqui, se o transporte falso não estiver
+instalado, a tentativa de rede explode o teste em vez de virar e-mail.
+
+E o workflow que roda isto não define `BOLAO_ALLOW_REAL_SEND`: mesmo que as duas defesas acima
+falhassem, o envio real ainda seria recusado.
 
 ═══ POR QUE CANÁRIO EM VEZ DA CHAVE DE NEGÓCIO REAL ═════════════════════════════════════════════
 
@@ -48,6 +51,9 @@ import send_entry_saved_confirmation as C  # noqa: E402
 
 ENTRADA_OPERADOR = "03e9fe14-d777-4a71-9c31-3d54dd21a07c"
 CANARY_BK  = "canary:cdb2026:entry-saved-confirmation:v1"
+# O tipo de canário é o que impede o consumidor AGENDADO de reivindicar um evento deste
+# teste e mandar e-mail de verdade. `claim_outbox_event` filtra por tipo.
+C.EVENT_TYPE = C.CANARY_EVENT_TYPE
 CANARY_IK  = "canary:cdb2026:entry-saved-confirmation:{}:v1"
 
 falhas = []
@@ -102,7 +108,9 @@ def main():
 
     limpa_canarios()
 
-    # A fila real precisa estar vazia, senão o consumidor pega o evento errado e o teste mente.
+    # A fila de CANÁRIO precisa estar vazia — o consumidor aqui filtra pelo tipo de canário, então
+    # ele nunca enxerga a fila de produção. Sobra de execução anterior faria o teste medir o evento
+    # errado e concordar consigo mesmo.
     res, n = C.processa_um("teste-pre-voo", verbose=False)
     if res != "SEM_EVENTO":
         print(f"  ABORTADO: já havia evento pendente na fila ({res}). "

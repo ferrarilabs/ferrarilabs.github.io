@@ -72,6 +72,18 @@ import m8m9  # noqa: E402
 
 EVENT_TYPE   = "cdb2026.entry_saved_confirmation"
 BUSINESS_KEY = "cdb2026:entry-saved-confirmation:v1"
+
+# ── SEPARAÇÃO CANÁRIO / PRODUÇÃO ─────────────────────────────────────────────────────────────
+#
+# O teste troca `EVENT_TYPE` por um tipo de canário. Isso não é cosmético: `claim_outbox_event`
+# filtra por tipo, então o consumidor AGENDADO fica estruturalmente incapaz de pegar um evento de
+# teste. Sem essa separação, o cron de 5 em 5 minutos podia reivindicar um evento criado pelo
+# teste e mandar e-mail DE VERDADE para o operador — a forma exata do incidente de hoje.
+#
+# `EVENT_TYPE_PROD` guarda o valor de produção mesmo quando `EVENT_TYPE` foi trocado, para o
+# cinto-e-suspensório abaixo saber em qual dos dois papéis está rodando.
+EVENT_TYPE_PROD = "cdb2026.entry_saved_confirmation"
+CANARY_EVENT_TYPE = "cdb2026.entry_saved_confirmation.canary"
 APP          = "cdb2026"
 KILL_SWITCH  = RAIZ / "bolao" / "cdb2026" / "EMAIL_KILL_SWITCH"
 
@@ -191,6 +203,15 @@ def processa_um(lease_owner, verbose=True):
     eid = ev["outbox_event_id"]
     entry_id = (ev.get("payload") or {}).get("entryId")
     saved_at = (ev.get("payload") or {}).get("savedAt")
+
+    # Cinto e suspensório. O filtro de tipo já deveria tornar isto inalcançável em produção; se
+    # algum dia alcançar, é porque alguém emitiu um canário com o tipo de produção, e aí a
+    # resposta certa é recusar — não descobrir depois, na caixa de entrada de alguém.
+    if EVENT_TYPE == EVENT_TYPE_PROD and str(ev.get("idempotency_key", "")).startswith("canary:"):
+        m8m9.settle(eid, "permanent_failure", failure_category="canario_no_caminho_de_producao")
+        if verbose:
+            print("  CANARIO_RECUSADO no consumidor de produção — nenhuma chamada")
+        return "CANARIO_RECUSADO", 0
 
     try:
         if not entry_id:
