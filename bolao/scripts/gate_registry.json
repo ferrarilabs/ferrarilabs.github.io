@@ -395,6 +395,10 @@
     "bolao/scripts/test_no_whole_document_writers.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Uma propriedade nos tres boloes e no ferramental compartilhado: nada grava o documento bolao_state inteiro; toda mutacao passa por RPC estreita que aplica um caminho jsonb no servidor sob `for update`. Dois gravadores de documento inteiro sem token de concorrencia comum perdem o trabalho um do outro em silencio. Adicionado pela sessao concorrente de modernizacao."
+    },
+    "bolao/scripts/test_no_real_email_in_verification.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "3 mutacoes reais pegas (canario chamando send_email, guarda apontando para arquivo inexistente, guarda que detecta mas nao sai). A primeira versao tinha um ponto cego: aceitava a palavra EMAIL_KILL_SWITCH em QUALQUER lugar, inclusive na prosa que eu mesmo escrevi explicando o incidente — gate que le prosa mede prosa. Agora exige a guarda em codigo executavel."
     }
   }
 }
