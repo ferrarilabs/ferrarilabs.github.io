@@ -22,6 +22,7 @@ on:
           - snapshot
           - apply-draw
           - open-picks
+          - secure-access-canary
       phase:
         description: "Fase (para open-picks)"
         required: false
@@ -83,5 +84,10 @@ jobs:
             open-picks)
               python3 operator_cli.py open-picks --phase "${{ inputs.phase }}" \
                 --actor "gha-${{ github.run_id }}" $MODO
+              ;;
+            secure-access-canary)
+              # Emite um token, usa, verifica e REVOGA na mesma execucao. O valor bruto nunca sai
+              # do runner: nao vai para o Git, nem para log, nem para artefato. So booleanos saem.
+              python3 secure_access_canary.py
               ;;
           esac
