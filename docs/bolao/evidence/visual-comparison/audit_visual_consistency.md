@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)
 
-Gerado em 2026-08-12T14:31:28.696Z · commit `73b9e16a` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-12T14:43:48.190Z · commit `71c97e5f` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).
 

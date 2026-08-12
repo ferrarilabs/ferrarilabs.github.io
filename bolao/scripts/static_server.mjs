@@ -82,7 +82,46 @@ export async function startStaticServer(port, root) {
     );
   }
 
-  const proc = spawn("python3", ["-m", "http.server", String(port)], { cwd: root, stdio: ["ignore", "ignore", "pipe"] });
+  // `--protocol HTTP/1.1` NÃO é cosmético.
+  //
+  // O padrão de `http.server` é HTTP/1.0, que fecha a conexão a cada resposta. Cada página deste
+  // harness busca ~10 folhas de estilo mais scripts, e a suíte roda vários navegadores em
+  // paralelo — ou seja, centenas de conexões abertas e fechadas em rajada. Sob essa carga o
+  // backlog estoura e alguns pedidos morrem no meio.
+  //
+  // O sintoma não se parece com rede: aparece como CSS que "não aplicou". Custou horas hoje —
+  // duas suítes diferentes acusaram defeito de layout (alvo de toque <24px no copa2026, controle
+  // com texto cortado a 320px no cdb2026) em elementos cujo CSS torna aquilo impossível. As duas
+  // reprovavam de forma intermitente, em larguras que mudavam a cada execução, e as duas passam
+  // sozinhas. O diagnóstico que fechou o caso mostrou TODAS as folhas presentes e a regra ainda
+  // assim ausente: folha servida pela metade.
+  //
+  // Com HTTP/1.1 a conexão é reaproveitada e o servidor entrega Content-Length com keep-alive.
+  // Servidor inline em vez de `python3 -m http.server`, por uma razão medida.
+  //
+  // O módulo de linha de comando serve HTTP/1.0, que FECHA a conexão a cada resposta. Cada página
+  // deste harness busca ~10 folhas de estilo mais scripts, e a suíte roda vários navegadores em
+  // paralelo: centenas de conexões abertas e fechadas em rajada. Sob essa carga alguns pedidos
+  // morrem no meio.
+  //
+  // O sintoma não se parece com rede — aparece como CSS que "não aplicou". Custou horas: duas
+  // suítes diferentes acusaram defeito de layout (alvo de toque <24px no copa2026, controle com
+  // texto cortado a 320px no cdb2026) em elementos cujo próprio CSS torna aquilo impossível. As
+  // duas reprovavam de forma intermitente, em larguras que mudavam a cada execução, e as duas
+  // passam quando rodam sozinhas. O diagnóstico que fechou o caso mostrou TODAS as folhas
+  // presentes e a regra mesmo assim ausente — folha servida pela metade.
+  //
+  // `--protocol HTTP/1.1` resolveria, mas só existe a partir do Python 3.11 e aqui roda 3.9.
+  // Então o protocolo é fixado no handler, com ThreadingHTTPServer para não serializar as
+  // requisições. A string "http.server" continua na linha de comando de propósito: as mensagens
+  // de erro acima ensinam `pkill -f "http.server <porta>"`, e essa dica tem de continuar valendo.
+  const inline = [
+    "import functools, http.server",
+    "http.server.SimpleHTTPRequestHandler.protocol_version = 'HTTP/1.1'",
+    `h = functools.partial(http.server.SimpleHTTPRequestHandler, directory=${JSON.stringify(root)})`,
+    `http.server.ThreadingHTTPServer(('127.0.0.1', ${port}), h).serve_forever()`,
+  ].join("; ");
+  const proc = spawn("python3", ["-c", inline], { cwd: root, stdio: ["ignore", "ignore", "pipe"] });
   let stderr = "";
   proc.stderr?.on("data", d => { stderr += String(d); });
   let exited = null;

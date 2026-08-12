@@ -875,11 +875,19 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     n_aceitos = len(saida.get("accepted", []))
     n_falhos = len(saida.get("failed", []))
     n_incertos = len(saida.get("uncertain", []))
-    if final["status"] == deps.ledger.SENT:
-        desfecho = "success"
-    elif not tocou:
-        # Transporte recusou: nao houve provedor. Retentavel, e nao conta como tentativa perdida.
+    if not tocou:
+        # NENHUM PROVEDOR FOI CHAMADO. Isto e verificado ANTES do status do ledger, de proposito.
+        #
+        # "O transporte nao foi tocado" e um fato direto e local; o status agregado do ledger e
+        # uma conclusao derivada de varios estados por destinatario. Quando os dois discordam, o
+        # fato ganha -- marcar `success` para um envio que nunca aconteceu e a forma mais cara de
+        # errar aqui, porque fecha a obrigacao e ninguem recebeu nada.
+        #
+        # Na pratica os dois nao discordam: recusa faz o ledger registrar FAILED. Mas a ordem
+        # certa nao custa nada e remove a possibilidade.
         desfecho = "transient_failure"
+    elif final["status"] == deps.ledger.SENT:
+        desfecho = "success"
     elif n_incertos:
         # INCERTO nunca e reenviado as cegas. Vai para dead: exige decisao humana, que e
         # exatamente a semantica que o 08/08 ensinou.
