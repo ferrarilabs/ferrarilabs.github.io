@@ -603,8 +603,13 @@ async function fetchJson(url, opts = {}) {
 async function loadRemoteState() {
   if (!C.database.enabled) return;
   try {
-    const { url, anonKey, table, stateId } = C.database;
-    const r = await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, {
+    const { url, anonKey, stateId } = C.database;
+    // `readTable` e a projecao sanitizada; `table` (bruta) e so para escrita. Sem esta
+    // separacao, o navegador de qualquer visitante recebia o e-mail, o pagador e o metodo de
+    // pagamento dos 12 participantes -- para desenhar uma lista e achar UMA entrada.
+    const readTable = C.database.readTable || C.database.table;
+    const sanitizado = readTable !== C.database.table;
+    const r = await fetchJson(`${url}/rest/v1/${readTable}?id=eq.${stateId}&select=state`, {
       headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
     });
     if (!r.ok) return;
@@ -613,6 +618,11 @@ async function loadRemoteState() {
     // `remoteAuthoritative: true` só aqui: este é o único ponto onde um estado remoto foi
     // efetivamente lido do Supabase. Ver mergeStates() para o que isso torna autoritativo.
     const merged = mergeStates(state(), data[0].state, { preferRemoteResults: true, remoteAuthoritative: true });
+    // MARCA DE SANITIZACAO. O estado que veio da projecao NAO tem participantEmail, payerName
+    // nem paymentMethod -- eles foram removidos de proposito. Gravar este documento de volta em
+    // `bolao_state` APAGARIA esses campos para os 12 participantes, de forma permanente e
+    // silenciosa. A marca existe para que o caminho de gravacao possa recusar.
+    if (sanitizado) merged.__sanitized = true; else delete merged.__sanitized;
     localStorage.setItem(C.storeKey, JSON.stringify(merged));
   } catch (err) { console.warn("[CDB2026] Supabase load failed", err); }
 }
@@ -733,6 +743,22 @@ async function saveRemoteState(s, opts = {}) {
     console.warn(`[CDB2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
   }
   const { url, anonKey, table, stateId } = C.database;
+  // FALHA FECHADA: nunca gravar um documento SANITIZADO por cima do canonico.
+  //
+  // Depois do corte de leitura (2026-08-12) o navegador carrega a projecao, que nao tem
+  // participantEmail/payerName/paymentMethod. Uma gravacao de documento inteiro a partir dai
+  // apagaria esses campos dos 12 participantes -- permanente, silenciosa, e indistinguivel de
+  // "o dado nunca existiu". Recusar e a unica resposta correta.
+  //
+  // Na pratica isto tambem encerra a escrita anonima de documento inteiro pelo navegador, que e
+  // exatamente o objetivo do Stage 4. Mutacao de operador passa a exigir o caminho confiavel
+  // (service_role); palpite de participante passa por `cdb_save_my_picks`.
+  if (s && s.__sanitized) {
+    const msg = "GRAVACAO_BLOQUEADA: o estado carregado e a projecao sanitizada; gravar o "
+              + "documento inteiro apagaria dados privados. Use o caminho de operador confiavel.";
+    console.error(`[CDB2026] ${msg}`);
+    throw new Error(msg);
+  }
   const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
   let payload = s;
   try {
@@ -2186,9 +2212,19 @@ function renderFindEntryCard() {
   const card = $("findEntryCard");
   if (!card) return;
   // ENTRY ROSTER FREEZE: com o roster congelado, "editar entrada" é o ÚNICO caminho de entrada
-  // que ainda faz sentido — precisa ficar sempre visível, senão o participante existente não
-  // consegue chegar aos palpites das próximas fases.
-  card.classList.toggle("hidden", isEntryCreationAllowed() && !oitavasComplete(state()));
+  // que ainda faz sentido — precisa ficar visível quando há algo a editar.
+  //
+  // MAS (2026-08-12): a busca casava `participantEmail` no NAVEGADOR, e a projeção sanitizada
+  // não traz mais esse campo — corretamente, porque baixar o e-mail dos 12 para localizar 1 era
+  // a própria exposição. Com a fase FECHADA não há palpite a editar, então o card só ofereceria
+  // um formulário que nunca encontra ninguém: pior que ausente, porque parece quebrado.
+  //
+  // Enquanto a fase não abre, o card fica oculto. Quando o prazo oficial materializar e a fase
+  // abrir, o participante chega pelo link seguro do convite (token → `cdb_my_entry`), não por
+  // e-mail digitado — que nunca foi um segredo.
+  const faseAberta = activePhaseLifecycle().open;
+  card.classList.toggle("hidden",
+    !faseAberta || (isEntryCreationAllowed() && !oitavasComplete(state())));
 }
 
 // ENTRY ROSTER FREEZE: este card não é só "Nova entrada" — ele contém #paymentBox e #pickForm,
@@ -2644,7 +2680,11 @@ function renderParticipants() {
     const isPaid = (s.paid || {})[e.id];
     return `<div class="rank-row participant-row">
       <div>👤</div>
-      <div><b>${esc(e.entryName)}</b><br><span class="muted">${esc(e.payerName || "")} · ${esc(e.paymentMethod || "")}</span></div>
+      <!-- PRIVACIDADE (2026-08-12): a linha mostrava "pagador · metodo de pagamento" para
+           qualquer visitante. Quem pagou pela cota de quem, e por qual rail, e informacao
+           privada -- e nao ajuda participante nenhum. O status de pagamento ja aparece no
+           badge ao lado, que e a unica parte publica util. -->
+      <div><b>${esc(e.entryName)}</b></div>
       <span class="${isPaid ? "paid-badge" : "unpaid-badge"}">${esc(isPaid ? t("paid") : t("unpaid"))}</span>
     </div>`;
   }).join("");
