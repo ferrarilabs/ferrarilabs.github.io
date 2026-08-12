@@ -1,0 +1,141 @@
+name: Bolão COPA2026 — Operador (confiável, servidor)
+
+# POR QUE ESTE WORKFLOW EXISTE
+#
+# COPA-IDENTITY, opcao (b): o runtime confiavel e o unico lugar onde a credencial PRIVILEGIADA
+# existe. O navegador do copa2026 carrega a MESMA chave anon publica que qualquer visitante e
+# nunca se autentica -- a senha de admin protege a interface, nao o banco. Por isso as RPCs
+# privilegiadas sao concedidas so a service_role, e por isso elas so podem ser chamadas daqui.
+#
+# A alternativa era continuar aplicando operacoes de operador pela escrita anonima do documento
+# inteiro no navegador: exatamente o buraco que este lane existe para fechar.
+#
+# NAO e um shell de service_role. A entrada `command` e uma LISTA FECHADA; nao ha campo de SQL,
+# nao ha campo de RPC, e nao ha como nomear outro bolao -- o CLI fixa STATE_ID='main' em
+# constante, porque op_confirm_payment e op_remove_entry aceitam p_pool_id e NAO tem lista
+# branca. Um `--pool` aqui marcaria pagamento no br2026 a partir da ferramenta do copa2026.
+#
+# NUNCA envia e-mail. Todo comando mutante e dry-run por omissao e verifica invariantes depois
+# de gravar; invariante violada e codigo 2, nao aviso.
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Operacao"
+        required: true
+        type: choice
+        options:
+          - snapshot
+          - set-payment
+          - set-result
+          - clear-result
+          - update-entry
+          - remove-entry
+      entry:
+        description: "Entry id (set-payment, update-entry, remove-entry)"
+        required: false
+        type: string
+      paid:
+        description: "Pago? (set-payment)"
+        required: false
+        default: "true"
+        type: choice
+        options: ["true", "false"]
+      match:
+        description: "Match id (set-result, clear-result)"
+        required: false
+        type: string
+      goals_a:
+        description: "Gols A (set-result)"
+        required: false
+        type: string
+      goals_b:
+        description: "Gols B (set-result)"
+        required: false
+        type: string
+      payment_to:
+        description: "Destino de pagamento (update-entry)"
+        required: false
+        type: string
+      apply:
+        description: "APLICAR de verdade (sem isto, dry-run)"
+        required: false
+        default: false
+        type: boolean
+
+# `clear-all` NAO esta na lista acima, e a omissao e deliberada: apagar um bolao inteiro nao pode
+# ficar a um clique de distancia num menu suspenso, ao lado de "marcar pagamento". O comando
+# existe no CLI, exige --i-understand-this-wipes-the-pool e --confirm-ref, e roda a partir de um
+# ambiente confiavel operado por uma pessoa que digitou os dois.
+
+concurrency:
+  group: copa2026-operator
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  operate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      # O gate do CLI roda ANTES de qualquer chamada: ele prova que cada comando vai para a RPC
+      # certa, que nenhum envia p_pool_id diferente de 'main', que o dry-run nao grava, e que a
+      # credencial nao aparece na saida. Nao toca a rede.
+      - name: Gate do operator CLI
+        run: python3 bolao/copa2026/scripts/test_operator_cli.py
+
+      # O scoring nao pode mudar por causa de uma operacao de operador. Roda antes e depois.
+      - name: Auditoria de scoring (antes)
+        run: python3 bolao/copa2026/scripts/audit_scoring.py
+
+      - name: Executa operacao
+        working-directory: bolao/copa2026/scripts
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          MODO="--dry-run"
+          [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
+          ATOR="gha-${{ github.run_id }}"
+          case "${{ inputs.command }}" in
+            snapshot)
+              # Sem --out: a baseline bruta tem PII (e-mail, payerName, paymentTo) e NAO pode
+              # virar artefato de workflow. O que sai no log sao contagens e hashes.
+              python3 operator_cli.py snapshot
+              ;;
+            set-payment)
+              python3 operator_cli.py set-payment \
+                --entry "${{ inputs.entry }}" --paid "${{ inputs.paid }}" --actor "$ATOR" $MODO
+              ;;
+            set-result)
+              python3 operator_cli.py set-result \
+                --match "${{ inputs.match }}" \
+                --goals-a "${{ inputs.goals_a }}" --goals-b "${{ inputs.goals_b }}" \
+                --actor "$ATOR" $MODO
+              ;;
+            clear-result)
+              python3 operator_cli.py clear-result --match "${{ inputs.match }}" --actor "$ATOR" $MODO
+              ;;
+            update-entry)
+              python3 operator_cli.py update-entry \
+                --entry "${{ inputs.entry }}" --payment-to "${{ inputs.payment_to }}" \
+                --actor "$ATOR" $MODO
+              ;;
+            remove-entry)
+              python3 operator_cli.py remove-entry --entry "${{ inputs.entry }}" --actor "$ATOR" $MODO
+              ;;
+            *)
+              echo "🛑 comando desconhecido"; exit 2
+              ;;
+          esac
+
+      - name: Auditoria de scoring (depois)
+        run: python3 bolao/copa2026/scripts/audit_scoring.py
