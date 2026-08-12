@@ -151,6 +151,19 @@ try {
   await abrirFormulario(page);
 
   const inicial = await texto(page);
+
+  // Cabeçalhos no estado PENDENTE (semifinal ainda sem confronto fechado). É aqui que vivia a
+  // duplicação: o ramo "pendente" abria um segundo grupo. Contar só depois de tudo resolvido
+  // deixava esse ramo fora do alcance do teste -- mutação provou que passava duplicado.
+  const cabPendentes = await page.evaluate(() =>
+    [...document.querySelectorAll("#pickForm .pick-group-header")]
+      .map(h => (h.textContent || "").trim().toUpperCase()));
+  test("sem seção duplicada no estado PENDENTE", () => {
+    for (const nome of ["SEMIFINAL", "FINAL"]) {
+      const n = cabPendentes.filter(h => h === nome).length;
+      assert(n === 1, `cabeçalhos ${nome} com o bracket pendente: ${n} — ${JSON.stringify(cabPendentes)}`);
+    }
+  });
   test("o formulário de palpites abriu com as quartas", () =>
     assert(/Cruzeiro/.test(inicial) && /Palmeiras/.test(inicial),
       `não achei as quartas no formulário:\n${inicial.slice(0, 300)}`));
@@ -235,6 +248,98 @@ try {
 
   test("nenhum undefined depois da troca", () =>
     assert(!/undefined/i.test(aposTroca), `undefined após a troca:\n${aposTroca.slice(0, 400)}`));
+
+  // ── UMA SECAO POR FASE ──────────────────────────────────────────────────────────────────
+  //
+  // O renderizador de fase abre o grupo e o cabecalho; os ramos derivados so preenchem. Quando
+  // eles tambem abriam grupo, a tela mostrava "SEMIFINAL / SEMIFINAL" e "FINAL / FINAL" -- duas
+  // secoes para a mesma fase logica.
+  //
+  // Contar no DOM RENDERIZADO, nao no fonte: o defeito era de composicao, e no fonte cada trecho
+  // parecia certo isolado.
+  const contarCabecalhos = () => page.evaluate(() =>
+    [...document.querySelectorAll("#pickForm .pick-group-header")]
+      .map(h => (h.textContent || "").trim().toUpperCase()));
+
+  const cabecalhos = await contarCabecalhos();
+  const quantos = (nome) => cabecalhos.filter(h => h === nome).length;
+
+  test("SEMIFINAL_HEADER_COUNT = 1", () =>
+    assert(quantos("SEMIFINAL") === 1,
+      `cabeçalhos SEMIFINAL: ${quantos("SEMIFINAL")} — ${JSON.stringify(cabecalhos)}`));
+  test("FINAL_HEADER_COUNT = 1", () =>
+    assert(quantos("FINAL") === 1,
+      `cabeçalhos FINAL: ${quantos("FINAL")} — ${JSON.stringify(cabecalhos)}`));
+  test("CAMPEÃO_HEADER_COUNT = 1", () =>
+    assert(quantos("CAMPEÃO") === 1,
+      `cabeçalhos CAMPEÃO: ${quantos("CAMPEÃO")} — ${JSON.stringify(cabecalhos)}`));
+
+  const contarTies = (prefixo) => page.evaluate((pre) =>
+    [...document.querySelectorAll("#pickForm .tie-pick-block")]
+      .filter(b => (b.dataset.tieId || "").startsWith(pre)).length, prefixo);
+
+  // Precomputado: `test()` é síncrono, então uma função `async` devolveria promessa e a rejeição
+  // escaparia do try/catch -- o caso "falharia" derrubando o processo em vez de reportar.
+  const nSf = await contarTies("sf-");
+  const nFinal = await contarTies("final-");
+  test("SEMIFINAL_TIE_COUNT = 2", () => assert(nSf === 2, `confrontos sf-: ${nSf}`));
+  test("FINAL_TIE_COUNT = 1", () => assert(nFinal === 1, `confrontos final-: ${nFinal}`));
+
+  // ── RE-RENDER NAO ACUMULA ───────────────────────────────────────────────────────────────
+  //
+  // Cada mudanca a montante redesenha o formulario. Se o redesenho ANEXASSE em vez de
+  // substituir, a duplicacao apareceria so depois de algumas interacoes -- que e o pior tipo:
+  // some numa verificacao rapida e volta no uso real.
+  await vencerComTimeA(page, "t-d");
+  await vencerComTimeB(page, "t-d");
+  await vencerComTimeA(page, "t-d");
+  await vencerComTimeA(page, "sf-1", 2, 0);
+  await vencerComTimeB(page, "sf-1");
+
+  const depois = await contarCabecalhos();
+  const quantosDepois = (n) => depois.filter(h => h === n).length;
+  test("RERENDER_DUPLICATION = 0 — cabeçalhos não acumulam", () =>
+    assert(quantosDepois("SEMIFINAL") === 1 && quantosDepois("FINAL") === 1
+           && quantosDepois("CAMPEÃO") === 1,
+      `depois de 5 mudanças: ${JSON.stringify(depois)}`));
+  const nSfDepois = await contarTies("sf-");
+  const nFinalDepois = await contarTies("final-");
+  test("RERENDER_DUPLICATION = 0 — confrontos não acumulam", () =>
+    assert(nSfDepois === 2 && nFinalDepois <= 1, `sf=${nSfDepois} final=${nFinalDepois}`));
+
+  // ── ROTULOS DA FINAL ────────────────────────────────────────────────────────────────────
+  const rotulosFinal = await page.evaluate(() => {
+    const b = document.getElementById("tie-final-1");
+    if (!b) return null;
+    const sel = b.querySelector(".pk-qualified");
+    return { placeholder: sel?.options?.[0]?.textContent || "",
+             aria: sel?.getAttribute("aria-label") || "",
+             dica: [...b.querySelectorAll(".pick-pts-hint")].map(e => e.textContent || "").join(" ¶ ") };
+  });
+
+  test("FINAL_DROPDOWN_CORRECT — pergunta pelo CAMPEÃO, não por quem se classifica", () => {
+    assert(rotulosFinal, "não achei o bloco da final");
+    assert(/campe/i.test(rotulosFinal.placeholder) && !/classifica/i.test(rotulosFinal.placeholder),
+      `placeholder da final: ${JSON.stringify(rotulosFinal.placeholder)}`);
+    assert(/campe/i.test(rotulosFinal.aria), `aria-label da final: ${JSON.stringify(rotulosFinal.aria)}`);
+  });
+
+  test("a dica da FINAL traz o pódio, não '+5 classificado'", () => {
+    assert(/\+30/.test(rotulosFinal.dica) && /\+20/.test(rotulosFinal.dica),
+      `a final não mostra os bônus de pódio: ${rotulosFinal.dica}`);
+    assert(!/classificado/i.test(rotulosFinal.dica),
+      `a final ainda fala em classificado: ${rotulosFinal.dica}`);
+  });
+
+  // `.pick-pts-hint` e usada DUAS vezes no bloco: no "Agregado previsto" e na dica de pontuacao.
+  // `querySelector` pegava a primeira e media a coisa errada -- junta todas e procura a regra.
+  const dicaSf = await page.evaluate(() =>
+    [...document.querySelectorAll("#tie-sf-1 .pick-pts-hint")]
+      .map(e => e.textContent || "").join(" ¶ "));
+  test("MATCH_SCORING_NON_ADDITIVE — a dica diz que as categorias não somam", () => {
+    assert(/não acumulam/i.test(dicaSf), `a dica do confronto não diz isso: ${dicaSf}`);
+    assert(/\+5/.test(dicaSf), `sumiu o bônus de classificado no confronto normal: ${dicaSf}`);
+  });
 
   // ── LOOK AND FEEL ───────────────────────────────────────────────────────────────────────────
   const visual = await page.evaluate(() => {
