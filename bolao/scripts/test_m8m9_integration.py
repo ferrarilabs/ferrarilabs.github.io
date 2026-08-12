@@ -204,9 +204,28 @@ def main():
     e = status_de(chave3) or {}
     check("attempt_count avançou", e.get("attempt_count") == 1, f"{e}")
 
+    # ── O BACKOFF PRECISA DE MARGEM MAIOR QUE A LATENCIA DA REDE ────────────────────────────
+    #
+    # A versao anterior media logo apos a PRIMEIRA falha, quando o backoff e min(2^1,3600) = 2s.
+    # Entre `settle` e `claim` ha duas viagens ate o Supabase; quando passavam de 2s, a
+    # reivindicacao voltava a ser legitima e o teste acusava ausencia de backoff que existia.
+    #
+    # Falso alarme sobre uma protecao que funciona custa mais caro que nao testar: ensina a
+    # ignorar o alarme. Entao o caso caminha ate a terceira tentativa, onde o backoff e 8s --
+    # folga suficiente para a latencia nao decidir o resultado.
+    for _ in range(2):
+        time.sleep(min(2 ** (status_de(chave3) or {}).get("attempt_count", 1), 3600) + 0.6)
+        st, c = rpc("claim_outbox_event", {"p_lease_owner": "w", "p_event_type": "canary.retry"})
+        if not c:
+            break
+        rpc("settle_outbox_event", {"p_outbox_event_id": id3, "p_outcome": "transient_failure"})
+
+    e = status_de(chave3) or {}
     st, r = rpc("claim_outbox_event", {"p_lease_owner": "w", "p_event_type": "canary.retry"})
-    check("backoff impede reivindicação imediata", st == 200 and not r,
-          f"pegou {r} — sem backoff um destino que falha vira laço apertado")
+    check(f"backoff de {2 ** e.get('attempt_count', 1)}s impede reivindicação imediata",
+          st == 200 and not r,
+          f"pegou {r} com attempt_count={e.get('attempt_count')} — sem backoff um destino que "
+          "falha vira laço apertado")
 
     # ── Esgotamento das tentativas ──────────────────────────────────────────────────────────
     #
