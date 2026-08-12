@@ -1,0 +1,25 @@
+name: M8/M9 — probe de alcance (diagnóstico)
+
+# Roda sob demanda. Mede o que a producao permite para audit_events/outbox_events e prova que a
+# anon esta negada. Nao envia e-mail, nao muta estado de negocio: a unica escrita e um evento de
+# probe imediatamente removido.
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Probe
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/scripts/audit_outbox_probe.py
