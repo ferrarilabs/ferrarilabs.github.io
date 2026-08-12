@@ -88,6 +88,28 @@ class _PonteFalsa:
     def key_cdb_picks_open(self, fase, year=2026, version=1):
         return f"cdb2026:{fase}-picks-open:{year}:v{version}"
 
+    def key_cdb_access_correction(self, fase, year=2026, version=1):
+        return f"cdb2026:{fase}-access-correction:{year}:v{version}"
+
+
+
+
+# ── COMO UM TESTE ATRAVESSA O DISJUNTOR ──────────────────────────────────────────────────────
+#
+# Ele NAO contorna: aponta a trava para um caminho que nao existe, deliberadamente, e so nos
+# casos que precisam exercitar o transporte. O transporte ja e falso nesses casos, entao nada
+# sai -- a trava real continua valendo para producao, e a remocao aqui e visivel em uma linha.
+from contextlib import contextmanager as _ctx
+
+
+@_ctx
+def sem_disjuntor():
+    original = convite.KILL_SWITCH
+    convite.KILL_SWITCH = Path("/dev/null/nao-existe")
+    try:
+        yield
+    finally:
+        convite.KILL_SWITCH = original
 
 PONTE = _PonteFalsa()
 convite.m8m9 = PONTE
@@ -278,8 +300,10 @@ test("envio real BLOQUEADO sem autorização explícita", lambda: (
     lambda r: _assert(r[0] is False, "envio liberado sem BOLAO_ALLOW_REAL_SEND"))(
     convite.real_send_allowed()))
 
+# Com o disjuntor ativo o motivo do bloqueio muda (KILL_SWITCH em vez de falta de autorizacao).
+# O que importa e que NAO passou; qual das duas travas pegou primeiro e detalhe.
 test("send_email não toca no provedor quando bloqueado", lambda: (
-    lambda r: _assert(r[0] is False and "BLOCKED" in str(r[1]),
+    lambda r: _assert(r[0] is False and ("BLOCKED" in str(r[1]) or "KILL_SWITCH" in str(r[1])),
                       f"send_email não bloqueou: {r}"))(
     convite.send_email("x@example.com", "s", "<p>x</p>")))
 
@@ -303,6 +327,7 @@ def token_nunca_impresso():
     os.environ.pop("BOLAO_TEST_RUN", None)
 
     buf = io.StringIO()
+    _ks = sem_disjuntor(); _ks.__enter__()
     try:
         sys.argv = ["x", "--apply"]
         with contextlib.redirect_stdout(buf):
@@ -310,6 +335,7 @@ def token_nunca_impresso():
     finally:
         os.environ["BOLAO_TEST_RUN"] = "1"
         convite._TRANSPORT = None
+        _ks.__exit__(None, None, None)
 
     saida = buf.getvalue()
     assert emitidos, "o teste não exercitou emissão nenhuma"
@@ -375,12 +401,14 @@ def obrigacao_antes_do_provedor():
     os.environ["BOLAO_ALLOW_REAL_SEND"] = "I UNDERSTAND"
     os.environ.pop("BOLAO_TEST_RUN", None)
     sys.argv = ["x", "--apply"]
+    _ks = sem_disjuntor(); _ks.__enter__()
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             convite.main()
     finally:
         os.environ["BOLAO_TEST_RUN"] = "1"
         convite._TRANSPORT = None
+        _ks.__exit__(None, None, None)
 
     assert "outbox" in PONTE.ordem, f"nenhuma obrigacao duravel criada: {PONTE.ordem}"
     assert "provider" in PONTE.ordem, f"nenhum envio: {PONTE.ordem}"
@@ -406,12 +434,14 @@ def lease_de_outro_nao_envia():
     os.environ["BOLAO_ALLOW_REAL_SEND"] = "I UNDERSTAND"
     os.environ.pop("BOLAO_TEST_RUN", None)
     sys.argv = ["x", "--apply"]
+    _ks = sem_disjuntor(); _ks.__enter__()
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             rc = convite.main()
     finally:
         os.environ["BOLAO_TEST_RUN"] = "1"
         convite._TRANSPORT = None
+        _ks.__exit__(None, None, None)
         PONTE.claim_devolve = {"outbox_event_id": "evt-falso"}
     assert rc == 0, f"rc={rc}"
     assert enviados == [], "enviou mesmo sem deter o lease — dois workers duplicariam o convite"
@@ -419,6 +449,116 @@ def lease_de_outro_nao_envia():
 
 test("sem o lease, NAO envia", lease_de_outro_nao_envia)
 
+
+
+# ── APROVACAO EM DUAS FASES (correcao) ───────────────────────────────────────────────────────
+def _correcao(argv, alvos=2, sufixo=""):
+    PONTE.reset()
+    enviados = []
+    ents = [{"id": f"e{i}", "entryName": f"P{i}",
+             "participantEmail": f"p{i}{sufixo}@exemplo-invalido.test"} for i in range(1, alvos + 1)]
+    convite.fetch_state = lambda: estado(entradas=ents)
+    convite.already_invited_ids = lambda: set()
+    convite.issue_token = lambda eid, n: "TOK" + eid
+    ks = sem_disjuntor(); ks.__enter__()
+    convite._TRANSPORT = lambda u, b, h: (enviados.append(b), (200, "ok"))[-1]
+    os.environ["BOLAO_ALLOW_REAL_SEND"] = "I UNDERSTAND"
+    os.environ.pop("BOLAO_TEST_RUN", None)
+    sys.argv = ["x"] + argv
+    buf = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(buf):
+            rc = convite.main()
+    finally:
+        os.environ["BOLAO_TEST_RUN"] = "1"
+        convite._TRANSPORT = None
+        ks.__exit__(None, None, None)
+    return rc, buf.getvalue(), enviados
+
+
+def prepare_nao_envia():
+    rc, saida, enviados = _correcao(["--apply", "--correction", "--prepare"])
+    assert rc == 0, f"rc={rc}"
+    assert enviados == [], f"FASE 1 chamou o provedor: {len(enviados)} envios"
+    assert "MANIFEST_PREPARED" in saida, saida[-200:]
+    assert "--approve" in saida, "o manifesto nao diz como aprovar"
+
+
+test("FASE 1 (--prepare) monta manifesto e NAO chama o provedor", prepare_nao_envia)
+
+
+def correcao_sem_aprovacao_nao_envia():
+    rc, saida, enviados = _correcao(["--apply", "--correction"])
+    assert enviados == [], f"correcao SEM aprovacao enviou {len(enviados)}"
+    assert "APPROVAL_REQUIRED" in saida, saida[-200:]
+    assert rc == 5, f"rc={rc}"
+
+
+test("correcao SEM aprovacao: providerCalls = 0", correcao_sem_aprovacao_nao_envia)
+
+
+def aprovacao_errada_nao_envia():
+    for token in ("send=true", "true", "cdb2026:quarterfinal-access-correction:2026:v1:99:abc",
+                  "", "   "):
+        rc, saida, enviados = _correcao(["--apply", "--correction", "--approve", token])
+        assert enviados == [], f"aprovacao invalida {token!r} enviou {len(enviados)}"
+        assert "APPROVAL_REQUIRED" in saida, f"{token!r}: {saida[-160:]}"
+
+
+test("aprovacao generica/errada NAO libera envio", aprovacao_errada_nao_envia)
+
+
+def aprovacao_exata_libera():
+    _, saida, _ = _correcao(["--apply", "--correction", "--prepare"])
+    linha = [l for l in saida.split("\n") if "--approve" in l and ":" in l][-1]
+    token = linha.split("--approve", 1)[1].strip().strip("'\"")
+    rc, saida2, enviados = _correcao(["--apply", "--correction", "--approve", token])
+    assert len(enviados) == 2, f"a aprovacao EXATA nao liberou: {len(enviados)} envios\n{saida2[-260:]}"
+
+
+test("aprovacao EXATA do manifesto libera o envio", aprovacao_exata_libera)
+
+
+def manifesto_mudou_invalida_aprovacao():
+    """Aprovacao vale para a lista que o humano viu, nao para a que existir depois."""
+    _, saida, _ = _correcao(["--apply", "--correction", "--prepare"], alvos=2)
+    linha = [l for l in saida.split("\n") if "--approve" in l and ":" in l][-1]
+    token_de_2 = linha.split("--approve", 1)[1].strip().strip("'\"")
+    # agora a lista tem TRES destinatarios: a aprovacao anterior nao pode valer
+    rc, saida2, enviados = _correcao(["--apply", "--correction", "--approve", token_de_2], alvos=3)
+    assert enviados == [], (
+        f"aprovacao de um lote de 2 liberou um lote de 3 ({len(enviados)} envios) — "
+        "aprovacao tem de morrer quando o manifesto muda")
+    assert "APPROVAL_REQUIRED" in saida2, saida2[-200:]
+
+
+test("manifesto alterado INVALIDA a aprovacao anterior", manifesto_mudou_invalida_aprovacao)
+
+
+def troca_de_destinatario_com_mesma_contagem_invalida():
+    """O caso que a contagem sozinha NAO pega.
+
+    `manifesto_mudou_invalida_aprovacao` muda de 2 para 3 destinatarios -- e o token carrega a
+    contagem, entao ele reprovaria mesmo que o hash ignorasse a lista. Medido por mutacao: com
+    `recipients` constante, aquele caso continuava passando.
+
+    Aqui a contagem fica IGUAL e as pessoas mudam. So o hash do conteudo separa os dois lotes; se
+    ele nao olhar a lista, uma aprovacao para um grupo libera envio para outro grupo do mesmo
+    tamanho.
+    """
+    _, saida, _ = _correcao(["--apply", "--correction", "--prepare"], alvos=2, sufixo="-grupoA")
+    linha = [l for l in saida.split("\n") if "--approve" in l and ":" in l][-1]
+    token_A = linha.split("--approve", 1)[1].strip().strip("'\"")
+    rc, saida2, enviados = _correcao(["--apply", "--correction", "--approve", token_A],
+                                     alvos=2, sufixo="-grupoB")
+    assert enviados == [], (
+        f"aprovacao do grupo A liberou envio para o grupo B ({len(enviados)} envios) — "
+        "mesma contagem, pessoas diferentes: so o hash do manifesto separa os dois")
+    assert "APPROVAL_REQUIRED" in saida2, saida2[-200:]
+
+
+test("trocar DESTINATARIOS com a mesma contagem invalida a aprovacao",
+     troca_de_destinatario_com_mesma_contagem_invalida)
 
 print(f"\n  {ok} passed, {fail} failed\n")
 print("✓ INVITATION EMAIL PASSED\n" if fail == 0 else "✗ INVITATION EMAIL FAILED\n")

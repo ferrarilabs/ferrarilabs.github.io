@@ -111,6 +111,8 @@ const CHECKS = [
     why: "\"a fonte nao respondeu nada\" nao pode virar \"a CBF nao publicou\": janela larga demais esvazia a resposta em silencio, e um apelido divergente segura a tabela inteira" },
   { id: "cdb-trusted-ingestion", group: "security", cmd: ["python3", "bolao/cdb2026/scripts/test_trusted_result_ingestion.py"],
     why: "resultado oficial move dinheiro; a matriz de identidade (ano/fase/mando/regressao terminal) e o que separa o placar certo de um jogo plausivel entre os mesmos clubes" },
+  { id: "canary-ownership-isolation", group: "security", cmd: ["python3", "bolao/scripts/test_canary_ownership_isolation.py"],
+    why: "um verificador so pode destruir o que ele mesmo criou; escolher recurso real por indice foi como o link do operador morreu duas vezes" },
   { id: "no-real-email-in-verification", group: "security", cmd: ["python3", "bolao/scripts/test_no_real_email_in_verification.py"],
     why: "verificador que fala com o provedor mandou dois e-mails a mais para o operador em 2026-08-12; participante real nunca e alvo de verificacao" },
   { id: "m8m9-no-silent-fallback", group: "security", cmd: ["python3", "bolao/scripts/test_m8m9_no_silent_fallback.py"],

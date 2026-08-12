@@ -407,6 +407,14 @@
     "bolao/cdb2026/scripts/test_bracket_propagation.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "3 mutacoes reais pegas. Propagacao ao vivo quartas->semifinal a partir dos palpites NA TELA (sem salvar, sem banco), recusa de palpite invalido, e a recusa de desenhar vaga sem o mapeamento oficial. O gate le so CODIGO: a primeira versao reprovou por causa do proprio comentario do app.js citando qf-1 x qf-2."
+    },
+    "bolao/scripts/test_canary_ownership_isolation.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Hermetico. Nenhum verificador escolhe recurso real por indice; quem muta producao usa namespace de teste (canary:/test_/probe:) ou desiste; os canarios do CDB param com o disjuntor; a purga de fila tem prefixo soldado no corpo. Tres falsos positivos meus foram corrigidos ao escrever: ler revoked_at nao e mutar, linhas[0]['state'] e a unica linha do documento, e a checagem da purga lia o proprio comentario da migracao."
+    },
+    "bolao/scripts/test_delivery_uniqueness.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Mede contra a PRODUCAO a unicidade (app, evento, destinatario, geracao) e o disjuntor de anomalia de 45min; precisa de SUPABASE_SERVICE_ROLE_KEY e de concorrencia real (8 workers). Executado pelo workflow m8m9_probe.yml. Nao envia e-mail: enderecos sinteticos, chaves canary:, tudo removido no fim. Ultimo resultado: 13/13, 8 workers -> 1 reserva."
     }
   }
 }
