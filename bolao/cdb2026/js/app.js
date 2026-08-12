@@ -564,27 +564,19 @@ function saveState(s, opts = {}) {
   s.meta.updatedAt = new Date().toISOString();
   s.meta.version = C.siteVersion;
   localStorage.setItem(C.storeKey, JSON.stringify(s));
-  if (C.database.enabled && !opts.localOnly) {
-    // Nunca engolir a falha em silêncio (era `.catch(() => {})`): o estado fica só no navegador
-    // e o participante/admin via a mesma mensagem de sucesso de sempre, sem saber que nada foi
-    // sincronizado. Achado na auditoria de 2026-08 (AUDIT-04). O dado local já está gravado
-    // acima, então a falha remota nunca perde a entrada -- só precisa ser VISÍVEL.
-    // A auditoria de 2026-08 (AUDIT-04) corrigiu o caso de ERRO. Faltava o caso PULADO: quando
-    // a gravação remota é bloqueada (isolamento de teste) ou desligada, esta promessa RESOLVE
-    // com `{skipped:true}` — o `.catch` não dispara e a tela mostra "salvo" como sempre.
-    // Modo de falha real, vivido em 2026-08-09: um agendamento de sorteio registrado no admin
-    // que nunca chegou ao Supabase, sem erro nenhum. Silêncio em caminho de gravação é o mesmo
-    // defeito de sempre — um verde que não corresponde a efeito.
-    saveRemoteState(s, { mutation: opts.mutation }).then(res => {
-      if (res && res.skipped) {
-        console.warn(`[CDB2026] gravação remota PULADA — ${res.reason || "database desabilitado"}`);
-        showToast(t("syncBlocked"), "warn", 8000);
-      }
-    }).catch(err => {
-      console.warn("[CDB2026] Supabase save failed", err);
-      showToast(t("syncFailed"), "warn", 8000);
-    });
-  }
+  // PLATFORM-CDB-BROWSER-WRITER: `saveState()` NAO grava mais no remoto.
+  //
+  // O que estava aqui chamava `saveRemoteState()`, que gravava o DOCUMENTO INTEIRO com a chave
+  // anon publica. Estava morto por TRES motivos independentes, todos medidos:
+  //
+  //   1. o interlock `__sanitized` levantava antes de gravar, e em producao ele SEMPRE dispara
+  //      porque `readTable` ("bolao_state_public") difere de `table` ("bolao_state");
+  //   2. desde o Q38 o `anon` nao tem INSERT nem UPDATE em `public.bolao_state`;
+  //   3. a tabela ficou com ZERO policies.
+  //
+  // Codigo morto que reescreve um bolao inteiro nao e codigo seguro: bastava uma policy
+  // restaurada por engano para voltar a alcancar. O palpite do participante continua indo por
+  // `cdb_save_my_picks`; a mutacao de operador, pelo runtime confiavel (operator_cli.py).
   renderAll();
 }
 
@@ -786,77 +778,17 @@ function emailSendAllowed() {
 }
 
 
-async function saveRemoteState(s, opts = {}) {
-  if (!C.database.enabled) return { ok: false, skipped: true };
-  // TEST ISOLATION: fail closed ANTES de qualquer leitura ou escrita remota. O estado local já
-  // foi gravado por saveState(), então nada é perdido — só não vaza para a produção.
-  const gate = productionWritesAllowed();
-  if (!gate.allowed) {
-    console.warn(`[CDB2026] TEST ISOLATION: gravação remota BLOQUEADA — ${gate.reason}. ` +
-      `Estado salvo apenas localmente. Para liberar deliberadamente: ` +
-      `sessionStorage.setItem("${ALLOW_PROD_WRITES_KEY}", "I UNDERSTAND")`);
-    return { ok: false, skipped: true, blockedByTestIsolation: true, reason: gate.reason };
-  }
-  if (gate.overridden) {
-    console.warn(`[CDB2026] TEST ISOLATION: override ATIVO — gravando na PRODUÇÃO a partir de ${gate.reason}`);
-  }
-  const { url, anonKey, table, stateId } = C.database;
-  // FALHA FECHADA: nunca gravar um documento SANITIZADO por cima do canonico.
-  //
-  // Depois do corte de leitura (2026-08-12) o navegador carrega a projecao, que nao tem
-  // participantEmail/payerName/paymentMethod. Uma gravacao de documento inteiro a partir dai
-  // apagaria esses campos dos 12 participantes -- permanente, silenciosa, e indistinguivel de
-  // "o dado nunca existiu". Recusar e a unica resposta correta.
-  //
-  // Na pratica isto tambem encerra a escrita anonima de documento inteiro pelo navegador, que e
-  // exatamente o objetivo do Stage 4. Mutacao de operador passa a exigir o caminho confiavel
-  // (service_role); palpite de participante passa por `cdb_save_my_picks`.
-  if (s && s.__sanitized) {
-    const msg = "GRAVACAO_BLOQUEADA: o estado carregado e a projecao sanitizada; gravar o "
-              + "documento inteiro apagaria dados privados. Use o caminho de operador confiavel.";
-    console.error(`[CDB2026] ${msg}`);
-    throw new Error(msg);
-  }
-  const headers = { apikey: anonKey, Authorization: `Bearer ${anonKey}` };
-  let payload = s;
-  try {
-    const cur = await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}&select=state`, { headers });
-    if (cur.ok) {
-      const rows = await cur.json();
-      const remote = rows?.[0]?.state;
-      if (remote) {
-        payload = opts.mutation
-          ? applyMutationOverRemote(s, remote, opts.mutation)
-          : mergeStates(s, remote, { preferRemoteResults: true });
-        payload.meta = { ...(s.meta || {}), updatedAt: new Date().toISOString(), version: C.siteVersion };
-        localStorage.setItem(C.storeKey, JSON.stringify(payload));
-      }
-    }
-  } catch (err) {
-    // Pré-leitura falhou (rede/timeout): grava o snapshot local mesmo assim -- é melhor que
-    // perder a entrada do participante. O risco de sobrescrita volta só neste caso degradado.
-    console.warn("[CDB2026] pre-save remote read failed, saving local snapshot as-is", err);
-  }
-  // CHOKEPOINT 4/4 (payload remoto): última barreira antes do POST. `payload` pode vir de
-  // `applyMutationOverRemote()`, que NÃO passa por mergeStates — sem isto, uma mutação dirigida
-  // (ex.: marcar pagamento) feita num navegador com cache sujo carregaria os ties fantasma junto
-  // e re-contaminaria a produção. É exatamente o cenário do teste 8.
-  enforceDrawLifecycle(payload);
-  const r = await fetchJson(`${url}/rest/v1/${table}`, {
-    method: "POST",
-    headers: { ...headers, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates" },
-    // `updated_at` explícito — ver o comentário equivalente no BR2026. A coluna existia e o app
-    // nunca a escrevia: ao diagnosticar "registrei e não pegou", ela dizia 14/07 com conteúdo de
-    // 01/08 dentro. A pergunta "quando o estado canônico mudou?" precisa ter resposta.
-    body: JSON.stringify({ id: stateId, state: payload, updated_at: new Date().toISOString() })
-  });
-  // `await fetch()` NÃO rejeita em 4xx/5xx -- sem esta checagem, um 401/403 (RLS), 400 ou 500
-  // era tratado como sucesso e o participante via "salvo" com o dado só no navegador dele.
-  if (!r.ok) {
-    const body = await r.text().catch(() => "");
-    throw new Error(`Supabase respondeu ${r.status}${body ? `: ${body.slice(0, 200)}` : ""}`);
-  }
-  return { ok: true };
+/**
+ * FAIL-CLOSED. O cdb2026 nao grava mais o documento a partir do navegador.
+ *
+ * Isto era um POST do documento INTEIRO com `Prefer: resolution=merge-duplicates`. O stub existe
+ * em vez de a funcao sumir para que qualquer chamador esquecido FALHE ALTO, aqui, com esta
+ * mensagem -- e nao com um ReferenceError sem explicacao no meio de uma acao de operador.
+ */
+async function saveRemoteState() {
+  throw new Error(
+    "CDB2026: gravacao remota de documento inteiro pelo navegador foi removida " +
+    "(PLATFORM-CDB-BROWSER-WRITER). Palpite: cdb_save_my_picks. Operador: operator_cli.py");
 }
 // Peças de merge compartilhadas entre mergeStates() (participante/ESPN, snapshot inteiro) e
 // applyMutationOverRemote() (mutação administrativa dirigida, Fase 2.1 §2) — entries, tombstones
