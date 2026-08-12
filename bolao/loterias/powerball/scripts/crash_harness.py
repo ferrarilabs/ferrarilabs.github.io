@@ -19,6 +19,18 @@ o runner morrendo naquele ponto exato. O estado durável ja gravado ate ali PERM
 que a segunda execucao tem de se recuperar.
 """
 
+# ── DECLARACAO EXPLICITA DE MODO TESTE ───────────────────────────────────────────────────────
+#
+# Este arquivo exercita run_lifecycle(), que desde a integracao M8/M9 fala com audit_events e
+# outbox_events. A ponte FALHA FECHADO sem SUPABASE_SERVICE_ROLE_KEY -- de proposito: em producao,
+# "nao consigo registrar" nunca pode virar "nada a registrar".
+#
+# Entao o teste declara que e teste, em vez de a ponte adivinhar. A mesma convencao ja governa o
+# transporte de e-mail (`real_send_allowed()`), e pela mesma razao: autorizacao positiva, nunca
+# heuristica negativa.
+import os as _os
+_os.environ.setdefault("BOLAO_TEST_RUN", "1")
+
 import json
 import re
 import threading

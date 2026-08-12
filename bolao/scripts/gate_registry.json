@@ -355,6 +355,22 @@
     "bolao/cdb2026/scripts/test_invitation_email.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "12 mutacoes reais, todas pegas. Cobre os portoes (prazo publicado, prazo no futuro, sorteio completo, credencial privilegiada), idempotencia (nao reemite para quem tem link vivo) e nao-vazamento (token fora do stdout, e-mail mascarado, token no fragmento e nao no query). Carrega o modulo compilando o TEXTO do arquivo: o cache de bytecode do macOS vive fora do repo e invalida por (mtime, tamanho), entao mutacao de 1 char por 1 char pode servir bytecode velho e produzir gate falso-verde."
+    },
+    "bolao/scripts/test_m8m9_no_silent_fallback.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "4 mutacoes reais, todas pegas. Hermetico (le fonte). Cobre: ponte levanta sem credencial, modo teste declarado e nao deduzido, nenhum except mudo em torno de auditoria/outbox, liquidacao relanca, zero acesso REST a schema nao exposto, chaves de negocio deterministicas."
+    },
+    "bolao/scripts/test_m8m9_integration.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Matriz de queda M8/M9 contra a PRODUCAO: precisa de SUPABASE_SERVICE_ROLE_KEY, que so existe no runner, e leva ~70s esperando o backoff real do outbox. Executado pelo workflow m8m9_probe.yml. Ultimo resultado: 31/31, ANON_ALLOWED_OPERATIONS=0, NO_DUPLICATE_ACCEPTED=PASS."
+    },
+    "bolao/scripts/audit_outbox_probe.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Probe de alcance do PostgREST; exige credencial privilegiada. Executado pelo workflow m8m9_probe.yml junto da matriz de queda."
+    },
+    "bolao/cdb2026/scripts/test_trusted_result_ingestion.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "3 mutacoes reais no call site correto (L838/842/849 de _find_new_legs), todas pegas. A primeira rodada de mutacao atingiu sb_backfill_schedule por engano (mesma linha, duas funcoes) e reportou 3 falsos GATE BLIND -- por isso as mutacoes deste gate sao por NUMERO DE LINHA, nao por texto."
     }
   }
 }

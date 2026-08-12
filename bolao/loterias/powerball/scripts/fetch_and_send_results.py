@@ -476,15 +476,67 @@ def check_and_update_results(game_type, dry_run=False, force_resend=False):
 # `deps` existe para o teste exercitar ESTA funcao -- a mesma que o workflow chama -- sem tocar
 # em rede, banco ou provedor. Um teste que reimplementasse a orquestracao provaria o teste, nao
 # o produto.
+class _PonteM8M9:
+    """Ponte para audit_events/outbox_events. FALHA FECHADO em producao.
+
+    O no-op so acontece sob declaracao EXPLICITA de teste -- a mesma convencao que
+    `real_send_allowed()` ja usa para o transporte (`BOLAO_TEST_RUN` / `PYTEST_CURRENT_TEST`).
+    Nao e fallback silencioso: em producao, sem `SUPABASE_SERVICE_ROLE_KEY`, cada metodo levanta.
+
+    A distincao importa. Um caminho de auditoria que engole erro e pior que nao ter auditoria:
+    passa a impressao de registro onde nao ha. Entao ou registra, ou grita.
+    """
+
+    @staticmethod
+    def _modo_teste():
+        return bool(os.environ.get("PYTEST_CURRENT_TEST") or os.environ.get("BOLAO_TEST_RUN"))
+
+    def _ponte(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "shared" / "scripts"))
+        import m8m9
+        return m8m9
+
+    def emit_audit(self, *a, **kw):
+        if self._modo_teste():
+            return None
+        return self._ponte().emit_audit(*a, **kw)
+
+    def emit_outbox(self, *a, **kw):
+        if self._modo_teste():
+            return ("test-noop", False)
+        return self._ponte().emit_outbox(*a, **kw)
+
+    def settle(self, *a, **kw):
+        if self._modo_teste():
+            return "test-noop"
+        return self._ponte().settle(*a, **kw)
+
+    def claim(self, *a, **kw):
+        if self._modo_teste():
+            return {"outbox_event_id": "test-noop"}
+        return self._ponte().claim(*a, **kw)
+
+    def new_correlation_id(self):
+        if self._modo_teste():
+            return "test-corr"
+        return self._ponte().new_correlation_id()
+
+    def key_draw_result(self, draw_id):
+        if self._modo_teste():
+            return f"powerball:draw-result:{draw_id}:v1"
+        return self._ponte().key_powerball_result(draw_id)
+
+
 class Deps:
     """Fronteiras externas injetaveis. O padrao e a producao."""
-    def __init__(self, ledger=None, send_email=None, resolve_recipients=None):
+    def __init__(self, ledger=None, send_email=None, resolve_recipients=None, bridge=None):
         if ledger is None:
             import powerball_notification as _pn
             ledger = _pn
         self.ledger = ledger
         self.send_email = send_email or _default_send_email
         self.resolve_recipients = resolve_recipients or _default_resolve_recipients
+        self.bridge = bridge or _PonteM8M9()
 
 
 def _default_send_email(game_type, entry_refs):
@@ -624,12 +676,35 @@ def _imprime_obs(rel):
     print("=" * 60)
 
 
+def _liquida_outbox(deps, rel, desfecho, corr, draw_id, esperados, aceitos, falhos, incertos):
+    """Liquida a obrigacao e registra o que aconteceu. Sem evento, nao ha o que liquidar."""
+    eid = rel.get("outboxEventId")
+    if not eid:
+        return
+    try:
+        estado = deps.bridge.settle(eid, desfecho,
+                                    provider_message_id=f"powerball-{draw_id}",
+                                    failure_category=None if desfecho == "success" else "delivery")
+    except Exception as exc:
+        # NAO engole: o estado do outbox passa a divergir do ledger, e isso tem de aparecer.
+        rel["outboxSettleError"] = str(exc)[:200]
+        raise
+    rel["outboxState"] = estado
+    deps.bridge.emit_audit("draw.result_notified", "draw", draw_id,
+                           metadata={"expected": len(esperados), "accepted": aceitos,
+                                     "failed": falhos, "uncertain": incertos,
+                                     "providerCalls": rel.get("providerCalls", 0),
+                                     "outboxState": estado},
+                           correlation_id=corr)
+
+
 def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps=None):
     """Ciclo completo: reconcilia resultado, depois trata a notificacao. Devolve o relatorio.
 
     E ESTA a funcao que o workflow chama. Qualquer caminho de envio passa por aqui.
     """
     deps = deps or Deps()
+    corr = deps.bridge.new_correlation_id()
     rel = {"resultReconciled": False, "notificationState": None, "providerCalls": 0,
            "wouldSend": False, "reason": None}
 
@@ -721,6 +796,22 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         rel["notificationState"] = "READY_DRY_RUN"
         return rel
 
+    # ── A OBRIGACAO VIRA LINHA (M9) ────────────────────────────────────────────────────────
+    #
+    # Chave derivada do SORTEIO, nao do relogio: se o processo morrer entre aqui e o envio, a
+    # execucao seguinte recomputa a mesma chave e reencontra a obrigacao em vez de criar outra.
+    #
+    # O ledger POR DESTINATARIO continua sendo a autoridade de transporte -- `retryable_recipients`
+    # decide quem recebe. O outbox envolve o envio; nunca escolhe destinatario. Se escolhesse,
+    # existiriam dois caminhos para o mesmo e-mail.
+    chave_negocio = deps.bridge.key_draw_result(draw_id)
+    evento_id, criado_agora = deps.bridge.emit_outbox(
+        chave_negocio, "powerball.draw_result",
+        payload={"drawId": draw_id, "expectedRecipients": len(esperados)},
+        correlation_id=corr)
+    rel["outboxEventId"] = evento_id
+    rel["outboxCreated"] = criado_agora
+
     worker = f"gha-{os.environ.get('GITHUB_RUN_ID', 'local')}"
     reivindicado = deps.ledger.claim(draw_id, worker)
     if not reivindicado:
@@ -745,6 +836,9 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         rel["notificationState"] = final["status"]
         rel["reason"] = final.get("reason") or "nada pendente: conclusao reconstruida do estado"
         rel["providerCalls"] = 0
+        # Nada pendente = obrigacao cumprida. Liquidar como sucesso SEM tocar no provedor e o
+        # caminho certo: o ledger ja sabe que todos foram aceitos.
+        _liquida_outbox(deps, rel, "success", corr, draw_id, esperados, 0, 0, 0)
         return rel
 
     _obs(rel, claimedRecipients=len(alvos))
@@ -775,6 +869,26 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     final = deps.ledger.settle(draw_id)
     rel["notificationState"] = final["status"]
     rel["reason"] = final.get("reason")
+
+    # O desfecho do outbox ESPELHA o do ledger; nao e recalculado. Duas fontes de verdade sobre a
+    # mesma entrega e como se cria divergencia entre "foi enviado" e "consta como enviado".
+    n_aceitos = len(saida.get("accepted", []))
+    n_falhos = len(saida.get("failed", []))
+    n_incertos = len(saida.get("uncertain", []))
+    if final["status"] == deps.ledger.SENT:
+        desfecho = "success"
+    elif not tocou:
+        # Transporte recusou: nao houve provedor. Retentavel, e nao conta como tentativa perdida.
+        desfecho = "transient_failure"
+    elif n_incertos:
+        # INCERTO nunca e reenviado as cegas. Vai para dead: exige decisao humana, que e
+        # exatamente a semantica que o 08/08 ensinou.
+        desfecho = "permanent_failure"
+    else:
+        desfecho = "transient_failure"
+    _liquida_outbox(deps, rel, desfecho, corr, draw_id, esperados,
+                    n_aceitos, n_falhos, n_incertos)
+
     _obs(rel, providerCallsAttempted=rel["providerCalls"],
          providerRefused=rel.get("providerRefused", False),
          acceptedCount=len(saida.get("accepted", [])),

@@ -45,6 +45,10 @@ import sys
 import urllib.error
 import urllib.request
 from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "shared" / "scripts"))
+import m8m9  # noqa: E402  (a ponte M8/M9 vive em bolao/shared/scripts)
 
 SUPABASE_URL = "https://cmhqkkfczotdnssupkni.supabase.co"
 STATE_ID = "cdb2026"
@@ -332,10 +336,21 @@ def main():
     print("  CDB2026 — CONVITE DAS QUARTAS (link de acesso pessoal)")
     print("=" * 72)
 
+    corr = m8m9.new_correlation_id()
     state = fetch_state()
     pronto, motivo, cutoff = check_ready_to_invite(state)
     if not pronto:
         print(f"\n  🛑 NÃO CONVIDAR: {motivo}")
+        # §16: espera esperada NÃO cria evento de transporte. Um outbox `pending` aqui ficaria
+        # tentando para sempre contra uma condição de negócio que ainda não existe -- e um evento
+        # que nunca pode ser cumprido acaba em `dead`, transformando "a CBF não publicou" num
+        # alarme de entrega. A auditoria registra a decisão; a fila não recebe nada.
+        m8m9.emit_audit("invitation.deferred", "pool", "cdb2026:quartas",
+                        metadata={"reason_code": "no_official_schedule"},
+                        correlation_id=corr, reason=motivo[:200])
+        m8m9.automation_run(app="cdb2026", event="quarterfinal-invitation",
+                            state="WAITING_FOR_OFFICIAL_SCHEDULE", outboxEventCreated="false",
+                            providerCalls=0, audit="RECORDED", exit=0)
         print("\n  CDB_INVITATION_STATUS = BLOCKED")
         return 3  # distinto de erro: é estado de negócio, não falha
 
@@ -368,6 +383,32 @@ def main():
         print("\n  CDB_INVITATION_STATUS = BLOCKED_UNAUTHORIZED")
         return 4
 
+    # ── A OBRIGAÇÃO VIRA LINHA ANTES DE QUALQUER PROVEDOR ────────────────────────────────────
+    #
+    # A chave é derivada da FASE, não do relógio nem de um uuid: se este processo morrer depois
+    # de mandar metade dos convites, a execução seguinte recomputa a MESMA chave, reencontra a
+    # obrigação e não cria uma segunda. É o equivalente recuperável da atomicidade que um
+    # documento JSON gravado por REST não pode dar (ver m8m9.py, "O LIMITE TRANSACIONAL").
+    chave = m8m9.key_cdb_picks_open("quarterfinal")
+    evento_id, criado = m8m9.emit_outbox(
+        chave, "cdb2026.picks_open_invitation",
+        payload={"phaseId": FASE, "cutoffAt": cutoff, "recipientCount": len(alvos)},
+        correlation_id=corr)
+    print(f"  obrigação durável     {'criada' if criado else 'já existia'}")
+
+    # O ledger POR DESTINATÁRIO continua sendo a autoridade de transporte: `already_invited_ids()`
+    # decide quem recebe. O outbox envolve o envio, nunca o duplica -- se ele também escolhesse
+    # destinatário haveria dois caminhos para o mesmo e-mail.
+    trabalho = m8m9.claim(f"cdb-invitation-{os.getpid()}", event_type="cdb2026.picks_open_invitation")
+    if trabalho is None:
+        # Outro processo está com o lease. Sair é o certo: dois consumidores enviando o mesmo
+        # convite é exatamente o que a reivindicação atômica existe para impedir.
+        print("\n  outro processo detém o lease deste evento — nada a fazer")
+        m8m9.automation_run(app="cdb2026", event="quarterfinal-invitation",
+                            businessKey=chave, outbox="HELD_BY_OTHER", providerCalls=0, exit=0)
+        print("\n  CDB_INVITATION_STATUS = LEASE_HELD_ELSEWHERE")
+        return 0
+
     enviados, falhos = 0, []
     carimbo = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
     for e in alvos:
@@ -395,6 +436,33 @@ def main():
                           f"rode com --reissue")
             print(f"  ✗ {nome}: {exc}")
             falhos.append(nome)
+
+    # ── LIQUIDAÇÃO ──────────────────────────────────────────────────────────────────────────
+    #
+    # `providerCalls` conta CHAMADA REAL AO PROVEDOR, não alvo nem iteração de laço (§10). Quem
+    # falhou antes de chegar ao provedor (emissão de credencial, por exemplo) não conta.
+    if falhos and enviados == 0:
+        desfecho = "transient_failure"   # ninguém saiu: vale reprocessar
+    elif falhos:
+        # Parcial: os aceitos são terminais no ledger e NÃO reenviam. Marcar o evento como
+        # transitório faria a próxima execução reabrir a obrigação -- e ela reencontra só quem
+        # ficou de fora, porque `already_invited_ids()` já exclui os aceitos.
+        desfecho = "transient_failure"
+    else:
+        desfecho = "success"
+
+    estado_final = m8m9.settle(evento_id, desfecho,
+                               provider_message_id=f"cdb-invitation-{enviados}",
+                               failure_category="partial_delivery" if falhos else None)
+    m8m9.emit_audit("invitation.dispatched", "pool", "cdb2026:quartas",
+                    metadata={"expected": len(alvos), "accepted": enviados,
+                              "failed": len(falhos), "outboxState": estado_final},
+                    correlation_id=corr)
+    m8m9.automation_run(app="cdb2026", event="quarterfinal-invitation", businessKey=chave,
+                        outbox=estado_final, expected=len(alvos), targeted=len(alvos),
+                        providerCalls=enviados + len(falhos), accepted=enviados,
+                        failed=len(falhos), uncertain=0, audit="RECORDED",
+                        exit=1 if falhos else 0)
 
     print(f"\n  enviados {enviados}/{len(alvos)}")
     if falhos:

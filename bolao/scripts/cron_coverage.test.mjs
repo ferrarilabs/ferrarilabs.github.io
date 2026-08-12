@@ -173,6 +173,12 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["m8m9_probe.yml",
+   "Diagnostico sob demanda de M8/M9: mede o alcance real do PostgREST para audit_events/" +
+   "outbox_events e roda a matriz de queda contra a producao. Deliberadamente NAO agendado -- a " +
+   "matriz espera ~70s de backoff real do outbox e escreve eventos de canario na fila de " +
+   "producao (removidos ao fim). Rodar sozinho de tempos em tempos seria escrita e ruido sem " +
+   "nenhum evento de negocio por tras. Executado apos mudanca na ponte M8/M9."],
   ["deploy-pages.yml", "Triggered by push to main."],
   ["sync_version.yml", "Triggered by push to main, path-filtered."],
   ["cdb2026_operator.yml",

@@ -42,6 +42,56 @@ convite = importlib.util.module_from_spec(
 convite.__file__ = str(AQUI / "send_invitation_email.py")
 exec(compile(_FONTE, convite.__file__, "exec"), convite.__dict__)
 
+
+# ── PONTE M8/M9 FALSA ────────────────────────────────────────────────────────────────────────
+#
+# O gate e hermetico: nao alcanca rede nem credencial. A ponte real falha fechado sem
+# service_role -- e esse fail-closed e proposital, entao o teste injeta um duble em vez de
+# afrouxa-lo.
+#
+# O duble tambem e o ponto onde da para afirmar a ORDEM: a obrigacao duravel tem de existir ANTES
+# de qualquer contato com o provedor. Se o envio vier primeiro, uma queda no meio deixa gente
+# avisada sem registro de que a obrigacao foi cumprida.
+class _PonteFalsa:
+    def __init__(self):
+        self.reset()
+
+    def reset(self):
+        self.eventos, self.auditorias, self.liquidacoes, self.linhas = [], [], [], []
+        self.ordem = []          # sequencia de operacoes, para provar precedencia
+        self.claim_devolve = {"outbox_event_id": "evt-falso"}
+
+    def new_correlation_id(self):
+        return "corr-falso"
+
+    def emit_audit(self, action, aggregate_type, aggregate_key=None, **kw):
+        self.auditorias.append(action)
+        self.ordem.append(f"audit:{action}")
+
+    def emit_outbox(self, chave, tipo, payload=None, correlation_id=None):
+        self.eventos.append(chave)
+        self.ordem.append("outbox")
+        return "evt-falso", True
+
+    def claim(self, dono, event_type=None, lease_seconds=900):
+        self.ordem.append("claim")
+        return self.claim_devolve
+
+    def settle(self, eid, outcome, **kw):
+        self.liquidacoes.append(outcome)
+        self.ordem.append(f"settle:{outcome}")
+        return "sent" if outcome == "success" else "pending"
+
+    def automation_run(self, **campos):
+        self.linhas.append(campos)
+
+    def key_cdb_picks_open(self, fase, year=2026, version=1):
+        return f"cdb2026:{fase}-picks-open:{year}:v{version}"
+
+
+PONTE = _PonteFalsa()
+convite.m8m9 = PONTE
+
 ok, fail = 0, 0
 
 
@@ -220,7 +270,7 @@ def token_nunca_impresso():
         return t
 
     convite.issue_token = _emite
-    convite._TRANSPORT = lambda url, body, headers: (enviados.append(body), (200, "ok"))[1]
+    convite._TRANSPORT = lambda url, body, headers: (enviados.append(body), PONTE.ordem.append("provider"), (200, "ok"))[-1]
     os.environ["BOLAO_ALLOW_REAL_SEND"] = "I UNDERSTAND"
     os.environ.pop("BOLAO_TEST_RUN", None)
 
@@ -263,6 +313,83 @@ def nao_convida_duas_vezes():
 
 test("quem já tem credencial viva NÃO é convidado de novo", nao_convida_duas_vezes)
 
+
+
+
+# ── M8/M9 ────────────────────────────────────────────────────────────────────────────────────
+def espera_nao_cria_transporte():
+    """§16: enquanto a CBF nao publica, a fila NAO recebe nada."""
+    PONTE.reset()
+    convite.fetch_state = lambda: estado(cutoff=None)
+    sys.argv = ["x", "--apply"]
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        rc = convite.main()
+    assert rc == 3, f"rc={rc}"
+    assert PONTE.eventos == [], (
+        f"criou evento de transporte numa espera esperada: {PONTE.eventos}. Um outbox pending "
+        "aqui tentaria para sempre contra uma condicao de negocio que nao existe, e morreria em "
+        "dead -- transformando 'a CBF nao publicou' num alarme de entrega")
+    assert any(a.startswith("invitation.deferred") for a in PONTE.auditorias), PONTE.auditorias
+
+
+test("espera pela CBF NAO cria evento de transporte (§16)", espera_nao_cria_transporte)
+
+
+def obrigacao_antes_do_provedor():
+    """A linha duravel tem de existir antes do primeiro e-mail."""
+    PONTE.reset()
+    enviados = []
+    convite.fetch_state = lambda: estado()
+    convite.already_invited_ids = lambda: set()
+    convite.issue_token = lambda eid, n: "TOK" + eid
+    convite._TRANSPORT = lambda u, b, h: (enviados.append(b), PONTE.ordem.append("provider"), (200, "ok"))[-1]
+    os.environ["BOLAO_ALLOW_REAL_SEND"] = "I UNDERSTAND"
+    os.environ.pop("BOLAO_TEST_RUN", None)
+    sys.argv = ["x", "--apply"]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            convite.main()
+    finally:
+        os.environ["BOLAO_TEST_RUN"] = "1"
+        convite._TRANSPORT = None
+
+    assert "outbox" in PONTE.ordem, f"nenhuma obrigacao duravel criada: {PONTE.ordem}"
+    assert "provider" in PONTE.ordem, f"nenhum envio: {PONTE.ordem}"
+    assert PONTE.ordem.index("outbox") < PONTE.ordem.index("provider"), (
+        f"provedor foi chamado ANTES da obrigacao existir: {PONTE.ordem}")
+    assert PONTE.ordem.index("claim") < PONTE.ordem.index("provider"), (
+        f"enviou sem reivindicar o lease: {PONTE.ordem}")
+    assert PONTE.liquidacoes == ["success"], f"liquidacao errada: {PONTE.liquidacoes}"
+
+
+test("obrigacao duravel nasce ANTES de qualquer provedor", obrigacao_antes_do_provedor)
+
+
+def lease_de_outro_nao_envia():
+    """Dois consumidores nao mandam o mesmo convite."""
+    PONTE.reset()
+    PONTE.claim_devolve = None          # outro processo detem o lease
+    enviados = []
+    convite.fetch_state = lambda: estado()
+    convite.already_invited_ids = lambda: set()
+    convite.issue_token = lambda eid, n: "TOK"
+    convite._TRANSPORT = lambda u, b, h: (enviados.append(b), (200, "ok"))[1]
+    os.environ["BOLAO_ALLOW_REAL_SEND"] = "I UNDERSTAND"
+    os.environ.pop("BOLAO_TEST_RUN", None)
+    sys.argv = ["x", "--apply"]
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = convite.main()
+    finally:
+        os.environ["BOLAO_TEST_RUN"] = "1"
+        convite._TRANSPORT = None
+        PONTE.claim_devolve = {"outbox_event_id": "evt-falso"}
+    assert rc == 0, f"rc={rc}"
+    assert enviados == [], "enviou mesmo sem deter o lease — dois workers duplicariam o convite"
+
+
+test("sem o lease, NAO envia", lease_de_outro_nao_envia)
 
 
 print(f"\n  {ok} passed, {fail} failed\n")
