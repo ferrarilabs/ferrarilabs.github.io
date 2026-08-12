@@ -2050,7 +2050,21 @@ function renderPickForm() {
     // palpitar nela, que e metade do defeito relatado.
     let pendentesDerivadas = [];
     if (DERIVED_PHASES[phase.id] && !ties.length) {
-      const virt = virtualDerivedTies(s, phase.id, getPickValues());
+      // MODELO, nao DOM.
+      //
+      // `getPickValues()` LE o formulario. Numa renderizacao ele descreve a tela que esta prestes
+      // a ser substituida -- e no primeiro render depois de carregar uma entrada essa tela ainda
+      // esta VAZIA. Pior: `getPickValues()` APAGA da base todo confronto cujo bloco esta em
+      // branco no DOM, entao os palpites recem-carregados eram descartados aqui.
+      //
+      // O efeito era exatamente o relatado: as quartas voltavam (os blocos leem `picksAtuais()`
+      // direto) e semifinal/final/campeao nao (dependiam desta copia ja esvaziada). Salvar
+      // funcionava; recarregar perdia o bracket de baixo.
+      //
+      // `picksAtuais()` e o modelo: overlay da edicao em curso, ou o que veio do servidor. O
+      // handler de propagacao grava o overlay ANTES de redesenhar, entao aqui ele tambem esta
+      // atualizado -- sem depender de ler um DOM que ja nao vale.
+      const virt = virtualDerivedTies(s, phase.id, picksAtuais());
       if (!virt.topologyKnown) {
         // O grupo e o cabecalho JA foram emitidos acima. Abrir outro aqui rendia duas secoes
         // "SEMIFINAL" na tela -- uma do renderizador de fase, outra deste ramo. Cada fase logica
@@ -2066,8 +2080,8 @@ function renderPickForm() {
       // Nenhum confronto fechado ainda: mostra de QUEM cada vaga depende. Nunca um clube.
       // (Sem reabrir grupo: a secao desta fase ja esta aberta.)
       html += pendentesDerivadas.map(pd => `<p class="muted small-text" data-derived-slot="${esc(pd.slotId)}">
-        ${esc(participantLabel(pd.a, predecessorLabel(s, pd.sideA.winnerOf, getPickValues())))}
-        × ${esc(participantLabel(pd.b, predecessorLabel(s, pd.sideB.winnerOf, getPickValues())))}
+        ${esc(participantLabel(pd.a, predecessorLabel(s, pd.sideA.winnerOf, picksAtuais())))}
+        × ${esc(participantLabel(pd.b, predecessorLabel(s, pd.sideB.winnerOf, picksAtuais())))}
       </p>`).join("");
       html += `</div>`;
       return;
@@ -2160,7 +2174,7 @@ function renderPickForm() {
   //
   // Usa as classes que a pagina ja tem (`pick-group`, `champion-header`). Nenhum componente novo.
   if (html) {
-    const podio = predictedPodium({ picks: getPickValues() }, s);
+    const podio = predictedPodium({ picks: picksAtuais() }, s);
     html += `<div class="pick-group">
       <div class="pick-group-header champion-header">${esc(t("predictedChampion"))}</div>`;
     if (podio.champion) {

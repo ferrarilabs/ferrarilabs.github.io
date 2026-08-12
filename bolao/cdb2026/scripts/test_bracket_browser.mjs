@@ -249,6 +249,19 @@ try {
   test("nenhum undefined depois da troca", () =>
     assert(!/undefined/i.test(aposTroca), `undefined após a troca:\n${aposTroca.slice(0, 400)}`));
 
+  // Recompleta o bracket antes de contar.
+  //
+  // O bloco de invalidacao acima trocou o vencedor de t-d, o que derruba sf-1 e, por
+  // consequencia, a final -- e derrubar E o comportamento certo. Contar a final logo depois dava
+  // 0 legitimamente.
+  //
+  // A versao anterior deste teste afirmava 1 nesse ponto e passava, porque a renderizacao lia o
+  // DOM velho e a final sobrevivia a uma invalidacao que deveria te-la apagado. Ou seja: o teste
+  // estava verde POR CAUSA do defeito de reidratacao. Corrigir a reidratacao expos a assercao
+  // errada, que e o que se espera de um teste honesto.
+  await vencerComTimeA(page, "sf-1", 1, 0);
+  await vencerComTimeA(page, "final-1", 3, 1);
+
   // ── UMA SECAO POR FASE ──────────────────────────────────────────────────────────────────
   //
   // O renderizador de fase abre o grupo e o cabecalho; os ramos derivados so preenchem. Quando

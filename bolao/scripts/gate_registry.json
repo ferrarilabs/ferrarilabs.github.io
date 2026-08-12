@@ -586,6 +586,10 @@
     },
     "scripts/test_pii_detectors.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_bracket_persistence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Round-trip completo no navegador REAL pelo caminho seguro (token no fragmento), com o Supabase falsificado na ROTA -- nenhuma entrada de participante e tocada. Captura o payload ANTES da rede, recarrega devolvendo exatamente ele, e compara o bracket renderizado. Cobre QF/SF/final/campeao/vice e falso-sucesso (servidor recusando nao vira 'salvo'). 3 mutacoes pegas, incluindo o defeito original: reidratar do DOM em vez do modelo."
     }
   }
 }
