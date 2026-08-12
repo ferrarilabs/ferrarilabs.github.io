@@ -44,6 +44,10 @@
     "bolao/cdb2026/scripts/audit_state_merge.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/check_access_credentials.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Mede, contra a PRODUCAO, quantas credenciais de acesso estao vivas x revogadas — responde se os convites entregues AUTENTICAM. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe no runner. Executado pelo workflow m8m9_probe.yml com if:always(). Nao envia e-mail e nao muta nada: so le. Criado no incidente de 2026-08-12, quando doze convites foram entregues com links que nao autenticavam e nada media isso."
+    },
     "bolao/cdb2026/scripts/check_cachebust.mjs": {
       "classification": "NON_GATE_HELPER",
       "reason": "Wrapper de CLI retrocompatibilidade: importa tudo de bolao/scripts/cachebust.mjs, que ja e exercitado por cachebust.integration.test.mjs e por check_cachebust.test.mjs."
@@ -54,11 +58,23 @@
     "bolao/cdb2026/scripts/test_aggregate_hero.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_bracket_browser.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Navegador real, app real, fixture proprio (Supabase bloqueado na ROTA, entao nunca toca dado de participante). Percorre quartas->semifinal->final->campeao sem salvar, prova invalidacao a jusante, ausencia de 3o/4o lugar, preservacao do visual (.champion-header/.tie-row) e ausencia de overflow em 320/414/768. Existe porque o gate de unidade passava afirmando `teamName` -- o nome de campo do resolvedor -- enquanto o renderizador lia `team` e a tela mostrava undefined."
+    },
+    "bolao/cdb2026/scripts/test_bracket_propagation.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "3 mutacoes reais pegas. Propagacao ao vivo quartas->semifinal a partir dos palpites NA TELA (sem salvar, sem banco), recusa de palpite invalido, e a recusa de desenhar vaga sem o mapeamento oficial. O gate le so CODIGO: a primeira versao reprovou por causa do proprio comentario do app.js citando qf-1 x qf-2."
+    },
     "bolao/cdb2026/scripts/test_draw_countdown.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_invitation_email.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "12 mutacoes reais, todas pegas. Cobre os portoes (prazo publicado, prazo no futuro, sorteio completo, credencial privilegiada), idempotencia (nao reemite para quem tem link vivo) e nao-vazamento (token fora do stdout, e-mail mascarado, token no fragmento e nao no query). Carrega o modulo compilando o TEXTO do arquivo: o cache de bytecode do macOS vive fora do repo e invalida por (mtime, tamanho), entao mutacao de 1 char por 1 char pode servir bytecode velho e produzir gate falso-verde."
     },
     "bolao/cdb2026/scripts/test_live_prob_bars.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -79,6 +95,14 @@
     "bolao/cdb2026/scripts/test_result_email_source.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_schedule_reconciler.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "4 mutacoes reais, todas pegas. Fecha o defeito de 2026-08-12: a CBF havia publicado a tabela completa e o reconciliador seguia dizendo WAITING_FOR_OFFICIAL_SCHEDULE, com o vigia VERDE. Duas causas silenciosas — janela de 90d (a ESPN devolve lista vazia sem erro acima de ~60d; medido 7d:0 14d:3 21d:7 30d:8 45d:8 60d:8 90d:0) e 'Vasco da Gama' vs 'Vasco', que com recusa de publicacao parcial segurava os quatro confrontos."
+    },
+    "bolao/cdb2026/scripts/test_trusted_result_ingestion.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "3 mutacoes reais no call site correto (L838/842/849 de _find_new_legs), todas pegas. A primeira rodada de mutacao atingiu sb_backfill_schedule por engano (mesma linha, duas funcoes) e reportou 3 falsos GATE BLIND -- por isso as mutacoes deste gate sao por NUMERO DE LINHA, nao por texto."
+    },
     "bolao/cdb2026/scripts/test_trusted_state_access.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -92,8 +116,20 @@
     "bolao/copa2026/scripts/audit_scoring.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/copa2026/scripts/test_app_routing.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Roteamento do app da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel; registrado aqui para nao nascer invisivel."
+    },
     "bolao/copa2026/scripts/test_bracket_correction_routing.py": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/copa2026/scripts/test_operator_cli.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "CLI de operador da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel. A credencial de teste passou a ser montada por concatenacao: o varredor de segredos casa o prefixo literal e nao pode confiar no rotulo FAKE -- um varredor que acredita no rotulo e enganavel escrevendo o rotulo ao lado da chave real."
+    },
+    "bolao/copa2026/scripts/test_private_readers.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Estatico, sem rede. Nenhum script le o documento PRIVADO bolao_state com a chave publica (que vai em todo navegador, entao quem so a tem nao tem nada que um visitante nao tenha); leitor de linha crua falha fechado sem service_role; leitores estreitos usam a view sanitizada; leitores de backup exigem allow-list explicita de pool, porque service_role ignora RLS e a lista deixa de ser recomendacao para virar a unica barreira. Adicionado por outra sessao."
     },
     "bolao/loterias/powerball/scripts/audit_draw_model_tests.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -162,6 +198,10 @@
     },
     "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Afirma a SEQUENCIA emit_outbox -> provedor -> settle, nao so a existencia do evento. Cobre desfecho espelhando o ledger, UNCERTAIN terminal, recusa de transporte (providerCalls=0 e obrigacao retentavel). 2 mutacoes reais pegas; a de providerCalls so foi pega depois de adicionar o cenario de RECUSA -- com o transporte sempre aceitando, contar intencao e contar efeito dao o mesmo numero."
     },
     "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -244,6 +284,10 @@
     "bolao/scripts/audit_notification_ledger_consumer.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/audit_outbox_probe.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Probe de alcance do PostgREST; exige credencial privilegiada. Executado pelo workflow m8m9_probe.yml junto da matriz de queda."
+    },
     "bolao/scripts/audit_prob_bar_geometry.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -288,6 +332,34 @@
     },
     "bolao/scripts/test_aria_current_nav.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/test_canary_ownership_isolation.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Hermetico. Nenhum verificador escolhe recurso real por indice; quem muta producao usa namespace de teste (canary:/test_/probe:) ou desiste; os canarios do CDB param com o disjuntor; a purga de fila tem prefixo soldado no corpo. Tres falsos positivos meus foram corrigidos ao escrever: ler revoked_at nao e mutar, linhas[0]['state'] e a unica linha do documento, e a checagem da purga lia o proprio comentario da migracao."
+    },
+    "bolao/scripts/test_delivery_uniqueness.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Mede contra a PRODUCAO a unicidade (app, evento, destinatario, geracao) e o disjuntor de anomalia de 45min; precisa de SUPABASE_SERVICE_ROLE_KEY e de concorrencia real (8 workers). Executado pelo workflow m8m9_probe.yml. Nao envia e-mail: enderecos sinteticos, chaves canary:, tudo removido no fim. Ultimo resultado: 13/13, 8 workers -> 1 reserva."
+    },
+    "bolao/scripts/test_harness_ports_unique.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Estatico. Nenhuma porta de harness declarada por duas suites. Criado depois de eu escolher 8231 para uma suite nova sem ver que audit_live_card_dom.mjs ja usava — custou tres execucoes de verify culpando orfaos de processo. Mutacao (reintroduzir a colisao): pega."
+    },
+    "bolao/scripts/test_m8m9_integration.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Matriz de queda M8/M9 contra a PRODUCAO: precisa de SUPABASE_SERVICE_ROLE_KEY, que so existe no runner, e leva ~70s esperando o backoff real do outbox. Executado pelo workflow m8m9_probe.yml. Ultimo resultado: 31/31, ANON_ALLOWED_OPERATIONS=0, NO_DUPLICATE_ACCEPTED=PASS."
+    },
+    "bolao/scripts/test_m8m9_no_silent_fallback.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "4 mutacoes reais, todas pegas. Hermetico (le fonte). Cobre: ponte levanta sem credencial, modo teste declarado e nao deduzido, nenhum except mudo em torno de auditoria/outbox, liquidacao relanca, zero acesso REST a schema nao exposto, chaves de negocio deterministicas."
+    },
+    "bolao/scripts/test_no_real_email_in_verification.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "3 mutacoes reais pegas (canario chamando send_email, guarda apontando para arquivo inexistente, guarda que detecta mas nao sai). A primeira versao tinha um ponto cego: aceitava a palavra EMAIL_KILL_SWITCH em QUALQUER lugar, inclusive na prosa que eu mesmo escrevi explicando o incidente — gate que le prosa mede prosa. Agora exige a guarda em codigo executavel."
+    },
+    "bolao/scripts/test_no_whole_document_writers.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Uma propriedade nos tres boloes e no ferramental compartilhado: nada grava o documento bolao_state inteiro; toda mutacao passa por RPC estreita que aplica um caminho jsonb no servidor sob `for update`. Dois gravadores de documento inteiro sem token de concorrencia comum perdem o trabalho um do outro em silencio. Adicionado pela sessao concorrente de modernizacao."
     },
     "bolao/scripts/test_ops_logging.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -346,83 +418,174 @@
     "scripts/audit_pii_repo_wide.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/db/audit_chain_backfill.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_access_model.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_adr_citations.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_audit_chain_backfill.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_backfill.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_backup_scope.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_choreography.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_consistency_check.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_evidence_pipeline.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_financial_and_dq.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_financial_evidence.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_identity.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_identity_engine.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_index_validation.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_integrated_scenario.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_json_parity.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_legacy_fence.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_migration_drafts.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_migration_drift.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_migration_harness.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_migration_phases.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_outbox_and_audit.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_policy_materializer.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_privilege_model.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_promote_expand_stage.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_properties.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_reports_and_indexes.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_reports_sql.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_reports_sql_pg.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_restore_acceptance.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_restore_rehearsal.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_restore_target_guard.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_restore_verification.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_rls.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_scoring_parity.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_scoring_parity_gate.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_shared_product_state.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_surface_inventory.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_transformers.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_write_contracts.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
     "scripts/test_audit_pii_repo_wide.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/test_fixture_privacy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
-    "bolao/cdb2026/scripts/test_invitation_email.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "12 mutacoes reais, todas pegas. Cobre os portoes (prazo publicado, prazo no futuro, sorteio completo, credencial privilegiada), idempotencia (nao reemite para quem tem link vivo) e nao-vazamento (token fora do stdout, e-mail mascarado, token no fragmento e nao no query). Carrega o modulo compilando o TEXTO do arquivo: o cache de bytecode do macOS vive fora do repo e invalida por (mtime, tamanho), entao mutacao de 1 char por 1 char pode servir bytecode velho e produzir gate falso-verde."
-    },
-    "bolao/scripts/test_m8m9_no_silent_fallback.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "4 mutacoes reais, todas pegas. Hermetico (le fonte). Cobre: ponte levanta sem credencial, modo teste declarado e nao deduzido, nenhum except mudo em torno de auditoria/outbox, liquidacao relanca, zero acesso REST a schema nao exposto, chaves de negocio deterministicas."
-    },
-    "bolao/scripts/test_m8m9_integration.py": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Matriz de queda M8/M9 contra a PRODUCAO: precisa de SUPABASE_SERVICE_ROLE_KEY, que so existe no runner, e leva ~70s esperando o backoff real do outbox. Executado pelo workflow m8m9_probe.yml. Ultimo resultado: 31/31, ANON_ALLOWED_OPERATIONS=0, NO_DUPLICATE_ACCEPTED=PASS."
-    },
-    "bolao/scripts/audit_outbox_probe.py": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Probe de alcance do PostgREST; exige credencial privilegiada. Executado pelo workflow m8m9_probe.yml junto da matriz de queda."
-    },
-    "bolao/cdb2026/scripts/test_trusted_result_ingestion.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "3 mutacoes reais no call site correto (L838/842/849 de _find_new_legs), todas pegas. A primeira rodada de mutacao atingiu sb_backfill_schedule por engano (mesma linha, duas funcoes) e reportou 3 falsos GATE BLIND -- por isso as mutacoes deste gate sao por NUMERO DE LINHA, nao por texto."
-    },
-    "bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Afirma a SEQUENCIA emit_outbox -> provedor -> settle, nao so a existencia do evento. Cobre desfecho espelhando o ledger, UNCERTAIN terminal, recusa de transporte (providerCalls=0 e obrigacao retentavel). 2 mutacoes reais pegas; a de providerCalls so foi pega depois de adicionar o cenario de RECUSA -- com o transporte sempre aceitando, contar intencao e contar efeito dao o mesmo numero."
-    },
-    "bolao/copa2026/scripts/test_app_routing.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Roteamento do app da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel; registrado aqui para nao nascer invisivel."
-    },
-    "bolao/copa2026/scripts/test_operator_cli.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "CLI de operador da Copa. Adicionado por outra sessao junto do corte do navegador para runtime confiavel. A credencial de teste passou a ser montada por concatenacao: o varredor de segredos casa o prefixo literal e nao pode confiar no rotulo FAKE -- um varredor que acredita no rotulo e enganavel escrevendo o rotulo ao lado da chave real."
-    },
-    "bolao/copa2026/scripts/test_private_readers.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Estatico, sem rede. Nenhum script le o documento PRIVADO bolao_state com a chave publica (que vai em todo navegador, entao quem so a tem nao tem nada que um visitante nao tenha); leitor de linha crua falha fechado sem service_role; leitores estreitos usam a view sanitizada; leitores de backup exigem allow-list explicita de pool, porque service_role ignora RLS e a lista deixa de ser recomendacao para virar a unica barreira. Adicionado por outra sessao."
-    },
-    "bolao/cdb2026/scripts/test_schedule_reconciler.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "4 mutacoes reais, todas pegas. Fecha o defeito de 2026-08-12: a CBF havia publicado a tabela completa e o reconciliador seguia dizendo WAITING_FOR_OFFICIAL_SCHEDULE, com o vigia VERDE. Duas causas silenciosas — janela de 90d (a ESPN devolve lista vazia sem erro acima de ~60d; medido 7d:0 14d:3 21d:7 30d:8 45d:8 60d:8 90d:0) e 'Vasco da Gama' vs 'Vasco', que com recusa de publicacao parcial segurava os quatro confrontos."
-    },
-    "bolao/scripts/test_no_whole_document_writers.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Uma propriedade nos tres boloes e no ferramental compartilhado: nada grava o documento bolao_state inteiro; toda mutacao passa por RPC estreita que aplica um caminho jsonb no servidor sob `for update`. Dois gravadores de documento inteiro sem token de concorrencia comum perdem o trabalho um do outro em silencio. Adicionado pela sessao concorrente de modernizacao."
-    },
-    "bolao/scripts/test_no_real_email_in_verification.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "3 mutacoes reais pegas (canario chamando send_email, guarda apontando para arquivo inexistente, guarda que detecta mas nao sai). A primeira versao tinha um ponto cego: aceitava a palavra EMAIL_KILL_SWITCH em QUALQUER lugar, inclusive na prosa que eu mesmo escrevi explicando o incidente — gate que le prosa mede prosa. Agora exige a guarda em codigo executavel."
-    },
-    "bolao/cdb2026/scripts/check_access_credentials.py": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Mede, contra a PRODUCAO, quantas credenciais de acesso estao vivas x revogadas — responde se os convites entregues AUTENTICAM. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe no runner. Executado pelo workflow m8m9_probe.yml com if:always(). Nao envia e-mail e nao muta nada: so le. Criado no incidente de 2026-08-12, quando doze convites foram entregues com links que nao autenticavam e nada media isso."
-    },
-    "bolao/cdb2026/scripts/test_bracket_propagation.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "3 mutacoes reais pegas. Propagacao ao vivo quartas->semifinal a partir dos palpites NA TELA (sem salvar, sem banco), recusa de palpite invalido, e a recusa de desenhar vaga sem o mapeamento oficial. O gate le so CODIGO: a primeira versao reprovou por causa do proprio comentario do app.js citando qf-1 x qf-2."
-    },
-    "bolao/scripts/test_canary_ownership_isolation.py": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Hermetico. Nenhum verificador escolhe recurso real por indice; quem muta producao usa namespace de teste (canary:/test_/probe:) ou desiste; os canarios do CDB param com o disjuntor; a purga de fila tem prefixo soldado no corpo. Tres falsos positivos meus foram corrigidos ao escrever: ler revoked_at nao e mutar, linhas[0]['state'] e a unica linha do documento, e a checagem da purga lia o proprio comentario da migracao."
-    },
-    "bolao/scripts/test_delivery_uniqueness.py": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Mede contra a PRODUCAO a unicidade (app, evento, destinatario, geracao) e o disjuntor de anomalia de 45min; precisa de SUPABASE_SERVICE_ROLE_KEY e de concorrencia real (8 workers). Executado pelo workflow m8m9_probe.yml. Nao envia e-mail: enderecos sinteticos, chaves canary:, tudo removido no fim. Ultimo resultado: 13/13, 8 workers -> 1 reserva."
-    },
-    "bolao/cdb2026/scripts/test_bracket_browser.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Navegador real, app real, fixture proprio (Supabase bloqueado na ROTA, entao nunca toca dado de participante). Percorre quartas->semifinal->final->campeao sem salvar, prova invalidacao a jusante, ausencia de 3o/4o lugar, preservacao do visual (.champion-header/.tie-row) e ausencia de overflow em 320/414/768. Existe porque o gate de unidade passava afirmando `teamName` -- o nome de campo do resolvedor -- enquanto o renderizador lia `team` e a tela mostrava undefined."
-    },
-    "bolao/scripts/test_harness_ports_unique.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Estatico. Nenhuma porta de harness declarada por duas suites. Criado depois de eu escolher 8231 para uma suite nova sem ver que audit_live_card_dom.mjs ja usava — custou tres execucoes de verify culpando orfaos de processo. Mutacao (reintroduzir a colisao): pega."
+    "scripts/test_pii_detectors.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
