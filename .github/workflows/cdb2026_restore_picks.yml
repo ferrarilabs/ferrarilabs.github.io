@@ -1,0 +1,53 @@
+name: Bolão CDB2026 — restaura palpites de UMA entrada
+
+# Acionamento humano, com a entrada e o conteudo passados a mao. Nao agendado: restauracao nao e
+# rotina, e um script que restaura palpites sozinho e um script que pode desfazer o palpite de
+# alguem sem ninguem pedir.
+#
+# O conteudo vem de um backup verificado, colado como JSON. O script recusa arquivo vazio e nao
+# adivinha palpite de ninguem.
+
+on:
+  workflow_dispatch:
+    inputs:
+      entry_id:
+        description: "id da entrada (uuid)"
+        required: true
+        type: string
+      picks_json:
+        description: "JSON dos palpites, vindo de backup verificado"
+        required: true
+        type: string
+      apply:
+        description: "Gravar de verdade (sem isto, dry-run)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cdb2026-operator
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Restaura
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          PICKS_JSON: ${{ inputs.picks_json }}
+        run: |
+          set -euo pipefail
+          printf '%s' "$PICKS_JSON" > /tmp/picks.json
+          MODO=""
+          [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
+          python3 bolao/cdb2026/scripts/restore_entry_picks.py \
+            --entry-id "${{ inputs.entry_id }}" --picks-file /tmp/picks.json $MODO
