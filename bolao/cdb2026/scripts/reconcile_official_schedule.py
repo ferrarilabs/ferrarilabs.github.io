@@ -59,8 +59,33 @@ def _slug(t):
     return re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
 
 
+# JANELA MAXIMA CARACTERIZADA CONTRA A FONTE (2026-08-12).
+#
+# O endpoint de scoreboard da ESPN devolve LISTA VAZIA -- sem erro, sem aviso -- quando o
+# intervalo `dates=` e largo demais. Medido no mesmo minuto, a partir de 2026-08-12:
+#
+#     7d -> 0     14d -> 3     21d -> 7     30d -> 8     45d -> 8     60d -> 8     90d -> 0
+#
+# A tabela das quartas ESTAVA publicada nas oito partidas. O reconciliador pedia 90 dias, recebia
+# zero, e concluia corretamente "a CBF ainda nao publicou" -- a partir de uma resposta que nao
+# significava isso. Limite silencioso da fonte lido como estado de negocio.
+#
+# 45 dias fica com folga dentro da faixa que funciona e cobre ida e volta de um mata-mata com
+# sobra (as quartas de 2026 vao de 25/08 a 03/09, nove dias).
+JANELA_MAX_DIAS = 45
+
+
 def busca_tabela(de, ate):
-    """Jogos publicados na janela. (eventos, erro)."""
+    """Jogos publicados na janela. (eventos, erro).
+
+    A janela e VALIDADA aqui, e nao no chamador, porque o modo de falha e silencioso: quem
+    alargar o intervalo la em cima nao veria erro nenhum, so veria o torneio parar de encontrar
+    jogos que existem.
+    """
+    if (ate - de).days > JANELA_MAX_DIAS:
+        return None, (f"JANELA_LARGA_DEMAIS: {(ate - de).days}d > {JANELA_MAX_DIAS}d. "
+                      "A fonte devolve lista vazia sem erro nesse caso, e vazio aqui seria lido "
+                      "como 'tabela nao publicada'.")
     url = ESPN_URL.format(de=de.strftime("%Y%m%d"), ate=ate.strftime("%Y%m%d"))
     try:
         req = urllib.request.Request(url, headers={"User-Agent": UA})
@@ -70,6 +95,22 @@ def busca_tabela(de, ate):
         return None, f"FONTE_INDISPONIVEL: {type(e).__name__}"
 
 
+# A fonte e o sorteio nomeiam o mesmo clube de formas diferentes. Medido em 2026-08-12: a ESPN
+# publica "Vasco da Gama", o sorteio oficial registrou "Vasco". Tres dos quatro confrontos casavam
+# e esse nao -- e como publicacao PARCIAL e recusada de proposito, um unico nome divergente
+# segurava a tabela inteira.
+#
+# O apelido vai do lado da FONTE para o lado do SORTEIO, nunca o contrario: o documento oficial e
+# a autoridade sobre como o clube se chama neste torneio, e reescreve-lo para agradar a fonte
+# inverteria quem manda.
+#
+# Repetido aqui, e nao importado de bolao/copa2026 ou bolao/shared, pela regra de plataforma: os
+# apps nao importam codigo um do outro. O mesmo motivo pelo qual o User-Agent acima e repetido.
+ESPN_APELIDOS = {
+    "vasco-da-gama": "vasco",
+}
+
+
 def casa_confronto(ev, pares):
     """Qual confronto oficial este jogo representa? None se nao for nenhum deles."""
     comp = (ev.get("competitions") or [{}])[0]
@@ -77,7 +118,7 @@ def casa_confronto(ev, pares):
              for c in (comp.get("competitors") or [])]
     if len(times) != 2:
         return None, None
-    chave = tuple(sorted(_slug(t) for t in times))
+    chave = tuple(sorted(ESPN_APELIDOS.get(_slug(t), _slug(t)) for t in times))
     return pares.get(chave), times
 
 
@@ -121,7 +162,7 @@ def main():
              for tid, t in ties.items()}
 
     hoje = datetime.now(timezone.utc)
-    eventos, erro = busca_tabela(hoje, hoje + timedelta(days=90))
+    eventos, erro = busca_tabela(hoje, hoje + timedelta(days=JANELA_MAX_DIAS))
     if erro:
         print(f"  UPSTREAM_NOT_READY = {erro}")
         print("  CDB_SCHEDULE_STATUS = WAITING_FOR_OFFICIAL_SCHEDULE")

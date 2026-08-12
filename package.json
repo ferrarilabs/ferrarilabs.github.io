@@ -36,6 +36,7 @@
     "test:cdb-invitation-email": "python3 bolao/cdb2026/scripts/test_invitation_email.py",
     "test:m8m9-no-silent-fallback": "python3 bolao/scripts/test_m8m9_no_silent_fallback.py",
     "test:cdb-trusted-ingestion": "python3 bolao/cdb2026/scripts/test_trusted_result_ingestion.py",
+    "test:cdb-schedule-reconciler": "python3 bolao/cdb2026/scripts/test_schedule_reconciler.py",
     "test:powerball-outbox-order": "python3 bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py",
     "test:copa-app-routing": "node bolao/copa2026/scripts/test_app_routing.mjs",
     "test:copa-operator-cli": "python3 bolao/copa2026/scripts/test_operator_cli.py",
