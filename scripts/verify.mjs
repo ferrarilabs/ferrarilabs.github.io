@@ -95,6 +95,8 @@ const CHECKS = [
   { id: "draw-provenance", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_draw_provenance.mjs"], why: "official draw provenance" },
   { id: "draw-provenance-patterns", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs"],
     why: "precision/recall of the tie-fabrication patterns" },
+  { id: "cdb-invitation-email", group: "security", cmd: ["python3", "bolao/cdb2026/scripts/test_invitation_email.py"],
+    why: "o convite carrega o link de acesso pessoal: nao pode sair sem prazo oficial publicado (regra 50), nem duas vezes (reemitir invalida o link em uso), nem levar o token para o log do Actions" },
   { id: "cdb-trusted-state-access", group: "security", cmd: ["node", "bolao/cdb2026/scripts/test_trusted_state_access.mjs"],
     why: "quem le a linha crua precisa da credencial privilegiada E o workflow tem de injeta-la; sem isso o job morre com IndexError" },
   { id: "cdb-phase-lifecycle", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_phase_lifecycle.mjs"],
