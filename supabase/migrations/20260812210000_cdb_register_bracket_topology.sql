@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812210000_cdb_register_bracket_topology.sql
 --
 -- ═══ POR QUE ISTO PRECISA EXISTIR ════════════════════════════════════════════════════════════

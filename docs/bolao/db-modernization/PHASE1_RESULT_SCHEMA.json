@@ -1,0 +1,1101 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "phase1-readonly-collection-result.schema.json",
+  "title": "FASE 1 — Resultado da coleta administrativa read-only",
+  "description": "Formato SEM PII para registrar o resultado de uma execução do PHASE1_READONLY_QUERY_PACK.sql. Nenhuma instância pode conter dado de participante, e-mail, txId, valor de secret, connection string, senha, expressão de policy, partition bound ou option de FDW. O schema registra METADATA e CONTAGEM; nunca conteúdo. section_results é a ÚNICA fonte de verdade sobre o que foi coletado — não existem summaries persistidos nem estrutura de falhas paralela que possam contradizê-la. O detalhe de uma seção BLOCKED (failure_type, required_permission, error_message_sanitized, rolled_back) mora no PRÓPRIO section_result; collection_failures foi REMOVIDO, e section_result não carrega production_state (a propriedade `state` foi removida — status = BLOCKED é a única verdade persistida). Estado na Fase 1A: NENHUMA instância existe.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "collection_id",
+    "collection_model",
+    "collection_started_at_utc",
+    "collection_ended_at_utc",
+    "project_reference_masked",
+    "database_version",
+    "collector_method",
+    "read_only_confirmed",
+    "transaction_model",
+    "query_pack_sha256",
+    "query_pack_sha256_verified_after",
+    "phase1_artifact_commit",
+    "phase1_package_manifest_sha256",
+    "artifact_hashes",
+    "working_tree_clean_at_collection",
+    "phase0_baseline_commit",
+    "repository_head_at_collection",
+    "origin_main_sha_at_collection",
+    "exact_business_reconciliation",
+    "invariants",
+    "object_inventories",
+    "row_estimates",
+    "security_metadata",
+    "evidence_gaps",
+    "warnings",
+    "redaction_count",
+    "section_results",
+    "expected_sections",
+    "sanitized_output_exit_gate_passed",
+    "sanitization_gate_counts",
+    "sanitization_gate_completed_at_utc",
+    "sanitization_gate_scanner_sha256",
+    "sanitization_expected_file_count",
+    "sanitization_scanned_file_count",
+    "sanitization_output_manifest_sha256"
+  ],
+  "properties": {
+    "collection_id": {
+      "type": "string",
+      "pattern": "^PHASE1-[0-9]{8}-[0-9]{6}Z-[a-z0-9]{6}$",
+      "description": "Identificador único da coleta. Ex.: PHASE1-20260807-143000Z-a1b2c3"
+    },
+
+    "collection_model": {
+      "const": "TIME_BOUNDED_MULTI_TRANSACTION_OBSERVATION",
+      "description": "INVARIANTE DE HONESTIDADE. Esta coleta NÃO é um snapshot atômico e não pode ser descrita como tal. Cada seção roda na sua própria transação, com o seu próprio snapshot: duas seções vizinhas podem observar o catálogo em estados diferentes, e uma migration aplicada no meio da janela produziria inconsistência que o resultado não denunciaria sozinho. Por isso a coleta deve ocorrer em janela SEM migration e SEM database deployment, e a janela é registrada em collection_started_at_utc / collection_ended_at_utc."
+    },
+    "collection_started_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Início da janela de observação, em UTC. Junto com collection_ended_at_utc delimita o intervalo dentro do qual as 37 snapshots independentes foram tiradas."
+    },
+    "collection_ended_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Fim da janela de observação, em UTC. Uma janela longa aumenta o risco de inconsistência entre seções e deve ser justificada."
+    },
+    "catalog_change_observed_during_collection": {
+      "type": "boolean",
+      "description": "true se houve qualquer indício de alteração de catálogo durante a janela (deploy, migration, objeto que apareceu ou sumiu entre seções). Se true, a coleta é suspeita de inconsistência e precisa de nota explícita no relatório."
+    },
+
+    "project_reference_masked": {
+      "type": "string",
+      "pattern": "^(?:<KNOWN_PROJECT_REF>|[a-z0-9]{4}\\.{3}[a-z0-9]{4})$",
+      "description": "O project ref NUNCA aparece por extenso. Usar o literal <KNOWN_PROJECT_REF>, ou primeiros4...ultimos4. Ancorado nas duas pontas: uma string que apenas CONTENHA o literal não passa."
+    },
+    "database_version": {
+      "type": "string",
+      "description": "Saída de version() (S01). É metadata de plataforma, não segredo."
+    },
+    "server_version_num": {
+      "type": "integer",
+      "description": "S01. Necessário para interpretar S14f: inherit_option e set_option só existem em pg_auth_members a partir do PostgreSQL 16 (>= 160000)."
+    },
+    "collector_method": {
+      "type": "string",
+      "enum": [
+        "SUPABASE_SQL_EDITOR",
+        "PSQL_READ_ONLY_ROLE",
+        "SUPABASE_DASHBOARD_MANUAL",
+        "MIXED"
+      ]
+    },
+    "collector_identity": {
+      "type": "string",
+      "description": "Quem executou — nome ou papel, NUNCA credencial."
+    },
+
+    "read_only_confirmed": {
+      "const": true,
+      "description": "INVARIANTE. Resumo do fato provado seção a seção. A prova real vive em section_results[].read_only_confirmed_for_section, que o schema exige = true em toda seção COLLECTED, SKIPPED_BY_PROBE ou BLOCKED."
+    },
+    "transaction_model": {
+      "const": "ONE_READ_ONLY_TRANSACTION_PER_SECTION",
+      "description": "INVARIANTE. Cada seção roda na sua própria transação BEGIN READ ONLY ... ROLLBACK. Uma transação única é inválida: após um erro a transação fica aborted (SQLSTATE 25P02) e toda seção seguinte falharia."
+    },
+
+    "query_pack_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "sha256 do PHASE1_READONLY_QUERY_PACK.sql efetivamente executado, conferido ANTES da execução."
+    },
+    "query_pack_sha256_verified_after": {
+      "const": true,
+      "description": "INVARIANTE, OBRIGATÓRIA. O hash do query pack foi reconferido DEPOIS da execução e continuava igual. Sem essa reconferência não há prova de que o arquivo executado é o arquivo revisado — o campo não pode ser omitido nem ser false numa coleta válida."
+    },
+
+    "phase1_artifact_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "SHA completo do commit que protege os QUATRO artefatos PHASE1_*. A execução exige que eles estejam tracked e commitados — um artefato untracked pode ser editado sem deixar rastro, e aí o hash do pacote não prova nada."
+    },
+    "phase1_package_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "sha256 do manifesto do pacote: os quatro nomes de arquivo com os seus sha256, em ordem alfabética, uma linha por arquivo. Um único valor que muda se qualquer um dos quatro mudar."
+    },
+    "artifact_hashes": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["query_pack", "runbook", "result_schema", "live_state_template"],
+      "description": "sha256 individual de cada um dos quatro artefatos, para localizar QUAL deles divergiu quando o manifesto não bater.",
+      "properties": {
+        "query_pack": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "runbook": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "result_schema": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "live_state_template": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+      }
+    },
+    "working_tree_clean_at_collection": {
+      "const": true,
+      "description": "INVARIANTE. `git status --porcelain` estava VAZIO no início da coleta. Nenhum artefato PHASE1_* untracked ou modificado. Se a árvore estava suja, os hashes registrados não descrevem de forma confiável o que foi executado."
+    },
+
+    "phase0_baseline_commit": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "PROVENANCE. SHA completo do commit que protege os sete documentos PHASE0_*.md."
+    },
+    "repository_head_at_collection": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "PROVENANCE. SHA completo de HEAD no momento da coleta."
+    },
+    "origin_main_sha_at_collection": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{40}$",
+      "description": "PROVENANCE, NÃO gate: origin/main não precisa coincidir com o baseline nem com HEAD. Divergência é registrada, nunca bloqueia."
+    },
+
+    "exact_business_reconciliation": {
+      "const": "DEFERRED_TO_PHASE1B",
+      "description": "Nenhum COUNT/agregado sobre tabela de aplicação nesta fase. Estimativa de planner não substitui contagem e não altera production_state."
+    },
+
+    "invariants": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["production_writes", "ddl_detected", "dml_detected", "application_function_calls", "commit_issued", "raw_policy_expressions", "partially_redacted_policy_expressions"],
+      "description": "Invariantes de segurança. QUALQUER violação torna a coleta inválida — a instância é incidente e se descarta, nunca se corrige.",
+      "properties": {
+        "production_writes": { "const": 0 },
+        "ddl_detected": { "const": false },
+        "dml_detected": { "const": false },
+        "application_function_calls": {
+          "const": 0,
+          "description": "Uma function da aplicação pode escrever mesmo invocada por SELECT."
+        },
+        "commit_issued": { "const": false },
+        "raw_policy_expressions": {
+          "const": 0,
+          "description": "INVARIANTE. Nenhuma expressão de policy (qual/with_check) foi registrada, em nenhuma forma."
+        },
+        "partially_redacted_policy_expressions": {
+          "const": 0,
+          "description": "INVARIANTE. Nenhuma expressão PARCIALMENTE redigida foi registrada. A redação por regexp_replace de literais não cobre dollar-quoting, aspas escapadas, identificadores entre aspas duplas nem concatenação — e a fase amplia não é lugar para apostar em sanitizer imperfeito."
+        }
+      }
+    },
+
+    "section_results": {
+      "type": "array",
+      "description": "FONTE ÚNICA DE VERDADE sobre a coleta. Exatamente uma entrada por seção da lista canônica (37). Uma coleta pode ser incompleta, nunca SILENCIOSAMENTE incompleta: seção não executada aparece com status NOT_RUN, não some. Não existem summaries persistidos concorrentes nem lista de falhas paralela — collected/blocked/skipped/not_run e a tabela de falhas são DERIVADOS deste array pelo relatório Markdown.",
+      "minItems": 37,
+      "maxItems": 37,
+      "items": { "$ref": "#/$defs/section_result" },
+      "allOf": [
+        {
+          "description": "PREFLIGHT é obrigatório, obrigatoriamente COLLECTED e obrigatoriamente com read-only provado. Sem isso não há prova de que a sessão era read-only, e a instância inteira é inválida.",
+          "contains": {
+            "type": "object",
+            "required": ["section", "status", "read_only_confirmed_for_section"],
+            "properties": {
+              "section": { "const": "PREFLIGHT" },
+              "status": { "const": "COLLECTED" },
+              "read_only_confirmed_for_section": { "const": true }
+            }
+          },
+          "minContains": 1,
+          "maxContains": 1
+        },
+        { "contains": { "$ref": "#/$defs/is_section/S01" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S02" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S03" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S04" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S05" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S05b" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S06" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S07" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S08" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S09" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S10" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S11" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S11b" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S12" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S13" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S14a" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S14b" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S14c" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S14d" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S14e" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S14f" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S15a" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S15b" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S15c" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S16" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S17" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S18" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S19" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S20a" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S20b" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S21a" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S21b" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S21c" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S21d" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S21e" }, "minContains": 1, "maxContains": 1 },
+        { "contains": { "$ref": "#/$defs/is_section/S21f" }, "minContains": 1, "maxContains": 1 }
+      ]
+    },
+
+    "expected_sections": {
+      "type": "integer",
+      "const": 37,
+      "description": "Número de seções planejadas: PREFLIGHT + 36. Congelado — mudar o query pack exige mudar SQL, runbook, $defs/section_id, section_results (minItems/maxItems e as cláusulas allOf) e template no MESMO patch. Foram 35 na revisão anterior; S05b (domain constraints) e S21f (column ACL) levaram a 37."
+    },
+
+    "object_inventories": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Contagens por tipo de objeto e detalhe por objeto. ATENÇÃO: este objeto vazio NÃO significa coleta completa com zero objetos. A completude se lê EXCLUSIVAMENTE em section_results.",
+      "properties": {
+        "schemas": { "$ref": "#/$defs/inventory_bucket" },
+        "tables": { "$ref": "#/$defs/inventory_bucket" },
+        "partitions": { "$ref": "#/$defs/inventory_bucket" },
+        "views": { "$ref": "#/$defs/inventory_bucket" },
+        "materialized_views": { "$ref": "#/$defs/inventory_bucket" },
+        "sequences": { "$ref": "#/$defs/inventory_bucket" },
+        "types_and_enums": { "$ref": "#/$defs/inventory_bucket" },
+        "domains": { "$ref": "#/$defs/inventory_bucket" },
+        "extensions": { "$ref": "#/$defs/inventory_bucket" },
+        "constraints": { "$ref": "#/$defs/inventory_bucket" },
+        "indexes": { "$ref": "#/$defs/inventory_bucket" },
+        "functions": { "$ref": "#/$defs/inventory_bucket" },
+        "triggers": { "$ref": "#/$defs/inventory_bucket" },
+        "policies": { "$ref": "#/$defs/inventory_bucket" },
+        "publications": { "$ref": "#/$defs/inventory_bucket" },
+        "scheduled_jobs": { "$ref": "#/$defs/inventory_bucket" },
+        "storage_buckets": { "$ref": "#/$defs/inventory_bucket" },
+        "vault_secrets": { "$ref": "#/$defs/inventory_bucket" },
+        "roles": { "$ref": "#/$defs/inventory_bucket" }
+      }
+    },
+
+    "schema_classification": {
+      "type": "array",
+      "description": "S02. A classificação por NOME é heurística, não fato descoberto do catálogo — classification_basis torna a origem explícita.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "schema_class", "classification_basis"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "schema_owner": { "type": "string" },
+          "schema_class": { "type": "string", "enum": ["APPLICATION", "PROVIDER_MANAGED", "EXTENSION", "SYSTEM"] },
+          "classification_basis": {
+            "type": "string",
+            "enum": ["SYSTEM_RULE", "KNOWN_SUPABASE_MANAGED_SCHEMA", "EXTENSION_OWNED", "APPLICATION_CANDIDATE"],
+            "description": "SYSTEM_RULE e EXTENSION_OWNED vêm do catálogo. KNOWN_SUPABASE_MANAGED_SCHEMA vem de lista mantida à mão — se um schema da aplicação tiver por coincidência um desses nomes, será classificado errado. APPLICATION_CANDIDATE é o resíduo da heurística: um candidato, não um veredito."
+          },
+          "owning_extension": { "type": ["string", "null"] },
+          "acl_is_default": { "type": "boolean" }
+        }
+      }
+    },
+
+    "enum_types": {
+      "type": "array",
+      "description": "S09. Labels individuais NÃO são coletados: a regex de 'identificador' que os liberava aceita nomes de pessoas e não é proteção contra PII.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "type_name", "type_category", "enum_label_count", "enum_labels_md5"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "type_name": { "type": "string" },
+          "type_category": { "type": "string", "enum": ["base", "composite", "domain", "enum", "pseudo", "range", "multirange"] },
+          "type_owner": { "type": "string" },
+          "enum_label_count": { "type": "integer", "minimum": 0 },
+          "enum_labels_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" }
+        }
+      }
+    },
+
+    "scheduled_jobs_detail": {
+      "type": "array",
+      "description": "S16 (pg_cron). O TEXTO do comando nunca é registrado, nem mascarado.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["job_id", "schedule", "is_active", "command_length_chars", "command_md5", "command_class"],
+        "properties": {
+          "job_id": { "type": "integer" },
+          "job_name": { "type": ["string", "null"] },
+          "schedule": { "type": "string" },
+          "target_database": { "type": "string" },
+          "run_as_role": { "type": "string" },
+          "is_active": { "type": "boolean" },
+          "command_length_chars": { "type": "integer", "minimum": 0 },
+          "command_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+          "command_class": { "type": "string", "enum": ["HTTP", "SQL", "FUNCTION", "UNKNOWN"] }
+        }
+      }
+    },
+
+    "row_estimates": {
+      "type": "array",
+      "description": "S03. Estimativas de pg_class.reltuples. NÃO são contagens. Nenhum campo aqui autoriza CONFIRMED_ROWS_PRESENT.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "relation_name", "row_estimate_planner", "row_estimate_gt_zero", "production_state"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "relation_name": { "type": "string" },
+          "row_estimate_planner": { "type": "integer", "description": "-1 = nunca analisada." },
+          "row_estimate_gt_zero": {
+            "type": "boolean",
+            "description": "reltuples > 0. Significa exatamente isso: NÃO é ROWS_PRESENT confirmado e NÃO altera production_state."
+          },
+          "total_bytes": { "type": "integer", "minimum": 0 },
+          "estimate_is_stale": { "type": "boolean" },
+          "production_state": { "$ref": "#/$defs/production_state" },
+          "operational_evidence": { "$ref": "#/$defs/operational_evidence" }
+        },
+        "allOf": [{ "$ref": "#/$defs/confirmed_in_use_requires_evidence" }]
+      }
+    },
+
+    "partition_topology": {
+      "type": "array",
+      "description": "S03. Metadata de schema (quem é pai de quem, estratégia, colunas de chave). Partition BOUNDS não entram: codificam valores de negócio — só comprimento e hash.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "relation_name"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "relation_name": { "type": "string" },
+          "is_partition": { "type": "boolean" },
+          "partition_parent_schema": { "type": ["string", "null"] },
+          "partition_parent_relation": { "type": ["string", "null"] },
+          "partition_bound_length_chars": { "type": ["integer", "null"], "minimum": 0 },
+          "partition_bound_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+          "is_partitioned_parent": { "type": "boolean" },
+          "partition_strategy": { "type": ["string", "null"], "enum": ["RANGE", "LIST", "HASH", null] },
+          "partition_key_column_names": {
+            "type": ["array", "null"],
+            "items": { "type": "string" },
+            "description": "Nomes de coluna, na ordem. Slots de expressão saem como o literal <EXPRESSION>."
+          }
+        }
+      }
+    },
+
+    "constraint_topology": {
+      "type": "array",
+      "description": "S05. Nomes de coluna de PK/FK/UNIQUE, na ORDEM — uma PK (a,b) não é (b,a), e uma FK só é interpretável sabendo qual coluna aponta para qual. CHECK continua sem definição: flags + length + hash.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "relation_name", "constraint_name", "constraint_type"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "relation_name": { "type": "string" },
+          "constraint_name": { "type": "string" },
+          "constraint_type": { "type": "string", "enum": ["PRIMARY KEY", "FOREIGN KEY", "UNIQUE", "CHECK", "EXCLUSION", "CONSTRAINT TRIGGER"] },
+          "constrained_columns": { "type": ["array", "null"], "items": { "type": "string" } },
+          "references_schema": { "type": ["string", "null"] },
+          "references_relation": { "type": ["string", "null"] },
+          "referenced_columns": { "type": ["array", "null"], "items": { "type": "string" } },
+          "on_update": { "type": ["string", "null"] },
+          "on_delete": { "type": ["string", "null"] },
+          "is_deferrable": { "type": "boolean" },
+          "initially_deferred": { "type": "boolean" },
+          "is_validated": { "type": "boolean" },
+          "structural_flags": { "$ref": "#/$defs/expression_structural_flags" },
+          "definition_length_chars": { "type": "integer", "minimum": 0 },
+          "definition_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" }
+        }
+      }
+    },
+
+    "domain_constraints": {
+      "type": "array",
+      "description": "S05b. Constraints de domain têm conrelid = 0 e ficavam invisíveis na consulta de constraints de relação. Um CHECK de domain vale para toda coluna daquele domain no banco inteiro.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["domain_schema", "domain_name", "constraint_name"],
+        "properties": {
+          "domain_schema": { "type": "string" },
+          "domain_name": { "type": "string" },
+          "domain_base_type": { "type": "string" },
+          "domain_not_null": { "type": "boolean" },
+          "domain_owner": { "type": "string" },
+          "constraint_name": { "type": "string" },
+          "constraint_type": { "type": "string" },
+          "is_validated": { "type": "boolean" },
+          "structural_flags": { "$ref": "#/$defs/expression_structural_flags" },
+          "definition_length_chars": { "type": "integer", "minimum": 0 },
+          "definition_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" }
+        }
+      }
+    },
+
+    "index_topology": {
+      "type": "array",
+      "description": "S06. Key columns e INCLUDE columns são coisas diferentes e a distinção importa. Slots de expressão saem como <EXPRESSION> — o texto nunca sai.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "relation_name", "index_name"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "relation_name": { "type": "string" },
+          "index_name": { "type": "string" },
+          "is_unique": { "type": "boolean" },
+          "is_primary": { "type": "boolean" },
+          "is_valid": { "type": "boolean" },
+          "is_ready": { "type": "boolean" },
+          "is_live": { "type": "boolean" },
+          "is_partial": { "type": "boolean" },
+          "has_expression": { "type": "boolean" },
+          "index_method": { "type": "string" },
+          "total_columns": { "type": "integer", "minimum": 0 },
+          "key_column_count": { "type": "integer", "minimum": 0 },
+          "key_column_names": { "type": ["array", "null"], "items": { "type": "string" } },
+          "included_column_names": { "type": ["array", "null"], "items": { "type": "string" } },
+          "expression_slot_count": { "type": "integer", "minimum": 0 },
+          "definition_length_chars": { "type": "integer", "minimum": 0 },
+          "definition_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" }
+        }
+      }
+    },
+
+    "sequence_ownership": {
+      "type": "array",
+      "description": "S08. Reconhece ownership por dependência AUTO ('a') e INTERNAL ('i'). A versão anterior aceitava só 'a' e por isso classificava identity sequences como órfãs.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["schema_name", "sequence_name"],
+        "properties": {
+          "schema_name": { "type": "string" },
+          "sequence_name": { "type": "string" },
+          "sequence_owner": { "type": "string" },
+          "sequence_type": { "type": "string" },
+          "owned_by_schema": { "type": ["string", "null"] },
+          "owned_by_relation": { "type": ["string", "null"] },
+          "owned_by_column": { "type": ["string", "null"] },
+          "ownership_dependency_kind": {
+            "type": ["string", "null"],
+            "enum": ["AUTO", "INTERNAL_IDENTITY", null],
+            "description": "null = sem coluna dona encontrada, isto é, candidata a órfã de verdade."
+          }
+        }
+      }
+    },
+
+    "role_membership": {
+      "type": "array",
+      "description": "S14f. admin_option sozinho não basta: inherit_option decide se os privilégios são exercidos automaticamente, e set_option se a role pode ser assumida por SET ROLE. Sem os três não se sabe que privilégio uma role realmente exerce — é por isso que S21 se chama CATALOG_ACL_EXPANSION e não effective ACL. Requer PostgreSQL >= 16.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["granted_role", "member_role"],
+        "properties": {
+          "granted_role": { "type": "string" },
+          "member_role": { "type": "string" },
+          "with_admin_option": { "type": "boolean" },
+          "with_inherit_option": { "type": "boolean" },
+          "with_set_option": { "type": "boolean" },
+          "grantor_role": { "type": "string" }
+        }
+      }
+    },
+
+    "security_metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "Achados de segurança derivados de S11, S11b, S12, S14 e S21.",
+      "properties": {
+        "rls_state_by_relation": {
+          "type": "array",
+          "description": "S11b. FATOS, não conclusões. O rótulo RLS_ON_NO_POLICIES__DENIES_ALL_EXCEPT_OWNER foi REMOVIDO: era falso com FORCE RLS (o owner também é barrado) e ignorava BYPASSRLS/superuser. As duas derivadas abaixo são estritas e bem definidas; a conclusão de exposição só é válida cruzando com S14e.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["schema_name", "relation_name", "rls_enabled", "rls_forced", "policy_count"],
+            "properties": {
+              "schema_name": { "type": "string" },
+              "relation_name": { "type": "string" },
+              "rls_enabled": { "type": "boolean" },
+              "rls_forced": { "type": "boolean" },
+              "policy_count": { "type": "integer", "minimum": 0 },
+              "default_deny_for_normal_roles": {
+                "type": "boolean",
+                "description": "rls_enabled AND policy_count = 0. 'Normal roles' = sem BYPASSRLS e sem superusuário. Não afirma nada sobre o owner (depende de rls_forced) nem sobre roles privilegiadas (S14e)."
+              },
+              "owner_bypasses_rls": {
+                "type": "boolean",
+                "description": "rls_enabled AND NOT rls_forced."
+              },
+              "policies_defined_but_rls_off": {
+                "type": "boolean",
+                "description": "O achado mais traiçoeiro: policies existem, aparecem em S11 e não aplicam nada."
+              }
+            }
+          }
+        },
+        "policies": {
+          "type": "array",
+          "description": "S11. NENHUMA EXPRESSÃO. As colunas de expressão sanitizada foram removidas: dependiam de redação imperfeita mais uma segunda camada manual, e varredura ampla não é lugar para apostar nisso. Saem fatos estruturais + comprimento + hash. Policy cuja SEMÂNTICA precise ser analisada recebe directed_review_required = true e é lida individualmente em etapa autorizada.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["schema_name", "relation_name", "policy_name", "command", "applies_to_roles"],
+            "properties": {
+              "schema_name": { "type": "string" },
+              "relation_name": { "type": "string" },
+              "policy_name": { "type": "string" },
+              "permissive_or_restrictive": { "type": "string", "enum": ["PERMISSIVE", "RESTRICTIVE"] },
+              "applies_to_roles": { "type": "array", "items": { "type": "string" } },
+              "command": { "type": "string", "enum": ["ALL", "SELECT", "INSERT", "UPDATE", "DELETE"] },
+              "has_using_expression": { "type": "boolean" },
+              "has_with_check_expression": { "type": "boolean" },
+              "using_structural_flags": { "$ref": "#/$defs/expression_structural_flags" },
+              "using_is_unconditional": { "type": "boolean" },
+              "using_length_chars": { "type": "integer", "minimum": 0 },
+              "using_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              "with_check_structural_flags": { "$ref": "#/$defs/expression_structural_flags" },
+              "with_check_is_unconditional": { "type": "boolean" },
+              "with_check_length_chars": { "type": "integer", "minimum": 0 },
+              "with_check_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" },
+              "directed_review_required": {
+                "type": "boolean",
+                "description": "DIRECTED_POLICY_REVIEW_REQUIRED. true quando a semântica da expressão é necessária para decidir. A leitura acontece em etapa separada e autorizada, nunca nesta varredura."
+              }
+            }
+          }
+        },
+        "column_defaults": {
+          "type": "array",
+          "description": "S04. A expressão do default NÃO é registrada.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["schema_name", "relation_name", "column_name", "has_default"],
+            "properties": {
+              "schema_name": { "type": "string" },
+              "relation_name": { "type": "string" },
+              "column_name": { "type": "string" },
+              "has_default": { "type": "boolean" },
+              "has_explicit_column_acl": { "type": "boolean" },
+              "structural_flags": { "$ref": "#/$defs/expression_structural_flags" },
+              "default_length_chars": { "type": "integer", "minimum": 0 },
+              "default_md5": { "type": "string", "pattern": "^[a-f0-9]{32}$" }
+            }
+          }
+        },
+        "roles_with_bypassrls": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "S14e. Se anon ou authenticated estiverem aqui, toda a análise de policies é irrelevante para elas — P0-CANDIDATE."
+        },
+        "superuser_roles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "S14e. Superusuário atravessa RLS independentemente de policy, force ou grant."
+        },
+        "security_definer_functions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["schema_name", "function_name", "security_finding"],
+            "properties": {
+              "schema_name": { "type": "string" },
+              "function_name": { "type": "string" },
+              "function_owner": { "type": "string" },
+              "has_proconfig": {
+                "type": "boolean",
+                "description": "O CONTEÚDO de proconfig não é registrado: pode carregar settings da aplicação com dado ou segredo."
+              },
+              "search_path_setting": { "type": ["string", "null"] },
+              "security_finding": {
+                "type": "string",
+                "enum": [
+                  "SECURITY_DEFINER_WITHOUT_PINNED_SEARCH_PATH",
+                  "SECURITY_DEFINER_WITH_SEARCH_PATH",
+                  "SECURITY_INVOKER"
+                ]
+              }
+            }
+          }
+        },
+        "views_without_security_invoker": {
+          "type": "array",
+          "description": "Views que executam com privilégio do owner e podem contornar RLS das tabelas de base.",
+          "items": { "type": "string" }
+        },
+        "public_table_privileges": {
+          "type": "array",
+          "description": "S21a onde is_public. CATALOG_ACL_EXPANSION, não effective privilege.",
+          "items": { "$ref": "#/$defs/acl_entry" }
+        },
+        "public_function_execute": {
+          "type": "array",
+          "description": "S21d onde is_public e privilege = EXECUTE. Function sem ACL explícito significa EXECUTE para PUBLIC (por isso o acldefault). Com is_security_definer = true é o pior caso.",
+          "items": { "$ref": "#/$defs/acl_entry" }
+        },
+        "public_schema_usage": {
+          "type": "array",
+          "description": "S21c onde is_public e privilege = USAGE. Sem USAGE, um grant de tabela não é exercitável; com ele, é.",
+          "items": { "$ref": "#/$defs/acl_entry" }
+        },
+        "public_sequence_privileges": {
+          "type": "array",
+          "description": "S21b onde is_public.",
+          "items": { "$ref": "#/$defs/acl_entry" }
+        },
+        "column_acl": {
+          "type": "array",
+          "description": "S21f. Grant de coluna é mais específico que o de tabela e passa despercebido: uma tabela pode não ter grant nenhum e ainda assim ter uma COLUNA exposta. Só nomes de coluna — nenhum valor é lido.",
+          "items": { "$ref": "#/$defs/acl_entry" }
+        },
+        "default_privileges": {
+          "type": "array",
+          "description": "S21e (pg_default_acl). Explica por que um objeto criado AMANHÃ já nasce exposto.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["applies_when_created_by_role", "target_object_type", "grantee_role", "privilege", "is_public"],
+            "properties": {
+              "applies_when_created_by_role": { "type": "string" },
+              "target_schema": { "type": "string" },
+              "target_object_type": { "type": "string", "enum": ["table", "sequence", "function", "type", "schema"] },
+              "grantee_role": { "type": "string" },
+              "is_public": { "type": "boolean" },
+              "privilege": { "type": "string" },
+              "is_grantable": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    },
+
+    "evidence_gaps": {
+      "type": "array",
+      "description": "O que esta coleta NÃO respondeu, e por quê. Uma lacuna registrada é resultado; uma lacuna silenciosa é defeito.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["gap_id", "description", "why_unresolved", "resolution_source", "blocking"],
+        "properties": {
+          "gap_id": {
+            "type": "string",
+            "description": "Ex.: Q8, Q13, G1, LIVE_SITE_PII, EVENT_TRIGGERS, FDW_SERVER_METADATA, DATABASE_LEVEL_ACL, TYPE_DOMAIN_PRIVILEGES, REPLICATION_SLOTS"
+          },
+          "description": { "type": "string" },
+          "why_unresolved": {
+            "type": "string",
+            "enum": [
+              "NOT_AVAILABLE_VIA_SQL",
+              "PERMISSION_DENIED",
+              "OBJECT_ABSENT",
+              "REQUIRES_OPERATIONAL_TELEMETRY",
+              "REQUIRES_OWNER_CONFIRMATION",
+              "REQUIRES_DIRECTED_REVIEW",
+              "UNSAFE_TO_COLLECT_IN_BROAD_SCAN",
+              "DEFERRED_TO_PHASE1B",
+              "OUT_OF_SCOPE_FOR_THIS_COLLECTION"
+            ]
+          },
+          "resolution_source": { "type": "string" },
+          "blocking": { "type": "boolean" }
+        }
+      }
+    },
+
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["code", "message"],
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "STALE_ROW_ESTIMATES",
+              "SECTION_PARTIALLY_COLLECTED",
+              "PROVIDER_MANAGED_OBJECT_SKIPPED",
+              "UNEXPECTED_OBJECT_OUTSIDE_VERSION_CONTROL",
+              "REDACTION_APPLIED_TO_UNEXPECTED_FIELD",
+              "INFORMATION_SCHEMA_GRANTS_DIVERGE_FROM_CATALOG_ACL",
+              "CATALOG_MAY_HAVE_CHANGED_DURING_COLLECTION",
+              "COLLECTION_WINDOW_LONGER_THAN_PLANNED",
+              "SERVER_VERSION_BELOW_16_ROLE_OPTIONS_UNAVAILABLE",
+              "TIMEOUT_HIT",
+              "OTHER"
+            ]
+          },
+          "message": { "type": "string", "description": "Texto sanitizado. Nunca reproduzir o valor que motivou a redação." },
+          "section": { "$ref": "#/$defs/section_id" }
+        }
+      }
+    },
+
+    "sanitized_output_exit_gate_passed": {
+      "const": true,
+      "description": "SANITIZED_OUTPUT_EXIT_GATE. INVARIANTE, OBRIGATÓRIA. O scanner local descrito em PHASE1_EXECUTION_RUNBOOK.md §5.1 varreu TODOS os artefatos produzidos pela coleta e não encontrou nenhuma ocorrência das oito categorias bloqueantes. Enquanto este campo não for true, OUTPUT_SHARE_ALLOWED = false e nenhum artefato pode ser copiado, enviado, uploadado, colado em chat ou anexado a issue/PR."
+    },
+
+    "sanitization_gate_counts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "email_findings",
+        "jwt_findings",
+        "connection_string_findings",
+        "private_key_findings",
+        "api_secret_findings",
+        "unmasked_project_ref_findings",
+        "payment_reference_findings",
+        "participant_name_findings"
+      ],
+      "description": "Contagens por categoria do SANITIZED_OUTPUT_EXIT_GATE. SOMENTE contagens: nenhum valor casado, nenhum trecho, nem em forma mascarada. OBRIGATÓRIO, e as OITO categorias são OBRIGATÓRIAS dentro dele — {} ou uma categoria ausente não prova que o gate rodou. Toda categoria presente precisa ser 0 — se alguma foi > 0, redigir localmente e reexecutar o gate antes de registrar o resultado.",
+      "properties": {
+        "email_findings": { "type": "integer", "const": 0 },
+        "jwt_findings": { "type": "integer", "const": 0 },
+        "connection_string_findings": { "type": "integer", "const": 0 },
+        "private_key_findings": { "type": "integer", "const": 0 },
+        "api_secret_findings": { "type": "integer", "const": 0 },
+        "unmasked_project_ref_findings": { "type": "integer", "const": 0 },
+        "payment_reference_findings": { "type": "integer", "const": 0 },
+        "participant_name_findings": { "type": "integer", "const": 0 }
+      }
+    },
+
+    "sanitization_gate_completed_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "description": "OBRIGATÓRIO. Instante em que o SANITIZED_OUTPUT_EXIT_GATE (PHASE1_EXECUTION_RUNBOOK.md §5.1) terminou de rodar sobre TODOS os artefatos da coleta, com os oito contadores em zero. Sem este campo não há prova de QUANDO o gate rodou, só de que alguém preencheu os contadores."
+    },
+    "sanitization_gate_scanner_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "OBRIGATÓRIO. sha256 do script scanner executável (PHASE1_EXECUTION_RUNBOOK.md §5.1.1) efetivamente rodado para produzir sanitization_gate_counts. Ancora o gate a uma implementação determinística e reproduzível — sem isso, 'o gate passou' é uma alegação sem prova de qual código rodou."
+    },
+
+    "sanitization_expected_file_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "OBRIGATÓRIO. EXPECTED_FILE_COUNT — entradas válidas do PHASE1_OUTPUT_MANIFEST, isto é, quantos artefatos a coleta declara ter produzido. minimum 1: uma coleta compartilhável produziu pelo menos um arquivo, e um manifest vazio não prova cobertura. Precisa ser IGUAL a sanitization_scanned_file_count — a igualdade é imposta deterministicamente pelo próprio scanner (divergência => FILE_COUNT_MATCH = false, OUTPUT_SHARE_ALLOWED = false, exit != 0) e coberta pelos testes T37/T45 de PHASE1_EXECUTION_RUNBOOK.md §5.1.2, porque JSON Schema Draft 2020-12 não compara duas propriedades irmãs."
+    },
+    "sanitization_scanned_file_count": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "OBRIGATÓRIO. SCANNED_FILE_COUNT — arquivos efetivamente lidos pelo scanner. minimum 1: zero arquivos varridos NÃO é zero achados, é ausência de varredura; o scanner falha fechado nesse caso (exit 2). Precisa ser IGUAL a sanitization_expected_file_count — ver a nota sobre a imposição da igualdade naquele campo."
+    },
+    "sanitization_output_manifest_sha256": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "OBRIGATÓRIO. sha256 do PHASE1_OUTPUT_MANIFEST efetivamente usado para determinar o conjunto varrido. Ancora QUAIS arquivos o gate cobriu — sem isso, expected/scanned são dois inteiros sem referente. O manifest contém apenas caminhos relativos ao OUTPUT_DIR, nunca PII."
+    },
+
+    "redaction_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Redações aplicadas às saídas. Com expressões de policy fora do escopo, esta contagem cobre sobretudo project ref, e-mails e nomes de setting fora da whitelist."
+    }
+  },
+
+  "$defs": {
+    "section_id": {
+      "type": "string",
+      "description": "Lista canônica das 37 seções (PREFLIGHT + 36) do PHASE1_READONLY_QUERY_PACK.sql. Congelada e espelhada na tabela de ordem do PHASE1_EXECUTION_RUNBOOK.md §2 e no template.",
+      "enum": [
+        "PREFLIGHT",
+        "S01", "S02", "S03", "S04", "S05", "S05b", "S06", "S07", "S08", "S09", "S10",
+        "S11", "S11b", "S12", "S13",
+        "S14a", "S14b", "S14c", "S14d", "S14e", "S14f",
+        "S15a", "S15b", "S15c",
+        "S16", "S17", "S18", "S19",
+        "S20a", "S20b",
+        "S21a", "S21b", "S21c", "S21d", "S21e", "S21f"
+      ]
+    },
+
+    "failure_type": {
+      "type": "string",
+      "enum": ["PERMISSION_DENIED", "OBJECT_ABSENT", "TIMEOUT", "LOCK_TIMEOUT", "SYNTAX_UNSUPPORTED_VERSION", "ABORTED_BY_OPERATOR"]
+    },
+
+    "section_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["section", "status"],
+      "description": "Uma seção da coleta. O que cada status EXIGE é imposto pelo schema — não é possível declarar COLLECTED sem prova de read-only, nem BLOCKED sem rollback. section_result representa a EXECUÇÃO da seção, não o estado operacional de um objeto: a propriedade `state` foi REMOVIDA (additionalProperties: false a rejeita). Numa seção BLOCKED, `status = BLOCKED` é a única verdade persistida; COLLECTION_BLOCKED pode ser DERIVADO dela para apresentação, nunca persistido aqui. production_state (incluindo CONFIRMED_IN_USE) continua existindo apenas nos objetos de inventário apropriados, sujeitos a confirmed_in_use_requires_evidence.",
+      "properties": {
+        "section": { "$ref": "#/$defs/section_id" },
+        "status": { "type": "string", "enum": ["COLLECTED", "SKIPPED_BY_PROBE", "BLOCKED", "NOT_RUN"] },
+        "read_only_confirmed_for_section": {
+          "type": "boolean",
+          "description": "Resultado de SHOW transaction_read_only na transação PRÓPRIA desta seção. Obrigatoriamente true em COLLECTED, SKIPPED_BY_PROBE e BLOCKED. PROIBIDO em NOT_RUN: uma seção que não rodou não tem transação e não pode fingir confirmação."
+        },
+        "collected_at_utc": { "type": "string", "format": "date-time" },
+        "row_count_returned": { "type": "integer", "minimum": 0, "description": "Linhas de METADATA retornadas — não linhas de tabela de aplicação. Zero é um resultado válido." },
+        "output_artifact": { "type": "string" },
+        "output_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "probe_result": { "type": "string", "enum": ["OBJECT_PRESENT", "OBJECT_ABSENT"] },
+        "rolled_back": { "type": "boolean" },
+        "failure_type": { "$ref": "#/$defs/failure_type" },
+        "required_permission": {
+          "type": "string",
+          "description": "A permissão que teria sido necessária para a seção rodar — nome de privilégio, role ou atributo de role. NUNCA credencial, nunca connection string, nunca valor de secret. Obrigatório quando failure_type = PERMISSION_DENIED."
+        },
+        "error_message_sanitized": { "type": "string" },
+        "notes": { "type": "string" }
+      },
+      "allOf": [
+        {
+          "description": "COLLECTED exige prova de read-only + evidência do que foi produzido.",
+          "if": { "properties": { "status": { "const": "COLLECTED" } }, "required": ["status"] },
+          "then": {
+            "required": ["read_only_confirmed_for_section", "row_count_returned", "output_artifact", "output_sha256", "collected_at_utc"],
+            "properties": { "read_only_confirmed_for_section": { "const": true } }
+          }
+        },
+        {
+          "description": "SKIPPED_BY_PROBE exige que o probe tenha efetivamente rodado (logo, transação read-only aberta e encerrada) e tenha retornado ausência.",
+          "if": { "properties": { "status": { "const": "SKIPPED_BY_PROBE" } }, "required": ["status"] },
+          "then": {
+            "required": ["read_only_confirmed_for_section", "probe_result", "rolled_back", "collected_at_utc"],
+            "properties": {
+              "read_only_confirmed_for_section": { "const": true },
+              "probe_result": { "const": "OBJECT_ABSENT" },
+              "rolled_back": { "const": true }
+            }
+          }
+        },
+        {
+          "description": "BLOCKED exige ROLLBACK explícito — sem ele a sessão fica aborted e a falha se propaga. TODO o detalhe da falha mora aqui: não existe collection_failures nem blocked_sections.",
+          "if": { "properties": { "status": { "const": "BLOCKED" } }, "required": ["status"] },
+          "then": {
+            "required": ["read_only_confirmed_for_section", "rolled_back", "failure_type", "collected_at_utc"],
+            "properties": {
+              "read_only_confirmed_for_section": { "const": true },
+              "rolled_back": { "const": true }
+            },
+            "allOf": [
+              {
+                "description": "PERMISSION_DENIED exige dizer QUAL permissão faltou — sem isso o bloqueio não é acionável.",
+                "if": { "properties": { "failure_type": { "const": "PERMISSION_DENIED" } }, "required": ["failure_type"] },
+                "then": { "required": ["required_permission"] }
+              }
+            ]
+          }
+        },
+        {
+          "description": "NOT_RUN não pode carregar prova de read-only nem artefato de saída: não houve transação.",
+          "if": { "properties": { "status": { "const": "NOT_RUN" } }, "required": ["status"] },
+          "then": {
+            "not": {
+              "anyOf": [
+                { "required": ["read_only_confirmed_for_section"] },
+                { "required": ["output_artifact"] },
+                { "required": ["output_sha256"] },
+                { "required": ["row_count_returned"] },
+                { "required": ["rolled_back"] }
+              ]
+            }
+          }
+        }
+      ]
+    },
+
+    "is_section": {
+      "S01": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S01" } } },
+      "S02": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S02" } } },
+      "S03": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S03" } } },
+      "S04": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S04" } } },
+      "S05": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S05" } } },
+      "S05b": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S05b" } } },
+      "S06": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S06" } } },
+      "S07": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S07" } } },
+      "S08": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S08" } } },
+      "S09": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S09" } } },
+      "S10": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S10" } } },
+      "S11": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S11" } } },
+      "S11b": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S11b" } } },
+      "S12": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S12" } } },
+      "S13": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S13" } } },
+      "S14a": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S14a" } } },
+      "S14b": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S14b" } } },
+      "S14c": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S14c" } } },
+      "S14d": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S14d" } } },
+      "S14e": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S14e" } } },
+      "S14f": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S14f" } } },
+      "S15a": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S15a" } } },
+      "S15b": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S15b" } } },
+      "S15c": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S15c" } } },
+      "S16": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S16" } } },
+      "S17": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S17" } } },
+      "S18": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S18" } } },
+      "S19": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S19" } } },
+      "S20a": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S20a" } } },
+      "S20b": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S20b" } } },
+      "S21a": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S21a" } } },
+      "S21b": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S21b" } } },
+      "S21c": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S21c" } } },
+      "S21d": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S21d" } } },
+      "S21e": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S21e" } } },
+      "S21f": { "type": "object", "required": ["section"], "properties": { "section": { "const": "S21f" } } }
+    },
+
+    "operational_evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_type", "observed_at_utc", "evidence_reference_sanitized"],
+      "description": "A ÚNICA coisa que autoriza CONFIRMED_IN_USE. O catálogo NUNCA pode preencher este objeto: nenhuma das fontes abaixo é derivável de pg_catalog, information_schema ou de estimativa de linha.",
+      "properties": {
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "LIVE_APPLICATION_OBSERVATION",
+            "RECENT_CORRELATED_WRITE",
+            "WORKFLOW_EXECUTION",
+            "EDGE_FUNCTION_EXECUTION",
+            "ADMIN_TELEMETRY",
+            "OWNER_CONFIRMATION_WITH_SUPPORTING_EVIDENCE"
+          ]
+        },
+        "observed_at_utc": { "type": "string", "format": "date-time" },
+        "evidence_reference_sanitized": {
+          "type": "string",
+          "description": "Referência à evidência, SANITIZADA: id de run de workflow, data de log, nome de dashboard. Nunca linha de log crua, nunca payload, nunca IP ou e-mail."
+        },
+        "notes": { "type": "string" }
+      }
+    },
+
+    "confirmed_in_use_requires_evidence": {
+      "description": "Regra aplicada a todo objeto que carrega production_state: CONFIRMED_IN_USE sem operational_evidence é inválido.",
+      "if": {
+        "properties": { "production_state": { "const": "CONFIRMED_IN_USE" } },
+        "required": ["production_state"]
+      },
+      "then": { "required": ["operational_evidence"] }
+    },
+
+    "acl_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_name", "object_name", "grantee_role", "is_public", "privilege"],
+      "description": "Uma linha de CATALOG_ACL_EXPANSION: ACL do catálogo (ou acldefault quando NULL) expandido por aclexplode. grantee 0 = PUBLIC. NÃO é privilégio efetivo — efetivo depende também de role membership/herança (S14f), atributos de role (S14e), RLS (S11b) e USAGE no schema (S21c).",
+      "properties": {
+        "schema_name": { "type": "string" },
+        "object_name": { "type": "string" },
+        "column_name": { "type": "string", "description": "Só em S21f (column ACL). Nome de coluna; nenhum VALOR de coluna é lido." },
+        "object_kind": { "type": "string", "enum": ["table", "partitioned_table", "view", "materialized_view", "foreign_table", "sequence", "schema", "function", "procedure", "column"] },
+        "object_owner": { "type": "string" },
+        "acl_is_default": {
+          "type": "boolean",
+          "description": "true quando o objeto não tem ACL explícito e o privilégio veio de acldefault(). É exatamente o caso que as views de information_schema escondem."
+        },
+        "grantee_role": { "type": "string", "description": "Nome da role, ou o literal PUBLIC." },
+        "is_public": { "type": "boolean" },
+        "privilege": { "type": "string" },
+        "is_grantable": { "type": "boolean" },
+        "is_security_definer": { "type": "boolean", "description": "Só para functions (S21d). true + is_public + EXECUTE é o pior caso." }
+      }
+    },
+
+    "expression_structural_flags": {
+      "type": "object",
+      "additionalProperties": false,
+      "description": "STRUCTURAL_FLAGS. Substituem a expressão em TODO inventário amplo: dizem o que a expressão FAZ sem reproduzir o que ela CONTÉM.",
+      "properties": {
+        "references_auth": { "type": "boolean" },
+        "references_current_setting": { "type": "boolean" },
+        "references_time_function": { "type": "boolean" },
+        "references_uuid_function": { "type": "boolean" },
+        "references_sequence": { "type": "boolean" },
+        "contains_string_literal": { "type": "boolean" },
+        "contains_dollar_quote": {
+          "type": "boolean",
+          "description": "true significa que uma redação por literais entre aspas simples não cobriria a expressão. Como nenhuma expressão sai deste resultado, esta flag serve para priorizar revisão dirigida."
+        },
+        "contains_long_number": { "type": "boolean" },
+        "uses_in_list": { "type": "boolean" }
+      }
+    },
+
+    "production_state": {
+      "type": "string",
+      "enum": [
+        "CONFIRMED_PRESENT",
+        "CONFIRMED_ABSENT",
+        "CONFIRMED_IN_USE",
+        "PRESENT_USAGE_UNKNOWN",
+        "UNVERIFIED",
+        "COLLECTION_BLOCKED"
+      ],
+      "description": "ROWS_PRESENT foi REMOVIDO: era atribuído a partir de pg_class.reltuples, que é estimativa do planner e não prova linha alguma. O fato 'estimativa > 0' vive em row_estimates.row_estimate_gt_zero e NÃO é um production_state. CONFIRMED_IN_USE exige operational_evidence e NÃO pode vir do catálogo: nem por existência, nem por estimativa, nem por listagem, nem por SQL versionado. Sem telemetria, o resultado correto é PRESENT_USAGE_UNKNOWN."
+    },
+
+    "inventory_bucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["total_count", "production_state"],
+      "properties": {
+        "total_count": { "type": "integer", "minimum": 0 },
+        "by_schema_class": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "APPLICATION": { "type": "integer", "minimum": 0 },
+            "PROVIDER_MANAGED": { "type": "integer", "minimum": 0 },
+            "EXTENSION": { "type": "integer", "minimum": 0 },
+            "SYSTEM": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["qualified_name", "production_state"],
+            "properties": {
+              "qualified_name": { "type": "string", "description": "schema.objeto. Nome de OBJETO, nunca de pessoa." },
+              "owner": { "type": "string" },
+              "schema_class": { "type": "string", "enum": ["APPLICATION", "PROVIDER_MANAGED", "EXTENSION", "SYSTEM"] },
+              "production_state": { "$ref": "#/$defs/production_state" },
+              "operational_evidence": { "$ref": "#/$defs/operational_evidence" },
+              "repository_state": {
+                "type": "string",
+                "enum": [
+                  "CODE_REFERENCED",
+                  "CODE_PRESENT_NOT_REFERENCED",
+                  "STATIC_SOURCE",
+                  "DOCUMENTATION_ONLY",
+                  "BRANCH_ONLY",
+                  "PROPOSED_ONLY",
+                  "CONFLICTING",
+                  "NOT_IN_REPOSITORY"
+                ],
+                "description": "Eixo independente. NOT_IN_REPOSITORY num objeto presente no catálogo é o achado mais grave: objeto fora do controle de versão."
+              },
+              "notes": { "type": "string" }
+            },
+            "allOf": [{ "$ref": "#/$defs/confirmed_in_use_requires_evidence" }]
+          }
+        },
+        "production_state": { "$ref": "#/$defs/production_state" },
+        "operational_evidence": { "$ref": "#/$defs/operational_evidence" }
+      },
+      "allOf": [{ "$ref": "#/$defs/confirmed_in_use_requires_evidence" }]
+    }
+  }
+}

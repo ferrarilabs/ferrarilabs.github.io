@@ -50,6 +50,8 @@ const CHECKS = [
     why: "repo-wide PII/secret scan over tracked files" },
   { id: "pii-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_pii_repo_wide.mjs"],
     why: "precision/recall of the PII gate itself (a broken gate is worse than none)" },
+  { id: "pii-detector-engine", group: "security", cmd: ["node", "scripts/test_pii_detectors.mjs"],
+    why: "o gate de PII passou a ser um CLI fino sobre scripts/pii_detectors.mjs na integracao de 2026-08-12; o motor agora e load-bearing para pii-gate, entao o suite dele roda no MESMO agregador — deixa-lo de fora seria o falso-verde N21 outra vez" },
   { id: "powerball-email-gates", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_email_send_gates.py"],
     why: "pre-send contract: all-or-nothing recipients, fail-closed mode, provider unreachable from tests" },
   { id: "email-send-safety", group: "security", cmd: ["node", "scripts/audit_email_send_safety.mjs"],

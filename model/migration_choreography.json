@@ -1,0 +1,3014 @@
+{
+  "$comment": "WS5 — live expand/contract migration choreography. Machine-readable single source of truth. The document docs/bolao/db-modernization/LIVE_MIGRATION_CHOREOGRAPHY.md and the runbook are generated-from / checked-against this file; scripts/db/choreography.mjs is the evaluator. Nothing here executes against production.",
+  "meta": {
+    "workstream": "WS5",
+    "status": "DESIGN_AND_LOCAL_IMPLEMENTATION",
+    "productionEffect": "none",
+    "principle": "A migration state is a claim about four independent facts — what schema exists, where reads come from, where writes go, and what evidence has been gathered. A state machine that collapses those into one linear counter cannot express the states this platform actually passes through, because the browser is the client and an open tab does not participate in a deploy.",
+    "stateScopes": {
+      "GLOBAL": "one value for the whole database; schema and contract steps are global because a table either exists or does not",
+      "DOMAIN": "one value per domain; domains cut over independently and deliberately do not advance together",
+      "APP": "one value per bolão application (copa2026 / br2026 / cdb2026); the legacy document is per-app, so freezing it is per-app"
+    },
+    "numbering": {
+      "M0": "baseline registration — PREPARED_NOT_EXECUTED",
+      "M1_M10": "the phases with reviewable SQL drafts (additive DDL + backfills). These are what WS3 produced and what WS5.43's readiness matrix scores.",
+      "M11_M17": "operational phases with NO SQL drafts — they are runtime deployments, flag flips, jobs and one destructive contract step. Their absence from migration-drafts/ is correct, not a gap.",
+      "why": "The batch brief asks for 'M1–M10 choreography'. M1–M10 alone do not reach cutover: they are entirely additive and end with the legacy document still authoritative. The choreography therefore covers M1–M17 and marks the M11+ tail as draft-free by design."
+    }
+  },
+  "states": [
+    {
+      "id": "LEGACY_ONLY",
+      "scope": "GLOBAL",
+      "schema": "legacy only — public.bolao_state and its six siblings",
+      "reads": "legacy document",
+      "writes": "browser → legacy document, directly, with the anon key",
+      "rollbackClass": "APP_ROLLBACK_ONLY",
+      "terminalFor": []
+    },
+    {
+      "id": "EXPANDED_SCHEMA",
+      "scope": "GLOBAL",
+      "schema": "legacy + bolao/audit schemas, all 25 target entities, zero rows. KPLUS-F040: this said 21 until 2026-08-10. The four it undercounted are the ones added after it was written — classification_snapshots and competition_edition_standings (Batch I), audit_chain_head (ADR-K01) and request_idempotency (ADR-K05). A state description that undercounts its own schema is how a SCHEMA_ROLLBACK misses four tables; the count is asserted against the real catalog by q_state_machine_lab.mjs rather than maintained by hand.",
+      "reads": "legacy document",
+      "writes": "browser → legacy document",
+      "rollbackClass": "SCHEMA_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "REFERENCE_BACKFILLED",
+      "scope": "GLOBAL",
+      "schema": "expanded",
+      "reads": "legacy document",
+      "writes": "browser → legacy document",
+      "rollbackClass": "SCHEMA_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "DOMAIN_BACKFILLING",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "legacy document",
+      "writes": "browser → legacy document (relational rows are being written by the backfill job only)",
+      "rollbackClass": "DATA_RESTORE_REQUIRED",
+      "rollbackNote": "not because the legacy document is at risk — it is untouched — but because a half-finished backfill must be either completed or deleted by source marker, and 'delete by source marker' is a DML rollback, not a DROP",
+      "terminalFor": []
+    },
+    {
+      "id": "DOMAIN_BACKFILLED",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "legacy document",
+      "writes": "browser → legacy document",
+      "rollbackClass": "DATA_RESTORE_REQUIRED",
+      "terminalFor": []
+    },
+    {
+      "id": "DUAL_READ_SHADOW",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "legacy document is the response; the normalized read runs alongside and is compared, never returned",
+      "writes": "browser → legacy document",
+      "rollbackClass": "FEATURE_FLAG_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "PARITY_OBSERVATION",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "unchanged from the state that entered this one",
+      "writes": "unchanged from the state that entered this one",
+      "rollbackClass": "FEATURE_FLAG_ROLLBACK",
+      "note": "an evidence-accumulating state, entered twice on the happy path: once before the write cutover and once as the post-read-cutover soak. Its exit is decided by which flags are set, not by how it was entered.",
+      "terminalFor": []
+    },
+    {
+      "id": "SERVER_WRITE_CANARY",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "legacy document",
+      "writes": "canary scope → trusted runtime → one transaction writing BOTH representations; everything else still browser → legacy document",
+      "rollbackClass": "WRITE_PATH_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "SERVER_WRITE_PRIMARY",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "legacy document",
+      "writes": "all new writes → trusted runtime → one transaction writing BOTH; stale tabs STILL write the legacy document directly and are not mirrored",
+      "rollbackClass": "WRITE_PATH_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "LEGACY_WRITE_DISABLED",
+      "scope": "APP",
+      "schema": "expanded",
+      "reads": "legacy document",
+      "writes": "trusted runtime only; direct browser writes to the legacy document are DENIED at the database",
+      "rollbackClass": "WRITE_PATH_ROLLBACK",
+      "rollbackNote": "the rollback is a GRANT — a production privilege write, not a flag flip. Cheaper than a restore, more expensive than the docs previously implied.",
+      "terminalFor": []
+    },
+    {
+      "id": "NEW_READ_PRIMARY",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "normalized is the response; the legacy document is still maintained and still readable",
+      "writes": "trusted runtime, both representations",
+      "rollbackClass": "FEATURE_FLAG_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "LEGACY_READ_FALLBACK",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "legacy document — reached by flipping normalized_reads_enabled off after a problem at NEW_READ_PRIMARY",
+      "writes": "trusted runtime, both representations",
+      "rollbackClass": "FEATURE_FLAG_ROLLBACK",
+      "note": "a real state, not an error. It is the destination of the only cheap rollback that exists after the write cutover, and it is only reachable while the legacy document is still being written — which is the entire reason LEGACY_FROZEN is a separate, later state.",
+      "terminalFor": []
+    },
+    {
+      "id": "CUTOVER_READY",
+      "scope": "DOMAIN",
+      "schema": "expanded",
+      "reads": "normalized",
+      "writes": "trusted runtime, both representations",
+      "rollbackClass": "FEATURE_FLAG_ROLLBACK",
+      "terminalFor": []
+    },
+    {
+      "id": "LEGACY_FROZEN",
+      "scope": "APP",
+      "schema": "expanded; the legacy document still exists and is still readable",
+      "reads": "normalized",
+      "writes": "trusted runtime, normalized ONLY — the legacy document stops being written",
+      "rollbackClass": "FORWARD_FIX_ONLY",
+      "rollbackNote": "from here the legacy document is stale. Falling back to legacy reads would silently serve data missing every write since the freeze. This is the first state whose rollback is not a flag flip.",
+      "terminalFor": []
+    },
+    {
+      "id": "CONTRACT_ELIGIBLE",
+      "scope": "GLOBAL",
+      "schema": "expanded, legacy still present",
+      "reads": "normalized",
+      "writes": "normalized only",
+      "rollbackClass": "FORWARD_FIX_ONLY",
+      "terminalFor": []
+    },
+    {
+      "id": "LEGACY_RETIRED",
+      "scope": "GLOBAL",
+      "schema": "legacy structures dropped",
+      "reads": "normalized",
+      "writes": "normalized only",
+      "rollbackClass": "DATA_RESTORE_REQUIRED",
+      "terminalFor": [
+        "all"
+      ]
+    }
+  ],
+  "transitions": [
+    {
+      "from": "LEGACY_ONLY",
+      "to": "EXPANDED_SCHEMA",
+      "phase": "M1..M7",
+      "guards": [
+        "schemaExpanded"
+      ],
+      "why": "additive DDL only"
+    },
+    {
+      "from": "EXPANDED_SCHEMA",
+      "to": "REFERENCE_BACKFILLED",
+      "phase": "M1",
+      "guards": [
+        "referenceRowsPresent"
+      ],
+      "why": "hand-authored reference rows; not derived from the legacy document, which has no competition entity at all"
+    },
+    {
+      "from": "REFERENCE_BACKFILLED",
+      "to": "DOMAIN_BACKFILLING",
+      "phase": "M5,M8,M9,M10",
+      "guards": [
+        "auditInfrastructurePresent"
+      ],
+      "why": "OI-1: audit and outbox infrastructure must exist before any backfill writes rows, so that the rows a backfill creates are themselves traceable"
+    },
+    {
+      "from": "DOMAIN_BACKFILLING",
+      "to": "DOMAIN_BACKFILLED",
+      "guards": [
+        "bulkPassComplete",
+        "deltaPassComplete",
+        "noUnresolvedDelta"
+      ],
+      "why": "a bulk pass alone is not a completed backfill while live writes continue"
+    },
+    {
+      "from": "DOMAIN_BACKFILLING",
+      "to": "DOMAIN_BACKFILLING",
+      "guards": [
+        "bulkPassComplete"
+      ],
+      "why": "self-loop: a resumed or repeated delta pass is not a state change"
+    },
+    {
+      "from": "DOMAIN_BACKFILLED",
+      "to": "DUAL_READ_SHADOW",
+      "guards": [
+        "normalizedReadsShadow",
+        "backfillComplete"
+      ],
+      "why": "shadow reads are meaningless against an incomplete backfill — every missing row reports as a mismatch and the signal is lost in noise"
+    },
+    {
+      "from": "DUAL_READ_SHADOW",
+      "to": "PARITY_OBSERVATION",
+      "guards": [
+        "parityHarnessRunning"
+      ],
+      "why": ""
+    },
+    {
+      "from": "PARITY_OBSERVATION",
+      "to": "SERVER_WRITE_CANARY",
+      "guards": [
+        "!newReadPrimary",
+        "parityEvidenceSufficient",
+        "writeContractsDeployed"
+      ],
+      "why": "the pre-write-cutover exit"
+    },
+    {
+      "from": "PARITY_OBSERVATION",
+      "to": "CUTOVER_READY",
+      "guards": [
+        "newReadPrimary",
+        "parityEvidenceSufficient",
+        "soakComplete"
+      ],
+      "why": "the post-read-cutover exit; distinguished from the exit above by flag state, not by how the state was entered"
+    },
+    {
+      "from": "PARITY_OBSERVATION",
+      "to": "DUAL_READ_SHADOW",
+      "guards": [
+        "!newReadPrimary"
+      ],
+      "why": "parity failed pre-cutover: return to shadow, fix, re-observe"
+    },
+    {
+      "from": "PARITY_OBSERVATION",
+      "to": "LEGACY_READ_FALLBACK",
+      "guards": [
+        "newReadPrimary"
+      ],
+      "why": "parity failed during the post-cutover soak: fall back to legacy reads while the legacy document is still current"
+    },
+    {
+      "from": "SERVER_WRITE_CANARY",
+      "to": "SERVER_WRITE_PRIMARY",
+      "guards": [
+        "canaryEvidenceSufficient",
+        "serverWritesEnabled",
+        "idempotencyVerified"
+      ],
+      "why": ""
+    },
+    {
+      "from": "SERVER_WRITE_CANARY",
+      "to": "DUAL_READ_SHADOW",
+      "guards": [],
+      "why": "canary rollback: disable the canary scope; nothing outside it ever used the new path"
+    },
+    {
+      "from": "SERVER_WRITE_PRIMARY",
+      "to": "LEGACY_WRITE_DISABLED",
+      "guards": [
+        "staleClientFenceReady",
+        "writeErrorRateAcceptable"
+      ],
+      "why": "WS5-INV-2: the fence may only close once a working replacement write path exists for every operation the fence denies"
+    },
+    {
+      "from": "SERVER_WRITE_PRIMARY",
+      "to": "SERVER_WRITE_CANARY",
+      "guards": [],
+      "why": "write-path rollback: narrow back to the canary scope"
+    },
+    {
+      "from": "LEGACY_WRITE_DISABLED",
+      "to": "NEW_READ_PRIMARY",
+      "guards": [
+        "normalizedReadsEnabled",
+        "finalCatchupComplete",
+        "parityEvidenceSufficient",
+        "frozenSourceParity"
+      ],
+      "why": "OI-4 / FS-6: parity is only ASSERTED against a source that has stopped moving. Before the fence, every parity run races the writes it is measuring."
+    },
+    {
+      "from": "LEGACY_WRITE_DISABLED",
+      "to": "SERVER_WRITE_PRIMARY",
+      "guards": [],
+      "why": "fence rollback — a GRANT, not a flag flip"
+    },
+    {
+      "from": "NEW_READ_PRIMARY",
+      "to": "PARITY_OBSERVATION",
+      "guards": [
+        "parityHarnessRunning"
+      ],
+      "why": "the post-cutover soak"
+    },
+    {
+      "from": "NEW_READ_PRIMARY",
+      "to": "LEGACY_READ_FALLBACK",
+      "guards": [
+        "legacyDocumentStillWritten"
+      ],
+      "why": "the cheap rollback, available only while the legacy representation is still maintained"
+    },
+    {
+      "from": "LEGACY_READ_FALLBACK",
+      "to": "NEW_READ_PRIMARY",
+      "guards": [
+        "normalizedReadsEnabled",
+        "parityEvidenceSufficient"
+      ],
+      "why": "re-promotion after a fix; requires fresh evidence, not the evidence that preceded the failure"
+    },
+    {
+      "from": "CUTOVER_READY",
+      "to": "LEGACY_FROZEN",
+      "guards": [
+        "allDomainsCutoverReady",
+        "scoringParityExact",
+        "financialReconciled",
+        "operatorAuthorization"
+      ],
+      "why": "the first step whose rollback is not a flag flip; it therefore needs an explicit human decision, not an evaluator's PROMOTE"
+    },
+    {
+      "from": "CUTOVER_READY",
+      "to": "LEGACY_READ_FALLBACK",
+      "guards": [],
+      "why": "still reversible here"
+    },
+    {
+      "from": "LEGACY_FROZEN",
+      "to": "CONTRACT_ELIGIBLE",
+      "guards": [
+        "hardClientFloorEnforced",
+        "zeroLegacyReadsObserved",
+        "observationWindowExceedsLongestSession",
+        "!legacyReadFallback"
+      ],
+      "why": "WS5.22 boundary: a contract step is a guess unless the absence of legacy readers is measured rather than deployed"
+    },
+    {
+      "from": "CONTRACT_ELIGIBLE",
+      "to": "LEGACY_RETIRED",
+      "guards": [
+        "restoreRehearsed",
+        "backupVerified",
+        "operatorAuthorization"
+      ],
+      "why": "irreversible without a restore"
+    }
+  ],
+  "illegalTransitionExamples": [
+    {
+      "from": "LEGACY_ONLY",
+      "to": "SERVER_WRITE_PRIMARY",
+      "why": "no schema to write into, no backfill, no parity evidence"
+    },
+    {
+      "from": "DOMAIN_BACKFILLING",
+      "to": "CONTRACT_ELIGIBLE",
+      "why": "skips every gate that exists"
+    },
+    {
+      "from": "DOMAIN_BACKFILLED",
+      "to": "NEW_READ_PRIMARY",
+      "why": "reads cut over before any write ever went through the new path and before any parity was measured"
+    },
+    {
+      "from": "EXPANDED_SCHEMA",
+      "to": "DOMAIN_BACKFILLING",
+      "why": "reference rows must exist first — every domain row resolves to an edition"
+    },
+    {
+      "from": "SERVER_WRITE_PRIMARY",
+      "to": "NEW_READ_PRIMARY",
+      "why": "reads would become authoritative while stale tabs are still writing the legacy document directly, so the normalized representation is knowably incomplete"
+    },
+    {
+      "from": "LEGACY_FROZEN",
+      "to": "LEGACY_READ_FALLBACK",
+      "why": "the legacy document is stale; falling back would silently serve data missing every write since the freeze"
+    },
+    {
+      "from": "NEW_READ_PRIMARY",
+      "to": "LEGACY_RETIRED",
+      "why": "skips the freeze, the client floor and the restore rehearsal"
+    },
+    {
+      "from": "CUTOVER_READY",
+      "to": "CONTRACT_ELIGIBLE",
+      "why": "the legacy document is still being written; it is not yet contract-eligible and nothing has measured whether anyone still reads it"
+    }
+  ],
+  "domains": [
+    {
+      "id": "competition_editions",
+      "riskClass": "LOW_RISK_REFERENCE",
+      "phase": "M1",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY"
+      ],
+      "raceStrategy": "NONE_REQUIRED",
+      "raceWhy": "hand-authored reference data that no live write path touches; there is no concurrent writer to race"
+    },
+    {
+      "id": "participants",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M5",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY"
+      ],
+      "raceStrategy": "NATURAL_KEY_UPSERT",
+      "raceWhy": "idempotent on the normalized (email else name) key, so a participant created mid-backfill is either already present or created by the delta pass; no watermark needed because the key is stable and the operation is a no-op on re-run",
+      "rowCountParityNote": "participant row counts are NOT expected to match a count of legacy entries — one participant may hold several entries. Parity is on the distinct key set, not on cardinality."
+    },
+    {
+      "id": "participant_auth_links",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M2",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY"
+      ],
+      "raceStrategy": "NATURAL_KEY_UPSERT",
+      "raceWhy": "idempotent on (participant_id, auth_user_id), which is the primary key, so a link established mid-backfill is either already present or created by the delta pass. KPLUS-F047: this domain exists because the table was ratified as WS12-OP-2 and referenced by every ownership policy while belonging to no domain.",
+      "rowCountParityNote": "links are NOT expected to match participant counts — a historical participant may have no auth identity at all, and one auth identity may own several participants. Parity is on the key set."
+    },
+    {
+      "id": "identity_links",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M5",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY"
+      ],
+      "raceStrategy": "NONE_REQUIRED",
+      "raceWhy": "M5 declares ZERO merges (OI-6); the table is empty until M17, so there is nothing to backfill and nothing to race"
+    },
+    {
+      "id": "pools",
+      "riskClass": "LOW_RISK_REFERENCE",
+      "phase": "M3",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY"
+      ],
+      "raceStrategy": "NONE_REQUIRED",
+      "raceWhy": "pools are created by an operator, not by participants; a pool appearing mid-backfill is an operator action that the delta pass picks up"
+    },
+    {
+      "id": "entries",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M8",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY"
+      ],
+      "raceStrategy": "STABLE_SURROGATE_UPSERT",
+      "raceWhy": "pool_entry_id is the client-generated uuid, preserved as-is. An entry edited after extraction is re-copied by the delta pass keyed on that id; nothing is lost because the id never changes. This is the specific reason the uuid is kept rather than regenerated."
+    },
+    {
+      "id": "payments",
+      "riskClass": "HIGH_RISK_FINANCIAL",
+      "phase": "M9",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "AGGREGATE_PARITY",
+        "FINANCIAL_PARITY"
+      ],
+      "raceStrategy": "ASSERTED_FLAG_UPSERT_PLUS_FINAL_RECONCILIATION",
+      "raceWhy": "M9 creates one ASSERTED payment per paid=true entry, idempotent on asserted_for_pool_entry_id. A participant marked paid mid-backfill is caught by the delta pass on that key. Because the source fact is a boolean, not an amount, there is no partial-amount race — but an unpaid→paid flip after extraction WOULD be lost without the delta pass, so the delta pass is mandatory here, not optional.",
+      "noUnresolvedDeltaBeforeCutover": true
+    },
+    {
+      "id": "allocations",
+      "riskClass": "HIGH_RISK_FINANCIAL",
+      "phase": "M9",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "AGGREGATE_PARITY",
+        "FINANCIAL_PARITY"
+      ],
+      "raceStrategy": "NONE_REQUIRED",
+      "raceWhy": "M9 deliberately creates ZERO payment_allocations rows — the legacy document records that an entry is paid, never which money paid for it. Backfilling allocations would be fabricating a fact. The table is populated only by the allocatePayment contract from the cutover forward.",
+      "noUnresolvedDeltaBeforeCutover": true
+    },
+    {
+      "id": "prize_allocations",
+      "riskClass": "HIGH_RISK_FINANCIAL",
+      "phase": "M9",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "VALUE_PARITY",
+        "FINANCIAL_PARITY"
+      ],
+      "raceStrategy": "NONE_REQUIRED",
+      "raceWhy": "prizes are declared once per pool by an operator after the pool concludes; there is no participant-driven concurrent writer",
+      "noUnresolvedDeltaBeforeCutover": true
+    },
+    {
+      "id": "classification",
+      "riskClass": "CRITICAL_SCORING",
+      "phase": "DDL-M11",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "SCORING_PARITY"
+      ],
+      "raceStrategy": "SYNC_WATERMARK",
+      "raceWhy": "the classification arrives from the provider sync while a backfill runs, and a table CORRECTED in place carries no new created_at — the same reason results use a sync marker plus a content fingerprint. Here the fingerprint already exists: the snapshot's payload_hash, alongside generated_at.",
+      "noUnresolvedDeltaBeforeCutover": true,
+      "note": "br2026's G4/Z4/SA6 zones are POSITION SLICES of this table, so a lost or reordered row moves a zone boundary and therefore a score. Added in Batch I (DDL-M11) to close BATCH-H-F1."
+    },
+    {
+      "id": "matches",
+      "riskClass": "LOW_RISK_REFERENCE",
+      "phase": "M10",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY"
+      ],
+      "raceStrategy": "STABLE_SURROGATE_UPSERT",
+      "raceWhy": "idempotent on match_id, which is fixture data with a stable identifier"
+    },
+    {
+      "id": "ties",
+      "riskClass": "LOW_RISK_REFERENCE",
+      "phase": "M10",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY"
+      ],
+      "raceStrategy": "NONE_REQUIRED",
+      "raceWhy": "derived from the bracket, which is static within an edition"
+    },
+    {
+      "id": "results",
+      "riskClass": "CRITICAL_SCORING",
+      "phase": "M10",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "SCORING_PARITY"
+      ],
+      "raceStrategy": "SYNC_WATERMARK",
+      "raceWhy": "results arrive from the ESPN sync while the backfill runs. The watermark is sync_state's last-synced marker, not created_at: a result CORRECTED in place carries no new created_at, so a created_at watermark would miss it. The delta pass compares by (match_id, result fingerprint).",
+      "noUnresolvedDeltaBeforeCutover": true
+    },
+    {
+      "id": "predictions",
+      "riskClass": "CRITICAL_SCORING",
+      "phase": "M16",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "SCORING_PARITY"
+      ],
+      "raceStrategy": "PICKS_BLOB_RETAINED_PLUS_RECOMPUTE",
+      "raceWhy": "predictions are decomposed from pool_entries.picks at M16 — AFTER the legacy write fence, so by construction there is no concurrent legacy writer to race. This ordering is the race strategy: the riskiest decomposition is scheduled where the race does not exist. The picks jsonb is retained as the fallback.",
+      "noUnresolvedDeltaBeforeCutover": true
+    },
+    {
+      "id": "classificationPredictions",
+      "riskClass": "CRITICAL_SCORING",
+      "phase": "M17",
+      "app": "br2026",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "SCORING_PARITY"
+      ],
+      "raceStrategy": "PICKS_BLOB_RETAINED_PLUS_RECOMPUTE",
+      "raceWhy": "br2026's zone picks are decomposed from bolao_state[br2026].entries[].picks while the legacy document remains authoritative and writable. The blob is RETAINED and scoring keeps reading it, so a pick revised mid-backfill is reconciled by recomputing from the document rather than by a timestamp watermark — the picks object carries no per-pick modification time, only the entry's updatedAt, and an entry may be re-saved without any zone pick changing.",
+      "noUnresolvedDeltaBeforeCutover": true
+    },
+    {
+      "id": "rankings",
+      "riskClass": "CRITICAL_SCORING",
+      "phase": "M10",
+      "app": "per-app",
+      "parity": [
+        "SCORING_PARITY"
+      ],
+      "raceStrategy": "DERIVED_NEVER_BACKFILLED",
+      "raceWhy": "a ranking is derived from predictions and results. ranking_snapshots stores observations for movement display, not authority. Parity is computed, never copied."
+    },
+    {
+      "id": "sync_state",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M10",
+      "app": "per-app",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "VALUE_PARITY"
+      ],
+      "raceStrategy": "LAST_WRITER_WINS_BY_TIMESTAMP",
+      "raceWhy": "sync_state is a cursor, not a fact. The newest cursor is correct by definition; copying a stale one is the only failure mode, and it self-heals on the next sync."
+    },
+    {
+      "id": "audit",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M10",
+      "app": "shared",
+      "parity": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY"
+      ],
+      "parityNote": "row count alone would not detect a reordered chain. KEY_PARITY on (occurred_at, action) is what proves no legacy admin action was dropped or invented — and the chain hash then proves the order.",
+      "raceStrategy": "APPEND_ONLY_CHAIN_RECOMPUTE",
+      "raceWhy": "the hash chain is computed in document order. A legacy admin action landing mid-backfill appends to the source, so the chain is recomputed rather than patched — which is why M10's rollback recomputes rather than deletes."
+    },
+    {
+      "id": "outbox",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M4",
+      "app": "shared",
+      "parity": [],
+      "raceStrategy": "NOT_BACKFILLED_BY_DESIGN",
+      "raceWhy": "no historical outbox events are created. An outbox event is an intent to notify; the notifications it would represent were already sent months ago by EmailJS. Backfilling them would either be inert rows pretending to be history or, if delivery were ever enabled, a mass re-send to real participants. Recorded as WS6 OUTBOX_BACKFILL_DECISION.",
+      "parityWhy": "there is no legacy counterpart to be at parity with"
+    },
+    {
+      "id": "write_contracts",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M4",
+      "app": "shared",
+      "parity": [],
+      "raceStrategy": "NOT_BACKFILLED_BY_DESIGN",
+      "raceWhy": "the request idempotency store starts empty and accrues only from real requests. A fabricated historical record would answer YES to \"has this exact request already been executed?\" for a request this system never executed, silently swallowing a genuine retry — the exact opposite of the guarantee the store exists to provide. Recorded as ADR-K05.",
+      "parityWhy": "there is no legacy counterpart: the legacy app had no idempotency concept at all, which is why every retry against it was a possible double-write"
+    },
+    {
+      "id": "reporting",
+      "riskClass": "MEDIUM_OPERATIONAL",
+      "phase": "M15",
+      "app": "shared",
+      "parity": [
+        "AGGREGATE_PARITY",
+        "FINANCIAL_PARITY"
+      ],
+      "raceStrategy": "DERIVED_NEVER_BACKFILLED",
+      "raceWhy": "views and matviews over already-reconciled base data"
+    }
+  ],
+  "parityClasses": {
+    "ROW_COUNT_PARITY": {
+      "meaning": "the number of normalized rows equals the number of distinct legacy source items for the domain",
+      "sufficientAlone": false,
+      "why": "two representations can hold identical counts and different data. Row count detects a truncated backfill and nothing else — it is the cheapest check and the weakest."
+    },
+    "KEY_PARITY": {
+      "meaning": "the SET of business keys matches exactly, in both directions: no normalized row without a legacy source, no legacy item without a normalized row",
+      "sufficientAlone": false,
+      "why": "bidirectional set comparison catches both loss and fabrication; a one-directional check catches only one of them"
+    },
+    "VALUE_PARITY": {
+      "meaning": "for every matched key, every MAPPED field is equal after canonicalization; DERIVED and INTENTIONALLY_DROPPED fields are excluded by the WS7 coverage class, never by omission",
+      "sufficientAlone": false,
+      "why": "excluding a field from parity because it is inconvenient is how a real divergence hides. The exclusion must be a declared coverage class."
+    },
+    "AGGREGATE_PARITY": {
+      "meaning": "sums, counts per group and derived totals match — settlement status, unapplied balance, pool totals",
+      "sufficientAlone": false,
+      "why": "catches compensating per-row errors that VALUE_PARITY on a sampled subset would miss"
+    },
+    "FINANCIAL_PARITY": {
+      "meaning": "exact decimal equality on every monetary amount, per currency, plus: total allocated never exceeds the payment amount, and every derived settlement state recomputes identically from both representations",
+      "sufficientAlone": false,
+      "tolerance": "ZERO",
+      "why": "money has no acceptable tolerance. A comparison performed in floating point is not this check."
+    },
+    "SCORING_PARITY": {
+      "meaning": "every score, rank and tie-break outcome is byte-identical, computed by the APP's own scoring logic over both representations",
+      "sufficientAlone": false,
+      "tolerance": "ZERO",
+      "forbidden": "a SQL reimplementation of scoring — that creates a second source of truth for money",
+      "why": "real money is paid out on rank. This is the hard gate."
+    }
+  },
+  "observationWindows": {
+    "$comment": "Durations are POLICY_CONFIGURABLE (L-OP-3). What is NOT configurable is the KIND of evidence each risk class requires.",
+    "LOW_RISK_REFERENCE": {
+      "minCleanRuns": 1,
+      "minDurationHours": "CONFIGURABLE",
+      "defaultHours": 1,
+      "evidence": [
+        "ROW_COUNT_PARITY",
+        "KEY_PARITY"
+      ],
+      "requiresChangeDuringWindow": false
+    },
+    "MEDIUM_OPERATIONAL": {
+      "minCleanRuns": 3,
+      "minDurationHours": "CONFIGURABLE",
+      "defaultHours": 24,
+      "evidence": [
+        "KEY_PARITY",
+        "VALUE_PARITY"
+      ],
+      "requiresChangeDuringWindow": true,
+      "requiresChangeWhy": "a clean parity run over a domain that nobody wrote to during the window proves the backfill copied correctly, not that the live write path stays at parity. At least one real mutation must occur inside the window or the run is vacuous."
+    },
+    "HIGH_RISK_FINANCIAL": {
+      "minCleanRuns": 5,
+      "minDurationHours": "CONFIGURABLE",
+      "defaultHours": 72,
+      "evidence": [
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "AGGREGATE_PARITY",
+        "FINANCIAL_PARITY"
+      ],
+      "requiresChangeDuringWindow": true,
+      "requiresZeroUnresolvedDelta": true
+    },
+    "CRITICAL_SCORING": {
+      "minCleanRuns": 5,
+      "minDurationHours": "CONFIGURABLE",
+      "defaultHours": 72,
+      "evidence": [
+        "KEY_PARITY",
+        "VALUE_PARITY",
+        "SCORING_PARITY"
+      ],
+      "requiresChangeDuringWindow": true,
+      "requiresZeroUnresolvedDelta": true,
+      "requiresAppAuditSuites": true
+    }
+  },
+  "flags": [
+    {
+      "id": "normalized_reads_shadow",
+      "owner": "migration operator",
+      "default": false,
+      "scope": "DOMAIN",
+      "controls": "the comparison read at DUAL_READ_SHADOW",
+      "rollbackMeaning": "off → the comparison job stops; user-visible behaviour never changed, because the shadow result was never returned",
+      "retirementCondition": "retired with the parity harness once the domain reaches CONTRACT_ELIGIBLE"
+    },
+    {
+      "id": "normalized_reads_enabled",
+      "owner": "migration operator",
+      "default": false,
+      "scope": "DOMAIN",
+      "controls": "which representation answers a read",
+      "rollbackMeaning": "off → LEGACY_READ_FALLBACK; loses nothing while the legacy document is still written, and is UNSAFE once it is not",
+      "retirementCondition": "retired at LEGACY_RETIRED, when there is no other representation to choose"
+    },
+    {
+      "id": "server_writes_enabled",
+      "owner": "migration operator",
+      "default": false,
+      "scope": "DOMAIN",
+      "controls": "whether the trusted-runtime write contracts accept traffic",
+      "rollbackMeaning": "off → writes return to the browser→document path, which still works because legacy_writes_allowed is still true at that point",
+      "retirementCondition": "retired at LEGACY_RETIRED"
+    },
+    {
+      "id": "server_write_canary",
+      "owner": "migration operator",
+      "default": true,
+      "scope": "DOMAIN",
+      "controls": "restricts server writes to the declared canary scope",
+      "defaultWhy": "defaults to TRUE — restrictive. A flag whose default widens the blast radius is a flag that fails open.",
+      "rollbackMeaning": "on → narrow back to the canary scope",
+      "retirementCondition": "retired when the domain reaches SERVER_WRITE_PRIMARY and holds for a full observation window"
+    },
+    {
+      "id": "legacy_writes_allowed",
+      "owner": "migration operator",
+      "default": true,
+      "scope": "APP",
+      "controls": "the client-side UX half of the legacy write fence",
+      "rollbackMeaning": "true → the UI stops showing the read-only state",
+      "retirementCondition": "retired at CONTRACT_ELIGIBLE",
+      "criticalNote": "this flag is NOT the fence. It renders a clear message instead of an opaque error. The fence itself is a database privilege denial, because a stale tab holds the anon key and never re-reads this flag. Treating the flag as the fence is the FS-4 mistake and repeats the prediction-cutoff gap."
+    },
+    {
+      "id": "legacy_read_fallback",
+      "owner": "migration operator",
+      "default": true,
+      "scope": "DOMAIN",
+      "controls": "whether falling back to legacy reads is permitted at all",
+      "rollbackMeaning": "n/a — this flag IS a rollback capability, not a behaviour",
+      "retirementCondition": "MUST be false before LEGACY_FROZEN; leaving it true past the freeze arms a fallback to a stale representation"
+    },
+    {
+      "id": "outbox_delivery_enabled",
+      "owner": "platform operator",
+      "default": false,
+      "scope": "GLOBAL",
+      "controls": "whether outbox_events are actually delivered",
+      "rollbackMeaning": "off → events accumulate durably and are delivered later; no event is lost, and none is delivered twice",
+      "retirementCondition": "never — this stays as a permanent kill switch for the delivery worker"
+    },
+    {
+      "id": "new_reporting_enabled",
+      "owner": "platform operator",
+      "default": false,
+      "scope": "GLOBAL",
+      "controls": "whether reports read the normalized model",
+      "rollbackMeaning": "off → legacy reporting",
+      "retirementCondition": "retired at LEGACY_RETIRED"
+    }
+  ],
+  "flagRules": [
+    {
+      "id": "FR-1",
+      "rule": "server_writes_enabled requires schemaExpanded",
+      "severity": "CRITICAL",
+      "why": "writes with nowhere to go"
+    },
+    {
+      "id": "FR-2",
+      "rule": "server_writes_enabled requires backfillComplete for the domain",
+      "severity": "CRITICAL",
+      "why": "a live write into a half-backfilled table produces rows that reference participants the backfill has not created yet"
+    },
+    {
+      "id": "FR-3",
+      "rule": "normalized_reads_enabled requires backfillComplete for the domain",
+      "severity": "CRITICAL",
+      "why": "reads become authoritative over data that is knowably incomplete — participants would see other people's entries missing"
+    },
+    {
+      "id": "FR-4",
+      "rule": "normalized_reads_enabled requires serverWritesPrimary for the domain",
+      "severity": "CRITICAL",
+      "why": "reading the normalized representation while writes still go only to the document means every new write is invisible to the reader"
+    },
+    {
+      "id": "FR-5",
+      "rule": "legacy_writes_allowed=false requires staleClientFenceReady AND server_writes_enabled",
+      "severity": "CRITICAL",
+      "why": "denying the only write path a stale client has, with no replacement, is an outage for every open tab"
+    },
+    {
+      "id": "FR-6",
+      "rule": "legacy_writes_allowed=false requires the database-side privilege denial, not the flag alone",
+      "severity": "CRITICAL",
+      "why": "FS-4: a UI-only freeze is not a freeze"
+    },
+    {
+      "id": "FR-7",
+      "rule": "outbox_delivery_enabled requires idempotencyVerified AND deliveryIdempotencyVerified AND deadLetterDefined AND replayControlsDefined",
+      "severity": "CRITICAL",
+      "why": "enabling delivery over a backlog with no idempotency is a mass duplicate-notification incident aimed at real participants"
+    },
+    {
+      "id": "FR-8",
+      "rule": "outbox_delivery_enabled must not be true while any historical-looking event is unrejected in the backlog",
+      "severity": "CRITICAL",
+      "why": "WS6 decided not to backfill outbox history precisely so that enabling delivery cannot re-notify months-old facts"
+    },
+    {
+      "id": "FR-9",
+      "rule": "new_reporting_enabled requires financialReconciled",
+      "severity": "HIGH",
+      "why": "a financial report over unreconciled data is worse than no report — it is a wrong number with an authoritative presentation"
+    },
+    {
+      "id": "FR-10",
+      "rule": "server_write_canary=false requires canaryEvidenceSufficient",
+      "severity": "HIGH",
+      "why": "widening the canary is a promotion and needs the evidence of one"
+    },
+    {
+      "id": "FR-11",
+      "rule": "legacy_read_fallback must be false before LEGACY_FROZEN",
+      "severity": "CRITICAL",
+      "why": "after the freeze the legacy document is stale; an armed fallback is a loaded gun pointed at a silent data-loss incident"
+    },
+    {
+      "id": "FR-12",
+      "rule": "normalized_reads_shadow and normalized_reads_enabled must not both be true for the same domain",
+      "severity": "LOW",
+      "why": "not dangerous, but the shadow comparison is then comparing the primary against itself and its clean result is vacuous"
+    },
+    {
+      "id": "FR-13",
+      "rule": "server_writes_enabled requires writeContractsDeployed",
+      "severity": "CRITICAL",
+      "why": "the flag is not the deployment; enabling it without the runtime turns every write into a 404"
+    },
+    {
+      "id": "FR-14",
+      "rule": "normalized_reads_enabled must not be true for a domain whose app still has legacy_writes_allowed=true",
+      "severity": "CRITICAL",
+      "why": "this is the SERVER_WRITE_PRIMARY → NEW_READ_PRIMARY illegal transition expressed as flags: stale tabs writing the document directly make the normalized representation incomplete by exactly that set of writes"
+    }
+  ],
+  "oldClientMatrix": {
+    "$comment": "An 'old client' is a browser tab loaded before the current state was reached, running the previous build, holding the anon key, and NOT expected to reload. Sessions of minutes, hours and days are all in scope. Classification is what the tab may SAFELY do, not what it will attempt.",
+    "operations": [
+      "READ",
+      "WRITE",
+      "SUBMIT_PREDICTION",
+      "CREATE_ENTRY",
+      "ADMIN_ACTION"
+    ],
+    "classifications": [
+      "SAFE",
+      "SAFE_WITH_LEGACY_PATH",
+      "READ_ONLY",
+      "REJECT_WITH_REFRESH_REQUIRED",
+      "BLOCKED",
+      "DATA_CORRUPTION_RISK"
+    ],
+    "byState": {
+      "LEGACY_ONLY": {
+        "READ": "SAFE",
+        "WRITE": "SAFE",
+        "SUBMIT_PREDICTION": "SAFE",
+        "CREATE_ENTRY": "SAFE",
+        "ADMIN_ACTION": "SAFE"
+      },
+      "EXPANDED_SCHEMA": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH",
+        "why": "M1–M10 are purely additive and never alter the legacy document's shape. This is the property that makes an arbitrarily old tab safe, and it is why no phase before M16 touches bolao_state."
+      },
+      "REFERENCE_BACKFILLED": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH"
+      },
+      "DOMAIN_BACKFILLING": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH",
+        "why": "the tab writes the document, which remains authoritative. Its write is picked up by the delta pass. The backfill is the party that must tolerate the race, not the tab."
+      },
+      "DOMAIN_BACKFILLED": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH"
+      },
+      "DUAL_READ_SHADOW": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH"
+      },
+      "PARITY_OBSERVATION": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH",
+        "why": "an old-client write during the observation window is not a hazard — it is the mutation that makes the window non-vacuous. It does mean the window's parity runs must tolerate in-flight divergence and only ASSERT parity against the frozen source later."
+      },
+      "SERVER_WRITE_CANARY": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH",
+        "why": "the canary scope is chosen to exclude anything a real old client touches — see canary.scope"
+      },
+      "SERVER_WRITE_PRIMARY": {
+        "READ": "SAFE",
+        "WRITE": "SAFE_WITH_LEGACY_PATH",
+        "SUBMIT_PREDICTION": "SAFE_WITH_LEGACY_PATH",
+        "CREATE_ENTRY": "SAFE_WITH_LEGACY_PATH",
+        "ADMIN_ACTION": "SAFE_WITH_LEGACY_PATH",
+        "why": "the old client's document write is NOT mirrored into the normalized representation. That is a divergence, not a corruption — the document is still authoritative here. It is also exactly why NEW_READ_PRIMARY cannot follow this state directly."
+      },
+      "LEGACY_WRITE_DISABLED": {
+        "READ": "SAFE",
+        "WRITE": "REJECT_WITH_REFRESH_REQUIRED",
+        "SUBMIT_PREDICTION": "REJECT_WITH_REFRESH_REQUIRED",
+        "CREATE_ENTRY": "REJECT_WITH_REFRESH_REQUIRED",
+        "ADMIN_ACTION": "REJECT_WITH_REFRESH_REQUIRED",
+        "why": "the database denies the write. The tab must receive a distinguishable, actionable refusal — not a generic error it may retry forever, and not a success it did not get. Reads stay SAFE: the document is still readable and still current."
+      },
+      "NEW_READ_PRIMARY": {
+        "READ": "SAFE_WITH_LEGACY_PATH",
+        "WRITE": "REJECT_WITH_REFRESH_REQUIRED",
+        "SUBMIT_PREDICTION": "REJECT_WITH_REFRESH_REQUIRED",
+        "CREATE_ENTRY": "REJECT_WITH_REFRESH_REQUIRED",
+        "ADMIN_ACTION": "REJECT_WITH_REFRESH_REQUIRED",
+        "why": "the old tab reads the document, which the trusted runtime is still writing. It sees correct but possibly slightly stale data — acceptable, and the reason the document keeps being written through this state."
+      },
+      "CUTOVER_READY": {
+        "READ": "SAFE_WITH_LEGACY_PATH",
+        "WRITE": "REJECT_WITH_REFRESH_REQUIRED",
+        "SUBMIT_PREDICTION": "REJECT_WITH_REFRESH_REQUIRED",
+        "CREATE_ENTRY": "REJECT_WITH_REFRESH_REQUIRED",
+        "ADMIN_ACTION": "REJECT_WITH_REFRESH_REQUIRED"
+      },
+      "LEGACY_READ_FALLBACK": {
+        "READ": "SAFE_WITH_LEGACY_PATH",
+        "WRITE": "REJECT_WITH_REFRESH_REQUIRED",
+        "SUBMIT_PREDICTION": "REJECT_WITH_REFRESH_REQUIRED",
+        "CREATE_ENTRY": "REJECT_WITH_REFRESH_REQUIRED",
+        "ADMIN_ACTION": "REJECT_WITH_REFRESH_REQUIRED"
+      },
+      "LEGACY_FROZEN": {
+        "READ": "READ_ONLY",
+        "WRITE": "BLOCKED",
+        "SUBMIT_PREDICTION": "BLOCKED",
+        "CREATE_ENTRY": "BLOCKED",
+        "ADMIN_ACTION": "BLOCKED",
+        "why": "the document is no longer written, so an old tab's READ is stale. It is classified READ_ONLY rather than SAFE: serving stale data silently is the hazard, so the client floor must be enforced BEFORE this state, not after. This is the correction to the previously sequenced 'enforce hard floor at step 9'."
+      },
+      "CONTRACT_ELIGIBLE": {
+        "READ": "READ_ONLY",
+        "WRITE": "BLOCKED",
+        "SUBMIT_PREDICTION": "BLOCKED",
+        "CREATE_ENTRY": "BLOCKED",
+        "ADMIN_ACTION": "BLOCKED"
+      },
+      "LEGACY_RETIRED": {
+        "READ": "BLOCKED",
+        "WRITE": "BLOCKED",
+        "SUBMIT_PREDICTION": "BLOCKED",
+        "CREATE_ENTRY": "BLOCKED",
+        "ADMIN_ACTION": "BLOCKED",
+        "why": "the structures are gone; every old-client read errors. Reaching here without the measured client floor of the previous transition converts every still-open tab into a support ticket."
+      }
+    },
+    "neverClassifiedAs": {
+      "DATA_CORRUPTION_RISK": "no state in the happy path classifies any old-client operation as DATA_CORRUPTION_RISK. That is a design output, not a coincidence: it holds ONLY because the legacy document's shape is never altered before M16 and because the fence denies rather than partially accepts. WS5.37's fault injection includes the ordering mistakes that would introduce it."
+    }
+  },
+  "clientCapabilityModel": {
+    "principle": "A client's declared capability decides COMPATIBILITY. It never decides AUTHORIZATION. The two must not share a field, because a client controls one of them.",
+    "notAuthorization": "The request envelope's principal and the trusted runtime's own checks decide what may be done. A capability claim only decides which SHAPE of request is understood. A client that lies about its capabilities gains a different parser, not a permission.",
+    "preferCapabilitiesOverVersions": "Version-string comparison is brittle: it forces a total order on builds that were never totally ordered, breaks on any out-of-band build, and answers 'is this newer?' when the real question is 'does this understand payment_allocations?'. Capabilities answer the real question.",
+    "envelopeFields": {
+      "contract_version": "integer; the write-contract envelope version the client speaks. Server rejects unknown or below-floor values.",
+      "capabilities": "a set of declared capability tokens, e.g. normalized_entries_read, prediction_v2_shape, allocation_aware",
+      "build_id": "opaque; for correlation and support only. Never used in a comparison that gates behaviour."
+    },
+    "serverFloors": {
+      "minimum_write_version": {
+        "meaning": "the lowest contract_version accepted for a WRITE",
+        "raisedAt": "LEGACY_WRITE_DISABLED",
+        "rejectionCode": "CLIENT_TOO_OLD",
+        "rejectionRequirement": "must be distinguishable from a transient failure so the client shows 'reload' rather than retrying forever, and must never be reported as success"
+      },
+      "minimum_read_version": {
+        "meaning": "the lowest contract_version accepted for a normalized READ",
+        "raisedAt": "LEGACY_FROZEN",
+        "raisedAtWhy": "raised BEFORE the legacy document goes stale, not after — a floor enforced after the data it protects has already gone stale protects nothing"
+      }
+    },
+    "obsoleteWriteShapeHandling": [
+      {
+        "shape": "recognized and losslessly adaptable",
+        "action": "adapt server-side, execute the current contract, record that an adapter was used",
+        "why": "an adapter is cheaper than a support incident, and recording its use is how we learn when it can be deleted"
+      },
+      {
+        "shape": "recognized but NOT losslessly adaptable",
+        "action": "reject with CLIENT_TOO_OLD",
+        "why": "an adapter that must guess at a missing field is a fabrication. If the missing field is monetary the rejection is mandatory, per the WS7 rule that money-bearing ambiguity is FATAL."
+      },
+      {
+        "shape": "unrecognized",
+        "action": "reject with CLIENT_TOO_OLD; never partially apply",
+        "why": "the one outcome that must be impossible is a partial mutation"
+      }
+    ],
+    "adapterRule": "An adapter may fill a field only from data the request already contains or the database already holds. It may never default a monetary amount, a currency, an actor or a timestamp."
+  },
+  "canary": {
+    "principle": "A canary that risks money or scoring to prove a write path works has inverted the point of a canary.",
+    "ordering": [
+      {
+        "step": 1,
+        "scope": "a synthetic pool in a synthetic edition, no real participant, no money",
+        "contracts": [
+          "createEntry",
+          "submitPrediction"
+        ],
+        "risk": "NONE",
+        "why": "exercises the full trusted-runtime path — envelope, idempotency, locks, audit, outbox — with nothing real at stake"
+      },
+      {
+        "step": 2,
+        "scope": "one operator-owned entry in a real but concluded pool",
+        "contracts": [
+          "createEntry",
+          "submitPrediction"
+        ],
+        "risk": "LOW",
+        "why": "real data shapes, real RLS, but a concluded pool has no open cutoff and no pending payout"
+      },
+      {
+        "step": 3,
+        "scope": "one real low-risk pool, participant-facing, non-financial contracts only",
+        "contracts": [
+          "createEntry",
+          "submitPrediction"
+        ],
+        "risk": "MEDIUM"
+      },
+      {
+        "step": 4,
+        "scope": "financial contracts, operator-initiated only, one payment at a time",
+        "contracts": [
+          "recordPayment",
+          "allocatePayment"
+        ],
+        "risk": "HIGH",
+        "gate": "the full financial cutover gate must pass FIRST — the canary does not substitute for it",
+        "why": "there is no such thing as a low-risk sample of a payment. So the sample is reduced in COUNT, not in care."
+      }
+    ],
+    "rejectedCanaryDesigns": [
+      {
+        "design": "a percentage of eligible writes",
+        "why": "a percentage canary assigns real participants to an unproven path at random, and the participant cannot tell which path they got. For a pool with tens of entries a percentage is also statistically useless — 10% of 40 entries is 4."
+      },
+      {
+        "design": "the newest pool",
+        "why": "the newest pool is the one with an open prediction cutoff, i.e. the single worst choice — see schedulingConstraints"
+      }
+    ],
+    "monitoring": [
+      "writeErrorRate",
+      "idempotencyConflicts",
+      "parityMismatchCount",
+      "authorizationDenials"
+    ],
+    "rollback": "set server_write_canary=true and narrow the scope, or server_writes_enabled=false. Nothing outside the canary scope ever used the new path, so the rollback's blast radius equals the canary's.",
+    "promotion": "one full observation window for the domain's risk class at each step, with at least one real mutation inside it"
+  },
+  "writeMirroring": {
+    "question": "Is dual-write needed at all?",
+    "answer": "A browser-side dual-write is neither needed nor permitted. A server-side mirror inside ONE transaction is needed, and only for the window between SERVER_WRITE_CANARY and LEGACY_FROZEN.",
+    "whoPerforms": "the trusted runtime, never the browser",
+    "transactionSemantics": "both the legacy document update and the normalized rows are written in a single database transaction. There is no state in which they disagree, because there is no commit in which only one of them succeeded.",
+    "notTheClassicProblem": "the classic dual-write hazard is two systems with no shared transaction. Here both targets are in one PostgreSQL database, which is the entire reason a mirror is acceptable at all. If the legacy document ever moved out of this database, this design would be invalid.",
+    "failureBehaviour": "if either write fails the transaction aborts and the caller sees one ordinary error. Partial success is not a reachable outcome.",
+    "authority": "the legacy document remains AUTHORITATIVE for the whole mirroring window. The mirror exists to make the two comparable, not to make the new one true.",
+    "reconciliation": "old clients still writing the document directly are NOT mirrored. That divergence is expected, is measured by the parity harness rather than assumed to be zero, and is eliminated by the fence at LEGACY_WRITE_DISABLED — not by hoping tabs reload.",
+    "removal": "at LEGACY_FROZEN. A mirror that outlives its cutover becomes permanent complexity nobody dares delete.",
+    "browserDualWriteProhibited": "a browser cannot wrap a document update and N relational inserts in one transaction over the REST API. Any browser-side attempt produces exactly the partial states this design exists to make unreachable."
+  },
+  "cutoverGates": {
+    "financial": {
+      "id": "GATE-FIN",
+      "appliesTo": [
+        "payments",
+        "allocations",
+        "prize_allocations"
+      ],
+      "requirements": [
+        {
+          "id": "FIN-1",
+          "check": "historicalBackfillPass",
+          "meaning": "M9 complete with zero unresolved delta, and every asserted payment traceable to its source entry"
+        },
+        {
+          "id": "FIN-2",
+          "check": "financialReconciliationPass",
+          "meaning": "FINANCIAL_PARITY and AGGREGATE_PARITY clean; settlement state and unapplied balance recompute identically from both representations"
+        },
+        {
+          "id": "FIN-3",
+          "check": "idempotencyVerified",
+          "meaning": "WS13's fault-injection set passes, including the after-commit-before-response window where the write is durable and the retry must replay rather than re-execute"
+        },
+        {
+          "id": "FIN-4",
+          "check": "allocationInvariantsVerified",
+          "meaning": "sum(allocations) <= payment.amount holds under concurrency, enforced by SELECT FOR UPDATE plus an in-transaction sum — no CHECK constraint can express an invariant that spans sibling rows"
+        },
+        {
+          "id": "FIN-5",
+          "check": "reversalModelVerified",
+          "meaning": "refunds are typed compensating records; the original payment fact is never edited; original, compensation, relationship, reason, actor and timestamps all preserved (WS13-OP-3)"
+        },
+        {
+          "id": "FIN-6",
+          "check": "trustedRuntimeVerified",
+          "meaning": "no browser principal can write a financial row; verified by the WS12 adversarial harness, not by inspection"
+        },
+        {
+          "id": "FIN-7",
+          "check": "rlsVerified",
+          "meaning": "the financial policies are active and the negative fixtures prove they can deny"
+        },
+        {
+          "id": "FIN-8",
+          "check": "rollbackEvidence",
+          "meaning": "a rehearsed, evidenced rollback for this specific domain — not a documented intention"
+        },
+        {
+          "id": "FIN-9",
+          "check": "zeroUnresolvedDelta",
+          "meaning": "no outstanding delta at the moment of promotion. Not 'small'. Zero."
+        }
+      ],
+      "allRequired": true,
+      "why": "these are conjunctive because each one has a failure mode the others do not detect. Reconciliation clean with idempotency broken means a retry doubles a payment and reconciliation reports the doubled figure as correct."
+    },
+    "prediction": {
+      "id": "GATE-PRED",
+      "appliesTo": [
+        "predictions"
+      ],
+      "requirements": [
+        {
+          "id": "PRED-1",
+          "check": "ownershipAuthorizationVerified",
+          "meaning": "a participant can submit only for their own entry; proven by a negative fixture"
+        },
+        {
+          "id": "PRED-2",
+          "check": "cutoffEnforcedServerSide",
+          "meaning": "the cutoff is enforced by the trusted runtime against server time. The legacy cutoff is client-side only and bypassable by clock manipulation — the cutover must not carry that gap forward, and must not be declared complete while it does."
+        },
+        {
+          "id": "PRED-3",
+          "check": "legacyParityPass",
+          "meaning": "KEY_PARITY and VALUE_PARITY between picks jsonb and predictions rows"
+        },
+        {
+          "id": "PRED-4",
+          "check": "scoringParityExact",
+          "meaning": "every score, rank and tie-break byte-identical, computed by the app's own scoring logic over both representations"
+        },
+        {
+          "id": "PRED-5",
+          "check": "concurrencyVerified",
+          "meaning": "two submissions for one (entry, subject) cannot both win; the unique index plus row lock proven under concurrency"
+        },
+        {
+          "id": "PRED-6",
+          "check": "staleClientBehaviourVerified",
+          "meaning": "an old-shaped prediction write is either adapted losslessly or rejected — never partially applied"
+        }
+      ],
+      "allRequired": true,
+      "timingConstraint": "NO_OPEN_CUTOFF",
+      "timingWhy": "moving prediction write behaviour while a cutoff is open means a failure denies entries during the only window in which they can be made. The affected participant cannot retry later, so the damage is not recoverable by fixing the bug."
+    },
+    "result": {
+      "id": "GATE-RESULT",
+      "appliesTo": [
+        "results",
+        "matches",
+        "sync_state"
+      ],
+      "singleAuthorityRule": "at every instant exactly ONE writer is authoritative for a match result. Two competing result authorities is the failure mode this gate exists to prevent, and it is worse than either authority being wrong: an alternating overwrite produces a result that changes back and forth, and scoring changes with it.",
+      "authoritySwitch": [
+        {
+          "step": 1,
+          "state": "legacy ESPN sync writes the document; normalized results are backfilled read-only from it",
+          "authority": "legacy sync"
+        },
+        {
+          "step": 2,
+          "state": "the sync is repointed to write via the trusted runtime, which mirrors both in one transaction",
+          "authority": "trusted runtime",
+          "requirement": "the legacy sync writer must be STOPPED, not merely superseded. A superseded writer that still runs is a second authority."
+        },
+        {
+          "step": 3,
+          "state": "normalized results are authoritative; the document mirror continues until LEGACY_FROZEN",
+          "authority": "normalized"
+        }
+      ],
+      "requirements": [
+        {
+          "id": "RES-1",
+          "check": "singleWriterProven",
+          "meaning": "the legacy sync is demonstrably stopped, by observation, before the new one starts"
+        },
+        {
+          "id": "RES-2",
+          "check": "syncWatermarkCorrect",
+          "meaning": "the delta pass detects a CORRECTED result. A created_at watermark does not: an in-place correction carries no new created_at. The watermark must be the sync marker plus a result fingerprint."
+        },
+        {
+          "id": "RES-3",
+          "check": "scoringParityExact"
+        },
+        {
+          "id": "RES-4",
+          "check": "noResultChangeInFlight",
+          "meaning": "the switch does not happen during an active synchronization"
+        }
+      ],
+      "allRequired": true,
+      "timingConstraint": "NO_ACTIVE_SYNC"
+    },
+    "admin": {
+      "id": "GATE-ADMIN",
+      "appliesTo": [
+        "audit",
+        "all operator-initiated contracts"
+      ],
+      "requirements": [
+        {
+          "id": "ADM-1",
+          "check": "operatorContractsOnly",
+          "meaning": "every operator write goes through a named WS13 contract. The allowlisted correction fields are the only mutable ones (WS13-OP-1 ratified): pool_entries.entry_label, participants.display_name, participants.email, pools.name, pools.status, matches.status."
+        },
+        {
+          "id": "ADM-2",
+          "check": "noGenericUpdateEndpoint",
+          "meaning": "no 'update anything' capability exists. Anything outside the allowlist requires a new explicit contract, reviewed on its own terms."
+        },
+        {
+          "id": "ADM-3",
+          "check": "auditPopulatedBeforeCutover",
+          "meaning": "audit_events is being written by the contracts BEFORE any critical write cuts over, so that the cutover itself is auditable"
+        },
+        {
+          "id": "ADM-4",
+          "check": "operatorEvidenceRecorded",
+          "meaning": "operator_evidence records that the RUNTIME checked authority"
+        }
+      ],
+      "allRequired": true,
+      "rGap1": {
+        "status": "OPEN",
+        "claim": "operator_context is an abstraction owned by the trusted runtime. There is NO database-verifiable operator principal today.",
+        "doNotClaim": "DB-native operator authentication",
+        "consequence": "an operator write is only as trustworthy as the runtime that asserts it. A compromised trusted runtime can forge operator_evidence and no database control detects it. RLS does not mitigate this and this design does not pretend it does.",
+        "futureStrongerState": "a real authenticated operator principal with its own database role, so that operator identity is verified where it is used rather than asserted upstream. Until then the compensating control is that every operator action is audited, append-only, hash-chained and reversible — detection and reversal, not prevention."
+      }
+    }
+  },
+  "rlsActivationSequence": {
+    "principle": "Secure by default. A table must never exist in a state where a client can reach it and no policy governs it. The exposure window that ordering mistake creates is measured in whatever time passes before someone remembers to enable RLS.",
+    "perTableSequence": [
+      {
+        "step": 1,
+        "action": "CREATE TABLE",
+        "type": "PRODUCTION_SCHEMA_WRITE"
+      },
+      {
+        "step": 2,
+        "action": "ALTER TABLE ... ENABLE ROW LEVEL SECURITY, in the SAME migration as the CREATE",
+        "type": "PRODUCTION_SCHEMA_WRITE",
+        "why": "RLS enabled with no policy denies everything. That is the correct default for a table with no rows and no reader. Enabling it later leaves a window in which the table is readable by anyone holding the anon key."
+      },
+      {
+        "step": 3,
+        "action": "no GRANT to anon or authenticated yet",
+        "type": "PRODUCTION_SCHEMA_WRITE",
+        "why": "RLS is not the only gate. A table with RLS enabled and no grant is unreachable twice over — belt and braces, and the braces are the ones that survive a policy mistake."
+      },
+      {
+        "step": 4,
+        "action": "create the policies from model/rls_model.json",
+        "type": "PRODUCTION_SCHEMA_WRITE"
+      },
+      {
+        "step": 5,
+        "action": "verify with the negative fixtures — prove each policy DENIES, not merely that it permits",
+        "type": "READ_ONLY",
+        "why": "a policy that permits everything passes every positive test"
+      },
+      {
+        "step": 6,
+        "action": "GRANT only the specific privileges the read model needs",
+        "type": "PRODUCTION_SCHEMA_WRITE"
+      }
+    ],
+    "legacyTables": {
+      "rule": "existing legacy policies are NOT modified while any client still reads the legacy document",
+      "why": "tightening a legacy policy mid-migration breaks live reads for a reason unrelated to the migration, and the failure looks like a migration bug",
+      "changeWindow": "legacy policy changes happen at exactly two points: the fence (deny direct writes) and retirement (drop the table). Nowhere else."
+    },
+    "financialTables": {
+      "rule": "payments, payment_allocations and prize_allocations are NEVER browser-writeable in any state",
+      "authenticatedReadRule": "an authenticated participant does not receive direct raw-table access to their financial rows. Access is through a trusted-runtime-owned read model, restricted view or RPC (WS12-OP-1 ratified). Raw internal payment and allocation metadata stays protected.",
+      "why": "there is no migration state in which a browser needs to write a financial row, so there is no state in which the grant should exist"
+    },
+    "ownershipLinkage": {
+      "mechanism": "participant_auth_links (WS12-OP-2 ratified)",
+      "cardinality": "one auth user MAY link to multiple participant identities. Do NOT assume 1 auth user = 1 participant.",
+      "historical": "historical participants may exist with no auth linkage at all, and must remain fully functional — the backfill creates participants, never auth users",
+      "requirements": "linkage is explicit, auditable, and reversible where appropriate",
+      "choreographyConsequence": "no read policy may be written as 'the participant whose id equals the auth uid'. Every ownership predicate resolves through the link table, and a participant with no link resolves to no rows rather than to an error."
+    }
+  },
+  "aclSequence": {
+    "principle": "default deny; privileges are added at the moment they are needed and not before",
+    "roles": [
+      {
+        "role": "anon",
+        "evolution": "read the legacy document (existing) → unchanged through M10 → direct write to bolao_state REVOKED at the fence → all legacy privileges dropped at retirement",
+        "mustNeverGain": [
+          "any privilege on any bolao.* or audit.* table",
+          "TRUNCATE on anything"
+        ]
+      },
+      {
+        "role": "authenticated",
+        "evolution": "no privileges today → SELECT on the restricted read model only",
+        "mustNeverGain": [
+          "INSERT/UPDATE/DELETE on payments, payment_allocations, prize_allocations",
+          "direct SELECT on raw financial tables"
+        ]
+      },
+      {
+        "role": "trusted runtime (service)",
+        "evolution": "granted exactly the privileges its deployed contracts require, per contract, added as each contract deploys",
+        "note": "least privilege is aspirational here — the service role bypasses RLS by design. The honest statement is that RLS does not protect against a compromised trusted runtime, and no ACL sequence changes that.",
+        "mustNeverGain": [
+          "TRUNCATE",
+          "DROP"
+        ]
+      },
+      {
+        "role": "migration role",
+        "evolution": "separate from the trusted runtime; holds DDL and backfill privileges; revoked when the migration completes",
+        "why": "a runtime that can DDL is a runtime whose compromise is a schema compromise. Separating them means the long-lived credential is not the powerful one.",
+        "mustNeverGain": [
+          "TRUNCATE",
+          "any privilege that outlives the migration",
+          "use by application code — it is an operator credential, not a runtime one"
+        ]
+      }
+    ],
+    "retirementOfOldAcls": [
+      {
+        "step": 1,
+        "action": "capture the pre-change ACL outside Git",
+        "type": "READ_ONLY"
+      },
+      {
+        "step": 2,
+        "action": "REVOKE the specific privilege on the specific table — never a wildcard, never REVOKE ALL",
+        "type": "PRODUCTION_SCHEMA_WRITE",
+        "why": "a wildcard revoke on a shared role removes privileges nobody remembered were load-bearing, and the resulting outage is hard to attribute"
+      },
+      {
+        "step": 3,
+        "action": "verify the intended privilege is gone AND the unintended ones remain",
+        "type": "READ_ONLY"
+      }
+    ]
+  },
+  "backfillRace": {
+    "problem": "the bulk pass reads a snapshot; live writes continue after that read. Any strategy that ends at the bulk pass loses every write that landed after extraction.",
+    "passes": [
+      {
+        "id": "BULK",
+        "description": "batched, throttled, restartable, idempotent; batches of 500–2000 rows, each its own transaction",
+        "why": "a single long transaction holds xmin back and blocks autovacuum across the whole database — on a small instance that is felt everywhere, not just on the table being copied"
+      },
+      {
+        "id": "DELTA",
+        "description": "repeated passes over items changed since the last watermark, until a pass finds nothing",
+        "why": "convergence is observed, not assumed. A single delta pass leaves a window the width of its own runtime."
+      },
+      {
+        "id": "FINAL_RECONCILIATION",
+        "description": "run after the legacy write fence closes, against a source that has stopped moving",
+        "why": "this is the only pass whose result can be ASSERTED rather than sampled, because it is the only one not racing a writer"
+      }
+    ],
+    "watermarkTypes": {
+      "NONE_REQUIRED": "no concurrent writer exists for this domain, so there is no race. Valid only where that is demonstrably true — an unexamined 'nobody writes this' is the assumption that loses data.",
+      "ASSERTED_FLAG_UPSERT_PLUS_FINAL_RECONCILIATION": "the source fact is a boolean (paid=true), so there is no partial-amount race — but a false→true flip after extraction WOULD be lost without the delta pass. Idempotent on the asserted-for key, and the final reconciliation pass is a gate rather than a report.",
+      "PICKS_BLOB_RETAINED_PLUS_RECOMPUTE": "the decomposition is scheduled AFTER the legacy write fence, so no concurrent legacy writer exists by construction. Scheduling is the race strategy here. The source blob is retained as the fallback.",
+      "STABLE_SURROGATE_UPSERT": "no watermark; re-copy by preserved id, idempotent. Safest, needs a stable id.",
+      "NATURAL_KEY_UPSERT": "no watermark; re-copy by natural key.",
+      "SYNC_WATERMARK": "the sync cursor plus a content fingerprint. Required where a record can be corrected in place, because an in-place correction carries no new created_at and a created_at watermark misses it silently.",
+      "CREATED_AT_WATERMARK": "rejected as a general strategy for this platform.",
+      "CREATED_AT_REJECTION_WHY": "the legacy document is a single jsonb row. Nested items carry no reliable per-item modification timestamp, and the row's own updated_at moves for any change anywhere inside it. A created_at watermark over nested data would both miss in-place edits and re-scan everything.",
+      "APPEND_ONLY_CHAIN_RECOMPUTE": "recompute the chain in document order rather than patch it.",
+      "LAST_WRITER_WINS_BY_TIMESTAMP": "valid only for cursors, never for facts.",
+      "DERIVED_NEVER_BACKFILLED": "recompute rather than copy.",
+      "NOT_BACKFILLED_BY_DESIGN": "a documented refusal to invent history."
+    },
+    "moneyRule": "no HIGH_RISK_FINANCIAL or CRITICAL_SCORING domain may be promoted with an unresolved delta. For those domains the final reconciliation pass is a gate, not a report."
+  },
+  "failureBetweenSteps": [
+    {
+      "id": "FBS-1",
+      "situation": "schema expanded, app not deployed",
+      "state": "EXPANDED_SCHEMA",
+      "impact": "none — the tables are empty and no client references them",
+      "recovery": "deploy, or DROP; both are cheap",
+      "safe": true
+    },
+    {
+      "id": "FBS-2",
+      "situation": "backfill stops half-way",
+      "state": "DOMAIN_BACKFILLING",
+      "impact": "partial normalized rows; the legacy document is untouched and still authoritative, so nothing user-visible changed",
+      "recovery": "resume from the persisted cursor, or delete by source marker and restart. Both are safe BECAUSE nothing reads the normalized rows yet.",
+      "safe": true,
+      "requires": "a persisted cursor and a source marker on every backfilled row. Without them this is not recoverable — it is a manual reconciliation."
+    },
+    {
+      "id": "FBS-3",
+      "situation": "backfill complete, parity never run",
+      "state": "DOMAIN_BACKFILLED",
+      "impact": "none yet; the danger is entirely in advancing",
+      "recovery": "run parity. The evaluator must HOLD, not PROMOTE, on absent evidence.",
+      "safe": true,
+      "control": "absent evidence is not passing evidence. The promotion evaluator treats missing evidence as HOLD, never as satisfied."
+    },
+    {
+      "id": "FBS-4",
+      "situation": "server write enabled, the response fails after the commit",
+      "state": "SERVER_WRITE_CANARY",
+      "impact": "the write is durable; the caller does not know. A naive retry double-writes.",
+      "recovery": "the retry replays the stored idempotency response rather than re-executing, because the idempotency record was committed INSIDE the business transaction",
+      "safe": true,
+      "control": "WS13's after-commit-before-response fault fixture is exactly this scenario, and it is the reason the idempotency record is not written after the commit."
+    },
+    {
+      "id": "FBS-5",
+      "situation": "legacy writes disabled before the stale-client fence can report a usable refusal",
+      "state": "LEGACY_WRITE_DISABLED",
+      "impact": "open tabs get an opaque error and may retry indefinitely; users cannot tell a migration from an outage",
+      "recovery": "GRANT back — a production privilege write",
+      "safe": false,
+      "control": "FR-5 and the staleClientFenceReady guard block this transition. The fence must produce a DISTINGUISHABLE refusal before it is allowed to deny anything."
+    },
+    {
+      "id": "FBS-6",
+      "situation": "new reads primary, a reporting bug appears",
+      "state": "NEW_READ_PRIMARY",
+      "impact": "wrong numbers shown authoritatively",
+      "recovery": "flip normalized_reads_enabled off → LEGACY_READ_FALLBACK. Loses nothing, because the legacy document is still being written.",
+      "safe": true,
+      "control": "this cheap rollback exists ONLY before LEGACY_FROZEN. It is the entire reason the freeze is a separate, later state rather than bundled with the read cutover."
+    },
+    {
+      "id": "FBS-7",
+      "situation": "the process stops at LEGACY_FROZEN",
+      "state": "LEGACY_FROZEN",
+      "impact": "a stable operating state, but the legacy document is going stale and old tabs are silently reading it",
+      "recovery": "forward only. Un-freezing would require replaying every write since the freeze into the document.",
+      "safe": false,
+      "control": "the client floor is enforced BEFORE this state, so old tabs are refused rather than silently served stale data. This is WS5's correction to the previous ordering."
+    },
+    {
+      "id": "FBS-8",
+      "situation": "reference rows inserted twice",
+      "state": "REFERENCE_BACKFILLED",
+      "impact": "duplicate competitions, and every later domain resolves to an ambiguous edition",
+      "recovery": "delete the duplicate; nothing references it yet",
+      "safe": true,
+      "control": "the reference insert is idempotent on the natural key and the DQ rule requires contiguous phase ordinals per edition"
+    },
+    {
+      "id": "FBS-9",
+      "situation": "RLS enabled after the table was already granted and reachable",
+      "state": "EXPANDED_SCHEMA",
+      "impact": "an exposure window of unknown duration — every row in the table readable by anyone holding the anon key",
+      "recovery": "enable RLS; the exposure that already happened cannot be recalled",
+      "safe": false,
+      "control": "ENABLE ROW LEVEL SECURITY is in the same migration as the CREATE, and no grant is issued until the policies exist and their negative fixtures pass"
+    },
+    {
+      "id": "FBS-10",
+      "situation": "the legacy ACL is revoked before the new write path is deployed",
+      "state": "SERVER_WRITE_PRIMARY",
+      "impact": "a total write outage: the old path is denied and the new one does not exist",
+      "recovery": "GRANT back",
+      "safe": false,
+      "control": "FR-13 plus the writeContractsDeployed guard. The deployment must precede the revoke, and the ordering is enforced by the evaluator rather than by the runbook's numbering."
+    },
+    {
+      "id": "FBS-11",
+      "situation": "outbox delivery enabled while a backlog exists",
+      "state": "any",
+      "impact": "a mass duplicate-notification incident aimed at real participants — the one failure in this list whose damage is external and cannot be rolled back",
+      "recovery": "none. A sent email is sent.",
+      "safe": false,
+      "control": "FR-7 and FR-8; delivery defaults off, requires proven event AND delivery idempotency, and the backlog must contain no historical-looking event"
+    },
+    {
+      "id": "FBS-12",
+      "situation": "the migration stalls indefinitely mid-way with several domains in different states",
+      "state": "mixed",
+      "impact": "none inherently — mixed domain state is a designed property, not a defect",
+      "recovery": "no recovery needed; each domain is independently consistent",
+      "safe": true,
+      "control": "domain-scoped state exists precisely so that a stall is a resting place rather than an incident. The one thing that must not stall is a domain left in DOMAIN_BACKFILLING, because a half-backfilled domain is the only state that is neither one thing nor the other."
+    }
+  ],
+  "deploymentOrder": [
+    {
+      "step": 1,
+      "action": "M1–M7 additive DDL, each table with RLS enabled in the same migration and no grants",
+      "type": "PRODUCTION_SCHEMA_WRITE",
+      "dependsOn": [
+        "M0 resolved"
+      ]
+    },
+    {
+      "step": 2,
+      "action": "M1 reference rows",
+      "type": "PRODUCTION_DATA_WRITE",
+      "dependsOn": [
+        1
+      ]
+    },
+    {
+      "step": 3,
+      "action": "RLS policies + negative-fixture verification, per table",
+      "type": "PRODUCTION_SCHEMA_WRITE",
+      "dependsOn": [
+        1
+      ]
+    },
+    {
+      "step": 4,
+      "action": "M5, M8, M9, M10 backfills — bulk then delta, per domain",
+      "type": "PRODUCTION_DATA_WRITE",
+      "dependsOn": [
+        2,
+        3
+      ]
+    },
+    {
+      "step": 5,
+      "action": "deploy the trusted runtime with the write contracts, all flags OFF",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        1
+      ],
+      "why": "deployed before it is enabled, always. A deployment and an activation are two decisions and must be two steps."
+    },
+    {
+      "step": 6,
+      "action": "deploy the frontend build that CAN use both paths, all flags OFF",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        5
+      ],
+      "why": "the new build must behave exactly like the old one until a flag says otherwise, so that a deploy is never itself a cutover"
+    },
+    {
+      "step": 7,
+      "action": "normalized_reads_shadow=on; run the parity harness",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        4,
+        6
+      ]
+    },
+    {
+      "step": 8,
+      "action": "server_writes_enabled=on with server_write_canary=on",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        7
+      ]
+    },
+    {
+      "step": 9,
+      "action": "widen the canary to SERVER_WRITE_PRIMARY",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        8
+      ]
+    },
+    {
+      "step": 10,
+      "action": "raise minimum_write_version; verify the refusal is distinguishable",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        9
+      ],
+      "why": "the fence's error path is proven BEFORE the fence denies anything"
+    },
+    {
+      "step": 11,
+      "action": "REVOKE direct write on the legacy document from anon — the fence",
+      "type": "PRODUCTION_SCHEMA_WRITE",
+      "dependsOn": [
+        10
+      ]
+    },
+    {
+      "step": 12,
+      "action": "final reconciliation pass against the now-frozen source",
+      "type": "PRODUCTION_DATA_WRITE",
+      "dependsOn": [
+        11
+      ]
+    },
+    {
+      "step": 13,
+      "action": "normalized_reads_enabled=on — the read cutover",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        12
+      ]
+    },
+    {
+      "step": 14,
+      "action": "post-cutover soak",
+      "type": "READ_ONLY",
+      "dependsOn": [
+        13
+      ]
+    },
+    {
+      "step": 15,
+      "action": "M15 reporting views and CREATE INDEX CONCURRENTLY; check indisvalid after each build",
+      "type": "PRODUCTION_SCHEMA_WRITE",
+      "dependsOn": [
+        13
+      ]
+    },
+    {
+      "step": 16,
+      "action": "new_reporting_enabled=on",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        15
+      ]
+    },
+    {
+      "step": 17,
+      "action": "raise minimum_read_version — the hard client floor",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        14
+      ],
+      "why": "BEFORE the freeze, not after. Once the document is stale, an unfenced old tab is served wrong data silently."
+    },
+    {
+      "step": 18,
+      "action": "M16: decompose picks into predictions; scoring parity gate",
+      "type": "PRODUCTION_DATA_WRITE",
+      "dependsOn": [
+        14
+      ]
+    },
+    {
+      "step": 19,
+      "action": "stop mirroring the legacy document — LEGACY_FROZEN",
+      "type": "DEPLOYMENT",
+      "dependsOn": [
+        17,
+        18
+      ]
+    },
+    {
+      "step": 20,
+      "action": "observe zero legacy reads for longer than the longest plausible session",
+      "type": "READ_ONLY",
+      "dependsOn": [
+        19
+      ]
+    },
+    {
+      "step": 21,
+      "action": "contract: drop the legacy structures",
+      "type": "PRODUCTION_SCHEMA_WRITE",
+      "dependsOn": [
+        20
+      ],
+      "irreversible": true,
+      "why": "the first and only irreversible step, deliberately last and deliberately alone"
+    }
+  ],
+  "pointsOfNoSimpleReturn": [
+    {
+      "id": "PNSR-1",
+      "boundary": "the first normalized write with no legacy equivalent",
+      "state": "SERVER_WRITE_CANARY",
+      "domain": "allocations",
+      "why": "payment_allocations has no legacy representation at all. From the first allocation, rolling back to legacy-only loses information that was never expressible in the document.",
+      "rollbackFrom": "FORWARD_FIX_ONLY for that data, even though the STATE itself is still flag-reversible",
+      "subtlety": "the state is reversible and the data is not. Those are different questions and conflating them is how a rollback plan turns out to be fiction."
+    },
+    {
+      "id": "PNSR-2",
+      "boundary": "the first identity merge",
+      "state": "post-M17",
+      "domain": "identity_links",
+      "why": "a merge creates history with no legacy counterpart. It is reversible by design — reverseParticipantMerge restores prior_state exactly — but reversible via a compensating record, not by discarding the tables.",
+      "rollbackFrom": "FORWARD_FIX_ONLY",
+      "note": "this is why M5 declares ZERO merges and merges wait until M17: the irreversible-ish operation is scheduled after everything that might need a clean rollback."
+    },
+    {
+      "id": "PNSR-3",
+      "boundary": "the first financial compensating record",
+      "state": "SERVER_WRITE_PRIMARY",
+      "domain": "payments",
+      "why": "a reversal is a fact. Discarding the normalized tables would discard the audit trail of a refund that really happened and that a participant can see in their bank statement.",
+      "rollbackFrom": "FORWARD_FIX_ONLY"
+    },
+    {
+      "id": "PNSR-4",
+      "boundary": "legacy writes denied at the database",
+      "state": "LEGACY_WRITE_DISABLED",
+      "why": "reversal is a GRANT — a production privilege write, not a flag flip. Still cheap, no longer free, and it requires the credential that can issue grants.",
+      "rollbackFrom": "WRITE_PATH_ROLLBACK"
+    },
+    {
+      "id": "PNSR-5",
+      "boundary": "the legacy document stops being written",
+      "state": "LEGACY_FROZEN",
+      "why": "THE boundary. Before it, every rollback is a flag. After it, the legacy representation is stale and rolling back to it means silently serving data missing every write since the freeze.",
+      "rollbackFrom": "FORWARD_FIX_ONLY",
+      "emphasis": "if only one line of this document survives, it is this one"
+    },
+    {
+      "id": "PNSR-6",
+      "boundary": "legacy structures dropped",
+      "state": "LEGACY_RETIRED",
+      "why": "restore-from-backup only",
+      "rollbackFrom": "DATA_RESTORE_REQUIRED"
+    }
+  ],
+  "multiApp": {
+    "apps": [
+      "copa2026",
+      "br2026",
+      "cdb2026"
+    ],
+    "principle": "the three apps do not share code and must not be required to share a migration state. They DO share participants and payments, and that shared spine is what constrains the ordering.",
+    "sharedDomains": [
+      "participants",
+      "identity_links",
+      "payments",
+      "allocations",
+      "audit",
+      "outbox"
+    ],
+    "perAppDomains": [
+      "pools",
+      "entries",
+      "matches",
+      "ties",
+      "results",
+      "predictions",
+      "rankings",
+      "sync_state",
+      "prize_allocations"
+    ],
+    "rules": [
+      {
+        "id": "MA-1",
+        "rule": "a shared domain advances at the SLOWEST participating app's readiness",
+        "why": "participants is one table. Cutting participants over for copa2026 while br2026 still writes participants into its own document means one table has two authorities."
+      },
+      {
+        "id": "MA-2",
+        "rule": "a per-app domain may advance independently",
+        "why": "pool_entries rows for copa2026 and br2026 are disjoint sets; nothing couples them"
+      },
+      {
+        "id": "MA-3",
+        "rule": "an app whose competition has CONCLUDED is the correct app to migrate first",
+        "why": "copa2026 is archived: no open cutoff, no pending payout, no active sync. Every timing constraint in schedulingConstraints is trivially satisfied. Choosing the busiest app first is choosing to satisfy the hardest constraints first for no benefit."
+      },
+      {
+        "id": "MA-4",
+        "rule": "a shared domain may NOT reach LEGACY_FROZEN until every app is at CUTOVER_READY for it",
+        "why": "freezing the shared document while one app still reads it from the document serves that app stale data"
+      },
+      {
+        "id": "MA-5",
+        "rule": "the legacy write fence is per-app, because the legacy document is per-app",
+        "why": "fencing copa2026's document does not fence br2026's, and a single global fence would take down apps that are not ready"
+      }
+    ],
+    "recommendedOrder": [
+      "copa2026 (concluded, archived)",
+      "cdb2026 (in production, knockout)",
+      "br2026 (not published)"
+    ],
+    "recommendedOrderWhy": "concluded first for a real rehearsal with zero timing constraints; br2026 last only because 'not published' means its own state is least stable, not because it is risky.",
+    "crossDomainHazards": [
+      {
+        "id": "XH-1",
+        "hazard": "a participant exists in the normalized model because copa2026 migrated, and br2026's legacy document independently creates the 'same' person again",
+        "impact": "two participant rows for one human, which is exactly the duplicate the identity model exists to avoid, created BY the migration",
+        "control": "the participant natural key is GLOBAL ACROSS APPS, never per app: the backfill is idempotent on that one key for all three applications. Running it for br2026 must find and reuse the row copa2026 created. This is the single most important cross-app control in WS5."
+      },
+      {
+        "id": "XH-2",
+        "hazard": "a third-party payer pays for entries in two apps; one app's payments are normalized and the other's are not",
+        "impact": "the payment's allocations are partially representable — sum(allocations) can never reach the payment amount, so a derived settlement state reads as permanently under-applied",
+        "control": "payments is a shared domain and advances at the slowest app (MA-1). A payment may not be normalized while any entry it pays for is still legacy-only."
+      },
+      {
+        "id": "XH-3",
+        "hazard": "audit chain interleaving — two apps appending to one hash chain while one is legacy and one is normalized",
+        "impact": "the chain's order depends on which app wrote last, so recomputation from either source alone disagrees",
+        "control": "audit is shared and advances at the slowest app; the chain is recomputed in document order at the final reconciliation, never patched incrementally"
+      },
+      {
+        "id": "XH-4",
+        "hazard": "one app at LEGACY_READ_FALLBACK while another is at NEW_READ_PRIMARY, both reading shared participants",
+        "impact": "none — both representations are current during the mirroring window. This is the designed benefit of keeping the document written.",
+        "control": "MA-4 forbids the freeze that would make this unsafe",
+        "safe": true
+      }
+    ]
+  },
+  "schedulingConstraints": [
+    {
+      "id": "SC-1",
+      "constraint": "NO_OPEN_CUTOFF",
+      "appliesTo": [
+        "predictions"
+      ],
+      "eventDriven": true,
+      "meaning": "no prediction-path change while any pool in the app has an open prediction window",
+      "why": "a failure denies entries during the only window in which they can be made. The participant cannot retry later, so the damage outlives the fix."
+    },
+    {
+      "id": "SC-2",
+      "constraint": "NO_ACTIVE_SYNC",
+      "appliesTo": [
+        "results",
+        "matches",
+        "sync_state"
+      ],
+      "eventDriven": true,
+      "meaning": "no result-authority change while a synchronization is in flight",
+      "why": "the switch would land between the read and the write of a sync cycle, producing exactly the two-authorities state GATE-RESULT exists to prevent"
+    },
+    {
+      "id": "SC-3",
+      "constraint": "NO_UNRESOLVED_RECONCILIATION",
+      "appliesTo": [
+        "payments",
+        "allocations",
+        "prize_allocations"
+      ],
+      "eventDriven": true,
+      "meaning": "no financial-path change while any reconciliation item is open",
+      "why": "a migration during an open discrepancy makes it permanently ambiguous whether the discrepancy predates the migration — and that ambiguity is unresolvable after the fact"
+    },
+    {
+      "id": "SC-4",
+      "constraint": "NO_PENDING_PAYOUT",
+      "appliesTo": [
+        "prize_allocations",
+        "payments"
+      ],
+      "eventDriven": true,
+      "meaning": "no financial-path change between a pool concluding and its prizes being paid",
+      "why": "this is the window in which the numbers are read by humans who are about to move real money"
+    },
+    {
+      "id": "SC-5",
+      "constraint": "NO_CONCURRENT_ADMIN_SESSION",
+      "appliesTo": [
+        "all operator contracts"
+      ],
+      "eventDriven": true,
+      "meaning": "no admin-path change while an operator has an open admin session",
+      "why": "the 30-minute sessionStorage admin session survives the change and its next action takes an unexpected path"
+    },
+    {
+      "id": "SC-6",
+      "constraint": "AVOID_MATCH_DAY",
+      "appliesTo": [
+        "results",
+        "predictions",
+        "rankings"
+      ],
+      "eventDriven": true,
+      "meaning": "not while matches are being played",
+      "why": "match day is simultaneously peak read traffic, peak sync activity and the moment when a wrong ranking is most visible — three independent reasons in one window"
+    },
+    {
+      "id": "SC-7",
+      "constraint": "clock windows are a fallback, not the mechanism",
+      "eventDriven": false,
+      "meaning": "'a quiet Tuesday' is not a safety property. Every constraint above is a checkable state, and the evaluator checks the state.",
+      "why": "a clock window is a guess about where the events are. If the event can be checked, check the event."
+    }
+  ],
+  "freezeOptions": {
+    "decision": "L-OP-1",
+    "status": "OPERATOR_DECISION_OPEN",
+    "options": [
+      {
+        "id": "NO_FREEZE",
+        "risk": "HIGH",
+        "complexity": "HIGH",
+        "userImpact": "NONE",
+        "rollback": "flag",
+        "why": "parity can never be ASSERTED, only sampled, because the source never stops moving. Every promotion rests on 'we did not observe a mismatch in a moving target.'",
+        "verdict": "REJECTED for financial and scoring domains; defensible for LOW_RISK_REFERENCE only"
+      },
+      {
+        "id": "SHORT_WRITE_FREEZE",
+        "risk": "LOW",
+        "complexity": "MEDIUM",
+        "userImpact": "LOW — writes refused with a clear message for the duration; reads unaffected",
+        "rollback": "GRANT back",
+        "why": "gives a genuinely stationary source for the final reconciliation, at the cost of a bounded, announced window in which nobody can save an entry",
+        "verdict": "RECOMMENDED"
+      },
+      {
+        "id": "DOMAIN_SPECIFIC_FREEZE",
+        "risk": "MEDIUM",
+        "complexity": "HIGH",
+        "userImpact": "LOW",
+        "rollback": "GRANT back per domain",
+        "why": "attractive in principle, but the fence is a privilege on the legacy DOCUMENT, which is one jsonb row holding every domain at once. There is no privilege that denies 'writes to the payments part of the row'. Domain-specific freezing would require the trusted runtime to mediate ALL writes first — which is a later state.",
+        "verdict": "NOT AVAILABLE at the point it would be needed; this is a property of the legacy shape, not a preference"
+      },
+      {
+        "id": "FULL_MAINTENANCE_WINDOW",
+        "risk": "LOW",
+        "complexity": "LOW",
+        "userImpact": "HIGH — the app is entirely unavailable",
+        "rollback": "trivial",
+        "why": "simplest and safest technically; unnecessary here because reads can continue safely throughout, so the availability cost buys nothing the write freeze does not already provide",
+        "verdict": "NOT RECOMMENDED — pays a high user cost for no additional safety"
+      }
+    ],
+    "recommendation": "SHORT_WRITE_FREEZE",
+    "recommendationWhy": "it is the only option that produces a stationary source (which the financial and scoring gates require) without taking reads down. DOMAIN_SPECIFIC_FREEZE is not a real option given the single-jsonb-row legacy shape, and that is worth knowing before it is proposed in a meeting.",
+    "scheduling": "the window must satisfy SC-1 through SC-6. For copa2026, which is concluded, all six are trivially satisfied — which is the concrete reason MA-3 recommends migrating it first.",
+    "notExecuted": true
+  },
+  "clientFloorOptions": {
+    "decision": "L-OP-2",
+    "status": "OPERATOR_DECISION_OPEN",
+    "perOperationRecommendation": {
+      "READ": {
+        "recommended": "read-only degradation before LEGACY_FROZEN, hard reject after",
+        "why": "a stale read is harmless while the document is still written and harmful the moment it is not. The correct behaviour therefore CHANGES at the freeze, which is why a single global floor policy is wrong."
+      },
+      "WRITE": {
+        "recommended": "hard reject with CLIENT_TOO_OLD",
+        "why": "an old-shaped write is the one operation that can produce a partial mutation"
+      },
+      "SUBMIT_PREDICTION": {
+        "recommended": "compatibility adapter while it is lossless, hard reject otherwise",
+        "why": "predictions are the operation a participant is most likely to have open in a long-lived tab, and losing one is losing their entry in a pool they paid for. An adapter here has the highest value of any adapter in the system."
+      },
+      "CREATE_ENTRY": {
+        "recommended": "hard reject with a forced-refresh prompt",
+        "why": "creating an entry is deliberate and re-doable after a reload; there is nothing to preserve"
+      },
+      "ADMIN_ACTION": {
+        "recommended": "hard reject, always, no adapter",
+        "why": "an adapted admin action is an action nobody specified. The operator can reload."
+      }
+    },
+    "options": [
+      {
+        "id": "HARD_REJECT_WRITE",
+        "cost": "requires every write to be server-mediated — available only from SERVER_WRITE_PRIMARY onward",
+        "verdict": "RECOMMENDED for writes"
+      },
+      {
+        "id": "FORCE_REFRESH",
+        "cost": "a user mid-entry may lose unsaved input unless the draft survives — the sessionStorage draft with its 2-hour expiry partly covers this and is shorter than the sessions in scope",
+        "verdict": "acceptable as the presentation of a hard reject, not as the enforcement"
+      },
+      {
+        "id": "READ_ONLY_DEGRADATION",
+        "cost": "none until the document goes stale",
+        "verdict": "RECOMMENDED for reads before the freeze"
+      },
+      {
+        "id": "COMPATIBILITY_ADAPTER",
+        "cost": "one more code path to keep correct, and a temptation to guess at missing fields",
+        "verdict": "RECOMMENDED for predictions only, bounded by the adapter rule: never default a monetary amount, currency, actor or timestamp"
+      }
+    ],
+    "defaultIfUndecided": "read-only degradation plus hard write reject — the pair that cannot silently corrupt anything",
+    "notExecuted": true
+  },
+  "parityRunOptions": {
+    "decision": "L-OP-3",
+    "status": "OPERATOR_CONFIGURABLE",
+    "principle": "'N consecutive clean runs' is the wrong unit on its own. A clean run over a domain nobody wrote to proves the copy was faithful, not that the live path stays faithful. The unit must be (clean runs) AND (mutations observed inside the window).",
+    "minimums": {
+      "reference": {
+        "cleanRuns": 1,
+        "mutationsInWindow": 0,
+        "why": "reference data has no live writer, so requiring a mutation would be requiring something that cannot happen"
+      },
+      "reporting": {
+        "cleanRuns": 2,
+        "mutationsInWindow": 1,
+        "why": "reports are derived; a wrong report is visible and recoverable"
+      },
+      "financial": {
+        "cleanRuns": 5,
+        "mutationsInWindow": 3,
+        "whyMutations": "at least one payment, one allocation and one reversal must occur inside the window, because those are three different code paths and a clean run that exercised none of them is evidence about the backfill only"
+      },
+      "scoring": {
+        "cleanRuns": 5,
+        "mutationsInWindow": 3,
+        "whyMutations": "at least one prediction, one result and one recomputed ranking",
+        "additional": "the app's own audit suites must pass on both representations"
+      }
+    },
+    "vacuityRule": "a parity run that examined zero rows, or a window in which zero mutations occurred for a domain that has a live writer, counts as NO EVIDENCE rather than as a clean run. A green result from a check that could not have failed is the most expensive kind of false confidence."
+  },
+  "outboxEnablement": {
+    "principle": "the existence of a table is not a reason to deliver from it",
+    "sequence": [
+      {
+        "step": 1,
+        "action": "schema exists (M4); delivery disabled",
+        "gate": "none"
+      },
+      {
+        "step": 2,
+        "action": "the write contracts begin CREATING events",
+        "gate": "event idempotency proven — one business operation produces exactly one event, and a retried operation produces no second event"
+      },
+      {
+        "step": 3,
+        "action": "shadow logging: events are created and a delivery worker logs what it WOULD send, without sending",
+        "gate": "payload contains references only, no resolved address and no PII"
+      },
+      {
+        "step": 4,
+        "action": "delivery canary: one synthetic recipient",
+        "gate": "delivery idempotency proven — the same event delivered twice results in one notification; dead-letter state defined; replay controls defined and access-restricted"
+      },
+      {
+        "step": 5,
+        "action": "delivery enabled",
+        "gate": "FR-7 and FR-8 satisfied; backlog contains no historical-looking event"
+      }
+    ],
+    "noHistoricalEvents": "no outbox event is created for a past fact. Those notifications were already sent by EmailJS months ago. An inert historical row is a lie about history; a delivered one is a mass re-notification of real participants.",
+    "deadLetter": "an event that exhausts its delivery attempts moves to a dead state and is never silently dropped. Dead is a state, not a deletion.",
+    "replay": "replay is an explicit, audited, operator-initiated action over a named event set. There is no bulk 'retry everything' control, because the blast radius of that control is every participant's inbox.",
+    "observability": [
+      "backlog depth",
+      "oldest undelivered age",
+      "delivery attempts per event",
+      "dead-letter count",
+      "duplicate-suppression hits"
+    ]
+  },
+  "auditEnablement": {
+    "principle": "audit must be recording BEFORE the writes worth auditing move, or the cutover itself is the least-documented change in the system's history",
+    "sequence": [
+      {
+        "step": 1,
+        "phase": "M4",
+        "action": "audit schema exists",
+        "why": "OI-1 places it before every backfill so that the rows a backfill creates are themselves traceable"
+      },
+      {
+        "step": 2,
+        "phase": "M10",
+        "action": "historical audit entries backfilled from the legacy document's own audit trail, chain computed in document order",
+        "why": "this is a re-representation of entries that already exist, not invention. The distinction from the outbox decision is exactly that: the legacy document HAS an audit trail; it has no outbox."
+      },
+      {
+        "step": 3,
+        "phase": "M11+",
+        "action": "the write contracts populate audit_events on every mutation",
+        "why": "from here every change has a record, including every migration step performed through a contract"
+      }
+    ],
+    "executionContext": "KPLUS-F027. The M10 bulk promotion runs as migration_role — NON-SUPERUSER, owner of audit.audit_events, holding BYPASSRLS. It stands ONE named trigger down (ALTER TABLE audit.audit_events DISABLE TRIGGER audit_events_compute_chain) inside the promoting transaction and re-arms it before commit. Foreign keys are enforced throughout, the four append-only refusal triggers stay armed throughout, and FORCE ROW LEVEL SECURITY is never toggled. session_replication_role = replica is NOT used: it requires superuser and disables FK enforcement session-wide. See ADR-K07 and scripts/db/audit_chain_backfill.mjs.",
+    "noFabrication": "no audit event is created for an action that cannot be evidenced in the legacy document. An unevidenced gap is recorded as a gap.",
+    "legacyAdminTraceability": "during the transition, legacy admin actions taken through the old client are recorded in the legacy document's trail and swept into audit_events by the delta pass. Coverage is therefore complete but LAGGED, and the lag is the delta interval. That lag must be stated rather than discovered: a real-time audit claim would be false during the transition.",
+    "pii": "audit_events carries no PII. Redactable detail lives in the audit_event_details sidecar so that an erasure request does not require breaking the hash chain."
+  },
+  "reportingCutover": {
+    "sequence": [
+      {
+        "step": 1,
+        "state": "legacy reporting only",
+        "flag": "new_reporting_enabled=false"
+      },
+      {
+        "step": 2,
+        "state": "shadow reporting — normalized reports computed and compared, never shown",
+        "flag": "false",
+        "gate": "AGGREGATE_PARITY clean"
+      },
+      {
+        "step": 3,
+        "state": "normalized reporting available to operators only",
+        "flag": "false",
+        "gate": "FINANCIAL_PARITY clean"
+      },
+      {
+        "step": 4,
+        "state": "normalized reporting primary",
+        "flag": "true",
+        "gate": "FR-9: financialReconciled"
+      }
+    ],
+    "lagsTransactionalCutover": true,
+    "lagsWhy": "a report is derived and can be recomputed at any time. There is no benefit to moving it early and a clear cost to moving it before the base data is reconciled: a wrong number with an authoritative presentation is worse than an honestly missing one.",
+    "historicalFinancialReporting": "requires reconciled data. A historical financial report over a period containing an unresolved delta must refuse to render rather than render a figure that will change.",
+    "assertedPaymentCaveat": "M9 creates ASSERTED payments with no allocations, because the legacy document records that an entry is paid and never which money paid for it. Every financial report covering the pre-migration period must therefore label those figures as asserted rather than allocated. A report that presents an asserted payment as a reconciled one is fabricating precision the source never had."
+  },
+  "observabilityGates": [
+    {
+      "id": "OG-1",
+      "metric": "backfillLag",
+      "meaning": "items changed since the last completed delta pass",
+      "gateAt": [
+        "DOMAIN_BACKFILLED"
+      ],
+      "threshold": "CONFIGURABLE",
+      "hardRule": "must be exactly 0 for HIGH_RISK_FINANCIAL and CRITICAL_SCORING"
+    },
+    {
+      "id": "OG-2",
+      "metric": "parityMismatchCount",
+      "gateAt": [
+        "PARITY_OBSERVATION",
+        "NEW_READ_PRIMARY"
+      ],
+      "threshold": "CONFIGURABLE",
+      "hardRule": "0 for FINANCIAL_PARITY and SCORING_PARITY, with no tolerance and no rounding"
+    },
+    {
+      "id": "OG-3",
+      "metric": "financialMismatchCount",
+      "gateAt": [
+        "SERVER_WRITE_PRIMARY",
+        "CUTOVER_READY"
+      ],
+      "threshold": "0",
+      "hardRule": "ABORT, not HOLD"
+    },
+    {
+      "id": "OG-4",
+      "metric": "writeErrorRate",
+      "gateAt": [
+        "SERVER_WRITE_CANARY",
+        "SERVER_WRITE_PRIMARY"
+      ],
+      "threshold": "CONFIGURABLE",
+      "baselineRequired": true,
+      "baselineWhy": "an error-rate gate with no pre-migration baseline cannot distinguish a migration regression from the platform's normal noise"
+    },
+    {
+      "id": "OG-5",
+      "metric": "idempotencyConflicts",
+      "gateAt": [
+        "SERVER_WRITE_CANARY"
+      ],
+      "threshold": "CONFIGURABLE",
+      "note": "a nonzero rate is EXPECTED and healthy — it is retries being correctly absorbed. A sudden change is the signal; the absolute number is not."
+    },
+    {
+      "id": "OG-6",
+      "metric": "outboxBacklog",
+      "gateAt": [
+        "outbox delivery enablement"
+      ],
+      "threshold": "CONFIGURABLE"
+    },
+    {
+      "id": "OG-7",
+      "metric": "syncLag",
+      "gateAt": [
+        "result authority switch"
+      ],
+      "threshold": "CONFIGURABLE",
+      "hardRule": "no switch while a sync is in flight (SC-2)"
+    },
+    {
+      "id": "OG-8",
+      "metric": "authorizationDenials",
+      "gateAt": [
+        "every state from SERVER_WRITE_CANARY"
+      ],
+      "threshold": "CONFIGURABLE",
+      "note": "a SPIKE means a legitimate path broke; a slow rise from zero on financial tables means something is probing. Both matter and they mean opposite things, so the metric must be split by table and principal or it says nothing."
+    },
+    {
+      "id": "OG-9",
+      "metric": "scoringMismatch",
+      "gateAt": [
+        "predictions and results promotion"
+      ],
+      "threshold": "0",
+      "hardRule": "ABORT"
+    },
+    {
+      "id": "OG-10",
+      "metric": "legacyReadCount",
+      "gateAt": [
+        "CONTRACT_ELIGIBLE"
+      ],
+      "threshold": "0 sustained for longer than the longest plausible session",
+      "hardRule": "without this measurement the contract step is a guess, and the previous plan had no metric for it at all"
+    }
+  ],
+  "abortCriteria": [
+    {
+      "id": "AC-1",
+      "condition": "any financial mismatch, of any magnitude",
+      "action": "ABORT",
+      "why": "there is no small money error. A one-cent discrepancy and a hundred-dollar one are the same bug seen at different scale."
+    },
+    {
+      "id": "AC-2",
+      "condition": "any scoring mismatch",
+      "action": "ABORT",
+      "why": "real money is paid on rank"
+    },
+    {
+      "id": "AC-3",
+      "condition": "an authorization regression — anything reachable that was not reachable before",
+      "action": "ABORT",
+      "why": "a migration is not a reason to widen access, and a widening discovered later is indistinguishable from a breach"
+    },
+    {
+      "id": "AC-4",
+      "condition": "unexpected schema drift — live schema does not match the expected state",
+      "action": "ABORT",
+      "why": "every subsequent gate is evaluating something other than what it thinks it is"
+    },
+    {
+      "id": "AC-5",
+      "condition": "a backfill conflict a transformer classifies as CONFLICT or FATAL",
+      "action": "ABORT",
+      "why": "the transformer's severity taxonomy exists so this decision is not taken under time pressure"
+    },
+    {
+      "id": "AC-6",
+      "condition": "outbox duplication — one business operation with two delivered notifications",
+      "action": "ABORT",
+      "why": "the damage is external and irreversible; a sent email is sent"
+    },
+    {
+      "id": "AC-7",
+      "condition": "a critical error-rate spike above baseline",
+      "action": "ABORT"
+    },
+    {
+      "id": "AC-8",
+      "condition": "unrecognized stale-client behaviour — an old client doing something the matrix does not predict",
+      "action": "ABORT",
+      "why": "the matrix is the whole basis for believing old tabs are safe. A tab outside it means the basis is wrong, and the next unpredicted behaviour may be the corrupting one."
+    },
+    {
+      "id": "AC-9",
+      "condition": "the idempotency store is unavailable or its records were pruned within the retention window",
+      "action": "ABORT",
+      "why": "WS13-OP-2: expiration must not enable replay of a completed financial request. An unavailable idempotency store converts every retry into a possible double-write."
+    }
+  ],
+  "idempotencyRetention": {
+    "decision": "WS13-OP-2",
+    "classification": "POLICY_CONFIGURABLE",
+    "rule": "retention must outlive the practical dispute and retry window; no short period is hardcoded",
+    "defaults": {
+      "ordinary": "90 days",
+      "moneyBearingOrDisputeRelevant": "indefinite until an exact business or legal dispute period is established"
+    },
+    "noPrematureDeletion": "no automatic deletion of a money-bearing idempotency record. Pruning is an explicit, audited operation over a named set.",
+    "replayRule": "expiration must never enable replay of a previously completed financial request. Where a record has been pruned, a retry of a money-bearing request is REFUSED rather than executed — the safe answer to 'did this already happen?' when the answer is unknown is not 'do it again'.",
+    "choreographyConsequence": "AC-9 aborts the migration if the store is unavailable, because the whole exactly-once-effect argument rests on it"
+  },
+  "readinessMatrix": {
+    "$comment": "WS5.43. DRAFT_READY applies only to M1–M10; M11–M17 have no SQL and correctly show n/a.",
+    "columns": [
+      "DRAFT_READY",
+      "BACKFILL_READY",
+      "RLS_READY",
+      "WRITE_CONTRACT_READY",
+      "CUTOVER_READY",
+      "ROLLBACK_DEFINED",
+      "RESTORE_REHEARSED",
+      "OPERATOR_DECISION_OPEN"
+    ],
+    "rows": {
+      "M1": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M2": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0",
+          "WS12-OP-2 linkage rollout"
+        ]
+      },
+      "M3": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M4": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M5": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M6": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M7": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M8": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "n/a",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M9": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0",
+          "L-OP-3 financial parity minimums"
+        ],
+        "note": "the highest-risk backfill in the programme: asserted payments, zero allocations"
+      },
+      "M10": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ]
+      },
+      "M11": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "YES",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "R-GAP-1",
+          "WS13-OP-2 retention"
+        ],
+        "note": "no SQL draft by design — this is a runtime deployment"
+      },
+      "M12": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "n/a",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "n/a",
+        "OPERATOR_DECISION_OPEN": [
+          "L-OP-3"
+        ]
+      },
+      "M13": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "NO",
+        "WRITE_CONTRACT_READY": "YES",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "L-OP-1",
+          "L-OP-2"
+        ],
+        "note": "RLS_READY=NO: the fence needs a legacy-document write-denial policy that model/rls_model.json does not yet contain — it covers the TARGET tables only. Recorded as WS5-F4."
+      },
+      "M14": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "n/a",
+        "WRITE_CONTRACT_READY": "YES",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "L-OP-3"
+        ]
+      },
+      "M15": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "n/a",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "n/a",
+        "OPERATOR_DECISION_OPEN": []
+      },
+      "M16": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "n/a",
+        "WRITE_CONTRACT_READY": "YES",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "L-OP-2 client floor"
+        ],
+        "note": "destructive; the only phase flagged destructive in the plan"
+      },
+      "M17": {
+        "DRAFT_READY": "n/a",
+        "BACKFILL_READY": "n/a",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "YES",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "n/a",
+        "OPERATOR_DECISION_OPEN": [
+          "R-GAP-1"
+        ]
+      },
+      "DDL-M11": {
+        "DRAFT_READY": "YES",
+        "BACKFILL_READY": "YES",
+        "RLS_READY": "YES",
+        "WRITE_CONTRACT_READY": "YES",
+        "CUTOVER_READY": "NO",
+        "ROLLBACK_DEFINED": "YES",
+        "RESTORE_REHEARSED": "NO",
+        "OPERATOR_DECISION_OPEN": [
+          "M0"
+        ],
+        "note": "league classification. Namespaced DDL-M11 rather than a bare M11, because model/migration_phases.json already uses M11 for write_through_via_server_mediated_writes and two schemes already both claim M1-M10 (BATCH-G-OP-1). Closes BATCH-H-OP-1: br2026 scoring inputs can now round-trip."
+      }
+    },
+    "programmeBlockers": [
+      {
+        "id": "M0",
+        "blocks": "everything",
+        "status": "PREPARED_NOT_EXECUTED"
+      },
+      {
+        "id": "RESTORE_REHEARSED",
+        "blocks": "every phase",
+        "status": "NO for all phases",
+        "why": "no restore rehearsal has been performed against production-shaped data. Until one has, every rollback classified DATA_RESTORE_REQUIRED is an intention rather than a capability — and that includes the LEGACY_RETIRED rollback."
+      },
+      {
+        "id": "R-GAP-1",
+        "blocks": "any claim of DB-native operator authentication",
+        "status": "OPEN"
+      },
+      {
+        "id": "WS5-F4",
+        "blocks": "M13 the fence",
+        "status": "OPEN — no legacy-document write-denial policy is modelled"
+      }
+    ]
+  },
+  "goNoGo": [
+    {
+      "id": "GNG-1",
+      "question": "is M0 resolved and the baseline registered?",
+      "evidence": "the ledger state, read directly",
+      "blocking": true,
+      "current": "NO — PREPARED_NOT_EXECUTED"
+    },
+    {
+      "id": "GNG-2",
+      "question": "has a restore been rehearsed and verified against production-shaped data?",
+      "evidence": "a rehearsal report with a measured RTO",
+      "blocking": true,
+      "current": "NO"
+    },
+    {
+      "id": "GNG-3",
+      "question": "does the live schema match the expected pre-migration state exactly?",
+      "evidence": "acceptance_checks.mjs EXPECTED_STRUCTURE against a fresh dump",
+      "blocking": true
+    },
+    {
+      "id": "GNG-4",
+      "question": "are the RLS negative fixtures proven to DENY, not merely to permit?",
+      "evidence": "the WS12 adversarial harness",
+      "blocking": true
+    },
+    {
+      "id": "GNG-5",
+      "question": "is exactly-once effect proven for every money-bearing contract, including the after-commit-before-response window?",
+      "evidence": "WS13 fault injection",
+      "blocking": true
+    },
+    {
+      "id": "GNG-6",
+      "question": "do all three apps' scoring audits pass, and does SCORING_PARITY hold on both representations?",
+      "evidence": "audit_scoring.py x3 plus scoring_parity.mjs",
+      "blocking": true
+    },
+    {
+      "id": "GNG-7",
+      "question": "is a stale-client refusal path deployed, distinguishable from a transient error, and verified?",
+      "evidence": "the stale-browser simulation plus a deployed CLIENT_TOO_OLD path",
+      "blocking": true
+    },
+    {
+      "id": "GNG-8",
+      "question": "is the observability baseline captured, so that a gate can tell a regression from normal noise?",
+      "evidence": "pre-migration metric baselines",
+      "blocking": true
+    },
+    {
+      "id": "GNG-9",
+      "question": "are L-OP-1, L-OP-2 and L-OP-3 decided?",
+      "evidence": "an operator decision record",
+      "blocking": true,
+      "current": "NO — all three open"
+    },
+    {
+      "id": "GNG-10",
+      "question": "is the legacy-document write-denial mechanism designed and modelled?",
+      "evidence": "an RLS or privilege model covering the legacy tables",
+      "blocking": true,
+      "current": "NO — WS5-F4"
+    },
+    {
+      "id": "GNG-11",
+      "question": "does every domain have a declared race strategy with a named watermark?",
+      "evidence": "this file's domains[].raceStrategy",
+      "blocking": true,
+      "current": "YES"
+    },
+    {
+      "id": "GNG-12",
+      "question": "is the timing window clear of SC-1 through SC-6?",
+      "evidence": "checked state, not a calendar",
+      "blocking": true
+    },
+    {
+      "id": "GNG-13",
+      "question": "does the existence of SQL files constitute readiness?",
+      "answer": "NO. This question is in the list to be answered no.",
+      "blocking": false
+    }
+  ],
+  "findings": [
+    {
+      "id": "WS5-F1",
+      "severity": "HIGH",
+      "title": "the client floor was sequenced after the freeze",
+      "found": "ZERO_DOWNTIME_STRATEGY §8 places 'enforce the hard client floor' at step 9, after the freeze at step 5 and the cutover at step 7",
+      "why": "the floor's purpose is to stop old tabs reading a representation that has gone stale. Enforcing it after the document stops being written means every still-open tab is served silently wrong data for the whole interval. The protection was scheduled after the harm.",
+      "resolution": "the floor is raised at deploymentOrder step 17, before the freeze at step 19. LEGACY_FROZEN's old-client READ classification is READ_ONLY rather than SAFE to record why.",
+      "regressionTest": "an illegal transition test: LEGACY_FROZEN → CONTRACT_ELIGIBLE is refused unless hardClientFloorEnforced"
+    },
+    {
+      "id": "WS5-F2",
+      "severity": "HIGH",
+      "title": "the freeze was described as a feature flag and as a database control in the same document",
+      "found": "§5's flag table lists LEGACY_WRITES_ENABLED as a client-readable flag; FS-4 states that a UI-only freeze is not a freeze",
+      "why": "both statements are true of different mechanisms, but the document never says there are two. An operator reading the flag table would believe flipping the flag closes the fence. It does not: a stale tab holds the anon key and never re-reads the flag.",
+      "resolution": "legacy_writes_allowed is documented as the UX half only, with the enforcement explicitly named as a database privilege denial. FR-6 encodes it. The rollback cost is corrected from 'flag flip' to 'GRANT', which is a production privilege write.",
+      "regressionTest": "FR-6 fires when legacy_writes_allowed=false without the database-side denial"
+    },
+    {
+      "id": "WS5-F3",
+      "severity": "MEDIUM",
+      "title": "'LEGACY_FROZEN' conflated two different states",
+      "found": "the phase plan's M13 legacy_freeze_window and M16's stop-dual-write were both describable as 'the freeze', and OI-4 requires the freeze to precede cutover while the mirror must OUTLIVE cutover",
+      "why": "read as one state it is a contradiction: the freeze must be both before and after the read cutover. The two are distinct — denying browser writes to the document, and ceasing to write the document at all.",
+      "resolution": "split into LEGACY_WRITE_DISABLED (M13, before the read cutover, preserves the cheap rollback) and LEGACY_FROZEN (M16, after, forfeits it). OI-4 is satisfied by the first; the mirror survives until the second.",
+      "regressionTest": "LEGACY_WRITE_DISABLED must precede NEW_READ_PRIMARY, and LEGACY_FROZEN must follow it"
+    },
+    {
+      "id": "WS5-F4",
+      "severity": "HIGH",
+      "title": "no model covers denying writes to the legacy document",
+      "found": "model/rls_model.json's 81 policies cover the 21 TARGET entities. The fence operates on public.bolao_state, which has no policy in the model.",
+      "why": "the fence is the single control that makes the normalized representation complete, and it is the one control with no design artefact. Every gate downstream of it assumes it works.",
+      "resolution": "recorded as an open blocker in readinessMatrix.programmeBlockers and GNG-10 rather than silently designed here — the legacy policies are live production objects and inventing a replacement for them without reading them first is how the TRUNCATE exposure happened.",
+      "regressionTest": "a readiness test asserting M13.RLS_READY is NO while no legacy-table policy is modelled"
+    },
+    {
+      "id": "WS5-F5",
+      "severity": "MEDIUM",
+      "title": "a parity run over an idle domain was treated as evidence",
+      "found": "L-OP-3 was framed purely as 'N consecutive clean runs'",
+      "why": "a clean run over a domain nobody wrote to during the window proves the backfill copied faithfully. It says nothing about whether the live write path stays at parity — which is the actual question before a write cutover.",
+      "resolution": "observationWindows.requiresChangeDuringWindow and parityRunOptions.vacuityRule. A window with zero mutations for a domain that has a live writer counts as NO EVIDENCE, not as a pass.",
+      "regressionTest": "the promotion evaluator HOLDs on a window with clean runs and zero mutations"
+    },
+    {
+      "id": "WS5-F6",
+      "severity": "MEDIUM",
+      "title": "a created_at watermark would silently miss corrected results",
+      "found": "the generic backfill guidance offered created_at as a watermark",
+      "why": "a match result corrected in place carries no new created_at. The delta pass would skip it, the normalized representation would keep the superseded result, and scoring would diverge — from a bug whose only symptom is a wrong rank.",
+      "resolution": "domains.results uses SYNC_WATERMARK (the sync cursor plus a content fingerprint). CREATED_AT_WATERMARK is explicitly rejected for this platform, with the reason recorded.",
+      "regressionTest": "a delta-pass test where a result is corrected in place with no created_at change"
+    },
+    {
+      "id": "WS5-F7",
+      "severity": "HIGH",
+      "title": "cross-app participant duplication caused by the migration itself",
+      "found": "the participant backfill is idempotent on its natural key, but nothing stated that the key is global rather than per-app",
+      "why": "migrating copa2026 first creates participants. Migrating br2026 later, keyed per app, would create a SECOND row for the same person — the platform's duplicate-identity problem, manufactured by the tool built to normalize it, and manufactured silently.",
+      "resolution": "XH-1: the participant natural key is global across apps. A later app's backfill must find and reuse the earlier app's row.",
+      "regressionTest": "a two-app backfill simulation asserting one participant row for a person present in both apps"
+    },
+    {
+      "id": "WS5-F9",
+      "severity": "MEDIUM",
+      "title": "two different populations of stale client were treated as one",
+      "found": "the stale-browser simulation applied both the old-client matrix and the write-shape adapter to the same request, and they disagreed: the matrix refused it while the adapter declared it losslessly adaptable",
+      "why": "they govern different populations. A tab that predates the trusted runtime writes the document directly and is stopped by a DATABASE PRIVILEGE, which no adapter can override. A tab that reaches the runtime with an older envelope is never subject to the fence at all. Conflating them made the adapter look capable of defeating the fence — and an adapter believed to defeat a privilege denial is how the fence quietly stops being a fence.",
+      "resolution": "writePath is now an explicit input ('legacy' or 'contract'). The matrix governs legacy-path attempts and its refusal is absolute; the shape classifier governs contract-path attempts. The simulation asserts that no legacy-path write survives the fence.",
+      "regressionTest": "a legacy-path write at LEGACY_WRITE_DISABLED must be refused even when its shape is perfectly adaptable"
+    },
+    {
+      "id": "WS5-F10",
+      "severity": "LOW",
+      "title": "the write-shape classifier would have adapted an operator action",
+      "found": "classifyWriteShape took no operation argument, so an under-floor admin request with no missing fields was classified ADAPT",
+      "why": "the client-floor design already says operator actions are never adapted — an adapted admin action is an action nobody specified, and unlike a participant mid-entry the operator has nothing to lose by reloading. The code did not implement the rule it was written next to.",
+      "resolution": "classifyWriteShape takes the operation and rejects ADMIN_ACTION below the floor unconditionally",
+      "regressionTest": "an under-floor ADMIN_ACTION with no missing fields is REJECT, not ADAPT"
+    },
+    {
+      "id": "WS5-F8",
+      "severity": "LOW",
+      "title": "DOMAIN_SPECIFIC_FREEZE was offered as an option it is not",
+      "found": "the freeze options list included per-domain freezing as a genuine choice",
+      "why": "the fence is a privilege on the legacy document, which is one jsonb row containing every domain. No privilege denies 'writes to the payments part of a row'. Offering it as an option invites an operator to choose something that cannot be built at the point it is needed.",
+      "resolution": "marked NOT AVAILABLE with the structural reason, rather than left as a plausible-looking option"
+    }
+  ],
+  "consistencyReconciliation": {
+    "$comment": "WS5.48 — one cutover order, stated once. Where WS5 supersedes an earlier document, the earlier statement and the reason are named.",
+    "authoritativeOrder": "deploymentOrder in this file",
+    "reconciled": [
+      {
+        "document": "ZERO_DOWNTIME_STRATEGY.md §8",
+        "status": "SUPERSEDED_IN_PART",
+        "what": "the client floor moves from step 9 to before the freeze (WS5-F1); 'the freeze' is split into two states (WS5-F3); the freeze's rollback is a GRANT, not a flag flip (WS5-F2)",
+        "unchanged": "expand/contract rules, schema-change safety table, backfill batching properties, FS-1..FS-8, and the justification for a single-transaction mirror all stand"
+      },
+      {
+        "document": "model/migration_phases.json",
+        "status": "CONSISTENT",
+        "what": "M0–M17 and OI-1..OI-8 are unchanged. WS5 adds the state machine over them; OI-4's 'freeze before cutover' is satisfied by LEGACY_WRITE_DISABLED preceding NEW_READ_PRIMARY."
+      },
+      {
+        "document": "WS6 backfill framework",
+        "status": "CONSISTENT",
+        "what": "bulk/delta/final passes and OUTBOX_BACKFILL_DECISION are carried forward unchanged; WS5 adds the per-domain watermark choice and rejects created_at generally (WS5-F6)"
+      },
+      {
+        "document": "WS7 transformers",
+        "status": "CONSISTENT",
+        "what": "coverage classes drive what VALUE_PARITY compares; the money-ambiguity-is-FATAL rule drives the adapter rule and AC-5"
+      },
+      {
+        "document": "WS12 RLS model",
+        "status": "CONSISTENT_WITH_A_GAP",
+        "what": "the activation sequence uses the modelled policies; WS12-OP-1 and WS12-OP-2 are carried into rlsActivationSequence. The gap is WS5-F4: no legacy-document policy is modelled."
+      },
+      {
+        "document": "WS13 write contracts",
+        "status": "CONSISTENT",
+        "what": "the contracts are the write path from SERVER_WRITE_CANARY onward; WS13-OP-1's allowlist is ADM-1, WS13-OP-2 is idempotencyRetention, WS13-OP-3 is FIN-5. The lock order and isolation stance are unchanged."
+      },
+      {
+        "document": "REPORTING_MODEL.md",
+        "status": "EXTENDED",
+        "what": "reportingCutover adds the four-step sequence and the asserted-payment labelling requirement, which the reporting model did not address"
+      },
+      {
+        "document": "ADR-009 server-mediated-writes",
+        "status": "CONSISTENT",
+        "what": "writeMirroring reaches the same conclusion and adds that a browser-side dual-write is not merely undesirable but unavailable — a browser cannot wrap a document update and N inserts in one transaction"
+      }
+    ]
+  },
+  "adversarialReview": [
+    {
+      "lens": "DBA",
+      "attack": "CREATE INDEX CONCURRENTLY fails at M15 and leaves an invalid index that is maintained on every write but never used",
+      "outcome": "control exists — check indisvalid after each build, DROP CONCURRENTLY and retry",
+      "status": "COVERED"
+    },
+    {
+      "lens": "DBA",
+      "attack": "the backfill runs as one long transaction, holding xmin back and blocking autovacuum database-wide",
+      "outcome": "batches of 500–2000 rows, each its own transaction",
+      "status": "COVERED"
+    },
+    {
+      "lens": "SRE",
+      "attack": "the runbook's step numbering is the only thing enforcing that the deployment precedes the revoke; an operator does step 11 before step 10",
+      "outcome": "FBS-10 — a total write outage. The guard writeContractsDeployed and FR-13 make the ordering machine-checkable rather than clerical.",
+      "status": "FIXED_BY_GUARD"
+    },
+    {
+      "lens": "SRE",
+      "attack": "an error-rate gate with no baseline: the migration's normal noise reads as a regression, or a real regression hides inside normal noise",
+      "outcome": "OG-4 requires a captured pre-migration baseline; GNG-8 blocks without it",
+      "status": "COVERED"
+    },
+    {
+      "lens": "security engineer",
+      "attack": "a table is created and granted, and RLS is enabled in a later migration",
+      "outcome": "FBS-9 — an exposure window of unknown duration. Fixed by putting ENABLE RLS in the same migration as CREATE and issuing no grant until the negative fixtures pass.",
+      "status": "FIXED_BY_ORDERING"
+    },
+    {
+      "lens": "security engineer",
+      "attack": "the client capability token is used to decide whether an operation is allowed",
+      "outcome": "refused by design — capabilities decide parsing, never permission. A lying client gets a different parser, not a privilege.",
+      "status": "COVERED"
+    },
+    {
+      "lens": "security engineer",
+      "attack": "the trusted runtime is compromised and forges operator_evidence",
+      "outcome": "NOT PREVENTED. R-GAP-1 is open; RLS does not mitigate a service-role compromise and this design does not claim it does. The compensating control is detection and reversal: append-only hash-chained audit plus reversible merges.",
+      "status": "ACCEPTED_RISK_DOCUMENTED"
+    },
+    {
+      "lens": "financial controller",
+      "attack": "a payment arrives during the backfill and is never picked up",
+      "outcome": "the delta pass keyed on asserted_for_pool_entry_id catches it; FIN-9 requires zero unresolved delta at promotion",
+      "status": "COVERED_AND_SIMULATED"
+    },
+    {
+      "lens": "financial controller",
+      "attack": "a pre-migration asserted payment appears in a financial report as a reconciled, allocated one",
+      "outcome": "reportingCutover.assertedPaymentCaveat requires the label. The legacy document never recorded which money paid for which entry, and a report must not imply that it did.",
+      "status": "FIXED_BY_LABELLING"
+    },
+    {
+      "lens": "financial controller",
+      "attack": "the migration happens between a pool concluding and its prizes being paid",
+      "outcome": "SC-4 blocks it — the window in which humans read the numbers to move real money",
+      "status": "COVERED"
+    },
+    {
+      "lens": "frontend engineer with a stale client",
+      "attack": "a tab open for three days submits an old-shaped prediction after the fence closes",
+      "outcome": "rejected with CLIENT_TOO_OLD, distinguishable from a transient error, never partially applied. Adapted instead where the adaptation is lossless.",
+      "status": "COVERED_AND_SIMULATED"
+    },
+    {
+      "lens": "frontend engineer with a stale client",
+      "attack": "the tab retries the rejection forever because the refusal looks transient",
+      "outcome": "the refusal must be distinguishable; deploymentOrder step 10 proves the error path before step 11 denies anything",
+      "status": "FIXED_BY_ORDERING"
+    },
+    {
+      "lens": "operator making a mistake",
+      "attack": "normalized_reads_enabled is flipped on for a domain whose backfill is still running",
+      "outcome": "FR-3 refuses; the state machine refuses DOMAIN_BACKFILLING → NEW_READ_PRIMARY",
+      "status": "COVERED"
+    },
+    {
+      "lens": "operator making a mistake",
+      "attack": "the outbox delivery flag is enabled 'to see if it works'",
+      "outcome": "FR-7 and FR-8 refuse. This is the one failure whose damage is external and unrecoverable, so it has two independent rules rather than one.",
+      "status": "COVERED"
+    },
+    {
+      "lens": "operator making a mistake",
+      "attack": "a rollback to legacy reads is attempted after LEGACY_FROZEN",
+      "outcome": "refused — the illegal transition LEGACY_FROZEN → LEGACY_READ_FALLBACK, and FR-11 requires legacy_read_fallback=false before the freeze so the capability is disarmed rather than merely unused",
+      "status": "COVERED"
+    },
+    {
+      "lens": "operator making a mistake",
+      "attack": "'all the SQL files exist, so we are ready'",
+      "outcome": "GNG-13 answers no; readiness is evidence, and RESTORE_REHEARSED is NO for every phase",
+      "status": "COVERED"
+    }
+  ]
+}

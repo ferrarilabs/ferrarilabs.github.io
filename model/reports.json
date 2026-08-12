@@ -1,0 +1,728 @@
+{
+  "meta": {
+    "workstream": "G",
+    "purpose": "Read model for every report the platform must serve. Machine-readable so that Workstream V can derive the index strategy from ACTUAL access patterns rather than from guesses, and so that RLS and PII posture per report is reviewable in one place.",
+    "status": "DESIGN_ONLY — no view, materialized view or index has been created anywhere",
+    "conventions": {
+      "grain": "one row of the report output represents exactly this",
+      "materialization": "QUERY = ad hoc; VIEW = named view; MATVIEW = materialized, needs a refresh story",
+      "piiExposure": "NONE | PSEUDONYMOUS | CONTACT | FINANCIAL — the strongest class any output column carries",
+      "rls": "who may read the report at all; financial and cross-participant reports are operator-only",
+      "settlementRule": "every settlement figure is DERIVED from payment_allocations; no report may read a stored settlement value",
+      "rlsRoles": "MACHINE-READABLE list of roles permitted to read the report: anon | authenticated | operator | service. Checked by the validator. rlsNotes is human prose and is NEVER pattern-matched — regexing prose produced a false positive on the phrase 'never exposed to anon', and a checker that reads English is a checker that reports noise.",
+      "monetaryMeasures": "EXPLICIT list of measures that carry money. Declared, never inferred from the name: a keyword scan for 'total' matched total_points and entries_total and wrongly demanded a currency dimension on three points-based reports. Counts, points and positions are not money, and no regex over English measure names can reliably tell the difference."
+    },
+    "indexRedundancyResolved": "Two left-prefix redundancies found by the derivation were resolved at the source rather than merely reported: pool_entries(participant_id) folded into (participant_id, pool_id), and pool_entries(pool_id) into (pool_id, deleted_at). Keeping both members of a prefix pair pays write cost twice for one read path."
+  },
+  "reports": [
+    {
+      "id": "R-01",
+      "name": "participant_history",
+      "question": "Everything this participant has ever done on the platform.",
+      "grain": "one row per (participant, pool_entry) per currency",
+      "dimensions": [
+        "participant_id",
+        "display_name",
+        "competition_id",
+        "competition_edition_id",
+        "pool_id",
+        "entry_label",
+        "created_at",
+        "currency"
+      ],
+      "measures": [
+        "entry_count",
+        "total_expected_fee",
+        "total_allocated",
+        "total_won"
+      ],
+      "joins": [
+        "participants → pool_entries → pools → competition_editions → competitions",
+        "LEFT JOIN payment_allocations",
+        "LEFT JOIN prize_allocations"
+      ],
+      "filters": [
+        "participant_id = :id",
+        "canonical identity resolved first (a superseded id must return the surviving identity's history)"
+      ],
+      "piiExposure": "CONTACT",
+      "indexes": [
+        "pool_entries(participant_id, pool_id)",
+        "prize_allocations(participant_id)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "MUST resolve canonical identity before filtering, or a merged participant's history appears empty. This is the most likely reporting bug in the whole set. Grain includes currency: a money aggregate without it would sum across currencies, which the financial engine refuses as wrong rather than approximate.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; a participant-facing variant must be a separate projection restricted to their own canonical id",
+      "monetaryMeasures": [
+        "total_expected_fee",
+        "total_allocated",
+        "total_won"
+      ]
+    },
+    {
+      "id": "R-02",
+      "name": "pool_participation",
+      "question": "Who is in this pool, and what is each entry's standing?",
+      "grain": "one row per pool_entry per currency",
+      "dimensions": [
+        "pool_id",
+        "pool_entry_id",
+        "participant_id",
+        "display_name",
+        "entry_label",
+        "created_at",
+        "deleted_at",
+        "currency"
+      ],
+      "measures": [
+        "expected_fee",
+        "allocated",
+        "settlement_status_derived"
+      ],
+      "joins": [
+        "pools → pool_entries → participants",
+        "LEFT JOIN payment_allocations"
+      ],
+      "filters": [
+        "pool_id = :id",
+        "deleted_at IS NULL unless :include_withdrawn"
+      ],
+      "piiExposure": "CONTACT",
+      "indexes": [
+        "pool_entries(pool_id, deleted_at)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "Soft-deleted entries must be excluded by default — a withdrawn entry appearing in a pool list has previously been reported as a live bug class. Grain includes currency because expected_fee and allocated are money.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; public variant exposes display_name only, never email",
+      "monetaryMeasures": [
+        "expected_fee",
+        "allocated"
+      ]
+    },
+    {
+      "id": "R-03",
+      "name": "competition_history",
+      "question": "Every edition of a competition and its pools.",
+      "grain": "one row per (competition_edition, pool) per currency",
+      "dimensions": [
+        "competition_id",
+        "competition_edition_id",
+        "season_label",
+        "pool_id",
+        "status",
+        "currency"
+      ],
+      "measures": [
+        "entry_count",
+        "distinct_participant_count",
+        "collected_total",
+        "prizes_awarded_total"
+      ],
+      "joins": [
+        "competitions → competition_editions → pools → pool_entries"
+      ],
+      "filters": [
+        "competition_id = :id"
+      ],
+      "piiExposure": "NONE",
+      "indexes": [
+        "competition_editions(competition_id)",
+        "pools(competition_edition_id)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "distinct_participant_count must count CANONICAL participants, otherwise a pre-merge duplicate inflates the headline number. Grain includes currency: a money aggregate without it would sum across currencies, which the financial engine refuses as wrong rather than approximate.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; safe to expose as an aggregate public projection",
+      "monetaryMeasures": [
+        "collected_total",
+        "prizes_awarded_total"
+      ]
+    },
+    {
+      "id": "R-04",
+      "name": "multiple_entries",
+      "question": "Which participants hold more than one entry in the same pool?",
+      "grain": "one row per (participant, pool) with entry_count > 1",
+      "dimensions": [
+        "pool_id",
+        "participant_id",
+        "display_name"
+      ],
+      "measures": [
+        "entry_count",
+        "labels"
+      ],
+      "joins": [
+        "pool_entries → participants"
+      ],
+      "filters": [
+        "deleted_at IS NULL",
+        "HAVING count(*) > 1"
+      ],
+      "piiExposure": "CONTACT",
+      "indexes": [
+        "pool_entries(participant_id, pool_id)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "Multiple entries are LEGITIMATE (this is why there is no unique constraint on (participant, pool) — see the M-3 supersession). This report is for review, not for enforcement. Rule DQ-ST-04 catches the accidental case: same label.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator",
+      "monetaryMeasures": []
+    },
+    {
+      "id": "R-05",
+      "name": "payment_history",
+      "question": "Every payment recorded, by whom, how, and when.",
+      "grain": "one row per payment",
+      "dimensions": [
+        "payment_id",
+        "payer_participant_id",
+        "payer_display_name",
+        "method",
+        "kind",
+        "received_at",
+        "currency"
+      ],
+      "measures": [
+        "amount",
+        "allocated_total",
+        "unapplied_balance_derived"
+      ],
+      "joins": [
+        "payments → participants (payer)",
+        "LEFT JOIN payment_allocations"
+      ],
+      "filters": [
+        "received_at BETWEEN :from AND :to",
+        "kind = :kind"
+      ],
+      "piiExposure": "FINANCIAL",
+      "indexes": [
+        "payments(payer_participant_id)",
+        "payments(paid_at)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "external_reference must NOT appear in any shared export. Legacy rows have amount IS NULL (LEGACY_ASSERTED); the report must render that as 'asserted, amount unknown', never as 0 — rendering it as 0 would understate cash collected.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator ONLY — never exposed to anon or authenticated",
+      "monetaryMeasures": [
+        "amount",
+        "allocated_total",
+        "unapplied_balance_derived"
+      ]
+    },
+    {
+      "id": "R-06",
+      "name": "payment_allocations",
+      "question": "How was each payment split across entries?",
+      "grain": "one row per payment_allocation",
+      "dimensions": [
+        "allocation_id",
+        "payment_id",
+        "pool_entry_id",
+        "pool_id",
+        "participant_id",
+        "currency",
+        "allocated_at"
+      ],
+      "measures": [
+        "allocated_amount"
+      ],
+      "joins": [
+        "payment_allocations → payments",
+        "payment_allocations → pool_entries → participants"
+      ],
+      "filters": [
+        "payment_id = :id OR pool_entry_id = :id"
+      ],
+      "piiExposure": "FINANCIAL",
+      "indexes": [
+        "payment_allocations(payment_id)",
+        "payment_allocations(pool_entry_id)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "This report is the audit trail for one payment funding several entries. Currency must match payment and entry (DQ-FN-05); a mismatch is a data defect, not a display issue.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": [
+        "allocated_amount"
+      ]
+    },
+    {
+      "id": "R-07",
+      "name": "unpaid_balances",
+      "question": "Which entries have received nothing?",
+      "grain": "one row per pool_entry with settlement = UNPAID",
+      "dimensions": [
+        "pool_id",
+        "pool_entry_id",
+        "participant_id",
+        "display_name",
+        "email",
+        "currency"
+      ],
+      "measures": [
+        "expected_fee",
+        "outstanding"
+      ],
+      "joins": [
+        "pool_entries → participants",
+        "LEFT JOIN payment_allocations"
+      ],
+      "filters": [
+        "derived settlement = 'unpaid'",
+        "deleted_at IS NULL"
+      ],
+      "piiExposure": "CONTACT",
+      "indexes": [
+        "payment_allocations(pool_entry_id)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "LEGACY_ASSERTED entries must be EXCLUDED from this report and reported separately (R-07b concern). Chasing a participant who paid years ago for a payment nobody recorded is a real-world harm this report can cause.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": [
+        "expected_fee",
+        "outstanding"
+      ]
+    },
+    {
+      "id": "R-08",
+      "name": "partial_balances",
+      "question": "Which entries are partially funded?",
+      "grain": "one row per pool_entry with settlement = PARTIALLY_PAID",
+      "dimensions": [
+        "pool_id",
+        "pool_entry_id",
+        "participant_id",
+        "display_name",
+        "currency"
+      ],
+      "measures": [
+        "expected_fee",
+        "allocated",
+        "shortfall"
+      ],
+      "joins": [
+        "pool_entries → participants → payment_allocations"
+      ],
+      "filters": [
+        "derived settlement = 'partially_paid'"
+      ],
+      "piiExposure": "CONTACT",
+      "indexes": [
+        "payment_allocations(pool_entry_id)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "shortfall = expected - allocated, exact decimal. Never computed in the client.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": [
+        "expected_fee",
+        "allocated",
+        "shortfall"
+      ]
+    },
+    {
+      "id": "R-09",
+      "name": "overpayments",
+      "question": "Which entries received more than their fee, and which payments have an unapplied balance?",
+      "grain": "one row per pool_entry with settlement = OVERPAID, plus one row per payment with unapplied > 0",
+      "dimensions": [
+        "pool_entry_id",
+        "payment_id",
+        "participant_id",
+        "display_name",
+        "currency"
+      ],
+      "measures": [
+        "expected_fee",
+        "allocated",
+        "excess",
+        "unapplied_balance"
+      ],
+      "joins": [
+        "pool_entries → payment_allocations → payments"
+      ],
+      "filters": [
+        "derived settlement = 'overpaid' OR unapplied_balance > 0"
+      ],
+      "piiExposure": "FINANCIAL",
+      "indexes": [
+        "payment_allocations(pool_entry_id)",
+        "payment_allocations(payment_id)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "OVERPAID is a reportable state, not an error — there is deliberately no cap of allocation against expected fee. An unapplied balance is money held and owed: this report is how it stops being forgotten.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": [
+        "expected_fee",
+        "allocated",
+        "excess",
+        "unapplied_balance"
+      ]
+    },
+    {
+      "id": "R-10",
+      "name": "prizes_and_winnings",
+      "question": "Who won what, in which pool, under which rule version?",
+      "grain": "one row per prize_allocation",
+      "dimensions": [
+        "pool_id",
+        "prize_allocation_id",
+        "pool_entry_id",
+        "participant_id",
+        "display_name",
+        "rank_position",
+        "scoring_rule_version",
+        "declared_at",
+        "currency"
+      ],
+      "measures": [
+        "gross_amount",
+        "paid_amount",
+        "outstanding_prize"
+      ],
+      "joins": [
+        "prize_allocations → pool_entries → participants",
+        "prize_allocations → pools"
+      ],
+      "filters": [
+        "pool_id = :id"
+      ],
+      "piiExposure": "FINANCIAL",
+      "indexes": [
+        "prize_allocations(pool_id)",
+        "prize_allocations(participant_id)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "prize_allocations.participant_id is denormalised for this report; DQ-FN-10 asserts it agrees with the entry, or winnings get attributed to the wrong person.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; a public projection may show display_name + rank + gross, never payment state",
+      "monetaryMeasures": [
+        "gross_amount",
+        "paid_amount",
+        "outstanding_prize"
+      ]
+    },
+    {
+      "id": "R-11",
+      "name": "participant_net_position",
+      "question": "Across everything, is this participant up or down?",
+      "grain": "one row per participant per currency",
+      "dimensions": [
+        "participant_id",
+        "display_name",
+        "currency"
+      ],
+      "measures": [
+        "paid_as_payer",
+        "won_as_participant",
+        "net"
+      ],
+      "joins": [
+        "participants → payments (as payer)",
+        "participants → prize_allocations"
+      ],
+      "filters": [
+        "participant_id = :id",
+        "canonical identity resolved"
+      ],
+      "piiExposure": "FINANCIAL",
+      "indexes": [
+        "payments(payer_participant_id)",
+        "prize_allocations(participant_id)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "Grain is PER CURRENCY, deliberately: summing across currencies is the cross-currency error the financial engine refuses. A single 'net' number across currencies would be meaningless even when USD is the only value present.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": [
+        "paid_as_payer",
+        "won_as_participant",
+        "net"
+      ]
+    },
+    {
+      "id": "R-12",
+      "name": "competition_performance",
+      "question": "How did each entry score in a competition edition?",
+      "grain": "one row per (pool_entry, competition_edition)",
+      "dimensions": [
+        "competition_edition_id",
+        "pool_id",
+        "pool_entry_id",
+        "participant_id",
+        "display_name",
+        "scoring_rule_version"
+      ],
+      "measures": [
+        "total_points",
+        "exact_scores",
+        "correct_advancements",
+        "bonus_points",
+        "final_position"
+      ],
+      "joins": [
+        "pool_entries → predictions → matches → match_results"
+      ],
+      "filters": [
+        "competition_edition_id = :id"
+      ],
+      "piiExposure": "PSEUDONYMOUS",
+      "indexes": [
+        "predictions(pool_entry_id)",
+        "match_results(match_id)"
+      ],
+      "materialization": "MATVIEW",
+      "refresh": "on result recorded, and on demand; never on a timer alone — a stale leaderboard after a result is a visible incorrectness",
+      "notes": "Scoring is computed by the app's own scoring logic, NOT reimplemented in SQL. Workstream N exists to guarantee no migration changes any of these numbers. A SQL reimplementation would be a second source of truth for money.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; public projection is the published ranking only",
+      "monetaryMeasures": []
+    },
+    {
+      "id": "R-13",
+      "name": "ranking_history",
+      "question": "How did the leaderboard change over time?",
+      "grain": "one row per (pool, computed_at, position)",
+      "dimensions": [
+        "pool_id",
+        "computed_at",
+        "position",
+        "pool_entry_id",
+        "participant_id",
+        "display_name",
+        "scoring_rule_version"
+      ],
+      "measures": [
+        "total_points",
+        "position_delta_vs_previous_snapshot"
+      ],
+      "joins": [
+        "ranking_snapshots → pool_entries → participants"
+      ],
+      "filters": [
+        "pool_id = :id",
+        "computed_at BETWEEN :from AND :to"
+      ],
+      "piiExposure": "PSEUDONYMOUS",
+      "indexes": [
+        "ranking_snapshots(pool_id, computed_at)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "position_delta must be computed against a STABLE BASELINE snapshot, not merely the previous row — the BR2026 rule that club movement and participant movement are distinct concepts applies here. Snapshots are never re-pointed after an identity merge (see IDENTITY_MODEL §6): this report shows history as published.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; published snapshots are public",
+      "monetaryMeasures": []
+    },
+    {
+      "id": "R-14",
+      "name": "year_over_year_participation",
+      "question": "Is participation growing, and who returns?",
+      "grain": "one row per (competition, season_label)",
+      "dimensions": [
+        "competition_id",
+        "season_label"
+      ],
+      "measures": [
+        "distinct_participants",
+        "returning_participants",
+        "new_participants",
+        "churned_participants",
+        "entries_total"
+      ],
+      "joins": [
+        "competitions → competition_editions → pools → pool_entries → participants"
+      ],
+      "filters": [
+        "competition_id = :id"
+      ],
+      "piiExposure": "NONE",
+      "indexes": [
+        "pool_entries(pool_id, deleted_at)",
+        "pools(competition_edition_id)"
+      ],
+      "materialization": "MATVIEW",
+      "refresh": "nightly; a day-stale participation trend has no decision attached to it",
+      "notes": "'Returning' is meaningless without canonical identity resolution — an unmerged duplicate reads as a NEW participant every season, which would systematically overstate growth and understate retention. This report is the strongest business argument for Workstream C.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator; aggregate-only public projection is safe",
+      "monetaryMeasures": []
+    },
+    {
+      "id": "R-15",
+      "name": "pool_financial_reconciliation",
+      "question": "For this pool: expected, collected, outstanding, awarded, net.",
+      "grain": "one row per (pool, currency)",
+      "dimensions": [
+        "pool_id",
+        "currency"
+      ],
+      "measures": [
+        "expected_total",
+        "collected_total",
+        "outstanding_total",
+        "prizes_awarded_total",
+        "net_cash_position",
+        "legacy_asserted_entry_count"
+      ],
+      "joins": [
+        "pools → pool_entries → payment_allocations",
+        "pools → prize_allocations"
+      ],
+      "filters": [
+        "pool_id = :id"
+      ],
+      "piiExposure": "FINANCIAL",
+      "indexes": [
+        "payment_allocations(pool_entry_id)",
+        "prize_allocations(pool_id)"
+      ],
+      "materialization": "VIEW",
+      "refresh": "n/a",
+      "notes": "Mirrors poolReconciliation() in financial.mjs exactly; if the two ever disagree, that is a finding. legacy_asserted_entry_count is shown BESIDE the money, never folded into it: those entries have no recoverable amount, so any total that silently includes them is wrong.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": [
+        "expected_total",
+        "collected_total",
+        "outstanding_total",
+        "prizes_awarded_total",
+        "net_cash_position"
+      ]
+    },
+    {
+      "id": "R-16",
+      "name": "audit_history",
+      "question": "What happened, when, by whom, and does the chain verify?",
+      "grain": "one row per audit_event",
+      "dimensions": [
+        "audit_event_id",
+        "occurred_at",
+        "actor_role",
+        "actor_id",
+        "action",
+        "aggregate_type",
+        "aggregate_id",
+        "correlation_id",
+        "request_id",
+        "source"
+      ],
+      "measures": [
+        "chain_verified"
+      ],
+      "joins": [
+        "audit_events → audit_event_details (optional, redactable sidecar)"
+      ],
+      "filters": [
+        "occurred_at BETWEEN :from AND :to",
+        "aggregate_type = :t AND aggregate_id = :id",
+        "correlation_id = :cid"
+      ],
+      "piiExposure": "PSEUDONYMOUS",
+      "indexes": [
+        "audit_events(occurred_at)",
+        "audit_events(aggregate_type, aggregate_id)",
+        "audit_events(correlation_id)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "safe_metadata carries no names, emails, phones or payment references (B1/ADR-008, enforced by DQ-AU-01). chain_verified comes from recomputing the hash chain (DQ-AU-02): an audit log that advertises tamper evidence and cannot verify is worse than none.",
+      "rlsRoles": [
+        "operator"
+      ],
+      "rlsNotes": "operator only",
+      "monetaryMeasures": []
+    },
+    {
+      "id": "R-17",
+      "name": "operational_health",
+      "question": "Is the provider snapshot fresh, and is the outbox delivering?",
+      "grain": "one row per (sync_state) plus one row per outbox status bucket",
+      "dimensions": [
+        "sync_state_id",
+        "competition_edition_id",
+        "provider",
+        "status",
+        "last_success_at",
+        "outbox_status"
+      ],
+      "measures": [
+        "staleness_seconds",
+        "pending_count",
+        "failed_count",
+        "dead_count",
+        "oldest_pending_age_seconds",
+        "p95_attempts_to_success"
+      ],
+      "joins": [
+        "sync_state",
+        "outbox_events → outbox_delivery_attempts"
+      ],
+      "filters": [
+        "staleness_seconds > :threshold",
+        "outbox_status IN ('pending','failed','dead')"
+      ],
+      "piiExposure": "NONE",
+      "indexes": [
+        "outbox_events(status, next_attempt_at)",
+        "sync_state(last_success_at)"
+      ],
+      "materialization": "QUERY",
+      "refresh": "n/a",
+      "notes": "This is the report that turns the platform's worst failure mode — a silently stale provider snapshot, which produces NO signal at all — into something observable. dead_count > 0 means a notification was lost and needs triage, so it must alert rather than merely display.",
+      "rlsRoles": [
+        "operator",
+        "service"
+      ],
+      "rlsNotes": "operator; safe as a service-role health endpoint",
+      "monetaryMeasures": []
+    }
+  ]
+}
