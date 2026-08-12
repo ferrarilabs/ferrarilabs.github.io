@@ -156,16 +156,50 @@ function preflight(backupDir, manifest) {
     gate("G4", "production connection profile absent from the environment", "SKIP", "dry-run");
   }
 
-  // G5 — pg_restore major version must match the archive's producer
+  // G5 — a pg_restore that can READ this archive must be available on this machine
+  //
+  // The question this guard asks is "can this archive be restored HERE", not "is the default
+  // client the right version". Those differ whenever more than one PostgreSQL client is installed,
+  // which is the normal state on a machine that talks to more than one server.
+  //
+  // Measured 2026-08-12: the canonical backup was written by pg_dump 18.4, and the linked client
+  // was 17.10, so G5 failed. Homebrew's versioned formulae are KEG-ONLY — installing
+  // postgresql@18 leaves postgresql@17 linked and undamaged, and puts an 18.4 pg_restore at
+  // /opt/homebrew/opt/postgresql@18/bin. Demanding that the newer client also become the DEFAULT
+  // would force replacing a working installation to satisfy a check, which is the wrong direction.
+  //
+  // So: search candidates, take the first that is new enough, and REPORT WHICH ONE. Reporting the
+  // path is the point — a rehearsal that passes via a client the operator did not know was being
+  // used is not evidence. `PG_RESTORE` overrides everything for the non-Homebrew case.
   const producer = manifest.kv["pg_dump_client_version"] || "";
-  const r = spawnSync("pg_restore", ["--version"], { encoding: "utf8" });
-  const local = (r.stdout || "").match(/(\d+)\.\d+/);
   const producerMajor = producer.split(".")[0];
-  const localMajor = local ? local[1] : null;
+  const candidates = [
+    process.env.PG_RESTORE,
+    "pg_restore",
+    "/opt/homebrew/opt/postgresql@18/bin/pg_restore",
+    "/usr/local/opt/postgresql@18/bin/pg_restore",
+    "/opt/homebrew/opt/libpq/bin/pg_restore",
+  ].filter(Boolean);
+
+  let chosen = null, chosenMajor = null, best = null;
+  for (const bin of candidates) {
+    const out = spawnSync(bin, ["--version"], { encoding: "utf8" });
+    if (out.error || out.status !== 0) continue;
+    const m = (out.stdout || "").match(/(\d+)\.\d+/);
+    if (!m) continue;
+    const major = Number(m[1]);
+    if (best === null || major > best) best = major;
+    if (producerMajor && major >= Number(producerMajor)) { chosen = bin; chosenMajor = major; break; }
+  }
+
   gate("G5", "pg_restore major version can read this archive",
-    localMajor && producerMajor && Number(localMajor) >= Number(producerMajor) ? "PASS" : "FAIL",
-    `archive produced by pg_dump ${producer || "?"}; local pg_restore ${localMajor || "?"}.x — ` +
-    `a custom-format archive cannot be read by an OLDER pg_restore`);
+    chosen ? "PASS" : "FAIL",
+    chosen
+      ? `archive produced by pg_dump ${producer}; using pg_restore ${chosenMajor}.x at ${chosen}`
+      : `archive produced by pg_dump ${producer || "?"}; best available pg_restore ${best ?? "?"}.x — ` +
+        `a custom-format archive cannot be read by an OLDER pg_restore. Install PostgreSQL ` +
+        `${producerMajor || "18"} client tools (keg-only: it will not replace your current one), ` +
+        `or set PG_RESTORE to a compatible binary.`);
 
   // G6 — decryption key available and decryption actually works
   const keyFile = val("--key-file=") || defaultKeyFor(manifest.kv["backup_id"]);
@@ -267,7 +301,19 @@ function runAcceptance(dsn, manifest) {
     }
     let sql = check.sql;
     if (check.binds) for (const [k, v] of Object.entries(check.binds)) sql = sql.replaceAll(`$${k}`, `'${v}'`);
-    const r = spawnSync("psql", [dsn, "-X", "-A", "-t", "-F", "|", "--csv", "-c", sql], { encoding: "utf8" });
+    // `--csv` ALONE. Two flags that used to be here contradicted the parser below, and because the
+    // execute path had never been run against a live target, nothing caught it:
+    //
+    //   -t          suppresses the header row — but the parser reads lines[0] AS the column names,
+    //               so every value came back `undefined` and every check reported a phantom failure.
+    //   -F "|"      sets the CSV field separator to a pipe — but the parser splits on ",", so the
+    //               whole row collapsed into a single column even once the header existed.
+    //
+    // Measured 2026-08-12 during the first real restore rehearsal: A1–A11 reported
+    // "expected 7, got undefined" against a target that had been restored correctly. The data was
+    // fine; the reader was not. A verification path that cannot pass is worse than no verification,
+    // because it trains the operator to read red as normal.
+    const r = spawnSync("psql", [dsn, "-X", "-A", "--csv", "-c", sql], { encoding: "utf8" });
     if (r.status !== 0) {
       results.push({ id: check.id, title: check.title, status: "ERROR", detail: "query failed" });
       continue;
