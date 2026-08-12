@@ -371,6 +371,10 @@
     "bolao/cdb2026/scripts/test_trusted_result_ingestion.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "3 mutacoes reais no call site correto (L838/842/849 de _find_new_legs), todas pegas. A primeira rodada de mutacao atingiu sb_backfill_schedule por engano (mesma linha, duas funcoes) e reportou 3 falsos GATE BLIND -- por isso as mutacoes deste gate sao por NUMERO DE LINHA, nao por texto."
+    },
+    "bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Afirma a SEQUENCIA emit_outbox -> provedor -> settle, nao so a existencia do evento. Cobre desfecho espelhando o ledger, UNCERTAIN terminal, recusa de transporte (providerCalls=0 e obrigacao retentavel). 2 mutacoes reais pegas; a de providerCalls so foi pega depois de adicionar o cenario de RECUSA -- com o transporte sempre aceitando, contar intencao e contar efeito dao o mesmo numero."
     }
   }
 }
