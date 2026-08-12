@@ -50,9 +50,24 @@ echo "  HEAD          $SHA"
 # do rascunho de outra, sem que isso proteja nada.
 SUJOS_RASTREADOS="$(git status --porcelain --untracked-files=no)"
 if [ -n "$SUJOS_RASTREADOS" ]; then
-  echo "  🛑 arquivos RASTREADOS modificados — o pacote descreveria um estado irreproduzível."
-  echo "$SUJOS_RASTREADOS" | head -20
-  exit 1
+  # Escape para checkout COMPARTILHADO por várias sessões.
+  #
+  # O pacote é `git archive HEAD` — lê o COMMIT, nunca a árvore. Então modificação não commitada
+  # de outra sessão não entra nele em nenhuma hipótese. O que se perde não é a integridade do
+  # conteúdo, é a garantia de que a suíte rodou exatamente sobre este commit.
+  #
+  # Essa distinção precisa CHEGAR ao revisor, não morrer num aviso de terminal. Com o escape
+  # ligado, a ressalva vai para o manifesto dentro do zip, com os arquivos nomeados.
+  if [ "${PACOTE_PERMITE_INFLIGHT:-}" = "1" ]; then
+    echo "  ⚠ arquivos rastreados modificados por OUTRA sessão (não entram no pacote):"
+    echo "$SUJOS_RASTREADOS" | sed 's/^/       /' | head -10
+  else
+    echo "  🛑 arquivos RASTREADOS modificados — o pacote descreveria um estado irreproduzível."
+    echo "$SUJOS_RASTREADOS" | head -20
+    echo "     (checkout compartilhado? PACOTE_PERMITE_INFLIGHT=1 gera a partir de HEAD e"
+    echo "      registra a ressalva DENTRO do manifesto)"
+    exit 1
+  fi
 fi
 NAO_RASTREADOS="$(git ls-files --others --exclude-standard)"
 if [ -n "$NAO_RASTREADOS" ]; then
@@ -91,6 +106,17 @@ echo "  arquivos       $(find "$TMP/pkg" -type f | wc -l | tr -d ' ')"
   echo
   echo "Os gates de PII e de segredo do próprio repositório rodaram contra o conteúdo"
   echo "EXTRAÍDO deste pacote, não contra a árvore de trabalho."
+  if [ -n "$SUJOS_RASTREADOS" ]; then
+    echo
+    echo "## Ressalva — trabalho em voo de outra sessão"
+    echo
+    echo "No momento da geração, outra sessão tinha alterações NÃO COMMITADAS nos arquivos"
+    echo "abaixo. Elas NÃO estão neste pacote: o conteúdo vem de \`git archive\` sobre o commit"
+    echo "acima, que é um commit real e publicado. A ressalva é sobre a suíte, não sobre o"
+    echo "conteúdo — a última execução completa pode ter visto a árvore com essas alterações."
+    echo
+    echo "$SUJOS_RASTREADOS" | sed 's/^/    /'
+  fi
 } > "$TMP/pkg/PACKAGE_INFO.md"
 
 # ── VARREDURAS CONTRA O CONTEÚDO EXTRAÍDO ────────────────────────────────────────────────────
