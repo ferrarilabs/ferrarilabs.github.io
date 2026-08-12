@@ -245,6 +245,34 @@ test("e-mail é mascarado no log", lambda: _assert(
 test("e-mail vazio não explode a máscara", lambda: _assert(
     convite.mask_email("") == "(sem e-mail)", "máscara quebrou com entrada vazia"))
 
+# ── o transporte tem de falar a lingua do provedor ──────────────────────────────────────────
+#
+# A primeira tentativa REAL devolveu 403 nos 12 convites. Eu tinha escrito a Origin como a origem
+# canonica de producao (www.ferrarilabs.com); o EmailJS valida Origin contra a allowlist do painel
+# dele, onde consta ferrarilabs.github.io. Origem certa para o LINK, errada para o provedor.
+#
+# O gate compara com os senders que JA entregaram, em vez de repetir a constante -- assim ele
+# continua valendo se o valor mudar por decisao de configuracao, e so reprova se ESTE sender
+# divergir dos outros.
+def transporte_igual_aos_comprovados():
+    import re
+    base = Path(AQUI).parent.parent
+    prov = (base / "cdb2026" / "scripts" / "send_result_email.py").read_text()
+    def headers(txt):
+        m = re.search(r"EMAILJS_HEADERS = \{(.*?)\n\}", txt, re.S)
+        assert m, "nao achei EMAILJS_HEADERS"
+        return {k.lower(): v for k, v in re.findall(r'"([A-Za-z-]+)":\s*\n?\s*"([^"]*)"', m.group(1))}
+    meu, dele = headers(_FONTE), headers(prov)
+    for campo in ("origin", "referer"):
+        assert campo in meu, f"o convite nao envia {campo} — o EmailJS recusa com 403"
+    assert meu["origin"] == dele["origin"], (
+        f"Origin divergente: convite={meu['origin']} vs sender comprovado={dele['origin']}. "
+        "O EmailJS valida Origin contra a allowlist do painel; divergir daqui e 403 nos 12")
+
+
+test("os headers do EmailJS batem com os do sender comprovado", transporte_igual_aos_comprovados)
+
+
 # ── envio fecha por padrão ───────────────────────────────────────────────────────────────────
 test("envio real BLOQUEADO sem autorização explícita", lambda: (
     lambda r: _assert(r[0] is False, "envio liberado sem BOLAO_ALLOW_REAL_SEND"))(
