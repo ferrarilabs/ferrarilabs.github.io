@@ -140,3 +140,17 @@ workstream de modernização):
 - `20260812100000_m8m9_canary_purge.sql` — remove eventos de canário da fila. O prefixo
   `canary:` é soldado no corpo, não parâmetro: uma função que apaga notificação com prefixo
   livre seria uma porta para apagar a fila inteira.
+
+### 2026-08-12 (tarde) — M17
+
+`20260812160000_expand_m17_classification_zone_predictions.sql` apareceu como remota-sem-local
+pela mesma razão que M15/M16: aplicada a partir do worktree de modernização. Copiada para `main`,
+sem tocar em registro remoto. `db push --dry-run` = `upToDate: true`.
+
+Estado: LOCAL = 25, REMOTE = 25, PENDING = 0, DRIFT = 0.
+
+**Isto vai se repetir.** Enquanto migrações forem aplicadas de um worktree e `main` for o lugar
+onde se roda `migration list`, cada aplicação nova nasce como drift aparente. Não é erro de quem
+aplica — é o custo de um banco só com várias árvores. Quem aplicar de um worktree deve copiar o
+arquivo para `main` no mesmo movimento; quem encontrar drift deve procurar o arquivo nos
+worktrees ANTES de concluir que a migração é desconhecida.
