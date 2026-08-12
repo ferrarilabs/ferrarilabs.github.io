@@ -599,6 +599,64 @@ async function fetchJson(url, opts = {}) {
   finally { clearTimeout(timer); }
 }
 
+// ─── ACESSO SEGURO DO PARTICIPANTE ──────────────────────────────────────────
+//
+// O caminho antigo era: e-mail digitado + `receiptCode`, casados NO NAVEGADOR contra o estado
+// inteiro. Duas coisas erradas de uma vez -- o navegador precisava do e-mail de todos os
+// participantes para achar um, e o `receiptCode` e derivado de `entryName + createdAt`, ambos
+// publicos. O "segredo" podia ser recalculado por qualquer pessoa.
+//
+// Agora o participante chega por um link com token aleatorio de 32 bytes. O servidor resolve o
+// token e devolve SO a propria entrada; o token nunca identifica outra pessoa porque a RPC de
+// escrita nao aceita id de entrada nenhum.
+//
+// O token vive no FRAGMENTO (#t=...), que o navegador nao envia no cabecalho Referer -- entao
+// ele nao vaza para terceiros se a pagina carregar qualquer recurso externo.
+async function cdbRpc(fn, args) {
+  const { url, anonKey } = C.database;
+  const r = await fetchJson(`${url}/rest/v1/rpc/${fn}`, {
+    method: "POST",
+    headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json" },
+    body: JSON.stringify(args),
+  });
+  if (!r.ok) throw new Error(`RPC ${fn} respondeu ${r.status}`);
+  return r.json();
+}
+
+async function autoLoadFromSecureLink() {
+  const token = participantTokenFromUrl();
+  if (!token) return false;
+  try {
+    const entrada = await loadOwnEntryByToken(token);
+    if (!entrada) { showToast(t("findEntryNotFound"), "error"); return false; }
+    _editingEntry = entrada;
+    renderPickForm();
+    $("entryName") && ($("entryName").value = entrada.entryName || "");
+    renderNewEntryCard();
+    showToast(t("findEntryLoaded"), "success");
+    return true;
+  } catch (err) {
+    console.warn("[CDB2026] link seguro falhou", err);
+    return false;
+  }
+}
+
+function participantTokenFromUrl() {
+  const frag = new URLSearchParams((location.hash || "").replace(/^#/, ""));
+  return (frag.get("t") || "").trim();
+}
+
+let _accessToken = null;
+
+async function loadOwnEntryByToken(token) {
+  const entrada = await cdbRpc("cdb_my_entry", { p_token: token });
+  // Falha GENERICA: token invalido, revogado e entrada removida devolvem todos `null`. A UI nao
+  // pode distinguir os casos -- distinguir seria um oraculo de enumeracao.
+  if (!entrada || !entrada.id) return null;
+  _accessToken = token;
+  return entrada;
+}
+
 // ─── Supabase ───────────────────────────────────────────────────────────────
 async function loadRemoteState() {
   if (!C.database.enabled) return;
@@ -1968,6 +2026,35 @@ async function saveEntry() {
 
   const btn = $("saveEntryBtn");
   if (btn) { btn.disabled = true; btn.textContent = t("saving"); }
+
+  // ── CAMINHO SEGURO (2026-08-12) ───────────────────────────────────────────────────────────
+  //
+  // Com um token de acesso carregado, o palpite vai por `cdb_save_my_picks`: uma RPC estreita
+  // que resolve a entrada a partir do TOKEN e nao aceita id de entrada nenhum. O navegador
+  // deixa de gravar o documento inteiro -- que era o caminho pelo qual qualquer portador da
+  // chave publica podia reescrever palpites, pagamentos, resultados e o sorteio oficial.
+  //
+  // O servidor tambem e quem decide o prazo: fase sem `cutoffAt` publicado RECUSA, e prazo
+  // vencido RECUSA. O relogio do cliente nao participa da decisao.
+  if (_accessToken) {
+    try {
+      const r = await cdbRpc("cdb_save_my_picks", {
+        p_token: _accessToken,
+        p_client_ref: `${_editingEntry?.id || "x"}:${Date.now()}`,
+        p_picks: picks,
+      });
+      if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
+      showToast(t("savedSuccess"), "success");
+      await loadRemoteState();
+      renderAll();
+      return r;
+    } catch (err) {
+      if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
+      console.error("[CDB2026] gravacao segura recusada", err);
+      showToast(t("saveError"), "error");
+      return;
+    }
+  }
 
   try {
     const wasNew = !_editingEntry;
@@ -5226,19 +5313,21 @@ async function init() {
   $("saveEntryBtn")?.addEventListener("click", saveEntry);
   $("paymentMethod")?.addEventListener("change", renderPaymentBox);
 
-  $("findEntryBtn")?.addEventListener("click", () => {
+  $("findEntryBtn")?.addEventListener("click", async () => {
     if (!oitavasComplete(state())) { showToast(t("findEntryLockedMsg"), "warn"); return; }
-    const email = $("findEntryEmail")?.value.trim() || "";
     const code  = $("findEntryCode")?.value.trim() || "";
-    if (!email || !code) { alert(t("findEntryMissing")); return; }
-    const found = findEntryByEmailAndCode(email, code);
+    if (!code) { alert(t("findEntryMissing")); return; }
+    // O campo passou a aceitar o CODIGO DE ACESSO do link. A busca acontece no SERVIDOR: o
+    // navegador nao tem mais o e-mail de ninguem para comparar, e e exatamente esse o ponto.
+    let found = null;
+    try { found = await loadOwnEntryByToken(code); }
+    catch (err) { console.warn("[CDB2026] lookup seguro falhou", err); }
     if (!found) { showToast(t("findEntryNotFound"), "error"); return; }
     _editingEntry = found;
     renderPickForm();
     $("entryName") && ($("entryName").value = found.entryName || "");
-    $("payerName") && ($("payerName").value = found.payerName || "");
-    $("participantEmail") && ($("participantEmail").value = found.participantEmail || "");
-    $("paymentMethod") && ($("paymentMethod").value = found.paymentMethod || "");
+    // payerName/participantEmail/paymentMethod NAO vem mais: a leitura segura devolve so o que
+    // o formulario de palpite precisa. O participante nao edita dado de pagamento por aqui.
     renderPaymentBox();
     // ENTRY ROSTER FREEZE: revela o formulário de palpites agora que há uma entrada existente
     // carregada — com o roster congelado este é o único caminho até as próximas fases.
@@ -5311,6 +5400,12 @@ async function init() {
   healPhantomTies(seedState);
   if (!wasSeeded || !wasBackfilled || !wasHealed || !wasHealedPhantoms) saveState(seedState, { localOnly: false });
   renderAll();
+
+  // LINK SEGURO DO CONVITE. Roda DEPOIS do merge remoto: o formulario de palpite so faz sentido
+  // com os confrontos e o prazo ja carregados. O token vem no fragmento (#t=...), que o
+  // navegador nao manda no Referer -- entao ele nao vaza para terceiros se a pagina carregar
+  // qualquer recurso externo.
+  if (await autoLoadFromSecureLink()) renderAll();
 
   // 2026-08-01, hotfix: navEntryBtn.disabled/showSection acima (linha ~3382) decidem uma vez só,
   // a partir do localStorage local, ANTES do merge com o Supabase. Um participante que já tinha a
