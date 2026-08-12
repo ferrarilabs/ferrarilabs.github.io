@@ -280,6 +280,10 @@ window.CDB2026_I18N = {
     // Automação de resultado (v3.16) — autorizado por Eduardo em 2026-07-14
     espnSyncLockedCount: "confronto(s) travado(s) automaticamente",
     espnSyncLockedToast: "Resultado travado automaticamente pela ESPN!",
+    // Copa do Brasil NAO tem disputa de 3o lugar: a final resolve exatamente dois lugares.
+    predictedChampion: "CAMPEÃO",
+    predictedRunnerUp: "VICE-CAMPEÃO",
+    podiumPending: "Complete a final para ver campeão e vice.",
     espnAutoTag: "(via ESPN)",
     syncBlocked: "Salvo neste dispositivo, mas NÃO sincronizado com o servidor. Ninguém mais vai ver esta alteração — avise o organizador antes de considerá-la feita.",
   },

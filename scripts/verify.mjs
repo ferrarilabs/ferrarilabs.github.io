@@ -105,6 +105,8 @@ const CHECKS = [
     why: "a obrigacao duravel tem de existir ANTES do provedor; criar depois tambem satisfaz \"o ciclo cria um evento\" e e justamente o caso que perde a obrigacao" },
   { id: "no-whole-document-writers", group: "security", cmd: ["node", "bolao/scripts/test_no_whole_document_writers.mjs"],
     why: "dois gravadores de documento inteiro sem token comum perdem o trabalho um do outro em silencio" },
+  { id: "cdb-bracket-browser", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_browser.mjs"],
+    why: "o bracket de previsao no navegador REAL: quartas -> semifinal -> final -> campeao, sem salvar. O gate de unidade passava enquanto a producao renderizava undefined" },
   { id: "cdb-bracket-propagation", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_propagation.mjs"],
     why: "a semifinal reage ao palpite das quartas SEM salvar; e nao inventa vaga sem o mapeamento oficial da CBF" },
   { id: "cdb-schedule-reconciler", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_schedule_reconciler.py"],

@@ -364,7 +364,14 @@ function resolveParticipantPredicted(s, side, livePicks) {
     const escolhido = livePicks?.qualified?.[tieId];
     if (tie && (escolhido === "A" || escolhido === "B")) {
       const nome = escolhido === "A" ? tie.teamA : tie.teamB;
-      if (nome) return { resolved: true, teamName: nome, winnerOf: tieId, fromPrediction: true };
+      // O campo TEM de se chamar `team`: e o que `participantLabel()` le
+      // (`if (part.resolved) return part.team`). Eu devolvia `teamName`, entao toda vaga
+      // RESOLVIDA renderizava `undefined` -- e so as resolvidas, porque as pendentes caem no
+      // ramo `winnerOf` e nunca tocam o campo. Na tela: "undefined × Vencedor de Cruzeiro × ...".
+      //
+      // Meu gate afirmava `r.teamName`, isto e, o MEU nome de campo, e nao o que o renderizador
+      // consome. Teste que espelha a implementacao concorda com ela ate quando ela esta errada.
+      if (nome) return { resolved: true, team: nome, winnerOf: tieId, fromPrediction: true };
     }
   }
   return resolveParticipant(s, side);
@@ -374,6 +381,88 @@ function resolveParticipantPredicted(s, side, livePicks) {
 function DERIVED_PHASES_PREDECESSOR_OF_TIE(s, tieId) {
   for (const [phaseId, phase] of Object.entries(s?.phases || {})) {
     if (phase?.ties && Object.prototype.hasOwnProperty.call(phase.ties, tieId)) return phaseId;
+  }
+  return null;
+}
+
+// ── CONFRONTOS VIRTUAIS DE PREVISAO ─────────────────────────────────────────────────────────
+//
+// A semifinal e a final do bolao NAO dependem de a CBF ter materializado aqueles jogos. Elas sao
+// PREVISAO: nascem dos vencedores que o participante escolheu, aqui, agora, sem salvar.
+//
+// Exigir jogo futuro real no banco para deixar alguem palpitar a semifinal confundia duas coisas
+// diferentes -- o calendario oficial e o palpite de quem joga o bolao. O primeiro governa
+// resultado e pontuacao; o segundo e do participante e existe antes de qualquer jogo acontecer.
+//
+// A FINAL nao precisa de topologia publicada. Com duas semifinais existe UMA final, e seus dois
+// lados sao os vencedores previstos delas. Isso e definicao de mata-mata, nao chaveamento
+// inventado -- diferente da semifinal, onde QUAL vencedor de quartas encontra QUAL exigia o
+// sorteio oficial (e por isso ela usa a topologia registrada).
+//
+// Devolve entradas com a MESMA forma de um confronto real, para atravessarem o mesmo
+// renderizador de palpite. Vaga sem os dois lados resolvidos nao vira confronto: fica de fora e a
+// tela mostra a dependencia ("Vencedor de X"), nunca um clube inventado.
+function virtualDerivedTies(s, phaseId, livePicks) {
+  if (phaseId === "semifinal") {
+    const view = derivedPhaseView(s, phaseId);
+    if (!view.topologyKnown) return { topologyKnown: false, ties: [], pendentes: [] };
+    const ties = [], pendentes = [];
+    for (const slot of view.slots) {
+      const a = resolveParticipantPredicted(s, slot.sideA, livePicks);
+      const b = resolveParticipantPredicted(s, slot.sideB, livePicks);
+      if (a.resolved && b.resolved) {
+        ties.push([slot.slotId, { teamA: a.team, teamB: b.team, matches: {}, __virtual: true }]);
+      } else {
+        pendentes.push({ slotId: slot.slotId, a, b, sideA: slot.sideA, sideB: slot.sideB });
+      }
+    }
+    return { topologyKnown: true, ties, pendentes };
+  }
+
+  if (phaseId === "final") {
+    // Os predecessores da final sao os confrontos VIRTUAIS da semifinal -- nao ties gravados.
+    const semi = virtualDerivedTies(s, "semifinal", livePicks);
+    if (!semi.topologyKnown) return { topologyKnown: false, ties: [], pendentes: [] };
+    const slots = [...semi.ties.map(([id]) => id), ...semi.pendentes.map(p => p.slotId)].sort();
+    if (slots.length !== 2) return { topologyKnown: true, ties: [], pendentes: [] };
+    const lados = slots.map(id => {
+      const escolhido = livePicks?.qualified?.[id];
+      const tie = (semi.ties.find(([tid]) => tid === id) || [])[1];
+      if (tie && (escolhido === "A" || escolhido === "B")) {
+        return { resolved: true, team: escolhido === "A" ? tie.teamA : tie.teamB, winnerOf: id };
+      }
+      return { resolved: false, team: null, winnerOf: id };
+    });
+    if (lados[0].resolved && lados[1].resolved) {
+      return { topologyKnown: true,
+               ties: [["final-1", { teamA: lados[0].team, teamB: lados[1].team,
+                                    matches: {}, __virtual: true }]],
+               pendentes: [] };
+    }
+    return { topologyKnown: true, ties: [],
+             pendentes: [{ slotId: "final-1", a: lados[0], b: lados[1],
+                           sideA: { winnerOf: slots[0] }, sideB: { winnerOf: slots[1] } }] };
+  }
+
+  return { topologyKnown: false, ties: [], pendentes: [] };
+}
+
+// Rotulo de um predecessor que pode ser confronto REAL (quartas) ou VIRTUAL (semifinal).
+function predecessorLabel(s, tieId, livePicks) {
+  const real = tieDisplayName(s, tieId);
+  if (real) return real;
+  const semi = virtualDerivedTies(s, "semifinal", livePicks);
+  const v = semi.ties.find(([id]) => id === tieId);
+  if (v) return `${v[1].teamA} × ${v[1].teamB}`;
+  const p = semi.pendentes.find(x => x.slotId === tieId);
+  if (p) {
+    // A semifinal ainda nao fechou: descreve a vaga pelos confrontos de quartas que a alimentam,
+    // em cadeia. "Vencedor de <id>" nao diz nada a quem esta palpitando; "Vasco × Vitória /
+    // Palmeiras × Santos" diz de onde aquele lado vai sair.
+    const de = [p.sideA.winnerOf, p.sideB.winnerOf]
+      .map(id => tieDisplayName(s, id))
+      .filter(Boolean);
+    if (de.length === 2) return `${de[0]} / ${de[1]}`;
   }
   return null;
 }
@@ -652,6 +741,7 @@ async function autoLoadFromSecureLink() {
     const entrada = await loadOwnEntryByToken(token);
     if (!entrada) { showToast(t("findEntryNotFound"), "error"); return false; }
     _editingEntry = entrada;
+    _picksEmMemoria = null;   // o overlay pertence a UMA edição
     renderPickForm();
     $("entryName") && ($("entryName").value = entrada.entryName || "");
     renderNewEntryCard();
@@ -1757,22 +1847,35 @@ function officialPodium(s) {
   };
 }
 function predictedPodium(entry, s) {
+  // A final pode ser REAL (a CBF materializou o jogo) ou VIRTUAL (o participante previu o
+  // caminho ate la). O podio sai igual nos dois casos: campeao e vice sao os dois lados da
+  // final, decididos pelo palpite. Sem terceiro lugar -- a Copa do Brasil nao tem disputa de 3o,
+  // e inventar um transformaria o palpite em outra competicao.
+  const picks = entry?.picks || {};
   const f = finalTieEntry(s);
-  if (!f) return { champion: null, runnerUp: null };
-  const pick = entry.picks?.qualified?.[f.tieId];
+  if (f) {
+    const pick = picks.qualified?.[f.tieId];
+    if (!pick) return { champion: null, runnerUp: null };
+    const { tie } = f;
+    return { champion: pick === "A" ? tie.teamA : tie.teamB,
+             runnerUp: pick === "A" ? tie.teamB : tie.teamA };
+  }
+  const virt = virtualDerivedTies(s, "final", picks);
+  const entrada = virt.ties[0];
+  if (!entrada) return { champion: null, runnerUp: null };
+  const [tieId, tie] = entrada;
+  const pick = picks.qualified?.[tieId];
   if (!pick) return { champion: null, runnerUp: null };
-  const { tie } = f;
-  return {
-    champion: pick === "A" ? tie.teamA : tie.teamB,
-    runnerUp: pick === "A" ? tie.teamB : tie.teamA,
-  };
+  return { champion: pick === "A" ? tie.teamA : tie.teamB,
+           runnerUp: pick === "A" ? tie.teamB : tie.teamA };
 }
 
 // ─── Per-tie picks (palpite por partida) ────────────────────────────────────
 function getPickValues() {
+  const base = picksAtuais();
   const picks = {
-    matches:   { ...(_editingEntry?.picks?.matches   || {}) },
-    qualified: { ...(_editingEntry?.picks?.qualified || {}) },
+    matches:   { ...(base.matches   || {}) },
+    qualified: { ...(base.qualified || {}) },
   };
   $$(".tie-pick-block.open").forEach(block => {
     const tieId  = block.dataset.tieId;
@@ -1821,21 +1924,90 @@ function validatePicks(picks) {
 // ─── Render: pick form ───────────────────────────────────────────────────────
 // Reescreve os rotulos das vagas derivadas a partir dos palpites que estao na tela.
 // So texto: nao recria o formulario, para nao perder foco nem valores digitados.
-function atualizaFasesDerivadas(form) {
+// Base atual de cada confronto virtual: os dois clubes que o ocupam AGORA. Guardada em memoria
+// (nao no palpite salvo) porque descreve o estado da tela, nao uma escolha do participante.
+let _baseVirtual = {};
+
+// Palpites que estao na TELA e ainda nao foram salvos.
+//
+// `renderPickForm()` reconstroi cada campo a partir de `_editingEntry.picks`. Numa entrada nova
+// isso e vazio -- entao qualquer re-render APAGAVA o que a pessoa acabou de preencher, inclusive
+// o vencedor que o proprio app deduziu do agregado. A propagacao destruia o insumo de que ela
+// depende: preenchia as quartas, redesenhava, e a semifinal voltava a "Vencedor de ...".
+//
+// Este overlay e a memoria da edicao em curso. Nao vai para o banco: `saveEntry()` continua
+// lendo `getPickValues()` do DOM no momento de salvar.
+let _picksEmMemoria = null;
+let _assinaturaPodio = "";
+
+function picksAtuais() {
+  return _picksEmMemoria || _editingEntry?.picks || { matches: {}, qualified: {} };
+}
+
+function _baseAtual(s, livePicks) {
+  const out = {};
+  for (const fase of Object.keys(DERIVED_PHASES)) {
+    for (const [tieId, tie] of virtualDerivedTies(s, fase, livePicks).ties) {
+      out[tieId] = `${tie.teamA}|${tie.teamB}`;
+    }
+  }
+  return out;
+}
+
+// Propagacao AO VIVO com INVALIDACAO A JUSANTE.
+//
+// Trocar o vencedor de um confronto de quartas troca quem ocupa a vaga da semifinal. O palpite
+// que estava ali foi feito contra OUTROS dois times: `qualified: "A"` deixa de significar o que
+// significava, e o placar idem. Manter aquilo seria transformar um palpite em outro sem a pessoa
+// pedir -- pior que apaga-lo, porque parece intencional.
+//
+// Entao: quando a base de um confronto virtual muda, o palpite dele e o de tudo que depende dele
+// sao descartados, e o formulario e redesenhado. So redesenha quando a base MUDA -- digitar
+// placar sem alterar o vencedor nao mexe em nada e nao rouba o foco de quem esta digitando.
+function atualizaFasesDerivadas() {
   const s = state();
   const live = getPickValues();
-  Object.keys(DERIVED_PHASES).forEach(phaseId => {
-    const view = derivedPhaseView(s, phaseId);
-    if (!view.topologyKnown) return;
-    view.slots.forEach(slot => {
-      const el = form.querySelector(`[data-derived-slot="${slot.slotId}"]`);
-      if (!el) return;
-      const a = resolveParticipantPredicted(s, slot.sideA, live);
-      const b = resolveParticipantPredicted(s, slot.sideB, live);
-      el.textContent = `${participantLabel(a, tieDisplayName(s, slot.sideA.winnerOf))}`
-                     + ` × ${participantLabel(b, tieDisplayName(s, slot.sideB.winnerOf))}`;
-    });
-  });
+  const base = _baseAtual(s, live);
+
+  const mudou = [];
+  for (const [tieId, assinatura] of Object.entries(base)) {
+    if (_baseVirtual[tieId] && _baseVirtual[tieId] !== assinatura) mudou.push(tieId);
+  }
+  // Vaga que DEIXOU de estar resolvida tambem invalida: o palpite ficaria orfao.
+  for (const tieId of Object.keys(_baseVirtual)) {
+    if (!(tieId in base)) mudou.push(tieId);
+  }
+
+  // O overlay guarda o que esta na tela AGORA -- inclusive o vencedor deduzido do agregado, que
+  // so existe no DOM. Sem isto o re-render abaixo apagaria tudo.
+  _picksEmMemoria = live;
+
+  if (mudou.length) {
+    const alcance = new Set(mudou);
+    // A final depende das duas semifinais: mexeu em qualquer uma, o palpite da final cai junto.
+    if (mudou.some(id => id.startsWith("sf-"))) alcance.add("final-1");
+    for (const tieId of alcance) {
+      delete _picksEmMemoria.matches[tieId];
+      delete _picksEmMemoria.qualified[tieId];
+      if (_editingEntry?.picks?.matches) delete _editingEntry.picks.matches[tieId];
+      if (_editingEntry?.picks?.qualified) delete _editingEntry.picks.qualified[tieId];
+    }
+  }
+
+  // O PODIO tambem entra na decisao de redesenhar.
+  //
+  // Escolher o vencedor da final nao muda participante nenhum -- os dois finalistas continuam os
+  // mesmos --, entao a comparacao de base acima nao detecta nada e o campeao nunca aparecia.
+  // Campeao e vice sao saida derivada como qualquer outra: mudaram, a tela tem de mudar.
+  const podio = predictedPodium({ picks: live }, s);
+  const assinaturaPodio = `${podio.champion || ""}|${podio.runnerUp || ""}`;
+
+  const precisaRedesenhar = mudou.length > 0 ||
+    JSON.stringify(Object.keys(base).sort()) !== JSON.stringify(Object.keys(_baseVirtual).sort()) ||
+    assinaturaPodio !== _assinaturaPodio;
+  _baseVirtual = base;
+  _assinaturaPodio = assinaturaPodio;
+  if (precisaRedesenhar) renderPickForm();
 }
 
 function renderPickForm() {
@@ -1846,7 +2018,7 @@ function renderPickForm() {
   let html = "";
   DATA.phases.forEach(phase => {
     const phaseState = s.phases?.[phase.id] || emptyPhaseState();
-    const ties = Object.entries(phaseState.ties || {});
+    let ties = Object.entries(phaseState.ties || {});
     // Mesma ordenação cronológica da aba "Jogos" (ver firstLegKickoffMs()) -- achado por Eduardo
     // (2026-07-14): o fix anterior só cobria "Jogos" (fora deliberadamente do escopo pedido na
     // hora), mas o formulário de Palpites é o que participantes de fato usam, e continuava na
@@ -1867,6 +2039,40 @@ function renderPickForm() {
     if (!ties.length && (DATA.phasesConcludedNoData || []).includes(phase.id)) return;
     html += `<div class="pick-group">
       <div class="pick-group-header champion-header">${esc(phase.name)}</div>`;
+    // ── FASE DERIVADA: confrontos VIRTUAIS, palpitaveis como qualquer outro ─────────────────
+    //
+    // A semifinal e a final do bolao sao PREVISAO. Nao dependem de a CBF ter materializado
+    // aqueles jogos: nascem dos vencedores que a pessoa escolheu na tela, agora, sem salvar.
+    //
+    // Os confrontos virtuais entram na MESMA lista `ties` e atravessam o MESMO renderizador dos
+    // confrontos reais -- e por isso ganham bloco de palpite de verdade, e nao um paragrafo
+    // decorativo. A versao anterior desenhava so texto: dava para VER a semifinal e nao dava para
+    // palpitar nela, que e metade do defeito relatado.
+    let pendentesDerivadas = [];
+    if (DERIVED_PHASES[phase.id] && !ties.length) {
+      const virt = virtualDerivedTies(s, phase.id, getPickValues());
+      if (!virt.topologyKnown) {
+        html += `<div class="pick-group">
+          <div class="pick-group-header champion-header">${esc(phase.name)}</div>
+          <p class="muted small-text">${esc(t("topologyUnpublished"))}</p></div>`;
+        return;
+      }
+      ties = virt.ties;
+      pendentesDerivadas = virt.pendentes;
+    }
+
+    if (!ties.length && pendentesDerivadas.length) {
+      // Nenhum confronto fechado ainda: mostra de QUEM cada vaga depende. Nunca um clube.
+      html += `<div class="pick-group">
+        <div class="pick-group-header champion-header">${esc(phase.name)}</div>`;
+      html += pendentesDerivadas.map(pd => `<p class="muted small-text" data-derived-slot="${esc(pd.slotId)}">
+        ${esc(participantLabel(pd.a, predecessorLabel(s, pd.sideA.winnerOf, getPickValues())))}
+        × ${esc(participantLabel(pd.b, predecessorLabel(s, pd.sideB.winnerOf, getPickValues())))}
+      </p>`).join("");
+      html += `</div>`;
+      return;
+    }
+
     if (!ties.length) {
       // FASE DERIVADA x FASE SORTEADA sao causas DIFERENTES, e o formulario dizia a mesma coisa
       // para as duas: "Aguardando sorteio oficial".
@@ -1879,31 +2085,13 @@ function renderPickForm() {
       // Com o mapeamento registrado, as vagas aparecem e sao palpitaveis -- alimentadas pelos
       // palpites de quartas que a pessoa tem na tela, sem salvar. Sem ele, NADA e desenhado: supor
       // qf-1xqf-2 seria fabricar chaveamento oficial.
-      if (DERIVED_PHASES[phase.id]) {
-        const view = derivedPhaseView(s, phase.id);
-        if (!view.topologyKnown) {
-          html += `<p class="muted small-text">${esc(t("topologyUnpublished"))}</p></div>`;
-          return;
-        }
-        const live = getPickValues();
-        html += view.slots.map(slot => {
-          const a = resolveParticipantPredicted(s, slot.sideA, live);
-          const b = resolveParticipantPredicted(s, slot.sideB, live);
-          return `<p class="muted small-text" data-derived-slot="${esc(slot.slotId)}">
-            ${esc(participantLabel(a, tieDisplayName(s, slot.sideA.winnerOf)))}
-            × ${esc(participantLabel(b, tieDisplayName(s, slot.sideB.winnerOf)))}
-          </p>`;
-        }).join("");
-        html += `</div>`;
-        return;
-      }
       html += `<p class="muted small-text">${esc(t("waitingDraw"))}</p></div>`;
       return;
     }
     ties.forEach(([tieId, tie]) => {
       if (!tie.teamA || !tie.teamB) return;
-      const savedMatches = _editingEntry?.picks?.matches?.[tieId] || {};
-      const savedQual    = _editingEntry?.picks?.qualified?.[tieId] || "";
+      const savedMatches = picksAtuais().matches?.[tieId] || {};
+      const savedQual    = picksAtuais().qualified?.[tieId] || "";
 
       if (tie.qualifiedTeamId) {
         const winner = tie.qualifiedTeamId === "A" ? tie.teamA : tie.teamB;
@@ -1957,7 +2145,47 @@ function renderPickForm() {
     html += `</div>`;
   });
 
+  // ── CAMPEAO E VICE ──────────────────────────────────────────────────────────────────────
+  //
+  // Sai do palpite da final -- real ou virtual, tanto faz. Atualiza sozinho porque o formulario e
+  // redesenhado quando a base de um confronto virtual muda; e some sozinho quando um palpite de
+  // quartas/semi invalida a final, porque ai `predictedPodium` deixa de resolver.
+  //
+  // NAO ha terceiro nem quarto lugar: a Copa do Brasil nao tem disputa de 3o. A final resolve
+  // exatamente dois lugares, e inventar um terceiro seria pontuar uma competicao que nao existe.
+  //
+  // Usa as classes que a pagina ja tem (`pick-group`, `champion-header`). Nenhum componente novo.
+  if (html) {
+    const podio = predictedPodium({ picks: getPickValues() }, s);
+    html += `<div class="pick-group">
+      <div class="pick-group-header champion-header">${esc(t("predictedChampion"))}</div>`;
+    if (podio.champion) {
+      html += `<div class="pick-row tie-row locked" id="podio-previsto">
+        <div class="tie-locked-note"><span class="tie-locked-score">
+          ${teamLogoImg(podio.champion)} <b>${esc(podio.champion)}</b>
+          <span class="muted"> — ${esc(t("predictedRunnerUp"))}: </span>
+          ${teamLogoImg(podio.runnerUp)} ${esc(podio.runnerUp)}
+        </span></div>
+      </div>`;
+    } else {
+      html += `<p class="muted small-text" id="podio-previsto">${esc(t("podiumPending"))}</p>`;
+    }
+    html += `</div>`;
+  }
+
   form.innerHTML = html || `<p class="muted">${esc(t("pickNoOpenTies"))}</p>`;
+
+  // Base consistente com o que acabou de ser desenhado (o DOM novo ja esta no lugar).
+  //
+  // Antes a base so era atualizada no handler. Um render vindo de outro caminho -- abrir a
+  // entrada, trocar de aba -- deixava base e tela divergentes, e o handler seguinte via "mudou"
+  // sem nada ter mudado: redesenhava, o que redisparava, e a interacao oscilava.
+  try {
+    const liveAgora = getPickValues();
+    _baseVirtual = _baseAtual(s, liveAgora);
+    const pd = predictedPodium({ picks: liveAgora }, s);
+    _assinaturaPodio = `${pd.champion || ""}|${pd.runnerUp || ""}`;
+  } catch { /* formulário ainda não montado; a próxima renderização semeia */ }
 
   // Agregado previsto recalcula ao vivo enquanto o participante digita; "quem se classifica"
   // trava automaticamente quando o agregado previsto não empata (mesma regra da CBF real: só
@@ -1991,7 +2219,7 @@ function renderPickForm() {
     // fase"; quem trata o botao como avanco obriga a gravar bracket pela metade.
     const propagar = () => {
       update();
-      atualizaFasesDerivadas(form);
+      atualizaFasesDerivadas();
     };
     block.querySelectorAll(".pk-goals-home, .pk-goals-away").forEach(el => el.addEventListener("input", propagar));
     qualSel?.addEventListener("change", propagar);
@@ -2103,6 +2331,8 @@ async function saveEntry() {
     }
 
     _editingEntry = null;
+
+    _picksEmMemoria = null;   // o overlay pertence a UMA edição
     renderPickForm();
     ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
     $("paymentMethod") && ($("paymentMethod").value = "");
@@ -2117,6 +2347,7 @@ async function saveEntry() {
       // Edição obsoleta: a entrada não existe mais. Nada foi salvo. Devolve o participante ao
       // fluxo de busca em vez de reportar como falha genérica de save.
       _editingEntry = null;
+      _picksEmMemoria = null;   // o overlay pertence a UMA edição
       renderNewEntryCard();
       showToast(t("entryGoneOnSave"), "error");
     } else {
@@ -5343,6 +5574,7 @@ async function init() {
     catch (err) { console.warn("[CDB2026] lookup seguro falhou", err); }
     if (!found) { showToast(t("findEntryNotFound"), "error"); return; }
     _editingEntry = found;
+    _picksEmMemoria = null;   // o overlay pertence a UMA edição
     renderPickForm();
     $("entryName") && ($("entryName").value = found.entryName || "");
     // payerName/participantEmail/paymentMethod NAO vem mais: a leitura segura devolve so o que

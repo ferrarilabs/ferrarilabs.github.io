@@ -40,6 +40,7 @@
     "test:cdb-trusted-ingestion": "python3 bolao/cdb2026/scripts/test_trusted_result_ingestion.py",
     "test:cdb-schedule-reconciler": "python3 bolao/cdb2026/scripts/test_schedule_reconciler.py",
     "test:cdb-bracket-propagation": "node bolao/cdb2026/scripts/test_bracket_propagation.mjs",
+    "test:cdb-bracket-browser": "node bolao/cdb2026/scripts/test_bracket_browser.mjs",
     "test:no-whole-document-writers": "node bolao/scripts/test_no_whole_document_writers.mjs",
     "test:powerball-outbox-order": "python3 bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py",
     "test:copa-app-routing": "node bolao/copa2026/scripts/test_app_routing.mjs",
