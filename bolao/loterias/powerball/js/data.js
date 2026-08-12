@@ -454,7 +454,9 @@ window.POWERBALL_DRAWS = [
       { name: "Jorge Augusto Junqueira Ferreira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:13 PM", status: "verificado", state: "FL" },
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "09/08/2026", hora: "12:14 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:45 PM", status: "verificado", state: "NC" },
-      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Dinheiro (cash)", data: "10/08/2026", hora: "12:26 PM", status: "verificado", state: "NC" },
+      // Samuel pagou os $10 deste sorteio junto com os $10 do 2026-08-12 num unico Zelle de
+      // $20 (txId 30376865303), recebido em 12/08/2026 -- corrigido de "cash" para Zelle.
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" },
       { name: "Rodrigo Hajj", cotas: 1, valor: 10, metodo: "Zelle", data: "10/08/2026", hora: "3:03:24 PM", status: "verificado", state: "NC" }
     ],
 
@@ -556,7 +558,10 @@ window.POWERBALL_DRAWS = [
       { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "11/08/2026", hora: "4:56:24 PM", status: "verificado", state: "FL" },
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "11/08/2026", hora: "5:09:10 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:54 PM", status: "verificado", state: "NC" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:55 PM", status: "verificado", state: "FL" }
+      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:55 PM", status: "verificado", state: "FL" },
+      // Os outros $10 deste mesmo Zelle de $20 (txId 30376865303) cobrem o sorteio 2026-08-10
+      // -- ver correcao la.
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -569,7 +574,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 140,
+      totalArrecadado: 150,
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 24,
