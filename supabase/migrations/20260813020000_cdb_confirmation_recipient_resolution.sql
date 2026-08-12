@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260813020000_cdb_confirmation_recipient_resolution.sql
 --
 -- ═══ QUEM RESOLVE O DESTINATARIO ═════════════════════════════════════════════════════════════

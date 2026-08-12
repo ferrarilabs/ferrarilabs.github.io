@@ -1,3 +1,6 @@
+--
+-- PROVENANCE: MIGRATION_APPLIED_HISTORICALLY
+--
 -- 20260812230000_cdb_entry_saved_confirmation_allowance.sql
 --
 -- ═══ DUAS COISAS, E A PRIMEIRA E UMA REGRESSAO MINHA ═════════════════════════════════════════
