@@ -1,0 +1,41 @@
+name: Bolão CDB2026 — registra a topologia oficial da semifinal
+
+# Acionamento humano. NAO agendado: registrar chaveamento e um ato unico e deliberado, e a funcao
+# recusa sobrescrever uma topologia ja registrada com outra diferente -- mudar o caminho depois
+# que participantes palpitaram reescreveria o significado dos palpites deles.
+#
+# NAO envia e-mail. O disjuntor do CDB segue ativo e nao e tocado por este fluxo.
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: "Gravar de verdade (sem isto, dry-run)"
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: cdb2026-operator
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  registrar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 6
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Registra topologia
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -euo pipefail
+          MODO=""
+          [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
+          python3 bolao/cdb2026/scripts/register_semifinal_topology.py $MODO
