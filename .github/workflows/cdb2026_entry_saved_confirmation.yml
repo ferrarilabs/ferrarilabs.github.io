@@ -1,0 +1,64 @@
+# Consumidor do comprovante de "entrada salva" do CDB2026.
+#
+# ═══ POR QUE ISTO PODE RODAR SOZINHO DEPOIS DA TEMPESTADE DE HOJE ═══════════════════════════════
+#
+# Um job agendado que manda e-mail é exatamente a forma do incidente de 2026-08-12. A diferença
+# aqui não é confiança, é aritmética: o teto de e-mails que este workflow pode produzir é UM.
+#
+#   · só processa eventos de `cdb2026.entry_saved_confirmation`;
+#   · o evento só nasce se a entrada tiver PERMISSÃO NOMINAL (tabela hoje com 1 linha);
+#   · a permissão se APAGA sozinha na primeira entrega aceita;
+#   · `notification_deliveries` tem UNIQUE(app, business_key, recipient_hash, generation);
+#   · o disjuntor de 45 minutos recusa quem recebeu outra coisa deste app agora há pouco.
+#
+# Depois da única entrega, toda execução seguinte é no-op. Não existe estado em que este workflow
+# mande um segundo e-mail sem alguém conceder uma permissão nova, à mão, com nome de entrada.
+#
+# NÃO faz convite, correção, reenvio, link novo nem broadcast — o EMAIL_KILL_SWITCH segue valendo
+# para tudo isso, e segue ativo.
+
+name: CDB2026 — comprovante de entrada salva
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Duas execuções sobrepostas não causariam envio duplo (o banco impede), mas gerariam
+  # `TRANSICAO_ILEGAL` e ruído. Uma de cada vez.
+  group: cdb2026-entry-saved-confirmation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  consumir:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # Porta barata: sem permissão aberta não há nada a fazer, e não vale nem conectar para
+      # descobrir isso a cada 5 minutos depois que a validação terminar.
+      - name: Situação antes
+        id: antes
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/send_entry_saved_confirmation.py --status
+
+      - name: Consumir fila
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 bolao/cdb2026/scripts/send_entry_saved_confirmation.py --run --max 3
+
+      - name: Situação depois
+        if: always()
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/send_entry_saved_confirmation.py --status
