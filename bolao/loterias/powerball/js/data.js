@@ -566,22 +566,62 @@ window.POWERBALL_DRAWS = [
       { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "9:37 AM", status: "verificado", state: "NC" }
     ],
 
-    // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
-    // de ja existirem jogos.
     sharedTickets: {
-      compradoPor: null,
-      dataComprovante: null,
-      valorPorTicket: 3,
-      series: []
+      compradoPor: "Eduardo Ferrari (organizador)",
+      dataComprovante: "12/08/2026 22:59 ET",
+      valorPorTicket: 3, // Power Play
+      series: [
+        {
+          serial: "229FA152FDBC296D5", qtd: 1, jogos: "1",
+          numeros: [
+            "30-38-46-47-59 — PB 06"
+          ]
+        },
+        {
+          serial: "2C7E74FE1ED4B124A", qtd: 10, jogos: "1–10",
+          numeros: [
+            "16-33-48-53-61 — PB 26", "17-22-40-46-49 — PB 01", "17-26-41-47-50 — PB 20",
+            "19-23-32-57-58 — PB 23", "20-21-45-52-58 — PB 18", "20-33-39-43-46 — PB 16",
+            "23-30-42-63-67 — PB 02", "23-34-39-50-65 — PB 21", "26-29-31-46-69 — PB 07",
+            "26-45-55-59-62 — PB 21"
+          ]
+        },
+        {
+          serial: "2F182CC787CA16571", qtd: 50, jogos: "1–50",
+          numeros: [
+            "01-03-14-32-66 — PB 03", "01-06-30-37-52 — PB 01", "01-08-28-62-69 — PB 16",
+            "01-18-20-35-56 — PB 24", "01-36-38-39-48 — PB 04", "02-08-29-52-65 — PB 26",
+            "02-09-17-32-48 — PB 18", "02-21-25-56-66 — PB 02", "02-24-33-40-55 — PB 05",
+            "02-27-42-57-60 — PB 13", "03-09-30-56-58 — PB 23", "03-22-41-52-53 — PB 15",
+            "03-25-26-36-63 — PB 15", "03-27-28-54-65 — PB 12", "04-05-21-34-60 — PB 25",
+            "04-12-51-53-57 — PB 09", "04-13-28-42-49 — PB 03", "04-44-48-67-69 — PB 08",
+            "05-10-37-58-61 — PB 05", "05-16-23-43-64 — PB 04", "05-18-39-41-54 — PB 21",
+            "05-19-29-40-56 — PB 12", "06-13-23-48-60 — PB 22", "06-14-19-47-69 — PB 22",
+            "06-32-43-55-68 — PB 08", "06-33-35-42-45 — PB 17", "07-12-15-36-58 — PB 19",
+            "07-18-25-34-37 — PB 03", "07-29-33-60-64 — PB 12", "07-31-54-59-66 — PB 13",
+            "08-16-31-45-68 — PB 11", "08-22-27-64-67 — PB 14", "08-35-43-44-59 — PB 16",
+            "09-28-44-53-60 — PB 02", "09-29-47-54-62 — PB 24", "10-12-41-59-69 — PB 24",
+            "10-21-27-46-55 — PB 19", "10-31-38-50-67 — PB 18", "11-15-20-44-51 — PB 11",
+            "11-17-36-57-62 — PB 10", "11-24-25-49-54 — PB 06", "11-30-31-40-61 — PB 25",
+            "11-37-50-63-66 — PB 09", "12-22-37-45-65 — PB 07", "13-19-36-50-68 — PB 08",
+            "13-24-51-56-63 — PB 09", "14-16-18-51-67 — PB 10", "14-25-27-41-68 — PB 17",
+            "15-24-35-53-64 — PB 20", "15-34-38-49-61 — PB 14"
+          ]
+        }
+      ]
     },
 
+    // 61 tickets (1 + 10 + 50) x US$3 (Power Play) = US$183. Arrecadado US$160 + credito de
+    // US$24 do sorteio anterior (2026-08-10) = US$184 disponivel — sobra US$1. Deposito no
+    // saldo da NC Education Lottery (cartao) + saldo ja existente cobriram a compra; referencia
+    // de transacao fica so no comprovante privado, nunca aqui.
     finance: {
       totalArrecadado: 160,
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 24,
-      valorUtilizado: 0,
-      valorGuardadoProximoSorteio: 0,
+      valorUtilizado: 183,
+      valorGuardadoProximoSorteio: 1,
       ajustesPendentes: 0
     },
 
