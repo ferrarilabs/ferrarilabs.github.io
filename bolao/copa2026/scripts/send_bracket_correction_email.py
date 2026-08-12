@@ -15,6 +15,8 @@ non-zero — it never silently skips participants and reports "0 sent" as
 success, and it never logs a raw email address (only masked).
 """
 
+import os
+import sys
 import json
 import os, os, sys, time, urllib.request
 from collections import defaultdict
@@ -22,6 +24,21 @@ from collections import defaultdict
 # ── Config ────────────────────────────────────────────────────────────────────
 SUPABASE_URL  = "https://cmhqkkfczotdnssupkni.supabase.co"
 ANON_KEY      = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
+
+
+# ── PRODMIG-Q38-READ ────────────────────────────────────────────────────────────────────────────
+# Este leitor precisa do documento PRIVADO (e-mail, payerName, paymentTo), que a projecao publica
+# `bolao_state_public` remove de proposito. Logo nao da para reaponta-lo para a view: ele passa a
+# usar a credencial PRIVILEGIADA, do lado servidor.
+#
+# A chave vem SO do ambiente. Nao e impressa, nao entra em argv (visivel em `ps`), nao vai para
+# arquivo nem para log. O unico sinal externo e a sua ausencia.
+def _service_key():
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        print("🛑 SUPABASE_SERVICE_ROLE_KEY ausente — leitura do documento privado exige runtime confiavel.")
+        sys.exit(2)
+    return k
 EMAILJS_URL   = "https://api.emailjs.com/api/v1.0/email/send"
 EMAILJS_KEY   = "GBZFujsJBET6modve"
 EMAILJS_SVC   = "service_o4hyzxr"
@@ -102,7 +119,7 @@ def _mask(value):
 def sb_fetch():
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state?id=eq.main&select=state",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}"}
+        headers={"apikey": _service_key(), "Authorization": f"Bearer {_service_key()}"}
     )
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read())[0]["state"]

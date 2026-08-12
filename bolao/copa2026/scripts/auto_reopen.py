@@ -18,12 +18,29 @@ Prints "PATCHED" if config was changed, "NO_ACTION" otherwise.
 The calling workflow commits and pushes if "PATCHED".
 """
 
+import os
+import sys
 import json, re, sys, urllib.request
 from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 SUPABASE_URL = "https://cmhqkkfczotdnssupkni.supabase.co"
 ANON_KEY     = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
+
+
+# ── PRODMIG-Q38-READ ────────────────────────────────────────────────────────────────────────────
+# Este leitor precisa do documento PRIVADO (e-mail, payerName, paymentTo), que a projecao publica
+# `bolao_state_public` remove de proposito. Logo nao da para reaponta-lo para a view: ele passa a
+# usar a credencial PRIVILEGIADA, do lado servidor.
+#
+# A chave vem SO do ambiente. Nao e impressa, nao entra em argv (visivel em `ps`), nao vai para
+# arquivo nem para log. O unico sinal externo e a sua ausencia.
+def _service_key():
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        print("🛑 SUPABASE_SERVICE_ROLE_KEY ausente — leitura do documento privado exige runtime confiavel.")
+        sys.exit(2)
+    return k
 
 # New window: participants can edit R16+ picks until R16 kickoff
 R16_CUTOFF = "2026-07-04T12:00:00-04:00"
@@ -35,7 +52,7 @@ CONFIG_JS = Path(__file__).parent.parent / "js" / "config.js"
 def sb_fetch():
     req = urllib.request.Request(
         f"{SUPABASE_URL}/rest/v1/bolao_state?id=eq.main&select=state",
-        headers={"apikey": ANON_KEY, "Authorization": f"Bearer {ANON_KEY}"}
+        headers={"apikey": _service_key(), "Authorization": f"Bearer {_service_key()}"}
     )
     with urllib.request.urlopen(req, timeout=15) as r:
         return json.loads(r.read())[0]["state"]

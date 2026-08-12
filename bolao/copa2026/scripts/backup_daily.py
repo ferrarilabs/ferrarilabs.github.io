@@ -21,6 +21,7 @@ Uso manual:
 
 import argparse
 import hashlib
+import os
 import json
 import sys
 import urllib.error
@@ -31,6 +32,21 @@ from pathlib import Path
 SUPABASE_URL  = "https://cmhqkkfczotdnssupkni.supabase.co"
 SUPABASE_ANON = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
 TABLE         = "bolao_state"
+
+
+# ── PRODMIG-Q38-READ ────────────────────────────────────────────────────────────────────────────
+# Este leitor precisa do documento PRIVADO (e-mail, payerName, paymentTo), que a projecao publica
+# `bolao_state_public` remove de proposito. Logo nao da para reaponta-lo para a view: ele passa a
+# usar a credencial PRIVILEGIADA, do lado servidor.
+#
+# A chave vem SO do ambiente. Nao e impressa, nao entra em argv (visivel em `ps`), nao vai para
+# arquivo nem para log. O unico sinal externo e a sua ausencia.
+def _service_key():
+    k = (os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or "").strip()
+    if not k:
+        print("🛑 SUPABASE_SERVICE_ROLE_KEY ausente — leitura do documento privado exige runtime confiavel.")
+        sys.exit(2)
+    return k
 
 APPS = [
     {"id": "main",    "label": "Copa do Mundo 2026"},
@@ -56,11 +72,16 @@ def log(msg):
         pass
 
 
+ALLOWED_POOLS = {"main", "br2026", "cdb2026"}
+
+
 def fetch_state(state_id):
+    if state_id not in ALLOWED_POOLS:
+        raise SystemExit(f"🛑 pool nao autorizado para backup: {state_id}")
     url = f"{SUPABASE_URL}/rest/v1/{TABLE}?id=eq.{state_id}&select=state"
     req = urllib.request.Request(url, headers={
-        "apikey": SUPABASE_ANON,
-        "Authorization": f"Bearer {SUPABASE_ANON}",
+        "apikey": _service_key(),
+        "Authorization": f"Bearer {_service_key()}",
         "Accept": "application/json",
     })
     try:

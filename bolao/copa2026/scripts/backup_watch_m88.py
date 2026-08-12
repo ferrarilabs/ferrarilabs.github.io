@@ -20,7 +20,10 @@ from datetime import datetime, timezone
 
 SUPABASE_URL  = "https://cmhqkkfczotdnssupkni.supabase.co"
 SUPABASE_ANON = "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5"
-TABLE         = "bolao_state"
+# PRODMIG-Q38-READ: so precisa de `results`, e a projecao publica preserva `results`
+# intacta (ela remove apenas PII de `entries`). Menor privilegio aqui e MENOS que
+# service_role, nao mais: este leitor nao toca dado privado nenhum.
+TABLE         = "bolao_state_public"
 STATE_ID      = "main"
 MATCH_ID      = "88"
 POLL_INTERVAL = 60   # segundos entre verificações
