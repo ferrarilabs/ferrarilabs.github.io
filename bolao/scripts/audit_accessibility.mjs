@@ -82,9 +82,57 @@ async function collect(appPath, width = 1280) {
   // `waitUntil:"load"` não garante REGRAS APLICÁVEIS: o <link> pode ter disparado o evento com
   // o CSSOM ainda não montado, e o app carrega CSS com cache-bust `?v=`. Então esperamos a
   // CONDIÇÃO — existir folha com regras legíveis — em vez de esperar o relógio.
-  await page.waitForFunction(() => [...document.styleSheets].some(s => {
-    try { return s.cssRules.length > 0; } catch { return false; }   // cross-origin: ignora
-  }), null, { timeout: 15000 });
+  // EXIGE TODAS AS FOLHAS, não "alguma".
+  //
+  // A primeira versão desta espera aceitava QUALQUER folha com regras. Não bastava, e o
+  // diagnóstico provou: a falha veio com
+  //
+  //     A.audit-report-link [294.8x18.0 min-h=0px disp=inline pad=0px font=15px sheets=9 fonts=loaded]
+  //
+  // `min-h=0px`, `disp=inline`, `pad=0px`, `font=15px` — NENHUMA regra de `.audit-report-link`
+  // aplicada, com nove folhas já presentes. Ou seja: outra folha tinha carregado e satisfeito a
+  // condição, enquanto a folha que define este elemento ainda não estava aplicada.
+  //
+  // "Alguma folha pronta" nunca foi a pergunta certa. A pergunta é se TODO `<link
+  // rel=stylesheet>` já virou CSSOM — `link.sheet` só deixa de ser null quando a folha foi
+  // baixada E parseada. Um `<link>` com `sheet === null` é exatamente uma regra que ainda não
+  // existe para o layout.
+  // E A FOLHA DO APP TEM DE ESTAR INTEIRA, não só presente.
+  //
+  // O diagnóstico fechou o caso: a falha veio com `sheets=9` — TODAS as folhas presentes (8
+  // compartilhadas + a do app) — e mesmo assim `min-h=0px disp=inline pad=0px`, enquanto
+  // `font=15px/Inter` provava que outras folhas ESTAVAM aplicadas.
+  //
+  // Folha presente e regra ausente só coexistem de um jeito: a folha foi servida pela metade. O
+  // servidor estático local atende a suíte inteira em paralelo, e `.audit-report-link` está na
+  // linha 334 de `css/styles.css` — fundo suficiente para desaparecer num corpo truncado. O
+  // CSSOM aceita o que chegou e não reclama do que faltou.
+  //
+  // Por isso a espera olha a CONTAGEM DE REGRAS da última folha (a do app), não sua existência.
+  // Truncada, ela tem poucas regras; inteira, tem dezenas. E se depois de recarregar continuar
+  // curta, o gate FALHA dizendo isso — em vez de reportar um alvo de toque que nunca foi pequeno.
+  const folhaDoAppInteira = () => page.evaluate(() => {
+    const links = [...document.querySelectorAll('link[rel~="stylesheet"]')];
+    if (!links.length) return { ok: false, regras: 0 };
+    const ultima = links[links.length - 1];
+    try {
+      const n = ultima.sheet ? ultima.sheet.cssRules.length : 0;
+      return { ok: links.every(l => l.sheet !== null) && n >= 20, regras: n };
+    } catch { return { ok: true, regras: -1 }; }   // cross-origin: não dá para inspecionar
+  });
+
+  let css = await folhaDoAppInteira();
+  for (let tentativa = 0; tentativa < 3 && !css.ok; tentativa++) {
+    await page.reload({ waitUntil: "load" });
+    await page.waitForTimeout(400);
+    css = await folhaDoAppInteira();
+  }
+  if (!css.ok) {
+    throw new Error(
+      `[a11y] ${appPath} @${width}px: a folha do app veio incompleta (${css.regras} regras) ` +
+      `depois de 3 recargas. Medir agora acusaria alvo de toque pequeno num elemento que só ` +
+      `está sem CSS — é preciso consertar o servidor estático, não o CSS do app.`);
+  }
 
   await page.evaluate(() => document.fonts.ready);
   await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));

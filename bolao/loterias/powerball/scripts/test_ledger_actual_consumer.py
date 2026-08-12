@@ -18,6 +18,18 @@ envio duplicado para 15 pessoas.
 Executar: POWERBALL_TEST_RUN=1 python3 test_ledger_actual_consumer.py
 """
 
+# ── DECLARACAO EXPLICITA DE MODO TESTE ───────────────────────────────────────────────────────
+#
+# Este arquivo exercita run_lifecycle(), que desde a integracao M8/M9 fala com audit_events e
+# outbox_events. A ponte FALHA FECHADO sem SUPABASE_SERVICE_ROLE_KEY -- de proposito: em producao,
+# "nao consigo registrar" nunca pode virar "nada a registrar".
+#
+# Entao o teste declara que e teste, em vez de a ponte adivinhar. A mesma convencao ja governa o
+# transporte de e-mail (`real_send_allowed()`), e pela mesma razao: autorizacao positiva, nunca
+# heuristica negativa.
+import os as _os
+_os.environ.setdefault("BOLAO_TEST_RUN", "1")
+
 import os
 import sys
 import unittest

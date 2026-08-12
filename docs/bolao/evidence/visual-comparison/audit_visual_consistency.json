@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-11T15:48:49.551Z",
-  "commit": "c842372",
+  "generatedAtUtc": "2026-08-12T13:58:46.350Z",
+  "commit": "2244553c",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -1102,7 +1102,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "1791px",
+          "height": "1806px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -2524,7 +2524,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
+          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
         }
       },
       "properties": [
