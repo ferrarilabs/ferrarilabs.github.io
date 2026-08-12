@@ -139,13 +139,22 @@ def check_ready_to_invite(state):
     """
     fase = (state.get("phases") or {}).get(FASE) or {}
 
-    sorteio = fase.get("officialDraw") or {}
-    confrontos = sorteio.get("ties") or []
+    # Os confrontos vivem em `phase.ties` (DICT keyed por id), e `officialDraw` é o registro de
+    # PROVENIÊNCIA — não a lista. Eu li errado na primeira versão e o script anunciou "0 de 4
+    # confrontos" contra uma produção que tem os 4. Errar para o lado de recusar é o lado certo,
+    # mas a mensagem culpava o dado em vez do leitor.
+    confrontos = fase.get("ties") or {}
     if len(confrontos) != 4:
         return False, f"sorteio oficial incompleto ({len(confrontos)} de 4 confrontos)", None
-    for t in confrontos:
+    for tid, t in confrontos.items():
         if not t.get("teamA") or not t.get("teamB"):
-            return False, f"confronto sem os dois times definidos: {t.get('id')}", None
+            return False, f"confronto sem os dois times definidos: {tid}", None
+
+    # Proveniência: o app trata `officialDraw` sem `validatedAt` como NÃO validado (fail closed,
+    # ver officialDrawProvenanceIsValid() em app.js). O convite segue a mesma régua — convidar
+    # para um chaveamento cuja origem o app se recusa a reconhecer seria incoerente.
+    if not (fase.get("officialDraw") or {}).get("validatedAt"):
+        return False, "o sorteio oficial não tem proveniência validada (officialDraw.validatedAt)", None
 
     cutoff = fase.get("cutoffAt")
     if not cutoff:
@@ -217,7 +226,7 @@ def _fmt_prazo(cutoff_iso):
 
 def build_html(entry, state, cutoff_iso, link):
     fase = (state.get("phases") or {}).get(FASE) or {}
-    confrontos = (fase.get("officialDraw") or {}).get("ties") or []
+    confrontos = (fase.get("ties") or {}).values()
 
     linhas = ""
     for t in confrontos:
