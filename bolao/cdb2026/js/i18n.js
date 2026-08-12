@@ -68,7 +68,13 @@ window.CDB2026_I18N = {
     pickAdvanceLabel:  "Quem se classifica",
     pickSelectAdvance: "— Quem se classifica —",
     pickQualifiedLabel: "Classificado",
-    pickHintTie:       "10 pts placar exato · 5 pts resultado certo · 1 pt gols de um time certos · +5 classificado certo",
+    // "Categorias da partida não acumulam" e explicito de proposito: a lista separada por pontos
+    // parecia soma, e o motor NUNCA somou -- so a categoria mais alta conta por partida.
+    pickHintTie:       "Partida: 10 pts placar exato · 5 pts resultado certo · 1 pt por lado com gols exatos. Categorias da partida não acumulam. +5 pts pelo classificado correto.",
+    // Na FINAL ninguem "se classifica" -- acaba ali. O bonus e de pódio, nao de classificacao.
+    pickHintFinal:     "Partida: 10 pts placar exato · 5 pts resultado certo · 1 pt por lado com gols exatos. Categorias da partida não acumulam. 🏆 Campeão +30 · 🥈 Vice +20.",
+    pickChampionLabel: "Quem é o campeão?",
+    pickSelectChampion: "— Quem é o campeão? —",
     pickNoOpenTies:    "Nenhum confronto liberado para palpite no momento.",
     gamesTbd:          "Data a definir",
     gameFinal:         "Encerrado",
