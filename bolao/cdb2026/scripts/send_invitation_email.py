@@ -372,6 +372,10 @@ def main():
                    help="emite token NOVO para quem já tem (invalida o link anterior)")
     p.add_argument("--correction", action="store_true",
                    help="reenvio de ACESSO: o convite ja saiu, mas o link nao autenticava")
+    p.add_argument("--only-missing", action="store_true",
+                   help="so quem NAO tem credencial viva (nao incomoda quem ja esta com link bom)")
+    p.add_argument("--key-version", type=int, default=1,
+                   help="versao da chave de negocio; subir = decisao deliberada de reenviar")
     args = p.parse_args()
     if not args.dry_run and not args.apply:
         p.error("escolha --dry-run ou --apply")
@@ -403,7 +407,9 @@ def main():
     # Correcao rota TODO MUNDO: o defeito era sistemico (nenhum dos doze links autenticava), e
     # deixar alguem de fora exigiria provar individualmente que o link dele funcionava -- prova
     # que nao temos, porque o token em claro nao existe em lugar nenhum depois do envio.
-    reemitir = args.reissue or args.correction
+    # `--only-missing` vence a reemissao: um reenvio dirigido nao pode rotacionar o token de
+    # quem ja esta com link funcionando -- isso transformaria um conserto em nova quebra.
+    reemitir = (args.reissue or args.correction) and not args.only_missing
     alvos = [e for e in elegiveis if reemitir or e.get("id") not in ja]
 
     print(f"\n  prazo publicado       {cutoff}  ({_fmt_prazo(cutoff)})")
@@ -437,8 +443,9 @@ def main():
     # de mandar metade dos convites, a execução seguinte recomputa a MESMA chave, reencontra a
     # obrigação e não cria uma segunda. É o equivalente recuperável da atomicidade que um
     # documento JSON gravado por REST não pode dar (ver m8m9.py, "O LIMITE TRANSACIONAL").
-    chave = (m8m9.key_cdb_access_correction("quarterfinal") if args.correction
-             else m8m9.key_cdb_picks_open("quarterfinal"))
+    chave = (m8m9.key_cdb_access_correction("quarterfinal", version=args.key_version)
+             if args.correction
+             else m8m9.key_cdb_picks_open("quarterfinal", version=args.key_version))
     evento_id, criado = m8m9.emit_outbox(
         chave, "cdb2026.access_correction" if args.correction else "cdb2026.picks_open_invitation",
         payload={"phaseId": FASE, "cutoffAt": cutoff, "recipientCount": len(alvos)},
