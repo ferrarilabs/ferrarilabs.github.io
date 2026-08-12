@@ -222,12 +222,33 @@ test("o guard de add-tie existe e lança QF_DRAW_NOT_OFFICIAL (falha explícita,
     "o guard de add-tie não consulta DRAW_GATED_PHASES");
 });
 
-test("o invariante está nos QUATRO chokepoints do app.js real", () => {
+test("o invariante está em TODO chokepoint que ainda existe", () => {
+  // O quarto chokepoint era `saveRemoteState()` — o payload remoto. Em 2026-08-12 ele virou
+  // lápide: lança incondicionalmente, porque o navegador não grava mais documento inteiro.
+  //
+  // Exigir `enforceDrawLifecycle` lá dentro seria exigir uma guarda para uma travessia que não
+  // acontece mais, e o único jeito de satisfazer isso seria RESSUSCITAR a escrita. Chokepoint
+  // removido é mais forte que chokepoint guardado: não há o que atravessar.
+  //
+  // A lápide precisa lançar SEM CONDIÇÃO e não pode alcançar a rede — senão não é lápide, é uma
+  // porta com aviso.
   for (const [fn, why] of [["state", "leitura/render"], ["saveState", "gravação local"],
-                           ["mergeStates", "merge"], ["saveRemoteState", "payload remoto"]]) {
+                           ["mergeStates", "merge"]]) {
     assert(extractFn(fn).includes("enforceDrawLifecycle("),
       `${fn}() (${why}) não aplica enforceDrawLifecycle — chokepoint descoberto`);
   }
+
+  const remoto = extractFn("saveRemoteState");
+  const lapide = remoto.includes("throw new Error(")
+                 && !remoto.includes("fetchJson") && !remoto.includes("fetch(");
+  if (lapide) {
+    assert(!/\bif\s*\(/.test(remoto),
+      "a lápide de saveRemoteState() ganhou um `if` — condição ali é uma porta, e o payload " +
+      "remoto voltaria a existir sem passar por enforceDrawLifecycle");
+    return;
+  }
+  assert(remoto.includes("enforceDrawLifecycle("),
+    "saveRemoteState() voltou a gravar e NÃO aplica enforceDrawLifecycle — chokepoint descoberto");
 });
 
 console.log(`\n  ${pass} passed, ${fail} failed`);

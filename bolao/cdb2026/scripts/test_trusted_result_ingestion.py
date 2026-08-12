@@ -171,9 +171,29 @@ test("fase ativa DESCONHECIDA -> nada é ingerido", lambda: (
                         "aceitou um id de fase que não existe no torneio")))(estado()))
 
 # ── o travamento é idempotente ──────────────────────────────────────────────────────────────
-test("sb_lock_tie recusa sobrescrever confronto travado", lambda: _assert(
-    "if tie.get(\"qualifiedTeamId\"):" in _FONTE and "never overwrite" in _FONTE,
-    "sumiu a guarda de não sobrescrever confronto travado em sb_lock_tie"))
+# A GUARDA MUDOU DE CAMADA, NAO DEIXOU DE EXISTIR.
+#
+# Ate 2026-08-12 ela vivia no Python (`sb_lock_tie`, "already locked -- never overwrite"). A
+# migracao para mutacoes estreitas moveu o travamento para a RPC `cdb_apply_operator_mutation`
+# ('lock-tie') e a guarda NAO veio junto -- este gate pegou a regressao.
+#
+# Restaurada em 20260812200000, agora no SQL. O gate passa a olhar onde a regra REALMENTE mora:
+# checar a string antiga no Python exigiria ressuscitar codigo que foi aposentado de proposito.
+def guarda_de_travamento_existe():
+    from pathlib import Path as _P
+    migr = sorted(_P(AQUI).parents[2].glob("supabase/migrations/*lock_tie_never_overwrites*.sql"))
+    _assert(migr, "sumiu a migracao que impede sobrescrever confronto travado")
+    corpo = migr[-1].read_text(encoding="utf8")
+    _assert("qualifiedTeamId" in corpo and "unlock-tie" in corpo,
+            "a guarda de travamento perdeu a referencia ao classificado ou ao destravamento")
+    # E o chamador continua sendo a primeira camada.
+    _assert('if tie.get("qualifiedTeamId"):' in _FONTE,
+            "_maybe_decide_tie parou de sair cedo em confronto ja travado — a defesa ficaria "
+            "so na RPC, e uma camada so foi exatamente o problema encontrado hoje")
+
+
+test("confronto travado nao e sobrescrito (guarda no SQL + no chamador)",
+     guarda_de_travamento_existe)
 
 # ── o navegador não participa disso ─────────────────────────────────────────────────────────
 test("nenhuma gravação de resultado parte do navegador", lambda: _assert(

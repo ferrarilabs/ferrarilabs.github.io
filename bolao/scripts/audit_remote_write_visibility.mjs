@@ -52,18 +52,35 @@ for (const app of APPS) {
   // lugar. Exigir a forma antiga seria exigir de volta o upsert de documento completo, que e
   // exatamente a vulnerabilidade removida.
   const narrow = /function\s+callNarrowRpc\s*\(/.test(src);
+  // TERCEIRA FORMA (2026-08-12, cdb2026): o navegador do CDB nao grava documento nenhum. Palpite
+  // vai por `cdbRpc` -> cdb_save_my_picks, que resolve a entrada pelo TOKEN. Nao existe caminho
+  // "gravacao pulada" ali: a RPC responde ou lanca.
+  //
+  // Exigir `.skipped` ou o texto literal do upsert antigo seria exigir de volta a escrita de
+  // documento inteiro -- a vulnerabilidade que foi removida. O invariante nao mudou; mudou onde
+  // ele mora.
+  const rpcEstreita = /async function\s+cdbRpc\s*\(/.test(src);
 
   test(`[${app}] a resposta do Supabase é CHECADA (4xx/5xx não é sucesso)`, () => {
     // `await fetch()` não rejeita em 4xx/5xx. Sem isto, o RLS negando a escrita vira "salvo".
     assert(/if \(!r\.ok\)/.test(src),
       "a resposta não é checada — um 401/403 do RLS voltaria a passar por sucesso");
-    assert(narrow ? /throw err;/.test(src)
-                  : /throw new Error\(`Supabase respondeu \$\{r\.status\}/.test(src),
+    assert(rpcEstreita ? /if \(!r\.ok\) throw new Error\(`RPC/.test(src)
+           : narrow ? /throw err;/.test(src)
+                    : /throw new Error\(`Supabase respondeu \$\{r\.status\}/.test(src),
       "a falha do provedor não vira erro propagável");
   });
 
   test(`[${app}] gravação PULADA é reportada ao usuário, não só ao console`, () => {
     // O caso que faltava: `{skipped:true}` resolve, então `.catch` nunca dispara.
+    if (rpcEstreita) {
+      // Sem caminho "pulado" para inspecionar: a RPC responde ou lanca. O que precisa existir e
+      // que o erro CHEGUE ao usuario -- verificado no caso seguinte.
+      assert(!/\.skipped/.test(src),
+        "voltou a existir caminho de gravação PULADA no navegador do CDB — era ele que fazia a " +
+        "tela dizer 'salvo' sem ter salvo");
+      return;
+    }
     assert(narrow ? /\.skipped/.test(src)
                   : /\.then\(res =>[\s\S]{0,400}res\.skipped/.test(src),
       "o caminho de gravação pulada não é inspecionado — a tela mostraria 'salvo' sem ter salvo");
@@ -75,7 +92,7 @@ for (const app of APPS) {
     // A chave precisa chegar a um toast. Exigir a forma literal `showToast(t("syncFailed")`
     // rejeitaria um aviso MAIS preciso -- o BR2026 usa um ternario para separar erro de
     // validacao (culpa do formulario) de falha de infraestrutura, e as duas viram toast.
-    assert(/showToast\([^;]*t\("syncFailed"\)/.test(src),
+    assert(rpcEstreita ? /showToast\(t\("saveError"\), "error"\)/.test(src) : /showToast\([^;]*t\("syncFailed"\)/.test(src),
       "falha de sincronização volta a ser silenciosa");
     assert(!/saveRemoteState\([^)]*\)\.catch\(\(\) => \{\}\)/.test(src),
       "voltou o `.catch(() => {})` que engole erro real");
@@ -86,7 +103,16 @@ for (const app of APPS) {
     // que atrasou o diagnóstico de um incidente: a coluna dizia 14/07 com conteúdo de 01/08.
     // Com RPC estreita quem carimba é o SERVIDOR (`_bolao_touch` + `update ... updated_at`),
     // o que é mais forte: o cliente não pode mais mentir sobre o instante.
-    if (narrow) {
+    if (rpcEstreita) {
+      // CDB2026 (2026-08-12): quem carimba e a RPC `cdb_save_my_picks`, no servidor. Exigir a
+      // forma antiga no app.js seria exigir de volta a gravacao de documento inteiro pelo
+      // navegador -- a vulnerabilidade removida. Servidor carimbando e MAIS forte: o cliente
+      // deixa de poder mentir sobre o instante.
+      const sql = readFileSync(join(ROOT, "supabase/migrations",
+        "20260812170000_cdb_save_picks_uses_active_phase.sql"), "utf8");
+      assert(/updated_at\s*=\s*v_agora/.test(sql),
+        "a RPC de gravacao do CDB parou de carimbar updated_at — a coluna congelaria na criacao");
+    } else if (narrow) {
       const sql = readFileSync(join(ROOT, "bolao/shared/sql/017_n22_narrow_mutations.sql"), "utf8");
       assert(/_bolao_touch/.test(sql) && /updated_at = now\(\)/.test(sql),
         "as RPCs estreitas não carimbam updated_at no servidor");
