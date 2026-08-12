@@ -472,6 +472,24 @@
       "approvedBy": "Eduardo",
       "reviewDate": "2026-08-07",
       "reviewBy": "2027-08-07"
+    },
+    {
+      "component": "ranking-row",
+      "property": "gridTemplateColumns",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026"
+      ],
+      "expectedType": "content-driven",
+      "expected": null,
+      "justification": "A regra CSS `grid-template-columns: 48px 1fr auto auto` e IDENTICA nos tres apps. A 4a trilha `auto` resolve para a largura real do botao 'Ver palpites' quando ele existe, e colapsa para 0px quando nao existe -- e ele so aparece depois do prazo de palpites. Medido em 2026-08-12 (tarde): copa2026 e cdb2026 renderizam o botao (99.3125px) e br2026 nao (0px). Largura de trilha dirigida por CONTEUDO, nao por token de design. HISTORICO: esta entrada foi REMOVIDA na manha de 2026-08-12 porque a medicao daquele momento dava EQUAL nos tres -- o cdb2026 ainda nao tinha prazo publicado nem chaveamento derivado, entao tambem colapsava. Com as quartas abertas e a semifinal prevista, ele passou a renderizar como a Copa e a divergencia voltou. A remocao estava certa para o estado de entao; o que faltou foi notar que a condicao era de ESTADO do torneio, e voltaria.",
+      "docRef": "ALLOWLIST.json ranking-row:height entry above (same root cause)",
+      "owner": "Platform",
+      "approvalStatus": "approved",
+      "approvedBy": "Eduardo",
+      "reviewDate": "2026-08-12",
+      "reviewBy": "2027-08-03"
     }
   ]
 }

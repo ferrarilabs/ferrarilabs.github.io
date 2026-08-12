@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-12T19:08:44.174Z",
-  "commit": "c18e74d3",
+  "generatedAtUtc": "2026-08-12T20:52:15.722Z",
+  "commit": "f91e0519",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -1102,7 +1102,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "1693px",
+          "height": "1797px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -2508,7 +2508,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
+          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -2595,8 +2595,8 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "A regra CSS `grid-template-columns: 48px 1fr auto auto` e IDENTICA nos tres apps. A 4a trilha `auto` resolve para a largura real do botao 'Ver palpites' quando ele existe, e colapsa para 0px quando nao existe -- e ele so aparece depois do prazo de palpites. Medido em 2026-08-12 (tarde): copa2026 e cdb2026 renderizam o botao (99.3125px) e br2026 nao (0px). Largura de trilha dirigida por CONTEUDO, nao por token de design. HISTORICO: esta entrada foi REMOVIDA na manha de 2026-08-12 porque a medicao daquele momento dava EQUAL nos tres -- o cdb2026 ainda nao tinha prazo publicado nem chaveamento derivado, entao tambem colapsava. Com as quartas abertas e a semifinal prevista, ele passou a renderizar como a Copa e a divergencia voltou. A remocao estava certa para o estado de entao; o que faltou foi notar que a condicao era de ESTADO do torneio, e voltaria. [docRef: ALLOWLIST.json ranking-row:height entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-12; reviewBy: 2027-08-03]"
         }
       ]
     },
