@@ -348,6 +348,36 @@ function resolveParticipant(s, ref) {
  * Devolve { phaseId, topologyKnown, slots: [{ slotId, sideA, sideB, bothResolved }] }.
  * Sem topologia registrada => `topologyKnown: false` e NENHUMA vaga inventada.
  */
+// Resolve uma vaga de fase derivada usando os palpites que o participante tem NA TELA agora --
+// nao os salvos. E isto que faz a semifinal reagir a um palpite de quartas sem passar pelo banco.
+//
+// `livePicks.qualified[tieId]` e "A"|"B": o lado que o participante acha que avanca. O nome do
+// clube vem do confronto REAL daquela fase, nunca de texto digitado.
+//
+// Sem palpite para o confronto de origem, devolve NAO RESOLVIDO -- e a tela mostra "Vencedor de
+// X", que e a verdade: ainda depende de uma escolha que a pessoa nao fez.
+function resolveParticipantPredicted(s, side, livePicks) {
+  const tieId = side && side.winnerOf;
+  if (tieId) {
+    const predecessorId = DERIVED_PHASES_PREDECESSOR_OF_TIE(s, tieId);
+    const tie = predecessorId && s?.phases?.[predecessorId]?.ties?.[tieId];
+    const escolhido = livePicks?.qualified?.[tieId];
+    if (tie && (escolhido === "A" || escolhido === "B")) {
+      const nome = escolhido === "A" ? tie.teamA : tie.teamB;
+      if (nome) return { resolved: true, teamName: nome, winnerOf: tieId, fromPrediction: true };
+    }
+  }
+  return resolveParticipant(s, side);
+}
+
+// Em que fase vive um confronto. Usado para achar o clube por tras de "vencedor de <tieId>".
+function DERIVED_PHASES_PREDECESSOR_OF_TIE(s, tieId) {
+  for (const [phaseId, phase] of Object.entries(s?.phases || {})) {
+    if (phase?.ties && Object.prototype.hasOwnProperty.call(phase.ties, tieId)) return phaseId;
+  }
+  return null;
+}
+
 function derivedPhaseView(s, phaseId) {
   const phase = s?.phases?.[phaseId];
   const topo = phase && phase.topology;
@@ -1789,6 +1819,25 @@ function validatePicks(picks) {
 }
 
 // ─── Render: pick form ───────────────────────────────────────────────────────
+// Reescreve os rotulos das vagas derivadas a partir dos palpites que estao na tela.
+// So texto: nao recria o formulario, para nao perder foco nem valores digitados.
+function atualizaFasesDerivadas(form) {
+  const s = state();
+  const live = getPickValues();
+  Object.keys(DERIVED_PHASES).forEach(phaseId => {
+    const view = derivedPhaseView(s, phaseId);
+    if (!view.topologyKnown) return;
+    view.slots.forEach(slot => {
+      const el = form.querySelector(`[data-derived-slot="${slot.slotId}"]`);
+      if (!el) return;
+      const a = resolveParticipantPredicted(s, slot.sideA, live);
+      const b = resolveParticipantPredicted(s, slot.sideB, live);
+      el.textContent = `${participantLabel(a, tieDisplayName(s, slot.sideA.winnerOf))}`
+                     + ` × ${participantLabel(b, tieDisplayName(s, slot.sideB.winnerOf))}`;
+    });
+  });
+}
+
 function renderPickForm() {
   const s    = state();
   const form = $("pickForm");
@@ -1819,6 +1868,35 @@ function renderPickForm() {
     html += `<div class="pick-group">
       <div class="pick-group-header champion-header">${esc(phase.name)}</div>`;
     if (!ties.length) {
+      // FASE DERIVADA x FASE SORTEADA sao causas DIFERENTES, e o formulario dizia a mesma coisa
+      // para as duas: "Aguardando sorteio oficial".
+      //
+      // Semifinal e final nao tem sorteio proprio -- a composicao vem dos vencedores das quartas.
+      // O que falta nelas nao e um sorteio, e o MAPEAMENTO oficial da CBF dizendo qual vencedor
+      // ocupa qual vaga. Dizer "aguardando sorteio" ali manda o participante esperar uma coisa
+      // que nao vai acontecer, e faz parecer defeito de tela o que e ausencia de dado.
+      //
+      // Com o mapeamento registrado, as vagas aparecem e sao palpitaveis -- alimentadas pelos
+      // palpites de quartas que a pessoa tem na tela, sem salvar. Sem ele, NADA e desenhado: supor
+      // qf-1xqf-2 seria fabricar chaveamento oficial.
+      if (DERIVED_PHASES[phase.id]) {
+        const view = derivedPhaseView(s, phase.id);
+        if (!view.topologyKnown) {
+          html += `<p class="muted small-text">${esc(t("topologyUnpublished"))}</p></div>`;
+          return;
+        }
+        const live = getPickValues();
+        html += view.slots.map(slot => {
+          const a = resolveParticipantPredicted(s, slot.sideA, live);
+          const b = resolveParticipantPredicted(s, slot.sideB, live);
+          return `<p class="muted small-text" data-derived-slot="${esc(slot.slotId)}">
+            ${esc(participantLabel(a, tieDisplayName(s, slot.sideA.winnerOf)))}
+            × ${esc(participantLabel(b, tieDisplayName(s, slot.sideB.winnerOf)))}
+          </p>`;
+        }).join("");
+        html += `</div>`;
+        return;
+      }
       html += `<p class="muted small-text">${esc(t("waitingDraw"))}</p></div>`;
       return;
     }
@@ -1908,7 +1986,15 @@ function renderPickForm() {
         qualSel.disabled = true;
       }
     };
-    block.querySelectorAll(".pk-goals-home, .pk-goals-away").forEach(el => el.addEventListener("input", update));
+    // Propagacao AO VIVO. Mudar um palpite de quartas tem de mexer na semifinal na hora -- sem
+    // salvar, sem recarregar, sem ida ao banco. `Salvar entrada` e persistencia, nao "avancar
+    // fase"; quem trata o botao como avanco obriga a gravar bracket pela metade.
+    const propagar = () => {
+      update();
+      atualizaFasesDerivadas(form);
+    };
+    block.querySelectorAll(".pk-goals-home, .pk-goals-away").forEach(el => el.addEventListener("input", propagar));
+    qualSel?.addEventListener("change", propagar);
     update(); // sincroniza travado/destravado ao carregar (inclusive editando entrada já salva)
   });
 }
