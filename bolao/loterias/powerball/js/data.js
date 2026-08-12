@@ -561,7 +561,8 @@ window.POWERBALL_DRAWS = [
       { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:55 PM", status: "verificado", state: "FL" },
       // Os outros $10 deste mesmo Zelle de $20 (txId 30376865303) cobrem o sorteio 2026-08-10
       // -- ver correcao la.
-      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" }
+      { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" },
+      { name: "Nathalia Galeazzi Nedel", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "9:37 AM", status: "verificado", state: "NC" }
     ],
 
     // Sem bilhetes ainda. Os numeros entram depois da compra -- abrir o bolao nunca dependeu
@@ -574,7 +575,7 @@ window.POWERBALL_DRAWS = [
     },
 
     finance: {
-      totalArrecadado: 150,
+      totalArrecadado: 160,
       // Premio do sorteio anterior + o que ficou guardado. Derivado do que esta gravado, nao
       // arbitrado aqui.
       creditoSorteioAnterior: 24,
