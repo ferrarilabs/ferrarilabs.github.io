@@ -128,7 +128,30 @@ export async function startStaticServer(port, root) {
   proc.on("exit", code => { exited = code; });
   proc.on("error", () => { exited = -1; });
 
-  const stop = () => { try { proc.kill(); } catch { /* já morto — nada a fazer */ } };
+  // ── O SERVIDOR MORRE COM O PROCESSO QUE O CRIOU ─────────────────────────────────────────
+  //
+  // Dez harnesses chamam este arquivo e NENHUM tinha `finally`: quando um caso lancava, o
+  // `stop()` nunca rodava e o python ficava de pe segurando a porta. A suite SEGUINTE morria com
+  // "porta JA ESTA EM USO" -- e quem falhava era quase sempre alguem sem relacao com a mudanca,
+  // o que mandou o diagnostico para o lado errado tres execucoes seguidas.
+  //
+  // Consertar isso em dez arquivos seria dez chances de esquecer o decimo primeiro. A limpeza
+  // mora aqui, onde o processo nasce: quem sobe o servidor tambem garante que ele desce.
+  //
+  // Isto NAO afrouxa a recusa de reusar porta ocupada -- essa guarda existe para nao medir o
+  // checkout errado e continua intacta. O que muda e so nao deixarmos lixo NOSSO para tras.
+  let parado = false;
+  const stop = () => {
+    if (parado) return;
+    parado = true;
+    try { proc.kill(); } catch { /* já morto — nada a fazer */ }
+  };
+
+  const aoSair = () => stop();
+  process.once("exit", aoSair);
+  process.once("uncaughtException", (e) => { stop(); throw e; });
+  process.once("unhandledRejection", (e) => { stop(); throw e; });
+  for (const sinal of ["SIGINT", "SIGTERM"]) process.once(sinal, () => { stop(); process.exit(1); });
 
   if (!(await waitForServer(port))) {
     stop();
