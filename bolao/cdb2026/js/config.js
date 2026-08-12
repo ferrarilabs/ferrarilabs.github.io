@@ -104,6 +104,12 @@ window.CDB2026_CONFIG = {
     provider: "supabase",
     url: "https://cmhqkkfczotdnssupkni.supabase.co",
     anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
+    // LEITURA: projecao SANITIZADA (2026-08-12). O navegador publico deixou de baixar
+    // participantEmail, payerName e paymentMethod de TODOS os participantes -- que era o que
+    // acontecia so para renderizar uma lista e localizar uma entrada.
+    // ESCRITA: continua em `bolao_state` enquanto o caminho de operador nao cobre 100% das
+    // mutacoes. A revogacao da escrita anonima e a etapa seguinte, e depende disso.
+    readTable: "bolao_state_public",
     table: "bolao_state",
     stateId: "cdb2026",
     localFallback: true
