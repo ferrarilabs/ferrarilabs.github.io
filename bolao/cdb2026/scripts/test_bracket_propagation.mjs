@@ -147,14 +147,31 @@ test("o formulário NÃO inventa vaga sem o mapeamento oficial", () => {
     "como chaveamento oficial é a mesma classe de erro que fabricar confronto");
 });
 
+// A afirmação é POSICIONAL, não por janela de N caracteres.
+//
+// A versão anterior recortava 1200 chars a partir do ramo derivado e exigia que `waitingDraw` não
+// aparecesse ali. Reorganizar o renderizador moveu o fallback legado para dentro dessa janela e o
+// gate reprovou um comportamento correto -- o ramo derivado retorna antes de alcançá-lo.
+//
+// O que importa é a ORDEM: dentro do ramo derivado, a mensagem de topologia tem de vir e o ramo
+// tem de RETORNAR antes de qualquer `waitingDraw`.
 test("fase derivada não diz mais 'aguardando sorteio' (causa errada)", () => {
+  // Só CÓDIGO: o comentário que explica a diferença entre "sorteio" e "mapeamento" cita as duas
+  // chaves, e uma janela que o inclua mede prosa. Sexta vez hoje que caio nisso.
   const i = APP.indexOf("function renderPickForm(");
-  const corpo = APP.slice(i, i + 9000);
+  const corpo = semComentarios(APP.slice(i, i + 12000));
   const iDeriv = corpo.indexOf("DERIVED_PHASES[phase.id]");
   assert(iDeriv > 0, "sumiu o ramo de fase derivada no formulário");
-  const ramo = corpo.slice(iDeriv, iDeriv + 1200);
-  assert(/topologyUnpublished/.test(ramo) && !/waitingDraw/.test(ramo.slice(0, ramo.indexOf("</div>"))),
-    "fase derivada ainda cai em waitingDraw — semifinal não espera sorteio, espera mapeamento");
+  const depois = corpo.slice(iDeriv);
+  const iTopo = depois.indexOf("topologyUnpublished");
+  const iWait = depois.indexOf("waitingDraw");
+  assert(iTopo > 0, "o ramo derivado não menciona mais a topologia não publicada");
+  assert(iWait === -1 || iTopo < iWait,
+    "fase derivada alcança waitingDraw antes de topologyUnpublished — semifinal não espera " +
+    "sorteio, espera mapeamento");
+  const iReturn = depois.indexOf("return;", iTopo);
+  assert(iReturn > 0 && (iWait === -1 || iReturn < iWait),
+    "o ramo derivado não retorna antes do fallback legado");
 });
 
 test("a propagação é ligada ao evento, não ao salvar", () => {
