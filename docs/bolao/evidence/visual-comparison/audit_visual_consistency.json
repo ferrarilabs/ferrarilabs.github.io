@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-12T17:34:59.344Z",
-  "commit": "88cb87ab",
+  "generatedAtUtc": "2026-08-12T19:08:44.174Z",
+  "commit": "c18e74d3",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -1102,7 +1102,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "1806px",
+          "height": "1693px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -2508,7 +2508,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "76.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "48px 981.797px 18.2031px 0px"
+          "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -2595,8 +2595,8 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "JUSTIFIED",
-          "reason": "Same root cause as ranking-row:height directly above: the grid-template-columns RULE (`48px 1fr auto auto`) is identical CSS in all three apps, but the 4th `auto` track resolves to the 'Ver palpites' button's real width in Copa (cutoff always past, button always rendered) and collapses to `0px` in BR2026/CDB2026 in this harness run (their own picks-reveal cutoff gate -- see ranking-row:height entry -- isn't simulated, so the button doesn't render at all, and an empty `auto` track has zero width). Content-driven column sizing, not a token divergence -- will resolve identically to Copa's the moment either app's synthetic run simulates a past-cutoff state. [docRef: ALLOWLIST.json ranking-row:height entry above (same root cause); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "status": "EQUAL",
+          "reason": null
         }
       ]
     },
