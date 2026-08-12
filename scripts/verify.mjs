@@ -109,6 +109,8 @@ const CHECKS = [
     why: "\"a fonte nao respondeu nada\" nao pode virar \"a CBF nao publicou\": janela larga demais esvazia a resposta em silencio, e um apelido divergente segura a tabela inteira" },
   { id: "cdb-trusted-ingestion", group: "security", cmd: ["python3", "bolao/cdb2026/scripts/test_trusted_result_ingestion.py"],
     why: "resultado oficial move dinheiro; a matriz de identidade (ano/fase/mando/regressao terminal) e o que separa o placar certo de um jogo plausivel entre os mesmos clubes" },
+  { id: "no-real-email-in-verification", group: "security", cmd: ["python3", "bolao/scripts/test_no_real_email_in_verification.py"],
+    why: "verificador que fala com o provedor mandou dois e-mails a mais para o operador em 2026-08-12; participante real nunca e alvo de verificacao" },
   { id: "m8m9-no-silent-fallback", group: "security", cmd: ["python3", "bolao/scripts/test_m8m9_no_silent_fallback.py"],
     why: "auditoria que falha em silencio e pior que nao ter auditoria; a ponte M8/M9 levanta, nao adivinha, e nenhum caminho REST morto sobrevive" },
   { id: "cdb-invitation-email", group: "security", cmd: ["python3", "bolao/cdb2026/scripts/test_invitation_email.py"],

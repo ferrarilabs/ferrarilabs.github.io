@@ -35,6 +35,7 @@
     "test:cdb-trusted-state-access": "node bolao/cdb2026/scripts/test_trusted_state_access.mjs",
     "test:cdb-invitation-email": "python3 bolao/cdb2026/scripts/test_invitation_email.py",
     "test:m8m9-no-silent-fallback": "python3 bolao/scripts/test_m8m9_no_silent_fallback.py",
+    "test:no-real-email-in-verification": "python3 bolao/scripts/test_no_real_email_in_verification.py",
     "test:cdb-trusted-ingestion": "python3 bolao/cdb2026/scripts/test_trusted_result_ingestion.py",
     "test:cdb-schedule-reconciler": "python3 bolao/cdb2026/scripts/test_schedule_reconciler.py",
     "test:no-whole-document-writers": "node bolao/scripts/test_no_whole_document_writers.mjs",
