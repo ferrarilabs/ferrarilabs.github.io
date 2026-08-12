@@ -83,19 +83,29 @@ def _raises(fn, exc, m):
 FUTURO = iso(datetime.now(timezone.utc) + timedelta(days=10))
 PASSADO = iso(datetime.now(timezone.utc) - timedelta(days=1))
 
-QUATRO = [
-    {"id": "t1", "teamA": "Cruzeiro", "teamB": "Atlético-MG"},
-    {"id": "t2", "teamA": "Vasco", "teamB": "Vitória"},
-    {"id": "t3", "teamA": "Palmeiras", "teamB": "Santos"},
-    {"id": "t4", "teamA": "Internacional", "teamB": "Grêmio"},
-]
+# FORMA REAL DA PRODUCAO: `phase.ties` e um DICT keyed por id, e `officialDraw` guarda
+# PROVENIENCIA (validatedAt/bracketHash) -- nao a lista de confrontos.
+#
+# A primeira versao deste teste usava lista dentro de officialDraw. O gate passava 16/16 contra
+# essa fixture, e o script anunciou "0 de 4 confrontos" contra uma producao que tem os 4. Um
+# teste hermetico so prova consistencia com o modelo que ele proprio carrega: se a fixture erra
+# a forma junto com o codigo, os dois concordam e ninguem reclama. Por isso a fixture aqui
+# espelha a forma lida de operator_cli.py/reconcile_official_schedule.py, nao a que eu imaginei.
+QUATRO = {
+    "t1": {"teamA": "Cruzeiro", "teamB": "Atlético-MG"},
+    "t2": {"teamA": "Vasco", "teamB": "Vitória"},
+    "t3": {"teamA": "Palmeiras", "teamB": "Santos"},
+    "t4": {"teamA": "Internacional", "teamB": "Grêmio"},
+}
+PROV = {"validatedAt": "2026-08-12T00:00:00Z", "bracketHash": "abc123"}
 
 
-def estado(cutoff=FUTURO, ties=None, entradas=None):
+def estado(cutoff=FUTURO, ties=None, entradas=None, prov=None):
     return {
         "phases": {"quartas": {
             "cutoffAt": cutoff,
-            "officialDraw": {"ties": QUATRO if ties is None else ties},
+            "ties": QUATRO if ties is None else ties,
+            "officialDraw": PROV if prov is None else prov,
         }},
         "entries": entradas if entradas is not None else [
             {"id": "e1", "entryName": "Fulano", "participantEmail": "fulano@example.com"},
@@ -124,18 +134,30 @@ test("cutoffAt ilegível é bloqueado (não vira 'sem prazo' silencioso)", lambd
 
 # ── sorteio completo ─────────────────────────────────────────────────────────────────────────
 test("sorteio com menos de 4 confrontos é bloqueado", lambda: _assert(
-    convite.check_ready_to_invite(estado(ties=QUATRO[:3]))[0] is False,
+    convite.check_ready_to_invite(
+        estado(ties={k: QUATRO[k] for k in ("t1", "t2", "t3")}))[0] is False,
     "convidou com o sorteio pela metade"))
 
 test("confronto sem os dois times é bloqueado", lambda: _assert(
     convite.check_ready_to_invite(
-        estado(ties=QUATRO[:3] + [{"id": "t4", "teamA": "Internacional", "teamB": ""}]))[0] is False,
+        estado(ties={**{k: QUATRO[k] for k in ("t1", "t2", "t3")},
+                     "t4": {"teamA": "Internacional", "teamB": ""}}))[0] is False,
     "convidou com um confronto sem adversário"))
 
 test("estado completo e prazo no futuro LIBERA", lambda: (
     lambda r: (_assert(r[0] is True, f"bloqueou indevidamente: {r[1]}"),
                _assert(r[2] == FUTURO, "não devolveu o cutoff")))(
     convite.check_ready_to_invite(estado())))
+
+test("sorteio SEM proveniencia validada é bloqueado", lambda: _assert(
+    convite.check_ready_to_invite(estado(prov={}))[0] is False,
+    "convidou para um chaveamento cuja origem o proprio app se recusa a reconhecer"))
+
+test("le os confrontos de phase.ties, nao de officialDraw.ties", lambda: _assert(
+    convite.check_ready_to_invite(
+        {"phases": {"quartas": {"cutoffAt": FUTURO, "ties": {},
+                                "officialDraw": {**PROV, "ties": QUATRO}}}})[0] is False,
+    "aceitou confrontos pendurados em officialDraw.ties — foi esse engano que fez o script\n     anunciar 0 de 4 contra uma producao que tem os 4"))
 
 # ── elegibilidade ────────────────────────────────────────────────────────────────────────────
 test("entrada apagada não é convidada", lambda: _assert(

@@ -82,8 +82,13 @@ jobs:
           MODO="--dry-run"
           [ "${{ inputs.apply }}" = "true" ] && MODO="--apply"
           [ "${{ github.event_name }}" = "schedule" ] && MODO="--apply"
-          python3 send_invitation_email.py $MODO
-          rc=$?
+          # `|| rc=$?` e obrigatorio: o Actions roda `bash -e {0}`, entao o `-e` vem da INVOCACAO
+          # do shell e nao do `set` aqui dentro. Sem isso o passo aborta no proprio exit 3 antes
+          # de chegar na linha que trata o 3 como normal -- que foi exatamente o que aconteceu na
+          # primeira execucao: o script recusou corretamente e o workflow ficou vermelho mesmo
+          # assim, gerando o e-mail de falha que este trabalho todo existe para eliminar.
+          rc=0
+          python3 send_invitation_email.py $MODO || rc=$?
           # 3 = "ainda nao ha prazo publicado". Estado de negocio NORMAL: e o caso esperado em
           # toda execucao ate a CBF publicar. Vermelho aqui seria alarme cronico, e alarme
           # cronico e como se aprende a ignorar alarme.
