@@ -32,8 +32,10 @@ const arquivos = execFileSync("git", ["ls-files"], { cwd: RAIZ, encoding: "utf8"
 
 const porPorta = new Map();
 for (const f of arquivos) {
-  const src = readFileSync(join(RAIZ, f), "utf8");
-  // Só declarações executáveis: comentário que cita uma porta não reserva porta.
+  // Só declarações EXECUTÁVEIS. Comentário que cita uma porta não reserva porta -- e a primeira
+  // versão disto reprovou por causa do PRÓPRIO bloco `/** */` deste arquivo, que usa
+  // `const PORT = 8231` como exemplo do defeito. Filtrar só linhas `//` não bastava.
+  const src = readFileSync(join(RAIZ, f), "utf8").replace(/\/\*[\s\S]*?\*\//g, "");
   for (const linha of src.split("\n")) {
     if (linha.trim().startsWith("//")) continue;
     const m = /const\s+PORT\s*=\s*(\d{2,5})/.exec(linha);
