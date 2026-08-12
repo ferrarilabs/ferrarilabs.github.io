@@ -109,6 +109,8 @@ const CHECKS = [
     why: "dois gravadores de documento inteiro sem token comum perdem o trabalho um do outro em silencio" },
   { id: "harness-ports-unique", group: "app", cmd: ["node", "bolao/scripts/test_harness_ports_unique.mjs"],
     why: "duas suites na mesma porta fazem a SEGUNDA morrer com \"porta em uso\" — e quem falha costuma ser uma suite sem relacao com a mudanca" },
+  { id: "cdb-bracket-persistence", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_persistence.mjs"],
+    why: "o bracket completo tem de sobreviver a Salvar + recarregar: \"a RPC devolveu 200\" nao prova que os dados voltam" },
   { id: "cdb-bracket-browser", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_browser.mjs"],
     why: "o bracket de previsao no navegador REAL: quartas -> semifinal -> final -> campeao, sem salvar. O gate de unidade passava enquanto a producao renderizava undefined" },
   { id: "cdb-bracket-propagation", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_bracket_propagation.mjs"],
