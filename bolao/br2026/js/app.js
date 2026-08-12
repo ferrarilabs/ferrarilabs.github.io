@@ -3244,15 +3244,16 @@ function exportJsonBackup() {
 async function clearAllData() {
   if (!confirm(t("clearDataConfirm"))) return;
   localStorage.removeItem(C.storeKey);
-  if (C.database.enabled) {
-    try {
-      const { url, anonKey, table, stateId } = C.database;
-      await fetchJson(`${url}/rest/v1/${table}?id=eq.${stateId}`, {
-        method: "DELETE",
-        headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}` }
-      });
-    } catch (err) { console.warn("[BR2026] Clear remote failed", err); }
-  }
+  // REMOVIDO — PLATFORM-WHOLE-DOC-WRITERS.
+  //
+  // Aqui havia um DELETE CRU da linha inteira do bolao, com a chave anon publica que este arquivo
+  // ja carrega. Medido hoje como DENIED: as policies de escrita sairam no Q38. Mas codigo morto
+  // que apaga um bolao inteiro nao e codigo seguro -- basta uma policy restaurada por engano para
+  // que volte a alcancar, e o `catch` logo abaixo engolia o erro em silencio, entao ninguem
+  // notaria a diferenca entre "negado" e "apagou".
+  //
+  // A limpeza local continua acontecendo (saveLocalState acima); a remota, se algum dia for
+  // necessaria, passa pelo runtime confiavel de operador.
   renderAll();
 }
 
