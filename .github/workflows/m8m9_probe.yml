@@ -31,3 +31,7 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: python3 bolao/cdb2026/scripts/secure_access_canary.py
+      - name: Credenciais de acesso do CDB (vivas x revogadas)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/check_access_credentials.py
