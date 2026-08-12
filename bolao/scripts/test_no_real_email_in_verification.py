@@ -83,9 +83,52 @@ E_VERIFICADOR = re.compile(r"(^|/)(test_|audit_|check_)|canary|probe|_test\.")
 
 print("\nNenhum verificador alcanca o provedor\n")
 
+
+
+# Remove comentarios E DOCSTRINGS antes de procurar padrao.
+#
+# Docstring nao e comentario: o filtro de linha pega "#", nao pega bloco com aspas triplas.
+# QUATRO gates meus reprovaram hoje lendo a propria prosa -- inclusive este arquivo, cuja
+# docstring cita o padrao proibido justamente para explicar o defeito.
+#
+# Gate que le prosa mede prosa.
+def _sem_docstrings(txt):
+    import ast as _ast
+    try:
+        arvore = _ast.parse(txt)
+    except SyntaxError:
+        arvore = None
+    if arvore is not None:
+        fora = set()
+        for no in _ast.walk(arvore):
+            corpo = getattr(no, "body", None)
+            if not isinstance(corpo, list) or not corpo:
+                continue
+            d = corpo[0]
+            if isinstance(d, _ast.Expr) and isinstance(getattr(d, "value", None), _ast.Constant) \
+               and isinstance(d.value.value, str):
+                for ln in range(d.lineno, (d.end_lineno or d.lineno) + 1):
+                    fora.add(ln)
+        txt = "\n".join("" if (i + 1) in fora else l
+                        for i, l in enumerate(txt.split("\n")))
+    import re as _re
+    txt = _re.sub(r"/\*[\s\S]*?\*/", "", txt)
+    return "\n".join(l for l in txt.split("\n")
+                     if not l.strip().startswith(("#", "//", "*")))
+
+
 arquivos = versionados()
+# So CODIGO: arquivo que MENCIONA o provedor na docstring para explicar o incidente nao esta
+# falando com ele. Este proprio gate era o exemplo.
+# ESTE arquivo fica fora da propria varredura, e a razao e estrutural, nao conveniencia: um
+# detector de "quem cita o provedor" precisa conter o nome do provedor no padrao. Nao ha como
+# escrever o regex sem casar consigo mesmo. A exclusao e por caminho exato -- nao por prefixo --
+# para nao virar uma porta por onde outro arquivo escape.
+ESTE = "bolao/scripts/test_no_real_email_in_verification.py"
+
 tocam = [f for f in arquivos
-         if PROVEDOR.search((RAIZ / f).read_text(encoding="utf8", errors="replace"))]
+         if f != ESTE
+         and PROVEDOR.search(_sem_docstrings((RAIZ / f).read_text(encoding="utf8", errors="replace")))]
 
 
 def sem_remetente_novo():

@@ -63,12 +63,42 @@ def verificadores():
             and f.endswith((".py", ".mjs"))]
 
 
-def codigo(f):
-    """Só linhas executáveis: prosa que descreve o defeito não é o defeito."""
-    txt = (RAIZ / f).read_text(encoding="utf8", errors="replace")
-    txt = re.sub(r"/\*[\s\S]*?\*/", "", txt)
+
+
+# Remove comentarios E DOCSTRINGS antes de procurar padrao.
+#
+# Docstring nao e comentario: o filtro de linha pega "#", nao pega bloco com aspas triplas.
+# QUATRO gates meus reprovaram hoje lendo a propria prosa -- inclusive este arquivo, cuja
+# docstring cita o padrao proibido justamente para explicar o defeito.
+#
+# Gate que le prosa mede prosa.
+def _sem_docstrings(txt):
+    import ast as _ast
+    try:
+        arvore = _ast.parse(txt)
+    except SyntaxError:
+        arvore = None
+    if arvore is not None:
+        fora = set()
+        for no in _ast.walk(arvore):
+            corpo = getattr(no, "body", None)
+            if not isinstance(corpo, list) or not corpo:
+                continue
+            d = corpo[0]
+            if isinstance(d, _ast.Expr) and isinstance(getattr(d, "value", None), _ast.Constant) \
+               and isinstance(d.value.value, str):
+                for ln in range(d.lineno, (d.end_lineno or d.lineno) + 1):
+                    fora.add(ln)
+        txt = "\n".join("" if (i + 1) in fora else l
+                        for i, l in enumerate(txt.split("\n")))
+    import re as _re
+    txt = _re.sub(r"/\*[\s\S]*?\*/", "", txt)
     return "\n".join(l for l in txt.split("\n")
                      if not l.strip().startswith(("#", "//", "*")))
+
+
+def codigo(f):
+    return _sem_docstrings((RAIZ / f).read_text(encoding="utf8", errors="replace"))
 
 
 ARQUIVOS = verificadores()
