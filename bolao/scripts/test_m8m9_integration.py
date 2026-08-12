@@ -208,26 +208,39 @@ def main():
     check("backoff impede reivindicação imediata", st == 200 and not r,
           f"pegou {r} — sem backoff um destino que falha vira laço apertado")
 
-    # Esgotamento: força os 6 desfechos e confirma dead.
+    # ── Esgotamento das tentativas ──────────────────────────────────────────────────────────
+    #
+    # A primeira versão deste bloco reivindicava em laço apertado e chamava
+    # `recover_expired_outbox_leases()` para "devolver sem esperar". Não funciona, e a razão
+    # importa: recuperar lease conserta um WORKER QUE MORREU (in_flight preso); backoff é outra
+    # coisa — é o evento em `pending` com `next_attempt_at` no futuro. Nenhuma das duas substitui
+    # a outra, e confundi-las fez o laço nunca passar da segunda tentativa.
+    #
+    # Então o teste espera o backoff de verdade. Fica lento (~62s: 2+4+8+16+32), e em troca prova
+    # o cronograma além da contagem — se a fórmula mudar, os prazos abaixo deixam de bater.
     chave4 = f"canary:esgota:{marca}:v1"
     st, r4 = rpc("emit_outbox_event", {"p_idempotency_key": chave4, "p_event_type": "canary.esgota",
                                        "p_payload": {}, "p_correlation_id": corr})
     id4 = r4[0]["outbox_event_id"]
-    for i in range(6):
-        rpc("claim_outbox_event", {"p_lease_owner": "w", "p_lease_seconds": 1,
-                                   "p_event_type": "canary.esgota"})
+    backoff_respeitado = True
+    for tentativa in range(1, 7):
+        st, c = rpc("claim_outbox_event", {"p_lease_owner": "w", "p_event_type": "canary.esgota"})
+        if not c:
+            backoff_respeitado = False
+            break
         st, novo = rpc("settle_outbox_event", {"p_outbox_event_id": id4,
                                                "p_outcome": "transient_failure"})
         if novo != "pending":
             break
-        rpc("recover_expired_outbox_leases", {})  # devolve sem esperar o backoff
-        e = status_de(chave4) or {}
-        if e.get("status") == "pending":
-            # zera o backoff reivindicando de novo na próxima volta
-            time.sleep(0.2)
+        # min(2^tentativa, 3600) + margem para o relógio do servidor
+        time.sleep(min(2 ** tentativa, 3600) + 0.6)
+
     e = status_de(chave4) or {}
-    check("esgotar tentativas leva a dead", e.get("status") == "dead", f"{e}")
+    check("cada tentativa foi reivindicável após o backoff", backoff_respeitado,
+          "uma reivindicação falhou antes do esgotamento — backoff ou contagem divergiu")
+    check("esgotar as 6 tentativas leva a dead", e.get("status") == "dead", f"{e}")
     check("dead carrega dead_at (CHECK oe_dead_has_timestamp)", bool(e.get("dead_at")), f"{e}")
+    check("attempt_count parou em MAX_ATTEMPTS", e.get("attempt_count") == 6, f"{e}")
 
     print("\n── falha permanente ──")
     chave5 = f"canary:permanente:{marca}:v1"
