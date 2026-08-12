@@ -1,0 +1,1441 @@
+{
+  "meta": {
+    "workstream": "WS12",
+    "status": "REVIEW DRAFT ONLY — no policy has been created, altered or applied in any database",
+    "purpose": "The POLICY layer over model/access_model.json. Policies are structured predicate objects, not SQL strings, so ONE definition feeds the SQL emitter, the runtime authorization evaluator and the linter. A second hand-maintained expectation table would be a second source of truth for authorization.",
+    "defaultStance": "DENY. RLS enabled with zero matching policies denies everything to everyone except the table owner and BYPASSRLS roles. A row appears below only where a named workload needs it.",
+    "principalMapping": {
+      "note": "access_model.json predates this vocabulary. The mapping is recorded so drift detection compares like with like rather than reporting a rename as a divergence.",
+      "trusted_runtime": "service",
+      "operator_context": "operator",
+      "anon": "anon",
+      "authenticated": "authenticated",
+      "migration_role": "(absent from access_model.json — see finding WS12-F2)"
+    },
+    "findings": [
+      {
+        "id": "WS12-F1",
+        "finding": "the principal vocabulary in access_model.json (service, operator) predates WS12.2's (trusted_runtime, operator_context).",
+        "resolution": "recorded as meta.principalMapping so drift detection compares like with like rather than reporting a rename as a divergence. access_model.json is left unchanged: renaming it would invalidate 37 passing tests for no security gain."
+      },
+      {
+        "id": "WS12-F2",
+        "finding": "migration_role was absent from access_model.json entirely, so the constraint 'the migration role must never be reachable from application runtime' had no principal to attach to.",
+        "resolution": "added to the RLS principal model with dbVerifiable true and NO policies, and the evaluator refuses it explicitly as a role-confusion attempt."
+      },
+      {
+        "id": "WS12-F3",
+        "finding": "my first policy drafts granted anon SELECT on published prizes and authenticated SELECT on payments, allocations and prizes — MORE permissive than the ratified access model, which denies any anon or authenticated read of a table carrying a person's money.",
+        "resolution": "removed 4 over-permissive policies. Financial reads are served by views the runtime owns, which can project away external_reference and paid_amount in a way a row policy cannot. A draft that quietly grants more than the reviewed decision is the defect, not the review."
+      },
+      {
+        "id": "WS12-F4",
+        "finding": "the access model declares trusted_runtime UPDATE on pool_fee_schedule, payment_allocations, prize_allocations and match_results; no policy implemented any of them.",
+        "resolution": "four UPDATE policies added. With RLS enabled, a declared access that no policy implements does not exist — the runtime would fail at runtime, not at review."
+      },
+      {
+        "id": "WS12-F5",
+        "finding": "seven policies carried a rationale too short to review (\"same as anon\").",
+        "resolution": "rewritten to say what is exposed and why it is safe."
+      },
+      {
+        "id": "WS12-F6",
+        "finding": "financialEntities was one list covering two different properties, so the harness asserted anon could read nothing financial — but pool_fee_schedule's CURRENT row is deliberately public, and the linter conversely failed to flag an anon read of payments because payments is not in sensitiveEntities.",
+        "resolution": "added financialNoAnonEntities (payments, allocations, prizes). A published price is not a person's money; a payment is. The same split already exists in access_model.json and should have been mirrored here."
+      }
+    ]
+  },
+  "principals": {
+    "anon": {
+      "authenticated": false,
+      "dbVerifiable": true,
+      "meaning": "the unauthenticated browser holding the public anon key. Must be assumed hostile: the key is in the page source, so anything anon may do, anyone on the internet may do."
+    },
+    "authenticated": {
+      "authenticated": true,
+      "dbVerifiable": true,
+      "meaning": "a signed-in Supabase user. auth.uid() is verifiable in a policy. NOT currently used by the platform; modelled so the design does not need redoing when it is."
+    },
+    "trusted_runtime": {
+      "authenticated": true,
+      "dbVerifiable": true,
+      "meaning": "the server runtime (Edge Functions) using the service_role key. Bypasses RLS by design, which is exactly why every runtime path must be a narrow audited contract rather than a general-purpose door."
+    },
+    "operator_context": {
+      "authenticated": false,
+      "dbVerifiable": false,
+      "meaning": "an ARCHITECTURAL ABSTRACTION, not a database principal. R-GAP-1: there is no database-verifiable operator identity today. Every operator permission in this model is really 'trusted_runtime acting on behalf of an operator whose authority was checked outside the database'."
+    },
+    "migration_role": {
+      "authenticated": true,
+      "dbVerifiable": true,
+      "meaning": "the role that applies migrations. Has DDL authority and BYPASSRLS, and therefore must NEVER be reachable from application runtime. It is a principal in this model precisely so that constraint is stated and testable."
+    }
+  },
+  "verdicts": [
+    "ALLOW",
+    "DENY",
+    "TRUSTED_RUNTIME_ONLY",
+    "FUTURE_OPERATOR_IDENTITY",
+    "NOT_APPLICABLE"
+  ],
+  "operatorPaths": {
+    "A_runtime_acts_for_operator": {
+      "status": "AVAILABLE NOW",
+      "mechanism": "the operator authenticates to the application; the runtime checks that authority and then acts with the service key, recording {operatorId, reason} in the audit event",
+      "weakness": "the database cannot verify the operator; it verifies only the runtime. A compromised runtime is a compromised operator.",
+      "control": "every operator-initiated contract records an operator id and a reason, so the audit trail attributes the act even though the database did not authenticate it"
+    },
+    "B_database_verifiable_operator": {
+      "status": "FUTURE — requires an operator decision (R-GAP-1)",
+      "mechanism": "operators become real auth.users with a claim or role membership a policy can test, so FUTURE_OPERATOR_IDENTITY cells become enforceable in RLS rather than in the runtime",
+      "prerequisite": "adopt Supabase Auth for operators and decide whether a second approver is required for prize-affecting actions"
+    }
+  },
+  "policies": [
+    {
+      "name": "participants_authenticated_select",
+      "entity": "participants",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "OWNS_PARTICIPANT",
+        "column": "participant_id"
+      },
+      "withCheck": null,
+      "ownership": "SELF",
+      "why": "a signed-in user may read only the participant rows linked to their auth identity. Without an ownership predicate this table is a full participant directory, which is enumeration."
+    },
+    {
+      "name": "participants_trusted_runtime_select",
+      "entity": "participants",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime resolves identities for every write contract"
+    },
+    {
+      "name": "participants_trusted_runtime_insert",
+      "entity": "participants",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "create_entry creates a participant when an entry arrives for an unseen identity"
+    },
+    {
+      "name": "participants_trusted_runtime_update",
+      "entity": "participants",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "merge_identity sets canonical_participant_id; redaction nulls contact fields in place"
+    },
+    {
+      "name": "participant_identity_links_trusted_runtime_select",
+      "entity": "participant_identity_links",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "merge provenance is read by the operator queue through the runtime"
+    },
+    {
+      "name": "participant_identity_links_trusted_runtime_insert",
+      "entity": "participant_identity_links",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "merge_identity; the operator confirmation is enforced in the transaction, not in RLS"
+    },
+    {
+      "name": "participant_identity_links_trusted_runtime_update",
+      "entity": "participant_identity_links",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reverse_identity_merge marks a link reversed; the row is never deleted"
+    },
+    {
+      "name": "competitions_anon_select",
+      "entity": "competitions",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "competition names are public facts the site renders before any sign-in"
+    },
+    {
+      "name": "competitions_authenticated_select",
+      "entity": "competitions",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user must never see less than an anonymous one"
+    },
+    {
+      "name": "competitions_trusted_runtime_select",
+      "entity": "competitions",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime reads reference data on every write path"
+    },
+    {
+      "name": "competitions_trusted_runtime_insert",
+      "entity": "competitions",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reference and fixture data is written by the provider sync"
+    },
+    {
+      "name": "competitions_trusted_runtime_update",
+      "entity": "competitions",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "fixtures are corrected by the sync, never by a client"
+    },
+    {
+      "name": "competition_editions_anon_select",
+      "entity": "competition_editions",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "edition labels are public"
+    },
+    {
+      "name": "competition_editions_authenticated_select",
+      "entity": "competition_editions",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user must never see less than an anonymous one"
+    },
+    {
+      "name": "competition_editions_trusted_runtime_select",
+      "entity": "competition_editions",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime reads reference data on every write path"
+    },
+    {
+      "name": "competition_editions_trusted_runtime_insert",
+      "entity": "competition_editions",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reference and fixture data is written by the provider sync"
+    },
+    {
+      "name": "competition_editions_trusted_runtime_update",
+      "entity": "competition_editions",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "fixtures are corrected by the sync, never by a client"
+    },
+    {
+      "name": "competition_edition_phases_anon_select",
+      "entity": "competition_edition_phases",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "cutoff times must be public — a hidden deadline is worse than a public one"
+    },
+    {
+      "name": "competition_edition_phases_authenticated_select",
+      "entity": "competition_edition_phases",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user must never see less than an anonymous one"
+    },
+    {
+      "name": "competition_edition_phases_trusted_runtime_select",
+      "entity": "competition_edition_phases",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime reads reference data on every write path"
+    },
+    {
+      "name": "competition_edition_phases_trusted_runtime_insert",
+      "entity": "competition_edition_phases",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reference and fixture data is written by the provider sync"
+    },
+    {
+      "name": "competition_edition_phases_trusted_runtime_update",
+      "entity": "competition_edition_phases",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "fixtures are corrected by the sync, never by a client"
+    },
+    {
+      "name": "matches_anon_select",
+      "entity": "matches",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "fixtures are public: the site renders the schedule before anyone signs in, and a fixture reveals nothing about any participant"
+    },
+    {
+      "name": "matches_authenticated_select",
+      "entity": "matches",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user must never see less than an anonymous one"
+    },
+    {
+      "name": "matches_trusted_runtime_select",
+      "entity": "matches",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime reads reference data on every write path"
+    },
+    {
+      "name": "matches_trusted_runtime_insert",
+      "entity": "matches",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reference and fixture data is written by the provider sync"
+    },
+    {
+      "name": "matches_trusted_runtime_update",
+      "entity": "matches",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "fixtures are corrected by the sync, never by a client"
+    },
+    {
+      "name": "ties_anon_select",
+      "entity": "ties",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the bracket is public"
+    },
+    {
+      "name": "ties_authenticated_select",
+      "entity": "ties",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user must never see less than an anonymous one"
+    },
+    {
+      "name": "ties_trusted_runtime_select",
+      "entity": "ties",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime reads reference data on every write path"
+    },
+    {
+      "name": "ties_trusted_runtime_insert",
+      "entity": "ties",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reference and fixture data is written by the provider sync"
+    },
+    {
+      "name": "ties_trusted_runtime_update",
+      "entity": "ties",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "fixtures are corrected by the sync, never by a client"
+    },
+    {
+      "name": "pools_anon_select",
+      "entity": "pools",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a pool's existence, name and status are public"
+    },
+    {
+      "name": "pools_authenticated_select",
+      "entity": "pools",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user must never see less than an anonymous one; pool name and status are public either way"
+    },
+    {
+      "name": "pools_trusted_runtime_select",
+      "entity": "pools",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "needed by every write contract"
+    },
+    {
+      "name": "pools_trusted_runtime_insert",
+      "entity": "pools",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "pools are created by operator action through the runtime"
+    },
+    {
+      "name": "pools_trusted_runtime_update",
+      "entity": "pools",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "freeze_toggled changes pool status"
+    },
+    {
+      "name": "pool_fee_schedule_anon_select",
+      "entity": "pool_fee_schedule",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "COLUMN_IS_NULL",
+        "column": "effective_to"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "only the CURRENT price is public. It is a published price, not a person's money, and the app renders it before sign-in. Historical prices are not public."
+    },
+    {
+      "name": "pool_fee_schedule_authenticated_select",
+      "entity": "pool_fee_schedule",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "COLUMN_IS_NULL",
+        "column": "effective_to"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "same restriction as anon"
+    },
+    {
+      "name": "pool_fee_schedule_trusted_runtime_select",
+      "entity": "pool_fee_schedule",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime snapshots the in-force fee onto an entry"
+    },
+    {
+      "name": "pool_fee_schedule_trusted_runtime_insert",
+      "entity": "pool_fee_schedule",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "a price change is a business decision made through a contract so it is audited"
+    },
+    {
+      "name": "pool_entries_authenticated_select",
+      "entity": "pool_entries",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "OWNS_PARTICIPANT",
+        "column": "participant_id"
+      },
+      "withCheck": null,
+      "ownership": "SELF",
+      "why": "a user reads only their own entries. Reading another's entry before a cutoff would expose their picks."
+    },
+    {
+      "name": "pool_entries_trusted_runtime_select",
+      "entity": "pool_entries",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "ranking, reconciliation and every write contract need all entries"
+    },
+    {
+      "name": "pool_entries_trusted_runtime_insert",
+      "entity": "pool_entries",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "create_entry — the only place the cutoff can be enforced with a trusted clock"
+    },
+    {
+      "name": "pool_entries_trusted_runtime_update",
+      "entity": "pool_entries",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "withdrawal sets deleted_at; admin_correction may amend a label"
+    },
+    {
+      "name": "payments_trusted_runtime_select",
+      "entity": "payments",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "reconciliation and allocation need every payment"
+    },
+    {
+      "name": "payments_trusted_runtime_insert",
+      "entity": "payments",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "record_payment — idempotent on external_reference"
+    },
+    {
+      "name": "payments_trusted_runtime_update",
+      "entity": "payments",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "a payment is reversed by a compensating row; UPDATE exists only for proof paths"
+    },
+    {
+      "name": "payment_allocations_trusted_runtime_select",
+      "entity": "payment_allocations",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "reconciliation sums allocations per entry and per payment, so the runtime needs all of them"
+    },
+    {
+      "name": "payment_allocations_trusted_runtime_insert",
+      "entity": "payment_allocations",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "allocate_payment — the per-payment invariant is enforced in the transaction, which a CHECK cannot do across sibling rows"
+    },
+    {
+      "name": "prize_allocations_trusted_runtime_select",
+      "entity": "prize_allocations",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "pool reconciliation compares prizes awarded against money collected"
+    },
+    {
+      "name": "prize_allocations_trusted_runtime_insert",
+      "entity": "prize_allocations",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "record_prize inserts all rows together so a partial declaration is impossible"
+    },
+    {
+      "name": "predictions_authenticated_select",
+      "entity": "predictions",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "OWNS_VIA_ENTRY",
+        "column": "pool_entry_id"
+      },
+      "withCheck": null,
+      "ownership": "VIA_ENTRY",
+      "why": "a user reads only their own predictions. Reading another's before the cutoff would let them copy a better player's picks — a FAIRNESS requirement, not only privacy."
+    },
+    {
+      "name": "predictions_trusted_runtime_select",
+      "entity": "predictions",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "scoring reads all predictions"
+    },
+    {
+      "name": "predictions_trusted_runtime_insert",
+      "entity": "predictions",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "submit_prediction — the cutoff is enforced against the SERVER clock"
+    },
+    {
+      "name": "predictions_trusted_runtime_update",
+      "entity": "predictions",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "a prediction may be overwritten while the phase is open"
+    },
+    {
+      "name": "match_results_anon_select",
+      "entity": "match_results",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "AND",
+        "operands": [
+          {
+            "kind": "COLUMN_EQUALS",
+            "column": "is_official",
+            "value": true
+          },
+          {
+            "kind": "COLUMN_IS_NULL",
+            "column": "superseded_by_id"
+          }
+        ]
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "only the CURRENT official result is public; a superseded one would confuse a reader about which score counts"
+    },
+    {
+      "name": "match_results_authenticated_select",
+      "entity": "match_results",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "AND",
+        "operands": [
+          {
+            "kind": "COLUMN_EQUALS",
+            "column": "is_official",
+            "value": true
+          },
+          {
+            "kind": "COLUMN_IS_NULL",
+            "column": "superseded_by_id"
+          }
+        ]
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user sees the same current official result an anonymous visitor does, and no more"
+    },
+    {
+      "name": "match_results_trusted_runtime_select",
+      "entity": "match_results",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "scoring needs the correction history"
+    },
+    {
+      "name": "match_results_trusted_runtime_insert",
+      "entity": "match_results",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "record_result; a wrong result is superseded by a new row, never overwritten"
+    },
+    {
+      "name": "ranking_snapshots_anon_select",
+      "entity": "ranking_snapshots",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "COLUMN_NOT_NULL",
+        "column": "published_at"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a snapshot becomes public when published; an unpublished computation is a draft"
+    },
+    {
+      "name": "ranking_snapshots_authenticated_select",
+      "entity": "ranking_snapshots",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "COLUMN_NOT_NULL",
+        "column": "published_at"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a signed-in user sees the same published standings an anonymous visitor does"
+    },
+    {
+      "name": "ranking_snapshots_trusted_runtime_select",
+      "entity": "ranking_snapshots",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the ranking job reads its own history"
+    },
+    {
+      "name": "ranking_snapshots_trusted_runtime_insert",
+      "entity": "ranking_snapshots",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "APPEND ONLY: no UPDATE policy exists for any principal, because editing a published standing rewrites what participants already acted on"
+    },
+    {
+      "name": "sync_state_trusted_runtime_select",
+      "entity": "sync_state",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "operational infrastructure. No anon or authenticated policy exists: a client has no use for a provider cursor, and its staleness is exposed through an operator health report instead."
+    },
+    {
+      "name": "sync_state_trusted_runtime_insert",
+      "entity": "sync_state",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the sync job creates its cursor"
+    },
+    {
+      "name": "sync_state_trusted_runtime_update",
+      "entity": "sync_state",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the cursor advances on every successful run"
+    },
+    {
+      "name": "audit_chain_head_trusted_runtime_select",
+      "entity": "audit_chain_head",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the chain trigger reads the tail on every audit append; FORCE RLS binds the owner, so without this the append fails for a non-superuser owner"
+    },
+    {
+      "name": "audit_chain_head_trusted_runtime_update",
+      "entity": "audit_chain_head",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the same trigger advances the tail. No INSERT or DELETE policy exists for any principal: the single row is created by the migration and must never be added to or removed."
+    },
+    {
+      "name": "audit_events_trusted_runtime_select",
+      "entity": "audit_events",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "investigations read the audit log through the runtime"
+    },
+    {
+      "name": "audit_events_trusted_runtime_insert",
+      "entity": "audit_events",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "APPEND ONLY. No UPDATE policy exists for ANY principal including the runtime: immutability is the property that makes the hash chain worth computing."
+    },
+    {
+      "name": "audit_event_details_trusted_runtime_select",
+      "entity": "audit_event_details",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the redactable payload sidecar"
+    },
+    {
+      "name": "audit_event_details_trusted_runtime_insert",
+      "entity": "audit_event_details",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "written with its parent event"
+    },
+    {
+      "name": "audit_event_details_trusted_runtime_update",
+      "entity": "audit_event_details",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the ONE intentional UPDATE in the schema: erasure nulls the snapshots in place, which is why the sidecar exists at all — it lets erasure happen without breaking the chain."
+    },
+    {
+      "name": "outbox_events_trusted_runtime_select",
+      "entity": "outbox_events",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the worker leases and completes events"
+    },
+    {
+      "name": "outbox_events_trusted_runtime_insert",
+      "entity": "outbox_events",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "intent to notify is written with the business change in one transaction"
+    },
+    {
+      "name": "outbox_events_trusted_runtime_update",
+      "entity": "outbox_events",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "status, attempt_count, lease and dead_at all advance through the state machine"
+    },
+    {
+      "name": "outbox_delivery_attempts_trusted_runtime_select",
+      "entity": "outbox_delivery_attempts",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "delivery forensics: the worker and the health report read attempt history to decide retry versus dead"
+    },
+    {
+      "name": "outbox_delivery_attempts_trusted_runtime_insert",
+      "entity": "outbox_delivery_attempts",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "APPEND ONLY: an attempt happened or it did not. No UPDATE policy exists for any principal."
+    },
+    {
+      "name": "pool_fee_schedule_trusted_runtime_update",
+      "entity": "pool_fee_schedule",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "a superseded schedule row is CLOSED by setting effective_to, never deleted, so the entry that snapshotted it keeps its evidence"
+    },
+    {
+      "name": "payment_allocations_trusted_runtime_update",
+      "entity": "payment_allocations",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "reserved for an operator correction path only. The normal way to change an allocation is a COMPENSATING allocation, because an allocation records a decision and overwriting it destroys why the first one was made"
+    },
+    {
+      "name": "prize_allocations_trusted_runtime_update",
+      "entity": "prize_allocations",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "paying a declared prize sets paid_amount; the declaration itself is superseded rather than edited"
+    },
+    {
+      "name": "match_results_trusted_runtime_update",
+      "entity": "match_results",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "superseding a result sets superseded_by_id on the OLD row. The old row's scores are never edited — that is what makes the correction history readable"
+    },
+    {
+      "name": "classification_snapshots_anon_select",
+      "entity": "classification_snapshots",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a league table is information the provider already publishes, and the app renders its G4/Z4/SA6 zones to every visitor. A predicate here would break the page while protecting nothing."
+    },
+    {
+      "name": "classification_snapshots_authenticated_select",
+      "entity": "classification_snapshots",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "identical to anon: a signed-in user must never see LESS than an anonymous one, and a league table holds nothing participant-specific to scope by."
+    },
+    {
+      "name": "classification_snapshots_trusted_runtime_select",
+      "entity": "classification_snapshots",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the sync runtime and the scoring adapter read the authoritative snapshot."
+    },
+    {
+      "name": "classification_snapshots_trusted_runtime_insert",
+      "entity": "classification_snapshots",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the sync runtime is the ONLY writer. This is the control that stops a browser establishing official standings: anon and authenticated have no INSERT at all, and standings decide zone boundaries and therefore scores."
+    },
+    {
+      "name": "competition_edition_standings_anon_select",
+      "entity": "competition_edition_standings",
+      "principal": "anon",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "a league table is information the provider already publishes, and the app renders its G4/Z4/SA6 zones to every visitor. A predicate here would break the page while protecting nothing."
+    },
+    {
+      "name": "competition_edition_standings_authenticated_select",
+      "entity": "competition_edition_standings",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "identical to anon: a signed-in user must never see LESS than an anonymous one, and a league table holds nothing participant-specific to scope by."
+    },
+    {
+      "name": "competition_edition_standings_trusted_runtime_select",
+      "entity": "competition_edition_standings",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the sync runtime and the scoring adapter read the authoritative snapshot."
+    },
+    {
+      "name": "competition_edition_standings_trusted_runtime_insert",
+      "entity": "competition_edition_standings",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the sync runtime is the ONLY writer. This is the control that stops a browser establishing official standings: anon and authenticated have no INSERT at all, and standings decide zone boundaries and therefore scores."
+    },
+    {
+      "name": "request_idempotency_trusted_runtime_select",
+      "entity": "request_idempotency",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the write boundary must read the record to decide replay versus conflict; no other principal may see it, because the stored response is a snapshot of a prior response and can carry whatever that response carried"
+    },
+    {
+      "name": "request_idempotency_trusted_runtime_insert",
+      "entity": "request_idempotency",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "INSERT ONLY: the record is written once, inside the business transaction. No UPDATE policy exists for any principal — a completed request record is a statement about something that already happened."
+    },
+    {
+      "name": "participant_auth_links_authenticated_select",
+      "entity": "participant_auth_links",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "AUTH_UID_EQUALS",
+        "column": "auth_user_id"
+      },
+      "withCheck": null,
+      "ownership": "SELF",
+      "why": "KPLUS-F048. Every ownership predicate in this model is a subquery over this table, and PostgreSQL applies RLS to a table referenced inside another table's policy — measured, not assumed. Without this, that subquery returns nothing and every authenticated user loses access to their own participant, entries and predictions. Scoped to the caller's own links because a full read is an enumeration of the user base."
+    },
+    {
+      "name": "participant_auth_links_trusted_runtime_select",
+      "entity": "participant_auth_links",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "the runtime resolves ownership on every authenticated request and must see the whole link table to do it"
+    },
+    {
+      "name": "participant_auth_links_trusted_runtime_insert",
+      "entity": "participant_auth_links",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the runtime establishes the link when an auth identity first claims a participant"
+    },
+    {
+      "name": "participant_auth_links_trusted_runtime_update",
+      "entity": "participant_auth_links",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "revoking or repairing a link is an update; the row is never deleted, so provenance survives"
+    },
+    {
+      "name": "migration_lineage_trusted_runtime_select",
+      "entity": "migration_lineage",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "reconciliation reads lineage to prove every target row has a source and every source element has a target; a check that cannot read what it checks is not a check"
+    },
+    {
+      "name": "migration_lineage_trusted_runtime_insert",
+      "entity": "migration_lineage",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "the backfill writes lineage in the same transaction as the row it describes, so a row and its provenance cannot become separated"
+    },
+    {
+      "name": "classification_predictions_authenticated_select",
+      "entity": "classification_predictions",
+      "principal": "authenticated",
+      "command": "SELECT",
+      "using": {
+        "kind": "OWNS_VIA_ENTRY",
+        "column": "pool_entry_id"
+      },
+      "withCheck": null,
+      "ownership": "VIA_ENTRY",
+      "why": "a user reads only their own zone picks. Reading another's before the cutoff would let them copy a better player's G4/Z4 — the same FAIRNESS requirement that governs predictions, not merely privacy."
+    },
+    {
+      "name": "classification_predictions_trusted_runtime_select",
+      "entity": "classification_predictions",
+      "principal": "trusted_runtime",
+      "command": "SELECT",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": null,
+      "ownership": "NONE",
+      "why": "scoring reads every zone pick"
+    },
+    {
+      "name": "classification_predictions_trusted_runtime_insert",
+      "entity": "classification_predictions",
+      "principal": "trusted_runtime",
+      "command": "INSERT",
+      "using": null,
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "submission through the server, with the cutoff enforced against the SERVER clock"
+    },
+    {
+      "name": "classification_predictions_trusted_runtime_update",
+      "entity": "classification_predictions",
+      "principal": "trusted_runtime",
+      "command": "UPDATE",
+      "using": {
+        "kind": "TRUE"
+      },
+      "withCheck": {
+        "kind": "TRUE"
+      },
+      "ownership": "NONE",
+      "why": "an entrant may revise a zone pick until the cutoff"
+    }
+  ],
+  "appendOnlyEntities": [
+    "audit_events",
+    "ranking_snapshots",
+    "outbox_delivery_attempts",
+    "classification_snapshots",
+    "competition_edition_standings",
+    "migration_lineage"
+  ],
+  "noDeleteAnywhere": true,
+  "financialEntities": [
+    "payments",
+    "payment_allocations",
+    "prize_allocations",
+    "pool_fee_schedule"
+  ],
+  "sensitiveEntities": [
+    "participants",
+    "participant_identity_links",
+    "pool_entries",
+    "predictions",
+    "classification_predictions"
+  ],
+  "internalOnlyEntities": [
+    "sync_state",
+    "audit_events",
+    "audit_event_details",
+    "outbox_events",
+    "outbox_delivery_attempts",
+    "audit_chain_head"
+  ],
+  "financialNoAnonEntities": [
+    "payments",
+    "payment_allocations",
+    "prize_allocations"
+  ]
+}
