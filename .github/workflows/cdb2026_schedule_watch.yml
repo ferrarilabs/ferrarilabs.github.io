@@ -27,6 +27,11 @@ on:
         required: false
         default: false
         type: boolean
+      correction:
+        description: "CORRECAO DE ACESSO: rotaciona os tokens e reenvia (evento de negocio proprio)"
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: cdb2026-operator      # mesmo grupo do CLI de operador: os dois escrevem o mesmo estado
@@ -87,6 +92,10 @@ jobs:
           # de chegar na linha que trata o 3 como normal -- que foi exatamente o que aconteceu na
           # primeira execucao: o script recusou corretamente e o workflow ficou vermelho mesmo
           # assim, gerando o e-mail de falha que este trabalho todo existe para eliminar.
+          # A correcao e um evento de negocio SEPARADO (chave propria), entao nao herda o
+          # estado terminal do convite original -- que continua `sent` e continua descrevendo
+          # doze e-mails realmente entregues. O que falhou depois foi o link, nao a entrega.
+          [ "${{ inputs.correction }}" = "true" ] && MODO="--apply --correction"
           rc=0
           python3 send_invitation_email.py $MODO || rc=$?
           # 3 = "ainda nao ha prazo publicado". Estado de negocio NORMAL: e o caso esperado em
