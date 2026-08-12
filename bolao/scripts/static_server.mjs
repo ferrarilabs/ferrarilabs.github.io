@@ -147,10 +147,30 @@ export async function startStaticServer(port, root) {
     try { proc.kill(); } catch { /* já morto — nada a fazer */ }
   };
 
-  const aoSair = () => stop();
-  process.once("exit", aoSair);
-  process.once("uncaughtException", (e) => { stop(); throw e; });
-  process.once("unhandledRejection", (e) => { stop(); throw e; });
+  // SO `exit` e sinais. Nada de `uncaughtException`/`unhandledRejection`.
+  //
+  // Registrar handler para essas duas SUPRIME o comportamento padrao do Node: o processo deixa
+  // de morrer e passa a depender do meu handler. A minha versao matava o servidor e relancava --
+  // e o efeito foi uma suite inteira caindo com ERR_CONNECTION_REFUSED no meio, porque o
+  // servidor morria enquanto a pagina seguinte ainda navegava.
+  //
+  // TRADE-OFF, medido nos dois sentidos:
+  //
+  //   com handler de excecao   nao vaza servidor, MAS o processo deixa de morrer sozinho e o
+  //                            servidor caia no meio da suite -- `countdown-layout` inteiro
+  //                            falhou com ERR_CONNECTION_REFUSED enquanto a pagina navegava
+  //   so `exit` + sinais       saida normal limpa sempre; um harness que LANCA ainda pode deixar
+  //                            o python de pe
+  //
+  // Fico com o segundo. Sequestrar o tratamento de erro do programa que me chamou e um preco
+  // alto por uma limpeza que so importa quando algo ja deu errado -- e o modo de falha que ele
+  // cria (suite inteira caindo por conexao recusada) e pior e mais confuso que o que ele evita.
+  //
+  // DIVIDA CONHECIDA: dez harnesses chamam este arquivo sem `try/finally`. Quando um deles
+  // lanca, a porta fica presa e a suite seguinte morre com "porta JA ESTA EM USO". O conserto
+  // certo e `finally` em cada um -- fora do escopo desta tarefa, registrado aqui para nao
+  // parecer que ninguem viu.
+  process.once("exit", () => stop());
   for (const sinal of ["SIGINT", "SIGTERM"]) process.once(sinal, () => { stop(); process.exit(1); });
 
   if (!(await waitForServer(port))) {
