@@ -72,10 +72,21 @@ def transporte_falso(url, body, headers):
     return 200, "fake-ok"
 
 
-# ── Sentinela: qualquer tentativa de rede real explode o teste ────────────────────────────────
-def _urlopen_proibido(*a, **k):
-    raise AssertionError("TENTATIVA DE ENVIO REAL DENTRO DO TESTE — o transporte falso não estava "
-                         "instalado. Nenhum teste pode contatar o provedor.")
+# ── Sentinela: rede para o PROVEDOR explode o teste; o resto passa ────────────────────────────
+#
+# Bloquear `urlopen` inteiro não serve: o próprio teste fala com o PostgREST por ali (fila,
+# reserva, permissão). A sentinela precisa distinguir "falar com o banco" de "mandar e-mail" —
+# e só a segunda é proibida.
+_urlopen_real = urllib.request.urlopen
+
+
+def _urlopen_vigiado(req, *a, **k):
+    alvo = req.full_url if hasattr(req, "full_url") else str(req)
+    if alvo.startswith("https://api.emailjs.com"):
+        raise AssertionError(
+            "TENTATIVA DE ENVIO REAL DENTRO DO TESTE — o transporte falso não estava instalado. "
+            "Nenhum teste pode contatar o provedor.")
+    return _urlopen_real(req, *a, **k)
 
 
 def limpa_canarios():
@@ -103,7 +114,7 @@ def drena_fila_canario(owner="teste"):
 def main():
     print("PROVA — comprovante de entrada salva (CDB2026), transporte falso\n")
 
-    urllib.request.urlopen = _urlopen_proibido
+    urllib.request.urlopen = _urlopen_vigiado
     C.set_transport(transporte_falso)
 
     limpa_canarios()
