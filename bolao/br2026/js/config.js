@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.117",
+  siteVersion: "v1.118",
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
@@ -73,7 +73,16 @@ window.BR2026_CONFIG = {
     // LEITURA: projecao publica, SEM participantEmail/payerName/paymentMethod/paymentTo.
     // O navegador deixou de receber PII (F10, 2026-08-10). A tabela crua `bolao_state` continua
     // existindo, mas este app nao a le mais.
-    readTable: "bolao_state_public",
+    // READ_CUTOVER (2026-08-13). A leitura sai de `bolao_state_public` (projecao por SUBTRACAO
+    // sobre o documento legado) e passa para `bolao_state_normalized_public`, montada a partir de
+    // bolao.* campo a campo. O documento e equivalente folha a folha — 0 BUG, 0 UNKNOWN nos tres
+    // produtos — e a superficie nova NAO publica `auditLog` nem `entries[].diagnostics`, que hoje
+    // vazam ip/userAgent para qualquer um com a anon key.
+    //
+    // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
+    // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
+    // trocar esta linha de volta.
+    readTable: "bolao_state_normalized_public",
     // ESCRITA: nao existe mais tabela de escrita. Toda mutacao passa por RPC estreita (N22).
     // `submit_entry` e a unica chamavel pelo navegador; as de operador vivem em script.
     table: "bolao_state_public",

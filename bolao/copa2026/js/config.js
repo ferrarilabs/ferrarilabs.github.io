@@ -1,5 +1,5 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.186",
+  siteVersion: "v4.187",
   // Tournament fully decided (2026-07-19, Spain champion) -- Eduardo: "Copa do mundo finalizada!
   // ... Desabilitar os botões todos, deixar só o vencedor, auditoria e os palpites." When true,
   // hides the entry/games/probs/rules nav buttons and the Admin nav button (still reachable —
@@ -66,7 +66,16 @@ window.BOLAO_CONFIG = {
     anonKey: "sb_publishable_9eJsJzMcROuj9SFOMVUTvA_mWVz0fG5",
     // LEITURA: projecao sanitizada. Remove participantEmail, payerName, paymentMethod e
     // paymentTo — os quatro campos que a chave anon publica expunha a qualquer visitante.
-    readTable: "bolao_state_public",
+    // READ_CUTOVER (2026-08-13). A leitura sai de `bolao_state_public` (projecao por SUBTRACAO
+    // sobre o documento legado) e passa para `bolao_state_normalized_public`, montada a partir de
+    // bolao.* campo a campo. O documento e equivalente folha a folha — 0 BUG, 0 UNKNOWN nos tres
+    // produtos — e a superficie nova NAO publica `auditLog` nem `entries[].diagnostics`, que hoje
+    // vazam ip/userAgent para qualquer um com a anon key.
+    //
+    // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
+    // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
+    // trocar esta linha de volta.
+    readTable: "bolao_state_normalized_public",
     // ESCRITA: nao existe mais. O navegador nao grava no banco (COPA-APP-ROUTING). `table`
     // permanece porque a diferenca entre ele e `readTable` e o que arma o interlock
     // `__sanitized`; toda mutacao privilegiada passa por bolao/copa2026/scripts/operator_cli.py.
