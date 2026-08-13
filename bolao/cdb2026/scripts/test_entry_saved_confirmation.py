@@ -147,7 +147,7 @@ def main():
 
     # Campo transitório de UI: fica de fora por LISTA DE PERMISSÃO, sem ninguém proibi-lo.
     com_transitorio = dict(ESTADO_A, _rascunho=True, updatedAt="2026-08-13T00:00:00Z",
-                           participantEmail="<redacted>", token="abc123")
+                           participantEmail="nao-deve-entrar@example.com", token="abc123")
     checa("campo transitório/PII não entra na identidade", versao(com_transitorio) == vA,
           f"{versao(com_transitorio)} vs {vA}")
 
@@ -262,17 +262,17 @@ def main():
     # 8a. O disjuntor AINDA dispara entre famílias diferentes (era o padrão de 2026-08-12).
     limpa_canarios()
     m8m9._rpc("reserve_delivery", {"p_app": C.APP, "p_business_key": "canary:familia-x:v1",
-                                   "p_recipient": "<redacted>",
+                                   "p_recipient": "disjuntor@exemplo.invalid",
                                    "p_family": "canary:familia-x"})
     outra = m8m9._rpc("reserve_delivery", {"p_app": C.APP, "p_business_key": "canary:familia-y:v1",
-                                           "p_recipient": "<redacted>",
+                                           "p_recipient": "disjuntor@exemplo.invalid",
                                            "p_family": "canary:familia-y"})
     checa("disjuntor de 45 min AINDA barra família diferente",
           outra and outra[0]["reserved"] is False
           and "ANOMALIA" in (outra[0]["reason"] or ""), str(outra))
     # 8b. Duas VERSÕES da mesma família não se acusam — é o que o patch precisava liberar.
     mesma = m8m9._rpc("reserve_delivery", {"p_app": C.APP, "p_business_key": "canary:familia-x:v2",
-                                           "p_recipient": "<redacted>",
+                                           "p_recipient": "disjuntor@exemplo.invalid",
                                            "p_family": "canary:familia-x"})
     checa("duas versões da MESMA família convivem",
           mesma and mesma[0]["reserved"] is True, str(mesma))
