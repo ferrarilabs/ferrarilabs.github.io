@@ -14,6 +14,11 @@ name: CDB2026 — prontidão do comprovante (só leitura)
 
 on:
   workflow_dispatch:
+    inputs:
+      entry:
+        description: "entryId a inspecionar na fila (opcional, só leitura)"
+        required: false
+        type: string
 
 permissions:
   contents: read
@@ -31,7 +36,9 @@ jobs:
       - name: Permissão, entregas e kill switch
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python3 bolao/cdb2026/scripts/send_entry_saved_confirmation.py --status
+        run: |
+          python3 bolao/cdb2026/scripts/send_entry_saved_confirmation.py --status \
+            ${{ inputs.entry && format('--entry {0}', inputs.entry) || '' }}
 
       - name: Credenciais de acesso vivas
         env:
