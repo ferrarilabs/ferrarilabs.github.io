@@ -1,19 +1,20 @@
 <!-- FDC-20260813 · immutable evidence manifest · no raw PII -->
 # AUDIT EVIDENCE MANIFEST
 
-**AUDIT_RUN_ID** `FDC-20260813-140645Z` · **regenerated after post-audit closure** 2026-08-13T15:34:07Z
+**AUDIT_RUN_ID** `FDC-20260813-140645Z` · **final, post-closure** 2026-08-13T15:36:03Z
 
-**Artifacts:** 127 · workspace `~/Documents/GitHub/ferrarilabs-work/audits/final-data-certification-20260813/` (non-Git)
+**Artifacts:** 125 · workspace `~/Documents/GitHub/ferrarilabs-work/audits/final-data-certification-20260813/` (non-Git)
 
-Backed up as `backups/forensic-audit-package-20260813.tar` for operator encryption via the
-existing `encrypt_backup.sh`. Restore steps in `forensic-audit-package-20260813.RESTORE.md`.
+Every `PRIVATE_RAW_PII` artifact lives under `private/`, mode 700. Backed up as
+`backups/forensic-audit-package-20260813.tar` for operator encryption via the existing
+`encrypt_backup.sh`; restore steps in `forensic-audit-package-20260813.RESTORE.md`.
 
 | Privacy class | Files | Bytes |
 |---|---:|---:|
 | `SANITIZED_REPORTABLE` | 73 | 899,199 |
 | `PRIVATE_EVIDENCE` | 30 | 86,896 |
-| `PRIVATE_RAW_PII` | 24 | 7,119,646 |
-| **total** | **127** | **8,105,741** |
+| `PRIVATE_RAW_PII` | 22 | 2,296,353 |
+| **total** | **125** | **3,282,448** |
 
 ## Every artifact
 
@@ -67,7 +68,6 @@ existing `encrypt_backup.sh`. Restore steps in `forensic-audit-package-20260813.
 | `certification/SCORING_REGRESSION.txt` | 841 | `4748f49b1683ce9b2257d428c622119f` | `SANITIZED_REPORTABLE` |
 | `client-storage/all_keys_history.txt` | 533 | `bfa0c54ac5c062706c4da983524c3dbe` | `SANITIZED_REPORTABLE` |
 | `closure/CDB_UPDATE_ENTRY_PICKS.txt` | 374 | `c29d2728b01bc5229997f4ed16e332b8` | `PRIVATE_EVIDENCE` |
-| `closure/DA_occurrences_raw.txt` | 6,158 | `497cf7535c28e8d2b44781b10f72a06c` | `PRIVATE_RAW_PII` |
 | `closure/DB_TARGET_SET.txt` | 1,225 | `57f18bee748388ed2e546adf454f376f` | `PRIVATE_EVIDENCE` |
 | `closure/FULL_REHEARSAL_GATES.txt` | 837 | `804b14d3bf74a9c88d90fc518e031165` | `PRIVATE_EVIDENCE` |
 | `closure/LINEAGE_ON_SAVE.txt` | 477 | `dfc35e8925f2314a93684771256f18ac` | `PRIVATE_EVIDENCE` |
@@ -88,10 +88,7 @@ existing `encrypt_backup.sh`. Restore steps in `forensic-audit-package-20260813.
 | `closure/m040_CURRENT.sql` | 2,263 | `16356cd5f284b19794bcd5cb67acda47` | `PRIVATE_EVIDENCE` |
 | `closure/m050_CURRENT.sql` | 11,324 | `1f5741f19f33a9bf1521dab40de349e6` | `PRIVATE_EVIDENCE` |
 | `closure/m050_PRE_REBASE.sql` | 10,147 | `ebeeaa523daec4eac83dbac0de4d5387` | `PRIVATE_EVIDENCE` |
-| `closure/pre_dbb_backup.sql` | 17,940 | `b9a14c99702acac3634d6a19269c3757` | `PRIVATE_RAW_PII` |
 | `closure/prefix_apply.log` | 209 | `8a52240290e8c411427f8d058a09c56b` | `PRIVATE_EVIDENCE` |
-| `closure/prod_clone.sql` | 2,328,297 | `c299c1a85d6f97e1d4f6a81bc8808535` | `PRIVATE_RAW_PII` |
-| `closure/prod_clone_full.sql` | 2,494,996 | `b57b9536f0346a2dffbe95a6984c721d` | `PRIVATE_RAW_PII` |
 | `closure/restore.log` | 14,161 | `75d23574319773dd4a77e2ad508299c8` | `PRIVATE_EVIDENCE` |
 | `closure/restore_full.log` | 1,372 | `3973f14e65c8a7d9410dffea4fe96a65` | `PRIVATE_EVIDENCE` |
 | `evidence/03_legacy_record_counts.txt` | 1,723 | `5a83664be65a8d2de268d7e07025b4b1` | `SANITIZED_REPORTABLE` |
@@ -116,6 +113,7 @@ existing `encrypt_backup.sh`. Restore steps in `forensic-audit-package-20260813.
 | `lineage/repo_migrations.txt` | 3,016 | `8914a9e5464349f7f9f8975195753981` | `SANITIZED_REPORTABLE` |
 | `lineage/repo_versions.txt` | 768 | `23db9f89ad8ee64d93bddf2d5f2cd54c` | `SANITIZED_REPORTABLE` |
 | `matrices/ledger_build.log` | 740 | `9d09959e13fbbbaade9cf03ae321fe50` | `SANITIZED_REPORTABLE` |
+| `private/DA_occurrences_raw.txt` | 6,158 | `497cf7535c28e8d2b44781b10f72a06c` | `PRIVATE_RAW_PII` |
 | `private/anon_bolao_state_public.json` | 198,977 | `075d711d89fc79992b97e9ce172c4a30` | `PRIVATE_RAW_PII` |
 | `private/anon_bolao_state_public_cdb.json` | 47,759 | `250b3ec21491d542d496f08709a16293` | `PRIVATE_RAW_PII` |
 | `private/current_br2026.json` | 10,376 | `e84978e0161b5ee8d15e56093a944a75` | `PRIVATE_RAW_PII` |
@@ -130,10 +128,13 @@ existing `encrypt_backup.sh`. Restore steps in `forensic-audit-package-20260813.
 | `private/head_leaked_prod_emails.txt` | 20 | `b514fb87e3850e9c1680533b3643ef5a` | `PRIVATE_RAW_PII` |
 | `private/legacy_leaves_raw.tsv` | 497,554 | `f5bbafca9bbc1d7ad873e32b5f61d1e8` | `PRIVATE_RAW_PII` |
 | `private/malformed_email_analysis.txt` | 190 | `cf6afe94fcadac3f10284fd0399309e9` | `PRIVATE_RAW_PII` |
+| `private/pre_dbb_backup.sql` | 17,940 | `b9a14c99702acac3634d6a19269c3757` | `PRIVATE_RAW_PII` |
+| `private/pre_remediation_backup.sql` | 217,647 | `1a7e4a9c9c8f51d14af042c82120f0a8` | `PRIVATE_RAW_PII` |
 | `private/prod_all_emails.txt` | 560 | `67d6789db3ac1b4851fa2a22d04e9b3d` | `PRIVATE_RAW_PII` |
 | `private/prod_audit_emails.txt` | 236 | `4737bcd5494af65f2143659848fcae3c` | `PRIVATE_RAW_PII` |
 | `private/prod_emails.txt` | 560 | `5081f60314c34390038e03497aabc813` | `PRIVATE_RAW_PII` |
 | `private/prod_participant_emails.txt` | 560 | `699cc8134a8b451f706842745252ef41` | `PRIVATE_RAW_PII` |
+| `private/rehearsal_source.sql` | 213,885 | `2d6a751bd2b854d3c4be9173b33e0a63` | `PRIVATE_RAW_PII` |
 | `queries/build_ledger.py` | 10,199 | `38bc5ba55f3d9b51f4f44ae05a0deccd` | `SANITIZED_REPORTABLE` |
 | `queries/leaves.sql` | 928 | `4833ccd6cabd83c517def2b810240e26` | `SANITIZED_REPORTABLE` |
 | `queries/leaves_fn.sql` | 1,050 | `998f19aa4c2240b2bac7d70a615ee51c` | `SANITIZED_REPORTABLE` |
@@ -143,6 +144,4 @@ existing `encrypt_backup.sh`. Restore steps in `forensic-audit-package-20260813.
 | `snapshots/02_columns.txt` | 23,943 | `a47747a425bcadd5c5913ae2248fc0b5` | `PRIVATE_EVIDENCE` |
 | `snapshots/20_pre_remediation.txt` | 618 | `04a1c2f6b044bb2f6beacb8854ec6889` | `PRIVATE_EVIDENCE` |
 | `snapshots/21_post_remediation.txt` | 1,324 | `625f3dadd86eb47f70b8d25e1fd9d2c5` | `PRIVATE_EVIDENCE` |
-| `snapshots/pre_remediation_backup.sql` | 217,647 | `1a7e4a9c9c8f51d14af042c82120f0a8` | `PRIVATE_RAW_PII` |
 | `snapshots/rehearsal_dump.err` | 0 | `e3b0c44298fc1c149afbf4c8996fb924` | `PRIVATE_EVIDENCE` |
-| `snapshots/rehearsal_source.sql` | 213,885 | `2d6a751bd2b854d3c4be9173b33e0a63` | `PRIVATE_RAW_PII` |
