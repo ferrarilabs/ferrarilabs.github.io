@@ -112,8 +112,23 @@ def main():
                 for d in dest:
                     por_estado[d.get("state")] = por_estado.get(d.get("state"), 0) + 1
                 print(f"  destinatários   {len(dest)} -> {por_estado}")
-                print(f"  RESULT_EMAIL_DUPLICATE = "
-                      f"{len(dest) - len({d.get('entry_ref') for d in dest})}")
+
+                # A chave é `entryRef` (camelCase) — é assim que `get_bolao_notif_recipients`
+                # devolve. A primeira versão desta linha lia `entry_ref`, que não existe: as 16
+                # referências viravam `None`, o conjunto colapsava para um elemento, e a métrica
+                # anunciou "15 e-mails duplicados" numa entrega que não tinha nenhum.
+                #
+                # Um alarme falso sobre e-mail duplicado custa caro: leva a investigar um
+                # incidente inexistente e a desconfiar do número quando ele for verdadeiro. Por
+                # isso a chave ausente agora é ERRO explícito, não zero silencioso.
+                refs = [d.get("entryRef") for d in dest]
+                if any(r is None for r in refs):
+                    print(f"  RESULT_EMAIL_DUPLICATE = INDETERMINADO — "
+                          f"{sum(1 for r in refs if r is None)} linha(s) sem 'entryRef'; "
+                          f"campos vistos: {sorted({k for d in dest for k in d})}")
+                    problemas.append("formato inesperado nas disposições por destinatário")
+                else:
+                    print(f"  RESULT_EMAIL_DUPLICATE = {len(refs) - len(set(refs))}")
             except Exception as e:  # noqa: BLE001
                 print(f"  (não foi possível listar destinatários: {e})")
         else:
