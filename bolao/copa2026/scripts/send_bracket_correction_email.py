@@ -19,6 +19,9 @@ import os
 import sys
 import json
 import os, os, sys, time, urllib.request
+from pathlib import Path as _Path
+sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "shared" / "scripts"))
+import subject_policy as _subject_policy  # politica UNICA de icone de assunto
 from collections import defaultdict
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -46,7 +49,8 @@ EMAILJS_TMPL  = "template_xq7yzzb"
 ADMIN_EMAIL   = "emferrari@gmail.com"
 SITE_URL      = "https://ferrarilabs.github.io/bolao/copa2026/"
 
-SUBJECT = "⚽ Bolão do Ferrari — Correção de bracket (oitavas / Round of 16)"
+SUBJECT = _subject_policy.assunto(
+    "FUTEBOL_CORRECAO", "Bolão do Ferrari — Correção de bracket (oitavas / Round of 16)")
 
 EMAILJS_HEADERS = {
     "Content-Type": "application/json",

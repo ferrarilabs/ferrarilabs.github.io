@@ -22,6 +22,7 @@ from pathlib import Path as _Path
 # Formatador USD canônico compartilhado (BATCH 5) — ver bolao/shared/scripts/money.py
 _sys.path.insert(0, str(_Path(__file__).parent.parent.parent.parent / "shared" / "scripts"))
 import money as _money
+import subject_policy as _subject_policy
 from datetime import datetime
 from pathlib import Path
 
@@ -1081,7 +1082,12 @@ def run_send_all(gameType="powerball"):
     authorize_send(plan, mode)
     print(f"\n📧 ENVIANDO PARA {len(recipients)} PARTICIPANTES:")
     print()
-    subject = f"⚽ Resultado {game_label} — {draw['drawing']['drawDateLabel'].replace('/', '.')}"
+    # O ícone vem do PROPÓSITO, não de um literal aqui. Esta linha trazia ⚽ — bola de futebol
+    # num resultado de loteria. Ver `bolao/shared/scripts/subject_policy.py`.
+    subject = _subject_policy.assunto(
+        "LOTERIA_POWERBALL_RESULTADO" if draw["gameType"] == "powerball"
+        else "LOTERIA_MEGAMILLIONS_RESULTADO",
+        f"Resultado {game_label} — {draw['drawing']['drawDateLabel'].replace('/', '.')}")
 
     logger.info(f"Starting broadcast to {len(recipients)} participants for draw {draw['id']}")
     audit_log("broadcast_started", "draw", draw['id'], "success", {"total_recipients": len(recipients)})
