@@ -140,6 +140,31 @@ begin
          updated_at = v_agora
    where id = 'cdb2026';
 
+  -- ── RESTORED: THE NORMALIZED WRITE (20260813140000, stamp 20260813150000) ───────────────────
+  --
+  -- The first rebase of this file substituted the INPUT line and stopped there, because that is
+  -- the substitution the cutover applied to the other four writers. `cdb_save_my_picks` is the one
+  -- writer whose cutover ALSO added a mirror call, and this file — authored 2026-08-12 — predates
+  -- both changes. Fixing only the input produced a definition that reads normalized, validates
+  -- against normalized, reports NORMALIZED-INPUT to every detector, and then writes the
+  -- participant's picks to the legacy document ALONE.
+  --
+  -- Measured on a clone at production level with this file applied: the save returned
+  -- `{"updated": true}`, `bolao_state` carried the new goals, `bolao.predictions` stayed at 1045
+  -- and `mirrored_at` stayed 0. Normalized would have gone stale on the first real save, silently,
+  -- with the authority probe still green.
+  --
+  -- Same transaction as the legacy UPDATE above, and NO exception handler — catching here would
+  -- produce a committed legacy write beside a stale normalized model, which is the divergence the
+  -- mirror exists to prevent. `v_agora` is passed rather than re-read so the mirror records the
+  -- SAME instant the legacy entry was stamped with.
+  perform bolao.cdb_mirror_entry_picks(
+            (select pe.pool_entry_id
+               from bolao.pool_entries pe
+               join bolao.pools pl on pl.pool_id = pe.pool_id and pl.slug = 'cdb2026'
+              where pe.legacy_entry_id = v_entry_id::uuid),
+            p_picks, v_agora);
+
   if exists (select 1 from bolao.cdb_confirmation_allowance a where a.entry_id = v_entry_id) then
     v_canon := jsonb_build_object(
       'matches',   coalesce(p_picks->'matches',   '{}'::jsonb),
