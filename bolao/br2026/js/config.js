@@ -82,7 +82,7 @@ window.BR2026_CONFIG = {
     // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
     // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
     // trocar esta linha de volta.
-    readTable: "bolao_state_normalized_public",
+    readTable: "bolao_state_public",
     // ESCRITA: nao existe mais tabela de escrita. Toda mutacao passa por RPC estreita (N22).
     // `submit_entry` e a unica chamavel pelo navegador; as de operador vivem em script.
     table: "bolao_state_public",
