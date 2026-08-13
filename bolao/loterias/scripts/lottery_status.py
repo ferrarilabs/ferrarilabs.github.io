@@ -58,14 +58,25 @@ def mede_jogos(cfg, fetcher=None, agora=None):
     jogos = {}
     for jogo in cfg["games"]:
         try:
-            j = S.jackpot_oficial(jogo, fetcher=fetcher, agora=agora)
+            # Precedência oficial -> NC, a MESMA dos resultados. powerball.com devolve a casca
+            # sem conteúdo em cerca de metade das requisições; sem a secundária, metade das
+            # leituras concluía "não medido" para uma fonte que estava no ar.
+            j, tentativas = S.jackpot_pronto(jogo, agora=agora, fetcher=fetcher)
+            if j is None:
+                raise S.ResultadoInvalido(
+                    "; ".join(f"{t['source']}: {t.get('motivo', 'ok')}" for t in tentativas))
             jogos[jogo] = {
                 "game": jogo,
                 "label": cfg["games"][jogo]["label"],
                 "advertisedAnnuityCents": j["advertisedAnnuityCents"],
                 "cashValueCents": j.get("cashValueCents"),
+                # DATA DE CALENDÁRIO NO LESTE — a identidade do sorteio. O instante fica em
+                # `nextDrawAt`; misturar os dois foi o defeito que exibia a Powerball um dia
+                # à frente e corrompia o desempate por "sorteio mais cedo".
                 "nextDrawDate": j.get("nextDrawDate"),
+                "nextDrawAt": j.get("nextDrawAt"),
                 "source": j.get("source"),
+                "verificationState": j.get("verificationState"),
                 "fetchedAt": j.get("fetchedAt"),
                 "sourceHash": j.get("sourceHash"),
                 "eligible": L.elegivel(j["advertisedAnnuityCents"], cfg),

@@ -27,9 +27,11 @@ sem rede.
 import hashlib
 import json
 import re
+import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36")
@@ -43,18 +45,36 @@ def _agora():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _http(url, timeout=20, tentativas=3, exige=None):
+def _http(url, timeout=20, tentativas=10, exige=None, backoff=0.4, prazo=90):
     """
     `exige`: trecho que a resposta PRECISA conter para valer.
 
-    powerball.com serve, de forma intermitente, uma casca sem o conteúdo do sorteio — a mesma URL
-    devolve ora a página completa, ora um esqueleto. Medido em 2026-08-13: a primeira chamada veio
-    sem `<title>` utilizável e a seguinte veio completa. Sem esta checagem o parser lê a casca,
-    não encontra nada e o pipeline conclui "a fonte oficial não publicou" — que é uma afirmação
-    falsa sobre a fonte, e faz o fallback assumir a latência sem motivo.
+    ═══ QUANTAS TENTATIVAS, E POR QUÊ ESSE NÚMERO ═══════════════════════════════════════════
+
+    powerball.com serve, de forma intermitente, uma casca sem o conteúdo do sorteio — a mesma
+    URL devolve ora a página completa, ora um esqueleto. Isto já era conhecido; o que não
+    estava medido era a FREQUÊNCIA.
+
+    Medido em 2026-08-13, várias amostras: a casca vem em torno de metade a 80% das vezes
+    (10/12, 6/10, 5/10 em execuções seguidas). Testado contra três variantes de cabeçalho
+    (`Accept` atual, `Accept` de navegador, sem `Accept`): não há combinação que resolva — a
+    alternância é do servidor, não do cliente.
+
+    Com as três tentativas anteriores, a chance de as três caírem na casca ficava perto de 20%
+    a 55%. Ou seja: uma em cada duas a cinco leituras do jackpot FALHAVA, e o sistema concluía
+    "fonte oficial indisponível" para uma fonte que estava no ar. Para o resultado, isso entrega
+    a latência ao fallback sem motivo — exatamente o que a ordem de precedência existe para
+    evitar.
+
+    Dez tentativas com uma pausa curta entre elas levam a probabilidade de falha total para a
+    casa de 0,3% no pior caso medido, e o `prazo` impede que uma fonte lenta prenda o processo.
+    A pausa também deixa de martelar a origem em laço apertado.
     """
-    ultimo = None
+    ultimo, cascas = None, 0
+    limite = time.monotonic() + prazo
     for n in range(tentativas):
+        if n and time.monotonic() > limite:
+            break
         req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
                                                    "Accept": "application/json, text/html"})
         try:
@@ -62,10 +82,15 @@ def _http(url, timeout=20, tentativas=3, exige=None):
                 corpo = r.read().decode("utf-8", errors="replace")
         except Exception as e:  # noqa: BLE001
             ultimo = e
+            time.sleep(backoff)
             continue
         if exige is None or exige in corpo:
             return corpo
-        ultimo = ResultadoInvalido(f"resposta sem {exige!r} (casca) na tentativa {n + 1}")
+        cascas += 1
+        # A contagem entra na mensagem: "10 de 10 vieram casca" é diagnóstico; "falhou" não é.
+        ultimo = ResultadoInvalido(
+            f"CASCA_SEM_CONTEUDO: {cascas} de {n + 1} respostas de {url} vieram sem {exige!r}")
+        time.sleep(backoff)
     raise ultimo if isinstance(ultimo, Exception) else ResultadoInvalido("sem resposta utilizável")
 
 
@@ -321,6 +346,53 @@ class JackpotDeSorteioPassado(ResultadoInvalido):
     """O jackpot lido pertence a um sorteio que já aconteceu — não serve para elegibilidade."""
 
 
+# Todo sorteio das duas loterias acontece à noite no fuso do leste dos EUA, e é a data ET que
+# identifica o sorteio em todo o resto do sistema (os ids em `data.js` são "2026-08-12" para um
+# sorteio de quarta 22:59 ET).
+FUSO_SORTEIO = ZoneInfo("America/New_York")
+
+
+def _datas_do_sorteio(bruto_iso, fuso_de_origem):
+    """
+    Normaliza a data do próximo sorteio para a DATA DE CALENDÁRIO NO LESTE (ET).
+
+    ═══ O DEFEITO QUE ISTO FECHA (2026-08-13, rodada adversarial) ═══════════════════════════
+
+    As duas fontes publicam o instante do próximo sorteio em fusos DIFERENTES, e as duas eram
+    lidas com um `[:10]` cru:
+
+        Powerball      data-drawdateutc="2026-08-16T02:59:00"   -> "2026-08-16"   (UTC)
+        Mega Millions  NextDrawingDate="2026-08-14T23:00:00"    -> "2026-08-14"   (ET)
+
+    O sorteio da Powerball é SÁBADO, 15 de agosto, 22:59 ET — a NC Lottery imprime "Saturday,
+    Aug. 15, 10:59 PM". A data lida vinha um dia à frente, porque 22:59 ET já é o dia seguinte
+    em UTC. Dois estragos:
+
+      1. VISÍVEL: a página e o e-mail anunciavam "Próximo sorteio 2026-08-16" para um sorteio
+         que acontece no dia 15. O participante lê a data errada do próprio bolão.
+      2. DINHEIRO: `escolhe_proximo_pool` desempata por "sorteio mais cedo" comparando essas
+         strings. Uma delas estava sistematicamente um dia adiantada em relação à outra —
+         comparação entre unidades diferentes decidindo qual jogo recebe o bolão.
+
+    O instante continua guardado separadamente (`nextDrawAt`, sempre em UTC) porque é ele que
+    responde "esse sorteio já ocorreu?"; a data ET responde "que sorteio é esse?". São perguntas
+    diferentes e misturá-las foi a origem do defeito.
+    """
+    if not bruto_iso:
+        return {"nextDrawDate": None, "nextDrawIso": None, "nextDrawAt": None}
+    txt = str(bruto_iso).replace("Z", "").split(".")[0]
+    quando = datetime.fromisoformat(txt)
+    if quando.tzinfo is None:
+        quando = quando.replace(
+            tzinfo=timezone.utc if fuso_de_origem == "UTC" else FUSO_SORTEIO)
+    et = quando.astimezone(FUSO_SORTEIO)
+    return {
+        "nextDrawDate": et.strftime("%Y-%m-%d"),          # identidade do sorteio (ET)
+        "nextDrawIso": et.strftime("%Y-%m-%dT%H:%M:%S%z"),
+        "nextDrawAt": quando.astimezone(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+
+
 def jackpot_oficial(jogo, fetcher=None, agora=None):
     """
     Jackpot ANUNCIADO EM ANUIDADE do PRÓXIMO sorteio, com cash value e data, da fonte oficial.
@@ -357,10 +429,12 @@ def jackpot_oficial(jogo, fetcher=None, agora=None):
         # `NextPrizePool` é o PRÓXIMO; `CurrentPrizePool` é o do sorteio já realizado. Mesma
         # armadilha da Powerball, só que aqui os dois vêm no mesmo objeto — trocar o campo é
         # ainda mais fácil, e igualmente silencioso.
+        #
+        # `NextDrawingDate` vem SEM fuso ("2026-08-14T23:00:00") e é horário do leste — é o
+        # horário do sorteio, 23:00 ET. Interpretar como UTC atrasaria o instante em 4 horas.
         bruto = {"advertisedAnnuityCents": _cents(jp.get("NextPrizePool")),
                  "cashValueCents": _cents(jp.get("NextCashValue")),
-                 "nextDrawDate": str(prox or "")[:10],
-                 "nextDrawIso": prox,
+                 **_datas_do_sorteio(prox, "ET"),
                  "source": MM_API,
                  "sourceHash": hashlib.sha256(
                      json.dumps(dados.get("Jackpot"), sort_keys=True).encode()).hexdigest()[:16]}
@@ -377,23 +451,117 @@ def jackpot_oficial(jogo, fetcher=None, agora=None):
                           r"\$?\s*([0-9][0-9.,]*\s*[A-Za-z]*)", html, re.I)
             return m.group(1) if m else None
         iso = re.search(r'data-drawdateutc="([0-9T:.\-]+)', html)
+        # O atributo diz UTC no próprio nome: "2026-08-16T02:59:00" é o sorteio de SÁBADO
+        # 2026-08-15 às 22:59 ET. Ver `_datas_do_sorteio`.
         bruto = {"advertisedAnnuityCents": _cents(_rotulado("Estimated Jackpot")),
                  "cashValueCents": _cents(_rotulado("Cash Value")),
-                 "nextDrawDate": (iso.group(1)[:10] if iso else None),
-                 "nextDrawIso": iso.group(1) if iso else None,
+                 **_datas_do_sorteio(iso.group(1) if iso else None, "UTC"),
                  "source": URL_PB_HOME,
                  "sourceHash": hashlib.sha256(html.encode()).hexdigest()[:16]}
 
     if bruto["advertisedAnnuityCents"] is None:
         raise ResultadoInvalido(f"JACKPOT_NAO_LIDO: {jogo} em {bruto['source']}")
 
+    return _confere_e_devolve(jogo, bruto, agora)
+
+
+def jackpot_secundario(jogo, agora=None):
+    """
+    Jackpot do próximo sorteio pela NC Education Lottery — a MESMA secundária dos resultados.
+
+    ═══ POR QUE UMA SEGUNDA FONTE DE JACKPOT ════════════════════════════════════════════════
+
+    Medido em 2026-08-13: powerball.com devolve a casca sem conteúdo em torno de metade das
+    requisições, e nenhuma variação de cabeçalho muda isso. Mesmo com dez tentativas, uma em
+    cada seis leituras ainda falhava. Insistir mais na mesma origem instável é tratar sintoma;
+    a arquitetura já tem a resposta certa, e é a que os RESULTADOS usam desde o início — quando
+    a primária não responde, pergunta-se à secundária.
+
+    A NC é renderizada no servidor e traz os mesmos três dados no cabeçalho, com ids estáveis:
+
+        lblPBJackpot      "$20 Million"
+        lblPBCash         "Cash Value $8.7 Million"
+        lblPBDrawDateNext "Saturday, Aug. 15, 10:59 PM"
+    """
+    agora = agora or datetime.now(timezone.utc)
+    if jogo != "powerball":
+        raise ResultadoInvalido(
+            f"ADAPTADOR_AUSENTE: jackpot secundário só implementado para powerball (pedido: "
+            f"{jogo}) — a API oficial da Mega Millions é estável e não precisou de segunda via")
+
+    html = _http(URLS_NC["powerball"], exige="lblPBJackpot")
+    pref = "ctl00_MainContent_HeaderPowerball_JackpotPowerball_"
+
+    def _campo(sufixo):
+        m = re.search(rf'id="{pref}{sufixo}"[^>]*>([^<]*)<', html)
+        return m.group(1).strip() if m else None
+
+    quando = _proximo_sorteio_nc(_campo("lblPBDrawDateNext"), agora)
+    bruto = {
+        "advertisedAnnuityCents": _cents(_campo("lblPBJackpot")),
+        "cashValueCents": _cents(_campo("lblPBCash")),
+        **_datas_do_sorteio(quando.isoformat() if quando else None, "ET"),
+        "source": URLS_NC["powerball"],
+        "sourceHash": hashlib.sha256(html.encode()).hexdigest()[:16],
+    }
+    if bruto["advertisedAnnuityCents"] is None:
+        raise ResultadoInvalido(f"JACKPOT_NAO_LIDO: {jogo} em {bruto['source']}")
+    return _confere_e_devolve(jogo, bruto, agora)
+
+
+DIAS_NC = {"monday": 0, "tuesday": 1, "wednesday": 2, "thursday": 3, "friday": 4,
+           "saturday": 5, "sunday": 6}
+
+
+def _proximo_sorteio_nc(rotulo, agora):
+    """
+    "Saturday, Aug. 15, 10:59 PM" -> datetime ET.
+
+    O rótulo NÃO traz o ano. Em vez de assumir o ano corrente — que erra na virada de dezembro
+    para janeiro, silenciosamente e uma vez por ano — o ano é escolhido como aquele que põe o
+    sorteio no FUTURO mais próximo. A data também é conferida contra o dia da semana que o
+    próprio rótulo declara: se não bater, o rótulo mudou de forma e é melhor não ler nada do que
+    ler errado.
+    """
+    if not rotulo:
+        return None
+    m = re.search(r"([A-Za-z]+),\s*([A-Za-z]{3})[a-z]*\.?\s*(\d{1,2}),\s*(\d{1,2}):(\d{2})\s*"
+                  r"(AM|PM)", rotulo, re.I)
+    if not m:
+        return None
+    mes = MESES.get(m.group(2).lower()[:3])
+    if not mes:
+        return None
+    hora = int(m.group(4)) % 12 + (12 if m.group(6).upper() == "PM" else 0)
+    agora_et = agora.astimezone(FUSO_SORTEIO)
+    for ano in (agora_et.year, agora_et.year + 1):
+        try:
+            cand = datetime(ano, mes, int(m.group(3)), hora, int(m.group(5)),
+                            tzinfo=FUSO_SORTEIO)
+        except ValueError:
+            continue
+        if cand >= agora_et - timedelta(hours=6) and \
+                cand.weekday() == DIAS_NC.get(m.group(1).lower(), cand.weekday()):
+            return cand
+    return None
+
+
+def _confere_e_devolve(jogo, bruto, agora):
+    """A guarda do sorteio futuro, comum às duas fontes de jackpot."""
+
     # ── A guarda ────────────────────────────────────────────────────────────────────────────
-    prox = bruto.get("nextDrawIso")
+    #
+    # Usa `nextDrawAt` — o INSTANTE, sempre em UTC e sempre com "Z" — e não `nextDrawIso`, que é
+    # a representação em ET e traz o deslocamento no formato `-0400`. `datetime.fromisoformat`
+    # do Python 3.9 recusa esse formato sem dois-pontos, e a guarda passava a levantar
+    # `Invalid isoformat string` em TODA leitura: um jackpot perfeitamente válido virava erro.
+    # Instante e representação são coisas diferentes; a guarda é sobre o instante.
+    prox = bruto.get("nextDrawAt")
     if not prox:
         raise ResultadoInvalido(
             f"JACKPOT_SEM_SORTEIO: {jogo} — sem data do próximo sorteio não há como provar que "
             f"o valor não é de um sorteio passado")
-    quando = datetime.fromisoformat(str(prox).replace("Z", "+00:00").split(".")[0])
+    quando = datetime.fromisoformat(str(prox).replace("Z", "+00:00"))
     if quando.tzinfo is None:
         quando = quando.replace(tzinfo=timezone.utc)
     if quando < agora:
@@ -403,6 +571,31 @@ def jackpot_oficial(jogo, fetcher=None, agora=None):
             f"ocorreu. Este é o valor HISTÓRICO daquele sorteio, não o do próximo.")
 
     return {"game": jogo, "fetchedAt": _agora(), **bruto}
+
+
+def jackpot_pronto(jogo, agora=None, fetcher=None):
+    """
+    Jackpot do próximo sorteio, com a MESMA precedência dos resultados: oficial, depois NC.
+
+    Devolve `(jackpot, tentativas)`. `verificationState` diz de onde veio, e é isso que permite
+    à UI distinguir "medido na fonte oficial" de "medido na secundária" de "não medido" — três
+    estados diferentes que não podem virar um só. Um jogo não medido NÃO é um jogo que não
+    qualifica.
+    """
+    if fetcher is not None:
+        return fetcher(jogo), [{"source": "fetcher", "ok": True}]
+    tentativas = []
+    for nome, fn, estado in (("oficial", jackpot_oficial, "PRIMARY_CONFIRMED"),
+                             ("nc_education_lottery", jackpot_secundario, "SECONDARY_ONLY")):
+        try:
+            j = fn(jogo, agora=agora)
+            j["verificationState"] = estado
+            tentativas.append({"source": nome, "ok": True})
+            return j, tentativas
+        except Exception as e:  # noqa: BLE001 — o motivo por fonte É o diagnóstico
+            tentativas.append({"source": nome, "ok": False,
+                               "motivo": f"{type(e).__name__}: {str(e)[:120]}"})
+    return None, tentativas
 
 
 def _do_ny_open_data(texto, jogo, draw_date=None):
