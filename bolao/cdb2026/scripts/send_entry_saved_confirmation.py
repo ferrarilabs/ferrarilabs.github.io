@@ -163,8 +163,12 @@ def envia(addr, assunto, html):
 
     body = json.dumps({
         "service_id": EMAILJS_SVC, "template_id": EMAILJS_TMPL, "user_id": EMAILJS_KEY,
-        "template_params": {"to_email": addr.strip(), "entry_name": entry_name,
-                            "receipt_code": "Palpites salvos", "html_message": html},
+        # `entry_name` e `receipt_code` alimentam o ASSUNTO no template do EmailJS; o corpo é
+        # `html_message` (o template do provedor contém apenas {{{html_message}}}). Os dois
+        # recebem o assunto montado — "Palpites salvos" era o texto genérico que o operador
+        # recusou.
+        "template_params": {"to_email": addr.strip(), "entry_name": assunto,
+                            "receipt_code": assunto, "html_message": html},
     }).encode()
 
     if _TRANSPORT is not None:
