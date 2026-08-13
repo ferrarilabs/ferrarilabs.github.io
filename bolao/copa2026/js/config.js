@@ -75,7 +75,7 @@ window.BOLAO_CONFIG = {
     // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
     // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
     // trocar esta linha de volta.
-    readTable: "bolao_state_normalized_public",
+    readTable: "bolao_state_public",
     // ESCRITA: nao existe mais. O navegador nao grava no banco (COPA-APP-ROUTING). `table`
     // permanece porque a diferenca entre ele e `readTable` e o que arma o interlock
     // `__sanitized`; toda mutacao privilegiada passa por bolao/copa2026/scripts/operator_cli.py.
