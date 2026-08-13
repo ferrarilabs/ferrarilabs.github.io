@@ -111,6 +111,26 @@ def main():
     print(f"  PICKS_VERSION        = {versao}")
     print(f"  volume dos palpites  = {n_matches} confronto(s), {n_qual} classificado(s)")
 
+    # ── 1b. ESTRUTURA DO CHAVEAMENTO (dados públicos do torneio; nenhum PII) ────────────────
+    sec("1b. ESTRUTURA DAS FASES")
+    for fid, fase in (estado.get("phases") or {}).items():
+        ties = fase.get("ties") or {}
+        topo = ((fase.get("topology") or {}).get("slots")) or {}
+        print(f"  fase '{fid}' nome={fase.get('name')!r} cutoffAt={fase.get('cutoffAt')!r}")
+        print(f"    ties={len(ties)}  topology_slots={len(topo)}")
+        for tid, t in list(ties.items())[:8]:
+            print(f"      {tid}: {t.get('teamA')} x {t.get('teamB')}"
+                  f"  qualifiedTeamId={t.get('qualifiedTeamId')!r}"
+                  f"  matches={list((t.get('matches') or {}).keys())}")
+        for sid, sl in list(topo.items())[:8]:
+            print(f"      slot {sid}: A<-{(sl.get('sideA') or {}).get('winnerOf')}"
+                  f"  B<-{(sl.get('sideB') or {}).get('winnerOf')}")
+    print(f"  activePhaseId = {(estado.get('espnSync') or {}).get('activePhaseId')!r}")
+    print("\n  FORMA DOS PALPITES DO OPERADOR (chaves e formato, sem julgamento):")
+    for tid, m in list((picks.get("matches") or {}).items())[:4]:
+        print(f"    matches[{tid}] = {json.dumps(m, ensure_ascii=False)}")
+    print(f"    qualified = {json.dumps(picks.get('qualified') or {}, ensure_ascii=False)[:300]}")
+
     # ── 2. O PRODUTOR IMPLANTADO ─────────────────────────────────────────────────────────────
     sec("2. O PRODUTOR QUE ESTÁ NO BANCO")
     # `cdb_picks_version` só existe a partir de 20260813030000. Se responde, aquela migração
