@@ -218,10 +218,54 @@ try {
   await vencerComTimeA(page, "final-1", 3, 1);
   const aposFinal = await texto(page);
 
-  test("FINAL_TO_CHAMPION_LIVE — CAMPEÃO aparece", () =>
-    assert(/CAMPEÃO/.test(aposFinal), `sem campeão:\n${aposFinal.slice(-400)}`));
-  test("VICE-CAMPEÃO aparece", () =>
-    assert(/VICE-CAMPEÃO/.test(aposFinal), `sem vice:\n${aposFinal.slice(-400)}`));
+  // LEITURA ESTRUTURAL DO PODIO, NAO DE TEXTO CORRIDO.
+  //
+  // As duas assercoes que existiam aqui liam `/CAMPEÃO/.test(texto)` -- e "VICE-CAMPEÃO" CONTEM
+  // "CAMPEÃO". Elas ficavam VERDES com apenas o vice rotulado, que e literalmente o defeito que a
+  // producao mostrou:
+  //
+  //     Palmeiras — VICE-CAMPEÃO: Cruzeiro
+  //
+  // O campeao aparecia como nome solto e o gate nao tinha como notar. Um teste que nao distingue
+  // as duas posicoes nao prova que as duas estao rotuladas -- so prova que a palavra existe em
+  // algum lugar. Agora cada posicao e lida do seu proprio elemento, com rotulo e clube separados.
+  const podio = await page.evaluate(() => {
+    const el = document.querySelector("#podio-previsto");
+    if (!el) return null;
+    return {
+      slots: [...el.querySelectorAll(".podio-slot")].map(s => ({
+        label: (s.querySelector(".podio-label")?.textContent || "").trim().replace(/:$/, ""),
+        team:  (s.querySelector("b")?.textContent || "").trim(),
+      })),
+      texto: el.textContent.replace(/\s+/g, " ").trim(),
+    };
+  });
+
+  test("CHAMPION_LABEL_VISIBLE", () =>
+    assert(podio?.slots?.[0]?.label === "CAMPEÃO",
+      `primeiro rótulo do pódio: ${JSON.stringify(podio?.slots?.[0])} — ${podio?.texto}`));
+  test("RUNNER_UP_LABEL_VISIBLE", () =>
+    assert(podio?.slots?.[1]?.label === "VICE-CAMPEÃO",
+      `segundo rótulo do pódio: ${JSON.stringify(podio?.slots?.[1])} — ${podio?.texto}`));
+
+  // Quem chega na final no fixture: t-d -> Internacional e t-a -> Cruzeiro alimentam sf-1;
+  // t-c -> Vasco e t-b -> Palmeiras alimentam sf-2. Lado A vence em tudo, entao a final e
+  // Internacional × Vasco, e o lado A vence de novo.
+  test("CHAMPION_TEAM_CORRECT — Internacional", () =>
+    assert(podio?.slots?.[0]?.team === "Internacional",
+      `campeão renderizado: ${JSON.stringify(podio?.slots?.[0])} — ${podio?.texto}`));
+  test("RUNNER_UP_TEAM_CORRECT — Vasco", () =>
+    assert(podio?.slots?.[1]?.team === "Vasco",
+      `vice renderizado: ${JSON.stringify(podio?.slots?.[1])} — ${podio?.texto}`));
+
+  test("PODIUM_SLOT_COUNT = 2 — a final resolve exatamente duas posições", () =>
+    assert(podio?.slots?.length === 2,
+      `posições renderizadas no pódio: ${podio?.slots?.length} — ${podio?.texto}`));
+
+  // O campeao nao pode aparecer so pela ORDEM. Se o rotulo sumir, isto pega.
+  test("CHAMPION_NOT_IMPLIED_BY_ORDER — o campeão tem rótulo próprio", () =>
+    assert(/CAMPEÃO:\s*Internacional/.test(podio?.texto || ""),
+      `o campeão não está explicitamente rotulado: ${podio?.texto}`));
 
   test("THIRD_PLACE_PRESENT = NO", () =>
     assert(!/3º lugar|terceiro lugar|3o lugar/i.test(aposFinal),
@@ -239,11 +283,27 @@ try {
   test("DOWNSTREAM_INVALIDATION — trocar o vencedor das quartas troca a semifinal", () =>
     assert(/Grêmio/.test(aposTroca), `a semifinal não seguiu a troca:\n${aposTroca.slice(0, 400)}`));
 
-  test("o pódio obsoleto é limpo quando a final é invalidada", () => {
-    const aindaTemCampeao = /CAMPEÃO/.test(aposTroca) &&
-      !/Complete a final/.test(aposTroca);
-    assert(!aindaTemCampeao || !/Internacional/.test(aposTroca.split("CAMPEÃO")[1] || ""),
-      "o campeão antigo sobreviveu a uma troca que invalidou a final");
+  const podioAposTroca = await page.evaluate(() => {
+    const el = document.querySelector("#podio-previsto");
+    if (!el) return null;
+    return {
+      slots: [...el.querySelectorAll(".podio-slot")].map(s => ({
+        label: (s.querySelector(".podio-label")?.textContent || "").trim().replace(/:$/, ""),
+        team:  (s.querySelector("b")?.textContent || "").trim(),
+      })),
+      texto: el.textContent.replace(/\s+/g, " ").trim(),
+    };
+  });
+
+  test("PODIUM_CLEARED_TOGETHER — as duas posições somem juntas quando a final é invalidada", () => {
+    // Meia limpeza e pior que nenhuma: um vice orfao, ou um campeao obsoleto ao lado de um vice
+    // novo, sao leituras que o participante nao tem como questionar -- parecem deliberadas. As
+    // duas posicoes saem da MESMA derivacao, entao ou as duas valem ou nenhuma aparece.
+    const n = podioAposTroca?.slots?.length ?? 0;
+    assert(n === 0 || n === 2,
+      `pódio meio limpo: ${n} posição(ões) — ${podioAposTroca?.texto}`);
+    assert(!/Internacional/.test(podioAposTroca?.texto || ""),
+      `o campeão antigo sobreviveu à troca que invalidou a final: ${podioAposTroca?.texto}`);
   });
 
   test("nenhum undefined depois da troca", () =>
@@ -283,9 +343,12 @@ try {
   test("FINAL_HEADER_COUNT = 1", () =>
     assert(quantos("FINAL") === 1,
       `cabeçalhos FINAL: ${quantos("FINAL")} — ${JSON.stringify(cabecalhos)}`));
-  test("CAMPEÃO_HEADER_COUNT = 1", () =>
-    assert(quantos("CAMPEÃO") === 1,
-      `cabeçalhos CAMPEÃO: ${quantos("CAMPEÃO")} — ${JSON.stringify(cabecalhos)}`));
+  // O cabecalho da secao do podio deixou de ser "CAMPEÃO" (virou "RESULTADO DA FINAL"): com as
+  // duas posicoes rotuladas na linha, repetir "CAMPEÃO" acima era eco, e sugeria que a secao
+  // tratava so do campeao. A INTENCAO do gate continua a mesma -- a secao aparece UMA vez.
+  test("RESULTADO_DA_FINAL_HEADER_COUNT = 1", () =>
+    assert(quantos("RESULTADO DA FINAL") === 1,
+      `cabeçalhos do pódio: ${quantos("RESULTADO DA FINAL")} — ${JSON.stringify(cabecalhos)}`));
 
   const contarTies = (prefixo) => page.evaluate((pre) =>
     [...document.querySelectorAll("#pickForm .tie-pick-block")]
@@ -313,7 +376,7 @@ try {
   const quantosDepois = (n) => depois.filter(h => h === n).length;
   test("RERENDER_DUPLICATION = 0 — cabeçalhos não acumulam", () =>
     assert(quantosDepois("SEMIFINAL") === 1 && quantosDepois("FINAL") === 1
-           && quantosDepois("CAMPEÃO") === 1,
+           && quantosDepois("RESULTADO DA FINAL") === 1,
       `depois de 5 mudanças: ${JSON.stringify(depois)}`));
   const nSfDepois = await contarTies("sf-");
   const nFinalDepois = await contarTies("final-");

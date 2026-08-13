@@ -2176,13 +2176,28 @@ function renderPickForm() {
   if (html) {
     const podio = predictedPodium({ picks: picksAtuais() }, s);
     html += `<div class="pick-group">
-      <div class="pick-group-header champion-header">${esc(t("predictedChampion"))}</div>`;
+      <div class="pick-group-header champion-header">${esc(t("finalOutcomeHeader"))}</div>`;
     if (podio.champion) {
+      // AS DUAS POSICOES SAO ROTULADAS. Antes so o vice tinha rotulo, e o campeao aparecia como
+      // nome solto: "Palmeiras — VICE-CAMPEÃO: Cruzeiro". Quem le nao tem como saber se o
+      // primeiro nome e o campeao ou so o mandante -- a posicao ficava implicita na ordem, e
+      // ordem nao e rotulo. Agora cada lado diz o que e.
+      //
+      // Os emojis sao `aria-hidden`: quem usa leitor de tela ouve "CAMPEÃO: Palmeiras", nao o
+      // nome do emoji. O significado esta no texto, o emoji so acompanha.
       html += `<div class="pick-row tie-row locked" id="podio-previsto">
         <div class="tie-locked-note"><span class="tie-locked-score">
-          ${teamLogoImg(podio.champion)} <b>${esc(podio.champion)}</b>
-          <span class="muted"> — ${esc(t("predictedRunnerUp"))}: </span>
-          ${teamLogoImg(podio.runnerUp)} ${esc(podio.runnerUp)}
+          <span class="podio-slot">
+            <span class="podio-medal" aria-hidden="true">🏆</span>
+            <span class="podio-label">${esc(t("predictedChampion"))}:</span>
+            ${teamLogoImg(podio.champion)} <b>${esc(podio.champion)}</b>
+          </span>
+          <span class="podio-sep" aria-hidden="true">·</span>
+          <span class="podio-slot">
+            <span class="podio-medal" aria-hidden="true">🥈</span>
+            <span class="podio-label">${esc(t("predictedRunnerUp"))}:</span>
+            ${teamLogoImg(podio.runnerUp)} <b>${esc(podio.runnerUp)}</b>
+          </span>
         </span></div>
       </div>`;
     } else {
