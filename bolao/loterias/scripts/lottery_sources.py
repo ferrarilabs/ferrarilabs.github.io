@@ -26,6 +26,7 @@ sem rede.
 
 import json
 import re
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -144,7 +145,10 @@ def busca(jogo, draw_date, fonte, fetcher=None):
     elif fonte == "ny_open_data":
         url = {"powerball": "https://data.ny.gov/resource/d6yy-54nr.json",
                "megamillions": "https://data.ny.gov/resource/5xaw-6ayf.json"}[jogo]
-        bruto = _do_ny_open_data(_http(f"{url}?$order=draw_date DESC&$limit=5"), jogo)
+        # `$order=draw_date DESC` tem espaço, e espaço cru numa URL levanta InvalidURL antes de
+        # qualquer rede. Precisa ser codificado.
+        q = urllib.parse.urlencode({"$order": "draw_date DESC", "$limit": 5})
+        bruto = _do_ny_open_data(_http(f"{url}?{q}"), jogo)
     else:
         raise ResultadoInvalido(f"ADAPTADOR_AUSENTE: {fonte} ainda não tem implementação de rede")
 
