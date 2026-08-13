@@ -118,13 +118,114 @@ def main():
             checa(f"  -> sem ícone literal: {l.strip()[:58]}",
                   not any(x in l for x in ("⚽", "🏆", "🔴", "🔵")))
 
-    print("\n6. NENHUM assunto de loteria retém ⚽ em lugar nenhum do repositório")
+    print("\n6. DESCOBERTA: todo construtor de assunto do repositório, em qualquer runtime")
+    #
+    # ═══ O FALSO-VERDE QUE ISTO FECHA (2026-08-13, rodada adversarial) ══════════════════════
+    #
+    # A versão anterior desta seção varria uma LISTA FIXA de cinco arquivos .py procurando
+    # `subject =`. O renderizador JS `email/render.mjs` monta os próprios assuntos e ficou
+    # inteiramente fora do alcance:
+    #
+    #     return `${prefix}🔴 Resultado Powerball — ...`;   <- ícone digitado no template
+    #
+    # Medido: trocar aquele 🔴 por ⚽ deixava OITO portões de e-mail VERDES — inclusive este.
+    # Um portão que só olha onde já se sabe que está tudo certo não é portão.
+    #
+    # Agora a varredura DESCOBRE os construtores em vez de recebê-los numa lista: qualquer
+    # função cujo nome fale de assunto, em .py ou .mjs/.js, em qualquer app. Um remetente novo
+    # entra no escopo do portão sem ninguém precisar lembrar de cadastrá-lo.
+    ICONES = ("⚽", "🏆", "🔴", "🔵")
+    IGNORAR = ("/docs/", "/node_modules/", "/.claude/", "/email-previews/", "/logs/")
+
+    def fontes():
+        for padrao in ("*.py", "*.mjs", "*.js"):
+            for f in (RAIZ / "bolao").rglob(padrao):
+                rel = f"/{f.relative_to(RAIZ)}"
+                if any(x in rel for x in IGNORAR) or f.name.startswith(("test_", "audit_")):
+                    continue
+                if f.name in ("subject_policy.py", "subject_policy.mjs"):
+                    continue   # a política PODE conter os ícones: é onde eles moram
+                yield f
+
+    # Corpo de cada função cujo nome menciona assunto/subject.
+    ASSINATURA = re.compile(
+        r"^[^\S\n]*(?:export[^\S\n]+)?(?:async[^\S\n]+)?(?:def|function)[^\S\n]+"
+        r"(\w*(?:[Ss]ubject|[Aa]ssunto)\w*)[^\S\n]*\(", re.M)
+    construtores, violacoes = [], []
+    for f in fontes():
+        txt = f.read_text(encoding="utf-8", errors="replace")
+        linhas = txt.splitlines()
+        for m in ASSINATURA.finditer(txt):
+            nome = m.group(1)
+            ini = txt[:m.start()].count("\n")
+            # Corpo = até a próxima definição de topo, ou 40 linhas — o que vier antes.
+            fim = len(linhas)
+            for j in range(ini + 1, min(ini + 40, len(linhas))):
+                if re.match(r"^[^\S\n]*(?:export[^\S\n]+)?(?:async[^\S\n]+)?"
+                            r"(?:def|function)[^\S\n]+\w+[^\S\n]*\(", linhas[j]):
+                    fim = j
+                    break
+            else:
+                fim = min(ini + 40, len(linhas))
+            corpo = "\n".join(linhas[ini:fim])
+            # Só o CÓDIGO: comentários citam os ícones para explicar a regra, e um portão que
+            # lesse a própria prosa reprovaria a documentação dela.
+            codigo = "\n".join(
+                l.split("//")[0].split("#")[0] for l in corpo.splitlines()
+                if not l.strip().startswith(("#", "//", "*", '"""', "'''")))
+            usa_politica = bool(re.search(r"(subject_policy|policy\.(assunto|icone|jogo))",
+                                          codigo))
+            literais = [x for x in ICONES if x in codigo]
+            construtores.append({"onde": f"{f.relative_to(RAIZ)}:{nome}", "nome": nome,
+                                 "literais": literais, "politica": usa_politica})
+
+            # ── REGRA DURA 1: nenhum construtor pode trazer um dos QUATRO ícones da política
+            #    digitado no corpo. Se um deles aparece ali, o ícone deixou de ser derivado do
+            #    propósito e voltou a ser um caractere que qualquer edição troca em silêncio.
+            if literais:
+                violacoes.append(f"{f.relative_to(RAIZ)}:{nome} tem literal {literais}")
+            # ── REGRA DURA 2: construtor de assunto de RESULTADO DE LOTERIA tem de passar pela
+            #    política — é o e-mail que diz a dezesseis pessoas quanto elas ganharam.
+            elif re.search(r"(DrawResult|Resultado).*Subject|Subject.*(DrawResult|Resultado)",
+                           nome) and not usa_politica:
+                violacoes.append(f"{f.relative_to(RAIZ)}:{nome} monta assunto de resultado de "
+                                 f"loteria sem passar pela política")
+
+    checa("descobriu construtores de assunto em mais de um runtime",
+          any(":" in c["onde"] and ".mjs:" in c["onde"] for c in construtores)
+          and any(".py:" in c["onde"] for c in construtores),
+          f"{len(construtores)} encontrados")
+    for c in sorted(construtores, key=lambda x: x["onde"]):
+        marca = "política" if c["politica"] else "—"
+        print(f"        · {c['onde']:<62} {marca}")
+    checa("FALSE_ICON_USAGE = 0 — nenhum dos quatro ícones digitado num construtor",
+          not violacoes, "; ".join(violacoes))
+
+    # ── FORA DO ESCOPO, mas REGISTRADO ─────────────────────────────────────────────────────
+    #
+    # Alguns assuntos usam ícones que a política NÃO governa (✅ comprovante, 🎟️ bilhetes,
+    # ⚠️ correção). Eles não violam nenhuma das regras exigidas — não há ⚽ em loteria, nem 🏆
+    # fora do campeão. Trocá-los mudaria assunto de e-mail de produção sem evidência de
+    # defeito, então ficam como estão — mas LISTADOS, para que a decisão seja visível e não
+    # uma omissão. Sanitizadores de texto (`subjectSafeDate`, `emailSubjectSafe`) não montam
+    # assunto nenhum e por isso também não passam pela política.
+    fora = [c["onde"] for c in construtores
+            if not c["politica"] and not c["literais"]]
+    print(f"    (fora do escopo da política, por decisão registrada: {len(fora)})")
+    for o in sorted(fora):
+        print(f"        · {o}")
+
+    # E a varredura textual antiga continua, agora também sobre JS.
     achados = []
-    for f in (RAIZ / "bolao" / "loterias").rglob("*.py"):
+    for f in (RAIZ / "bolao" / "loterias").rglob("*"):
+        if f.suffix not in (".py", ".mjs", ".js") or any(
+                x in f"/{f.relative_to(RAIZ)}" for x in IGNORAR):
+            continue
         for i, l in enumerate(f.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
-            if "⚽" in l and re.search(r"(subject|assunto)\s*=", l):
+            if "⚽" in l and re.search(r"(subject|assunto)", l, re.I) \
+                    and not l.strip().startswith(("#", "//", "*")):
                 achados.append(f"{f.relative_to(RAIZ)}:{i}")
-    checa("POWERBALL_SOCCER_EMOJI_COUNT = 0 (varredura do repositório)", not achados,
+    checa("POWERBALL_SOCCER_EMOJI_COUNT = 0 (varredura .py + .mjs + .js)", not achados,
           str(achados))
 
     # ═══ 7. MUTAÇÕES — cada proteção tem de ficar VERMELHA quando removida ═══════════════════

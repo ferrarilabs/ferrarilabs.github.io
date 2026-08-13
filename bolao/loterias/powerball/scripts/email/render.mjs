@@ -29,6 +29,9 @@ function esc(s) {
 // cabeçalho "currency unified to $X.XX" — era uma unificação SÓ do email, e deixava o participante
 // vendo `$5.00` aqui e `US$5` na interface. O Eduardo decidiu o padrão único: `US$ X.XX`.
 import { usd as canonicalUsd } from "../../../../shared/scripts/money.mjs";
+// Política ÚNICA de ícone/identidade de jogo no assunto — espelho de subject_policy.py,
+// mantidos em sincronia por test_subject_policy_interop.mjs (mesmo padrão do money.py/.mjs).
+import * as policy from "../../../../shared/scripts/subject_policy.mjs";
 
 function usd(n) {
   return canonicalUsd(n);
@@ -467,9 +470,23 @@ export function renderTicketPublicationText(payload, testMode) {
 // modified here, only composed into a new template.
 
 export function renderDrawResultSubject(payload, testMode) {
+  // ÍCONE E JOGO VÊM DA POLÍTICA, NÃO DO TEMPLATE.
+  //
+  // Esta linha era `` `${prefix}🔴 Resultado Powerball — ... PB ${special}` ``: ícone, nome do
+  // jogo e rótulo da bola chumbados. Dois defeitos num só lugar.
+  //
+  // 1. Trocar aquele 🔴 por ⚽ deixava OITO portões de e-mail verdes (medido em 2026-08-13).
+  //    A política de assunto existe exatamente para impedir esse desvio, e não enxergava este
+  //    arquivo — ela varria uma lista fixa de remetentes .py.
+  // 2. `payload.poolId` diz o jogo, e o template ignorava. Um sorteio de Mega Millions sairia
+  //    como "🔴 Resultado Powerball — ... PB 17": ícone, jogo e bola errados num e-mail sobre
+  //    dinheiro real.
   const prefix = testMode ? "[TESTE ADMIN] " : "";
+  const g = policy.jogo(payload.poolId);
   const nums = payload.official.numbers.slice().sort((a, b) => a - b).join("-");
-  return `${prefix}🔴 Resultado Powerball — ${subjectSafeDate(payload.drawDateLabel)} — ${nums} PB ${payload.official.special}`;
+  return prefix + policy.assunto(
+    g.propositoResultado,
+    `Resultado ${g.label} — ${subjectSafeDate(payload.drawDateLabel)} — ${nums} ${g.bola} ${payload.official.special}`);
 }
 
 // Round-2 simplification (2026-08-06, per Eduardo's feedback on the email
