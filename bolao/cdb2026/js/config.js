@@ -118,7 +118,7 @@ window.CDB2026_CONFIG = {
     // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
     // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
     // trocar esta linha de volta.
-    readTable: "bolao_state_public",
+    readTable: "bolao_state_normalized_public",
     table: "bolao_state",
     stateId: "cdb2026",
     localFallback: true
