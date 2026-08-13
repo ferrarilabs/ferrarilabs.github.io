@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.120 — 2026-08-13
+
+### READ_CUTOVER — a leitura passa a vir do modelo normalizado (segunda execucao)
+
+`readTable` sai de `bolao_state_public` e passa para `bolao_state_normalized_public`.
+
+A primeira execucao (2026-08-13, v1.118) foi revertida em 24s porque o comparador do log de
+auditoria estourava quando o documento remoto nao publica `auditLog` — defeito latente, exposto
+pela rota nova, corrigido em v1.119 e verificado em navegador real na rota LEGADA antes desta
+troca. Ver a entrada de v1.119.
+
+Gates desta execucao: paridade folha a folha 0 BUG / 0 UNKNOWN nos tres produtos; selo de pago
+identico; `deletedIds` identico como conjunto; as tres auditorias de scoring passam; PII publica 0;
+`bolao_state` cru negado ao anon em leitura e escrita.
+
+**A ESCRITA NAO MUDOU.** O documento legado continua sendo a autoridade. Reverter e trocar
+`readTable` de volta — provado ao vivo em 24s.
+
+
 ## v1.119 — 2026-08-13
 
 ### O comparador do log de auditoria aceita as DUAS formas de registro que o banco grava

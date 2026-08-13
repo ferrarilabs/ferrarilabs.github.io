@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.128",
+  siteVersion: "v3.129",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -118,7 +118,7 @@ window.CDB2026_CONFIG = {
     // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
     // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
     // trocar esta linha de volta.
-    readTable: "bolao_state_public",
+    readTable: "bolao_state_normalized_public",
     table: "bolao_state",
     stateId: "cdb2026",
     localFallback: true
