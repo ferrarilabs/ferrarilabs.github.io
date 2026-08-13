@@ -539,6 +539,45 @@ class _PonteM8M9:
                 f"esperava {evento_id} — há obrigação pendente de outro sorteio")
         return r
 
+    def claim_outbox_por_chave(self, chave_negocio, lease_seconds=900):
+        """
+        Reivindica a obrigacao DESTA chave de negocio, e confirma que foi ela.
+
+        `claim_outbox_event` pega o pendente mais antigo do tipo — que pode ser de OUTRO sorteio.
+        Reivindicar um e liquidar como se fosse o outro trocaria o desfecho de dois sorteios, e o
+        rastro ficaria coerente demais para alguem desconfiar. Entao a identidade e reconferida
+        contra o estado da chave depois da reivindicacao.
+        """
+        if self._modo_teste():
+            return {"outbox_event_id": f"test-{chave_negocio}"}
+        antes = self._ponte().status(chave_negocio)
+        if not antes or str(antes.get("status")) != "pending":
+            return None
+        worker = f"gha-{os.environ.get('GITHUB_RUN_ID', 'local')}-reconcile"
+        r = self._ponte().claim(worker, event_type="powerball.draw_result",
+                                lease_seconds=lease_seconds)
+        if not r:
+            return None
+        depois = self._ponte().status(chave_negocio)
+        if not depois or str(depois.get("status")) != "in_flight":
+            raise RuntimeError(
+                f"OUTBOX_CLAIM_DIVERGENTE: reivindicou {r.get('outbox_event_id')}, mas a chave "
+                f"{chave_negocio} continua em {(depois or {}).get('status')} — o que foi "
+                f"reivindicado era obrigacao de outro sorteio")
+        return r
+
+    def status_outbox(self, chave_negocio):
+        """Estado da obrigacao, sem payload. Devolve {'status', 'attempt_count', 'dead_at'}."""
+        if self._modo_teste():
+            return None
+        return self._ponte().status(chave_negocio)
+
+    def recupera_leases(self):
+        """Devolve ao pool obrigacoes cujo dono morreu. Sem isto elas ficam presas para sempre."""
+        if self._modo_teste():
+            return None
+        return self._ponte().recover_expired_leases()
+
     def new_correlation_id(self):
         if self._modo_teste():
             return "test-corr"
@@ -726,6 +765,68 @@ def _liquida_outbox(deps, rel, desfecho, corr, draw_id, esperados, aceitos, falh
                            correlation_id=corr)
 
 
+def _reconcilia_outbox_orfao(deps, rel, corr, draw_id):
+    """
+    Fecha uma obrigacao que sobreviveu a entrega. NUNCA chama o provedor.
+
+    E a recuperacao da run 31679185588: 16 e-mails aceitos, ledger em `sent`, obrigacao presa.
+    Quem prova que a entrega aconteceu e o ledger POR DESTINATARIO — o outbox nao reenvia nada,
+    ele so registra que a obrigacao existiu e terminou. Entao aqui a liquidacao e derivada de um
+    fato ja durave1, e o contador de chamadas ao provedor permanece intocado de proposito: se
+    algum dia esta funcao precisar enviar alguma coisa, o teste que conta chamadas fica vermelho.
+    """
+    chave = deps.bridge.key_draw_result(draw_id)
+    try:
+        st = deps.bridge.status_outbox(chave)
+    except Exception as exc:  # noqa: BLE001
+        rel["outboxReconcileError"] = str(exc)[:200]
+        return
+    if not st:
+        return
+    estado_atual = str(st.get("status") or "")
+    rel["outboxStatusAntes"] = estado_atual
+    if estado_atual not in ("pending", "in_flight"):
+        return   # ja liquidada; nada a fazer
+
+    # `settle_outbox_event` so aceita `in_flight`. Uma obrigacao em `pending` precisa ser
+    # reivindicada antes — foi a etapa que faltava e derrubou a run inteira.
+    evento_id = None
+    if estado_atual == "pending":
+        try:
+            r = deps.bridge.claim_outbox_por_chave(chave)
+            evento_id = (r or {}).get("outbox_event_id")
+        except Exception as exc:  # noqa: BLE001
+            rel["outboxReconcileError"] = f"claim: {str(exc)[:180]}"
+            return
+    else:
+        # `in_flight` com dono morto: o lease precisa expirar e voltar ao pool antes de alguem
+        # poder reivindicar. Pedir a recuperacao e barato e idempotente.
+        try:
+            deps.bridge.recupera_leases()
+            r = deps.bridge.claim_outbox_por_chave(chave)
+            evento_id = (r or {}).get("outbox_event_id")
+        except Exception as exc:  # noqa: BLE001
+            rel["outboxReconcileError"] = f"recover+claim: {str(exc)[:180]}"
+            return
+    if not evento_id:
+        rel["outboxReconcile"] = "NAO_REIVINDICAVEL_AGORA"
+        return
+
+    try:
+        novo = deps.bridge.settle(evento_id, "success",
+                                  provider_message_id=f"powerball-{draw_id}",
+                                  failure_category=None)
+    except Exception as exc:  # noqa: BLE001
+        rel["outboxReconcileError"] = f"settle: {str(exc)[:180]}"
+        return
+    rel["outboxReconcile"] = "LIQUIDADA_SEM_ENVIO"
+    rel["outboxState"] = novo
+    deps.bridge.emit_audit("draw.outbox_reconciled", "draw", draw_id,
+                           metadata={"de": estado_atual, "para": novo, "providerCalls": 0,
+                                     "motivo": "ledger ja marcava entrega concluida"},
+                           correlation_id=corr)
+
+
 def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps=None):
     """Ciclo completo: reconcilia resultado, depois trata a notificacao. Devolve o relatorio.
 
@@ -795,8 +896,18 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         return rel
 
     if ja and ja["status"] == deps.ledger.SENT:
+        # ENTREGA CONCLUIDA, OBRIGACAO TALVEZ NAO.
+        #
+        # Este retorno antecipado e o que impede reenvio, e tem de continuar impedindo. Mas ate
+        # 2026-08-13 ele saia SEM olhar para o outbox — e foi assim que o sorteio de 12/08 ficou
+        # com os 16 e-mails entregues, o ledger em `sent`, e a obrigacao presa em `pending` para
+        # sempre: nenhuma execucao seguinte chegava perto dela outra vez.
+        #
+        # Fechar a obrigacao aqui NAO toca no provedor. A entrega ja aconteceu e o ledger por
+        # destinatario e a prova; o outbox so precisa parar de afirmar que ha algo pendente.
         rel["notificationState"] = "ALREADY_COMPLETED"
         rel["reason"] = "notificacao ja concluida para este sorteio"
+        _reconcilia_outbox_orfao(deps, rel, corr, draw_id)
         return rel
 
     esperados = deps.resolve_recipients(alvo)
@@ -848,13 +959,38 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     #
     # Reivindicar não é cerimônia: é o que faz o lease existir. Sem ele, dois workers processam
     # a mesma obrigação e nenhum dos dois consegue encerrá-la.
+    # A REIVINDICAÇÃO É UM PORTÃO, NÃO UM REGISTRO.
+    #
+    # A primeira versão desta correção reivindicava e, se falhasse, ANOTAVA o erro e seguia em
+    # frente. Isso reproduz a run 31679185588 inteira: os 16 e-mails saem, `settle` levanta
+    # TRANSICAO_ILEGAL porque o evento nunca saiu de `pending`, e o processo morre depois de já
+    # ter notificado gente real. O sintoma tinha sido tratado; a ORDEM, não.
+    #
+    # Se a obrigação não está reivindicada, não existe lease. Sem lease, dois workers podem estar
+    # aqui ao mesmo tempo e nenhum consegue fechar. Então: sem reivindicação, o provedor não é
+    # tocado. Falhar antes de enviar custa um ciclo; falhar depois custa e-mail duplicado.
     if evento_id:
         try:
             reivindicacao = deps.bridge.claim_outbox(evento_id)
-            rel["outboxClaimed"] = bool(reivindicacao)
         except Exception as exc:  # noqa: BLE001
             rel["outboxClaimError"] = str(exc)[:200]
             rel["outboxClaimed"] = False
+            rel["notificationState"] = "OUTBOX_CLAIM_FALHOU"
+            rel["reason"] = (f"não foi possível reivindicar a obrigação {evento_id}: "
+                             f"{str(exc)[:120]} — NENHUM e-mail enviado, de propósito")
+            rel["providerCalls"] = 0
+            return rel
+        rel["outboxClaimed"] = bool(reivindicacao)
+        if not reivindicacao:
+            # `claim_outbox_event` devolve vazio quando não há PENDENTE elegível: ou outro worker
+            # está com o lease, ou um worker morto ainda o segura. Nos dois casos a resposta certa
+            # é esperar (o lease expira e `recover_expired_outbox_leases` devolve a linha), não
+            # enviar sem poder liquidar depois.
+            rel["notificationState"] = "ALREADY_CLAIMED"
+            rel["reason"] = (f"obrigação {evento_id} não está pendente para reivindicar — outro "
+                             f"worker a detém ou o lease ainda não expirou")
+            rel["providerCalls"] = 0
+            return rel
 
     worker = f"gha-{os.environ.get('GITHUB_RUN_ID', 'local')}"
     reivindicado = deps.ledger.claim(draw_id, worker)
@@ -972,6 +1108,7 @@ ESTADOS_ATENCAO = {
     "RECIPIENT_SET_INCOMPLETE",   # falta contato -- alguem tem de arrumar antes do sorteio
     "CONTENT_CONFLICT",           # conteudo divergente de um job ativo
     "LEDGER_INDISPONIVEL",        # sem idempotencia duravel nao se envia
+    "OUTBOX_CLAIM_FALHOU",        # nao deu para reivindicar: nada foi enviado, mas alguem olha
     "failed_retryable",
     "failed_permanent",           # UNCERTAIN: exige revisao humana
 }
