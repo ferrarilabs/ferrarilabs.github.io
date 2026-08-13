@@ -757,12 +757,32 @@ def _liquida_outbox(deps, rel, desfecho, corr, draw_id, esperados, aceitos, falh
         rel["outboxSettleError"] = str(exc)[:200]
         raise
     rel["outboxState"] = estado
-    deps.bridge.emit_audit("draw.result_notified", "draw", draw_id,
-                           metadata={"expected": len(esperados), "accepted": aceitos,
-                                     "failed": falhos, "uncertain": incertos,
-                                     "providerCalls": rel.get("providerCalls", 0),
-                                     "outboxState": estado},
-                           correlation_id=corr)
+
+    # ── A AUDITORIA VEM DEPOIS DE TUDO QUE E DURAVEL, E NAO PODE DESFAZER NADA ──────────────
+    #
+    # Neste ponto os e-mails ja sairam, o ledger por destinatario ja registrou os aceites e a
+    # obrigacao ja esta liquidada. Se o registro de auditoria falhar agora, NADA disso deixou de
+    # ser verdade — e em producao ele falha de verdade: o log da run 31679185588 mostra
+    # "Audit log failed (continuing): HTTP Error 404" em toda linha.
+    #
+    # Deixar a excecao subir daqui transformava uma execucao COMPLETAMENTE bem-sucedida em saida
+    # 2 sem classificacao. Isso e o pior dos dois mundos: nao desfaz nada (o efeito ja aconteceu)
+    # e ainda pinta o painel de vermelho por um motivo que nao pede acao sobre a entrega. Ruido
+    # constante e como uma falha DE VERDADE passa despercebida — este repositorio ja escreveu
+    # isso em `ESTADOS_OK` e vale igual aqui.
+    #
+    # Engolir tambem esta fora de questao: um caminho de auditoria que engole erro passa a
+    # impressao de registro onde nao ha. Entao o erro e REGISTRADO no relatorio e vira um estado
+    # de ATENCAO proprio — alguem olha, e ninguem reenvia e-mail por causa disso.
+    try:
+        deps.bridge.emit_audit("draw.result_notified", "draw", draw_id,
+                               metadata={"expected": len(esperados), "accepted": aceitos,
+                                         "failed": falhos, "uncertain": incertos,
+                                         "providerCalls": rel.get("providerCalls", 0),
+                                         "outboxState": estado},
+                               correlation_id=corr)
+    except Exception as exc:  # noqa: BLE001
+        rel["auditError"] = str(exc)[:200]
 
 
 def _reconcilia_outbox_orfao(deps, rel, corr, draw_id):
@@ -1148,6 +1168,19 @@ def main():
         print(f"  {k}: {rel.get(k)}")
 
     estado = rel.get("notificationState")
+
+    # Auditoria que falhou DEPOIS de tudo dar certo: pede olhada, nao pede reenvio. Sai 1
+    # (atencao) em vez de 2 (nao classificado), e o motivo aparece por escrito — o que aconteceu
+    # com a entrega ja esta dito nas linhas acima.
+    if rel.get("auditError"):
+        print(f"  ATENCAO: a entrega foi concluida e o REGISTRO DE AUDITORIA falhou depois: "
+              f"{rel['auditError']}")
+        print(f"           providerCalls={rel.get('providerCalls')} — nada a reenviar.")
+        if estado in ESTADOS_OK:
+            print("  EXIT: 1 — auditoria pendente sobre uma entrega ja concluida")
+            print("=" * 60)
+            return 1
+
     if estado in ESTADOS_ATENCAO:
         print(f"  EXIT: 1 — '{estado}' exige atencao operacional")
         print("=" * 60)

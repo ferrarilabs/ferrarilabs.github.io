@@ -308,6 +308,40 @@ def main():
     checa("nenhuma liquidação nova", ponte.settles == [])
     checa("PB_20260812_RESENT = 0", total == [])
 
+    # ═══ E. falha NÃO CRÍTICA depois de todo efeito durável ═════════════════════════════════
+    print("\nE. auditoria falha DEPOIS de e-mail + ledger + outbox")
+    #
+    # Em produção isto não é hipótese: o log da run 31679185588 mostra
+    # "Audit log failed (continuing): HTTP Error 404" em toda linha. Neste ponto os e-mails já
+    # saíram e a obrigação já está liquidada — o registro de auditoria falhar não desfaz nada.
+    #
+    # Deixar a exceção subir transformava uma execução COMPLETAMENTE bem-sucedida em saída 2 sem
+    # classificação: não desfazia nada e ainda pintava o painel de vermelho por um motivo que
+    # não pede ação sobre a entrega. Engolir também estaria errado — passaria a impressão de
+    # registro onde não há.
+    class PonteSemAuditoria(PonteFalsa):
+        def emit_audit(self, *a, **kw):
+            raise RuntimeError("audit_events indisponivel (404)")
+
+    ponte = PonteSemAuditoria()
+    ledger = LedgerFalso()
+    rel, envios = cenario(ledger, ponte)
+    checa("os 16 e-mails saíram", envios == [RECIPIENTES], f"{len(envios)} lote(s)")
+    checa("a obrigação foi liquidada assim mesmo", ponte.estado == "settled", ponte.estado)
+    checa("o ledger fechou como enviado", ledger.job == {"status": LedgerFalso.SENT})
+    checa("NENHUMA exceção escapa por falha de auditoria", rel.get("excecao") is None,
+          str(rel.get("excecao")))
+    checa("o erro de auditoria fica REGISTRADO (não engolido)",
+          "audit_events" in str(rel.get("auditError")), str(rel.get("auditError"))[:60])
+    checa("providerCalls continua dizendo a verdade (16, não 0)",
+          rel.get("providerCalls") == 16, str(rel.get("providerCalls")))
+    checa("o estado da entrega continua 'sent'", rel.get("notificationState") == "sent",
+          str(rel.get("notificationState")))
+    # e rerodar depois disso não reenvia
+    _, envios_de_novo = cenario(LedgerFalso(status=LedgerFalso.SENT), ponte)
+    checa("rerodar depois da falha de auditoria envia ZERO", envios_de_novo == [],
+          str(envios_de_novo))
+
     print("\n" + "=" * 78)
     if falhas:
         print(f"RUN_31679185588_CLASS_REGRESSION = FALHOU ({len(falhas)})")
