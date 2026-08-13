@@ -1,5 +1,49 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.126 — 2026-08-13 — o comprovante identifica a VERSÃO gravada, não a entrada
+
+A identidade era `entry-saved-confirmation:<entryId>:v1` — derivada só da entrada. Isso resolvia a
+tempestade (salvar dez vezes = um aviso) e criava um problema pior do outro lado: o **primeiro**
+comprovante aceito suprimia **todos** os futuros. O participante corrigiria um palpite dias depois,
+salvaria, e nunca mais receberia recibo de nada.
+
+Um comprovante confirma um **estado gravado**, não uma entrada e não um clique. A identidade passa
+a ser `entrada + hash canônico do conteúdo efetivamente persistido`.
+
+    A salvo → 1     A de novo → 0     recarregar+salvar A → 0     rerodar consumidor → 0
+    B (materialmente diferente) → 1   B de novo → 0               C → 1
+
+**A supressão existia em duas camadas, não uma.** A `business_key` de `notification_deliveries`
+também era constante e teria feito exatamente a mesma coisa uma camada abaixo (`JA_ENTREGUE` para
+sempre). Ela passa a carregar a versão.
+
+**Isso sozinho quebraria o disjuntor de 45 minutos.** Ele compara `business_key <> p_business_key`
+para pegar "mesma pessoa, notificações diferentes, minutos atrás". Com a chave variando por versão,
+salvar A e depois B em dez minutos pareceria anomalia e **B seria bloqueado** — o disjuntor caçaria
+justamente o comportamento que este patch veio permitir. Por isso a coluna `family`: o disjuntor
+compara família. Convite + correção + reenvio continuam se acusando; duas versões do mesmo
+comprovante, não. `p_family` tem default `p_business_key`, então Powerball e BR2026 seguem
+idênticos — verificado, `DB_RECIPIENT_EVENT_UNIQUENESS = PASS`.
+
+**Canonicalização por lista de PERMISSÃO** (`matches`, `qualified`), não de proibição: campo
+transitório que apareça amanhã fica de fora por construção, e token/endereço/PII nunca entram
+porque nunca são selecionados. O hash sai de `jsonb`, que já ordena chaves, descarta espaço em
+branco e normaliza números — mesma previsão em outra ordem de propriedades dá o mesmo hash.
+
+`cdb_picks_version()` é **uma definição só**, chamada pelo produtor e exercitada diretamente pelo
+teste. Não é uma reimplementação que possa divergir — foi assim que dois gates deste projeto
+passaram a concordar com o próprio erro.
+
+**Sem evento para save que não gravou nada:** os ramos `identico`/`idempotente` retornam antes do
+UPDATE e antes do insert. O e-mail confirma estado novo, não botão apertado.
+
+    IDENTICAL_SAVE_EMAIL = 0        NEW_VERSION_EMAIL = 1
+    DUPLICATE_VERSION_EMAIL = 0     CONCURRENT_VERSION_DUPLICATE = 0
+
+39 verificações com transporte falso, nenhuma chamada real ao provedor. **O teste não faz saves
+reais de propósito:** um save real cria evento de produção, que o consumidor agendado entregaria
+de verdade mais tarde — o teste plantaria um e-mail com atraso.
+
 ## v3.125 — 2026-08-12 — o resultado da final rotula as DUAS posições
 
 A tela derivava campeão e vice corretamente, mas só o vice tinha rótulo:
