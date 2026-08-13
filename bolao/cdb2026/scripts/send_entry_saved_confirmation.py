@@ -351,8 +351,18 @@ def main():
         # A pergunta é por TIPO, não por chave: a chave carrega o hash da versão, que só existe
         # depois do save. Perguntar por chave exata era o que fazia este diagnóstico responder
         # "NAO EXISTE" para toda obrigação real.
-        q = m8m9._rpc("outbox_pending_count", {"p_event_type": EVENT_TYPE})
-        print(f"fila_do_comprovante= {q[0] if q else '(vazia)'}")
+        # OBSERVABILIDADE NAO PODE DERRUBAR ENTREGA.
+        #
+        # Este passo roda como "Situação antes" no workflow do consumidor, sob `bash -e`. Se ele
+        # levantar, o job morre ANTES do `--run` e o comprovante nunca sai -- um diagnóstico
+        # impediria o envio que ele existe para observar. Acontece de verdade: `outbox_pending_
+        # count` pode ainda não estar aplicada enquanto a sessão paralela de modernização segura a
+        # fila de migrações.
+        try:
+            q = m8m9._rpc("outbox_pending_count", {"p_event_type": EVENT_TYPE})
+            print(f"fila_do_comprovante= {q[0] if q else '(vazia)'}")
+        except Exception as e:  # noqa: BLE001
+            print(f"fila_do_comprovante= (indisponível: {type(e).__name__}) — diagnóstico apenas")
         return 0
 
     if not args.run:
