@@ -26,6 +26,7 @@ renamed, split, combined, cleaned, derived or canonicalised.
 | `auditLog[].action` ‖ `.type` | all | `legacy_audit_event.action_raw` | **COALESCE, both spellings recoverable from `raw_event`** | yes | no | `raw_event` |
 | `phases.*.cutoffAt`, `ties[].kickoff`, `ties[].lockedAt` | cdb | `competition_edition_phases.cutoff_at`, `matches.kickoff_at`, `ties.locked_at` | **TIMESTAMP CANONICALISATION** — same instant, canonical offset | yes; 35 divergences → **0** | no | `legacy_document_archive` |
 | `meta.{version,updatedAt}` | all | (not migrated) | **SUBSTITUTED** — the derived document emits its own `meta` | n/a | no | `legacy_document_archive` |
+| `entries[].participantEmail` (**one** record, `sha256(raw)=66f7b533…`) | copa2026 | `bolao_entry_private.participant_email` + `bolao.participants.email` | **`EMAIL_TRAILING_DOMAIN_PUNCTUATION_OPERATOR_APPROVED_V1`** — remove the single terminal comma | yes | **YES — decision D-B** | `legacy_entry_field.raw_value` · `legacy_document_archive` · `public.bolao_state` |
 
 ## Fields carried with NO transform
 
@@ -41,10 +42,28 @@ produced **exactly 3 differences, all `EMPTY_TO_NULL`, 0 elsewhere**. Emails in 
 | distinct source field shapes | **1 237** |
 | shapes with a stated target and transform | **1 237** |
 | **`FIELD_LINEAGE_COVERAGE_PERCENT`** | **100.000** |
-| of which non-`IDENTITY` transforms | **15 classes** |
-| transforms requiring operator approval | **1** (KPLUS_OP_4A `paid` semantics — already approved) |
+| of which non-`IDENTITY` transforms | **16 classes** |
+| transforms requiring operator approval | **2** — KPLUS_OP_4A `paid` semantics, and **D-B** (one address, ledger `20260813230000`) |
 | transforms involving an identity guess | **0** |
 | transforms involving inferred financial semantics | **0** |
 
 100% field lineage is claimed **because every shape is enumerated in the matrix**, not because
 every row has a migration record. Those are different claims and only the first one is this one.
+
+## The one field-level record that needed a human
+
+D-B is the only transform on this platform that required operator approval for a *value*, and it is
+recorded at field level in `audit.operator_cleansing_decision`:
+
+| Column | Content |
+|---|---|
+| `decision_ref` / `rule_id` | `D-B` / `EMAIL_TRAILING_DOMAIN_PUNCTUATION_OPERATOR_APPROVED_V1` |
+| `source_record_token` / `participant_token` | `98356dcf` / `da24a351` (md5 prefixes — never the ids) |
+| `raw_fingerprint` / `canonical_fingerprint` | `66f7b533…` / `b6f29448…` |
+| `raw_preserved_in` | the three relations that still hold the malformed value |
+| `targets_updated` / `rows_affected` | the two canonical columns + the forensic row / **2** |
+| `operator_approved` | **true** |
+
+The table stores **fingerprints and tokens only** — no raw value, no canonical value. It is enough
+to prove *which* record changed, *by what rule*, and *that the raw survived*, without republishing
+the address to do it.
