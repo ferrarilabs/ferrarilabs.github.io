@@ -96,7 +96,23 @@ const isSqlType = (v) => {
  * addresses that are actually published. Growing it is a visible, reviewable change.
  */
 export const PUBLISHED_CONTACTS = new Set([
-  "emferrari@gmail.com", // the site's public contact address, on every language version of the site
+  // The operator's own address. Deliberately allowlisted, and NOT a secret — but the reason
+  // recorded here was wrong, so it is restated from measurement (FDC-20260813, decision D-A):
+  //
+  //   · it does NOT appear in any `.html`, and fetching www.ferrarilabs.com and
+  //     ferrarilabs.github.io returns 0 occurrences. The site's contact path is the Formspree
+  //     form, not a mailto. The previous comment claimed "on every language version of the site";
+  //     that has not been true for as long as the current index pages have existed.
+  //   · it DOES appear 55 times across 30 files in this public repository: `adminEmail` in four
+  //     `config.js`, `ADMIN_EMAIL` in five operator send scripts, 19 recipient records in
+  //     Powerball's `outbox.json`, and documentation.
+  //   · it is never compared against anything. `adminEmail` is only ever an EmailJS `to_email`.
+  //     The admin boundary is `adminPasswordHash`, which is a SHA-256 digest.
+  //
+  // Allowlisting it is still correct: it is the operator's own mailbox, published in the
+  // operator's own repository, and treating it as a leak would make this detector cry wolf on
+  // every run. Allowlisting it for an inaccurate reason is what this edit fixes.
+  "emferrari@gmail.com",
 ]);
 
 export function isReservedEmail(addr) {
