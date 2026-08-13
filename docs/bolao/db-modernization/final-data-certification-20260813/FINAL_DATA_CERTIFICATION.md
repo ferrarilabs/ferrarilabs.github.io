@@ -4,7 +4,8 @@
 
 **AUDIT_RUN_ID** `FDC-20260813-140645Z` · started `2026-08-13T14:06:45Z`
 **SOURCE_FREEZE_SHA** `23baf6b1` · **ORGIN_MAIN_SHA** `23baf6b1`
-**PRODUCTION_LEDGER** 46 → **48** · **DEPLOYED_SHA_AT_START** `23baf6b1`
+**PRODUCTION_LEDGER** 46 → **48** → **50** (post-audit closure) · **DEPLOYED_SHA_AT_START** `23baf6b1`
+**MERGED** PR #124 → `5e9dadc1` on `main`, Pages deploy **success**
 
 ## STATUS: `PASS_WITH_DOCUMENTED_UNRECOVERABLE_CLIENT_SCOPE`
 
@@ -118,21 +119,71 @@ STABILIZATION_STATUS INCOMPLETE · BACKUP_STATUS INTACT
 AUDITLOG_MODELING  LEGACY_RETIREMENT_PREREQUISITE → SATISFIED (private forensic)
 ```
 
-## 7. LEGACY_RETIREMENT_READY = **NO**
+## 7. LEGACY_RETIREMENT_READY = **NO** — one prerequisite left
 
-The data gates pass. Three prerequisites do not, and none of them is a data-accounting problem:
+Post-closure (2026-08-13, ledger 50), two of the three prerequisites are closed:
 
-1. **Stabilization is unmet** — `NATURAL_CDB_SAVES_OBSERVED 0 / 3`,
+1. **Stabilization is unmet — still the only open item.** `NATURAL_CDB_SAVES_OBSERVED 0 / 3`,
    `OFFICIAL_RECONCILE_CYCLES_OBSERVED 0 / 1`. Neither may be manufactured. The quartas lifecycle
    (cutoff `2026-08-25T23:00:00Z`, 4 ties) is expected to produce both.
-2. **R1 is still open** — unapplied `20260813050000` would overwrite `cdb_save_my_picks` with a
-   legacy-input body, silently, on the next `supabase db push`. Must be rebased onto the inverted
-   definition and re-verified with the authority probe.
-3. **`cdb_update_entry_picks` is `REACHABLE_BUT_UNUSED`, not `DEAD_WITH_PROOF`** — see §8.
+2. ~~R1~~ **CLOSED** — and the original statement of it was wrong in two directions. See §7a.
+3. ~~`cdb_update_entry_picks`~~ **CLOSED** — `FAIL_CLOSED_REVOKED`, ledger `20260813220000`.
 
 **LEGACY RETIREMENT WAS NOT EXECUTED.** Nothing was deleted, dropped or truncated.
 
-## 8. `cdb_update_entry_picks`
+### 7a. R1 — the correction, and the defect underneath it
+
+The previous issue of this certification carried R1 forward from
+`FINAL_WRITE_CUTOVER_REPORT.md`'s addendum as an open blocker. **That was an error in this
+document.** The addendum was written before PR #123 merged; commit `163f892e`
+(2026-08-13 09:46:39 -0400), *inside the very commit the source freeze was taken at*, had already
+rebased `20260813050000` onto `bolao.cdb_authoritative_document()`. The frozen manifest said so
+plainly in A3 — "`050000` was rebased in PR #123 so it can no longer revert the cutover" — and this
+audit trusted the older report over the newer manifest without reading the file body. Verifying that
+the migration was *unapplied* is not the same as verifying what it *contains*.
+
+The closure session read the body, and found the defect the first rebase had left behind:
+
+> The rebase substituted the **input** and not the **write**. `cdb_save_my_picks` is the one writer
+> whose cutover also *added* `perform bolao.cdb_mirror_entry_picks(...)`, and the file predates both
+> changes. The rebased definition reads normalized, validates against normalized, reports
+> `NORMALIZED-INPUT` to every detector — and writes the participant's picks to the legacy document
+> alone.
+
+Measured on a clone at production level, `origin/main`'s file applied as it stood: the save returned
+`{"updated": true}`, `public.bolao_state` carried the new goals, **`bolao.predictions` stayed at
+1045 and `mirrored_at` stayed 0**. Normalized would have gone stale on the first real save, in
+silence, with every green light on.
+
+Corrected in this branch, re-proven on the same clone: 4/4 `NORMALIZED-INPUT`, mirror present,
+authority probe raises `CUTOFF_PASSADO` (not `FASE_FECHADA`) with the legacy cutoff blanked, and the
+save writes normalized `7` = legacy `7` = derived `7`.
+
+`FUTURE_DB_PUSH_REVERTS_CDB_AUTHORITY = NO` · `FUTURE_MIGRATION_CHAIN = PASS`.
+
+### 7b. The clone that lied, and why this section exists
+
+The first clone this session built passed every gate while **silently missing `bolao.participants`
+and 45 functions**: `pg_dump --schema=bolao` cannot carry a `citext` column whose type lives in
+`extensions`, and the completeness check used `grep '^ERROR'` against a log in which psql writes
+`psql:file:line: ERROR:`. Forty-seven restore errors scrolled past as "0".
+
+This is the same trap the write cutover documented — "a prior campaign had atomicity pass green
+against a clone that was silently missing the `audit` schema" — and it was walked into anyway. Every
+result in this issue comes from the rebuilt clone, asserted **before** any gate was trusted:
+**50/50 relations, 114/114 functions, every row count identical, all three document checksums
+matching.**
+
+### 7c. A forward-looking note on lineage
+
+`bolao.cdb_mirror_entry_picks` replaces an entry's whole prediction set. On a clone, one save
+replaced 24 predictions with 2 and **cascaded 24 rows out of `audit.migration_lineage`**
+(1691 → 1667). `ORPHANED_LINEAGE` stayed **0** and runtime *additions* stayed **0**, so both
+invariants hold — but the first natural CDB save will move the lineage total off 1691. That is
+correct behaviour (a replaced row is no longer a migrated row) and must not be read as loss when
+the stabilization counters are finally validated.
+
+## 8. `cdb_update_entry_picks` — now `FAIL_CLOSED_REVOKED`
 
 | | |
 |---|---|
@@ -140,29 +191,55 @@ The data gates pass. Three prerequisites do not, and none of them is a data-acco
 | Callers at HEAD | `secure_access_canary.py`, `test_public_projection_and_submit.py`, its defining SQL, two baselines, one doc |
 | Production callers | **none** |
 | Records it produced | none attributable — superseded by `cdb_save_my_picks` (`7719b45d`, 2026-08-11, after the RPC was found accepting the victim's entry id as a parameter) |
-| Classification | **`REACHABLE_BUT_UNUSED`** |
+| **Can it bypass normalized authority?** | **YES, before closure** — reads `select state into v_state from bolao_state … for update` (legacy), writes `bolao_state`, **calls no mirror**, **never reads `cdb_authoritative_document()`**. One `service_role` call would have left `bolao.predictions` stale |
+| Classification | **`FAIL_CLOSED_REVOKED`** (was `REACHABLE_BUT_UNUSED`) — ledger `20260813220000` revokes `service_role` EXECUTE; `anon`/`authenticated` were already revoked 2026-08-12 |
+| Reversal | one statement: `grant execute on function public.cdb_update_entry_picks(text,text,jsonb) to service_role;` |
 
-Not `DEAD_WITH_PROOF`: a `service_role`-executable function is reachable by every operator script
-and cron job on the platform, and "no caller in the repository" is not the same as "cannot fire".
-**It was not dropped** — its removal belongs after certification, as a separate hygiene change with
-its own rehearsal.
+Not `DEAD_WITH_PROOF`, and that distinction earned its keep: "no caller in the repository" is not
+"cannot fire", and the function turned out to be a genuine legacy write path one `service_role`
+invocation away from staleness. Every reference on `origin/main` calls it **as anon**, asserting
+401/403 — so revoking `service_role` breaks no caller.
 
-## 9. Operator decisions
+**It was not dropped.** The definition, its comments and its history remain as forensic evidence of
+a real vulnerability and its supersession. Removal belongs to `LEGACY_RETIREMENT`, as a separate
+change with its own rehearsal.
 
-`OPERATOR_DECISIONS_REQUIRED = 2`. Both are genuinely semantic. See `OPERATOR_DECISIONS.md`.
+`CDB_LEGACY_WRITE_BYPASS_PATHS = 0`. The nine other functions that write `bolao_state` without a
+mirror are all previously dispositioned and none is a cdb2026 path: `copa_apply_operator_mutation`
+(archived, NOT_APPLICABLE), `op_append_audit` (br2026 auditLog, legacy by design, D-4), the six
+`op_*` (`authenticated` only, **0 principals**), and `submit_entry` (allowlist empty).
 
-- **D-A** — the operator's own address is at HEAD in 30 files, and is also a participant address.
-- **D-B** — one copa2026 participant address has a trailing comma in its domain. Quarantined, not
-  guessed.
+## 9. Operator decisions — both closed
+
+`OPERATOR_DECISIONS_REQUIRED = 0`.
+
+- **D-A — CLASSIFIED_AND_DOCUMENTED_NO_REMEDIATION_REQUIRED.** 55 occurrences across 30 files,
+  every one classified, `UNKNOWN = 0`. `adminEmail` is never compared (0 matches) — it is an EmailJS
+  `to_email`, not a boundary — and the address is on **0** `.html` files and **0** occurrences in
+  the HTML the live site delivers. Nothing was rewritten: the policy only moves such values where
+  that does not invent complexity, and the three apps call EmailJS from the browser. One stale
+  allowlist justification corrected. See `OPERATOR_EMAIL_USAGE_AUDIT.md`.
+- **D-B — APPLIED** (ledger `20260813230000`, rule
+  `EMAIL_TRAILING_DOMAIN_PUNCTUATION_OPERATOR_APPROVED_V1`). One terminal comma removed from one
+  address, bound to the record by the sha256 of its raw value. Raw preserved in all three places it
+  lives; the rollback reads it back from `audit.legacy_entry_field` rather than carrying a literal.
+  **No participant merged** — 26 people, 23 distinct addresses instead of 24,
+  `canonical_participant_id` still NULL on all 26. `CLEANSING_QUARANTINES: 1 → 0`.
+
+  The correction is corroborated, not guessed: the same mailbox already existed, correctly spelled,
+  on two other entries in two other pools, and those two resolve to **one** canonical participant.
+
+  `HISTORICAL_COPA_EMAIL_DELIVERY = NOT_DETERMINABLE_FROM_AVAILABLE_DATA` — copa has no delivery
+  ledger, and neither success nor failure was inferred.
 
 ## 10. NEXT_EXACT_ACTION
 
-> **Continue passive stabilization evidence collection. Do not modify data.**
+> **`STABILIZATION_STATUS = PASSIVE_EVIDENCE_COLLECTION`. Do not modify data.**
 
-The forensic audit passes; the stabilization gate does not, and they are separate gates. The
-quartas lifecycle should produce both counters naturally. In parallel, and owned by the confirmation
-workstream rather than by this one: rebase `20260813050000` onto the normalized-input
-`cdb_save_my_picks` and re-verify with the authority probe.
+R1 is closed, the future migration chain passes, legacy write-bypass paths are 0, the branch is
+canonical on `main` and the focused PR is merged. Every remaining prerequisite is a *counter*, and
+counters are earned, not produced.
 
-Do not prepare a legacy-retirement execution plan until `NATURAL_CDB_SAVES_OBSERVED ≥ 3`,
-`OFFICIAL_RECONCILE_CYCLES_OBSERVED ≥ 1`, and R1 is closed.
+Do not prepare a legacy-retirement execution plan until `NATURAL_CDB_SAVES_OBSERVED ≥ 3` and
+`OFFICIAL_RECONCILE_CYCLES_OBSERVED ≥ 1`, each from legitimate production activity. No synthetic
+save counts. No reconcile run purely to move a number counts.
