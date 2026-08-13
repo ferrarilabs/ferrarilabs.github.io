@@ -568,7 +568,7 @@ window.POWERBALL_DRAWS = [
 
     sharedTickets: {
       compradoPor: "Eduardo Ferrari (organizador)",
-      dataComprovante: "12/08/2026 22:59 ET",
+      dataComprovante: "12/08/2026 1:32 PM ET",
       valorPorTicket: 3, // Power Play
       series: [
         {
