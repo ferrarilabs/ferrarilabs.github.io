@@ -1,0 +1,22 @@
+# Perícia SÓ LEITURA do comprovante. Incapaz de enviar: não define BOLAO_ALLOW_REAL_SEND e o
+# script periciado não importa transporte nem expõe `--run`.
+name: CDB2026 — perícia do comprovante (só leitura)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  pericia:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Traço do save real
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/forensics_entry_saved_confirmation.py
