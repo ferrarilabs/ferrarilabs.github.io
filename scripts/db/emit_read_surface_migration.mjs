@@ -10,7 +10,7 @@
  * usage: node scripts/db/emit_read_surface_migration.mjs > supabase/migrations/<version>_<name>.sql
  */
 import { READ_SURFACE } from "./read_surface.mjs";
-import { READ_SURFACE_COMPLETE, POOL_TO_DOC_ID, DOCUMENT_CONTRACT_VERSION } from "./read_surface_complete.mjs";
+import { READ_SURFACE_COMPLETE, POOL_TO_DOC_ID, DOCUMENT_CONTRACT_VERSION, CDB_PHASE_EXTRAS } from "./read_surface_complete.mjs";
 
 /**
  * Every relation the projection reads, and the complete list of what the bounded definer may see.
@@ -39,6 +39,18 @@ export function mergedSections(product) {
   const add = READ_SURFACE_COMPLETE[product]?.sections ?? {};
   const inherit = READ_SURFACE_COMPLETE[product]?.inheritsFromM16 ?? [];
   const kept = Object.fromEntries(Object.entries(m16).filter(([k]) => inherit.includes(k)));
+  // M16's `phases` is frozen, so the two fields it cannot carry are merged onto its result rather
+  // than edited into its spec: `topology` (class A, gates whether the phase renders at all) and
+  // `cutoffAt` at exact precision (M16 spells `.000Z`; the operator writes `Z`, and the app
+  // compares the strings). Everything else in `phases` still comes from M16 unchanged.
+  if (product === "cdb2026" && kept.phases) {
+    kept.phases = kept.phases
+      .replace(`'cutoffAt', ${"${isoMs(\"ph.cutoff_at\")}"},`, "")   // no-op guard; replaced below
+      .replace(/'cutoffAt', to_char\(ph\.cutoff_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS\.MS"Z"'\),/,
+               `'cutoffAt', ${CDB_PHASE_EXTRAS.cutoffAt("ph.cutoff_at")},`)
+      .replace(/\|\| CASE WHEN ph\.official_draw IS NOT NULL/,
+               `|| ${CDB_PHASE_EXTRAS.topology}\n            || CASE WHEN ph.official_draw IS NOT NULL`);
+  }
   const dropped = Object.keys(m16).filter((k) => !inherit.includes(k) && !(k in add));
   if (dropped.length) throw new Error(`${product}: M16 emitted ${dropped.join(", ")} and the complete spec neither inherits nor replaces them — a section cannot silently leave the document`);
   return { ...kept, ...add };

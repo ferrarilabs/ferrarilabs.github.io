@@ -103,7 +103,11 @@ SELECT CASE p_pool_slug
     'phases',
 
     (SELECT COALESCE(jsonb_object_agg(ph.slug, jsonb_build_object(
-              'cutoffAt', to_char(ph.cutoff_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
+              'cutoffAt', CASE WHEN date_part('microseconds', ph.cutoff_at)::bigint % 1000000 = 0
+                                THEN to_char(ph.cutoff_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', ph.cutoff_at)::bigint % 1000 = 0
+                                THEN to_char(ph.cutoff_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
+                                ELSE to_char(ph.cutoff_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END,
               'ties', (
                 SELECT COALESCE(jsonb_object_agg(ti.slug, jsonb_build_object(
                           'teamA', ti.team_a,
@@ -160,6 +164,8 @@ SELECT CASE p_pool_slug
             )
             || CASE WHEN ph.cutoff_offset_ms IS NOT NULL
                     THEN jsonb_build_object('cutoffOffsetMs', ph.cutoff_offset_ms) ELSE '{}'::jsonb END
+            || CASE WHEN ph.bracket_topology IS NOT NULL
+                  THEN jsonb_build_object('topology', ph.bracket_topology) ELSE '{}'::jsonb END
             || CASE WHEN ph.official_draw IS NOT NULL
                     THEN jsonb_build_object('officialDraw', ph.official_draw) ELSE '{}'::jsonb END
           ), '{}'::jsonb)
@@ -171,7 +177,7 @@ SELECT CASE p_pool_slug
             jsonb_build_object(
               'id',        pe.legacy_entry_id,
               'entryName', pe.display_label,
-              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint = 0
+              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -198,7 +204,7 @@ SELECT CASE p_pool_slug
             )
             )
             || CASE WHEN pe.content_updated_at IS NOT NULL
-                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint = 0
+                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -229,6 +235,7 @@ SELECT CASE p_pool_slug
   )
   -- omitted for cdb2026: auditLog — INTENTIONAL_SECURITY_REDUCTION — forensic ip/userAgent/platform/screen, no public behavior
   -- omitted for cdb2026: entries[].lastClientRef — NO_CONSUMER — an idempotency echo on 1 entry, read by nothing
+  -- omitted for cdb2026: phases[].scheduleProvenance — CLASS_C_DIAGNOSTIC — operator schedule metadata; no render gates on it and the only repository reference is the script that writes it
   WHEN 'br2026' THEN jsonb_build_object(
     'cutoffAt',
 (SELECT to_char(pl2.entry_cutoff_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') FROM bolao.pools pl2 WHERE pl2.pool_id = pool.pool_id),
@@ -240,7 +247,7 @@ SELECT CASE p_pool_slug
             jsonb_build_object(
               'id',        pe.legacy_entry_id,
               'entryName', pe.display_label,
-              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint = 0
+              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -254,7 +261,7 @@ SELECT CASE p_pool_slug
             )
             )
             || CASE WHEN pe.content_updated_at IS NOT NULL
-                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint = 0
+                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -295,7 +302,7 @@ SELECT CASE p_pool_slug
             jsonb_build_object(
               'id',        pe.legacy_entry_id,
               'entryName', pe.display_label,
-              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint = 0
+              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -314,7 +321,7 @@ SELECT CASE p_pool_slug
             )
             )
             || CASE WHEN pe.content_updated_at IS NOT NULL
-                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint = 0
+                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')

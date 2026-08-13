@@ -77,10 +77,17 @@ const isoMs = (col) => `to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI
  * (`...14Z`, no fractional part at all), so `.000Z` would be wrong for every runtime save.
  *
  * So the precision is reproduced rather than normalized: whole seconds, milliseconds or
- * microseconds, whichever the stored instant actually carries. The test is on the value, never on the product — a
+ * microseconds, whichever the stored instant actually carries.
+ *
+ * THE MODULUS IS 1000000, NOT 0, AND THAT WAS A REAL BUG. PostgreSQL's
+ * `date_part('microseconds', ts)` does not return the sub-second microseconds — it returns the
+ * SECONDS field expressed in microseconds, so 00:22:14 yields 14000000 rather than 0. Testing it
+ * against 0 therefore fired the whole-second branch only for instants landing exactly on a minute,
+ * and the disposable re-drift run caught it emitting `...14.000Z` where the document says
+ * `...14Z`. `% 1000000` is the sub-second remainder that was intended. The test is on the value, never on the product — a
  * per-product rule would be right today and wrong the first time someone saves.
  */
-const isoExact = (col) => `CASE WHEN date_part('microseconds', ${col})::bigint = 0
+const isoExact = (col) => `CASE WHEN date_part('microseconds', ${col})::bigint % 1000000 = 0
                                 THEN to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
                                 WHEN date_part('microseconds', ${col})::bigint % 1000 = 0
                                 THEN to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
@@ -251,6 +258,30 @@ const META = `
        FROM bolao.pool_entries pe
       WHERE pe.pool_id = pool.pool_id AND pe.deleted_at IS NULL)`;
 
+
+/**
+ * CDB phase fields that M16's frozen spec does not carry, merged onto its `phases` object.
+ *
+ * `topology` is CLASS A — public behavior required. cdb2026 computes
+ * `valid = !!(topo && topologyProvenanceIsValid(topo.provenance) && topo.slots)` and renders NO
+ * slots when it is false, so a phase whose topology does not reach the public document loses its
+ * semifinal entirely. It is merged conditionally: a phase without a registered topology carries no
+ * key, rather than a null one.
+ *
+ * `scheduleProvenance` is deliberately NOT here. Same writer, but no render gates on it and the
+ * only reference to it anywhere in the repository is the script that writes it — class C,
+ * diagnostic, stays private. Byte parity is not a reason to publish operator metadata.
+ *
+ * `cutoffAt` is re-emitted at EXACT precision. M16 spells it with `isoMs`, which produces
+ * `...00.000Z`; the operator's set-cutoff writes `...00Z`. The application compares these as
+ * strings, so the trailing `.000` is a real difference and not a formatting nicety.
+ */
+export const CDB_PHASE_EXTRAS = {
+  cutoffAt: (col) => isoExact(col),
+  topology: `CASE WHEN ph.bracket_topology IS NOT NULL
+                  THEN jsonb_build_object('topology', ph.bracket_topology) ELSE '{}'::jsonb END`,
+};
+
 /** Per-product section list. Order here is the order the CASE arms are emitted in. */
 export const READ_SURFACE_COMPLETE = {
   cdb2026: {
@@ -260,6 +291,7 @@ export const READ_SURFACE_COMPLETE = {
     omitted: {
       auditLog: "INTENTIONAL_SECURITY_REDUCTION — forensic ip/userAgent/platform/screen, no public behavior",
       "entries[].lastClientRef": "NO_CONSUMER — an idempotency echo on 1 entry, read by nothing",
+      "phases[].scheduleProvenance": "CLASS_C_DIAGNOSTIC — operator schedule metadata; no render gates on it and the only repository reference is the script that writes it",
     },
   },
   br2026: {
