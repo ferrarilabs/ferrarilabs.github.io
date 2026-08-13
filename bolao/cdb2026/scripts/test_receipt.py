@@ -239,7 +239,7 @@ def main():
         return 200, "fake"
 
     C.set_transport(_falso)
-    ok, detalhe, msg = C.envia("ninguem@exemplo.invalido", R.monta_assunto("X"), html)
+    ok, detalhe, msg = C.envia("ninguem@exemplo.invalid", R.monta_assunto("X"), html)
     # O que segue para o provedor não pode conter a marca — o template dele a prefixa.
     checa("envia() não levanta e reporta sucesso", ok is True, f"{detalhe}")
     corpo_json = json.loads(capturado.get("body", b"{}").decode())
