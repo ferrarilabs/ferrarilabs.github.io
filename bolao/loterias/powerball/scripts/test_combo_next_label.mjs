@@ -26,6 +26,7 @@
 import pw from "playwright";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { readFileSync } from "node:fs";
 import { startStaticServer } from "../../../scripts/static_server.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -47,6 +48,30 @@ const browser = await pw.chromium.launch();
  * Abre a página com o armazenamento local de resultados FIXADO.
  * `overrides` é o conteúdo exato de `powerball_local_results_v1`.
  */
+// ── A PREMISSA É CONSTRUÍDA, NÃO TORCIDA (2026-08-13) ───────────────────────────────────────
+//
+// Este arquivo testa o sufixo "· próximo", que só existe em sorteio SEM resultado — e derivava
+// esse sorteio do data.js de produção, torcendo para que houvesse um aberto. Em 13/08, quando o
+// resultado de 12/08 foi gravado, não havia mais nenhum: a suíte ficou vermelha (`ABERTO`
+// undefined) sem que nada tivesse regredido. É a mesma classe de defeito de
+// `test_metadata_concurrency.py`: um teste cuja premissa depende do estado do dia mede o
+// calendário, não o produto.
+//
+// A correção não inventa um sorteio: serve o data.js REAL com o `result` do último removido —
+// exatamente o estado em que a página viveu de 11/08 até a madrugada de 13/08. `getEffectiveDraw`
+// só ADICIONA resultado a partir do localStorage, nunca remove, então o override existente não
+// daria conta de abrir um sorteio já resolvido.
+const DATA_JS_PATH = "/bolao/loterias/powerball/js/data.js";
+const DATA_JS_ABERTO = (() => {
+  const bruto = readFileSync(join(ROOT, "bolao/loterias/powerball/js/data.js"), "utf8");
+  const marca = bruto.lastIndexOf("    result: {");
+  const fim = bruto.indexOf("\n    },\n", marca) + "\n    },\n".length;
+  if (marca < 0 || fim <= marca) {
+    throw new Error("formato do data.js mudou: não achei o bloco `result` do último sorteio");
+  }
+  return bruto.slice(0, marca) + "    result: null,\n" + bruto.slice(fim);
+})();
+
 async function abrir(overrides, viewport = { width: 1280, height: 900 }) {
   const ctx = await browser.newContext({ viewport, serviceWorkers: "block" });
   const page = await ctx.newPage();
@@ -54,6 +79,10 @@ async function abrir(overrides, viewport = { width: 1280, height: 900 }) {
   // mover o alvo, que é exatamente o defeito de medição que este arquivo existe para eliminar.
   await ctx.route("**://data.ny.gov/**", (r) => r.abort());
   await ctx.route("**://*.supabase.co/**", (r) => r.abort());
+  // Casa por PATHNAME: o script é carregado com `?v=<sha>` de cache-bust, e um glob terminado
+  // em `.js` não casa a query — a interceptação não aconteceria, em silêncio.
+  await ctx.route((url) => url.pathname === DATA_JS_PATH, (r) =>
+    r.fulfill({ status: 200, contentType: "text/javascript", body: DATA_JS_ABERTO }));
   await page.addInitScript(([k, v]) => {
     localStorage.setItem(k, JSON.stringify(v));
   }, [LOCAL_KEY, overrides]);

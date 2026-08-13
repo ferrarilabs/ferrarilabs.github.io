@@ -286,9 +286,31 @@
     return gt;
   }
 
+  // ══ UMA SÓ VERDADE DE DINHEIRO CORRENTE ═══════════════════════════════════════════════════
+  //
+  // Depois que o sorteio liquida, o `finance` do data.js congela num retrato ANTERIOR ao
+  // resultado. Para o sorteio de 12/08 ele diz "guardado p/ próximo sorteio: $1" — que era
+  // verdade antes de os prêmios entrarem, e deixou de ser no instante em que os $38 foram
+  // creditados. O saldo corrente passou a ser $39.
+  //
+  // Os dois números estavam certos e apareciam lado a lado dizendo a mesma coisa ("quanto
+  // temos"), com valores diferentes. Não é um erro de cálculo: é ambiguidade, e ambiguidade
+  // sobre dinheiro de dezesseis pessoas custa uma pergunta que ninguém deveria precisar fazer.
+  //
+  // A regra: valores PRÉ-RESULTADO continuam visíveis, porque explicam como o dinheiro foi
+  // parar onde está, mas passam a ser rotulados como histórico. O saldo CORRENTE vem só do
+  // livro-razão, e exatamente um elemento na tela carrega `data-current-balance`.
+  function sorteioLiquidado(draw) {
+    // Mesma regra que `estado_do_sorteio` usa para SETTLED no lottery_status.py: o que define é
+    // o resultado oficial estar gravado, não um campo `status` escrito à mão — que no 12/08
+    // ainda dizia "planejamento" depois de sorteado, pago e liquidado.
+    return !!(draw && draw.result && draw.result.numbers && draw.result.numbers.length);
+  }
+
   function renderSummary(draw) {
     var totalCotas = draw.participants.reduce(function (s, p) { return s + p.cotas; }, 0);
     var el = document.getElementById("pbSummary");
+    var liquidado = sorteioLiquidado(draw);
     var rows = [
       [fmtUsd(draw.finance.totalArrecadado), "Total arrecadado"],
       // Prose, não valor calculado: segue o padrão do i18n dos outros apps ("US$ N", sem centavos).
@@ -309,15 +331,37 @@
       var disponivel = draw.finance.totalArrecadado +
                        draw.finance.creditoSorteioAnterior -
                        draw.finance.valorUtilizado;
-      rows.push([fmtUsd(disponivel), "Disponível para tickets"]);
+      // Antes do resultado, ESTE é o saldo corrente: o que sobrou para comprar bilhete neste
+      // sorteio. Depois do resultado vira histórico — o dinheiro corrente passou para o
+      // livro-razão, que já contabilizou os prêmios.
+      rows.push(liquidado
+        ? [fmtUsd(disponivel), "Sobra antes do sorteio (histórico)", false]
+        : [fmtUsd(disponivel), "Disponível para tickets", true]);
     }
     rows.push(
-      [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)"],
-      [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Guardado p/ próximo sorteio"],
-      [fmtJackpot(draw), "Jackpot"]
+      [fmtUsd(draw.finance.valorUtilizado), "Valor utilizado (tickets)", false],
+      // "Guardado p/ próximo sorteio" AFIRMA ser dinheiro que já está guardado, agora. Nos dois
+      // estados isso engana, por motivos diferentes:
+      //
+      //   depois do resultado  são os $1 de ANTES dos prêmios — o guardado real virou $39
+      //   antes do resultado   é uma PROJEÇÃO: os prêmios ainda não existem, então quanto vai
+      //                        sobrar é estimativa, e ao lado de "Disponível para tickets"
+      //                        (mesmo valor, ambos soando como "o que temos") vira o segundo
+      //                        "quanto temos" da tela
+      //
+      // O rótulo passa a dizer de que MOMENTO o número é, em cada caso.
+      liquidado
+        ? [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Saldo antes dos prêmios (histórico)", false]
+        : [fmtUsd(draw.finance.valorGuardadoProximoSorteio), "Previsto p/ próximo sorteio (projeção)", false],
+      [fmtJackpot(draw), "Jackpot", false]
     );
     el.innerHTML = rows.map(function (row) {
-      return '<div class="pb-summary-item"><div class="v">' + row[0] + '</div><div class="l">' + row[1] + "</div></div>";
+      // `data-current-balance` marca O saldo corrente. Exatamente um elemento na página pode
+      // carregá-lo — é o invariante que o teste mede, e é o que impede que um rótulo novo
+      // reintroduza um segundo "quanto temos" sem ninguém perceber.
+      var marca = row[2] ? ' data-current-balance="pre-settlement"' : "";
+      return '<div class="pb-summary-item"' + marca + '><div class="v">' + row[0] +
+             '</div><div class="l">' + row[1] + "</div></div>";
     }).join("");
   }
 
@@ -859,12 +903,25 @@
     // dois blocos de dinheiro da mesma página teriam saído com aparências diferentes. Reusar o
     // componente é reusar o MARKUP dele, não só o nome da grade.
     var f = doc.funds || {};
-    var itens = [
-      [esc(lotDinheiro(f.lastDrawWinningsCents)), "Prêmio do último sorteio"],
-      [esc(lotDinheiro(f.carryoverAvailableCents)), "Saldo disponível"]
-    ];
+    var liquidado = (doc.currentDraw || {}).lifecycleState === "SETTLED";
+    var itens = [[esc(lotDinheiro(f.lastDrawWinningsCents)), "Ganhos do último sorteio", false]];
+
+    // O SALDO CORRENTE SÓ APARECE AQUI DEPOIS DA LIQUIDAÇÃO.
+    //
+    // Antes dela, quem responde "quanto temos" é o Resumo financeiro ("Disponível para
+    // tickets"): o dinheiro está comprometido com o sorteio em andamento e o livro-razão ainda
+    // não sabe dos prêmios. Mostrar os dois ao mesmo tempo devolveria exatamente a ambiguidade
+    // que este bloco existe para remover — dois números, mesmos dizeres, valores diferentes.
+    //
+    // A elegibilidade do próximo bolão consome o saldo do livro-razão em qualquer estado (ele
+    // está no JSON); o que depende do estado é apenas QUEM exibe o saldo corrente na tela.
+    if (liquidado) {
+      itens.push([esc(lotDinheiro(f.carryoverAvailableCents)),
+                  "Saldo disponível para o próximo bolão", true]);
+    }
     document.getElementById("lotFunds").innerHTML = itens.map(function (row) {
-      return '<div class="pb-summary-item"><div class="v">' + row[0]
+      var marca = row[2] ? ' data-current-balance="ledger"' : "";
+      return '<div class="pb-summary-item"' + marca + '><div class="v">' + row[0]
         + '</div><div class="l">' + row[1] + "</div></div>";
     }).join("");
 
