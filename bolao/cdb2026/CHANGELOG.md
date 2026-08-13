@@ -1,5 +1,25 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.127 — 2026-08-13
+
+### READ_CUTOVER — a leitura passa a vir do modelo normalizado
+
+`readTable` sai de `bolao_state_public` e passa para `bolao_state_normalized_public`.
+
+O documento antigo era sanitizado por SUBTRACAO: removia quatro campos de pagamento e deixava
+passar todo o resto, entao tudo que foi acrescentado depois virou publico por padrao — inclusive
+`auditLog` (ip, userAgent, platform, screen) e `entries[].diagnostics` (userAgent, timezone,
+viewport). A superficie nova NOMEIA cada campo que emite, entao o padrao se inverte: campo novo e
+privado ate alguem publica-lo de proposito. Esses dois saem do contrato publico.
+
+Equivalencia verificada folha a folha contra a saida legada real: 0 BUG e 0 UNKNOWN nos tres
+produtos. Selo de pago identico. `deletedIds` identico como conjunto.
+
+**A ESCRITA NAO MUDOU.** O documento legado continua sendo a autoridade de escrita. O modelo
+normalizado recebe espelhos atomicos na MESMA transacao — palpite salvo, cutoff de fase, kickoff e
+topologia — provados contra re-drift executando as operacoes reais de sync e save num banco
+descartavel. Reverter e trocar `readTable` de volta.
+
 ## v3.126 — 2026-08-13 — o comprovante identifica a VERSÃO gravada, não a entrada
 
 A identidade era `entry-saved-confirmation:<entryId>:v1` — derivada só da entrada. Isso resolvia a

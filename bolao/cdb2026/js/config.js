@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.126",
+  siteVersion: "v3.127",
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",
   entryFee: 5,
@@ -109,7 +109,16 @@ window.CDB2026_CONFIG = {
     // acontecia so para renderizar uma lista e localizar uma entrada.
     // ESCRITA: continua em `bolao_state` enquanto o caminho de operador nao cobre 100% das
     // mutacoes. A revogacao da escrita anonima e a etapa seguinte, e depende disso.
-    readTable: "bolao_state_public",
+    // READ_CUTOVER (2026-08-13). A leitura sai de `bolao_state_public` (projecao por SUBTRACAO
+    // sobre o documento legado) e passa para `bolao_state_normalized_public`, montada a partir de
+    // bolao.* campo a campo. O documento e equivalente folha a folha — 0 BUG, 0 UNKNOWN nos tres
+    // produtos — e a superficie nova NAO publica `auditLog` nem `entries[].diagnostics`, que hoje
+    // vazam ip/userAgent para qualquer um com a anon key.
+    //
+    // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
+    // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
+    // trocar esta linha de volta.
+    readTable: "bolao_state_normalized_public",
     table: "bolao_state",
     stateId: "cdb2026",
     localFallback: true
