@@ -341,6 +341,16 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
    não -- inconsistência sem motivo, já que o conteúdo é o mesmo tipo de dado nos dois casos. */
 .tie-locked-score { display: flex; align-items: center; justify-content: center; gap: 4px; flex-wrap: wrap; font-weight: 700; }
 
+/* ── Resultado da final: CAMPEÃO e VICE-CAMPEÃO, cada um rotulado ── */
+/* `inline-flex` e deliberado. `.tie-locked-score` ja quebra linha (`flex-wrap`), e sem agrupar
+   cada posicao o telefone quebrava ENTRE o rotulo e o time -- "CAMPEÃO:" numa linha, "Palmeiras"
+   na seguinte, colado no "·" do outro lado. Agrupado, a quebra so acontece ENTRE as duas
+   posicoes, que e exatamente onde ela faz sentido. Nenhuma media query nova: o mesmo wrap que ja
+   existia passa a quebrar no lugar certo. */
+.podio-slot  { display: inline-flex; align-items: center; gap: 4px; }
+.podio-label { color: var(--muted); font-weight: 700; letter-spacing: .03em; }
+.podio-sep   { color: var(--muted); margin: 0 2px; }
+
 /* ── Games section rounds ── */
 .games-round-header, .admin-round-header {
   font-size: 13px; font-weight: 900; color: var(--green);

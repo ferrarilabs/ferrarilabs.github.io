@@ -287,6 +287,10 @@ window.CDB2026_I18N = {
     espnSyncLockedCount: "confronto(s) travado(s) automaticamente",
     espnSyncLockedToast: "Resultado travado automaticamente pela ESPN!",
     // Copa do Brasil NAO tem disputa de 3o lugar: a final resolve exatamente dois lugares.
+    // O CABECALHO da secao deixou de ser "CAMPEÃO": com as duas posicoes rotuladas na linha,
+    // repetir "CAMPEÃO" em cima virava eco e sugeria que a secao era so sobre o campeao.
+    // "RESULTADO DA FINAL" tambem nao insinua terceiro lugar -- que nesta competicao nao existe.
+    finalOutcomeHeader: "RESULTADO DA FINAL",
     predictedChampion: "CAMPEÃO",
     predictedRunnerUp: "VICE-CAMPEÃO",
     podiumPending: "Complete a final para ver campeão e vice.",

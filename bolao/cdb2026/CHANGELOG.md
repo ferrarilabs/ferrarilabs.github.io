@@ -1,5 +1,37 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.125 — 2026-08-12 — o resultado da final rotula as DUAS posições
+
+A tela derivava campeão e vice corretamente, mas só o vice tinha rótulo:
+
+    Palmeiras — VICE-CAMPEÃO: Cruzeiro
+
+O primeiro nome aparecia solto. A posição dele ficava implícita na ORDEM, e ordem não é rótulo:
+quem lê não tem como saber se "Palmeiras" é o campeão ou apenas o time da esquerda. Agora:
+
+    🏆 CAMPEÃO: Palmeiras · 🥈 VICE-CAMPEÃO: Cruzeiro
+
+Mudança só de exibição — nenhuma derivação, scoring ou regra de torneio foi tocada. O cabeçalho
+da seção deixou de ser "CAMPEÃO" e passou a "RESULTADO DA FINAL": com as duas posições rotuladas
+na linha, repetir "CAMPEÃO" acima era eco e sugeria que a seção tratava só do campeão. Continua
+sem terceiro e sem quarto lugar — a Copa do Brasil não tem disputa de 3º.
+
+Os emojis são `aria-hidden`; o significado está no texto, para leitor de tela ouvir
+"CAMPEÃO: Palmeiras". Cada posição é um `.podio-slot` `inline-flex`, então o wrap que já existia
+em `.tie-locked-score` passa a quebrar ENTRE as duas posições em vez de entre rótulo e time.
+Nenhuma media query nova; nenhum componente novo.
+
+**O gate anterior não conseguia ver este defeito.** Ele afirmava `/CAMPEÃO/.test(texto)` — e
+"VICE-CAMPEÃO" contém "CAMPEÃO", então a asserção ficava verde com apenas o vice rotulado. As
+verificações agora leem o DOM por posição, com rótulo e clube separados:
+
+    CHAMPION_LABEL_VISIBLE = PASS      CHAMPION_TEAM_CORRECT = PASS
+    RUNNER_UP_LABEL_VISIBLE = PASS     RUNNER_UP_TEAM_CORRECT = PASS
+    THIRD_PLACE_PRESENT = NO           PODIUM_SLOT_COUNT = 2
+
+Provado por mutação: revertendo o rendering para o formato antigo, as seis falham. `test_bracket_
+browser.mjs` 32/32, incluindo layout responsivo a 320/414/768px.
+
 ## v3.124 — 2026-08-12 — o comprovante de entrada salva sai do servidor, não do navegador
 
 O comprovante saía de `queueReceipt()` -> `sendReceipt()` -> EmailJS, com
