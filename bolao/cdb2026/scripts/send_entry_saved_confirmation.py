@@ -336,7 +336,6 @@ def main():
     ap.add_argument("--run", action="store_true", help="processa eventos pendentes")
     ap.add_argument("--max", type=int, default=5, help="teto de eventos por execução")
     ap.add_argument("--status", action="store_true", help="só relata, não envia")
-    ap.add_argument("--entry", help="entryId a inspecionar na fila (diagnóstico, só leitura)")
     args = ap.parse_args()
 
     if args.status:
@@ -345,12 +344,15 @@ def main():
         print(f"permissoes_abertas = {n}")
         print(f"entregas           = {c[0] if c else '(nenhuma)'}")
         print(f"kill_switch        = {'ATIVO' if KILL_SWITCH.exists() else 'inativo'}")
-        if args.entry:
-            # Distingue "o save nunca criou a obrigação" de "a obrigação existe e ninguém a
-            # consumiu". São causas opostas com o mesmo sintoma — nenhum e-mail na caixa — e
-            # tratar uma pela outra faz perder tempo no lugar errado.
-            st = m8m9.status(f"cdb2026:entry-saved-confirmation:{args.entry}:v1")
-            print(f"evento_da_entrada  = {st or 'NAO EXISTE (o save não criou obrigação)'}")
+        # Distingue "o save nunca criou a obrigação" de "a obrigação existe e ninguém a
+        # consumiu". São causas opostas com o mesmo sintoma — nenhum e-mail na caixa — e tratar
+        # uma pela outra faz procurar no lugar errado.
+        #
+        # A pergunta é por TIPO, não por chave: a chave carrega o hash da versão, que só existe
+        # depois do save. Perguntar por chave exata era o que fazia este diagnóstico responder
+        # "NAO EXISTE" para toda obrigação real.
+        q = m8m9._rpc("outbox_pending_count", {"p_event_type": EVENT_TYPE})
+        print(f"fila_do_comprovante= {q[0] if q else '(vazia)'}")
         return 0
 
     if not args.run:
