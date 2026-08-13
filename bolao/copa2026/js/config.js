@@ -1,5 +1,5 @@
 window.BOLAO_CONFIG = {
-  siteVersion: "v4.188",
+  siteVersion: "v4.189",
   // Tournament fully decided (2026-07-19, Spain champion) -- Eduardo: "Copa do mundo finalizada!
   // ... Desabilitar os botões todos, deixar só o vencedor, auditoria e os palpites." When true,
   // hides the entry/games/probs/rules nav buttons and the Admin nav button (still reachable —
@@ -75,7 +75,7 @@ window.BOLAO_CONFIG = {
     // A ESCRITA NAO MUDOU. `table` continua sendo o documento legado e continua sendo a
     // autoridade; o modelo normalizado recebe espelhos atomicos na mesma transacao. Reverter e
     // trocar esta linha de volta.
-    readTable: "bolao_state_public",
+    readTable: "bolao_state_normalized_public",
     // ESCRITA: nao existe mais. O navegador nao grava no banco (COPA-APP-ROUTING). `table`
     // permanece porque a diferenca entre ele e `readTable` e o que arma o interlock
     // `__sanitized`; toda mutacao privilegiada passa por bolao/copa2026/scripts/operator_cli.py.
