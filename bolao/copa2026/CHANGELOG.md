@@ -1,5 +1,47 @@
 # CHANGELOG
 
+## v4.188 — 2026-08-13
+
+### O comparador do log de auditoria aceita as DUAS formas de registro que o banco grava
+
+Um registro de auditoria carrega o instante do evento em `ts` OU em `at`, e as duas formas sao
+legitimas e estao gravadas hoje:
+
+| Forma | Quem grava | Campos |
+|---|---|---|
+| A | `appendAudit()` no navegador e `public._bolao_audit()` | `ts, action, admin, detail` |
+| B | `public.cdb_apply_operator_mutation()` | `type, actor, at, clientRef, payload, source` |
+
+Medido na producao em 2026-08-13: o cdb2026 tem 42 registros, 28 da forma A e 14 da forma B;
+br2026 e copa2026 tem 7 e 19, so da forma A. Nenhum registro traz os dois campos.
+
+O merge lia apenas `.ts`. Isso produzia DOIS defeitos com a mesma raiz:
+
+1. **A chave do Map.** `auditMap.set(entry.ts, entry)` com `ts` indefinido faz TODOS os registros
+   da forma B colapsarem numa unica entrada `undefined`. Na producao do cdb2026 isso reduzia 42
+   registros a 29 — treze registros de auditoria desapareciam do log em toda carga.
+2. **O sort.** `b.ts.localeCompare(a.ts)` estoura quando `b` nao tem `ts`. Nao estourava sempre:
+   depende de ONDE o registro sem data cai no array que o V8 ordena. Varrendo todas as posicoes,
+   estourava em n-1 de n — a unica posicao que sobrevivia era exatamente a que a producao tinha,
+   que e por isso que a rota legada parecia sadia e o canary da rota normalizada nao.
+
+Correcao: dois acessores minusculos, identicos nos tres apps para que nao voltem a divergir.
+`auditStamp()` le `ts` ou `at` e devolve `""` quando nao ha instante — um registro sem data nunca
+e o mais novo, e nenhum instante e inventado para ele. `auditKey()` deduplica por
+`(instante, clientRef)`: o `at` do servidor tem resolucao de segundo inteiro e dez dos catorze
+registros dividem apenas DOIS instantes, entao o instante sozinho nao identifica o evento. A forma
+A nao tem `clientRef`, logo para ela a chave continua sendo exatamente o instante — comportamento
+inalterado. Resultado medido contra a producao: cdb2026 passa de 29 para **42/42** registros
+preservados; copa2026 e br2026 seguem em 19/19 e 7/7.
+
+
+### O que NAO mudou
+
+A rota de leitura continua `bolao_state_public`. Este release muda comportamento de comparador, e
+nada mais — o merge de entradas (`updatedAt || createdAt`) esta byte a byte identico ao anterior e
+foi reexercitado contra a matriz de estado velho/novo. Scoring intocado, as tres auditorias passam.
+
+
 ## v4.187 — 2026-08-13
 
 ### READ_CUTOVER — a leitura passa a vir do modelo normalizado

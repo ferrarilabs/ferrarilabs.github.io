@@ -222,6 +222,28 @@ function initDb() {
   catch (err) { console.warn("Supabase init failed", err); return false; }
 }
 
+// Instante de um registro de auditoria. Duas formas legítimas convivem no documento:
+// `{ts, action, admin, detail}` (appendAudit no navegador e `public._bolao_audit()`) e
+// `{type, actor, at, clientRef, payload, source}` (`cdb_apply_operator_mutation()`). É o MESMO
+// instante ISO do evento sob nomes diferentes — nenhum registro traz os dois (medido em produção
+// 2026-08-13: cdb2026 tem 42 registros, 28 da primeira forma e 14 da segunda; br2026 e copa2026,
+// 7 e 19, só da primeira). Ler apenas `.ts` fazia `undefined` virar UMA chave do Map, colapsando
+// os 14 do servidor em 1, e estourava o sort em `.localeCompare`. Retorna "" quando não há
+// instante: um registro sem data nunca é o mais novo, e não se inventa um para ele.
+const auditStamp = (entry) => (entry && (entry.ts || entry.at)) || "";
+// Chave de deduplicação — a união quer "um registro por EVENTO", e o instante sozinho não entrega
+// isso na segunda forma: o servidor grava `at` em segundos inteiros e, em produção, dez dos
+// catorze registros dividem apenas DOIS instantes (um `set-cutoff` e um `set-schedule-provenance`
+// estavam sendo descartados junto com seis `backfill-kickoff`). `(instante, clientRef)` é único
+// nos 14/14. A primeira forma não tem `clientRef`, então para ela a chave continua sendo
+// exatamente o instante — o comportamento de hoje, inalterado.
+const auditKey = (entry) => {
+  const k = `${auditStamp(entry)}|${entry.clientRef || ""}`;
+  // Sem instante e sem clientRef não há identidade nenhuma: a própria entrada vira a chave, para
+  // que dois registros assim não colapsem num só — que era justamente o efeito de `undefined`.
+  return k === "|" ? entry : k;
+};
+
 function mergeStates(local, remote, opts = {}) {
   const tombstones = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   const byId = {};
@@ -255,12 +277,16 @@ function mergeStates(local, remote, opts = {}) {
     : { ...(remote.results || {}), ...(local.results || {}) };
   for (const mid of resultTombstones) delete mergedResults[mid];
 
-  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200.
+  // Merge audit logs: união por instante (único por evento), mais novo primeiro, teto de 200.
+  // O guarda anterior (`if (entry?.ts)`) não estourava, mas DESCARTAVA em silêncio todo registro
+  // sem `ts` — o mesmo defeito de raiz que estourava no BR/CDB, só com outro sintoma.
   const auditMap = new Map();
   for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
-    if (entry?.ts) auditMap.set(entry.ts, entry);
+    if (!entry) continue;
+    auditMap.set(auditKey(entry), entry);
   }
-  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+  const mergedAuditLog = [...auditMap.values()]
+    .sort((a, b) => auditStamp(b).localeCompare(auditStamp(a))).slice(0, 200);
 
   // ─── BASE POR SPREAD (auditoria de invariantes de estado, 2026-08-08) ───────────────────────
   // Este objeto era montado ENUMERANDO campos à mão. Foi assim que a MESMA classe de defeito

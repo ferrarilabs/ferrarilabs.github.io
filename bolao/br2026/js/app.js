@@ -253,6 +253,28 @@ async function callNarrowRpc(fnName, args) {
   return { ok: true, data: await r.json().catch(() => null) };
 }
 
+// Instante de um registro de auditoria. Duas formas legítimas convivem no documento:
+// `{ts, action, admin, detail}` (appendAudit no navegador e `public._bolao_audit()`) e
+// `{type, actor, at, clientRef, payload, source}` (`cdb_apply_operator_mutation()`). É o MESMO
+// instante ISO do evento sob nomes diferentes — nenhum registro traz os dois (medido em produção
+// 2026-08-13: cdb2026 tem 42 registros, 28 da primeira forma e 14 da segunda; br2026 e copa2026,
+// 7 e 19, só da primeira). Ler apenas `.ts` fazia `undefined` virar UMA chave do Map, colapsando
+// os 14 do servidor em 1, e estourava o sort em `.localeCompare`. Retorna "" quando não há
+// instante: um registro sem data nunca é o mais novo, e não se inventa um para ele.
+const auditStamp = (entry) => (entry && (entry.ts || entry.at)) || "";
+// Chave de deduplicação — a união quer "um registro por EVENTO", e o instante sozinho não entrega
+// isso na segunda forma: o servidor grava `at` em segundos inteiros e, em produção, dez dos
+// catorze registros dividem apenas DOIS instantes (um `set-cutoff` e um `set-schedule-provenance`
+// estavam sendo descartados junto com seis `backfill-kickoff`). `(instante, clientRef)` é único
+// nos 14/14. A primeira forma não tem `clientRef`, então para ela a chave continua sendo
+// exatamente o instante — o comportamento de hoje, inalterado.
+const auditKey = (entry) => {
+  const k = `${auditStamp(entry)}|${entry.clientRef || ""}`;
+  // Sem instante e sem clientRef não há identidade nenhuma: a própria entrada vira a chave, para
+  // que dois registros assim não colapsem num só — que era justamente o efeito de `undefined`.
+  return k === "|" ? entry : k;
+};
+
 function mergeStates(local, remote, opts = {}) {
   const deleted = new Set([...(local.deletedIds || []), ...(remote.deletedIds || [])]);
   // Achado 2026-07-16 (Eduardo: renomeou duas entradas direto no Supabase, "não aparece
@@ -294,13 +316,15 @@ function mergeStates(local, remote, opts = {}) {
   } else {
     results = local.results?.locked ? local.results : (remote.results?.locked ? remote.results : local.results || remote.results);
   }
-  // Merge audit logs: union by timestamp (unique per event), newest-first, cap 200 — same
-  // pattern as Copa (bolao/js/app.js mergeStates()).
+  // Merge audit logs: união por instante (único por evento), mais novo primeiro, teto de 200 —
+  // mesmo padrão da Copa (copa2026/js/app.js mergeStates()).
   const auditMap = new Map();
   for (const entry of [...(remote.auditLog || []), ...(local.auditLog || [])]) {
-    auditMap.set(entry.ts, entry);
+    if (!entry) continue;
+    auditMap.set(auditKey(entry), entry);
   }
-  const mergedAuditLog = [...auditMap.values()].sort((a, b) => b.ts.localeCompare(a.ts)).slice(0, 200);
+  const mergedAuditLog = [...auditMap.values()]
+    .sort((a, b) => auditStamp(b).localeCompare(auditStamp(a))).slice(0, 200);
   // ─── BASE POR SPREAD (auditoria de invariantes de estado, 2026-08-08) ───────────────────────
   // Este objeto era montado ENUMERANDO campos à mão. Foi assim que a MESMA classe de defeito
   // apareceu quatro vezes no CDB2026: um campo novo, ausente da lista, era DESCARTADO em silêncio a
@@ -2982,12 +3006,19 @@ function renderAdminAuditLog(s) {
   box.innerHTML = `<h3>${esc(t("auditLogTitle"))}</h3>`;
   if (!log.length) { box.innerHTML += `<p class="muted">${esc(t("auditLogEmpty"))}</p>`; return; }
   const rows = log.slice(0, 100).map(entry => {
-    const ts = new Date(entry.ts).toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" });
-    const d = entry.detail || {};
+    // Mesmo par de formas que auditStamp() reconcilia (ver lá). O br2026 não tem hoje nenhum
+    // gravador da segunda forma, mas o renderizador é idêntico ao do cdb2026 de propósito: é
+    // isso que impede os três apps de divergirem de novo neste mesmo ponto.
+    const stamp = auditStamp(entry);
+    const ts = stamp
+      ? new Date(stamp).toLocaleString("pt-BR", { timeZone: "America/New_York", dateStyle: "short", timeStyle: "short" })
+      : "—";
+    const d = entry.detail || entry.payload || {};
+    const kind = entry.action || entry.type || "?";
     return `<div class="audit-row">
       <div class="audit-meta">
         <span class="muted" style="font-size:11px">${esc(ts)} ET</span>
-        <b>${esc(t(`auditAction_${entry.action.replace(/-/g, "_")}`) || entry.action)}</b>
+        <b>${esc(t(`auditAction_${kind.replace(/-/g, "_")}`) || kind)}</b>
       </div>
       <div style="font-size:11px;color:#667;margin-top:2px;word-break:break-all">${esc(JSON.stringify(d))}</div>
     </div>`;
