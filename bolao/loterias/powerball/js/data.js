@@ -625,7 +625,15 @@ window.POWERBALL_DRAWS = [
       ajustesPendentes: 0
     },
 
-    result: null,
+    result: {
+      numbers: [4, 26, 66, 67, 69],
+      special: 9,
+      multiplier: 2,
+      checkedAt: "13/08/2026 07:46 ET",
+      premiosGanhos: 38,
+      jackpotHit: false,
+      breakdown: ["2x 1 + Powerball", "1x 3 acertos", "1x Powerball"]
+    },
     profit: null
   }
 ];
