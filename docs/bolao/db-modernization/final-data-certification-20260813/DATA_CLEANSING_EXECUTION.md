@@ -45,14 +45,37 @@ report lines:
 | `20260813210000.rollback.sql` | drops the three tables. Rehearsed: drop → recreate → identical 3 / 69 / 247. The file states that it is safe **only while `public.bolao_state` still exists**, and must not be applied after retirement |
 | Idempotency | both re-applied twice with no change (`INSERT 0 0`, view definitions stable) |
 
+## Post-audit closure — D-B applied (ledger `20260813230000`)
+
+The one quarantine is closed. The operator approved the correction; the rule is versioned and
+**record-scoped**, not a generic transform.
+
+| | |
+|---|---|
+| `RULE_ID` | `EMAIL_TRAILING_DOMAIN_PUNCTUATION_OPERATOR_APPROVED_V1` |
+| Bound by | `sha256(raw) = 66f7b533…` — **one record**. Any other value, including another address ending in a comma, does not match |
+| Transformation | remove the single terminal comma. Nothing else |
+| Rows affected | **2** (`public.bolao_entry_private.participant_email`, `bolao.participants.email`) + 1 forensic row gains a `canonical_value` |
+| Raw preserved | `audit.legacy_entry_field.raw_value` · `audit.legacy_document_archive.raw_document` · `public.bolao_state` — **all three untouched**, asserted in the migration |
+| Rollback | reads the raw value **back from `audit.legacy_entry_field`**. It carries no literal and cannot drift from the source — which is only possible because raw and canonical were kept apart |
+| Identity | **unchanged.** 26 participants, `canonical_participant_id` NULL on all 26. Distinct addresses 24 → **23**: a third shared-mailbox group, not a merge |
+| Delivery | **no claim.** `HISTORICAL_COPA_EMAIL_DELIVERY = NOT_DETERMINABLE_FROM_AVAILABLE_DATA` |
+| Lineage | `audit.operator_cleansing_decision` — decision ref, rule, product, entry token, participant token, raw fingerprint, canonical fingerprint, targets, approval, rationale. **No raw or canonical value is stored there** |
+
+Rehearsed forward → rollback → forward → forward on a clone proven complete against production
+(50/50 relations, 114/114 functions, matching checksums). Production applied, then re-verified
+read-only: `malformed_private=0 · malformed_participants=0 · invalid_syntax=0 · distinct_emails=23 ·
+participants=26 · canonical_merges=0`, with `forensic_raw_malformed=1` and `legacy_doc_malformed=1`
+— the raw evidence exactly where it was.
+
 ## Totals
 
 ```
-CLEANSING_RULES_DEFINED        8
-CLEANSING_RULES_APPLIED        4     (RAW_ONLY, IDENTITY, EMPTY_TO_NULL capture, INSTANT_PARSE_WITH_PROVENANCE)
-CLEANSING_RECORDS_CHANGED      0     business records
+CLEANSING_RULES_DEFINED        9   (+ EMAIL_TRAILING_DOMAIN_PUNCTUATION_OPERATOR_APPROVED_V1)
+CLEANSING_RULES_APPLIED        5     (+ the operator-approved email rule)
+CLEANSING_RECORDS_CHANGED      2     one address, in two canonical targets (D-B)
 CLEANSING_RECORDS_CREATED    319     private forensic rows (3 + 69 + 247)
-CLEANSING_FIELDS_CHANGED       0
-CLEANSING_RAW_VALUES_PRESERVED 319
-CLEANSING_QUARANTINES          1     (C8 — malformed address, operator decision D-B)
+CLEANSING_FIELDS_CHANGED       2
+CLEANSING_RAW_VALUES_PRESERVED 319   (none overwritten; D-B's raw survives in three places)
+CLEANSING_QUARANTINES          0     (C8 closed by operator approval D-B)
 ```
