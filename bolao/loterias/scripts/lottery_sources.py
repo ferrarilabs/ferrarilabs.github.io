@@ -24,6 +24,7 @@ Os adaptadores são injetáveis (`fetcher`): os testes exercitam validação, st
 sem rede.
 """
 
+import hashlib
 import json
 import re
 import urllib.parse
@@ -42,11 +43,30 @@ def _agora():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def _http(url, timeout=20):
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
-                                               "Accept": "application/json, text/html"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return r.read().decode("utf-8", errors="replace")
+def _http(url, timeout=20, tentativas=3, exige=None):
+    """
+    `exige`: trecho que a resposta PRECISA conter para valer.
+
+    powerball.com serve, de forma intermitente, uma casca sem o conteúdo do sorteio — a mesma URL
+    devolve ora a página completa, ora um esqueleto. Medido em 2026-08-13: a primeira chamada veio
+    sem `<title>` utilizável e a seguinte veio completa. Sem esta checagem o parser lê a casca,
+    não encontra nada e o pipeline conclui "a fonte oficial não publicou" — que é uma afirmação
+    falsa sobre a fonte, e faz o fallback assumir a latência sem motivo.
+    """
+    ultimo = None
+    for n in range(tentativas):
+        req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT,
+                                                   "Accept": "application/json, text/html"})
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                corpo = r.read().decode("utf-8", errors="replace")
+        except Exception as e:  # noqa: BLE001
+            ultimo = e
+            continue
+        if exige is None or exige in corpo:
+            return corpo
+        ultimo = ResultadoInvalido(f"resposta sem {exige!r} (casca) na tentativa {n + 1}")
+    raise ultimo if isinstance(ultimo, Exception) else ResultadoInvalido("sem resposta utilizável")
 
 
 # ══ VALIDAÇÃO ═══════════════════════════════════════════════════════════════════════════════
@@ -115,6 +135,103 @@ FAIXAS = {
 
 
 # ══ ADAPTADORES ═════════════════════════════════════════════════════════════════════════════
+# ══ FONTES OFICIAIS — parsers escritos contra o HTML REAL, inspecionado ═════════════════════
+#
+# Nada aqui foi adivinhado. A estrutura abaixo foi lida da página ao vivo em 2026-08-13:
+#
+#   <title>Powerball Draw Result - Wed, Aug 12, 2026 | Powerball</title>
+#   <div class="form-control col white-balls item-powerball"><div> 4 </div></div>   (x5)
+#   <div class="form-control col powerball item-powerball"><div> 9 </div></div>
+#   <span class="multiplier">2x</span>
+#
+# O número fica num <div> ANINHADO, não no elemento com a classe. Um parser escrito de cabeça
+# casaria o texto direto do elemento com classe e voltaria vazio — foi exatamente o que a
+# primeira tentativa fez.
+MESES = {"jan": 1, "feb": 2, "mar": 3, "apr": 4, "may": 5, "jun": 6,
+         "jul": 7, "aug": 8, "sep": 9, "oct": 10, "nov": 11, "dec": 12}
+
+
+def _data_do_titulo(html):
+    """'Powerball Draw Result - Wed, Aug 12, 2026 | Powerball' -> '2026-08-12'."""
+    m = re.search(r"<title>([^<]+)</title>", html, re.I)
+    if not m:
+        return None
+    d = re.search(r"([A-Za-z]{3})[a-z]*\.?\s+(\d{1,2}),\s*(\d{4})", m.group(1))
+    if not d:
+        return None
+    mes = MESES.get(d.group(1).lower()[:3])
+    if not mes:
+        return None
+    return f"{int(d.group(3)):04d}-{mes:02d}-{int(d.group(2)):02d}"
+
+
+def _bolas(html, classe_branca, classe_especial):
+    brancas = re.findall(
+        rf'class="[^"]*{classe_branca}[^"]*"[^>]*>\s*<div>\s*(\d{{1,2}})\s*</div>', html)
+    esp = re.findall(
+        rf'class="[^"]*\b{classe_especial}\b[^"]*"[^>]*>\s*<div>\s*(\d{{1,2}})\s*</div>', html)
+    return brancas, esp
+
+
+def _powerball_oficial(html):
+    brancas, esp = _bolas(html, "white-balls item-powerball", "powerball item-powerball")
+    mult = re.search(r'class="[^"]*multiplier[^"]*"[^>]*>\s*(\d+)x', html, re.I)
+    return {"drawDate": _data_do_titulo(html), "numbers": brancas,
+            "special": esp[0] if esp else None,
+            "multiplier": int(mult.group(1)) if mult else None,
+            "source": "powerball_official"}
+
+
+def _megamillions_oficial(html):
+    brancas, esp = _bolas(html, "white-balls item-megamillions", "megaball item-megamillions")
+    mult = re.search(r'class="[^"]*multiplier[^"]*"[^>]*>\s*(\d+)x', html, re.I)
+    return {"drawDate": _data_do_titulo(html), "numbers": brancas,
+            "special": esp[0] if esp else None,
+            "multiplier": int(mult.group(1)) if mult else None,
+            "source": "megamillions_official"}
+
+
+URLS_OFICIAIS = {
+    "powerball_official": "https://www.powerball.com/draw-result?gc=powerball",
+    "megamillions_official": "https://www.megamillions.com/",
+}
+
+
+def jackpot_oficial(jogo, fetcher=None):
+    """
+    Jackpot ANUNCIADO EM ANUIDADE + cash value + próximo sorteio, da fonte oficial.
+
+    Devolve centavos INTEIROS. "1.04 Billion" vira 104000000000 — converter para float e
+    multiplicar arrastaria erro de arredondamento para uma decisão de US$500M.
+    """
+    if fetcher is not None:
+        return fetcher(jogo)
+    url = URLS_OFICIAIS["powerball_official" if jogo == "powerball" else "megamillions_official"]
+    html = _http(url, exige="Estimated Jackpot")
+    def _cents(txt):
+        m = re.search(r"([0-9][0-9.,]*)\s*(Billion|Million)?", txt, re.I)
+        if not m:
+            return None
+        num = m.group(1).replace(",", "")
+        escala = {"billion": 10**9, "million": 10**6}.get((m.group(2) or "").lower(), 1)
+        inteiro, _, frac = num.partition(".")
+        frac = (frac + "00")[:2] if escala == 1 else frac
+        if escala == 1:
+            return int(inteiro) * 100 + int(frac or 0)
+        # US$1.04 Billion -> 1040000000_00 centavos, sem passar por float.
+        casas = len(m.group(1).split(".")[1]) if "." in m.group(1) else 0
+        return int(num.replace(".", "")) * escala * 100 // (10 ** casas)
+    j = re.search(r"Estimated Jackpot[^$]{0,200}?\$\s*([0-9.,]+\s*[A-Za-z]*)", html)
+    c = re.search(r"Cash Value[^$]{0,200}?\$\s*([0-9.,]+\s*[A-Za-z]*)", html)
+    return {"game": jogo,
+            "advertisedAnnuityCents": _cents(j.group(1)) if j else None,
+            "cashValueCents": _cents(c.group(1)) if c else None,
+            "source": URLS_OFICIAIS["powerball_official" if jogo == "powerball"
+                                    else "megamillions_official"],
+            "fetchedAt": _agora(),
+            "sourceHash": hashlib.sha256(html.encode()).hexdigest()[:16]}
+
+
 def _do_ny_open_data(texto, jogo):
     linhas = json.loads(texto)
     if not linhas:
@@ -142,6 +259,15 @@ def busca(jogo, draw_date, fonte, fetcher=None):
     """
     if fetcher is not None:
         bruto = fetcher(fonte, jogo, draw_date)
+    elif fonte in ("powerball_official", "megamillions_official"):
+        html = _http(URLS_OFICIAIS[fonte], exige="<title>")
+        bruto = (_powerball_oficial if fonte == "powerball_official"
+                 else _megamillions_oficial)(html)
+    elif fonte == "nc_education_lottery":
+        # A NC não expõe endpoint estável e a página muda de forma; escrever um parser sem
+        # inspecionar a estrutura real seria adivinhar, e adivinhar resultado é o que a política
+        # proíbe. Enquanto isso a primária resolve e o NY reconcilia.
+        raise ResultadoInvalido("ADAPTADOR_AUSENTE: nc_education_lottery (estrutura não inspecionada)")
     elif fonte == "ny_open_data":
         url = {"powerball": "https://data.ny.gov/resource/d6yy-54nr.json",
                "megamillions": "https://data.ny.gov/resource/5xaw-6ayf.json"}[jogo]
