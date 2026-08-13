@@ -1,0 +1,127 @@
+{
+  "_doc": [
+    "Configuracao canonica do ciclo de vida das loterias. Regra de negocio mora AQUI, nao",
+    "espalhada pela UI, pelo email e pelos scripts — foi por isso que a Mega Millions ficou com",
+    "uma tabela de premios obsoleta em data.js enquanto o comentario ao lado admitia que os",
+    "valores nao tinham sido conferidos.",
+    "",
+    "Dinheiro em centavos INTEIROS. Ponto flutuante em dinheiro acumula erro e este arquivo",
+    "governa compra de bilhete e credito de premio de gente real."
+  ],
+
+  "threshold": {
+    "minJackpotCents": 50000000000,
+    "_doc": [
+      "US$ 500.000.000,00. A comparacao e ESTRITAMENTE MAIOR: exatamente US$500M NAO qualifica.",
+      "Sempre sobre o jackpot ANUNCIADO EM ANUIDADE — nunca sobre o cash value, que e menor e",
+      "faria um sorteio inelegivel parecer elegivel se alguem trocasse os campos por engano."
+    ],
+    "comparison": "strictly_greater",
+    "basis": "advertised_annuity"
+  },
+
+  "pools": {
+    "maxActive": 1,
+    "selection": ["larger_advertised_annuity", "earlier_draw_date"],
+    "_doc": [
+      "Com os dois jogos elegiveis, escolhe o maior jackpot anunciado; empate, o sorteio mais",
+      "cedo. A ordem e dado, nao codigo: mudar a politica e editar esta lista."
+    ]
+  },
+
+  "states": ["BELOW_THRESHOLD", "ELIGIBLE", "OPEN", "LOCKED", "AWAITING_RESULT", "SETTLED"],
+
+  "autoPurchase": false,
+  "_autoPurchaseDoc": [
+    "Monitorar jackpot, calcular elegibilidade, abrir estado e contabilizar carryover sao",
+    "automaticos. COMPRAR BILHETE nao e, e nao ha caminho de codigo que o faca: nenhum modulo",
+    "aqui fala com meio de pagamento. A acao final de compra continua sendo do operador."
+  ],
+
+  "games": {
+    "powerball": {
+      "label": "Powerball",
+      "drawDays": ["monday", "wednesday", "saturday"],
+      "drawTimeEt": "22:59",
+      "ticketPriceCents": 200,
+      "powerPlayAddOnCents": 100,
+      "_ticketDoc": [
+        "US$2 a aposta; Power Play e ADICIONAL de US$1 e e opcional POR APOSTA. Os bilhetes",
+        "do bolao ate hoje sao todos com Power Play (US$3), mas isso e uma escolha de compra,",
+        "nao uma propriedade do jogo: `hasPowerPlay` vem do bilhete, nunca do sorteio."
+      ],
+      "matrixVerified": true,
+      "matrixSource": "powerball.com/powerball-prize-chart",
+      "prizeMatrix": [
+        { "main": 5, "special": true,  "label": "JACKPOT",         "baseCents": null,     "multiplied": false },
+        { "main": 5, "special": false, "label": "5 acertos",       "baseCents": 100000000, "multiplied": false,
+          "powerPlayFixedCents": 200000000,
+          "_doc": "Com Power Play o 5+0 e FIXO em US$2M — nao escala com o multiplicador sorteado." },
+        { "main": 4, "special": true,  "label": "4 + Powerball",   "baseCents": 5000000,  "multiplied": true },
+        { "main": 4, "special": false, "label": "4 acertos",       "baseCents": 10000,    "multiplied": true },
+        { "main": 3, "special": true,  "label": "3 + Powerball",   "baseCents": 10000,    "multiplied": true },
+        { "main": 3, "special": false, "label": "3 acertos",       "baseCents": 700,      "multiplied": true },
+        { "main": 2, "special": true,  "label": "2 + Powerball",   "baseCents": 700,      "multiplied": true },
+        { "main": 1, "special": true,  "label": "1 + Powerball",   "baseCents": 400,      "multiplied": true },
+        { "main": 0, "special": true,  "label": "Powerball",       "baseCents": 400,      "multiplied": true }
+      ]
+    },
+
+    "megamillions": {
+      "label": "Mega Millions",
+      "drawDays": ["tuesday", "friday"],
+      "drawTimeEt": "23:00",
+      "ticketPriceCents": 500,
+      "_ticketDoc": [
+        "US$5 desde a mudanca de abril/2025. O multiplicador passou a ser EMBUTIDO e sorteado",
+        "POR APOSTA (2X/3X/4X/5X/10X) — nao existe mais Megaplier como item comprado a parte, e",
+        "nao existe mais aposta de US$2. Modelar Megaplier hoje seria implementar um jogo que",
+        "nao existe mais."
+      ],
+      "builtInMultiplier": true,
+      "multiplierValues": [2, 3, 4, 5, 10],
+
+      "matrixVerified": false,
+      "matrixSource": "PENDENTE — conferir em megamillions.com antes de creditar dinheiro real",
+      "_matrixDoc": [
+        "matrixVerified=false BLOQUEIA credito de premio de verdade (ver `assert_matrix_usable`).",
+        "Os valores abaixo sao o entendimento do modelo pos-abril/2025 e NAO foram conferidos",
+        "contra a fonte oficial nesta sessao. Como o bolao paga dinheiro real por aposta, um",
+        "numero errado aqui vira pagamento errado — entao o codigo se recusa a usar a matriz",
+        "para dinheiro ate o operador confirmar e virar a bandeira.",
+        "",
+        "Isto NAO impede monitorar jackpot, elegibilidade e abertura de bolao da Mega Millions:",
+        "so impede calcular premio."
+      ],
+      "prizeMatrix": [
+        { "main": 5, "special": true,  "label": "JACKPOT",        "baseCents": null,      "multiplied": false },
+        { "main": 5, "special": false, "label": "5 acertos",      "baseCents": 100000000, "multiplied": true },
+        { "main": 4, "special": true,  "label": "4 + Mega Ball",  "baseCents": 1000000,   "multiplied": true },
+        { "main": 4, "special": false, "label": "4 acertos",      "baseCents": 50000,     "multiplied": true },
+        { "main": 3, "special": true,  "label": "3 + Mega Ball",  "baseCents": 20000,     "multiplied": true },
+        { "main": 3, "special": false, "label": "3 acertos",      "baseCents": 1000,      "multiplied": true },
+        { "main": 2, "special": true,  "label": "2 + Mega Ball",  "baseCents": 1000,      "multiplied": true },
+        { "main": 1, "special": true,  "label": "1 + Mega Ball",  "baseCents": 700,       "multiplied": true },
+        { "main": 0, "special": true,  "label": "Mega Ball",      "baseCents": 200,       "multiplied": true }
+      ]
+    }
+  },
+
+  "resultSources": {
+    "powerball": {
+      "primary":  { "id": "powerball_official", "label": "Powerball / MUSL oficial" },
+      "secondary":{ "id": "nc_education_lottery", "label": "NC Education Lottery" },
+      "fallback": { "id": "ny_open_data", "label": "NY Open Data (auditoria)" }
+    },
+    "megamillions": {
+      "primary":  { "id": "megamillions_official", "label": "megamillions.com" },
+      "secondary":{ "id": "nc_education_lottery", "label": "NC Education Lottery" }
+    },
+    "_doc": [
+      "A PRIMARIA decide latencia. Assim que ela traz resultado estruturalmente valido para o",
+      "sorteio ESPERADO, o pipeline pode calcular e notificar; as demais reconciliam depois.",
+      "Antes disso o NY Open Data era quem mandava, e ele publica com atraso — o resultado ficava",
+      "represado por uma fonte que existe para AUDITAR, nao para liberar."
+    ]
+  }
+}
