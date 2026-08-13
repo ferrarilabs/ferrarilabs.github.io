@@ -517,6 +517,28 @@ class _PonteM8M9:
             return {"outbox_event_id": "test-noop"}
         return self._ponte().claim(*a, **kw)
 
+    def claim_outbox(self, evento_id, lease_seconds=900):
+        """
+        Reivindica ESTE evento e confirma que foi ele mesmo.
+
+        `claim_outbox_event` reivindica o mais antigo PENDENTE do tipo. Isso serve aqui porque a
+        chave de idempotência é derivada do sorteio (um evento por sorteio), mas confirmar o id
+        importa: se outro sorteio tiver deixado obrigação pendente, quem seria reivindicado é
+        aquele, e liquidá-lo como se fosse este trocaria o desfecho de dois sorteios.
+        """
+        if self._modo_teste():
+            return {"outbox_event_id": evento_id}
+        worker = f"gha-{os.environ.get('GITHUB_RUN_ID', 'local')}"
+        r = self._ponte().claim(worker, event_type="powerball.draw_result",
+                                lease_seconds=lease_seconds)
+        if not r:
+            return None
+        if str(r.get("outbox_event_id")) != str(evento_id):
+            raise RuntimeError(
+                f"OUTBOX_CLAIM_DIVERGENTE: reivindicou {r.get('outbox_event_id')}, "
+                f"esperava {evento_id} — há obrigação pendente de outro sorteio")
+        return r
+
     def new_correlation_id(self):
         if self._modo_teste():
             return "test-corr"
@@ -677,6 +699,11 @@ def _imprime_obs(rel):
     print("=" * 60)
 
 
+# Contador de EFEITO, não de intenção. Incrementado no ponto exato em que o provedor é tocado,
+# para que qualquer relato de falha possa dizer a verdade sobre quantos e-mails já saíram.
+_PROVIDER_CALLS_REAIS = {"n": 0}
+
+
 def _liquida_outbox(deps, rel, desfecho, corr, draw_id, esperados, aceitos, falhos, incertos):
     """Liquida a obrigacao e registra o que aconteceu. Sem evento, nao ha o que liquidar."""
     eid = rel.get("outboxEventId")
@@ -813,6 +840,22 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
     rel["outboxEventId"] = evento_id
     rel["outboxCreated"] = criado_agora
 
+    # REIVINDICAR ANTES DE LIQUIDAR. `emit_outbox_event` cria a linha em `pending`; o banco só
+    # aceita liquidar o que está `in_flight`. Faltava este passo, então `settle_outbox_event`
+    # levantava TRANSICAO_ILEGAL SEMPRE — inclusive na execução 31679185588, depois de os 16
+    # e-mails já terem saído. A obrigação ficava eternamente pendente e o workflow terminava
+    # vermelho por um motivo que não tinha nada a ver com a entrega.
+    #
+    # Reivindicar não é cerimônia: é o que faz o lease existir. Sem ele, dois workers processam
+    # a mesma obrigação e nenhum dos dois consegue encerrá-la.
+    if evento_id:
+        try:
+            reivindicacao = deps.bridge.claim_outbox(evento_id)
+            rel["outboxClaimed"] = bool(reivindicacao)
+        except Exception as exc:  # noqa: BLE001
+            rel["outboxClaimError"] = str(exc)[:200]
+            rel["outboxClaimed"] = False
+
     worker = f"gha-{os.environ.get('GITHUB_RUN_ID', 'local')}"
     reivindicado = deps.ledger.claim(draw_id, worker)
     if not reivindicado:
@@ -860,6 +903,7 @@ def run_lifecycle(game_type="powerball", dry_run=False, force_resend=False, deps
         tocou = not recusou
     rel["providerCalls"] = len(alvos) if tocou else 0
     rel["providerRefused"] = not tocou
+    _PROVIDER_CALLS_REAIS["n"] += rel["providerCalls"]
     for ref in saida.get("accepted", []):
         deps.ledger.record_recipient(draw_id, ref, deps.ledger.R_ACCEPTED)
     for ref in saida.get("failed", []):
@@ -943,8 +987,21 @@ def main():
         # 2026-08-10: o ledger tentou usar a CLI do Supabase, que so existe na maquina de
         # desenvolvimento, e o RuntimeError subiu ate aqui sem tratamento nenhum.
         print(f"\n🛑 FALHA INESPERADA: {type(e).__name__}: {e}")
-        print("   PROVIDER_CALLS = 0 (a excecao ocorreu antes de qualquer envio)"
-              if "send" not in str(e).lower() else "   VERIFICAR se houve chamada ao provedor")
+        # NUNCA DEDUZIR CHAMADA AO PROVEDOR DO TEXTO DO ERRO.
+        #
+        # Esta linha dizia `PROVIDER_CALLS = 0` quando a mensagem não continha "send". Em
+        # 2026-08-13 a exceção foi `settle_outbox_event falhou: ... TRANSICAO_ILEGAL` — sem a
+        # palavra "send" — e o relatório afirmou zero envios DEPOIS de 16 e-mails reais terem
+        # sido aceitos pelo provedor. Uma afirmação sobre notificação de gente real derivada de
+        # busca de substring em mensagem de erro.
+        #
+        # O contador é global e é incrementado no ponto do efeito. Se ele não foi tocado, é
+        # porque a exceção veio antes; se foi, o número é o que aconteceu, não o que se supõe.
+        n = _PROVIDER_CALLS_REAIS["n"]
+        print(f"   PROVIDER_CALLS = {n} (contador de efeito, não inferência do texto do erro)")
+        if n:
+            print(f"   ATENÇÃO: {n} chamada(s) ao provedor JÁ ocorreram antes desta falha. "
+                  f"NÃO rerodar cegamente — reconciliar o estado por destinatário primeiro.")
         return 2
 
     _obs(rel, finalState=rel.get("notificationState"), exitReason=rel.get("reason"))
