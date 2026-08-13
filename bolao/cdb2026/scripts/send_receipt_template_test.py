@@ -131,7 +131,11 @@ def main():
         fases_no_corpo = [n for _, n, _ in R.FASES if f">{n}</div>" in corpo]
         print(f"  COMPLETE_BRACKET_PRESENT = {'YES' if fases_no_corpo else 'NO'} {fases_no_corpo}")
         print(f"  PII_SCAN                 = {'PASS' if not pii else 'FALHA ' + str(pii)}")
-        print(f"  ASSUNTO                  = {assunto}")
+        print(f"  ASSUNTO (enviado)        = {assunto}")
+        print(f"  ASSUNTO (visível)        = {R.assunto_visivel(snap.get('entryName') or '')}")
+        fam = m8m9._rpc("delivery_count_family", {"p_app": APP, "p_family": FAMILIA_TESTE})
+        print(f"  histórico da família     = {fam[0] if fam else '(vazio)'}"
+              "   (total inclui a v1 que nunca chegou ao provedor)")
 
         if pii:
             print("\nABORTADO: varredura de PII não passou. Nenhuma chamada ao provedor.")
@@ -142,11 +146,13 @@ def main():
 
         # ── Reserva na família de TESTE, com bypass justificado ─────────────────────────────
         #
-        # v2: a tentativa v1 reservou e MORREU antes de qualquer chamada ao provedor (NameError
-        # ao montar o corpo da requisição — nenhum e-mail saiu). A reserva v1 fica no banco como
-        # registro honesto daquela tentativa; a unicidade é por chave, então a retentativa precisa
-        # de chave nova em vez de apagar o rastro da anterior.
-        chave = f"{FAMILIA_TESTE}:{versao}:v2"
+        # A unicidade é por chave, e cada rodada aprovada de template é uma chave nova:
+        #   v1  reservou e morreu ANTES do provedor (NameError montando o corpo) — 0 e-mails
+        #   v2  primeiro comprovante real, aprovado pelo operador quanto à estrutura
+        #   v3  esta rodada: assunto sem marca duplicada, vice na seção da final, rótulos revistos
+        # As reservas anteriores ficam como registro honesto de cada tentativa, em vez de
+        # apagadas — é o histórico que prova quantas vezes o provedor foi chamado.
+        chave = f"{FAMILIA_TESTE}:{versao}:v3"
         rr = m8m9._rpc("reserve_delivery", {
             "p_app": APP, "p_business_key": chave, "p_recipient": addr, "p_generation": 1,
             "p_family": FAMILIA_TESTE,

@@ -175,8 +175,16 @@ def linhas_do_confronto(tie_id, tie, picks, formato, eh_final):
     if qual in ("A", "B"):
         time = _lado(tie, qual)
         if eh_final:
+            # A final resolve DUAS posições, e a seção que registra a final tem de registrar as
+            # duas. Antes só o campeão aparecia aqui e o vice existia apenas no resumo do topo —
+            # a mesma ambiguidade que a tela de produção já teve: quem lê a seção da final via um
+            # nome só e precisava deduzir o outro pela ordem dos times. O vice sai do MESMO
+            # snapshot congelado que o campeão, então os dois não podem discordar.
+            outro = _lado(tie, "B" if qual == "A" else "A")
             marca = (f'<span style="color:#0b6b3a;font-weight:800">🏆 CAMPEÃO:</span> '
-                     f'<b>{esc(time)}</b>')
+                     f'<b>{esc(time)}</b><br>'
+                     f'<span style="color:#0b6b3a;font-weight:800">🥈 VICE-CAMPEÃO:</span> '
+                     f'<b>{esc(outro)}</b>')
         else:
             marca = (f'<span style="color:#0b6b3a;font-weight:800">CLASSIFICADO:</span> '
                      f'<b>{esc(time)}</b>')
@@ -274,7 +282,7 @@ max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;background:#ffffff">
     <tr><td style="padding:7px 0;color:#666;border-bottom:1px solid #eee">Salvo em</td>
         <td style="padding:7px 0;text-align:right;border-bottom:1px solid #eee">
           {esc(brt(snapshot.get('savedAt')))}</td></tr>
-    <tr><td style="padding:7px 0;color:#666">Versão do palpite</td>
+    <tr><td style="padding:7px 0;color:#666">Código do comprovante</td>
         <td style="padding:7px 0;text-align:right;font-family:ui-monospace,Menlo,monospace;
                    font-size:12px;color:#0b6b3a">{esc(picks_version)}</td></tr>
   </table>
@@ -282,7 +290,7 @@ max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;background:#ffffff">
   {podio_html}
 
   <div style="font-size:12px;color:#666;letter-spacing:.06em;text-transform:uppercase;
-              font-weight:800;margin:24px 0 0">Palpites salvos</div>
+              font-weight:800;margin:24px 0 0">Detalhamento dos palpites</div>
   {blocos or '<p style="color:#8a8a8a;font-size:13px">Nenhum palpite registrado nesta versão.</p>'}
 
   <div style="margin-top:26px;padding:14px;background:#f6f8f7;border-radius:10px;
@@ -295,9 +303,31 @@ max-width:600px;margin:0 auto;padding:20px;color:#1a1a1a;background:#ffffff">
 </div>"""
 
 
+# ── O TRANSPORTE JÁ ASSINA A MARCA ───────────────────────────────────────────────────────────
+#
+# O template do EmailJS monta o assunto como `Bolão do Ferrari - {{entry_name}}`. Esse prefixo não
+# está neste repositório — é configuração do provedor —, mas o assunto que chegou ao Gmail o prova
+# exatamente:
+#
+#   recebido:  Bolão do Ferrari - Bolão do Ferrari — ✅ Comprovante de palpites · … — Eduardo Ferrari
+#   enviado:                      Bolão do Ferrari — ✅ Comprovante de palpites · … — Eduardo Ferrari
+#
+# A diferença é o prefixo literal. Como o transporte já assina, o assunto daqui NÃO assina: uma
+# camada só é dona da marca. Repetir era o que produzia "Bolão do Ferrari - Bolão do Ferrari".
+TRANSPORT_SUBJECT_PREFIX = "Bolão do Ferrari - "
+
+
 def monta_assunto(entry_name):
-    """Assunto que se explica sozinho na caixa de entrada."""
-    return f"Bolão do Ferrari — ✅ Comprovante de palpites · Copa do Brasil 2026 — {entry_name}"
+    """A parte do assunto que ESTE código controla. Sem marca — quem assina é o transporte."""
+    return f"✅ Comprovante CDB 2026 — {entry_name}"
+
+
+def assunto_visivel(entry_name):
+    """
+    O assunto como o participante o vê. É este que precisa ser testado: testar só a parte de cima
+    deixaria a duplicação passar de novo, porque ela nasce da COMPOSIÇÃO.
+    """
+    return TRANSPORT_SUBJECT_PREFIX + monta_assunto(entry_name)
 
 
 # Campos que NUNCA podem aparecer no HTML. Varridos por `test_receipt_pii.py`.

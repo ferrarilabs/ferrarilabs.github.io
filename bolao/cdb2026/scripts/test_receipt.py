@@ -110,6 +110,19 @@ def main():
     checa("a final usa 'CAMPEÃO'", "CAMPEÃO" in depois_final)
     checa("as quartas usam 'CLASSIFICADO'", "CLASSIFICADO:" in html)
 
+    # A seção da final registra as DUAS posições — não só o campeão, como antes.
+    checa("FINAL_CHAMPION_PRESENT", "🏆 CAMPEÃO:" in depois_final)
+    checa("FINAL_RUNNER_UP_PRESENT", "🥈 VICE-CAMPEÃO:" in depois_final)
+    checa("FINAL_CHAMPION_CORRECT", f"🏆 CAMPEÃO:</span> <b>{camp}</b>" in depois_final,
+          depois_final[-260:])
+    checa("FINAL_RUNNER_UP_CORRECT", f"🥈 VICE-CAMPEÃO:</span> <b>{vice}</b>" in depois_final,
+          depois_final[-260:])
+    # O vice da final tem de ser o mesmo do topo: os dois saem do mesmo snapshot.
+    checa("final e topo concordam sobre o vice",
+          depois_final.count(vice) >= 1 and vice in html)
+    checa("a final NÃO ganhou 3º/4º lugar",
+          not re.search(r"3º|terceiro|4º|quarto", depois_final, re.I))
+
     # ═══ 3. A VOLTA NÃO PODE INVERTER (AUDIT-05) ═════════════════════════════════════════════
     print("\n3. o mando inverte na volta — o defeito AUDIT-05 não volta")
     casa1, fora1 = R.leg_teams({"teamA": "Internacional", "teamB": "Grêmio"}, "first")
@@ -176,7 +189,7 @@ def main():
     checa("Copa: pódio em destaque -> CDB também",
           "podcard" in copa_receipt and "🏆 CAMPEÃO" in html)
     checa("Copa: lista completa dos palpites -> CDB também",
-          "<tbody>" in copa_receipt and "Palpites salvos" in html)
+          "<tbody>" in copa_receipt and "Detalhamento dos palpites" in html)
     checa("Copa: frase de que o comprovante registra os palpites -> CDB também",
           "receiptIntro" in copa_receipt and "exatamente os palpites salvos" in html)
     # O que a Copa fazia ERRADO e o CDB NÃO pode herdar:
@@ -187,12 +200,21 @@ def main():
           and not re.search(r"3º lugar|terceiro lugar", html, re.I))
 
     # ═══ 9. ASSUNTO ══════════════════════════════════════════════════════════════════════════
-    print("\n9. assunto")
-    assunto = R.monta_assunto("Entrada de Teste")
-    print(f"      {assunto}")
-    for parte in ("Bolão do Ferrari", "Comprovante", "Copa do Brasil 2026", "Entrada de Teste"):
-        checa(f"assunto contém '{parte}'", parte in assunto)
-    checa("assunto NÃO é o genérico antigo", assunto.strip() != "Palpites salvos")
+    print("\n9. assunto — o que o participante VÊ, já composto com o prefixo do transporte")
+    visivel = R.assunto_visivel("Eduardo Ferrari")
+    print(f"      {visivel}")
+    # A duplicação nascia da COMPOSIÇÃO: a parte de cima sozinha parecia certa, e o Gmail mostrava
+    # "Bolão do Ferrari - Bolão do Ferrari — …". Testar só `monta_assunto` deixaria isso passar.
+    checa("VISIBLE_SUBJECT_BOLAO_DO_FERRARI_OCCURRENCES = 1",
+          visivel.count("Bolão do Ferrari") == 1,
+          f"ocorrências={visivel.count('Bolão do Ferrari')} em {visivel!r}")
+    checa("a parte enviada NÃO assina a marca",
+          "Bolão do Ferrari" not in R.monta_assunto("Eduardo Ferrari"))
+    for parte in ("Bolão do Ferrari", "Comprovante", "CDB 2026", "Eduardo Ferrari"):
+        checa(f"assunto visível contém '{parte}'", parte in visivel)
+    checa("assunto NÃO é o genérico antigo", "Palpites salvos" not in visivel)
+    checa("assunto visível cabe na prévia do Gmail (<= 90 chars)", len(visivel) <= 90,
+          f"len={len(visivel)}")
 
     # ═══ 10. RESPONSIVO ══════════════════════════════════════════════════════════════════════
     print("\n10. renderização em telefone")
@@ -218,12 +240,13 @@ def main():
 
     C.set_transport(_falso)
     ok, detalhe, msg = C.envia("<redacted>", R.monta_assunto("X"), html)
+    # O que segue para o provedor não pode conter a marca — o template dele a prefixa.
     checa("envia() não levanta e reporta sucesso", ok is True, f"{detalhe}")
     corpo_json = json.loads(capturado.get("body", b"{}").decode())
     tp = corpo_json.get("template_params", {})
     checa("o assunto vai nos campos que o template usa",
-          "Comprovante de palpites" in (tp.get("entry_name") or "")
-          and "Comprovante de palpites" in (tp.get("receipt_code") or ""),
+          "Comprovante CDB 2026" in (tp.get("entry_name") or "")
+          and "Comprovante CDB 2026" in (tp.get("receipt_code") or ""),
           json.dumps({k: v for k, v in tp.items() if k != "html_message"}, ensure_ascii=False))
     checa("o corpo do e-mail é o recibo", "🏆 CAMPEÃO" in (tp.get("html_message") or ""))
     checa("nenhum campo extra além dos quatro esperados",
