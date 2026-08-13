@@ -203,6 +203,32 @@ def main():
           not re.search(r"(?<!max-)width:\s*[3-9]\d\dpx", html))
     checa("sem imagem remota (bloqueada por cliente de e-mail)", "<img" not in html)
 
+    # ═══ 11. O CAMINHO DE ENVIO ACEITA O QUE O RENDERIZADOR PRODUZ ═══════════════════════════
+    print("\n11. envia() aceita (endereço, assunto, corpo) — transporte falso")
+    # A primeira tentativa real morreu com NameError DENTRO de `envia`, montando o corpo da
+    # requisição: a renomeação do parâmetro tinha ficado pela metade. Nenhum teste chamava esse
+    # caminho, então 40 verificações passaram com o remetente quebrado. Agora chamam.
+    sys.path.insert(0, str(AQUI))
+    import send_entry_saved_confirmation as C
+    capturado = {}
+
+    def _falso(url, body, headers):
+        capturado["body"] = body
+        return 200, "fake"
+
+    C.set_transport(_falso)
+    ok, detalhe, msg = C.envia("ninguem@exemplo.invalido", R.monta_assunto("X"), html)
+    checa("envia() não levanta e reporta sucesso", ok is True, f"{detalhe}")
+    corpo_json = json.loads(capturado.get("body", b"{}").decode())
+    tp = corpo_json.get("template_params", {})
+    checa("o assunto vai nos campos que o template usa",
+          "Comprovante de palpites" in (tp.get("entry_name") or "")
+          and "Comprovante de palpites" in (tp.get("receipt_code") or ""),
+          json.dumps({k: v for k, v in tp.items() if k != "html_message"}, ensure_ascii=False))
+    checa("o corpo do e-mail é o recibo", "🏆 CAMPEÃO" in (tp.get("html_message") or ""))
+    checa("nenhum campo extra além dos quatro esperados",
+          set(tp) == {"to_email", "entry_name", "receipt_code", "html_message"}, str(set(tp)))
+
     print("\n" + "=" * 78)
     if falhas:
         print(f"FALHOU — {len(falhas)}: {falhas}")

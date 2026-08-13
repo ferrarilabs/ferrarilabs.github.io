@@ -141,7 +141,12 @@ def main():
             return 1
 
         # ── Reserva na família de TESTE, com bypass justificado ─────────────────────────────
-        chave = f"{FAMILIA_TESTE}:{versao}:v1"
+        #
+        # v2: a tentativa v1 reservou e MORREU antes de qualquer chamada ao provedor (NameError
+        # ao montar o corpo da requisição — nenhum e-mail saiu). A reserva v1 fica no banco como
+        # registro honesto daquela tentativa; a unicidade é por chave, então a retentativa precisa
+        # de chave nova em vez de apagar o rastro da anterior.
+        chave = f"{FAMILIA_TESTE}:{versao}:v2"
         rr = m8m9._rpc("reserve_delivery", {
             "p_app": APP, "p_business_key": chave, "p_recipient": addr, "p_generation": 1,
             "p_family": FAMILIA_TESTE,
