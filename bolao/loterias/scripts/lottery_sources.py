@@ -405,11 +405,27 @@ def jackpot_oficial(jogo, fetcher=None, agora=None):
     return {"game": jogo, "fetchedAt": _agora(), **bruto}
 
 
-def _do_ny_open_data(texto, jogo):
+def _do_ny_open_data(texto, jogo, draw_date=None):
+    """
+    Escolhe a linha do sorteio PEDIDO, não a mais recente.
+
+    As oficiais publicam um sorteio de cada vez — a página mostra o último, e pedir um anterior
+    devolve o último de novo (recusado corretamente por `RESULTADO_DESATUALIZADO`). O NY Open Data
+    é diferente: devolve uma LISTA. Ler sempre `linhas[0]` jogava fora exatamente a propriedade
+    que faz dele um conjunto de auditoria — o histórico — e tornava impossível recuperar um
+    sorteio antigo que tivesse escapado da coleta.
+    """
     linhas = json.loads(texto)
     if not linhas:
         raise ResultadoInvalido("NY Open Data devolveu lista vazia")
     linha = linhas[0]
+    if draw_date:
+        alvo = [l for l in linhas if str(l.get("draw_date", ""))[:10] == str(draw_date)]
+        if not alvo:
+            raise ResultadoInvalido(
+                f"NY Open Data não trouxe {draw_date} nas {len(linhas)} linhas consultadas "
+                f"(mais recente: {str(linhas[0].get('draw_date', ''))[:10]})")
+        linha = alvo[0]
     partes = str(linha.get("winning_numbers", "")).split()
     if len(partes) < 6 and jogo == "powerball":
         raise ResultadoInvalido(f"winning_numbers incompleto: {linha.get('winning_numbers')!r}")
@@ -442,8 +458,10 @@ def busca(jogo, draw_date, fonte, fetcher=None):
                "megamillions": "https://data.ny.gov/resource/5xaw-6ayf.json"}[jogo]
         # `$order=draw_date DESC` tem espaço, e espaço cru numa URL levanta InvalidURL antes de
         # qualquer rede. Precisa ser codificado.
-        q = urllib.parse.urlencode({"$order": "draw_date DESC", "$limit": 5})
-        bruto = _do_ny_open_data(_http(f"{url}?{q}"), jogo)
+        # `$limit` generoso: a janela de recuperação do coletor é de dias, e o custo de trazer
+        # algumas linhas a mais é zero perto do de não conseguir recuperar um sorteio perdido.
+        q = urllib.parse.urlencode({"$order": "draw_date DESC", "$limit": 30})
+        bruto = _do_ny_open_data(_http(f"{url}?{q}"), jogo, draw_date)
     else:
         raise ResultadoInvalido(f"ADAPTADOR_AUSENTE: {fonte} ainda não tem implementação de rede")
 

@@ -50,6 +50,28 @@ class AtualizadorDeMetadadosEIsolado(unittest.TestCase):
         self.copia = os.path.join(self.tmp, "data.js")
         shutil.copy(DATA_JS, self.copia)
 
+        # A PRECONDIÇÃO É CONSTRUÍDA, NÃO TORCIDA.
+        #
+        # Estes testes precisam de um sorteio ABERTO (sem resultado) porque é nele que o
+        # atualizador de metadados escreve. A versão anterior simplesmente ESPERAVA que o
+        # `data.js` de produção tivesse um — e em 2026-08-13, quando o resultado do sorteio de
+        # 12/08 foi gravado, não havia mais nenhum: a suíte ficou vermelha sem que nada tivesse
+        # regredido. Um teste cuja precondição depende do estado do dia mede o calendário.
+        #
+        # A CÓPIA (nunca o arquivo real) tem o resultado do último sorteio removido, o que
+        # reproduz exatamente a janela que interessa: o sorteio existe, tem participantes, e
+        # ainda não saiu resultado. A estrutura textual do arquivo — que é o que as âncoras do
+        # atualizador percorrem — continua sendo a de produção.
+        if self._sorteio_aberto(le_draws(self.copia)) is None:
+            texto = open(self.copia, encoding="utf-8").read()
+            marca = texto.rindex("    result: {")
+            fim = texto.index("\n    },\n", marca) + len("\n    },\n")
+            texto = texto[:marca] + "    result: null,\n" + texto[fim:]
+            open(self.copia, "w", encoding="utf-8").write(texto)
+            self.assertIsNotNone(
+                self._sorteio_aberto(le_draws(self.copia)),
+                "nao foi possivel construir a precondicao: o formato do data.js mudou")
+
     def tearDown(self):
         shutil.rmtree(self.tmp, ignore_errors=True)
 

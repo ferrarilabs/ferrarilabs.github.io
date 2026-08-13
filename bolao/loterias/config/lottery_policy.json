@@ -155,13 +155,20 @@
     },
     "megamillions": {
       "primary":  { "id": "megamillions_official", "label": "megamillions.com" },
-      "secondary":{ "id": "nc_education_lottery", "label": "NC Education Lottery" }
+      "secondary":{ "id": "nc_education_lottery", "label": "NC Education Lottery" },
+      "fallback": { "id": "ny_open_data", "label": "NY Open Data (auditoria)" }
     },
     "_doc": [
       "A PRIMARIA decide latencia. Assim que ela traz resultado estruturalmente valido para o",
       "sorteio ESPERADO, o pipeline pode calcular e notificar; as demais reconciliam depois.",
       "Antes disso o NY Open Data era quem mandava, e ele publica com atraso — o resultado ficava",
-      "represado por uma fonte que existe para AUDITAR, nao para liberar."
+      "represado por uma fonte que existe para AUDITAR, nao para liberar.",
+      "",
+      "O NY Open Data e fallback nos DOIS jogos, e a ordem e o que o mantem inofensivo para a",
+      "latencia: sendo o ultimo da precedencia, ele so e consultado quando as duas primeiras ja",
+      "falharam. Em compensacao ele e a unica fonte com HISTORICO — as oficiais publicam um",
+      "sorteio de cada vez — e e por isso que a recuperacao de sorteio atrasado funciona.",
+      "Sem ele na Mega Millions, um sorteio que escapasse da coleta ficaria irrecuperavel."
     ]
   }
 }

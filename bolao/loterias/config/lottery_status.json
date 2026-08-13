@@ -1,0 +1,70 @@
+{
+  "generatedAt": "2026-08-13T13:42:35Z",
+  "threshold": {
+    "minJackpotCents": 50000000000,
+    "comparison": "strictly_greater",
+    "basis": "advertised_annuity",
+    "label": "Novo bolão somente quando o jackpot anunciado ultrapassar US$500 milhões."
+  },
+  "games": {
+    "powerball": {
+      "game": "powerball",
+      "label": "Powerball",
+      "advertisedAnnuityCents": 2000000000,
+      "cashValueCents": 870000000,
+      "nextDrawDate": "2026-08-16",
+      "source": "https://www.powerball.com/",
+      "fetchedAt": "2026-08-13T13:42:34Z",
+      "sourceHash": "e0c679909cd2dad3",
+      "eligible": false,
+      "state": "BELOW_THRESHOLD",
+      "error": null
+    },
+    "megamillions": {
+      "game": "megamillions",
+      "label": "Mega Millions",
+      "advertisedAnnuityCents": 9000000000,
+      "cashValueCents": 3870000000,
+      "nextDrawDate": "2026-08-14",
+      "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
+      "fetchedAt": "2026-08-13T13:42:35Z",
+      "sourceHash": "7b2317e378a94945",
+      "eligible": false,
+      "state": "BELOW_THRESHOLD",
+      "error": null
+    }
+  },
+  "nextPool": null,
+  "funds": {
+    "lastDrawWinningsCents": 3800,
+    "lastDrawId": "2026-08-12",
+    "carryoverAvailableCents": 3900,
+    "ledgerEntries": 4
+  },
+  "currentDraw": {
+    "id": "2026-08-12",
+    "lifecycleState": "SETTLED",
+    "reason": "resultado oficial gravado e prêmio creditado",
+    "result": {
+      "numbers": [
+        4,
+        26,
+        66,
+        67,
+        69
+      ],
+      "special": 9,
+      "multiplier": 2,
+      "checkedAt": "13/08/2026 07:46 ET",
+      "premiosGanhos": 38,
+      "jackpotHit": false,
+      "breakdown": [
+        "2x 1 + Powerball",
+        "1x 3 acertos",
+        "1x Powerball"
+      ]
+    }
+  },
+  "autoPurchase": false,
+  "_doc": "Documento gerado; nao editar a mao. A UI e o e-mail leem daqui para que exista UMA resposta para 'ha bolao novo?'. Elegibilidade e ESTRITAMENTE > US$500M sobre a anuidade anunciada do PROXIMO sorteio."
+}
