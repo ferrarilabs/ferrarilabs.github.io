@@ -23,9 +23,11 @@ Não há cliente HTTP de pagamento, não há credencial de compra, não há fun�
 `TICKET_PURCHASE` REGISTRA uma compra que o operador já fez — nunca a executa.
 """
 
-import json
+import fcntl
 import hashlib
-from datetime import date, datetime, timezone
+import json
+import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 # parents[0] de um ARQUIVO é o diretório dele, então a raiz do repo é [3] aqui e
@@ -109,6 +111,20 @@ def assert_matriz_utilizavel(jogo, cfg=None):
             f"MATRIZ_NAO_CONFERIDA: {jogo} — a tabela de prêmios ainda não foi conferida contra "
             f"a fonte oficial ({g.get('matrixSource')}). Monitorar jackpot e abrir bolão seguem "
             f"liberados; CALCULAR PRÊMIO, não.")
+
+    # MULTIPLICADOR EMBUTIDO EXIGE VALOR EXPLÍCITO.
+    #
+    # Na Mega Millions o multiplicador não é multiplicação: 4 acertos paga US$599 na base e
+    # US$1.000 no 2X (599x2 seriam US$1.198), e 1+Mega Ball paga US$4 na base e US$14 no 2X. A
+    # matriz conferida traz cada valor da fonte; esta checagem impede que alguém volte a marcar
+    # `multiplied: true` num jogo desses e reintroduza o cálculo errado sem nenhum teste falhar.
+    if g.get("builtInMultiplier"):
+        faltando = [f["label"] for f in g["prizeMatrix"]
+                    if f.get("baseCents") is not None and not f.get("byMultiplier")]
+        if faltando:
+            raise RuntimeError(
+                f"MATRIZ_SEM_VALOR_EXPLICITO: {jogo} tem multiplicador embutido, então cada faixa "
+                f"precisa dos valores por multiplicador vindos da fonte. Sem eles: {faltando}")
     return g
 
 
@@ -141,9 +157,18 @@ def premio_da_aposta(jogo, aposta, resultado, cfg=None):
             # Powerball: só multiplica se ESTA aposta comprou Power Play.
             mult = int(resultado.get("multiplier") or 1) if aposta.get("hasPowerPlay") else 1
 
+        tabela = faixa.get("byMultiplier") or {}
         if aposta.get("hasPowerPlay") and faixa.get("powerPlayFixedCents") is not None:
             valor = int(faixa["powerPlayFixedCents"])
-        elif faixa["multiplied"]:
+        elif mult > 1 and str(mult) in tabela:
+            # Valor EXPLÍCITO da fonte oficial. Sempre vence a conta — ver o comentário sobre a
+            # Mega Millions em `assert_matriz_utilizavel`.
+            valor = int(tabela[str(mult)])
+        elif mult > 1 and tabela:
+            raise ValueError(
+                f"MULTIPLICADOR_FORA_DA_MATRIZ: {jogo} {faixa['label']} não tem valor oficial "
+                f"para {mult}X (a fonte lista {sorted(tabela)}). Não se inventa o valor.")
+        elif mult > 1 and faixa.get("multiplied"):
             valor = int(faixa["baseCents"]) * mult
         else:
             valor = int(faixa["baseCents"])
@@ -204,17 +229,35 @@ def append_ledger(evento, caminho=None):
         raise ValueError("amountCents precisa ser int (centavos)")
 
     p = Path(caminho or LEDGER)
-    existentes = {e["idempotencyKey"] for e in le_ledger(p)}
-    if evento["idempotencyKey"] in existentes:
-        return False, evento
+    p.parent.mkdir(parents=True, exist_ok=True)
 
     linha = dict(evento)
     linha.setdefault("eventId", hashlib.sha256(
         evento["idempotencyKey"].encode()).hexdigest()[:16])
     linha.setdefault("recordedAt", datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"))
-    p.parent.mkdir(parents=True, exist_ok=True)
-    with p.open("a", encoding="utf-8") as f:
-        f.write(json.dumps(linha, ensure_ascii=False, sort_keys=True) + "\n")
+
+    # ── LER-E-DEPOIS-ESCREVER PRECISA DE TRAVA ──────────────────────────────────────────────
+    #
+    # Conferir a chave e depois acrescentar são duas operações. Entre elas cabe outro processo
+    # inteiro: dois workers reprocessando o mesmo sorteio leem "não existe" ao mesmo tempo, e os
+    # dois acrescentam. O resultado é prêmio creditado em dobro — a chave de idempotência estaria
+    # lá, duplicada, provando que a verificação rodou e não adiantou.
+    #
+    # `flock` fecha a janela: a checagem e o append acontecem sob a mesma trava exclusiva. O
+    # arquivo de trava é separado do livro porque o livro é aberto em modo append por todos, e
+    # travar o próprio alvo embaralha as duas responsabilidades.
+    trava = p.with_suffix(p.suffix + ".lock")
+    with trava.open("a+", encoding="utf-8") as t:
+        fcntl.flock(t.fileno(), fcntl.LOCK_EX)
+        try:
+            if evento["idempotencyKey"] in {e["idempotencyKey"] for e in le_ledger(p)}:
+                return False, evento
+            with p.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(linha, ensure_ascii=False, sort_keys=True) + "\n")
+                f.flush()
+                os.fsync(f.fileno())
+        finally:
+            fcntl.flock(t.fileno(), fcntl.LOCK_UN)
     return True, linha
 
 

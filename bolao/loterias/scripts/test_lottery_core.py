@@ -134,22 +134,60 @@ def main():
     checa("nenhuma faixa depende do multiplicador do SORTEIO",
           all("drawMultiplier" not in f for f in mmg["prizeMatrix"]))
     checa("preço não é o antigo de US$2", mmg["ticketPriceCents"] != 200)
-    # A matriz ainda não conferida BLOQUEIA cálculo de dinheiro — de propósito.
+    # Matriz NÃO conferida bloqueia cálculo de dinheiro — de propósito. A da Mega Millions já foi
+    # conferida contra a fonte (ver `verify_mm_matrix.py`), então o bloqueio se prova baixando a
+    # bandeira numa cópia. Testar com a config real depois de conferida provaria o contrário.
+    cfg_nc = json.loads(json.dumps(CFG))
+    cfg_nc["games"]["megamillions"]["matrixVerified"] = False
     try:
         L.premio_da_aposta("megamillions", {"numbers": [1, 2, 3, 4, 5], "special": 1,
-                                            "multiplier": 5}, r, CFG)
+                                            "multiplier": 5}, r, cfg_nc)
         checa("matriz não conferida bloqueia cálculo", False, "não levantou")
     except RuntimeError as e:
         checa("matriz não conferida bloqueia cálculo", "MATRIZ_NAO_CONFERIDA" in str(e))
-    # Com a bandeira virada, o multiplicador vem da APOSTA (não do sorteio).
-    cfg2 = json.loads(json.dumps(CFG))
-    cfg2["games"]["megamillions"]["matrixVerified"] = True
+
+    # ── O MULTIPLICADOR DA MEGA MILLIONS NÃO É MULTIPLICAÇÃO ────────────────────────────────
+    #
+    # Estas três asserções valiam US$10 e US$20 antes de 2026-08-13, porque assumiam
+    # `base x fator`. A fonte oficial paga US$25 e US$50. O teste concordava com o código e os
+    # dois estavam errados juntos — que é exatamente o "fixture encoding the same bug": uma
+    # suíte verde não é prova quando a expectativa saiu da mesma cabeça que a implementação.
+    #
+    # Agora os números vêm da matriz publicada pela loteria, e `verify_mm_matrix.py` reconfere
+    # essa matriz contra o endpoint oficial. A expectativa tem procedência externa.
     so_mb = {"numbers": [60, 61, 62, 63, 64], "special": 9, "multiplier": 5}
-    checa("0+MB com multiplicador 5X da aposta = US$10",
-          L.premio_da_aposta("megamillions", so_mb, r, cfg2)["amountCents"] == 1000)
+    checa("0+MB com 5X da aposta = US$25 (oficial), não US$10 (2x5)",
+          L.premio_da_aposta("megamillions", so_mb, r, CFG)["amountCents"] == 2500)
     so_mb10 = dict(so_mb, multiplier=10)
-    checa("o multiplicador é da APOSTA, não do sorteio (10X = US$20)",
-          L.premio_da_aposta("megamillions", so_mb10, r, cfg2)["amountCents"] == 2000)
+    checa("0+MB com 10X da aposta = US$50 (oficial), não US$20 (2x10)",
+          L.premio_da_aposta("megamillions", so_mb10, r, CFG)["amountCents"] == 5000)
+    checa("0+MB sem multiplicador = base US$2",
+          L.premio_da_aposta("megamillions", dict(so_mb, multiplier=1),
+                             r, CFG)["amountCents"] == 200)
+    # O multiplicador é da APOSTA: o do SORTEIO não entra num jogo de multiplicador embutido.
+    checa("multiplicador do SORTEIO é ignorado na Mega Millions",
+          L.premio_da_aposta("megamillions", dict(so_mb, multiplier=1),
+                             dict(r, multiplier=10), CFG)["amountCents"] == 200)
+
+    # Faixa que a fonte não lista: não se inventa o valor.
+    try:
+        L.premio_da_aposta("megamillions", dict(so_mb, multiplier=7), r, CFG)
+        checa("multiplicador fora da matriz é recusado", False, "não levantou")
+    except ValueError as e:
+        checa("multiplicador fora da matriz é recusado", "MULTIPLICADOR_FORA_DA_MATRIZ" in str(e))
+
+    # MUTAÇÃO: voltar a Mega Millions para o modelo `base x fator` tem de ficar VERMELHO.
+    cfg_mut = json.loads(json.dumps(CFG))
+    for faixa in cfg_mut["games"]["megamillions"]["prizeMatrix"]:
+        faixa.pop("byMultiplier", None)
+        if faixa.get("baseCents") is not None:
+            faixa["multiplied"] = True
+    try:
+        L.premio_da_aposta("megamillions", so_mb, r, cfg_mut)
+        checa("MUTAÇÃO: matriz sem valor explícito é recusada", False, "não levantou")
+    except RuntimeError as e:
+        checa("MUTAÇÃO: matriz sem valor explícito é recusada",
+              "MATRIZ_SEM_VALOR_EXPLICITO" in str(e))
 
     # ═══ FONTES ══════════════════════════════════════════════════════════════════════════════
     print("\n6. fontes: primária manda, obsoleto é recusado")

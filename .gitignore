@@ -22,3 +22,6 @@ supabase/.temp/
 # Foi comitado por engano em 7d17dc0 por um `git add -A`; removido do indice e ignorado
 # para que um staging normal nao volte a inclui-lo. O arquivo local permanece intacto.
 AGENTS.md
+
+# Trava do livro-razao das loterias: artefato local de `flock`, nunca conteudo.
+bolao/loterias/config/*.jsonl.lock

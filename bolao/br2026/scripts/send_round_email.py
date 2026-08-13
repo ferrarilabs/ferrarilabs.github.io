@@ -48,6 +48,7 @@ from datetime import datetime, timezone, timedelta
 sys.path.insert(0, __file__.rsplit("/", 1)[0])
 sys.path.insert(0, os.path.join(__file__.rsplit("/", 1)[0], "..", "..", "shared", "scripts"))
 import audit_scoring  # same directory — score_entry() mirrors app.js scoreEntry()
+import subject_policy as _subject_policy  # politica UNICA de icone de assunto (shared/scripts)
 
 # ── CAMINHO CANONICO (F1/F2/F6) ────────────────────────────────────────────────────────────────
 # A janela rolante deixou de decidir elegibilidade. Quem decide agora:
@@ -876,7 +877,9 @@ def _process_round(cand, manifest, all_obs, state, ledger, dry_run):
     ini = datetime.fromisoformat(round_def["dateRangeUtc"][0])
     fim = datetime.fromisoformat(round_def["dateRangeUtc"][1])
     window_label = _fmt_date_range(ini, fim)
-    assunto = f"Rodada {_fmt_date_range_subject(ini, fim)} — resultados e classificação"
+    assunto = _subject_policy.assunto(
+        "FUTEBOL_RESULTADO_RODADA",
+        f"Rodada {_fmt_date_range_subject(ini, fim)} — resultados e classificação")
 
     provider_calls = aceitos = falhados = incertos = 0
     print(f"  R{n}: enviando para {len(alvos)} destinatario(s) "

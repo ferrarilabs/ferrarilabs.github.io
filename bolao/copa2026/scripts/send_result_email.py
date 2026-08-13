@@ -22,6 +22,9 @@ Usage:
 
 import json
 import os, re, sys, time, urllib.request
+from pathlib import Path as _Path
+sys.path.insert(0, str(_Path(__file__).resolve().parents[2] / "shared" / "scripts"))
+import subject_policy as _subject_policy  # politica UNICA de icone de assunto
 from datetime import datetime, timezone, timedelta
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -1281,7 +1284,9 @@ def main():
     last_mid = sorted(results.keys(), key=int)[-1]
     r        = results[last_mid]
     tA, tB   = _real_teams(last_mid, results)
-    subject  = f"Resultado Parcial — M{last_mid}: {tA} {r['goalsA']}–{r['goalsB']} {tB}"
+    subject  = _subject_policy.assunto(
+        "FUTEBOL_RESULTADO_PARCIAL",
+        f"Resultado Parcial — M{last_mid}: {tA} {r['goalsA']}–{r['goalsB']} {tB}")
     html     = build_html(state)
 
     print(f"Completed matches: {sorted(results.keys(), key=int)}")

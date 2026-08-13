@@ -44,6 +44,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import audit_scoring  # match_points(), score_entry(), MATCH_SCORING, TIE_BONUS, PODIUM_BONUS
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "shared" / "scripts"))
+import subject_policy as _subject_policy  # politica UNICA de icone de assunto
 
 # ── Config — mirrors bolao/cdb2026/js/config.js exactly ───────────────────────
 SUPABASE_URL   = "https://cmhqkkfczotdnssupkni.supabase.co"
@@ -1065,7 +1067,19 @@ def main():
     phase_id, tie_id, leg = latest
     tie = state["phases"][phase_id]["ties"][tie_id]
     html = build_html(state, phase_id, tie_id, leg, tie_just_decided=bool(tie.get("qualifiedTeamId")))
-    subject = f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}"
+    # O 🏆 é reservado ao e-mail que ANUNCIA O CAMPEÃO — e só ele. Na Copa do Brasil isso é
+    # exatamente uma coisa: a fase `final` com o confronto já decidido. Resultado de qualquer
+    # outra fase, inclusive a semifinal, é ⚽. Ver `bolao/shared/scripts/subject_policy.py`.
+    e_o_campeao = phase_id == "final" and bool(tie.get("qualifiedTeamId"))
+    if e_o_campeao:
+        campeao = tie["teamA"] if tie["qualifiedTeamId"] == "A" else tie["teamB"]
+        subject = _subject_policy.assunto(
+            "FUTEBOL_RESULTADO_FINAL_CAMPEAO",
+            f"Resultado final — Copa do Brasil 2026: {campeao} campeão")
+    else:
+        subject = _subject_policy.assunto(
+            "FUTEBOL_RESULTADO_PARCIAL",
+            f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}")
     sent, errors = _send_to_all(state, html, subject)
     print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors")
     for err in errors:
