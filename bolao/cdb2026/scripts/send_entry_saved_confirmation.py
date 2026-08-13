@@ -70,8 +70,24 @@ sys.path.insert(0, str(RAIZ / "bolao" / "shared" / "scripts"))
 
 import m8m9  # noqa: E402
 
-EVENT_TYPE   = "cdb2026.entry_saved_confirmation"
-BUSINESS_KEY = "cdb2026:entry-saved-confirmation:v1"
+EVENT_TYPE = "cdb2026.entry_saved_confirmation"
+
+# ── A CHAVE DE NEGOCIO CARREGA A VERSAO GRAVADA ──────────────────────────────────────────────
+#
+# Era constante (`cdb2026:entry-saved-confirmation:v1`). Constante significa que a PRIMEIRA
+# entrega aceita bloqueia todas as futuras com JA_ENTREGUE -- o participante corrige um palpite
+# semanas depois e nunca mais recebe recibo. Um comprovante confirma um ESTADO GRAVADO; estados
+# diferentes sao entregas diferentes.
+#
+# FAMILY e o que agrupa as versoes. O disjuntor de 45 minutos compara familia, entao dois
+# comprovantes de dois estados distintos nao se acusam de anomalia -- enquanto convite seguido de
+# correcao, que sao familias diferentes, continuam se acusando. Era o padrao de 2026-08-12.
+FAMILY = "cdb2026:entry-saved-confirmation"
+
+
+def business_key(versao):
+    """Identidade de entrega da VERSAO. `versao` e o hash canonico vindo do evento."""
+    return f"{FAMILY}:{versao}:v1"
 
 # ── SEPARAÇÃO CANÁRIO / PRODUÇÃO ─────────────────────────────────────────────────────────────
 #
@@ -231,9 +247,21 @@ def processa_um(lease_owner, verbose=True):
         addr = linha["recipient"]
         entry_name = linha.get("entry_name") or "sua entrada"
 
-        # ── Reserva: unicidade + disjuntor de 45 min, ambos no banco ────────────────────────
+        # ── Reserva: unicidade POR VERSAO + disjuntor por familia, ambos no banco ───────────
+        #
+        # Sem `picksVersion` o evento veio de um produtor antigo. Recusar em vez de inventar uma
+        # versao: chave chutada aqui poderia colidir com a de outro estado e suprimir um recibo
+        # legitimo, ou nao colidir com nada e reenviar um ja entregue.
+        versao = (ev.get("payload") or {}).get("picksVersion")
+        if not versao:
+            m8m9.settle(eid, "permanent_failure", failure_category="payload_sem_picks_version")
+            if verbose:
+                print("  SEM_VERSAO no payload — nenhuma chamada ao provedor")
+            return "SEM_VERSAO", 0
+
         rr = m8m9._rpc("reserve_delivery", {
-            "p_app": APP, "p_business_key": BUSINESS_KEY, "p_recipient": addr, "p_generation": 1,
+            "p_app": APP, "p_business_key": business_key(versao), "p_recipient": addr,
+            "p_generation": 1, "p_family": FAMILY,
         })
         reserva = rr[0] if rr else {}
         if not reserva.get("reserved"):
@@ -313,7 +341,7 @@ def main():
 
     if args.status:
         n = m8m9._rpc("cdb_confirmation_allowance_count", {})
-        c = m8m9._rpc("delivery_count", {"p_app": APP, "p_business_key": BUSINESS_KEY})
+        c = m8m9._rpc("delivery_count_family", {"p_app": APP, "p_family": FAMILY})
         print(f"permissoes_abertas = {n}")
         print(f"entregas           = {c[0] if c else '(nenhuma)'}")
         print(f"kill_switch        = {'ATIVO' if KILL_SWITCH.exists() else 'inativo'}")
