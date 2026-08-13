@@ -1,0 +1,62 @@
+name: Loterias — estado de produção (leitura; reparo sob demanda)
+
+# Roda SÓ sob demanda. A credencial de serviço vive aqui, não na máquina de ninguém, então esta é
+# a única forma de olhar o estado real sem copiar segredo para fora.
+#
+# `repair=false` (padrão) é ESTRITAMENTE leitura. `repair=true` fecha uma obrigação do outbox que
+# ficou órfã — e só quando o ledger por destinatário já prova que a entrega aconteceu.
+#
+# NENHUM caminho deste workflow envia e-mail: `inspect_production_state.py` não importa o
+# remetente, e o passo abaixo afirma isso de novo com uma varredura, porque "não envia" é o tipo
+# de garantia que envelhece mal quando alguém adiciona um import.
+
+on:
+  workflow_dispatch:
+    inputs:
+      draw:
+        description: 'Sorteio (YYYY-MM-DD)'
+        required: false
+        default: '2026-08-12'
+      repair:
+        description: 'Fechar obrigação órfã do outbox (nunca envia e-mail)'
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  estado:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Prova de que este caminho nao envia e-mail
+        run: |
+          set -euo pipefail
+          F=bolao/loterias/powerball/scripts/inspect_production_state.py
+          if grep -nE '^\s*(import|from)\s+send_result_email' "$F"; then
+            echo "::error::o inspetor importa o remetente — este workflow deixaria de ser seguro"
+            exit 1
+          fi
+          if grep -nE 'emailjs|api\.emailjs\.com' "$F"; then
+            echo "::error::o inspetor referencia o provedor de e-mail"
+            exit 1
+          fi
+          echo "OK: nenhum caminho de envio no inspetor"
+
+      - name: Estado de producao
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          python3 bolao/loterias/powerball/scripts/inspect_production_state.py \
+            --draw "${{ inputs.draw }}" \
+            ${{ inputs.repair && '--repair' || '' }}
