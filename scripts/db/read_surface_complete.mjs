@@ -73,11 +73,16 @@ const isoMs = (col) => `to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI
  * as STRINGS, and `...887Z` sorts BEFORE `...887256Z`. A returning browser holding the microsecond
  * value would judge its own stale copy newer than the server's and keep it.
  *
- * So the precision is reproduced rather than normalized: microseconds when the stored value has
- * them, milliseconds when it does not. The test is on the value, never on the product — a
+ * A THIRD spelling arrived with the write mirror: cdb_save_my_picks stamps whole seconds
+ * (`...14Z`, no fractional part at all), so `.000Z` would be wrong for every runtime save.
+ *
+ * So the precision is reproduced rather than normalized: whole seconds, milliseconds or
+ * microseconds, whichever the stored instant actually carries. The test is on the value, never on the product — a
  * per-product rule would be right today and wrong the first time someone saves.
  */
-const isoExact = (col) => `CASE WHEN date_part('microseconds', ${col})::bigint % 1000 = 0
+const isoExact = (col) => `CASE WHEN date_part('microseconds', ${col})::bigint = 0
+                                THEN to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', ${col})::bigint % 1000 = 0
                                 THEN to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(${col} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END`;
 

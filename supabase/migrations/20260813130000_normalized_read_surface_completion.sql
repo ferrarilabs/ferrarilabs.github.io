@@ -171,7 +171,9 @@ SELECT CASE p_pool_slug
             jsonb_build_object(
               'id',        pe.legacy_entry_id,
               'entryName', pe.display_label,
-              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
+              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint = 0
+                                THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END,
               'picks',     jsonb_build_object(
@@ -196,7 +198,9 @@ SELECT CASE p_pool_slug
             )
             )
             || CASE WHEN pe.content_updated_at IS NOT NULL
-                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
+                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint = 0
+                                THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END) ELSE '{}'::jsonb END
             -- Only the demo flag. The rest of the legacy diagnostics object is forensic device
@@ -236,7 +240,9 @@ SELECT CASE p_pool_slug
             jsonb_build_object(
               'id',        pe.legacy_entry_id,
               'entryName', pe.display_label,
-              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
+              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint = 0
+                                THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END,
               'picks',     (
@@ -248,7 +254,9 @@ SELECT CASE p_pool_slug
             )
             )
             || CASE WHEN pe.content_updated_at IS NOT NULL
-                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
+                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint = 0
+                                THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END) ELSE '{}'::jsonb END
             -- Only the demo flag. The rest of the legacy diagnostics object is forensic device
@@ -287,7 +295,9 @@ SELECT CASE p_pool_slug
             jsonb_build_object(
               'id',        pe.legacy_entry_id,
               'entryName', pe.display_label,
-              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
+              'createdAt', CASE WHEN date_part('microseconds', pe.submitted_at)::bigint = 0
+                                THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', pe.submitted_at)::bigint % 1000 = 0
                                 THEN to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(pe.submitted_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END,
               'picks',     (
@@ -304,7 +314,9 @@ SELECT CASE p_pool_slug
             )
             )
             || CASE WHEN pe.content_updated_at IS NOT NULL
-                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
+                    THEN jsonb_build_object('updatedAt', CASE WHEN date_part('microseconds', pe.content_updated_at)::bigint = 0
+                                THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"')
+                                WHEN date_part('microseconds', pe.content_updated_at)::bigint % 1000 = 0
                                 THEN to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')
                                 ELSE to_char(pe.content_updated_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') END) ELSE '{}'::jsonb END
             -- Only the demo flag. The rest of the legacy diagnostics object is forensic device
