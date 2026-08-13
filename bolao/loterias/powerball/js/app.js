@@ -787,11 +787,109 @@
     return indexForDrawId(id);
   }
 
+  // ══ ESTADO DAS LOTERIAS ═══════════════════════════════════════════════════════════════════
+  //
+  // A página LÊ a decisão; não a toma. `lottery_status.json` é gerado por
+  // bolao/loterias/scripts/lottery_status.py a partir da política em lottery_policy.json e das
+  // fontes oficiais. Se esta função recalculasse elegibilidade em JavaScript, existiriam duas
+  // implementações da regra de US$500M — e a divergência entre elas apareceria como o site
+  // dizendo uma coisa e o e-mail dizendo outra, que é exatamente o defeito que a matriz da Mega
+  // Millions ensinou a não repetir.
+  var LOT_STATUS_URL = "../config/lottery_status.json";
+
+  function lotDinheiro(cents) {
+    return cents == null ? "—" : fmtUsdCompact(cents / 100);
+  }
+
+  function lotCartaoJogo(g) {
+    var cls = g.game === "powerball" ? "powerball" : "megamillions";
+    var badge, texto;
+    if (g.error) {
+      // NÃO MEDIDO ≠ NÃO QUALIFICA. Tratar os dois como o mesmo estado esconderia uma fonte fora
+      // do ar atrás de uma afirmação tranquilizadora sobre o jackpot.
+      badge = "unknown"; texto = "não medido";
+    } else if (g.eligible) {
+      badge = "eligible"; texto = "acima do limiar";
+    } else {
+      badge = "below"; texto = "abaixo do limiar";
+    }
+    return '<div class="lot-game lot-game--' + cls + '">'
+      + '<div class="lot-game__name"><span class="lot-dot lot-dot--' + cls + '"></span>'
+      + esc(g.label) + '</div>'
+      + '<div class="lot-game__jackpot">' + esc(lotDinheiro(g.advertisedAnnuityCents)) + '</div>'
+      + '<div class="lot-game__meta">'
+      + (g.error
+          ? 'Fonte oficial indisponível nesta leitura.'
+          : 'Cash value ' + esc(lotDinheiro(g.cashValueCents))
+            + '<br>Próximo sorteio ' + esc(g.nextDrawDate || "—"))
+      + '</div>'
+      + '<span class="lot-badge lot-badge--' + badge + '">' + esc(texto) + '</span>'
+      + '</div>';
+  }
+
+  function renderLotteryStatus(doc) {
+    var sec = document.getElementById("lotStatus");
+    if (!sec || !doc || !doc.games) return;
+
+    document.getElementById("lotRule").textContent = doc.threshold.label;
+
+    var ordem = ["powerball", "megamillions"];
+    var cartoes = [];
+    for (var i = 0; i < ordem.length; i++) {
+      if (doc.games[ordem[i]]) cartoes.push(lotCartaoJogo(doc.games[ordem[i]]));
+    }
+    document.getElementById("lotGames").innerHTML = cartoes.join("");
+
+    var next = document.getElementById("lotNext");
+    if (doc.nextPool) {
+      next.className = "lot-next";
+      next.innerHTML = '<div class="lot-next__label">Próximo bolão</div>'
+        + '<div class="lot-next__value">' + esc(doc.nextPool.label) + ' — '
+        + esc(lotDinheiro(doc.nextPool.jackpotCents))
+        + ' <small>(sorteio ' + esc(doc.nextPool.drawDate) + ')</small></div>';
+    } else {
+      next.className = "lot-next lot-next--none";
+      next.innerHTML = '<div class="lot-next__label">Próximo bolão</div>'
+        + '<div class="lot-next__value">NENHUM — nenhum jackpot ultrapassa o limiar.'
+        + ' O saldo fica guardado até que um deles passe.</div>';
+    }
+
+    // Markup IDÊNTICO ao de renderSummary(): `.pb-summary-item > .v + .l`. A primeira versão
+    // desta linha inventou `.pb-summary-label`/`.pb-summary-value`, que não existem no CSS — os
+    // dois blocos de dinheiro da mesma página teriam saído com aparências diferentes. Reusar o
+    // componente é reusar o MARKUP dele, não só o nome da grade.
+    var f = doc.funds || {};
+    var itens = [
+      [esc(lotDinheiro(f.lastDrawWinningsCents)), "Prêmio do último sorteio"],
+      [esc(lotDinheiro(f.carryoverAvailableCents)), "Saldo disponível"]
+    ];
+    document.getElementById("lotFunds").innerHTML = itens.map(function (row) {
+      return '<div class="pb-summary-item"><div class="v">' + row[0]
+        + '</div><div class="l">' + row[1] + "</div></div>";
+    }).join("");
+
+    document.getElementById("lotFoot").textContent =
+      "Jackpots lidos das fontes oficiais em " + (doc.generatedAt || "—")
+      + ". A compra de bilhete continua sendo decisão do organizador — nada é comprado "
+      + "automaticamente.";
+    sec.hidden = false;
+  }
+
+  function carregaLotteryStatus() {
+    // Falha de rede deixa a seção OCULTA em vez de mostrar zeros. Um painel de dinheiro exibindo
+    // US$ 0,00 porque o fetch caiu é pior que painel nenhum: afirma um saldo.
+    fetch(LOT_STATUS_URL, {cache: "no-store"})
+      .then(function (r) { return r.ok ? r.json() : null; })
+      .then(function (doc) { if (doc) renderLotteryStatus(doc); })
+      .catch(function () { /* seção permanece oculta; nada a afirmar sem o documento */ });
+  }
+
   document.addEventListener("DOMContentLoaded", function () {
     var deepLinked = deepLinkedIndex();
     if (deepLinked !== -1) currentIdx = deepLinked;
     renderDrawSelector();
     renderDraw(currentIdx);
+    carregaLotteryStatus();
 
     // O <select> nativo não existe mais (Batch 6). O combo customizado registra os próprios
     // handlers em wireDrawCombo(), chamado uma única vez por buildDrawCombo().

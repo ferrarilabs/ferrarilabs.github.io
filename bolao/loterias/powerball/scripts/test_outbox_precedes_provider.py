@@ -81,6 +81,29 @@ class PonteEspia:
     def claim(self, *a, **kw):
         return {"outbox_event_id": "evt"}
 
+    # A REIVINDICAÇÃO FAZ PARTE DO CONTRATO — e este dublê não a tinha.
+    #
+    # Até 2026-08-13 esta classe não implementava `claim_outbox`, e o ciclo ENGOLIA o
+    # AttributeError e seguia para o provedor. O teste passava verde por causa do mesmo defeito
+    # que derrubou a run 31679185588: a falha de reivindicação não impedia nada.
+    #
+    # Agora a reivindicação é um portão, então o dublê precisa modelá-la — e registra a ordem,
+    # para que o teste passe a provar também que ela vem ANTES do provedor. Sem lease, dois
+    # workers processam a mesma obrigação e nenhum consegue encerrá-la.
+    def claim_outbox(self, evento_id, lease_seconds=900):
+        self.ordem.append("claim")
+        return {"outbox_event_id": evento_id}
+
+    def claim_outbox_por_chave(self, chave, lease_seconds=900):
+        self.ordem.append("claim")
+        return {"outbox_event_id": "evt"}
+
+    def status_outbox(self, chave):
+        return {"status": "pending", "attempt_count": 0, "dead_at": None}
+
+    def recupera_leases(self):
+        return None
+
 
 def cenario(aceitos, falhos=(), incertos=(), status_final=None, recusa_transporte=False):
     """Monta um ciclo completo com ledger e transporte falsos."""
@@ -160,9 +183,54 @@ def ordem_correta():
     assert ponte.ordem.index("outbox") < ponte.ordem.index("provider"), (
         f"provedor foi chamado ANTES de a obrigação existir: {ponte.ordem}. Uma queda nesse "
         "intervalo deixa gente avisada sem registro de que a obrigação foi cumprida")
+    # A REIVINDICAÇÃO também precede o provedor. `emit` cria a linha em `pending`, e o banco só
+    # liquida `in_flight`: enviar sem reivindicar produz entrega que ninguém consegue fechar —
+    # foi literalmente a run 31679185588, com 16 e-mails entregues e a obrigação presa.
+    assert "claim" in ponte.ordem, f"nada foi reivindicado: {ponte.ordem}"
+    assert ponte.ordem.index("claim") < ponte.ordem.index("provider"), (
+        f"provedor foi chamado sem lease: {ponte.ordem}")
 
 
 test("emit_outbox precede o provedor", ordem_correta)
+
+
+def sem_reivindicacao_nao_envia():
+    """Reivindicação impossível => ZERO chamadas ao provedor. O portão, não o registro."""
+    class PonteQueNaoReivindica(PonteEspia):
+        def claim_outbox(self, evento_id, lease_seconds=900):
+            self.ordem.append("claim-falhou")
+            raise RuntimeError("banco fora do ar no claim")
+
+    ponte = PonteQueNaoReivindica()
+
+    def transporte(game_type, refs):
+        ponte.ordem.append("provider")
+        return {"accepted": list(refs), "failed": [], "uncertain": [], "providerInvoked": True}
+
+    class LedgerMinimo:
+        SENT = "sent"
+        R_SENDING, R_ACCEPTED, R_FAILED, R_UNCERTAIN = "s", "a", "f", "u"
+        def ledger_available(self): return True, "ok"
+        def get_job(self, d): return None
+        def requires_manual_action(self, d): return False
+        def check_content_immutability(self, *a): return True, "ok"
+        def ensure_job(self, *a): pass
+        def claim(self, d, w): return True
+        def retryable_recipients(self, d): return ["a", "b"]
+        def record_recipient(self, *a): pass
+        def settle(self, d): return {"status": "sent", "reason": None}
+        def draw_key(self, d): return f"powerball:draw-result:{d}:v1"
+
+    deps = F.Deps(ledger=LedgerMinimo(), send_email=transporte,
+                  resolve_recipients=lambda d: ["a", "b"], bridge=ponte)
+    rel = F.run_lifecycle("powerball", dry_run=False, deps=deps)
+    assert "provider" not in ponte.ordem, (
+        f"enviou sem lease: {ponte.ordem} — é a run 31679185588 de novo")
+    assert rel.get("providerCalls") == 0, f"providerCalls={rel.get('providerCalls')}"
+    assert rel.get("notificationState") == "OUTBOX_CLAIM_FALHOU", rel.get("notificationState")
+
+
+test("sem reivindicação, o provedor NÃO é tocado", sem_reivindicacao_nao_envia)
 
 
 def liquida_depois():

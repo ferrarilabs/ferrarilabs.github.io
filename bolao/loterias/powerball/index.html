@@ -86,6 +86,21 @@ if ('serviceWorker' in navigator) {
     </div>
   </section>
 
+  <!-- ESTADO DAS LOTERIAS — a regra de negócio que o participante precisa entender.
+       Alimentado por config/lottery_status.json, gerado por bolao/loterias/scripts/lottery_status.py.
+       A página NÃO recalcula elegibilidade: duas telas decidindo "tem bolão novo?" por conta
+       própria é como se cria divergência entre o que o site diz e o que o sistema faz. -->
+  <section class="card lot-status" id="lotStatus" hidden>
+    <h2 class="section-title">Próximo bolão</h2>
+    <p class="lot-rule" id="lotRule">
+      Novo bolão somente quando o jackpot anunciado ultrapassar US$ 500 milhões.
+    </p>
+    <div class="lot-games" id="lotGames"></div>
+    <div class="lot-next" id="lotNext"></div>
+    <div class="pb-summary-grid lot-funds" id="lotFunds"></div>
+    <p class="pb-pending lot-foot" id="lotFoot"></p>
+  </section>
+
   <section class="card">
     <h2 class="section-title">Resumo financeiro</h2>
     <div class="pb-summary-grid" id="pbSummary"></div>

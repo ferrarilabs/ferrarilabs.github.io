@@ -1,0 +1,105 @@
+name: Loterias — coleta de resultado e estado (Powerball + Mega Millions)
+
+# COLETA IDEMPOTENTE. Este workflow nao envia e-mail, nao credita premio e nao compra nada:
+# registra o que a fonte oficial publicou e recalcula o estado do ciclo (jackpots, elegibilidade,
+# saldo) que a pagina le.
+#
+# ─── POR QUE TANTOS HORARIOS ─────────────────────────────────────────────────────────────────
+#
+# O agendador do GitHub Actions NAO garante horario: sob carga, uma janela agendada simplesmente
+# nao dispara. E o resultado oficial nem sempre sai na janela da noite — em 2026-08-10 saiu depois.
+#
+# Por isso a corretude nao depende de nenhuma execucao especifica. `poll_results.py` responde
+# sempre a mesma pergunta ("ha sorteio recente sem resultado registrado?") olhando uma janela de
+# 10 dias. Rodar cedo demais nao faz nada; rodar tarde RECUPERA; rodar dez vezes registra uma vez.
+# Slot perdido vira ATRASO, nunca perda.
+#
+# Powerball sorteia segunda/quarta/sabado 22:59 ET; Mega Millions terca/sexta 23:00 ET.
+# (ET = UTC-4 no horario de verao, entao 22:59 ET vira 02:59 UTC do dia seguinte.)
+
+on:
+  schedule:
+    # Powerball — noite de segunda/quarta/sabado (madrugada de UTC do dia seguinte)
+    - cron: '15 3-7 * * 2,4,0'
+    # Mega Millions — noite de terca/sexta
+    - cron: '15 3-7 * * 3,6'
+    # Recuperacao diaria: pega qualquer coisa que as janelas acima tenham perdido.
+    - cron: '40 9,15,21 * * *'
+  workflow_dispatch:
+    inputs:
+      game:
+        description: 'Jogo'
+        type: choice
+        options: [all, powerball, megamillions]
+        default: all
+      reconcile:
+        description: 'Reconferir o registrado contra as demais fontes'
+        type: boolean
+        default: false
+
+# Um unico coletor por vez. Duas execucoes simultaneas nao corromperiam o arquivo (o append e
+# reconferido), mas as duas tentariam commitar e uma perderia a corrida com um erro feio.
+concurrency:
+  group: lottery-poll
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  coleta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Prova de que este caminho nao envia e-mail nem gasta dinheiro
+        run: |
+          set -euo pipefail
+          for F in bolao/loterias/scripts/poll_results.py bolao/loterias/scripts/lottery_status.py; do
+            if grep -nEi 'emailjs|send_result_email|smtp|stripe|checkout|payment' "$F"; then
+              echo "::error::$F ganhou um caminho de envio ou de pagamento"
+              exit 1
+            fi
+          done
+          echo "OK: coleta e estado seguem sem provedor e sem meio de pagamento"
+
+      - name: Coleta de resultado (idempotente)
+        run: |
+          python3 bolao/loterias/scripts/poll_results.py \
+            --game "${{ inputs.game || 'all' }}" \
+            ${{ inputs.reconcile && '--reconcile' || '' }}
+
+      - name: Estado do ciclo (jackpots, elegibilidade, saldo)
+        run: python3 bolao/loterias/scripts/lottery_status.py
+
+      - name: Commitar o que mudou
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Caminhos EXPLICITOS. `git add -A` varreria qualquer outra coisa que o runner tenha
+          # deixado na arvore para dentro de um commit automatico.
+          git add bolao/loterias/config/lottery_results.jsonl \
+                  bolao/loterias/config/lottery_status.json
+          if git diff --cached --quiet; then
+            echo "nada mudou — nenhum commit"
+            exit 0
+          fi
+          git commit -m "Auto: coleta de loteria e estado do ciclo
+
+          Gerado por lottery_poll.yml. Nenhum e-mail enviado, nenhum premio creditado,
+          nenhum bilhete comprado."
+          # O push pode perder a corrida para outro commit; rebase e tentar de novo e o
+          # suficiente, e falhar aqui NAO invalida a coleta (o proximo ciclo recupera).
+          for i in 1 2 3; do
+            if git push origin HEAD:main; then exit 0; fi
+            git pull --rebase origin main || true
+          done
+          echo "::warning::push falhou 3x; a coleta seguinte recupera"

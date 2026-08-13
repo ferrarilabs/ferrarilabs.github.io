@@ -113,20 +113,58 @@ class SemanticaDeSaida(unittest.TestCase):
     def test_as_duas_listas_nao_se_sobrepoem(self):
         self.assertEqual(F.ESTADOS_OK & F.ESTADOS_ATENCAO, set())
 
+    # ── O QUE MUDOU AQUI (2026-08-13) ───────────────────────────────────────────────────────
+    #
+    # Estes dois testes procuravam a string "return 2" dentro de uma JANELA DE CARACTERES depois
+    # de "except Exception" no codigo-fonte. Em af4e2f70 alguem escreveu um comentario explicando
+    # POR QUE aquele trecho existe; o comentario empurrou o `return 2` para alem dos 700
+    # caracteres e o teste ficou vermelho. O codigo estava certo o tempo todo.
+    #
+    # Um portao assim mede a diagramacao do arquivo, nao o comportamento: quebra quando alguem
+    # documenta melhor, e passaria se `return 2` aparecesse dentro de uma string qualquer por
+    # perto. E o "regex over prose" que a propria disciplina deste repositorio proibe contar como
+    # prova.
+    #
+    # Agora os dois EXECUTAM `main()` e conferem o codigo de saida de verdade.
+    def _codigo_de_saida(self, lifecycle):
+        original = F.run_lifecycle
+        F.run_lifecycle = lifecycle
+        try:
+            return F.main()
+        finally:
+            F.run_lifecycle = original
+
     def test_estado_desconhecido_nunca_vira_verde(self):
         """Um estado novo que ninguem classificou tem de falhar, nao ser presumido benigno."""
-        src = inspect.getsource(F.main)
-        self.assertIn("NAO CLASSIFICADO", src)
-        i = src.index("NAO CLASSIFICADO")
-        self.assertIn("return 2", src[i - 200:i + 200])
+        codigo = self._codigo_de_saida(
+            lambda *a, **kw: {"notificationState": "ESTADO_QUE_NINGUEM_CLASSIFICOU",
+                              "resultReconciled": False, "providerCalls": 0,
+                              "wouldSend": False, "reason": None})
+        self.assertEqual(codigo, 2,
+                         "estado nao classificado tem de sair 2, nao ser presumido benigno")
 
     def test_excecao_inesperada_nunca_vira_verde(self):
-        src = inspect.getsource(F.main)
-        self.assertIn("except Exception", src)
-        i = src.index("except Exception")
-        self.assertIn("return 2", src[i:i + 700],
-                      "excecao tem de sair diferente de zero -- foi assim que 3 execucoes "
-                      "falharam sem que nada as classificasse")
+        def explode(*a, **kw):
+            raise RuntimeError("qualquer coisa inesperada")
+        self.assertEqual(
+            self._codigo_de_saida(explode), 2,
+            "excecao tem de sair diferente de zero -- foi assim que 3 execucoes falharam sem "
+            "que nada as classificasse")
+
+    def test_estado_normal_sai_zero(self):
+        """O contraponto: sem ele, um `return 2` incondicional passaria nos dois acima."""
+        codigo = self._codigo_de_saida(
+            lambda *a, **kw: {"notificationState": "ALREADY_COMPLETED",
+                              "resultReconciled": False, "providerCalls": 0,
+                              "wouldSend": False, "reason": "ja notificado"})
+        self.assertEqual(codigo, 0)
+
+    def test_estado_de_atencao_sai_um(self):
+        codigo = self._codigo_de_saida(
+            lambda *a, **kw: {"notificationState": "RECIPIENT_SET_INCOMPLETE",
+                              "resultReconciled": False, "providerCalls": 0,
+                              "wouldSend": False, "reason": "falta contato"})
+        self.assertEqual(codigo, 1)
 
     def test_o_script_propaga_o_codigo_de_saida(self):
         src = inspect.getsource(F)
