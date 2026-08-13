@@ -69,6 +69,8 @@ RAIZ = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(RAIZ / "bolao" / "shared" / "scripts"))
 
 import m8m9  # noqa: E402
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import receipt_render  # noqa: E402
 
 EVENT_TYPE = "cdb2026.entry_saved_confirmation"
 
@@ -150,33 +152,7 @@ def _agora_iso():
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
-def monta_html(entry_name, saved_at):
-    """
-    Comprovante e nada mais. Sem token, sem link novo, sem linguagem de convite ou de correção:
-    quem recebe isto já tem acesso — foi usando o acesso que ele salvou.
-    """
-    quando = (saved_at or "")[:19].replace("T", " ")
-    return f"""<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
-max-width:520px;margin:0 auto;padding:24px;color:#1a1a1a">
-  <h2 style="margin:0 0 4px;font-size:20px;color:#0b6b3a">Palpites salvos</h2>
-  <p style="margin:0 0 20px;font-size:14px;color:#666">Copa do Brasil 2026</p>
-  <p style="font-size:15px;line-height:1.6;margin:0 0 16px">
-    Seus palpites da entrada <strong>{entry_name}</strong> foram gravados com sucesso.
-  </p>
-  <table style="width:100%;border-collapse:collapse;font-size:14px;margin:0 0 20px">
-    <tr><td style="padding:8px 0;color:#666;border-bottom:1px solid #eee">Entrada</td>
-        <td style="padding:8px 0;text-align:right;border-bottom:1px solid #eee"><strong>{entry_name}</strong></td></tr>
-    <tr><td style="padding:8px 0;color:#666">Gravado em (UTC)</td>
-        <td style="padding:8px 0;text-align:right">{quando}</td></tr>
-  </table>
-  <p style="font-size:13px;line-height:1.6;color:#666;margin:0">
-    Você pode continuar editando pelo mesmo link de acesso que já usou, até o prazo da fase.
-    Este é só um comprovante — não é preciso responder.
-  </p>
-</div>"""
-
-
-def envia(addr, entry_name, html):
+def envia(addr, assunto, html):
     permitido_ks, nota_ks = kill_switch_permite()
     if not permitido_ks:
         return False, nota_ks, None
@@ -280,9 +256,34 @@ def processa_um(lease_owner, verbose=True):
 
         delivery_id = reserva["delivery_id"]
 
+        # ── O RECIBO SAI DO SNAPSHOT, NÃO DO ESTADO ATUAL ───────────────────────────────────
+        #
+        # Se o snapshot faltar, o evento veio de um produtor antigo: recusar em vez de reconstruir
+        # lendo a entrada agora. Reconstruir produziria um recibo com a identidade da versão A e o
+        # conteúdo da versão B — um documento que afirma, com hash próprio, algo que nunca foi
+        # gravado assim. Pior que não mandar recibo.
+        snap = (ev.get("payload") or {}).get("snapshot")
+        if not snap:
+            m8m9.settle(eid, "permanent_failure", failure_category="payload_sem_snapshot")
+            if verbose:
+                print("  SEM_SNAPSHOT — nenhuma chamada ao provedor")
+            return "SEM_SNAPSHOT", 0
+
+        # À PROVA DE ADULTERAÇÃO: a identidade do evento e o conteúdo do recibo têm de sair do
+        # MESMO objeto. Recalcular fecha a porta para um snapshot trocado depois da emissão.
+        conferida = m8m9._rpc("cdb_picks_version", {"p_picks": snap.get("picks")})
+        if conferida != versao:
+            m8m9.settle(eid, "permanent_failure", failure_category="snapshot_nao_confere")
+            if verbose:
+                print(f"  SNAPSHOT_DIVERGENTE ({conferida} != {versao}) — nenhuma chamada")
+            return "SNAPSHOT_DIVERGENTE", 0
+
+        assunto = receipt_render.monta_assunto(snap.get("entryName") or entry_name)
+        corpo = receipt_render.monta_recibo(snap, versao)
+
         # ── Provedor ────────────────────────────────────────────────────────────────────────
         chamadas = 1
-        ok, detalhe, msg_id = envia(addr, entry_name, monta_html(entry_name, saved_at))
+        ok, detalhe, msg_id = envia(addr, assunto, corpo)
 
         if ok:
             m8m9._rpc("settle_delivery", {"p_delivery_id": delivery_id,

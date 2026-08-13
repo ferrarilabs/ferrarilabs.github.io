@@ -1,0 +1,30 @@
+# UM e-mail de validação de template, para o operador. Exige --approve HUMAN_APPROVED e
+# workflow_dispatch — nunca roda sozinho. Família de negócio separada: não toca no histórico
+# de entrega do comprovante de produção.
+name: CDB2026 — teste de template do comprovante (1 e-mail)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdb2026-receipt-template-test
+  cancel-in-progress: false
+
+jobs:
+  enviar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Prova de renderização (sem rede)
+        run: python3 bolao/cdb2026/scripts/test_receipt.py
+      - name: Um e-mail para o operador
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 bolao/cdb2026/scripts/send_receipt_template_test.py --approve HUMAN_APPROVED
