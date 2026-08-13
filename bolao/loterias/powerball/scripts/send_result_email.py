@@ -23,6 +23,13 @@ from pathlib import Path as _Path
 _sys.path.insert(0, str(_Path(__file__).parent.parent.parent.parent / "shared" / "scripts"))
 import money as _money
 import subject_policy as _subject_policy
+
+
+def esc(v):
+    """Escapa para HTML. O bloco do proximo bolao monta markup a partir de um JSON gerado, e
+    escapar e a regra da casa (docs/bolao/SECURITY.md) mesmo quando a origem e nossa hoje."""
+    return (str("" if v is None else v).replace("&", "&amp;").replace("<", "&lt;")
+            .replace(">", "&gt;").replace('"', "&quot;").replace("'", "&#39;"))
 from datetime import datetime
 from pathlib import Path
 
@@ -835,6 +842,86 @@ def result_balls_html(numbers, special, multiplier, special_label="Powerball"):
     return row + caption
 
 
+def _bloco_proximo_bolao(draw):
+    """
+    Caixa e próximo bolão no e-mail de resultado — a pergunta que todo mundo faz em seguida.
+
+    ═══ POR QUE VEM DE UM ARQUIVO, E NÃO DE UMA CONTA AQUI ══════════════════════════════════
+
+    O e-mail lê `lottery_status.json`, o MESMO documento que a página lê. Recalcular
+    elegibilidade aqui criaria uma segunda implementação da regra dos US$500M, e a divergência
+    entre as duas apareceria como o site dizendo uma coisa e o e-mail dizendo outra — para as
+    mesmas dezesseis pessoas, sobre o mesmo dinheiro.
+
+    ═══ AUSÊNCIA NÃO É ZERO ═════════════════════════════════════════════════════════════════
+
+    Sem o documento, o bloco simplesmente NÃO SAI. Um e-mail afirmando "saldo disponível
+    US$ 0,00" porque um arquivo não estava lá é pior que um e-mail sem o bloco: o primeiro é uma
+    afirmação falsa sobre dinheiro, o segundo é só uma informação a menos.
+    """
+    caminho = (_Path(__file__).resolve().parents[3] / "loterias" / "config"
+               / "lottery_status.json")
+    try:
+        doc = json.loads(caminho.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001 — arquivo ausente/ilegível: o bloco não sai, e ponto
+        return ""
+
+    def usd(c):
+        return "—" if c is None else _money.usd(c / 100)
+
+    f = doc.get("funds") or {}
+    fin = draw.get("finance") or {}
+    anterior = int(fin.get("creditoSorteioAnterior") or 0) * 100
+
+    linhas = [("Prêmio deste sorteio", usd(f.get("lastDrawWinningsCents"))),
+              ("Crédito que entrou do sorteio anterior", usd(anterior)),
+              ("Saldo disponível agora", usd(f.get("carryoverAvailableCents")))]
+
+    jogos = []
+    for chave in ("powerball", "megamillions"):
+        g = (doc.get("games") or {}).get(chave)
+        if not g:
+            continue
+        if g.get("error"):
+            jogos.append((g["label"], "não foi possível ler agora", ""))
+            continue
+        jogos.append((g["label"], usd(g.get("advertisedAnnuityCents")),
+                      f"sorteio {g.get('nextDrawDate') or '—'}"))
+
+    np = doc.get("nextPool")
+    if np:
+        veredito = (f"<strong>{esc(np['label'])}</strong> — {usd(np.get('jackpotCents'))}, "
+                    f"sorteio {esc(np.get('drawDate'))}. O organizador avisa quando abrir.")
+    else:
+        veredito = ("<strong>Nenhum por enquanto.</strong> Nenhum dos dois jackpots passa de "
+                    "US$ 500 milhões, então o saldo fica guardado até que um deles passe.")
+
+    tabela = "".join(
+        f'<tr><td style="padding:3px 0;color:#475569">{esc(k)}</td>'
+        f'<td style="padding:3px 0;text-align:right;font-weight:bold">{esc(v)}</td></tr>'
+        for k, v in linhas)
+    cartoes = "".join(
+        f'<td style="padding:8px;vertical-align:top">'
+        f'<div style="font-size:11px;color:#666;text-transform:uppercase">{esc(nome)}</div>'
+        f'<div style="font-size:17px;font-weight:bold">{esc(valor)}</div>'
+        f'<div style="font-size:11px;color:#666">{esc(quando)}</div></td>'
+        for nome, valor, quando in jogos)
+
+    return f'''<div style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:6px;padding:14px;margin:16px 0">
+  <div style="font-size:11px;color:#666;text-transform:uppercase;margin-bottom:8px">Caixa do bolão</div>
+  <table style="width:100%;border-collapse:collapse;font-size:13px">{tabela}</table>
+
+  <div style="font-size:11px;color:#666;text-transform:uppercase;margin:14px 0 4px">Jackpots agora</div>
+  <table style="width:100%;border-collapse:collapse"><tr>{cartoes}</tr></table>
+
+  <div style="font-size:11px;color:#666;text-transform:uppercase;margin:14px 0 4px">Próximo bolão</div>
+  <div style="font-size:13px;line-height:1.5">{veredito}</div>
+  <div style="font-size:11px;color:#999;margin-top:8px">
+    Regra: novo bolão somente quando o jackpot anunciado ultrapassar US$ 500 milhões.
+  </div>
+</div>'''
+
+
 def build_html(draw):
     """Build result email in Portuguese (PT only)."""
     r = draw["result"]
@@ -891,6 +978,8 @@ def build_html(draw):
 </div>'''}
 
 {prize_section if r["premiosGanhos"] > 0 else f'<p style="color:#666;font-style:italic">{no_prize}</p>'}
+
+{_bloco_proximo_bolao(draw)}
 
 <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0">
 
