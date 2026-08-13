@@ -201,9 +201,17 @@ def main():
     print(f"  PB_{draw_id.replace('-', '')}_CANONICAL_RESULT_NULL   = {'NO' if tem else 'YES'}")
     print(f"  PB_{draw_id.replace('-', '')}_RESULT_HASH_PRESENT     = {'YES' if tem else 'NO'}")
     print(f"  PB_{draw_id.replace('-', '')}_PRIZE_CREDIT_COUNT      = {len(creditos)}")
+    # O enum do banco é ('pending','in_flight','sent','dead') — o terminal de sucesso chama-se
+    # 'sent', não 'settled'. Comparar com o nome errado relatava NO para uma obrigação recém
+    # fechada, que é o mesmo tipo de erro que a métrica de duplicidade: o dado estava certo e o
+    # relato, não. Estados TERMINAIS ficam explícitos aqui, um por vez.
+    TERMINAIS = {"sent", "dead"}
+    estado_final = str((est_final or {}).get("status") or "")
     print(f"  PB_{draw_id.replace('-', '')}_DRAW_SETTLED            = "
-          f"{'YES' if str((est_final or {}).get('status')) == 'settled' else 'NO'}"
-          f"  (outbox={(est_final or {}).get('status')})")
+          f"{'YES' if estado_final in TERMINAIS else 'NO'}"
+          f"  (outbox={estado_final or 'ausente'})")
+    if estado_final == "dead":
+        problemas.append("obrigação em 'dead': terminal, mas exige revisão humana")
     print(f"  PB_{draw_id.replace('-', '')}_PROVIDER_CALLS_DURING_REPAIR = {PROVIDER_CALLS}")
     print(f"  PB_{draw_id.replace('-', '')}_RESENT                  = 0")
     print(f"  CURRENT_CARRYOVER = {L.dinheiro(rel['CURRENT_AVAILABLE_CARRYOVER'])}")
