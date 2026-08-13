@@ -72,7 +72,23 @@ begin
     raise exception 'ACESSO_NEGADO';
   end if;
 
-  select state into v_state from bolao_state where id = 'cdb2026' for update;
+  -- ── REBASED ONTO THE WRITE CUTOVER (20260813180000) ─────────────────────────────────────────
+  -- This file was authored 2026-08-12, BEFORE cdb2026 write authority moved to the normalized
+  -- model, and it was never applied. Its original line here was
+  --
+  --     select state into v_state from bolao_state where id = 'cdb2026' for update;
+  --
+  -- which is the legacy-input form. Because this version (…050000) sorts BEFORE the cutover
+  -- (…180000) and the cutover is already in the ledger, a `db push` would apply this file and
+  -- NOT re-apply the cutover -- silently returning cdb_save_my_picks to legacy authority while
+  -- cdb_apply_operator_mutation, cdb_register_bracket_topology and cdb_refresh_topology_provenance
+  -- stayed normalized. Mixed authority inside one domain, with no error raised.
+  --
+  -- Only the input source is changed, and it is the identical substitution the cutover applied to
+  -- the other four writers. This file's own contribution -- the receipt snapshot in the outbox
+  -- payload -- is untouched below.
+  perform 1 from bolao_state where id = 'cdb2026' for update;
+  v_state := bolao.cdb_authoritative_document();
   if v_state is null then
     raise exception 'ACESSO_NEGADO';
   end if;
