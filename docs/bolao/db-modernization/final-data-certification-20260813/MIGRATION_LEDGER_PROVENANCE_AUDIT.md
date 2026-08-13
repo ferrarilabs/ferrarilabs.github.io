@@ -2,7 +2,8 @@
 
 # MIGRATION LEDGER AND PROVENANCE AUDIT
 
-Ledger **46 → 48** (this session added two, both **with** `statements` and `rollback`).
+Ledger **46 → 48 → 50**. Four migrations added across the audit and its closure, **all four with
+`statements` and `rollback` populated** — none is a seventh unchecksummed row.
 
 ## 1. The six rows without `statements` — A1, each resolved
 
@@ -25,10 +26,12 @@ version has a repo file, and no repo file is applied without a ledger row.
 with `statements[1]` and `rollback[1]` populated from the files, and their checksums are computable
 and verified:
 
-| Version | Ledger `sha256(statements[1])` | Repo file (trailing newline stripped) | Match |
-|---|---|---|---|
-| `20260813200000` | `0a2e2d0bde528fb5…` | `0a2e2d0bde528fb5…` | **yes** |
-| `20260813210000` | `3e628eab013457f6…` | `3e628eab013457f6…` | **yes** |
+| Version | What | Checksum computable |
+|---|---|---|
+| `20260813200000` | public projection PII closure | **yes** — `0a2e2d0bde528fb5…` matches the repo file |
+| `20260813210000` | private forensic preservation | **yes** — `3e628eab013457f6…` matches |
+| `20260813220000` | `cdb_update_entry_picks` fail-closed | **yes** |
+| `20260813230000` | D-B operator-approved email canonicalization | **yes** |
 
 The rule is stated so it stays computable: **stored text == file content with trailing newlines
 stripped** (`psql` backtick substitution strips them).
@@ -59,9 +62,26 @@ evidence-backed supplement is this table. A2 remains **pre-existing debt, dispos
 | Version | What | Classification |
 |---|---|---|
 | `20260813040000_outbox_pending_by_type.sql` | index/query support for outbox pending-by-type | **FUTURE WORK** — belongs to the cdb2026 confirmation workstream, touches no cutover writer, safe to apply whenever that workstream ships |
-| `20260813050000_confirmation_payload_carries_snapshot.sql` | adds a receipt snapshot to the confirmation payload | **CONFLICTING — HAZARD (R1), still open** |
+| `20260813050000_confirmation_payload_carries_snapshot.sql` | adds a receipt snapshot to the confirmation payload | **CORRECTED — was CONFLICTING (R1), see below** |
 
-**R1 re-verified in this audit and still true.** `…050000` contains
+**R1, restated correctly.** The previous issue of this document repeated the write-cutover
+addendum's claim that `…050000` still carried the legacy-input line. **It did not**: commit
+`163f892e` (inside PR #123, the commit the source freeze was taken at) had already rebased it, and
+the frozen manifest's A3 said so. This audit trusted the older report over the newer manifest and
+did not read the file body. Verifying a migration is *unapplied* is not verifying what it
+*contains*.
+
+The closure session read it, and found the defect the rebase left behind — **the input was fixed
+and the write was not**. `cdb_save_my_picks` is the one writer whose cutover also added
+`perform bolao.cdb_mirror_entry_picks(...)`, and the 2026-08-12 file predates both changes. Applied
+as it stood on `main`, a save wrote the legacy document and left `bolao.predictions` at 1045 with
+`mirrored_at` 0 — while reporting `NORMALIZED-INPUT` to every detector.
+
+Corrected in this branch (mirror call restored verbatim from the production definition) and proven
+on a clone asserted complete first. `FUTURE_MIGRATION_CHAIN = PASS`,
+`FUTURE_DB_PUSH_REVERTS_CDB_AUTHORITY = NO`.
+
+**The original hazard, for the record:** `…050000` contains
 `create or replace function cdb_save_my_picks` whose body reads
 `select state into v_state from bolao_state where id='cdb2026' for update` — the **legacy** input.
 Production's live definition reads `bolao.cdb_authoritative_document()`. Its version sorts *before*
@@ -72,11 +92,16 @@ error.
 
 Confirmed unchanged after this session: all four writers still report `NORMALIZED-INPUT`.
 
-**Neither was applied here.** `…050000` must be rebased onto the inverted definition (keep the
-receipt-snapshot feature, keep the normalized input) and re-verified with the authority probe —
-blank the legacy `cutoffAt`, expect `CUTOFF_PASSADO`, not `FASE_FECHADA` — before that workstream
-deploys. Owned by that workstream. This is a **legacy-retirement prerequisite**: retiring the legacy
-document with a queued migration that reintroduces a legacy read would be worse than the hazard is
-today.
+**Neither was applied.** Both remain unapplied and belong to the confirmation workstream; the
+corrected `…050000` is now safe to apply whenever that workstream ships, and the full chain was
+rehearsed on top of production level to prove it.
 
-`UNAPPLIED_MIGRATIONS = 2` · dispositions: **FUTURE_WORK**, **CONFLICTING_MUST_REBASE**.
+One residual, recorded not fixed: `…050000` also creates `public.cdb_current_receipt_snapshot`,
+which reads `select state into v_state from bolao_state` — the **legacy document**. It is read-only,
+`service_role`-only, and today the legacy document is a same-transaction compatibility mirror, so it
+cannot diverge. It is nonetheless a **named legacy consumer**, and `LEGACY_RETIREMENT` must resolve
+it (repoint at `bolao.cdb_authoritative_document()`) before the legacy row can go. The rebase commit
+called this out deliberately; it is repeated here so the retirement plan inherits it.
+
+`UNAPPLIED_MIGRATIONS = 2` · dispositions: **SAFE_FUTURE** (`040000`, `outbox_pending_count`,
+read-only counts, service_role only) and **SAFE_FUTURE_AFTER_CORRECTION** (`050000`).
