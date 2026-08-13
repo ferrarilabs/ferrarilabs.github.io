@@ -40,6 +40,34 @@ LEDGER = RAIZ / "bolao" / "loterias" / "config" / "lottery_ledger.jsonl"
 TIPOS = {"CONTRIBUTION", "TICKET_PURCHASE", "PRIZE_CREDIT",
          "CARRYOVER_IN", "CARRYOVER_OUT", "OPERATOR_ADJUSTMENT"}
 
+# ══ O SINAL FAZ PARTE DO TIPO ═══════════════════════════════════════════════════════════════
+#
+# Cada tipo de lançamento tem uma direção que não é opinião: contribuição e prêmio ENTRAM,
+# compra de bilhete SAI. Sem esta tabela o livro aceitava:
+#
+#     PRIZE_CREDIT    de -US$50   -> saldo NEGATIVO por um "prêmio"
+#     TICKET_PURCHASE de +US$500  -> comprar bilhete AUMENTAVA o caixa
+#
+# Nos dois casos o extrato continuava internamente consistente e o saldo derivado era falso —
+# a pior combinação, porque a conta fecha. `OPERATOR_ADJUSTMENT` é o único de sinal livre: é
+# exatamente para isso que ele existe, e por isso exige motivo como todos os outros.
+SINAL = {
+    "CONTRIBUTION": +1,
+    "PRIZE_CREDIT": +1,
+    "CARRYOVER_IN": +1,
+    "TICKET_PURCHASE": -1,
+    "CARRYOVER_OUT": -1,
+    "OPERATOR_ADJUSTMENT": 0,      # 0 = qualquer sinal, deliberadamente
+}
+
+# Campos que definem O QUE o lançamento afirma. Se a chave se repete e algum destes muda, não é
+# reprocessamento: é outra afirmação com o mesmo nome.
+CAMPOS_DA_IDENTIDADE = ("type", "amountCents", "poolId")
+
+
+class ConflitoDeIdempotencia(ValueError):
+    """Mesma chave, conteúdo diferente. Nunca é um no-op silencioso."""
+
 
 def carrega_config(caminho=None):
     return json.loads(Path(caminho or CONFIG).read_text())
@@ -225,8 +253,20 @@ def append_ledger(evento, caminho=None):
     for campo in ("idempotencyKey", "poolId", "amountCents", "reason", "source"):
         if not evento.get(campo) and evento.get(campo) != 0:
             raise ValueError(f"lançamento sem '{campo}' — todo movimento precisa de procedência")
-    if not isinstance(evento["amountCents"], int):
+    if not isinstance(evento["amountCents"], int) or isinstance(evento["amountCents"], bool):
         raise ValueError("amountCents precisa ser int (centavos)")
+
+    # ── O SINAL TEM DE BATER COM O TIPO ─────────────────────────────────────────────────────
+    esperado = SINAL[evento["type"]]
+    valor = evento["amountCents"]
+    if esperado > 0 and valor < 0:
+        raise ValueError(
+            f"SINAL_INVALIDO: {evento['type']} é dinheiro que ENTRA e veio {valor} centavos. "
+            f"Um crédito negativo derruba o saldo derivado sem que o extrato pareça errado.")
+    if esperado < 0 and valor > 0:
+        raise ValueError(
+            f"SINAL_INVALIDO: {evento['type']} é dinheiro que SAI e veio +{valor} centavos. "
+            f"Uma compra que aumenta o caixa é dinheiro que não existe.")
 
     p = Path(caminho or LEDGER)
     p.parent.mkdir(parents=True, exist_ok=True)
@@ -250,7 +290,28 @@ def append_ledger(evento, caminho=None):
     with trava.open("a+", encoding="utf-8") as t:
         fcntl.flock(t.fileno(), fcntl.LOCK_EX)
         try:
-            if evento["idempotencyKey"] in {e["idempotencyKey"] for e in le_ledger(p)}:
+            existente = next((e for e in le_ledger(p)
+                              if e["idempotencyKey"] == evento["idempotencyKey"]), None)
+            if existente is not None:
+                # ── REPROCESSAR NÃO É REESCREVER ────────────────────────────────────────────
+                #
+                # Chave repetida com o MESMO conteúdo é reprocessamento: no-op, que é o ponto da
+                # idempotência. Chave repetida com conteúdo DIFERENTE é outra coisa — alguém
+                # calculou outro valor para o mesmo fato.
+                #
+                # Antes, os dois casos eram tratados igual: o segundo era descartado em silêncio.
+                # Um prêmio recalculado de US$38 para US$58 sob a mesma chave desapareceria sem
+                # deixar rastro, e o livro continuaria "consistente". Divergência sobre dinheiro
+                # tem de virar incidente, nunca o primeiro valor vencendo por chegar antes.
+                divergentes = {c: (existente.get(c), evento.get(c))
+                               for c in CAMPOS_DA_IDENTIDADE
+                               if existente.get(c) != evento.get(c)}
+                if divergentes:
+                    raise ConflitoDeIdempotencia(
+                        f"CONFLITO_DE_IDEMPOTENCIA: a chave {evento['idempotencyKey']!r} já "
+                        f"existe com outro conteúdo — {divergentes} (gravado, novo). Isto é um "
+                        f"incidente: ou a chave está sendo reutilizada para outro fato, ou o "
+                        f"mesmo fato passou a valer outra coisa.")
                 return False, evento
             with p.open("a", encoding="utf-8") as f:
                 f.write(json.dumps(linha, ensure_ascii=False, sort_keys=True) + "\n")

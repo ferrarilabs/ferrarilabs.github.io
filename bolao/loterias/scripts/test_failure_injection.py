@@ -225,6 +225,59 @@ def secao_armazenamento():
     finally:
         os.chmod(d, 0o700)
 
+    # ── INVARIANTES DO LANÇAMENTO (rodada adversarial 2026-08-13) ──────────────────────────
+    #
+    # O livro aceitava três coisas que corrompem o saldo derivado SEM deixar o extrato
+    # aparentemente inconsistente — a pior combinação, porque a conta fecha:
+    #
+    #   PRIZE_CREDIT de -US$50    -> saldo negativo por um "prêmio"
+    #   TICKET_PURCHASE de +US$500 -> comprar bilhete AUMENTAVA o caixa
+    #   mesma chave, outro valor   -> descartado em silêncio, primeiro a chegar vencia
+    livro = livro_tmp()
+    base = {"type": "PRIZE_CREDIT", "idempotencyKey": "prize:inv", "poolId": "p",
+            "amountCents": 3800, "reason": "r", "source": "s"}
+    L.append_ledger(dict(base), livro)
+    checa("reprocessar o MESMO lançamento é no-op",
+          L.append_ledger(dict(base), livro)[0] is False)
+
+    for nome, ev, excecao in [
+            ("mesma chave com OUTRO valor é conflito",
+             dict(base, amountCents=999999), L.ConflitoDeIdempotencia),
+            ("mesma chave com OUTRO tipo é conflito",
+             dict(base, type="CONTRIBUTION"), L.ConflitoDeIdempotencia),
+            ("mesma chave com OUTRO pool é conflito",
+             dict(base, poolId="outro"), L.ConflitoDeIdempotencia),
+            ("PRIZE_CREDIT negativo é recusado",
+             dict(base, idempotencyKey="a", amountCents=-5000), ValueError),
+            ("CONTRIBUTION negativa é recusada",
+             dict(base, type="CONTRIBUTION", idempotencyKey="b", amountCents=-100), ValueError),
+            ("TICKET_PURCHASE positivo é recusado",
+             dict(base, type="TICKET_PURCHASE", idempotencyKey="c", amountCents=5000),
+             ValueError),
+            ("CARRYOVER_OUT positivo é recusado",
+             dict(base, type="CARRYOVER_OUT", idempotencyKey="d", amountCents=100), ValueError),
+            ("bool disfarçado de int é recusado",
+             dict(base, idempotencyKey="e", amountCents=True), ValueError)]:
+        try:
+            L.append_ledger(ev, livro)
+            checa(nome, False, "ACEITOU")
+        except excecao:
+            checa(nome, True)
+        except Exception as e:  # noqa: BLE001
+            checa(nome, False, f"levantou {type(e).__name__}, esperado {excecao.__name__}")
+
+    # E o que é legítimo continua passando — senão a proteção viraria um bloqueio geral.
+    for nome, ev in [
+            ("TICKET_PURCHASE negativo passa",
+             {"type": "TICKET_PURCHASE", "idempotencyKey": "ok1", "poolId": "p",
+              "amountCents": -18300, "reason": "r", "source": "s"}),
+            ("OPERATOR_ADJUSTMENT tem sinal LIVRE (é para isso que existe)",
+             {"type": "OPERATOR_ADJUSTMENT", "idempotencyKey": "ok2", "poolId": "p",
+              "amountCents": -500, "reason": "ajuste", "source": "op"})]:
+        checa(nome, L.append_ledger(ev, livro)[0] is True)
+    checa("o saldo derivado bate depois de tudo isso",
+          L.saldo(livro) == 3800 - 18300 - 500, L.dinheiro(L.saldo(livro)))
+
     # LINHA CORROMPIDA: uma escrita cortada ao meio não pode virar saldo errado
     livro = livro_tmp()
     credita(livro)
