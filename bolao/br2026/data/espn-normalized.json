@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-15T23:26:18Z",
-  "sourceUpdatedAt": "2026-08-15T23:26:18Z",
+  "generatedAt": "2026-08-15T23:44:00Z",
+  "sourceUpdatedAt": "2026-08-15T23:44:00Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "6148b5f7cc3b0c8e6297aa76c799b0f3888ce0e2064e5fc11235d0fd7ba9303c",
+  "payloadHash": "b52d2d2a2377093ae13a5d92052a2b9d683fe87be3c8e80051895235bec5adb8",
   "matches": [
     {
       "id": "401840808",
@@ -36892,23 +36892,81 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "48'",
-      "statusDetail": "48'",
+      "statusShortDetail": "90'+4'",
+      "statusDetail": "90'+4'",
       "completed": false,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Red Bull Bragantino",
       "homeTeamId": "3458",
       "awayTeamId": "6079",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena da Baixada",
       "city": "Curitiba",
-      "clockSec": 2880.0,
-      "clockStr": "48'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
       "period": 2,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4007.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro Henrique",
+              "shortName": "Pedro Henrique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 4459.0,
+            "displayValue": "75'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kerwin Vargas",
+              "shortName": "K. Vargas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4654.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Eduardo Sasha",
+              "shortName": "Eduardo Sasha"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841189",
