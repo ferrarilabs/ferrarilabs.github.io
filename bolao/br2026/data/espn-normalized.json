@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-15T21:01:01Z",
-  "sourceUpdatedAt": "2026-08-15T21:01:01Z",
+  "generatedAt": "2026-08-15T21:31:23Z",
+  "sourceUpdatedAt": "2026-08-15T21:31:23Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d04d888e35084afc626c8d98e943b877746280f266b176c3c4c065ba7c091928",
+  "payloadHash": "bc6f3c5770701b45c3d4281377e70870b8ce5884a45fa04e35cbf5eef8959496",
   "matches": [
     {
       "id": "401840808",
@@ -36636,24 +36636,24 @@
     {
       "id": "401841192",
       "date": "2026-08-15T19:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "69'",
-      "statusDetail": "69'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Fluminense",
       "awayTeam": "Palmeiras",
       "homeTeamId": "3445",
       "awayTeamId": "2029",
-      "homeScore": 1,
-      "awayScore": 1,
-      "homeWinner": false,
+      "homeScore": 3,
+      "awayScore": 2,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 4140.0,
-      "clockStr": "69'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
       "period": 2,
       "details": [
         {
@@ -36748,6 +36748,139 @@
             {
               "displayName": "Agustín Canobbio",
               "shortName": "A. Canobbio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 4340.0,
+            "displayValue": "73'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Arthur Gabriel",
+              "shortName": "Arthur Gabriel"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 4669.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano Acosta",
+              "shortName": "L. Acosta"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 4899.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Maurício",
+              "shortName": "Maurício"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5059.0,
+            "displayValue": "85'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Serna",
+              "shortName": "K. Serna"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5130.0,
+            "displayValue": "86'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Martinelli",
+              "shortName": "Martinelli"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Germán Cano",
+              "shortName": "G. Cano"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Gómez",
+              "shortName": "G. Gómez"
             }
           ]
         }

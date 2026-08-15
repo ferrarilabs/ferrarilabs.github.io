@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-10T01:38:23Z",
-  "sourceUpdatedAt": "2026-08-10T01:38:23Z",
+  "generatedAt": "2026-08-15T21:31:23Z",
+  "sourceUpdatedAt": "2026-08-15T21:31:23Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "a0062bb5c32610e3400279895abc26068b76c1341ed66c3458b7b7a21bad442f",
+  "payloadHash": "3a0f166d8183d3db4e64d398eddc652a19ea4d29a8b253dfdee976ec196097d1",
   "matches": [
     {
       "name": "Palmeiras",
@@ -14,13 +14,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2029.png",
       "rank": 1.0,
       "points": 48.0,
-      "played": 22.0,
+      "played": 23.0,
       "wins": 14.0,
       "draws": 6.0,
-      "losses": 2.0,
-      "gf": 38.0,
-      "ga": 16.0,
-      "gd": 22.0
+      "losses": 3.0,
+      "gf": 40.0,
+      "ga": 19.0,
+      "gd": 21.0
     },
     {
       "name": "Flamengo",
@@ -55,14 +55,14 @@
       "abbr": "FLU",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3445.png",
       "rank": 4.0,
-      "points": 35.0,
-      "played": 22.0,
-      "wins": 9.0,
+      "points": 38.0,
+      "played": 23.0,
+      "wins": 10.0,
       "draws": 8.0,
       "losses": 5.0,
-      "gf": 31.0,
-      "ga": 26.0,
-      "gd": 5.0
+      "gf": 34.0,
+      "ga": 28.0,
+      "gd": 6.0
     },
     {
       "name": "Cruzeiro",
