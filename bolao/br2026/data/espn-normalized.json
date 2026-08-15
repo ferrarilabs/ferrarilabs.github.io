@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-15T20:41:49Z",
-  "sourceUpdatedAt": "2026-08-15T20:41:49Z",
+  "generatedAt": "2026-08-15T21:01:01Z",
+  "sourceUpdatedAt": "2026-08-15T21:01:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "2b5c34703504209321732500995a42f803d8f89ee80c6141e0d1d433802c62c0",
+  "payloadHash": "d04d888e35084afc626c8d98e943b877746280f266b176c3c4c065ba7c091928",
   "matches": [
     {
       "id": "401840808",
@@ -36639,8 +36639,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "49'",
-      "statusDetail": "49'",
+      "statusShortDetail": "69'",
+      "statusDetail": "69'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Palmeiras",
@@ -36652,8 +36652,8 @@
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 2940.0,
-      "clockStr": "49'",
+      "clockSec": 4140.0,
+      "clockStr": "69'",
       "period": 2,
       "details": [
         {
@@ -36710,6 +36710,44 @@
             {
               "displayName": "Hulk",
               "shortName": "Hulk"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3620.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Guga",
+              "shortName": "Guga"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3752.0,
+            "displayValue": "63'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Agustín Canobbio",
+              "shortName": "A. Canobbio"
             }
           ]
         }
