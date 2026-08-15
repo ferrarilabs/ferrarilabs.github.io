@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-15T19:38:29Z",
-  "sourceUpdatedAt": "2026-08-15T19:38:29Z",
+  "generatedAt": "2026-08-15T19:53:36Z",
+  "sourceUpdatedAt": "2026-08-15T19:53:36Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "61b40b4fb857d4361c53f18b343c34c3840a03142da137565e93608881390335",
+  "payloadHash": "754ded71295f85614deb48328bdb62d578fe0d1fb684fdff18df2d4cd89d1ede",
   "matches": [
     {
       "id": "401840808",
@@ -36639,23 +36639,43 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "4'",
-      "statusDetail": "4'",
+      "statusShortDetail": "22'",
+      "statusDetail": "22'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Palmeiras",
       "homeTeamId": "3445",
       "awayTeamId": "2029",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 240.0,
-      "clockStr": "4'",
+      "clockSec": 1320.0,
+      "clockStr": "22'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 569.0,
+            "displayValue": "10'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Gómez",
+              "shortName": "G. Gómez"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841196",
