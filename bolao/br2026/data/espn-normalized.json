@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-15T23:44:00Z",
-  "sourceUpdatedAt": "2026-08-15T23:44:00Z",
+  "generatedAt": "2026-08-15T23:58:52Z",
+  "sourceUpdatedAt": "2026-08-15T23:58:52Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b52d2d2a2377093ae13a5d92052a2b9d683fe87be3c8e80051895235bec5adb8",
+  "payloadHash": "5341ca13924b71823e90ce880b1bd7c6be3e60f7a1c3daab3803d63cc7d8541e",
   "matches": [
     {
       "id": "401840808",
@@ -36889,12 +36889,12 @@
     {
       "id": "401841196",
       "date": "2026-08-15T21:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "90'+4'",
-      "statusDetail": "90'+4'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Red Bull Bragantino",
       "homeTeamId": "3458",
@@ -36906,7 +36906,7 @@
       "venue": "Arena da Baixada",
       "city": "Curitiba",
       "clockSec": 5400.0,
-      "clockStr": "90'+4'",
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
