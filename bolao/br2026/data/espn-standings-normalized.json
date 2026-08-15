@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-15T21:31:23Z",
-  "sourceUpdatedAt": "2026-08-15T21:31:23Z",
+  "generatedAt": "2026-08-15T23:44:00Z",
+  "sourceUpdatedAt": "2026-08-15T23:44:00Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "3a0f166d8183d3db4e64d398eddc652a19ea4d29a8b253dfdee976ec196097d1",
+  "payloadHash": "e4d0d7c21187e2008414a739f1b32c611643bd3a87adfb547ff91bc1ac931897",
   "matches": [
     {
       "name": "Palmeiras",
@@ -41,13 +41,13 @@
       "abbr": "CAP",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3458.png",
       "rank": 3.0,
-      "points": 40.0,
-      "played": 22.0,
+      "points": 41.0,
+      "played": 23.0,
       "wins": 12.0,
-      "draws": 4.0,
+      "draws": 5.0,
       "losses": 6.0,
-      "gf": 30.0,
-      "ga": 19.0,
+      "gf": 31.0,
+      "ga": 20.0,
       "gd": 11.0
     },
     {
@@ -93,10 +93,24 @@
       "gd": 4.0
     },
     {
+      "name": "Red Bull Bragantino",
+      "abbr": "BRA",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6079.png",
+      "rank": 7.0,
+      "points": 32.0,
+      "played": 22.0,
+      "wins": 9.0,
+      "draws": 5.0,
+      "losses": 8.0,
+      "gf": 27.0,
+      "ga": 23.0,
+      "gd": 4.0
+    },
+    {
       "name": "Corinthians",
       "abbr": "COR",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/874.png",
-      "rank": 7.0,
+      "rank": 8.0,
       "points": 32.0,
       "played": 22.0,
       "wins": 8.0,
@@ -104,20 +118,6 @@
       "losses": 6.0,
       "gf": 24.0,
       "ga": 20.0,
-      "gd": 4.0
-    },
-    {
-      "name": "Red Bull Bragantino",
-      "abbr": "BRA",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6079.png",
-      "rank": 8.0,
-      "points": 31.0,
-      "played": 21.0,
-      "wins": 9.0,
-      "draws": 4.0,
-      "losses": 8.0,
-      "gf": 26.0,
-      "ga": 22.0,
       "gd": 4.0
     },
     {
