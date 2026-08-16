@@ -35,7 +35,36 @@ tentativa — o e-mail nunca sai duas vezes para o mesmo conteúdo.
     (`cdb_current_receipt_snapshot`, 2026-08-13). Mesma exclusão nominal do catch-up de 12/08.
 
 Nenhum endereço é impresso. O relatório usa nome de entrada.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+ARQUIVADO E DESARMADO EM 2026-08-16 — ESTE ARQUIVO É EVIDÊNCIA, NÃO FERRAMENTA
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+O corpo abaixo está preservado byte a byte como estava quando o incidente aconteceu, inclusive a
+"CORREÇÃO" do filtro de dia e a seção "POR QUE NÃO É UM DUPLICADO POSSÍVEL" — que estava errada e
+é justamente o que precisa continuar legível.
+
+O erro daquela seção: `reserve_delivery` de fato garante unicidade por
+(app, business_key, recipient_hash, generation), mas a `business_key` deste script carregava a
+FAMÍLIA one-off (`…-catchup-20260816:<entrada>:<versão>:v1`), diferente da chave de produção
+(`…-confirmation:<versão>:v1`). Cada caminho estava protegido contra si mesmo e nenhum estava
+protegido contra os outros. O filtro de dia, reposto no mesmo dia, recorta a população — nunca
+foi o controle de duplicata, e tratá-lo como se fosse era a segunda metade do erro.
+
+O substituto é `bolao/cdb2026/scripts/receipt_catchup_tool.py`: escopo explícito obrigatório para
+envio real, manifesto imutável em arquivo, reserva na chave CANÔNICA de produção e dedupe
+cross-path via `cdb_has_accepted_receipt`.
+
+A guarda abaixo levanta na IMPORTAÇÃO, não só em `__main__`: um arquivo com uma função `enviar()`
+funcional dentro é uma arma carregada, e `python3 -c "import ..."` é um caminho tão real quanto
+`python3 arquivo.py`.
 """
+
+raise SystemExit(
+    "DESARMADO: receipt_catchup_20260816.py está arquivado como evidência do incidente de "
+    "comprovante duplicado (Bossle, Rodrigo Hajj). Use "
+    "bolao/cdb2026/scripts/receipt_catchup_tool.py --target-date YYYY-MM-DD."
+)
 
 import argparse
 import hashlib

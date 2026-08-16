@@ -39,7 +39,30 @@ concedida pelo banco (UNIQUE por app+chave+destinatário+geração). Além disso
 a chamada N+1 levanta antes de tocar no provedor.
 
 Nenhum endereço é impresso. O relatório usa nome de entrada.
+
+════════════════════════════════════════════════════════════════════════════════════════════════
+ARQUIVADO E DESARMADO EM 2026-08-16 — ESTE ARQUIVO É EVIDÊNCIA, NÃO FERRAMENTA
+════════════════════════════════════════════════════════════════════════════════════════════════
+
+Este script cumpriu seu propósito operacional em 2026-08-12 e não mandou e-mail errado para
+ninguém: `DIA_ALVO` era fixo, então o escopo dele não podia mudar de significado num rerun.
+
+Mesmo assim ele carrega o defeito estrutural que estourou quatro dias depois: a seção
+"NÃO REENVIAR PARA QUEM JÁ TEM" afirma que a identidade da entrega carrega a versão — e carrega,
+mas dentro de uma FAMÍLIA one-off própria (`…-catchup-20260812:<entrada>:<versão>:v1`). Ele nunca
+perguntou se aquela entrada+versão já tinha recibo por OUTRO caminho. Foi essa suposição, copiada
+para o one-off de 16/08, que mandou comprovante duplicado para Bossle e Rodrigo Hajj.
+
+O substituto é `bolao/cdb2026/scripts/receipt_catchup_tool.py`.
+
+A guarda abaixo levanta na IMPORTAÇÃO, não só em `__main__` — ver a nota equivalente em
+`receipt_catchup_20260816.py`.
 """
+
+raise SystemExit(
+    "DESARMADO: receipt_catchup_20260812.py está arquivado como evidência. Use "
+    "bolao/cdb2026/scripts/receipt_catchup_tool.py --target-date YYYY-MM-DD."
+)
 
 import argparse
 import hashlib
