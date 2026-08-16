@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T15:38:43Z",
-  "sourceUpdatedAt": "2026-08-16T15:38:43Z",
+  "generatedAt": "2026-08-16T15:55:13Z",
+  "sourceUpdatedAt": "2026-08-16T15:55:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1d995d0b2eb9386b545e43db15d789f7592689c9bc5fe4efb510c438d8c17aa4",
+  "payloadHash": "a6002a5cf3c2e05a6156cd035e7e5d7858fc4bc9233aea0db76231e3618076b3",
   "matches": [
     {
       "id": "401840808",
@@ -37092,23 +37092,23 @@
       "id": "401841194",
       "date": "2026-08-16T14:00Z",
       "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "71'",
-      "statusDetail": "71'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "90'+1'",
+      "statusDetail": "90'+1'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Bahia",
       "homeTeamId": "9318",
       "awayTeamId": "9967",
-      "homeScore": 2,
+      "homeScore": 3,
       "awayScore": 3,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 4260.0,
-      "clockStr": "71'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+1'",
       "period": 2,
       "details": [
         {
@@ -37203,6 +37203,63 @@
             {
               "displayName": "Nicolás Acevedo",
               "shortName": "N. Acevedo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 4254.0,
+            "displayValue": "71'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Túlio Eduardo Silva De Oliveira",
+              "shortName": "T. Silva De Oliveira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5031.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Mateo Sanabria",
+              "shortName": "M. Sanabria"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 5290.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Camilo",
+              "shortName": "Camilo"
             }
           ]
         }
