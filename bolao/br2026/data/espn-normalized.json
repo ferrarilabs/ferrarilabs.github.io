@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T22:14:29Z",
-  "sourceUpdatedAt": "2026-08-16T22:14:29Z",
+  "generatedAt": "2026-08-16T22:40:01Z",
+  "sourceUpdatedAt": "2026-08-16T22:40:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "fc4f64469ad4d031be3acfac4f49e9991395e9aa8991d81b33c6d788e5e99bf5",
+  "payloadHash": "6e663f4da182eed440b151f9137a7d90202d2aeafe35a7e28c0b7c79e25a0bda",
   "matches": [
     {
       "id": "401840808",
@@ -37603,50 +37603,141 @@
     {
       "id": "401841190",
       "date": "2026-08-16T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, August 16th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "44'",
+      "statusDetail": "44'",
       "completed": false,
       "homeTeam": "Mirassol",
       "awayTeam": "Flamengo",
       "homeTeamId": "9169",
       "awayTeamId": "819",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Municipal José Maria de Campos Maia",
       "city": "Mirassol",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 2640.0,
+      "clockStr": "44'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1316.0,
+            "displayValue": "22'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Carrascal",
+              "shortName": "J. Carrascal"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841197",
       "date": "2026-08-16T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, August 16th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "44'",
+      "statusDetail": "44'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Botafogo",
       "homeTeamId": "3457",
       "awayTeamId": "6086",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 2640.0,
+      "clockStr": "44'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 66.0,
+            "displayValue": "2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Victor Hugo",
+              "shortName": "Victor Hugo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 1563.0,
+            "displayValue": "27'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus",
+              "shortName": "Matheus"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 1710.0,
+            "displayValue": "29'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Álvaro Montoro",
+              "shortName": "Á. Montoro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 1715.0,
+            "displayValue": "29'"
+          }
+        }
+      ]
     },
     {
       "id": "401841193",
