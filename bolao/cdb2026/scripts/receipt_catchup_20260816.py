@@ -4,9 +4,17 @@ Recuperação ÚNICA de comprovantes (2026-08-16): quem salvou pelo caminho segu
 (`cdb_save_my_picks`, token) ANTES da permissão nominal existir para a entrada — e por isso o
 save nunca criou obrigação no outbox — e ainda não tem recibo da versão atualmente gravada.
 
-Mesmo mecanismo e mesmas camadas de `receipt_catchup.py` (2026-08-12), só que o alvo não é "quem
-salvou NUM DIA especifico" — é "quem salvou pelo caminho do participante (`lastClientRef`
-presente) e não tem recibo aceito da versão atual". Duas fases no mesmo processo, de propósito:
+CORREÇÃO (mesmo dia, depois de uma primeira rodada errada): a primeira versão deste script usava
+só `lastClientRef presente` como alvo, sem recorte de DIA — igual ao `receipt_catchup.py` de
+12/08, mas sem a parte que dava segurança a ele. Resultado: mandou comprovante para Bossle
+(salvou 13/08) e Rodrigo Hajj (salvou 14/08), que já tinham recebido confirmação de quando
+palpitaram, junto com Nathalia e Aline (salvaram 15/08 à noite, hoje), que eram os únicos alvos
+reais — o relato original de "não recebeu confirmação" era só sobre elas duas. `receipt_catchup.py`
+tinha `DIA_ALVO` fixo porque era literalmente sobre UM dia (12/08); aqui o dia é sempre "quando
+este script roda" — `DIA_ALVO` volta a existir, mas computado em tempo de execução, não fixo.
+
+O alvo é "quem salvou pelo caminho do participante (`lastClientRef` presente) NO DIA em que este
+script roda e não tem recibo aceito da versão atual". Duas fases no mesmo processo, de propósito:
 
   --medir   mede, classifica, congela o manifesto e PARA. Não envia. Não reserva.
   --enviar  remede, exige que o manifesto seja idêntico ao congelado, e só então envia.
@@ -34,6 +42,7 @@ import hashlib
 import json
 import os
 import sys
+from datetime import datetime, timezone, timedelta
 from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
@@ -49,6 +58,23 @@ SUPABASE = "https://cmhqkkfczotdnssupkni.supabase.co"
 ENTRADA_OPERADOR = "03e9fe14-d777-4a71-9c31-3d54dd21a07c"
 FAMILIA = "cdb2026:entry-saved-confirmation-catchup-20260816"
 APP = "cdb2026"
+NY = timezone(timedelta(hours=-4))   # America/New_York em agosto (EDT)
+# Calculado UMA VEZ na importação — "hoje" é o dia em que este processo roda, não um valor fixo.
+# `receipt_catchup.py` (12/08) tinha DIA_ALVO fixo porque era sobre um incidente de um dia
+# específico; aqui não há um dia especial, só "não repetir para quem já foi atendido antes".
+DIA_ALVO = datetime.now(timezone.utc).astimezone(NY).strftime("%Y-%m-%d")
+
+
+def dia_ny(iso):
+    if not iso:
+        return None
+    try:
+        t = datetime.fromisoformat(str(iso).replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=timezone.utc)
+        return t.astimezone(NY).strftime("%Y-%m-%d")
+    except Exception:  # noqa: BLE001
+        return None
 
 
 def rest(caminho):
@@ -92,18 +118,21 @@ def medir():
         if not eid or eid in apagadas:
             continue
         tem_ref = bool(e.get("lastClientRef"))
+        dia = dia_ny(e.get("updatedAt"))
         picks = e.get("picks") or {}
         versao = m8m9._rpc("cdb_picks_version", {"p_picks": picks})
         snap = snapshot_de(e, est)
         camp, vice = R.podio(snap)
 
-        material = tem_ref
+        material = tem_ref and dia == DIA_ALVO
         if not tem_ref:
             motivo = "lastClientRef ausente — nunca salvou pelo caminho seguro (ou já recebeu pelo antigo)"
+        elif dia != DIA_ALVO:
+            motivo = f"salvou em {dia or '(nunca)'} — não é hoje ({DIA_ALVO}); já foi atendido antes"
         elif eid == ENTRADA_OPERADOR:
             motivo = "é o operador — já recebeu e aprovou o comprovante desta versão no teste de template"
         else:
-            motivo = "salvou pelo caminho do participante e não tem recibo desta versão"
+            motivo = "salvou hoje pelo caminho do participante e não tem recibo desta versão"
 
         reg = {
             "entryId": eid,
