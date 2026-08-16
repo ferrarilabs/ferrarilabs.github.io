@@ -177,6 +177,9 @@ const CHECKS = [
   { id: "notif-repo-interop", group: "notifications", cmd: ["node", "bolao/shared/scripts/test_notification_repository_interop.mjs"], why: "repository interop" },
   { id: "durable-persist", group: "notifications", cmd: ["python3", "bolao/shared/scripts/test_durable_persist.py"], why: "durable persistence" },
   { id: "durable-notif-repo", group: "notifications", cmd: ["node", "bolao/shared/scripts/test_durable_notification_repository.mjs"], why: "durable notification repository" },
+  { id: "br-round-close-preflight", group: "notifications",
+    cmd: ["python3", "bolao/br2026/scripts/test_round_close_preflight.py"],
+    why: "fechamento de rodada e e-mail pos-apito-final: rodada so fecha com TODOS os N jogos terminais, scoring/ranking finalizados antes da notificacao, e exatamente um e-mail por destinatario (aceito/incerto nunca reenviam)" },
 
   // Estes DOIS estavam marcados `requires: "network"` e por isso eram sempre PULADOS — mas nenhum
   // dos dois toca a rede. `test_espn_provider.py` diz no próprio cabeçalho "no network calls, no

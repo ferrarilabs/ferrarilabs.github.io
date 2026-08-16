@@ -640,6 +640,9 @@
     },
     "bolao/scripts/test_allowlist_conditionality.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/br2026/scripts/test_round_close_preflight.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
