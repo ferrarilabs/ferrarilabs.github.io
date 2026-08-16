@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T14:54:51Z",
-  "sourceUpdatedAt": "2026-08-16T14:54:51Z",
+  "generatedAt": "2026-08-16T15:14:59Z",
+  "sourceUpdatedAt": "2026-08-16T15:14:59Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "2f5b3cd77e8ef05e978fff02255ed7f6fa35e7657a295e26a9e9ca917ae095fa",
+  "payloadHash": "11ba8ba241e20a3939258462f188c31c431fabcb5a1c571cd8d2de8485f85c02",
   "matches": [
     {
       "id": "401840808",
@@ -37092,24 +37092,24 @@
       "id": "401841194",
       "date": "2026-08-16T14:00Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "50'",
+      "statusDetail": "50'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Bahia",
       "homeTeamId": "9318",
       "awayTeamId": "9967",
-      "homeScore": 1,
+      "homeScore": 2,
       "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 2700.0,
-      "clockStr": "45'+3'",
-      "period": 1,
+      "clockSec": 3000.0,
+      "clockStr": "50'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -37165,6 +37165,25 @@
             {
               "displayName": "Kauan",
               "shortName": "Kauan"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 2866.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcinho",
+              "shortName": "Marcinho"
             }
           ]
         }
