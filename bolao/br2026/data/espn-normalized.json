@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T20:26:47Z",
-  "sourceUpdatedAt": "2026-08-16T20:26:47Z",
+  "generatedAt": "2026-08-16T20:47:19Z",
+  "sourceUpdatedAt": "2026-08-16T20:47:19Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "06d561dc5645ee79a2a1ba623f1941bd83a91c15ee8689b223fab1d480d220b2",
+  "payloadHash": "21176422b13be8c6901dc659eea7bbd3f56c37b37a7657313eaba0abd68e5c47",
   "matches": [
     {
       "id": "401840808",
@@ -37288,24 +37288,24 @@
       "id": "401841195",
       "date": "2026-08-16T19:00Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "45'+1'",
-      "statusDetail": "45'+1'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "83'",
+      "statusDetail": "83'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
       "homeTeamId": "7632",
       "awayTeamId": "6273",
-      "homeScore": 1,
+      "homeScore": 3,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 2700.0,
-      "clockStr": "45'+1'",
-      "period": 1,
+      "clockSec": 4980.0,
+      "clockStr": "83'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -37363,6 +37363,120 @@
               "shortName": "Á. Preciado"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 2700.0,
+            "displayValue": "45'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Mamady Cissé",
+              "shortName": "M. Cissé"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3406.0,
+            "displayValue": "57'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renan Lodi",
+              "shortName": "R. Lodi"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 3611.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wálter Kannemann",
+              "shortName": "W. Kannemann"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3720.0,
+            "displayValue": "62'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Cuello",
+              "shortName": "T. Cuello"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3902.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Cuello",
+              "shortName": "T. Cuello"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 4109.0,
+            "displayValue": "69'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro Gabriel",
+              "shortName": "Pedro Gabriel"
+            }
+          ]
         }
       ]
     },
@@ -37370,24 +37484,24 @@
       "id": "401841188",
       "date": "2026-08-16T19:00Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "45'+1'",
-      "statusDetail": "45'+1'",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "82'",
+      "statusDetail": "82'",
       "completed": false,
       "homeTeam": "Vasco da Gama",
       "awayTeam": "Santos",
       "homeTeamId": "3454",
       "awayTeamId": "2674",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 3,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 2700.0,
-      "clockStr": "45'+1'",
-      "period": 1,
+      "clockSec": 4920.0,
+      "clockStr": "82'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -37405,6 +37519,63 @@
             {
               "displayName": "Robert",
               "shortName": "Robert"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4040.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Barbosa",
+              "shortName": "G. Barbosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4588.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Willian Arão",
+              "shortName": "W. Arão"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4835.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luan Peres",
+              "shortName": "L. Peres"
             }
           ]
         }
