@@ -1,0 +1,20 @@
+{
+  "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
+
+  "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida. Isso e deliberado — sem a autolimpeza este arquivo viraria um deposito de autorizacoes permanentes, que e a porta dos fundos que ele existe para nao ser.",
+
+  "declarations": [
+    {
+      "surface_id": "CI_WORKFLOW",
+      "reason": "Criacao do proprio workflow que executa o contrato. Ate agora NENHUM workflow deste repositorio rodava `npm test` ou `scripts/verify.mjs`: a suite inteira — 150 checks, incluindo scoring, PII, seguranca de e-mail e cobertura de cron — so existia na maquina de quem lembrasse de rodar.",
+      "expected_behavior_change": "Passa a existir `.github/workflows/safety_check.yml`, disparando em pull_request e em push para main, executando `npm run check`. Nenhum secret e exposto ao job: os caminhos capazes de escrever em producao ou enviar e-mail falham FECHADOS por ausencia de credencial, e os gates que exigem credencial de producao sao reportados SKIPPED, nunca PASSED. Nenhum comportamento de produto muda.",
+      "tests_required": ["safety-contract", "safety-contract-mutations", "cron-coverage", "email-send-safety"]
+    },
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O novo `safety_check.yml` casa com o padrao `.github/workflows/**`, que e deliberadamente amplo: qualquer workflow deste repositorio pode enviar e-mail, publicar o site ou escrever em producao, entao a superficie inclui TODOS eles e nao apenas os que ja mandam e-mail hoje. Um workflow novo que enviasse e-mail sem entrar no manifesto seria exatamente o caso que a amplitude existe para pegar.",
+      "expected_behavior_change": "NENHUM workflow de notificacao foi tocado. Nenhum cron, gatilho, guard de envio real, script invocado ou resolvedor de destinatarios mudou. O unico arquivo acrescentado em .github/workflows/ e o safety_check.yml, que nao envia e-mail nenhum e nao carrega guard de envio real. Verificavel: `git diff --stat` em .github/workflows/ mostra somente a criacao do safety_check.yml.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "safety-contract"]
+    }
+  ]
+}

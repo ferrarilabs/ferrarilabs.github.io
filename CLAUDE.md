@@ -237,6 +237,45 @@ Full detail, change classification categories, and the area-by-area audit:
 
 ## Permanent rules
 
+### TODA MUDANÇA DEVE RODAR `npm run check` ANTES DE SER CONCLUÍDA
+
+**Comando canônico: `npm run check`.** Nenhuma tarefa está concluída sem ele — `NPM_RUN_CHECK = PASS`.
+
+Isto vale para toda mudança, inclusive as que "não têm relação" com scoring, hero, e-mail ou
+banco. Os dois defeitos achados na auditoria de julho/2026 estavam justamente em código que
+parecia não ter relação com o que estava sendo mexido.
+
+`npm run check` compõe: classificação da mudança + contrato de segurança + a suíte canônica
+(`scripts/verify.mjs`, 150 checks, agregados) + verificação de árvore/evidência. Ele é a única
+porta de entrada — não crie um segundo comando canônico e não invente uma suíte paralela.
+
+Variantes: `npm run check -- --with-npm-test` (roda também a cadeia literal do `npm test`);
+`npm run check -- --fast` (pula o grupo `browser` — **não vale como verificação final**).
+
+**Superfícies críticas não podem mudar incidentalmente.** Se uma mudar de propósito, o agente
+deve, nesta ordem:
+
+1. **declarar** a superfície protegida em `CHANGE_INTENT.json`
+   (`surface_id`, `reason`, `expected_behavior_change`, `tests_required`);
+2. **explicar por quê**, no changelog do app afetado e no resumo para o Eduardo;
+3. **rodar os gates dedicados** da superfície (`required_gates` no registro);
+4. **reportar explicitamente** a mudança — nunca deixá-la implícita num diff grande.
+
+O registro canônico é `bolao/shared/safety/critical_surfaces.json` (23 superfícies) e o manifesto
+de notificação é `bolao/shared/safety/notification_workflows.json`. Documentação completa em
+`docs/bolao/CHANGE_SAFETY_CONTRACT.md`.
+
+Uma mudança **comum não declara nada** — `CHANGE_INTENT.json` nem precisa existir. A ausência é o
+estado normal, e a declaração existe para o caso raro, não para o dia a dia. Depois que a mudança
+entra em `main` a declaração fica obsoleta e **deve ser removida** (o check `D3` exige isso).
+
+**Nunca** enfraqueça um gate para deixar um patch verde: remover um check do `verify.mjs`, tirar
+um comando da cadeia do `npm test`, introduzir um `skip`, esvaziar as assertions de um gate,
+alargar o `ALLOWLIST.json`, estreitar um gatilho de CI ou apagar um cron. Todos esses caminhos
+são detectados contra a base do git e todos têm mutação provando que mordem
+(`npm run safety:mutations`, 16/16). Se um gate está errado, corrija o gate e diga que corrigiu —
+não o silencie.
+
 ### Repository is the source of truth (all devices, all sessions)
 
 Every Claude Code session, regardless of device, must read the same repository governance
@@ -260,12 +299,13 @@ justification for skipping validation.
 
 ### Sempre ler antes de qualquer alteração
 
-1. `docs/bolao/PROJECT_MEMORY.md`
-2. `docs/bolao/ENGINEERING_STANDARD.md`
-3. `docs/bolao/PLATFORM_GOVERNANCE.md`
-4. `docs/bolao/CONSISTENCY_MATRIX.md`
-5. `docs/bolao/QA_MASTER_CHECKLIST.md`
-6. `CHANGELOG.md` de cada app afetado (`bolao/copa2026/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md`, `bolao/cdb2026/CHANGELOG.md`)
+1. `docs/bolao/CHANGE_SAFETY_CONTRACT.md` — o contrato permanente e o comando canônico `npm run check`
+2. `docs/bolao/PROJECT_MEMORY.md`
+3. `docs/bolao/ENGINEERING_STANDARD.md`
+4. `docs/bolao/PLATFORM_GOVERNANCE.md`
+5. `docs/bolao/CONSISTENCY_MATRIX.md`
+6. `docs/bolao/QA_MASTER_CHECKLIST.md`
+7. `CHANGELOG.md` de cada app afetado (`bolao/copa2026/CHANGELOG.md`, `bolao/br2026/CHANGELOG.md`, `bolao/cdb2026/CHANGELOG.md`)
 
 ### Antes de modificar qualquer arquivo
 

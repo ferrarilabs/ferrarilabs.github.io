@@ -335,6 +335,26 @@ const CHECKS = [
   { id: "allowlist-conditionality", group: "app", cmd: ["node", "bolao/scripts/test_allowlist_conditionality.mjs"],
     why: "a excecao condicional do ALLOWLIST.json e a UNICA brecha na regra 'entrada nao utilizada = defeito'; estas mutacoes provam que ela morde e nao virou porta dos fundos" },
 
+  // ── orfaos de meio-caminho, achados em 2026-08-16 ao construir o contrato de seguranca ──────
+  // Os tres RODAVAM em `npm run test:node` e faltavam AQUI. E exatamente o N21 outra vez: estar
+  // numa lista e nao na outra e um orfao com outro nome. A ausencia importa porque o contrato
+  // permanente exige que o verify.mjs DOMINE a cadeia do npm test — sem dominancia, "rodei o
+  // verify" deixa de implicar "rodei o npm test", e a garantia do `npm run check` fica furada.
+  { id: "shared-visual-contract", group: "app", cmd: ["node", "bolao/scripts/check_shared_visual_contract.mjs"],
+    why: "as fases 2-4 tiraram cada componente compartilhado dos CSS locais A MAO; sem este gate o framework volta a derivar no proximo 'ajuste rapido' feito no arquivo que ja estava aberto" },
+  { id: "snapshot-window-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/audit_snapshot_window_coverage.mjs"],
+    why: "o hero ja sumiu porque o cron do snapshot era cego das 06:00 as 16:00 UTC — a janela nao cobria o horario do jogo" },
+  { id: "cachebust-integration", group: "app", cmd: ["node", "bolao/scripts/cachebust.integration.test.mjs"],
+    why: "um ?v= desatualizado publica codigo novo com asset velho; ja aconteceu logo APOS a propria correcao de cache-bust ser publicada (N13)" },
+  { id: "br-round-manifest-build", group: "scoring", cmd: ["python3", "bolao/br2026/scripts/build_round_manifest.py"],
+    why: "unico comando da cadeia do npm test que nao era um check daqui; sem ele a dominancia do verify sobre o npm test teria de abrir excecao, e excecao em regra de cobertura e por onde o proximo orfao entra" },
+
+  // ── o contrato permanente de seguranca de mudanca ───────────────────────────────────────────
+  { id: "safety-contract", group: "security", cmd: ["node", "scripts/safety/audit_safety_contract.mjs"],
+    why: "meta-gate: nenhuma mudanca pode enfraquecer o proprio portao que a julga, e nenhuma superficie critica pode mudar em silencio" },
+  { id: "safety-contract-mutations", group: "security", cmd: ["node", "scripts/safety/test_safety_contract.mjs"],
+    why: "as mutacoes que provam que o contrato MORDE; um contrato que nunca fica vermelho e uma decoracao cara" },
+
 ];
 
 function capabilities() {

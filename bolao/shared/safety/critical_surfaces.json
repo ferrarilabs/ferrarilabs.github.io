@@ -1,0 +1,323 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Registro canonico das superficies criticas da plataforma FerrariLabs. Existe porque a protecao contra regressao dependia de alguem LEMBRAR de dizer 'confira o hero', 'confira o scoring', 'confira o cron'. Memoria de prompt nao e controle de engenharia: ela falha exatamente na mudanca que parecia nao ter relacao — e os dois defeitos da auditoria de julho/2026 estavam justamente em codigo que parecia nao ter relacao. Este arquivo move a protecao para o repositorio. Consumido por scripts/safety/audit_safety_contract.mjs e scripts/safety/classify.mjs.",
+
+  "policies": {
+    "DECLARE_TO_CHANGE": "Qualquer diferenca exige uma entrada correspondente em CHANGE_INTENT.json. E o padrao para o que nunca deve mudar por acidente: constantes de scoring, tokens visuais, gatilhos de e-mail, fronteiras de seguranca.",
+    "APPEND_ONLY": "Pode CRESCER sem declaracao; ENCOLHER exige declaracao. E a forma correta para inventarios de protecao — acrescentar um gate e sempre seguro, remover um gate e a mudanca perigosa, e e exatamente a que um patch apressado faz para ficar verde.",
+    "STRUCTURALLY_ENFORCED": "Nao exige declaracao para edicao de conteudo, porque o arquivo e grande e muda legitimamente o tempo todo (app.js tem milhares de linhas). Em troca, os invariantes estruturais da superficie sao verificados em TODA execucao, e tocar no arquivo aciona os gates pesados dedicados. Responde a pergunta B do contrato: mesmo sem diferenca aparente, o invariante ainda vale?"
+  },
+
+  "generated_evidence": {
+    "purpose": "Artefatos que a PROPRIA suite reescreve a cada execucao. Eles carregam um carimbo de geracao (hora + commit), entao ficam 'modificados' depois de todo `npm run check` mesmo quando nenhum achado mudou. Duas saidas erradas seriam possiveis aqui, e o contrato recusa as duas: ignorar estes arquivos esconderia uma mudanca REAL de achado visual, e reprovar sempre ensinaria a ignorar `git status` — e um `git status` ignorado e como uma edicao acidental viaja junto com um commit legitimo. A saida certa e comparar o CONTEUDO com os campos volateis normalizados: igual, o arquivo e restaurado e a arvore termina limpa; diferente, o check REPROVA e manda revisar, porque ai o achado mudou de verdade.",
+    "artifacts": [
+      {
+        "path": "docs/bolao/evidence/visual-comparison/audit_visual_consistency.json",
+        "volatile": ["^\\s*\"generatedAtUtc\":.*$", "^\\s*\"commit\":.*$"]
+      },
+      {
+        "path": "docs/bolao/evidence/visual-comparison/audit_visual_consistency.md",
+        "volatile": ["^Gerado em .*$"]
+      }
+    ]
+  },
+
+  "surfaces": [
+    {
+      "id": "SCORING_CONSTANTS",
+      "category": "BUSINESS_RULE",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "why": "Os tres bolões pagam dinheiro real por entrada. Uma constante de pontuacao ou de rateio alterada por acidente redistribui premio entre pessoas que ja pagaram, e o site nao tem como saber que errou. CLAUDE.md: 'This is the part of the site that can never be broken'.",
+      "fingerprint": {
+        "kind": "config_keys",
+        "files": [
+          "bolao/copa2026/js/config.js",
+          "bolao/br2026/js/config.js",
+          "bolao/cdb2026/js/config.js"
+        ],
+        "keys": ["entryFee", "cutoffIso", "prizes", "scoring"],
+        "ignored_keys": ["siteVersion"],
+        "ignored_reason": "siteVersion sobe em TODO release por politica do repo (ver CLAUDE.md, 'Release process'). Incluir siteVersion no fingerprint exigiria uma declaracao de mudanca critica em cada release e a declaracao viraria carimbo — que e como uma protecao morre."
+      },
+      "required_gates": ["scoring-copa", "scoring-br", "scoring-cdb", "integrity-cdb"]
+    },
+    {
+      "id": "SCORING_ENGINES",
+      "category": "BUSINESS_RULE",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/copa2026/scripts/audit_scoring.py",
+        "bolao/br2026/scripts/audit_scoring.py",
+        "bolao/cdb2026/scripts/audit_scoring.py",
+        "bolao/loterias/powerball/scripts/audit_scoring.py",
+        "bolao/loterias/scripts/test_prize_authority.py"
+      ],
+      "why": "As suites de auto-teste do scoring sao autoridade, nao documentacao. CLAUDE.md exige roda-las apos QUALQUER mudanca, relacionada ou nao.",
+      "required_gates": ["scoring-copa", "scoring-br", "scoring-cdb", "integrity-cdb", "powerball-scoring", "lottery-prize-authority"]
+    },
+    {
+      "id": "RANKING_AND_TIEBREAK",
+      "category": "BUSINESS_RULE",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/cdb2026/scripts/audit_bracket_progression.mjs",
+        "bolao/cdb2026/scripts/test_bracket_propagation.mjs",
+        "bolao/br2026/scripts/test_round_state.py"
+      ],
+      "why": "Cascata de desempate, topologia de chaveamento e identidade canonica de rodada decidem QUEM ganha. A R21 ja travou num jogo adiado e escondeu a R22 inteira.",
+      "required_gates": ["cdb-bracket-progression", "cdb-bracket-propagation", "br-round-state"]
+    },
+    {
+      "id": "ROUND_FINALIZATION",
+      "category": "BUSINESS_RULE",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/br2026/scripts/round_state.py",
+        "bolao/br2026/scripts/send_round_email.py"
+      ],
+      "why": "O e-mail de rodada e irreversivel e so pode sair depois que a rodada INTEIRA acabou, com pontuacao finalizada, exatamente uma vez por destinatario. As tres coisas ja falharam aqui.",
+      "required_gates": ["br-round-close-preflight", "br-delivery-loop", "br-round-state"]
+    },
+    {
+      "id": "LOTTERY_ECONOMICS",
+      "category": "BUSINESS_RULE",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/loterias/scripts/test_lottery_core.py",
+        "bolao/loterias/scripts/test_jackpot_identity.py",
+        "bolao/loterias/powerball/scripts/test_result_draw_identity.py"
+      ],
+      "why": "O jackpot exibido tem de ser o do sorteio CERTO — a pagina de resultado publica o valor SORTEADO, nao o proximo. Confundir os dois ja produziu um resultado orfao com e-mails ja entregues.",
+      "required_gates": ["lottery-core", "lottery-jackpot-identity", "powerball-result-identity", "lottery-failure-injection"]
+    },
+
+    {
+      "id": "SHARED_DESIGN_TOKENS",
+      "category": "VISUAL",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "paths": ["bolao/shared/css/tokens.css"],
+      "structural_invariants": {
+        "kind": "design_tokens",
+        "note": "A EXISTENCIA de cada familia e verificada em toda execucao; o VALOR e travado por DECLARE_TO_CHANGE. Sao perguntas diferentes: apagar --radius-pill quebra os quatro apps de um jeito que nenhum gate de valor pegaria, porque nao ha valor novo para comparar.",
+        "required_tokens": [
+          "--bg", "--bg2", "--bg3", "--border", "--border2",
+          "--green", "--text", "--muted", "--danger-bg", "--gold", "--red",
+          "--font-family", "--font-family-mono", "--font-size-base", "--line-height-base",
+          "--font-weight-regular", "--font-weight-bold",
+          "--space-1", "--space-4", "--space-8",
+          "--radius-sm", "--radius-md", "--radius-lg", "--radius-pill",
+          "--shadow-card", "--content-max-width",
+          "--breakpoint-mobile", "--breakpoint-tablet", "--breakpoint-desktop"
+        ]
+      },
+      "why": "Cor, tipografia, raio e espacamento de TODA a plataforma saem daqui. Um token alterado por acidente repinta os quatro apps de uma vez e ninguem ve, porque cada tela isolada continua 'parecendo certa'.",
+      "required_gates": ["visual-consistency", "shared-visual-contract"]
+    },
+    {
+      "id": "SHARED_VISUAL_FRAMEWORK",
+      "category": "VISUAL",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "paths": [
+        "bolao/shared/css/components.css",
+        "bolao/shared/css/forms.css",
+        "bolao/shared/css/navigation.css",
+        "bolao/shared/css/reset.css",
+        "bolao/shared/css/responsive.css",
+        "bolao/shared/css/shell.css",
+        "bolao/shared/css/admin.css"
+      ],
+      "why": "Cards, botoes, formularios, navegacao desktop/mobile e breakpoints compartilhados. A migracao das fases 2-4 tirou essas regras dos CSS locais um componente por vez, a mao — exatamente o tipo de coisa que regride no proximo PR sem relacao.",
+      "required_gates": ["shared-visual-contract", "visual-consistency", "responsive-14-width"]
+    },
+    {
+      "id": "APP_STYLESHEETS",
+      "category": "VISUAL",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/copa2026/css/styles.css",
+        "bolao/br2026/css/styles.css",
+        "bolao/cdb2026/css/styles.css"
+      ],
+      "why": "CSS local de app muda legitimamente. O risco nao e a mudanca: e o app redefinir a identidade de um componente compartilhado no arquivo que ja estava aberto, e o framework compartilhado derivar de novo.",
+      "required_gates": ["shared-visual-contract", "visual-consistency", "responsive-14-width", "accessibility"]
+    },
+    {
+      "id": "LIVE_MATCH_HEROES",
+      "category": "VISUAL",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/br2026/js/app.js",
+        "bolao/cdb2026/js/app.js",
+        "bolao/copa2026/js/app.js",
+        "bolao/shared/js/football_live_store.js"
+      ],
+      "structural_invariants": {
+        "kind": "hero_anchors",
+        "note": "app.js e o app inteiro num IIFE; um gate de caminho aqui exigiria declaracao em toda mudanca e viraria carimbo. Em vez disso os ancoras do hero sao verificados em TODA execucao, e tocar no arquivo aciona os gates de navegador dedicados. Os ancoras NAO sao iguais nos tres apps de proposito: cada torneio tem um hero diferente, e exigir o conjunto do BR2026 na Copa seria copiar logica de torneio entre apps — proibido por CLAUDE.md.",
+        "anchors": {
+          "bolao/copa2026/js/app.js": ["hero-live", "live-badge"],
+          "bolao/cdb2026/js/app.js": ["hero-live", "live-badge", "live-match-grid"],
+          "bolao/br2026/js/app.js": ["hero-live", "live-badge", "live-match-grid", "liveMatchesLabel", "heroMatches"]
+        },
+        "anchors_why": {
+          "heroMatches": "O renderizador do BR2026 SEMPRE foi de varias partidas. Em 2026-08-16 uma correcao de robustez estreitou a entrada para `_liveMatches[0]` e o hero passou a mostrar UM jogo numa rodada com tres simultaneos. Perder este ancora e perder exatamente essa regressao.",
+          "live-match-grid": "O container flex-wrap que permite mais de um card no hero. Sem ele o hero volta a ser de uma partida so, mesmo com os dados certos.",
+          "hero-live": "A existencia do proprio hero. Ele ja sumiu da tela QUATRO vezes, cada uma por causa diferente."
+        }
+      },
+      "why": "O hero ao vivo ja sumiu da tela do Eduardo QUATRO vezes, cada uma por causa diferente, e numa rodada com jogos simultaneos chegou a mostrar so o primeiro — uma correcao de robustez estreitou a entrada de um renderizador que sempre foi multi.",
+      "required_gates": ["multi-live-hero", "multi-live-hero-responsive", "live-hero-reliability", "br-live-behavior-parity"]
+    },
+    {
+      "id": "RANKING_AND_STANDINGS_LAYOUT",
+      "category": "VISUAL",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/br2026/scripts/visual/check_standings_layout.mjs",
+        "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs"
+      ],
+      "why": "A classificacao e a tela que o participante confere para saber se ganhou. Zonas G4/Z4, barras de probabilidade e sobreposicao de elemento fixo sao geometria real, nao 'a pagina carregou'.",
+      "required_gates": ["br-standings-layout", "cdb-sticky-overlap", "html-table-structure"]
+    },
+
+    {
+      "id": "SUPABASE_MIGRATIONS",
+      "category": "PERSISTENCE",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "paths": ["supabase/migrations/**"],
+      "structural_invariants": {
+        "kind": "migration_hygiene",
+        "rules": [
+          "NO_ROLLBACK_SQL_IN_FORWARD_HISTORY",
+          "UNIQUE_MIGRATION_TIMESTAMPS",
+          "VALID_MIGRATION_FILENAMES",
+          "NO_RETIRED_MIGRATION_REENTRY"
+        ],
+        "non_forward_artifacts": ["BASELINE_current_production_state.reference.sql"],
+        "non_forward_reason": "Retrato do estado de producao para consulta, nao um passo de avanco: o sufixo .reference.sql o mantem fora da historia aplicada. A lista e EXPLICITA e curta de proposito — se a regra fosse 'ignore o que nao casar com o padrao', qualquer arquivo mal nomeado passaria a ser invisivel para o gate, que e exatamente o buraco que a regra de nome existe para fechar."
+      },
+      "why": "Um .rollback.sql na historia de avanco e aplicado COMO SE FOSSE avanco e desfaz o schema em producao. Timestamp duplicado torna a ordem de aplicacao indefinida entre ambientes.",
+      "required_gates": []
+    },
+    {
+      "id": "SECURITY_BOUNDARY",
+      "category": "PERSISTENCE",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/shared/sql/**",
+        "scripts/pii_detectors.mjs",
+        "scripts/audit_pii_repo_wide.mjs"
+      ],
+      "why": "RLS, projecoes publica/privada e o motor de PII sao a fronteira entre 'o participante ve o proprio dado' e 'o participante ve o dado dos outros'. A chave anon vai em todo navegador.",
+      "required_gates": ["pii-gate", "pii-gate-tests", "pii-detector-engine", "copa-private-readers", "anon-key-shape", "fixture-privacy"]
+    },
+
+    {
+      "id": "NOTIFICATION_WORKFLOWS",
+      "category": "NOTIFICATION",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "paths": [".github/workflows/**"],
+      "manifest": "bolao/shared/safety/notification_workflows.json",
+      "why": "Um cron que nao dispara nao emite NADA: nao ha erro, nao ha run vermelha, nao ha alerta — a AUSENCIA e a falha. Ja aconteceu: powerball-results-email.yml agendava terca e sabado enquanto os sorteios reais sao seg/qua/sab, e nenhum sinal apontou isso; foi encontrado lendo o arquivo.",
+      "required_gates": ["cron-coverage", "email-send-safety", "powerball-workflow-arming"]
+    },
+    {
+      "id": "REAL_SEND_GUARDS",
+      "category": "NOTIFICATION",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "structural_invariants": {
+        "kind": "real_send_guards",
+        "note": "Verificado por comportamento nos gates dedicados; aqui o contrato trava a EXISTENCIA do guard em cada sender e workflow declarado."
+      },
+      "paths": [
+        "scripts/audit_email_send_safety.mjs",
+        "bolao/scripts/test_python_sender_failclosed.py"
+      ],
+      "why": "A auditoria de 2026-08-09 achou uma assimetria: a escrita no Supabase era fail-closed e o envio de e-mail nao tinha nada. Aqui isso nao e hipotese — um envio errado ja saiu para 15 pessoas reais e o reenvio corrigido alcancou 14 de 15.",
+      "required_gates": ["email-send-safety", "python-sender-failclosed", "powerball-email-safety", "powerball-email-gates", "no-real-email-in-verification"]
+    },
+    {
+      "id": "NOTIFICATION_EXACTLY_ONCE",
+      "category": "NOTIFICATION",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/shared/scripts/notification_repository.py",
+        "bolao/shared/scripts/notification_repository.mjs",
+        "bolao/shared/scripts/round_notification_ledger.mjs",
+        "bolao/shared/schemas/notification_job.schema.json"
+      ],
+      "why": "Dedupe, claim/lease e a obrigacao duravel ANTES do provedor. Criar a obrigacao depois tambem satisfaz 'o ciclo cria um evento' e e justamente o caso que PERDE a obrigacao num crash.",
+      "required_gates": ["round-ledger", "round-ledger-interop", "ledger-consumer", "powerball-outbox-order", "powerball-crash-matrix"]
+    },
+    {
+      "id": "EMAIL_SUBJECT_POLICY",
+      "category": "NOTIFICATION",
+      "change_policy": "STRUCTURALLY_ENFORCED",
+      "paths": [
+        "bolao/shared/scripts/subject_policy.py",
+        "bolao/shared/scripts/subject_policy.mjs"
+      ],
+      "why": "O assunto e a unica parte do e-mail que a pessoa le antes de decidir abrir. A Powerball saia com o icone errado e ninguem olhava.",
+      "required_gates": ["subject-policy", "subject-policy-interop"]
+    },
+
+    {
+      "id": "GATE_REGISTRY",
+      "category": "QUALITY_INFRA",
+      "change_policy": "APPEND_ONLY",
+      "paths": ["bolao/scripts/gate_registry.json"],
+      "why": "Em 2026-08-10 uma auditoria achou 17 gates que existiam e nunca rodavam, incluindo gates de seguranca de e-mail e de PII. Um gate orfao e PIOR que gate nenhum: cria a impressao de cobertura e nao entrega nenhuma.",
+      "required_gates": ["gate-registry"]
+    },
+    {
+      "id": "TEST_CHAIN",
+      "category": "QUALITY_INFRA",
+      "change_policy": "APPEND_ONLY",
+      "paths": ["package.json"],
+      "structural_invariants": {
+        "kind": "npm_chain",
+        "required_subsuites": ["test:scoring", "test:node", "test:notifications", "test:provider", "test:browser"]
+      },
+      "why": "A cadeia do npm test e a lista de tudo que precisa passar. Encurta-la e a forma mais barata de deixar um patch verde, e nao deixa rastro nenhum no diff do codigo.",
+      "required_gates": ["gate-registry"]
+    },
+    {
+      "id": "VERIFY_RUNNER",
+      "category": "QUALITY_INFRA",
+      "change_policy": "APPEND_ONLY",
+      "paths": ["scripts/verify.mjs"],
+      "structural_invariants": { "kind": "verify_checks" },
+      "why": "O agregador roda TODOS os checks e falha no fim, para que uma falha nunca esconda outra. Remover um check daqui e invisivel na saida — o total simplesmente diminui.",
+      "required_gates": ["gate-registry"]
+    },
+    {
+      "id": "SAFETY_CONTRACT_ITSELF",
+      "category": "QUALITY_INFRA",
+      "change_policy": "APPEND_ONLY",
+      "paths": [
+        "bolao/shared/safety/critical_surfaces.json",
+        "bolao/shared/safety/notification_workflows.json",
+        "scripts/safety/**"
+      ],
+      "why": "Uma mudanca nao pode enfraquecer o proprio portao que a julga. Sem esta entrada, o caminho mais curto para um patch ficar verde seria editar o registro em vez do defeito.",
+      "required_gates": ["safety-contract", "safety-contract-mutations"]
+    },
+    {
+      "id": "VISUAL_ALLOWLIST",
+      "category": "QUALITY_INFRA",
+      "change_policy": "APPEND_ONLY",
+      "paths": ["docs/bolao/evidence/visual-comparison/ALLOWLIST.json"],
+      "structural_invariants": { "kind": "allowlist_entries" },
+      "why": "O ALLOWLIST e o UNICO mecanismo capaz de suprimir um achado DIVERGENT. Alargar a allowlist e a maneira silenciosa de fazer um gate visual parar de morder sem tocar em nenhum gate.",
+      "required_gates": ["allowlist-conditionality", "visual-consistency"]
+    },
+    {
+      "id": "CI_WORKFLOW",
+      "category": "QUALITY_INFRA",
+      "change_policy": "DECLARE_TO_CHANGE",
+      "paths": [".github/workflows/safety_check.yml"],
+      "why": "O workflow que executa este contrato e ele proprio uma superficie critica: estreitar o gatilho, remover o push em main ou trocar o comando canonico desliga a protecao inteira sem alterar um unico gate.",
+      "required_gates": ["safety-contract"]
+    }
+  ]
+}

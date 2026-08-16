@@ -213,6 +213,14 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["safety_check.yml",
+   "Contrato permanente de seguranca de mudanca. NAO e agendado de proposito: ele reage a " +
+   "MUDANCA, nao ao relogio. Os gates deste repositorio protegem superficies criticas contra o " +
+   "que um commit faz com elas, entao o evento certo e `pull_request` + `push` em main -- rodar " +
+   "de hora em hora sobre um repositorio parado gastaria minuto de runner para reprovar sempre " +
+   "a mesma coisa ou passar sempre pelo mesmo motivo. Um cron aqui tambem daria a impressao " +
+   "errada de que a verificacao acontece 'sozinha' quando na verdade ela precisa acontecer " +
+   "ANTES de a mudanca entrar."],
   ["cdb2026_register_topology.yml",
    "Registro da topologia oficial da semifinal (caminho ate a final definido no sorteio de " +
    "2026-08-11). Ato UNICO e deliberado: a funcao recusa sobrescrever topologia ja registrada " +

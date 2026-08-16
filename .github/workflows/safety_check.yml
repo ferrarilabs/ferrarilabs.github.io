@@ -1,0 +1,120 @@
+# safety_check.yml — o contrato permanente de seguranca de mudanca, executado fora da maquina do
+# Eduardo.
+#
+# POR QUE ESTE WORKFLOW EXISTE
+# Ate 2026-08-16 NENHUM workflow deste repositorio rodava `npm test` ou `scripts/verify.mjs`. A
+# suite inteira — 144 checks, incluindo scoring, PII, seguranca de e-mail e cobertura de cron —
+# so existia na maquina de quem lembrasse de rodar. Uma protecao que depende de alguem lembrar
+# nao e uma protecao: e uma intencao. Este workflow move a execucao para o repositorio.
+#
+# HERMETICO POR CONSTRUCAO
+# Nenhum secret e exposto a este job. Isso nao e configuracao, e estrutura: sem
+# SUPABASE_SERVICE_ROLE_KEY, sem BOLAO_ALLOW_REAL_SEND e sem POWERBALL_EMAIL_MODE, os caminhos
+# capazes de escrever em producao ou de enviar e-mail falham FECHADOS por contrato proprio
+# (bolao/scripts/test_python_sender_failclosed.py prova isso por comportamento). Os checks que
+# exigem credencial de producao sao reportados SKIPPED pelo verify.mjs — nunca PASSED. Mockar a
+# credencial para "cobrir" esses checks trocaria uma lacuna honesta por um verde falso.
+
+name: Safety check
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+# Sem `permissions: write` de nada. O job le o repositorio e nada mais.
+permissions:
+  contents: read
+
+# Nao cancela execucao em main: o resultado de um commit ja empurrado e evidencia, nao ruido.
+concurrency:
+  group: safety-check-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: npm run check
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    env:
+      # A base de comparacao do contrato. Num PR o certo e o tronco; num push em main o proprio
+      # HEAD ja e a mudanca, e o audit resolve HEAD~1 sozinho.
+      SAFETY_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          # O contrato compara o estado atual contra uma BASE do git. Com o checkout raso padrao
+          # (profundidade 1) nao existe HEAD~1 nem merge-base, e TODA comparacao de baseline
+          # viraria SKIPPED — o contrato passaria sem ter medido justamente o que ele existe para
+          # medir.
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Node dependencies from lockfile
+        run: npm ci
+
+      # O cache guarda apenas o BINARIO do navegador, que e imutavel para uma dada versao do
+      # Playwright. Nenhuma evidencia gerada (relatorio, screenshot, JSON de resumo) entra em
+      # cache: um artefato de execucao reaproveitado esconderia exatamente a regressao que a
+      # execucao seguinte deveria encontrar.
+      - name: Cache Playwright browsers
+        id: playwright-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      # Somente chromium e webkit: sao os unicos motores que a suite atual abre (24 usos de
+      # chromium, 1 de webkit em test_combo_visual.mjs). Instalar firefox tambem seria minuto de
+      # runner gasto num navegador que nenhum gate abre.
+      - name: Install Playwright browsers (chromium + webkit)
+        run: npx playwright install --with-deps chromium webkit
+
+      # Um gate de navegador que nao roda por falta de navegador seria reportado SKIPPED pelo
+      # verify.mjs — honesto, mas silencioso demais para uma regressao visual. Aqui o navegador e
+      # obrigatorio: se a instalacao falhou, o job para ANTES de produzir um verde que nao
+      # cobriu geometria nenhuma.
+      - name: Assert browser capability is real
+        run: |
+          node -e '
+            const { chromium, webkit } = require("playwright");
+            (async () => {
+              for (const [name, engine] of [["chromium", chromium], ["webkit", webkit]]) {
+                const b = await engine.launch();
+                await b.close();
+                console.log(`  ok ${name}`);
+              }
+            })().catch((e) => { console.error("navegador indisponivel:", e.message); process.exit(1); });
+          '
+
+      - name: Run canonical safety check
+        run: npm run check
+
+      # Somente em falha, e somente o resumo de maquina. `verify.mjs` ja omite deliberadamente o
+      # campo `output` do JSON — e o unico que pode ecoar texto de processo filho — porque este
+      # arquivo vira artefato publico do CI.
+      - name: Upload failure evidence
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: safety-check-evidence-${{ github.run_id }}
+          path: |
+            verify-summary.json
+            safety-summary.json
+          if-no-files-found: ignore
+          retention-days: 14
