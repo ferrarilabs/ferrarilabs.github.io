@@ -1,0 +1,53 @@
+# Concede a permissão nominal de comprovante (cdb_confirmation_allowance) para as 12 entradas do
+# roster congelado do CDB2026. NÃO envia e-mail — só grava a permissão que o consumidor de
+# sempre (cdb2026_entry_saved_confirmation.yml, cron de 5 em 5 min) já sabe checar antes de
+# mandar qualquer coisa. Autorizado pelo operador em 2026-08-16, depois de estabilizar o produto.
+name: CDB2026 — conceder permissão de comprovante (roster congelado)
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "status (só leitura) ou conceder"
+        required: true
+        default: status
+        type: choice
+        options: [status, conceder]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdb2026-grant-receipt-allowance
+  cancel-in-progress: false
+
+jobs:
+  status:
+    if: inputs.acao == 'status'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Contagem atual
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/grant_receipt_allowance.py --status
+
+  conceder:
+    if: inputs.acao == 'conceder'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Conceder para o roster
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 bolao/cdb2026/scripts/grant_receipt_allowance.py --run
+      - name: Contagem depois
+        if: always()
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/grant_receipt_allowance.py --status
