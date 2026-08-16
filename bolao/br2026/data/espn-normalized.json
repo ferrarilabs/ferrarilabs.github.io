@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T21:30:52Z",
-  "sourceUpdatedAt": "2026-08-16T21:30:52Z",
+  "generatedAt": "2026-08-16T21:54:59Z",
+  "sourceUpdatedAt": "2026-08-16T21:54:59Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "fc4f64469ad4d031be3acfac4f49e9991395e9aa8991d81b33c6d788e5e99bf5",
+  "payloadHash": "44f44bd6dd5260489700ca948e1ebb66fcb179165512a761a96eb317761bc864",
   "matches": [
     {
       "id": "401840808",
@@ -37603,35 +37603,55 @@
     {
       "id": "401841190",
       "date": "2026-08-16T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, August 16th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "24'",
+      "statusDetail": "24'",
       "completed": false,
       "homeTeam": "Mirassol",
       "awayTeam": "Flamengo",
       "homeTeamId": "9169",
       "awayTeamId": "819",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Municipal José Maria de Campos Maia",
       "city": "Mirassol",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1440.0,
+      "clockStr": "24'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 1316.0,
+            "displayValue": "22'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jorge Carrascal",
+              "shortName": "J. Carrascal"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841197",
       "date": "2026-08-16T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, August 16th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "23'",
+      "statusDetail": "23'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Botafogo",
@@ -37643,10 +37663,30 @@
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1380.0,
+      "clockStr": "23'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 66.0,
+            "displayValue": "2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Victor Hugo",
+              "shortName": "Victor Hugo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841193",
