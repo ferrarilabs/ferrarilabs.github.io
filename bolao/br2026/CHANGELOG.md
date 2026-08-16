@@ -1,5 +1,36 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-16 — `check_standings_layout` fotografava um ponto fora da tela
+
+**Somente teste. A tabela de classificação nunca esteve errada** — nenhum CSS, HTML ou JS do
+produto foi tocado.
+
+Regressão encontrada ao rodar `npm test` depois do commit `173bae02` (`chore(espn): refresh
+br2026 snapshot`, do bot). O gate quebrava com um erro do Playwright, não com um achado de
+layout: `page.screenshot: Clipped area is either empty or outside the resulting image`.
+
+**Causa raiz.** `sampleRowColors()` recorta um screenshot em coordenadas de **viewport** (é o que
+`{clip}` sem `fullPage` faz), usando caixas vindas de `getBoundingClientRect()` — também de
+viewport. As duas só coincidem enquanto a linha estiver **visível**, e nada garantia isso: a
+linha caía dentro da janela por efeito **colateral** do clique no botão de navegação, que rolava
+a página. Medido nos dois estados:
+
+| | hero ao vivo | altura da página | scrollY em 1440x900 | topo da linha |
+|---|---|---|---|---|
+| `f93b942e` (verde) | presente, 273px | 2001px | 595 | 563 ✓ |
+| `173bae02` (vermelho) | ausente | 1778px | 0 | **961** ✗ (janela de 900) |
+
+Quando nenhum jogo está ao vivo o hero some, a página encurta, a rolagem incidental deixa de
+acontecer e a linha vai parar abaixo da dobra. Não é um caso raro: **é o estado normal fora do
+horário de jogo**, e teria deixado a suíte vermelha durante o fechamento da R23.
+
+**Correção**: a linha é rolada para o centro da tela e as caixas são **relidas** depois disso,
+antes da foto. Sem depender mais de rolagem incidental de terceiros.
+
+**A asserção continua mordendo**: com `td:nth-child(4) { background: #ff00ff }` injetado, o gate
+acusa `row-status-background-discontinuous` com as amostras em `[255,0,255]`. 8/8 viewports
+verdes sem a mutação.
+
 ## 2026-08-16 — gate de fechamento de rodada e e-mail pós-apito-final
 
 **Somente teste. Nenhuma mudança de comportamento de produto**: `round_state.py`,

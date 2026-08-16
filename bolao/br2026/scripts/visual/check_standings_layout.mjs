@@ -121,11 +121,34 @@ async function measure(page) {
  * Sampling stops at the scroller's right edge. On narrow screens the row box is deliberately wider
  * than .standings-wrap (that is the contained horizontal scroll), so anything past that edge is
  * clipped page background, not part of the row.
+ *
+ * A ROW IS SCROLLED INTO VIEW BEFORE BEING FOTOGRAFADA, e as caixas sao RELIDAS depois disso.
+ * `page.screenshot({clip})` sem `fullPage` recorta em coordenadas de VIEWPORT, e as caixas vem de
+ * `getBoundingClientRect()` — que tambem e de viewport. As duas so coincidem enquanto a linha
+ * estiver visivel. Ate 2026-08-16 nada garantia isso: a linha caia dentro da janela por efeito
+ * COLATERAL do clique no botao de navegacao, que rolava a pagina. Quando nenhum jogo esta ao vivo
+ * o hero de 273px desaparece, a pagina encurta (2001px -> 1778px), a rolagem incidental deixa de
+ * acontecer (scrollY=0) e a linha vai para y=961 numa janela de 900 — o recorte cai FORA da
+ * imagem e o Playwright levanta "Clipped area is either empty or outside the resulting image".
+ * A tabela estava perfeita; o gate e que fotografava um ponto que nao estava na tela.
  */
-async function sampleRowColors(page, row, wrap, wrapClientWidth) {
-  const y = Math.round(row.top + 3);
-  const left = Math.round(Math.max(row.left, wrap.left));
-  const right = Math.round(Math.min(row.right, wrap.left + wrapClientWidth));
+async function sampleRowColors(page, rowSelector, wrapSelector) {
+  const geo = await page.evaluate(async ({ rowSelector, wrapSelector }) => {
+    const tr = document.querySelector(rowSelector);
+    const wrap = document.querySelector(wrapSelector);
+    if (!tr || !wrap) return null;
+    tr.scrollIntoView({ block: "center", inline: "nearest" });
+    await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const r = tr.getBoundingClientRect();
+    const w = wrap.getBoundingClientRect();
+    return { top: r.top, left: r.left, right: r.right,
+             wrapLeft: w.left, wrapClientWidth: wrap.clientWidth };
+  }, { rowSelector, wrapSelector });
+  if (!geo) return null;
+
+  const y = Math.round(geo.top + 3);
+  const left = Math.round(Math.max(geo.left, geo.wrapLeft));
+  const right = Math.round(Math.min(geo.right, geo.wrapLeft + geo.wrapClientWidth));
   const clip = { x: left, y, width: Math.max(1, right - left), height: 1 };
   const b64 = (await page.screenshot({ clip })).toString("base64");
   return page.evaluate(async ({ b64 }) => {
@@ -279,7 +302,13 @@ async function checkViewport(browser, vp) {
 
     // ── 8. ROW COLOUR — one continuous background across a zone row. ──
     if (m.zoneRow) {
-      const samples = await sampleRowColors(page, m.zoneRow, m.wrap, m.wrapClientWidth);
+      const samples = await sampleRowColors(
+        page, "tbody tr.g4-zone, tbody tr.sa6-zone, tbody tr.z4-zone", ".standings-wrap");
+      if (!samples) {
+        fail(label, "row-colour-sample-unavailable",
+             { note: "a linha de zona ou .standings-wrap sumiu entre a medicao e a amostragem" });
+        return;
+      }
       const ref = samples[0];
       const off = samples.filter(s =>
         Math.abs(s.rgb[0] - ref.rgb[0]) > COLOR_EPS ||
