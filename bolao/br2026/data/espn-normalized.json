@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T23:18:13Z",
-  "sourceUpdatedAt": "2026-08-16T23:18:13Z",
+  "generatedAt": "2026-08-16T23:38:01Z",
+  "sourceUpdatedAt": "2026-08-16T23:38:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "32f11abec30c6936c5494c3261127691b595f2155635a14221e368e720da537a",
+  "payloadHash": "a87897f9d7197d0fbfcb499f3b7765e4517dc15dc1d51050a6f5b37521a42bc0",
   "matches": [
     {
       "id": "401840808",
@@ -37603,12 +37603,12 @@
     {
       "id": "401841190",
       "date": "2026-08-16T21:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "84'",
-      "statusDetail": "84'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Mirassol",
       "awayTeam": "Flamengo",
       "homeTeamId": "9169",
@@ -37616,11 +37616,11 @@
       "homeScore": 1,
       "awayScore": 5,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estadio Municipal José Maria de Campos Maia",
       "city": "Mirassol",
-      "clockSec": 5040.0,
-      "clockStr": "84'",
+      "clockSec": 5400.0,
+      "clockStr": "90'",
       "period": 2,
       "details": [
         {
@@ -37774,30 +37774,49 @@
               "shortName": "J. Carroll"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 5046.0,
+            "displayValue": "85'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Neto Moura",
+              "shortName": "Neto Moura"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841197",
       "date": "2026-08-16T21:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "83'",
-      "statusDetail": "83'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Vitória",
       "awayTeam": "Botafogo",
       "homeTeamId": "3457",
       "awayTeamId": "6086",
       "homeScore": 1,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 4980.0,
-      "clockStr": "83'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
       "period": 2,
       "details": [
         {
@@ -37926,6 +37945,25 @@
               "shortName": "L. Monzón"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Arthur Cabral",
+              "shortName": "A. Cabral"
+            }
+          ]
         }
       ]
     },
@@ -37933,10 +37971,10 @@
       "id": "401841193",
       "date": "2026-08-16T22:30Z",
       "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "42'",
-      "statusDetail": "42'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Corinthians",
       "awayTeam": "Cruzeiro",
@@ -37948,8 +37986,8 @@
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 2520.0,
-      "clockStr": "42'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+3'",
       "period": 1,
       "details": [
         {
@@ -37961,7 +37999,7 @@
             "id": "2022"
           },
           "clock": {
-            "value": 2129.0,
+            "value": 2159.0,
             "displayValue": "36'"
           },
           "athletesInvolved": [
