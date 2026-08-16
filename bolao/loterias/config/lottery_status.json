@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-16T04:01:20Z",
+  "generatedAt": "2026-08-16T04:50:59Z",
   "threshold": {
     "minJackpotCents": 50000000000,
     "comparison": "strictly_greater",
@@ -10,12 +10,17 @@
     "powerball": {
       "game": "powerball",
       "label": "Powerball",
-      "advertisedAnnuityCents": null,
-      "cashValueCents": null,
-      "nextDrawDate": null,
+      "advertisedAnnuityCents": 3500000000,
+      "cashValueCents": 1520000000,
+      "nextDrawDate": "2026-08-17",
+      "nextDrawAt": "2026-08-18T02:59:00Z",
+      "source": "https://www.powerball.com/",
+      "verificationState": "PRIMARY_CONFIRMED",
+      "fetchedAt": "2026-08-16T04:50:59Z",
+      "sourceHash": "53a4748665f8f50a",
       "eligible": false,
-      "state": "UNKNOWN",
-      "error": "ResultadoInvalido: oficial: JackpotDeSorteioPassado: JACKPOT_DE_SORTEIO_PASSADO: powerball anunciou 2000000000 centavos para o sorteio de 2026-08-16T02:59:00Z, que já ocorre; nc_education_lottery: Jac"
+      "state": "BELOW_THRESHOLD",
+      "error": null
     },
     "megamillions": {
       "game": "megamillions",
@@ -26,7 +31,7 @@
       "nextDrawAt": "2026-08-19T03:00:00Z",
       "source": "https://www.megamillions.com/cmspages/utilservice.asmx/GetLatestDrawData",
       "verificationState": "PRIMARY_CONFIRMED",
-      "fetchedAt": "2026-08-16T04:01:20Z",
+      "fetchedAt": "2026-08-16T04:50:59Z",
       "sourceHash": "a4e1d03dc9a12509",
       "eligible": false,
       "state": "BELOW_THRESHOLD",
