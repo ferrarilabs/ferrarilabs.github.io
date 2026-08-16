@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T22:56:52Z",
-  "sourceUpdatedAt": "2026-08-16T22:56:52Z",
+  "generatedAt": "2026-08-16T23:18:13Z",
+  "sourceUpdatedAt": "2026-08-16T23:18:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "08493b75152753a8f72e0d5c1b730dea1a6b6882f53f3381e021c8e08a5716fa",
+  "payloadHash": "32f11abec30c6936c5494c3261127691b595f2155635a14221e368e720da537a",
   "matches": [
     {
       "id": "401840808",
@@ -37606,21 +37606,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "63'",
-      "statusDetail": "63'",
+      "statusShortDetail": "84'",
+      "statusDetail": "84'",
       "completed": false,
       "homeTeam": "Mirassol",
       "awayTeam": "Flamengo",
       "homeTeamId": "9169",
       "awayTeamId": "819",
-      "homeScore": 0,
-      "awayScore": 3,
+      "homeScore": 1,
+      "awayScore": 5,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Municipal José Maria de Campos Maia",
       "city": "Mirassol",
-      "clockSec": 3780.0,
-      "clockStr": "63'",
+      "clockSec": 5040.0,
+      "clockStr": "84'",
       "period": 2,
       "details": [
         {
@@ -37717,6 +37717,63 @@
               "shortName": "Pedro"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 3926.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro",
+              "shortName": "Pedro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4417.0,
+            "displayValue": "74'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Samuel Lino",
+              "shortName": "S. Lino"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 4607.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Victor Carroll",
+              "shortName": "J. Carroll"
+            }
+          ]
         }
       ]
     },
@@ -37726,8 +37783,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "62'",
-      "statusDetail": "62'",
+      "statusShortDetail": "83'",
+      "statusDetail": "83'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Botafogo",
@@ -37739,8 +37796,8 @@
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 3720.0,
-      "clockStr": "62'",
+      "clockSec": 4980.0,
+      "clockStr": "83'",
       "period": 2,
       "details": [
         {
@@ -37850,6 +37907,25 @@
               "shortName": "E. Martínez"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 3616.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Monzón",
+              "shortName": "L. Monzón"
+            }
+          ]
         }
       ]
     },
@@ -37859,23 +37935,43 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "22'",
-      "statusDetail": "22'",
+      "statusShortDetail": "42'",
+      "statusDetail": "42'",
       "completed": false,
       "homeTeam": "Corinthians",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "874",
       "awayTeamId": "2022",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 1320.0,
-      "clockStr": "22'",
+      "clockSec": 2520.0,
+      "clockStr": "42'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2129.0,
+            "displayValue": "36'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Rodrigues",
+              "shortName": "B. Rodrigues"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841191",
