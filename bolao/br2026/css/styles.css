@@ -222,66 +222,114 @@
 #standingsCard h3 { margin: 0 0 12px; font-size: 16px; }
 .standings-wrap { overflow-x: auto; }
 .standings-table {
-  width: 100%; border-collapse: collapse; font-size: 13px;
+  /* Column budget — single source of truth. Every column width, the table's own width and the
+     sticky `left` offsets below are all derived from these five tokens, so a column can never
+     again be declared one width and laid out at another (see the table-layout comment below and
+     the desktop-gap comment on .td-team). Change a column's size here, nowhere else. */
+  --col-pos: 32px;
+  --col-mov: 40px;
+  --col-team: 128px;
+  --col-pts: 44px;
+  --col-stat: 32px;      /* J, V, E, D, GP, GC, SG — 7 identical numeric columns */
+  --col-team-name: 76px; /* truncation box inside .td-team, see .td-team-name */
+  /* The table is exactly as wide as its columns — never stretched to fill its container.
+     `width: 100%` (the previous value) is what turned the desktop leftover space into the
+     enormous void between TIME and PTS: see .td-team's comment for the mechanism. Sizing to the
+     column sum instead means desktop gets a compact table and narrow screens get a table wider
+     than .standings-wrap, which is exactly the horizontal scroll the sticky columns below exist
+     to serve. No max-width either: capping the table at 100% of .standings-wrap would let fixed
+     layout shrink the columns below their declared widths on narrow screens, and the sticky
+     offsets would drift off the real column boxes again. */
+  width: calc(var(--col-pos) + var(--col-mov) + var(--col-team) + var(--col-pts) + 7 * var(--col-stat));
+  border-collapse: collapse; font-size: 13px;
   /* table-layout: auto (the default) recomputes column widths from content across every row,
-     which does NOT reliably match the widths this file assumes -- the sticky offsets below
-     (td-mov's left:32px, td-team's left:72px, td-pts's left:200px) are hardcoded sums of the
-     preceding columns' declared widths. Measured real bug (Eduardo, screenshot, 2026-07-25:
-     "ta truncando o numero de jogos"): with auto layout, td-team rendered at 108px instead of
-     its declared 128px, so td-pts's sticky box landed ~12px into the very next (J) column's
-     space and its solid background painted over that column's leading digit -- "19" showed as
-     just "9". Fixed layout makes the declared widths authoritative, so the sticky offsets are
-     guaranteed to match the real boxes instead of drifting with content. */
+     which does NOT reliably match the widths this file assumes -- the sticky offsets below are
+     cumulative sums of the preceding columns' declared widths. Measured real bug (Eduardo,
+     screenshot, 2026-07-25: "ta truncando o numero de jogos"): with auto layout, td-team rendered
+     at 108px instead of its declared 128px, so td-pts's sticky box landed ~12px into the very next
+     (J) column's space and its opaque background painted over that column's leading digit -- "19"
+     showed as just "9". Fixed layout makes the declared widths authoritative, so the sticky offsets
+     are guaranteed to match the real boxes instead of drifting with content. (Since 2026-08-16 the
+     offsets are `calc()` over the tokens above rather than hand-computed literals, so they cannot
+     fall out of sync with the widths even if a token changes.) */
   table-layout: fixed;
 }
 .standings-table th, .standings-table td {
   padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border);
 }
 .standings-table th { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
-.standings-table .td-pos { width: 32px; color: var(--muted); text-align: center; }
-.standings-table .td-mov { width: 40px; text-align: center; }
-.standings-table .td-pts { width: 44px; text-align: right; font-weight: 700; }
+.standings-table .td-pos { width: var(--col-pos); color: var(--muted); text-align: center; }
+.standings-table .td-mov { width: var(--col-mov); text-align: center; }
+.standings-table .td-pts { width: var(--col-pts); text-align: right; font-weight: 700; }
 /* Slightly wider + tighter side padding than the other columns -- J/GP/GC routinely hit two
    digits mid-season (e.g. "19", "20" games played), and 30px with 8px side padding left only
    ~14px for content, too tight even without the sticky-overlap bug above. */
-.standings-table th:nth-child(n+5), .standings-table td:nth-child(n+5) { text-align: center; width: 32px; padding-left: 4px; padding-right: 4px; }
-.standings-table .g4-zone { background: rgba(47,229,110,.07); }
-.standings-table .z4-zone { background: rgba(248,113,113,.07); }
+.standings-table th:nth-child(n+5), .standings-table td:nth-child(n+5) { text-align: center; width: var(--col-stat); padding-left: 4px; padding-right: 4px; }
+/* Zone tint — declared ONCE per zone, as a custom property, because two different sets of cells
+   have to end up the exact same colour: the 7 scrollable cells get it as a translucent row
+   background over the card, and the 4 sticky cells (which must be opaque) get it composited over
+   the same card colour by the rule below. Previously the sticky half hard-coded hand-picked
+   solids (#0d1f14 / #1f1414 / #1f1a0d) that did NOT match the composite — e.g. a Z4 row painted
+   rgb(31,20,20) under Pos/Mov/Time/Pts and rgb(29,38,45) under J..SG — so every zone row read as
+   two detached halves. Deriving both from one value makes them equal by construction. */
+.standings-table tr.g4-zone  { --zone-tint: rgba(47,229,110,.07); }
+.standings-table tr.z4-zone  { --zone-tint: rgba(248,113,113,.07); }
+.standings-table tr.g4-zone, .standings-table tr.z4-zone { background: var(--zone-tint); }
 /* Pos/Mov/Time/Pts are the four columns that must never scroll out of view on narrow screens
    (320–414px) — see docs/bolao/BR2026_LIVE_STANDINGS.md "Mobile". J/V/E/D/GP/GC/SG scroll inside
-   .standings-wrap. Sticky needs (a) a fixed left offset per column — computed from the widths
-   above (32 + 40 = 72) — and (b) a fixed-width team column, since sticky offsets can't be
-   relative to a variable-width column; team names truncate with an ellipsis instead. Each sticky
-   cell also needs an explicit solid background per zone, or scrolled columns show through under it. */
+   .standings-wrap. Sticky needs (a) a fixed left offset per column — both derived from the column
+   tokens above — and (b) a fixed-width team column, since sticky offsets can't be relative to a
+   variable-width column; team names truncate with an ellipsis instead. Each sticky cell also needs
+   an OPAQUE background, or scrolled columns show through under it: --bg2 is that opacity, and the
+   gradient layers the row's zone tint on top of it, matching what the scrollable cells show. */
 .standings-table .td-pos, .standings-table .td-mov, .standings-table .td-team, .standings-table .td-pts {
-  position: sticky; background: var(--bg2);
+  position: sticky;
+  background-color: var(--bg2);
+  background-image: linear-gradient(var(--zone-tint, transparent), var(--zone-tint, transparent));
 }
 .standings-table .td-pos  { left: 0; }
-.standings-table .td-mov  { left: 32px; }
-.standings-table .td-team { left: 72px; width: 128px; display: flex; align-items: center; }
+.standings-table .td-mov  { left: var(--col-pos); }
+/* `display: flex` here (removed 2026-08-16) was the desktop-gap bug. A <td>/<th> that is not
+   `display: table-cell` stops being a cell: the table wraps it in an ANONYMOUS table-cell, and
+   that anonymous cell is the one the column algorithm sizes. It carries no declared width, so
+   under `table-layout: fixed` it was the table's only auto column and swallowed every pixel of
+   leftover width — 506px at both 1440 and 1728 — while the 220px flex box sat left-aligned inside
+   it. That void between TIME and PTS was the reported defect. The same bug ran the other way on
+   narrow screens: with the declared widths already exceeding the table box, the auto column
+   collapsed to 0px and the sticky cells only *looked* right because their opaque backgrounds
+   painted over the columns they were overlapping. Keeping this cell a real table-cell is what
+   makes the declared widths and the sticky offsets describe the same boxes.
+   Alignment that `align-items: center` used to provide now comes from vertical-align on the two
+   inline-block children; nowrap/overflow keep the badge on the name's line. */
+.standings-table .td-team { left: calc(var(--col-pos) + var(--col-mov)); width: var(--col-team); white-space: nowrap; overflow: hidden; }
 .standings-table .td-team-name {
   /* Fixed width (not just max-width) so every row's name box occupies exactly the same horizontal
      space regardless of how long/short the actual name is -- otherwise the G4/SA/Z4 badge right
      after it lands at a different x per row (short name → badge further left, long/truncated
      name → badge further right). Eduardo, 2026-07-25: "Poderia deixar alinhado o Z4, G4, SA
-     tambem." flex-shrink:0 keeps it from being squeezed by the badge under flex. */
-  display: inline-block; width: 76px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis;
-  white-space: nowrap;
+     tambem." */
+  display: inline-block; width: var(--col-team-name); overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; vertical-align: middle;
 }
-.standings-table .td-pts { left: 200px; } /* 72 (team's left) + 128 (team's width) */
+.standings-table .td-pts { left: calc(var(--col-pos) + var(--col-mov) + var(--col-team)); }
 .standings-table th.td-pos, .standings-table th.td-mov, .standings-table th.td-team, .standings-table th.td-pts {
   z-index: 1;
 }
 @media (min-width: 900px) {
   /* Desktop has room for full team names — the 76px mobile truncation width only exists to keep
-     Pos/Mov/Time/Pts on-screen at 320–414px without horizontal scroll. */
-  .standings-table .td-team { width: 220px; }
-  .standings-table .td-team-name { width: 190px; }
-  .standings-table .td-pts { left: 292px; } /* 72 (team's left) + 220 (team's width) */
+     Pos/Mov/Time/Pts on-screen at 320–414px without horizontal scroll. 190px clears the longest
+     names in the competition ("Athletico Paranaense", "Red Bull Bragantino") with no ellipsis, and
+     240px = 190 name + 16 cell padding + the G4/SA/Z4 badge, so TIME is bounded by what it must
+     actually display rather than by whatever space is left over. The numeric columns get the room
+     the 320px budget denied them (Pts emphasised at 56px, stats 40px). Nothing else needs to
+     change at this breakpoint: the table width and every sticky offset derive from these tokens. */
+  .standings-table {
+    --col-team: 240px;
+    --col-team-name: 190px;
+    --col-pts: 56px;
+    --col-stat: 40px;
+  }
 }
-.standings-table tr.g4-zone .td-pos, .standings-table tr.g4-zone .td-mov, .standings-table tr.g4-zone .td-team, .standings-table tr.g4-zone .td-pts { background: #0d1f14; }
-.standings-table tr.z4-zone .td-pos, .standings-table tr.z4-zone .td-mov, .standings-table tr.z4-zone .td-team, .standings-table tr.z4-zone .td-pts { background: #1f1414; }
-.standings-table tr.sa6-zone .td-pos, .standings-table tr.sa6-zone .td-mov, .standings-table tr.sa6-zone .td-team, .standings-table tr.sa6-zone .td-pts { background: #1f1a0d; }
 .zone-badge {
   display: inline-block; font-size: 9px; font-weight: 900;
   padding: 1px 5px; border-radius: 3px; margin-left: 6px;
@@ -441,7 +489,9 @@
 /* ── SA6 zone (orange/amber) ── */
 .pick-group-header.sa6-header { background: linear-gradient(135deg, #92400e, #b45309); color: #fff; border: none; }
 .sa6-badge { background: #f59e0b; color: #78350f; }
-.standings-table tr.sa6-zone { background: rgba(245,158,11,.07); }
+/* Same one-value-per-zone contract as .g4-zone/.z4-zone above (see the --zone-tint comment there):
+   the sticky cells composite this exact tint over --bg2, so the row stays one continuous colour. */
+.standings-table tr.sa6-zone { --zone-tint: rgba(245,158,11,.07); background: var(--zone-tint); }
 
 /* ── Admin results grid — 3 cols ── */
 .admin-results-grid.three-col { grid-template-columns: 1fr 1fr 1fr; }

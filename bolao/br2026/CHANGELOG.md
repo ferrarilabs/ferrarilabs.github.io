@@ -1,5 +1,75 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.121 — 2026-08-16
+
+### Tabela: a coluna TIME deixou de engolir a largura sobrando no desktop
+
+Eduardo, no desktop: "enorme área vazia entre TIME e PTS". A tabela aparecia partida em dois
+blocos — `# / MOV. / TIME` à esquerda, `PTS / J / V / E / D / GP / GC / SG` colada na direita, com
+506px de vazio no meio a 1440 e a 1728.
+
+**Causa raiz.** `.td-team` estava declarada `display: flex`. Um `<td>`/`<th>` que não é
+`display: table-cell` **deixa de ser célula**: a tabela gera uma célula ANÔNIMA em volta dele, e é
+essa célula anônima que o algoritmo de colunas dimensiona. A anônima não tinha largura declarada,
+então sob `table-layout: fixed` ela era a única coluna `auto` da tabela e absorvia toda a largura
+que sobrava, enquanto a caixa flex de 220px ficava alinhada à esquerda dentro dela. O vazio era o
+resto daquela célula.
+
+O mesmo defeito rodava ao contrário no mobile, onde ninguém tinha percebido: como as larguras
+declaradas já excediam a caixa da tabela, a coluna anônima colapsava para **0px** e as células
+sticky só *pareciam* certas porque seus fundos opacos pintavam por cima das colunas que estavam
+invadindo — a 390px, J/V/E/D ficavam inalcançáveis (depois de PTS vinha GP). Corrigido junto: a
+ordem natural J/V/E/D/GP/GC/SG voltou a valer no scroll horizontal.
+
+**Correção.**
+
+- `.td-team` volta a ser célula de verdade. O alinhamento nome+selo que o flex dava agora vem de
+  `vertical-align` nos dois filhos inline-block, com `nowrap`/`overflow` na célula.
+- Todas as larguras de coluna, a largura da própria tabela e **todos** os offsets `left` das
+  colunas sticky passam a derivar de um único conjunto de tokens (`--col-pos`, `--col-mov`,
+  `--col-team`, `--col-pts`, `--col-stat`, `--col-team-name`). Os offsets sticky eram somas
+  hard-coded (72px/200px/292px) das larguras declaradas — foi exatamente esse acoplamento manual
+  que produziu o bug de 2026-07-25 ("ta truncando o numero de jogos"). Agora não há como uma
+  coluna ser declarada com uma largura e desenhada com outra.
+- A tabela tem a largura das suas colunas (`width: calc(...)`), não `width: 100%`. No desktop isso
+  dá 648px compactos dentro do card; abaixo de 900px dá 468px, mais largo que `.standings-wrap` —
+  que é precisamente o scroll horizontal contido que as colunas sticky existem para servir.
+- Desktop (≥900px) só sobrescreve tokens: TIME 240px (190px de nome, o suficiente para "Athletico
+  Paranaense" e "Red Bull Bragantino" sem reticências), Pts 56px em destaque, estatísticas 40px.
+
+### Faixas G4/SA/Z4: a linha voltou a ter UMA cor só
+
+Achado durante a correção acima, no mesmo componente. As 4 células sticky pintavam sólidos
+escolhidos à mão (`#0d1f14` / `#1f1414` / `#1f1a0d`) que **não** batiam com o tom translúcido que
+as outras 7 células mostravam — uma linha Z4 era `rgb(31,20,20)` sob `# / MOV. / TIME / PTS` e
+`rgb(29,38,45)` sob `J..SG`. Cada linha de faixa lia como dois blocos descolados.
+
+Agora o tom de cada faixa é declarado uma única vez (`--zone-tint`) e as células sticky o compõem
+sobre `--bg2` via `background-image`, chegando ao mesmo pixel das células translúcidas por
+construção. Os sólidos hard-coded foram removidos.
+
+### Regressão
+
+Novo: `bolao/br2026/scripts/visual/check_standings_layout.mjs` (entra em `npm run test:node`).
+Mede caixas de layout reais em 8 viewports (320→1728) e checa contiguidade das colunas,
+alinhamento header/corpo, ordem PTS<J<V<E<D<GP<GC<SG, limites da tabela, largura da coluna TIME,
+ausência de overflow horizontal na página, os offsets sticky sob scroll máximo, e — com pixels
+amostrados de verdade — a continuidade de cor da linha de faixa.
+
+Mutação verificada: reintroduzir `display: flex` + `width: 100%` deixa o teste VERMELHO com o
+vazio TIME → PTS medido (418px a 1440/1728, 302px a 1024); reintroduzir os sólidos de faixa
+deixa VERMELHO no teste de cor.
+
+Escopo: só CSS de apresentação do BR2026 + o teste novo. Scoring, dados, Supabase, e-mail, admin e
+regras de torneio não foram tocados; as três auditorias de scoring continuam passando.
+
+**Propagação: não se aplica.** `.standings-table` existe só no BR2026 — a Copa e a CDB não têm
+tabela de classificação (mata-mata), e `.rules-table`/`.live-ranking-table` não compartilham
+nenhuma destas regras. Nenhum arquivo de `bolao/shared/css/` foi tocado. Auditado mesmo assim nos
+outros apps: `audit_visual_consistency` DIVERGENT=0 e `audit_responsive_matrix` sem overflow em 15
+larguras (320→1600) nos quatro produtos.
+
+
 ## v1.120 — 2026-08-13
 
 ### READ_CUTOVER — a leitura passa a vir do modelo normalizado (segunda execucao)
