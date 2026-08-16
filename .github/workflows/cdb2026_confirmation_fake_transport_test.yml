@@ -28,6 +28,11 @@ jobs:
         with:
           python-version: "3.11"
 
+      # Este roda ANTES e sem segredo nenhum: é 100% offline (banco em memória) e prova o dedupe
+      # cross-path do comprovante. Falhar aqui torna o teste de baixo irrelevante.
+      - name: Dedupe cross-path do comprovante (offline)
+        run: python3 bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py
+
       - name: Seis cenários, nenhuma chamada real
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

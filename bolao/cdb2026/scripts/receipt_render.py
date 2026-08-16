@@ -84,6 +84,31 @@ def _lado(tie, side):
     return tie.get("teamA") if side == "A" else tie.get("teamB")
 
 
+def slots_da_topologia(fase):
+    """
+    As vagas da fase, aceitando as DUAS formas que circulam.
+
+    `cdb_register_bracket_topology` grava `topology = {"slots": {...}, "provenance": {...}}` — é o
+    que está em `bolao_state` e é o que `derivedPhaseView()` no app.js lê (`topo.slots`).
+    `receipt_catchup_tool.snapshot_de()` ACHATA isso para `topology = {...vagas...}` antes de
+    chamar o renderizador.
+
+    Até 2026-08-16 esta função lia só a forma achatada. Nada quebrava em produção porque o único
+    remetente ativo achata — mas o contrato não estava escrito em lugar nenhum, e quem passasse o
+    estado CRU recebia silenciosamente "nenhuma vaga", isto é, um bracket que para nas quartas.
+    Encontrado quando `authoritative_pick_completeness()` — a função criada justamente para ser a
+    leitura autoritativa de completude — devolveu, sobre o documento autoritativo, exatamente a
+    resposta errada que ela existe para substituir.
+
+    Aceitar as duas formas é o patch mínimo. O discriminador é `provenance`/`slots`: um mapa de
+    vagas nunca tem essas chaves no topo.
+    """
+    topo = (fase or {}).get("topology") or {}
+    if "slots" in topo or "provenance" in topo:
+        return topo.get("slots") or {}
+    return topo
+
+
 def ties_virtuais(snapshot, phase_id):
     """
     Semifinal e final não existem como confronto gravado enquanto a CBF não os materializa: são
@@ -94,7 +119,7 @@ def ties_virtuais(snapshot, phase_id):
     qual = (snapshot.get("picks") or {}).get("qualified") or {}
 
     if phase_id == "semifinal":
-        slots = (fases.get("semifinal") or {}).get("topology") or {}
+        slots = slots_da_topologia(fases.get("semifinal"))
         quartas = (fases.get("quartas") or {}).get("ties") or {}
         saida = []
         for slot_id in sorted(slots):

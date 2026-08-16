@@ -815,3 +815,110 @@ Formalização progressiva de processo:
 - Ao publicar BR2026/CDB2026, rodar `docs/bolao/QA_MASTER_CHECKLIST.md` inteiro (não só o
   checklist funcional básico) antes de considerar o app pronto — a Copa só chegou ao nível
   atual de estabilidade depois de várias rodadas de auditoria formal, não deploy único.
+
+---
+
+## Nome de transporte não pode virar identidade de entrega (CDB2026, 2026-08-16)
+
+### Problema
+Um script de catch-up de comprovantes mandou o recibo de novo para dois participantes
+(Bossle, Rodrigo Hajj) que **já tinham exatamente aquele recibo, da mesma versão gravada dos
+palpites**. Nathalia e Aline, os dois alvos reais, receberam corretamente.
+
+### Causa raiz
+Duas, e a segunda sobreviveu à correção da primeira.
+
+1. (encontrada no mesmo dia) O recorte por dia tinha sido removido ao generalizar o script de
+   um catch-up anterior. Reposto na hora.
+2. (a real) `reserve_delivery` garante unicidade por
+   `(app, business_key, recipient_hash, generation)`, e a `business_key` carregava o nome da
+   **família do remetente**. Existiam quatro chaves para um fato de negócio só — produção,
+   catch-up 12/08, catch-up 16/08, teste de template. Cada caminho estava protegido contra si
+   mesmo e nenhum estava protegido contra os outros. Bossle tinha recibo pela família de
+   produção; Rodrigo, pela família do catch-up de 12/08.
+
+O agravante é de raciocínio, não de código: o cabeçalho do script **afirmava** que a duplicata
+era impossível e citava corretamente a constraint do banco. A afirmação estava certa sobre o
+mecanismo e errada sobre o escopo dele, e sobreviveu a uma leitura de post-mortem porque
+*soava* como uma prova.
+
+### Como foi corrigido
+- Identidade canônica declarada: **entrada + versão gravada dos palpites**, independente de
+  transporte. Todo remetente automático reserva com a chave e a família **de produção**.
+- `cdb_has_accepted_receipt(entrada, versão)` — uma pergunta, todos os caminhos reconhecidos,
+  respondida no banco e sem devolver endereço.
+- Falha fechada em `uncertain`, `claimed`, RPC ausente e destinatário não resolvível.
+- Filtro de data rebaixado explicitamente a recorte de **população**, e avaliado **depois** da
+  pergunta canônica, para que o relatório não dê a impressão de que foi a data que protegeu
+  alguém.
+- Os dois scripts one-off foram arquivados e desarmados com `raise SystemExit` no nível de
+  módulo (não em `__main__`): um arquivo com `enviar()` funcional dentro é uma arma carregada.
+- Detalhe completo: `docs/bolao/CDB2026_RECEIPT_IDENTITY_INCIDENT_2026-08-16.md`.
+
+### Como evitar novamente
+- **Um fato de negócio, uma identidade de entrega.** Se o mesmo documento pode sair por mais de
+  um caminho (fila normal, catch-up, reenvio manual, teste aceito como real, caminho legado),
+  todos têm de reservar na **mesma** chave. Prefixo de família por remetente é rótulo de
+  auditoria, nunca identidade.
+- **Filtro temporal nunca é controle de duplicata.** Ele recorta quem interessa; quem impede o
+  segundo envio é a identidade do conteúdo. Um teste em que os dois filtros concordam não prova
+  nada — montar o cenário em que a data **não** separa e verificar que a identidade separa.
+- **Comentário que afirma uma garantia não é a garantia.** Ao ler "isto não pode duplicar
+  porque o banco tem UNIQUE(...)", conferir o valor real da chave nos outros caminhos antes de
+  aceitar. Aqui a constraint existia, estava correta, e não cobria o caso.
+- **"Talvez tenha recebido" nunca autoriza reenvio.** `uncertain`, `claimed`, RPC fora do ar e
+  destinatário não resolvível são todos bloqueio, não liberação.
+- **Não inventar histórico.** Para entrega legada sem registro: provar a versão exata ou marcar
+  `UNCERTAIN` e mandar para revisão humana. Fabricar um hash plausível transforma "não sei" em
+  "sei", que é o mesmo erro numa camada abaixo.
+- **Envio real não pode depender de "hoje".** Escopo de operação irreversível é argumento
+  explícito e obrigatório; só a medição só-leitura pode ter default.
+- **Diagnóstico tem de usar a fonte autoritativa para a pergunta que ele faz.** Contar
+  confrontos registrados respondia "o que a CBF já materializou", não "até onde o participante
+  palpitou" — e a resposta errada quase virou conclusão sobre palpites de gente real. Antes de
+  afirmar "fulano não tem palpite de X", conferir que a leitura usada é autoritativa **para
+  aquela pergunta**.
+
+## Auditoria de persistência do CDB2026 — 2026-08-16
+
+Continuação direta da lista acima; a última linha dela ("diagnóstico tem de usar a fonte
+autoritativa") estava certa e incompleta.
+
+- **"Fonte errada" e "fonte que não pode responder" são coisas diferentes.** Contar
+  `phases[*].ties` era a pergunta errada. Mas a superfície consultada — a projeção pública —
+  **estruturalmente não pode** conter palpite contra confronto virtual, porque monta `qualified`
+  com `JOIN bolao.ties`. Ao classificar uma discordância, perguntar as duas: *a pergunta estava
+  certa?* e *aquela fonte conseguiria responder mesmo se estivesse?*
+- **Uma asserção cujo valor esperado passa pelo mesmo filtro do valor medido não é asserção.**
+  `cdb_mirror_entry_picks` compara `_mirror_want` com `bolao.predictions`; os dois lados nascem do
+  mesmo `join bolao.ties`. A verificação é sincera, roda, e é incapaz de ficar vermelha pela causa
+  que importa. Ao escrever "read-after-write", derivar o esperado do **payload aceito**, nunca de
+  uma projeção dele.
+- **"Nada lê isto" envelhece.** A migração que classificou `sf-1`/`sf-2`/`final-1` como resíduo
+  morto estava correta no dia. Um dia depois, o registro da topologia transformou esses mesmos
+  slugs nas chaves vivas da semifinal e da final. Justificativa baseada em ausência de leitor tem
+  prazo de validade — quando for inevitável, datar a afirmação e amarrá-la ao fato que a sustenta.
+- **Contrato de forma não escrito é defeito à espera.** `ties_virtuais()` exigia `topology` já
+  achatada; só um chamador achatava; nenhuma assinatura dizia isso. A função que existia para ser
+  *a leitura autoritativa de completude* devolvia silenciosamente a resposta errada para qualquer
+  outro chamador. Se uma função aceita só uma forma de uma estrutura que circula em duas, ou ela
+  aceita as duas ou recusa a errada em voz alta.
+- **Fixture com a forma errada é pior que fixture ausente.** `test_receipt.py` fixava uma forma de
+  `topology` que `bolao_state` nunca conteve, e ficava verde sobre ela. Fixture deve ser recortado
+  do documento real; quando for sintético, um teste tem de compará-lo com a forma persistida.
+- **Conferência estrutural de SQL prova texto, não execução.** A migração passava na checagem
+  "a palavra está lá" e quebrava em tempo de execução com `malformed array literal` — porque
+  `text[] || 'literal'` é ambíguo e o Postgres resolve para `array || array`. Um Postgres
+  descartável com linhas reais nas tabelas reais custa minutos e é a única prova de corpo de
+  função.
+- **Redefinir uma função grande para acrescentar três linhas perde coisa.** O write cutover
+  reescreveu `cdb_save_my_picks` a partir de um corpo antigo e derrubou o `snapshot` do payload em
+  silêncio. Migração que redefine função existente deve terminar lendo o corpo gravado e recusando
+  o commit se qualquer peça declarada como preservada tiver sumido.
+- **Um portão que casa com prosa recusa o commit correto.** A verificação de PII da migração
+  varria `pg_get_functiondef` inteiro e se acusou sozinha, porque o comentário LISTA os campos
+  proibidos para dizer que não entram. Varrer código, não comentário — o falso-positivo é o
+  espelho do falso-verde e custa a mesma confiança.
+- **`.rollback.sql` dentro de `supabase/migrations/` inutiliza `db push`.** O CLI trata todo
+  `*.sql` do diretório como migração e dois arquivos com o mesmo prefixo de versão deixam o ledger
+  ambíguo. Rollback é artefato de operação, não migração: mora fora do diretório escaneado.
