@@ -1,5 +1,36 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (infra, sem bump de siteVersion) — 2026-08-16 (correção)
+
+### Catch-up de comprovantes mandou para 2 pessoas que já tinham recebido
+
+`receipt_catchup_20260816.py` (ver entrada abaixo) rodou com um filtro de elegibilidade grande
+demais: alvo era "salvou pelo caminho seguro alguma vez e não tem recibo desta versão pelo
+outbox", sem recorte de dia. Isso incluiu Bossle (salvou 13/08) e Rodrigo Hajj (salvou 14/08)
+junto com os dois alvos reais, Nathalia e Aline (salvaram 15/08 à noite) — o relato original de
+"não recebeu confirmação" era só sobre elas duas. Resultado: 4 e-mails saíram, 2 eram
+desnecessários (Bossle, Rodrigo Hajj já tinham confirmação de quando palpitaram).
+
+Não há como desfazer um e-mail já entregue. Nenhum reenvio de correção foi feito — mandar mais um
+e-mail para "avisar do engano" teria o mesmo efeito que o problema original, ruído desnecessário
+na caixa de quem já está em dia.
+
+**Causa raiz:** ao generalizar `receipt_catchup.py` (12/08, que tinha `DIA_ALVO` fixo porque era
+sobre um incidente de um dia específico) para um dia diferente, o recorte por dia foi removido
+inteiro em vez de reescrito como "o dia em que este script roda" — ficou só
+`lastClientRef presente`, que é verdadeiro para QUALQUER save antigo pelo caminho seguro, não só
+os de hoje.
+
+**Correção**: `DIA_ALVO` volta a existir em `receipt_catchup_20260816.py`, agora calculado em
+tempo de execução (`datetime.now(...).astimezone(NY)`) em vez de fixo — elegibilidade exige
+`lastClientRef presente` E `dia do save (NY) == dia em que o script roda`. Reconferido: com o
+filtro corrigido, o manifesto teria apontado só Nathalia e Aline.
+
+**Lição — já registrada para não se perder**: ao generalizar um script de catch-up escopado por
+data, o recorte de tempo não é um detalhe do incidente original — é parte do que torna "não
+duplique" verdadeiro. Removê-lo silenciosamente troca "quem precisa" por "quem qualquer dia já
+passou pelo caminho seguro", que são conjuntos bem diferentes.
+
 ## (infra, sem bump de siteVersion) — 2026-08-16
 
 ### Kill switch de e-mail desligado; permissão de comprovante concedida ao roster inteiro
