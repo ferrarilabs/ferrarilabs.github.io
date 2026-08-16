@@ -110,6 +110,10 @@
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Verificador de manifesto visual: depende de artefatos de captura gerados sob demanda por scripts/visual/, nao de codigo-fonte. Rodado junto com a geracao de evidencia visual. ACHADO ABERTO em 2026-08-10: acusa overflow horizontal em cdb2026/Jogos@320x568 e @375x667."
     },
+    "bolao/br2026/scripts/visual/check_standings_layout.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Geometria da tabela de classificacao do BR2026 em 8 viewports (320-1728): contiguidade das colunas, alinhamento header/corpo, ordem PTS<J<V<E<D<GP<GC<SG, limites da tabela, largura da coluna TIME, zero overflow horizontal de pagina, offsets sticky sob scroll maximo e continuidade de cor da linha de faixa por pixel amostrado. Nasceu da correcao de 2026-08-16 (v1.121): .td-team era display:flex, deixava de ser celula, e a celula anonima gerada em volta dela era a unica coluna auto sob table-layout:fixed -- engolia 506px de largura sobrando entre TIME e PTS no desktop e colapsava para 0px no mobile."
+    },
     "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
