@@ -1,5 +1,35 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-16 — gate de fechamento de rodada e e-mail pós-apito-final
+
+**Somente teste. Nenhuma mudança de comportamento de produto**: `round_state.py`,
+`send_round_email.py` e o ledger não foram tocados, e por isso não há bump de `siteVersion`
+(nada que o navegador baixe mudou).
+
+Novo gate `bolao/br2026/scripts/test_round_close_preflight.py`, registrado em
+`npm run test:notifications` e em `scripts/verify.mjs`. Ele exercita o **código de produção**
+(`derive_round_notification_state()` e `_process_round()`) com rodadas sintéticas e transporte
+falso: zero rede, zero Supabase, zero e-mail, zero escrita de produção. 63 asserções em 0,2 s.
+
+**É genérico de propósito.** Nada nele depende do número da rodada corrente, da data de hoje, de
+um id real da ESPN ou de qual time joga por último — as rodadas são sintéticas, parametrizadas
+por N (8/10/12 jogos × 3 numerações), e o relógio é fixo. Um gate que soubesse que "a R23 fecha
+com Internacional × Remo" provaria o calendário de um dia e apodreceria no dia seguinte.
+
+O que ele fixa: N-1 terminais nunca fecha (testadas **todas** as N posições do jogo que falta);
+N terminais fecha; todo estado não-terminal (agendado, ao vivo, intervalo, suspenso, adiado,
+cancelado, ausente da fonte) barra o fechamento; a ordem do array não decide nada (25
+embaralhamentos, mesmo veredito); o relógio não substitui o status; scoring/ranking finalizados
+antes da notificação; exatamente um e-mail por destinatário; retentativa parcial toca só quem
+falhou; ACEITO e INCERTO nunca reenviam; replay e flap terminal→ao vivo→terminal não reenviam.
+
+**Oito mutações, todas pegas.** Duas delas só mordem na camada certa, e isso está registrado no
+próprio arquivo: numa rodada já `SENT` o portão de `claim` recusa antes de a seleção por
+destinatário importar — então a mutação do dedupe precisa de uma rodada `PARTIAL`, e a de
+`UNCERTAIN` precisa ser exercitada na função pura `alvos_reenviaveis()`, porque a rodada com
+incerto assenta em `NEEDS_MANUAL_REVIEW`, que não é reivindicável. São duas camadas
+independentes protegendo o mesmo dado; mirar a de fora esconde a de dentro.
+
 ## v1.122 — 2026-08-16
 
 ### O hero ao vivo mostra TODOS os jogos simultâneos, não só o primeiro
