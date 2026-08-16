@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T02:46:00Z",
-  "sourceUpdatedAt": "2026-08-16T02:46:00Z",
+  "generatedAt": "2026-08-16T14:54:51Z",
+  "sourceUpdatedAt": "2026-08-16T14:54:51Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "7dc8fa5b39c5c6607f14484299f4f5e2789cabaa36e593b17d7bd5af3d1c8b89",
+  "payloadHash": "2f5b3cd77e8ef05e978fff02255ed7f6fa35e7657a295e26a9e9ca917ae095fa",
   "matches": [
     {
       "id": "401840808",
@@ -37091,26 +37091,84 @@
     {
       "id": "401841194",
       "date": "2026-08-16T14:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sun, August 16th at 10:00 AM EDT",
+      "state": "in",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "Bahia",
       "homeTeamId": "9318",
       "awayTeamId": "9967",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 2700.0,
+      "clockStr": "45'+3'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 771.0,
+            "displayValue": "13'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alejo Veliz",
+              "shortName": "A. Veliz"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 1119.0,
+            "displayValue": "19'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Giovanni Augusto",
+              "shortName": "Giovanni Augusto"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Own Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 2505.0,
+            "displayValue": "42'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauan",
+              "shortName": "Kauan"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841195",
