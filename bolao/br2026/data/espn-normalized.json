@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T21:01:28Z",
-  "sourceUpdatedAt": "2026-08-16T21:01:28Z",
+  "generatedAt": "2026-08-16T21:30:52Z",
+  "sourceUpdatedAt": "2026-08-16T21:30:52Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "9f1c947870e79ebba6c0bdb0b0ab8e338e47f46b01a8af6e6054e95b64d6b246",
+  "payloadHash": "fc4f64469ad4d031be3acfac4f49e9991395e9aa8991d81b33c6d788e5e99bf5",
   "matches": [
     {
       "id": "401840808",
@@ -37287,24 +37287,24 @@
     {
       "id": "401841195",
       "date": "2026-08-16T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "66'",
-      "statusDetail": "66'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Grêmio",
       "homeTeamId": "7632",
       "awayTeamId": "6273",
-      "homeScore": 2,
+      "homeScore": 3,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 3960.0,
-      "clockStr": "66'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+4'",
       "period": 2,
       "details": [
         {
@@ -37439,30 +37439,68 @@
               "shortName": "T. Cuello"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3902.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Cuello",
+              "shortName": "T. Cuello"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 4109.0,
+            "displayValue": "69'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Pedro Gabriel",
+              "shortName": "Pedro Gabriel"
+            }
+          ]
         }
       ]
     },
     {
       "id": "401841188",
       "date": "2026-08-16T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "64'",
-      "statusDetail": "64'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Vasco da Gama",
       "awayTeam": "Santos",
       "homeTeamId": "3454",
       "awayTeamId": "2674",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 3,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estádio São Januário",
       "city": "Rio de Janeiro",
-      "clockSec": 3840.0,
-      "clockStr": "64'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
@@ -37481,6 +37519,82 @@
             {
               "displayName": "Robert",
               "shortName": "Robert"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4040.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Barbosa",
+              "shortName": "G. Barbosa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4588.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Willian Arão",
+              "shortName": "W. Arão"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 4834.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luan Peres",
+              "shortName": "L. Peres"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4999.0,
+            "displayValue": "84'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Paulo Henrique",
+              "shortName": "Paulo Henrique"
             }
           ]
         }
