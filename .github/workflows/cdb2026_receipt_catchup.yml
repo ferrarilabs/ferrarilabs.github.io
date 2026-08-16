@@ -1,8 +1,18 @@
-# Recuperação ÚNICA de comprovantes (2026-08-12). Duas entradas:
-#   medir   -> só leitura, classifica e congela o manifesto. Incapaz de enviar.
-#   enviar  -> remede, exige manifesto idêntico, envia uma vez por alvo.
-# `BOLAO_ALLOW_REAL_SEND` só existe no job de envio.
-name: CDB2026 — recuperação de comprovantes (2026-08-12)
+# Catch-up de comprovantes do CDB2026 — ferramenta genérica com escopo SEMPRE explícito.
+#
+# Substitui os dois workflows one-off (12/08 e 16/08), cujos scripts estão arquivados e
+# desarmados em bolao/cdb2026/scripts/archive/.
+#
+#   medir   -> só leitura. Classifica, aplica o dedupe cross-path e grava o manifesto como
+#              artefato. Estruturalmente incapaz de enviar: BOLAO_ALLOW_REAL_SEND não existe
+#              neste job.
+#   enviar  -> exige a data alvo digitada à mão, o manifesto do run de medição, e a frase de
+#              aprovação. Remede e recusa se o manifesto tiver mudado.
+#
+# `target_date` é obrigatório nos DOIS jobs de propósito. O default de "hoje" existe só na
+# linha de comando, para a medição local — um workflow_dispatch onde a data é opcional é a
+# mesma armadilha que o one-off de 16/08 tinha.
+name: CDB2026 — catch-up de comprovantes
 
 on:
   workflow_dispatch:
@@ -13,9 +23,18 @@ on:
         default: medir
         type: choice
         options: [medir, enviar]
+      target_date:
+        description: "Janela alvo YYYY-MM-DD (America/New_York) — obrigatória"
+        required: true
+        type: string
+      run_id_da_medicao:
+        description: "Para 'enviar': o run id do 'medir' que produziu o manifesto"
+        required: false
+        type: string
 
 permissions:
   contents: read
+  actions: read
 
 concurrency:
   group: cdb2026-receipt-catchup
@@ -29,10 +48,20 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - name: Medir quem salvou hoje
+      - name: Prova offline do dedupe cross-path (sem rede)
+        run: python3 bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py
+      - name: Medir (só leitura)
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python3 bolao/cdb2026/scripts/receipt_catchup.py --medir
+        run: |
+          python3 bolao/cdb2026/scripts/receipt_catchup_tool.py \
+            --medir --target-date "${{ inputs.target_date }}" \
+            --manifest manifesto.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manifesto-catchup-${{ inputs.target_date }}
+          path: manifesto.json
+          retention-days: 30
 
   enviar:
     if: inputs.acao == 'enviar'
@@ -43,8 +72,19 @@ jobs:
         with: { python-version: "3.11" }
       - name: Prova do comprovante (sem rede)
         run: python3 bolao/cdb2026/scripts/test_receipt.py
-      - name: Enviar a recuperação
+      - name: Prova offline do dedupe cross-path (sem rede)
+        run: python3 bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py
+      - name: Baixar o manifesto congelado pela medição
+        uses: actions/download-artifact@v4
+        with:
+          name: manifesto-catchup-${{ inputs.target_date }}
+          run-id: ${{ inputs.run_id_da_medicao }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Enviar
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
-        run: python3 bolao/cdb2026/scripts/receipt_catchup.py --enviar --approve HUMAN_APPROVED
+        run: |
+          python3 bolao/cdb2026/scripts/receipt_catchup_tool.py \
+            --enviar --target-date "${{ inputs.target_date }}" \
+            --manifest manifesto.json --approve HUMAN_APPROVED

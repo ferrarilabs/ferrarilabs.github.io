@@ -119,3 +119,62 @@ E os das apps irmãs, por regra de propagação do `CLAUDE.md`:
 python3 bolao/br2026/scripts/audit_scoring.py
 python3 bolao/copa2026/scripts/audit_scoring.py
 ```
+
+## Um participante diz que salvou os palpites e não recebeu o comprovante
+
+**Não rode nada que envie antes de medir.** O caminho normal é: save seguro → evento durável →
+consumidor agendado → um e-mail. Um comprovante que não chegou tem causas opostas com o mesmo
+sintoma, e tratar uma pela outra faz procurar no lugar errado.
+
+1. **Diagnóstico só-leitura** (workflow `CDB2026 — perícia do comprovante`, ou
+   `forensics_entry_saved_confirmation.py`): separa "o save nunca criou a obrigação" (não havia
+   permissão nominal na hora) de "a obrigação existe e ninguém a consumiu".
+
+2. **Medir o catch-up** — workflow `CDB2026 — catch-up de comprovantes`, ação `medir`, com
+   `target_date` (YYYY-MM-DD, America/New_York) preenchida à mão. É só leitura: classifica cada
+   entrada, aplica o dedupe cross-path e grava o manifesto como artefato do run.
+
+   Leia os rótulos do relatório:
+
+   | rótulo | significado |
+   |---|---|
+   | `ELIGIBLE` | não tem recibo desta versão por caminho nenhum, e salvou na janela |
+   | `SKIP_ALREADY_RECEIVED_SAME_VERSION` | **já recebeu** — por qualquer caminho reconhecido |
+   | `SKIP_UNCERTAIN_NEEDS_OPERATOR_REVIEW` | pode ter recebido → decisão humana, ver abaixo |
+   | `SKIP_FORA_DA_JANELA` | não tem recibo, mas salvou fora da `target_date` |
+   | `SKIP_SEM_SAVE_DO_PARTICIPANTE` | nunca gravou pelo caminho seguro |
+
+   O relatório também imprime até onde o participante palpitou usando a **leitura autoritativa**
+   (confrontos virtuais de semifinal/final resolvidos). Nunca concluir "fulano não tem palpite de
+   semifinal" a partir de contagem de confrontos registrados — ver
+   `CDB2026_RECEIPT_IDENTITY_INCIDENT_2026-08-16.md` §6.
+
+3. **Enviar** — mesmo workflow, ação `enviar`, com a **mesma** `target_date` e o `run id` do run
+   de medição. Ele remede e aborta se o manifesto tiver mudado. Envio real sem `target-date`
+   explícita é recusado por construção.
+
+4. **`SKIP_FORA_DA_JANELA` legítimo?** Rode `medir` de novo com a `target_date` do dia em que a
+   pessoa realmente salvou. A janela é recorte de população, não proteção — quem impede a
+   duplicata é a identidade (entrada + versão), e ela vale em qualquer janela.
+
+### Revisar um `SKIP_UNCERTAIN_NEEDS_OPERATOR_REVIEW`
+
+Acontece quando existe uma reserva `uncertain`/`claimed` (o provedor pode ter sido chamado e a
+resposta se perdeu) ou uma atestação legada sem versão provável. Decida com evidência — o e-mail
+antigo na caixa da pessoa, o horário, o código do comprovante no corpo — e registre:
+
+```bash
+python3 - <<'PY'
+import sys; sys.path.insert(0, "bolao/shared/scripts")
+import m8m9
+print(m8m9._rpc("cdb_attest_legacy_receipt", {
+    "p_entry_id": "<uuid da entrada>",
+    "p_picks_version": "<hash de 16 chars>",   # None quando a certeza é UNCERTAIN
+    "p_certainty": "PROVEN",                    # ou "UNCERTAIN"
+    "p_evidence": "e-mail de 2026-08-11 19:42 BRT; código do comprovante confere",
+}))
+PY
+```
+
+Não fabrique hash histórico para "destravar" o automático: `UNCERTAIN` sem versão é a resposta
+honesta e o banco recusa as duas formas de mentira.
