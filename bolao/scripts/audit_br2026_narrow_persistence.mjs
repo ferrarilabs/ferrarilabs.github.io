@@ -10,7 +10,11 @@
  * entradas, pagamentos, resultados e estado de notificação de uma vez só.
  *
  * Agora:
- *   LEITURA : `bolao_state_public` — mesma forma, sem os quatro campos privados.
+ *   LEITURA : `bolao_state_normalized_public` — READ_CUTOVER (2026-08-13). A projeção anterior,
+ *             `bolao_state_public`, era montada por SUBTRAÇÃO sobre o documento legado (removia os
+ *             quatro campos privados); a atual é montada a partir das tabelas normalizadas, de modo
+ *             que um campo privado NOVO nasce fora da projeção em vez de precisar ser lembrado na
+ *             lista de subtração. Esperar aqui o nome antigo é a expectativa PRÉ-cutover.
  *   ESCRITA : `submit_entry` (única anônima). Operador saiu do navegador.
  *
  * ─── POR QUE ESTE GATE INSPECIONA CALL SITES, NÃO NOMES ──────────────────────────────────────
@@ -51,9 +55,10 @@ console.log("BR2026_NARROW_PERSISTENCE (F10/N22 stage 4)\n");
 
 // ─── BR2026_USES_PUBLIC_STATE ────────────────────────────────────────────────────────────────
 {
-  check("BR2026_USES_PUBLIC_STATE: config declara a projeção pública",
-    /readTable:\s*["']bolao_state_public["']/.test(cfg),
-    "config.database.readTable precisa apontar para bolao_state_public");
+  check("BR2026_USES_PUBLIC_STATE: config declara a projeção pública normalizada",
+    /readTable:\s*["']bolao_state_normalized_public["']/.test(cfg),
+    "config.database.readTable precisa apontar para bolao_state_normalized_public " +
+    "(READ_CUTOVER, 2026-08-13) — `bolao_state_public` é a projeção PRÉ-cutover e não vale mais");
   check("a leitura usa readTable, não a tabela crua",
     /C\.database\.readTable/.test(app),
     "loadRemoteState() não consome readTable");

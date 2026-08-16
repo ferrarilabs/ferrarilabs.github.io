@@ -75,7 +75,7 @@ import { launchChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs"
 import { cdb2026TiesFixture, routeCdb2026Espn, seedBr2026Schedule } from "../cdb2026/scripts/visual/game_fixtures.mjs";
 import { spawn, execSync } from "node:child_process";
 import { mkdirSync, writeFileSync, readFileSync } from "node:fs";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { dirname, join } from "node:path";
 
 import { startStaticServer } from "./static_server.mjs";
@@ -316,6 +316,98 @@ function isoDateInPast(iso) {
   return isNaN(d.getTime()) ? null : d.getTime() < Date.now();
 }
 
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const isRealIsoDate = (v) => typeof v === "string" && ISO_DATE.test(v) && !isNaN(new Date(v + "T00:00:00Z").getTime());
+
+// ── `conditionality` — exceção ESTREITA à regra "entrada não utilizada = defeito" ───────────────
+//
+// A regra geral continua valendo e não foi afrouxada: uma entrada que não suprimiu nada é lixo
+// acumulado, e some. Existe UMA classe onde ela dá o veredito errado, e é uma classe medida, não
+// hipotética: a diferença nasce do ESTADO do torneio, não do CSS. `ranking-row:gridTemplateColumns`
+// é o caso de referência — foi REMOVIDA na manhã de 2026-08-12 por estar "não utilizada" e teve de
+// VOLTAR na mesma tarde, quando as quartas do CDB abriram e a divergência reapareceu. O CSS nunca
+// mudou; o torneio mudou.
+//
+// Por que isto não vira porta dos fundos:
+//   · só `expectedType: "content-driven"` pode usar (diferença de token exato nunca é de estado);
+//   · exige `signature` — um predicado EXECUTÁVEL, abaixo. Se a divergência atual não satisfizer o
+//     predicado, a causa é outra e a entrada NÃO suprime nada (volta a DIVERGENT/vermelho);
+//   · exige prova empírica dos DOIS estados (`lastObservedDivergent` + `lastObservedEqual`) — sem
+//     isso é só uma alegação de que "talvez volte";
+//   · exige `reviewBy` próprio, que EXPIRA. Uma exceção permanente seria a mesma dívida silenciosa
+//     que a regra geral existe para impedir.
+const CONDITIONAL_SIGNATURES = {
+  // Uma ou mais apps COLAPSAM trilha(s) de grid para 0px enquanto outras as renderizam (o botão
+  // existe ou não, conforme o estado). Removidas as trilhas 0px, o que sobra tem de ser IGUAL — se
+  // as trilhas restantes também diferem, a causa é outra (token, largura, fonte) e não é isto aqui.
+  TRAILING_TRACK_COLLAPSE: (values) => {
+    const lists = values.map((v) => String(v).trim().split(/\s+/));
+    const n = lists[0].length;
+    // Contagem de trilhas diferente já não é colapso — é outro grid.
+    if (!lists.every((l) => l.length === n)) return false;
+    let sawCollapse = false;
+    for (let i = 0; i < n; i++) {
+      const col = lists.map((l) => l[i]);
+      const rendered = new Set(col.filter((t) => t !== "0px"));
+      // Se as apps que RENDERIZAM esta trilha discordam entre si, a diferença não é o colapso:
+      // é largura/token, e a aprovação condicional não cobre isso.
+      if (rendered.size > 1) return false;
+      if (rendered.size === 1 && col.includes("0px")) sawCollapse = true;
+    }
+    // Exige pelo menos UM colapso real: valores só "diferentes" não bastam.
+    return sawCollapse;
+  },
+};
+
+/**
+ * Valida o bloco `conditionality`. Devolve lista de problemas (vazia = válido).
+ * Cada ramo abaixo corresponde a um veredito exigido: STATIC_ENTRY_USING_CONDITIONALITY,
+ * MISSING_TRIGGER, MISSING_LAST_DIVERGENT_DATE e EXPIRED_CONDITIONAL_ENTRY.
+ */
+function validateConditionality(entry, where) {
+  const problems = [];
+  const c = entry.conditionality;
+  if (c === null || typeof c !== "object" || Array.isArray(c)) {
+    problems.push(`${where}: "conditionality" precisa ser um objeto`);
+    return problems;
+  }
+  // STATIC_ENTRY_USING_CONDITIONALITY — diferença de token exato NUNCA é dependente de estado.
+  if (entry.expectedType !== "content-driven") {
+    problems.push(`${where}: STATIC_ENTRY_USING_CONDITIONALITY — "conditionality" só é aceita em ` +
+      `expectedType="content-driven"; esta entrada é "${entry.expectedType}". Uma diferença de token ` +
+      `estático não muda com o estado do torneio: ou é aprovada como divergência normal, ou é corrigida no CSS.`);
+  }
+  if (!Object.prototype.hasOwnProperty.call(CONDITIONAL_SIGNATURES, c.signature)) {
+    problems.push(`${where}: "conditionality.signature" precisa ser um predicado conhecido ` +
+      `(${Object.keys(CONDITIONAL_SIGNATURES).join(", ")}), recebeu ${JSON.stringify(c.signature)} — ` +
+      `sem predicado executável a exceção não seria verificável, só declarada.`);
+  }
+  // MISSING_TRIGGER
+  if (typeof c.trigger !== "string" || c.trigger.trim().length < 40) {
+    problems.push(`${where}: MISSING_TRIGGER — "conditionality.trigger" precisa descrever, por escrito e ` +
+      `com especificidade, QUAL mudança de estado produz a divergência (mín. 40 caracteres).`);
+  }
+  // MISSING_LAST_DIVERGENT_DATE — e a prova de que os DOIS estados já foram vistos de verdade.
+  for (const field of ["lastObservedDivergent", "lastObservedEqual"]) {
+    if (!isRealIsoDate(c[field])) {
+      problems.push(`${where}: ${field === "lastObservedDivergent" ? "MISSING_LAST_DIVERGENT_DATE" : "MISSING_LAST_EQUAL_DATE"} — ` +
+        `"conditionality.${field}" precisa ser uma data ISO (YYYY-MM-DD) realmente medida. A exceção exige ` +
+        `observação empírica dos DOIS estados; uma entrada vista só num deles não é dependente de estado, é só uma aposta.`);
+    } else if (!isoDateInPast(c[field])) {
+      problems.push(`${where}: "conditionality.${field}"=${c[field]} está no futuro — não pode ser uma observação.`);
+    }
+  }
+  // EXPIRED_CONDITIONAL_ENTRY — a exceção não pode ser permanente.
+  if (!isRealIsoDate(c.reviewBy)) {
+    problems.push(`${where}: "conditionality.reviewBy" precisa ser uma data ISO (YYYY-MM-DD) — ` +
+      `uma exceção sem prazo vira supressão permanente.`);
+  } else if (isoDateInPast(c.reviewBy)) {
+    problems.push(`${where}: EXPIRED_CONDITIONAL_ENTRY — conditionality.reviewBy=${c.reviewBy} já passou. ` +
+      `Remeça a medição: se a divergência não voltou desde ${c.lastObservedDivergent}, a entrada provavelmente morreu e deve sair.`);
+  }
+  return problems;
+}
+
 // Validates ONE allowlist entry's own shape/references, independent of whether it matches any
 // real finding this run. Returns a list of problems (empty = structurally valid). This runs on
 // EVERY entry up front, so a malformed entry is reported once, clearly, rather than silently
@@ -363,6 +455,7 @@ function validateAllowlistEntrySchema(entry, index) {
   } else if (isoDateInPast(entry.reviewBy)) {
     problems.push(`${where}: aprovação EXPIRADA — reviewBy=${entry.reviewBy} já passou, precisa de nova revisão antes de continuar suprimindo este achado`);
   }
+  if ("conditionality" in entry) problems.push(...validateConditionality(entry, where));
   return problems;
 }
 
@@ -428,6 +521,19 @@ function classify(componentId, property, valuesByApp, allowlist) {
   }
   // content-driven entries accept any differing value once app-set/approval/expiry all check out —
   // that's the whole point of this expectedType (the exact number is expected to vary by content).
+
+  // Entrada com `conditionality` promete uma causa ESPECÍFICA. Se a divergência de hoje não
+  // satisfaz o predicado declarado, ela tem outra causa — e uma aprovação dada para "o botão
+  // colapsa conforme o prazo" não vale para uma diferença de token que apareceu por outro motivo.
+  if (entry.conditionality) {
+    const predicate = CONDITIONAL_SIGNATURES[entry.conditionality.signature];
+    if (!predicate(present.map(([, v]) => v))) {
+      return { status: "DIVERGENT", reason: `CONDITIONAL MISMATCH: a entrada para "${componentId}:${property}" ` +
+        `é condicional (signature="${entry.conditionality.signature}", gatilho: ${entry.conditionality.trigger}), ` +
+        `mas a divergência ATUAL não satisfaz esse predicado — ${present.map(([app, v]) => `${app}="${v}"`).join(", ")}. ` +
+        `A causa é outra, e a aprovação condicional não a cobre.` };
+    }
+  }
 
   entry.used = true; // only mark used once it genuinely suppressed a real finding this run
   const reason = `${entry.justification} [docRef: ${entry.docRef}; owner: ${entry.owner}; approvedBy: ${entry.approvedBy}; reviewDate: ${entry.reviewDate}; reviewBy: ${entry.reviewBy}]`;
@@ -722,8 +828,14 @@ async function main() {
   // underlying issue was already fixed in code (entry should be deleted) or the entry's
   // component/property/apps no longer match reality (entry is stale and needs to be re-pointed).
   // Silently ignoring it would let dead suppressions accumulate forever with nobody noticing.
+  // A exceção condicional (ver CONDITIONAL_SIGNATURES) entra AQUI e só aqui: uma entrada
+  // dependente de estado pode legitimamente não suprimir nada numa rodada em que os três apps
+  // estão no mesmo estado. Ela continua sujeita a TODO o resto — schema, aprovação nomeada,
+  // reviewBy geral, reviewBy condicional que expira, e o predicado executável quando a
+  // divergência de fato aparece. Só a contagem de "não utilizada" a dispensa.
+  const conditionallyReserved = [...allowlist.entries()].filter(([, e]) => !e.used && e.conditionality);
   const unusedEntries = [...allowlist.entries()]
-    .filter(([, entry]) => !entry.used)
+    .filter(([, entry]) => !entry.used && !entry.conditionality)
     .map(([key, entry]) => `${key} (apps: ${entry.apps.join(",")}, approvedBy: ${entry.approvedBy})`);
 
   let ok = counts.DIVERGENT === 0;
@@ -740,8 +852,20 @@ async function main() {
   if (counts.DIVERGENT > 0) {
     console.log(`\n✗ ${counts.DIVERGENT} divergência(s) não aprovada(s) — ver seção "Divergências não aprovadas" em audit_visual_consistency.md.`);
   }
+  // Reportada SEMPRE, mesmo quando verde: uma exceção que ninguém vê é uma exceção que ninguém revisa.
+  if (conditionallyReserved.length) {
+    console.log(`\nℹ ${conditionallyReserved.length} entrada(s) CONDICIONAL(is) não utilizada(s) nesta rodada — permitido, porque a divergência depende do estado do torneio (não do CSS):`);
+    for (const [key, e] of conditionallyReserved) {
+      console.log(`  ℹ ${key} — última vez DIVERGENTE em ${e.conditionality.lastObservedDivergent}, ` +
+                  `última vez IGUAL em ${e.conditionality.lastObservedEqual}; revisar até ${e.conditionality.reviewBy}`);
+    }
+  }
   if (ok) console.log("\n✓ 0 divergência não aprovada, 0 entrada de allowlist inválida/não utilizada.");
   process.exit(ok ? 0 : 1);
 }
 
-main();
+// Executa como CLI; ao ser IMPORTADO (pelo gate de mutação `test_allowlist_conditionality.mjs`)
+// só expõe as funções, sem subir navegador nenhum.
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) main();
+
+export { CONDITIONAL_SIGNATURES, validateConditionality, validateAllowlistEntrySchema, classify };
