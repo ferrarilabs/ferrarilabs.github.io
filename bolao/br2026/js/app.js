@@ -803,6 +803,9 @@ function accuracyMetrics(entry, g4Result, z4Result, sa6Result) {
 // ─── ESPN polling ────────────────────────────────────────────────────────────
 let _standings  = [];   // sorted by rank (1st = index 0)
 let _liveMatches = [];  // currently live matches
+// Terminais (FINAL/adiado/suspenso) vistos no ÚLTIMO ciclo, por id. Alimenta
+// `terminalForRetained` — ver o comentário em applyLiveMatches.
+let _terminalPorId = {};
 // A última busca do snapshot foi confiável? Distingue "a fonte falhou" (não sabemos) de "a fonte
 // respondeu e não há jogo ao vivo" (sabemos). Sem esta distinção, um fetch que falha e um domingo
 // sem jogo produzem o mesmo estado — e um deles deveria manter o hero no ar.
@@ -1277,6 +1280,10 @@ async function mapObservationToLiveMatches(rawMatches, observedAtIso) {
         || /penalt|pênalti|penales|\bpens\b|shootout|end of extra ?time/.test(statusText);
       return {
         id:        ev.id,
+        // Horário de início, carregado só para ORDENAR o hero quando há jogos simultâneos. Não
+        // participa de nenhuma classificação de estado: `isLiveMatch()` continua decidindo o que
+        // é ao vivo. Sem ele a ordem dos cards dependeria da ordem em que a fonte respondeu.
+        kickoff:   ev.date || comp.date || null,
         state:     comp.status?.type?.state,
         homeTeam:  normalizeEspnTeamName(home?.team?.displayName || ""),
         awayTeam:  normalizeEspnTeamName(away?.team?.displayName || ""),
@@ -1420,6 +1427,19 @@ async function applyLiveMatches(matches) {
       saveLiveClockCache(Object.fromEntries(nextLive.map(m => [m.id, m])));
 
       _liveMatches = nextLive;
+      // TERMINAIS OBSERVADOS NESTE CICLO, por id.
+      //
+      // `_liveMatches` só carrega o que está AO VIVO, então um jogo que acabou simplesmente
+      // desaparece dela — e "desapareceu" é exatamente o sinal que a retenção existe para
+      // ignorar. Sem esta lista, um jogo encerrado ficaria no hero até o TTL de 15 min expirar,
+      // que é card fantasma. `resolveFeaturedMatchState` já aceita `terminalForRetained` para
+      // este caso; faltava alguém observar o terminal e passá-lo.
+      _terminalPorId = {};
+      for (const m of matches) {
+        const term = window.BOLAO_LIVE_CLOCK.terminalState(m);
+        if (term && m && m.id != null) _terminalPorId[String(m.id)] = term;
+      }
+      _heroMemo = null;   // observação nova invalida o memo do hero
       publishLiveHealth();
       // Overlay fetched match states onto the schedule cache (including "post" so a finished
       // game doesn't stay stuck as "ao vivo" until the 5-min TTL expires). Matched by ESPN's
@@ -2011,61 +2031,190 @@ function liveClockDisplay(m) {
 // `sessionStorage`, TTL 15 min: sobrevive a rerender e a reload da página, morre ao fechar a aba.
 // Guarda SÓ dado de partida — nunca nada de participante. A autoridade continua sendo o snapshot;
 // isto é cache de apresentação e qualquer observação válida nova o substitui.
-const HERO_CACHE_KEY = "br2026_last_live_hero_v1";
+// RETENÇÃO É POR PARTIDA, NÃO UMA VAGA SÓ (2026-08-16)
+//
+// A primeira versão deste cache guardava UMA partida. Fazia sentido enquanto o resolvedor de
+// retenção fosse aplicado a uma partida só — e foi exatamente esse acoplamento que fez o hero
+// parar de mostrar rodadas com mais de um jogo simultâneo. Com a retenção por id, o invariante
+// ("ausência de evidência nova não é evidência de que a partida acabou") passa a valer para CADA
+// jogo ao vivo, em vez de valer para o primeiro e apagar os outros.
+const HERO_CACHE_KEY = "br2026_last_live_hero_v2";
+const HERO_CACHE_KEY_LEGADO = "br2026_last_live_hero_v1";
 
+/** @returns {Object<string,{match:object,confirmedAt:number}>} mapa por id da partida. */
 function readRetainedHero() {
   try {
     const raw = sessionStorage.getItem(HERO_CACHE_KEY);
-    if (!raw) return null;
-    const c = JSON.parse(raw);
-    if (!c || !c.match || !c.confirmedAt) return null;
-    return c;
-  } catch { return null; }  // cache ilegível conta como ausente — nunca derruba o render
+    if (raw) {
+      const c = JSON.parse(raw);
+      const byId = c && c.byId;
+      if (byId && typeof byId === "object") {
+        const out = {};
+        for (const [id, v] of Object.entries(byId)) {
+          if (v && v.match && v.confirmedAt) out[id] = v;
+        }
+        return out;
+      }
+    }
+    // Migração da vaga única: uma aba aberta no meio de um jogo não pode perder a retenção só
+    // porque o formato mudou — seria reintroduzir, no deploy, o sumiço que o cache existe para
+    // impedir.
+    const legado = sessionStorage.getItem(HERO_CACHE_KEY_LEGADO);
+    if (legado) {
+      const c = JSON.parse(legado);
+      if (c && c.match && c.confirmedAt && c.match.id != null) {
+        return { [String(c.match.id)]: { match: c.match, confirmedAt: c.confirmedAt } };
+      }
+    }
+    return {};
+  } catch { return {}; }  // cache ilegível conta como ausente — nunca derruba o render
 }
 
-function writeRetainedHero(match) {
+function writeRetainedHero(byId) {
   try {
     sessionStorage.setItem(HERO_CACHE_KEY, JSON.stringify({
-      match, confirmedAt: Date.now(), competition: "br2026",
+      byId, competition: "br2026",
     }));
+    sessionStorage.removeItem(HERO_CACHE_KEY_LEGADO);
   } catch { /* cota cheia/modo restrito: seguir sem cache é degradação aceitável */ }
 }
 
 function clearRetainedHero() {
-  try { sessionStorage.removeItem(HERO_CACHE_KEY); } catch { /* idem acima */ }
+  try {
+    sessionStorage.removeItem(HERO_CACHE_KEY);
+    sessionStorage.removeItem(HERO_CACHE_KEY_LEGADO);
+  } catch { /* idem acima */ }
+}
+
+// ─── O CONJUNTO AO VIVO DO HERO ──────────────────────────────────────────────────────────────
+//
+// Uma fonte só para os DOIS heroes (partida e ranking provisório). Antes cada um chamava
+// `resolveFeaturedMatchState` com `_liveMatches[0]`, e o segundo herdou o defeito do primeiro.
+//
+// Resolve o conjunto UNIÃO de "ao vivo na observação atual" e "retido do último confirmado",
+// partida a partida. Uma que a fonte declarou terminal, ou cujo TTL expirou, simplesmente não
+// entra — e sai do cache no mesmo passo, que é o que impede card fantasma.
+//
+// NÃO altera a definição de "ao vivo": quem classifica continua sendo `isLiveMatch()` lá em
+// `applyLiveMatches`, e `_liveMatches` já é a lista COMPLETA. Aqui só se decide o que continua
+// no ar quando a observação falha.
+// Os dois heroes são desenhados no mesmo passo de render. Sem memo, `resolveLiveHeroMatches()`
+// rodaria duas vezes e gravaria o cache duas vezes por passo — inofensivo, mas é trabalho
+// duplicado num caminho que roda a cada segundo.
+//
+// O TTL de 1s é deliberado e NÃO é arbitrário: o tick de render é de 1s, então uma janela de 1s
+// deduplica exatamente as chamadas do mesmo passo. Memoizar por mais tempo seria um defeito —
+// a expiração do TTL de retenção (15 min) precisa ser reavaliada a cada tick, senão um hero
+// retido ficaria no ar depois de expirado só porque `_liveMatches` não mudou de referência.
+let _heroMemo = null;
+const HERO_MEMO_TTL_MS = 1000;
+
+function resolveLiveHeroMatches(now = Date.now()) {
+  if (_heroMemo && _heroMemo.matchesRef === _liveMatches
+      && _heroMemo.sourceOk === (_snapshotOk !== false)
+      && now - _heroMemo.at < HERO_MEMO_TTL_MS) {
+    return _heroMemo.value;
+  }
+  const valor = computeLiveHeroMatches(now);
+  _heroMemo = { at: now, matchesRef: _liveMatches, sourceOk: _snapshotOk !== false, value: valor };
+  return valor;
+}
+
+function computeLiveHeroMatches(now) {
+  const LC = window.BOLAO_LIVE_CLOCK;
+  const sourceOk = _snapshotOk !== false;
+
+  const observadas = new Map();
+  for (const m of _liveMatches) if (m && m.id != null) observadas.set(String(m.id), m);
+  const retidas = readRetainedHero();
+
+  const ids = [...new Set([...observadas.keys(), ...Object.keys(retidas)])];
+  const noAr = [];
+  const proximoCache = {};
+  const estados = [];
+
+  for (const id of ids) {
+    const r = LC.resolveFeaturedMatchState({
+      observed: observadas.get(id) || null,
+      retained: retidas[id] || null,
+      // Se a fonte declarou o terminal deste jogo neste ciclo, a retenção solta na hora em vez
+      // de segurar até o TTL. É o que separa "sumiu do snapshot" (retém) de "acabou" (solta).
+      terminalForRetained: _terminalPorId[id] || null,
+      sourceOk,
+      now,
+    });
+    estados.push({ id, state: r.state, reason: r.reason });
+
+    if (r.state === LC.FEATURED.LIVE_CONFIRMED && r.match) {
+      proximoCache[id] = { match: r.match, confirmedAt: now };
+      noAr.push({ match: r.match, retained: false, state: r.state, reason: r.reason });
+    } else if (r.state === LC.FEATURED.LIVE_RETAINED && r.match) {
+      proximoCache[id] = retidas[id];        // preserva o confirmedAt ORIGINAL: o TTL não reinicia
+      noAr.push({ match: r.match, retained: true, state: r.state, reason: r.reason });
+    }
+    // terminal / TTL expirado / desconhecido: fora do ar E fora do cache.
+  }
+
+  writeRetainedHero(proximoCache);
+  noAr.sort(ordemDoHeroAoVivo);
+
+  // Estado agregado, só para o `data-hero-state`: o que mais importa para quem diagnostica é
+  // "tem jogo no ar?" e, se não tem, por quê.
+  let estado = LC.FEATURED.UNKNOWN, motivo = "NO_LIVE_MATCH";
+  if (noAr.length) {
+    const algumConfirmado = noAr.some(x => !x.retained);
+    estado = algumConfirmado ? LC.FEATURED.LIVE_CONFIRMED : LC.FEATURED.LIVE_RETAINED;
+    motivo = noAr[0].reason;
+  } else if (estados.length) {
+    estado = estados[0].state; motivo = estados[0].reason;
+  } else if (!sourceOk) {
+    estado = LC.FEATURED.SOURCE_UNAVAILABLE; motivo = "SOURCE_UNAVAILABLE";
+  }
+  return { matches: noAr, state: estado, reason: motivo, sourceOk };
+}
+
+// Ordem DETERMINÍSTICA, nunca a ordem em que a fonte devolveu. Cronologia primeiro (é a ordem
+// que o participante espera ver, e a mesma da aba "Jogos"); id como desempate estável para que
+// dois jogos com o mesmo horário não troquem de lugar entre dois polls.
+function ordemDoHeroAoVivo(a, b) {
+  const ka = Date.parse(a.match.kickoff || "") || null;
+  const kb = Date.parse(b.match.kickoff || "") || null;
+  if (ka !== kb) {
+    if (ka === null) return 1;      // sem horário conhecido vai para o fim, nunca embaralhado
+    if (kb === null) return -1;
+    return ka - kb;
+  }
+  return String(a.match.id).localeCompare(String(b.match.id));
 }
 
 function renderLiveCard() {
   const card = $("liveMatchCard");
   if (!card) return;
 
-  // Resolvedor compartilhado: decide se o hero fica no ar usando a observação atual E o último
-  // estado confirmado. Ausência de evidência nova não é evidência de que a partida acabou.
-  const LC = window.BOLAO_LIVE_CLOCK;
-  const observed = _liveMatches.length ? _liveMatches[0] : null;
-  const resolved = LC.resolveFeaturedMatchState({
-    observed,
-    retained: readRetainedHero(),
-    sourceOk: _snapshotOk !== false,
-    now: Date.now(),
-  });
+  // Resolvedor compartilhado, aplicado a CADA jogo ao vivo: decide quais ficam no ar usando a
+  // observação atual E o último estado confirmado de cada um. Ausência de evidência nova não é
+  // evidência de que a partida acabou.
+  //
+  // Aqui havia `_liveMatches[0]`, e era o defeito inteiro: numa rodada com dois ou três jogos
+  // simultâneos o hero mostrava um só. O renderizador abaixo (`.map`), o cabeçalho de contagem, a
+  // chave i18n `liveMatchesLabel` e o `.live-match-grid` no CSS sempre foram multi — quem
+  // estreitou foi o seletor, ao adaptar a retenção (que é por partida) a uma vaga única.
+  const resolved = resolveLiveHeroMatches();
+  const entradas = resolved.matches;
 
-  // Observabilidade: da próxima vez que alguém perguntar "por que o hero sumiu?", a resposta
-  // está no DOM, sem precisar reproduzir nada. Nenhum dado privado aqui.
+  // Observabilidade: da próxima vez que alguém perguntar "por que o hero sumiu?", ou "por que só
+  // apareceu um jogo?", a resposta está no DOM, sem precisar reproduzir nada. Nenhum dado privado.
   card.dataset.heroState = resolved.state;
   card.dataset.heroReason = resolved.reason;
-  card.dataset.heroRetained = String(resolved.retained);
-  if (resolved.match?.id) card.dataset.heroMatchId = String(resolved.match.id);
+  card.dataset.heroRetained = String(entradas.some(x => x.retained));
+  card.dataset.heroLiveCount = String(entradas.length);
+  card.dataset.heroMatchIds = entradas.map(x => String(x.match.id)).join(",");
+  if (entradas.length) card.dataset.heroMatchId = String(entradas[0].match.id);
+  else delete card.dataset.heroMatchId;
 
-  if (resolved.state === LC.FEATURED.LIVE_CONFIRMED && observed) writeRetainedHero(observed);
-  if (resolved.state === LC.FEATURED.FINAL || resolved.state === LC.FEATURED.POSTPONED
-      || resolved.state === LC.FEATURED.SUSPENDED || resolved.reason === "RETENTION_EXPIRED") {
-    clearRetainedHero();
-  }
-
-  const heroMatches = resolved.match ? [resolved.match] : [];
+  const heroMatches = entradas.map(x => x.match);
   if (!heroMatches.length) { card.classList.add("hidden"); return; }
-  const _heroRetained = resolved.retained;
+  const retidoPorId = new Map(entradas.map(x => [String(x.match.id), x.retained]));
 
   const header = heroMatches.length > 1
     ? `<div class="live-header">🔴 ${heroMatches.length} ${esc(t("liveMatchesLabel"))}</div>` : "";
@@ -2088,6 +2237,10 @@ function renderLiveCard() {
 
   const rows = heroMatches.map(m => {
     const { clock, sec, stale: _clockStale } = liveClockDisplay(m);
+    // A marca de atraso é POR PARTIDA: num conjunto simultâneo, um jogo pode estar retido
+    // (omitido do último snapshot) enquanto o outro acabou de ser confirmado. Marcar os dois
+    // como atrasados porque um está seria mentir sobre o que foi observado.
+    const _heroRetained = retidoPorId.get(String(m.id)) === true;
     const clockStale = _clockStale || _heroRetained;
     // In-play probability bars (only when standings are loaded)
     let probBarsHtml = "";
@@ -2178,15 +2331,14 @@ function renderLiveRankingHero() {
   // (`_liveMatches.length`) e teria continuado sumindo por falha transitória depois de o outro
   // ser corrigido — foi o teste de contrato que o encontrou, não a leitura do código.
   const _LC = window.BOLAO_LIVE_CLOCK;
-  const _res = _LC.resolveFeaturedMatchState({
-    observed: _liveMatches.length ? _liveMatches[0] : null,
-    retained: readRetainedHero(),
-    sourceOk: _snapshotOk !== false,
-    now: Date.now(),
-  });
+  // MESMA resolução do hero de partida, agora sobre o conjunto inteiro. Com `_liveMatches[0]`
+  // este hero sumia quando o PRIMEIRO jogo da lista terminava e outro seguia ao vivo — o
+  // ranking provisório desaparecia no meio da rodada, que é justamente quando ele serve.
+  const _res = resolveLiveHeroMatches();
   card.dataset.heroState = _res.state;
   card.dataset.heroReason = _res.reason;
-  const _aoVivo = _res.state === _LC.FEATURED.LIVE_CONFIRMED || _res.state === _LC.FEATURED.LIVE_RETAINED;
+  card.dataset.heroLiveCount = String(_res.matches.length);
+  const _aoVivo = _res.matches.length > 0;
   if (!_aoVivo) { card.classList.add("hidden"); return; }
 
   const s = state();

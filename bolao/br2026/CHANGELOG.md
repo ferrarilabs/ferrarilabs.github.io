@@ -1,5 +1,61 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.122 — 2026-08-16
+
+### O hero ao vivo mostra TODOS os jogos simultâneos, não só o primeiro
+
+Numa rodada com dois ou três jogos ao mesmo tempo — o normal num domingo de Brasileirão — o card
+ao vivo mostrava **um**.
+
+**Causa raiz, e é uma regressão de uma correção.** `5b66389e` ("hero ao vivo sobrevive a falha
+transitória da fonte") introduziu a camada de retenção, que existe para impedir que uma falha
+passageira da fonte apague da tela um jogo em andamento. `resolveFeaturedMatchState()` é, por
+contrato, de **uma** partida: recebe `observed`, devolve `match`. Para encaixar o conjunto nesse
+contrato, o seletor virou `_liveMatches[0]` e o resultado voltou embrulhado em `[resolved.match]`.
+
+O renderizador nunca foi de uma partida só — `heroMatches.map(...)`, o cabeçalho
+`heroMatches.length > 1`, a chave i18n `liveMatchesLabel` e o `.live-match-grid` (`flex-wrap`, os
+cards lado a lado) já estavam prontos desde a v1.43. Uma correção de robustez estreitou a entrada
+de um renderizador que já era múltiplo, e o que ficou foi meio recurso ligado.
+
+**Correção:** a retenção passa a ser **por partida**, não uma vaga só. `resolveLiveHeroMatches()`
+resolve o conjunto união de "ao vivo agora" e "retido do último confirmado", partida a partida, e
+devolve todas as que continuam no ar. O invariante da retenção ("ausência de evidência nova não é
+evidência de que a partida acabou") passa a valer para cada jogo, em vez de valer para o primeiro
+e apagar os outros.
+
+Junto vieram três coisas que o conjunto exigiu e a vaga única escondia:
+
+- **Terminal por partida.** `_liveMatches` só carrega o que está ao vivo, então um jogo que acaba
+  simplesmente some dela — e "sumiu" é exatamente o sinal que a retenção ignora. Sem observar o
+  terminal, um jogo encerrado ficaria no hero até o TTL de 15 min expirar. `_terminalPorId`
+  alimenta o `terminalForRetained` que o resolvedor já aceitava e ninguém passava.
+- **Ordem determinística.** Os cards seguem o horário de início (ascendente), com o id como
+  desempate estável. Antes a ordem era a da resposta da fonte, que pode mudar entre dois polls.
+  `kickoff` passou a ser carregado no mapeamento **apenas para ordenar** — não participa de
+  nenhuma classificação de estado.
+- **Marca de atraso por partida.** Num conjunto simultâneo um jogo pode estar retido enquanto
+  outro acabou de ser confirmado; marcar os dois como atrasados seria mentir sobre o observado.
+
+O hero do **ranking provisório** tinha a mesma condição (`_liveMatches[0]`) e sumia quando o
+primeiro jogo da lista terminava e outro seguia ao vivo — no meio da rodada, que é justamente
+quando ele serve. Passou a usar a mesma resolução.
+
+**Nada de definição de "ao vivo" mudou:** quem classifica continua sendo `isLiveMatch()`, e
+`_liveMatches` já era a lista completa. Nenhuma mudança de CSS foi necessária — o grid já era
+`flex-wrap`.
+
+**Prova:** `bolao/scripts/audit_multi_live_hero.mjs` (28 asserções) exercita 0/1/2/3/4 jogos
+simultâneos e as transições 0→1→2→3→2→1→0 no app real, comparando as **identidades** das partidas
+no DOM com as dos dados — contar cards deixaria passar o card errado repetido. Um jogo encerrado
+no mesmo payload não pode entrar. Reintroduzir o seletor de primeiro-jogo-só deixa **7 asserções
+vermelhas**. `audit_multi_live_hero_responsive.mjs` (72 asserções) mede geometria real em
+1440x900, 1024x768, 768x1024 e 390x844 com 1/2/3 jogos: zero overflow horizontal de página, zero
+sobreposição, placar/relógio/nomes visíveis em todos os cards.
+
+`SCORING_CHANGED = NO` · `RANKING_CHANGED = NO` · `RESULT_INGESTION_CHANGED = NO` ·
+`SUPABASE_CHANGED = NO` · `EMAILS_SENT = 0` · `PARTICIPANTS_MUTATED = 0`.
+
 ## v1.121 — 2026-08-16
 
 ### Tabela: a coluna TIME deixou de engolir a largura sobrando no desktop
