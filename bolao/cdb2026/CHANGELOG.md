@@ -1,5 +1,41 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (infra, sem bump de siteVersion) — 2026-08-16
+
+### Kill switch de e-mail desligado; permissão de comprovante concedida ao roster inteiro
+
+Nenhum arquivo servido ao navegador mudou (`app.js`/`config.js`/`css`/`i18n` intocados) — por
+isso sem bump de versão. Duas ações, ambas autorizadas explicitamente pelo Eduardo em
+2026-08-16 ("Sim para ambos agora já estabilizou o produto"):
+
+1. **`bolao/cdb2026/EMAIL_KILL_SWITCH` removido.** Estava `ON` desde o incidente de 2026-08-12
+   (4 e-mails em 45min, causados por scripts de verificação que usavam a entrada real do
+   operador como cobaia — já corrigido). Bloqueava TODO transporte real de e-mail do CDB2026
+   (convite, correção, reenvio, link novo, broadcast E o comprovante de entrada salva).
+
+2. **`bolao/cdb2026/scripts/grant_receipt_allowance.py`** (novo) + workflow
+   `cdb2026_grant_receipt_allowance.yml` (novo) — concedem, via a RPC já existente e já auditada
+   `cdb_grant_confirmation_allowance` (20260813020000_cdb_confirmation_recipient_resolution.sql),
+   permissão nominal de comprovante para as 12 entradas do roster congelado. Não envia e-mail;
+   só abre a permissão que o consumidor de sempre (`send_entry_saved_confirmation.py`, cron de
+   5 em 5 min) já checava antes de mandar qualquer coisa.
+
+**Causa raiz do sintoma relatado** ("Nathalia e Aline não receberam comprovante"): as duas
+salvaram via o caminho seguro (`cdb_save_my_picks`, RPC com token), que desde 2026-08-12 cria o
+evento de comprovante no servidor em vez de mandar pelo navegador — mas só cria o evento se a
+entrada JÁ tiver permissão no momento do save. A permissão nasceu vazia (liberava só uma
+entrada, para uma validação única, e se autoconsumia na primeira entrega aceita); confirmado em
+log do consumidor: `permissoes_abertas = 0`, `entregas = {total: 1, accepted: 1}`. Não era bug
+de código nem falha do cron — as duas travas eram deliberadas, herdadas do incidente de 12/08, e
+afetavam TODO o roster, não só as duas participantes que relataram.
+
+**Limitação conhecida — comprovante retroativo:** conceder a permissão agora NÃO recria o
+evento do save que a Nathalia e a Aline já fizeram (o evento só nasce dentro de
+`cdb_save_my_picks`, no momento do save). Confirmação a partir de agora funciona; a das
+quartas-de-final especificamente só sai se elas salvarem de novo (uma mudança real nos
+palpites, não um clique idêntico — o RPC tem um curto-circuito de idempotência que não gera
+evento para picks idênticos).
+
 ## v3.129 — 2026-08-13
 
 ### READ_CUTOVER — a leitura passa a vir do modelo normalizado (segunda execucao)
