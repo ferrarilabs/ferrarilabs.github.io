@@ -922,3 +922,27 @@ autoritativa") estava certa e incompleta.
 - **`.rollback.sql` dentro de `supabase/migrations/` inutiliza `db push`.** O CLI trata todo
   `*.sql` do diretório como migração e dois arquivos com o mesmo prefixo de versão deixam o ledger
   ambíguo. Rollback é artefato de operação, não migração: mora fora do diretório escaneado.
+
+## Reconciliação de histórico de migração — 2026-08-16
+
+- **Registro de auditoria anterior é ponto de partida, nunca prova do estado atual.** O registro
+  de 13/08 dizia que `20260813050000` continha um `cdb_save_my_picks` pré-cutover. Era verdade
+  quando foi escrito; o arquivo foi rebaseado depois e passou a ler
+  `bolao.cdb_authoritative_document()`. A afirmação foi repetida sem reconferir e chegou ao corpo
+  de um PR. A ordem de fonte de verdade deste repositório — código > testes > estado persistido >
+  documentação recente > documentação histórica — já respondia a isso; o erro foi não aplicá-la.
+- **"Pendente no ledger" não é uma categoria; é uma pergunta.** Duas migrações igualmente
+  pendentes, com o mesmo bloqueio operacional, terminaram em ações opostas: uma aplicada, outra
+  aposentada. Classificar em bloco teria criado uma função morta que lê o documento legado, ou
+  deixado de fora um diagnóstico que dois scripts chamam.
+- **Marcar como aplicada é uma afirmação sobre produção, e tem de ser verdade.** Para
+  `20260813050000` seria registrar que produção contém `cdb_current_receipt_snapshot`. Não contém
+  e não vai conter. Ledger que descreve um estado inexistente é pior que ledger incompleto: o
+  próximo a ler confia nele.
+- **Aposentar ≠ reverter.** Nada é executado, nada é desfeito, o arquivo é preservado byte a byte
+  e sai só do diretório que a ferramenta varre. Só vale para migração que nunca foi aplicada — aí
+  não há histórico remoto a reescrever.
+- **Antes de escrever uma correção, procurar se ela já existe sem estar aplicada.** A correção do
+  snapshot no payload do outbox já existia em `20260813050000` desde 13/08. Uma migração nova foi
+  escrita porque a pergunta feita foi "o que produção tem?" e não também "o que o repositório já
+  tem e não foi aplicado?". O resultado ficou melhor (a nova se autoverifica), mas por acaso.
