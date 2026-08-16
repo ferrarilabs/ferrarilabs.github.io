@@ -64,6 +64,37 @@ function extractFn(src, name) {
   throw new Error(`chaves desbalanceadas em ${name}()`);
 }
 
+/**
+ * Extrai uma declaração `const NOME = ...;` de topo (arrow function ou valor).
+ *
+ * `extractFn()` só enxerga `function NOME(`. O merge dos três apps passou a depender de DOIS
+ * helpers escritos como const-arrow — `auditStamp()` e `auditKey()` (READ_CUTOVER, 2026-08-13,
+ * quando o auditLog passou a conviver com duas formas de registro: `ts` do navegador e `at` do
+ * `cdb_apply_operator_mutation()`). Eles ficam FORA de `mergeStates()`, então o sandbox os perdia
+ * e toda chamada de merge morria com `auditKey is not defined` — uma única causa que se
+ * apresentava como 18 falhas de invariante distintas.
+ */
+function extractConst(src, name) {
+  const re = new RegExp(`^const ${name}\\s*=`, "m");
+  const m = re.exec(src);
+  if (!m) throw new Error(`const ${name} não encontrada`);
+  const start = m.index;
+  let paren = 0, brace = 0, bracket = 0, quote = null;
+  for (let j = src.indexOf("=", start) + 1; j < src.length; j++) {
+    const c = src[j], prev = src[j - 1];
+    if (quote) {                                  // dentro de string/template: só procura o fim
+      if (c === quote && prev !== "\\") quote = null;
+      continue;
+    }
+    if (c === '"' || c === "'" || c === "`") { quote = c; continue; }
+    if (c === "(") paren++; else if (c === ")") paren--;
+    else if (c === "{") brace++; else if (c === "}") brace--;
+    else if (c === "[") bracket++; else if (c === "]") bracket--;
+    else if (c === ";" && paren === 0 && brace === 0 && bracket === 0) return src.slice(start, j + 1);
+  }
+  throw new Error(`declaração de ${name} não termina em ';'`);
+}
+
 // ── Sandbox por app: só o necessário para `mergeStates()` rodar sem o DOM ───
 function loadMerge(app) {
   const src = readFileSync(join(ROOT, "bolao", app, "js", "app.js"), "utf8");
@@ -76,9 +107,14 @@ function loadMerge(app) {
        ${extractFn(src, "phaseDrawIsOfficial")}
        ${extractFn(src, "enforceDrawLifecycle")}`
     : "";
+  // `auditStamp` antes de `auditKey`: o segundo chama o primeiro. Os dois são reais, extraídos do
+  // app.js do próprio app — não reimplementados aqui. Reescrevê-los no sandbox faria a suíte medir
+  // a cópia do teste, e não o dedup de auditoria que a produção realmente executa.
   const body = `
     const CONFIG = { siteVersion: "test" };
     const C = CONFIG;
+    ${extractConst(src, "auditStamp")}
+    ${extractConst(src, "auditKey")}
     ${extras}
   `;
   // mergeEntriesTombstonesAuditLog só existe no CDB2026 — os outros dois inlinam o merge de entradas.

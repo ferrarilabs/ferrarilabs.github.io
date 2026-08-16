@@ -297,6 +297,40 @@ const CHECKS = [
     why: "matriz de 14 larguras x 4 apps: geometria real, nao 'a pagina carregou'", requires: "browser" },
   { id: "cdb-sticky-overlap", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs"],
     why: "sobreposicao de elemento fixo em varias posicoes de rolagem", requires: "browser" },
+  // Rodava em `npm run test:node` e faltava AQUI — exatamente a metade-do-caminho que o N21
+  // descreve: estar numa lista e nao na outra e um orfao com outro nome.
+  { id: "br-standings-layout", group: "browser", cmd: ["node", "bolao/br2026/scripts/visual/check_standings_layout.mjs"],
+    why: "geometria real da tabela de classificacao do BR2026 (a tela que o participante confere)", requires: "browser" },
+  { id: "multi-live-hero", group: "browser", cmd: ["node", "bolao/scripts/audit_multi_live_hero.mjs"],
+    why: "varios jogos simultaneos precisam TODOS aparecer no hero — renderizar so o primeiro foi regressao real", requires: "browser" },
+  { id: "multi-live-hero-responsive", group: "browser", cmd: ["node", "bolao/scripts/audit_multi_live_hero_responsive.mjs"],
+    why: "o hero com varios jogos ao vivo tem que sobreviver as larguras de celular, nao so a desktop", requires: "browser" },
+
+  // ── comprovante / loterias / assunto (registrados na limpeza de 2026-08-16) ──
+  { id: "cdb-receipt", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_receipt.py"],
+    why: "o comprovante e EVIDENCIA e nao pode vazar PII — renderizacao pura, sem banco e sem rede" },
+  { id: "cdb-receipt-catchup-dedupe", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py"],
+    why: "incidente de 2026-08-16 reproduzido: dedupe cross-path do catch-up, participante pulado nunca mais" },
+  { id: "powerball-balance-unicity", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs"],
+    why: "a tela tinha DOIS 'quanto temos' com valores diferentes — saldo exibido precisa ter uma fonte so" },
+  { id: "powerball-run-31679185588", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_run_31679185588_regression.py"],
+    why: "regressao da run real: e-mails entregues e resultado orfao nao podem coexistir" },
+  { id: "lottery-core", group: "app", cmd: ["python3", "bolao/loterias/scripts/test_lottery_core.py"],
+    why: "nucleo das loterias" },
+  { id: "lottery-adversarial-round2", group: "app", cmd: ["python3", "bolao/loterias/scripts/test_adversarial_round2.py"],
+    why: "propriedades geradas, DST e patologias de rede — a rodada que achou o que o teste feliz nao acha" },
+  { id: "lottery-failure-injection", group: "app", cmd: ["python3", "bolao/loterias/scripts/test_failure_injection.py"],
+    why: "livro-razao: o sinal fazia parte do tipo e ninguem verificava; chave repetida com outro valor sumia" },
+  { id: "lottery-jackpot-identity", group: "app", cmd: ["python3", "bolao/loterias/scripts/test_jackpot_identity.py"],
+    why: "o jackpot exibido tem que ser o do sorteio CERTO — a pagina de resultado publica o valor SORTEADO" },
+  { id: "lottery-prize-authority", group: "app", cmd: ["python3", "bolao/loterias/scripts/test_prize_authority.py"],
+    why: "autoridade de premio: dinheiro real por entrada" },
+  { id: "subject-policy", group: "security", cmd: ["python3", "bolao/shared/scripts/test_subject_policy.py"],
+    why: "assunto de e-mail vem da politica e as MUTACOES provam que o portao morde — a Powerball saia com o icone errado e ninguem olhava" },
+  { id: "subject-policy-interop", group: "security", cmd: ["node", "bolao/shared/scripts/test_subject_policy_interop.mjs"],
+    why: "a politica de assunto tem que dizer o mesmo em py e js" },
+  { id: "allowlist-conditionality", group: "app", cmd: ["node", "bolao/scripts/test_allowlist_conditionality.mjs"],
+    why: "a excecao condicional do ALLOWLIST.json e a UNICA brecha na regra 'entrada nao utilizada = defeito'; estas mutacoes provam que ela morde e nao virou porta dos fundos" },
 
 ];
 

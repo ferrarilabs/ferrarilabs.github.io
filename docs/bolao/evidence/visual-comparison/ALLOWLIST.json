@@ -483,13 +483,20 @@
       ],
       "expectedType": "content-driven",
       "expected": null,
-      "justification": "A regra CSS `grid-template-columns: 48px 1fr auto auto` e IDENTICA nos tres apps. A 4a trilha `auto` resolve para a largura real do botao 'Ver palpites' quando ele existe, e colapsa para 0px quando nao existe -- e ele so aparece depois do prazo de palpites. Medido em 2026-08-12 (tarde): copa2026 e cdb2026 renderizam o botao (99.3125px) e br2026 nao (0px). Largura de trilha dirigida por CONTEUDO, nao por token de design. HISTORICO: esta entrada foi REMOVIDA na manha de 2026-08-12 porque a medicao daquele momento dava EQUAL nos tres -- o cdb2026 ainda nao tinha prazo publicado nem chaveamento derivado, entao tambem colapsava. Com as quartas abertas e a semifinal prevista, ele passou a renderizar como a Copa e a divergencia voltou. A remocao estava certa para o estado de entao; o que faltou foi notar que a condicao era de ESTADO do torneio, e voltaria.",
+      "justification": "A regra CSS `grid-template-columns: 48px 1fr auto auto` e IDENTICA nos tres apps. A 4a trilha `auto` resolve para a largura real do botao 'Ver palpites' quando ele existe, e colapsa para 0px quando nao existe -- e ele so aparece depois do prazo de palpites. Medido em 2026-08-12 (tarde): copa2026 e cdb2026 renderizam o botao (99.3125px) e br2026 nao (0px). Largura de trilha dirigida por CONTEUDO, nao por token de design. HISTORICO: esta entrada foi REMOVIDA na manha de 2026-08-12 porque a medicao daquele momento dava EQUAL nos tres -- o cdb2026 ainda nao tinha prazo publicado nem chaveamento derivado, entao tambem colapsava. Com as quartas abertas e a semifinal prevista, ele passou a renderizar como a Copa e a divergencia voltou. A remocao estava certa para o estado de entao; o que faltou foi notar que a condicao era de ESTADO do torneio, e voltaria. ESTADO EM 2026-08-16: os tres voltaram a ser IGUAIS (48px 882.484px 18.2031px 99.3125px) -- o BR2026 passou a renderizar o botao (99.3125px, era 0px em 12/08) porque suas inscricoes fecharam em 2026-07-16 e ele esta permanentemente pos-prazo. E exatamente a segunda metade do ciclo ja documentado acima, e por isso a entrada passou a declarar `conditionality` em vez de ser removida de novo: a remocao de 12/08 foi desfeita em horas, e nada garante que o CDB2026 nao reabra uma fase.",
       "docRef": "ALLOWLIST.json ranking-row:height entry above (same root cause)",
       "owner": "Platform",
       "approvalStatus": "approved",
       "approvedBy": "Eduardo",
       "reviewDate": "2026-08-12",
-      "reviewBy": "2027-08-03"
+      "reviewBy": "2027-08-03",
+      "conditionality": {
+        "signature": "TRAILING_TRACK_COLLAPSE",
+        "trigger": "A 4a trilha do grid e o botao Ver palpites, que so e renderizado depois do prazo de palpites -- BR2026 o condiciona a isPastCutoff() e CDB2026 a isPastEntryCutoff(), ambos por PRIVACIDADE (os palpites de um participante ficam escondidos dos demais ate as inscricoes fecharem). Enquanto um app esta antes do prazo e outro depois, a trilha colapsa para 0px num e resolve para a largura do botao no outro. A regra CSS `grid-template-columns: 48px 1fr auto auto` e IDENTICA nos tres apps: quem muda e o ESTADO do torneio, nunca o CSS. Por isso a divergencia aparece e desaparece sozinha conforme as fases abrem e fecham.",
+        "lastObservedDivergent": "2026-08-12",
+        "lastObservedEqual": "2026-08-16",
+        "reviewBy": "2027-08-03"
+      }
     }
   ]
 }

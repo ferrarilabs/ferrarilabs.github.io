@@ -594,6 +594,52 @@
     "bolao/cdb2026/scripts/test_bracket_persistence.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Round-trip completo no navegador REAL pelo caminho seguro (token no fragmento), com o Supabase falsificado na ROTA -- nenhuma entrada de participante e tocada. Captura o payload ANTES da rede, recarrega devolvendo exatamente ele, e compara o bracket renderizado. Cobre QF/SF/final/campeao/vice e falso-sucesso (servidor recusando nao vira 'salvo'). 3 mutacoes pegas, incluindo o defeito original: reidratar do DOM em vez do modelo."
+    },
+    "bolao/cdb2026/scripts/test_receipt.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_run_31679185588_regression.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_adversarial_round2.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_failure_injection.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_jackpot_identity.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_lottery_core.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_prize_authority.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_multi_live_hero.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_multi_live_hero_responsive.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_subject_policy.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_subject_policy_interop.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_entry_saved_confirmation.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Prova o consumidor do comprovante contra o BANCO REAL (fila, reserva, unicidade) com transporte falso. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe como secret do repositorio, e grava/limpa linhas de canario na producao — por isso nao pode entrar numa suite que qualquer um roda a cada commit. Executado sob demanda pelo workflow cdb2026_confirmation_fake_transport_test.yml (workflow_dispatch, declarado em cron_coverage.test.mjs). Nao envia e-mail: BOLAO_ALLOW_REAL_SEND nao e definida e urlopen e substituido por uma sentinela que levanta."
+    },
+    "bolao/scripts/test_allowlist_conditionality.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }

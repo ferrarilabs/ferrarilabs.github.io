@@ -158,6 +158,46 @@ const EXPECTED = [
     events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
     hourWindows: { evening: [16, 23], overnight: [0, 5] },
   },
+  {
+    // Consumidor do comprovante de "entrada salva". Drena os eventos de
+    // `cdb2026.entry_saved_confirmation` de 5 em 5 minutos, o dia inteiro.
+    //
+    // O QUE ESTA COBERTURA PROTEGE: o participante salva a entrada e espera o comprovante. Se o
+    // consumidor deixar de rodar, o evento fica na fila e o e-mail simplesmente nunca sai -- sem
+    // erro, sem run vermelho, sem sinal nenhum. Nao ha janela de negocio aqui: alguem pode salvar
+    // a qualquer hora, entao a exigencia e cobertura em TODOS os dias, e nao so numa janela.
+    //
+    // O teto de envio nao vem do cron e sim do banco (permissao nominal que se apaga na primeira
+    // entrega + UNIQUE em notification_deliveries), entao rodar com folga e barato e nao arrisca
+    // envio duplo -- ver o cabecalho do proprio workflow.
+    file: "cdb2026_entry_saved_confirmation.yml",
+    why: "sem este consumidor o comprovante de entrada salva fica parado na fila e nunca chega ao " +
+         "participante -- a ausencia de envio nao produz nenhum sinal de erro",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [0, 23], overnight: [0, 23] },
+  },
+  {
+    // Coleta do resultado oficial das duas loterias. Nao envia e-mail e nao credita premio: e o
+    // passo que REGISTRA o que a fonte publicou. Se ele nao rodar, todo o resto do pipeline
+    // (e-mail de resultado, saldo, elegibilidade) fica sem insumo.
+    //
+    // Mesma aritmetica de fuso do powerball-results-email acima, e pela mesma razao: Powerball
+    // sorteia seg/qua/sab 22:59 ET e Mega Millions ter/sex 23:00 ET, entao o instante do sorteio
+    // cai em ~03:00 UTC do dia SEGUINTE. A cobertura obrigatoria e a janela da madrugada UTC no
+    // dia seguinte ao sorteio -- exatamente o erro que derrubou o Powerball em 2026-08-06 se for
+    // ancorada no dia da noite do sorteio.
+    file: "lottery_poll.yml",
+    why: "sem esta coleta nenhum resultado oficial e registrado, e todo o pipeline de loteria " +
+         "(e-mail, saldo, elegibilidade) fica sem insumo",
+    events: [
+      { label: "Powerball Monday draw",       afterUtcDow: 2 },
+      { label: "Powerball Wednesday draw",    afterUtcDow: 4 },
+      { label: "Powerball Saturday draw",     afterUtcDow: 0 },
+      { label: "Mega Millions Tuesday draw",  afterUtcDow: 3 },
+      { label: "Mega Millions Friday draw",   afterUtcDow: 6 },
+    ],
+    hourWindows: { evening: [22, 23], overnight: [0, 6] },
+  },
 ];
 
 /**
@@ -200,6 +240,40 @@ const UNSCHEDULED = new Map([
    "Operacao de operador do CDB2026 (snapshot, sorteio oficial, abertura de palpites). E disparada " +
    "por uma DECISAO humana -- aplicar um sorteio oficial nao tem cadencia. Agendar isto seria " +
    "gravar estado de competicao por relogio, que e exatamente o que nao pode acontecer."],
+  ["cdb2026_grant_receipt_allowance.yml",
+   "Concede a permissao nominal de comprovante para o roster congelado. E o ato que ARMA o envio: " +
+   "o consumidor agendado so manda e-mail para quem tem permissao aberta. Agendar a concessao " +
+   "destruiria o proprio controle -- a permissao existe justamente para que nenhum envio comece " +
+   "sem uma decisao humana nomeada. Nao envia e-mail; so grava a permissao."],
+  ["cdb2026_receipt_catchup.yml",
+   "Catch-up de comprovantes, com escopo SEMPRE explicito: `medir` e so leitura e `enviar` exige a " +
+   "data alvo digitada a mao, o manifesto do run de medicao e a frase de aprovacao. Substitui os " +
+   "dois one-off de 12/08 e 16/08 (scripts arquivados e desarmados). NAO agendado de proposito: " +
+   "um catch-up que dispara sozinho e um reenvio em massa sem ninguem ter pedido."],
+  ["cdb2026_receipt_template_test.yml",
+   "UM e-mail de validacao de template para o proprio operador, atras de --approve HUMAN_APPROVED. " +
+   "Familia de negocio separada, nao toca o historico de entrega de producao. Agendar um workflow " +
+   "cujo unico efeito e mandar e-mail de teste seria ruido recorrente na caixa de alguem."],
+  ["cdb2026_confirmation_readiness.yml",
+   "Prontidao (so leitura) antes de o operador validar UM e-mail: confere se ha permissao aberta, " +
+   "se a chave de negocio ainda esta sem entrega e se a credencial do participante esta viva. " +
+   "Responde a uma pergunta pontual de operacao; sem decisao humana em curso a resposta nao " +
+   "interessa a ninguem. Incapaz de enviar (nao define BOLAO_ALLOW_REAL_SEND)."],
+  ["cdb2026_confirmation_forensics.yml",
+   "Pericia SO LEITURA do caminho do comprovante, para depois do fato. Incapaz de enviar: nao " +
+   "define BOLAO_ALLOW_REAL_SEND e o script periciado nao importa transporte nem expoe --run. " +
+   "Roda quando alguem esta investigando algo -- nao ha evento recorrente que a justifique."],
+  ["cdb2026_confirmation_fake_transport_test.yml",
+   "Prova do consumidor com TRANSPORTE FALSO. Vive aqui, e nao na maquina do operador, porque " +
+   "precisa da SUPABASE_SERVICE_ROLE_KEY (secret do repositorio) e do banco real -- fila, reserva " +
+   "e unicidade. Deliberadamente so workflow_dispatch: um teste que mexe na fila REAL nao deve " +
+   "rodar sozinho a cada push."],
+  ["lottery_production_state.yml",
+   "Leitura do estado de producao das loterias, com reparo sob demanda. A credencial de servico " +
+   "vive no repositorio, entao esta e a unica forma de inspecionar o estado real sem copiar " +
+   "segredo para fora. `repair=true` fecha uma obrigacao orfa do outbox e so quando o ledger por " +
+   "destinatario ja prova a entrega -- uma escrita corretiva assim precisa de um humano decidindo, " +
+   "nunca de um relogio. Nenhum caminho envia e-mail."],
 ]);
 
 const workflows = loadWorkflows();
