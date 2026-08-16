@@ -113,14 +113,59 @@ Os 14 arquivos foram para `supabase/rollbacks/` com `git mv`, byte a byte, **nen
 passou a proibir rollback naquele diretório. Efeito medido: o `dry-run` caiu de **17** para
 **5** arquivos.
 
-### As três migrações NÃO foram aplicadas em produção
+### As quatro migrações foram APLICADAS em produção
 
-`R3_CODE_READY = YES`, `R3_PRODUCTION_APPLIED = NO`. Depois da limpeza continuam pendentes duas
-migrações **não relacionadas**: `20260813040000` (nunca aplicada) e `20260813050000`
-(**superada** por `20260813180000` — contém um `cdb_save_my_picks` anterior ao write cutover).
-`db push` não tem seletor por arquivo, então empurrar as três intencionais arrastaria as duas
-antigas, incluindo a superada. Plano de aplicação e conferência em `APLICAR_MIGRACOES.md`, na
-pasta da auditoria.
+`R3_PRODUCTION_APPLIED = YES` · `TRUE_RED_1_PRODUCTION_APPLIED = YES` ·
+`R4_PRODUCTION_APPLIED = YES` · `PARTICIPANT_PICKS_MUTATED = 0`.
+
+Verificado nos objetos, não no histórico: `cdb_has_accepted_receipt` responde e falha fechada, e
+sobre dados reais bloqueia listando **duas famílias** distintas — o dedupe cross-path funcionando;
+a projeção pública devolve 12/12 palpites idênticos ao documento autoritativo, com as 5 completas
+mostrando campeão e as 7 incompletas ainda incompletas, `FABRICATED_PICKS = 0` e nenhum campo
+privado; `outbox_pending_count` responde a `service_role` e recusa `anon`;
+`cdb_current_receipt_snapshot` continua ausente. `bolao_state.updated_at` idêntico antes e depois.
+
+As duas migrações autoverificáveis **commitaram**, ou seja: seus blocos `do $verify$` rodaram
+contra produção e passaram — a de `cdb_save_my_picks` releu `pg_get_functiondef` e confirmou as 10
+peças do cutover mais o `snapshot`; a da projeção releu a saída real e confirmou conjunto de
+entradas inalterado e 0 palpite sem origem no documento autoritativo.
+
+### Reconciliação das duas migrações antigas pendentes
+
+Depois da limpeza dos rollbacks ainda apareciam duas migrações antigas no `dry-run`. Foram
+classificadas por **medição contra produção**, uma a uma, e resolvidas de formas **diferentes**.
+
+**`20260813040000_outbox_pending_by_type.sql` → APLICADA.** Cria um objeto só,
+`outbox_pending_count(text)`: ausente de produção, nenhuma migração posterior o define, e dois
+scripts ainda o chamam (`send_entry_saved_confirmation.py --status` e
+`forensics_entry_saved_confirmation.py`), sempre dentro de `try/except`, porque observabilidade
+não pode derrubar entrega. Contagens só-leitura, `service_role` apenas
+(`anon=f, authenticated=f, service_role=t`, conferido). Efeito genuinamente faltando e ainda
+desejado — o único caso em que aplicar é o certo.
+
+**`20260813050000_confirmation_payload_carries_snapshot.sql` → APOSENTADA**, movida byte a byte
+para `supabase/retired/`, **nunca executada em lugar nenhum**. Toca dois objetos e nada além:
+
+- `cdb_save_my_picks` — **superado**. O arquivo foi rebaseado depois do write cutover e sua
+  definição **já lê** `bolao.cdb_authoritative_document()`. Comparado linha a linha com
+  `20260816010000`, normalizando comentários e espaço, a diferença é a assinatura escrita em
+  outro estilo, a tag do dollar-quote e a ordem de duas atribuições adjacentes sem dependência
+  entre si: **semanticamente idênticos**. A posterior ainda traz o bloco de autoverificação.
+  Aplicar seria redefinir a função para redefini-la de novo, no mesmo push, com corpo equivalente.
+- `cdb_current_receipt_snapshot` — **indesejado**. Ausente de produção e sem nenhum chamador: o
+  teste de template monta o snapshot em Python. Lê o documento **legado**, e
+  `MIGRATION_LEDGER_PROVENANCE_AUDIT.md` (13/08) já o registrara como `LEGACY_RETIREMENT`
+  pendente. Criar hoje uma função sem uso que lê o legado é dívida sem contrapartida.
+
+Marcar `050000` como aplicada teria registrado no ledger uma função que produção não tem —
+exatamente o defeito que o ledger existe para impedir. Ver `supabase/retired/README.md`.
+
+**Correção de uma afirmação desta auditoria.** Esta entrada dizia, e o corpo do PR #128 repetiu,
+que `050000` conteria um `cdb_save_my_picks` **anterior ao cutover** e que executá-la reverteria
+a autoridade de escrita. Era verdade para a versão **original** do arquivo — e deixou de ser
+depois do rebase. A afirmação foi herdada do registro de 13/08 sem reconferir o arquivo atual.
+Medida e corrigida no mesmo dia. A ordem de fonte de verdade deste repositório (código > testes >
+estado persistido > documentação recente > documentação histórica) já respondia a isso.
 
 `REAL_EMAILS_SENT = 0` · `PARTICIPANT_PICKS_MUTATED = 0` · `SCORING_CHANGED = NO` ·
 `audit_scoring.py` dos três apps: PASS.
