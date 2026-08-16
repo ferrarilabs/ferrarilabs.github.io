@@ -11,6 +11,10 @@ node_modules/
 *private-participant-data.local.json
 bolao/loterias/powerball/scripts/email/generated/
 verify-summary.json
+# Resumo de maquina do `npm run check` (CHANGE_SAFETY_REPORT). Como o verify-summary.json, e
+# evidencia de UMA execucao: preservado quando a execucao falha (o CI o envia como artefato),
+# apagado quando passa. Nunca e fonte, e por isso nunca entra em commit.
+safety-summary.json
 
 # Artefatos locais do Supabase CLI. `supabase link` grava aqui a string de conexão do pooler, que
 # CONTÉM CREDENCIAL. Descoberto pelo gate repo-wide de PII em 2026-08-09: o arquivo não era

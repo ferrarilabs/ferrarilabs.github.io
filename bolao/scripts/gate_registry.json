@@ -643,6 +643,12 @@
     },
     "bolao/br2026/scripts/test_round_close_preflight.py": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/safety/audit_safety_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/safety/test_safety_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
