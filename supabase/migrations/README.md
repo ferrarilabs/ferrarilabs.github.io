@@ -32,6 +32,14 @@ treatment.
    sources of truth. They declare 7 tables production does not have and 5 tables that exist nowhere.
 4. **No secret, PII, participant datum, payment reference, credential, or private configuration value
    may be committed here** — including to make a file executable.
+5. **Rollback scripts do NOT live here.** They live in `supabase/rollbacks/`, same basename plus
+   `.rollback.sql`. The Supabase CLI treats every `*.sql` in *this* directory as a forward
+   migration: it offered to push the rollback files, and because a rollback shares the version
+   prefix of its forward migration (and sorts *before* it), the ledger reported those versions as
+   partially applied — the `remote: ""` rows in `supabase migration list`. Measured on 2026-08-16:
+   moving the 14 rollbacks out took `db push --include-all --dry-run` from **17** files to **5**.
+   See `docs/bolao/CONSISTENCY_MATRIX.md` and the audit at
+   `~/Documents/GitHub/ferrarilabs-work/audits/cdb-persistence-20260816/`.
 
 ## Not yet done (requires separate authorization)
 
