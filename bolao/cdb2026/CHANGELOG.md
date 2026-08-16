@@ -68,11 +68,59 @@ Provado ponta a ponta num Postgres local: save real → evento → `snapshot` �
 `cdb_picks_version(snapshot.picks) == payload.picksVersion` → recibo com campeão, vice e os 29
 placares, sem PII, idempotente. Aplicar o rollback deixa vermelho.
 
-### Correção de classificação: era `SYNC_DEFECT`, não só `WRONG_DIAGNOSTIC_SOURCE`
+### A projeção pública passa a expor o palpite contra confronto virtual
 
-Ver a seção nova em `docs/bolao/CDB2026_RECEIPT_IDENTITY_INCIDENT_2026-08-16.md`. A projeção
-pública **não pode** conter `sf-1`/`sf-2`/`final-1` — e é a fonte do ranking exibido. Divergência
-registrada em `docs/bolao/CONSISTENCY_MATRIX.md`; correção pendente de autorização.
+`bolao_state_normalized_public` — o `readTable` do navegador — monta `picks.qualified` com
+`JOIN bolao.ties`. Os slugs `sf-1`/`sf-2`/`final-1` não têm linha ali (são confrontos virtuais,
+cuja composição muda por participante), então o palpite sumia da superfície pública: 5 das 12
+entradas apareciam com 12 palpites em vez de 15, sem campeão e sem vice. Efeito hoje: ranking,
+card de pódio, "Ver palpites" e CSV mostravam "—". Efeito na final: `predictedPodium()` devolveria
+`null` e os 30 + 20 de bônus não entrariam.
+
+O dado nunca esteve em risco — o navegador não grava mais o documento inteiro e o participante
+edita a partir de `cdb_my_entry`, que lê o documento autoritativo. Sempre foi defeito de LEITURA.
+O caminho de ESCRITA já resolvia o caso desde `20260813180000`
+(`bolao.cdb_authoritative_document()` remescla o resíduo); faltava o mesmo na leitura.
+
+`20260816020000` cria `bolao.cdb_public_document()` e aponta a linha do cdb2026 da view para ela.
+A mescla é `legado || normalizado`, nesta ordem: **o normalizado vence toda chave em comum**, então
+para confronto registrado a autoridade continua sendo o modelo normalizado, sem exceção. Só as
+chaves que existem unicamente no legado atravessam. Toda chave do resultado vem de um documento
+gravado — nenhuma é calculada.
+
+Provado com os dois documentos reais congelados, contra a função de verdade: as 5 completas
+passam a ter campeão idêntico ao autoritativo; as 7 legitimamente incompletas **continuam
+incompletas** (nada é preenchido); `FABRICATED_PICKS = 0`; `ENTRY_SET_CHANGED = NO`; nenhum campo
+privado atravessa; com valores diferentes nos dois lados o normalizado vence. E no app real: as 5
+recuperam o campeão, nenhuma entrada ganha um que não tinha. O rollback deixa vermelho.
+
+A migração se autoverifica antes de commitar — relê a saída real e recusa se o conjunto de
+entradas mudou, se apareceu campo privado, se existe classificado sem origem no documento
+autoritativo, ou se `final-1` continua sumindo.
+
+Classificação corrigida: era **`SYNC_DEFECT`** estrutural, não só `WRONG_DIAGNOSTIC_SOURCE` — ver
+§6.1 de `docs/bolao/CDB2026_RECEIPT_IDENTITY_INCIDENT_2026-08-16.md`.
+
+### Os arquivos de rollback saíram de `supabase/migrations/`
+
+O Supabase CLI trata todo `*.sql` daquele diretório como migração de avanço: `db push
+--include-all --dry-run` oferecia empurrar os próprios rollbacks, e como rollback e avanço
+compartilham o prefixo de versão (com o rollback ordenando antes), o ledger reportava aquelas
+versões como parcialmente aplicadas — as linhas `remote: ""` do `migration list`.
+
+Os 14 arquivos foram para `supabase/rollbacks/` com `git mv`, byte a byte, **nenhum executado**.
+`supabase/rollbacks/README.md` explica a regra e a regra 5 de `supabase/migrations/README.md`
+passou a proibir rollback naquele diretório. Efeito medido: o `dry-run` caiu de **17** para
+**5** arquivos.
+
+### As três migrações NÃO foram aplicadas em produção
+
+`R3_CODE_READY = YES`, `R3_PRODUCTION_APPLIED = NO`. Depois da limpeza continuam pendentes duas
+migrações **não relacionadas**: `20260813040000` (nunca aplicada) e `20260813050000`
+(**superada** por `20260813180000` — contém um `cdb_save_my_picks` anterior ao write cutover).
+`db push` não tem seletor por arquivo, então empurrar as três intencionais arrastaria as duas
+antigas, incluindo a superada. Plano de aplicação e conferência em `APLICAR_MIGRACOES.md`, na
+pasta da auditoria.
 
 `REAL_EMAILS_SENT = 0` · `PARTICIPANT_PICKS_MUTATED = 0` · `SCORING_CHANGED = NO` ·
 `audit_scoring.py` dos três apps: PASS.

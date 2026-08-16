@@ -143,7 +143,9 @@ chaveamento completo até a final.
 
 **Classificação: `WRONG_DIAGNOSTIC_SOURCE`.**
 
-Não era projeção velha, não era defeito de sincronização, e a projeção pública não precisa mudar.
+Não era projeção velha. ~~Não era defeito de sincronização, e a projeção pública não precisa
+mudar.~~ **Esta frase estava errada e foi refutada na mesma noite — ver §6.1: a projeção pública
+não consegue conter os palpites virtuais, e mudou.**
 `phases[*].ties` é autoritativo para *"que confrontos a CBF já materializou"* e não responde
 *"até onde este participante palpitou"* — isso só se responde resolvendo os confrontos
 **virtuais** (topologia + o `qualified` do próprio participante), que é o que
@@ -270,7 +272,9 @@ ele vive em
 
 ## 9. Migração
 
-`supabase/migrations/20260816000000_cdb_receipt_identity_is_cross_path.sql` (+ `.rollback.sql`).
+`supabase/migrations/20260816000000_cdb_receipt_identity_is_cross_path.sql`; o rollback vive em
+`supabase/rollbacks/` desde 2026-08-16 (o CLI tratava todo `*.sql` de `migrations/` como migração de
+avanço — ver `supabase/rollbacks/README.md`).
 Só **cria** — duas tabelas, três funções; nada existente é alterado.
 
 ⚠ O rollback **desarma o catch-up automático**: `receipt_catchup_tool.py` falha fechado quando a
