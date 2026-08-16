@@ -1,5 +1,241 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (infra, sem bump de siteVersion) — 2026-08-16 (auditoria de persistência ponta a ponta)
+
+Auditoria independente dos 12 brackets salvos, do documento autoritativo até campeão e vice.
+**Os dados estão íntegros:** nenhum palpite perdido, truncado ou corrompido; `picks_version`
+confere nas 12 entradas contra a função SQL real; 48/48 resultados oficiais batem com a ESPN;
+nenhum resultado futuro fabricado. Cinco participantes têm bracket completo até o campeão
+(Eduardo, Bossle, Nathalia, Aline, Rodrigo Hajj) e sete estão nas oitavas, dentro do prazo.
+
+Relatório completo e evidência:
+`~/Documents/GitHub/ferrarilabs-work/audits/cdb-persistence-20260816/`.
+
+### `receipt_render.ties_virtuais()` só sabia ler uma das duas formas de `topology`
+
+Lia `phases.semifinal.topology` **como se fosse o mapa de vagas**. Todo estado persistido guarda
+`topology = {"slots": …, "provenance": …}` — é o que `cdb_register_bracket_topology` grava e o
+que `derivedPhaseView()` no `app.js` lê. Nada quebrava em produção porque
+`receipt_catchup_tool.snapshot_de()` achata a estrutura antes de renderizar; o contrato existia,
+funcionava e não estava escrito em lugar nenhum.
+
+O que isso custava: `authoritative_pick_completeness()` — a função criada na entrada anterior
+justamente para ser a leitura autoritativa de completude — devolvia "até as quartas" quando
+recebia um estado CRU, que é exatamente a resposta errada que ela existe para substituir. E o
+fixture de `test_receipt.py` fixava a forma achatada, ou seja, era verde sobre um formato que
+`bolao_state` nunca conteve.
+
+**Correção:** `slots_da_topologia()` aceita as duas formas, discriminando por `slots`/`provenance`
+(um mapa de vagas nunca tem essas chaves no topo). O fixture passou a ser o documento real, e o
+§12 do teste prova que crua e achatada produzem HTML **idêntico** — e que sem topologia nada é
+derivado. Reintroduzir o defeito deixa 12 asserções vermelhas.
+
+### `cdb_has_accepted_receipt` quebrava no ramo da atestação legada
+
+`v_paths := v_paths || 'literal'` com `v_paths text[]`: o literal não tem tipo, o Postgres resolve
+para `anyarray || anyarray` e tenta ler a string como literal de array — `malformed array literal`
+em tempo de **execução**, só nesse ramo. As duas linhas equivalentes acima escapam porque
+`(r.fam || '#accepted')` já é `text`.
+
+A migração compilava e a conferência estrutural do teste passava (a palavra estava lá). A função
+quebraria na primeira atestação legada registrada — que é justamente o que o §4 do documento de
+incidente manda o operador registrar. Corrigido para `array_append`.
+
+Achado rodando o corpo PL/pgSQL **de verdade**, num Postgres 17 descartável, com linhas reais nas
+tabelas da migração. Isso fecha a limitação declarada no §8 de `test_receipt_catchup_dedupe.py`
+("prova a decisão e o fluxo; não prova o corpo do PL/pgSQL"): 20 asserções sobre a função real,
+incluindo as quatro famílias do incidente, `claimed`/`uncertain`, família não declarada, os dois
+`CHECK` da atestação legada e a ausência de endereço na resposta.
+
+### O payload do comprovante volta a carregar o `snapshot`
+
+`20260813180000` (write cutover) reescreveu `cdb_save_my_picks` a partir do corpo de
+`20260813030000`, que é anterior ao snapshot — e o snapshot caiu junto, em silêncio.
+`send_entry_saved_confirmation.py` **exige** `payload.snapshot` e falha permanente sem ele
+(`payload_sem_snapshot`), de propósito: reconstruir o recibo lendo a entrada no consumo produziria
+um documento com a identidade da versão A e o conteúdo da versão B.
+
+Hoje está mascarado porque o evento só é emitido para quem tem `cdb_confirmation_allowance`, o que
+é quase ninguém. **Quebraria na próxima concessão de permissão.**
+
+`20260816010000_cdb_confirmation_payload_carries_snapshot_again.sql` reaplica o corpo aplicado do
+cutover — verbatim, incluindo `bolao.cdb_authoritative_document()`, o `for update`, o espelho
+normalizado e a ausência deliberada de handler — e devolve as três linhas que faltavam. A
+migração se autoverifica: lê o corpo gravado e recusa o commit se qualquer peça do cutover tiver
+sumido, ou se um campo privado tiver aparecido. Rollback reaplica o corpo de `20260813180000`.
+
+Provado ponta a ponta num Postgres local: save real → evento → `snapshot` →
+`cdb_picks_version(snapshot.picks) == payload.picksVersion` → recibo com campeão, vice e os 29
+placares, sem PII, idempotente. Aplicar o rollback deixa vermelho.
+
+### A projeção pública passa a expor o palpite contra confronto virtual
+
+`bolao_state_normalized_public` — o `readTable` do navegador — monta `picks.qualified` com
+`JOIN bolao.ties`. Os slugs `sf-1`/`sf-2`/`final-1` não têm linha ali (são confrontos virtuais,
+cuja composição muda por participante), então o palpite sumia da superfície pública: 5 das 12
+entradas apareciam com 12 palpites em vez de 15, sem campeão e sem vice. Efeito hoje: ranking,
+card de pódio, "Ver palpites" e CSV mostravam "—". Efeito na final: `predictedPodium()` devolveria
+`null` e os 30 + 20 de bônus não entrariam.
+
+O dado nunca esteve em risco — o navegador não grava mais o documento inteiro e o participante
+edita a partir de `cdb_my_entry`, que lê o documento autoritativo. Sempre foi defeito de LEITURA.
+O caminho de ESCRITA já resolvia o caso desde `20260813180000`
+(`bolao.cdb_authoritative_document()` remescla o resíduo); faltava o mesmo na leitura.
+
+`20260816020000` cria `bolao.cdb_public_document()` e aponta a linha do cdb2026 da view para ela.
+A mescla é `legado || normalizado`, nesta ordem: **o normalizado vence toda chave em comum**, então
+para confronto registrado a autoridade continua sendo o modelo normalizado, sem exceção. Só as
+chaves que existem unicamente no legado atravessam. Toda chave do resultado vem de um documento
+gravado — nenhuma é calculada.
+
+Provado com os dois documentos reais congelados, contra a função de verdade: as 5 completas
+passam a ter campeão idêntico ao autoritativo; as 7 legitimamente incompletas **continuam
+incompletas** (nada é preenchido); `FABRICATED_PICKS = 0`; `ENTRY_SET_CHANGED = NO`; nenhum campo
+privado atravessa; com valores diferentes nos dois lados o normalizado vence. E no app real: as 5
+recuperam o campeão, nenhuma entrada ganha um que não tinha. O rollback deixa vermelho.
+
+A migração se autoverifica antes de commitar — relê a saída real e recusa se o conjunto de
+entradas mudou, se apareceu campo privado, se existe classificado sem origem no documento
+autoritativo, ou se `final-1` continua sumindo.
+
+Classificação corrigida: era **`SYNC_DEFECT`** estrutural, não só `WRONG_DIAGNOSTIC_SOURCE` — ver
+§6.1 de `docs/bolao/CDB2026_RECEIPT_IDENTITY_INCIDENT_2026-08-16.md`.
+
+### Os arquivos de rollback saíram de `supabase/migrations/`
+
+O Supabase CLI trata todo `*.sql` daquele diretório como migração de avanço: `db push
+--include-all --dry-run` oferecia empurrar os próprios rollbacks, e como rollback e avanço
+compartilham o prefixo de versão (com o rollback ordenando antes), o ledger reportava aquelas
+versões como parcialmente aplicadas — as linhas `remote: ""` do `migration list`.
+
+Os 14 arquivos foram para `supabase/rollbacks/` com `git mv`, byte a byte, **nenhum executado**.
+`supabase/rollbacks/README.md` explica a regra e a regra 5 de `supabase/migrations/README.md`
+passou a proibir rollback naquele diretório. Efeito medido: o `dry-run` caiu de **17** para
+**5** arquivos.
+
+### As quatro migrações foram APLICADAS em produção
+
+`R3_PRODUCTION_APPLIED = YES` · `TRUE_RED_1_PRODUCTION_APPLIED = YES` ·
+`R4_PRODUCTION_APPLIED = YES` · `PARTICIPANT_PICKS_MUTATED = 0`.
+
+Verificado nos objetos, não no histórico: `cdb_has_accepted_receipt` responde e falha fechada, e
+sobre dados reais bloqueia listando **duas famílias** distintas — o dedupe cross-path funcionando;
+a projeção pública devolve 12/12 palpites idênticos ao documento autoritativo, com as 5 completas
+mostrando campeão e as 7 incompletas ainda incompletas, `FABRICATED_PICKS = 0` e nenhum campo
+privado; `outbox_pending_count` responde a `service_role` e recusa `anon`;
+`cdb_current_receipt_snapshot` continua ausente. `bolao_state.updated_at` idêntico antes e depois.
+
+As duas migrações autoverificáveis **commitaram**, ou seja: seus blocos `do $verify$` rodaram
+contra produção e passaram — a de `cdb_save_my_picks` releu `pg_get_functiondef` e confirmou as 10
+peças do cutover mais o `snapshot`; a da projeção releu a saída real e confirmou conjunto de
+entradas inalterado e 0 palpite sem origem no documento autoritativo.
+
+### Reconciliação das duas migrações antigas pendentes
+
+Depois da limpeza dos rollbacks ainda apareciam duas migrações antigas no `dry-run`. Foram
+classificadas por **medição contra produção**, uma a uma, e resolvidas de formas **diferentes**.
+
+**`20260813040000_outbox_pending_by_type.sql` → APLICADA.** Cria um objeto só,
+`outbox_pending_count(text)`: ausente de produção, nenhuma migração posterior o define, e dois
+scripts ainda o chamam (`send_entry_saved_confirmation.py --status` e
+`forensics_entry_saved_confirmation.py`), sempre dentro de `try/except`, porque observabilidade
+não pode derrubar entrega. Contagens só-leitura, `service_role` apenas
+(`anon=f, authenticated=f, service_role=t`, conferido). Efeito genuinamente faltando e ainda
+desejado — o único caso em que aplicar é o certo.
+
+**`20260813050000_confirmation_payload_carries_snapshot.sql` → APOSENTADA**, movida byte a byte
+para `supabase/retired/`, **nunca executada em lugar nenhum**. Toca dois objetos e nada além:
+
+- `cdb_save_my_picks` — **superado**. O arquivo foi rebaseado depois do write cutover e sua
+  definição **já lê** `bolao.cdb_authoritative_document()`. Comparado linha a linha com
+  `20260816010000`, normalizando comentários e espaço, a diferença é a assinatura escrita em
+  outro estilo, a tag do dollar-quote e a ordem de duas atribuições adjacentes sem dependência
+  entre si: **semanticamente idênticos**. A posterior ainda traz o bloco de autoverificação.
+  Aplicar seria redefinir a função para redefini-la de novo, no mesmo push, com corpo equivalente.
+- `cdb_current_receipt_snapshot` — **indesejado**. Ausente de produção e sem nenhum chamador: o
+  teste de template monta o snapshot em Python. Lê o documento **legado**, e
+  `MIGRATION_LEDGER_PROVENANCE_AUDIT.md` (13/08) já o registrara como `LEGACY_RETIREMENT`
+  pendente. Criar hoje uma função sem uso que lê o legado é dívida sem contrapartida.
+
+Marcar `050000` como aplicada teria registrado no ledger uma função que produção não tem —
+exatamente o defeito que o ledger existe para impedir. Ver `supabase/retired/README.md`.
+
+**Correção de uma afirmação desta auditoria.** Esta entrada dizia, e o corpo do PR #128 repetiu,
+que `050000` conteria um `cdb_save_my_picks` **anterior ao cutover** e que executá-la reverteria
+a autoridade de escrita. Era verdade para a versão **original** do arquivo — e deixou de ser
+depois do rebase. A afirmação foi herdada do registro de 13/08 sem reconferir o arquivo atual.
+Medida e corrigida no mesmo dia. A ordem de fonte de verdade deste repositório (código > testes >
+estado persistido > documentação recente > documentação histórica) já respondia a isso.
+
+`REAL_EMAILS_SENT = 0` · `PARTICIPANT_PICKS_MUTATED = 0` · `SCORING_CHANGED = NO` ·
+`audit_scoring.py` dos três apps: PASS.
+
+## (infra, sem bump de siteVersion) — 2026-08-16 (endurecimento estrutural)
+
+### A identidade do comprovante passa a ser ENTRADA + VERSÃO, independente de transporte
+
+Segunda passada sobre o incidente do comprovante duplicado (entrada abaixo). A correção da manhã
+— repor o recorte por dia — está certa e continua de pé, **mas o recorte por dia nunca foi o
+controle de duplicata**. O que deixou Bossle e Rodrigo Hajj receberem de novo foi outra coisa,
+e ela sobreviveu à primeira correção.
+
+**Causa raiz real:** `reserve_delivery` garante unicidade por
+`(app, business_key, recipient_hash, generation)`, e a `business_key` carregava o nome da
+FAMÍLIA de cada remetente. Existiam quatro chaves para um fato de negócio só:
+
+```
+produção            cdb2026:entry-saved-confirmation:<versão>:v1
+catch-up 12/08      cdb2026:entry-saved-confirmation-catchup-20260812:<entrada>:<versão>:v1
+catch-up 16/08      cdb2026:entry-saved-confirmation-catchup-20260816:<entrada>:<versão>:v1
+teste de template   cdb2026:entry-saved-confirmation-template-test:<versão>:v3
+```
+
+Cada caminho estava protegido contra si mesmo e nenhum estava protegido contra os outros. Bossle
+tinha recibo pela família de produção, Rodrigo pela do catch-up de 12/08 — e o catch-up de 16/08
+não consultava nenhuma das duas. Nome de transporte tinha virado identidade semântica.
+
+**Correção, em duas camadas redundantes:**
+
+- todo remetente automático passa a reservar com a chave e a família **de produção**
+  (`receipt_identity.canonical_business_key()`) — um catch-up não é outro evento de negócio, é o
+  mesmo recibo por outro transporte. `NORMAL→CATCHUP` e `CATCHUP→NORMAL` colidem no `UNIQUE` do
+  banco, sem depender de código Python nenhum;
+- `cdb_has_accepted_receipt(entrada, versão)` (RPC nova) alcança o que a chave não alcança: as
+  famílias históricas com chave própria e a entrega legada pelo navegador. `accepted` bloqueia;
+  `uncertain` e `claimed` também bloqueiam — "talvez tenha recebido" nunca autoriza um segundo
+  e-mail. RPC ausente ou quebrada também bloqueia: sem a pergunta respondida não há elegibilidade,
+  e nunca se cai para o critério antigo.
+
+**Entrega legada** (`queueReceipt()`/EmailJS, que nunca escreveu em `notification_deliveries`):
+`PROVEN` com versão exata conta como recibo; `UNCERTAIN` não carrega versão nenhuma e faz o
+automático falhar fechado até revisão do operador. Não se fabrica hash histórico — o `CHECK` da
+tabela recusa as duas formas de mentira.
+
+**Escopo explícito:** `--target-date` é obrigatório para envio real
+(`REAL_RUN_WITHOUT_EXPLICIT_SCOPE = REFUSED`). Nenhuma operação irreversível pode mudar de
+significado conforme o dia em que alguém a reroda.
+
+**Leitura autoritativa:** o diagnóstico que dizia "palpites só até as quartas" contava confrontos
+REGISTRADOS (12: oitavas + quartas), que param onde a CBF ainda não materializou os confrontos.
+Classificado como `WRONG_DIAGNOSTIC_SOURCE` — a projeção pública não muda; quem muda é a
+ferramenta de operador, que passa a resolver os confrontos virtuais como o comprovante já fazia.
+
+**One-offs desarmados:** `receipt_catchup.py` e `receipt_catchup_20260816.py` foram para
+`scripts/archive/` com `raise SystemExit` no nível de módulo, preservados como evidência.
+Substituto: `scripts/receipt_catchup_tool.py`. Workflow one-off removido.
+
+**Arquivos:** `supabase/migrations/20260816000000_cdb_receipt_identity_is_cross_path.sql` (+
+rollback), `scripts/receipt_identity.py`, `scripts/receipt_catchup_tool.py`,
+`scripts/test_receipt_catchup_dedupe.py`, `scripts/archive/`,
+`.github/workflows/cdb2026_receipt_catchup.yml`,
+`docs/bolao/CDB2026_RECEIPT_IDENTITY_INCIDENT_2026-08-16.md`.
+
+**Prova (offline, sem rede):** incidente reproduzido — Bossle 0, Rodrigo 0, Nathalia 1, Aline 1,
+`providerCalls = 2`, segunda execução `0`. Matriz cross-path inteira em 0. Duas mutações
+(remover o dedupe cross-path; voltar a decidir só por data) deixam a suíte **vermelha**, o que
+prova que as verificações são load-bearing. `REAL_EMAILS_SENT = 0`.
+`audit_scoring.py` dos três apps: PASS — scoring não foi tocado.
+
 ## (infra, sem bump de siteVersion) — 2026-08-16 (correção)
 
 ### Catch-up de comprovantes mandou para 2 pessoas que já tinham recebido

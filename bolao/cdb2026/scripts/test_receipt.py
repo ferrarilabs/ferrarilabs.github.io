@@ -65,15 +65,39 @@ SNAP_A = {
             "espn-vasco_vitoria": {"teamA": "Vasco", "teamB": "Vitória"},
             "espn-palmeiras_santos": {"teamA": "Palmeiras", "teamB": "Santos"},
         }, "topology": {}},
+        # A FORMA QUE PRODUÇÃO REALMENTE GRAVA (2026-08-16).
+        #
+        # `cdb_register_bracket_topology` grava `{"slots": …, "provenance": …}`. Este fixture
+        # tinha as vagas no topo de `topology` — uma forma que `bolao_state` nunca conteve. O
+        # teste ficava verde sobre um formato inexistente enquanto o renderizador, alimentado com
+        # o estado CRU, não derivava vaga nenhuma. Mock reproduzindo o defeito é o falso-verde
+        # catalogado em `docs/bolao/FALSE_GREEN_AUDIT.md`; o fixture agora é o documento real.
         "semifinal": {"ties": {}, "topology": {
-            "sf-1": {"sideA": {"winnerOf": "espn-gremio_internacional"},
-                     "sideB": {"winnerOf": "espn-atletico-mg_cruzeiro"}},
-            "sf-2": {"sideA": {"winnerOf": "espn-vasco_vitoria"},
-                     "sideB": {"winnerOf": "espn-palmeiras_santos"}},
+            "slots": {
+                "sf-1": {"sideA": {"winnerOf": "espn-gremio_internacional"},
+                         "sideB": {"winnerOf": "espn-atletico-mg_cruzeiro"}},
+                "sf-2": {"sideA": {"winnerOf": "espn-vasco_vitoria"},
+                         "sideB": {"winnerOf": "espn-palmeiras_santos"}},
+            },
+            "provenance": {"authority": "CBF", "source": "sorteio oficial 2026-08-11",
+                           "ingestedAt": "2026-08-12T19:00:00Z",
+                           "validatedAt": "2026-08-12T19:05:00Z"},
         }},
         "final": {"ties": {}, "topology": {}},
     },
 }
+
+
+def _achatado(snap):
+    """A mesma coisa na forma que `receipt_catchup_tool.snapshot_de()` produz: as vagas no topo
+    de `topology`, sem `slots` nem `provenance`."""
+    import copy
+    s = copy.deepcopy(snap)
+    for fase in s["phases"].values():
+        topo = fase.get("topology") or {}
+        if "slots" in topo:
+            fase["topology"] = topo["slots"]
+    return s
 
 
 def main():
@@ -93,6 +117,12 @@ def main():
     camp, vice = R.podio(SNAP_A)
     checa("CHAMPION_PRESENT", camp == "Grêmio", f"campeão={camp}")
     checa("RUNNER_UP_PRESENT", vice == "Palmeiras", f"vice={vice}")
+    # Derivação quebrada devolve (None, None), e as verificações abaixo fazem `camp in html`.
+    # Sem esta coerção o arquivo levantava `TypeError: must be str, not NoneType` — vermelho, mas
+    # apontando para o tipo em vez de para a causa. Uma âncora que não casa com nada mantém o
+    # vermelho e diz qual asserção caiu.
+    camp = camp or "\0SEM-CAMPEAO-DERIVADO"
+    vice = vice or "\0SEM-VICE-DERIVADO"
     checa("campeão rotulado no topo", "🏆 CAMPEÃO" in html and camp in html)
     checa("vice rotulado no topo", "🥈 VICE-CAMPEÃO" in html and vice in html)
 
@@ -251,6 +281,34 @@ def main():
     checa("o corpo do e-mail é o recibo", "🏆 CAMPEÃO" in (tp.get("html_message") or ""))
     checa("nenhum campo extra além dos quatro esperados",
           set(tp) == {"to_email", "entry_name", "receipt_code", "html_message"}, str(set(tp)))
+
+    # ═══ 12. AS DUAS FORMAS DE `topology` (achado da auditoria de 2026-08-16) ════════════════
+    #
+    # O documento persistido grava `topology = {"slots": …, "provenance": …}`. O remetente de
+    # catch-up ACHATA isso para `topology = {…vagas…}` antes de renderizar. Durante meses só a
+    # forma achatada era exercitada, e o renderizador só sabia ler ela: alimentado com o estado
+    # CRU devolvia "nenhuma vaga" — ou seja, um comprovante que para nas quartas, sem semifinal,
+    # sem final, sem campeão, com o aviso amarelo de bracket incompleto. Nada quebrava porque o
+    # único remetente ativo achatava; o contrato existia e não estava escrito em lugar nenhum.
+    #
+    # As duas formas têm de produzir o MESMO documento. Testar só uma delas foi o defeito.
+    print("\n12. TOPOLOGY_SHAPE — crua e achatada produzem o mesmo comprovante")
+    html_cru = R.monta_recibo(SNAP_A, "37842fb6d8f2019c")
+    html_flat = R.monta_recibo(_achatado(SNAP_A), "37842fb6d8f2019c")
+    checa("a forma CRUA (a que `bolao_state` guarda) deriva a semifinal",
+          "SEMIFINAL" in html_cru.upper())
+    checa("a forma CRUA chega ao campeão", "🏆 CAMPEÃO" in html_cru)
+    checa("a forma CRUA chega ao vice", "🥈 VICE-CAMPEÃO" in html_cru)
+    checa("a forma CRUA não cai no aviso de bracket incompleto",
+          "ainda não está completa" not in html_cru)
+    checa("crua e achatada produzem HTML IDÊNTICO", html_cru == html_flat,
+          "divergem" if html_cru != html_flat else "")
+    # E o inverso: sem topologia nenhuma, nada é inventado.
+    sem_topo = json.loads(json.dumps(SNAP_A))
+    sem_topo["phases"]["semifinal"]["topology"] = {}
+    html_sem = R.monta_recibo(sem_topo, "37842fb6d8f2019c")
+    checa("sem topologia registrada NADA é derivado (não inventa chaveamento)",
+          "🏆 CAMPEÃO" not in html_sem and "ainda não está completa" in html_sem)
 
     print("\n" + "=" * 78)
     if falhas:
