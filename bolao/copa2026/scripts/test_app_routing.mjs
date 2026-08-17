@@ -54,7 +54,18 @@ t("R1", "zero whole-document writers in browser code", writers.length === 0,
 
 // R2 — reads through the sanitized projection.
 const readTable = (cfg.match(/readTable:\s*"([^"]+)"/) || [])[1];
-t("R2", "readTable points at the sanitized projection", readTable === "bolao_state_public", String(readTable));
+// Projeções saneadas conhecidas. `bolao_state_normalized_public` entrou no READ CUTOVER de
+// 2026-08-13 (migração 20260813200000_public_projection_pii_closure.sql: "since the read cutover
+// all three browsers read bolao_state_normalized_public"). Este gate continuou exigindo o nome
+// ANTERIOR e ficou vermelho desde então — medindo o nome da projeção em vez da propriedade dela.
+//
+// O que precisa ser verdade não é "chama-se X": é que o navegador leia por uma projeção SANEADA e
+// que ela seja DIFERENTE da tabela de escrita (é essa diferença que arma o interlock do R3). Um
+// nome fixo transforma toda migração legítima de leitura em vermelho, e um gate que fica vermelho
+// por motivo legítimo é um gate que se aprende a ignorar.
+const PROJECOES_SANEADAS = ["bolao_state_public", "bolao_state_normalized_public"];
+t("R2", "readTable points at a sanitized projection (never the raw table)",
+  PROJECOES_SANEADAS.includes(readTable), String(readTable));
 t("R2b", "the read uses readTable, not the raw table", /\.from\(readTable\)/.test(app));
 
 // R3 — the interlock.
