@@ -32,7 +32,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..", "..", "..");
-const PORT = 8213;
+// 8214, nao 8213: `bolao/scripts/audit_countdown_layout.mjs` ja declarava 8213 desde 09/08, e
+// esta suite chegou em 13/08 com o mesmo numero. O `static_server` recusa reusar porta ocupada
+// (de proposito), entao a SEGUNDA a rodar morria com "porta JA ESTA EM USO" — e quem falhava era
+// uma suite sem relacao nenhuma com a mudanca em curso. Quem chegou depois cede o numero.
+const PORT = 8214;
 const PAGINA = "/bolao/loterias/powerball/";
 
 const falhas = [];
