@@ -649,6 +649,9 @@
     },
     "scripts/safety/test_safety_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_entry_name_readonly.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
