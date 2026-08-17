@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T23:37:58Z",
-  "sourceUpdatedAt": "2026-08-16T23:37:58Z",
+  "generatedAt": "2026-08-17T00:54:13Z",
+  "sourceUpdatedAt": "2026-08-17T00:54:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0e90737b0a573371b07bd6b71bf2de4f38f78ea24e02401f7af8f959f74003e1",
+  "payloadHash": "63666e0779944ac0623f88f75496355e7ca9658bd25f4e53201ef5c6c91b835a",
   "matches": [
     {
       "name": "Palmeiras",
@@ -65,10 +65,24 @@
       "gd": 6.0
     },
     {
+      "name": "Cruzeiro",
+      "abbr": "CRU",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2022.png",
+      "rank": 5.0,
+      "points": 36.0,
+      "played": 23.0,
+      "wins": 10.0,
+      "draws": 6.0,
+      "losses": 7.0,
+      "gf": 32.0,
+      "ga": 32.0,
+      "gd": 0.0
+    },
+    {
       "name": "Bahia",
       "abbr": "BAH",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9967.png",
-      "rank": 5.0,
+      "rank": 6.0,
       "points": 34.0,
       "played": 23.0,
       "wins": 8.0,
@@ -77,20 +91,6 @@
       "gf": 32.0,
       "ga": 28.0,
       "gd": 4.0
-    },
-    {
-      "name": "Cruzeiro",
-      "abbr": "CRU",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2022.png",
-      "rank": 6.0,
-      "points": 33.0,
-      "played": 22.0,
-      "wins": 9.0,
-      "draws": 6.0,
-      "losses": 7.0,
-      "gf": 30.0,
-      "ga": 31.0,
-      "gd": -1.0
     },
     {
       "name": "Red Bull Bragantino",
@@ -126,13 +126,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/874.png",
       "rank": 9.0,
       "points": 32.0,
-      "played": 22.0,
+      "played": 23.0,
       "wins": 8.0,
       "draws": 8.0,
-      "losses": 6.0,
-      "gf": 24.0,
-      "ga": 20.0,
-      "gd": 4.0
+      "losses": 7.0,
+      "gf": 25.0,
+      "ga": 22.0,
+      "gd": 3.0
     },
     {
       "name": "Coritiba",

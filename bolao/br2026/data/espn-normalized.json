@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-16T23:53:26Z",
-  "sourceUpdatedAt": "2026-08-16T23:53:26Z",
+  "generatedAt": "2026-08-17T00:54:13Z",
+  "sourceUpdatedAt": "2026-08-17T00:54:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "13ca236be7f77b074aa7896961d0020315d61bb51c516bf88a1133f16fb505e5",
+  "payloadHash": "947218c35a24032350332da44b9369d0e03e76fb634d9169cd248edd49f2bbaa",
   "matches": [
     {
       "id": "401840808",
@@ -37973,21 +37973,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "57'",
-      "statusDetail": "57'",
+      "statusShortDetail": "75'",
+      "statusDetail": "75'",
       "completed": false,
       "homeTeam": "Corinthians",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "874",
       "awayTeamId": "2022",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 3420.0,
-      "clockStr": "57'",
+      "clockSec": 4500.0,
+      "clockStr": "75'",
       "period": 2,
       "details": [
         {
@@ -38025,6 +38025,44 @@
             {
               "displayName": "Felipe Morais",
               "shortName": "Felipe Morais"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 3474.0,
+            "displayValue": "58'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Henrique",
+              "shortName": "Gustavo Henrique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3966.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jonathan Jesus",
+              "shortName": "J. Jesus"
             }
           ]
         }
