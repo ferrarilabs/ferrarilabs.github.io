@@ -239,6 +239,101 @@ test("M16 workflow de teste ganha guard de envio real => PEGA", () => {
     "N:CDB2026_CONFIRMATION_FAKE_TRANSPORT_TEST");
 });
 
+// ══ D. REMEDIACOES DE 2026-08-17 ══════════════════════════════════════════════════════════════
+//
+// As mutacoes acima miram o meta-gate. Estas miram os gates que foram CONSERTADOS nesta sessao:
+// um gate recem-corrigido e exatamente aquele sobre o qual ninguem ainda tem evidencia de que
+// continua mordendo. Cada uma roda o gate real e exige saida != 0.
+
+/** Muta um arquivo e exige que o GATE indicado fique vermelho. */
+function mutateGate(label, file, transform, gateCmd) {
+  const original = readFileSync(abs(file));
+  touched.add(file);
+  if (!hashesBefore.has(file)) hashesBefore.set(file, sha(file));
+  try {
+    const mutated = transform(original.toString("utf8"));
+    assert(mutated !== original.toString("utf8"), `a mutacao "${label}" nao alterou ${file}`);
+    writeFileSync(abs(file), mutated);
+    const r = spawnSync(gateCmd[0], gateCmd.slice(1), { cwd: ROOT, encoding: "utf8", timeout: 180000 });
+    assert(r.status !== 0,
+      `${label} => NAO PEGA. \`${gateCmd.join(" ")}\` saiu 0 com a mutacao aplicada`);
+  } finally {
+    writeFileSync(abs(file), original);
+  }
+}
+
+const GATE_EMAIL = ["python3", "bolao/scripts/test_no_real_email_in_verification.py"];
+const GATE_PORTAS = ["node", "bolao/scripts/test_harness_ports_unique.mjs"];
+
+console.log("\nD. Remediacoes desta sessao (gates recem-corrigidos continuam mordendo)");
+
+test("M17 porta de harness duplicada => PEGA", () => {
+  mutateGate("duas suites na mesma porta",
+    "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs",
+    (t) => t.replace(/^const PORT = 8214;$/m, "const PORT = 8213;"), GATE_PORTAS);
+});
+
+test("M18 remetente nao declarado falando com o provedor => PEGA", () => {
+  // Um sender novo que ninguem registrou e um sender que ninguem revisou.
+  mutateGate("sender novo fora do registro", "bolao/cdb2026/scripts/receipt_catchup_tool.py",
+    (t) => `import urllib.request\n_U = "https://api.` + `emailjs` + `.com/api/v1.0/email/send"\n${t}`,
+    GATE_EMAIL);
+});
+
+test("M19 verificador religado ao provedor real => PEGA", () => {
+  // A tripwire compartilhada existe para que NENHUM verificador cite o provedor. Voltar a citar
+  // dentro de um test_ e exatamente o caminho por onde o operador levou dois e-mails a mais.
+  mutateGate("test_ volta a citar o provedor",
+    "bolao/cdb2026/scripts/test_entry_saved_confirmation.py",
+    (t) => t.replace("import provider_tripwire                   # noqa: E402",
+                     `import urllib.request as _r  # noqa: E402\n_ALVO = "https://api.` + `emailjs` + `.com/x"`),
+    GATE_EMAIL);
+});
+
+test("M20 tripwire enfraquecida para deixar o provedor passar => PEGA", () => {
+  // A isencao de TRIPWIRES nao vale por declaracao: o gate EXECUTA a tripwire.
+  mutateGate("tripwire deixa de reconhecer o provedor",
+    "bolao/shared/scripts/provider_tripwire.py",
+    (t) => t.replace("return any(h in u for h in _HOSTS)", "return False"), GATE_EMAIL);
+});
+
+test("M21 disjuntor removido de dentro de send_email => PEGA", () => {
+  mutateGate("send_email deixa de consultar o disjuntor",
+    "bolao/cdb2026/scripts/send_invitation_email.py",
+    (t) => t.replace(/    bloqueado, motivo_ks = transport_blocked_by_kill_switch\(\)\n/,
+                     "    bloqueado, motivo_ks = (False, None)\n"), GATE_EMAIL);
+});
+
+const GATE_NOME = ["node", "bolao/cdb2026/scripts/test_entry_name_readonly.mjs"];
+
+test("M23 nome da entrada volta a ser editavel => PEGA", () => {
+  // As DUAS travas de uma vez: a do carregamento por token e a do cartao com roster congelado.
+  // Mutar so uma deixaria a outra segurando o campo e o gate passaria — provando nada.
+  mutateGate("campo editavel de novo", "bolao/cdb2026/js/app.js",
+    (t) => t.replace("  el.readOnly = true;\n  el.setAttribute(\"aria-readonly\", \"true\");",
+                     "  el.readOnly = false;")
+             .replace("const el = $(id); if (el) el.readOnly = !creating;",
+                      "const el = $(id); if (el) el.readOnly = false;"),
+    GATE_NOME);
+});
+
+test("M24 o save volta a carregar o nome do formulario => PEGA", () => {
+  // O caminho que a RPC estreita fechou: se alguem voltar a mandar nome no corpo, a adulteracao
+  // do DOM passa a viajar junto — e o teste C existe exatamente para isso.
+  mutateGate("save leva entryName no corpo", "bolao/cdb2026/js/app.js",
+    (t) => t.replace("        p_picks: picks,\n",
+                     "        p_picks: picks,\n        entryName: $(\"entryName\")?.value,\n"),
+    GATE_NOME);
+});
+
+test("M22 disjuntor deixa de fechar (fechadura quebrada) => PEGA", () => {
+  // O modo de falha mais perigoso: o codigo continua consultando, o arquivo continua sendo o
+  // mecanismo, e criar o arquivo em producao ja nao para nada.
+  mutateGate("transport_blocked_by_kill_switch nunca bloqueia",
+    "bolao/cdb2026/scripts/send_invitation_email.py",
+    (t) => t.replace("    if KILL_SWITCH.exists():", "    if False:"), GATE_EMAIL);
+});
+
 // ══ Z. RESTAURACAO ════════════════════════════════════════════════════════════════════════════
 
 console.log("\nZ. Nenhuma mutacao ficou para tras");
@@ -271,7 +366,7 @@ test("o contrato volta a passar depois de todas as mutacoes", () => {
     `o numero de checks mudou: ${baseline.totals.pass} -> ${after.totals.pass}`);
 });
 
-const MUTATIONS = 16;
+const MUTATIONS = 24;
 test(`MUTATIONS_CAUGHT == MUTATIONS_EXECUTED (${MUTATIONS}/${MUTATIONS})`, () => {
   assert(fail === 0, `${fail} mutacao(oes) nao foi(ram) pega(s)`);
 });
