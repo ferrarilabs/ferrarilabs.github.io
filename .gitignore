@@ -32,3 +32,7 @@ AGENTS.md
 
 # Trava do livro-razao das loterias: artefato local de `flock`, nunca conteudo.
 bolao/loterias/config/*.jsonl.lock
+
+# Trava de sessao do Claude Code (pid, sessionId, timestamp de aquisicao). Estado de execucao
+# local, nunca fonte — regenerada a cada sessao.
+.claude/scheduled_tasks.lock
