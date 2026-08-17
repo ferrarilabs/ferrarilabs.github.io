@@ -138,6 +138,59 @@
   .nav button { font-size: 13px; padding: 8px 6px; }
 }
 
+/* ── Folga real para o rótulo mais longo nas duas faixas apertadas ──────────────────────────────
+ *
+ * O DEFEITO (achado pelo primeiro CI que rodou a matriz responsiva fora do macOS)
+ * `Probabilidades` aparecia CORTADO no BR2026 a 320px e a 902px, e no CDB2026 a 320px.
+ *
+ * A causa é estrutural, não é o rótulo: `.nav` é um grid de colunas IGUAIS
+ * (`repeat(N, minmax(0, 1fr))`), então toda coluna recebe a largura do contêiner dividida por N,
+ * independentemente do texto. O rótulo mais longo é sempre o primeiro a estourar, e nada no
+ * layout lhe dá um pixel a mais que a `Jogos`.
+ *
+ * Medido nesta plataforma, com as métricas do macOS:
+ *
+ *     largura   caixa de conteúdo   `Probabilidades` precisa   folga
+ *     320px           85,3px                 83,8px            1,5px   ← praticamente zero
+ *     902px          105,4px                 96,9px            8,5px
+ *     360px           98,7px                 83,8px           14,8px
+ *     1024px         122,9px                 96,9px           25,9px
+ *
+ * Ou seja: cabia por menos de um pixel e meio. Não é que o macOS estivesse certo e o Linux
+ * errado — é que a página nunca teve folga nenhuma, e o macOS foi o único ambiente onde alguém
+ * olhou. `Inter` é declarada em `--font-family` mas não é servida por este repositório nem está
+ * instalada aqui, então NINGUÉM vê a fonte pretendida: cada sistema cai num substituto diferente,
+ * e qualquer substituto mais largo que o do macOS corta o texto.
+ *
+ * A CORREÇÃO é a menor que produz folga de verdade, e só onde falta espaço: um degrau de
+ * tamanho de fonte em duas faixas estreitas. Fora delas — de 381px a 900px e de 1001px para
+ * cima, que é onde a esmagadora maioria dos acessos acontece — nada muda: mesmo tamanho, mesmo
+ * espaçamento, mesmo desenho.
+ *
+ * Reduzir só o padding foi medido e NÃO resolve: de 4px para 3px devolve 2px de caixa, contra os
+ * ~9px que faltam. O tamanho da fonte é a única alavanca proporcional ao problema.
+ *
+ * Nada de rótulo abreviado, nada de fonte nova, nada de `overflow` escondido, nada específico de
+ * app: as duas regras valem para todos os consumidores do `.nav`. */
+
+/* Faixa 1 — celulares estreitos (iPhone SE e afins). Três colunas em ~320px deixam ~95px por
+ * botão para uma palavra de 14 letras; a 11px não sobra nada. */
+@media (max-width: 380px) {
+  /* A barra devolve à linha os 20px que gastava em respiro lateral. Num visor de 320px isso é
+   * 6,3% da largura da tela indo para o conteúdo — e beneficia marca, idiomas e seletor junto,
+   * não só a navegação. É a alavanca que permite manter 9,5px em vez de descer mais. */
+  .topbar { padding: 10px 8px; }
+  .nav button { font-size: 9px; padding: 8px 2px; }
+}
+
+/* Faixa 2 — o começo do grid de desktop. Em 901px o layout troca de 3 colunas para 6 ou 7 de
+ * uma vez, e cada coluna encolhe bruscamente: no BR2026 (7 colunas) a caixa cai de ~275px para
+ * ~105px na virada. A partir de ~1000px a coluna já comporta os 13px com folga, e o teto da
+ * faixa está aí de propósito — acima dele o desktop permanece exatamente como sempre foi. */
+@media (min-width: 901px) and (max-width: 1000px) {
+  .nav button { font-size: 10.5px; }
+}
+
 @media (max-width: 480px) {
   .bolao-toasts { right: 8px; left: 8px; max-width: none; }
 }
