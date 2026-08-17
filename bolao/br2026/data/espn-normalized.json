@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-17T00:54:13Z",
-  "sourceUpdatedAt": "2026-08-17T00:54:13Z",
+  "generatedAt": "2026-08-17T02:17:17Z",
+  "sourceUpdatedAt": "2026-08-17T02:17:17Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "947218c35a24032350332da44b9369d0e03e76fb634d9169cd248edd49f2bbaa",
+  "payloadHash": "adb67318fa61c506457dbb033c2ccdb0c5600b9d9f02e1cde4029c26c24a54bc",
   "matches": [
     {
       "id": "401840808",
@@ -37970,24 +37970,24 @@
     {
       "id": "401841193",
       "date": "2026-08-16T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "75'",
-      "statusDetail": "75'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Corinthians",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "874",
       "awayTeamId": "2022",
       "homeScore": 1,
-      "awayScore": 1,
+      "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Neo Química Arena",
       "city": "Sao Paulo",
-      "clockSec": 4500.0,
-      "clockStr": "75'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
       "period": 2,
       "details": [
         {
@@ -38063,6 +38063,82 @@
             {
               "displayName": "Jonathan Jesus",
               "shortName": "J. Jesus"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4908.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wanderson",
+              "shortName": "Wanderson"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5383.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Villalba",
+              "shortName": "L. Villalba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5387.0,
+            "displayValue": "90'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Luciano Rodríguez",
+              "shortName": "L. Rodríguez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "874"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Rodrigo Garro",
+              "shortName": "R. Garro"
             }
           ]
         }
