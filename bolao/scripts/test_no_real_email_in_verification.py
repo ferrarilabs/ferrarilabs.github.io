@@ -75,8 +75,24 @@ REMETENTES = {
     "bolao/copa2026/scripts/send_bracket_correction_email.py": "correcao de chaveamento (Copa)",
     "bolao/cdb2026/scripts/send_invitation_email.py":         "convite das quartas",
     "bolao/cdb2026/scripts/send_result_email.py":             "resultado do CDB",
+    # Consumidor do comprovante de "entrada salva" (workflow cdb2026_entry_saved_confirmation.yml,
+    # cron */5). Existia desde 2026-08-12 e NUNCA esteve nesta lista -- um remetente de producao,
+    # com cron proprio, que ninguem tinha declarado. Obedece as duas travas: BOLAO_ALLOW_REAL_SEND
+    # (fail-closed sem ela) e o disjuntor EMAIL_KILL_SWITCH, ambos consultados dentro de send_email.
+    "bolao/cdb2026/scripts/send_entry_saved_confirmation.py": "comprovante de entrada salva",
     # Gate que INSPECIONA o fail-closed dos senders; cita o provedor em assercao, nao o chama.
     "bolao/scripts/test_python_sender_failclosed.py":         "gate sobre os senders",
+}
+
+# TRIPWIRES: citam o provedor para BLOQUEA-LO, nunca para chama-lo.
+#
+# Esta nao e uma allowlist de conveniencia, e a diferenca importa. Uma allowlist diz "confie neste
+# arquivo"; aqui o gate EXECUTA a tripwire e exige que ela levante (ver `tripwire_bloqueia_provedor`
+# no fim deste arquivo). Enfraquece-la para deixar passar deixa o gate VERMELHO. E prova de
+# comportamento refeita a cada execucao, nao declaracao.
+TRIPWIRES = {
+    "bolao/shared/scripts/provider_tripwire.py":
+        "sentinela compartilhada: levanta se um verificador tentar falar com o provedor",
 }
 
 E_VERIFICADOR = re.compile(r"(^|/)(test_|audit_|check_)|canary|probe|_test\.")
@@ -132,7 +148,7 @@ tocam = [f for f in arquivos
 
 
 def sem_remetente_novo():
-    novos = [f for f in tocam if f not in REMETENTES]
+    novos = [f for f in tocam if f not in REMETENTES and f not in TRIPWIRES]
     _assert(not novos,
             "caminho NAO registrado falando com o provedor:\n      " + "\n      ".join(novos) +
             "\n      Registre em REMETENTES com o motivo, ou tire a chamada. Um remetente que "
@@ -178,9 +194,49 @@ def disjuntor_existe_e_e_arquivo():
     corpo = corpo[:corpo.index("\ndef ", 1)] if "\ndef " in corpo[1:] else corpo
     _assert("kill_switch" in corpo.lower(),
             "o disjuntor nao e consultado DENTRO de send_email, antes do provedor")
-    _assert(ks.exists(),
-            "o arquivo do disjuntor sumiu. Se foi remocao deliberada, este gate deve ser "
-            "atualizado no MESMO commit, para que ninguem o apague por acidente")
+
+    # NAO se exige mais que o ARQUIVO exista.
+    #
+    # A presenca do arquivo e o disjuntor ATIVADO, nao o disjuntor existindo. Exigir `ks.exists()`
+    # era exigir que o CDB2026 estivesse permanentemente proibido de enviar — e o Eduardo
+    # desativou o disjuntor deliberadamente em 2026-08-16 (commit a8885140), autorizado, para que
+    # o comprovante voltasse a chegar ao roster. O gate reprovou desde entao medindo a POSICAO da
+    # chave em vez da existencia da fechadura. A propria mensagem antiga previa este caso ("se foi
+    # remocao deliberada, este gate deve ser atualizado no MESMO commit") — o commit passou sem a
+    # atualizacao.
+    #
+    # O que importa proteger e o MECANISMO: que criar o arquivo volte a bloquear. Isso e provado
+    # por COMPORTAMENTO abaixo, com o caminho do disjuntor redirecionado para um diretorio
+    # temporario — nunca criando o arquivo real, que bloquearia o e-mail de producao de verdade.
+    import importlib.util as _ilu
+    import tempfile as _tmp
+
+    spec = _ilu.spec_from_file_location(
+        "_ks_probe", RAIZ / "bolao/cdb2026/scripts/send_invitation_email.py")
+    mod = _ilu.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as e:                    # import do sender nao pode depender de credencial
+        raise AssertionError(f"o sender do CDB nao importa isoladamente: {type(e).__name__}: {e}")
+
+    original = mod.KILL_SWITCH
+    try:
+        with _tmp.TemporaryDirectory() as d:
+            falso = Path(d) / "EMAIL_KILL_SWITCH"
+
+            mod.KILL_SWITCH = falso
+            bloqueado, _ = mod.transport_blocked_by_kill_switch()
+            _assert(not bloqueado,
+                    "sem o arquivo o disjuntor deveria estar INATIVO, e reportou bloqueio")
+
+            falso.write_text("teste", encoding="utf8")
+            bloqueado, motivo = mod.transport_blocked_by_kill_switch()
+            _assert(bloqueado,
+                    "com o arquivo presente o disjuntor NAO bloqueou — a fechadura nao fecha, "
+                    "e criar o arquivo em producao nao pararia mais nada")
+            _assert(motivo, "o disjuntor bloqueou sem dizer por que")
+    finally:
+        mod.KILL_SWITCH = original
 
 
 test("o disjuntor do CDB e um ARQUIVO e e consultado dentro de send_email",
@@ -212,6 +268,48 @@ def canarios_param_com_disjuntor():
 
 
 test("os canarios PARAM enquanto o disjuntor estiver ativo", canarios_param_com_disjuntor)
+
+
+def tripwire_bloqueia_provedor():
+    """A tripwire e EXECUTADA, nao acreditada.
+
+    `TRIPWIRES` isenta um arquivo da regra "nenhum caminho nao registrado cita o provedor". Uma
+    isencao numa regra de seguranca e exatamente o tipo de coisa que envelhece virando porta dos
+    fundos -- entao ela nao vale por declaracao. O gate importa a tripwire e exige que ela
+    LEVANTE para um host de provedor e DEIXE PASSAR o resto da rede. Enfraquece-la para deixar o
+    provedor passar deixa este teste VERMELHO, e nenhuma edicao do registro esconde isso.
+    """
+    import importlib.util as _ilu
+    caminho = RAIZ / "bolao/shared/scripts/provider_tripwire.py"
+    _assert(caminho.exists(), "a tripwire compartilhada sumiu")
+
+    spec = _ilu.spec_from_file_location("_tripwire_probe", caminho)
+    tw = _ilu.module_from_spec(spec)
+    spec.loader.exec_module(tw)
+
+    _assert(tw.alvo_e_provedor("https://api." + "emailjs" + ".com/api/v1.0/email/send"),
+            "a tripwire NAO reconhece o provedor de e-mail — ela deixaria um envio real passar")
+    _assert(not tw.alvo_e_provedor("https://exemplo.supabase.co/rest/v1/rpc/qualquer"),
+            "a tripwire bloqueia o banco tambem; isso obrigaria cada teste a inventar a propria "
+            "excecao, e excecao inventada caso a caso e como a protecao se dissolve")
+
+    import urllib.request as _u
+    anterior = _u.urlopen
+    try:
+        tw.install()
+        levantou = False
+        try:
+            _u.urlopen("https://api." + "emailjs" + ".com/api/v1.0/email/send")
+        except tw.ProviderReachedError:
+            levantou = True
+        except Exception:
+            levantou = True          # qualquer recusa serve; o que nao pode e SAIR pela rede
+        _assert(levantou, "a tripwire instalada NAO impediu a chamada ao provedor")
+    finally:
+        _u.urlopen = anterior
+
+
+test("a tripwire compartilhada realmente bloqueia o provedor", tripwire_bloqueia_provedor)
 
 print(f"\n  {ok} passed, {fail} failed\n")
 print("✓ NO REAL EMAIL IN VERIFICATION PASSED\n" if fail == 0
