@@ -421,3 +421,57 @@ cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
 - Se um teste falhar, parar e investigar antes de continuar ampliando o diff. Não seguir
   adicionando mudanças novas em cima de uma suíte vermelha.
 <!-- AUTO:PLATFORM_RULES:END -->
+
+## GitHub Issues governance
+
+GitHub Issues is the canonical engineering work tracker for this repository. This section
+integrates with — and never overrides — the `npm run check` gate, the critical-surfaces
+contract, and the platform governance rules above; when they conflict, the stricter rule wins.
+
+### Lifecycle for material work
+
+Issue → investigation → root-cause analysis → dedicated branch/worktree → implementation →
+tests → PR → review → deployment → validation → close Issue.
+
+"Material work" means anything that isn't a one-line, obviously-safe fix: bug fixes, incidents,
+data issues, security findings, features, and any change touching a
+`bolao/shared/safety/critical_surfaces.json` surface. Trivial fixes (typos, formatting,
+comment-only changes) don't require an Issue first.
+
+### Rules
+
+- Read the complete Issue and all its comments before starting implementation. Do not assume
+  the title tells the whole story.
+- Investigate before editing — confirm the root cause, don't guess from the symptom.
+- Do not silently fix unrelated defects found along the way. Open a separate Issue for them and
+  say so in the PR description; do not fold them into the current diff.
+- Use a dedicated branch (or `git worktree`, checking `git worktree list` first per the
+  `EnterWorktree`/`ExitWorktree` convention already in use in this repo) per Issue — never mix
+  unrelated Issues in one branch.
+- Reference the Issue number in commit messages when practical (e.g. `fix(cdb2026): ... (#42)`),
+  but never fabricate a reference to an Issue that doesn't exist.
+- PRs must fill out every section of `.github/pull_request_template.md` — in particular Risk,
+  Rollback, Data Impact, and Scoring/Ranking Impact must never be left blank or "N/A" without
+  actually having checked.
+- `Closes #NNN` in a PR means the Issue is fully resolved by that PR — use `Relates to #NNN`
+  for partial work, and leave the Issue open.
+- Scoring/ranking/entries/payment changes still require Eduardo's explicit authorization
+  regardless of whether an Issue exists — an Issue is not itself authorization.
+
+### Historical Issues
+
+Some Issues in this tracker are retrospective reconstructions of problems that were already
+found and fixed before Issue-tracking existed here (see `/historical-scan`,
+`/historical-review`, `/historical-publish`). For those:
+
+- The Issue body must state explicitly that it is a historical record, and must give the real
+  original-occurrence and resolution dates separately from the GitHub-assigned creation
+  timestamp — the creation timestamp is not the incident date.
+- Root cause must distinguish what was actually documented/observed at the time from what is
+  now being inferred with hindsight.
+- Never rewrite Git history (no rebase, no amend, no forced timestamp edits) merely to make an
+  old commit reference an Issue number that didn't exist yet when the commit was made. The
+  Issue links to the commit; the commit does not need to link back.
+- Historical Issues are created only through the governed backfill workflow (candidate list →
+  human review → explicit approval → `/historical-publish`), never in bulk and never
+  speculatively.
