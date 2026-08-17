@@ -1,0 +1,9 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Historical / retrospective record
+    url: https://github.com/ferrarilabs/ferrarilabs.github.io/blob/main/docs/bolao/CHANGELOG.md
+    about: >-
+      Historical Issues (past incidents/bugs reconstructed from repo evidence) are created
+      only via the governed /historical-publish workflow from an approved candidate list —
+      they are not filed through a normal template. See the app's CHANGELOG.md for the
+      unreconstructed history in the meantime.

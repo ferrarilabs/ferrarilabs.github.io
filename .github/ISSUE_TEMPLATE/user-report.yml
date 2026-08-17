@@ -1,0 +1,117 @@
+name: User Report
+description: Something a participant/user reported directly (email, message, screenshot).
+title: "[User Report] "
+labels:
+  - user-report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For reports from real participants. Please don't paste more personal information than
+        needed to reproduce the issue — no full names/emails/payment details in the Issue body
+        unless strictly necessary; prefer a Match ID / Entry ID instead.
+
+  - type: dropdown
+    id: competition
+    attributes:
+      label: Competition
+      options:
+        - CDB2026 (Copa do Brasil)
+        - BR2026 (Brasileirão)
+        - Copa2026 (Copa do Mundo, archived)
+        - Powerball
+        - Main site (index.html)
+        - Not competition-specific
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Scoring
+        - Ranking
+        - Entries
+        - Predictions
+        - Results
+        - Payments
+        - Email
+        - PDF
+        - UI/UX
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+
+  - type: input
+    id: page
+    attributes:
+      label: Page / route
+      placeholder: e.g. bolao/cdb2026/ ranking tab
+    validations:
+      required: false
+
+  - type: input
+    id: match-id
+    attributes:
+      label: Match ID (if applicable)
+    validations:
+      required: false
+
+  - type: input
+    id: entry-id
+    attributes:
+      label: Entry ID (if applicable)
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Screenshot / evidence
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser
+    validations:
+      required: false
+
+  - type: input
+    id: device
+    attributes:
+      label: Device
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Application version
+      description: The `?v=` cache-bust version shown in the app, if known.
+    validations:
+      required: false
+
+  - type: input
+    id: timestamp
+    attributes:
+      label: Timestamp
+      description: When this was observed (date/time + timezone).
+    validations:
+      required: false
