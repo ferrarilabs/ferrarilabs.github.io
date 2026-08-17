@@ -112,10 +112,18 @@ no mesmo commit.
 
 ### O arquivo se autolimpa
 
-Depois que a mudança declarada entra em `main`, a base do git anda, os caminhos somem do diff e a
-declaração fica **obsoleta** — o check **D3** exige que seja removida. É a mesma regra que o
-`ALLOWLIST.json` já aplica a si mesmo. Sem a autolimpeza, `CHANGE_INTENT.json` viraria um
-depósito de autorizações permanentes, que é a porta dos fundos que ele existe para não ser.
+A declaração acompanha a mudança **enquanto ela é a mudança corrente** — do commit local até o
+push, e na execução de CI desse push. Quando a **próxima** mudança chega, a base anda para além
+desses commits, os caminhos somem do diff e a declaração fica **obsoleta**: o check **D3** exige
+que seja removida então. É a mesma regra que o `ALLOWLIST.json` já aplica a si mesmo. Sem a
+autolimpeza, `CHANGE_INTENT.json` viraria um depósito de autorizações permanentes — a porta dos
+fundos que ele existe para não ser.
+
+**A base de comparação num push é `github.event.before`, não `HEAD~1`.** Não é detalhe: um push
+carrega vários commits de uma vez, e `HEAD~1` trataria os demais como já integrados. O contrato
+reprovou a si mesmo por isso nesta sessão — a declaração que acompanha a mudança aparecia obsoleta
+(**D3**) na mesma execução que a exigia (**D2**), e nenhum estado do repositório ficava verde dos
+dois lados do push.
 
 ---
 

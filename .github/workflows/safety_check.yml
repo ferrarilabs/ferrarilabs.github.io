@@ -40,9 +40,18 @@ jobs:
     timeout-minutes: 45
 
     env:
-      # A base de comparacao do contrato. Num PR o certo e o tronco; num push em main o proprio
-      # HEAD ja e a mudanca, e o audit resolve HEAD~1 sozinho.
-      SAFETY_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+      # A base de comparacao do contrato.
+      #
+      # Num PR e o tronco. Num PUSH e `github.event.before` — o topo de main ANTES deste push —,
+      # e nao `HEAD~1`. A diferenca nao e cosmetica: um push carrega VARIOS commits de uma vez, e
+      # `HEAD~1` trataria os outros como "ja integrados". O efeito medido foi este contrato
+      # reprovando a si mesmo: com `HEAD~1`, a declaracao que acompanha a mudanca aparece OBSOLETA
+      # (D3) na mesma execucao que a exige (D2) — nenhum estado do repositorio ficaria verde dos
+      # dois lados do push.
+      #
+      # Um push que nao resolve (branch nova, tudo zeros) simplesmente nao verifica, e o
+      # `resolveBase()` cai no merge-base/HEAD~1 sozinho.
+      SAFETY_BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
 
     steps:
       - name: Checkout

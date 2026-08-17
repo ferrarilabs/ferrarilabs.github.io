@@ -1,9 +1,23 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
 
-  "_howto": "Uma mudanca COMUM nao declara nada e a lista abaixo fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
+  "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
 
-  "_ciclo_de_vida": "A declaracao vale enquanto a mudanca esta EM VOO. Depois que ela entra em main a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que seja removida, num commit de limpeza logo apos. Isso e deliberado, e foi medido nesta sessao — declarar a mudanca e deixar a declaracao para tras faz o proprio contrato reprovar na execucao seguinte. Sem a autolimpeza este arquivo viraria um deposito de autorizacoes permanentes, que e a porta dos fundos que ele existe para nao ser.",
+  "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push, e nao contra HEAD~1). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao. Sem essa limpeza o arquivo viraria um deposito de autorizacoes permanentes, que e a porta dos fundos que ele existe para nao ser — a mesma disciplina que o ALLOWLIST.json ja aplica a si mesmo.",
 
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "CI_WORKFLOW",
+      "reason": "Duas correcoes no workflow que executa o contrato, ambas achadas pela primeira execucao real de CI. (1) Instala PyYAML: e a UNICA dependencia Python de terceiros da suite (3 imports, em gates que leem workflow YAML), existe por acaso no macOS do Eduardo e nao existe no runner — dois gates morreram com ModuleNotFoundError. (2) A base de comparacao num push passa a ser `github.event.before` em vez de HEAD~1: um push carrega varios commits de uma vez, e HEAD~1 trataria os demais como ja integrados, fazendo a declaracao aparecer obsoleta (D3) na mesma execucao que a exige (D2).",
+      "expected_behavior_change": "O job ganha um passo `pip install PyYAML==6.0.2` (versao fixada pelo mesmo motivo do `npm ci`) e passa `SAFETY_BASE_SHA=github.event.before` nos eventos de push. Gatilhos, comando canonico, permissoes e ausencia de secrets ficam exatamente como estavam. O job continua estruturalmente incapaz de enviar e-mail ou escrever em producao.",
+      "tests_required": ["safety-contract", "safety-contract-mutations", "cron-coverage", "powerball-workflow-arming"]
+    },
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O `safety_check.yml` casa com o padrao `.github/workflows/**`, deliberadamente amplo: qualquer workflow deste repositorio pode enviar e-mail, publicar o site ou escrever em producao, entao a superficie inclui TODOS eles e nao apenas os que ja mandam e-mail hoje.",
+      "expected_behavior_change": "NENHUM workflow de notificacao foi tocado. Nenhum cron, gatilho, guard de envio real, script invocado ou resolvedor de destinatarios mudou. O unico arquivo alterado em .github/workflows/ e o safety_check.yml, que nao envia e-mail nenhum e nao carrega guard de envio real. Verificavel: `git diff --stat` em .github/workflows/ mostra somente o safety_check.yml.",
+      "affected_workflows": [],
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "safety-contract"]
+    }
+  ]
 }
