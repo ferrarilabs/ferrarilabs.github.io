@@ -1,0 +1,117 @@
+name: Bug Report
+description: Something in one of the apps is broken or behaving incorrectly.
+title: "[Bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for filing a bug. If this affects scoring, ranking, entries, or payments in
+        any bolão app, mark Priority P0/P1 — those apps move real money.
+
+  - type: dropdown
+    id: competition
+    attributes:
+      label: Competition
+      description: Which app/competition is affected?
+      options:
+        - Framework / shared (bolao/shared)
+        - CDB2026 (Copa do Brasil)
+        - BR2026 (Brasileirão)
+        - Copa2026 (Copa do Mundo, archived)
+        - Powerball
+        - Main site (index.html)
+        - Not competition-specific
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Production (www.ferrarilabs.com)
+        - Staging
+        - Development (local)
+        - N/A
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Scoring
+        - Ranking
+        - Entries
+        - Predictions
+        - Results
+        - Payments
+        - Email
+        - PDF
+        - Database
+        - Supabase
+        - Security
+        - UI/UX
+        - Accessibility
+        - i18n
+        - Deployment
+        - Infrastructure
+        - Documentation
+        - Testing
+        - Other / unsure
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem description
+      description: What's wrong, in your own words.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+      description: What should have happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Go to '...'
+        2. Click on '...'
+        3. See error
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Screenshots, console errors, network responses, log excerpts, links.
+    validations:
+      required: false
+
+  - type: input
+    id: version
+    attributes:
+      label: Application version / Git SHA
+      description: The `?v=` cache-bust version shown in the app, or a commit SHA if known.
+    validations:
+      required: false
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser / device
+      description: Only if relevant to the bug (e.g. mobile Safari, layout issues).
+    validations:
+      required: false
