@@ -734,6 +734,41 @@ async function cdbRpc(fn, args) {
   return r.json();
 }
 
+// ── identidade da entrada: visivel para o participante, editavel por ninguem ──────────────────
+//
+// Pedido do Alan Rech: ao abrir o link personalizado, o participante precisa VER de imediato qual
+// entrada esta editando. O campo ja era preenchido a partir da entrada autenticada, mas continuava
+// editavel -- e um campo editavel convida a editar, o que aqui nao significa nada: o salvamento do
+// participante vai por `cdb_save_my_picks(p_token, p_client_ref, p_picks)`, uma RPC que NAO ACEITA
+// nome nenhum. Renomear pelo formulario era estruturalmente impossivel e mesmo assim parecia
+// possivel. Isto alinha o que a tela promete com o que o servidor faz.
+//
+// `readonly`, nao `disabled`: `disabled` tira o campo da ordem de foco e do envio do formulario, e
+// deixa a cor de texto apagada demais para servir de CONFIRMACAO -- que e a unica funcao dele aqui.
+// `input[readonly]` ja tem estilo proprio no design system (bolao/shared/css/forms.css).
+function preencheNomeDaEntradaConfiavel(entrada) {
+  const el = $("entryName");
+  if (!el) return;
+  const nome = (entrada && entrada.entryName) || "";
+  el.value = nome;
+  // Sem nome resolvido nao se inventa nada e nao se tranca: falha fechada pelo caminho que ja
+  // existe (entrada nao encontrada volta antes daqui).
+  if (!nome) return;
+  el.readOnly = true;
+  el.setAttribute("aria-readonly", "true");
+  // Placeholder num campo so-de-leitura ja preenchido nunca aparece, e se o valor sumisse ele
+  // faria o campo parecer um formulario esperando digitacao — o oposto de "esta e a sua entrada".
+  el.removeAttribute("placeholder");
+}
+
+/** Devolve o campo ao estado editavel (criacao de entrada nova). */
+function destrancaNomeDaEntrada() {
+  const el = $("entryName");
+  if (!el) return;
+  el.readOnly = false;
+  el.removeAttribute("aria-readonly");
+}
+
 async function autoLoadFromSecureLink() {
   const token = participantTokenFromUrl();
   if (!token) return false;
@@ -743,7 +778,7 @@ async function autoLoadFromSecureLink() {
     _editingEntry = entrada;
     _picksEmMemoria = null;   // o overlay pertence a UMA edição
     renderPickForm();
-    $("entryName") && ($("entryName").value = entrada.entryName || "");
+    preencheNomeDaEntradaConfiavel(entrada);
     renderNewEntryCard();
     showToast(t("findEntryLoaded"), "success");
     return true;
@@ -5641,7 +5676,7 @@ async function init() {
     _editingEntry = found;
     _picksEmMemoria = null;   // o overlay pertence a UMA edição
     renderPickForm();
-    $("entryName") && ($("entryName").value = found.entryName || "");
+    preencheNomeDaEntradaConfiavel(found);
     // payerName/participantEmail/paymentMethod NAO vem mais: a leitura segura devolve so o que
     // o formulario de palpite precisa. O participante nao edita dado de pagamento por aqui.
     renderPaymentBox();

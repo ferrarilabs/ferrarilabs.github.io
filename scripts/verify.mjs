@@ -31,6 +31,8 @@
 
 import { spawnSync } from "node:child_process";
 import { writeFileSync, existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 
 const ARGS = process.argv.slice(2);
 const has = (f) => ARGS.includes(f);
@@ -223,7 +225,7 @@ const CHECKS = [
   // canonico e o que um revisor executa -- ele reportava verde enquanto 21 gates, entre eles
   // os de seguranca de email, PII e ledger de notificacao, nao rodavam.
   { id: "package-readiness", group: "security", cmd: ["node", "bolao/scripts/audit_review_package_readiness.mjs"],
-    why: "F20: insumos do pacote de review prontos; geracao pos-auth e mecanica" },
+    why: "F20: insumos do pacote de review prontos; geracao pos-auth e mecanica", requires: "reviewsDir" },
   { id: "live-cache-write-authority", group: "security", cmd: ["node", "bolao/scripts/audit_live_cache_write_authority.mjs"],
     why: "F8: so o gateway confiavel escreve no cache ao vivo; anon nunca" },
   { id: "br2026-narrow-persistence", group: "security", cmd: ["node", "bolao/scripts/audit_br2026_narrow_persistence.mjs"],
@@ -350,6 +352,9 @@ const CHECKS = [
     why: "unico comando da cadeia do npm test que nao era um check daqui; sem ele a dominancia do verify sobre o npm test teria de abrir excecao, e excecao em regra de cobertura e por onde o proximo orfao entra" },
 
   // ── o contrato permanente de seguranca de mudanca ───────────────────────────────────────────
+  { id: "cdb-entry-name-readonly", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_entry_name_readonly.mjs"],
+    why: "a identidade da entrada e VISIVEL e nao editavel: o participante precisa confirmar qual entrada abriu, e o save (cdb_save_my_picks) nao aceita nome nenhum — a tela tem de dizer a mesma coisa que o servidor faz", requires: "browser" },
+
   { id: "safety-contract", group: "security", cmd: ["node", "scripts/safety/audit_safety_contract.mjs"],
     why: "meta-gate: nenhuma mudanca pode enfraquecer o proprio portao que a julga, e nenhuma superficie critica pode mudar em silencio" },
   { id: "safety-contract-mutations", group: "security", cmd: ["node", "scripts/safety/test_safety_contract.mjs"],
@@ -362,7 +367,17 @@ function capabilities() {
                   !!process.env.PLAYWRIGHT_BROWSERS_PATH;
   // Egress is not probed: probing costs a network call and can hang. It is declared, not detected.
   const network = process.env.VERIFY_ALLOW_NETWORK === "1";
-  return { browser, network };
+  // `audit_review_package_readiness.mjs` mede insumos que vivem FORA do repositorio, em
+  // `~/Documents/GitHub/ferrarilabs-work/reviews` — o diretorio de trabalho do Eduardo. Isso nao e
+  // defeito do gate: o pacote de review independente e montado a partir de material que
+  // deliberadamente nao e versionado. Mas significa que ele nunca pode passar noutra maquina, e a
+  // primeira execucao de CI o reprovou por isso (3 de 15 checks).
+  //
+  // Declarado como capacidade, ele vira SKIPPED onde o material nao existe — nunca PASSED. A
+  // alternativa seria remove-lo da suite (perder cobertura na maquina onde ele funciona) ou
+  // afrouxar as assercoes (verde falso). Nenhuma das duas.
+  const reviewsDir = existsSync(join(homedir(), "Documents", "GitHub", "ferrarilabs-work", "reviews"));
+  return { browser, network, reviewsDir };
 }
 
 function main() {
