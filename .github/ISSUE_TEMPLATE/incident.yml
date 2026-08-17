@@ -1,0 +1,139 @@
+name: Incident
+description: A production incident — service disruption, data problem, or scoring/ranking-affecting failure.
+title: "[Incident] "
+labels:
+  - incident
+body:
+  - type: markdown
+    attributes:
+      value: |
+        For live or just-resolved production incidents. See `docs/bolao/AUDIT_PROTOCOL.md` and
+        `docs/bolao/LIVE_DATA_INCIDENT_RUNBOOK.md` for the response process this Issue should
+        track.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Incident summary
+    validations:
+      required: true
+
+  - type: input
+    id: start-time
+    attributes:
+      label: Start time
+      description: When the incident actually began (best known estimate), with timezone.
+    validations:
+      required: false
+
+  - type: input
+    id: detection-time
+    attributes:
+      label: Detection time
+      description: When it was noticed/reported, with timezone.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - Production (www.ferrarilabs.com)
+        - Staging
+        - Development
+    validations:
+      required: true
+
+  - type: dropdown
+    id: competition
+    attributes:
+      label: Competition
+      options:
+        - Framework / shared (bolao/shared)
+        - CDB2026 (Copa do Brasil)
+        - BR2026 (Brasileirão)
+        - Copa2026 (Copa do Mundo, archived)
+        - Powerball
+        - Main site (index.html)
+        - Cross-competition / infrastructure
+    validations:
+      required: true
+
+  - type: textarea
+    id: user-impact
+    attributes:
+      label: User impact
+    validations:
+      required: true
+
+  - type: textarea
+    id: data-impact
+    attributes:
+      label: Data impact
+      description: Was any stored data corrupted, lost, exposed, or duplicated?
+    validations:
+      required: true
+
+  - type: textarea
+    id: scoring-impact
+    attributes:
+      label: Scoring impact
+      description: Did this affect points awarded to any entry? If unknown, say so explicitly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: ranking-impact
+    attributes:
+      label: Ranking impact
+      description: Did this affect standings/payout order? If unknown, say so explicitly.
+    validations:
+      required: true
+
+  - type: textarea
+    id: mitigation
+    attributes:
+      label: Mitigation
+      description: What was done immediately to limit damage (may predate root cause).
+    validations:
+      required: false
+
+  - type: textarea
+    id: root-cause
+    attributes:
+      label: Root cause
+      description: Distinguish confirmed root cause from suspected/inferred cause.
+    validations:
+      required: false
+
+  - type: textarea
+    id: permanent-fix
+    attributes:
+      label: Permanent fix
+    validations:
+      required: false
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation
+      description: How the fix was confirmed to work (tests, audit script output, manual QA).
+    validations:
+      required: false
+
+  - type: textarea
+    id: rollback
+    attributes:
+      label: Rollback
+      description: The rollback plan/command, if the fix needs to be reverted.
+    validations:
+      required: false
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Logs, screenshots, audit script output, links to related commits/PRs.
+    validations:
+      required: false
