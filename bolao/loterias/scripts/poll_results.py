@@ -25,7 +25,9 @@ oficial publicou.
 """
 
 import argparse
+import fcntl
 import json
+import os
 import sys
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
@@ -102,12 +104,29 @@ def coleta(jogo, cfg=None, caminho=None, fetcher=None, ate=None, janela_dias=10)
         caminho.parent.mkdir(parents=True, exist_ok=True)
         # Relê sob a mesma disciplina do livro-razão: entre a checagem lá em cima e esta escrita
         # cabe outra execução inteira. Sem reconferir, dois workers registram o mesmo sorteio.
-        atuais = le(caminho)
-        if ja_registrado(atuais, jogo, dia):
-            rel["ja_tinha"].append(str(dia))
-            continue
-        with caminho.open("a", encoding="utf-8") as f:
-            f.write(json.dumps(linha, ensure_ascii=False, sort_keys=True) + "\n")
+        #
+        # RECONFERIR NÃO BASTA, E ISSO FOI MEDIDO. A releitura sozinha continua sendo
+        # check-then-act: entre `le()` e o `write()` cabe outro processo inteiro. Com seis
+        # coletores simultâneos o sorteio foi gravado DUAS vezes no runner Linux do CI
+        # (retornos `['1','0','1','0','0','0']`) — o mesmo teste passava no macOS só porque o
+        # escalonamento serializava por sorte. Uma corrida que depende do escalonador não está
+        # consertada, está escondida.
+        #
+        # A produção serializa por outro caminho (`concurrency: lottery-poll` em
+        # lottery_poll.yml), então isto não é um incidente aberto — é a trava que faltava para a
+        # invariante valer pelo próprio código, e não por uma propriedade do YAML que alguém pode
+        # remover sem perceber a consequência. Sorteio duplicado credita prêmio duas vezes.
+        trava = caminho.with_name(caminho.name + ".lock")
+        with trava.open("w", encoding="utf-8") as lf:
+            fcntl.flock(lf, fcntl.LOCK_EX)          # liberado no fim do `with`, inclusive no continue
+            atuais = le(caminho)
+            if ja_registrado(atuais, jogo, dia):
+                rel["ja_tinha"].append(str(dia))
+                continue
+            with caminho.open("a", encoding="utf-8") as f:
+                f.write(json.dumps(linha, ensure_ascii=False, sort_keys=True) + "\n")
+                f.flush()
+                os.fsync(f.fileno())                # o próximo a pegar a trava precisa ENXERGAR a linha
         registros.append(linha)
         rel["novos"].append(linha)
     return rel

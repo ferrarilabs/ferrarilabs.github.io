@@ -15,6 +15,9 @@ verify-summary.json
 # evidencia de UMA execucao: preservado quando a execucao falha (o CI o envia como artefato),
 # apagado quando passa. Nunca e fonte, e por isso nunca entra em commit.
 safety-summary.json
+# Trava de exclusão mútua do coletor de loterias (poll_results.py). Estado de execução, nunca
+# fonte: existe só enquanto um coletor está escrevendo a linha do sorteio.
+*.jsonl.lock
 
 # Artefatos locais do Supabase CLI. `supabase link` grava aqui a string de conexão do pooler, que
 # CONTÉM CREDENCIAL. Descoberto pelo gate repo-wide de PII em 2026-08-09: o arquivo não era
