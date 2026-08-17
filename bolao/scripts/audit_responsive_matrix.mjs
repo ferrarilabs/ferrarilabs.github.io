@@ -31,6 +31,17 @@ const PORT = 4611;
 
 const WIDTHS = [320, 360, 375, 390, 393, 414, 430, 768, 899, 900, 901, 902, 1024, 1280];
 
+/**
+ * Folga mínima exigida do rótulo de navegação, como fração da largura do próprio texto.
+ *
+ * 15% não é um número escolhido por gosto. O piso vem do defeito: a plataforma rodou com 1,8% de
+ * folga a 320px e cortava fora do macOS. O teto vem da medição do estado corrigido — o ponto mais
+ * apertado hoje tem ~26,7% (BR2026 a 1024px, que o CI real já aprovou). 15% fica com folga dos
+ * dois lados: alto o bastante para acusar a volta do aperto, baixo o bastante para não reprovar
+ * uma diferença legítima de fonte entre sistemas.
+ */
+const FOLGA_MINIMA_NAV = 0.15;
+
 const APPS = [
   { nome: "br2026", url: "/bolao/br2026/", live: true },
   { nome: "cdb2026", url: "/bolao/cdb2026/", live: true },
@@ -144,6 +155,46 @@ for (const app of APPS) {
         return out.slice(0, 3);
       });
       check(`${tag} nenhum controle com texto cortado`, cortados.length === 0, cortados.join(", "));
+
+      // 4b. FOLGA do rótulo de navegação — não basta "não está cortado agora".
+      //
+      // POR QUE ISTO EXISTE. O check 4 acima só vê o texto DEPOIS de estourar, e estourar depende
+      // da fonte que a máquina tem. `--font-family` pede `Inter`, este repositório não serve a
+      // fonte e ela não está instalada em lugar nenhum — então cada sistema cai num substituto
+      // diferente, e a mesma página cabe num e corta no outro.
+      //
+      // Foi exatamente o que aconteceu: `Probabilidades` cabia no macOS por 1,5px e aparecia
+      // CORTADO no runner Linux. Pior, a condição de folga zero era INDETECTÁVEL aqui — restaurar
+      // o CSS antigo não deixava este gate vermelho no macOS, porque no macOS ele nunca cortou.
+      // Um gate que só acusa na máquina de outra pessoa não protege ninguém.
+      //
+      // Medir a FOLGA remove a fonte da equação: exige-se margem sobre o texto renderizado,
+      // qualquer que seja a fonte resolvida. Cabendo "no limite" reprova aqui, antes de virar
+      // texto cortado no aparelho de um participante.
+      const semFolga = await page.evaluate((min) => {
+        const out = [];
+        const s = document.createElement("span");
+        s.style.cssText = "position:absolute;white-space:nowrap;visibility:hidden;top:-9999px";
+        document.body.appendChild(s);
+        for (const el of document.querySelectorAll(".nav button")) {
+          const r = el.getBoundingClientRect();
+          if (r.width === 0 || r.height === 0) continue;
+          const cs = getComputedStyle(el);
+          s.style.font = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+          s.textContent = (el.innerText || "").trim();
+          if (!s.textContent) continue;
+          const precisa = s.getBoundingClientRect().width;
+          const caixa = r.width
+            - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight)
+            - parseFloat(cs.borderLeftWidth) - parseFloat(cs.borderRightWidth);
+          const folga = (caixa - precisa) / precisa;
+          if (folga < min) out.push(`${s.textContent.slice(0, 18)}:${(folga * 100).toFixed(1)}%`);
+        }
+        s.remove();
+        return out.slice(0, 3);
+      }, FOLGA_MINIMA_NAV);
+      check(`${tag} rótulos de navegação com folga >= ${(FOLGA_MINIMA_NAV * 100).toFixed(0)}%`,
+        semFolga.length === 0, semFolga.join(", "));
 
       // 5. Barras de probabilidade: todas com a MESMA altura (a "barra gorda" já regrediu aqui).
       const barras = await page.evaluate(() => {

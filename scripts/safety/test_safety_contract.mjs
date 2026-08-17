@@ -254,7 +254,10 @@ function mutateGate(label, file, transform, gateCmd) {
     const mutated = transform(original.toString("utf8"));
     assert(mutated !== original.toString("utf8"), `a mutacao "${label}" nao alterou ${file}`);
     writeFileSync(abs(file), mutated);
-    const r = spawnSync(gateCmd[0], gateCmd.slice(1), { cwd: ROOT, encoding: "utf8", timeout: 180000 });
+    // 300s: a matriz responsiva sobe um navegador e mede 448 verificacoes em 14 larguras x 4
+    // apps. Um teto curto aqui nao "pega" nada — so troca o veredito por um timeout, que e um
+    // vermelho que nao diz o que houve.
+    const r = spawnSync(gateCmd[0], gateCmd.slice(1), { cwd: ROOT, encoding: "utf8", timeout: 300000 });
     assert(r.status !== 0,
       `${label} => NAO PEGA. \`${gateCmd.join(" ")}\` saiu 0 com a mutacao aplicada`);
   } finally {
@@ -344,6 +347,28 @@ test("M22 disjuntor deixa de fechar (fechadura quebrada) => PEGA", () => {
     (t) => t.replace("    if KILL_SWITCH.exists():", "    if False:"), GATE_EMAIL);
 });
 
+const GATE_RESPONSIVO = ["node", "bolao/scripts/audit_responsive_matrix.mjs"];
+
+test("M25 folga da navegacao removida (estado anterior) => PEGA", () => {
+  // Restaura EXATAMENTE os tamanhos de antes da correcao — a condicao de folga zero que fez o
+  // primeiro CI acusar `Probabilidades` cortado a 320px e a 902px.
+  mutateGate("navegacao volta ao aperto de antes", "bolao/shared/css/responsive.css",
+    (t) => t.replace("  .nav button { font-size: 9px; padding: 8px 2px; }",
+                     "  .nav button { font-size: 11px; padding: 8px 4px; }")
+             .replace("  .nav button { font-size: 10.5px; }",
+                      "  .nav button { font-size: 13px; }"),
+    GATE_RESPONSIVO);
+});
+
+test("M26 rotulo artificialmente mais largo => PEGA", () => {
+  // O detector precisa morder por LARGURA DE TEXTO, nao por um numero especifico de fonte. Um
+  // rotulo mais longo estoura a mesma coluna de largura fixa, e e assim que a proxima aba nova
+  // com nome comprido seria pega antes de chegar ao participante.
+  mutateGate("rotulo comprido numa aba", "bolao/br2026/index.html",
+    (t) => t.replace(">Probabilidades<", ">Probabilidades de Classificacao<"),
+    GATE_RESPONSIVO);
+});
+
 // ══ Z. RESTAURACAO ════════════════════════════════════════════════════════════════════════════
 
 console.log("\nZ. Nenhuma mutacao ficou para tras");
@@ -376,7 +401,7 @@ test("o contrato volta a passar depois de todas as mutacoes", () => {
     `o numero de checks mudou: ${baseline.totals.pass} -> ${after.totals.pass}`);
 });
 
-const MUTATIONS = 24;
+const MUTATIONS = 26;
 test(`MUTATIONS_CAUGHT == MUTATIONS_EXECUTED (${MUTATIONS}/${MUTATIONS})`, () => {
   assert(fail === 0, `${fail} mutacao(oes) nao foi(ram) pega(s)`);
 });

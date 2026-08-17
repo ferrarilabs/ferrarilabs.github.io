@@ -3,21 +3,14 @@
 
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
 
-  "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push, e nao contra HEAD~1). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao. Sem essa limpeza o arquivo viraria um deposito de autorizacoes permanentes, que e a porta dos fundos que ele existe para nao ser — a mesma disciplina que o ALLOWLIST.json ja aplica a si mesmo.",
+  "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
 
   "declarations": [
     {
-      "surface_id": "CI_WORKFLOW",
-      "reason": "Duas correcoes no workflow que executa o contrato, ambas achadas pela primeira execucao real de CI. (1) Instala PyYAML: e a UNICA dependencia Python de terceiros da suite (3 imports, em gates que leem workflow YAML), existe por acaso no macOS do Eduardo e nao existe no runner — dois gates morreram com ModuleNotFoundError. (2) A base de comparacao num push passa a ser `github.event.before` em vez de HEAD~1: um push carrega varios commits de uma vez, e HEAD~1 trataria os demais como ja integrados, fazendo a declaracao aparecer obsoleta (D3) na mesma execucao que a exige (D2).",
-      "expected_behavior_change": "O job ganha um passo `pip install PyYAML==6.0.2` (versao fixada pelo mesmo motivo do `npm ci`) e passa `SAFETY_BASE_SHA=github.event.before` nos eventos de push. Gatilhos, comando canonico, permissoes e ausencia de secrets ficam exatamente como estavam. O job continua estruturalmente incapaz de enviar e-mail ou escrever em producao.",
-      "tests_required": ["safety-contract", "safety-contract-mutations", "cron-coverage", "powerball-workflow-arming"]
-    },
-    {
-      "surface_id": "NOTIFICATION_WORKFLOWS",
-      "reason": "O `safety_check.yml` casa com o padrao `.github/workflows/**`, deliberadamente amplo: qualquer workflow deste repositorio pode enviar e-mail, publicar o site ou escrever em producao, entao a superficie inclui TODOS eles e nao apenas os que ja mandam e-mail hoje.",
-      "expected_behavior_change": "NENHUM workflow de notificacao foi tocado. Nenhum cron, gatilho, guard de envio real, script invocado ou resolvedor de destinatarios mudou. O unico arquivo alterado em .github/workflows/ e o safety_check.yml, que nao envia e-mail nenhum e nao carrega guard de envio real. Verificavel: `git diff --stat` em .github/workflows/ mostra somente o safety_check.yml.",
-      "affected_workflows": [],
-      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "safety-contract"]
+      "surface_id": "SHARED_VISUAL_FRAMEWORK",
+      "reason": "Corrige o unico bloqueador de CI restante: `Probabilidades` aparecia CORTADO no BR2026 a 320px e a 902px, e no CDB2026 a 320px. A causa e estrutural e nao e o rotulo — `.nav` e um grid de colunas IGUAIS (`repeat(N, minmax(0,1fr))`), entao o rotulo mais longo recebe a mesma largura de `Jogos` e e sempre o primeiro a estourar. Medido nesta plataforma: a 320px a caixa de conteudo tinha 85,3px e o texto pedia 83,8px — folga de 1,5px. A pagina nunca teve folga; o macOS foi apenas o unico ambiente onde alguem olhou, e `Inter` e declarada em --font-family mas nao e servida nem esta instalada, entao cada sistema cai num substituto diferente e qualquer um mais largo corta o texto.",
+      "expected_behavior_change": "Dois degraus de tamanho de fonte na navegacao, em duas faixas estreitas de largura: ate 380px (celulares estreitos) a fonte vai de 11px para 9px, o padding do botao de 4px para 2px e o respiro lateral da topbar de 18px para 8px; entre 901px e 1000px (o inicio do grid de desktop, onde a coluna encolhe bruscamente) a fonte vai de 13px para 10,5px. Fora dessas faixas — de 381px a 900px e de 1001px para cima — NADA muda: mesmo tamanho, mesmo espacamento, mesmo desenho. Nenhum rotulo foi abreviado, nenhuma fonte nova foi adicionada, nenhum token alterado, nenhum overflow escondido, nenhuma regra especifica de app. Folga minima passa de 1,5px para 21,8px (31,1%), e a navegacao tolera uma fonte ate 26% mais larga que a do macOS em TODAS as larguras suportadas.",
+      "tests_required": ["responsive-14-width", "visual-consistency", "shared-visual-contract", "accessibility", "aria-current-nav", "structural-parity", "multi-live-hero", "multi-live-hero-responsive"]
     }
   ]
 }
