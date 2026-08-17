@@ -68,6 +68,15 @@ jobs:
       - name: Install Node dependencies from lockfile
         run: npm ci
 
+      # PyYAML e a UNICA dependencia Python de terceiros da suite (3 imports, todos em gates que
+      # leem workflow YAML: cobertura de cron e contrato de armamento do Powerball). Ela existe
+      # por acaso no macOS do Eduardo e NAO existe no runner — os dois gates morriam com
+      # `ModuleNotFoundError` na primeira execucao de CI que ja rodou. Um gate que nao carrega nao
+      # e um gate frouxo, e um vermelho por dependencia ausente ensina a ignorar vermelho.
+      # Versao fixada pelo mesmo motivo que o npm ci: a execucao tem de ser reproduzivel.
+      - name: Install Python dependencies
+        run: python3 -m pip install --disable-pip-version-check --no-input 'PyYAML==6.0.2'
+
       # O cache guarda apenas o BINARIO do navegador, que e imutavel para uma dada versao do
       # Playwright. Nenhuma evidencia gerada (relatorio, screenshot, JSON de resumo) entra em
       # cache: um artefato de execucao reaproveitado esconderia exatamente a regressao que a

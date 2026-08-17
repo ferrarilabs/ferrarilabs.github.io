@@ -6,14 +6,14 @@
   "declarations": [
     {
       "surface_id": "CI_WORKFLOW",
-      "reason": "Criacao do proprio workflow que executa o contrato. Ate agora NENHUM workflow deste repositorio rodava `npm test` ou `scripts/verify.mjs`: a suite inteira — 150 checks, incluindo scoring, PII, seguranca de e-mail e cobertura de cron — so existia na maquina de quem lembrasse de rodar.",
-      "expected_behavior_change": "Passa a existir `.github/workflows/safety_check.yml`, disparando em pull_request e em push para main, executando `npm run check`. Nenhum secret e exposto ao job: os caminhos capazes de escrever em producao ou enviar e-mail falham FECHADOS por ausencia de credencial, e os gates que exigem credencial de producao sao reportados SKIPPED, nunca PASSED. Nenhum comportamento de produto muda.",
-      "tests_required": ["safety-contract", "safety-contract-mutations", "cron-coverage", "email-send-safety"]
+      "reason": "Instala PyYAML no runner. E a UNICA dependencia Python de terceiros da suite (3 imports, todos em gates que leem workflow YAML: cobertura de cron e contrato de armamento do Powerball). Ela existe por acaso no macOS do Eduardo e NAO existe no runner — os dois gates morreram com ModuleNotFoundError na primeira execucao de CI que ja rodou. Um gate que nao carrega nao e um gate frouxo, e um vermelho por dependencia ausente ensina a ignorar vermelho.",
+      "expected_behavior_change": "O job passa a ter um passo `pip install PyYAML==6.0.2`, com versao fixada pelo mesmo motivo do `npm ci`: a execucao tem de ser reproduzivel. Gatilhos, comando canonico, permissoes e ausencia de secrets ficam exatamente como estavam. Nenhum comportamento de produto muda, e o job continua estruturalmente incapaz de enviar e-mail ou escrever em producao.",
+      "tests_required": ["safety-contract", "safety-contract-mutations", "cron-coverage", "powerball-workflow-arming"]
     },
     {
       "surface_id": "NOTIFICATION_WORKFLOWS",
       "reason": "O novo `safety_check.yml` casa com o padrao `.github/workflows/**`, que e deliberadamente amplo: qualquer workflow deste repositorio pode enviar e-mail, publicar o site ou escrever em producao, entao a superficie inclui TODOS eles e nao apenas os que ja mandam e-mail hoje. Um workflow novo que enviasse e-mail sem entrar no manifesto seria exatamente o caso que a amplitude existe para pegar.",
-      "expected_behavior_change": "NENHUM workflow de notificacao foi tocado. Nenhum cron, gatilho, guard de envio real, script invocado ou resolvedor de destinatarios mudou. O unico arquivo acrescentado em .github/workflows/ e o safety_check.yml, que nao envia e-mail nenhum e nao carrega guard de envio real. Verificavel: `git diff --stat` em .github/workflows/ mostra somente a criacao do safety_check.yml.",
+      "expected_behavior_change": "NENHUM workflow de notificacao foi tocado. Nenhum cron, gatilho, guard de envio real, script invocado ou resolvedor de destinatarios mudou. O unico arquivo alterado em .github/workflows/ e o safety_check.yml, que nao envia e-mail nenhum e nao carrega guard de envio real. Verificavel: `git diff --stat` em .github/workflows/ mostra somente o safety_check.yml.",
       "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "safety-contract"]
     }
   ]
