@@ -175,11 +175,22 @@
 
 /* Faixa 1 — celulares estreitos (iPhone SE e afins). Três colunas em ~320px deixam ~95px por
  * botão para uma palavra de 14 letras; a 11px não sobra nada. */
-@media (max-width: 380px) {
+@media (max-width: 440px) {
   /* A barra devolve à linha os 20px que gastava em respiro lateral. Num visor de 320px isso é
    * 6,3% da largura da tela indo para o conteúdo — e beneficia marca, idiomas e seletor junto,
-   * não só a navegação. É a alavanca que permite manter 9,5px em vez de descer mais. */
+   * não só a navegação.
+   *
+   * O teto é 440px, não 380px, por medição: a 390px o rótulo ficava com 14,6% de folga sob a
+   * fonte do Linux, logo abaixo do mínimo de 15%. Alargar a linha resolve ali SEM encolher texto
+   * nenhum — de 381px a 440px a fonte continua nos 11px de sempre. O teto cobre a faixa inteira
+   * de celular da matriz (320-430px) para que a margem não dependa de qual largura exata o
+   * aparelho tem. */
   .topbar { padding: 10px 8px; }
+}
+
+@media (max-width: 380px) {
+  /* Abaixo disto nem a linha inteira basta: três colunas em ~320px deixam ~95px por botão para
+   * uma palavra de 14 letras, e só o tamanho da fonte fecha a conta. */
   .nav button { font-size: 9px; padding: 8px 2px; }
 }
 
@@ -187,8 +198,17 @@
  * uma vez, e cada coluna encolhe bruscamente: no BR2026 (7 colunas) a caixa cai de ~275px para
  * ~105px na virada. A partir de ~1000px a coluna já comporta os 13px com folga, e o teto da
  * faixa está aí de propósito — acima dele o desktop permanece exatamente como sempre foi. */
-@media (min-width: 901px) and (max-width: 1000px) {
-  .nav button { font-size: 10.5px; }
+/* Faixa 2 — a zona apertada do grid de desktop, sem degraus.
+ *
+ * Em 901px o layout troca de 3 colunas para 6 ou 7 de uma vez e cada coluna encolhe bruscamente:
+ * no BR2026 (7 colunas) a caixa cai de ~275px para ~105px na virada. `clamp()` faz o tamanho
+ * acompanhar a largura em vez de saltar — duas faixas fixas criavam PENHASCOS nas bordas (1001px
+ * e 1061px ficavam com menos folga que os vizinhos, cada um exigindo sua própria correção).
+ *
+ * Os 13px de sempre voltam a partir de ~1130px, então 1280px e 1440px — onde a maioria dos
+ * acessos de desktop acontece — permanecem exatamente como sempre foram. */
+@media (min-width: 901px) {
+  .nav button { font-size: clamp(10.5px, 1.15vw, 13px); }
 }
 
 @media (max-width: 480px) {

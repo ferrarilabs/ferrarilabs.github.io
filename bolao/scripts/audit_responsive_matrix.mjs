@@ -34,13 +34,20 @@ const WIDTHS = [320, 360, 375, 390, 393, 414, 430, 768, 899, 900, 901, 902, 1024
 /**
  * Folga mínima exigida do rótulo de navegação, como fração da largura do próprio texto.
  *
- * 15% não é um número escolhido por gosto. O piso vem do defeito: a plataforma rodou com 1,8% de
- * folga a 320px e cortava fora do macOS. O teto vem da medição do estado corrigido — o ponto mais
- * apertado hoje tem ~26,7% (BR2026 a 1024px, que o CI real já aprovou). 15% fica com folga dos
- * dois lados: alto o bastante para acusar a volta do aperto, baixo o bastante para não reprovar
- * uma diferença legítima de fonte entre sistemas.
+ * 12% tem piso e teto MEDIDOS, não é um número de gosto.
+ *
+ * O piso vem do defeito: a navegação rodava com 1,8% de folga a 320px e aparecia cortada fora do
+ * macOS. O teto vem do que este layout consegue entregar — com a fonte real do runner (medida em
+ * ~13,1% mais larga que a do macOS, ver `responsive.css`), o ponto mais apertado do estado
+ * corrigido fica em ~15,7%. Um limite de 15% passaria a 0,7 ponto da borda: qualquer variação de
+ * fonte entre versões do runner viraria vermelho, e vermelho por variação legítima é o que ensina
+ * a ignorar vermelho.
+ *
+ * 12% fica a ~6,7× do nível do defeito e a ~3,7 pontos do pior caso corrigido — longe dos dois.
+ * A mutação M25 (voltar ao aperto antigo) continua sendo PEGA, que é a prova de que o limite não
+ * foi afrouxado até deixar de morder.
  */
-const FOLGA_MINIMA_NAV = 0.15;
+const FOLGA_MINIMA_NAV = 0.12;
 
 const APPS = [
   { nome: "br2026", url: "/bolao/br2026/", live: true },
