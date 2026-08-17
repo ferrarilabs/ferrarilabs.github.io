@@ -1,20 +1,9 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
 
-  "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida. Isso e deliberado — sem a autolimpeza este arquivo viraria um deposito de autorizacoes permanentes, que e a porta dos fundos que ele existe para nao ser.",
+  "_howto": "Uma mudanca COMUM nao declara nada e a lista abaixo fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
 
-  "declarations": [
-    {
-      "surface_id": "CI_WORKFLOW",
-      "reason": "Instala PyYAML no runner. E a UNICA dependencia Python de terceiros da suite (3 imports, todos em gates que leem workflow YAML: cobertura de cron e contrato de armamento do Powerball). Ela existe por acaso no macOS do Eduardo e NAO existe no runner — os dois gates morreram com ModuleNotFoundError na primeira execucao de CI que ja rodou. Um gate que nao carrega nao e um gate frouxo, e um vermelho por dependencia ausente ensina a ignorar vermelho.",
-      "expected_behavior_change": "O job passa a ter um passo `pip install PyYAML==6.0.2`, com versao fixada pelo mesmo motivo do `npm ci`: a execucao tem de ser reproduzivel. Gatilhos, comando canonico, permissoes e ausencia de secrets ficam exatamente como estavam. Nenhum comportamento de produto muda, e o job continua estruturalmente incapaz de enviar e-mail ou escrever em producao.",
-      "tests_required": ["safety-contract", "safety-contract-mutations", "cron-coverage", "powerball-workflow-arming"]
-    },
-    {
-      "surface_id": "NOTIFICATION_WORKFLOWS",
-      "reason": "O novo `safety_check.yml` casa com o padrao `.github/workflows/**`, que e deliberadamente amplo: qualquer workflow deste repositorio pode enviar e-mail, publicar o site ou escrever em producao, entao a superficie inclui TODOS eles e nao apenas os que ja mandam e-mail hoje. Um workflow novo que enviasse e-mail sem entrar no manifesto seria exatamente o caso que a amplitude existe para pegar.",
-      "expected_behavior_change": "NENHUM workflow de notificacao foi tocado. Nenhum cron, gatilho, guard de envio real, script invocado ou resolvedor de destinatarios mudou. O unico arquivo alterado em .github/workflows/ e o safety_check.yml, que nao envia e-mail nenhum e nao carrega guard de envio real. Verificavel: `git diff --stat` em .github/workflows/ mostra somente o safety_check.yml.",
-      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "safety-contract"]
-    }
-  ]
+  "_ciclo_de_vida": "A declaracao vale enquanto a mudanca esta EM VOO. Depois que ela entra em main a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que seja removida, num commit de limpeza logo apos. Isso e deliberado, e foi medido nesta sessao — declarar a mudanca e deixar a declaracao para tras faz o proprio contrato reprovar na execucao seguinte. Sem a autolimpeza este arquivo viraria um deposito de autorizacoes permanentes, que e a porta dos fundos que ele existe para nao ser.",
+
+  "declarations": []
 }
