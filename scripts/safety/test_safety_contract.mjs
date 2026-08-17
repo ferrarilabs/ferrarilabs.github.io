@@ -364,8 +364,15 @@ test("M26 rotulo artificialmente mais largo => PEGA", () => {
   // O detector precisa morder por LARGURA DE TEXTO, nao por um numero especifico de fonte. Um
   // rotulo mais longo estoura a mesma coluna de largura fixa, e e assim que a proxima aba nova
   // com nome comprido seria pega antes de chegar ao participante.
-  mutateGate("rotulo comprido numa aba", "bolao/br2026/index.html",
-    (t) => t.replace(">Probabilidades<", ">Probabilidades de Classificacao<"),
+  //
+  // A mutacao vai no i18n, NAO no index.html. O botao e `data-i18n="navProbs"` e `applyI18n()`
+  // reescreve o textContent assim que o app sobe — mutar a marcacao editava um texto que o
+  // proprio app substitui em seguida. A primeira versao fazia isso e era INTERMITENTE: passou
+  // sozinha e falhou dentro do verify, decidida por qual dos dois chegava primeiro. Teste
+  // intermitente e pior que teste nenhum, porque ensina a reexecutar ate passar — e e assim que
+  // um vermelho verdadeiro vira ruido.
+  mutateGate("rotulo comprido numa aba", "bolao/br2026/js/i18n.js",
+    (t) => t.replace('navProbs: "Probabilidades"', 'navProbs: "Probabilidades de Classificacao"'),
     GATE_RESPONSIVO);
 });
 
