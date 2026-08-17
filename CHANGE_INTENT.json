@@ -5,12 +5,5 @@
 
   "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
 
-  "declarations": [
-    {
-      "surface_id": "SHARED_VISUAL_FRAMEWORK",
-      "reason": "Corrige o unico bloqueador de CI restante: `Probabilidades` aparecia CORTADO no BR2026 a 320px e a 902px, e no CDB2026 a 320px. A causa e estrutural e nao e o rotulo — `.nav` e um grid de colunas IGUAIS (`repeat(N, minmax(0,1fr))`), entao o rotulo mais longo recebe a mesma largura de `Jogos` e e sempre o primeiro a estourar. Medido nesta plataforma: a 320px a caixa de conteudo tinha 85,3px e o texto pedia 83,8px — folga de 1,5px. A pagina nunca teve folga; o macOS foi apenas o unico ambiente onde alguem olhou, e `Inter` e declarada em --font-family mas nao e servida nem esta instalada, entao cada sistema cai num substituto diferente e qualquer um mais largo corta o texto.",
-      "expected_behavior_change": "Tres ajustes, todos na camada responsiva compartilhada. (1) Ate 440px a topbar devolve a linha o respiro lateral (12px -> 8px), o que da largura ao botao SEM encolher texto nenhum. (2) Ate 380px, onde nem a linha inteira basta, a fonte do botao vai de 11px para 9px e o padding de 4px para 2px. (3) De 901px para cima o tamanho passa a acompanhar a largura por `clamp(10.5px, 1.15vw, 13px)` em vez de saltar: os 13px de sempre voltam a partir de ~1130px, entao 1280px e 1440px ficam exatamente como sempre foram. A forma continua (clamp) substituiu duas faixas fixas que criavam PENHASCOS nas bordas — 1001px e 1061px ficavam com menos folga que os vizinhos, cada um exigindo sua propria correcao. Nenhum rotulo abreviado, nenhuma fonte nova, nenhum token alterado, nenhum overflow escondido, nenhuma regra especifica de app. Folga minima medida sob a fonte REAL do runner (13,1% mais larga que a do macOS, numero obtido do proprio CI): de 1,8% para 15,7%.",
-      "tests_required": ["responsive-14-width", "visual-consistency", "shared-visual-contract", "accessibility", "aria-current-nav", "structural-parity", "multi-live-hero", "multi-live-hero-responsive"]
-    }
-  ]
+  "declarations": []
 }
