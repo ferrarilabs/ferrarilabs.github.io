@@ -268,9 +268,19 @@ const GATE_PORTAS = ["node", "bolao/scripts/test_harness_ports_unique.mjs"];
 console.log("\nD. Remediacoes desta sessao (gates recem-corrigidos continuam mordendo)");
 
 test("M17 porta de harness duplicada => PEGA", () => {
+  // Os numeros sao montados por concatenacao, e nao escritos inteiros.
+  //
+  // `test_harness_ports_unique.mjs` varre o repositorio procurando `const PORT = NNNN`. Escrita
+  // por extenso, a string DESTA mutacao vira uma declaracao de porta aos olhos do scanner — e o
+  // gate acusou colisao entre a suite do Powerball e este arquivo, que nao abre socket nenhum.
+  // Foi o mesmo erro que ja apareceu duas vezes nesta sessao: gate que le prosa mede prosa.
+  //
+  // A saida nao e ensinar o scanner a ignorar este arquivo (excecao numa regra de cobertura e por
+  // onde a proxima colisao entra) — e nao escrever o padrao aqui. O texto INJETADO e identico.
+  const decl = (n) => `const PORT = 82${n};`;
   mutateGate("duas suites na mesma porta",
     "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs",
-    (t) => t.replace(/^const PORT = 8214;$/m, "const PORT = 8213;"), GATE_PORTAS);
+    (t) => t.replace(decl("14"), decl("13")), GATE_PORTAS);
 });
 
 test("M18 remetente nao declarado falando com o provedor => PEGA", () => {
