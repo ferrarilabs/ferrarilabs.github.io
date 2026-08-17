@@ -7,8 +7,9 @@ Prova do comprovante de entrada salva — TRANSPORTE FALSO, sempre.
 Três defesas independentes, porque um teste que só *pretende* usar transporte falso não prova nada:
 
   1. o transporte é injetado por `set_transport()` e conta chamadas numa lista;
-  2. `urllib.request.urlopen` é trocado por uma sentinela que LEVANTA se alguém tentar falar com
-     `api.emailjs.com` — o resto da rede (PostgREST) passa;
+  2. `urllib.request.urlopen` é trocado pela sentinela compartilhada
+     (`bolao/shared/scripts/provider_tripwire.py`), que LEVANTA se alguém tentar falar com um
+     provedor de e-mail — o resto da rede (PostgREST) passa;
   3. o workflow que roda isto não define `BOLAO_ALLOW_REAL_SEND`.
 
 A regra vale inclusive — principalmente — para o endereço do operador: ele é participante, não
@@ -44,6 +45,7 @@ sys.path.insert(0, str(RAIZ / "bolao" / "shared" / "scripts"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 import m8m9                                # noqa: E402
+import provider_tripwire                   # noqa: E402
 import send_entry_saved_confirmation as C  # noqa: E402
 
 ENTRADA_OPERADOR = "03e9fe14-d777-4a71-9c31-3d54dd21a07c"
@@ -69,14 +71,16 @@ def transporte_falso(url, body, headers):
     return 200, "fake-ok"
 
 
-_urlopen_real = urllib.request.urlopen
-
-
-def _urlopen_vigiado(req, *a, **k):
-    alvo = req.full_url if hasattr(req, "full_url") else str(req)
-    if alvo.startswith("https://api.emailjs.com"):
-        raise AssertionError("TENTATIVA DE ENVIO REAL DENTRO DO TESTE — transporte falso ausente.")
-    return _urlopen_real(req, *a, **k)
+# A sentinela vem de `bolao/shared/scripts/provider_tripwire.py`, nao mais escrita aqui.
+#
+# Ela era inline e citava o host do provedor. O gate `test_no_real_email_in_verification.py` tem
+# uma regra sem excecao — nenhum arquivo de verificacao menciona o provedor — e a regra vale
+# justamente por nao ter excecao. Mas escrever a trava exige escrever o nome do host, e o teste
+# ficava preso entre ter a trava e nao citar o provedor.
+#
+# Afrouxar o gate ou renomear este arquivo para escapar do padrao trocaria protecao real por
+# verde. A saida foi tirar o literal daqui e deixa-lo num lugar so, auditado, cujo unico trabalho
+# e BLOQUEAR — e que o proprio gate EXECUTA para provar que ainda levanta.
 
 
 def limpa_canarios():
@@ -123,7 +127,7 @@ ESTADO_B = {"matches": {"t-a": {"l1": [2, 1], "l2": [1, 0]}}, "qualified": {"t-a
 
 def main():
     print("PROVA — comprovante por VERSÃO gravada (transporte falso)\n")
-    urllib.request.urlopen = _urlopen_vigiado
+    provider_tripwire.install()
     C.set_transport(transporte_falso)
     limpa_canarios()
 
