@@ -177,6 +177,19 @@ const EXPECTED = [
     hourWindows: { evening: [0, 23], overnight: [0, 23] },
   },
   {
+    // Engineering Sentinel V1.0-A (scripts/sentinel/). Nao envia e-mail, nao toca em nenhum
+    // ledger de notificacao -- e monitoramento (deteccao CHANGE_INTENT Stale -> GitHub Issue).
+    // Mesma forma do consumidor de comprovante acima: nao ha janela de negocio, o requisito e
+    // rodar pelo menos uma vez por dia, qualquer hora. Se este cron parar de disparar, o unico
+    // efeito e "Sentinel nao detecta nada hoje" -- nunca bloqueia desenvolvimento normal nem
+    // notificacao existente (ver docs/bolao/sentinel/README.md, secao Failure Semantics).
+    file: "sentinel.yml",
+    why: "Sentinel V1.0-A e monitoramento, nao notificacao -- cobertura diaria evita que o cron " +
+         "fique parado sem ninguem perceber, mas a ausencia nunca afeta um participante real",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [0, 23], overnight: [0, 23] },
+  },
+  {
     // Coleta do resultado oficial das duas loterias. Nao envia e-mail e nao credita premio: e o
     // passo que REGISTRA o que a fonte publicou. Se ele nao rodar, todo o resto do pipeline
     // (e-mail de resultado, saldo, elegibilidade) fica sem insumo.
