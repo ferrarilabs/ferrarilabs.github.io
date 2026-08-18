@@ -74,6 +74,11 @@ def validate_game_types(data_content):
 
     return True
 
+# data.js's documented convention for "no email on file" (see git history prior to the PII
+# strip, e.g. `email: "—"`) -- not a malformed address, and must not be flagged as one.
+NO_EMAIL_ON_FILE_PLACEHOLDER = "—"
+
+
 def validate_participants(data_content):
     """Validate participant entries have required fields"""
     # Extract one participant entry to check structure
@@ -86,8 +91,10 @@ def validate_participants(data_content):
 
     print(f"✅ Found {len(matches)} participant(s) with emails")
 
-    # Validate email format (basic check)
-    invalid_emails = [m[1] for m in matches if '@' not in m[1]]
+    # Validate email format (basic check). The documented "no email on file" placeholder is
+    # exempt -- it was never meant to be an email address, so it can't be an invalid one.
+    checked = [m[1] for m in matches if m[1] != NO_EMAIL_ON_FILE_PLACEHOLDER]
+    invalid_emails = [e for e in checked if '@' not in e]
     if invalid_emails:
         print(f"❌ Error: {len(invalid_emails)} invalid email(s): {invalid_emails[:3]}")
         return False
