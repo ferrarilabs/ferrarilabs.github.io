@@ -478,8 +478,17 @@ def _ms_to_iso(ms):
 
 
 def _row_to_record(row):
-    """Linha da tabela (snake_case, do PostgREST) -> dict que `RoundLedger` espera (camelCase)."""
-    if row is None:
+    """Linha da tabela (snake_case, do PostgREST) -> dict que `RoundLedger` espera (camelCase).
+
+    `row is None` NAO basta. Medido contra producao: uma RPC `plpgsql` com uma variavel
+    `declare`da e nunca atribuida serializa via `to_json` como um OBJETO com todo campo null
+    (`{"idempotency_key": null, ...}`), nao como `null` puro -- so um SELECT/UPDATE sem
+    `declare` que encontra zero linhas devolve null de verdade. As RPCs deste arquivo foram
+    corrigidas para o segundo padrao (ver 030_br_round_notification_durability.sql), mas esta
+    checagem fica defensiva de proposito: se qualquer RPC futura reintroduzir o padrao
+    `declare`, uma reivindicacao FALHA nao pode ser tratada como sucesso silenciosamente.
+    """
+    if row is None or row.get("idempotency_key") is None:
         return None
     return {
         "schemaVersion": 1,
