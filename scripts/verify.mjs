@@ -151,6 +151,8 @@ const CHECKS = [
     why: "quem le a linha crua precisa da credencial privilegiada E o workflow tem de injeta-la; sem isso o job morre com IndexError" },
   { id: "cdb-phase-lifecycle", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_phase_lifecycle.mjs"],
     why: "cutoffAt=null significava tanto 'sem sorteio' quanto 'prazo pendente'; o segundo caso deixou 12 pessoas sem conseguir palpitar" },
+  { id: "cdb-tie-completeness", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_tie_completeness.mjs"],
+    why: "Issue #167: um confronto sem teamA/teamB local nao rendeia bloco, e validatePicks() so olhava o DOM ja filtrado -- uma entrada podia salvar faltando um confronto inteiro, sem erro nenhum" },
   { id: "cdb-tie-id-parity", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_operator_tie_id_matches_app.mjs"],
     why: "id de confronto divergente entre app.js e operator_cli.py cria confronto PARALELO, com palpites divididos" },
   { id: "cbf-ingestion", group: "app", cmd: ["node", "bolao/cdb2026/scripts/audit_cbf_ingestion.mjs"], why: "CBF draw ingestion" },
