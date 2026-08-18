@@ -38,7 +38,7 @@ These are the requirements as implemented in v4.0-clean. Nothing here is specula
 
 - **Login:** SHA-256 password hash comparison via `crypto.subtle`.
 - **Session:** 30 minutes, stored in `sessionStorage`; cleared on tab close.
-- **Lockout:** 5 failed attempts → 15-minute lockout via `localStorage`.
+- **Lockout:** 5 failed attempts → 15-minute lockout via `sessionStorage`.
 - **`guardAdmin()`:** called on every admin action, not just on section load.
 - **Payment tracking:** checkbox per entry → `state.paid[id]` → synced to Supabase.
 - **Real results:** enter actual goals + advance side for each match → ranking updates live.
