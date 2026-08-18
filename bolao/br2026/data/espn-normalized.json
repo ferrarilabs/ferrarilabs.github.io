@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-18T00:53:05Z",
-  "sourceUpdatedAt": "2026-08-18T00:53:05Z",
+  "generatedAt": "2026-08-18T02:12:26Z",
+  "sourceUpdatedAt": "2026-08-18T02:12:26Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "ad1499373d6b937e4129670bf6ad0fbee67c6f80bda5d770cdd904dcf49c9976",
+  "payloadHash": "b6cae12c3758e7196b02191ac5a5b5919412344eb557f6b4ae0130e6693d6218",
   "matches": [
     {
       "id": "401840808",
@@ -38147,29 +38147,29 @@
     {
       "id": "401841191",
       "date": "2026-08-17T23:00Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "33'",
-      "statusDetail": "33'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Internacional",
       "awayTeam": "Remo",
       "homeTeamId": "1936",
       "awayTeamId": "4936",
       "homeScore": 1,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Beira-Rio",
       "city": "Porto Alegre",
-      "clockSec": 1980.0,
-      "clockStr": "33'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
+      "period": 2,
       "details": [
         {
           "type": {
-            "text": "Goal - Volley"
+            "text": "Goal"
           },
           "scoringPlay": true,
           "team": {
@@ -38183,6 +38183,120 @@
             {
               "displayName": "Johan Carbonero",
               "shortName": "J. Carbonero"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 2929.0,
+            "displayValue": "49'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marlon",
+              "shortName": "Marlon"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3441.0,
+            "displayValue": "58'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jajá",
+              "shortName": "Jajá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 3931.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Zé Ricardo",
+              "shortName": "Zé Ricardo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 4907.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Bahia",
+              "shortName": "M. Bahia"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Free-kick"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Bueno",
+              "shortName": "V. Bueno"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitor Bueno",
+              "shortName": "V. Bueno"
             }
           ]
         }
