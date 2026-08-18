@@ -21,35 +21,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # DESARMADO em 2026-08-18 (Issue #221) -- INCIDENTE CONFIRMADO, nao suspeita.
+      # REARMADO em 2026-08-18 (Issue #221). O incidente original (R23 enviada 4x para os 11
+      # participantes reais, 44 envios em vez de 11) tinha causa raiz em
+      # `SupabaseStateRoundLedgerRepo`, que alegava durabilidade mas nunca escrevia de volta no
+      # Supabase -- corrigido substituindo-o por `AtomicRoundLedgerRepo`
+      # (bolao_round_notif_jobs, migracao 030_br_round_notification_durability.sql, aplicada em
+      # producao) com reivindicacao atomica de linha unica. Um segundo defeito, achado durante a
+      # verificacao do rollout ANTES de qualquer rodada real o alcancar, tambem foi corrigido:
+      # `claim_bolao_notif_round_job` serializava reivindicacao FALHA como objeto todo-null em
+      # vez de null puro -- ver commit da correcao (#228) e `test_round_email_durable_ledger.py`.
       #
-      # A rodada 23 foi enviada 4x para os 11 participantes reais (44 envios em vez de 11),
-      # em quatro execucoes agendadas independentes entre 2026-08-17 22:45 ET e 2026-08-18
-      # 00:57 ET. Todas as quatro reivindicaram a MESMA idempotencyKey
-      # (br2026:round-results:23:v1) e a listagem de reconciliacao continuou mostrando
-      # `R23 ROUND_READY_TO_NOTIFY` mesmo apos execucoes anteriores ja terem enviado.
+      # Antes de rearmar, verificado diretamente contra producao: ledger atomico disponivel,
+      # rodada 23 (a rodada do incidente) permanece SENT/11-aceitos/nao-reivindicavel, e uma
+      # reivindicacao fresca contra ela devolve null (zero elegibilidade), nao por o workflow
+      # estar desarmado -- pelo estado duravel do banco.
       #
-      # Causa raiz: `SupabaseStateRoundLedgerRepo` (em send_round_email.py) alega durabilidade
-      # na propria docstring, mas `put()` so muta um dict em memoria construido de um GET
-      # `sb_fetch()` -- nao existe NENHUMA chamada PUT/PATCH/upsert no arquivo que grave
-      # `bolao_state.roundEmail.ledger` de volta no Supabase. Cada execucao agendada parte do
-      # mesmo documento obsoleto, ve a rodada como nao reivindicada e reenvia. Isto reproduz
-      # em QUALQUER rodada futura, nao e especifico da R23.
-      #
-      # Corrigir isto exige religar o claim/settle da rodada a um armazenamento que realmente
-      # persiste (provavelmente o ledger atomico via RPC ja usado por outras familias de
-      # notificacao) -- projeto ainda nao autorizado/implementado. Ate la, ARMAR = trocar
-      # --dry-run por --auto e o valor de BOLAO_ALLOW_REAL_SEND para "I UNDERSTAND" (branch
-      # fix/br2026-round-email-duplication-221 / commit anterior a este).
-      #
-      # BOLAO_ALLOW_REAL_SEND permanece PRESENTE de proposito (nao removido): o portao de
-      # transporte de send_round_email.py exige o nome exato desta variavel para o cron nao
-      # falhar fechado em silencio (ver scripts/safety/audit_safety_contract.mjs, secao 3). O
-      # valor abaixo NAO e o token magico "I UNDERSTAND" e o modo e --dry-run: as duas travas
-      # concordam em "desarmado", em vez de divergir em silencio.
-      - name: Reconciliar rodadas (dry-run -- envio real DESARMADO, ver Issue #221)
+      # DESARMAR = trocar --auto por --dry-run e remover/alterar o valor de BOLAO_ALLOW_REAL_SEND.
+      - name: Reconciliar rodadas (envio real de rodada completa)
         working-directory: bolao/br2026/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BOLAO_ALLOW_REAL_SEND: "DISARMED_INCIDENT_221_SEE_ISSUE"
-        run: python3 send_round_email.py --dry-run
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 send_round_email.py --auto

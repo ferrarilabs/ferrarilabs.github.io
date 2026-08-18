@@ -5,5 +5,12 @@
 
   "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
 
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #221 rearm: causa raiz corrigida e verificada (durable ledger migrado e aplicado em producao via PRs #226/#228, backfill da rodada 23 aplicado e verificado, reivindicacao atomica confirmada diretamente contra objetos de producao). Round 23 permanece SENT/nao-reivindicavel; nenhum e-mail real foi enviado durante a verificacao.",
+      "expected_behavior_change": "br2026_round_emails.yml volta a rodar com --auto e BOLAO_ALLOW_REAL_SEND=\"I UNDERSTAND\" -- envio real de e-mail de rodada REARMADO. O guard de envio real permanece presente (nao removido) e concorda com o modo --auto, como o gate de seguranca exige.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "br-round-email-durable-ledger"]
+    }
+  ]
 }
