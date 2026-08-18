@@ -55,8 +55,8 @@ test("empty body parses to null", () => {
 });
 
 test("only allowlisted fields survive rendering — no accidental raw-data leakage", () => {
-  const block = renderStateBlock({ fingerprint: "a", raw_participant_email: "REDACTED_EMAIL", token: "ghp_secret" });
-  assert(!block.includes("gmail.com"), "a non-allowlisted field must never reach the rendered block");
+  const block = renderStateBlock({ fingerprint: "a", raw_participant_email: "someone@example.invalid", token: "ghp_secret" });
+  assert(!block.includes("example.invalid"), "a non-allowlisted field must never reach the rendered block");
   assert(!block.includes("ghp_secret"), "a non-allowlisted field must never reach the rendered block");
 });
 
