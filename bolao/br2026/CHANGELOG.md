@@ -1,5 +1,37 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-18 — Issue #221: correção definitiva -- ledger de rodada durável (F8)
+
+Substitui `SupabaseStateRoundLedgerRepo` (removido) por `AtomicRoundLedgerRepo`, que persiste em
+uma tabela dedicada (`bolao_round_notif_jobs`, migração
+`bolao/shared/sql/030_br_round_notification_durability.sql`) via RPCs `security definer` --
+mesmo padrão de segurança já provado em `010_notification_durability.sql`/`020_notif_recipient_rpcs.sql`
+(entry_ref opaco, RLS sem policy para `anon`, atomicidade dentro da RPC). A máquina de estados de
+`RoundLedger` (`round_notification_ledger.py`) **não mudou** -- já estava correta e testada; só a
+camada de persistência por baixo dela era o defeito.
+
+**Prova de exactly-once ENTRE processos separados** (`test_round_email_durable_ledger.py`, gate
+`br-round-email-durable-ledger`), não só dentro do mesmo objeto Python: reproduz o defeito real
+com um repositório não durável (4 execuções frescas, 11 envios em CADA uma -- o mesmo padrão do
+incidente), depois prova zero duplicatas com o repositório novo em 100 execuções sequenciais e 10
+workers concorrentes (via lock na reivindicação atômica, modelando o `UPDATE` de linha única que o
+Postgres protege nativamente), parcial retenta só quem falhou, incerto nunca reenvia
+automaticamente, e a fiação de produção (`run_auto()`) de fato usa o repositório durável -- prova
+manual de que reverter essa linha faz o gate ir vermelho.
+
+**Achado separado, corrigido no mesmo patch por ser trivial e do mesmo arquivo**:
+`notification_states_from_round_ledger()` chamava `ledger.get()` uma vez por rodada do manifesto
+(até 38 chamadas RPC por execução, sem tratamento de erro) -- inofensivo enquanto o repositório
+era um dict local, mas seria lento e frágil contra rede real. Trocado por uma leitura em lote
+(`repo.list_by_prefix()`).
+
+**Ainda pendente, não incluído neste patch**: aplicar `030_br_round_notification_durability.sql`
+em produção, aplicar o backfill de reconciliação da rodada 23
+(`bolao/shared/sql/INCIDENT_221_backfill_round23_sent.sql`, evidência extraída dos logs reais do
+GitHub Actions -- run 32101043496 -- não inferida), e só então rearmar
+`br2026_round_emails.yml`. O workflow permanece DESARMADO até essas três etapas serem concluídas
+e verificadas.
+
 ## 2026-08-18 — INCIDENTE: e-mail da R23 enviado 4x para os 11 participantes reais (Issue #221)
 
 **Envio real de e-mail de rodada DESARMADO** (`.github/workflows/br2026_round_emails.yml`:

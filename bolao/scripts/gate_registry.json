@@ -11,6 +11,9 @@
     "bolao/br2026/scripts/test_round_delivery_loop.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/br2026/scripts/test_round_email_durable_ledger.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/br2026/scripts/test_round_state.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
