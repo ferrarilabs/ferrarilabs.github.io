@@ -440,57 +440,105 @@ def _parse_iso(s):
 # Deixar a funcao aqui como codigo morto seria pior que remove-la: ela parece autoritativa.
 
 
-# ─── SUPABASE: ledger duravel de rodada ────────────────────────────────────────────────────────
+# ─── REPOSITORIO ATOMICO DE RODADA (F8, Issue #221) ────────────────────────────────────────────
 #
-# Enquanto a migracao 010_notification_durability.sql nao for aplicada em producao (F7, bloqueado
-# por credencial administrativa), a disposicao por rodada e persistida dentro do proprio
-# `bolao_state`, sob `roundEmail.ledger`. Isso ja e DURAVEL -- sobrevive ao runner efemero do
-# GitHub Actions, que era o problema original do outbox em arquivo.
+# Substitui `SupabaseStateRoundLedgerRepo` (removido). Aquele repositorio alegava durabilidade na
+# propria docstring mas so mutava um dict em memoria construido de um `sb_fetch()` (GET) -- nao
+# existia NENHUM caminho de escrita de volta ao Supabase. Toda execucao agendada lia o mesmo
+# documento obsoleto, via a rodada como nao reivindicada e reenviava: a rodada 23 foi enviada 4x
+# para os 11 participantes reais (44 envios em vez de 11), em quatro execucoes agendadas
+# independentes.
 #
-# O que ele ainda NAO tem e atomicidade de reivindicacao no banco: o claim aqui e read-modify-write
-# sobre um documento JSON. Duas execucoes exatamente simultaneas poderiam ambas reivindicar. O
-# workflow usa `concurrency: br2026-round-emails` com `cancel-in-progress: false`, o que serializa
-# as execucoes agendadas e reduz muito a janela -- mas nao a fecha. A trava real e o
-# `for update skip locked` da RPC, e migrar para ela e a primeira coisa a fazer quando a
-# autenticacao existir. Registrado como risco residual, nao como resolvido.
-class SupabaseStateRoundLedgerRepo:
-    """FALLBACK HISTORICO. Persiste em `bolao_state.roundEmail.ledger` (JSON).
+# Este repositorio fala com `bolao_round_notif_jobs`
+# (030_br_round_notification_durability.sql) EXCLUSIVAMENTE pelas RPCs `security definer` dessa
+# migracao -- nenhum SELECT/UPDATE direto na tabela (a RLS nao tem policy alguma para `anon`;
+# leitura/escrita direta devolveria vazio ou seria negada). A atomicidade da reivindicacao vem de
+# um UPDATE de linha unica DENTRO da RPC, no banco -- nunca deste codigo Python.
+#
+# `RoundLedger` (round_notification_ledger.py) NAO MUDA: a maquina de estados (ensure_job decide
+# recriar/recusar por hash mudado, settle decide SENT/PARTIAL/FAILED/NEEDS_MANUAL_REVIEW) e o
+# mesmo codigo ja testado e com interop provado contra o .mjs. Só a camada de persistencia por
+# baixo mudou -- por isso este repositorio implementa a MESMA interface get/put/claim_atomic/
+# list_by_prefix que `MemoryRoundLedgerRepo` ja usa em teste.
+_ROUND_RPC_CALLER = None   # teste injeta um callable(name, args) -> resultado, sem rede
 
-    E duravel -- sobrevive ao runner efemero do GitHub Actions -- mas NAO e atomico: o claim e
-    read-modify-write sobre um documento. Duas execucoes exatamente simultaneas poderiam ambas
-    reivindicar.
 
-    Desde F7 (2026-08-10) o caminho canonico e `AtomicNotifRepo`, que usa as RPCs do Postgres com
-    `for update skip locked`. Este repositorio permanece apenas como leitura de evidencia
-    historica e como fallback de DEGRADACAO -- e envio real com ele e PROIBIDO
-    (ver `atomic_ledger_available()`).
-    """
+def _round_rpc(name, args):
+    if _ROUND_RPC_CALLER is not None:
+        return _ROUND_RPC_CALLER(name, args)
+    return _rpc(name, args)
 
-    def __init__(self, state):
-        self._state = state
-        self._ledger = state.setdefault("roundEmail", {}).setdefault("ledger", {})
+
+def _iso_to_ms(s):
+    return int(_parse_iso(s).timestamp() * 1000) if s else None
+
+
+def _ms_to_iso(ms):
+    return _iso(datetime.fromtimestamp(ms / 1000, tz=timezone.utc)) if ms is not None else None
+
+
+def _row_to_record(row):
+    """Linha da tabela (snake_case, do PostgREST) -> dict que `RoundLedger` espera (camelCase)."""
+    if row is None:
+        return None
+    return {
+        "schemaVersion": 1,
+        "idempotencyKey": row["idempotency_key"],
+        "roundNumber": row["round_number"],
+        "state": row["state"],
+        "expectedRecipientCount": row["expected_recipient_count"],
+        "resolvedRecipientCount": row["resolved_recipient_count"],
+        "contentHash": row["content_hash"],
+        "recipientSetHash": row["recipient_set_hash"],
+        "fixtureSetHash": row["fixture_set_hash"],
+        "recipients": row["recipients"],
+        "attemptCount": row["attempt_count"],
+        "claimedBy": row["claimed_by"],
+        "leaseUntil": _iso_to_ms(row["lease_until"]),
+        "createdAt": _iso_to_ms(row["created_at"]),
+        "updatedAt": _iso_to_ms(row["updated_at"]),
+        "sentAt": _iso_to_ms(row["sent_at"]),
+    }
+
+
+class AtomicRoundLedgerRepo:
+    """Producao. Ver o comentario acima da classe para o porque e o que substitui."""
+
+    POOL_ID = "br2026"
 
     def get(self, key):
-        v = self._ledger.get(key)
-        return json.loads(json.dumps(v)) if v is not None else None
+        return _row_to_record(_round_rpc("get_bolao_notif_round_job", {"p_idempotency_key": key}))
 
     def put(self, key, record):
-        self._ledger[key] = json.loads(json.dumps(record))
+        _round_rpc("upsert_bolao_notif_round_job", {
+            "p_idempotency_key": key,
+            "p_pool_id": self.POOL_ID,
+            "p_round_number": record["roundNumber"],
+            "p_state": record["state"],
+            "p_content_hash": record["contentHash"],
+            "p_recipient_set_hash": record["recipientSetHash"],
+            "p_fixture_set_hash": record["fixtureSetHash"],
+            "p_expected_recipient_count": record["expectedRecipientCount"],
+            "p_resolved_recipient_count": record["resolvedRecipientCount"],
+            "p_recipients": record["recipients"],
+            "p_attempt_count": record["attemptCount"],
+            "p_claimed_by": record.get("claimedBy"),
+            "p_lease_until": _ms_to_iso(record.get("leaseUntil")),
+            "p_sent_at": _ms_to_iso(record.get("sentAt")),
+        })
 
     def list_by_prefix(self, prefix):
-        return [json.loads(json.dumps(v)) for k, v in self._ledger.items() if k.startswith(prefix)]
+        # A tabela e exclusiva do BR2026 (um pool so) -- todo idempotencyKey nela ja comeca com
+        # o mesmo prefixo `round_key()` produz, entao listar por pool_id e equivalente e mais
+        # barato que filtrar client-side.
+        rows = _round_rpc("list_bolao_notif_round_jobs", {"p_pool_id": self.POOL_ID}) or []
+        return [_row_to_record(r) for r in rows]
 
     def claim_atomic(self, key, owner, lease_until, now_ms):
-        rec = self._ledger.get(key)
-        if rec is None or (rec.get("leaseUntil") and rec["leaseUntil"] > now_ms):
-            return None
-        # Mesma regra do repositorio canonico: PARTIAL/FAILED sao retentaveis, SENT e
-        # NEEDS_MANUAL_REVIEW nao. Ver CLAIMABLE_STATES em round_notification_ledger.py.
-        if rec.get("state") not in CLAIMABLE_STATES:
-            return None
-        nxt = dict(rec, state="CLAIMED", claimedBy=owner, leaseUntil=lease_until, updatedAt=now_ms)
-        self._ledger[key] = nxt
-        return json.loads(json.dumps(nxt))
+        lease_seconds = max(1, round((lease_until - now_ms) / 1000))
+        return _row_to_record(_round_rpc("claim_bolao_notif_round_job", {
+            "p_idempotency_key": key, "p_owner": owner, "p_lease_seconds": lease_seconds,
+        }))
 
 
 # ─── REPOSITORIO ATOMICO (F7) ──────────────────────────────────────────────────────────────────
@@ -526,9 +574,16 @@ def _rpc(name, args):
 
 
 def atomic_ledger_available():
-    """(disponivel, motivo). Envio real EXIGE isto -- ver REAL_SEND_REQUIRES_ATOMIC_LEDGER."""
+    """(disponivel, motivo). Envio real EXIGE isto -- ver REAL_SEND_REQUIRES_ATOMIC_LEDGER.
+
+    Sonda `list_bolao_notif_round_jobs` (030_br_round_notification_durability.sql) -- a RPC que
+    `AtomicRoundLedgerRepo` realmente usa -- e nao `bolao_notif_health` (tabela `bolao_notif_jobs`,
+    generica e nao usada por este arquivo desde F8/Issue #221). Health-checar uma dependencia
+    diferente da que o codigo de fato usa deixaria passar exatamente o caso em que a migracao 030
+    ainda nao foi aplicada em producao.
+    """
     try:
-        _rpc("bolao_notif_health", {"p_pool_id": "br2026"})
+        _round_rpc("list_bolao_notif_round_jobs", {"p_pool_id": "br2026"})
         return True, None
     except Exception as e:
         return False, f"{type(e).__name__}: {str(e)[:80]}"
@@ -569,21 +624,30 @@ _ROUND_LEDGER_STATUS_MAP = {
 def notification_states_from_round_ledger(ledger, manifest):
     """Disposicao por rodada segundo o ledger que REALMENTE registrou o envio (2026-08-11).
 
-    O ledger atomico (`bolao_notif_status_by_pool`) nao tem linha nenhuma para o BR2026: nada
-    enfileira rodada la. Quem registra a entrega e o `RoundLedger` sobre
-    `bolao_state.roundEmail.ledger` -- duravel, mas invisivel para o reconciliador.
+    O ledger atomico generico (`bolao_notif_status_by_pool`, tabela `bolao_notif_jobs`) nao tem
+    linha nenhuma para o BR2026: nada enfileira rodada la. Quem registra a entrega e o
+    `RoundLedger` sobre `AtomicRoundLedgerRepo` (F8/Issue #221) -- duravel, mas invisivel para o
+    `bolao_notif_status_by_pool` do reconciliador generico.
 
-    Consequencia observada em producao logo apos o envio da R22: a rodada continuava aparecendo
-    como ROUND_READY_TO_NOTIFY e como CANDIDATO em toda execucao. O reenvio so nao acontecia
-    porque o `claim` recusa estado terminal -- ou seja, a protecao contra duplicata estava
-    dependendo do ultimo portao, e nao da primeira decisao.
+    Consequencia observada em producao logo apos o envio da R22 (2026-08-11): a rodada continuava
+    aparecendo como ROUND_READY_TO_NOTIFY e como CANDIDATO em toda execucao. O reenvio so nao
+    acontecia porque o `claim` recusa estado terminal -- ou seja, a protecao contra duplicata
+    estava dependendo do ultimo portao, e nao da primeira decisao.
 
     Mesclar isto e seguro por construcao: so ACRESCENTA estados terminais, e um estado terminal
     a mais so pode IMPEDIR envio, nunca provocar um.
+
+    UMA leitura em lote (`repo.list_by_prefix`), nao uma por rodada: ate F7 o repositorio era um
+    dict local (`SupabaseStateRoundLedgerRepo` sobre o `state` ja buscado) e chamar `ledger.get()`
+    38 vezes (uma por rodada do manifesto) nao custava rede nenhuma. Desde F8 cada leitura e uma
+    chamada RPC real -- 38 chamadas por execucao so para este passo, sem tratamento de erro,
+    seria lento e faria uma falha de rede transitoria derrubar a execucao inteira.
     """
+    por_rodada = {rec["roundNumber"]: rec
+                  for rec in ledger.repo.list_by_prefix("br2026:round-results:")}
     estados = {}
     for r in manifest["rounds"]:
-        rec = ledger.get(r["roundNumber"])
+        rec = por_rodada.get(r["roundNumber"])
         if not rec:
             continue
         traduzido = _ROUND_LEDGER_STATUS_MAP.get(rec.get("state"))
@@ -647,7 +711,7 @@ def run_auto(dry_run=False):
     state = sb_fetch()
     legacy = state.get("roundEmail") or {}
 
-    repo = SupabaseStateRoundLedgerRepo(state)
+    repo = AtomicRoundLedgerRepo()
     ledger = RoundLedger(repo, now=lambda: int(datetime.now(timezone.utc).timestamp() * 1000),
                          log=_emit)
 
@@ -659,9 +723,18 @@ def run_auto(dry_run=False):
     # gente real.
     atomic_ok, atomic_why = atomic_ledger_available()
     print(f"LEDGER ATOMICO: {'disponivel' if atomic_ok else 'INDISPONIVEL — ' + str(atomic_why)}")
-    if not atomic_ok and not dry_run:
-        print("🛑 REAL_SEND_REQUIRES_ATOMIC_LEDGER: envio real bloqueado sem o ledger atomico.")
-        sys.exit(1)
+    if not atomic_ok:
+        # Sem o ledger nem envio real (ja era assim) nem qualquer leitura do ledger de rodada
+        # pode prosseguir com seguranca -- desde F8 (AtomicRoundLedgerRepo) toda leitura por
+        # rodada e uma RPC real, e continuar chamando-a so trocaria este diagnostico claro por
+        # uma excecao de rede nao tratada mais adiante (recover_expired_leases, notification_
+        # states_from_round_ledger, ensure_job de cada candidato). Ate F7 nada disso tocava rede
+        # (repo local), entao esta parada nao existia.
+        if not dry_run:
+            print("🛑 REAL_SEND_REQUIRES_ATOMIC_LEDGER: envio real bloqueado sem o ledger atomico.")
+            sys.exit(1)
+        print("DRY-RUN sem ledger atomico: nada a reconciliar com seguranca. Parando aqui.")
+        return {"candidates": [], "providerCalls": 0}
 
     # ── LEASES EXPIRADOS, ANTES DE QUALQUER DECISAO (2026-08-11) ───────────────────────────────
     #
@@ -682,8 +755,7 @@ def run_auto(dry_run=False):
     notif_states = {}
     migrated, mig = LEGACY.migrate(legacy, manifest)
     notif_states.update(migrated)
-    if atomic_ok:
-        notif_states.update(notification_states_from_atomic())
+    notif_states.update(notification_states_from_atomic())
     # POR ULTIMO: o ledger que efetivamente registrou a entrega desta rodada. Ver a docstring --
     # sem isto, uma rodada JA ENVIADA continua sendo proposta como candidata em toda execucao.
     notif_states.update(notification_states_from_round_ledger(ledger, manifest))

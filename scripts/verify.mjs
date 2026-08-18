@@ -288,6 +288,8 @@ const CHECKS = [
     why: "F6: o cron real alcanca o reconciliador canonico e o ledger duravel" },
   { id: "br-delivery-loop", group: "notifications", cmd: ["python3", "bolao/br2026/scripts/test_round_delivery_loop.py"],
     why: "o laco de entrega por destinatario: aceito nunca reenvia, parcial nunca vira SENT, incerto falha fechado" },
+  { id: "br-round-email-durable-ledger", group: "notifications", cmd: ["python3", "bolao/br2026/scripts/test_round_email_durable_ledger.py"],
+    why: "Issue #221: a rodada 23 foi enviada 4x para os 11 participantes reais porque o repositorio de producao nunca persistia entre execucoes. Prova exactly-once ENTRE processos novos (nao so dentro do mesmo objeto Python): reproduz o defeito real com um repositorio nao duravel, prova zero duplicatas com AtomicRoundLedgerRepo em 100 execucoes sequenciais e 10 workers concorrentes, parcial/incerto retentam so o que precisa, e a fiacao de producao usa o repositorio duravel" },
   { id: "br-round-state", group: "scoring", cmd: ["python3", "bolao/br2026/scripts/test_round_state.py"],
     why: "F1/F2: identidade canonica de rodada, proveniencia oficial, R21 nao bloqueia R22" },
   { id: "br-recipient-completeness", group: "security", cmd: ["python3", "bolao/br2026/scripts/test_recipient_completeness.py"],
