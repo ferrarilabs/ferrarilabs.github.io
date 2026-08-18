@@ -47,6 +47,24 @@ const RULE_DEFAULTS = {
     scoring_ranking_impact: "No",
     investigation_level: "I1",
     mutation_level: "M1",
+    clean_cycles_to_resolve: 3,
+  },
+  main_ci_red: {
+    severity: "High",
+    priority: "P1 - High",
+    work_type: "Infrastructure / CI",
+    area: "Infrastructure / CI",
+    environment: "Development",
+    domain: "Shared Platform",
+    data_impact: "No",
+    scoring_ranking_impact: "No",
+    investigation_level: "I1",
+    mutation_level: "M1",
+    // A CI conclusion is a binary, non-flaky signal (unlike "detector no longer observes X" in
+    // general) — one confirmed green run is sufficient proof of recovery. See writer.mjs's
+    // confirmed-recovery model: this is used only when a green run is POSITIVELY observed, never
+    // merely inferred from absence.
+    clean_cycles_to_resolve: 1,
   },
 };
 
@@ -75,4 +93,11 @@ export function applyPolicy(detectorId, suggested = {}) {
       mutation_level: rule.mutation_level,
     },
   };
+}
+
+/** How many consecutive clean cycles this detector requires before auto-resolving a finding. */
+export function cleanCyclesToResolve(detectorId) {
+  const rule = RULE_DEFAULTS[detectorId];
+  if (!rule) throw new Error(`policy.mjs: no rule defaults registered for detector_id "${detectorId}"`);
+  return rule.clean_cycles_to_resolve;
 }

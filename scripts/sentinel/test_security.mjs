@@ -111,6 +111,20 @@ test("recordCleanCycleOrResolve refuses to act on a CLOSED issue (no-op, not an 
   assert(outcome.action === "noop");
 });
 
+test("main_ci_red.mjs's source never invokes a mutating gh subcommand (rerun/cancel/dispatch) — it is read-only by construction, not just by docstring", () => {
+  const src = execFileSync("cat", ["scripts/sentinel/detectors/main_ci_red.mjs"], { encoding: "utf8" });
+  assert(!/\brun-rerun\b|\brerun\b|\bcancel\b|\bworkflow-dispatch\b/i.test(src), "the detector must never re-run, cancel, or dispatch a workflow");
+  assert(!/execFileSync|execSync/.test(src), "the detector itself must never shell out directly — all GitHub access goes through github_client.mjs's injected fetchLatestRuns");
+});
+
+test("github_client.mjs's fetchLatestRuns only ever calls 'gh run list' / 'gh run view' — never a mutating run subcommand", () => {
+  const src = execFileSync("cat", ["scripts/sentinel/github_client.mjs"], { encoding: "utf8" });
+  const fetchSection = src.slice(src.indexOf("fetchLatestRuns(workflowName"), src.indexOf("fetchLatestRuns(workflowName") + 900);
+  assert(/"run",\s*"list"/.test(fetchSection), "must use 'gh run list'");
+  assert(/"run",\s*"view"/.test(fetchSection), "must use 'gh run view'");
+  assert(!/"rerun"|"cancel"|"workflow-dispatch"/.test(fetchSection), "must never issue a mutating run/workflow subcommand");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ SECURITY TESTS FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL SECURITY TESTS PASSED\n");
