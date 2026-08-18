@@ -1957,9 +1957,33 @@ function getPickValues() {
   return picks;
 }
 
+// Confrontos REAIS presentes no estado canonico (phase.ties) que renderPickForm() pula por
+// faltar teamA/teamB local (ver o `if (!tie.teamA || !tie.teamB) return;` la) -- e por isso
+// nunca ganham `.tie-pick-block`, ficando invisiveis para getPickValues()/validatePicks() se
+// elas so olharem o DOM. Mesmos criterios de fase que renderPickForm usa (fase com sorteio
+// registrado, ainda nao totalmente resolvida) -- ties.length>0 exclui fases derivadas/sem
+// sorteio, que nunca tem esse problema (seus times vem de virtualDerivedTies(), sempre
+// completos quando a topologia e conhecida).
+function tiesInvisibleForIncompleteTeams(s) {
+  const found = [];
+  DATA.phases.forEach(phase => {
+    const phaseState = s.phases?.[phase.id] || emptyPhaseState();
+    const ties = Object.entries(phaseState.ties || {});
+    if (!ties.length || phaseFullyResolved(s, phase.id)) return;
+    ties.forEach(([tieId, tie]) => {
+      if (tie.qualifiedTeamId) return;   // ja decidido -- nada a apostar, faltar time nao importa
+      if (!tie.teamA || !tie.teamB) found.push(tieId);
+    });
+  });
+  return found;
+}
+
 // ─── Validation ──────────────────────────────────────────────────────────────
 function validatePicks(picks) {
   const errors = [];
+  if (tiesInvisibleForIncompleteTeams(state()).length) {
+    errors.push(t("errorPicksIncomplete"));
+  }
   $$(".tie-pick-block.open").forEach(block => {
     const tieId  = block.dataset.tieId;
     const format = block.dataset.format;
