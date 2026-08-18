@@ -111,3 +111,49 @@ Per the transparency disclaimer in `CONFIG.transparency.disclaimer`:
 > Comprovantes individuais, master list e backups exportados pelo administrador servem como evidência operacional em caso de dúvidas, erro técnico ou contestação.
 
 Receipts are the participant's responsibility to save. The admin should export a CSV backup after the cutoff closes.
+
+## Commit-message PII prevention
+
+**Forward-only control, added 2026-08-18.** During the HIST-091/HIST-093 git-history investigation
+(real participant emails, payment references, and a participant name from the 2026-08-01–08-06
+exposure window), the file/blob PII gate (`scripts/audit_pii_repo_wide.mjs`, running since
+2026-08-12) was found to have a structural blind spot: it only ever scanned tracked file content,
+never commit-message *bodies*. That was a deliberate, reasonable design choice at the time — it
+avoided false positives from git's own author/committer email metadata — but it meant PII typed
+directly into a commit message (a "recipients:" list, a "fix: wrong email was X, now Y" note, an
+incident narrative) was invisible to every existing gate.
+
+`scripts/audit_commit_message_pii.mjs` closes that gap. It reuses the exact same detection engine
+as the file scanner (`scripts/pii_detectors.mjs` — same detectors, same reserved-domain/synthetic
+allowlists, same masked output; no separate logic to maintain) and applies it to every commit
+message *newly introduced* since the same base every other safety-contract gate compares against
+(`resolveBase()` in `scripts/safety/surfaces.mjs`). It is intentionally **forward-only**: it never
+walks full repository history on a normal PR or push. Rescanning/redacting history that predates
+this gate is HIST-091/HIST-093's own, separately-authorized remediation track (a Git history
+rewrite is destructive and requires Eduardo's explicit sign-off — see those Issues), not something
+a routine CI run should attempt.
+
+Run locally: `npm run pii:check` (file scanner + commit-message scanner). Wired into
+`npm run check` via `scripts/verify.mjs` (`commit-message-pii-gate`, `commit-message-pii-gate-tests`)
+and classified in `bolao/scripts/gate_registry.json`, per the Issue #219 lesson that a new gate must
+never be invisible to the registry.
+
+**Synthetic test data.** Any test/fixture needing an email-shaped value must use an RFC 2606
+reserved domain (`.invalid` preferred, or `.test`/`.example`/`.localhost`/`example.com`/`.net`/
+`.org`) — never a real-looking domain, even fictionally, because `scripts/test_fixture_privacy.mjs`
+has a zero-exception rule against non-reserved-domain emails in test files (a 2026-08-09 incident
+sent real email to 15 people from a test-adjacent path). A payment-ID-shaped fixture uses one of
+this repo's declared synthetic prefixes (`SYNTH-`, `SYNTHETIC-`, `FIXTURE-`, `SAMPLE-`,
+`PLACEHOLDER-`, `REDACTED-`) or is assembled at runtime (string concatenation) so no literal,
+matchable value sits in a file's own source.
+
+**Where sensitive investigation material belongs.** Local, non-public security/audit work (raw PII
+extracted during an investigation, working notes, disposable git mirrors used for a dry-run
+rewrite) belongs under `~/Documents/GitHub/ferrarilabs-work/` on Eduardo's machine — a location
+entirely outside this repository, never a candidate for `git add`, and therefore outside every gate
+described above by construction. It is not gitignored *inside* this repo because it was never
+inside it to begin with; that separation is the control. Nothing under it should ever be committed
+here, copied into a PR description, or pasted into a GitHub Issue.
+
+See `docs/bolao/adr/ADR-011-forward-only-pii-prevention.md` for why forward prevention and
+historical remediation are tracked as two separate decisions.

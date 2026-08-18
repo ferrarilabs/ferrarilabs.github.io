@@ -422,6 +422,36 @@ cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
   adicionando mudanças novas em cima de uma suíte vermelha.
 <!-- AUTO:PLATFORM_RULES:END -->
 
+## AI agent PII handling
+
+Added 2026-08-18 after the HIST-091/HIST-093 investigation, where a normal-looking analysis pass
+accidentally printed raw participant emails into conversation output twice (a context-window
+slicing bug, and an unredacted `%s` commit-subject print). Full detail:
+`docs/bolao/SECURITY.md` ("Commit-message PII prevention"); the detection engine itself is
+`scripts/pii_detectors.mjs`, run via `npm run pii:check`.
+
+- Never put raw participant PII (email, payment reference, name in a sensitive operational
+  context) into a GitHub Issue, PR description, commit message, or this file. Use a redacted
+  fingerprint (`mask()` in `scripts/pii_detectors.mjs`) or a neutral alias instead.
+- Before printing any git-log/commit-message output that might contain real values (subjects,
+  bodies, `%B`/`%s` formats), redact known-sensitive patterns first — do not assume a value is
+  safe because it appeared in a "context" snippet rather than a direct print.
+- Store raw sensitive working data (extracted values, investigation notes) outside this
+  repository — `~/Documents/GitHub/ferrarilabs-work/` on Eduardo's machine, `chmod 600`, never
+  `git add`ed. Never inside this repo, gitignored or not.
+- Test fixtures needing an email-shaped value use a reserved domain (`.invalid` preferred); a
+  payment-ID-shaped fixture uses this repo's declared synthetic prefix (`SYNTH-`/`FIXTURE-`/…) or
+  is assembled at runtime. Never a real-looking value, even fictionally — see
+  `scripts/test_fixture_privacy.mjs`'s zero-exception rule.
+- Classify findings before treating them as a confirmed vulnerability: **FACT** (independently
+  verified against current repo/GitHub state), **INFERENCE** (a reasonable read of evidence, not
+  independently confirmed), **UNKNOWN** (insufficient evidence either way). Say which one a claim
+  is; do not present an inference as a fact.
+- A Git history rewrite (removing PII from already-published commits) is a destructive operation
+  requiring Eduardo's explicit, separate authorization — never bundle it into a "cleanup" or
+  "prevention" task, and never treat a forward-only control as making history remediation
+  unnecessary. They are two different decisions (`docs/bolao/adr/ADR-011-forward-only-pii-prevention.md`).
+
 ## GitHub Issues governance
 
 GitHub Issues is the canonical engineering work tracker for this repository. This section

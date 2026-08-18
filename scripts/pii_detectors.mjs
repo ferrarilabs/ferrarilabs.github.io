@@ -113,6 +113,14 @@ export const PUBLISHED_CONTACTS = new Set([
   // operator's own repository, and treating it as a leak would make this detector cry wolf on
   // every run. Allowlisting it for an inaccurate reason is what this edit fixes.
   "emferrari@gmail.com",
+
+  // Added when scripts/audit_commit_message_pii.mjs (2026-08-18) started scanning commit-message
+  // BODIES, not just file content: git's own `Co-Authored-By:` trailer convention put this exact
+  // address in 866 of this repo's commit messages (confirmed via `git log --all --format=%B`,
+  // 100% consistent across every "Claude <model>" author variant) — a tooling identifier, not a
+  // participant's contact address. Not participant PII, so it belongs here on the same footing as
+  // the operator's own mailbox above, not in a message-scanner-specific allowlist.
+  "noreply@anthropic.com",
 ]);
 
 export function isReservedEmail(addr) {
