@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-18 — INCIDENTE: e-mail da R23 enviado 4x para os 11 participantes reais (Issue #221)
+
+**Envio real de e-mail de rodada DESARMADO** (`.github/workflows/br2026_round_emails.yml`:
+`--auto` -> `--dry-run`, `BOLAO_ALLOW_REAL_SEND` removido) ate a causa raiz ser corrigida.
+
+Quatro execucoes agendadas independentes (2026-08-17 22:45 ET .. 2026-08-18 00:57 ET)
+reivindicaram a mesma `idempotencyKey` (`br2026:round-results:23:v1`) e enviaram, cada uma,
+para os 11 participantes -- 44 envios reais em vez de 11.
+
+**Causa raiz**: `SupabaseStateRoundLedgerRepo` (`send_round_email.py`) alega durabilidade na
+propria docstring, mas nunca grava `bolao_state.roundEmail.ledger` de volta no Supabase --
+`sb_fetch()` e so leitura, e o caminho de escrita de documento inteiro (`sb_upsert`) foi
+removido antes por outro motivo de seguranca, sem substituto para este ledger. Cada execucao
+parte do mesmo estado obsoleto e reenvia. Reproduz em qualquer rodada futura, nao so na R23.
+
+Nenhum e-mail corretivo automatico foi enviado aos 11 participantes. Nenhuma pontuacao,
+classificacao ou pick foi alterada. Correcao definitiva (religar o ledger a armazenamento que
+realmente persiste) ainda nao autorizada/implementada -- ver Issue #221.
+
 ## 2026-08-16 — `check_standings_layout` fotografava um ponto fora da tela
 
 **Somente teste. A tabela de classificação nunca esteve errada** — nenhum CSS, HTML ou JS do
