@@ -58,7 +58,7 @@ test("wrong schema_version is rejected", () => {
 });
 
 test("a raw email address in facts is rejected — no PII in a Finding", () => {
-  const f = { ...VALID, facts: ["contact REDACTED_EMAIL about this"] };
+  const f = { ...VALID, facts: ["contact real.looking.person@example.invalid about this"] };
   assert(!validateFinding(f).ok, "a bare email in facts must be refused");
 });
 
