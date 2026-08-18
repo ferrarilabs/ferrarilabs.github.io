@@ -308,6 +308,8 @@ const CHECKS = [
     why: "o sorteio ABERTO tem de mostrar jackpot oficial com procedencia, nunca estado de espera com o dado disponivel" },
   { id: "powerball-scoring", group: "scoring", cmd: ["python3", "bolao/loterias/powerball/scripts/audit_scoring.py"],
     why: "premiacao do Powerball" },
+  { id: "powerball-scoring-email-placeholder", group: "scoring", cmd: ["python3", "bolao/loterias/powerball/scripts/test_audit_scoring_email_placeholder.py"],
+    why: "Issue #134: o placeholder documentado 'sem e-mail no cadastro' (em-dash) nao pode ser rejeitado como e-mail invalido pela auditoria obrigatoria de pre-envio" },
   { id: "powerball-private-data", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/email/test_private_data_contract.mjs"],
     why: "contrato de dado privado do Powerball" },
   { id: "powerball-send-gating", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_send_result_email_gating.py"],
