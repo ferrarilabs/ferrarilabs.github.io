@@ -91,8 +91,13 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
   // auditoria independente de scoring e conteudo). DESARMADO em 2026-08-18 (Issue #221):
   // incidente confirmado, nao suspeita -- a rodada 23 foi enviada 4x para os 11 participantes
   // reais (44 envios em vez de 11) porque `SupabaseStateRoundLedgerRepo` nunca grava o ledger
-  // de volta no Supabase (so muta um dict em memoria de um `sb_fetch()` de leitura). A
-  // autorizacao de 2026-08-11 fica suspensa ate a causa raiz ser corrigida.
+  // de volta no Supabase (so muta um dict em memoria de um `sb_fetch()` de leitura). REARMADO
+  // em 2026-08-18, mesmo dia, apos a causa raiz ser corrigida e VERIFICADA contra producao:
+  // `AtomicRoundLedgerRepo` substitui o repositorio nao duravel (migracao 030, PR #226), um
+  // segundo defeito achado durante a verificacao do rollout -- `claim_bolao_notif_round_job`
+  // serializava reivindicacao falha como objeto todo-null em vez de null puro -- tambem foi
+  // corrigido e aplicado (PR #228), e a rodada 23 (a rodada do incidente) foi confirmada SENT/
+  // 11-aceitos/nao-reivindicavel diretamente contra os objetos de producao antes de rearmar.
   //
   // Apagar as assercoes sem substituir deixaria o bloco com nome de portao e nenhum portao
   // dentro, que e pior do que nao ter portao -- entao a propriedade exigida aqui inverteu de
@@ -105,9 +110,9 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
     /REAL_SEND_REQUIRES_ATOMIC_LEDGER/.test(code),
     "o envio real ficou alcançável sem checar a atomicidade do ledger");
 
-  check("o cron está deliberadamente em modo de reconciliação sem envio (Issue #221)",
-    /send_round_email\.py\s+--dry-run\b/.test(wf) && !/send_round_email\.py\s+--auto\b/.test(wf),
-    "o workflow não está em --dry-run enquanto o incidente de duplicação (#221) segue sem correção definitiva");
+  check("o cron roda o sender canônico em modo de envio (rearmado, Issue #221 corrigido)",
+    /send_round_email\.py\s+--auto\b/.test(wf),
+    "o workflow deixou de chamar o sender canônico com --auto apesar da causa raiz do #221 estar corrigida e verificada");
 
   check("o transporte é checado ANTES de reivindicar a rodada",
     code.indexOf("real_send_allowed()") < code.indexOf("ledger.claim("),
