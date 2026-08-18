@@ -159,12 +159,21 @@ end $$;
 -- A UNICA operacao que precisa ser atomica de verdade: reivindicar a rodada antes de qualquer
 -- chamada ao provedor. Estados reivindicaveis: READY, PARTIAL, FAILED (mesma regra de
 -- CLAIMABLE_STATES em round_notification_ledger.py -- SENT e NEEDS_MANUAL_REVIEW nunca).
+--
+-- `language sql` com UMA instrucao (UPDATE...RETURNING), NAO plpgsql com `declare v_row TYPE`.
+-- Medido em producao: `to_json(NULL::bolao_round_notif_jobs)` -- o valor que uma variavel
+-- plpgsql DECLARADA (e nunca atribuida) produz -- serializa como um OBJETO com todo campo null
+-- (`{"idempotency_key": null, ...}`), NAO como `null` puro. Um SELECT/UPDATE sem `declare` que
+-- encontra zero linhas devolve NULL de verdade (`to_json` disso E' `null`), porque a funcao nao
+-- carrega tipo composto nenhum quando nao ha valor -- e e exatamente essa diferenca que
+-- `AtomicRoundLedgerRepo._row_to_record()` (Python) usa para distinguir "reivindicado" de
+-- "reivindicacao falhou". A versao plpgsql original passava em todo teste (o dublê de teste
+-- devolve `None` do Python direto, nunca reproduziu a serializacao real do Postgres) e teria
+-- feito uma segunda execucao tratar reivindicacao FALHA como SUCESSO contra producao de verdade.
 create or replace function claim_bolao_notif_round_job(
   p_idempotency_key text, p_owner text, p_lease_seconds integer default 300
 ) returns bolao_round_notif_jobs
-language plpgsql security definer set search_path = public as $$
-declare v_row bolao_round_notif_jobs;
-begin
+language sql security definer set search_path = public as $$
   update bolao_round_notif_jobs
      set state = 'CLAIMED',
          claimed_by = p_owner,
@@ -173,11 +182,11 @@ begin
    where idempotency_key = p_idempotency_key
      and state in ('READY', 'PARTIAL', 'FAILED')
      and (lease_until is null or lease_until <= now())
-  returning * into v_row;
-  return v_row;   -- NULL (nenhuma linha) = nao reivindicavel: outra execucao tem o lease, ou
-                  -- o job ja esta em estado terminal. O chamador distingue os dois lendo o
-                  -- estado atual via get_bolao_notif_round_job, exatamente como hoje.
-end $$;
+  returning *;
+  -- NULL (nenhuma linha) = nao reivindicavel: outra execucao tem o lease, ou o job ja esta em
+  -- estado terminal. O chamador distingue os dois lendo o estado atual via
+  -- get_bolao_notif_round_job, exatamente como hoje.
+$$;
 
 -- NAO existe uma RPC dedicada de "liberar leases vencidos": `RoundLedger.recover_expired_leases()`
 -- (Python/JS, ja testado) ja implementa essa recuperacao de forma inteiramente generica sobre
