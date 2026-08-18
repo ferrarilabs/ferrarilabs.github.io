@@ -91,6 +91,9 @@
     "bolao/cdb2026/scripts/test_phase_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_tie_completeness.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_public_projection_and_submit.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "CDB2026 stage 4 aditivo. 12 entradas tem PII na tabela crua; 0 atravessa a projecao. Nao exercita o caminho feliz de submissao: gravaria em producao."
