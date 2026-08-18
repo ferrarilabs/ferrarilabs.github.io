@@ -8,9 +8,9 @@
   "declarations": [
     {
       "surface_id": "NOTIFICATION_WORKFLOWS",
-      "reason": "Issue #221 rearm: causa raiz corrigida e verificada (durable ledger migrado e aplicado em producao via PRs #226/#228, backfill da rodada 23 aplicado e verificado, reivindicacao atomica confirmada diretamente contra objetos de producao). Round 23 permanece SENT/nao-reivindicavel; nenhum e-mail real foi enviado durante a verificacao.",
-      "expected_behavior_change": "br2026_round_emails.yml volta a rodar com --auto e BOLAO_ALLOW_REAL_SEND=\"I UNDERSTAND\" -- envio real de e-mail de rodada REARMADO. O guard de envio real permanece presente (nao removido) e concorda com o modo --auto, como o gate de seguranca exige.",
-      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "br-round-email-durable-ledger"]
+      "reason": "Adiciona .github/workflows/sentinel.yml — um workflow NOVO, nao uma alteracao a um workflow de notificacao existente. Toca a superficie so porque o glob `.github/workflows/**` cobre qualquer arquivo de workflow, por design (um cron que nao dispara nao emite nenhum sinal, entao qualquer mudanca de workflow precisa de revisao). sentinel.yml nao envia e-mail, nao toca em ledger de notificacao, nao concorre com nenhum cron existente: e o Engineering Sentinel V1.0-A (deteccao CHANGE_INTENT Stale), roda `schedule` (`17 13 * * *`, horario proprio, sem sobreposicao com os crons de notificacao) + `workflow_dispatch`, e so cria/atualiza GitHub Issues (M1) — nunca modifica codigo, nunca envia notificacao a participante.",
+      "expected_behavior_change": "Um novo workflow agendado passa a existir, rodando uma vez por dia mais workflow_dispatch manual. Nenhum workflow de notificacao existente (br2026_round_emails.yml, cdb2026_*.yml, powerball-results-email.yml, auto_results.yml, etc.) tem seu cron, gatilho ou comportamento alterado — este PR nao edita nenhum desses arquivos. sentinel.yml nunca fica required check (ver docs/bolao/sentinel/README.md, secao Failure Semantics) e falha aberto: se ele quebrar ou nao rodar, nenhum desenvolvimento normal e nenhuma notificacao existente e afetada.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming"]
     }
   ]
 }
