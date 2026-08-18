@@ -159,6 +159,9 @@
     "bolao/loterias/powerball/scripts/audit_scoring.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_audit_scoring_email_placeholder.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/email/test_private_data_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
