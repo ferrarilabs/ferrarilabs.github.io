@@ -217,6 +217,34 @@ def check_tiebreak_order(mod):
     return True, ""
 
 
+def check_scoring_constants_match_config(config_path=None):
+    """The perfect-bracket simulation's expected-total math (`15 * len(MATCH_TEAMS)`,
+    see check_perfect_bracket_simulation) hardcodes 15 = exactScore(10) + advance(5) as a
+    literal instead of reading config.js. Today the two agree; if config.js's scoring values
+    were ever changed, this audit would keep reporting PASS while real payouts diverged
+    underneath it -- the same class of drift CLAUDE.md's v4.57 postmortem exists to prevent.
+    This doesn't rewrite the formula (bigger, riskier change) -- it fails loudly if the
+    hardcoded assumption and config.js ever disagree, matching the existing
+    check_match_is_real()/check_result_shape() pattern of a static assertion over a full
+    rewrite."""
+    if config_path is None:
+        from pathlib import Path
+        config_path = Path(__file__).parent.parent / "js" / "config.js"
+    with open(config_path) as f:
+        src = f.read()
+    m_exact = re.search(r'exactScore:\s*(\d+)', src)
+    m_advance = re.search(r'\badvance:\s*(\d+)', src)
+    if not m_exact or not m_advance:
+        return False, "could not find scoring.exactScore/advance in config.js"
+    exact_score, advance = int(m_exact.group(1)), int(m_advance.group(1))
+    hardcoded = 15  # kept in sync with check_perfect_bracket_simulation's `15 * len(MATCH_TEAMS)`
+    if exact_score + advance != hardcoded:
+        return False, (f"config.js scoring (exactScore={exact_score} + advance={advance}="
+                        f"{exact_score+advance}) no longer matches the hardcoded per-match "
+                        f"total ({hardcoded}) the perfect-bracket simulation assumes")
+    return True, ""
+
+
 def run_static_audit(mod, verbose=True):
     """Runs every check above against the given send_result_email module.
     Returns (all_passed: bool, [(name, ok, detail), ...])."""
@@ -227,6 +255,7 @@ def run_static_audit(mod, verbose=True):
         ("Partial podium (M103 only) still applies its own bonus", lambda: check_partial_podium_bonus(mod)),
         ("Score parser bounds match the site's", lambda: check_parse_bounds(mod)),
         ("Tiebreak sort order (total, exact, podium)", lambda: check_tiebreak_order(mod)),
+        ("Hardcoded scoring constants match config.js", lambda: check_scoring_constants_match_config()),
     ]
     all_ok = True
     results = []
