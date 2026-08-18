@@ -331,6 +331,29 @@
     "bolao/scripts/check_shared_visual_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/security/check_api_exposure.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/security/check_cors.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Revisao 2026-08-02 (PR #121): gate real (exit 1 em padrao CORS inseguro), mas hoje acusa 4 ocorrencias de .includes(origin)/.endsWith(origin) que sao checagens de allowlist exata (ARRAY.includes(origin)), nao match de sufixo sobre Origin nao confiavel -- a heuristica nao distingue os dois lados da chamada. Provavel falso positivo, nao confirmado para todos os 4 casos. Ver Issue #219: enforcement automatico fica fora da suite ate a heuristica ser revisada ou os 4 achados triados."
+    },
+    "bolao/scripts/security/check_pii_fixtures.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Revisao 2026-08-02 (PR #121): sempre sai 0 por design proprio (docstring do script) -- e um auxiliar de revisao (diff contra baseline conhecida), nao um gate de bloqueio. Ver Issue #219."
+    },
+    "bolao/scripts/security/check_public_secrets.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/security/check_rate_limit_docs.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/security/check_sql_patterns.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/security/check_xss_sinks.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/test_anon_key_shape.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
