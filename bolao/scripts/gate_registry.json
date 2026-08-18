@@ -636,6 +636,12 @@
     "scripts/sentinel/test_github_state.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/sentinel/test_main_ci_red_acceptance.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/sentinel/test_main_ci_red_detector.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/sentinel/test_policy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

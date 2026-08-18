@@ -26,4 +26,15 @@ export function changeIntentStaleFingerprint(surfaceId) {
   return hash([REPO, "change_intent_stale", surfaceId]);
 }
 
+/**
+ * Main CI Red: identity is repo + workflow name + job name — deliberately NOT the conclusion, the
+ * run ID, the SHA, or any log text. Two different jobs failing on the same commit are two
+ * different incidents (different fingerprints); the same job failing across many commits is the
+ * SAME incident (one fingerprint, occurrence_count increments) until a confirmed green run closes
+ * it — see writer.mjs's confirmed-recovery model.
+ */
+export function mainCiRedFingerprint(workflowName, jobName) {
+  return hash([REPO, "main_ci_red", workflowName, jobName]);
+}
+
 export const REPOSITORY = REPO;

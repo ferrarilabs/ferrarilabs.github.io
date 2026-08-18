@@ -1,4 +1,4 @@
-# Engineering Sentinel V1.0-A
+# Engineering Sentinel V1.0-A + V1.0-B
 
 This is implementation-level documentation for what's actually built (`scripts/sentinel/`,
 `.github/workflows/sentinel.yml`). For the full design rationale, see the architecture and design-
@@ -7,11 +7,16 @@ re-derive that reasoning, only how to operate what exists today.
 
 ## What it does
 
-Once a day (plus manual `workflow_dispatch`), Sentinel checks whether `CHANGE_INTENT.json` has a
-declaration that's gone stale — the exact condition that broke `npm run check` for #223 — and, if
-so, creates or updates a GitHub Issue in the "Ferrarilabs Engineering" project. It never modifies
-code. It never sends a notification to a participant. It's monitoring, not enforcement — see
-"Failure Semantics" below.
+Once a day (plus manual `workflow_dispatch`), Sentinel runs every registered detector and creates
+or updates a GitHub Issue in the "Ferrarilabs Engineering" project for anything each one finds. It
+never modifies code. It never sends a notification to a participant. It's monitoring, not
+enforcement — see "Failure Semantics" below. Two detectors are registered today:
+
+- **CHANGE_INTENT Stale** (V1.0-A) — checks whether `CHANGE_INTENT.json` has a declaration that's
+  gone stale — the exact condition that broke `npm run check` for #223.
+- **Main CI Red** (V1.0-B) — checks whether the canonical `Safety check` workflow's latest run on
+  `main` is red (failure/timed-out/action-required/a hung run stuck past 90 minutes/an
+  unrecognized conclusion value). See `scripts/sentinel/detectors/main_ci_red.mjs`.
 
 ## How to run it
 
@@ -76,11 +81,20 @@ Two fields matter for troubleshooting specifically:
 ## Resolution lifecycle
 
 A finding stays open as long as its detector keeps observing it. Once the detector stops observing
-it (the underlying problem is fixed), the Issue does **not** close immediately — it takes **3
-consecutive clean cycles** (one per Sentinel run where the fingerprint doesn't reappear) before
-Sentinel closes it, sets `Status: Done`, and stamps `Resolved Date`. This is deliberate: a single
-clean run could just as easily mean the detector had an outage as mean the problem is fixed. If the
-finding reappears before the 3rd clean cycle, the counter resets to 0, not to 1 or 2.
+it, resolution requires a per-detector number of consecutive clean cycles
+(`cleanCyclesToResolve()` in `scripts/sentinel/policy.mjs`), never a single one — for CHANGE_INTENT
+Stale that's **3 consecutive clean cycles** (mere absence is a weak signal: a single clean run
+could just as easily mean the detector had an outage as mean the problem is fixed). If the finding
+reappears before the 3rd clean cycle, the counter resets to 0, not to 1 or 2.
+
+Main CI Red is different by design: absence of a red finding is **not** enough on its own (a
+CANCELLED or still-IN_PROGRESS run is also "absent from findings" but proves nothing). Its detector
+returns `confirmedRecoveries` — a set of fingerprints with an explicit, positively-observed SUCCESS
+run — and `run.mjs`'s clean-cycle pass only advances a Main CI Red Issue when its fingerprint is in
+that set. Because a CI conclusion is a binary, non-flaky signal once positively confirmed, Main CI
+Red resolves after just **1** clean cycle (`clean_cycles_to_resolve: 1` in `RULE_DEFAULTS`), not 3.
+See `scripts/sentinel/detectors/main_ci_red.mjs`'s docstring, `test_main_ci_red_acceptance.mjs`,
+and ADR-017 for the full reasoning and proof.
 
 ## Recurrence
 

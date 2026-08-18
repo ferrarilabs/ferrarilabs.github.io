@@ -204,10 +204,16 @@ export function upsertFinding(finding, client, logger) {
 
 /**
  * For a Sentinel-managed Issue whose fingerprint was NOT present in this run's detected findings:
- * advance its clean-cycle counter, or close it once CLEAN_CYCLES_TO_RESOLVE is reached. Idempotent
- * per call (one call = one cycle recorded); callers must call this at most once per scan.
+ * advance its clean-cycle counter, or close it once `threshold` is reached. Idempotent per call
+ * (one call = one cycle recorded); callers must call this at most once per scan.
+ *
+ * `threshold` defaults to CLEAN_CYCLES_TO_RESOLVE (3, CHANGE_INTENT Stale's value) but is
+ * per-detector via policy.mjs's `cleanCyclesToResolve()` — Main CI Red uses 1, since a CI
+ * conclusion is a binary, non-flaky signal unlike "detector no longer observes X" in general. This
+ * function itself has no opinion about WHICH detector is calling it; the threshold is the caller's
+ * decision, kept in the one place (policy.mjs) that already owns every other per-detector rule.
  */
-export function recordCleanCycleOrResolve(issueRef, client, logger) {
+export function recordCleanCycleOrResolve(issueRef, client, logger, threshold = CLEAN_CYCLES_TO_RESOLVE) {
   const issue = client.getIssue(issueRef.number); // always re-read: guarantees nodeId/body are current, never trusts a partial caller-supplied object
   if (issue.state !== "OPEN") return { action: "noop" };
   const state = parseStateBlock(issue.body);
@@ -216,7 +222,7 @@ export function recordCleanCycleOrResolve(issueRef, client, logger) {
     return { action: "skipped_malformed_state" };
   }
   const cleanCycles = (state.clean_cycle_count || 0) + 1;
-  if (cleanCycles < CLEAN_CYCLES_TO_RESOLVE) {
+  if (cleanCycles < threshold) {
     state.clean_cycle_count = cleanCycles;
     client.updateIssueBody(issue.number, upsertStateBlockInBody(issue.body, state));
     logger?.log({ action: "clean_cycle_recorded", issue_number: issue.number, clean_cycle_count: cleanCycles });
@@ -226,7 +232,7 @@ export function recordCleanCycleOrResolve(issueRef, client, logger) {
   state.status = "RESOLVED";
   const withEvidence = upsertStateBlockInBody(issue.body, state);
   client.updateIssueBody(issue.number, withEvidence);
-  client.addComment(issue.number, `Resolved: ${CLEAN_CYCLES_TO_RESOLVE} consecutive clean observation cycles with no matching finding.`);
+  client.addComment(issue.number, `Resolved: ${threshold} consecutive clean observation cycle(s) with no matching finding.`);
   client.setProjectFields(client.ensureProjectItem(issue.nodeId), { Status: "Done" });
   client.closeIssue(issue.number);
   logger?.log({ action: "resolved", issue_number: issue.number });

@@ -163,6 +163,31 @@ export function createRealGithubClient() {
         }
       }
     },
+    /**
+     * Latest runs of `workflowName` on `branch`, most-recent first, normalized to
+     * `{ headSha, createdAt, status, conclusion, jobs: [{ name, conclusion }] }` — the exact shape
+     * main_ci_red.mjs's detectMainCiRed() expects. Read-only: never re-runs/cancels/dispatches.
+     */
+    fetchLatestRuns(workflowName, branch, limit = 5) {
+      const runs = ghJson([
+        "run", "list", "--repo", REPO, "--workflow", workflowName, "--branch", branch,
+        "--json", "databaseId,headSha,createdAt,status,conclusion", "--limit", String(limit),
+      ]);
+      return runs.map((r) => {
+        let jobs = [];
+        try {
+          const detail = ghJson(["run", "view", String(r.databaseId), "--repo", REPO, "--json", "jobs"]);
+          jobs = (detail.jobs || []).map((j) => ({ name: j.name, conclusion: j.conclusion }));
+        } catch { /* job detail is best-effort — classification still works at the run level without it */ }
+        return {
+          headSha: r.headSha,
+          createdAt: r.createdAt,
+          status: r.status === "completed" ? "completed" : r.status,
+          conclusion: r.conclusion || null,
+          jobs,
+        };
+      });
+    },
   };
 }
 
@@ -173,6 +198,7 @@ export function createFakeGithubClient(initial = {}) {
   const issues = new Map(); // number -> issue
   const projectItems = new Map(); // itemId -> {issueNumber, fields}
   let nextItemId = 1;
+  let workflowRuns = initial.workflowRuns || []; // seeded by tests; fetchLatestRuns() below just returns this
   const calls = []; // audit trail for assertions
 
   function record(name, args) { calls.push({ name, args }); }
@@ -246,5 +272,10 @@ export function createFakeGithubClient(initial = {}) {
       Object.assign(item.fields, values);
       record("setProjectFields", { itemId, values });
     },
+    fetchLatestRuns(workflowName, branch) {
+      record("fetchLatestRuns", { workflowName, branch });
+      return workflowRuns.map((r) => ({ ...r }));
+    },
+    _setWorkflowRuns(runs) { workflowRuns = runs; }, // test introspection only
   };
 }
