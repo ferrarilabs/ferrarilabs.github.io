@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-17T00:54:13Z",
-  "sourceUpdatedAt": "2026-08-17T00:54:13Z",
+  "generatedAt": "2026-08-18T02:12:25Z",
+  "sourceUpdatedAt": "2026-08-18T02:12:25Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "63666e0779944ac0623f88f75496355e7ca9658bd25f4e53201ef5c6c91b835a",
+  "payloadHash": "0c6292aa95aa5043a251710849042cc778b164429e816b0f6db6f3a6b6a41e84",
   "matches": [
     {
       "name": "Palmeiras",
@@ -219,10 +219,24 @@
       "gd": -6.0
     },
     {
+      "name": "Internacional",
+      "abbr": "INT",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/1936.png",
+      "rank": 16.0,
+      "points": 24.0,
+      "played": 23.0,
+      "wins": 5.0,
+      "draws": 9.0,
+      "losses": 9.0,
+      "gf": 24.0,
+      "ga": 28.0,
+      "gd": -4.0
+    },
+    {
       "name": "Mirassol",
       "abbr": "MIR",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9169.png",
-      "rank": 16.0,
+      "rank": 17.0,
       "points": 23.0,
       "played": 22.0,
       "wins": 6.0,
@@ -233,31 +247,17 @@
       "gd": -10.0
     },
     {
-      "name": "Internacional",
-      "abbr": "INT",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/1936.png",
-      "rank": 17.0,
-      "points": 23.0,
-      "played": 22.0,
-      "wins": 5.0,
-      "draws": 8.0,
-      "losses": 9.0,
-      "gf": 23.0,
-      "ga": 27.0,
-      "gd": -4.0
-    },
-    {
       "name": "Remo",
       "abbr": "REMO",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
       "rank": 18.0,
-      "points": 22.0,
-      "played": 22.0,
+      "points": 23.0,
+      "played": 23.0,
       "wins": 5.0,
-      "draws": 7.0,
+      "draws": 8.0,
       "losses": 10.0,
-      "gf": 26.0,
-      "ga": 36.0,
+      "gf": 27.0,
+      "ga": 37.0,
       "gd": -10.0
     },
     {
