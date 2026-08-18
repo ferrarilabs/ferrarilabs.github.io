@@ -76,7 +76,7 @@
         "bolao/br2026/scripts/send_round_email.py"
       ],
       "why": "O e-mail de rodada e irreversivel e so pode sair depois que a rodada INTEIRA acabou, com pontuacao finalizada, exatamente uma vez por destinatario. As tres coisas ja falharam aqui.",
-      "required_gates": ["br-round-close-preflight", "br-delivery-loop", "br-round-state"]
+      "required_gates": ["br-round-close-preflight", "br-delivery-loop", "br-round-state", "br-round-email-durable-ledger"]
     },
     {
       "id": "LOTTERY_ECONOMICS",
@@ -247,7 +247,7 @@
         "bolao/shared/schemas/notification_job.schema.json"
       ],
       "why": "Dedupe, claim/lease e a obrigacao duravel ANTES do provedor. Criar a obrigacao depois tambem satisfaz 'o ciclo cria um evento' e e justamente o caso que PERDE a obrigacao num crash.",
-      "required_gates": ["round-ledger", "round-ledger-interop", "ledger-consumer", "powerball-outbox-order", "powerball-crash-matrix"]
+      "required_gates": ["round-ledger", "round-ledger-interop", "ledger-consumer", "powerball-outbox-order", "powerball-crash-matrix", "br-round-email-durable-ledger"]
     },
     {
       "id": "EMAIL_SUBJECT_POLICY",

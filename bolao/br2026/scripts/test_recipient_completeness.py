@@ -28,6 +28,7 @@ sys.path.insert(0, HERE)
 
 import send_round_email as S
 import build_round_manifest as MANIFEST
+from round_notif_rpc_fake import FakeRoundNotifStore, make_round_rpc_caller
 
 
 MANIFESTO = MANIFEST.load()
@@ -65,6 +66,7 @@ class Harness:
     def __init__(self, entries, r22_completa=True):
         self.provider_calls = []
         self.saved_states = []
+        self.round_notif_store = FakeRoundNotifStore()
         self.state = {"entries": entries, "roundEmail": {
             # Evidência legada mínima: define o epoch para que rodadas antigas fiquem PRE_FEATURE
             # e não virem candidatas.
@@ -79,6 +81,16 @@ class Harness:
         S.fetch_scoreboard_window = lambda a, b: dict(self.games)
         S.fetch_standings = lambda: list(STANDINGS)
         S.time.sleep = lambda *_: None
+        # Fronteira do ledger atômico (F8): sem isto `AtomicRoundLedgerRepo` tentaria RPC de
+        # verdade. Um dublê fiel, não um mock que sempre diz "disponível" -- ver
+        # round_notif_rpc_fake.py.
+        S._ROUND_RPC_CALLER = make_round_rpc_caller(self.round_notif_store)
+        # `notification_states_from_atomic()` chama `_rpc()` cru (RPC genérica de
+        # `bolao_notif_jobs`, tabela DIFERENTE do ledger de rodada) sem injeção nenhuma -- nunca
+        # foi exercitada aqui porque, antes de F8, `atomic_ledger_available()` sempre falhava
+        # localmente (sem credencial) e isso desativava a chamada via `if atomic_ok`. `{}` é o
+        # valor real esperado em produção: nada enfileira rodada do BR2026 nessa tabela.
+        S.notification_states_from_atomic = lambda: {}
 
         def transport(url, body, headers):
             self.provider_calls.append(body)
@@ -107,7 +119,7 @@ class RecipientCompleteness(unittest.TestCase):
             "atualize esta lista em vez de deixar o teste gravar de verdade")
         self._orig = {k: getattr(S, k) for k in
                       ["sb_fetch", *_escritores, "fetch_scoreboard_window", "fetch_standings",
-                       "_TRANSPORT"]}
+                       "_TRANSPORT", "_ROUND_RPC_CALLER", "notification_states_from_atomic"]}
         self._sleep = S.time.sleep
 
     def tearDown(self):
