@@ -13,6 +13,7 @@
     "test:provider": "python3 bolao/shared/scripts/test_espn_provider.py && node bolao/shared/scripts/test_pipeline_health.mjs",
     "sync:espn": "python3 bolao/copa2026/scripts/sync_espn.py && python3 bolao/br2026/scripts/sync_espn.py && python3 bolao/cdb2026/scripts/sync_espn.py",
     "check": "node scripts/safety/check.mjs",
+    "pii:check": "node scripts/audit_pii_repo_wide.mjs && node scripts/audit_commit_message_pii.mjs",
     "safety:classify": "node scripts/safety/classify.mjs",
     "safety:contract": "node scripts/safety/audit_safety_contract.mjs",
     "safety:mutations": "node scripts/safety/test_safety_contract.mjs",
