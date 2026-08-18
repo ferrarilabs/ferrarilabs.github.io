@@ -88,12 +88,15 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
   const wf = workflow.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
 
   // ARMADO em 2026-08-11 (autorizacao explicita do Eduardo para a R22 em diante, apos
-  // auditoria independente de scoring e conteudo). Ate aqui este bloco exigia
-  // `NotImplementedError` no sender e ausencia de `--auto`/`BOLAO_ALLOW_REAL_SEND` no workflow.
+  // auditoria independente de scoring e conteudo). DESARMADO em 2026-08-18 (Issue #221):
+  // incidente confirmado, nao suspeita -- a rodada 23 foi enviada 4x para os 11 participantes
+  // reais (44 envios em vez de 11) porque `SupabaseStateRoundLedgerRepo` nunca grava o ledger
+  // de volta no Supabase (so muta um dict em memoria de um `sb_fetch()` de leitura). A
+  // autorizacao de 2026-08-11 fica suspensa ate a causa raiz ser corrigida.
   //
-  // Essas tres assercoes provavam "o envio real e inalcancavel". Essa propriedade deixou de ser
-  // a desejada -- o envio real e o objetivo agora. Apagar as assercoes sem substituir deixaria
-  // o bloco com nome de portao e nenhum portao dentro, que e pior do que nao ter portao.
+  // Apagar as assercoes sem substituir deixaria o bloco com nome de portao e nenhum portao
+  // dentro, que e pior do que nao ter portao -- entao a propriedade exigida aqui inverteu de
+  // volta, deliberadamente, e nao por acidente.
   //
   // O que continua tendo de ser verdade, e passa a ser verificado aqui:
 
@@ -102,9 +105,9 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
     /REAL_SEND_REQUIRES_ATOMIC_LEDGER/.test(code),
     "o envio real ficou alcançável sem checar a atomicidade do ledger");
 
-  check("o cron roda o sender canônico em modo de envio",
-    /send_round_email\.py\s+--auto\b/.test(wf),
-    "o workflow deixou de chamar o sender canônico com --auto");
+  check("o cron está deliberadamente em modo de reconciliação sem envio (Issue #221)",
+    /send_round_email\.py\s+--dry-run\b/.test(wf) && !/send_round_email\.py\s+--auto\b/.test(wf),
+    "o workflow não está em --dry-run enquanto o incidente de duplicação (#221) segue sem correção definitiva");
 
   check("o transporte é checado ANTES de reivindicar a rodada",
     code.indexOf("real_send_allowed()") < code.indexOf("ledger.claim("),

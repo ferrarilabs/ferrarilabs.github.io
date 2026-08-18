@@ -96,22 +96,26 @@ console.log("BR_NOTIFICATION_LEDGER_ACTUAL_CONSUMER\n");
 {
   check("o dry-run existe como modo de primeira classe do MESMO caminho",
     /def run_auto\(dry_run=False\)/.test(code) && /--dry-run/.test(code));
-  // ARMADO em 2026-08-11. Estas duas assercoes exigiam `--dry-run` no workflow e AUSENCIA de
-  // `BOLAO_ALLOW_REAL_SEND` -- ou seja, provavam que a entrega estava desligada. Com a
-  // autorizacao explicita do Eduardo (apos auditoria independente de scoring e de conteudo da
-  // R22), a propriedade desejada inverteu. Manter a assercao antiga so faria a suite exigir que
-  // o produto continuasse quebrado.
+  // ARMADO em 2026-08-11, DESARMADO em 2026-08-18 (Issue #221). O armamento assumia que
+  // `SupabaseStateRoundLedgerRepo` persistia o ledger de rodada de verdade -- premissa falsa:
+  // `put()` so muta um dict em memoria construido de um `sb_fetch()` (GET), sem NENHUM
+  // PUT/PATCH/upsert que grave `bolao_state.roundEmail.ledger` de volta no Supabase. Resultado
+  // real: a rodada 23 foi enviada 4x para os 11 participantes reais (44 envios em vez de 11) em
+  // quatro execucoes agendadas independentes. A autorizacao de 2026-08-11 fica suspensa ate a
+  // causa raiz ser corrigida -- religar o claim/settle a um armazenamento que realmente
+  // persiste. Manter a assercao antiga (exigindo o token armado) faria esta suite exigir que o
+  // produto continuasse duplicando entrega.
   //
-  // O que substitui: a autorizacao tem de ser EXPLICITA e a trava do sender tem de continuar
-  // existindo. Duas travas independentes continuam sendo duas -- a diferenca e que agora ambas
-  // estao deliberadamente abertas, e nao acidentalmente.
-  check("a autorização de envio é explícita e literal no job",
-    /BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
-    "o envio real depende de um token literal; qualquer outro valor mantém o sender fechado");
+  // O que substitui: a autorizacao tem de estar EXPLICITAMENTE ausente (nao apenas "diferente
+  // por acidente") e a trava do sender tem de continuar existindo. Duas travas independentes
+  // continuam sendo duas -- a diferenca e que agora ambas estao deliberadamente fechadas.
+  check("o envio real está deliberadamente desarmado (Issue #221)",
+    !/BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
+    "o token de autorização literal ainda está presente — o envio real continuaria armado apesar do incidente de duplicação confirmado");
 
-  check("o token de autorização é o MESMO que o sender exige",
+  check("o token que o sender exige continua sendo o literal esperado",
     /_ALLOW_TOKEN\s*=\s*"I UNDERSTAND"/.test(sender),
-    "o workflow e o sender divergiram no token — o envio ficaria bloqueado em silêncio");
+    "o valor que o sender exige mudou sem atualizar este gate — verifique antes de rearmar");
 
   check("o sender continua fail-closed por padrão (sem a variável, não envia)",
     /def real_send_allowed\(/.test(code) &&

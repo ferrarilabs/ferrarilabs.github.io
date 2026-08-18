@@ -5,5 +5,12 @@
 
   "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
 
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Incidente confirmado (Issue #221): 4 execucoes agendadas independentes reenviaram o e-mail da rodada 23 do BR2026 para os 11 participantes reais (44 envios em vez de 11). Causa raiz: SupabaseStateRoundLedgerRepo nunca grava o ledger de volta no Supabase, entao cada execucao ve a rodada como nao enviada.",
+      "expected_behavior_change": "br2026_round_emails.yml passa a rodar com BOLAO_ALLOW_REAL_SEND definido para um valor que NAO e o token magico 'I UNDERSTAND', desarmando o envio real (zero chamadas ao provedor, ledger intocado) enquanto preserva --auto e a variavel de guard presente, para nao acionar o gate de 'guard ausente'. Correcao durável do ledger ainda nao implementada.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming"]
+    }
+  ]
 }

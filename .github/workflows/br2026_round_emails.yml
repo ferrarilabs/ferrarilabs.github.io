@@ -21,42 +21,35 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # ARMADO em 2026-08-11. As tres condicoes que este bloco exigia foram cumpridas:
+      # DESARMADO em 2026-08-18 (Issue #221) -- INCIDENTE CONFIRMADO, nao suspeita.
       #
-      #   (1) autorizacao explicita do Eduardo  dada nesta data, para a rodada 22 em diante
-      #   (2) migracao 010_notification_durability.sql aplicada
-      #                                         provado em execucao: "LEDGER ATOMICO: disponivel",
-      #                                         job criado com idempotencyKey por rodada
-      #   (3) --dry-run -> --auto e BOLAO_ALLOW_REAL_SEND devolvido
+      # A rodada 23 foi enviada 4x para os 11 participantes reais (44 envios em vez de 11),
+      # em quatro execucoes agendadas independentes entre 2026-08-17 22:45 ET e 2026-08-18
+      # 00:57 ET. Todas as quatro reivindicaram a MESMA idempotencyKey
+      # (br2026:round-results:23:v1) e a listagem de reconciliacao continuou mostrando
+      # `R23 ROUND_READY_TO_NOTIFY` mesmo apos execucoes anteriores ja terem enviado.
       #
-      # Auditoria que precedeu o armamento (rodada 22):
-      #   scoring    TRES implementacoes independentes concordam nas 11 entradas, pontos e
-      #              posicoes: reimplementacao a partir da regra, o Python que monta o e-mail, e
-      #              o scoreEntry/rankEntries do js/app.js que o site mostra. 0 divergencias.
-      #   tabela     20 times, ranks 1..20, snapshot NAO stale, e identica a uma tabela
-      #              recomputada dos 215 jogos concluidos do scoreboard -- nao e tabela velha.
-      #   conteudo   10/10 jogos com placar, 11 entradas, sem PII no corpo, sem placeholder,
-      #              linguagem de projecao presente. contentHash 3c16184814d9cc6a, o mesmo que
-      #              a execucao em dry-run do Actions calculou.
+      # Causa raiz: `SupabaseStateRoundLedgerRepo` (em send_round_email.py) alega durabilidade
+      # na propria docstring, mas `put()` so muta um dict em memoria construido de um GET
+      # `sb_fetch()` -- nao existe NENHUMA chamada PUT/PATCH/upsert no arquivo que grave
+      # `bolao_state.roundEmail.ledger` de volta no Supabase. Cada execucao agendada parte do
+      # mesmo documento obsoleto, ve a rodada como nao reivindicada e reenvia. Isto reproduz
+      # em QUALQUER rodada futura, nao e especifico da R23.
       #
-      # O caminho de reconciliacao e o CANONICO e o MESMO que envia: manifesto versionado ->
-      # resolver por rodada -> ledger duravel -> portao de destinatarios. O --dry-run parava
-      # antes da primeira chamada ao provedor; nao era um caminho paralelo.
+      # Corrigir isto exige religar o claim/settle da rodada a um armazenamento que realmente
+      # persiste (provavelmente o ledger atomico via RPC ja usado por outras familias de
+      # notificacao) -- projeto ainda nao autorizado/implementado. Ate la, ARMAR = trocar
+      # --dry-run por --auto e o valor de BOLAO_ALLOW_REAL_SEND para "I UNDERSTAND" (branch
+      # fix/br2026-round-email-duplication-221 / commit anterior a este).
       #
-      # O que continua protegendo o envio, mesmo armado:
-      #   rodada        so rodada canonica COMPLETA notifica; adiado de R21 nao libera nada
-      #   ledger        idempotencia por rodada (br2026:round-results:<n>:v1); aceito nunca reenvia
-      #   completude    destinatario sem contato bloqueia a rodada inteira, zero chamadas
-      #   parcial       entrega parcial nunca vira 'sent'
-      #   credencial    sem SUPABASE_SERVICE_ROLE_KEY o ledger falha FECHADO
-      #
-      # DESARMAR = trocar --auto por --dry-run e remover BOLAO_ALLOW_REAL_SEND. Duas travas
-      # independentes, como antes.
-      - name: Reconciliar rodadas (envio real de rodada completa)
+      # BOLAO_ALLOW_REAL_SEND permanece PRESENTE de proposito (nao removido): o portao de
+      # transporte de send_round_email.py exige o nome exato desta variavel para o cron nao
+      # falhar fechado em silencio (ver scripts/safety/audit_safety_contract.mjs, secao 3). O
+      # valor abaixo NAO e o token magico "I UNDERSTAND" e o modo e --dry-run: as duas travas
+      # concordam em "desarmado", em vez de divergir em silencio.
+      - name: Reconciliar rodadas (dry-run -- envio real DESARMADO, ver Issue #221)
         working-directory: bolao/br2026/scripts
         env:
-          # N24: as RPCs de notificacao deixaram de ser executaveis por `anon`. Sem esta
-          # credencial o ledger falha FECHADA -- que e o desfecho correto, nao um bug.
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
-        run: python3 send_round_email.py --auto
+          BOLAO_ALLOW_REAL_SEND: "DISARMED_INCIDENT_221_SEE_ISSUE"
+        run: python3 send_round_email.py --dry-run
