@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-18T02:12:26Z",
-  "sourceUpdatedAt": "2026-08-18T02:12:26Z",
+  "generatedAt": "2026-08-18T03:10:28Z",
+  "sourceUpdatedAt": "2026-08-18T03:10:28Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b6cae12c3758e7196b02191ac5a5b5919412344eb557f6b4ae0130e6693d6218",
+  "payloadHash": "6e35263f5bbc48d36d637d70b4b17d4b7771324eb38f3bd5365363d22497dd11",
   "matches": [
     {
       "id": "401840808",
@@ -38200,8 +38200,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Marlon",
-              "shortName": "Marlon"
+              "displayName": "Marlon Lopes",
+              "shortName": "M. Lopes"
             }
           ]
         },
