@@ -5,5 +5,12 @@
 
   "_ciclo_de_vida": "A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
 
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "NOVO incidente 2026-08-18 ~17:25 EDT, distinto do #221: Gmail Sent confirma um lote completo de e-mail de rodada saiu para os 11 participantes reais para uma rodada ANTIGA ja concluida (Rodada 08.08-09.08), nao a rodada corrente. Causa raiz ainda sob investigacao -- desarmado emergencialmente dentro da janela de cron ativa para impedir outro reenvio historico antes de entender e corrigir.",
+      "expected_behavior_change": "br2026_round_emails.yml volta a --dry-run com BOLAO_ALLOW_REAL_SEND definido para um valor que NAO e o token magico -- zero chamadas ao provedor ate a causa raiz ser corrigida e toda rodada historica comprovadamente nao-elegivel para reenvio.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "br-round-email-durable-ledger"]
+    }
+  ]
 }

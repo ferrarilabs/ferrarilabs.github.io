@@ -21,25 +21,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # REARMADO em 2026-08-18 (Issue #221). O incidente original (R23 enviada 4x para os 11
-      # participantes reais, 44 envios em vez de 11) tinha causa raiz em
-      # `SupabaseStateRoundLedgerRepo`, que alegava durabilidade mas nunca escrevia de volta no
-      # Supabase -- corrigido substituindo-o por `AtomicRoundLedgerRepo`
-      # (bolao_round_notif_jobs, migracao 030_br_round_notification_durability.sql, aplicada em
-      # producao) com reivindicacao atomica de linha unica. Um segundo defeito, achado durante a
-      # verificacao do rollout ANTES de qualquer rodada real o alcancar, tambem foi corrigido:
-      # `claim_bolao_notif_round_job` serializava reivindicacao FALHA como objeto todo-null em
-      # vez de null puro -- ver commit da correcao (#228) e `test_round_email_durable_ledger.py`.
+      # DESARMADO EMERGENCIALMENTE em 2026-08-18 ~22:14 UTC -- NOVO INCIDENTE, distinto do #221.
       #
-      # Antes de rearmar, verificado diretamente contra producao: ledger atomico disponivel,
-      # rodada 23 (a rodada do incidente) permanece SENT/11-aceitos/nao-reivindicavel, e uma
-      # reivindicacao fresca contra ela devolve null (zero elegibilidade), nao por o workflow
-      # estar desarmado -- pelo estado duravel do banco.
+      # Evidencia (Gmail Sent): por volta de 2026-08-18 17:25 EDT, um lote completo saiu para os
+      # 11 participantes reais com assunto "Rodada 08.08-09.08" -- uma rodada ANTIGA, ja concluida
+      # ha muito tempo, nao a rodada corrente ("Rodada 15.08-17.08", que ja tinha sido enviada as
+      # 00:57 EDT do mesmo dia). Isto e um incidente NOVO -- nao o #221 se repetindo -- e a causa
+      # raiz ainda esta sob investigacao (hipotese principal: o ledger duravel novo, criado durante
+      # a remediacao do #221, so foi retroativamente preenchido (backfill) para a rodada 23 --
+      # qualquer OUTRA rodada historica sem linha no ledger pode estar sendo interpretada como
+      # "nunca enviada" e reenviada).
       #
-      # DESARMAR = trocar --auto por --dry-run e remover/alterar o valor de BOLAO_ALLOW_REAL_SEND.
-      - name: Reconciliar rodadas (envio real de rodada completa)
+      # Desarmado no meio da janela de cron ativa (21-23 UTC) para impedir uma proxima execucao
+      # (proxima em ate 30 min) de reenviar qualquer outra rodada historica antes da causa raiz
+      # ser entendida e corrigida.
+      #
+      # REARMAR = so depois de: (1) causa raiz confirmada, (2) toda rodada historica completada
+      # comprovadamente NAO elegivel para reenvio (HISTORICAL_ROUND_RESURRECTION = IMPOSSIVEL,
+      # nao so a rodada especifica deste incidente backfilled), (3) verificado contra producao.
+      - name: Reconciliar rodadas (dry-run -- envio real DESARMADO, novo incidente 2026-08-18)
         working-directory: bolao/br2026/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
-        run: python3 send_round_email.py --auto
+          BOLAO_ALLOW_REAL_SEND: "DISARMED_NEW_INCIDENT_20260818"
+        run: python3 send_round_email.py --dry-run
