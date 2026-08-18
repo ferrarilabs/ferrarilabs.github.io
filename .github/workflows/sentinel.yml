@@ -1,0 +1,76 @@
+# sentinel.yml — Ferrarilabs Engineering Sentinel v1.0-A.
+#
+# Monitoring/automation, NOT an enforcement gate. Deliberately never added to any branch
+# protection "required checks" list — if this workflow fails or doesn't run, ordinary repository
+# development is completely unaffected (see docs/bolao/sentinel/README.md "Failure Semantics" and
+# the architecture doc's own "fails open" principle). The existing CHANGE_INTENT/D3 enforcement in
+# scripts/safety/audit_safety_contract.mjs (run inside safety_check.yml) is untouched by this
+# workflow's existence and keeps its own, separately-established fail behavior.
+#
+# CREDENTIALS: Issue creation/labeling works with the default GITHUB_TOKEN (issues: write is
+# enough). Setting Ferrarilabs Engineering Project (v2, org-scoped) fields does NOT work with the
+# default token — GitHub Projects v2 requires a token with the `project` scope, which the built-in
+# GITHUB_TOKEN cannot be granted regardless of this file's `permissions:` block. Until a
+# `SENTINEL_PROJECT_TOKEN` secret (a fine-grained PAT or GitHub App token with `repo` + `project`
+# scopes) is created, Project-field writes will fail and reconcile.mjs's daily sweep will pick them
+# up once the secret exists — this is exactly the "Issue exists, Project item missing" repair path
+# reconcile.mjs is designed for, not a crash. See the PR/implementation report for this known gap.
+
+name: Sentinel
+
+on:
+  schedule:
+    - cron: "17 13 * * *" # once daily; arbitrary off-the-hour minute to avoid GitHub's scheduled-job pile-up window
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Preview only — no GitHub mutation"
+        type: boolean
+        default: false
+      reconcile:
+        description: "Run the reconciliation sweep instead of the normal detect/upsert pass"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: sentinel-writer
+  cancel-in-progress: false
+
+jobs:
+  sentinel:
+    name: Sentinel run
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ secrets.SENTINEL_PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0 # detectors compare against a git base (resolveBase()); shallow clone would make every comparison SKIPPED
+
+      - name: Setup Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Run Sentinel (dry-run)
+        if: ${{ github.event.inputs.dry_run == 'true' }}
+        run: node scripts/sentinel/run.mjs --dry-run
+
+      - name: Run Sentinel (reconciliation sweep)
+        if: ${{ github.event.inputs.reconcile == 'true' }}
+        run: node scripts/sentinel/reconcile.mjs
+
+      - name: Run Sentinel (normal detect + upsert)
+        if: ${{ github.event.inputs.dry_run != 'true' && github.event.inputs.reconcile != 'true' }}
+        run: node scripts/sentinel/run.mjs
+
+      - name: Daily reconciliation sweep
+        if: ${{ github.event_name == 'schedule' }}
+        run: node scripts/sentinel/reconcile.mjs
