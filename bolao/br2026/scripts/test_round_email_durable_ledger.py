@@ -308,6 +308,50 @@ class PartialAndUncertainAcrossRunners(_Base):
                          "runner novo reenviou para um destinatário INCERTO recuperado")
 
 
+# ── Serialização real do Postgres: falha de reivindicação != null puro ──────────────────────────
+class NullCompositeSerialization(unittest.TestCase):
+    """Achado em produção (rollout do Issue #221, antes do primeiro reenvio real): uma RPC
+    `plpgsql` com `declare v_row TYPE` que nunca é atribuída serializa via `to_json` como um
+    OBJETO com todo campo null (`{"idempotency_key": null, ...}`), não como `null` puro -- só um
+    SELECT/UPDATE sem `declare` que encontra zero linhas devolve null de verdade. Medido
+    diretamente contra a migração 030 antes de corrigi-la.
+
+    O dublê de teste (`round_notif_rpc_fake.py`) nunca reproduziu isso: ele é Python puro e
+    devolve `None` do Python direto para uma reivindicação falha, nunca a serialização real do
+    Postgres. Por isso NENHUM teste acima (todos rodam contra o dublê) pegou o defeito -- a
+    fiação de produção via HTTP real é que teria tratado reivindicação FALHA como SUCESSO.
+    `_row_to_record()` agora é defensivo contra as duas formas independentemente da causa raiz
+    (a RPC em si também foi corrigida para o padrão sem `declare`, igual `get_bolao_notif_round_job`)."""
+
+    def test_row_to_record_trata_objeto_todo_null_como_nao_encontrado(self):
+        objeto_todo_null = {
+            "idempotency_key": None, "pool_id": None, "round_number": None, "state": None,
+            "content_hash": None, "recipient_set_hash": None, "fixture_set_hash": None,
+            "expected_recipient_count": None, "resolved_recipient_count": None,
+            "recipients": None, "attempt_count": None, "claimed_by": None,
+            "lease_until": None, "created_at": None, "updated_at": None, "sent_at": None,
+        }
+        self.assertIsNone(S._row_to_record(objeto_todo_null),
+                         "um objeto com idempotency_key null tem de virar None, não um "
+                         "registro com todos os campos None")
+
+    def test_row_to_record_trata_null_puro_como_nao_encontrado(self):
+        self.assertIsNone(S._row_to_record(None))
+
+    def test_row_to_record_processa_linha_real_normalmente(self):
+        linha_real = {
+            "idempotency_key": "br2026:round-results:1:v1", "pool_id": "br2026",
+            "round_number": 1, "state": "SENT", "content_hash": "h", "recipient_set_hash": "r",
+            "fixture_set_hash": "f", "expected_recipient_count": 1, "resolved_recipient_count": 1,
+            "recipients": [], "attempt_count": 1, "claimed_by": None,
+            "lease_until": None, "created_at": None, "updated_at": None, "sent_at": None,
+        }
+        rec = S._row_to_record(linha_real)
+        self.assertIsNotNone(rec)
+        self.assertEqual(rec["idempotencyKey"], "br2026:round-results:1:v1")
+        self.assertEqual(rec["state"], "SENT")
+
+
 # ── Fiação de produção -- pega a mutação de volta para o repositório não durável ────────────────
 class ProductionWiring(unittest.TestCase):
     """CONTRATO: `run_auto` tem de construir `AtomicRoundLedgerRepo`, nunca um repositório que
@@ -337,6 +381,27 @@ class ProductionWiring(unittest.TestCase):
         self.assertIn("list_bolao_notif_round_jobs", fonte,
                      "atomic_ledger_available() parou de sondar a dependência real do ledger "
                      "de rodada")
+
+    def test_sql_claim_nao_usa_declare_de_composto(self):
+        """Achado em produção: `declare v_row TYPE` numa RPC plpgsql serializa reivindicação
+        FALHA como um objeto com todo campo null via to_json(), não como null puro -- e
+        `_row_to_record()` só detecta null puro. `get_bolao_notif_round_job` (sem `declare`,
+        um SELECT direto) sempre se comportou certo; `claim_bolao_notif_round_job` foi corrigida
+        para o mesmo padrão. Esta checagem estrutural do .sql evita a regressão voltar."""
+        here = os.path.dirname(os.path.abspath(__file__))
+        sql_path = os.path.join(here, "..", "..", "shared", "sql",
+                                "030_br_round_notification_durability.sql")
+        with open(sql_path, encoding="utf-8") as f:
+            sql = f.read()
+        inicio = sql.index("create or replace function claim_bolao_notif_round_job")
+        fim = sql.index("$$;", inicio)
+        corpo = sql[inicio:fim]
+        self.assertNotIn("declare", corpo.lower(),
+                         "claim_bolao_notif_round_job voltou a usar `declare` -- isso faz uma "
+                         "reivindicação falha serializar como objeto todo-null, não null puro, "
+                         "e um runner novo trataria falha como sucesso")
+        self.assertIn("language sql", sql[max(0, inicio-30):inicio+400].lower(),
+                     "claim_bolao_notif_round_job deve continuar `language sql`, não plpgsql")
 
 
 if __name__ == "__main__":
