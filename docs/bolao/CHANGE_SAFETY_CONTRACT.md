@@ -39,7 +39,7 @@ scripts/safety/
   surfaces.mjs                  biblioteca comum (registros, globs, base do git)
   classify.mjs                  CHANGE_SAFETY_REPORT
   audit_safety_contract.mjs     o meta-gate  (36 checks)
-  test_safety_contract.mjs      as 16 mutações que provam que ele morde
+  test_safety_contract.mjs      as 33 mutações que provam que ele morde
   check.mjs                     npm run check
 CHANGE_INTENT.json              declaração — só existe quando algo crítico muda de propósito
 .github/workflows/safety_check.yml
@@ -125,6 +125,39 @@ reprovou a si mesmo por isso nesta sessão — a declaração que acompanha a mu
 (**D3**) na mesma execução que a exigia (**D2**), e nenhum estado do repositório ficava verde dos
 dois lados do push.
 
+### Declarações condicionais — quando a obrigação não é uma mudança pontual (ADR-018)
+
+A autolimpeza acima descreve declarações `"lifecycle": "one_shot"` — o padrão, e o único tipo que
+existiu até 2026-08-18. Uma declaração pode em vez disso ser `"lifecycle": "conditional"`: não
+descreve "eu mudei X", descreve **"X precisa continuar neste estado até a condição Y"** — por
+exemplo, um workflow de e-mail desarmado emergencialmente que deve permanecer desarmado até a
+causa raiz de um incidente real ser confirmada (ver Issue #238). Uma declaração `conditional` é
+isenta da autolimpeza por diff — mas nunca isenta de verificação:
+
+```json
+{
+  "surface_id": "NOTIFICATION_WORKFLOWS",
+  "lifecycle": "conditional",
+  "condition_id": "id-estavel-e-unico",
+  "related_issue": 238,
+  "reason": "...", "expected_behavior_change": "...", "tests_required": ["..."],
+  "exit_conditions": [
+    { "id": "workflow_remains_disarmed", "type": "MACHINE_VERIFIABLE", "check": "BR2026_ROUND_EMAILS_DISARMED" },
+    { "id": "root_cause_confirmed", "type": "HUMAN_OPERATIONS_VERIFIED", "satisfied": false }
+  ]
+}
+```
+
+Exige pelo menos uma `exit_condition` `MACHINE_VERIFIABLE`, cujo `check` resolve para uma função
+REAL registrada em `scripts/safety/surfaces.mjs`'s `makeInvariantChecks()` — nunca invocável só
+com JSON, e nunca capaz de proteger uma superfície diferente da declarada. D3 reavalia esse
+invariante contra o estado ATUAL do repositório a cada execução; uma violação reprova com a mesma
+severidade que uma declaração `one_shot` obsoleta. Campos `HUMAN_OPERATIONS_VERIFIED` são
+puramente auditáveis — o contrato nunca finge provar um fato de negócio que não pode observar, e
+nunca limpa uma declaração `conditional` sozinho, mesmo que toda condição pareça satisfeita.
+Detalhe completo, incluindo a revisão adversarial contra "conditional como escape hatch" e o
+limite conhecido e documentado (remoção da própria declaração não é detectável hoje): ADR-018.
+
 ---
 
 ## Superfícies protegidas (23)
@@ -182,6 +215,16 @@ que reprova tudo por um motivo só também satisfaria.
 | M14 | comando canônico trocado no CI | `C1` |
 | M15 | registro de gates encolhido | `G5` |
 | M16 | workflow de teste ganha guard real | `N:CDB2026_CONFIRMATION_FAKE_TRANSPORT_TEST` |
+| M27 | lifecycle `conditional` rebaixado para `one_shot` | `D3` |
+| M28 | campo `lifecycle` removido inteiramente | `D3` |
+| M29 | `condition_id` removido de declaração conditional | `D1` |
+| M30 | `exit_conditions` removido de declaração conditional | `D1` |
+| M31 | `exit_condition` aponta para superfície errada | `D1` |
+| M32 | `lifecycle` com valor malformado | `D1` |
+| M33 | invariante de desarme violado no próprio workflow | `D3` |
+
+(M17–M26 existem no código — remediações de sessões anteriores — mas ainda não têm linha nesta
+tabela; lacuna de documentação pré-existente, não introduzida por ADR-018.)
 
 Toda mutação é desfeita **byte a byte** no `finally`, e a restauração é reconferida por `git` e
 independentemente por **sha-256** — se o índice do git estivesse mentindo, o hash não mente.

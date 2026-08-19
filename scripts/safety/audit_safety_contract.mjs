@@ -36,6 +36,7 @@ import {
   ROOT, loadSurfaces, loadWorkflows, loadIntent, POLICIES,
   pathMatches, resolveBase, readAtRef, changedPaths,
   npmTestFiles, npmTestChain, verifyChecks, assertionCount, skipMarkers,
+  LIFECYCLES, makeInvariantChecks, validateLifecycle, evaluateConditionalInvariants,
 } from "./surfaces.mjs";
 
 const JSON_OUT = process.argv.includes("--json");
@@ -429,12 +430,19 @@ log("\n8. Integracao continua");
 // ══ 9. DECLARACOES ════════════════════════════════════════════════════════════════════════════
 log("\n9. Declaracoes de mudanca critica");
 
+const invariantChecks = makeInvariantChecks(read);
+
 {
   const problems = [];
+  const seenConditionIds = new Set();
   for (const d of intent.declarations) {
     const miss = REQUIRED_INTENT_FIELDS.filter((f) => !d[f] || (Array.isArray(d[f]) && d[f].length === 0));
     if (miss.length) problems.push(`${d.surface_id || "<sem surface_id>"}: campos faltando ${miss.join(",")}`);
     else if (!ids.includes(d.surface_id)) problems.push(`${d.surface_id}: nao e uma superficie do registro`);
+    else {
+      const lifecycleProblems = validateLifecycle(d, invariantChecks, seenConditionIds);
+      if (lifecycleProblems.length) problems.push(`${d.surface_id}: ${lifecycleProblems.join(" ; ")}`);
+    }
   }
   check("D1", `declaracoes bem formadas (${intent.declarations.length})`, problems.length === 0, problems.join(" ; "));
 }
@@ -457,20 +465,48 @@ log("\n9. Declaracoes de mudanca critica");
   // entrada que nao suprimiu nada nesta rodada e lixo acumulado, e o gate fica vermelho ate
   // alguem remover.
   //
-  // O efeito pratico e que CHANGE_INTENT.json se AUTOLIMPA: depois que a mudanca declarada
+  // O efeito pratico e que uma declaracao ONE_SHOT se AUTOLIMPA: depois que a mudanca declarada
   // entra em main, a base anda, os caminhos deixam de aparecer no diff e a declaracao vira
   // obsoleta — precisa ser removida. Sem isso o arquivo viraria um deposito de autorizacoes
   // permanentes, que e exatamente a porta dos fundos que ele existe para nao ser.
-  const stale = intent.declarations.filter((d) => {
+  //
+  // Uma declaracao CONDITIONAL (ADR-018) e categoricamente diferente: ela nao descreve "eu mudei
+  // X", descreve "X precisa continuar em tal estado ate a condicao Y" — um commit nao relacionado
+  // avancando a base NAO prova que a obrigacao acabou. Por isso ela e ISENTA da staleness por
+  // diff — mas nunca isenta de verificacao: cada exit_condition MACHINE_VERIFIABLE dela e
+  // ativamente avaliada contra o estado ATUAL a cada execucao, e uma violacao reprova D3 tao alto
+  // quanto uma declaracao one_shot obsoleta reprovaria. "Isento de staleness por idade" nunca
+  // significa "isento de verificacao".
+  const staleOneShot = [];
+  const violatedConditional = [];
+  for (const d of intent.declarations) {
     const s = reg.surfaces.find((x) => x.id === d.surface_id);
-    if (!s) return false;                                   // ja reprovado por D1
-    if (s.change_policy === "STRUCTURALLY_ENFORCED") return false;
-    // SCORING_CONSTANTS nao tem `paths`: sua superficie sao os arquivos do fingerprint.
+    if (!s) continue;                                       // ja reprovado por D1
+    if (s.change_policy === "STRUCTURALLY_ENFORCED") continue;
+    const lifecycle = d.lifecycle === undefined ? "one_shot" : d.lifecycle;
+    if (!LIFECYCLES.has(lifecycle)) continue;                // lifecycle desconhecido — ja reprovado por D1
+
+    if (lifecycle === "conditional") {
+      if (!Array.isArray(d.exit_conditions)) continue;       // forma invalida — ja reprovado por D1
+      const results = evaluateConditionalInvariants(d, invariantChecks);
+      const broken = results.filter((r) => !r.ok);
+      if (broken.length) {
+        violatedConditional.push(`${d.surface_id} (${d.condition_id}): ${broken.map((b) => `${b.id} — ${b.detail}`).join("; ")}`);
+      }
+      continue;
+    }
+
+    // one_shot (explicito ou por ausencia de `lifecycle`): staleness por diff, comportamento
+    // byte-a-byte identico ao que existia antes do lifecycle model.
     const paths = s.paths || s.fingerprint?.files || [];
-    return !changed.some((p) => pathMatches(p, paths));
-  });
-  check("D3", "nenhuma declaracao obsoleta", stale.length === 0,
-    `declaram mudanca que nao aconteceu — remova de CHANGE_INTENT.json: ${stale.map((d) => d.surface_id).join(", ")}`);
+    if (!changed.some((p) => pathMatches(p, paths))) staleOneShot.push(d.surface_id);
+  }
+  check("D3", "nenhuma declaracao obsoleta ou invariante condicional violado",
+    staleOneShot.length === 0 && violatedConditional.length === 0,
+    [
+      staleOneShot.length ? `declaram mudanca que nao aconteceu — remova de CHANGE_INTENT.json: ${staleOneShot.join(", ")}` : null,
+      violatedConditional.length ? `invariante condicional violado: ${violatedConditional.join(" | ")}` : null,
+    ].filter(Boolean).join(" ; "));
 }
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════

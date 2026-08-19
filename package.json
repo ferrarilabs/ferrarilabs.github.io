@@ -16,6 +16,7 @@
     "pii:check": "node scripts/audit_pii_repo_wide.mjs && node scripts/audit_commit_message_pii.mjs",
     "safety:classify": "node scripts/safety/classify.mjs",
     "safety:contract": "node scripts/safety/audit_safety_contract.mjs",
+    "safety:lifecycle": "node scripts/safety/test_change_intent_lifecycle.mjs",
     "safety:mutations": "node scripts/safety/test_safety_contract.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:json": "node scripts/verify.mjs --json-out=verify-summary.json",

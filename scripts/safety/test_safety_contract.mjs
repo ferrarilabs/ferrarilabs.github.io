@@ -376,6 +376,82 @@ test("M26 rotulo artificialmente mais largo => PEGA", () => {
     GATE_RESPONSIVO);
 });
 
+console.log("\nE. Ciclo de vida CHANGE_INTENT — conditional vs one_shot (ADR-018, Issue #238)");
+
+test("M27 lifecycle conditional rebaixado para one_shot => PEGA", () => {
+  // Rebaixar uma declaracao conditional VALIDA de volta para one_shot deve reativar a staleness
+  // por diff — exatamente o defeito que o lifecycle model existe para consertar quando feito de
+  // proposito (D3), mas que continua reprovando quando feito por acidente ou em ma-fe.
+  mutate("conditional vira one_shot", "CHANGE_INTENT.json",
+    (t) => t.replace('"lifecycle": "conditional"', '"lifecycle": "one_shot"'), "D3");
+});
+
+test("M28 campo lifecycle removido inteiramente => PEGA", () => {
+  // Ausencia de `lifecycle` tem o MESMO efeito que "one_shot" explicito (default seguro) — a
+  // declaracao volta a staleness por diff e e pega pelo mesmo motivo que M27.
+  mutate("lifecycle removido", "CHANGE_INTENT.json",
+    (t) => t.replace(/\s*"lifecycle":\s*"conditional",\n/, "\n"), "D3");
+});
+
+test("M29 condition_id removido de declaracao conditional => PEGA", () => {
+  mutate("condition_id removido", "CHANGE_INTENT.json",
+    (t) => t.replace(/\s*"condition_id":\s*"[^"]*",\n/, "\n"), "D1");
+});
+
+test("M30 exit_conditions removido de declaracao conditional => PEGA", () => {
+  mutate("exit_conditions removido", "CHANGE_INTENT.json",
+    (t) => t.replace(/,\s*"exit_conditions":\s*\[[\s\S]*?\]\n(\s*})/, "\n$1"), "D1");
+});
+
+test("M31 exit_condition aponta para superficie errada (surface_id trocado) => PEGA", () => {
+  // Trocar surface_id para outra superficie real e valida, MANTENDO o check
+  // BR2026_ROUND_EMAILS_DISARMED (registrado so para NOTIFICATION_WORKFLOWS) — a declaracao
+  // ficaria "protegida" por um invariante que nao verifica nada sobre a superficie nova.
+  mutate("surface_id trocado mantendo o check antigo", "CHANGE_INTENT.json",
+    (t) => t.replace('"surface_id": "NOTIFICATION_WORKFLOWS"', '"surface_id": "SCORING_CONSTANTS"'), "D1");
+});
+
+test("M32 lifecycle com valor malformado (erro de digitacao) => PEGA, nunca vira one_shot nem conditional em silencio", () => {
+  mutate("typo em lifecycle", "CHANGE_INTENT.json",
+    (t) => t.replace('"lifecycle": "conditional"', '"lifecycle": "conditionall"'), "D1");
+});
+
+test("M33 invariante de desarme violado no proprio workflow (nao no CHANGE_INTENT.json) => PEGA", () => {
+  // A mutacao mais importante desta secao: prova que D3 nao confia cegamente no JSON dizendo
+  // "continua desarmado" — ele LE o arquivo real do workflow a cada execucao. Rearmar o workflow
+  // (voltar a --auto + token magico) SEM tocar em CHANGE_INTENT.json ainda reprova D3.
+  mutate("workflow rearmado por baixo", ".github/workflows/br2026_round_emails.yml",
+    (t) => t.replace("python3 send_round_email.py --dry-run", "python3 send_round_email.py --auto")
+             .replace('BOLAO_ALLOW_REAL_SEND: "DISARMED_NEW_INCIDENT_20260818"', 'BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"'),
+    "D3");
+});
+
+// ── Limite conhecido, documentado em vez de fingido (STEP 10 item 12) ───────────────────────────
+//
+// Se alguem APAGAR a declaracao conditional inteira de CHANGE_INTENT.json — sem tocar no arquivo
+// do workflow, que continua desarmado por conta do incidente real — NENHUM check existente pega
+// isso: D2 so dispara quando um caminho DECLARE_TO_CHANGE aparece no diff (o workflow nao mudou
+// nesta arvore), e D3 so avalia declaracoes que EXISTEM. Isto e um limite real do modelo, nao um
+// bug deste PR: CHANGE_INTENT.json documenta intenção sobre mudanças/estados detectados por
+// diff — ele nunca foi, e este PR nao o torna, uma trava que impede a REMOCAO da propria
+// documentacao. Registrar isso explicitamente (em vez de fingir uma protecao que nao existe) é
+// exatamente o que ADR-018 pede.
+test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por nenhum check existente (documentado, nao uma regressao deste PR)", () => {
+  const original = readFileSync(abs("CHANGE_INTENT.json"), "utf8");
+  touched.add("CHANGE_INTENT.json");
+  if (!hashesBefore.has("CHANGE_INTENT.json")) hashesBefore.set("CHANGE_INTENT.json", sha("CHANGE_INTENT.json"));
+  try {
+    const mutated = original.replace(/"declarations":\s*\[[\s\S]*\]\n/, '"declarations": []\n');
+    assert(mutated !== original, "a mutacao nao alterou CHANGE_INTENT.json");
+    writeFileSync(abs("CHANGE_INTENT.json"), mutated);
+    const { status, exit } = runContract();
+    assert(exit === 0 && !status.D1 && !status.D2 && !status.D3,
+      "esperado: NENHUM check reprova (isso e o limite documentado) — se algo comecou a pegar isso, atualize este teste e o ADR-018, nao remova a checagem");
+  } finally {
+    writeFileSync(abs("CHANGE_INTENT.json"), original);
+  }
+});
+
 // ══ Z. RESTAURACAO ════════════════════════════════════════════════════════════════════════════
 
 console.log("\nZ. Nenhuma mutacao ficou para tras");
@@ -408,7 +484,7 @@ test("o contrato volta a passar depois de todas as mutacoes", () => {
     `o numero de checks mudou: ${baseline.totals.pass} -> ${after.totals.pass}`);
 });
 
-const MUTATIONS = 26;
+const MUTATIONS = 33;
 test(`MUTATIONS_CAUGHT == MUTATIONS_EXECUTED (${MUTATIONS}/${MUTATIONS})`, () => {
   assert(fail === 0, `${fail} mutacao(oes) nao foi(ram) pega(s)`);
 });
