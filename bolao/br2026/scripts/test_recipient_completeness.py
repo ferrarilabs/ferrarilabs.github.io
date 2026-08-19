@@ -32,7 +32,16 @@ from round_notif_rpc_fake import FakeRoundNotifStore, make_round_rpc_caller
 
 
 MANIFESTO = MANIFEST.load()
-R22 = next(r for r in MANIFESTO["rounds"] if r["roundNumber"] == 22)
+# A rodada usada aqui precisa estar DENTRO da janela real de reconciliacao (as `RECONCILE_WINDOW`
+# mais recentes cujo inicio ja passou) -- por isso continua sendo a 22 e nao uma futura. Desde o
+# guardiao de epoca do ledger duravel (2026-08-18, incidente de ressurreicao da R22 -- ver
+# ROUND_HISTORICAL_LEDGER_GAP em round_state.py), nenhuma rodada <= EARLIEST_DURABLE_LEDGER_ROUND
+# pode virar candidata so por ausencia de linha na tabela nova. Este harness testa COMPLETUDE DE
+# DESTINATARIO, nao o guardiao de epoca (que tem seus proprios testes) -- por isso `Harness.
+# install()` desliga o guardiao (`S.EARLIEST_DURABLE_LEDGER_ROUND = 0`) para isolar as duas
+# preocupacoes.
+RODADA_TESTE = 22
+RODADA_DEF = next(r for r in MANIFESTO["rounds"] if r["roundNumber"] == RODADA_TESTE)
 AGORA = datetime.now(timezone.utc)
 
 
@@ -73,7 +82,7 @@ class Harness:
             "sentBatches": [{"windowStart": "2026-07-16T00:00:00Z"}],
             "sentGameIds": [],
         }}
-        self.games = {fid: _game(fid, r22_completa) for fid in R22["canonicalFixtureIds"]}
+        self.games = {fid: _game(fid, r22_completa) for fid in RODADA_DEF["canonicalFixtureIds"]}
 
     def install(self, transport_result=None, fail_for=None):
         S.sb_fetch = lambda: self.state
@@ -91,6 +100,12 @@ class Harness:
         # localmente (sem credencial) e isso desativava a chamada via `if atomic_ok`. `{}` é o
         # valor real esperado em produção: nada enfileira rodada do BR2026 nessa tabela.
         S.notification_states_from_atomic = lambda: {}
+        # Guardiao de epoca desligado de proposito: este arquivo testa COMPLETUDE DE
+        # DESTINATARIO, e a rodada de teste (22) esta dentro da epoca real -- sem isto, todo
+        # teste aqui bloquearia como HISTORICAL_LEDGER_GAP por nao seedar nenhuma fonte
+        # historica, o que testaria o guardiao (ja coberto em outro arquivo) em vez do que este
+        # arquivo existe para testar.
+        S.EARLIEST_DURABLE_LEDGER_ROUND = 0
 
         def transport(url, body, headers):
             self.provider_calls.append(body)
@@ -119,7 +134,8 @@ class RecipientCompleteness(unittest.TestCase):
             "atualize esta lista em vez de deixar o teste gravar de verdade")
         self._orig = {k: getattr(S, k) for k in
                       ["sb_fetch", *_escritores, "fetch_scoreboard_window", "fetch_standings",
-                       "_TRANSPORT", "_ROUND_RPC_CALLER", "notification_states_from_atomic"]}
+                       "_TRANSPORT", "_ROUND_RPC_CALLER", "notification_states_from_atomic",
+                       "EARLIEST_DURABLE_LEDGER_ROUND"]}
         self._sleep = S.time.sleep
 
     def tearDown(self):
@@ -134,8 +150,8 @@ class RecipientCompleteness(unittest.TestCase):
         h = Harness([_entry("e1", "a@example.invalid"), _entry("e2", "b@example.invalid")])
         h.install()
         out = self._dry_run(h)
-        self.assertIn(22, out["candidates"], "R22 completa deveria ser candidata")
-        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        self.assertIn(RODADA_TESTE, out["candidates"], "rodada completa deveria ser candidata")
+        r22 = next(r for r in out["rounds"] if r["round"] == RODADA_TESTE)
         self.assertTrue(r22["recipientSetComplete"])
         self.assertTrue(r22["wouldSend"])
         self.assertEqual(len(h.provider_calls), 0, "DRY-RUN nunca pode chamar o provedor")
@@ -146,7 +162,7 @@ class RecipientCompleteness(unittest.TestCase):
                      _entry("e3", "")])
         h.install()
         out = self._dry_run(h)
-        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        r22 = next(r for r in out["rounds"] if r["round"] == RODADA_TESTE)
         self.assertEqual(r22["blocked"], "RECIPIENT_SET_INCOMPLETE")
         self.assertFalse(r22["wouldSend"])
         self.assertEqual(len(h.provider_calls), 0,
@@ -156,7 +172,7 @@ class RecipientCompleteness(unittest.TestCase):
         h = Harness([_entry("e1", "a@example.invalid"), _entry("e2", "naoehemail")])
         h.install()
         out = self._dry_run(h)
-        r22 = next(r for r in out["rounds"] if r["round"] == 22)
+        r22 = next(r for r in out["rounds"] if r["round"] == RODADA_TESTE)
         self.assertEqual(r22["blocked"], "RECIPIENT_SET_INCOMPLETE")
         self.assertEqual(len(h.provider_calls), 0)
 
@@ -172,8 +188,8 @@ class RecipientCompleteness(unittest.TestCase):
         h = Harness([_entry("e1", "a@example.invalid")])
         h.install()
         out = self._dry_run(h)
-        r22 = next(r for r in out["rounds"] if r["round"] == 22)
-        self.assertEqual(r22["idempotencyKey"], "br2026:round-results:22:v1")
+        r22 = next(r for r in out["rounds"] if r["round"] == RODADA_TESTE)
+        self.assertEqual(r22["idempotencyKey"], f"br2026:round-results:{RODADA_TESTE}:v1")
         self.assertNotIn("@", r22["idempotencyKey"])
 
     def test_dry_run_NAO_persiste_estado(self):

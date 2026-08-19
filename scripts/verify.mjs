@@ -312,6 +312,8 @@ const CHECKS = [
     why: "Issue #221: a rodada 23 foi enviada 4x para os 11 participantes reais porque o repositorio de producao nunca persistia entre execucoes. Prova exactly-once ENTRE processos novos (nao so dentro do mesmo objeto Python): reproduz o defeito real com um repositorio nao duravel, prova zero duplicatas com AtomicRoundLedgerRepo em 100 execucoes sequenciais e 10 workers concorrentes, parcial/incerto retentam so o que precisa, e a fiacao de producao usa o repositorio duravel" },
   { id: "br-round-state", group: "scoring", cmd: ["python3", "bolao/br2026/scripts/test_round_state.py"],
     why: "F1/F2: identidade canonica de rodada, proveniencia oficial, R21 nao bloqueia R22" },
+  { id: "br-historical-ledger-epoch-guard", group: "notifications", cmd: ["python3", "bolao/br2026/scripts/test_historical_ledger_epoch_guard.py"],
+    why: "incidente 2026-08-18: a rodada 22 (concluida e notificada em 2026-08-11) foi reenviada na primeira execucao apos o rearme do #221, porque sua unica evidencia de entrega ficou presa no JSON antigo `roundEmail.ledger` -- orfao desde F8, que so a tabela nova (bolao_round_notif_jobs) passou a alimentar. Prova que nenhuma rodada <= EARLIEST_DURABLE_LEDGER_ROUND pode virar candidata so por ausencia de linha na tabela nova (guardiao de epoca), que o JSON antigo volta a ser lido permanentemente, e que rodadas futuras legitimas continuam enviando normalmente" },
   { id: "br-recipient-completeness", group: "security", cmd: ["python3", "bolao/br2026/scripts/test_recipient_completeness.py"],
     why: "F4/F5: conjunto de destinatarios incompleto = zero chamadas ao provedor" },
   { id: "ops-logging", group: "security", cmd: ["node", "bolao/scripts/test_ops_logging.mjs"],

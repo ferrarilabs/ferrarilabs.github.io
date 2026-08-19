@@ -104,14 +104,21 @@ console.log("BR_NOTIFICATION_LEDGER_ACTUAL_CONSUMER\n");
   // segundo defeito achado durante a verificacao do rollout (`claim_bolao_notif_round_job`
   // serializava reivindicacao falha como objeto todo-null, PR #228) tambem foi corrigido, e a
   // rodada 23 foi confirmada SENT/11-aceitos/nao-reivindicavel diretamente contra producao
-  // antes de rearmar. Manter a assercao "desarmado" faria esta suite exigir que o produto
-  // continuasse incapaz de enviar mesmo depois da causa raiz corrigida e provada.
+  // antes de rearmar.
   //
-  // Duas travas independentes continuam sendo duas -- a diferenca e que agora ambas estao
-  // deliberadamente abertas, e nao acidentalmente.
-  check("a autorização de envio é explícita e literal no job (rearmado, Issue #221 corrigido)",
-    /BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
-    "o envio real depende de um token literal; qualquer outro valor mantém o sender fechado");
+  // DESARMADO DE NOVO em 2026-08-18 ~22:14 UTC -- incidente NOVO: a rodada 22 (ja concluida e
+  // notificada de verdade em 2026-08-11) foi reenviada aos mesmos 11 participantes reais na
+  // primeira execucao apos o rearme acima, porque a troca para `AtomicRoundLedgerRepo` so foi
+  // retroativamente povoada para a rodada 23 -- a unica evidencia de entrega da R22 ficou presa
+  // no JSON antigo (`roundEmail.ledger`), que nada mais lia. A correcao (merge permanente do
+  // JSON antigo + guardiao de epoca `apply_historical_ledger_epoch_guard`) esta implementada e
+  // testada (`test_historical_ledger_epoch_guard.py`), mas o rearme e uma mudanca SEPARADA,
+  // feita so apos `npm run check` verde e verificacao direta contra producao -- manter a
+  // assercao "armado" aqui faria esta suite passar verde enquanto o workflow real continua
+  // deliberadamente fechado, o oposto do que este gate existe para garantir.
+  check("a autorização de envio permanece fechada (DESARMADO — incidente novo, R22 ressuscitada)",
+    !/BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
+    "o token literal de autorização voltou ao workflow antes do incidente de ressurreição da R22 ter sido verificado como corrigido em produção");
 
   check("o token que o sender exige continua sendo o literal esperado",
     /_ALLOW_TOKEN\s*=\s*"I UNDERSTAND"/.test(sender),

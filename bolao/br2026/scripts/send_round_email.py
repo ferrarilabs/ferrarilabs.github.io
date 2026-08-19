@@ -665,6 +665,74 @@ def notification_states_from_round_ledger(ledger, manifest):
     return estados
 
 
+def notification_states_from_legacy_round_ledger_json(legacy, manifest):
+    """Disposicao por rodada segundo o ledger de rodada ANTIGO (JSON, `roundEmail.ledger`).
+
+    F8 (Issue #221) trocou `SupabaseStateRoundLedgerRepo` (lia/escrevia este JSON) por
+    `AtomicRoundLedgerRepo` (tabela `bolao_round_notif_jobs`) e nada mais voltou a ler este
+    JSON depois disso -- mas ele continua em `bolao_state.roundEmail.ledger`, sem ter sido
+    migrado nem apagado. Consequencia real (2026-08-18): a R22 foi enviada em 2026-08-11 e sua
+    UNICA evidencia de entrega ficou presa aqui -- invisivel para `notification_states_from_
+    round_ledger` (que so olha a tabela nova), invisivel para `LEGACY.migrate` (que so olha
+    `sentBatches`/`sentGameIds`/`pendingBatch`, nunca `ledger`). A rodada voltou a parecer
+    "nunca notificada" e foi reenviada aos 11 participantes reais na primeira execucao apos o
+    rearme do #221.
+
+    Mesma logica de merge que `notification_states_from_round_ledger`: so ACRESCENTA estados
+    terminais, nunca pode causar um envio, so impedir um.
+    """
+    por_rodada = (legacy.get("ledger") or {})
+    estados = {}
+    for r in manifest["rounds"]:
+        key = ROUNDSTATE.idempotency_key(r["roundNumber"])
+        rec = por_rodada.get(key)
+        if not rec:
+            continue
+        traduzido = _ROUND_LEDGER_STATUS_MAP.get(rec.get("state"))
+        if traduzido:
+            # Chave conhecida (derivada do numero da rodada), nunca `rec["idempotencyKey"]`: o
+            # JSON antigo e escrita manual/legada, sem garantia de schema como a tabela nova --
+            # confiar num campo que pode faltar aqui derrubaria o merge inteiro por um registro.
+            estados[key] = {"status": traduzido, "source": "LEGACY_ROUND_LEDGER_JSON"}
+    return estados
+
+
+# ── EPOCA DO LEDGER DURAVEL (2026-08-18, incidente de ressurreicao da R22) ─────────────────────
+#
+# A rodada 23 foi a primeira inteiramente processada pela tabela nova (`bolao_round_notif_jobs`,
+# migracao 030): sua linha existe porque foi conferida e populada explicitamente antes do rearme
+# do #221, nao porque o codigo a criou organicamente. Nenhuma rodada <= 23 pode ser tratada como
+# "nunca notificada" apenas por nao ter linha nessa tabela -- a ausencia de linha para uma rodada
+# desse periodo e tao provavelmente uma lacuna de migracao quanto uma rodada de fato pendente, e
+# so um humano pode diferenciar as duas com seguranca. Rodadas > 23 nunca tiveram chance de ter
+# evidencia historica escondida em mecanismo nenhum: so passam a existir como candidatas depois
+# que a tabela nova ja existia, entao "sem linha" ali e sempre "nunca enviada" de verdade.
+#
+# Isto e defesa em profundidade, nao o mecanismo primario -- mesclar o JSON antigo (acima) ja
+# resolve a R22 especificamente com evidencia real. A epoca cobre qualquer OUTRA rodada <= 23
+# cuja evidencia esteja escondida em um lugar que ainda nao pensamos em ler.
+EARLIEST_DURABLE_LEDGER_ROUND = 23
+
+
+def apply_historical_ledger_epoch_guard(notif_states, manifest):
+    """Ultimo passo do merge de `notif_states`: preenche BURACO, nunca sobrescreve.
+
+    So toca uma rodada <= EARLIEST_DURABLE_LEDGER_ROUND que, depois de toda fonte real (legado
+    por lote, ledger atomico generico, ledger de rodada novo, ledger de rodada antigo) ja ter
+    sido mesclada, continua SEM NENHUM estado -- ou seja, nenhuma fonte conhecida tem qualquer
+    registro dela. Marca como bloqueada para reconciliacao manual em vez de deixar `round_state`
+    conclui-la ROUND_READY_TO_NOTIFY por omissao.
+    """
+    for r in manifest["rounds"]:
+        n = r["roundNumber"]
+        if n > EARLIEST_DURABLE_LEDGER_ROUND:
+            continue
+        key = ROUNDSTATE.idempotency_key(n)
+        if key not in notif_states:
+            notif_states[key] = {"status": "HISTORICAL_LEDGER_GAP", "source": "EPOCH_GUARD"}
+    return notif_states
+
+
 def _observations_for_round(round_def, raw_games):
     """Observacoes de uma rodada, incluindo rejogo de jogo adiado."""
     ids = set(round_def["canonicalFixtureIds"]) | set((round_def.get("replacements") or {}).values())
@@ -765,9 +833,17 @@ def run_auto(dry_run=False):
     migrated, mig = LEGACY.migrate(legacy, manifest)
     notif_states.update(migrated)
     notif_states.update(notification_states_from_atomic())
-    # POR ULTIMO: o ledger que efetivamente registrou a entrega desta rodada. Ver a docstring --
-    # sem isto, uma rodada JA ENVIADA continua sendo proposta como candidata em toda execucao.
+    # Ledger de rodada ANTIGO (JSON `roundEmail.ledger`, orfao desde F8/#221) antes do novo: o
+    # novo e a fonte canonica quando os dois discordarem (nao deveria acontecer -- os dois so
+    # produzem estados terminais -- mas se acontecer, a tabela atomica e a verdade corrente).
+    notif_states.update(notification_states_from_legacy_round_ledger_json(legacy, manifest))
+    # POR ULTIMO (entre as fontes reais): o ledger que efetivamente registrou a entrega desta
+    # rodada. Ver a docstring -- sem isto, uma rodada JA ENVIADA continua sendo proposta como
+    # candidata em toda execucao.
     notif_states.update(notification_states_from_round_ledger(ledger, manifest))
+    # ULTIMO DE TODOS: epoca do ledger duravel -- so preenche buraco, nunca sobrescreve nada que
+    # qualquer fonte real acima ja tenha resolvido. Ver comentario da funcao.
+    notif_states = apply_historical_ledger_epoch_guard(notif_states, manifest)
 
     print(f"Migracao do legado: SENT={mig['roundsMarkedSent']} "
           f"PRE_FEATURE={len(mig['roundsPreFeature'])} "
