@@ -87,17 +87,26 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
   const workflow = read(".github/workflows/br2026_round_emails.yml");
   const wf = workflow.split("\n").filter((l) => !/^\s*#/.test(l)).join("\n");
 
-  // ARMADO em 2026-08-11 (autorizacao explicita do Eduardo para a R22 em diante, apos
-  // auditoria independente de scoring e conteudo). DESARMADO em 2026-08-18 (Issue #221):
-  // incidente confirmado, nao suspeita -- a rodada 23 foi enviada 4x para os 11 participantes
-  // reais (44 envios em vez de 11) porque `SupabaseStateRoundLedgerRepo` nunca grava o ledger
-  // de volta no Supabase (so muta um dict em memoria de um `sb_fetch()` de leitura). REARMADO
-  // em 2026-08-18, mesmo dia, apos a causa raiz ser corrigida e VERIFICADA contra producao:
-  // `AtomicRoundLedgerRepo` substitui o repositorio nao duravel (migracao 030, PR #226), um
-  // segundo defeito achado durante a verificacao do rollout -- `claim_bolao_notif_round_job`
-  // serializava reivindicacao falha como objeto todo-null em vez de null puro -- tambem foi
-  // corrigido e aplicado (PR #228), e a rodada 23 (a rodada do incidente) foi confirmada SENT/
-  // 11-aceitos/nao-reivindicavel diretamente contra os objetos de producao antes de rearmar.
+  // ARMADO em 2026-08-11. DESARMADO em 2026-08-18 (Issue #221): rodada 23 enviada 4x aos 11
+  // participantes reais porque `SupabaseStateRoundLedgerRepo` nunca gravava o ledger de volta
+  // no Supabase. REARMADO no mesmo dia apos `AtomicRoundLedgerRepo` (migracao 030, PR #226) e a
+  // correcao da serializacao de reivindicacao falha (PR #228) serem verificadas contra producao.
+  //
+  // DESARMADO DE NOVO em 2026-08-18 ~22:14 UTC — incidente NOVO, distinto do #221: a rodada 22
+  // (concluida e notificada de verdade em 2026-08-11, 11/11 aceitos) foi reenviada aos mesmos 11
+  // participantes reais na primeira execucao apos o rearme do #221. Causa raiz: a troca para
+  // `AtomicRoundLedgerRepo` so foi retroativamente povoada para a rodada 23 (a rodada do #221) —
+  // a UNICA evidencia de entrega da R22 ficou presa no JSON antigo `bolao_state.roundEmail.
+  // ledger`, que nada mais lia depois da troca. "Sem linha na tabela nova" e "nunca enviada"
+  // eram tratados como a mesma coisa, e nao sao.
+  //
+  // Correcao (nao ainda rearmada nesta mudanca): `notification_states_from_legacy_round_ledger_
+  // json()` volta a ler o JSON antigo permanentemente (resolve a R22 com evidencia real), e
+  // `apply_historical_ledger_epoch_guard()` bloqueia qualquer rodada <= EARLIEST_DURABLE_LEDGER_
+  // ROUND sem evidencia em NENHUMA fonte conhecida (defesa em profundidade contra qualquer outra
+  // lacuna historica ainda nao identificada). Ver bolao/br2026/scripts/send_round_email.py e
+  // test_historical_ledger_epoch_guard.py. O rearme e uma mudanca SEPARADA, feita so depois de
+  // `npm run check` verde e verificacao direta contra producao.
   //
   // Apagar as assercoes sem substituir deixaria o bloco com nome de portao e nenhum portao
   // dentro, que e pior do que nao ter portao -- entao a propriedade exigida aqui inverteu de
@@ -110,9 +119,9 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
     /REAL_SEND_REQUIRES_ATOMIC_LEDGER/.test(code),
     "o envio real ficou alcançável sem checar a atomicidade do ledger");
 
-  check("o cron roda o sender canônico em modo de envio (rearmado, Issue #221 corrigido)",
-    /send_round_email\.py\s+--auto\b/.test(wf),
-    "o workflow deixou de chamar o sender canônico com --auto apesar da causa raiz do #221 estar corrigida e verificada");
+  check("o cron roda o sender canônico em modo dry-run (DESARMADO — incidente novo, R22 ressuscitada)",
+    /send_round_email\.py\s+--dry-run\b/.test(wf) && !/send_round_email\.py\s+--auto\b/.test(wf),
+    "o workflow voltou a chamar --auto apesar do incidente de ressurreicao da R22 ainda nao ter sido verificado como corrigido em producao");
 
   check("o transporte é checado ANTES de reivindicar a rodada",
     code.indexOf("real_send_allowed()") < code.indexOf("ledger.claim("),

@@ -31,6 +31,7 @@ ROUND_NOTIFICATION_PENDING = "ROUND_NOTIFICATION_PENDING"
 ROUND_NOTIFICATION_PARTIAL = "ROUND_NOTIFICATION_PARTIAL"
 ROUND_NOTIFIED = "ROUND_NOTIFIED"
 ROUND_NOTIFICATION_FAILED = "ROUND_NOTIFICATION_FAILED"
+ROUND_HISTORICAL_LEDGER_GAP = "ROUND_HISTORICAL_LEDGER_GAP"
 
 # Janela de assentamento: depois que o último jogo exigido vira terminal, esperamos antes de
 # confiar. Placar e status ainda oscilam nos minutos seguintes ao apito final.
@@ -90,6 +91,17 @@ def derive_round_notification_state(round_def, observations, notification_state=
     if ns.get("status") == "SENDING":
         return _result(ROUND_NOTIFICATION_PENDING, round_def,
                        reason="outra execução detém o claim")
+    # Rodada anterior à época do ledger durável, sem NENHUMA evidência positiva em nenhuma
+    # fonte (legado por lote, ledger atômico genérico, ledger de rodada novo OU antigo). Ver
+    # incidente de ressurreição da R22 (2026-08-18): "sem linha" não é prova de "nunca
+    # enviada" para uma rodada que pode ter sido enviada por um mecanismo já removido. Nunca
+    # candidata a envio automático — precedência sobre a avaliação por observação de jogos,
+    # porque o problema não é o estado dos jogos, é a origem da evidência de notificação.
+    if ns.get("status") == "HISTORICAL_LEDGER_GAP":
+        return _result(ROUND_HISTORICAL_LEDGER_GAP, round_def,
+                       reason="anterior à época do ledger durável e sem evidência de "
+                              "notificação em nenhuma fonte — requer reconciliação manual "
+                              "antes de qualquer envio automático")
 
     if not round_def or not round_def.get("canonicalFixtureIds"):
         return _result(ROUND_UNKNOWN, round_def, reason="rodada sem conjunto de jogos conhecido")

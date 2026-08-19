@@ -5,6 +5,9 @@
     "bolao/br2026/scripts/audit_scoring.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/br2026/scripts/test_historical_ledger_epoch_guard.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/br2026/scripts/test_recipient_completeness.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
