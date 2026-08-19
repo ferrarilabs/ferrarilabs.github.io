@@ -57,6 +57,151 @@ export function loadIntent() {
   return { declarations: raw.declarations || [] };
 }
 
+// ── ciclo de vida da declaracao (one_shot vs conditional) ───────────────────────────────────────
+//
+// CONTEXTO (2026-08-18, Issue #238 / ADR-018): D3 so sabe responder "esse caminho apareceu no
+// diff desde a base?" — uma pergunta certa para uma declaracao que descreve UMA MUDANCA JA FEITA
+// (one_shot: o normal, o unico formato que existiu ate aqui), mas errada para uma declaracao que
+// descreve um ESTADO QUE PRECISA CONTINUAR VALENDO ate uma condicao futura ser satisfeita
+// (conditional: ex. "este workflow deve continuar desarmado ate a causa raiz do incidente X ser
+// confirmada"). Um commit seguinte NAO RELACIONADO faz a base andar, o caminho desaparece do
+// diff, e D3 marcava a declaracao como obsoleta mesmo com a obrigacao real ainda ativa — foi
+// exatamente o que aconteceu com a declaracao de emergencia do BR2026 depois do merge do PR #237.
+//
+// Este modulo e a UNICA definicao de lifecycle/exit_conditions no repositorio — tanto
+// audit_safety_contract.mjs (D1/D3) quanto o detector Sentinel change_intent_stale.mjs importam
+// daqui, para nunca divergirem (a mesma razao pela qual pathMatches/resolveBase ja vivem aqui).
+
+export const LIFECYCLES = new Set(["one_shot", "conditional"]);
+export const EXIT_CONDITION_TYPES = new Set(["MACHINE_VERIFIABLE", "HUMAN_OPERATIONS_VERIFIED"]);
+
+/**
+ * Registro FECHADO de invariantes verificaveis por maquina que uma exit_condition MACHINE_VERIFIABLE
+ * pode referenciar pelo nome. Deliberadamente fechado: um `check` que nao resolve para uma entrada
+ * real aqui reprova D1 (ver validateLifecycle) em vez de ser silenciosamente aceito como prosa —
+ * e exatamente isso que impede alguem de rotular uma declaracao obsoleta como "conditional" so
+ * para calar D3 sem se comprometer com nenhuma verificacao real (ver ADR-018, secao adversarial).
+ *
+ * Cada entrada e `{ surface_id, run() }`, nunca so uma funcao solta: `surface_id` amarra o check a
+ * UMA superficie especifica, e validateLifecycle reprova uma declaracao cujo `surface_id` nao bate
+ * com o do check referenciado. Sem isso, uma declaracao poderia trocar `surface_id` para uma
+ * superficie qualquer e continuar "protegida" por um invariante que nao tem nada a ver com ela —
+ * o mesmo tipo de autorizacao ampla concedida por motivo estreito que D3 existe para recusar.
+ *
+ * `readFn(path)` retorna o CONTEUDO ATUAL do arquivo (nao numa base historica — um invariante
+ * condicional pergunta "isso ainda e verdade AGORA", nao "isso mudou recentemente") ou `null` se
+ * o arquivo nao existir. Producao usa leitura real do disco (ROOT); testes injetam um `readFn` de
+ * fixture — mesma convencao de dependency injection ja usada pelos detectores do Sentinel.
+ */
+export function makeInvariantChecks(readFn) {
+  return {
+    /**
+     * BR2026_ROUND_EMAILS_DISARMED: o workflow de emails de rodada do BR2026 nao pode estar
+     * invocando `--auto` NEM usando o token magico real (`I UNDERSTAND`) no valor de
+     * BOLAO_ALLOW_REAL_SEND. Le o arquivo do workflow diretamente — nunca confia em metadados
+     * descritivos como o campo `armed` do registro (que pode ficar desatualizado, como aconteceu
+     * durante este mesmo incidente: `notification_workflows.json` ainda diz `armed: true` /
+     * `command: --auto` mesmo com o workflow real desarmado — ver docs/bolao/CONSISTENCY_MATRIX.md).
+     */
+    BR2026_ROUND_EMAILS_DISARMED: {
+      surface_id: "NOTIFICATION_WORKFLOWS",
+      run: () => {
+        const text = readFn(".github/workflows/br2026_round_emails.yml");
+        if (text == null) return { ok: false, detail: "arquivo do workflow nao encontrado" };
+        const usesAuto = /send_round_email\.py\s+--auto\b/.test(text);
+        const usesMagicToken = /BOLAO_ALLOW_REAL_SEND:\s*["']I UNDERSTAND["']/.test(text);
+        const ok = !usesAuto && !usesMagicToken;
+        return {
+          ok,
+          detail: ok ? null
+            : "o workflow parece estar REARMADO (--auto e/ou o token magico BOLAO_ALLOW_REAL_SEND=\"I UNDERSTAND\" presentes) enquanto a declaracao condicional afirma que deve permanecer desarmado",
+        };
+      },
+    },
+  };
+}
+
+/**
+ * Valida a FORMA especifica de lifecycle de uma declaracao, alem dos REQUIRED_INTENT_FIELDS que
+ * toda declaracao ja precisa ter independente de lifecycle (isso continua sendo responsabilidade
+ * de quem chama). Retorna um array de strings de problema (vazio = valida).
+ *
+ * `seenConditionIds`: um Set compartilhado entre todas as declaracoes de UMA execucao (nunca
+ * persistido entre execucoes) — usado so para pegar condition_id duplicado entre declaracoes
+ * distintas no mesmo CHANGE_INTENT.json.
+ */
+export function validateLifecycle(d, invariantChecks, seenConditionIds) {
+  const problems = [];
+  const lifecycle = d.lifecycle === undefined ? "one_shot" : d.lifecycle;
+  if (!LIFECYCLES.has(lifecycle)) {
+    problems.push(`lifecycle desconhecido: "${d.lifecycle}" (deve ser "one_shot", "conditional", ou ausente)`);
+    return problems; // sem saber qual forma se aplica, nao ha mais nada a validar
+  }
+  if (lifecycle !== "conditional") return problems; // one_shot: nenhum requisito de forma adicional
+
+  if (!d.condition_id || typeof d.condition_id !== "string") {
+    problems.push("conditional sem condition_id");
+  } else if (seenConditionIds.has(d.condition_id)) {
+    problems.push(`condition_id duplicado: ${d.condition_id}`);
+  } else {
+    seenConditionIds.add(d.condition_id);
+  }
+
+  if (!Number.isInteger(d.related_issue) || d.related_issue <= 0) {
+    problems.push("conditional sem related_issue (numero de Issue valido)");
+  }
+
+  const exitConditions = d.exit_conditions;
+  if (!Array.isArray(exitConditions) || exitConditions.length === 0) {
+    problems.push("conditional sem exit_conditions");
+    return problems;
+  }
+
+  let machineVerifiableCount = 0;
+  for (const ec of exitConditions) {
+    if (!ec || typeof ec !== "object" || !ec.id || !EXIT_CONDITION_TYPES.has(ec.type)) {
+      problems.push(`exit_condition malformada: ${JSON.stringify(ec)}`);
+      continue;
+    }
+    if (ec.type === "MACHINE_VERIFIABLE") {
+      machineVerifiableCount++;
+      const entry = ec.check ? invariantChecks[ec.check] : undefined;
+      if (!entry) {
+        problems.push(`exit_condition "${ec.id}" referencia check inexistente: "${ec.check}"`);
+      } else if (entry.surface_id !== d.surface_id) {
+        problems.push(`exit_condition "${ec.id}": check "${ec.check}" e registrado para a superficie "${entry.surface_id}", nao para "${d.surface_id}" — nao pode proteger uma superficie diferente da que verifica`);
+      }
+    } else if (typeof ec.satisfied !== "boolean") {
+      problems.push(`exit_condition "${ec.id}" (HUMAN_OPERATIONS_VERIFIED) sem campo booleano "satisfied"`);
+    }
+  }
+  // O requisito central contra o escape hatch (ver ADR-018): prosa sozinha nunca basta. Uma
+  // declaracao conditional so e valida se ao menos UM invariante real, implementado em codigo, e
+  // ativamente verificado a cada execucao — nunca apenas prometido em texto.
+  if (machineVerifiableCount === 0) {
+    problems.push("conditional exige pelo menos uma exit_condition MACHINE_VERIFIABLE com check real registrado — prosa sozinha nao e suficiente");
+  }
+  return problems;
+}
+
+/**
+ * Avalia cada exit_condition MACHINE_VERIFIABLE de uma declaracao conditional contra o estado
+ * ATUAL do repositorio (nunca a base/diff). Assume que a declaracao ja passou por
+ * validateLifecycle sem problemas (nao trata entrada malformada). Retorna um array de
+ * `{ id, ok, detail }`, um por exit_condition MACHINE_VERIFIABLE (entradas HUMAN_OPERATIONS_VERIFIED
+ * sao puramente informativas/auditaveis — nunca avaliadas aqui, ver ADR-018 secao 6).
+ */
+export function evaluateConditionalInvariants(d, invariantChecks) {
+  const results = [];
+  for (const ec of d.exit_conditions || []) {
+    if (ec?.type !== "MACHINE_VERIFIABLE") continue;
+    const entry = invariantChecks[ec.check];
+    const { ok, detail } = entry ? entry.run() : { ok: false, detail: "check nao registrado" };
+    results.push({ id: ec.id, ok, detail });
+  }
+  return results;
+}
+
 // ── casamento de caminho ──────────────────────────────────────────────────────────────────────
 
 /**

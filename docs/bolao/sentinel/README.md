@@ -129,6 +129,11 @@ established behavior.
 - **"Sentinel says a declaration is stale but I just added it"** — check `resolveBase()`'s output
   (the detector reuses the exact same base-resolution the safety contract uses); a declaration is
   only stale relative to a comparison base, and the base moves as commits land.
+- **"Sentinel wants to reopen/flag a declaration that represents a real, still-active safety
+  obligation (not a one-off change)"** — that declaration probably needs `"lifecycle": "conditional"`
+  instead of the default `"one_shot"`. See ADR-018 and `docs/bolao/CHANGE_SAFETY_CONTRACT.md`'s
+  "Declarações condicionais" section — a conditional declaration is exempt from diff-based
+  staleness but requires a real, actively-verified `MACHINE_VERIFIABLE` invariant, not just prose.
 - **A Sentinel Issue's Project fields never got set** — almost certainly the known Project-token
   gap below. Run `node scripts/sentinel/reconcile.mjs` once the secret exists; it repairs this
   automatically without creating a duplicate Issue.

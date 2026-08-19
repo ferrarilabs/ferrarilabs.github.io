@@ -395,6 +395,8 @@ const CHECKS = [
 
   { id: "safety-contract", group: "security", cmd: ["node", "scripts/safety/audit_safety_contract.mjs"],
     why: "meta-gate: nenhuma mudanca pode enfraquecer o proprio portao que a julga, e nenhuma superficie critica pode mudar em silencio" },
+  { id: "change-intent-lifecycle", group: "security", cmd: ["node", "scripts/safety/test_change_intent_lifecycle.mjs"],
+    why: "ADR-018 (Issue #238): prova o modelo ONE_SHOT/CONDITIONAL isoladamente — shape, invariante MACHINE_VERIFIABLE, e o requisito anti-escape-hatch de que prosa sozinha nunca basta e um check nao pode proteger superficie diferente da declarada" },
   { id: "safety-contract-mutations", group: "security", cmd: ["node", "scripts/safety/test_safety_contract.mjs"],
     why: "as mutacoes que provam que o contrato MORDE; um contrato que nunca fica vermelho e uma decoracao cara" },
 
