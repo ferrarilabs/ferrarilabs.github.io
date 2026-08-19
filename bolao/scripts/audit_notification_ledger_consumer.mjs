@@ -110,15 +110,16 @@ console.log("BR_NOTIFICATION_LEDGER_ACTUAL_CONSUMER\n");
   // notificada de verdade em 2026-08-11) foi reenviada aos mesmos 11 participantes reais na
   // primeira execucao apos o rearme acima, porque a troca para `AtomicRoundLedgerRepo` so foi
   // retroativamente povoada para a rodada 23 -- a unica evidencia de entrega da R22 ficou presa
-  // no JSON antigo (`roundEmail.ledger`), que nada mais lia. A correcao (merge permanente do
-  // JSON antigo + guardiao de epoca `apply_historical_ledger_epoch_guard`) esta implementada e
-  // testada (`test_historical_ledger_epoch_guard.py`), mas o rearme e uma mudanca SEPARADA,
-  // feita so apos `npm run check` verde e verificacao direta contra producao -- manter a
-  // assercao "armado" aqui faria esta suite passar verde enquanto o workflow real continua
-  // deliberadamente fechado, o oposto do que este gate existe para garantir.
-  check("a autorização de envio permanece fechada (DESARMADO — incidente novo, R22 ressuscitada)",
-    !/BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
-    "o token literal de autorização voltou ao workflow antes do incidente de ressurreição da R22 ter sido verificado como corrigido em produção");
+  // no JSON antigo (`roundEmail.ledger`), que nada mais lia.
+  //
+  // REARMADO em 2026-08-19 (Issue #238), apos o PR #242 (merge permanente do JSON antigo +
+  // guardiao de epoca `apply_historical_ledger_epoch_guard`, testado em
+  // `test_historical_ledger_epoch_guard.py`): reconciliacao contra as 23 rodadas concluidas nao
+  // produz nenhum candidato de reenvio; verificado tambem diretamente contra producao (leitura,
+  // sem escrita) antes de rearmar.
+  check("a autorização de envio é explícita e literal no job (rearmado, Issue #238 corrigido pelo PR #242)",
+    /BOLAO_ALLOW_REAL_SEND:\s*"I UNDERSTAND"/.test(workflow),
+    "o envio real depende de um token literal; qualquer outro valor mantém o sender fechado");
 
   check("o token que o sender exige continua sendo o literal esperado",
     /_ALLOW_TOKEN\s*=\s*"I UNDERSTAND"/.test(sender),

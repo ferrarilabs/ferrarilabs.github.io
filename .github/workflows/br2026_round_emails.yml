@@ -21,27 +21,28 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # DESARMADO EMERGENCIALMENTE em 2026-08-18 ~22:14 UTC -- NOVO INCIDENTE, distinto do #221.
+      # REARMADO em 2026-08-19 (Issue #238). O incidente (rodada 22, ja concluida e notificada
+      # de verdade em 2026-08-11, reenviada aos 11 participantes reais na primeira execucao apos
+      # o rearme do #221) tinha causa raiz na migracao do #221: a troca para `AtomicRoundLedgerRepo`
+      # so foi retroativamente povoada para a rodada 23 (a rodada do #221) -- a UNICA evidencia de
+      # entrega da rodada 22 ficou presa no JSON antigo `bolao_state.roundEmail.ledger`, que nada
+      # mais lia. Corrigido pelo PR #242: `notification_states_from_legacy_round_ledger_json()`
+      # volta a ler o JSON antigo permanentemente (resolve a rodada 22 com evidencia real), e
+      # `apply_historical_ledger_epoch_guard()` bloqueia qualquer rodada <= 23 sem evidencia em
+      # NENHUMA fonte conhecida (defesa em profundidade contra qualquer outra lacuna historica).
       #
-      # Evidencia (Gmail Sent): por volta de 2026-08-18 17:25 EDT, um lote completo saiu para os
-      # 11 participantes reais com assunto "Rodada 08.08-09.08" -- uma rodada ANTIGA, ja concluida
-      # ha muito tempo, nao a rodada corrente ("Rodada 15.08-17.08", que ja tinha sido enviada as
-      # 00:57 EDT do mesmo dia). Isto e um incidente NOVO -- nao o #221 se repetindo -- e a causa
-      # raiz ainda esta sob investigacao (hipotese principal: o ledger duravel novo, criado durante
-      # a remediacao do #221, so foi retroativamente preenchido (backfill) para a rodada 23 --
-      # qualquer OUTRA rodada historica sem linha no ledger pode estar sendo interpretada como
-      # "nunca enviada" e reenviada).
+      # Antes de rearmar, verificado: reconciliacao contra as 23 rodadas concluidas nao produz
+      # NENHUM candidato de reenvio (rodadas 1-20 e 22-23 durstas com evidencia real; rodada 21
+      # permanece corretamente nao-elegivel -- 4 dos 10 jogos ainda POSTPONED, sem substituicao no
+      # manifesto -- e bloqueada tanto pelo guardiao de epoca quanto pela avaliacao normal de jogos,
+      # nunca por estar "sem linha no ledger"). Verificado tambem diretamente contra producao
+      # (leitura, sem escrita): rodadas 22/23 permanecem SENT/attempt_count=1/11 aceitos, rodada 21
+      # continua sem nenhuma linha em nenhuma fonte, nenhuma linha nova inesperada apareceu.
       #
-      # Desarmado no meio da janela de cron ativa (21-23 UTC) para impedir uma proxima execucao
-      # (proxima em ate 30 min) de reenviar qualquer outra rodada historica antes da causa raiz
-      # ser entendida e corrigida.
-      #
-      # REARMAR = so depois de: (1) causa raiz confirmada, (2) toda rodada historica completada
-      # comprovadamente NAO elegivel para reenvio (HISTORICAL_ROUND_RESURRECTION = IMPOSSIVEL,
-      # nao so a rodada especifica deste incidente backfilled), (3) verificado contra producao.
-      - name: Reconciliar rodadas (dry-run -- envio real DESARMADO, novo incidente 2026-08-18)
+      # DESARMAR = trocar --auto por --dry-run e remover/alterar o valor de BOLAO_ALLOW_REAL_SEND.
+      - name: Reconciliar rodadas (envio real de rodada completa)
         working-directory: bolao/br2026/scripts
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-          BOLAO_ALLOW_REAL_SEND: "DISARMED_NEW_INCIDENT_20260818"
-        run: python3 send_round_email.py --dry-run
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 send_round_email.py --auto

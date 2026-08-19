@@ -100,13 +100,13 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
   // ledger`, que nada mais lia depois da troca. "Sem linha na tabela nova" e "nunca enviada"
   // eram tratados como a mesma coisa, e nao sao.
   //
-  // Correcao (nao ainda rearmada nesta mudanca): `notification_states_from_legacy_round_ledger_
-  // json()` volta a ler o JSON antigo permanentemente (resolve a R22 com evidencia real), e
+  // REARMADO em 2026-08-19 (Issue #238), apos o PR #242: `notification_states_from_legacy_round_
+  // ledger_json()` volta a ler o JSON antigo permanentemente (resolve a R22 com evidencia real), e
   // `apply_historical_ledger_epoch_guard()` bloqueia qualquer rodada <= EARLIEST_DURABLE_LEDGER_
-  // ROUND sem evidencia em NENHUMA fonte conhecida (defesa em profundidade contra qualquer outra
-  // lacuna historica ainda nao identificada). Ver bolao/br2026/scripts/send_round_email.py e
-  // test_historical_ledger_epoch_guard.py. O rearme e uma mudanca SEPARADA, feita so depois de
-  // `npm run check` verde e verificacao direta contra producao.
+  // ROUND sem evidencia em NENHUMA fonte conhecida (defesa em profundidade). Reconciliacao contra
+  // as 23 rodadas concluidas nao produz nenhum candidato de reenvio antes de rearmar (rodada 21
+  // permanece corretamente nao-elegivel — 4/10 jogos ainda POSTPONED — nunca por "sem linha no
+  // ledger"). Verificado tambem diretamente contra producao (leitura, sem escrita).
   //
   // Apagar as assercoes sem substituir deixaria o bloco com nome de portao e nenhum portao
   // dentro, que e pior do que nao ter portao -- entao a propriedade exigida aqui inverteu de
@@ -119,9 +119,9 @@ console.log("\nREAL_SEND_REQUIRES_ATOMIC_LEDGER");
     /REAL_SEND_REQUIRES_ATOMIC_LEDGER/.test(code),
     "o envio real ficou alcançável sem checar a atomicidade do ledger");
 
-  check("o cron roda o sender canônico em modo dry-run (DESARMADO — incidente novo, R22 ressuscitada)",
-    /send_round_email\.py\s+--dry-run\b/.test(wf) && !/send_round_email\.py\s+--auto\b/.test(wf),
-    "o workflow voltou a chamar --auto apesar do incidente de ressurreicao da R22 ainda nao ter sido verificado como corrigido em producao");
+  check("o cron roda o sender canônico em modo de envio (rearmado, Issue #238 corrigido pelo PR #242)",
+    /send_round_email\.py\s+--auto\b/.test(wf),
+    "o workflow deixou de chamar o sender canônico com --auto apesar da causa raiz do #238 estar corrigida e verificada");
 
   check("o transporte é checado ANTES de reivindicar a rodada",
     code.indexOf("real_send_allowed()") < code.indexOf("ledger.claim("),

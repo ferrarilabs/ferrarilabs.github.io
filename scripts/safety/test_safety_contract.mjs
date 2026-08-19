@@ -378,77 +378,164 @@ test("M26 rotulo artificialmente mais largo => PEGA", () => {
 
 console.log("\nE. Ciclo de vida CHANGE_INTENT — conditional vs one_shot (ADR-018, Issue #238)");
 
-test("M27 lifecycle conditional rebaixado para one_shot => PEGA", () => {
-  // Rebaixar uma declaracao conditional VALIDA de volta para one_shot deve reativar a staleness
-  // por diff — exatamente o defeito que o lifecycle model existe para consertar quando feito de
-  // proposito (D3), mas que continua reprovando quando feito por acidente ou em ma-fe.
-  mutate("conditional vira one_shot", "CHANGE_INTENT.json",
-    (t) => t.replace('"lifecycle": "conditional"', '"lifecycle": "one_shot"'), "D3");
+// Esta secao usa conteudo SINTETICO, nunca a declaracao real de producao. A declaracao real do
+// BR2026 (Issue #238) e transiente por natureza -- existe so enquanto o incidente estiver aberto,
+// e e removida no mesmo commit que rearma (exatamente o que aconteceu em 2026-08-19). Testar
+// contra o conteudo real de producao tornaria esta suite fragil ao ciclo de vida normal de um
+// incidente -- foi isso que quebrou M27-M33 na primeira tentativa de rearme: a declaracao real
+// sumiu, e as mutacoes pararam de achar o que mutar. `BR2026_ROUND_EMAILS_DISARMED` continua
+// sendo o UNICO invariante MACHINE_VERIFIABLE registrado hoje (scripts/safety/surfaces.mjs) --
+// usado aqui como fixture generico do mecanismo, nao como referencia ao incidente especifico.
+function syntheticConditionalIntent(overrides = {}) {
+  const decl = {
+    surface_id: "NOTIFICATION_WORKFLOWS",
+    lifecycle: "conditional",
+    condition_id: "test-synthetic-condition",
+    related_issue: 1,
+    reason: "fixture sintetica de mutacao — nunca intencao real de producao",
+    expected_behavior_change: "test",
+    tests_required: ["x"],
+    exit_conditions: [
+      { id: "inv", type: "MACHINE_VERIFIABLE", check: "BR2026_ROUND_EMAILS_DISARMED" },
+    ],
+    ...overrides,
+  };
+  return JSON.stringify({ declarations: [decl] }, null, 2);
+}
+
+/** Sobrescreve `file` com `content`, roda o contrato, exige `status[expectId] === "FAILED"`, restaura. */
+function mutateFixture(label, file, content, expectId) {
+  const original = readFileSync(abs(file));
+  touched.add(file);
+  if (!hashesBefore.has(file)) hashesBefore.set(file, sha(file));
+  try {
+    writeFileSync(abs(file), content);
+    const { status } = runContract();
+    const wanted = Array.isArray(expectId) ? expectId : [expectId];
+    const caught = wanted.filter((id) => status[id] === "FAILED");
+    assert(caught.length > 0,
+      `${label} => NAO PEGA. Esperado FAILED em [${wanted.join(", ")}], obtido: ` +
+      `${wanted.map((id) => `${id}=${status[id] || "PASSED"}`).join(", ")}`);
+  } finally {
+    writeFileSync(abs(file), original);
+  }
+}
+
+test("M27 declaracao lifecycle=one_shot (explicito) cujo caminho nao esta no diff => PEGA por staleness", () => {
+  // A propriedade central: uma declaracao que NAO e conditional (explicitamente one_shot, ou por
+  // downgrade de uma que antes era conditional) volta a staleness por diff normal — exatamente o
+  // que reativar D3's autolimpeza deveria fazer. SCORING_CONSTANTS (nao tem check registrado, e
+  // por isso nunca pode ser conditional valida) e usada aqui so como superficie real,
+  // DECLARE_TO_CHANGE, cujos caminhos nunca estao no diff desta suite.
+  mutateFixture("one_shot com caminho fora do diff", "CHANGE_INTENT.json",
+    syntheticConditionalIntent({ surface_id: "SCORING_CONSTANTS", lifecycle: "one_shot", exit_conditions: undefined,
+      condition_id: undefined, related_issue: undefined }),
+    "D3");
 });
 
-test("M28 campo lifecycle removido inteiramente => PEGA", () => {
-  // Ausencia de `lifecycle` tem o MESMO efeito que "one_shot" explicito (default seguro) — a
-  // declaracao volta a staleness por diff e e pega pelo mesmo motivo que M27.
-  mutate("lifecycle removido", "CHANGE_INTENT.json",
-    (t) => t.replace(/\s*"lifecycle":\s*"conditional",\n/, "\n"), "D3");
+test("M28 campo lifecycle ausente (default one_shot) cujo caminho nao esta no diff => PEGA por staleness", () => {
+  // Mesmo efeito que M27 — ausencia de `lifecycle` e o default seguro "one_shot", nao um escape.
+  const decl = JSON.parse(syntheticConditionalIntent()).declarations[0];
+  delete decl.lifecycle; delete decl.condition_id; delete decl.related_issue; delete decl.exit_conditions;
+  decl.surface_id = "SCORING_CONSTANTS";
+  mutateFixture("lifecycle ausente com caminho fora do diff", "CHANGE_INTENT.json",
+    JSON.stringify({ declarations: [decl] }, null, 2), "D3");
 });
 
 test("M29 condition_id removido de declaracao conditional => PEGA", () => {
-  mutate("condition_id removido", "CHANGE_INTENT.json",
-    (t) => t.replace(/\s*"condition_id":\s*"[^"]*",\n/, "\n"), "D1");
+  const decl = JSON.parse(syntheticConditionalIntent()).declarations[0];
+  delete decl.condition_id;
+  mutateFixture("condition_id removido", "CHANGE_INTENT.json",
+    JSON.stringify({ declarations: [decl] }, null, 2), "D1");
 });
 
 test("M30 exit_conditions removido de declaracao conditional => PEGA", () => {
-  mutate("exit_conditions removido", "CHANGE_INTENT.json",
-    (t) => t.replace(/,\s*"exit_conditions":\s*\[[\s\S]*?\]\n(\s*})/, "\n$1"), "D1");
+  const decl = JSON.parse(syntheticConditionalIntent()).declarations[0];
+  delete decl.exit_conditions;
+  mutateFixture("exit_conditions removido", "CHANGE_INTENT.json",
+    JSON.stringify({ declarations: [decl] }, null, 2), "D1");
 });
 
 test("M31 exit_condition aponta para superficie errada (surface_id trocado) => PEGA", () => {
-  // Trocar surface_id para outra superficie real e valida, MANTENDO o check
+  // Troca surface_id para outra superficie real e valida, MANTENDO o check
   // BR2026_ROUND_EMAILS_DISARMED (registrado so para NOTIFICATION_WORKFLOWS) — a declaracao
   // ficaria "protegida" por um invariante que nao verifica nada sobre a superficie nova.
-  mutate("surface_id trocado mantendo o check antigo", "CHANGE_INTENT.json",
-    (t) => t.replace('"surface_id": "NOTIFICATION_WORKFLOWS"', '"surface_id": "SCORING_CONSTANTS"'), "D1");
+  mutateFixture("surface_id trocado mantendo o check antigo", "CHANGE_INTENT.json",
+    syntheticConditionalIntent({ surface_id: "SCORING_CONSTANTS" }), "D1");
 });
 
 test("M32 lifecycle com valor malformado (erro de digitacao) => PEGA, nunca vira one_shot nem conditional em silencio", () => {
-  mutate("typo em lifecycle", "CHANGE_INTENT.json",
-    (t) => t.replace('"lifecycle": "conditional"', '"lifecycle": "conditionall"'), "D1");
+  mutateFixture("typo em lifecycle", "CHANGE_INTENT.json",
+    syntheticConditionalIntent({ lifecycle: "conditionall" }), "D1");
 });
 
 test("M33 invariante de desarme violado no proprio workflow (nao no CHANGE_INTENT.json) => PEGA", () => {
   // A mutacao mais importante desta secao: prova que D3 nao confia cegamente no JSON dizendo
-  // "continua desarmado" — ele LE o arquivo real do workflow a cada execucao. Rearmar o workflow
-  // (voltar a --auto + token magico) SEM tocar em CHANGE_INTENT.json ainda reprova D3.
-  mutate("workflow rearmado por baixo", ".github/workflows/br2026_round_emails.yml",
-    (t) => t.replace("python3 send_round_email.py --dry-run", "python3 send_round_email.py --auto")
-             .replace('BOLAO_ALLOW_REAL_SEND: "DISARMED_NEW_INCIDENT_20260818"', 'BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"'),
-    "D3");
+  // "continua desarmado" — ele LE o arquivo real do workflow a cada execucao. Precisa mutar DOIS
+  // arquivos juntos: injeta uma declaracao conditional sintetica (real teria sido removida no
+  // rearme) E simula o workflow real desarmado antes de rearma-lo por baixo — a unica forma de
+  // testar isso hoje, ja que `BR2026_ROUND_EMAILS_DISARMED` le um caminho fixo no disco.
+  const ciFile = "CHANGE_INTENT.json";
+  const wfFile = ".github/workflows/br2026_round_emails.yml";
+  const ciOriginal = readFileSync(abs(ciFile));
+  const wfOriginal = readFileSync(abs(wfFile));
+  touched.add(ciFile); touched.add(wfFile);
+  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  if (!hashesBefore.has(wfFile)) hashesBefore.set(wfFile, sha(wfFile));
+  try {
+    writeFileSync(abs(ciFile), syntheticConditionalIntent());
+    const disarmed = 'name: t\non: { workflow_dispatch: {} }\njobs:\n  x:\n    runs-on: ubuntu-latest\n' +
+      '    steps:\n      - name: send\n        env:\n          BOLAO_ALLOW_REAL_SEND: "NOT_THE_TOKEN"\n' +
+      '        run: python3 send_round_email.py --dry-run\n';
+    const armed = disarmed.replace("--dry-run", "--auto").replace('"NOT_THE_TOKEN"', '"I UNDERSTAND"');
+    assert(armed !== disarmed, "a mutacao sintetica nao alterou o conteudo");
+    writeFileSync(abs(wfFile), armed);
+    const { status } = runContract();
+    assert(status.D3 === "FAILED", `esperado D3=FAILED, obtido ${status.D3 || "PASSED"}`);
+  } finally {
+    writeFileSync(abs(ciFile), ciOriginal);
+    writeFileSync(abs(wfFile), wfOriginal);
+  }
 });
 
 // ── Limite conhecido, documentado em vez de fingido (STEP 10 item 12) ───────────────────────────
 //
 // Se alguem APAGAR a declaracao conditional inteira de CHANGE_INTENT.json — sem tocar no arquivo
-// do workflow, que continua desarmado por conta do incidente real — NENHUM check existente pega
-// isso: D2 so dispara quando um caminho DECLARE_TO_CHANGE aparece no diff (o workflow nao mudou
-// nesta arvore), e D3 so avalia declaracoes que EXISTEM. Isto e um limite real do modelo, nao um
-// bug deste PR: CHANGE_INTENT.json documenta intenção sobre mudanças/estados detectados por
-// diff — ele nunca foi, e este PR nao o torna, uma trava que impede a REMOCAO da propria
+// que ela protege — NENHUM check existente pega isso: D2 so dispara quando um caminho
+// DECLARE_TO_CHANGE aparece no diff, e D3 so avalia declaracoes que EXISTEM. Isto e um limite real
+// do modelo, nao um bug: CHANGE_INTENT.json documenta intencao sobre mudancas/estados detectados
+// por diff — ele nunca foi, e nenhum PR o torna, uma trava que impede a REMOCAO da propria
 // documentacao. Registrar isso explicitamente (em vez de fingir uma protecao que nao existe) é
 // exatamente o que ADR-018 pede.
-test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por nenhum check existente (documentado, nao uma regressao deste PR)", () => {
-  const original = readFileSync(abs("CHANGE_INTENT.json"), "utf8");
-  touched.add("CHANGE_INTENT.json");
-  if (!hashesBefore.has("CHANGE_INTENT.json")) hashesBefore.set("CHANGE_INTENT.json", sha("CHANGE_INTENT.json"));
+test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por nenhum check existente (documentado, nao uma regressao)", () => {
+  // Isola do diff DESTE PR sem depender do conteudo de nenhum arquivo: `changedPaths()` uniona o
+  // diff de COMMITS (base..HEAD) com o diff da arvore de trabalho -- uma vez que este branch
+  // COMMITOU uma mudanca real em .github/workflows/**, nenhuma reescrita da arvore de trabalho
+  // consegue tirar esse caminho do lado `base..HEAD` da uniao (tentativa anterior quebrou por
+  // isso: reverter o arquivo pra base nao adianta se a base em si e ANTES do commit que o mudou).
+  // A forma correta e apontar SAFETY_BASE_SHA para o proprio HEAD so durante este teste --
+  // resolveBase() respeita essa variavel antes de qualquer outra logica, entao `base..HEAD` fica
+  // vazio por definicao, e a unica coisa que sobra no diff e o que este teste mesmo escreve na
+  // arvore de trabalho (so CHANGE_INTENT.json).
+  const ciFile = "CHANGE_INTENT.json";
+  const ciOriginal = readFileSync(abs(ciFile));
+  touched.add(ciFile);
+  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  const headSha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).stdout.trim();
+  const prevBaseEnv = process.env.SAFETY_BASE_SHA;
   try {
-    const mutated = original.replace(/"declarations":\s*\[[\s\S]*\]\n/, '"declarations": []\n');
-    assert(mutated !== original, "a mutacao nao alterou CHANGE_INTENT.json");
-    writeFileSync(abs("CHANGE_INTENT.json"), mutated);
+    process.env.SAFETY_BASE_SHA = headSha;
+    writeFileSync(abs(ciFile), syntheticConditionalIntent());
+    const removed = JSON.stringify({ declarations: [] }, null, 2);
+    assert(removed !== syntheticConditionalIntent(), "fixture nao mudou");
+    writeFileSync(abs(ciFile), removed);
     const { status, exit } = runContract();
     assert(exit === 0 && !status.D1 && !status.D2 && !status.D3,
       "esperado: NENHUM check reprova (isso e o limite documentado) — se algo comecou a pegar isso, atualize este teste e o ADR-018, nao remova a checagem");
   } finally {
-    writeFileSync(abs("CHANGE_INTENT.json"), original);
+    writeFileSync(abs(ciFile), ciOriginal);
+    if (prevBaseEnv === undefined) delete process.env.SAFETY_BASE_SHA;
+    else process.env.SAFETY_BASE_SHA = prevBaseEnv;
   }
 });
 
