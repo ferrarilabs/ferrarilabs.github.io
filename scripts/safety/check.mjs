@@ -32,8 +32,8 @@
  *   npm run check -- --fast             # pula o grupo `browser` (NAO vale como verificacao final)
  */
 
-import { spawnSync } from "node:child_process";
-import { existsSync, unlinkSync, readFileSync } from "node:fs";
+import { spawnSync, spawn } from "node:child_process";
+import { existsSync, unlinkSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ROOT, git, gitOrNull } from "./surfaces.mjs";
 
@@ -43,6 +43,27 @@ const FAST = ARGS.includes("--fast");
 
 const VERIFY_JSON = join(ROOT, "verify-summary.json");
 const SAFETY_JSON = join(ROOT, "safety-summary.json");
+
+// ── sharding do grupo `browser` — max concorrencia = 2 ──────────────────────────────────────────
+//
+// Profiling mediu o grupo `browser` em ~606s, 76% do `npm run check` local. Nenhum dos 21 checks
+// muta arquivo de repositorio (so `visual-consistency` escreve, e so a sua propria evidencia) e
+// cada um ja declara sua PROPRIA porta fixa (harness-ports-unique garante isso) — entao, ao
+// contrario de M25/M26 na suite de mutacao, nao ha necessidade de isolamento por worktree aqui:
+// os dois shards podem rodar direto contra a MESMA arvore, em paralelo.
+//
+// Composicao: bin-packing pelas duraticoes medidas (nao agrupamento tematico) para equilibrar o
+// caminho critico entre os dois shards. Ver CHANGE_INTENT.json para o raciocinio completo.
+const BROWSER_SHARD_A = [
+  "countdown-layout", "prob-bar-geometry", "br-live-behavior-parity", "live-card-dom",
+  "multi-live-hero-responsive", "cdb-sticky-overlap", "br-standings-layout",
+  "cdb-bracket-browser", "visual-consistency", "draw-combo",
+];
+const BROWSER_SHARD_B = [
+  "accessibility", "responsive-14-width", "live-prob-bars", "combo-visual", "multi-live-hero",
+  "structural-parity", "cdb-bracket-persistence", "cdb-entry-name-readonly", "combo-next-label",
+  "combo-lifecycle", "aria-nav",
+];
 
 /** Arquivos que ESTA execucao gera. Sao evidencia efemera, nunca conteudo do repositorio. */
 const GENERATED = [VERIFY_JSON, SAFETY_JSON];
@@ -56,6 +77,25 @@ function run(cmd, args, { label }) {
   const r = spawnSync(cmd, args, { cwd: ROOT, stdio: "inherit", timeout: 3_600_000 });
   if (r.error) { console.error(`  erro ao executar: ${r.error.message}`); return 2; }
   return r.status === null ? 2 : r.status;
+}
+
+/**
+ * Roda um shard de forma assincrona (nunca bloqueia o outro shard concorrente), capturando toda
+ * a saida em memoria em vez de `stdio: "inherit"` — dois processos concorrentes escrevendo
+ * "inherit" ao mesmo tempo intercalariam linha a linha, tornando uma falha dificil de atribuir a
+ * um check especifico. Teto de 20min: bem acima do esperado por shard (~5-6min), existe so como
+ * rede de seguranca contra um hang total — falha FECHADA (timeout conta como falha, nunca skip).
+ */
+function runShardAsync(label, args) {
+  return new Promise((resolve) => {
+    const child = spawn("node", args, { cwd: ROOT });
+    let stdout = "", stderr = "", timedOut = false;
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+    const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, 1_200_000);
+    child.on("close", (code) => { clearTimeout(timer); resolve({ label, code, stdout, stderr, timedOut }); });
+    child.on("error", (err) => { clearTimeout(timer); resolve({ label, code: null, error: err.message, stdout, stderr, timedOut }); });
+  });
 }
 
 // ── estado inicial da arvore ──────────────────────────────────────────────────────────────────
@@ -101,22 +141,106 @@ if (results.contract !== 0) {
 }
 
 // ── 3. suite canonica ─────────────────────────────────────────────────────────────────────────
-const verifyArgs = ["scripts/verify.mjs", `--json-out=${VERIFY_JSON}`];
+//
+// Grupos, sempre PERGUNTADOS ao verify em vez de escritos aqui — uma lista de grupos escrita a
+// mao vira mentira no dia em que alguem cria um grupo novo, e a falha e silenciosa (ja aconteceu:
+// a primeira versao do --fast esquecia o grupo `provider`).
+const listed = spawnSync("node", ["scripts/verify.mjs", "--list"], { cwd: ROOT, encoding: "utf8" });
+const listedLines = listed.stdout.trim().split("\n").filter(Boolean).map((l) => l.split("\t"));
+const allGroups = [...new Set(listedLines.map((l) => l[1]))].filter(Boolean);
+const liveBrowserIds = new Set(listedLines.filter((l) => l[1] === "browser").map((l) => l[0]));
+
 if (FAST) {
   line("\n  AVISO: --fast pula o grupo `browser`. Isso NAO vale como verificacao final —");
   line("  geometria e regressao visual so existem no navegador.");
-  // Todos os grupos EXCETO `browser`, PERGUNTADOS ao verify em vez de escritos aqui.
-  //
-  // A primeira versao era uma lista fixa e ja nascia errada: esquecia o grupo `provider`, e os
-  // dois checks dele sumiam do --fast sem nenhum aviso. Uma lista de grupos escrita a mao vira
-  // mentira no dia em que alguem cria um grupo novo — e a falha e silenciosa, que e a pior
-  // forma de uma lista de cobertura falhar.
-  const listed = spawnSync("node", ["scripts/verify.mjs", "--list"], { cwd: ROOT, encoding: "utf8" });
-  const groups = [...new Set(listed.stdout.trim().split("\n").map((l) => l.split("\t")[1]))]
-    .filter((g) => g && g !== "browser");
-  verifyArgs.push(`--only=${groups.join(",")}`);
+  const groups = allGroups.filter((g) => g !== "browser");
+  results.verify = run("node",
+    ["scripts/verify.mjs", `--json-out=${VERIFY_JSON}`, `--only=${groups.join(",")}`],
+    { label: "3/4  Suite canonica — scripts/verify.mjs (--fast)" });
+} else {
+  // Drift entre a composicao dos shards (escrita a mao acima) e o grupo `browser` REAL: qualquer
+  // divergencia falha FECHADO em vez de rodar um shard incompleto em silencio — a mesma classe de
+  // defeito que os 17 gates orfaos de 2026-08-10 (N11) ensinou a nunca deixar passar despercebida.
+  {
+    const declared = new Set([...BROWSER_SHARD_A, ...BROWSER_SHARD_B]);
+    const faltando = [...liveBrowserIds].filter((id) => !declared.has(id));
+    const sobrando = [...declared].filter((id) => !liveBrowserIds.has(id));
+    const duplicado = BROWSER_SHARD_A.filter((id) => BROWSER_SHARD_B.includes(id));
+    if (faltando.length || sobrando.length || duplicado.length) {
+      line("\n╔══════════════════════════════════════════════════════════════════════════════╗");
+      line("║  ✗ COMPOSICAO DOS SHARDS DE BROWSER DIVERGE DO GRUPO REAL — falha fechada    ║");
+      line("╚══════════════════════════════════════════════════════════════════════════════╝");
+      if (faltando.length) line(`  faltando nos shards (nao rodaria em nenhum lugar): ${faltando.join(", ")}`);
+      if (sobrando.length) line(`  sobrando nos shards (nao existe mais no grupo browser): ${sobrando.join(", ")}`);
+      if (duplicado.length) line(`  duplicado nos dois shards: ${duplicado.join(", ")}`);
+      line("\n  Atualize BROWSER_SHARD_A / BROWSER_SHARD_B em scripts/safety/check.mjs.\n");
+      process.exit(1);
+    }
+  }
+
+  // 3a. grupos NAO-browser — serial, processo unico, como sempre foi.
+  const nonBrowserGroups = allGroups.filter((g) => g !== "browser");
+  const NONBROWSER_JSON = join(ROOT, "verify-summary-nonbrowser.json");
+  const rNonBrowser = run("node",
+    ["scripts/verify.mjs", `--json-out=${NONBROWSER_JSON}`, `--only=${nonBrowserGroups.join(",")}`],
+    { label: "3a/4  Suite canonica — grupos nao-browser" });
+
+  // 3b. grupo `browser` — 2 shards em paralelo. Concorrencia MAXIMA = 2, nunca mais, e nunca ao
+  // mesmo tempo que 3a (que ja terminou). Nenhum dos 21 checks muta arquivo do repositorio nem
+  // compartilha porta — sem necessidade de worktree isolada (diferente de M25/M26).
+  line("\n▶ 3b/4  Suite canonica — grupo `browser`, 2 shards em paralelo (concorrencia max = 2)");
+  rule();
+  const SHARD_A_JSON = join(ROOT, "verify-summary-browser-a.json");
+  const SHARD_B_JSON = join(ROOT, "verify-summary-browser-b.json");
+  const GENERATED_SHARDS = [NONBROWSER_JSON, SHARD_A_JSON, SHARD_B_JSON];
+
+  const [shardA, shardB] = await Promise.all([
+    runShardAsync("Shard A", ["scripts/verify.mjs", `--json-out=${SHARD_A_JSON}`, `--only=${BROWSER_SHARD_A.join(",")}`]),
+    runShardAsync("Shard B", ["scripts/verify.mjs", `--json-out=${SHARD_B_JSON}`, `--only=${BROWSER_SHARD_B.join(",")}`]),
+  ]);
+
+  // Saida de cada shard impressa por INTEIRO, um de cada vez — nunca intercalada caractere a
+  // caractere entre os dois processos concorrentes, para que uma falha continue atribuivel a um
+  // check especifico.
+  for (const r of [shardA, shardB]) {
+    line(`\n  ── ${r.label} (exit ${r.code ?? "n/a"}${r.timedOut ? ", timeout" : ""}) ──`);
+    for (const l of `${r.stdout}${r.stderr}`.split("\n")) line(`  ${l}`);
+  }
+
+  const shardFailedHard = [shardA, shardB].some((r) => r.code !== 0);
+  results.verify = (rNonBrowser === 0 && !shardFailedHard) ? 0 : 1;
+
+  // Resumo combinado (nao-browser + os dois shards) escrito no MESMO caminho canonico que o CI ja
+  // sobe como evidencia de falha — nenhuma mudanca necessaria em safety_check.yml.
+  try {
+    const parts = [NONBROWSER_JSON, SHARD_A_JSON, SHARD_B_JSON]
+      .filter((p) => existsSync(p)).map((p) => JSON.parse(readFileSync(p, "utf8")));
+    const checks = parts.flatMap((p) => p.checks || []);
+    const totals = { passed: 0, failed: 0, skipped: 0, missing: 0 };
+    for (const c of checks) {
+      if (c.status === "PASSED") totals.passed++;
+      else if (c.status === "FAILED") totals.failed++;
+      else if (c.status === "SKIPPED") totals.skipped++;
+      else if (c.status === "MISSING") totals.missing++;
+    }
+    const starts = parts.map((p) => p.startedAt).filter(Boolean).sort();
+    const ends = parts.map((p) => p.finishedAt).filter(Boolean).sort();
+    writeFileSync(VERIFY_JSON, JSON.stringify({
+      schemaVersion: 1,
+      startedAt: starts[0] || null,
+      finishedAt: ends.at(-1) || null,
+      capabilities: parts[0]?.capabilities || null,
+      totals,
+      checks,
+      verdict: results.verify === 0 ? "PASSED" : "FAILED",
+      sharded: { nonBrowser: true, browserShards: ["A", "B"] },
+    }, null, 2) + "\n");
+  } catch (e) {
+    line(`  ✗ nao foi possivel combinar os resumos dos shards: ${e.message}`);
+    results.verify = 1;
+  }
+  for (const f of GENERATED_SHARDS) { try { if (existsSync(f)) unlinkSync(f); } catch { /* evidencia efemera, best-effort */ } }
 }
-results.verify = run("node", verifyArgs, { label: `3/4  Suite canonica — scripts/verify.mjs${FAST ? " (--fast)" : ""}` });
 
 if (WITH_NPM_TEST) {
   results.npmTest = run("npm", ["test"], { label: "3b/4  Cadeia literal do npm test (--with-npm-test)" });
