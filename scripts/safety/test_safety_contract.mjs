@@ -27,10 +27,10 @@
  * Uso: node scripts/safety/test_safety_contract.mjs
  */
 
-import { readFileSync, writeFileSync, existsSync, unlinkSync } from "node:fs";
+import { readFileSync, writeFileSync, existsSync, unlinkSync, symlinkSync } from "node:fs";
 import { createHash } from "node:crypto";
-import { spawnSync } from "node:child_process";
-import { join } from "node:path";
+import { spawnSync, spawn } from "node:child_process";
+import { join, dirname } from "node:path";
 import { ROOT } from "./surfaces.mjs";
 
 let pass = 0, fail = 0;
@@ -68,6 +68,13 @@ const preexisting = new Set(
 
 /** Hashes de antes, para provar restauracao byte a byte independentemente do git. */
 const hashesBefore = new Map();
+
+/**
+ * Worktrees JA existentes antes desta suite rodar (ex.: worktrees de outras tarefas do usuario,
+ * como `ferrarilabs-br2026-rearm`). M25/M26 criam e removem worktrees PROPRIAS mais abaixo — esta
+ * lista existe so para provar, na secao Z, que nenhuma delas foi tocada.
+ */
+const worktreesBefore = (spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "");
 
 /**
  * Aplica uma mutacao, exige VERMELHO no check nomeado, e restaura byte a byte.
@@ -349,15 +356,152 @@ test("M22 disjuntor deixa de fechar (fechadura quebrada) => PEGA", () => {
 
 const GATE_RESPONSIVO = ["node", "bolao/scripts/audit_responsive_matrix.mjs"];
 
+// ── M25/M26 EM PARALELO — ISOLAMENTO POR GIT WORKTREE ────────────────────────────────────────
+//
+// M25 e M26 prova duas classes DIFERENTES de regressao do MESMO gate real (audit_responsive_
+// matrix.mjs, ~89s cada — sobe Chromium, navega 4 apps em 14 larguras): M25 volta o CSS exato
+// do defeito real de 2026 (folga zero), M26 prova que o detector morde por LARGURA DE TEXTO
+// (rotulo mais longo), nao so pelo numero de fonte daquele incidente especifico. Nenhuma das
+// duas e removivel nem substitui a outra — sao REQUIRED_MUTATED_EXECUTION independentes (ver
+// CHANGE_INTENT.json / analise de performance desta suite). Como PAR, porem, sao independentes
+// entre si (arquivos-alvo diferentes, sem dependencia de ordem), e essa e a unica coisa que este
+// bloco otimiza: rodar as duas SIMULTANEAMENTE em vez de serialmente, cada uma na sua propria
+// arvore git isolada — o gate serve o repositorio INTEIRO por HTTP, entao aplicar as duas
+// mutacoes na MESMA arvore ao mesmo tempo faria cada gate medir as duas mutacoes juntas, nunca a
+// sua sozinha. max workers = 2, escopo estrito a este par; nenhuma outra mutacao desta suite usa
+// este mecanismo, e verify.mjs continua 100% serial fora daqui.
+
+const WORKTREE_PARENT = dirname(ROOT);
+const WORKTREE_PREFIX = `.ferrarilabs-safety-mutation-${process.pid}-`;
+const activeWorktrees = new Set();
+
+/** Cria uma worktree git descartavel a partir de HEAD, com node_modules linkado (nao copiado). */
+function criarWorktree(label) {
+  const dir = join(WORKTREE_PARENT, `${WORKTREE_PREFIX}${label}`);
+  if (existsSync(dir)) {
+    throw new Error(`worktree temporaria ja existe: ${dir} (execucao anterior travou sem limpar?)`);
+  }
+  const r = spawnSync("git", ["worktree", "add", "--detach", "--quiet", dir, "HEAD"],
+    { cwd: ROOT, encoding: "utf8" });
+  if (r.status !== 0) {
+    throw new Error(`git worktree add falhou (${dir}): ${(r.stderr || r.stdout || "").trim()}`);
+  }
+  activeWorktrees.add(dir);
+  // node_modules nao e rastreado pelo git — sem isto, `import "playwright"` dentro da worktree
+  // falharia com MODULE_NOT_FOUND. Link simbolico UNICO, nunca copia: os pacotes instalados sao
+  // so lidos durante o teste (nunca escritos), entao compartilhar entre worktrees e seguro.
+  symlinkSync(join(ROOT, "node_modules"), join(dir, "node_modules"), "dir");
+  return dir;
+}
+
+/** Remove uma worktree criada por ESTA execucao. Trava de seguranca: nunca remove outra coisa. */
+function removerWorktree(dir) {
+  const base = dir.slice(WORKTREE_PARENT.length + 1);
+  if (!base.startsWith(WORKTREE_PREFIX)) {
+    throw new Error(`recusando remover worktree fora do padrao criado por esta execucao: ${dir}`);
+  }
+  spawnSync("git", ["worktree", "remove", "--force", dir], { cwd: ROOT, encoding: "utf8" });
+  spawnSync("git", ["worktree", "prune"], { cwd: ROOT, encoding: "utf8" });
+  activeWorktrees.delete(dir);
+}
+
+// Ctrl-C durante o par paralelo: melhor esforco de limpeza antes de sair. Nao cobre SIGKILL (nao
+// e interceptavel), mas cobre o caso pratico (operador cancelando a suite manualmente).
+process.on("SIGINT", () => {
+  for (const dir of [...activeWorktrees]) { try { removerWorktree(dir); } catch { /* melhor esforco */ } }
+  process.exit(130);
+});
+
+/** Spawna um comando de forma assincrona, com timeout, sem bloquear o processo principal. */
+function spawnAsync(cmd, args, opts, timeoutMs) {
+  return new Promise((resolve) => {
+    const child = spawn(cmd, args, opts);
+    let stdout = "", stderr = "", timedOut = false;
+    child.stdout.on("data", (d) => { stdout += d; });
+    child.stderr.on("data", (d) => { stderr += d; });
+    const timer = setTimeout(() => { timedOut = true; child.kill("SIGKILL"); }, timeoutMs);
+    child.on("close", (code) => { clearTimeout(timer); resolve({ code, stdout, stderr, timedOut }); });
+    child.on("error", (err) => { clearTimeout(timer); resolve({ code: null, error: err.message, stdout, stderr, timedOut }); });
+  });
+}
+
+/**
+ * Roda `cases` (M25, M26) em PARALELO, cada um na sua propria worktree descartavel e na sua
+ * propria porta. Devolve os resultados atribuidos por ROTULO (nunca por ordem de conclusao) —
+ * cada `test()` chamador confere o SEU proprio resultado de forma independente, entao um worker
+ * rapido nunca mascara a falha do outro. Falha de infraestrutura (worktree/porta) NUNCA vira
+ * skip silencioso: cai no catch do chamador e marca as duas mutacoes como nao verificadas.
+ */
+async function mutateGatePairParallel(cases) {
+  const criadas = [];
+  try {
+    for (const c of cases) criadas.push({ label: c.label, dir: criarWorktree(c.label) });
+
+    // Aplica cada mutacao SO dentro da sua propria worktree — a arvore principal (ROOT) nunca e
+    // tocada por este bloco, e nenhuma das duas arvores ve a mutacao da outra.
+    for (let i = 0; i < cases.length; i++) {
+      const c = cases[i];
+      const target = join(criadas[i].dir, c.file);
+      const original = readFileSync(target, "utf8");
+      const mutated = c.transform(original);
+      if (mutated === original) throw new Error(`a mutacao "${c.label}" nao alterou ${c.file} na worktree`);
+      writeFileSync(target, mutated);
+    }
+
+    // spawn() assincrono para as duas — cada uma roda a PROPRIA copia do gate dentro da sua
+    // worktree, entao ROOT (derivado de import.meta.url dentro do proprio script) resolve para a
+    // worktree certa, nunca para a arvore principal.
+    const jobs = cases.map((c, i) => {
+      const dir = criadas[i].dir;
+      const scriptPath = join(dir, "bolao/scripts/audit_responsive_matrix.mjs");
+      const env = { ...process.env };
+      if (c.port) env.RESPONSIVE_MATRIX_PORT = String(c.port); else delete env.RESPONSIVE_MATRIX_PORT;
+      return spawnAsync("node", [scriptPath], { cwd: dir, env }, 300000).then((r) => ({ label: c.label, ...r }));
+    });
+
+    return await Promise.all(jobs);
+  } finally {
+    for (const { dir } of criadas) removerWorktree(dir);
+  }
+}
+
+let resultadoM25M26;
+try {
+  resultadoM25M26 = await mutateGatePairParallel([
+    {
+      label: "M25", file: "bolao/shared/css/responsive.css",
+      // porta padrao (sem override) — comportamento identico ao worker unico de antes
+      transform: (t) => t.replace("  .nav button { font-size: 9px; padding: 8px 2px; }",
+                                   "  .nav button { font-size: 11px; padding: 8px 4px; }")
+                          .replace("  .nav button { font-size: 10.5px; }",
+                                   "  .nav button { font-size: 13px; }"),
+    },
+    {
+      label: "M26", file: "bolao/br2026/js/i18n.js", port: 4612,
+      transform: (t) => t.replace('navProbs: "Probabilidades"', 'navProbs: "Probabilidades de Classificacao"'),
+    },
+  ]);
+} catch (e) {
+  // Infra (worktree/porta) falhou ANTES de qualquer teste rodar — falha FECHADA: as duas
+  // mutacoes ficam marcadas como nao verificadas (code: null), nunca puladas em silencio.
+  const falha = { code: null, error: e.message, stdout: "", stderr: "", timedOut: false };
+  resultadoM25M26 = [{ label: "M25", ...falha }, { label: "M26", ...falha }];
+}
+
+function assertGatePararCapturou(label) {
+  const r = resultadoM25M26.find((x) => x.label === label);
+  const pegou = r.code !== 0 && r.code !== null;
+  if (!pegou) {
+    const motivo = r.timedOut ? "timeout apos 300s" : r.error ? `erro de infraestrutura: ${r.error}` : `saiu ${r.code}`;
+    const tail = `${r.stdout || ""}${r.stderr || ""}`.trim().split("\n").slice(-20).join("\n");
+    throw new Error(`${label} => NAO PEGA. \`node audit_responsive_matrix.mjs\` ${motivo} com a mutacao aplicada\n${tail}`);
+  }
+}
+
 test("M25 folga da navegacao removida (estado anterior) => PEGA", () => {
   // Restaura EXATAMENTE os tamanhos de antes da correcao — a condicao de folga zero que fez o
   // primeiro CI acusar `Probabilidades` cortado a 320px e a 902px.
-  mutateGate("navegacao volta ao aperto de antes", "bolao/shared/css/responsive.css",
-    (t) => t.replace("  .nav button { font-size: 9px; padding: 8px 2px; }",
-                     "  .nav button { font-size: 11px; padding: 8px 4px; }")
-             .replace("  .nav button { font-size: 10.5px; }",
-                      "  .nav button { font-size: 13px; }"),
-    GATE_RESPONSIVO);
+  assertGatePararCapturou("M25");
 });
 
 test("M26 rotulo artificialmente mais largo => PEGA", () => {
@@ -371,9 +515,7 @@ test("M26 rotulo artificialmente mais largo => PEGA", () => {
   // sozinha e falhou dentro do verify, decidida por qual dos dois chegava primeiro. Teste
   // intermitente e pior que teste nenhum, porque ensina a reexecutar ate passar — e e assim que
   // um vermelho verdadeiro vira ruido.
-  mutateGate("rotulo comprido numa aba", "bolao/br2026/js/i18n.js",
-    (t) => t.replace('navProbs: "Probabilidades"', 'navProbs: "Probabilidades de Classificacao"'),
-    GATE_RESPONSIVO);
+  assertGatePararCapturou("M26");
 });
 
 console.log("\nE. Ciclo de vida CHANGE_INTENT — conditional vs one_shot (ADR-018, Issue #238)");
@@ -562,6 +704,23 @@ test("nenhum artefato de mutacao sobrou no disco", () => {
   const leftovers = ["supabase/migrations/20260817000000_undo_m9.rollback.sql"]
     .filter((p) => existsSync(abs(p)));
   assert(leftovers.length === 0, `sobraram: ${leftovers.join(", ")}`);
+});
+
+test("nenhuma worktree temporaria de M25/M26 sobrou no disco", () => {
+  const atual = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "";
+  const sobrando = atual.split("\n")
+    .filter((l) => l.startsWith("worktree "))
+    .map((l) => l.slice("worktree ".length))
+    .filter((p) => p.includes(WORKTREE_PREFIX));
+  assert(sobrando.length === 0 && activeWorktrees.size === 0,
+    `worktrees nao removidas: ${sobrando.join(", ") || [...activeWorktrees].join(", ")}`);
+});
+
+test("worktree pre-existente do usuario (ex.: ferrarilabs-br2026-rearm) nao foi tocada", () => {
+  const atual = spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "";
+  const linhasAntes = worktreesBefore.split("\n").filter((l) => l.startsWith("worktree "));
+  const faltando = linhasAntes.filter((l) => !atual.includes(l));
+  assert(faltando.length === 0, `worktree pre-existente sumiu ou mudou: ${faltando.join(", ")}`);
 });
 
 test("o contrato volta a passar depois de todas as mutacoes", () => {

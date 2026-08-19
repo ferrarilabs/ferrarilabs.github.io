@@ -29,6 +29,18 @@ import { startStaticServer } from "./static_server.mjs";
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const PORT = 4611;
 
+// Override explícito e determinístico da porta efetiva — nunca porta aleatória. Ausente (caso
+// padrão) => comportamento idêntico a antes: EFFECTIVE_PORT === PORT. Existe só para permitir uma
+// segunda instância isolada (ex.: worktree paralela de mutação) coexistir com a instância padrão
+// sem colidir. `const PORT = 4611` acima fica intocado de propósito: é o que
+// test_harness_ports_unique.mjs escaneia estaticamente, e reescrevê-lo tornaria este arquivo
+// invisível para aquele gate.
+const PORT_OVERRIDE = process.env.RESPONSIVE_MATRIX_PORT;
+if (PORT_OVERRIDE !== undefined && (!/^\d+$/.test(PORT_OVERRIDE) || Number(PORT_OVERRIDE) === 0)) {
+  throw new Error(`RESPONSIVE_MATRIX_PORT inválido: "${PORT_OVERRIDE}" (esperado inteiro positivo)`);
+}
+const EFFECTIVE_PORT = PORT_OVERRIDE ? Number(PORT_OVERRIDE) : PORT;
+
 const WIDTHS = [320, 360, 375, 390, 393, 414, 430, 768, 899, 900, 901, 902, 1024, 1280];
 
 /**
@@ -79,7 +91,7 @@ function fixtureMatch() {
 }
 
 const pw = await import("playwright");
-const server = await startStaticServer(PORT, ROOT);
+const server = await startStaticServer(EFFECTIVE_PORT, ROOT);
 const browser = await pw.chromium.launch();
 
 async function abrir(app, width) {
@@ -96,7 +108,7 @@ async function abrir(app, width) {
       body: JSON.stringify({ schemaVersion: 1, competition: app.nome, observedAt,
                              stale: false, matches: [m] }) }));
   }
-  await page.goto(`http://localhost:${PORT}${app.url}`, { waitUntil: "load" });
+  await page.goto(`http://localhost:${EFFECTIVE_PORT}${app.url}`, { waitUntil: "load" });
   await page.waitForTimeout(1400);
   return { ctx, page };
 }
