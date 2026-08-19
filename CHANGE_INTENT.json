@@ -10,34 +10,9 @@
   "declarations": [
     {
       "surface_id": "NOTIFICATION_WORKFLOWS",
-      "lifecycle": "conditional",
-      "condition_id": "br2026-email-emergency-disarm-20260818",
-      "related_issue": 238,
-      "reason": "NOVO incidente 2026-08-18 ~17:25 EDT, distinto do #221: Gmail Sent confirma um lote completo de e-mail de rodada saiu para os 11 participantes reais para uma rodada ANTIGA ja concluida (Rodada 08.08-09.08), nao a rodada corrente. Causa raiz ainda sob investigacao -- desarmado emergencialmente dentro da janela de cron ativa para impedir outro reenvio historico antes de entender e corrigir. Migrada para lifecycle=conditional em 2026-08-18 (ADR-018): esta obrigacao e um ESTADO que precisa continuar valendo, nao uma mudanca pontual -- ver Issue #238 para a reconstrucao completa da investigacao read-only que confirmou isso.",
-      "expected_behavior_change": "br2026_round_emails.yml permanece em --dry-run com BOLAO_ALLOW_REAL_SEND definido para um valor que NAO e o token magico -- zero chamadas ao provedor -- ate TODAS as exit_conditions abaixo estarem satisfeitas E um humano explicitamente limpar esta declaracao (D3 nunca a remove sozinho).",
-      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "br-round-email-durable-ledger"],
-      "exit_conditions": [
-        {
-          "id": "workflow_remains_disarmed",
-          "type": "MACHINE_VERIFIABLE",
-          "check": "BR2026_ROUND_EMAILS_DISARMED"
-        },
-        {
-          "id": "root_cause_confirmed",
-          "type": "HUMAN_OPERATIONS_VERIFIED",
-          "satisfied": false
-        },
-        {
-          "id": "historical_rounds_non_resendable",
-          "type": "HUMAN_OPERATIONS_VERIFIED",
-          "satisfied": false
-        },
-        {
-          "id": "production_verified",
-          "type": "HUMAN_OPERATIONS_VERIFIED",
-          "satisfied": false
-        }
-      ]
+      "reason": "Rearme do BR2026 apos remediacao do incidente #238 (rodada 22 ressuscitada). Causa raiz confirmada e corrigida pelo PR #242 (leitura permanente do JSON antigo de ledger de rodada + guardiao de epoca para qualquer rodada <= 23 sem evidencia). Reconciliacao contra as 23 rodadas concluidas nao produz nenhum candidato de reenvio; verificado tambem diretamente contra producao (leitura, sem escrita) antes deste rearme. A declaracao condicional anterior (br2026-email-emergency-disarm-20260818, Issue #238) e removida NESTA MESMA mudanca porque suas tres exit_conditions HUMAN_OPERATIONS_VERIFIED (causa raiz confirmada, rodadas historicas comprovadamente nao-reenvaveis, verificado contra producao) estao agora satisfeitas.",
+      "expected_behavior_change": "br2026_round_emails.yml volta a --auto com BOLAO_ALLOW_REAL_SEND definido para o token magico -- envio real restaurado. security-docs-reality e ledger-consumer voltam a exigir o estado ARMADO.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "br-round-email-durable-ledger"]
     }
   ]
 }
