@@ -102,6 +102,17 @@ function loadWorkflows() {
  */
 const EXPECTED = [
   {
+    // Issue #246: produtor do cache ao vivo. Se deixar de rodar, `live_sports_cache` envelhece
+    // alem do teto de 10 min do gateway e o hero volta a SOURCE_UNAVAILABLE -- o mesmo sintoma do
+    // incidente, so que por ausencia de cron em vez de bloqueio da Akamai. A janela vem do
+    // histograma das 532 partidas com data nos snapshots de br2026+cdb2026: kickoffs as 14h e das
+    // 18h as 00h UTC, e ZERO partidas entre 01h e 13h.
+    file: "live_cache_producer.yml",
+    why: "sem este produtor o cache ao vivo expira e o gateway volta a SOURCE_UNAVAILABLE durante jogo",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [14, 23], overnight: [0, 2] },
+  },
+  {
     file: "powerball-results-email.yml",
     why: "Powerball draws Mon/Wed/Sat 22:59 ET; results land after the draw",
     // ET draw day -> (UTC weekday of the late-evening window, UTC weekday of the after-midnight window)

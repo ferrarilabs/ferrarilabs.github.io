@@ -7,5 +7,17 @@
 
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
 
-  "declarations": []
+  "declarations": [
+{
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #246. A Edge Function live-football nao alcanca mais a ESPN: o diagnostico autorizado (v13, removida em seguida) mediu do PROPRIO runtime 403 nas tres variantes de cabecalho testadas, com server=AkamaiGHost e pagina Access Denied -- nao e User-Agent, nao e accept, nao e limite de taxa, e a Akamai negando o EGRESSO do Supabase Edge Runtime. O MESMO endpoint responde 200 de um runner do GitHub Actions (comprovado: dry-run do produtor devolveu upstream 200 para br2026 e cdb2026). Entao quem alcanca a fonte passa a ser o PRODUTOR: o novo workflow live_cache_producer.yml roda bolao/shared/scripts/produce_live_cache.mjs e grava a observacao validada em public.live_sports_cache. O gateway continua o CONSUMIDOR, sem uma linha alterada. Cadencia derivada do calendario commitado, nao chutada: histograma de 532 partidas com data em br2026+cdb2026 mostra kickoffs as 14h e das 18h as 00h UTC e ZERO partidas entre 01h e 13h, entao 5 em 5 minutos das 14h as 02h UTC (idade maxima do cache ~5min, dentro do teto de 10min do gateway) e 30 em 30 minutos fora disso. Este workflow NAO envia e-mail, NAO commita no repositorio e NAO toca bolao_state, participante, pagamento, scoring ou ranking.",
+      "expected_behavior_change": "Passa a existir um workflow agendado que escreve em UMA tabela, public.live_sports_cache, via upsert idempotente chaveado por competition (Prefer: resolution=merge-duplicates -- o MESMO mecanismo que a Edge Function ja usa para gravar este registro), com a service-role key, sem fallback para a anon key. Fonte caida, timeout ou HTTP 200 com forma invalida resultam em NENHUMA escrita, preservando o ultimo-bom-conhecido; isso e coberto por teste. LAST_KNOWN_GOOD_MAX_AGE_MS continua 10 minutos, o contrato de resposta do gateway continua identico e a semantica de SOURCE_UNAVAILABLE continua intacta -- nada disso foi tocado. Fora da janela derivada o cache pode envelhecer alem de 10 min e o gateway respondera SOURCE_UNAVAILABLE, que e o comportamento honesto ja existente e nao uma regressao (hoje ele responde isso 24h por dia).",
+      "tests_required": [
+          "cron-coverage",
+          "live-cache-producer",
+          "live-gateway",
+          "live-gateway-fixtures"
+      ]
+  }
+  ]
 }
