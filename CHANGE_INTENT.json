@@ -7,14 +7,5 @@
 
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
 
-  "declarations": [
-{
-      "surface_id": "VISUAL_ALLOWLIST",
-      "reason": "Issue #194. O checador visual comparava TRES apps; o Powerball nunca esteve nele, entao '0 divergencias' nunca incluiu o Powerball -- a mesma forma do falso-verde da Issue #217. O app entra agora na cobertura real (30 componentes com seletor proprio, ou null explicito e justificado quando o componente genuinamente nao existe numa pagina unica sem abas, sem idiomas, sem formulario e sem admin). Das 25 diferencas originalmente medidas contra a Copa, 23 ja eram duplicacao e foram corrigidas antes desta mudanca; as DUAS restantes eram decisoes de produto e foram RATIFICADAS PELO EDUARDO em 2026-08-20 (cabecalho mais baixo por ter menos itens dentro; 60px de respiro no rodape por ser rolagem unica). A allowlist cresce de 24 para 27 entradas: tres entradas NOVAS do tipo `exact`, com o valor FIXADO POR APP -- nao e permissao generica de 'o cabecalho pode diferir'. Duas entradas existentes (main:height e card-base:height, ambas content-driven) passam a cobrir tambem o Powerball: nao e excecao nova, e a mesma excecao aplicada ao app que antes nem era medido.",
-      "expected_behavior_change": "audit_visual_consistency.mjs passa a medir 4 apps em vez de 3 (EQUAL 321->324, JUSTIFIED 21->26, DIVERGENT 0). A allowlist vai de 24 para 27 entradas. O gate continua mordendo, e isso foi provado por mutacao e nao afirmado: (a) um border-radius/background sintetico no cartao do Powerball produz DUAS divergencias imediatas; (b) subir o padding-top do .topbar do Powerball leva topbar:height de 64.5px para 84.5px, a entrada `exact` para de casar e o gate reprova. Nenhum pixel de produto mudou em nenhum dos quatro apps -- esta mudanca e de COBERTURA e de registro, nao de UI.",
-      "tests_required": [
-          "visual-consistency"
-      ]
-  }
-  ]
+  "declarations": []
 }
