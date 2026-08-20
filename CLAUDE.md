@@ -478,6 +478,17 @@ comment-only changes) don't require an Issue first.
 - Use a dedicated branch (or `git worktree`, checking `git worktree list` first per the
   `EnterWorktree`/`ExitWorktree` convention already in use in this repo) per Issue — never mix
   unrelated Issues in one branch.
+- **Trabalho automatizado nunca muta a worktree PRINCIPAL.** Ela é compartilhada entre sessões.
+  Agente cria a sua própria (`git worktree add ../ferrarilabs-auto-issue-<N> -b auto/issue-<N>-<slug>
+  origin/main`) e trabalha só lá. Trabalho HUMANO na árvore canônica continua livre — a guarda
+  existe para impedir automação acidental, não para brigar com o dono do repositório (Issue #251).
+  Ative com `npm run guard:install` (aponta `core.hooksPath` para `.githooks/`); os ganchos barram
+  `commit`, `merge-commit`, `rebase` e `push` vindos de sessão de agente na árvore principal, e
+  deixam CI passar (`bolao_provider_snapshot.yml` commita de um runner). Escape deliberado e
+  visível: `ALLOW_CANONICAL_TREE_WRITE=1 <comando>`. **Limite honesto:** o git não tem gancho
+  `pre-checkout`, então `checkout`/`switch`/`reset`/`clean`/`stash` **não** são bloqueáveis — nem
+  o comando exato que originou a #251. A guarda impede o dano pior e oferece
+  `assertSafeToMutate()` para scripts orquestrados chamarem antes de mutar.
 - Reference the Issue number in commit messages when practical (e.g. `fix(cdb2026): ... (#42)`),
   but never fabricate a reference to an Issue that doesn't exist.
 - PRs must fill out every section of `.github/pull_request_template.md` — in particular Risk,
