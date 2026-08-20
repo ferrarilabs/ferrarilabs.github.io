@@ -1,5 +1,34 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.130 — a recusa do servidor no save virou diagnosticável (2026-08-20, Issue #258)
+
+Um participante reportou "Erro ao salvar. Tente novamente.". A investigação conseguiu **excluir**
+as causas prováveis com evidência de produção — a fase ativa fecha só em `2026-08-25T23:00Z`
+(logo, nem `CUTOFF_PASSADO` nem `FASE_FECHADA`) e a versão no ar era a mesma do repositório
+(v3.129, logo não era deploy velho) — e mesmo assim **não conseguiu identificar a causa real**.
+
+O motivo é que ela nunca existiu em lugar nenhum: `cdbRpc()` descartava o corpo da resposta do
+PostgREST e lançava apenas `RPC ... respondeu 400`. `cdb_save_my_picks` recusa por motivos muito
+diferentes — `ACESSO_NEGADO` (token/entrada), `FASE_FECHADA`, `CUTOFF_PASSADO`, `CUTOFF_ILEGIVEL`,
+payload inválido — e todos chegavam idênticos, na tela e no console.
+
+`cdbRpc()` passa a ler `{message, code, details}` da resposta e a anexá-los ao erro lançado
+(`err.serverReason`, `err.status`), que já era registrado por
+`console.error("[CDB2026] gravacao segura recusada", err)`.
+
+**A tela do participante não muda.** Continua o mesmo texto genérico — expor `ACESSO_NEGADO`
+transformaria a mensagem num oráculo de enumeração, e a própria RPC devolve falha genérica de
+propósito quando o token não resolve. Diagnóstico é para quem lê o console.
+
+O gate novo (`cdb-save-error-diagnosable`, 6 checks) trava as duas metades juntas: o motivo chega
+ao console **e** a mensagem visível continua idêntica, incluindo a garantia de que `ACESSO_NEGADO`,
+`P0001` e `respondeu 400` nunca aparecem na tela. Provado por mutação: com o `cdbRpc()` antigo, as
+três asserções de diagnóstico reprovam com exatamente o sintoma real
+(`RPC cdb_save_my_picks respondeu 400`), enquanto as de interface continuam passando.
+
+Nenhuma mudança em scoring, regra de torneio, cutoff, autorização ou no caminho de gravação em si.
+
+
 ## (infra, sem bump de siteVersion) — 2026-08-20 (lembrete das quartas)
 
 Canal de notificação novo, autorizado explicitamente pelo Eduardo: um lembrete para as entradas
