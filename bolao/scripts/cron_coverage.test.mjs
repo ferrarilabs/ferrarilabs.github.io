@@ -226,6 +226,15 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["cdb2026_qf_reminder.yml",
+   "Lembrete unico para quem ainda nao concluiu os palpites das quartas. NAO e agendado de " +
+   "proposito: e uma CAMPANHA com janela propria (o prazo das quartas), nao um ciclo. Um cron " +
+   "aqui transformaria 'lembrar uma vez' em 'lembrar toda hora', e a unica coisa entre isso e a " +
+   "caixa de entrada do participante passaria a ser o ledger -- uma trava em vez de duas. Pior: " +
+   "o modo de envio ROTACIONA a credencial de acesso antes de mandar, entao um disparo repetido " +
+   "nao seria so e-mail a mais, seria o link da pessoa morrendo de novo a cada volta do relogio. " +
+   "A ausencia aqui nao e silenciosa como a de um consumidor de fila: se o lembrete nao sair, o " +
+   "operador ve o manifesto no modo `medir` e dispara a mao."],
   ["safety_check.yml",
    "Contrato permanente de seguranca de mudanca. NAO e agendado de proposito: ele reage a " +
    "MUDANCA, nao ao relogio. Os gates deste repositorio protegem superficies criticas contra o " +

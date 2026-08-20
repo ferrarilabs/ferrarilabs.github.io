@@ -388,6 +388,8 @@ const CHECKS = [
     why: "o comprovante e EVIDENCIA e nao pode vazar PII — renderizacao pura, sem banco e sem rede" },
   { id: "cdb-receipt-catchup-dedupe", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py"],
     why: "incidente de 2026-08-16 reproduzido: dedupe cross-path do catch-up, participante pulado nunca mais" },
+  { id: "cdb-qf-reminder", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_qf_reminder.py"],
+    why: "o lembrete ROTACIONA credencial antes de enviar: link que resolve para outra entrada mandaria a pessoa editar palpite alheio, e rotacao que encoste em palpite e mutacao silenciosa" },
   { id: "powerball-balance-unicity", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs"],
     why: "a tela tinha DOIS 'quanto temos' com valores diferentes — saldo exibido precisa ter uma fonte so" },
   { id: "powerball-run-31679185588", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_run_31679185588_regression.py"],

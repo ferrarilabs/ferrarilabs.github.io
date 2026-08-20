@@ -1,0 +1,90 @@
+# Lembrete das quartas do CDB2026 — ferramenta de OPERADOR, sem cron.
+#
+#   medir   -> só leitura. Imprime o manifesto (quem não completou, quem já foi lembrado).
+#              ESTRUTURALMENTE incapaz de enviar: BOLAO_ALLOW_REAL_SEND não existe neste job,
+#              e sem ele o sender recusa transporte real e falha FECHADO.
+#   enviar  -> rotaciona a credencial dos alvos, PROVA que cada link novo abre a entrada certa
+#              e que os palpites não foram tocados, e só então envia — um e-mail por entrada,
+#              com reserva durável antes de cada chamada ao provedor.
+#
+# Sem cron de propósito: é uma campanha única com janela própria, não um ciclo. Um cron aqui
+# transformaria "lembrar uma vez" em "lembrar toda hora", e a proteção contra isso passaria a
+# depender só do ledger — uma trava em vez de duas.
+#
+# ATENÇÃO — A ROTAÇÃO INVALIDA O LINK ANTERIOR de quem for alvo. É inevitável: o token em claro
+# do convite não existe em lugar nenhum depois do envio (o banco guarda só o SHA-256), então não
+# há como reenviar o MESMO link. O participante recebe o link novo no próprio lembrete.
+name: CDB2026 — lembrete das quartas
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "medir (só leitura) ou enviar"
+        required: true
+        default: medir
+        type: choice
+        options: [medir, enviar]
+
+permissions:
+  contents: read
+
+concurrency:
+  # Mesmo grupo do CLI de operador e do vigia da tabela: os três mexem no mesmo bolão, e o
+  # lembrete rotaciona credencial enquanto o vigia pode estar emitindo convite.
+  group: cdb2026-operator
+  cancel-in-progress: false
+
+jobs:
+  medir:
+    if: inputs.acao == 'medir'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Prova offline do lembrete (sem rede)
+        run: python3 bolao/cdb2026/scripts/test_qf_reminder.py
+      - name: Medir (só leitura — sem guard de envio, não pode enviar)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/send_qf_reminder.py --measure
+
+  enviar:
+    if: inputs.acao == 'enviar'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+
+      - name: Prova offline do lembrete (sem rede)
+        run: python3 bolao/cdb2026/scripts/test_qf_reminder.py
+
+      # DISJUNTOR, CAMADA 1 DE 2. A camada 2 vive dentro do próprio sender, antes de qualquer
+      # chamada ao provedor. Duas camadas porque uma só depende de quem edita o YAML lembrar.
+      - name: Disjuntor de e-mail do CDB
+        id: killswitch
+        run: |
+          if [ -f bolao/cdb2026/EMAIL_KILL_SWITCH ]; then
+            echo "ativo=true" >> "$GITHUB_OUTPUT"
+            echo "🛑 CDB_EMAIL_KILL_SWITCH ATIVO — nenhum e-mail do CDB será enviado."
+          else
+            echo "ativo=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Rotacionar, provar e enviar
+        if: steps.killswitch.outputs.ativo != 'true'
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+        run: python3 bolao/cdb2026/scripts/send_qf_reminder.py --send
+
+      # Prova de idempotência: a mesma campanha, medida logo depois, não pode querer reenviar.
+      - name: Provar idempotência (segunda execução, só leitura)
+        if: steps.killswitch.outputs.ativo != 'true'
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python3 bolao/cdb2026/scripts/send_qf_reminder.py --measure
