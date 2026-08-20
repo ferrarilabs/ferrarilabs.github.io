@@ -664,6 +664,9 @@
     "scripts/test_audit_commit_message_closure_keywords.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/safety/test_canonical_tree_guard.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/test_audit_commit_message_pii.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
