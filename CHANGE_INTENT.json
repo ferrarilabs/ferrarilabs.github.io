@@ -1,11 +1,22 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
-
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
-
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
-
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "affected_workflows": [
+        "CDB2026_QF_REMINDER"
+      ],
+      "reason": "Canal de notificacao NOVO, autorizado explicitamente pelo Eduardo: lembrete unico para as entradas do CDB2026 que ainda nao concluiram os quatro confrontos das quartas (5 de 12 na medicao de 2026-08-20). O manifesto ganha uma entrada; nenhum workflow existente foi tocado, nenhum cron alterado, nenhum guard afrouxado. Este canal e diferente de todos os outros do repositorio num ponto que exige declaracao e nao apenas registro: ele ROTACIONA a credencial de acesso do participante antes de enviar. Isso nao e escolha de implementacao -- o token em claro do convite nao existe em lugar nenhum depois do envio (cdb_entry_access guarda so o SHA-256), entao entregar um link que funciona exige emitir outro, e emitir outro invalida o anterior. A alternativa (lembrete sem link) seria inutil: desde a migracao 20260812080000 o navegador nao enxerga e-mail de ninguem, logo nao existe 'buscar minha entrada'.",
+      "expected_behavior_change": "Passa a existir .github/workflows/cdb2026_qf_reminder.yml, workflow_dispatch SEM cron, com dois jobs. 'medir' nao carrega BOLAO_ALLOW_REAL_SEND e por isso e estruturalmente incapaz de enviar. 'enviar' rotaciona a credencial dos alvos via INV.issue_token (a MESMA funcao do convite, nao uma copia), prova por cdb_my_entry que cada link novo resolve para a entrada esperada (id e nome), prova por impressao digital do estado autoritativo inteiro que nenhum palpite/qualified/pagamento/resultado mudou, e so entao envia -- um e-mail por entrada, com reserve_delivery antes de cada chamada ao provedor, familia cdb2026:qf-reminder e chave cdb2026:qf-reminder:<entryId>:v1. Falha de transporte vira 'uncertain', nunca liberacao da reserva. Sem p_bypass_anomaly: o disjuntor de envio rapido continua valendo. EFEITO COLATERAL DELIBERADO E REPORTADO: o link anterior das 5 entradas alvo deixa de autenticar no instante da rotacao; o link novo vai no proprio lembrete.",
+      "tests_required": [
+        "cdb-qf-reminder",
+        "gate-registry",
+        "safety-contract",
+        "email-send-safety"
+      ]
+    }
+  ]
 }
