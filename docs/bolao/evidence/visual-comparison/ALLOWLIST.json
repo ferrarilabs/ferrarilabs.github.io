@@ -21,16 +21,17 @@
       "apps": [
         "copa2026",
         "br2026",
-        "cdb2026"
+        "cdb2026",
+        "loterias/powerball"
       ],
       "expectedType": "content-driven",
       "expected": null,
-      "justification": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'.",
+      "justification": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. | 2026-08-20 (Issue #194): Powerball entrou na cobertura do checador. A altura dele e content-driven pelo mesmo motivo que nos outros tres -- e funcao de quanto conteudo a pagina carregou, nao de token de design -- entao a entrada passa a cobrir os quatro apps. Nao e uma excecao nova: e a mesma excecao aplicada ao app que antes nem era medido.",
       "docRef": "PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md",
       "owner": "Platform",
       "approvalStatus": "approved",
       "approvedBy": "Eduardo",
-      "reviewDate": "2026-08-03",
+      "reviewDate": "2026-08-20",
       "reviewBy": "2027-08-03"
     },
     {
@@ -61,16 +62,17 @@
       "apps": [
         "copa2026",
         "br2026",
-        "cdb2026"
+        "cdb2026",
+        "loterias/powerball"
       ],
       "expectedType": "content-driven",
       "expected": null,
-      "justification": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here.",
+      "justification": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. | 2026-08-20 (Issue #194): Powerball entrou na cobertura do checador. A altura dele e content-driven pelo mesmo motivo que nos outros tres -- e funcao de quanto conteudo a pagina carregou, nao de token de design -- entao a entrada passa a cobrir os quatro apps. Nao e uma excecao nova: e a mesma excecao aplicada ao app que antes nem era medido.",
       "docRef": "CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps')",
       "owner": "Platform",
       "approvalStatus": "approved",
       "approvedBy": "Eduardo",
-      "reviewDate": "2026-08-03",
+      "reviewDate": "2026-08-20",
       "reviewBy": "2027-08-03"
     },
     {
@@ -497,6 +499,73 @@
         "lastObservedEqual": "2026-08-16",
         "reviewBy": "2027-08-03"
       }
+    },
+    {
+      "component": "topbar",
+      "property": "height",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026",
+        "loterias/powerball"
+      ],
+      "expectedType": "exact",
+      "expected": {
+        "copa2026": "108.5px",
+        "br2026": "108.5px",
+        "cdb2026": "108.5px",
+        "loterias/powerball": "64.5px"
+      },
+      "justification": "Ratificado por Eduardo em 2026-08-20 (Issue #194), a partir do memo de ratificacao visual de 2026-08-08. O checador exige aprovador com nome e recusa auto-aprovacao -- esta entrada existe porque a decisao foi tomada, nao inferida. DECISAO 1 do memo: o cabecalho do Powerball e mais baixo porque tem MENOS COISA DENTRO, nao porque foi estilizado diferente. Os tres boloes de futebol tem uma linha de abas (Ranking/Jogos/Regras/Palpites) e uma linha de botoes de idioma; o Powerball e pagina unica, num idioma so, e nao tem nenhuma das duas. Fundo, borda, padding, gap, comportamento sticky, blur, marca, botao do WhatsApp e seletor de sorteio ja batem EXATAMENTE com os outros tres, no desktop e no celular -- e a mesma barra com menos itens. Igualar as alturas exigiria inventar uma linha de abas que nao navega para lugar nenhum, ou empurrar espaco vazio no cabecalho: as duas pioram a pagina para produzir um numero igual num relatorio. Valor FIXADO por app: se qualquer um dos quatro mudar de altura, esta entrada para de casar e o gate reprova.",
+      "docRef": "Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 1 (2026-08-08)",
+      "owner": "Platform",
+      "approvalStatus": "approved",
+      "approvedBy": "Eduardo",
+      "reviewDate": "2026-08-20",
+      "reviewBy": "2027-08-20"
+    },
+    {
+      "component": "topbar",
+      "property": "gridTemplateColumns",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026",
+        "loterias/powerball"
+      ],
+      "expectedType": "content-driven",
+      "justification": "Ratificado por Eduardo em 2026-08-20 (Issue #194). MESMA causa da DECISAO 1, medida por outra propriedade: o cabecalho tem as mesmas quatro colunas nos quatro apps, mas no Powerball a trilha das abas/idiomas mede 0px porque nao existe conteudo nela, e as demais se redistribuem. NAO e `exact` de proposito: as larguras das trilhas sao definidas pelo CONTEUDO de cada celula (texto da marca, rotulos dos botoes) e portanto dependem das metricas de fonte da plataforma -- a primeira versao desta entrada fixou os valores medidos no macOS e o CI (Linux) mediu outros, deixando a entrada sem uso e a divergencia sem aprovacao. Fixar pixel dependente de plataforma nao mede design, mede o runner. A assercao que MORDE para este componente continua sendo `topbar:height`, que e `exact` e fixada por app: provado por mutacao que subir o padding-top do .topbar do Powerball leva a altura de 64.5px para 84.5px e reprova o gate.",
+      "docRef": "Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 1 (2026-08-08)",
+      "owner": "Platform",
+      "approvalStatus": "approved",
+      "approvedBy": "Eduardo",
+      "reviewDate": "2026-08-20",
+      "reviewBy": "2027-08-20",
+      "expected": null
+    },
+    {
+      "component": "main",
+      "property": "padding",
+      "apps": [
+        "copa2026",
+        "br2026",
+        "cdb2026",
+        "loterias/powerball"
+      ],
+      "expectedType": "exact",
+      "expected": {
+        "copa2026": "20px 18px",
+        "br2026": "20px 18px",
+        "cdb2026": "20px 18px",
+        "loterias/powerball": "20px 18px 60px"
+      },
+      "justification": "Ratificado por Eduardo em 2026-08-20 (Issue #194), a partir do memo de ratificacao visual de 2026-08-08. O checador exige aprovador com nome e recusa auto-aprovacao -- esta entrada existe porque a decisao foi tomada, nao inferida. DECISAO 2 do memo: 60px a mais de respiro no rodape do Powerball. Os apps de futebol trocam de secao por abas, entao cada tela e curta e termina quando o usuario troca de aba; o Powerball e uma rolagem unica e longa (resumo, participantes, tickets, resultado) e sem esse respiro o ultimo cartao encosta na borda de baixo da tela. Remover nao deixa nada mais consistente para quem usa -- deixa o fim da pagina apertado num app e nao muda absolutamente nada nos outros tres. Os dois primeiros valores (20px 18px) sao IDENTICOS aos dos outros tres: a diferenca e exclusivamente o terceiro valor, e esta fixada aqui.",
+      "docRef": "Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 2 (2026-08-08)",
+      "owner": "Platform",
+      "approvalStatus": "approved",
+      "approvedBy": "Eduardo",
+      "reviewDate": "2026-08-20",
+      "reviewBy": "2027-08-20"
     }
   ]
 }
