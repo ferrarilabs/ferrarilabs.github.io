@@ -58,6 +58,9 @@ const BROWSER_SHARD_A = [
   "countdown-layout", "prob-bar-geometry", "br-live-behavior-parity", "live-card-dom",
   "multi-live-hero-responsive", "cdb-sticky-overlap", "br-standings-layout",
   "cdb-bracket-browser", "visual-consistency", "draw-combo",
+  // Issue #258. Vai no shard A porque ele era o mais curto dos dois (10 contra 11) e este check e
+  // rapido: quatro cargas de pagina contra rotas mockadas, sem matriz de larguras.
+  "cdb-save-error-diagnosable",
 ];
 const BROWSER_SHARD_B = [
   "accessibility", "responsive-14-width", "live-prob-bars", "combo-visual", "multi-live-hero",
