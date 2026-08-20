@@ -56,6 +56,14 @@ const CHECKS = [
     why: "o gate de PII passou a ser um CLI fino sobre scripts/pii_detectors.mjs na integracao de 2026-08-12; o motor agora e load-bearing para pii-gate, entao o suite dele roda no MESMO agregador — deixa-lo de fora seria o falso-verde N21 outra vez" },
   { id: "commit-message-pii-gate", group: "security", cmd: ["node", "scripts/audit_commit_message_pii.mjs"],
     why: "HIST-091/HIST-093 (2026-08-18): pii-gate so varre conteudo de arquivo/blob; PII real foi digitada direto em corpos de commit-message, uma superficie que nenhum gate cobria. Forward-only por design — varre so commits novos desde a base, nunca a historia inteira" },
+  // Issue #250: o commit 3556dbce trazia "Does NOT fix #246" — escrito de proposito para NAO
+  // fechar a Issue — e o parser lexical do GitHub casou `fix #246` e fechou uma Issue de
+  // incidente de producao mesmo assim. Mesma familia do gate de PII em mensagem de commit:
+  // risco lexico na prosa, que nenhum humano confere de forma confiavel.
+  { id: "closure-keyword-gate", group: "security", cmd: ["node", "scripts/audit_commit_message_closure_keywords.mjs"],
+    why: "palavra-chave de fechamento do GitHub dentro de uma negacao FECHA a Issue que a frase diz nao fechar (Issue #250)" },
+  { id: "closure-keyword-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_commit_message_closure_keywords.mjs"],
+    why: "precisao E cobertura do gate acima: um gate que nao morde da falsa seguranca, e um que morde demais e desligado na primeira semana" },
   { id: "commit-message-pii-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_commit_message_pii.mjs"],
     why: "prova, contra um repositorio git temporario real, que o escopo forward-only realmente exclui historia anterior e que um valor real-shaped e bloqueado enquanto um valor sintetico e uma mencao generica passam" },
   { id: "sentinel-finding-schema", group: "security", cmd: ["node", "scripts/sentinel/test_finding_schema.mjs"],
