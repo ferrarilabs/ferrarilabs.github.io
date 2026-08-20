@@ -1,11 +1,12 @@
 {
-  "generatedAtUtc": "2026-08-16T20:52:14.311Z",
-  "commit": "560382e3",
+  "generatedAtUtc": "2026-08-20T19:04:15.135Z",
+  "commit": "4dd5dca8",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
     "br2026",
-    "cdb2026"
+    "cdb2026",
+    "loterias/powerball"
   ],
   "components": [
     {
@@ -14,7 +15,8 @@
       "selectors": {
         "copa2026": ".topbar",
         "br2026": ".topbar",
-        "cdb2026": ".topbar"
+        "cdb2026": ".topbar",
+        "loterias/powerball": ".topbar"
       },
       "note": null,
       "values": {
@@ -65,6 +67,22 @@
           "height": "108.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+        },
+        "loterias/powerball": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "30px 18px 10px",
+          "margin": "0px",
+          "gap": "8px 12px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(7, 20, 27, 0.94)",
+          "color": "rgb(238, 247, 241)",
+          "height": "84.5px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "876.938px 120.219px 0px 210.844px"
         }
       },
       "properties": [
@@ -95,7 +113,7 @@
         },
         {
           "property": "padding",
-          "status": "EQUAL",
+          "status": "DIVERGENT",
           "reason": null
         },
         {
@@ -125,8 +143,8 @@
         },
         {
           "property": "height",
-          "status": "EQUAL",
-          "reason": null
+          "status": "DIVERGENT",
+          "reason": "VALUE DRIFT: entrada aprovada para \"topbar:height\" é expectedType=\"exact\", mas o valor atual não bate mais com o autorizado (loterias/powerball: esperado \"64.5px\", atual \"84.5px\") — a entrada ficou desatualizada, precisa de nova revisão/atualização, não é mais coberta pela aprovação existente."
         },
         {
           "property": "minHeight",
@@ -135,8 +153,8 @@
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "Ratificado por Eduardo em 2026-08-20 (Issue #194), a partir do memo de ratificacao visual de 2026-08-08. O checador exige aprovador com nome e recusa auto-aprovacao -- esta entrada existe porque a decisao foi tomada, nao inferida. Mesma causa da DECISAO 1, medida por outra propriedade: o grid do cabecalho tem as mesmas quatro colunas nos quatro apps, mas no Powerball a coluna das abas/idiomas mede 0px porque nao existe conteudo nela -- e por isso as demais se redistribuem. Nao e um template de grid diferente; e o MESMO template com uma trilha vazia. Fixar os valores mantem o gate sensivel: uma mudanca real de layout do cabecalho em qualquer app quebra esta entrada. [docRef: Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 1 (2026-08-08); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-20]"
         }
       ]
     },
@@ -146,7 +164,8 @@
       "selectors": {
         "copa2026": ".brand",
         "br2026": ".brand",
-        "cdb2026": ".brand"
+        "cdb2026": ".brand",
+        "loterias/powerball": ".brand"
       },
       "note": null,
       "values": {
@@ -183,6 +202,22 @@
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "16px",
+          "fontWeight": "900",
+          "lineHeight": "24px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "8px",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "24px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "loterias/powerball": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
           "fontSize": "16px",
           "fontWeight": "900",
@@ -278,7 +313,8 @@
       "selectors": {
         "copa2026": ".bolao-switcher",
         "br2026": ".bolao-switcher",
-        "cdb2026": ".bolao-switcher"
+        "cdb2026": ".bolao-switcher",
+        "loterias/powerball": ".bolao-switcher"
       },
       "note": null,
       "values": {
@@ -315,6 +351,22 @@
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "0px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "34px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "loterias/powerball": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
           "fontSize": "15px",
           "fontWeight": "400",
@@ -410,7 +462,8 @@
       "selectors": {
         "copa2026": ".lang-links button",
         "br2026": ".lang-links button",
-        "cdb2026": ".lang-links button"
+        "cdb2026": ".lang-links button",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -461,7 +514,8 @@
           "height": "34px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -542,7 +596,8 @@
       "selectors": {
         "copa2026": ".lang-links button.active",
         "br2026": ".lang-links button.active",
-        "cdb2026": ".lang-links button.active"
+        "cdb2026": ".lang-links button.active",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -593,7 +648,8 @@
           "height": "34px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -674,7 +730,8 @@
       "selectors": {
         "copa2026": ".nav",
         "br2026": ".nav",
-        "cdb2026": ".nav"
+        "cdb2026": ".nav",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -725,7 +782,8 @@
           "height": "44px",
           "minHeight": "auto",
           "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -806,7 +864,8 @@
       "selectors": {
         "copa2026": "[data-section=\"ranking\"]",
         "br2026": "[data-section=\"ranking\"]",
-        "cdb2026": "[data-section=\"ranking\"]"
+        "cdb2026": "[data-section=\"ranking\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -857,7 +916,8 @@
           "height": "44px",
           "minHeight": "44px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -938,7 +998,8 @@
       "selectors": {
         "copa2026": ".nav button.active",
         "br2026": ".nav button.active",
-        "cdb2026": ".nav button.active"
+        "cdb2026": ".nav button.active",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -989,7 +1050,8 @@
           "height": "44px",
           "minHeight": "44px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -1070,7 +1132,8 @@
       "selectors": {
         "copa2026": "main",
         "br2026": "main",
-        "cdb2026": "main"
+        "cdb2026": "main",
+        "loterias/powerball": "main"
       },
       "note": null,
       "values": {
@@ -1102,7 +1165,7 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
-          "height": "2032.28px",
+          "height": "1514px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         },
@@ -1119,6 +1182,22 @@
           "backgroundColor": "rgba(0, 0, 0, 0)",
           "color": "rgb(238, 247, 241)",
           "height": "4653.88px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
+        },
+        "loterias/powerball": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "20px 18px 60px",
+          "margin": "0px 70px",
+          "gap": "normal",
+          "borderRadius": "0px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(238, 247, 241)",
+          "height": "4950.55px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
         }
@@ -1151,8 +1230,8 @@
         },
         {
           "property": "padding",
-          "status": "EQUAL",
-          "reason": null
+          "status": "JUSTIFIED",
+          "reason": "Ratificado por Eduardo em 2026-08-20 (Issue #194), a partir do memo de ratificacao visual de 2026-08-08. O checador exige aprovador com nome e recusa auto-aprovacao -- esta entrada existe porque a decisao foi tomada, nao inferida. DECISAO 2 do memo: 60px a mais de respiro no rodape do Powerball. Os apps de futebol trocam de secao por abas, entao cada tela e curta e termina quando o usuario troca de aba; o Powerball e uma rolagem unica e longa (resumo, participantes, tickets, resultado) e sem esse respiro o ultimo cartao encosta na borda de baixo da tela. Remover nao deixa nada mais consistente para quem usa -- deixa o fim da pagina apertado num app e nao muda absolutamente nada nos outros tres. Os dois primeiros valores (20px 18px) sao IDENTICOS aos dos outros tres: a diferenca e exclusivamente o terceiro valor, e esta fixada aqui. [docRef: Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 2 (2026-08-08); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-20]"
         },
         {
           "property": "margin",
@@ -1182,7 +1261,7 @@
         {
           "property": "height",
           "status": "JUSTIFIED",
-          "reason": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "reason": "Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. | 2026-08-20 (Issue #194): Powerball entrou na cobertura do checador. A altura dele e content-driven pelo mesmo motivo que nos outros tres -- e funcao de quanto conteudo a pagina carregou, nao de token de design -- entao a entrada passa a cobrir os quatro apps. Nao e uma excecao nova: e a mesma excecao aplicada ao app que antes nem era medido. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-03]"
         },
         {
           "property": "minHeight",
@@ -1202,9 +1281,10 @@
       "selectors": {
         "copa2026": "[data-visual-audit=\"card-base\"]",
         "br2026": "[data-visual-audit=\"card-base\"]",
-        "cdb2026": "[data-visual-audit=\"card-base\"]"
+        "cdb2026": "[data-visual-audit=\"card-base\"]",
+        "loterias/powerball": "section[class=\"card\"]"
       },
-      "note": null,
+      "note": "Powerball nao tem o marcador data-visual-audit; section[class=\"card\"] casa o cartao SIMPLES (class exatamente \"card\"), nunca .card.pb-hero nem .card.lot-status. A primeira versao usava .card, pegava o hero -- fundo transparente, cor propria, altura de hero -- e produzia TRES DIVERGENTES que eram artefato do seletor, nao diferenca de design. Mesma classe de erro do fixture de storeKey errado da Copa registrado no APPS acima.",
       "values": {
         "copa2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -1253,6 +1333,22 @@
           "height": "444.781px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
+        },
+        "loterias/powerball": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "15px",
+          "fontWeight": "400",
+          "lineHeight": "22.5px",
+          "letterSpacing": "normal",
+          "padding": "18px",
+          "margin": "0px 0px 14px",
+          "gap": "normal",
+          "borderRadius": "18px",
+          "backgroundColor": "rgb(13, 32, 40)",
+          "color": "rgb(238, 247, 241)",
+          "height": "346.562px",
+          "minHeight": "0px",
+          "gridTemplateColumns": "none"
         }
       },
       "properties": [
@@ -1314,7 +1410,7 @@
         {
           "property": "height",
           "status": "JUSTIFIED",
-          "reason": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "reason": "The marked card (data-visual-audit=\"card-base\", the scoring-rules card in Regras) wraps a <table class=\"rules-table\"> whose row COUNT is tournament-specific scoring content (Copa 7 rows, BR2026 10 rows, CDB2026 6 rows) — TOURNAMENT_SPECIFIC data (CLAUDE.md: 'Diferenças específicas de torneio devem ser preservadas'), not a shared card-base token. Padding/margin/border-radius/background/font tokens on the card itself ARE compared normally (not excluded) — only the content-driven total height is excluded here. | 2026-08-20 (Issue #194): Powerball entrou na cobertura do checador. A altura dele e content-driven pelo mesmo motivo que nos outros tres -- e funcao de quanto conteudo a pagina carregou, nao de token de design -- entao a entrada passa a cobrir os quatro apps. Nao e uma excecao nova: e a mesma excecao aplicada ao app que antes nem era medido. [docRef: CLAUDE.md platform governance ('Diferenças específicas de torneio devem ser preservadas — não generalizar entre apps'); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-03]"
         },
         {
           "property": "minHeight",
@@ -1334,9 +1430,10 @@
       "selectors": {
         "copa2026": "h2",
         "br2026": "h2",
-        "cdb2026": "h2"
+        "cdb2026": "h2",
+        "loterias/powerball": null
       },
-      "note": null,
+      "note": "N/A no Powerball de proposito. Nos tres apps de futebol o PRIMEIRO h2 do documento esta numa secao oculta -- getComputedStyle devolve height:auto porque o elemento nao e renderizado. O primeiro h2 do Powerball (pagina unica) esta VISIVEL, com 30px. Comparar os dois mediria VISIBILIDADE, nao token de tipografia, e o verde ou vermelho dependeria de qual secao o app abre primeiro. O heading de secao tem componente proprio (rules-heading).",
       "values": {
         "copa2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -1385,7 +1482,8 @@
           "height": "auto",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -1466,7 +1564,8 @@
       "selectors": {
         "copa2026": "[data-visual-audit=\"rules-heading\"]",
         "br2026": "[data-visual-audit=\"rules-heading\"]",
-        "cdb2026": "[data-visual-audit=\"rules-heading\"]"
+        "cdb2026": "[data-visual-audit=\"rules-heading\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -1517,7 +1616,8 @@
           "height": "25.1875px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -1598,7 +1698,8 @@
       "selectors": {
         "copa2026": "h2[data-i18n=\"entryTitle\"]",
         "br2026": "h2[data-i18n=\"entryTitle\"]",
-        "cdb2026": "h2[data-i18n=\"entryTitle\"]"
+        "cdb2026": "h2[data-i18n=\"entryTitle\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -1649,7 +1750,8 @@
           "height": "auto",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -1730,7 +1832,8 @@
       "selectors": {
         "copa2026": "#entryName",
         "br2026": "#entryName",
-        "cdb2026": "#entryName"
+        "cdb2026": "#entryName",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -1781,7 +1884,8 @@
           "height": "auto",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -1862,7 +1966,8 @@
       "selectors": {
         "copa2026": "#paymentMethod",
         "br2026": "#paymentMethod",
-        "cdb2026": "#paymentMethod"
+        "cdb2026": "#paymentMethod",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -1913,7 +2018,8 @@
           "height": "auto",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -1994,13 +2100,15 @@
       "selectors": {
         "copa2026": "[data-visual-audit=\"form-grid\"]",
         "br2026": "[data-visual-audit=\"form-grid\"]",
-        "cdb2026": "[data-visual-audit=\"form-grid\"]"
+        "cdb2026": "[data-visual-audit=\"form-grid\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
         "copa2026": null,
         "br2026": null,
-        "cdb2026": null
+        "cdb2026": null,
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2081,13 +2189,15 @@
       "selectors": {
         "copa2026": "[data-visual-audit=\"button-primary\"]",
         "br2026": "[data-visual-audit=\"button-primary\"]",
-        "cdb2026": "[data-visual-audit=\"button-primary\"]"
+        "cdb2026": "[data-visual-audit=\"button-primary\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
         "copa2026": null,
         "br2026": null,
-        "cdb2026": null
+        "cdb2026": null,
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2168,13 +2278,15 @@
       "selectors": {
         "copa2026": "[data-visual-audit=\"button-small\"]",
         "br2026": "[data-visual-audit=\"button-small\"]",
-        "cdb2026": "[data-visual-audit=\"button-small\"]"
+        "cdb2026": "[data-visual-audit=\"button-small\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
         "copa2026": null,
         "br2026": null,
-        "cdb2026": null
+        "cdb2026": null,
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2255,13 +2367,15 @@
       "selectors": {
         "copa2026": "[data-visual-audit=\"button-danger\"]",
         "br2026": "[data-visual-audit=\"button-danger\"]",
-        "cdb2026": "[data-visual-audit=\"button-danger\"]"
+        "cdb2026": "[data-visual-audit=\"button-danger\"]",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
         "copa2026": null,
         "br2026": null,
-        "cdb2026": null
+        "cdb2026": null,
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2342,7 +2456,8 @@
       "selectors": {
         "copa2026": "#adminLogoutBtn",
         "br2026": "#adminLogoutBtn",
-        "cdb2026": "#adminLogoutBtn"
+        "cdb2026": "#adminLogoutBtn",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -2393,7 +2508,8 @@
           "height": "46.5px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2474,7 +2590,8 @@
       "selectors": {
         "copa2026": ".rank-row",
         "br2026": ".rank-row",
-        "cdb2026": ".rank-row"
+        "cdb2026": ".rank-row",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -2525,7 +2642,8 @@
           "height": "76.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "48px 882.484px 18.2031px 99.3125px"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2606,7 +2724,8 @@
       "selectors": {
         "copa2026": ".game-card",
         "br2026": ".game-card",
-        "cdb2026": ".game-card"
+        "cdb2026": ".game-card",
+        "loterias/powerball": null
       },
       "note": "CDB2026 migrated its per-leg match cards to the same canonical .game-card as Copa/BR2026 (visual-framework-copa-canonical branch, structural DOM unification) — .confronto-card is now only the tie-group summary/aggregate wrapper, not the per-match card.",
       "values": {
@@ -2657,7 +2776,8 @@
           "height": "152px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2738,7 +2858,8 @@
       "selectors": {
         "copa2026": ".status-chip.done",
         "br2026": ".game-status.post",
-        "cdb2026": ".game-status.post"
+        "cdb2026": ".game-status.post",
+        "loterias/powerball": null
       },
       "note": "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name.",
       "values": {
@@ -2789,7 +2910,8 @@
           "height": "26.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2870,7 +2992,8 @@
       "selectors": {
         "copa2026": ".paid-badge",
         "br2026": ".paid-badge",
-        "cdb2026": ".paid-badge"
+        "cdb2026": ".paid-badge",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -2906,7 +3029,8 @@
           "height": "auto",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -2987,7 +3111,8 @@
       "selectors": {
         "copa2026": ".admin-toolbar",
         "br2026": ".admin-toolbar",
-        "cdb2026": ".admin-toolbar"
+        "cdb2026": ".admin-toolbar",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -3038,7 +3163,8 @@
           "height": "46.5px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -3119,7 +3245,8 @@
       "selectors": {
         "copa2026": ".admin-entry",
         "br2026": ".admin-row",
-        "cdb2026": ".admin-row"
+        "cdb2026": ".admin-row",
+        "loterias/powerball": null
       },
       "note": "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight.",
       "values": {
@@ -3170,7 +3297,8 @@
           "height": "128px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -3251,7 +3379,8 @@
       "selectors": {
         "copa2026": ".rules-table td",
         "br2026": ".rules-table td",
-        "cdb2026": ".rules-table td"
+        "cdb2026": ".rules-table td",
+        "loterias/powerball": null
       },
       "note": null,
       "values": {
@@ -3302,7 +3431,8 @@
           "height": "37px",
           "minHeight": "0px",
           "gridTemplateColumns": "none"
-        }
+        },
+        "loterias/powerball": null
       },
       "properties": [
         {
@@ -3383,7 +3513,8 @@
       "selectors": {
         "copa2026": ".whatsapp-btn",
         "br2026": ".whatsapp-btn",
-        "cdb2026": ".whatsapp-btn"
+        "cdb2026": ".whatsapp-btn",
+        "loterias/powerball": ".whatsapp-btn"
       },
       "note": null,
       "values": {
@@ -3420,6 +3551,22 @@
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "900",
+          "lineHeight": "19.5px",
+          "letterSpacing": "normal",
+          "padding": "8px 13px",
+          "margin": "0px",
+          "gap": "6px",
+          "borderRadius": "999px",
+          "backgroundColor": "rgb(37, 211, 102)",
+          "color": "rgb(0, 0, 0)",
+          "height": "35.5px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "loterias/powerball": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
           "fontSize": "13px",
           "fontWeight": "900",
@@ -3515,7 +3662,8 @@
       "selectors": {
         "copa2026": ".bolao-toast.info",
         "br2026": ".bolao-toast.info",
-        "cdb2026": ".bolao-toast.info"
+        "cdb2026": ".bolao-toast.info",
+        "loterias/powerball": ".bolao-toast.info"
       },
       "note": null,
       "values": {
@@ -3552,6 +3700,22 @@
           "gridTemplateColumns": "none"
         },
         "cdb2026": {
+          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
+          "fontSize": "13px",
+          "fontWeight": "600",
+          "lineHeight": "18.2px",
+          "letterSpacing": "normal",
+          "padding": "10px 16px",
+          "margin": "0px",
+          "gap": "normal",
+          "borderRadius": "12px",
+          "backgroundColor": "rgb(13, 31, 51)",
+          "color": "rgb(128, 200, 240)",
+          "height": "38.1875px",
+          "minHeight": "auto",
+          "gridTemplateColumns": "none"
+        },
+        "loterias/powerball": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
           "fontSize": "13px",
           "fontWeight": "600",
@@ -3647,13 +3811,15 @@
       "selectors": {
         "copa2026": null,
         "br2026": null,
-        "cdb2026": null
+        "cdb2026": null,
+        "loterias/powerball": null
       },
       "note": "NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle().",
       "values": {
         "copa2026": null,
         "br2026": null,
-        "cdb2026": null
+        "cdb2026": null,
+        "loterias/powerball": null
       },
       "properties": [
         {

@@ -169,6 +169,17 @@ const APPS = {
     seedAdmin: (until) => ({ cdb2026_adminUntil: String(until) }),
     mockEspn: true, // PR120-final review item 5 — see extractStylesForApp()
   },
+  // Issue #194 — Eduardo ratificou as DUAS diferencas de layout do Powerball em 2026-08-20
+  // (cabecalho mais baixo, respiro de 60px no rodape) como INTENCIONAIS. Elas estao modeladas
+  // como entradas EXATAS na ALLOWLIST.json, com valor fixado por app: se qualquer uma dessas
+  // medidas mudar, a entrada para de casar e o gate reprova. O que nao volta a acontecer e
+  // "0 divergencias" significar "o Powerball nem foi medido" — que era o caso ate hoje e e a
+  // mesma forma do falso-verde da Issue #217.
+  //
+  // Sem storeKey/fixture/seedAdmin de proposito: pagina unica, sem estado de bolao, sem admin.
+  "loterias/powerball": {
+    path: "/bolao/loterias/powerball/", singlePage: true,
+  },
 };
 
 // Which section must be the active `.page` for a component's computed style to reflect its real
@@ -198,40 +209,40 @@ const SECTION_FOR_COMPONENT = {
 
 // ── Components — id, human label, per-app selector (null = doesn't exist in that app), note ──
 const COMPONENTS = [
-  { id: "topbar", label: "Topbar", selectors: { copa2026: ".topbar", br2026: ".topbar", cdb2026: ".topbar" } },
-  { id: "brand", label: "Brand / logo", selectors: { copa2026: ".brand", br2026: ".brand", cdb2026: ".brand" } },
-  { id: "competition-selector", label: "Seletor de competição (Alternar bolão)", selectors: { copa2026: ".bolao-switcher", br2026: ".bolao-switcher", cdb2026: ".bolao-switcher" } },
-  { id: "lang-button", label: "Botão de idioma", selectors: { copa2026: ".lang-links button", br2026: ".lang-links button", cdb2026: ".lang-links button" } },
-  { id: "lang-button-active", label: "Botão de idioma ativo", selectors: { copa2026: ".lang-links button.active", br2026: ".lang-links button.active", cdb2026: ".lang-links button.active" } },
-  { id: "tabs-nav", label: "Nav de tabs (.nav)", selectors: { copa2026: ".nav", br2026: ".nav", cdb2026: ".nav" } },
+  { id: "topbar", label: "Topbar", selectors: { copa2026: ".topbar", br2026: ".topbar", cdb2026: ".topbar", "loterias/powerball": ".topbar"} },
+  { id: "brand", label: "Brand / logo", selectors: { copa2026: ".brand", br2026: ".brand", cdb2026: ".brand", "loterias/powerball": ".brand"} },
+  { id: "competition-selector", label: "Seletor de competição (Alternar bolão)", selectors: { copa2026: ".bolao-switcher", br2026: ".bolao-switcher", cdb2026: ".bolao-switcher", "loterias/powerball": ".bolao-switcher"} },
+  { id: "lang-button", label: "Botão de idioma", selectors: { copa2026: ".lang-links button", br2026: ".lang-links button", cdb2026: ".lang-links button", "loterias/powerball": null} },
+  { id: "lang-button-active", label: "Botão de idioma ativo", selectors: { copa2026: ".lang-links button.active", br2026: ".lang-links button.active", cdb2026: ".lang-links button.active", "loterias/powerball": null} },
+  { id: "tabs-nav", label: "Nav de tabs (.nav)", selectors: { copa2026: ".nav", br2026: ".nav", cdb2026: ".nav", "loterias/powerball": null} },
   // `[data-section="ranking"]`, not the generic `.nav button:not(.active)` -- the generic form
   // picked Copa's FIRST non-active button in DOM order, which in archived mode is "Palpites"
   // carrying the `.hidden` class (display:none), producing a bogus height:auto vs 44px
   // "divergence" that was really just a selector artifact, not a real style difference. Ranking
   // is never hidden and never the active section after this script clicks into Admin, in any app.
-  { id: "tab-button", label: "Botão de tab (inativo)", selectors: { copa2026: '[data-section="ranking"]', br2026: '[data-section="ranking"]', cdb2026: '[data-section="ranking"]' } },
-  { id: "tab-button-active", label: "Botão de tab ativo", selectors: { copa2026: ".nav button.active", br2026: ".nav button.active", cdb2026: ".nav button.active" } },
-  { id: "main", label: "main", selectors: { copa2026: "main", br2026: "main", cdb2026: "main" } },
+  { id: "tab-button", label: "Botão de tab (inativo)", selectors: { copa2026: '[data-section="ranking"]', br2026: '[data-section="ranking"]', cdb2026: '[data-section="ranking"]', "loterias/powerball": null} },
+  { id: "tab-button-active", label: "Botão de tab ativo", selectors: { copa2026: ".nav button.active", br2026: ".nav button.active", cdb2026: ".nav button.active", "loterias/powerball": null} },
+  { id: "main", label: "main", selectors: { copa2026: "main", br2026: "main", cdb2026: "main", "loterias/powerball": "main"} },
   // PR120-final review item 3: was the ambiguous first `.card` in DOM order (could be a
   // structurally different card per app, e.g. Copa's entry-form card has its own simulator grid).
   // `data-visual-audit="card-base"` marks the SAME semantic element in all three apps: the plain
   // `.card` wrapping the scoring-rules table in Regras (see renderRules() in each app's app.js).
-  { id: "card-base", label: "Card base (marcado)", selectors: { copa2026: '[data-visual-audit="card-base"]', br2026: '[data-visual-audit="card-base"]', cdb2026: '[data-visual-audit="card-base"]' } },
-  { id: "h2", label: "h2", selectors: { copa2026: "h2", br2026: "h2", cdb2026: "h2" } },
+  { id: "card-base", label: "Card base (marcado)", selectors: { copa2026: '[data-visual-audit="card-base"]', br2026: '[data-visual-audit="card-base"]', cdb2026: '[data-visual-audit="card-base"]', "loterias/powerball": 'section[class="card"]'} , note: "Powerball nao tem o marcador data-visual-audit; section[class=\"card\"] casa o cartao SIMPLES (class exatamente \"card\"), nunca .card.pb-hero nem .card.lot-status. A primeira versao usava .card, pegava o hero -- fundo transparente, cor propria, altura de hero -- e produzia TRES DIVERGENTES que eram artefato do seletor, nao diferenca de design. Mesma classe de erro do fixture de storeKey errado da Copa registrado no APPS acima." },
+  { id: "h2", label: "h2", selectors: { copa2026: "h2", br2026: "h2", cdb2026: "h2", "loterias/powerball": null }, note: "N/A no Powerball de proposito. Nos tres apps de futebol o PRIMEIRO h2 do documento esta numa secao oculta -- getComputedStyle devolve height:auto porque o elemento nao e renderizado. O primeiro h2 do Powerball (pagina unica) esta VISIVEL, com 30px. Comparar os dois mediria VISIBILIDADE, nao token de tipografia, e o verde ou vermelho dependeria de qual secao o app abre primeiro. O heading de secao tem componente proprio (rules-heading)." },
   // PR120-final review item 3: was the ambiguous first `h3` in DOM order. `rules-heading` is the
   // "section heading de Regras" example the task names explicitly (the scoring-rules subheading).
-  { id: "rules-heading", label: "Heading de seção (Regras)", selectors: { copa2026: '[data-visual-audit="rules-heading"]', br2026: '[data-visual-audit="rules-heading"]', cdb2026: '[data-visual-audit="rules-heading"]' } },
+  { id: "rules-heading", label: "Heading de seção (Regras)", selectors: { copa2026: '[data-visual-audit="rules-heading"]', br2026: '[data-visual-audit="rules-heading"]', cdb2026: '[data-visual-audit="rules-heading"]', "loterias/powerball": null} },
   // PR120-final review item 3: "heading do formulário" example the task names explicitly. Already
   // unique per app via the existing data-i18n attribute — no new markup needed.
-  { id: "form-heading", label: "Heading do formulário (Nova entrada)", selectors: { copa2026: 'h2[data-i18n="entryTitle"]', br2026: 'h2[data-i18n="entryTitle"]', cdb2026: 'h2[data-i18n="entryTitle"]' } },
+  { id: "form-heading", label: "Heading do formulário (Nova entrada)", selectors: { copa2026: 'h2[data-i18n="entryTitle"]', br2026: 'h2[data-i18n="entryTitle"]', cdb2026: 'h2[data-i18n="entryTitle"]', "loterias/powerball": null} },
   // #entryName verified present with this exact id in all three apps (not a generic `input[type=
   // text]` match, which is ambiguous in CDB2026 — it also has #findEntryCode as input[type=text]).
-  { id: "input-text", label: "Input de texto", selectors: { copa2026: "#entryName", br2026: "#entryName", cdb2026: "#entryName" } },
+  { id: "input-text", label: "Input de texto", selectors: { copa2026: "#entryName", br2026: "#entryName", cdb2026: "#entryName", "loterias/powerball": null} },
   // #paymentMethod explicitly in all three (verified: all three index.html files have this exact
   // id) -- NOT a generic `select` tag match, which would pick up `#bolaoSelect` (the competition
   // switcher pill, earlier in the DOM and styled completely differently) instead, silently
   // comparing the wrong element between apps.
-  { id: "select", label: "Select", selectors: { copa2026: "#paymentMethod", br2026: "#paymentMethod", cdb2026: "#paymentMethod" } },
+  { id: "select", label: "Select", selectors: { copa2026: "#paymentMethod", br2026: "#paymentMethod", cdb2026: "#paymentMethod", "loterias/powerball": null} },
   // PR120-final review item 7 investigation: CDB2026 has TWO `.form-grid` elements in its DOM
   // (the hidden `#findEntryCard` "editar entrada" form AND the real "Nova entrada" form) — the
   // generic `.form-grid` selector picked up the FIRST one in DOM order, which is inside a
@@ -243,27 +254,27 @@ const COMPONENTS = [
   // Copa/BR2026). Copa/BR2026 only ever had one `.form-grid` each, so this didn't affect them —
   // the marker is added to all three for a uniform, future-proof selector strategy, matching the
   // same "ambiguous first-match" bug class item 3 already fixed for `.card`/`h3`/`.small-btn`.
-  { id: "form-grid", label: "Form grid (.form-grid)", selectors: { copa2026: '[data-visual-audit="form-grid"]', br2026: '[data-visual-audit="form-grid"]', cdb2026: '[data-visual-audit="form-grid"]' } },
+  { id: "form-grid", label: "Form grid (.form-grid)", selectors: { copa2026: '[data-visual-audit="form-grid"]', br2026: '[data-visual-audit="form-grid"]', cdb2026: '[data-visual-audit="form-grid"]', "loterias/powerball": null} },
   // PR120-final review item 3: "botão primário com mesmo texto sintético" — data-visual-audit
   // gives a uniform selector across the three apps' differing real ids (#saveEntry vs
   // #saveEntryBtn); normalizeSyntheticButtonText() (below) overwrites its text at capture time.
-  { id: "button-primary", label: "Botão primário (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-primary"]', br2026: '[data-visual-audit="button-primary"]', cdb2026: '[data-visual-audit="button-primary"]' } },
+  { id: "button-primary", label: "Botão primário (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-primary"]', br2026: '[data-visual-audit="button-primary"]', cdb2026: '[data-visual-audit="button-primary"]', "loterias/powerball": null} },
   // PR120-final review item 3: was the ambiguous first `.small-btn` in DOM order (Copa's first
   // is "CSV completo", BR2026/CDB2026's first is "CSV" — different text length driving different
   // height even though the CSS rule is byte-identical in all three). Now marks the one button that
   // is semantically the same action (force remote sync) in all three apps, text normalized below.
-  { id: "button-small", label: "Botão small (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-small"]', br2026: '[data-visual-audit="button-small"]', cdb2026: '[data-visual-audit="button-small"]' } },
+  { id: "button-small", label: "Botão small (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-small"]', br2026: '[data-visual-audit="button-small"]', cdb2026: '[data-visual-audit="button-small"]', "loterias/powerball": null} },
   // Already the single unambiguous `.danger` button in every app (only one exists per app) — the
   // data-visual-audit marker makes that explicit/stable rather than implicit, and its text is
   // normalized below same as button-primary/button-small.
-  { id: "button-danger", label: "Botão destrutivo (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-danger"]', br2026: '[data-visual-audit="button-danger"]', cdb2026: '[data-visual-audit="button-danger"]' } },
+  { id: "button-danger", label: "Botão destrutivo (texto sintético)", selectors: { copa2026: '[data-visual-audit="button-danger"]', br2026: '[data-visual-audit="button-danger"]', cdb2026: '[data-visual-audit="button-danger"]', "loterias/powerball": null} },
   // PR120-final review item 6: "botão secundário" named explicitly, distinct from button-small
   // (which is `.secondary.small-btn`, a different size tier). `#adminLogoutBtn` ("Sair") is a
   // plain full-size `.secondary` button (no `.small-btn`), same id/markup/position (first button
   // in .admin-toolbar) in all three apps — no new marker needed, the id is already unique/stable.
-  { id: "button-secondary", label: "Botão secundário (Sair)", selectors: { copa2026: "#adminLogoutBtn", br2026: "#adminLogoutBtn", cdb2026: "#adminLogoutBtn" } },
-  { id: "ranking-row", label: "Linha de ranking (.rank-row)", selectors: { copa2026: ".rank-row", br2026: ".rank-row", cdb2026: ".rank-row" } },
-  { id: "game-card", label: "Card de jogo", selectors: { copa2026: ".game-card", br2026: ".game-card", cdb2026: ".game-card" }, note: "CDB2026 migrated its per-leg match cards to the same canonical .game-card as Copa/BR2026 (visual-framework-copa-canonical branch, structural DOM unification) — .confronto-card is now only the tie-group summary/aggregate wrapper, not the per-match card." },
+  { id: "button-secondary", label: "Botão secundário (Sair)", selectors: { copa2026: "#adminLogoutBtn", br2026: "#adminLogoutBtn", cdb2026: "#adminLogoutBtn", "loterias/powerball": null} },
+  { id: "ranking-row", label: "Linha de ranking (.rank-row)", selectors: { copa2026: ".rank-row", br2026: ".rank-row", cdb2026: ".rank-row", "loterias/powerball": null} },
+  { id: "game-card", label: "Card de jogo", selectors: { copa2026: ".game-card", br2026: ".game-card", cdb2026: ".game-card", "loterias/powerball": null}, note: "CDB2026 migrated its per-leg match cards to the same canonical .game-card as Copa/BR2026 (visual-framework-copa-canonical branch, structural DOM unification) — .confronto-card is now only the tie-group summary/aggregate wrapper, not the per-match card." },
   // PR120-final review item 3: was the ambiguous first `.status-chip`/`.game-status` in DOM
   // order — different apps/fixtures sort a different STATUS first (live/postponed/scheduled/
   // final legitimately have different colors by design), so "first match" could silently compare
@@ -272,16 +283,16 @@ const COMPONENTS = [
   // (`.done`/`.post`), the one state guaranteed present in all three apps' fixtures (Copa's real
   // archived tournament data is ALL final; BR2026/CDB2026's synthetic fixtures both include a
   // finished match — see game_fixtures.mjs).
-  { id: "status-badge", label: "Badge de status de jogo (estado 'encerrado')", selectors: { copa2026: ".status-chip.done", br2026: ".game-status.post", cdb2026: ".game-status.post" }, note: "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name." },
-  { id: "paid-badge", label: "Badge de pagamento (.paid-badge)", selectors: { copa2026: ".paid-badge", br2026: ".paid-badge", cdb2026: ".paid-badge" } },
-  { id: "admin-toolbar", label: "Admin toolbar (.admin-toolbar)", selectors: { copa2026: ".admin-toolbar", br2026: ".admin-toolbar", cdb2026: ".admin-toolbar" } },
-  { id: "admin-card-row", label: "Card/linha de entrada no admin", selectors: { copa2026: ".admin-entry", br2026: ".admin-row", cdb2026: ".admin-row" }, note: "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight." },
-  { id: "rules-table-cell", label: "Célula de tabela de regras (.rules-table td)", selectors: { copa2026: ".rules-table td", br2026: ".rules-table td", cdb2026: ".rules-table td" } },
-  { id: "whatsapp-button", label: "Botão WhatsApp (.whatsapp-btn)", selectors: { copa2026: ".whatsapp-btn", br2026: ".whatsapp-btn", cdb2026: ".whatsapp-btn" } },
+  { id: "status-badge", label: "Badge de status de jogo (estado 'encerrado')", selectors: { copa2026: ".status-chip.done", br2026: ".game-status.post", cdb2026: ".game-status.post", "loterias/powerball": null}, note: "Class names differ by app (CONSISTENCY_MATRIX.md item 67: '.status-chip' vs '.game-status', kept per-app deliberately to avoid JS renaming risk) — CSS visual treatment is what's compared here, not the selector name." },
+  { id: "paid-badge", label: "Badge de pagamento (.paid-badge)", selectors: { copa2026: ".paid-badge", br2026: ".paid-badge", cdb2026: ".paid-badge", "loterias/powerball": null} },
+  { id: "admin-toolbar", label: "Admin toolbar (.admin-toolbar)", selectors: { copa2026: ".admin-toolbar", br2026: ".admin-toolbar", cdb2026: ".admin-toolbar", "loterias/powerball": null} },
+  { id: "admin-card-row", label: "Card/linha de entrada no admin", selectors: { copa2026: ".admin-entry", br2026: ".admin-row", cdb2026: ".admin-row", "loterias/powerball": null}, note: "Copa renders each admin entry as a full `.card.admin-entry`; BR2026/CDB2026 use a dense `.admin-row` list — CONSISTENCY_MATRIX.md item 78, NEEDS_REVIEW, deliberately not converted (admin-only screen, list can be long) — documented divergence, not an oversight." },
+  { id: "rules-table-cell", label: "Célula de tabela de regras (.rules-table td)", selectors: { copa2026: ".rules-table td", br2026: ".rules-table td", cdb2026: ".rules-table td", "loterias/powerball": null} },
+  { id: "whatsapp-button", label: "Botão WhatsApp (.whatsapp-btn)", selectors: { copa2026: ".whatsapp-btn", br2026: ".whatsapp-btn", cdb2026: ".whatsapp-btn", "loterias/powerball": ".whatsapp-btn"} },
   // PR120-final review item 6: "toast" named explicitly among the admin-adjacent components to
   // capture in isolation. Triggered via each app's own `showToast()` (see TOAST_TRIGGER_TEXT
   // below) — a real, existing component (`.bolao-toast.info`), not a new one built for this audit.
-  { id: "toast", label: "Toast (notificação)", selectors: { copa2026: ".bolao-toast.info", br2026: ".bolao-toast.info", cdb2026: ".bolao-toast.info" } },
+  { id: "toast", label: "Toast (notificação)", selectors: { copa2026: ".bolao-toast.info", br2026: ".bolao-toast.info", cdb2026: ".bolao-toast.info", "loterias/powerball": ".bolao-toast.info"} },
   // PR120-final review item 6: "modal" named explicitly among the components to capture. Verified
   // by reading all three apps' app.js — there is NO custom modal/dialog component in any of the
   // three (confirmed: `grep -c "\.modal\b"` across all three CSS files is 0). Every confirmation
@@ -292,7 +303,7 @@ const COMPONENTS = [
   // three selectors `null` so it appears as an explicit N/A row in the report rather than being
   // silently absent — matching item 6's instruction that functional gaps be NOT_APPLICABLE, not
   // silently skipped.
-  { id: "modal", label: "Modal / diálogo", selectors: { copa2026: null, br2026: null, cdb2026: null }, note: "NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle()." },
+  { id: "modal", label: "Modal / diálogo", selectors: { copa2026: null, br2026: null, cdb2026: null, "loterias/powerball": null}, note: "NOT_APPLICABLE nos três apps — nenhum modal customizado existe; toda confirmação usa window.confirm() nativo do navegador (confirmado por leitura de app.js e por CSS: 0 ocorrências de .modal nas três folhas de estilo), que não é um elemento da página e não é comparável via getComputedStyle()." },
 ];
 
 // PR120-final review item 6: text used to trigger a real toast in each app's own `showToast()` —
@@ -606,13 +617,17 @@ async function extractStylesForApp(browser, appId, app) {
   await page.goto(`http://localhost:${PORT}${app.path}`, { waitUntil: "load", timeout: 15000 });
   await settleLayout(page, appId, "após goto");
 
-  await page.evaluate(({ storeKey, fixture, seedAdminFnBody }) => {
+  // Issue #194: o Powerball entra na cobertura SEM `storeKey`/`fixture`/`seedAdmin`. Ele nao
+  // guarda estado de bolao em localStorage nem tem painel admin com sessao — semear uma chave
+  // inventada seria ensinar o harness um estado que a producao nunca tem, que e exatamente o
+  // defeito que o fixture de chave errada da Copa ja causou (ver comentario no APPS acima).
+  if (app.storeKey) await page.evaluate(({ storeKey, fixture, seedAdminFnBody }) => {
     localStorage.setItem(storeKey, JSON.stringify(fixture));
     const CFG = window.BR2026_CONFIG || window.CDB2026_CONFIG || window.BOLAO_CONFIG;
     const until = Date.now() + (CFG?.adminSessionMinutes || 30) * 60000;
     const seedAdmin = new Function("until", "return (" + seedAdminFnBody + ")(until)")(until);
     for (const [k, v] of Object.entries(seedAdmin)) sessionStorage.setItem(k, v);
-  }, { storeKey: app.storeKey, fixture: app.fixture, seedAdminFnBody: app.seedAdmin.toString() });
+  }, { storeKey: app.storeKey, fixture: app.fixture, seedAdminFnBody: (app.seedAdmin || (() => ({}))).toString() });
 
   // PR120-final review item 5: BR2026's Jogos comes from a versioned sessionStorage schedule
   // cache (see game_fixtures.mjs) — seeded here, same pass, before the single reload below.
