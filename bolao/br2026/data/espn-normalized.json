@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-19T16:05:16Z",
-  "sourceUpdatedAt": "2026-08-19T16:05:16Z",
+  "generatedAt": "2026-08-20T21:13:13Z",
+  "sourceUpdatedAt": "2026-08-20T21:13:13Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "6c4fec5f25572bb5531237333406bcb4524edc2c6d155370e6776e891a46af0a",
+  "payloadHash": "ff7e742d76f49134c3bdbcb23e20f72217083beed81850ba64c600d6b7d9f2e9",
   "matches": [
     {
       "id": "401840808",
@@ -2803,8 +2803,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
@@ -2911,8 +2911,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
@@ -6614,8 +6614,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
@@ -7892,8 +7892,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         }
@@ -10212,8 +10212,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
@@ -24574,8 +24574,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
@@ -28318,8 +28318,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
@@ -30658,8 +30658,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Allan Andrade",
-              "shortName": "A. Andrade"
+              "displayName": "Allan Elias",
+              "shortName": "A. Elias"
             }
           ]
         },
