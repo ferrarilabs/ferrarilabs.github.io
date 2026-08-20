@@ -2276,3 +2276,37 @@ Auditoria de persistência ponta a ponta. Relatório e evidência:
 | 2 migrações antigas pendentes bloqueavam qualquer `db push` | **RECONCILIADAS 2026-08-16** | Depois de mover os rollbacks, o `dry-run` ainda listava `20260813040000_outbox_pending_by_type.sql` e `20260813050000_confirmation_payload_carries_snapshot.sql`. Classificadas por MEDIÇÃO contra produção, não por timestamp, e resolvidas de formas DIFERENTES. **`040000` APLICADA**: cria só `outbox_pending_count(text)`, ausente de produção, nenhuma migração posterior a define, dois scripts ainda a chamam (dentro de `try/except`, porque observabilidade não pode derrubar entrega), contagens só-leitura e `service_role` apenas — efeito genuinamente faltando e desejado. **`050000` APOSENTADA** para `supabase/retired/`, nunca executada: seu `cdb_save_my_picks` **já lê** `bolao.cdb_authoritative_document()` (o arquivo foi rebaseado depois do cutover) e é semanticamente IDÊNTICO ao de `20260816010000`, que ainda acrescenta o bloco de autoverificação; e seu outro objeto, `cdb_current_receipt_snapshot`, está ausente, **não tem chamador nenhum** (o teste de template monta o snapshot em Python) e leria o documento legado — a auditoria de 2026-08-13 já o registrara como `LEGACY_RETIREMENT` pendente. Marcar como aplicada seria registrar no ledger uma função que produção não tem. |
 | Afirmação corrigida: `20260813050000` conteria um `cdb_save_my_picks` pré-cutover | **ERRO DE AUDITORIA, CORRIGIDO NO MESMO DIA** | Era verdade para a versão ORIGINAL do arquivo, e deixou de ser depois do rebase — a definição lê `bolao.cdb_authoritative_document()` desde então. A afirmação foi repetida do registro de 2026-08-13 sem reconferir o arquivo atual, e chegou a entrar no corpo do PR #128. Medido e corrigido comparando o código dos dois arquivos. Lição registrada em `LESSONS_LEARNED.md`: registro de auditoria anterior é ponto de partida, nunca prova do estado atual — a ordem de fonte de verdade deste repositório já dizia isso. |
 | Deploy das quatro migrações | **APLICADO 2026-08-16** | `db push --linked --include-all` depois do dry-run limpo (`OLD_UNRELATED_PENDING_MIGRATIONS = 0`, `ROLLBACK_FILES_DISCOVERED = 0`). Trajetória do ruído: 17 arquivos → 5 (rollbacks movidos) → 4 (`050000` aposentada). `--include-all` foi necessário porque `20260813040000` ordena antes da última migração remota, e o conjunto resultante foi exatamente o aprovado. `migration repair` não usado; histórico remoto não reescrito. Pós-deploy: projeção 12/12 igual ao autoritativo, 5 com campeão, 7 incompletas, `FABRICATED_PICKS = 0`, `PARTICIPANT_PICKS_MUTATED = 0`. |
+
+## Nota manual — Powerball entra na cobertura do checador visual (2026-08-20, Issue #194)
+
+Até hoje `audit_visual_consistency.mjs` comparava **três** apps. O Powerball nunca esteve nele, então
+**"0 divergências" nunca incluiu o Powerball** — a mesma forma do falso-verde da Issue #217, onde a
+ferramenta reportava consistência sobre um escopo menor do que o anunciado.
+
+O app agora é medido de verdade: 30 componentes com seletor próprio (ou `null` explícito e
+justificado, quando o componente genuinamente não existe numa página única sem abas, sem idiomas,
+sem formulário de entrada e sem admin). Das 25 diferenças originalmente medidas contra a Copa,
+**23 já eram duplicação e foram corrigidas antes desta mudança**; as duas restantes eram decisões de
+produto e foram ratificadas por Eduardo em 2026-08-20.
+
+| Divergência | Classificação | Motivo |
+|---|---|---|
+| Cabeçalho do Powerball tem 64,5px contra 108,5px dos três bolões (`topbar:height`, `topbar:gridTemplateColumns`) | **INTENTIONALLY_DIFFERENT — ratificado por Eduardo 2026-08-20** | É a **mesma barra com menos itens dentro**, não uma barra estilizada diferente. Os bolões de futebol têm uma linha de abas (Ranking/Jogos/Regras/Palpites) e uma linha de botões de idioma; o Powerball é página única, num idioma só, e não tem nenhuma das duas — a coluna correspondente do grid mede literalmente `0px`. Fundo, borda, `padding`, `gap`, sticky, blur, marca, botão do WhatsApp e seletor de sorteio já batem **exatamente** com os outros três, no desktop e no celular. Igualar as alturas exigiria inventar uma linha de abas que não navega para lugar nenhum, ou empurrar espaço vazio no cabeçalho: as duas pioram a página para produzir um número igual num relatório. |
+| Powerball tem 60px a mais de respiro no rodapé (`main:padding` = `20px 18px 60px` contra `20px 18px`) | **INTENTIONALLY_DIFFERENT — ratificado por Eduardo 2026-08-20** | Os apps de futebol trocam de seção por abas, então cada tela é curta e termina quando o usuário troca de aba. O Powerball é uma rolagem única e longa (resumo, participantes, tickets, resultado) e sem esse respiro o último cartão encosta na borda de baixo da tela. Remover não deixa nada mais consistente para quem usa — deixa o fim da página apertado num app e não muda absolutamente nada nos outros três. Os dois primeiros valores são **idênticos** aos dos outros três; a diferença é exclusivamente o terceiro. |
+
+**As duas estão registradas na `ALLOWLIST.json` como `expectedType: "exact"`, com o valor fixado por
+app** — não como uma permissão genérica de "o cabeçalho pode diferir". Provado por mutação: subir o
+`padding-top` do `.topbar` do Powerball leva `topbar:height` de `64.5px` para `84.5px`, a entrada
+para de casar e o gate reprova. Uma regressão visual não-ratificada também reprova: um
+`border-radius`/`background` sintético no cartão do Powerball produziu duas DIVERGENTES imediatas.
+
+Duas correções de harness feitas junto, ambas artefato de seletor e não diferença de design:
+`card-base` passou a usar `section[class="card"]` (a primeira versão usava `.card` e pegava
+`.card.pb-hero`, com fundo transparente e cor própria, gerando três DIVERGENTES falsas); e `h2` ficou
+`null` no Powerball porque o primeiro `h2` dos três bolões está numa **seção oculta**
+(`getComputedStyle` devolve `height:auto` para elemento não renderizado) enquanto o do Powerball está
+visível — comparar os dois mediria visibilidade, não token de tipografia.
+
+`main:height` e `card-base:height` passaram a cobrir os quatro apps: são `content-driven` no Powerball
+pelo mesmo motivo que nos outros três. Não é exceção nova — é a mesma exceção aplicada ao app que
+antes nem era medido.
