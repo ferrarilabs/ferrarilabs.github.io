@@ -261,7 +261,8 @@ deve, nesta ordem:
 3. **rodar os gates dedicados** da superfície (`required_gates` no registro);
 4. **reportar explicitamente** a mudança — nunca deixá-la implícita num diff grande.
 
-O registro canônico é `bolao/shared/safety/critical_surfaces.json` (23 superfícies) e o manifesto
+O registro canônico é `bolao/shared/safety/critical_surfaces.json` (23 superfícies — o número
+estava desatualizado em 22 até a Issue #253 acrescentar `EDGE_FUNCTIONS`) e o manifesto
 de notificação é `bolao/shared/safety/notification_workflows.json`. Documentação completa em
 `docs/bolao/CHANGE_SAFETY_CONTRACT.md`.
 
@@ -422,6 +423,31 @@ cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
   adicionando mudanças novas em cima de uma suíte vermelha.
 <!-- AUTO:PLATFORM_RULES:END -->
 
+## Autonomia em `supabase/functions/**` (Edge Functions) — Issue #253
+
+**Merge neste caminho implanta em produção.** A integração do Supabase com o GitHub roda a cada
+push em `main` (aparece como o check `Supabase Preview`) e implantou a Edge Function **39 segundos
+depois** do merge do PR #252 — um PR que não tocou arquivo de função nenhum. Não existe passo de
+deploy separado onde pausar: o merge **é** o deploy.
+
+Por isso `supabase/functions/**` (e `supabase/config.toml`) é a superfície `EDGE_FUNCTIONS`,
+`DECLARE_TO_CHANGE` — mudar sem declarar reprova em `D2`, com mutação `M34` provando que morde.
+
+Classificação de autonomia (decisão do Eduardo):
+
+| classe | o que é |
+|---|---|
+| **GREEN** | investigação somente-leitura; testes; documentação; ferramenta local determinística; mudança **exclusivamente de observabilidade** cuja neutralidade sobre o runtime e o contrato de resposta esteja **provada**, não afirmada |
+| **YELLOW** | qualquer mudança funcional; comportamento com provedor externo; comportamento de cache; contrato de resposta; qualquer coisa implantável que altere o runtime de produção |
+| **RED** | mutação de schema/dado além do cache público aprovado; segredo ou autenticação; qualquer impacto em participante, pagamento, scoring, e-mail ou dado privado |
+
+Claude pode implementar, testar e abrir PR para YELLOW. **Merge e deploy de YELLOW e RED exigem
+autorização humana explícita.** GREEN segue a política autônoma normal.
+
+Preservar sempre, salvo autorização explícita em contrário: validação antes da promoção a cache,
+o comportamento de falhar honestamente com `SOURCE_UNAVAILABLE`, o contrato de resposta atual e o
+teto de 10 minutos de último-bom-conhecido (`LAST_KNOWN_GOOD_MAX_AGE_MS`).
+
 ## AI agent PII handling
 
 Added 2026-08-18 after the HIST-091/HIST-093 investigation, where a normal-looking analysis pass
@@ -478,6 +504,17 @@ comment-only changes) don't require an Issue first.
 - Use a dedicated branch (or `git worktree`, checking `git worktree list` first per the
   `EnterWorktree`/`ExitWorktree` convention already in use in this repo) per Issue — never mix
   unrelated Issues in one branch.
+- **Trabalho automatizado nunca muta a worktree PRINCIPAL.** Ela é compartilhada entre sessões.
+  Agente cria a sua própria (`git worktree add ../ferrarilabs-auto-issue-<N> -b auto/issue-<N>-<slug>
+  origin/main`) e trabalha só lá. Trabalho HUMANO na árvore canônica continua livre — a guarda
+  existe para impedir automação acidental, não para brigar com o dono do repositório (Issue #251).
+  Ative com `npm run guard:install` (aponta `core.hooksPath` para `.githooks/`); os ganchos barram
+  `commit`, `merge-commit`, `rebase` e `push` vindos de sessão de agente na árvore principal, e
+  deixam CI passar (`bolao_provider_snapshot.yml` commita de um runner). Escape deliberado e
+  visível: `ALLOW_CANONICAL_TREE_WRITE=1 <comando>`. **Limite honesto:** o git não tem gancho
+  `pre-checkout`, então `checkout`/`switch`/`reset`/`clean`/`stash` **não** são bloqueáveis — nem
+  o comando exato que originou a #251. A guarda impede o dano pior e oferece
+  `assertSafeToMutate()` para scripts orquestrados chamarem antes de mutar.
 - Reference the Issue number in commit messages when practical (e.g. `fix(cdb2026): ... (#42)`),
   but never fabricate a reference to an Issue that doesn't exist.
 - PRs must fill out every section of `.github/pull_request_template.md` — in particular Risk,
