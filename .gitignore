@@ -15,6 +15,12 @@ verify-summary.json
 # evidencia de UMA execucao: preservado quando a execucao falha (o CI o envia como artefato),
 # apagado quando passa. Nunca e fonte, e por isso nunca entra em commit.
 safety-summary.json
+# Resumos intermediários dos shards de browser (scripts/safety/check.mjs) — sempre mesclados em
+# verify-summary.json e removidos no mesmo processo; listados aqui só como rede de segurança caso
+# uma execução seja interrompida (SIGKILL externo) entre a criação e a limpeza.
+verify-summary-nonbrowser.json
+verify-summary-browser-a.json
+verify-summary-browser-b.json
 # Trava de exclusão mútua do coletor de loterias (poll_results.py). Estado de execução, nunca
 # fonte: existe só enquanto um coletor está escrevendo a linha do sorteio.
 *.jsonl.lock
