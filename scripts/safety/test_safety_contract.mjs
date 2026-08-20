@@ -730,7 +730,20 @@ test("o contrato volta a passar depois de todas as mutacoes", () => {
     `o numero de checks mudou: ${baseline.totals.pass} -> ${after.totals.pass}`);
 });
 
-const MUTATIONS = 33;
+test("M34 mudanca em Edge Function (deploy automatico em producao) sem declaracao => PEGA", () => {
+  // Issue #253. Merge em `supabase/functions/**` IMPLANTA em producao: a integracao do Supabase
+  // roda a cada push em main e implantou a funcao 39s depois do merge do PR #252, um PR que nao
+  // tocou arquivo de funcao nenhum. Antes desta superficie, uma alteracao no gateway ao vivo
+  // passava por review como mudanca de repositorio e ja estava no ar.
+  //
+  // A mutacao acrescenta UMA linha inerte -- nao muda comportamento, e nem precisa: o que se
+  // prova aqui e que a superficie e vigiada por IDENTIDADE de caminho, nao por gravidade do diff.
+  const file = "supabase/functions/live-football/index.ts";
+  mutateFixture("Edge Function alterada sem CHANGE_INTENT",
+    file, readFileSync(abs(file)) + "\n// mutacao M34\n", "D2");
+});
+
+const MUTATIONS = 34;
 test(`MUTATIONS_CAUGHT == MUTATIONS_EXECUTED (${MUTATIONS}/${MUTATIONS})`, () => {
   assert(fail === 0, `${fail} mutacao(oes) nao foi(ram) pega(s)`);
 });

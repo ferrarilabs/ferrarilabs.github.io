@@ -261,7 +261,8 @@ deve, nesta ordem:
 3. **rodar os gates dedicados** da superfície (`required_gates` no registro);
 4. **reportar explicitamente** a mudança — nunca deixá-la implícita num diff grande.
 
-O registro canônico é `bolao/shared/safety/critical_surfaces.json` (23 superfícies) e o manifesto
+O registro canônico é `bolao/shared/safety/critical_surfaces.json` (23 superfícies — o número
+estava desatualizado em 22 até a Issue #253 acrescentar `EDGE_FUNCTIONS`) e o manifesto
 de notificação é `bolao/shared/safety/notification_workflows.json`. Documentação completa em
 `docs/bolao/CHANGE_SAFETY_CONTRACT.md`.
 
@@ -421,6 +422,31 @@ cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
 - Se um teste falhar, parar e investigar antes de continuar ampliando o diff. Não seguir
   adicionando mudanças novas em cima de uma suíte vermelha.
 <!-- AUTO:PLATFORM_RULES:END -->
+
+## Autonomia em `supabase/functions/**` (Edge Functions) — Issue #253
+
+**Merge neste caminho implanta em produção.** A integração do Supabase com o GitHub roda a cada
+push em `main` (aparece como o check `Supabase Preview`) e implantou a Edge Function **39 segundos
+depois** do merge do PR #252 — um PR que não tocou arquivo de função nenhum. Não existe passo de
+deploy separado onde pausar: o merge **é** o deploy.
+
+Por isso `supabase/functions/**` (e `supabase/config.toml`) é a superfície `EDGE_FUNCTIONS`,
+`DECLARE_TO_CHANGE` — mudar sem declarar reprova em `D2`, com mutação `M34` provando que morde.
+
+Classificação de autonomia (decisão do Eduardo):
+
+| classe | o que é |
+|---|---|
+| **GREEN** | investigação somente-leitura; testes; documentação; ferramenta local determinística; mudança **exclusivamente de observabilidade** cuja neutralidade sobre o runtime e o contrato de resposta esteja **provada**, não afirmada |
+| **YELLOW** | qualquer mudança funcional; comportamento com provedor externo; comportamento de cache; contrato de resposta; qualquer coisa implantável que altere o runtime de produção |
+| **RED** | mutação de schema/dado além do cache público aprovado; segredo ou autenticação; qualquer impacto em participante, pagamento, scoring, e-mail ou dado privado |
+
+Claude pode implementar, testar e abrir PR para YELLOW. **Merge e deploy de YELLOW e RED exigem
+autorização humana explícita.** GREEN segue a política autônoma normal.
+
+Preservar sempre, salvo autorização explícita em contrário: validação antes da promoção a cache,
+o comportamento de falhar honestamente com `SOURCE_UNAVAILABLE`, o contrato de resposta atual e o
+teto de 10 minutos de último-bom-conhecido (`LAST_KNOWN_GOOD_MAX_AGE_MS`).
 
 ## AI agent PII handling
 
