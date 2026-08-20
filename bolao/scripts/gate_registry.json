@@ -92,6 +92,9 @@
     "bolao/cdb2026/scripts/test_entry_name_readonly.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_save_error_diagnosable.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_entry_saved_confirmation.py": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Prova o consumidor do comprovante contra o BANCO REAL (fila, reserva, unicidade) com transporte falso. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe como secret do repositorio, e grava/limpa linhas de canario na producao — por isso nao pode entrar numa suite que qualquer um roda a cada commit. Executado sob demanda pelo workflow cdb2026_confirmation_fake_transport_test.yml (workflow_dispatch, declarado em cron_coverage.test.mjs). Nao envia e-mail: BOLAO_ALLOW_REAL_SEND nao e definida e urlopen e substituido por uma sentinela que levanta."

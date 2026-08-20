@@ -730,7 +730,35 @@ async function cdbRpc(fn, args) {
     headers: { apikey: anonKey, Authorization: `Bearer ${anonKey}`, "Content-Type": "application/json" },
     body: JSON.stringify(args),
   });
-  if (!r.ok) throw new Error(`RPC ${fn} respondeu ${r.status}`);
+  // ── O MOTIVO DO SERVIDOR NÃO PODE SER JOGADO FORA (Issue #258) ────────────────────────────
+  //
+  // Antes: `throw new Error("RPC ... respondeu 400")`. O corpo da resposta era descartado, e com
+  // ele o ÚNICO dado que explica a recusa. `cdb_save_my_picks` recusa por motivos bem diferentes
+  // -- ACESSO_NEGADO, FASE_FECHADA, CUTOFF_PASSADO, CUTOFF_ILEGIVEL, payload inválido -- e todos
+  // chegavam na tela como o mesmo "Erro ao salvar. Tente novamente." e no console como o mesmo
+  // "respondeu 400".
+  //
+  // Um usuário reportou exatamente esse erro em 2026-08-20. A investigação conseguiu EXCLUIR
+  // cutoff (a fase ativa fecha só em 2026-08-25T23:00Z), fase fechada e deploy velho (v3.129 no
+  // ar == repositório), mas não conseguiu identificar a causa real: o motivo já tinha sido
+  // descartado aqui, antes de qualquer log. Sem isto, o próximo relato termina no mesmo lugar.
+  //
+  // O PostgREST devolve `{message, code, details, hint}`; `raise exception 'ACESSO_NEGADO'` chega
+  // em `message`. Nada disso é dado de participante -- são constantes do próprio contrato da RPC.
+  //
+  // A MENSAGEM MOSTRADA AO PARTICIPANTE NÃO MUDA. Isto é diagnóstico: o motivo passa a existir no
+  // objeto de erro (e portanto no console.error de quem chama), a tela continua igual.
+  if (!r.ok) {
+    let motivo = "";
+    try {
+      const corpo = await r.json();
+      motivo = [corpo?.message, corpo?.code, corpo?.details].filter(Boolean).join(" | ");
+    } catch { /* corpo ausente ou não-JSON: o status sozinho ainda é melhor que nada */ }
+    const err = new Error(`RPC ${fn} respondeu ${r.status}${motivo ? ` — ${motivo}` : ""}`);
+    err.status = r.status;
+    err.serverReason = motivo || null;
+    throw err;
+  }
   return r.json();
 }
 

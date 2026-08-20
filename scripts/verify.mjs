@@ -433,6 +433,12 @@ const CHECKS = [
     why: "unico comando da cadeia do npm test que nao era um check daqui; sem ele a dominancia do verify sobre o npm test teria de abrir excecao, e excecao em regra de cobertura e por onde o proximo orfao entra" },
 
   // ── o contrato permanente de seguranca de mudanca ───────────────────────────────────────────
+  // Issue #258: um participante reportou "Erro ao salvar" e a investigacao morreu porque o
+  // motivo do servidor era descartado em cdbRpc(). Este gate trava as DUAS metades juntas: o
+  // motivo chega ao console E a mensagem do participante continua generica (expo-la seria um
+  // oraculo de enumeracao).
+  { id: "cdb-save-error-diagnosable", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_save_error_diagnosable.mjs"],
+    why: "a recusa de cdb_save_my_picks (ACESSO_NEGADO/CUTOFF_PASSADO/FASE_FECHADA) precisa ser diagnosticavel sem vazar detalhe tecnico na tela", requires: "browser" },
   { id: "cdb-entry-name-readonly", group: "browser", cmd: ["node", "bolao/cdb2026/scripts/test_entry_name_readonly.mjs"],
     why: "a identidade da entrada e VISIVEL e nao editavel: o participante precisa confirmar qual entrada abriu, e o save (cdb_save_my_picks) nao aceita nome nenhum — a tela tem de dizer a mesma coisa que o servidor faz", requires: "browser" },
 
