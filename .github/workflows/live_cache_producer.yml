@@ -1,0 +1,94 @@
+# live_cache_producer.yml — Issue #246.
+#
+# POR QUE ESTE WORKFLOW EXISTE
+# A Edge Function `live-football` nao alcanca mais a ESPN. O diagnostico autorizado (v13, removida
+# depois) mediu, do proprio runtime: 403 nas TRES variantes de cabecalho testadas, com
+# `server: AkamaiGHost` e pagina "Access Denied". Nao e User-Agent, nao e `accept`, nao e limite de
+# taxa -- e a Akamai negando o EGRESSO do Supabase Edge Runtime. O MESMO endpoint responde 200 de
+# um runner do GitHub Actions.
+#
+# Entao quem alcanca a fonte vira o produtor. O gateway continua o CONSUMIDOR, sem nenhuma mudanca:
+# ele ja le `live_sports_cache`, ja valida forma antes de promover e ja sabe degradar. O teto de
+# 10 minutos de ultimo-bom-conhecido (`LAST_KNOWN_GOOD_MAX_AGE_MS`) permanece INTOCADO -- a cadencia
+# e que foi desenhada para caber dentro dele.
+#
+# CADENCIA, DERIVADA DE DADO E NAO DE PALPITE
+# Histograma das 532 partidas com data nos snapshots commitados de br2026 + cdb2026, em UTC:
+#     14h:7   18h:76  19h:54  20h:62  21h:59  22h:106  23h:84  00h:84
+#     01h-13h: ZERO partidas
+# Logo a janela real de atividade e 14h->02h UTC (ultimo kickoff 00h + ~3h de jogo).
+#   · dentro da janela: a cada 5 min  -> idade maxima do cache ~5 min + duracao da execucao,
+#     confortavelmente dentro do teto de 10 min do gateway;
+#   · fora da janela: a cada 30 min   -> nao ha partida para observar; o produtor ainda roda para
+#     manter o caminho exercitado, e o proprio script pula a rede quando o calendario nao mostra
+#     jogo por perto.
+#
+# Fora da janela o cache pode envelhecer alem de 10 min e o gateway respondera SOURCE_UNAVAILABLE.
+# Isso e HONESTO e nao e regressao: hoje ele responde isso 24h por dia, e nao existe jogo ao vivo
+# as 08h UTC. Se um dia se preferir zero 503, basta subir a cadencia externa -- o repositorio e
+# publico e minuto de Actions nao e cobrado.
+#
+# ESCOPO
+# Escreve em UMA tabela: `public.live_sports_cache` (dado esportivo publico; o COMMENT da propria
+# tabela diz "Nunca contem dado de participante"). Nao toca `bolao_state`, participante, pagamento,
+# scoring, ranking. NAO envia e-mail. NAO commita nada no repositorio.
+
+name: Bolão — Produtor do cache ao vivo
+
+on:
+  schedule:
+    # Janela de atividade derivada do calendario commitado (14h -> 02h UTC): 5 em 5 minutos.
+    - cron: "*/5 14-23 * * *"
+    - cron: "*/5 0-2 * * *"
+    # Fora da janela: cadencia baixa, so para manter o caminho vivo e visivel.
+    - cron: "*/30 3-13 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Só simular (não grava no cache)"
+        type: boolean
+        default: true
+      force:
+        description: "Ignorar a janela derivada do calendário e buscar mesmo assim"
+        type: boolean
+        default: false
+
+# Somente leitura do repositorio. Este workflow nao commita e nao abre PR.
+permissions:
+  contents: read
+
+concurrency:
+  # Duas execucoes simultaneas gravariam a mesma chave de upsert; a mais nova venceria de qualquer
+  # forma, mas cancelar a antiga evita gastar rede a toa e torna o log legivel.
+  group: live-cache-producer
+  cancel-in-progress: true
+
+jobs:
+  produce:
+    name: Produz observação e grava em live_sports_cache
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Produz o cache ao vivo
+        env:
+          # Escrita nesta tabela exige credencial privilegiada desde a migracao 011 (F8): a anon key
+          # PUBLICA teve INSERT/UPDATE removidos depois que uma sonda provou que qualquer pessoa
+          # podia sobrescrever o placar ao vivo de todo mundo. Sem fallback para anon -- o script
+          # recusa gravar em vez de tentar com credencial proibida e falhar em silencio.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          ARGS=""
+          # Execucao agendada sempre grava de verdade. Dispatch manual respeita as caixas, e o
+          # padrao do dry_run e `true` -- o caminho seguro e o que acontece quando ninguem pensa.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            [ "${{ inputs.dry_run }}" = "true" ] && ARGS="$ARGS --dry-run"
+            [ "${{ inputs.force }}" = "true" ] && ARGS="$ARGS --force"
+          fi
+          echo "node bolao/shared/scripts/produce_live_cache.mjs$ARGS"
+          node bolao/shared/scripts/produce_live_cache.mjs $ARGS
