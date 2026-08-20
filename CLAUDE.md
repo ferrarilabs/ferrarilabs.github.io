@@ -485,6 +485,13 @@ comment-only changes) don't require an Issue first.
   actually having checked.
 - `Closes #NNN` in a PR means the Issue is fully resolved by that PR — use `Relates to #NNN`
   for partial work, and leave the Issue open.
+- **Nunca escreva uma palavra-chave de fechamento dentro de uma negação** — `does not fix #NNN`,
+  `doesn't close #NNN`, `não fix #NNN`. O parser do GitHub é léxico: ele casa `fix #NNN`, ignora
+  a negação e FECHA a Issue mesmo assim. Foi assim que a #246 (incidente de produção em aberto)
+  foi fechada por um commit escrito justamente para dizer que ela continuava aberta. Escreva com
+  o substantivo na frente — `Issue #NNN remains unresolved`, `Related to #NNN; still open`. O
+  gate `closure-keyword-gate` (`scripts/audit_commit_message_closure_keywords.mjs`) reprova essa
+  redação em mensagens de commit novas; ele não enxerga corpo de PR, então lá a regra é sua.
 - Scoring/ranking/entries/payment changes still require Eduardo's explicit authorization
   regardless of whether an Issue exists — an Issue is not itself authorization.
 
