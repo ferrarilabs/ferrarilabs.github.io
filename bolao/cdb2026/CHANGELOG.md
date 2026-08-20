@@ -1,6 +1,6 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
-## v3.130 — a recusa do servidor no save virou diagnosticável (2026-08-20, Issue #258)
+## (sem bump de versão ainda) — a recusa do servidor no save virou diagnosticável (2026-08-20, Issue #258)
 
 Um participante reportou "Erro ao salvar. Tente novamente.". A investigação conseguiu **excluir**
 as causas prováveis com evidência de produção — a fase ativa fecha só em `2026-08-25T23:00Z`
@@ -27,6 +27,13 @@ três asserções de diagnóstico reprovam com exatamente o sintoma real
 (`RPC cdb_save_my_picks respondeu 400`), enquanto as de interface continuam passando.
 
 Nenhuma mudança em scoring, regra de torneio, cutoff, autorização ou no caminho de gravação em si.
+
+**O bump de `siteVersion` ficou de fora de propósito.** Ele coloca `bolao/cdb2026/js/config.js` no
+diff, e a checagem de obsolescência do D3 resolve `SCORING_CONSTANTS` por `fingerprint.files` — os
+três `config.js` — porque essa superfície não tem `paths`. Com um `config.js` no diff, a declaração
+sintética que M27/M28 injetam deixa de parecer obsoleta, o D3 fica verde onde a mutação espera
+vermelho, e as duas mutações reprovam. É um defeito latente que atinge qualquer release normal dos
+três apps, registrado em Issue própria em vez de corrigido aqui junto.
 
 
 ## (infra, sem bump de siteVersion) — 2026-08-20 (lembrete das quartas)

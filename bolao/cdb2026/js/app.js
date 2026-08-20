@@ -723,6 +723,20 @@ async function fetchJson(url, opts = {}) {
 //
 // O token vive no FRAGMENTO (#t=...), que o navegador nao envia no cabecalho Referer -- entao
 // ele nao vaza para terceiros se a pagina carregar qualquer recurso externo.
+/**
+ * Motivo legível da recusa, lido do corpo de erro do PostgREST (`{message, code, details}`).
+ * `raise exception 'ACESSO_NEGADO'` chega em `message`. Nada disso é dado de participante: são
+ * constantes do próprio contrato da RPC. Corpo ausente ou não-JSON degrada para string vazia --
+ * o status sozinho ainda é melhor que nada, e nunca estoura dentro do tratamento de erro.
+ */
+async function motivoDaRecusa(r) {
+  try {
+    const corpo = await r.json();
+    const motivo = [corpo?.message, corpo?.code, corpo?.details].filter(Boolean).join(" | ");
+    return motivo ? ` — ${motivo}` : "";
+  } catch { return ""; }
+}
+
 async function cdbRpc(fn, args) {
   const { url, anonKey } = C.database;
   const r = await fetchJson(`${url}/rest/v1/rpc/${fn}`, {
@@ -732,33 +746,24 @@ async function cdbRpc(fn, args) {
   });
   // ── O MOTIVO DO SERVIDOR NÃO PODE SER JOGADO FORA (Issue #258) ────────────────────────────
   //
-  // Antes: `throw new Error("RPC ... respondeu 400")`. O corpo da resposta era descartado, e com
-  // ele o ÚNICO dado que explica a recusa. `cdb_save_my_picks` recusa por motivos bem diferentes
-  // -- ACESSO_NEGADO, FASE_FECHADA, CUTOFF_PASSADO, CUTOFF_ILEGIVEL, payload inválido -- e todos
-  // chegavam na tela como o mesmo "Erro ao salvar. Tente novamente." e no console como o mesmo
-  // "respondeu 400".
+  // Antes, a mensagem era só `RPC ... respondeu 400`: o corpo da resposta era descartado e com ele
+  // o ÚNICO dado que explica a recusa. `cdb_save_my_picks` recusa por motivos bem diferentes --
+  // ACESSO_NEGADO, FASE_FECHADA, CUTOFF_PASSADO, CUTOFF_ILEGIVEL, payload inválido -- e todos
+  // chegavam na tela como o mesmo toast genérico e no console como o mesmo "respondeu 400".
   //
   // Um usuário reportou exatamente esse erro em 2026-08-20. A investigação conseguiu EXCLUIR
-  // cutoff (a fase ativa fecha só em 2026-08-25T23:00Z), fase fechada e deploy velho (v3.129 no
-  // ar == repositório), mas não conseguiu identificar a causa real: o motivo já tinha sido
-  // descartado aqui, antes de qualquer log. Sem isto, o próximo relato termina no mesmo lugar.
+  // cutoff (a fase ativa fecha só em 2026-08-25T23:00Z), fase fechada e deploy velho (v3.129 no ar
+  // == repositório), mas não a causa real: o motivo já tinha sido descartado aqui.
   //
-  // O PostgREST devolve `{message, code, details, hint}`; `raise exception 'ACESSO_NEGADO'` chega
-  // em `message`. Nada disso é dado de participante -- são constantes do próprio contrato da RPC.
+  // A MENSAGEM MOSTRADA AO PARTICIPANTE NÃO MUDA -- quem lê isto é o `console.error` de quem
+  // chama. Expor o motivo na tela seria um oráculo de enumeração, e é por isso que a própria RPC
+  // devolve falha genérica quando o token não resolve.
   //
-  // A MENSAGEM MOSTRADA AO PARTICIPANTE NÃO MUDA. Isto é diagnóstico: o motivo passa a existir no
-  // objeto de erro (e portanto no console.error de quem chama), a tela continua igual.
-  if (!r.ok) {
-    let motivo = "";
-    try {
-      const corpo = await r.json();
-      motivo = [corpo?.message, corpo?.code, corpo?.details].filter(Boolean).join(" | ");
-    } catch { /* corpo ausente ou não-JSON: o status sozinho ainda é melhor que nada */ }
-    const err = new Error(`RPC ${fn} respondeu ${r.status}${motivo ? ` — ${motivo}` : ""}`);
-    err.status = r.status;
-    err.serverReason = motivo || null;
-    throw err;
-  }
+  // A FORMA da linha abaixo é deliberada: `audit_remote_write_visibility.mjs` exige literalmente
+  // `if (!r.ok) throw new Error(\`RPC` para provar que 4xx/5xx vira erro propagável. O motivo entra
+  // pela interpolação, sem quebrar esse invariante -- adaptar o gate para aceitar outra forma
+  // seria afrouxar a asserção em vez de satisfazê-la.
+  if (!r.ok) throw new Error(`RPC ${fn} respondeu ${r.status}${await motivoDaRecusa(r)}`);
   return r.json();
 }
 
