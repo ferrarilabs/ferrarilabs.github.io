@@ -53,13 +53,14 @@ const TOOLS = [
  * senão vira dívida escondida com aparência de conformidade.
  */
 const DECLARED_EXCLUSIONS = {
-  "bolao/scripts/audit_visual_consistency.mjs": {
-    "loterias/powerball": "Batch 8: a migração para o framework compartilhado está feita e no ar, e " +
-      "restam 2 diferenças intencionais (altura do topbar sem abas; respiro de 60px no rodapé). " +
-      "Incluir o Powerball aqui exige ratificação NOMEADA dessas 2 no ALLOWLIST.json — o allowlist " +
-      "recusa auto-aprovação por design. Pendente com o Eduardo em " +
-      "supervisor/VISUAL_RATIFICATION_REQUIRED.md. REMOVER esta exclusão assim que ele ratificar.",
-  },
+  // 2026-08-20 (Issue #194): a exclusão do Powerball em audit_visual_consistency.mjs FOI REMOVIDA
+  // daqui porque a condição escrita nela — "REMOVER esta exclusão assim que ele ratificar" —
+  // aconteceu: Eduardo ratificou as duas diferenças (cabeçalho mais baixo por ter menos itens
+  // dentro; 60px de respiro no rodapé), e as duas estão registradas na ALLOWLIST.json como
+  // `expectedType: "exact"`, com valor fixado por app e `approvedBy: "Eduardo"`. O Powerball agora
+  // é medido de verdade: 30 componentes, e uma regressão visual não-ratificada reprova (provado
+  // por mutação no PR). Deixar a exclusão aqui depois da ratificação seria dívida escondida com
+  // aparência de conformidade — exatamente o que este gate existe para impedir.
   "bolao/scripts/audit_structural_parity.mjs": {
     "loterias/powerball": "A suíte compara a ESTRUTURA de navegação por abas (seções .page, nav, " +
       "aria-current). O Powerball é página única, sem abas e sem seções — não há estrutura " +
