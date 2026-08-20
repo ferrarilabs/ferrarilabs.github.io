@@ -4,6 +4,72 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Plataforma — o gate de acessibilidade dependia da ESPN estar no ar (2026-08-20, Issue #248)
+
+`bolao/scripts/audit_accessibility.mjs` é um gate de merge **obrigatório** e tinha uma dependência
+não declarada da saúde de um terceiro: ele abre os quatro apps num navegador, os apps chamam o
+gateway `live-football` implantado, e a suíte reprova em qualquer erro de console. Quando a ESPN
+passou a responder 403 ao gateway (incidente #246), o gate ficou vermelho **para todo PR do
+repositório, independentemente do que o PR mudava**.
+
+A prova não foi teórica: **#245** (sharding da suíte de testes) e **#247** (UMA linha de
+`CHANGE_INTENT.json`, sem nenhuma superfície de código) reprovaram no MESMO check único, pelo mesmo
+motivo externo aos dois — ambos com `contrato PASS` e todos os outros ~170 checks verdes.
+
+### O defeito era de arquitetura, não de acessibilidade
+
+Duas perguntas estavam colapsadas num único check:
+
+| pergunta | natureza | onde mora agora |
+|---|---|---|
+| "a interface é acessível?" | tem de ser determinística | `audit_accessibility.mjs` (gate obrigatório) |
+| "a cadeia de dados externa está saudável?" | intrinsecamente não-determinística | `check_live_gateway_health.mjs` (sonda, `requires: "network"`) |
+
+`audit_responsive_matrix.mjs` já mockava essa rota desde sempre — a suíte de acessibilidade era a
+exceção, não a regra.
+
+### O que mudou
+
+- **Fixtures canônicos** (`bolao/shared/scripts/live_gateway_fixtures.mjs`): nenhum corpo é escrito
+  à mão. Os payloads saem dos **construtores reais da Edge Function**
+  (`buildGatewayPayload` / `sourceUnavailablePayload`) e as partidas passam pelo
+  `normalizeScoreboard()` real, a partir de um evento cru no formato da ESPN. Um fixture que o
+  produto nunca emite testa ficção.
+- **Contrato dos fixtures** (`test_live_gateway_fixtures.mjs`, 13 checks, determinístico, gate
+  obrigatório): trava as distinções que já custaram incidente — `matches: null` (não sei) nunca
+  vira `matches: []` (não há jogo), `STALE` sempre declara motivo, `SOURCE_UNAVAILABLE` responde
+  503 e `EMPTY` responde 200.
+- **Sonda ao vivo** (`check_live_gateway_health.mjs`): distingue
+  `FRESH` / `STALE` / `SOURCE_UNAVAILABLE` / `GATEWAY_DOWN` / `UNKNOWN` por competição e reporta
+  competição, HTTP, `x-live-health`, motivo upstream, `observedAt`/idade e carimbo de tempo. A URL
+  vem da configuração **do próprio app**, nunca de uma constante local — um monitor apontado para
+  um endereço abandonado é a falha mais silenciosa possível. Somente leitura: não escreve no
+  Supabase, não envia e-mail, não toca scoring/ranking.
+- **Acessibilidade sob degradação**: a suíte agora afirma, de propósito, que `STALE` e
+  `SOURCE_UNAVAILABLE` **não** degradam a acessibilidade (landmarks, h1, hierarquia, skip link,
+  nomes, labels, `th scope`, `aria-controls`, alvo de toque, overflow) — estados que antes nenhuma
+  suíte determinística exercitava.
+
+### Por que isto não é "enfraquecer um portão para ficar verde"
+
+Mockar a rota **sozinho** apagaria o único sinal de degradação viva que a plataforma tinha, no meio
+de um incidente aberto. Por isso as duas metades entraram juntas. Nenhuma asserção foi removida,
+afrouxada ou pulada: a suíte foi de **65 para 69 checks**, e o teste de "sem erro de console"
+continua valendo integralmente no passe `FRESH`.
+
+Provado por mutação: com um `throw` injetado no `br2026`, `sem erro de console` reprova; com o
+skip link removido do `cdb2026`, reprovam 4 checks (2 originais + 2 dos novos estados degradados).
+
+### O que isto NÃO conserta
+
+**#246 continua aberto.** A ESPN continua devolvendo 403 ao gateway e o dado ao vivo continua
+indisponível em produção. Esta mudança faz o CI dizer a verdade sobre *qual* sinal está falhando —
+não restaura o dado.
+
+Deliberadamente fora de escopo (e não omitido em silêncio): ligar a sonda a um sinal agendado
+(detector do Sentinel ou cron) toca `.github/workflows/**`, superfície `NOTIFICATION_WORKFLOWS`
+(`DECLARE_TO_CHANGE`), e portanto é uma mudança declarada à parte.
+
 ## BR2026 — rodada 22: o laço de entrega não existia (2026-08-11)
 
 Autorizado o envio real das rodadas completas do BR2026, a partir da R22. A auditoria que
