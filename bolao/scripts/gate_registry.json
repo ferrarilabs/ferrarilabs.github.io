@@ -406,6 +406,10 @@
     "bolao/scripts/test_python_sender_failclosed.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/check_live_gateway_health.mjs": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Sonda de disponibilidade ao vivo (Issue #248). Registrada em scripts/verify.mjs no grupo provider com requires:\"network\", entao no CI hermetico ela e SKIPPED — nunca PASSED. Fica FORA da cadeia do npm test de proposito: um terceiro fora do ar nao pode reprovar o npm test de quem mexeu noutra coisa — esse acoplamento e exatamente o que a #248 desfez. Roda por npm run check:live-gateway ou com VERIFY_ALLOW_NETWORK=1, e ai reprova alto e com evidencia."
+    },
     "bolao/shared/scripts/test_cache_poisoning.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -416,6 +420,9 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/shared/scripts/test_espn_provider.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_live_gateway_fixtures.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/shared/scripts/test_live_store_lifecycle.mjs": {

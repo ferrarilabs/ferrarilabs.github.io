@@ -218,6 +218,23 @@ const CHECKS = [
   { id: "pipeline-health", group: "provider", cmd: ["node", "bolao/shared/scripts/test_pipeline_health.mjs"],
     why: "provider pipeline health" },
 
+  // Issue #248. Estes DOIS existem porque uma pergunta determinística e uma pergunta sobre
+  // disponibilidade de terceiro estavam colapsadas no gate `accessibility` — e por isso #245 e
+  // #247 reprovaram no MESMO check por um motivo externo aos dois.
+  //
+  //   `live-gateway-fixtures` — SEM rede, gate obrigatório: prova que os mocks que a suíte de
+  //   acessibilidade usa continuam iguais ao que a Edge Function realmente emite. Um mock que
+  //   derrapa do produto deixa o gate verde testando ficção.
+  //
+  //   `live-gateway-health`   — COM rede, `requires: "network"`: sonda o gateway implantado de
+  //   verdade. O CI é hermético e não declara VERIFY_ALLOW_NETWORK=1, então lá ele é SKIPPED —
+  //   nunca PASSED. Disponibilidade de terceiro não decide se o código de outra pessoa entra;
+  //   e ainda assim a degradação continua VISÍVEL, com evidência, para quem rodar com rede.
+  { id: "live-gateway-fixtures", group: "provider", cmd: ["node", "bolao/shared/scripts/test_live_gateway_fixtures.mjs"],
+    why: "os fixtures do gateway usados pelo gate de acessibilidade tem de casar com o schema que live-football realmente emite (matches:null != matches:[])" },
+  { id: "live-gateway-health", group: "provider", cmd: ["node", "bolao/shared/scripts/check_live_gateway_health.mjs"],
+    why: "saude REAL do gateway live-football: FRESH/STALE/SOURCE_UNAVAILABLE/GATEWAY_DOWN/UNKNOWN por competicao — o sinal de disponibilidade que so existia por acidente dentro do gate de acessibilidade", requires: "network" },
+
   // ── environment-dependent: SKIPPED, never silently passed ────────────────────
   { id: "structural-parity", group: "browser", cmd: ["node", "bolao/scripts/audit_structural_parity.mjs"],
     why: "cross-app structural parity", requires: "browser" },
