@@ -171,13 +171,39 @@ test("M7 rollback SQL colocado sob migrations/ => PEGA", () => {
     "M1");
 });
 
-test("M8 allowlist visual alargada => PEGA", () => {
-  mutate("ALLOWLIST.json com uma entrada a mais",
-    "docs/bolao/evidence/visual-comparison/ALLOWLIST.json", (t) => {
-      const a = JSON.parse(t);
-      a.entries.push({ ...a.entries[0], component: "mutacao-de-teste", property: "color" });
-      return JSON.stringify(a, null, 2) + "\n";
-    }, "G8");
+test("M8 allowlist visual alargada SEM declaracao => PEGA", () => {
+  // Muta DOIS arquivos de proposito. G8 passa quando `now <= was` OU quando existe declaracao
+  // VISUAL_ALLOWLIST -- alargar a allowlist e permitido, desde que DECLARADO. A versao anterior
+  // desta mutacao so alargava a allowlist e assumia que o branch nao tinha declaracao nenhuma.
+  //
+  // Essa premissa quebrou na Issue #194, que alargou a allowlist LEGITIMAMENTE (Powerball entrou na
+  // cobertura, com as duas diferencas ratificadas pelo Eduardo) e portanto CARREGA a declaracao. Com
+  // a declaracao presente, G8 passava, e a mutacao que esperava vermelho reprovava -- acusando um
+  // problema que nao existia. Mesma classe de acoplamento da Issue #261 (M27/M28 contra
+  // SCORING_CONSTANTS): fixture de mutacao que depende do estado do branch em vez de montar o seu
+  // proprio.
+  //
+  // Agora a mutacao monta as DUAS metades da condicao que quer testar: allowlist alargada E sem
+  // declaracao. Continua provando exatamente o mesmo invariante, e passa a prova-lo em qualquer
+  // branch.
+  const alFile = "docs/bolao/evidence/visual-comparison/ALLOWLIST.json";
+  const ciFile = "CHANGE_INTENT.json";
+  const alOriginal = readFileSync(abs(alFile), "utf8");
+  const ciOriginal = readFileSync(abs(ciFile), "utf8");
+  touched.add(alFile); touched.add(ciFile);
+  if (!hashesBefore.has(alFile)) hashesBefore.set(alFile, sha(alFile));
+  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  try {
+    const a = JSON.parse(alOriginal);
+    a.entries.push({ ...a.entries[0], component: "mutacao-de-teste", property: "color" });
+    writeFileSync(abs(alFile), JSON.stringify(a, null, 2) + "\n");
+    writeFileSync(abs(ciFile), JSON.stringify({ declarations: [] }, null, 2) + "\n");
+    const { status } = runContract();
+    assert(status.G8 === "FAILED", `esperado G8=FAILED, obtido ${status.G8 || "PASSED"}`);
+  } finally {
+    writeFileSync(abs(alFile), alOriginal);
+    writeFileSync(abs(ciFile), ciOriginal);
+  }
 });
 
 console.log("\nC. Mutacoes adicionais sobre a autoprotecao dos gates");
