@@ -386,6 +386,25 @@ function scoringFingerprint(text, keys) {
   return out;
 }
 
+/**
+ * `true` quando alguma CHAVE OBSERVADA do fingerprint driftou entre a base e agora — Issue #261.
+ *
+ * Deliberadamente a MESMA leitura que o S1 faz (`scoringFingerprint(text, keys)`), para que as duas
+ * perguntas do contrato sobre a mesma superficie nunca possam divergir de novo: "a constante mudou?"
+ * (S1) e "a declaracao ainda descreve uma mudanca real?" (D3) passam a olhar exatamente os mesmos
+ * bytes. Arquivo ausente na base (`was` nulo) e tratado como "nao da para afirmar drift", igual ao S1.
+ */
+function fingerprintDriftou(fp) {
+  if (!fp || !Array.isArray(fp.files) || !Array.isArray(fp.keys)) return false;
+  for (const f of fp.files) {
+    const now = scoringFingerprint(read(f), fp.keys);
+    const was = scoringFingerprint(readBase(f), fp.keys);
+    if (!was) continue;
+    for (const k of fp.keys) if (JSON.stringify(now?.[k]) !== JSON.stringify(was[k])) return true;
+  }
+  return false;
+}
+
 {
   const surf = reg.surfaces.find((s) => s.id === "SCORING_CONSTANTS");
   const { files, keys } = surf.fingerprint;
@@ -496,10 +515,32 @@ const invariantChecks = makeInvariantChecks(read);
       continue;
     }
 
-    // one_shot (explicito ou por ausencia de `lifecycle`): staleness por diff, comportamento
-    // byte-a-byte identico ao que existia antes do lifecycle model.
-    const paths = s.paths || s.fingerprint?.files || [];
-    if (!changed.some((p) => pathMatches(p, paths))) staleOneShot.push(d.surface_id);
+    // one_shot (explicito ou por ausencia de `lifecycle`): staleness por diff.
+    //
+    // ─── SUPERFICIE COM FINGERPRINT: A PERGUNTA E A CHAVE, NAO O ARQUIVO (Issue #261) ──────
+    //
+    // Antes, esta linha resolvia os caminhos como `s.paths || s.fingerprint?.files` e perguntava
+    // se algum deles aparecia no diff. Para uma superficie definida por FINGERPRINT isso e a
+    // pergunta errada: SCORING_CONSTANTS nao tem `paths`, e seus `fingerprint.files` sao os tres
+    // `js/config.js`. Qualquer toque nesses arquivos passava a contar como "a superficie mudou".
+    //
+    // O proprio fingerprint ja diz que isso e falso: ele lista `siteVersion` em `ignored_keys`,
+    // com o motivo escrito ali do lado — "sobe em TODO release por politica do repo". Ou seja, o
+    // repositorio ja tinha decidido que mexer em siteVersion NAO e mexer em scoring; so o S1
+    // respeitava essa decisao, porque so ele olhava CHAVES. O D3 olhava ARQUIVOS.
+    //
+    // Consequencia medida (Issue #261): num branch que fazia um bump normal de release, uma
+    // declaracao SCORING_CONSTANTS obsoleta deixava de parecer obsoleta, D3 ficava verde onde as
+    // mutacoes M27/M28 esperam vermelho, e a suite reprovava por um motivo sem relacao com a
+    // mudanca. Um portao que grita em trabalho rotineiro e um portao que se aprende a ignorar.
+    //
+    // Agora a pergunta e a mesma que o S1 faz: alguma CHAVE OBSERVADA driftou entre a base e
+    // agora? Isso deixa o D3 MAIS estrito, nunca menos — um bump que so mexe em chave ignorada
+    // continua deixando a declaracao obsoleta, e obsoleta continua reprovando.
+    const tocouSuperficie = s.fingerprint
+      ? fingerprintDriftou(s.fingerprint)
+      : changed.some((p) => pathMatches(p, s.paths || []));
+    if (!tocouSuperficie) staleOneShot.push(d.surface_id);
   }
   check("D3", "nenhuma declaracao obsoleta ou invariante condicional violado",
     staleOneShot.length === 0 && violatedConditional.length === 0,
