@@ -60,6 +60,13 @@ const CHECKS = [
   // fechar a Issue — e o parser lexical do GitHub casou `fix #246` e fechou uma Issue de
   // incidente de producao mesmo assim. Mesma familia do gate de PII em mensagem de commit:
   // risco lexico na prosa, que nenhum humano confere de forma confiavel.
+  // Issue #251: numa execucao autonoma o orquestrador rodou `git checkout --detach` DENTRO da
+  // arvore canonica compartilhada. Nada se perdeu, mas a regra ("todo trabalho automatizado vai
+  // para worktree dedicada") existia so em prosa. Decisao do Eduardo: proteger contra AGENTE,
+  // nunca contra o dono do repositorio.
+  { id: "canonical-tree-guard", group: "security", cmd: ["node", "scripts/safety/test_canonical_tree_guard.mjs"],
+    why: "guarda que impede sessao de agente de commitar/mesclar/rebasear/empurrar a partir da worktree PRINCIPAL, sem nunca bloquear humano nem CI (Issue #251)" },
+
   { id: "closure-keyword-gate", group: "security", cmd: ["node", "scripts/audit_commit_message_closure_keywords.mjs"],
     why: "palavra-chave de fechamento do GitHub dentro de uma negacao FECHA a Issue que a frase diz nao fechar (Issue #250)" },
   { id: "closure-keyword-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_commit_message_closure_keywords.mjs"],
@@ -388,6 +395,8 @@ const CHECKS = [
     why: "o comprovante e EVIDENCIA e nao pode vazar PII — renderizacao pura, sem banco e sem rede" },
   { id: "cdb-receipt-catchup-dedupe", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py"],
     why: "incidente de 2026-08-16 reproduzido: dedupe cross-path do catch-up, participante pulado nunca mais" },
+  { id: "cdb-qf-reminder", group: "app", cmd: ["python3", "bolao/cdb2026/scripts/test_qf_reminder.py"],
+    why: "o lembrete ROTACIONA credencial antes de enviar: link que resolve para outra entrada mandaria a pessoa editar palpite alheio, e rotacao que encoste em palpite e mutacao silenciosa" },
   { id: "powerball-balance-unicity", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs"],
     why: "a tela tinha DOIS 'quanto temos' com valores diferentes — saldo exibido precisa ter uma fonte so" },
   { id: "powerball-run-31679185588", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_run_31679185588_regression.py"],

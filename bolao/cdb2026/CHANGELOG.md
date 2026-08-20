@@ -1,5 +1,53 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## (infra, sem bump de siteVersion) — 2026-08-20 (lembrete das quartas)
+
+Canal de notificação novo, autorizado explicitamente pelo Eduardo: um lembrete para as entradas
+que ainda **não concluíram** os quatro confrontos das quartas. Na medição de 2026-08-20 eram
+**5 de 12** (as outras 7 estão completas e não são incomodadas). Nenhuma mudança de scoring, de
+regra de torneio, de palpite ou de identidade de entrada. Nenhuma RPC nova, nenhuma migração.
+
+### Por que o lembrete precisa rotacionar a credencial
+
+O token em claro do convite **não existe em lugar nenhum depois do envio** — `cdb_entry_access`
+guarda só o SHA-256. Não há caminho que devolva o link já entregue, nem para o operador nem para
+quem tenha cópia do banco. Então "reenviar o mesmo link" é impossível por construção, e um
+lembrete *sem* link seria inútil: desde a migração `20260812080000` o navegador não enxerga
+e-mail de ninguém, logo não existe "buscar minha entrada".
+
+A rotação usa `INV.issue_token()` — a **mesma** função do convite, não uma cópia. Consequência
+deliberada e reportada: **o link anterior dessas 5 entradas deixa de autenticar** no instante da
+rotação. O link novo vai no próprio lembrete, no mesmo e-mail.
+
+### O que a rotação não pode tocar — e como isso é *provado*, não afirmado
+
+`cdb_entry_access` é outra tabela; escrever credencial não alcança `bolao_state`. Mas "não
+alcança" é argumento. O sender **mede**: tira impressão digital do estado autoritativo inteiro
+antes de qualquer escrita, relê depois da rotação, e **aborta o lote antes de qualquer chamada
+ao provedor** se qualquer coisa divergir. A impressão é global de propósito — cobre `picks`,
+`qualified`, `picks_version`, pagamentos, resultados e identidade de entrada de uma vez, então
+não há campo protegido que escape dela.
+
+### Duas fases, nesta ordem
+
+**Fase A** rotaciona e confere os N links: cada token novo é resolvido por `cdb_my_entry` e tem
+de devolver a **mesma** entrada (id *e* nome). Link cruzado, nome divergente, token repetido ou
+link morto **abortam o lote inteiro** — o defeito que essa fase existe para impedir não é
+"e-mail errado", é mandar a pessoa editar os palpites de outra pessoa. **Fase B** só começa se
+as N conferências passarem: nenhum e-mail sai antes de todos os links estarem provados.
+
+### Entrega exatamente-uma-vez
+
+`reserve_delivery`/`settle_delivery`, os mesmos do comprovante — unicidade do banco
+(`UNIQUE(app, business_key, recipient_hash, generation)`), não da memória do processo. Família
+`cdb2026:qf-reminder`, chave `cdb2026:qf-reminder:<entryId>:v1`. Falha de transporte vira
+`uncertain`, **nunca** liberação da reserva: o provedor pode ter aceitado e a resposta ter se
+perdido. Sem `p_bypass_anomaly` — o disjuntor de envio rápido continua valendo.
+
+Sem cron, de propósito: é campanha única com janela própria, não ciclo. Gate novo
+`cdb-qf-reminder` (25 asserções, offline, zero rede) registrado em `verify.mjs`, no
+`gate_registry` e no `package.json`; workflow declarado em `notification_workflows.json`.
+
 ## (infra, sem bump de siteVersion) — 2026-08-16 (auditoria de persistência ponta a ponta)
 
 Auditoria independente dos 12 brackets salvos, do documento autoritativo até campeão e vice.
