@@ -171,13 +171,39 @@ test("M7 rollback SQL colocado sob migrations/ => PEGA", () => {
     "M1");
 });
 
-test("M8 allowlist visual alargada => PEGA", () => {
-  mutate("ALLOWLIST.json com uma entrada a mais",
-    "docs/bolao/evidence/visual-comparison/ALLOWLIST.json", (t) => {
-      const a = JSON.parse(t);
-      a.entries.push({ ...a.entries[0], component: "mutacao-de-teste", property: "color" });
-      return JSON.stringify(a, null, 2) + "\n";
-    }, "G8");
+test("M8 allowlist visual alargada SEM declaracao => PEGA", () => {
+  // Muta DOIS arquivos de proposito. G8 passa quando `now <= was` OU quando existe declaracao
+  // VISUAL_ALLOWLIST -- alargar a allowlist e permitido, desde que DECLARADO. A versao anterior
+  // desta mutacao so alargava a allowlist e assumia que o branch nao tinha declaracao nenhuma.
+  //
+  // Essa premissa quebrou na Issue #194, que alargou a allowlist LEGITIMAMENTE (Powerball entrou na
+  // cobertura, com as duas diferencas ratificadas pelo Eduardo) e portanto CARREGA a declaracao. Com
+  // a declaracao presente, G8 passava, e a mutacao que esperava vermelho reprovava -- acusando um
+  // problema que nao existia. Mesma classe de acoplamento da Issue #261 (M27/M28 contra
+  // SCORING_CONSTANTS): fixture de mutacao que depende do estado do branch em vez de montar o seu
+  // proprio.
+  //
+  // Agora a mutacao monta as DUAS metades da condicao que quer testar: allowlist alargada E sem
+  // declaracao. Continua provando exatamente o mesmo invariante, e passa a prova-lo em qualquer
+  // branch.
+  const alFile = "docs/bolao/evidence/visual-comparison/ALLOWLIST.json";
+  const ciFile = "CHANGE_INTENT.json";
+  const alOriginal = readFileSync(abs(alFile), "utf8");
+  const ciOriginal = readFileSync(abs(ciFile), "utf8");
+  touched.add(alFile); touched.add(ciFile);
+  if (!hashesBefore.has(alFile)) hashesBefore.set(alFile, sha(alFile));
+  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  try {
+    const a = JSON.parse(alOriginal);
+    a.entries.push({ ...a.entries[0], component: "mutacao-de-teste", property: "color" });
+    writeFileSync(abs(alFile), JSON.stringify(a, null, 2) + "\n");
+    writeFileSync(abs(ciFile), JSON.stringify({ declarations: [] }, null, 2) + "\n");
+    const { status } = runContract();
+    assert(status.G8 === "FAILED", `esperado G8=FAILED, obtido ${status.G8 || "PASSED"}`);
+  } finally {
+    writeFileSync(abs(alFile), alOriginal);
+    writeFileSync(abs(ciFile), ciOriginal);
+  }
 });
 
 console.log("\nC. Mutacoes adicionais sobre a autoprotecao dos gates");
@@ -743,7 +769,44 @@ test("M34 mudanca em Edge Function (deploy automatico em producao) sem declaraca
     file, readFileSync(abs(file)) + "\n// mutacao M34\n", "D2");
 });
 
-const MUTATIONS = 34;
+test("M35 bump normal de siteVersion NAO pode ressuscitar uma declaracao SCORING_CONSTANTS obsoleta => PEGA", () => {
+  // REGRESSAO da Issue #261, o caso exato que quebrou na vida real.
+  //
+  // SCORING_CONSTANTS nao tem `paths`: e definida por FINGERPRINT, cujos `files` sao os tres
+  // `js/config.js`. O D3 resolvia staleness por ARQUIVO no diff, entao um bump de release -- que
+  // mexe SO em `siteVersion`, uma chave que o proprio fingerprint lista em `ignored_keys` -- fazia
+  // uma declaracao obsoleta parecer viva. D3 ficava verde, M27/M28 reprovavam, e a suite acusava um
+  // problema que nao existia num PR que so subia versao.
+  //
+  // Muta DOIS arquivos de proposito: o bump precisa estar no diff para reproduzir o defeito, e a
+  // declaracao obsoleta precisa existir para haver o que detectar. Se algum dia o D3 voltar a
+  // perguntar "o arquivo foi tocado?" em vez de "a chave observada driftou?", esta mutacao reprova.
+  const ciFile = "CHANGE_INTENT.json";
+  const cfgFile = "bolao/cdb2026/js/config.js";
+  const ciOriginal = readFileSync(abs(ciFile));
+  // utf8 de proposito: sem encoding readFileSync devolve Buffer, e Buffer nao tem .replace().
+  const cfgOriginal = readFileSync(abs(cfgFile), "utf8");
+  touched.add(ciFile); touched.add(cfgFile);
+  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  if (!hashesBefore.has(cfgFile)) hashesBefore.set(cfgFile, sha(cfgFile));
+  try {
+    const bumped = cfgOriginal.replace(/siteVersion:\s*"([^"]+)"/, 'siteVersion: "v99.999"');
+    assert(bumped !== cfgOriginal, "a mutacao sintetica nao alterou siteVersion");
+    writeFileSync(abs(cfgFile), bumped);
+    writeFileSync(abs(ciFile), syntheticConditionalIntent({
+      surface_id: "SCORING_CONSTANTS", lifecycle: "one_shot",
+      exit_conditions: undefined, condition_id: undefined, related_issue: undefined,
+    }));
+    const { status } = runContract();
+    assert(status.D3 === "FAILED",
+      `bump de siteVersion mascarou a declaracao obsoleta: esperado D3=FAILED, obtido ${status.D3 || "PASSED"}`);
+  } finally {
+    writeFileSync(abs(ciFile), ciOriginal);
+    writeFileSync(abs(cfgFile), cfgOriginal);
+  }
+});
+
+const MUTATIONS = 35;
 test(`MUTATIONS_CAUGHT == MUTATIONS_EXECUTED (${MUTATIONS}/${MUTATIONS})`, () => {
   assert(fail === 0, `${fail} mutacao(oes) nao foi(ram) pega(s)`);
 });
