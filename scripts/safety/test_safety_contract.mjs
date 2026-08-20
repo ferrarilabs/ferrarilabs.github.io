@@ -769,7 +769,44 @@ test("M34 mudanca em Edge Function (deploy automatico em producao) sem declaraca
     file, readFileSync(abs(file)) + "\n// mutacao M34\n", "D2");
 });
 
-const MUTATIONS = 34;
+test("M35 bump normal de siteVersion NAO pode ressuscitar uma declaracao SCORING_CONSTANTS obsoleta => PEGA", () => {
+  // REGRESSAO da Issue #261, o caso exato que quebrou na vida real.
+  //
+  // SCORING_CONSTANTS nao tem `paths`: e definida por FINGERPRINT, cujos `files` sao os tres
+  // `js/config.js`. O D3 resolvia staleness por ARQUIVO no diff, entao um bump de release -- que
+  // mexe SO em `siteVersion`, uma chave que o proprio fingerprint lista em `ignored_keys` -- fazia
+  // uma declaracao obsoleta parecer viva. D3 ficava verde, M27/M28 reprovavam, e a suite acusava um
+  // problema que nao existia num PR que so subia versao.
+  //
+  // Muta DOIS arquivos de proposito: o bump precisa estar no diff para reproduzir o defeito, e a
+  // declaracao obsoleta precisa existir para haver o que detectar. Se algum dia o D3 voltar a
+  // perguntar "o arquivo foi tocado?" em vez de "a chave observada driftou?", esta mutacao reprova.
+  const ciFile = "CHANGE_INTENT.json";
+  const cfgFile = "bolao/cdb2026/js/config.js";
+  const ciOriginal = readFileSync(abs(ciFile));
+  // utf8 de proposito: sem encoding readFileSync devolve Buffer, e Buffer nao tem .replace().
+  const cfgOriginal = readFileSync(abs(cfgFile), "utf8");
+  touched.add(ciFile); touched.add(cfgFile);
+  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  if (!hashesBefore.has(cfgFile)) hashesBefore.set(cfgFile, sha(cfgFile));
+  try {
+    const bumped = cfgOriginal.replace(/siteVersion:\s*"([^"]+)"/, 'siteVersion: "v99.999"');
+    assert(bumped !== cfgOriginal, "a mutacao sintetica nao alterou siteVersion");
+    writeFileSync(abs(cfgFile), bumped);
+    writeFileSync(abs(ciFile), syntheticConditionalIntent({
+      surface_id: "SCORING_CONSTANTS", lifecycle: "one_shot",
+      exit_conditions: undefined, condition_id: undefined, related_issue: undefined,
+    }));
+    const { status } = runContract();
+    assert(status.D3 === "FAILED",
+      `bump de siteVersion mascarou a declaracao obsoleta: esperado D3=FAILED, obtido ${status.D3 || "PASSED"}`);
+  } finally {
+    writeFileSync(abs(ciFile), ciOriginal);
+    writeFileSync(abs(cfgFile), cfgOriginal);
+  }
+});
+
+const MUTATIONS = 35;
 test(`MUTATIONS_CAUGHT == MUTATIONS_EXECUTED (${MUTATIONS}/${MUTATIONS})`, () => {
   assert(fail === 0, `${fail} mutacao(oes) nao foi(ram) pega(s)`);
 });
