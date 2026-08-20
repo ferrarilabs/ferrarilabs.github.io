@@ -4,6 +4,71 @@ This file consolidates the full version history. The source of truth for the lat
 
 ---
 
+## Plataforma — o produtor do cache ao vivo muda de egresso (2026-08-20, Issue #246)
+
+**PREPARADO, NÃO IMPLANTADO.** Este trabalho está em PR aguardando autorização humana de merge —
+ele escreve em tabela de produção e é YELLOW por política.
+
+### O que o diagnóstico provou
+
+A Edge Function `live-football` não alcança mais a ESPN. Instrumentação temporária autorizada
+(v13, removida na sequência; produção voltou byte-idêntica) mediu, **do próprio runtime**, as três
+variantes de cabeçalho:
+
+| variante | resultado |
+|---|---|
+| exatamente o que a produção envia (`accept: application/json`, sem UA) | **403** |
+| sem nenhum cabeçalho | **403** |
+| com User-Agent descritivo explícito | **403** |
+
+Todas com `server: AkamaiGHost` e a página "Access Denied", rejeitadas em 7–77 ms. **Não é
+User-Agent**, não é `accept`, não é limite de taxa: é a Akamai negando o **egresso** do Supabase
+Edge Runtime. O mesmo endpoint responde **200** de um runner do GitHub Actions.
+
+### A arquitetura aprovada
+
+Quem alcança a fonte vira o produtor; o gateway continua o consumidor, **sem uma linha alterada**.
+
+- `bolao/shared/scripts/produce_live_cache.mjs` importa `espnUrlFor`, `validateScoreboardShape`,
+  `normalizeScoreboard` e `buildGatewayPayload` de `supabase/functions/_shared/` — **exatamente os
+  módulos que a Edge Function executa**. Não é uma segunda normalização nem uma terceira: é *a*
+  implementação. Isso importa porque `espn_provider.py` (o snapshot commitado) emite um envelope
+  **diferente** (`competitionId`/`generatedAt` contra `competition`/`observedAt`), e gravá-lo aqui
+  faria o gateway servir nomes de campo errados sem nenhum teste do lado do navegador pegar.
+- `.github/workflows/live_cache_producer.yml` roda o produtor e grava em **uma** tabela,
+  `public.live_sports_cache`.
+
+### O teto de 10 minutos não subiu
+
+`LAST_KNOWN_GOOD_MAX_AGE_MS` continua **10 minutos**. Quem se adaptou foi a cadência, derivada do
+histograma das **532 partidas com data** nos snapshots de br2026 + cdb2026: kickoffs às 14h e das
+18h às 00h UTC, e **zero** partidas entre 01h e 13h.
+
+- dentro da janela (14h→02h UTC): **5 em 5 minutos** → idade máxima do cache ~5 min, confortavelmente
+  dentro do teto;
+- fora dela: 30 em 30 minutos, e o próprio script pula a rede quando o calendário não mostra jogo
+  por perto.
+
+Fora da janela o cache pode expirar e o gateway responderá `SOURCE_UNAVAILABLE` — honesto, e não uma
+regressão: hoje ele responde isso 24 h por dia.
+
+### O que os testes provam (18 checks, sem rede e sem banco)
+
+O caminho feliz é o menos interessante. O que precisa ser verdade antes de qualquer deploy:
+
+- fonte em 403/429/500, timeout, **ou HTTP 200 com forma inválida** → **nenhuma escrita**, o
+  último-bom-conhecido fica intacto (degradação não pode virar apagão);
+- uma queda logo após um sucesso deixa o registro bom exatamente onde estava;
+- upsert idempotente pela chave `competition` — o mesmo mecanismo que a Edge Function já usa;
+- o envelope gravado é o **canônico do gateway**, com guarda explícita contra `competitionId`/
+  `generatedAt`;
+- nenhum campo além do envelope público, e nenhuma outra tabela tocada;
+- competição fora da whitelist é rejeitada **sem sequer ir à rede**;
+- `--dry-run` monta o payload e não grava nada.
+
+O gate `cron-coverage` reprovou o workflow novo até ele ser declarado no calendário esperado —
+funcionando exatamente como foi desenhado.
+
 ## Plataforma — o gate de acessibilidade dependia da ESPN estar no ar (2026-08-20, Issue #248)
 
 `bolao/scripts/audit_accessibility.mjs` é um gate de merge **obrigatório** e tinha uma dependência

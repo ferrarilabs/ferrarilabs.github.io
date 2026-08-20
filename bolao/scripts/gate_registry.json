@@ -478,6 +478,9 @@
     "bolao/shared/scripts/test_live_gateway_fixtures.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_produce_live_cache.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_live_store_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
