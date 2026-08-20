@@ -26,6 +26,7 @@
 
 import { launchChromium } from "../cdb2026/scripts/visual/playwright_loader.mjs";
 import { startStaticServer } from "./static_server.mjs";
+import { routeLiveGateway } from "../shared/scripts/live_gateway_fixtures.mjs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
@@ -59,13 +60,33 @@ const eq = (a, b, m) => { if (a !== b) throw new Error(`${m}: expected ${JSON.st
 const server = await startStaticServer(PORT, ROOT);
 const browser = await launchChromium();
 
-/** Coleta o estado de acessibilidade do DOM RENDERIZADO (não do template). */
-async function collect(appPath, width = 1280) {
+/**
+ * Coleta o estado de acessibilidade do DOM RENDERIZADO (não do template).
+ *
+ * ─── POR QUE O GATEWAY AO VIVO É MOCKADO AQUI ───────────────────────────────────────────────
+ *
+ * Esta suíte é um gate de merge OBRIGATÓRIO, e até 2026-08-20 ela dependia da saúde da ESPN: os
+ * apps chamam o gateway `live-football` implantado, e o teste de "sem erro de console" reprovava
+ * quando esse gateway respondia 503. Resultado real (Issue #248): #245 (sharding de teste) e #247
+ * (UMA linha de metadado) reprovaram no MESMO check, por um motivo externo aos dois.
+ *
+ * `audit_responsive_matrix.mjs` já mockava esta rota — esta suíte era a exceção, não a regra.
+ *
+ * O mock NÃO some com o sinal: a saúde real do gateway passou a ser medida por
+ * `bolao/shared/scripts/check_live_gateway_health.mjs`, que a sonda de verdade e reprova alto.
+ * A pergunta "a interface é acessível?" e a pergunta "a fonte externa está no ar?" voltaram a ser
+ * dois contratos separados. Mockar sem aquele check seria enfraquecer um portão para ficar verde.
+ *
+ * `liveState` permite exercitar a acessibilidade também com a fonte DEGRADADA — estados que antes
+ * nenhuma suíte determinística cobria.
+ */
+async function collect(appPath, width = 1280, liveState = "FRESH") {
   const ctx = await browser.newContext({ viewport: { width, height: 900 }, serviceWorkers: "block" });
   const page = await ctx.newPage();
   const consoleErrors = [];
   page.on("console", m => { if (m.type() === "error") consoleErrors.push(m.text()); });
   page.on("pageerror", e => consoleErrors.push(String(e)));
+  await routeLiveGateway(page, liveState);
   await page.goto(`http://localhost:${PORT}${appPath}`, { waitUntil: "load" });
 
   // ── A FOLHA DE ESTILO PRECISA ESTAR APLICADA ANTES DE MEDIR ────────────────────────────────
@@ -408,6 +429,42 @@ for (const [app, cfg] of Object.entries(APPS)) {
   test(`[${app}] sem overflow horizontal nem alvo pequeno em ${WIDTHS.length} larguras (320→1600, inclui 899/900/901/902)`, () => {
     eq(bad.length, 0, bad.join(" | "));
   });
+}
+
+// ─── Acessibilidade com a fonte ao vivo DEGRADADA ───────────────────────────
+//
+// Antes desta suíte ser determinística (Issue #248), estes estados nunca eram exercitados de
+// propósito: ou a ESPN estava no ar (e só o caminho feliz rodava), ou estava fora (e a suíte
+// inteira reprovava no erro de console, sem chegar a AFIRMAR nada sobre acessibilidade).
+//
+// A propriedade que importa: a página degrada o CONTEÚDO ao vivo sem degradar a ACESSIBILIDADE.
+// Um hero que some não pode levar junto o <main>, a hierarquia de headings ou o alvo de toque.
+//
+// O teste de "sem erro de console" fica DE FORA daqui de propósito, e isso não afrouxa nada: com
+// a fonte em 503 o app registra um erro de fetch LEGÍTIMO — é o comportamento correto. Esse
+// teste continua valendo integralmente no passe FRESH acima, onde um erro de console é mesmo
+// defeito. Nenhuma asserção foi removida; estas são adicionais.
+const APPS_AO_VIVO = ["br2026", "cdb2026"];
+for (const app of APPS_AO_VIVO) {
+  for (const estado of ["STALE", "SOURCE_UNAVAILABLE"]) {
+    const { ctx, data } = await collect(APPS[app].path, 1280, estado);
+    test(`[${app}] acessibilidade preservada com o gateway em ${estado}`, () => {
+      eq(data.landmarks.main, 1, "o <main> não pode sumir junto com o dado ao vivo");
+      eq(data.visibleH1, 1, `headings visíveis: [${data.headingLevels}] — a página perdeu seu título`);
+      eq(data.headingGaps.length, 0, `saltos de nível na degradação: ${data.headingGaps.join(", ")}`);
+      assert(data.skipLink && data.skipTargetExists === true,
+        "o skip link (ou seu alvo) sumiu quando a fonte degradou");
+      eq(data.namelessControls.length, 0, `controle sem nome acessível: ${data.namelessControls.join(", ")}`);
+      eq(data.unlabeledFields.length, 0, `campo sem label: ${data.unlabeledFields.join(", ")}`);
+      eq(data.thsNoScope, 0, `${data.thsNoScope} de ${data.thsTotal} <th> sem scope na degradação`);
+      eq(data.danglingAriaControls.length, 0,
+        `aria-controls apontando para id inexistente: ${data.danglingAriaControls.join(", ")} — ` +
+        `um placeholder de degradação não pode deixar referência órfã`);
+      eq(data.smallTargets.length, 0, `alvo <24px na degradação: ${data.smallTargets.slice(0, 4).join(", ")}`);
+      assert(!data.overflow, `overflow horizontal na degradação (scrollW=${data.scrollW} > clientW=${data.clientW})`);
+    });
+    await ctx.close();
+  }
 }
 
 for (const { ctx } of Object.values(collected)) await ctx.close();
