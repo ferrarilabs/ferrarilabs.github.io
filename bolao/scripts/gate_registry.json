@@ -461,6 +461,9 @@
     "scripts/audit_email_send_safety.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/audit_commit_message_closure_keywords.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/audit_commit_message_pii.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -656,6 +659,9 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/sentinel/test_security.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/test_audit_commit_message_closure_keywords.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/test_audit_commit_message_pii.mjs": {
