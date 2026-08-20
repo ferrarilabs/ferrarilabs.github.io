@@ -240,6 +240,13 @@ const CHECKS = [
   //   e ainda assim a degradação continua VISÍVEL, com evidência, para quem rodar com rede.
   { id: "live-gateway-fixtures", group: "provider", cmd: ["node", "bolao/shared/scripts/test_live_gateway_fixtures.mjs"],
     why: "os fixtures do gateway usados pelo gate de acessibilidade tem de casar com o schema que live-football realmente emite (matches:null != matches:[])" },
+  // Issue #246: o produtor que grava live_sports_cache a partir do egresso do GitHub Actions,
+  // que alcanca a ESPN onde o Edge Runtime leva 403 da Akamai. Suite DETERMINISTICA (fetch e
+  // escrita injetados): prova que fonte caida ou forma invalida NUNCA sobrescrevem o
+  // ultimo-bom-conhecido, que o envelope gravado e o CANONICO do gateway (e nao o do snapshot),
+  // e que so live_sports_cache e tocada.
+  { id: "live-cache-producer", group: "provider", cmd: ["node", "bolao/shared/scripts/test_produce_live_cache.mjs"],
+    why: "produtor do cache ao vivo: falha da fonte nao pode envenenar o ultimo-bom-conhecido, e o envelope gravado tem de ser o que a Edge Function monta" },
   { id: "live-gateway-health", group: "provider", cmd: ["node", "bolao/shared/scripts/check_live_gateway_health.mjs"],
     why: "saude REAL do gateway live-football: FRESH/STALE/SOURCE_UNAVAILABLE/GATEWAY_DOWN/UNKNOWN por competicao — o sinal de disponibilidade que so existia por acidente dentro do gate de acessibilidade", requires: "network" },
 
