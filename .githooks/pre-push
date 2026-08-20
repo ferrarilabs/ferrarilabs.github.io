@@ -1,0 +1,18 @@
+#!/bin/sh
+# Guarda da arvore canonica — Issue #251. Instalado via `npm run guard:install`
+# (que aponta core.hooksPath para .githooks/, versionado junto com o repositorio).
+#
+# Bloqueia mutacao vinda de SESSAO DE AGENTE na worktree PRINCIPAL. Trabalho humano na arvore
+# canonica continua livre de proposito, e CI tambem — `bolao_provider_snapshot.yml` commita de
+# verdade a partir de um runner.
+#
+# Escape explicito e deliberado:  ALLOW_CANONICAL_TREE_WRITE=1 git commit ...
+#
+# FALHA ABERTO quando o script da guarda nao existe no checkout. core.hooksPath e configuracao do
+# REPOSITORIO e vale para toda worktree, mas o script e versionado POR BRANCH: uma worktree num
+# branch anterior a esta Issue nao tem o arquivo. Sem esta checagem, o gancho estouraria e
+# tornaria impossivel commitar nesses branches — a guarda viraria um bloqueio geral. Descoberto
+# pelo proprio teste de integracao.
+GUARD="$(git rev-parse --show-toplevel)/scripts/safety/canonical_tree_guard.mjs"
+[ -f "$GUARD" ] || exit 0
+exec node "$GUARD" --assert "$(basename "$0")"
