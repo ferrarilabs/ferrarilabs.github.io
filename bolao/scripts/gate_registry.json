@@ -11,6 +11,9 @@
     "bolao/br2026/scripts/test_recipient_completeness.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/br2026/scripts/test_round_close_preflight.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/br2026/scripts/test_round_delivery_loop.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -19,6 +22,10 @@
     },
     "bolao/br2026/scripts/test_round_state.py": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/br2026/scripts/visual/check_standings_layout.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Geometria da tabela de classificacao do BR2026 em 8 viewports (320-1728): contiguidade das colunas, alinhamento header/corpo, ordem PTS<J<V<E<D<GP<GC<SG, limites da tabela, largura da coluna TIME, zero overflow horizontal de pagina, offsets sticky sob scroll maximo e continuidade de cor da linha de faixa por pixel amostrado. Nasceu da correcao de 2026-08-16 (v1.121): .td-team era display:flex, deixava de ser celula, e a celula anonima gerada em volta dela era a unica coluna auto sob table-layout:fixed -- engolia 506px de largura sobrando entre TIME e PTS no desktop e colapsava para 0px no mobile."
     },
     "bolao/cdb2026/scripts/audit_bracket_progression.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -68,6 +75,10 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Navegador real, app real, fixture proprio (Supabase bloqueado na ROTA, entao nunca toca dado de participante). Percorre quartas->semifinal->final->campeao sem salvar, prova invalidacao a jusante, ausencia de 3o/4o lugar, preservacao do visual (.champion-header/.tie-row) e ausencia de overflow em 320/414/768. Existe porque o gate de unidade passava afirmando `teamName` -- o nome de campo do resolvedor -- enquanto o renderizador lia `team` e a tela mostrava undefined."
     },
+    "bolao/cdb2026/scripts/test_bracket_persistence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED",
+      "coverage": "Round-trip completo no navegador REAL pelo caminho seguro (token no fragmento), com o Supabase falsificado na ROTA -- nenhuma entrada de participante e tocada. Captura o payload ANTES da rede, recarrega devolvendo exatamente ele, e compara o bracket renderizado. Cobre QF/SF/final/campeao/vice e falso-sucesso (servidor recusando nao vira 'salvo'). 3 mutacoes pegas, incluindo o defeito original: reidratar do DOM em vez do modelo."
+    },
     "bolao/cdb2026/scripts/test_bracket_propagation.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "3 mutacoes reais pegas. Propagacao ao vivo quartas->semifinal a partir dos palpites NA TELA (sem salvar, sem banco), recusa de palpite invalido, e a recusa de desenhar vaga sem o mapeamento oficial. O gate le so CODIGO: a primeira versao reprovou por causa do proprio comentario do app.js citando qf-1 x qf-2."
@@ -77,6 +88,13 @@
     },
     "bolao/cdb2026/scripts/test_draw_provenance_patterns.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_entry_name_readonly.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_entry_saved_confirmation.py": {
+      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
+      "reason": "Prova o consumidor do comprovante contra o BANCO REAL (fila, reserva, unicidade) com transporte falso. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe como secret do repositorio, e grava/limpa linhas de canario na producao — por isso nao pode entrar numa suite que qualquer um roda a cada commit. Executado sob demanda pelo workflow cdb2026_confirmation_fake_transport_test.yml (workflow_dispatch, declarado em cron_coverage.test.mjs). Nao envia e-mail: BOLAO_ALLOW_REAL_SEND nao e definida e urlopen e substituido por uma sentinela que levanta."
     },
     "bolao/cdb2026/scripts/test_invitation_email.py": {
       "classification": "REGISTERED_AND_EXECUTED",
@@ -94,12 +112,18 @@
     "bolao/cdb2026/scripts/test_phase_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
-    "bolao/cdb2026/scripts/test_tie_completeness.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
     "bolao/cdb2026/scripts/test_public_projection_and_submit.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "CDB2026 stage 4 aditivo. 12 entradas tem PII na tabela crua; 0 atravessa a projecao. Nao exercita o caminho feliz de submissao: gravaria em producao."
+    },
+    "bolao/cdb2026/scripts/test_qf_reminder.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_receipt.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/cdb2026/scripts/test_result_email_source.py": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -107,6 +131,9 @@
     "bolao/cdb2026/scripts/test_schedule_reconciler.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "4 mutacoes reais, todas pegas. Fecha o defeito de 2026-08-12: a CBF havia publicado a tabela completa e o reconciliador seguia dizendo WAITING_FOR_OFFICIAL_SCHEDULE, com o vigia VERDE. Duas causas silenciosas — janela de 90d (a ESPN devolve lista vazia sem erro acima de ~60d; medido 7d:0 14d:3 21d:7 30d:8 45d:8 60d:8 90d:0) e 'Vasco da Gama' vs 'Vasco', que com recusa de publicacao parcial segurava os quatro confrontos."
+    },
+    "bolao/cdb2026/scripts/test_tie_completeness.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/cdb2026/scripts/test_trusted_result_ingestion.py": {
       "classification": "REGISTERED_AND_EXECUTED",
@@ -118,10 +145,6 @@
     "bolao/cdb2026/scripts/visual/check_manifest.mjs": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Verificador de manifesto visual: depende de artefatos de captura gerados sob demanda por scripts/visual/, nao de codigo-fonte. Rodado junto com a geracao de evidencia visual. ACHADO ABERTO em 2026-08-10: acusa overflow horizontal em cdb2026/Jogos@320x568 e @375x667."
-    },
-    "bolao/br2026/scripts/visual/check_standings_layout.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Geometria da tabela de classificacao do BR2026 em 8 viewports (320-1728): contiguidade das colunas, alinhamento header/corpo, ordem PTS<J<V<E<D<GP<GC<SG, limites da tabela, largura da coluna TIME, zero overflow horizontal de pagina, offsets sticky sob scroll maximo e continuidade de cor da linha de faixa por pixel amostrado. Nasceu da correcao de 2026-08-16 (v1.121): .td-team era display:flex, deixava de ser celula, e a celula anonima gerada em volta dela era a unica coluna auto sob table-layout:fixed -- engolia 506px de largura sobrando entre TIME e PTS no desktop e colapsava para 0px no mobile."
     },
     "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -165,15 +188,15 @@
     "bolao/loterias/powerball/scripts/audit_scoring.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
-    "bolao/loterias/powerball/scripts/test_audit_scoring_email_placeholder.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
     "bolao/loterias/powerball/scripts/email/test_private_data_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_anon_notification_denied.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "N24. Usa a anon key publica real contra o banco real: mark_bolao_notif_sent suprimia o e-mail dos 15."
+    },
+    "bolao/loterias/powerball/scripts/test_audit_scoring_email_placeholder.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -191,6 +214,9 @@
     "bolao/loterias/powerball/scripts/test_cross_draw_resolution.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Resolucao entre sorteios. Achado no preflight real: sorteio novo sem entrada no segredo dava RESOLVED=0."
+    },
+    "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_draw_combo.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -237,6 +263,9 @@
     "bolao/loterias/powerball/scripts/test_result_pipeline.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_run_31679185588_regression.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_send_result_email_gating.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -251,6 +280,21 @@
     "bolao/loterias/powerball/scripts/test_workflow_arming_contract.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "PB-R3 + POWERBALL_NO_FAKE_EMAIL_GATE. Cobre o YAML, que nenhum teste Python alcancava."
+    },
+    "bolao/loterias/scripts/test_adversarial_round2.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_failure_injection.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_jackpot_identity.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_lottery_core.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/scripts/test_prize_authority.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_accessibility.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
@@ -295,6 +339,12 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_live_hero_reliability.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_multi_live_hero.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/audit_multi_live_hero_responsive.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_notification_ledger_consumer.mjs": {
@@ -364,6 +414,9 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/security/check_xss_sinks.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/scripts/test_allowlist_conditionality.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/test_anon_key_shape.mjs": {
@@ -458,13 +511,19 @@
     "bolao/shared/scripts/test_round_notification_ledger.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
-    "scripts/audit_email_send_safety.mjs": {
+    "bolao/shared/scripts/test_subject_policy.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/shared/scripts/test_subject_policy_interop.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/audit_commit_message_closure_keywords.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/audit_commit_message_pii.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/audit_email_send_safety.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/audit_pii_repo_wide.mjs": {
@@ -630,6 +689,15 @@
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
     },
+    "scripts/safety/audit_safety_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/safety/test_change_intent_lifecycle.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/safety/test_safety_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/sentinel/audit_log.mjs": {
       "classification": "NON_GATE_HELPER",
       "reason": "Biblioteca de logging estruturado (createRunLogger). Nao verifica nada sozinha; e exercitada pelos testes de seguranca do Sentinel (scripts/sentinel/test_security.mjs) e usada em runtime por run.mjs/reconcile.mjs."
@@ -677,71 +745,6 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/test_pii_detectors.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/cdb2026/scripts/test_bracket_persistence.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED",
-      "coverage": "Round-trip completo no navegador REAL pelo caminho seguro (token no fragmento), com o Supabase falsificado na ROTA -- nenhuma entrada de participante e tocada. Captura o payload ANTES da rede, recarrega devolvendo exatamente ele, e compara o bracket renderizado. Cobre QF/SF/final/campeao/vice e falso-sucesso (servidor recusando nao vira 'salvo'). 3 mutacoes pegas, incluindo o defeito original: reidratar do DOM em vez do modelo."
-    },
-    "bolao/cdb2026/scripts/test_receipt.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/powerball/scripts/test_current_balance_unicity.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/powerball/scripts/test_run_31679185588_regression.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/scripts/test_adversarial_round2.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/scripts/test_failure_injection.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/scripts/test_jackpot_identity.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/scripts/test_lottery_core.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/loterias/scripts/test_prize_authority.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_multi_live_hero.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_multi_live_hero_responsive.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/shared/scripts/test_subject_policy.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/shared/scripts/test_subject_policy_interop.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/cdb2026/scripts/test_entry_saved_confirmation.py": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Prova o consumidor do comprovante contra o BANCO REAL (fila, reserva, unicidade) com transporte falso. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe como secret do repositorio, e grava/limpa linhas de canario na producao — por isso nao pode entrar numa suite que qualquer um roda a cada commit. Executado sob demanda pelo workflow cdb2026_confirmation_fake_transport_test.yml (workflow_dispatch, declarado em cron_coverage.test.mjs). Nao envia e-mail: BOLAO_ALLOW_REAL_SEND nao e definida e urlopen e substituido por uma sentinela que levanta."
-    },
-    "bolao/scripts/test_allowlist_conditionality.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/br2026/scripts/test_round_close_preflight.py": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "scripts/safety/audit_safety_contract.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "scripts/safety/test_change_intent_lifecycle.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "scripts/safety/test_safety_contract.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/cdb2026/scripts/test_entry_name_readonly.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     }
   }
