@@ -114,6 +114,14 @@ const CHECKS = [
     why: "funcao em public nasce executavel por PUBLIC e pelos papeis do default; sem decisao escrita, servico vira cliente (Issue #271)" },
   { id: "function-creation-discipline-tests", group: "security", cmd: ["node", "scripts/db/test_function_creation_discipline.mjs"],
     why: "prova as nove regressoes exigidas, e confere o modelo estatico contra ACLs lidas de um PostgreSQL 17.10 real" },
+  // Issue #131 — os quatro verbos de linha nas seis tabelas-base do Powerball. Complementa o gate
+  // acima, que trata os tres privilegios estruturais e deixa o CRUD de fora de proposito: aqui a
+  // RLS realmente segura, e por isso mesmo ela e a UNICA coisa segurando. O gate impede que o
+  // grant cresca enquanto a revogacao autorizada nao acontece.
+  { id: "lottery-client-crud", group: "security", cmd: ["node", "scripts/db/audit_lottery_client_crud.mjs"],
+    why: "anon/authenticated com CRUD direto em tabela de participante e pagamento, com so a RLS embaixo (Issue #131)" },
+  { id: "lottery-client-crud-tests", group: "security", cmd: ["node", "scripts/db/test_lottery_client_crud.mjs"],
+    why: "prova que o gate morde no acesso direto e fica quieto na view publica e na RPC — as duas metades" },
   { id: "client-structural-privs", group: "security", cmd: ["node", "scripts/db/audit_client_structural_privs.mjs"],
     why: "papel de cliente com TRUNCATE/REFERENCES/TRIGGER e o unico privilegio destas tabelas sem RLS embaixo (Issue #276)" },
   { id: "client-structural-privs-tests", group: "security", cmd: ["node", "scripts/db/test_client_structural_privs.mjs"],
