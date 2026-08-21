@@ -67,6 +67,14 @@ const CHECKS = [
   { id: "canonical-tree-guard", group: "security", cmd: ["node", "scripts/safety/test_canonical_tree_guard.mjs"],
     why: "guarda que impede sessao de agente de commitar/mesclar/rebasear/empurrar a partir da worktree PRINCIPAL, sem nunca bloquear humano nem CI (Issue #251)" },
 
+  // Issue #266: a DDL de producao mora em DOIS diretorios e so um e o ledger de migracoes. Foi
+  // assim que a #133 nasceu -- um grep ancorado em supabase/migrations devolveu 10 tabelas quando
+  // producao tem 12. Este gate prova que todo objeto EXIGIDO tem um arquivo que o cria, e mantem
+  // visivel qual deles vive fora do ledger. Hermetico: le .sql do repositorio, nunca o banco.
+  { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
+    why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
+  { id: "ddl-provenance-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_provenance.mjs"],
+    why: "o inventario precisa DISTINGUIR: achar criador quando existe e NAO achar quando nao existe" },
   { id: "closure-keyword-gate", group: "security", cmd: ["node", "scripts/audit_commit_message_closure_keywords.mjs"],
     why: "palavra-chave de fechamento do GitHub dentro de uma negacao FECHA a Issue que a frase diz nao fechar (Issue #250)" },
   { id: "closure-keyword-gate-tests", group: "security", cmd: ["node", "scripts/test_audit_commit_message_closure_keywords.mjs"],
