@@ -1,0 +1,29 @@
+{
+  "$schema": "ACL de EXECUTE capturada de um PostgreSQL REAL rodando function_replay_fixture.sql. Consumido pelo teste 9 de scripts/db/test_function_creation_discipline.mjs (Issue #271).",
+
+  "_porque_existe": "O gate e estatico -- o CI e hermetico e nao tem credencial. Um modelo estatico conferido contra si mesmo nao prova nada. Estes valores NAO foram escritos a mao a partir do que o modelo diz: foram LIDOS de `pg_proc.proacl` num cluster de verdade, com os default privileges medidos em producao, aplicando exatamente o arquivo de fixture. O teste falha se o modelo divergir deles.",
+
+  "_como_regenerar": "initdb num cluster efemero 17.x; criar os papeis creatorrole/anon/authenticated/service_role; `alter default privileges for role creatorrole in schema public grant execute on functions to anon, authenticated, service_role`; aplicar function_replay_fixture.sql como creatorrole; ler proacl via aclexplode(coalesce(proacl, acldefault('f', proowner))).",
+
+  "provenance": {
+    "capturedAt": "2026-08-21",
+    "server": "PostgreSQL 17.10 (Homebrew), cluster efemero local",
+    "productionMajor": "17",
+    "defaultAclModelled": "pg_default_acl, schema public, objtype FUNCTION: anon, authenticated, service_role (medido em producao 2026-08-21)"
+  },
+
+  "_leitura": "publicExecute/anon/authenticated sao a ACL EFETIVA, ja contando o caso proacl IS NULL (que significa o padrao embutido acldefault, e portanto PUBLIC=EXECUTE).",
+
+  "functions": {
+    "fx_client":    { "publicExecute": false, "anon": true,  "authenticated": true,
+      "why": "RPC de cliente feita certo: `revoke all ... from public` mais GRANT nominal. E a unica forma que produz o resultado pretendido." },
+    "fx_service":   { "publicExecute": true,  "anon": true,  "authenticated": true,
+      "why": "so concede a service_role e nunca revoga o default. Fica executavel por PUBLIC e pelos dois papeis de cliente -- exatamente a forma que produziu as 14 herancas em `public`." },
+    "fx_internal":  { "publicExecute": true,  "anon": true,  "authenticated": true,
+      "why": "nenhum GRANT em lugar nenhum, e mesmo assim todo mundo executa. E a prova de que 'nao ha GRANT para anon' nao e 'anon nao executa'." },
+    "fx_replaced":  { "publicExecute": false, "anon": false, "authenticated": false,
+      "why": "CREATE OR REPLACE sobre funcao existente PRESERVA a ACL -- o revoke anterior continua valendo." },
+    "fx_recreated": { "publicExecute": true,  "anon": true,  "authenticated": true,
+      "why": "DROP + CREATE DESTROI a ACL e a funcao renasce com o default. Um revoke feito antes do drop nao sobrevive; e o vetor de regressao silenciosa." }
+  }
+}
