@@ -71,6 +71,15 @@ const CHECKS = [
   // assim que a #133 nasceu -- um grep ancorado em supabase/migrations devolveu 10 tabelas quando
   // producao tem 12. Este gate prova que todo objeto EXIGIDO tem um arquivo que o cria, e mantem
   // visivel qual deles vive fora do ledger. Hermetico: le .sql do repositorio, nunca o banco.
+  // Issue #267: sete RPCs SECURITY DEFINER de operador (pagamento, resultado, fases, e-mail de
+  // rodada, identidade da entrada, destinatarios) tinham EXECUTE para `authenticated` -- o papel
+  // que QUALQUER requisicao com JWT assume no PostgREST. Revogado em producao em 2026-08-21, mas o
+  // GRANT continua no baseline: sem este gate, uma reconstrucao a partir das migracoes traz a
+  // exposicao de volta sem ninguem escrever uma linha errada.
+  { id: "operator-rpc-exposure", group: "security", cmd: ["node", "scripts/db/audit_operator_rpc_exposure.mjs"],
+    why: "efeito liquido da DDL nao pode deixar RPC de operador executavel por anon/authenticated/PUBLIC (Issue #267)" },
+  { id: "operator-rpc-exposure-tests", group: "security", cmd: ["node", "scripts/db/test_operator_rpc_exposure.mjs"],
+    why: "o gate acima decide por ORDEM (grant/revoke/regrant); esta suite prova que ele distingue os tres casos" },
   { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
     why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
   { id: "ddl-provenance-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_provenance.mjs"],
