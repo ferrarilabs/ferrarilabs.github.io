@@ -8,7 +8,8 @@
  * a exposicao volta junto.
  */
 
-import { report, CRUD, MIN_PROTECTED_TABLES_SEEN } from "./audit_lottery_client_crud.mjs";
+import { report, CRUD, MIN_PROTECTED_TABLES_SEEN, ddlSources } from "./audit_lottery_client_crud.mjs";
+import { tablePrivState } from "./client_table_privs_model.mjs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -143,20 +144,45 @@ test("10. zero tabelas descobertas nao pode ficar verde", () => {
   assert(r.vistas.length < MIN_PROTECTED_TABLES_SEEN, "com zero descobertas o gate tem de bater no piso e reprovar");
 });
 
-test("11. a arvore real bate com a leitura de producao registrada na #131", () => {
+test("11. a arvore real bate com a leitura de producao PÓS-remediacao (2026-08-21)", () => {
   const r = report({ root: ROOT });
   assert(r.achados.length === 0, `main deveria estar verde: ${JSON.stringify(r.achados.slice(0, 3))}`);
   assert(r.quitadas.length === 0, `divida ja quitada ainda declarada: ${r.quitadas.join(", ")}`);
   assert(r.vistas.length === 6, `as seis tabelas tem de estar presentes; vieram ${r.vistas.length}`);
+  assert((r.decl.pendingRemediation ?? []).length === 0, "a divida foi quitada em 2026-08-21; nao pode voltar a ser declarada");
 
-  // A #131 mede anon e authenticated com os QUATRO verbos nas seis, e PUBLIC com nenhum. O modelo
-  // reproduz isso -- e essa paridade e o que autoriza confiar no gate sem uma leitura de producao.
+  // Producao, lida imediatamente depois da migracao 20260821205500: os dois papeis de cliente sem
+  // NENHUM dos quatro verbos nas seis. O modelo tem de dizer o mesmo.
   for (const tbl of r.protegidas) {
     const byRole = r.privs.get(tbl);
     for (const role of ["anon", "authenticated"]) {
-      for (const p of CRUD) assert(byRole.get(role)?.has(p), `${tbl}/${role} deveria ter ${p} (leitura de producao da #131)`);
+      for (const p of CRUD) {
+        assert(!byRole.get(role)?.has(p), `${tbl}/${role} nao pode mais ter ${p} (leitura pos-remediacao da #131)`);
+      }
     }
-    assert(!(r.privs.get(tbl).get("PUBLIC")?.size), `${tbl}: PUBLIC deveria estar vazio, como producao mede`);
+    assert(!(byRole.get("PUBLIC")?.size), `${tbl}: PUBLIC continua vazio, como producao mede`);
+  }
+});
+
+test("12. e o modelo continua fiel a era ANTERIOR — sem a migracao, reproduz a exposicao medida", () => {
+  // A paridade com a leitura PRE-remediacao e a evidencia que autorizou a mutacao. Apagar o teste
+  // junto com a divida jogaria fora justamente a prova de que o modelo estava certo. Entao ele fica,
+  // reconstruindo aquela era: a mesma DDL, menos a migracao que remediou.
+  const semRemediacao = ddlSources({ root: ROOT })
+    .filter((f) => !f.file.includes("20260821205500_revoke_client_crud_lottery_tables"));
+  assert(semRemediacao.length === ddlSources({ root: ROOT }).length - 1, "a migracao de remediacao tem de existir para ser excluida");
+
+  const antes = tablePrivState(semRemediacao);
+  const seis = ["lottery_admin_audit", "lottery_draws", "lottery_participants",
+    "lottery_participations", "lottery_payment_transactions", "lottery_pools"];
+  for (const tbl of seis) {
+    const byRole = antes.get(tbl);
+    for (const role of ["anon", "authenticated"]) {
+      for (const p of CRUD) {
+        assert(byRole.get(role)?.has(p), `era anterior: ${tbl}/${role} tinha ${p} em producao, e o modelo tem de reproduzir`);
+      }
+    }
+    assert(!(antes.get(tbl).get("PUBLIC")?.size), `era anterior: ${tbl} tinha PUBLIC vazio`);
   }
 });
 
