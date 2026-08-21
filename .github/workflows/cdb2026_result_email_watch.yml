@@ -1,0 +1,74 @@
+# cdb2026_result_email_watch.yml — Issue #180.
+#
+# POR QUE ESTE WORKFLOW EXISTE
+# `send_result_email.py --auto` sai com 0 tanto quando nao havia nada a fazer quanto quando havia um
+# resultado e o envio se perdeu. No painel do Actions os dois casos sao o mesmo verde. Foi assim que
+# o HIST-037 (2026-08-06) passou: duas partidas terminadas ficaram sem notificacao por 3 a 27 horas,
+# e quem percebeu foi o dono, nao o monitoramento.
+#
+# Este vigia le o ledger duravel (`bolao_notif_jobs`, pool `cdb2026`) e responde a pergunta que o
+# verde nao responde: terminou uma perna e o e-mail NAO saiu?
+#
+# ESTE WORKFLOW NAO ENVIA E-MAIL. NUNCA.
+# O sinal e o PROPRIO RESULTADO da execucao -- GitHub-native, como a autorizacao da #180 determina.
+# Nao ha destinatario, nao ha template, nao ha transporte. O `detect_missed_result_emails.py` e
+# testado (caso 8) contra a presenca de qualquer simbolo de envio.
+#
+# CODIGOS DE SAIDA, E POR QUE SAO TRES E NAO DOIS
+#   0  HEALTHY / PRE_LEDGER  -> nada a fazer
+#   2  GAP                   -> uma perna terminou sem entrega registrada
+#   3  UNKNOWN               -> o ledger ou o estado nao pode ser LIDO
+#
+# UNKNOWN e GAP falham os dois, mas com codigos DIFERENTES e mensagens diferentes, e essa distincao
+# e a razao de o detector existir. Um monitor que nao separa "nao ha registro" de "nao consegui ler"
+# vira gerador de alarme falso durante exatamente a queda que importa -- e um alarme que grita em
+# toda queda e silenciado, e ai o defeito real volta a passar despercebido.
+
+name: Bolão CDB2026 — Vigia do e-mail de resultado
+
+on:
+  schedule:
+    # Duas vezes por dia, bem depois das janelas de envio (que rodam 16-23 e 0-5 UTC). A folga de
+    # 3h do proprio detector ja evita acusar perna recente; esta cadencia so precisa ser regular.
+    - cron: "17 8 * * *"
+    - cron: "17 20 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdb2026-result-email-watch
+  cancel-in-progress: true
+
+jobs:
+  watch:
+    name: Detecta e-mail de resultado perdido (somente leitura)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detecta lacunas
+        env:
+          # Leitura do ledger e do estado exige a credencial privilegiada; a anon key nao alcanca
+          # `bolao_notif_jobs`. A variavel que ARMA envio real (`BOLAO_ALLOW_REAL_SEND`) NAO e
+          # definida aqui, de proposito: mesmo que alguem importe o sender por engano, o envio
+          # continua desarmado.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          cd bolao/cdb2026/scripts
+          set +e
+          python3 detect_missed_result_emails.py --json
+          CODE=$?
+          set -e
+          echo "detector exit=$CODE"
+          if [ "$CODE" = "2" ]; then
+            echo "::error title=CDB2026 result email GAP::Uma perna terminou sem entrega registrada no ledger. Ver a saida JSON acima (findingId identifica fase:confronto:perna)."
+            exit 1
+          fi
+          if [ "$CODE" = "3" ]; then
+            echo "::warning title=CDB2026 result email UNKNOWN::O ledger ou o estado nao pode ser lido. NENHUMA lacuna foi afirmada — isto NAO e um e-mail perdido."
+            exit 1
+          fi
+          echo "HEALTHY — nenhuma lacuna."
