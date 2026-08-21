@@ -92,6 +92,15 @@ const CHECKS = [
   // DEFINER (roda com o privilegio do dono) alcancavel por PUBLIC/anon/authenticated sem que
   // ninguem tenha decidido isso. Classifica por CAPACIDADE lida do corpo, nunca por nome, e
   // exige entrada ratificada em bolao/shared/safety/ratified_rpc_exposure.json.
+  // Issue #276 — `authenticated` tinha TRUNCATE/REFERENCES/TRIGGER em 11 das 12 tabelas de
+  // `public` (inclusive a de identidade do participante) e `anon` em ate 10. A RLS NAO cobre
+  // estes tres: ela aplica policies a SELECT/INSERT/UPDATE/DELETE, e TRUNCATE e operacao de
+  // tabela inteira. Revogado em producao em 2026-08-21. Ja tinha voltado uma vez -- as tabelas de
+  // notificacao nasceram depois da remediacao de 2026-08-07 e vieram com o privilegio de novo.
+  { id: "client-structural-privs", group: "security", cmd: ["node", "scripts/db/audit_client_structural_privs.mjs"],
+    why: "papel de cliente com TRUNCATE/REFERENCES/TRIGGER e o unico privilegio destas tabelas sem RLS embaixo (Issue #276)" },
+  { id: "client-structural-privs-tests", group: "security", cmd: ["node", "scripts/db/test_client_structural_privs.mjs"],
+    why: "prova as nove regressoes exigidas, e que remover a migracao reproduz a exposicao medida em producao" },
   { id: "secdef-exposure", group: "security", cmd: ["node", "scripts/db/audit_security_definer_exposure.mjs"],
     why: "funcao SECURITY DEFINER executavel por cliente sem ratificacao explicita e privilegio que ninguem decidiu conceder (Issue #273)" },
   { id: "secdef-exposure-tests", group: "security", cmd: ["node", "scripts/db/test_security_definer_exposure.mjs"],
