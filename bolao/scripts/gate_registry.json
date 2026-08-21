@@ -440,6 +440,9 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Estatico. Nenhuma porta de harness declarada por duas suites. Criado depois de eu escolher 8231 para uma suite nova sem ver que audit_live_card_dom.mjs ja usava — custou tres execucoes de verify culpando orfaos de processo. Mutacao (reintroduzir a colisao): pega."
     },
+    "bolao/scripts/test_live_producer_cadence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/test_m8m9_integration.py": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Matriz de queda M8/M9 contra a PRODUCAO: precisa de SUPABASE_SERVICE_ROLE_KEY, que so existe no runner, e leva ~70s esperando o backoff real do outbox. Executado pelo workflow m8m9_probe.yml. Ultimo resultado: 31/31, ANON_ALLOWED_OPERATIONS=0, NO_DUPLICATE_ACCEPTED=PASS."

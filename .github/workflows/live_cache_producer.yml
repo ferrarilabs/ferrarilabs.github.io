@@ -18,15 +18,27 @@
 #     01h-13h: ZERO partidas
 # Logo a janela real de atividade e 14h->02h UTC (ultimo kickoff 00h + ~3h de jogo).
 #   · dentro da janela: a cada 5 min  -> idade maxima do cache ~5 min + duracao da execucao,
-#     confortavelmente dentro do teto de 10 min do gateway;
-#   · fora da janela: a cada 30 min   -> nao ha partida para observar; o produtor ainda roda para
-#     manter o caminho exercitado, e o proprio script pula a rede quando o calendario nao mostra
-#     jogo por perto.
+#     confortavelmente dentro do teto de 10 min do gateway.
 #
-# Fora da janela o cache pode envelhecer alem de 10 min e o gateway respondera SOURCE_UNAVAILABLE.
-# Isso e HONESTO e nao e regressao: hoje ele responde isso 24h por dia, e nao existe jogo ao vivo
-# as 08h UTC. Se um dia se preferir zero 503, basta subir a cadencia externa -- o repositorio e
-# publico e minuto de Actions nao e cobrado.
+# POR QUE NAO HA CADENCIA FORA DA JANELA (Issue #259, decidido em 2026-08-21)
+# Existia um agendamento de 30 em 30 minutos nas horas 3-13 UTC, justificado como "cadencia baixa,
+# so para manter o caminho vivo e visivel". Ele nao entregava NENHUMA das duas coisas:
+#
+#   1. FRESCOR -- impossivel por aritmetica. O gateway descarta ultimo-bom-conhecido com mais de
+#      10 min (`LAST_KNOWN_GOOD_MAX_AGE_MS`). Uma cadencia de 30 min deixa o cache velho demais
+#      por 20 de cada 30 minutos, MESMO quando a execucao grava com sucesso. Nao era um problema
+#      de ajuste: 30 > 10 nunca cabe.
+#   2. CAMINHO EXERCITADO -- nao acontece. `produceOne` retorna `SKIPPED_OUT_OF_WINDOW` ANTES de
+#      qualquer chamada de rede e antes de tocar na credencial. Entre 03h e 13h UTC nao existe
+#      NENHUMA partida no calendario commitado, entao a execucao so provava que o Node inicia e
+#      que os arquivos de fixture fazem parse -- nem provedor, nem escrita, nem credencial.
+#
+# Fora da janela o cache envelhece e o gateway responde SOURCE_UNAVAILABLE. Isso e HONESTO e nao e
+# regressao: nao existe jogo ao vivo as 08h UTC, e os apps caem no snapshot commitado, que renderiza
+# a tabela e as 382 partidas do mesmo jeito. Se um dia se preferir zero 503, a mudanca certa NAO e
+# ressuscitar este cron -- e ou subir a cadencia para <= 10 min (opcao B, 288 execucoes/dia contra um
+# provedor que hoje bloqueia), ou afrouxar o teto do gateway (opcao D, que muda a semantica de
+# "ultimo bom conhecido"). As duas precisam da sua propria decisao.
 #
 # ESCOPO
 # Escreve em UMA tabela: `public.live_sports_cache` (dado esportivo publico; o COMMENT da propria
@@ -40,8 +52,7 @@ on:
     # Janela de atividade derivada do calendario commitado (14h -> 02h UTC): 5 em 5 minutos.
     - cron: "*/5 14-23 * * *"
     - cron: "*/5 0-2 * * *"
-    # Fora da janela: cadencia baixa, so para manter o caminho vivo e visivel.
-    - cron: "*/30 3-13 * * *"
+    # NAO existe agendamento fora da janela. Ver "POR QUE NAO HA CADENCIA FORA DA JANELA" acima.
   workflow_dispatch:
     inputs:
       dry_run:
