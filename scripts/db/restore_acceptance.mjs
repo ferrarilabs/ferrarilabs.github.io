@@ -34,6 +34,7 @@ import { readFileSync, existsSync, readdirSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { join } from "node:path";
+import { REQUIRED_TABLES, REQUIRED_VIEWS, TOLERATED_TABLES } from "./acceptance_checks.mjs";
 
 export const RESULT = { PASS: "PASS", FAIL: "FAIL", BLOCKED: "BLOCKED" };
 
@@ -229,9 +230,81 @@ export function recordedPolicyDigests(dr1Text) {
  */
 export const A6_EXPECTED_PUBLIC_SEQUENCES = 0;
 
-export const A1_EXPECTED = Object.freeze({
-  tables: 7, enumTypes: 3, functions: 1, policies: 6, uniqueIndexes: 1, primaryKeys: 7, foreignKeys: 17,
+/**
+ * A1 deixou de ser uma comparacao de CONTAGENS — Issue #133.
+ *
+ * A versao anterior exigia `tables: 7`. Producao tem 12. Efeito medido: um restore CORRETO
+ * reprovava, e um restore que apagasse `bolao_entry_private` (PII), `bolao_notif_jobs`,
+ * `live_sports_cache`, `cdb_entry_access` e `bolao_round_notif_jobs` PASSAVA, porque sobravam
+ * exatamente sete. O unico desastre que este arquivo existe para detectar era o unico aceito.
+ *
+ * A lista de exigidas vem de `acceptance_checks.mjs` — UMA fonte da verdade para os dois
+ * arnesses (o offline, aqui, e o de catalogo vivo). Duas listas divergiriam, e a divergencia
+ * apareceria como um restore aprovado por um e reprovado pelo outro.
+ */
+
+/**
+ * Contadores estruturais que um DUMP do schema `public` deve conter — re-derivados do catalogo de
+ * producao em 2026-08-20 (Issue #133). Os valores anteriores (3/6/1/7/17 com 7 tabelas) descreviam
+ * o banco da Fase 1.
+ *
+ * `functions: 61` e o numero de funcoes NAO pertencentes a extensao (medido por `pg_depend`).
+ * Producao tem 108 em `public`, mas 47 sao da extensao `citext` e um `pg_dump` do schema nao as
+ * emite. Por isso este numero e comparavel AQUI (arnes offline, sobre o TOC do dump) e NAO e
+ * comparavel no arnes de catalogo vivo — onde ficou como informativo. Medir populacoes diferentes
+ * com a mesma constante foi metade do defeito original.
+ */
+export const A1_STRUCTURAL_EXPECTED = Object.freeze({
+  enumTypes: 4, policies: 1, uniqueIndexes: 1, primaryKeys: 12, foreignKeys: 17, functions: 61,
 });
+
+/**
+ * Nucleo de A1, puro e exportavel — Issue #133. Recebe as listas por parametro para que o teste
+ * consiga exercitar o caminho FECHA-FALHANDO (lista canonica indisponivel) sem mexer no modulo.
+ */
+export function requiredObjectsVerdict(toc, {
+  required = REQUIRED_TABLES, requiredViews = REQUIRED_VIEWS,
+  tolerated = TOLERATED_TABLES, structuralExpected = A1_STRUCTURAL_EXPECTED } = {}) {
+  // FALHA FECHADO: sem a lista canonica nao da para afirmar nada sobre a restauracao, e "nao
+  // consegui verificar" jamais pode sair como PASS. Era essa a forma do defeito antigo.
+  if (!Array.isArray(required) || required.length === 0 || !Array.isArray(requiredViews)) {
+    return { ok: false, evidence: "baseline de objetos exigidos indisponivel",
+      why: "a lista canonica nao pode ser carregada — falha FECHADO em vez de aprovar sem prova" };
+  }
+  const counts = tocCounts(toc);
+  const named = (kind) => new Set(
+    toc.filter((e) => e.kind === kind && !/TABLE DATA/.test(e.detail))
+       .map((e) => String(e.detail || "").trim().split(/\s+/)[2])
+       .filter(Boolean));
+  const haveTables = named("TABLE");
+  const haveViews = named("VIEW");
+  const missingTables = required.filter((t) => !haveTables.has(t));
+  const missingViews = requiredViews.filter((v) => !haveViews.has(v));
+  // Politica declarada: EXIGIDO ausente reprova; TOLERADO e declarado e nao reprova; qualquer
+  // outro extra reprova, reportado a parte — objeto que ninguem declarou pode ser o dump ERRADO.
+  const extraTables = [...haveTables].filter((t) => !required.includes(t) && !tolerated.includes(t));
+  const E = structuralExpected;
+  const structural = [
+    ["enum types", counts.TYPE || 0, E.enumTypes],
+    ["policies", counts.POLICY || 0, E.policies],
+    ["unique indexes", counts.INDEX || 0, E.uniqueIndexes],
+    ["primary keys", counts.CONSTRAINT || 0, E.primaryKeys],
+    ["foreign keys", counts.FK || 0, E.foreignKeys],
+    ["functions", counts.FUNCTION || 0, E.functions],
+  ].filter(([, got, want]) => got !== want);
+
+  const problems = [];
+  if (missingTables.length) problems.push(`tabelas EXIGIDAS ausentes: ${missingTables.join(", ")}`);
+  if (missingViews.length) problems.push(`views EXIGIDAS ausentes: ${missingViews.join(", ")}`);
+  if (extraTables.length) problems.push(`tabelas NAO DECLARADAS presentes: ${extraTables.join(", ")}`);
+  if (structural.length) problems.push(structural.map(([k, got, want]) => `${k}: esperado ${want}, veio ${got}`).join("; "));
+  return {
+    ok: problems.length === 0,
+    evidence: `TOC: ${haveTables.size} tabelas, ${haveViews.size} views, ${counts.TABLE || 0} entradas TABLE`,
+    why: problems.length ? problems.join(" ; ") : null,
+    missingTables, missingViews, extraTables,
+  };
+}
 
 export function evaluate({ manifest, toc, plainSql, schemaSql, dr1Text = null, productionRefScan = null,
   archiveHashes = null, liveCatalog = null, ownershipReplay = null } = {}) {
@@ -241,21 +314,10 @@ export function evaluate({ manifest, toc, plainSql, schemaSql, dr1Text = null, p
   const counts = tocCounts(toc);
   const tableCount = counts.TABLE || 0;
 
-  // ── A1 application object counts
+  // ── A1 objetos EXIGIDOS presentes, por nome (Issue #133)
   {
-    const seen = {
-      tables: tableCount,
-      enumTypes: counts.TYPE || 0,
-      functions: counts.FUNCTION || 0,
-      policies: counts.POLICY || 0,
-      uniqueIndexes: counts.INDEX || 0,
-      primaryKeys: counts.CONSTRAINT || 0,
-      foreignKeys: counts.FK || 0,
-    };
-    const bad = Object.entries(A1_EXPECTED).filter(([k, v]) => seen[k] !== v);
-    add("A1", "Application object counts", bad.length ? RESULT.FAIL : RESULT.PASS,
-      `TOC: ${Object.entries(seen).map(([k, v]) => `${k}=${v}`).join(" ")}`,
-      bad.length ? `mismatch on ${bad.map(([k, v]) => `${k} expected ${v} got ${seen[k]}`).join("; ")}` : null);
+    const v = requiredObjectsVerdict(toc);
+    add("A1", "Required objects present", v.ok ? RESULT.PASS : RESULT.FAIL, v.evidence, v.why);
   }
 
   // ── A2 row counts vs the backup manifest
