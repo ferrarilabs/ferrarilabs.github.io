@@ -88,6 +88,14 @@ const CHECKS = [
     why: "SECURITY DEFINER que liga RLS sozinha nao pode ser executavel por cliente, e o gatilho nao pode morrer (Issue #270)" },
   { id: "rls-auto-enable-privilege-tests", group: "security", cmd: ["node", "scripts/db/test_rls_auto_enable_privilege.mjs"],
     why: "prova que o gate reprova a mutacao ingenua: revogar os tres papeis e deixar PUBLIC, que todos herdam" },
+  // Issue #273 — generaliza a FORMA que as Issues #267 e #270 acharam a mao: funcao SECURITY
+  // DEFINER (roda com o privilegio do dono) alcancavel por PUBLIC/anon/authenticated sem que
+  // ninguem tenha decidido isso. Classifica por CAPACIDADE lida do corpo, nunca por nome, e
+  // exige entrada ratificada em bolao/shared/safety/ratified_rpc_exposure.json.
+  { id: "secdef-exposure", group: "security", cmd: ["node", "scripts/db/audit_security_definer_exposure.mjs"],
+    why: "funcao SECURITY DEFINER executavel por cliente sem ratificacao explicita e privilegio que ninguem decidiu conceder (Issue #273)" },
+  { id: "secdef-exposure-tests", group: "security", cmd: ["node", "scripts/db/test_security_definer_exposure.mjs"],
+    why: "prova as oito regressoes exigidas, inclusive a mutacao da #270 (revogar os papeis e deixar PUBLIC) e o falso-verde por varredura vazia" },
   { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
     why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
   { id: "ddl-provenance-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_provenance.mjs"],

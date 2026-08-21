@@ -1,0 +1,80 @@
+{
+  "$schema": "Manifesto de exposicao RATIFICADA de funcoes SECURITY DEFINER. Consumido por scripts/db/audit_security_definer_exposure.mjs (Issue #273). Uma funcao SECURITY DEFINER alcancavel por anon/authenticated/PUBLIC SO passa no gate se tiver entrada aqui.",
+
+  "_porque_existe": "Uma funcao SECURITY DEFINER roda com o privilegio do DONO (postgres). Expo-la a um papel de cliente as vezes esta certo -- e assim que uma RPC estreita funciona -- e as vezes e acidente (Issue #270). A diferenca e se alguem DECIDIU. O detector nao decide: exige que a decisao esteja escrita aqui, com assinatura exata, papeis permitidos, motivo, chamador esperado e evidencia de ratificacao.",
+
+  "_capacidades": "`declaredCapabilities` NAO e decorativo. O detector recalcula as capacidades a partir do CORPO da funcao a cada execucao e reprova se o corpo passar a fazer algo que esta entrada nao previa. Ou seja: trocar o corpo de uma RPC ja ratificada para que ela passe a gravar pagamento NAO passa despercebido so porque o nome continuou o mesmo. Ratificacao vale para a funcao que foi lida, nao para o nome dela.",
+
+  "_quarentena": "`quarantine` marca uma exposicao que NAO esta aprovada -- esta sendo investigada. Exige Issue aberta e prazo. Depois do prazo o gate REPROVA. E o mecanismo que impede que 'a gente olha isso depois' vire permanente em silencio.",
+
+  "ratified": [
+    {
+      "signature": "public.submit_entry(p_pool_id text, p_entry_name text, p_participant_email text, p_picks jsonb, p_client_ref text, p_lang text, p_tie_ref text)",
+      "key": "public.submit_entry/7",
+      "allowedRoles": ["anon", "authenticated", "service_role"],
+      "classification": "EXPECTED_CLIENT_RPC",
+      "reason": "Unica mutacao anonima legitima do BR2026: e por ela que um participante entra no bolao. O proprio app documenta isso em bolao/br2026/js/app.js ('PUBLICO: submit_entry (unica mutacao anonima legitima)'). Escreve a identidade do participante porque o e-mail dele E a entrada -- por isso WRITES_PARTICIPANT_IDENTITY esta declarado, e nao e um descuido: e o que a funcao existe para fazer. O campo privilegiado nao entra por aqui; a funcao atribui o id e ignora o que o cliente mandar.",
+      "expectedCaller": "bolao/br2026/js/app.js",
+      "expectedRuntime": "navegador do participante, com a anon key publica",
+      "declaredCapabilities": ["READS_PARTICIPANT_IDENTITY", "READS_POOL_STATE", "WRITES_PARTICIPANT_IDENTITY", "WRITES_POOL_STATE"],
+      "ratifiedBy": "Eduardo Ferrari",
+      "ratificationEvidence": "Fluxo de entrada do BR2026, em producao desde 2026-07; grants no baseline 20260811160000 e definicao em bolao/shared/sql/017_n22_narrow_mutations.sql. Chamada real em app.js:616 via callNarrowRpc."
+    },
+    {
+      "signature": "public.cdb_my_entry(p_token text)",
+      "key": "public.cdb_my_entry/1",
+      "allowedRoles": ["anon", "authenticated", "service_role"],
+      "classification": "EXPECTED_CLIENT_RPC",
+      "reason": "Leitura da propria entrada do CDB2026 a partir do token do convite. O participante chega pelo link seguro e precisa ver o que ja palpitou. So le -- nao muta nada.",
+      "expectedCaller": "bolao/cdb2026/js/app.js",
+      "expectedRuntime": "navegador do participante, com a anon key publica",
+      "declaredCapabilities": ["READS_POOL_STATE"],
+      "ratifiedBy": "Eduardo Ferrari",
+      "ratificationEvidence": "20260812070000_cdb_secure_participant_access.sql concede explicitamente depois de revogar de PUBLIC. Chamada real em app.js:832 via cdbRpc; exercitada pelo canary bolao/cdb2026/scripts/secure_access_canary.py."
+    },
+    {
+      "signature": "public.cdb_save_my_picks(p_token text, p_client_ref text, p_picks jsonb)",
+      "key": "public.cdb_save_my_picks/3",
+      "allowedRoles": ["anon", "authenticated", "service_role"],
+      "classification": "EXPECTED_CLIENT_RPC",
+      "reason": "Gravacao do palpite do participante do CDB2026. E o caminho de escrita do navegador, e o unico -- a mutacao de operador vai por outro caminho, com credencial privilegiada. Enfileira o comprovante de 'palpite salvo' no outbox, entao CONTROLS_NOTIFICATION esta declarado de proposito.",
+      "expectedCaller": "bolao/cdb2026/js/app.js",
+      "expectedRuntime": "navegador do participante, com a anon key publica",
+      "declaredCapabilities": ["CONTROLS_NOTIFICATION", "READS_NOTIFICATION", "READS_POOL_STATE", "WRITES_POOL_STATE"],
+      "ratifiedBy": "Eduardo Ferrari",
+      "ratificationEvidence": "Cadeia de migracoes 20260812170000 -> 20260816010000, todas revogando de PUBLIC antes de conceder. Chamada real em app.js:2436 via cdbRpc."
+    },
+    {
+      "signature": "public.cdb_reserve_entry_saved_email(p_token text)",
+      "key": "public.cdb_reserve_entry_saved_email/1",
+      "allowedRoles": ["anon", "authenticated", "service_role"],
+      "classification": "UNKNOWN",
+      "reason": "NAO RATIFICADA. Esta entrada existe para manter a exposicao VISIVEL enquanto a investigacao corre, nao para aprova-la. A migracao 20260812235500 concede a anon/authenticated dizendo 'O navegador do participante precisa chamar isto -- e so isto', mas nenhuma chamada existe hoje no repositorio: zero referencias em formato de invocacao em bolao/, supabase/functions/, scripts/ e .github/.",
+      "expectedCaller": "bolao/cdb2026/js/app.js",
+      "expectedRuntime": "navegador do participante (declarado pela migracao; nao confirmado em uso)",
+      "declaredCapabilities": ["CONTROLS_NOTIFICATION", "READS_NOTIFICATION"],
+      "ratifiedBy": "(ninguem -- em investigacao)",
+      "ratificationEvidence": "Nenhuma. Ver Issue #274.",
+      "quarantine": {
+        "reviewIssue": 274,
+        "reviewByIso": "2026-10-01",
+        "why": "CDB2026 esta em producao com dinheiro real e esta RPC toca semantica de notificacao (permissao de envio unico do comprovante). Revogar as cegas pode quebrar o 'exatamente uma vez' do e-mail. Fica em quarentena, visivel e com prazo, ate a Issue #274 concluir se e privilegio morto."
+      }
+    }
+  ],
+
+  "_catraca_public": "Funcoes SECURITY DEFINER em `public` que NAO tem um `revoke ... from public` explicito dependem de `pg_default_acl` para nao nascerem executaveis por PUBLIC. Isso e estado do CLUSTER, nao do repositorio: restaurar num cluster sem esses defaults faz todas elas vazarem (foi assim que rls_auto_enable ficou exposta -- Issue #270). A lista abaixo e a linha de base do que ja e assim. Ela pode ENCOLHER, nunca crescer: uma funcao nova que dependa disso reprova o gate.",
+
+  "publicRelianceBaseline": [
+    "public.claim_outbox_event/3",
+    "public.delivery_count/2",
+    "public.emit_audit_event/8",
+    "public.emit_outbox_event/5",
+    "public.outbox_event_status/1",
+    "public.purge_canary_deliveries/0",
+    "public.recover_expired_outbox_leases/0",
+    "public.settle_delivery/3",
+    "public.settle_outbox_event/4",
+    "public.submit_entry/7"
+  ]
+}

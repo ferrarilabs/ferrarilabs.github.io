@@ -7,16 +7,5 @@
 
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
 
-  "declarations": [
-{
-      "surface_id": "SUPABASE_MIGRATIONS",
-      "reason": "Issue #270. `public.rls_auto_enable()` e SECURITY DEFINER, pertence a `postgres` e sustenta o gatilho de evento `ensure_rls` (ddl_command_end), que liga RLS em toda tabela nova de `public`. Ela estava executavel por PUBLIC, `anon`, `authenticated` e `service_role`. O ponto que separa esta mudanca da #267: a entrada de grantee vazio (`=X/postgres`) e o grant a PUBLIC, e TODO papel herda PUBLIC -- entao revogar so os tres grants nominais NAO estabeleceria menor privilegio, `has_function_privilege()` continuaria `true` para os tres e a mudanca pareceria aplicada sem efeito. Sao QUATRO revogacoes. Executado em producao em 2026-08-21 sob autorizacao explicita e pontual do Eduardo, com preflight completo: ACL e gatilho relidos imediatamente antes (batendo exatamente com a autorizacao), TODAS as referencias do repositorio classificadas (DIRECT_CALL = ZERO, UNKNOWN = ZERO), e `has_schema_privilege(papel,'public','CREATE') = false` medido para anon/authenticated/service_role, provando que nenhum deles consegue sequer disparar o gatilho. `service_role` tambem sai: e infraestrutura de banco, nao RPC de servico, e nao tem chamador nenhum -- mante-lo so porque a #267 manteve seria copiar a forma sem o motivo.",
-      "expected_behavior_change": "Somente PRIVILEGIO, numa unica funcao: quatro `revoke execute` (PUBLIC, anon, authenticated, service_role). Nada mais muda -- nem corpo da funcao, nem o gatilho `ensure_rls`, nem RLS, policies, grants de tabela, dados, schema ou DEFAULT PRIVILEGES. Leitura pos-mudanca: proacl = `{postgres=X/postgres}` (so o dono), os quatro papeis em false, e md5 do corpo, prosecdef, `search_path=pg_catalog` e owner INALTERADOS; `ensure_rls` continua evtenabled='O', ddl_command_end, mesmas tags, mesma ligacao. A metade funcional foi provada em cluster PostgreSQL 17 efemero local (NAO em producao, que exigiria DDL): papel sem EXECUTE cria tabela e a RLS e ligada assim mesmo, com controle negativo de que chamada direta da `permission denied` e de que gatilho desabilitado deixa a RLS desligada. Rollback exato em supabase/rollbacks/20260821010000_*.rollback.sql (quatro GRANT EXECUTE, incluindo PUBLIC), com o aviso de que aplica-lo reintroduz a exposicao.",
-      "tests_required": [
-          "rls-auto-enable-privilege",
-          "rls-auto-enable-privilege-tests",
-          "ddl-provenance"
-      ]
-  }
-  ]
+  "declarations": []
 }
