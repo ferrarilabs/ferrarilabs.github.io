@@ -97,7 +97,11 @@ test("11. o gate ENXERGA a metade que ficou aberta, em vez de ficar verde sobre 
     const sa = defaultExposure(files, "supabase_admin", cls);
     assert(sa.length === 3, `supabase_admin/${cls} deveria continuar visivelmente exposto aos 3 papeis; veio ${JSON.stringify(sa)}`);
   }
-  // postgres/FUNCTIONS tambem continua aberto, por decisao registrada (PUBLIC nao e supprimivel).
+  // postgres/FUNCTIONS tambem continua aberto -- mas por DECISAO DE ESCOPO, nao por impossibilidade.
+  // A justificativa antiga ("PUBLIC nao e suprimivel") estava errada e foi corrigida em 2026-08-21:
+  // a forma GLOBAL do default do criador suprime de fato; a forma por schema e que nao. O que
+  // bloqueia e o alcance da forma global (banco inteiro, nao so `public`). Ver
+  // `bolao/shared/safety/default_privileges_state.json` e `scripts/db/function_birth_acl.mjs`.
   const pf = defaultExposure(files, "postgres", "FUNCTIONS");
   assert(pf.length === 3, `postgres/FUNCTIONS deveria continuar declarado como aberto; veio ${JSON.stringify(pf)}`);
 });

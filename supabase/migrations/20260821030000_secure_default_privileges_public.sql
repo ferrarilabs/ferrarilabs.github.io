@@ -21,17 +21,39 @@
 --
 --   1. FUNCTIONS (qualquer papel criador) -- PARADO NO PORTAO HUMANO.
 --
---      `CREATE FUNCTION` concede EXECUTE a PUBLIC por padrao EMBUTIDO do PostgreSQL, e isso NAO E
---      SUPRIMIVEL por default privileges. Medido em cluster PostgreSQL 17.10 efemero, quatro
---      variantes:
---        (a) com os defaults de producao   -> funcao nova nasce `{=X/owner,...}`  PUBLIC=true
---        (b) + `REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` -> a linha armazenada NAO muda, PUBLIC=true
---        (c) revogando os tres papeis      -> a linha e APAGADA, `proacl=NULL`, PUBLIC=true
---        (d) replicando o shape exato de producao (owner explicito) -> PUBLIC=true tambem
+--      *** CORRIGIDO EM 2026-08-21 -- O TEXTO ORIGINAL DESTE BLOCO ESTAVA ERRADO. ***
 --
---      Logo revogar o default de FUNCTIONS tornaria a exposicao PIOR de ler: os grants nominais
---      sumiriam e o acesso efetivo continuaria, por heranca de PUBLIC. E exatamente a forma
---      "parece aplicado e nao faz nada" da Issue #270.
+--      O que este bloco afirmava, e que virou verdade de projeto:
+--        "`CREATE FUNCTION` concede EXECUTE a PUBLIC por padrao EMBUTIDO do PostgreSQL, e isso
+--         NAO E SUPRIMIVEL por default privileges."
+--
+--      O enunciado CORRETO e:
+--        nao da para suprimir com um REVOKE POR SCHEMA; um default GLOBAL do papel criador
+--        SUPRIME -- mas o alcance dele e o BANCO INTEIRO, nao so `public`.
+--
+--      As quatro variantes medidas na epoca (a)-(d) continuam validas e nao foram inventadas.
+--      Todas testaram a forma `IN SCHEMA public`, que de fato nao faz nada. A conclusao e que
+--      generalizou de "esta forma nao funciona" para "nao existe forma".
+--
+--      Nova medicao, mesmo cluster efemero 17.10, criador nao-superusuario:
+--        (e) `ALTER DEFAULT PRIVILEGES FOR ROLE <criador> REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`
+--            (GLOBAL, SEM `IN SCHEMA`) -> funcao nova em `public` nasce SEM PUBLIC. FUNCIONA.
+--        (f) a mesma entrada global tambem afeta funcao criada em OUTRO schema pelo mesmo
+--            criador -> o preco e alcance, nao eficacia.
+--        (g) o rollback (`... GRANT EXECUTE ON FUNCTIONS TO PUBLIC`) apaga a entrada global e
+--            devolve o padrao embutido, exatamente.
+--
+--      A razao esta em `SetDefaultACL`: uma entrada GLOBAL parte de `acldefault()` -- que ja
+--      contem o EXECUTE de PUBLIC -- e SUBSTITUI o padrao embutido, entao consegue SUBTRAIR. Uma
+--      entrada POR SCHEMA parte de uma ACL VAZIA e so consegue SOMAR. Por isso
+--      `IN SCHEMA public REVOKE ... FROM PUBLIC` e um no-op silencioso.
+--
+--      O QUE NAO MUDA: esta migracao continua NAO aplicando nada a FUNCTIONS, e continua certa em
+--      nao aplicar. A opcao global existe, mas o seu alcance e maior que `public` e ela precisa da
+--      sua propria autorizacao com essa consequencia declarada. Ver Issue #271, opcao A.
+--
+--      O controle escolhido continua sendo o de contrato de migracao (opcao B), agora com gate:
+--      `scripts/db/audit_function_creation_discipline.mjs`.
 --
 --      O controle correto para funcao ja existe neste repositorio e e outro: revogar de PUBLIC
 --      explicitamente na propria migracao que cria a funcao -- como
