@@ -135,7 +135,13 @@ Stated for the audit trail, because a review that only lists problems is not a r
 - **`SECURITY_DEFINER_WITHOUT_PINNED_SEARCH_PATH` = 0** across every schema. The highest-severity
   privilege-escalation shape is absent.
 - `public` has exactly **1** SECURITY DEFINER function (`rls_auto_enable`), and its `search_path`
-  **is** pinned.
+  **is** pinned. As of 2026-08-21 it is also executable by **nobody but its owner** — EXECUTE was
+  revoked from PUBLIC, `anon`, `authenticated` and `service_role` under Issue #270, without
+  disturbing the `ensure_rls` event trigger.
+- `S21e` is **re-confirmed** by the 2026-08-21 read, which additionally establishes what S21e did not
+  record: the default privileges are registered for **both** creator roles (`postgres` and
+  `supabase_admin`). That matters because `ALTER DEFAULT PRIVILEGES` is per-role, so any future
+  change to them must address both or it silently does nothing (Issue #271).
 - `S21e` default privileges: **0 PUBLIC** entries — objects created tomorrow do not inherit
   PUBLIC exposure.
 - `S21f` column-level ACLs: **0** — no hidden column grants.

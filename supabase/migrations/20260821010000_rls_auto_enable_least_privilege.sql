@@ -1,0 +1,74 @@
+-- 20260821010000_rls_auto_enable_least_privilege.sql
+-- Issue #270 — menor privilegio em `public.rls_auto_enable()`.
+--
+-- ─── O QUE ESTAVA ERRADO ─────────────────────────────────────────────────────────────────────
+--
+-- `public.rls_auto_enable()` e SECURITY DEFINER, pertence a `postgres` e sustenta o gatilho de
+-- evento `ensure_rls` (`ddl_command_end`), que liga RLS automaticamente em toda tabela nova. Ela
+-- estava marcada como executavel por PUBLIC, `anon`, `authenticated` e `service_role`.
+--
+-- Estado medido em producao (somente leitura, 2026-08-21):
+--
+--   proacl = =X/postgres              <-- PUBLIC
+--            postgres=X/postgres      <-- dono
+--            anon=X/postgres
+--            authenticated=X/postgres
+--            service_role=X/postgres
+--
+-- ─── POR QUE REVOGAR SO OS TRES GRANTS EXPLICITOS NAO RESOLVERIA ─────────────────────────────
+--
+-- Este e o ponto que separa esta migracao da #267, e ela NAO pode ser copiada de la.
+--
+-- A entrada de grantee vazio (`=X/postgres`) e o grant a PUBLIC. Em PostgreSQL todo papel herda
+-- os privilegios de PUBLIC. Entao, enquanto PUBLIC mantiver EXECUTE, revogar `anon`,
+-- `authenticated` e `service_role` NAO tira o acesso de nenhum deles: `has_function_privilege()`
+-- continuaria devolvendo `true` para os tres, e a mudanca pareceria aplicada sem ter efeito
+-- nenhum. PUBLIC tem de ser revogado, e as tres revogacoes explicitas continuam necessarias
+-- porque revogar PUBLIC tambem nao apaga um grant nominal. Sao quatro revogacoes, nao tres.
+--
+-- ─── POR QUE ISSO NAO PARA O GATILHO ─────────────────────────────────────────────────────────
+--
+-- Duas razoes independentes, qualquer uma delas suficiente:
+--
+--   1. PostgreSQL NAO consulta EXECUTE ao disparar um gatilho de evento. A funcao e chamada pelo
+--      sistema durante o processamento do comando DDL; o privilegio e checado no
+--      `CREATE EVENT TRIGGER` (que exige superusuario), nao a cada disparo.
+--
+--   2. Nenhum desses papeis consegue disparar o gatilho, nem em tese. Medido em producao:
+--      `has_schema_privilege(papel,'public','CREATE')` = FALSE para `anon`, `authenticated` E
+--      `service_role`. Sem CREATE em `public` nao ha `CREATE TABLE`, logo nunca ha
+--      `ddl_command_end` com as tags que `ensure_rls` escuta. Quem roda DDL e `postgres` (TRUE) e
+--      `supabase_admin` (TRUE, superusuario) -- e `postgres` e o DONO da funcao, entao mantem a
+--      capacidade de executa-la independentemente de qualquer grant.
+--
+-- ─── POR QUE `service_role` TAMBEM SAI ───────────────────────────────────────────────────────
+--
+-- A #267 preservou `service_role` nas sete RPCs de operador porque aquelas sao RPCs de servico de
+-- verdade, chamadas por script com credencial privilegiada. Esta funcao nao e isso: e
+-- infraestrutura de banco, devolve o pseudo-tipo `event_trigger` e nao tem chamador nenhum.
+-- Levantamento completo de referencias no repositorio: DIRECT_CALL = ZERO, UNKNOWN = ZERO (a
+-- classificacao esta na Issue #270). `service_role` tambem nao tem CREATE em `public`, entao nao
+-- dispara o gatilho. Manter o grant so porque a migracao anterior manteve seria copiar a forma
+-- sem o motivo.
+--
+-- ─── ESCOPO — DELIBERADAMENTE ESTREITO ───────────────────────────────────────────────────────
+--
+-- SO revoga EXECUTE nesta unica funcao. NAO toca: corpo da funcao, o gatilho `ensure_rls`, RLS,
+-- policies, grants de tabela, dados, schema, nem DEFAULT PRIVILEGES.
+--
+-- O `pg_default_acl` de `public` continua concedendo EXECUTE a `anon`/`authenticated`/
+-- `service_role` em TODA funcao nova -- para os dois papeis criadores (`postgres` e
+-- `supabase_admin`). Isso e um achado sistemico separado, registrado na Issue #271, e mexer nele
+-- e uma mudanca schema-wide fora do escopo autorizado aqui. Default privileges valem no momento do
+-- CREATE, entao nao re-concedem nada para esta funcao, que ja existe: esta revogacao e estavel.
+-- (Um `DROP` + `CREATE` futuro reaplicaria os defaults; um `CREATE OR REPLACE` preserva a ACL.
+-- O gate `scripts/db/audit_rls_auto_enable_privilege.mjs` existe justamente para pegar isso.)
+--
+-- ─── REVERSAO ────────────────────────────────────────────────────────────────────────────────
+--
+-- `supabase/rollbacks/20260821010000_rls_auto_enable_least_privilege.rollback.sql`
+
+REVOKE EXECUTE ON FUNCTION "public"."rls_auto_enable"() FROM PUBLIC;
+REVOKE EXECUTE ON FUNCTION "public"."rls_auto_enable"() FROM "anon";
+REVOKE EXECUTE ON FUNCTION "public"."rls_auto_enable"() FROM "authenticated";
+REVOKE EXECUTE ON FUNCTION "public"."rls_auto_enable"() FROM "service_role";
