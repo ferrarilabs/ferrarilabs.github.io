@@ -25,7 +25,7 @@
       "authenticated"
     ]
   },
-  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue.",
+  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue. ATUALIZADO 2026-08-21: a lista caiu de 14 para 3. Onze entradas sairam porque `bolao/shared/sql/032_codify_notification_function_client_revokes.sql` passou a revogar `anon`/`authenticated` nominalmente delas, alinhando a reconstrucao ao que producao ja tem. As tres que ficam estao explicadas item a item em `whyStillHere`, e sao de dois tipos diferentes: duas sao exposicao REAL ao vivo (Issue #282) e uma e divergencia de ORDEM DE REPLAY.",
   "inheritedExposure": [
     {
       "signature": "public._bolao_audit/3",
@@ -33,7 +33,9 @@
       "reachableBy": [
         "authenticated"
       ],
-      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql"
+      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql",
+      "liveState": "{postgres=X,authenticated=X,service_role=X} — CONFIRMADO ao vivo em 2026-08-21",
+      "whyStillHere": "Exposicao REAL, nao divergencia de replay. `017_n22_narrow_mutations.sql` revoga `from anon, public` e esquece `authenticated`, que tem entrada propria na ACL -- `REVOKE ... FROM PUBLIC` nao remove grant de papel nomeado. Remediacao e a Issue #282 e precisa da sua propria autorizacao."
     },
     {
       "signature": "public._bolao_touch/1",
@@ -41,25 +43,9 @@
       "reachableBy": [
         "authenticated"
       ],
-      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql"
-    },
-    {
-      "signature": "public.bolao_notif_health/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
-    },
-    {
-      "signature": "public.bolao_notif_status_by_pool/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/013_notif_status_by_pool.sql"
+      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql",
+      "liveState": "{postgres=X,authenticated=X,service_role=X} — CONFIRMADO ao vivo em 2026-08-21",
+      "whyStillHere": "Exposicao REAL, nao divergencia de replay. `017_n22_narrow_mutations.sql` revoga `from anon, public` e esquece `authenticated`, que tem entrada propria na ACL -- `REVOKE ... FROM PUBLIC` nao remove grant de papel nomeado. Remediacao e a Issue #282 e precisa da sua propria autorizacao."
     },
     {
       "signature": "public.delete_canary_job/1",
@@ -68,88 +54,9 @@
         "anon",
         "authenticated"
       ],
-      "bornAt": "supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql"
-    },
-    {
-      "signature": "public.enqueue_bolao_notif/11",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
-    },
-    {
-      "signature": "public.get_bolao_notif_content_hash/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
-    },
-    {
-      "signature": "public.get_bolao_notif_recipients/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
-    },
-    {
-      "signature": "public.mark_bolao_notif_permanent/2",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
-    },
-    {
-      "signature": "public.mark_bolao_notif_retryable/2",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
-    },
-    {
-      "signature": "public.mark_bolao_notif_sent/2",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
-    },
-    {
-      "signature": "public.release_expired_bolao_notif/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
-    },
-    {
-      "signature": "public.set_bolao_notif_recipient/5",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
-    },
-    {
-      "signature": "public.settle_bolao_notif/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
+      "bornAt": "supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql",
+      "liveState": "{postgres=X,service_role=X} — anon/authenticated NAO executam em producao (medido 2026-08-21)",
+      "whyStillHere": "Divergencia de RECONSTRUCAO, nao exposicao ao vivo. A funcao e criada em `supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql`, e a ordem de replay deste repositorio aplica TODO `bolao/shared/sql/**` ANTES de `supabase/migrations/**` -- entao um revoke escrito em `032_codify_...` roda antes do CREATE dela e nao a alcanca. As outras onze foram fechadas por 032 porque nascem em arquivos de `shared/sql` que ordenam antes dele. Fechar esta exige um revoke que ordene DEPOIS da migracao que a cria, o que significa uma migracao nova -- e este repositorio trata `supabase/migrations/**` como registro do que FOI APLICADO. Como o revoke seria um no-op em producao (o privilegio ja nao existe la), ele nao foi aplicado nem inventado: fica declarado aqui."
     }
   ],
   "classifications": {
