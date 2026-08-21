@@ -681,6 +681,12 @@
     "scripts/db/test_default_privileges.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/db/audit_function_creation_discipline.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/db/test_function_creation_discipline.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/db/audit_rls_auto_enable_privilege.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

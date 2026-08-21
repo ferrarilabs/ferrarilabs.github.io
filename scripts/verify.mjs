@@ -105,6 +105,15 @@ const CHECKS = [
     why: "objeto novo em public nao pode nascer exposto, e uma reconstrucao limpa tem de manter a API intencional (Issue #271)" },
   { id: "default-privileges-tests", group: "security", cmd: ["node", "scripts/db/test_default_privileges.mjs"],
     why: "prova o meio-conserto por papel criador e a divergencia de reconstrucao por PUBLIC em funcao" },
+  // Issue #271, opcao B — o outro lado do gate acima: em vez de conferir uma LISTA DECLARADA,
+  // DESCOBRE toda funcao de aplicacao que a DDL cria em `public` e exige decisao de acesso para
+  // cada uma. Modela a ACL EFETIVA de nascimento (PUBLIC embutido + default de schema), nao o
+  // texto dos GRANTs -- que e a diferenca entre ver `_bolao_audit` exposta a `authenticated` e
+  // nao ver (Issue #282).
+  { id: "function-creation-discipline", group: "security", cmd: ["node", "scripts/db/audit_function_creation_discipline.mjs"],
+    why: "funcao em public nasce executavel por PUBLIC e pelos papeis do default; sem decisao escrita, servico vira cliente (Issue #271)" },
+  { id: "function-creation-discipline-tests", group: "security", cmd: ["node", "scripts/db/test_function_creation_discipline.mjs"],
+    why: "prova as nove regressoes exigidas, e confere o modelo estatico contra ACLs lidas de um PostgreSQL 17.10 real" },
   { id: "client-structural-privs", group: "security", cmd: ["node", "scripts/db/audit_client_structural_privs.mjs"],
     why: "papel de cliente com TRUNCATE/REFERENCES/TRIGGER e o unico privilegio destas tabelas sem RLS embaixo (Issue #276)" },
   { id: "client-structural-privs-tests", group: "security", cmd: ["node", "scripts/db/test_client_structural_privs.mjs"],

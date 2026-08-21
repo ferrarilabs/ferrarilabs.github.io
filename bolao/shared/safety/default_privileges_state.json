@@ -1,22 +1,29 @@
 {
   "$schema": "Estado declarado dos DEFAULT PRIVILEGES de `public` e da superficie de API intencional. Consumido por scripts/db/audit_default_privileges.mjs (Issue #271).",
-
   "_porque_existe": "Objeto novo em `public` nascia concedido a anon/authenticated/service_role sem nenhum GRANT escrito. `public.bolao_round_notif_jobs` provou que isso e real: nao tem um unico grant na DDL e mesmo assim `anon` tinha TRUNCATE nela em producao (Issue #276).",
-
   "measuredAt": "2026-08-21",
-
   "secured": [
-    { "creator": "postgres", "objectClass": "TABLES",    "appliedBy": "20260821030000_secure_default_privileges_public", "readBack": "{postgres=arwdDxtm/postgres}" },
-    { "creator": "postgres", "objectClass": "SEQUENCES", "appliedBy": "20260821030000_secure_default_privileges_public", "readBack": "{postgres=rwU/postgres}" }
+    {
+      "creator": "postgres",
+      "objectClass": "TABLES",
+      "appliedBy": "20260821030000_secure_default_privileges_public",
+      "readBack": "{postgres=arwdDxtm/postgres}"
+    },
+    {
+      "creator": "postgres",
+      "objectClass": "SEQUENCES",
+      "appliedBy": "20260821030000_secure_default_privileges_public",
+      "readBack": "{postgres=rwU/postgres}"
+    }
   ],
-
   "open": [
     {
       "creator": "postgres",
       "objectClass": "FUNCTIONS",
-      "status": "STOPPED_AT_HUMAN_GATE",
-      "reason": "`CREATE FUNCTION` concede EXECUTE a PUBLIC por padrao EMBUTIDO do PostgreSQL e isso NAO e supprimivel por default privileges. Medido em cluster efemero 17.10, quatro variantes: com os defaults de producao a funcao nova nasce PUBLIC=true; acrescentar `REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` nao altera a linha armazenada e PUBLIC continua true; revogar os tres papeis APAGA a linha e a funcao nasce proacl=NULL, que tambem e PUBLIC=true; e replicar o shape exato de producao (owner explicito) da PUBLIC=true igual. Revogar aqui tornaria a exposicao invisivel sem remove-la -- a forma 'parece aplicado e nao faz nada' da Issue #270.",
-      "correctControl": "revogar de PUBLIC na propria migracao que cria a funcao, como 20260812090000_m8m9_trusted_producer_bridge.sql faz em laco com `execute format('revoke all on function %s from public', f)`"
+      "status": "OPEN_NEEDS_SCOPE_AUTHORIZATION",
+      "reason": "CORRIGIDO 2026-08-21. A razao registrada antes -- que o EXECUTE embutido de PUBLIC no CREATE FUNCTION 'NAO e suprimivel por default privileges' -- estava ERRADA, e a correcao importa porque virou verdade de projeto. O enunciado correto: nao da para suprimir com REVOKE POR SCHEMA (`IN SCHEMA public REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` e no-op silencioso, porque uma entrada por schema parte de ACL VAZIA e so soma); um default GLOBAL do papel criador (`ALTER DEFAULT PRIVILEGES FOR ROLE <criador> REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC`, sem IN SCHEMA) SUPRIME de fato, porque uma entrada global parte de acldefault() e SUBSTITUI o padrao embutido. Medido em cluster PostgreSQL 17.10 efemero: a forma por schema deixou PUBLIC=true; a forma global deixou a funcao nova em public SEM PUBLIC; e o rollback simetrico restaurou exatamente. As quatro variantes medidas antes nao estavam inventadas -- todas testaram a forma por schema. O que continua bloqueando a opcao global e o ALCANCE, nao a eficacia: a entrada global vale para o banco inteiro, e no mesmo experimento uma funcao criada em OUTRO schema pelo mesmo criador tambem nasceu sem PUBLIC. Isso e uma decisao de escopo com consequencia fora de `public`, e precisa da sua propria autorizacao.",
+      "correctControl": "Opcao B, ADOTADA e agora com gate: revogar de PUBLIC na propria migracao que cria a funcao (como 20260812090000_m8m9_trusted_producer_bridge.sql faz em laco), verificado por scripts/db/audit_function_creation_discipline.mjs, que modela a ACL EFETIVA de nascimento e nao so o texto dos GRANTs. Opcao A (default global do criador) permanece disponivel e comprovadamente eficaz, mas com alcance de banco inteiro -- ver Issue #271.",
+      "correctedOn": "2026-08-21"
     },
     {
       "creator": "supabase_admin",
@@ -26,21 +33,46 @@
       "correctControl": "canal com privilegio maior (dashboard/suporte Supabase), ou aceitar o risco residual documentado"
     }
   ],
-
   "_superficie_intencional": "O que o Data API deve servir. Com os defaults fechados, cada um destes precisa de GRANT EXPLICITO na propria migracao -- senao uma reconstrucao limpa perde o endpoint. O gate verifica exatamente isso.",
-
   "intentionalApi": {
     "views": [
-      { "name": "bolao_state_public",            "requires": ["SELECT"], "why": "documento publico do bolao, lido pelo navegador" },
-      { "name": "bolao_state_public_cdb",        "requires": ["SELECT"], "why": "projecao publica do CDB2026" },
-      { "name": "bolao_state_normalized_public", "requires": ["SELECT"], "why": "projecao normalizada; SELECT basta -- ver findings sobre os grants de escrita mortos" }
+      {
+        "name": "bolao_state_public",
+        "requires": [
+          "SELECT"
+        ],
+        "why": "documento publico do bolao, lido pelo navegador"
+      },
+      {
+        "name": "bolao_state_public_cdb",
+        "requires": [
+          "SELECT"
+        ],
+        "why": "projecao publica do CDB2026"
+      },
+      {
+        "name": "bolao_state_normalized_public",
+        "requires": [
+          "SELECT"
+        ],
+        "why": "projecao normalizada; SELECT basta -- ver findings sobre os grants de escrita mortos"
+      }
     ],
     "rpcs": [
-      { "signature": "submit_entry",      "why": "unica mutacao anonima legitima do BR2026" },
-      { "signature": "cdb_my_entry",      "why": "leitura da propria entrada do CDB2026 pelo token" },
-      { "signature": "cdb_save_my_picks", "why": "gravacao do palpite do participante do CDB2026" }
+      {
+        "signature": "submit_entry",
+        "why": "unica mutacao anonima legitima do BR2026"
+      },
+      {
+        "signature": "cdb_my_entry",
+        "why": "leitura da propria entrada do CDB2026 pelo token"
+      },
+      {
+        "signature": "cdb_save_my_picks",
+        "why": "gravacao do palpite do participante do CDB2026"
+      }
     ]
   },
-
-  "_excluido": "cdb_reserve_entry_saved_email NAO esta na lista acima de proposito. A Issue #274 ainda nao decidiu se e RPC legitima ou privilegio morto, e incluir aqui a ratificaria por conveniencia. O gate reprova se ela aparecer."
+  "_excluido": "cdb_reserve_entry_saved_email NAO esta na lista acima de proposito. A Issue #274 ainda nao decidiu se e RPC legitima ou privilegio morto, e incluir aqui a ratificaria por conveniencia. O gate reprova se ela aparecer.",
+  "_correcao_2026_08_21": "A entrada `open` de FUNCTIONS carregava uma conclusao tecnica incorreta sobre ALTER DEFAULT PRIVILEGES. Corrigida no lugar, sem apagar o registro do que se afirmava antes, porque a afirmacao errada ja tinha sido citada como verdade de projeto na migracao 20260821030000 e em Issue. Ver o cabecalho de scripts/db/function_birth_acl.mjs para a tabela de medicao completa."
 }

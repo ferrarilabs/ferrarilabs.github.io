@@ -1,0 +1,462 @@
+{
+  "$schema": "Decisao de acesso, por funcao, de todas as funcoes de aplicacao criadas pela DDL deste repositorio no schema `public`. Consumido por scripts/db/audit_function_creation_discipline.mjs (Issue #271, OPCAO B).",
+  "_porque_existe": "Uma funcao criada em `public` NASCE executavel por PUBLIC (padrao embutido do CREATE FUNCTION) e por anon/authenticated/service_role (pg_default_acl de `public`, medido em producao em 2026-08-21). Nada disso aparece como GRANT em lugar nenhum da DDL. Logo 'nao ha GRANT para anon' NAO significa 'anon nao executa' -- e um gate que so le GRANT nunca ve a diferenca. Este manifesto obriga a decisao a ser ESCRITA, e o gate compara a decisao com a ACL EFETIVA que a DDL produz numa reconstrucao limpa.",
+  "_classes": {
+    "CLIENT_RPC": "chamada pelo navegador. PUBLIC deve ser revogado e so os papeis de cliente ratificados aqui podem receber EXECUTE.",
+    "SERVICE_RPC": "chamada pelo runtime confiavel (service_role). PUBLIC/anon/authenticated NAO podem executar.",
+    "INTERNAL_FUNCTION": "nao e ponto de entrada de ninguem -- helper, funcao de trigger. PUBLIC/anon/authenticated NAO podem executar.",
+    "EVENT_TRIGGER": "funcao de event trigger, invocada pelo proprio PostgreSQL. Nenhum papel de cliente executa.",
+    "EXTENSION_FUNCTION": "pertence a uma extensao (citext e afins). NAO e funcao de aplicacao e NAO e classificada aqui -- o gate as reconhece por nao terem CREATE FUNCTION na DDL deste repositorio.",
+    "UNKNOWN": "funcao descoberta na DDL sem entrada aqui. O gate REPROVA -- fail closed."
+  },
+  "measuredAt": "2026-08-21",
+  "issue": 271,
+  "ratifiedClientExecutors": {
+    "public.submit_entry/7": [
+      "anon",
+      "authenticated"
+    ],
+    "public.cdb_my_entry/1": [
+      "anon",
+      "authenticated"
+    ],
+    "public.cdb_save_my_picks/3": [
+      "anon",
+      "authenticated"
+    ]
+  },
+  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue.",
+  "inheritedExposure": [
+    {
+      "signature": "public._bolao_audit/3",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql"
+    },
+    {
+      "signature": "public._bolao_touch/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql"
+    },
+    {
+      "signature": "public.bolao_notif_health/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
+    },
+    {
+      "signature": "public.bolao_notif_status_by_pool/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/013_notif_status_by_pool.sql"
+    },
+    {
+      "signature": "public.delete_canary_job/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql"
+    },
+    {
+      "signature": "public.enqueue_bolao_notif/11",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
+    },
+    {
+      "signature": "public.get_bolao_notif_content_hash/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
+    },
+    {
+      "signature": "public.get_bolao_notif_recipients/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
+    },
+    {
+      "signature": "public.mark_bolao_notif_permanent/2",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
+    },
+    {
+      "signature": "public.mark_bolao_notif_retryable/2",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
+    },
+    {
+      "signature": "public.mark_bolao_notif_sent/2",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
+    },
+    {
+      "signature": "public.release_expired_bolao_notif/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/010_notification_durability.sql"
+    },
+    {
+      "signature": "public.set_bolao_notif_recipient/5",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
+    },
+    {
+      "signature": "public.settle_bolao_notif/1",
+      "class": "SERVICE_RPC",
+      "reachableBy": [
+        "anon",
+        "authenticated"
+      ],
+      "bornAt": "bolao/shared/sql/020_notif_recipient_rpcs.sql"
+    }
+  ],
+  "classifications": {
+    "public._bolao_audit/3": {
+      "class": "SERVICE_RPC",
+      "secdef": false,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public._bolao_touch/1": {
+      "class": "SERVICE_RPC",
+      "secdef": false,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public._cdb_entry_id_from_token/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812070000_cdb_secure_participant_access.sql"
+    },
+    "public.bolao_notif_health/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.bolao_notif_status_by_pool/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 013_notif_status_by_pool.sql"
+    },
+    "public.business_key_to_uuid/1": {
+      "class": "SERVICE_RPC",
+      "secdef": false,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.cdb_apply_operator_mutation/4": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 026_cdb2026_operator_mutations.sql"
+    },
+    "public.cdb_attest_legacy_receipt/4": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260816000000_cdb_receipt_identity_is_cross_path.sql"
+    },
+    "public.cdb_close_confirmation_allowance/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813020000_cdb_confirmation_recipient_resolution.sql"
+    },
+    "public.cdb_confirmation_allowance_count/0": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813020000_cdb_confirmation_recipient_resolution.sql"
+    },
+    "public.cdb_confirmation_recipient/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813020000_cdb_confirmation_recipient_resolution.sql"
+    },
+    "public.cdb_grant_confirmation_allowance/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813020000_cdb_confirmation_recipient_resolution.sql"
+    },
+    "public.cdb_has_accepted_receipt/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260816000000_cdb_receipt_identity_is_cross_path.sql"
+    },
+    "public.cdb_my_entry/1": {
+      "class": "CLIENT_RPC",
+      "secdef": true,
+      "why": "leitura da propria entrada do CDB2026 pelo token"
+    },
+    "public.cdb_picks_version/1": {
+      "class": "SERVICE_RPC",
+      "secdef": false,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813030000_confirmation_identity_is_per_version.sql"
+    },
+    "public.cdb_receipt_families/0": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260816000000_cdb_receipt_identity_is_cross_path.sql"
+    },
+    "public.cdb_refresh_topology_provenance/3": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812220000_topology_provenance_refresh.sql"
+    },
+    "public.cdb_register_bracket_topology/5": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812210000_cdb_register_bracket_topology.sql"
+    },
+    "public.cdb_reserve_entry_saved_email/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812235500_cdb_entry_saved_confirmation_allowance.sql"
+    },
+    "public.cdb_save_my_picks/3": {
+      "class": "CLIENT_RPC",
+      "secdef": true,
+      "why": "gravacao do palpite do participante do CDB2026"
+    },
+    "public.cdb_update_entry_picks/3": {
+      "class": "INTERNAL_FUNCTION",
+      "secdef": true,
+      "why": "nenhum GRANT explicito a papel nenhum; so o dono a chama"
+    },
+    "public.claim_bolao_notif/4": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.claim_bolao_notif_round_job/3": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
+    },
+    "public.claim_outbox_event/3": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.copa_apply_operator_mutation/4": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 027_copa2026_operator_mutations.sql"
+    },
+    "public.delete_canary_job/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260806000000_baseline_adopted_pre_tracking.sql"
+    },
+    "public.delivery_count/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812190000_delivery_uniqueness_and_rapid_send_breaker.sql"
+    },
+    "public.delivery_count_family/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813030000_confirmation_identity_is_per_version.sql"
+    },
+    "public.emit_audit_event/8": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.emit_outbox_event/5": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.enqueue_bolao_notif/11": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.get_bolao_notif_content_hash/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 020_notif_recipient_rpcs.sql"
+    },
+    "public.get_bolao_notif_manual_flag/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 022_powerball_0808_manual_action.sql"
+    },
+    "public.get_bolao_notif_recipients/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 020_notif_recipient_rpcs.sql"
+    },
+    "public.get_bolao_notif_round_job/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
+    },
+    "public.list_bolao_notif_round_jobs/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
+    },
+    "public.mark_bolao_notif_permanent/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.mark_bolao_notif_retryable/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.mark_bolao_notif_sent/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.op_append_audit/4": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 029_op_append_audit.sql"
+    },
+    "public.op_confirm_payment/3": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public.op_remove_entry/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public.op_set_phases/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public.op_set_results/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public.op_set_round_email/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public.op_update_entry/6": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 017_n22_narrow_mutations.sql"
+    },
+    "public.outbox_event_status/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.outbox_pending_count/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813040000_outbox_pending_by_type.sql"
+    },
+    "public.purge_canary_deliveries/0": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812190000_delivery_uniqueness_and_rapid_send_breaker.sql"
+    },
+    "public.purge_canary_outbox_events/0": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812100000_m8m9_canary_purge.sql"
+    },
+    "public.recover_expired_outbox_leases/0": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.release_expired_bolao_notif/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 010_notification_durability.sql"
+    },
+    "public.reserve_delivery/7": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260813030000_confirmation_identity_is_per_version.sql"
+    },
+    "public.resolve_notification_recipients/2": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 015_f10_private_pii_and_public_projection.sql"
+    },
+    "public.rls_auto_enable/0": {
+      "class": "EVENT_TRIGGER",
+      "secdef": true,
+      "why": "funcao de event trigger; nenhum papel a chama diretamente"
+    },
+    "public.set_bolao_notif_recipient/5": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 020_notif_recipient_rpcs.sql"
+    },
+    "public.settle_bolao_notif/1": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 020_notif_recipient_rpcs.sql"
+    },
+    "public.settle_delivery/3": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812190000_delivery_uniqueness_and_rapid_send_breaker.sql"
+    },
+    "public.settle_outbox_event/4": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 20260812090000_m8m9_trusted_producer_bridge.sql"
+    },
+    "public.submit_entry/7": {
+      "class": "CLIENT_RPC",
+      "secdef": true,
+      "why": "unica mutacao anonima legitima do BR2026"
+    },
+    "public.upsert_bolao_notif_round_job/14": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
+    }
+  }
+}
