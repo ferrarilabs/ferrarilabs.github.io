@@ -164,11 +164,18 @@ All 7 `public` tables are owned by `postgres`. Schema `public` is owned by `pg_d
 
 | Function | Lang | Volatility | SECURITY DEFINER | search_path pinned | Finding |
 |---|---|---|---|---|---|
-| `rls_auto_enable()` | plpgsql | volatile | ✅ | ✅ | `SECURITY_DEFINER_WITH_SEARCH_PATH` |
+| `rls_auto_enable()` | plpgsql | volatile | ✅ | ✅ | `SECURITY_DEFINER_WITH_SEARCH_PATH` — EXECUTE revoked from PUBLIC/`anon`/`authenticated`/`service_role` on 2026-08-21 (Issue #270); `proacl` is now `{postgres=X/postgres}`, owner only |
 
 **1 function. `SECURITY_DEFINER_WITHOUT_PINNED_SEARCH_PATH` = 0 across every schema** — the
 highest-severity privilege-escalation shape is absent platform-wide. `rls_auto_enable()` is
 **undeclared in version control** before the 2026-08-07 baseline capture (R-08).
+
+Since 2026-08-21 it is also no longer executable by any client role (Issue #270). It never needed to
+be: PostgreSQL does not consult `EXECUTE` when firing an event trigger, and `anon`, `authenticated`
+and `service_role` all have `has_schema_privilege(…,'public','CREATE') = false`, so none of them can
+run the DDL that would fire `ensure_rls` in the first place. Proven, not assumed — the firing
+behaviour was reproduced on an ephemeral local PostgreSQL 17 cluster, including the negative control
+that a disabled trigger leaves RLS off. Gate: `scripts/db/audit_rls_auto_enable_privilege.mjs`.
 
 ### 7.2 Triggers
 

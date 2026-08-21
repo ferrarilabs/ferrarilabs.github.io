@@ -80,6 +80,14 @@ const CHECKS = [
     why: "efeito liquido da DDL nao pode deixar RPC de operador executavel por anon/authenticated/PUBLIC (Issue #267)" },
   { id: "operator-rpc-exposure-tests", group: "security", cmd: ["node", "scripts/db/test_operator_rpc_exposure.mjs"],
     why: "o gate acima decide por ORDEM (grant/revoke/regrant); esta suite prova que ele distingue os tres casos" },
+  // Issue #270 — `rls_auto_enable()` sustenta o gatilho `ensure_rls`, que liga RLS em toda tabela
+  // nova de `public`. Ela estava executavel por PUBLIC + anon + authenticated + service_role.
+  // Revogado em producao em 2026-08-21. O invariante tem DUAS metades e as duas sao verificadas:
+  // sem exposicao a cliente E gatilho ainda ativo -- apagar o gatilho zeraria a exposicao tambem.
+  { id: "rls-auto-enable-privilege", group: "security", cmd: ["node", "scripts/db/audit_rls_auto_enable_privilege.mjs"],
+    why: "SECURITY DEFINER que liga RLS sozinha nao pode ser executavel por cliente, e o gatilho nao pode morrer (Issue #270)" },
+  { id: "rls-auto-enable-privilege-tests", group: "security", cmd: ["node", "scripts/db/test_rls_auto_enable_privilege.mjs"],
+    why: "prova que o gate reprova a mutacao ingenua: revogar os tres papeis e deixar PUBLIC, que todos herdam" },
   { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
     why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
   { id: "ddl-provenance-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_provenance.mjs"],
