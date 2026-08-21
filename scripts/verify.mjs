@@ -97,6 +97,14 @@ const CHECKS = [
   // estes tres: ela aplica policies a SELECT/INSERT/UPDATE/DELETE, e TRUNCATE e operacao de
   // tabela inteira. Revogado em producao em 2026-08-21. Ja tinha voltado uma vez -- as tabelas de
   // notificacao nasceram depois da remediacao de 2026-08-07 e vieram com o privilegio de novo.
+  // Issue #271 — objeto novo em `public` nascia concedido a anon/authenticated/service_role sem
+  // nenhum GRANT escrito. `bolao_round_notif_jobs` provou: nao tem um grant na DDL e `anon` tinha
+  // TRUNCATE nela. Fechado para TABLES/SEQUENCES do criador `postgres`; FUNCTIONS e
+  // `supabase_admin` continuam abertos, declarados com motivo, e o gate exige que continuem.
+  { id: "default-privileges", group: "security", cmd: ["node", "scripts/db/audit_default_privileges.mjs"],
+    why: "objeto novo em public nao pode nascer exposto, e uma reconstrucao limpa tem de manter a API intencional (Issue #271)" },
+  { id: "default-privileges-tests", group: "security", cmd: ["node", "scripts/db/test_default_privileges.mjs"],
+    why: "prova o meio-conserto por papel criador e a divergencia de reconstrucao por PUBLIC em funcao" },
   { id: "client-structural-privs", group: "security", cmd: ["node", "scripts/db/audit_client_structural_privs.mjs"],
     why: "papel de cliente com TRUNCATE/REFERENCES/TRIGGER e o unico privilegio destas tabelas sem RLS embaixo (Issue #276)" },
   { id: "client-structural-privs-tests", group: "security", cmd: ["node", "scripts/db/test_client_structural_privs.mjs"],

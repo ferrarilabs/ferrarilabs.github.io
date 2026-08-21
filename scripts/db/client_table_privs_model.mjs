@@ -57,8 +57,16 @@ export const RATIFIED_EXCEPTIONS = Object.freeze([]);
  * `cdb_entry_access` ficou limpa (revoke explicito em 20260812070000), e e assim que a tabela
  * numero treze vai ter de ficar.
  *
- * Isto e estado do CLUSTER, nao do repositorio. Quando a #271 mudar os defaults, esta constante
- * muda junto -- e o teste que reproduz a medicao de producao e quem obriga a manter as duas em dia.
+ * Isto e estado do CLUSTER, nao do repositorio -- e mudou no meio da historia. A migracao
+ * `20260821030000` (Issue #271) revogou os defaults de TABLES e SEQUENCES para o papel criador
+ * `postgres`, entao uma tabela criada por ele DEPOIS dela nasce so do dono. Antes dela, nasce
+ * exposta. Por isso `SECURE_DEFAULTS_FROM` existe: o modelo tem de tratar as duas eras, senao ou
+ * reprova a historia real ou aprova o futuro errado.
+ *
+ * Continua valendo para `supabase_admin`: a alteracao dele foi RECUSADA por privilegio
+ * (`ERROR: 42501: permission denied to change default privileges` -- o canal conecta como
+ * `postgres`, que nao e superusuario nem membro de `supabase_admin`). Uma tabela criada por
+ * `supabase_admin` em `public` ainda nasce exposta hoje.
  */
 export const BORN_WITH = Object.freeze({
   roles: Object.freeze(["anon", "authenticated", "service_role"]),
@@ -84,6 +92,15 @@ export const BORN_WITH = Object.freeze({
  * `030_*` -- mantem o que tinha, que e o default. E exatamente o que producao mostra.
  */
 export const ACL_SNAPSHOT_FILES = Object.freeze(["20260811160000_baseline_adopted_grants_and_rls"]);
+
+/**
+ * A migracao a partir da qual uma tabela criada por `postgres` deixa de nascer exposta.
+ *
+ * Antes dela, `seed()` aplica `BORN_WITH`; a partir dela, tabela nova comeca vazia. E o que
+ * permite o teste que reproduz a medicao de producao de 2026-08-21 continuar valido enquanto o
+ * gate passa a exigir menos das tabelas futuras.
+ */
+export const SECURE_DEFAULTS_FROM = "20260821030000_secure_default_privileges_public";
 
 /** `create table` em `public`, com a posicao, para intercalar com os grants na ordem certa. */
 export function parseCreateTables(text) {
@@ -119,15 +136,19 @@ export function privsOf(raw) {
  */
 export function tablePrivState(files, { stripComments = (s) => s, bornWith = BORN_WITH } = {}) {
   const state = new Map();
+  let defaultsSegurosRef = { valor: false };
   const seed = (tbl) => {
     if (state.has(tbl)) return; // `if not exists` re-executado nao reinicia a ACL
     const byRole = new Map();
-    for (const r of bornWith.roles) byRole.set(r, new Set(bornWith.privileges));
+    if (!defaultsSegurosRef.valor) for (const r of bornWith.roles) byRole.set(r, new Set(bornWith.privileges));
     state.set(tbl, byRole);
   };
+  let defaultsSeguros = false;
   for (const f of files) {
     const texto = stripComments(f.text);
     const ehCaptura = ACL_SNAPSHOT_FILES.some((n) => f.file.includes(n));
+    // A partir desta migracao, tabela nova nao nasce mais concedida ao cliente.
+    if (f.file.includes(SECURE_DEFAULTS_FROM)) { defaultsSeguros = true; defaultsSegurosRef.valor = true; }
     const eventos = parseCreateTables(texto).map((c) => ({ at: c.at, kind: "create", table: c.table }));
     STMT.lastIndex = 0;
     let m;
