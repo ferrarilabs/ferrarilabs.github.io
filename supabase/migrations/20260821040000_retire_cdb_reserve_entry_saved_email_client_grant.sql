@@ -1,0 +1,66 @@
+-- 20260821040000_retire_cdb_reserve_entry_saved_email_client_grant.sql
+-- Issue #274 — aposenta o EXECUTE de cliente numa RPC cujo chamador nunca existiu.
+--
+-- ─── O QUE ESTAVA ERRADO ─────────────────────────────────────────────────────────────────────
+--
+-- `public.cdb_reserve_entry_saved_email(text)` e SECURITY DEFINER, pertence a `postgres` e reserva
+-- o direito de enviar UMA vez o comprovante de "palpite salvo" -- ela grava em
+-- `bolao.notification_deliveries`, ou seja, muda estado.
+--
+-- A migracao que a criou, `20260812235500_cdb_entry_saved_confirmation_allowance.sql`, concedeu
+-- EXECUTE a `anon` e `authenticated` dizendo, literalmente: "O navegador do participante precisa
+-- chamar isto -- e so isto."
+--
+-- O navegador nunca chamou.
+--
+-- ─── POR QUE ISSO E CERTEZA, E NAO SUSPEITA ──────────────────────────────────────────────────
+--
+--   · `git log --all -S"cdb_reserve_entry_saved_email"` devolve UM commit em todo o repositorio:
+--     f5ca3d84, que adicionou SOMENTE o arquivo SQL. Nenhum JavaScript, nenhum script, nenhum
+--     workflow. Nao e "o chamador foi removido" -- e "o chamador nunca foi escrito".
+--   · O bundle em producao (`www.ferrarilabs.com/bolao/cdb2026/js/app.js`, HTTP 200, 342.929
+--     bytes) tem ZERO ocorrencias do nome. `cdb_save_my_picks` tem 6 e `cdb_my_entry` tem 2.
+--   · Nenhuma outra funcao do banco a invoca.
+--   · Os logs de API das ultimas 24h nao mostram nenhuma chamada a
+--     `/rest/v1/rpc/cdb_reserve_entry_saved_email`, com atividade normal nas outras RPCs.
+--
+-- Ausencia numa janela de 24h e evidencia de apoio, NAO prova de nao-uso historico. O que decide
+-- nao e o log: e nao existir chamador em lugar nenhum, nem hoje nem em qualquer commit.
+--
+-- ─── DESENHO SUPERADO, NAO FUNCIONALIDADE PERDIDA ────────────────────────────────────────────
+--
+-- Todas as OUTRAS funcoes da mesma familia tem chamador real, e todos sao do lado servidor:
+--   `cdb_grant_confirmation_allowance`  <- scripts/grant_receipt_allowance.py
+--   `cdb_close_confirmation_allowance`  <- scripts/receipt_catchup_tool.py
+--   `cdb_confirmation_allowance_count`  <- scripts/send_entry_saved_confirmation.py
+--   `reserve_delivery`                  <- scripts/receipt_catchup_tool.py
+--
+-- Ou seja: o desenho em que o NAVEGADOR reservava a propria permissao de envio foi trocado por um
+-- em que o SERVIDOR concede e fecha a permissao. Esta funcao e a metade do navegador, deixada para
+-- tras. O "exatamente uma vez" do e-mail e garantido pelo caminho servidor e nao passa por aqui.
+--
+-- ─── ESCOPO ──────────────────────────────────────────────────────────────────────────────────
+--
+-- SO revoga EXECUTE de `anon` e `authenticated`. NAO toca:
+--   `service_role` -- diferente da #270, isto NAO e infraestrutura de banco: e uma RPC de
+--   aplicacao cuja familia inteira e chamada por script com credencial privilegiada. Se o desenho
+--   for retomado do lado servidor, `service_role` e o papel que a executaria.
+--   PUBLIC -- ja nao tinha (a propria migracao de origem faz `revoke all ... from public` antes de
+--   conceder), e a leitura previa confirmou `pub=false`.
+-- Tambem nao toca corpo, search_path, dono, a tabela de permissao, `notification_deliveries`, nem
+-- nenhum registro de entrega ja existente.
+--
+-- ─── A HISTORIA FICA ─────────────────────────────────────────────────────────────────────────
+--
+-- `20260812235500` NAO e reescrita. Ela continua explicando por que o grant existiu um dia -- essa
+-- e a evidencia. Esta migracao registra que o caminho de cliente foi aposentado.
+--
+-- ─── REVERSAO ────────────────────────────────────────────────────────────────────────────────
+--
+-- `supabase/rollbacks/20260821040000_retire_cdb_reserve_entry_saved_email_client_grant.rollback.sql`
+
+begin;
+
+revoke execute on function public.cdb_reserve_entry_saved_email(text) from anon, authenticated;
+
+commit;

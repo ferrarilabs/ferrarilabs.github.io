@@ -5,7 +5,7 @@
 
   "_capacidades": "`declaredCapabilities` NAO e decorativo. O detector recalcula as capacidades a partir do CORPO da funcao a cada execucao e reprova se o corpo passar a fazer algo que esta entrada nao previa. Ou seja: trocar o corpo de uma RPC ja ratificada para que ela passe a gravar pagamento NAO passa despercebido so porque o nome continuou o mesmo. Ratificacao vale para a funcao que foi lida, nao para o nome dela.",
 
-  "_quarentena": "`quarantine` marca uma exposicao que NAO esta aprovada -- esta sendo investigada. Exige Issue aberta e prazo. Depois do prazo o gate REPROVA. E o mecanismo que impede que 'a gente olha isso depois' vire permanente em silencio.",
+  "_quarentena": "`quarantine` marca uma exposicao que NAO esta aprovada -- esta sendo investigada. Exige Issue aberta e prazo. Depois do prazo o gate REPROVA. E o mecanismo que impede que 'a gente olha isso depois' vire permanente em silencio. Estava vazio em 2026-08-21: a unica entrada, `cdb_reserve_entry_saved_email`, saiu porque a Issue #274 concluiu que o chamador nunca existiu e o EXECUTE de cliente foi revogado em producao (migracao 20260821040000). Ela nao virou RPC ratificada -- deixou de ser alcancavel por cliente, entao o detector a classifica sozinho como EXPECTED_SERVICE_RPC.",
 
   "ratified": [
     {
@@ -43,23 +43,6 @@
       "declaredCapabilities": ["CONTROLS_NOTIFICATION", "READS_NOTIFICATION", "READS_POOL_STATE", "WRITES_POOL_STATE"],
       "ratifiedBy": "Eduardo Ferrari",
       "ratificationEvidence": "Cadeia de migracoes 20260812170000 -> 20260816010000, todas revogando de PUBLIC antes de conceder. Chamada real em app.js:2436 via cdbRpc."
-    },
-    {
-      "signature": "public.cdb_reserve_entry_saved_email(p_token text)",
-      "key": "public.cdb_reserve_entry_saved_email/1",
-      "allowedRoles": ["anon", "authenticated", "service_role"],
-      "classification": "UNKNOWN",
-      "reason": "NAO RATIFICADA. Esta entrada existe para manter a exposicao VISIVEL enquanto a investigacao corre, nao para aprova-la. A migracao 20260812235500 concede a anon/authenticated dizendo 'O navegador do participante precisa chamar isto -- e so isto', mas nenhuma chamada existe hoje no repositorio: zero referencias em formato de invocacao em bolao/, supabase/functions/, scripts/ e .github/.",
-      "expectedCaller": "bolao/cdb2026/js/app.js",
-      "expectedRuntime": "navegador do participante (declarado pela migracao; nao confirmado em uso)",
-      "declaredCapabilities": ["CONTROLS_NOTIFICATION", "READS_NOTIFICATION"],
-      "ratifiedBy": "(ninguem -- em investigacao)",
-      "ratificationEvidence": "Nenhuma. Ver Issue #274.",
-      "quarantine": {
-        "reviewIssue": 274,
-        "reviewByIso": "2026-10-01",
-        "why": "CDB2026 esta em producao com dinheiro real e esta RPC toca semantica de notificacao (permissao de envio unico do comprovante). Revogar as cegas pode quebrar o 'exatamente uma vez' do e-mail. Fica em quarentena, visivel e com prazo, ate a Issue #274 concluir se e privilegio morto."
-      }
     }
   ],
 

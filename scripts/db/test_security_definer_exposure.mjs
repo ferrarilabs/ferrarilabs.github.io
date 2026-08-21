@@ -12,9 +12,14 @@
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { report, coverageOk, MIN_EXPECTED_SECDEF, callersOf, callerFiles } from "./audit_security_definer_exposure.mjs";
+import { report, coverageOk, MIN_EXPECTED_SECDEF, callersOf, callerFiles, ddlSources } from "./audit_security_definer_exposure.mjs";
 import { capabilitiesOf, effectiveRoles, clientExposed, classify, CLASSIFICATIONS } from "./secdef_exposure_model.mjs";
 import { resolveDdl, stripSqlComments, parseFunctions } from "./secdef_ddl_parse.mjs";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname } from "node:path";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 
 let pass = 0, fail = 0;
 const test = (n, f) => { try { f(); console.log(`  ✓ ${n}`); pass++; } catch (e) { console.log(`  ✗ ${n}\n      ${e.message}`); fail++; } };
@@ -241,6 +246,63 @@ test("stripSqlComments preserva literais e o tamanho do texto", () => {
   const s = stripSqlComments(t);
   assert(s.length === t.length, "o tamanho tem de ser preservado (os indices ordenam os eventos)");
   assert(s.includes("'a--b'"), "literal com -- dentro nao pode ser tratado como comentario");
+});
+
+// ── ISSUE #274 — o grant de cliente aposentado nao pode voltar ───────────────────────────────
+//
+// `cdb_reserve_entry_saved_email` tinha EXECUTE para anon/authenticated por um chamador de
+// navegador que NUNCA foi escrito: um unico commit em toda a historia, so com SQL, e zero
+// ocorrencias no bundle publicado. Revogado em producao em 2026-08-21. Estes testes garantem que
+// uma reaplicacao da DDL nao o devolva.
+
+const RESERVE = "public.cdb_reserve_entry_saved_email/1";
+const REMEDIACAO_274 = "20260821040000_retire_cdb_reserve_entry_saved_email_client_grant";
+
+/** Papeis efetivos da funcao a partir da DDL real, opcionalmente sem a migracao de remediacao. */
+function papeisDaReserve({ semRemediacao = false } = {}) {
+  const files = ddlSources().filter((f) => !semRemediacao || !f.file.includes(REMEDIACAO_274));
+  const st = resolveDdl(files);
+  const e = st.get(RESERVE);
+  assert(e, `${RESERVE} nao encontrada na DDL`);
+  return effectiveRoles({
+    explicitGrants: [...e.roles].filter((r) => r !== "PUBLIC"),
+    publicGranted: e.roles.has("PUBLIC"),
+  });
+}
+
+test("#274.1 anon nao executa a RPC aposentada", () => {
+  assert(!papeisDaReserve().includes("anon"), "anon deveria ter perdido EXECUTE");
+});
+
+test("#274.2 authenticated nao executa a RPC aposentada", () => {
+  assert(!papeisDaReserve().includes("authenticated"), "authenticated deveria ter perdido EXECUTE");
+});
+
+test("#274.3 service_role CONTINUA executando", () => {
+  // Diferente da #270: isto nao e infraestrutura de banco, e uma RPC de aplicacao cuja familia
+  // inteira e chamada por script com credencial privilegiada. Revogar service_role aqui seria
+  // copiar a forma de outra remediacao sem o motivo dela.
+  assert(papeisDaReserve().includes("service_role"), "service_role tem de continuar podendo executar");
+});
+
+test("#274.4 PUBLIC nao recria o acesso por heranca", () => {
+  const papeis = papeisDaReserve();
+  assert(!papeis.includes("PUBLIC"), "PUBLIC nao pode ter EXECUTE — todo papel herdaria");
+  assert(!clientExposed(papeis), `nenhum papel de cliente pode alcancar; veio ${papeis.join(",")}`);
+});
+
+test("#274.5 remover a migracao de remediacao FAZ o teste falhar", () => {
+  const semRemediacao = papeisDaReserve({ semRemediacao: true });
+  assert(semRemediacao.includes("anon") && semRemediacao.includes("authenticated"),
+    `sem a remediacao a exposicao TEM de reaparecer; veio ${semRemediacao.join(",")}`);
+  assert(clientExposed(semRemediacao), "sem a remediacao a funcao volta a ser alcancavel por cliente");
+});
+
+test("#274.6 a funcao NAO esta na lista de RPCs de cliente ratificadas", () => {
+  const man = JSON.parse(readFileSync(join(ROOT, "bolao/shared/safety/ratified_rpc_exposure.json"), "utf8"));
+  assert(!man.ratified.some((r) => r.key === RESERVE),
+    "aposentar o grant nao pode virar ratificacao — ela deixou de ser alcancavel, nao virou API");
+  assert(!man.ratified.some((r) => r.quarantine), "nao deve sobrar quarentena aberta");
 });
 
 for (const d of criados) { try { rmSync(d, { recursive: true, force: true }); } catch { /* diretorio temporario ja removido */ } }
