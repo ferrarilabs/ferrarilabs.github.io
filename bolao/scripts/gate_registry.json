@@ -669,6 +669,12 @@
     "scripts/db/test_security_definer_exposure.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/db/audit_client_structural_privs.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/db/test_client_structural_privs.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/db/audit_rls_auto_enable_privilege.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
