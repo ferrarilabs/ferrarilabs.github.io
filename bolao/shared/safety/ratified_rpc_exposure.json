@@ -63,7 +63,7 @@
     }
   ],
 
-  "_catraca_public": "Funcoes SECURITY DEFINER em `public` que NAO tem um `revoke ... from public` explicito dependem de `pg_default_acl` para nao nascerem executaveis por PUBLIC. Isso e estado do CLUSTER, nao do repositorio: restaurar num cluster sem esses defaults faz todas elas vazarem (foi assim que rls_auto_enable ficou exposta -- Issue #270). A lista abaixo e a linha de base do que ja e assim. Ela pode ENCOLHER, nunca crescer: uma funcao nova que dependa disso reprova o gate.",
+  "_catraca_public": "CORRIGIDO em 2026-08-21 (Issue #271). A explicacao anterior dizia que estas funcoes dependiam de `pg_default_acl` para nao nascerem executaveis por PUBLIC. Isso esta ERRADO: medido em cluster efemero 17.10, `pg_default_acl` NAO suprime o EXECUTE-a-PUBLIC embutido do `CREATE FUNCTION` -- nem concedendo, nem revogando, nem replicando o shape exato de producao. O que estas funcoes dependem e do ESTADO VIVO de producao, onde o PUBLIC foi removido por um caminho que a DDL nao reproduz (a maioria por laco dinamico em 20260812090000, `submit_entry` por nenhum). Ou seja: uma reconstrucao limpa as entrega PUBLIC-executaveis. A lista continua sendo a catraca certa -- pode ENCOLHER, nunca crescer -- e quem verifica a divergencia de reconstrucao e `scripts/db/audit_default_privileges.mjs`.",
 
   "publicRelianceBaseline": [
     "public.claim_outbox_event/3",
