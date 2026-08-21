@@ -19,109 +19,34 @@
   "_intendedRpcs": "Vazio hoje: nenhuma funcao de `public` referencia as seis tabelas. O Powerball fala com o Supabase so por `/rest/v1/rpc/<nome>` das RPCs de notificacao, que nao tocam nelas.",
   "ratified": [],
   "_ratified": "Ratificacao explicita do dono do produto. Vazia. Uma entrada aqui exige `table`, `role`, `privileges`, `reason` e `ratifiedBy` -- e o unico caminho para um papel de cliente ter CRUD direto numa destas tabelas sem reprovar.",
-  "pendingRemediation": [
+  "pendingRemediation": [],
+  "_catraca": "`pendingRemediation` e DIVIDA MEDIDA, nao permissao. So pode encolher: qualquer privilegio alem do declarado reprova, e uma tabela cuja divida foi quitada tem de SAIR do arquivo -- senao a lista viraria uma isencao permanente que ninguem relê.",
+  "_pendingRemediation": "VAZIO -- a divida foi QUITADA em producao em 2026-08-21 pela migracao 20260821205500_revoke_client_crud_lottery_tables (Issue #131). Leitura pos-mudanca: `anon` e `authenticated` com os SETE privilegios FALSE nas seis tabelas; `service_role` e o dono inalterados; RLS ligada com ZERO policies, inalterada; contagens 1/1/10/10/11/1 identicas antes e depois. A partir daqui a catraca esta no seu estado final: QUALQUER reconcessao de CRUD a papel de cliente nestas seis reprova, e so uma entrada completa em `ratified` pode autoriza-la.",
+  "remediated": [
     {
-      "table": "lottery_admin_audit",
-      "anon": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "authenticated": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
       "issue": 131,
-      "reason": "Concedido no nascimento pelo `pg_default_acl` de `public`, nao por GRANT escrito. A revogacao esta AUTORIZADA mas nao executada: o preflight obrigatorio exige reler as ACLs de producao imediatamente antes de mutar, e a credencial de banco armazenada nao autentica mais. Enquanto isso, a RLS (ligada, zero policies) bloqueia os quatro verbos -- e o motivo de a exposicao nao ser explorável hoje, e tambem o unico motivo."
-    },
-    {
-      "table": "lottery_draws",
-      "anon": [
+      "appliedBy": "20260821205500_revoke_client_crud_lottery_tables",
+      "appliedAt": "2026-08-21",
+      "privileges": [
         "SELECT",
         "INSERT",
         "UPDATE",
         "DELETE"
       ],
-      "authenticated": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
+      "roles": [
+        "anon",
+        "authenticated"
       ],
-      "issue": 131,
-      "reason": "Concedido no nascimento pelo `pg_default_acl` de `public`, nao por GRANT escrito. A revogacao esta AUTORIZADA mas nao executada: o preflight obrigatorio exige reler as ACLs de producao imediatamente antes de mutar, e a credencial de banco armazenada nao autentica mais. Enquanto isso, a RLS (ligada, zero policies) bloqueia os quatro verbos -- e o motivo de a exposicao nao ser explorável hoje, e tambem o unico motivo."
-    },
-    {
-      "table": "lottery_participants",
-      "anon": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
+      "tables": [
+        "lottery_admin_audit",
+        "lottery_draws",
+        "lottery_participants",
+        "lottery_participations",
+        "lottery_payment_transactions",
+        "lottery_pools"
       ],
-      "authenticated": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "issue": 131,
-      "reason": "Concedido no nascimento pelo `pg_default_acl` de `public`, nao por GRANT escrito. A revogacao esta AUTORIZADA mas nao executada: o preflight obrigatorio exige reler as ACLs de producao imediatamente antes de mutar, e a credencial de banco armazenada nao autentica mais. Enquanto isso, a RLS (ligada, zero policies) bloqueia os quatro verbos -- e o motivo de a exposicao nao ser explorável hoje, e tambem o unico motivo."
-    },
-    {
-      "table": "lottery_participations",
-      "anon": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "authenticated": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "issue": 131,
-      "reason": "Concedido no nascimento pelo `pg_default_acl` de `public`, nao por GRANT escrito. A revogacao esta AUTORIZADA mas nao executada: o preflight obrigatorio exige reler as ACLs de producao imediatamente antes de mutar, e a credencial de banco armazenada nao autentica mais. Enquanto isso, a RLS (ligada, zero policies) bloqueia os quatro verbos -- e o motivo de a exposicao nao ser explorável hoje, e tambem o unico motivo."
-    },
-    {
-      "table": "lottery_payment_transactions",
-      "anon": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "authenticated": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "issue": 131,
-      "reason": "Concedido no nascimento pelo `pg_default_acl` de `public`, nao por GRANT escrito. A revogacao esta AUTORIZADA mas nao executada: o preflight obrigatorio exige reler as ACLs de producao imediatamente antes de mutar, e a credencial de banco armazenada nao autentica mais. Enquanto isso, a RLS (ligada, zero policies) bloqueia os quatro verbos -- e o motivo de a exposicao nao ser explorável hoje, e tambem o unico motivo."
-    },
-    {
-      "table": "lottery_pools",
-      "anon": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "authenticated": [
-        "SELECT",
-        "INSERT",
-        "UPDATE",
-        "DELETE"
-      ],
-      "issue": 131,
-      "reason": "Concedido no nascimento pelo `pg_default_acl` de `public`, nao por GRANT escrito. A revogacao esta AUTORIZADA mas nao executada: o preflight obrigatorio exige reler as ACLs de producao imediatamente antes de mutar, e a credencial de banco armazenada nao autentica mais. Enquanto isso, a RLS (ligada, zero policies) bloqueia os quatro verbos -- e o motivo de a exposicao nao ser explorável hoje, e tambem o unico motivo."
+      "readBack": "anon e authenticated: os sete privilegios false nas seis; service_role inalterado; RLS e policies inalteradas; delta de dado NENHUM",
+      "preflightEvidence": "pg_stat_statements (historico completo desde 2026-06-27, 4573 entradas) registra DEZ statements de papel de cliente nestas tabelas e nenhum e trafego de aplicacao: oito consultas PostgREST como `anon` num intervalo de 33 minutos em 2026-08-06, logo apos a criacao do schema, cada uma com calls=1 e nenhuma repetida em quinze dias; e duas contagens do teste `SET LOCAL ROLE` de 2026-08-17 que a propria Issue #131 registra. Somado a zero chamador no repositorio e zero view/funcao dependente."
     }
-  ],
-  "_catraca": "`pendingRemediation` e DIVIDA MEDIDA, nao permissao. So pode encolher: qualquer privilegio alem do declarado reprova, e uma tabela cuja divida foi quitada tem de SAIR do arquivo -- senao a lista viraria uma isencao permanente que ninguem relê."
+  ]
 }
