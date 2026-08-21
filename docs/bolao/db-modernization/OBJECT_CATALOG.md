@@ -170,6 +170,14 @@ All 7 `public` tables are owned by `postgres`. Schema `public` is owned by `pg_d
 highest-severity privilege-escalation shape is absent platform-wide. `rls_auto_enable()` is
 **undeclared in version control** before the 2026-08-07 baseline capture (R-08).
 
+**Inventory as of 2026-08-21 (Issue #273).** The "1 function" above is the Phase-1 figure and is
+kept as the dated record; `public` has since grown to **57 `SECURITY DEFINER` functions**, of which
+**4** are reachable by a client role and **0** by `PUBLIC`. All 57 pin `search_path`, so
+`SECURITY_DEFINER_WITHOUT_PINNED_SEARCH_PATH = 0` still holds. The static model in
+`scripts/db/audit_security_definer_exposure.mjs` was validated against the live catalog and
+reproduces it exactly — same 57, same 4, nothing missing or extra on either side. Ratified client
+exposure is declared in `bolao/shared/safety/ratified_rpc_exposure.json`.
+
 Since 2026-08-21 it is also no longer executable by any client role (Issue #270). It never needed to
 be: PostgreSQL does not consult `EXECUTE` when firing an event trigger, and `anon`, `authenticated`
 and `service_role` all have `has_schema_privilege(…,'public','CREATE') = false`, so none of them can

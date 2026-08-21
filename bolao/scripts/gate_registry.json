@@ -663,6 +663,12 @@
     "scripts/db/test_ddl_provenance.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/db/audit_security_definer_exposure.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/db/test_security_definer_exposure.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/db/audit_rls_auto_enable_privilege.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
