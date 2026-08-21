@@ -1,0 +1,46 @@
+{
+  "$schema": "Estado declarado dos DEFAULT PRIVILEGES de `public` e da superficie de API intencional. Consumido por scripts/db/audit_default_privileges.mjs (Issue #271).",
+
+  "_porque_existe": "Objeto novo em `public` nascia concedido a anon/authenticated/service_role sem nenhum GRANT escrito. `public.bolao_round_notif_jobs` provou que isso e real: nao tem um unico grant na DDL e mesmo assim `anon` tinha TRUNCATE nela em producao (Issue #276).",
+
+  "measuredAt": "2026-08-21",
+
+  "secured": [
+    { "creator": "postgres", "objectClass": "TABLES",    "appliedBy": "20260821030000_secure_default_privileges_public", "readBack": "{postgres=arwdDxtm/postgres}" },
+    { "creator": "postgres", "objectClass": "SEQUENCES", "appliedBy": "20260821030000_secure_default_privileges_public", "readBack": "{postgres=rwU/postgres}" }
+  ],
+
+  "open": [
+    {
+      "creator": "postgres",
+      "objectClass": "FUNCTIONS",
+      "status": "STOPPED_AT_HUMAN_GATE",
+      "reason": "`CREATE FUNCTION` concede EXECUTE a PUBLIC por padrao EMBUTIDO do PostgreSQL e isso NAO e supprimivel por default privileges. Medido em cluster efemero 17.10, quatro variantes: com os defaults de producao a funcao nova nasce PUBLIC=true; acrescentar `REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC` nao altera a linha armazenada e PUBLIC continua true; revogar os tres papeis APAGA a linha e a funcao nasce proacl=NULL, que tambem e PUBLIC=true; e replicar o shape exato de producao (owner explicito) da PUBLIC=true igual. Revogar aqui tornaria a exposicao invisivel sem remove-la -- a forma 'parece aplicado e nao faz nada' da Issue #270.",
+      "correctControl": "revogar de PUBLIC na propria migracao que cria a funcao, como 20260812090000_m8m9_trusted_producer_bridge.sql faz em laco com `execute format('revoke all on function %s from public', f)`"
+    },
+    {
+      "creator": "supabase_admin",
+      "objectClass": "TABLES, SEQUENCES, FUNCTIONS",
+      "status": "BLOCKED_BY_PRIVILEGE",
+      "reason": "O canal `supabase db query --linked` conecta como `postgres`, que neste projeto NAO e superusuario e NAO e membro de `supabase_admin`. A tentativa devolveu literalmente `ERROR: 42501: permission denied to change default privileges`. Uma tabela criada por `supabase_admin` em `public` ainda nasce exposta.",
+      "correctControl": "canal com privilegio maior (dashboard/suporte Supabase), ou aceitar o risco residual documentado"
+    }
+  ],
+
+  "_superficie_intencional": "O que o Data API deve servir. Com os defaults fechados, cada um destes precisa de GRANT EXPLICITO na propria migracao -- senao uma reconstrucao limpa perde o endpoint. O gate verifica exatamente isso.",
+
+  "intentionalApi": {
+    "views": [
+      { "name": "bolao_state_public",            "requires": ["SELECT"], "why": "documento publico do bolao, lido pelo navegador" },
+      { "name": "bolao_state_public_cdb",        "requires": ["SELECT"], "why": "projecao publica do CDB2026" },
+      { "name": "bolao_state_normalized_public", "requires": ["SELECT"], "why": "projecao normalizada; SELECT basta -- ver findings sobre os grants de escrita mortos" }
+    ],
+    "rpcs": [
+      { "signature": "submit_entry",      "why": "unica mutacao anonima legitima do BR2026" },
+      { "signature": "cdb_my_entry",      "why": "leitura da propria entrada do CDB2026 pelo token" },
+      { "signature": "cdb_save_my_picks", "why": "gravacao do palpite do participante do CDB2026" }
+    ]
+  },
+
+  "_excluido": "cdb_reserve_entry_saved_email NAO esta na lista acima de proposito. A Issue #274 ainda nao decidiu se e RPC legitima ou privilegio morto, e incluir aqui a ratificaria por conveniencia. O gate reprova se ela aparecer."
+}
