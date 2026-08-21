@@ -6,6 +6,18 @@
 object inventory (7 tables, 3 enums, 1 function, 6 policies, 17 FKs, 8 indexes, ~500 KB total,
 0 large objects, 0 replication slots, 0 subscriptions); `DDL_BASELINE_AND_R03_RESOLUTION.md` for what
 `pg_dump` omits.
+> **NOTA 2026-08-20 (Issue #133) — o inventario da Fase 1 citado acima e HISTORICO, nao o esperado atual.**
+> Ele fica registrado como estava porque descreve o banco no momento da captura. A producao de hoje
+> tem **12 tabelas, 3 views, 4 enums, 1 policy, 12 PKs, 20 indices e 0 sequences** (re-derivado do
+> catalogo, somente leitura). Manter o numero antigo como criterio de aceitacao invertia o portao: uma
+> restauracao CORRETA reprovava e uma que apagasse `bolao_entry_private` (PII), `bolao_notif_jobs`,
+> `live_sports_cache`, `cdb_entry_access` e `bolao_round_notif_jobs` PASSAVA, porque sobravam
+> exatamente sete. O criterio A1 deixou de comparar CONTAGENS e passou a exigir os objetos POR NOME —
+> ver `REQUIRED_TABLES`/`REQUIRED_VIEWS`/`TOLERATED_TABLES` em `scripts/db/acceptance_checks.mjs`.
+> `functions` e `sequences` sairam do criterio de reprovacao no arnes de catalogo vivo: 47 das 108
+> funcoes em `public` pertencem a extensao `citext`, e o `sequences: 2` anterior nunca teve lastro —
+> o capture de referencia da Fase 1 nao contem um unico `CREATE SEQUENCE`.
+
 **KNOWN GAPS:** Supabase's managed PITR window and provider backup mechanism were **not** inventoried
 (needs console access, not granted) — `PHASE0_BACKUP_GATES.md` G1 remains open. No restore has ever
 been attempted, so all timings are estimates.
