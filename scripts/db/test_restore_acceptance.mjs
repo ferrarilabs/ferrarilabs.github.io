@@ -12,6 +12,8 @@
  */
 
 import { evaluate, RESULT, parseManifest, copyRowCounts, policyDigests, verifyManifestClaims, verifyArtefactDigests, loadBundle } from "./restore_acceptance.mjs";
+import { REQUIRED_TABLES, REQUIRED_VIEWS } from "./acceptance_checks.mjs";
+import { A1_STRUCTURAL_EXPECTED as SE, requiredObjectsVerdict } from "./restore_acceptance.mjs";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -45,15 +47,27 @@ function expectPass(name, id, bundle) {
 // A clean synthetic baseline that satisfies every offline-decidable criterion.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-const TABLES = ["bolao_state", "lottery_pools", "lottery_participants", "lottery_participations",
-  "lottery_draws", "lottery_payment_transactions", "lottery_admin_audit"];
+// Issue #133: era uma lista de SETE escrita a mao aqui, divergente da verdade canonica. Agora vem
+// de `acceptance_checks.mjs` — uma fonte so. Uma segunda lista era como o fixture conseguia
+// "passar" enquanto descrevia um banco que producao nao tem ha meses.
+const TABLES = REQUIRED_TABLES;
 
-function toc({ tables = 7, types = 3, functions = 1, policies = 6, indexes = 1, constraints = 7, fks = 17, acl = 9 } = {}) {
+/**
+ * TOC sintetico. Issue #133: agora emite NOMES DE VERDADE para TABLE e VIEW, porque A1 passou a
+ * perguntar "as exigidas estao aqui?" em vez de "quantas sao?". Com nomes de placeholder (`x0`,
+ * `x1`) o fixture nao conseguia distinguir um restore canonico de um que perdeu a tabela de PII —
+ * que era exatamente o defeito sob teste.
+ */
+function toc({ tableNames = TABLES, viewNames = REQUIRED_VIEWS,
+               types = SE.enumTypes, functions = SE.functions, policies = SE.policies,
+               indexes = SE.uniqueIndexes, constraints = SE.primaryKeys, fks = SE.foreignKeys, acl = 9 } = {}) {
   const e = [];
+  const named = (kind, names) => { for (const nm of names) e.push({ raw: `1; 0 0 ${kind} public ${nm} owner`, kind, detail: `${kind} public ${nm} owner` }); };
   const push = (kind, n) => { for (let i = 0; i < n; i++) e.push({ raw: `1; 0 0 ${kind} public x owner`, kind, detail: `${kind} public x${i} owner` }); };
-  push("TABLE", tables); push("TYPE", types); push("FUNCTION", functions); push("POLICY", policies);
+  named("TABLE", tableNames); named("VIEW", viewNames);
+  push("TYPE", types); push("FUNCTION", functions); push("POLICY", policies);
   push("INDEX", indexes); push("CONSTRAINT", constraints); push("FK", fks); push("ACL", acl);
-  for (let i = 0; i < tables; i++) e.push({ raw: "", kind: "TABLE", detail: "TABLE DATA public t owner" });
+  for (const nm of tableNames) e.push({ raw: "", kind: "TABLE", detail: `TABLE DATA public ${nm} owner` });
   return e;
 }
 
@@ -150,15 +164,19 @@ expectFail("a manifest table missing from the archive entirely", "A2",
 // STEP 17: unexpected table
 expectFail("unexpected table present in the archive", "A2",
   baseline({ plainSql: plainSql(BASE_COUNTS, { extraTable: "shadow_ledger" }) }));
-expectFail("unexpected table changes the object count", "A1", baseline({ toc: toc({ tables: 8 }) }));
+// Issue #133: era `tables: 8` — uma CONTAGEM. Agora o controle acrescenta uma tabela NAO
+// DECLARADA pelo nome, que e a forma real do risco: um dump que traz objeto que ninguem declarou
+// pode ser o dump errado.
+expectFail("undeclared table present in the archive", "A1",
+  baseline({ toc: toc({ tableNames: [...TABLES, "shadow_ledger"] }) }));
 
 // STEP 17: missing index
-expectFail("missing unique index", "A1", baseline({ toc: toc({ indexes: 0 }) }));
-expectFail("missing primary key", "A1", baseline({ toc: toc({ constraints: 6 }) }));
-expectFail("missing foreign key", "A1", baseline({ toc: toc({ fks: 16 }) }));
-expectFail("missing policy", "A1", baseline({ toc: toc({ policies: 5 }) }));
-expectFail("missing enum type", "A1", baseline({ toc: toc({ types: 2 }) }));
-expectFail("missing function", "A1", baseline({ toc: toc({ functions: 0 }) }));
+expectFail("missing unique index", "A1", baseline({ toc: toc({ indexes: SE.uniqueIndexes - 1 }) }));
+expectFail("missing primary key", "A1", baseline({ toc: toc({ constraints: SE.primaryKeys - 1 }) }));
+expectFail("missing foreign key", "A1", baseline({ toc: toc({ fks: SE.foreignKeys - 1 }) }));
+expectFail("missing policy", "A1", baseline({ toc: toc({ policies: SE.policies - 1 }) }));
+expectFail("missing enum type", "A1", baseline({ toc: toc({ types: SE.enumTypes - 1 }) }));
+expectFail("missing function", "A1", baseline({ toc: toc({ functions: SE.functions - 1 }) }));
 {
   // A5 is BLOCKED offline, so the live path is where a missing index must be caught.
   const live = { notValidConstraints: 0, fkOrphans: 0, duplicateInsertRejected: true, rlsEnabled: 7, rlsForced: 0, realAuthIdentities: 0 };
@@ -257,8 +275,93 @@ console.log("\nPARSER CONTROLS — the counters must not be fooled by shape");
   check("manifest row counts parse", m.rowCounts.lottery_participations === 12, JSON.stringify(m.rowCounts.lottery_participations));
   // TABLE DATA must never be mistaken for a TABLE.
   const a = evaluate(baseline());
+  // A evidencia mudou de forma junto com A1 (Issue #133): passou a reportar quantas TABLE nomeadas
+  // foram vistas, e `tableCount` continua contando entradas TABLE brutas. O invariante testado
+  // segue o mesmo -- TABLE DATA nao pode ser confundida com TABLE.
   check("TABLE DATA entries are not counted as tables",
-    a.results.find((x) => x.id === "A1").evidence.includes("tables=7"));
+    a.results.find((x) => x.id === "A1").evidence.includes(`${TABLES.length} tabelas`));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+console.log("\nISSUE #133 — o gate aceitava o unico desastre que existe para detectar");
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+{
+  // O defeito, reproduzido nos DOIS sentidos antes de provar a correcao.
+  //
+  // A versao anterior de A1 comparava CONTAGENS contra `tables: 7`, enquanto producao tem 12.
+  // Consequencia medida: um restore CORRETO reprovava, e um restore que apagasse a tabela de PII
+  // e outras quatro PASSAVA -- porque sobravam exatamente sete.
+  const contagemAntiga = (nomes) => nomes.length === 7;   // o predicado antigo, reproduzido
+
+  const canonico = TABLES;                                 // 12 tabelas reais
+  const lossy = TABLES.filter((t) => ![
+    "bolao_entry_private", "bolao_notif_jobs", "live_sports_cache",
+    "cdb_entry_access", "bolao_round_notif_jobs",
+  ].includes(t));                                          // exatamente as 7 antigas
+
+  check("DEFEITO 1/2: o gate ANTIGO reprovava um restore correto",
+    contagemAntiga(canonico) === false, `12 tabelas corretas -> contagem 7? ${contagemAntiga(canonico)}`);
+  check("DEFEITO 2/2: o gate ANTIGO aceitava um restore que apagou a tabela de PII",
+    contagemAntiga(lossy) === true, `restore sem bolao_entry_private -> aceito? ${contagemAntiga(lossy)}`);
+
+  // CASE 1 — restauracao canonica PASSA
+  expectPass("CASE 1: restauracao canonica (12 tabelas + 3 views) e aceita", "A1",
+    baseline({ toc: toc({ tableNames: canonico }) }));
+
+  // CASE 2 — sem bolao_entry_private REPROVA. O caso que originou a Issue.
+  {
+    const b = baseline({ toc: toc({ tableNames: canonico.filter((t) => t !== "bolao_entry_private") }) });
+    expectFail("CASE 2: restauracao sem bolao_entry_private (PII) e REJEITADA", "A1", b);
+    const r = evaluate(b).results.find((x) => x.id === "A1");
+    check("CASE 2: e a razao nomeia a tabela de PII",
+      /bolao_entry_private/.test(r.why || ""), (r.why || "").slice(0, 90));
+  }
+
+  // CASE 3 — outra tabela exigida ausente tambem REPROVA
+  expectFail("CASE 3: restauracao sem bolao_round_notif_jobs e REJEITADA", "A1",
+    baseline({ toc: toc({ tableNames: canonico.filter((t) => t !== "bolao_round_notif_jobs") }) }));
+
+  // CASE 3b — o mesmo vale para as views de leitura publica
+  expectFail("CASE 3b: restauracao sem bolao_state_public e REJEITADA", "A1",
+    baseline({ toc: toc({ viewNames: REQUIRED_VIEWS.filter((v) => v !== "bolao_state_public") }) }));
+
+  // CASE 4 — estrutura deprecada/extra segue POLITICA DECLARADA, nunca define a verdade sozinha
+  {
+    const comExtra = toc({ tableNames: [...canonico, "tabela_deprecada"] });
+    const naoDeclarada = requiredObjectsVerdict(comExtra);
+    check("CASE 4: extra NAO DECLARADA reprova (nao vira verdade canonica por existir)",
+      naoDeclarada.ok === false && /NAO DECLARADAS/.test(naoDeclarada.why || ""), (naoDeclarada.why || "").slice(0, 80));
+    const declarada = requiredObjectsVerdict(comExtra, { tolerated: ["tabela_deprecada"] });
+    check("CASE 4: a MESMA extra, uma vez DECLARADA como tolerada, deixa de reprovar",
+      declarada.ok === true, declarada.why || "aceita");
+    const ausente = requiredObjectsVerdict(toc({ tableNames: canonico }), { tolerated: ["tabela_deprecada"] });
+    check("CASE 4: tolerada AUSENTE tambem nao reprova — tolerada nao e exigida",
+      ausente.ok === true, ausente.why || "aceita");
+  }
+
+  // CASE 5 — o diff precisa ser legivel: o que falta, nomeado
+  {
+    const v = requiredObjectsVerdict(toc({ tableNames: canonico.filter((t) => !["bolao_entry_private", "live_sports_cache"].includes(t)) }));
+    check("CASE 5: o diff nomeia TODAS as exigidas ausentes",
+      /bolao_entry_private/.test(v.why) && /live_sports_cache/.test(v.why) && v.missingTables.length === 2,
+      v.why.slice(0, 100));
+  }
+
+  // CASE 6 — sem baseline provavel, FECHA FALHANDO em vez de aprovar
+  {
+    for (const [rotulo, listas] of [
+      ["lista vazia", { required: [] }],
+      // `null` explicito, nao `undefined`: undefined dispara o valor padrao do parametro (que e o
+      // comportamento correto quando ninguem passa nada). O modo de falha real e a lista chegar
+      // vazia ou nula porque o carregamento falhou.
+      ["lista nula", { required: null }],
+      ["views ausentes", { requiredViews: null }],
+    ]) {
+      const v = requiredObjectsVerdict(toc({ tableNames: canonico }), listas);
+      check(`CASE 6: baseline indisponivel (${rotulo}) FECHA FALHANDO`,
+        v.ok === false && /FECHADO/.test(v.why || ""), (v.why || "").slice(0, 70));
+    }
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
