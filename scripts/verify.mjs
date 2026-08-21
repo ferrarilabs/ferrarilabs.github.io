@@ -188,6 +188,12 @@ const CHECKS = [
   // ── scheduling ───────────────────────────────────────────────────────────────
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],
     why: "scheduled workflows cover the expected event calendar" },
+  // Issue #259 — o agendamento fora da janela era inerte por aritmetica (30 min de cadencia contra
+  // um teto de 10 min de ultimo-bom-conhecido) e nem exercitava o caminho, porque o produtor pula
+  // antes da rede. Removido; este gate fixa a decisao e a aritmetica, para que a proxima cadencia
+  // que nao caiba no teto reprove pelo motivo certo em vez de parecer razoavel.
+  { id: "live-producer-cadence", group: "scheduling", cmd: ["node", "bolao/scripts/test_live_producer_cadence.mjs"],
+    why: "cadencia agendada tem de caber no teto do gateway, e a janela de jogo tem de continuar coberta (Issue #259)" },
 
   // ── scoring: money-affecting, never generalised across competitions ──────────
   { id: "scoring-copa", group: "scoring", cmd: ["python3", "bolao/copa2026/scripts/audit_scoring.py"], why: "Copa scoring self-test" },
