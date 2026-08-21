@@ -22,8 +22,29 @@
  * business column value. `SELECT count(*)` is aggregate and is the only contact with table contents.
  */
 
-/** The seven application tables, in a stable order. */
-export const APP_TABLES = [
+/**
+ * The application tables a correct restore MUST contain, in a stable order — Issue #133.
+ *
+ * ─── POR QUE ISTO E UMA LISTA DE NOMES, E NAO UM NUMERO ──────────────────────────────────────
+ *
+ * Ate 2026-08-20 esta lista tinha SETE entradas e `EXPECTED_STRUCTURE.tables` valia 7, enquanto a
+ * producao tinha DOZE tabelas. As duas coisas juntas invertiam o gate:
+ *
+ *   · uma restauracao CORRETA (12 tabelas) REPROVAVA em A1;
+ *   · uma restauracao que apagasse `bolao_entry_private` (a tabela de PII), `bolao_notif_jobs`,
+ *     `live_sports_cache`, `bolao_round_notif_jobs` e `cdb_entry_access` PASSAVA -- porque sobravam
+ *     exatamente 7.
+ *
+ * Ou seja, o unico desastre que este arquivo existe para detectar era o unico que ele aceitava.
+ * Contagem nao distingue "tenho as tabelas certas" de "tenho a quantidade certa de tabelas".
+ *
+ * ─── PROVENIENCIA DE CADA ENTRADA (verificada, nao presumida) ────────────────────────────────
+ *
+ * Todas as doze foram reconciliadas contra o catalogo de producao (leitura somente) em 2026-08-20
+ * e contra a DDL do repositorio. Nenhuma ficou UNKNOWN.
+ */
+export const REQUIRED_TABLES = [
+  // ── as sete originais, do capture Fase 1 / baseline M0 ──────────────────────────────────────
   "bolao_state",
   "lottery_admin_audit",
   "lottery_draws",
@@ -31,28 +52,116 @@ export const APP_TABLES = [
   "lottery_participations",
   "lottery_payment_transactions",
   "lottery_pools",
+  // ── acrescentadas por migracoes posteriores, todas EXPECTED_CANONICAL ────────────────────────
+  // PII dos participantes, separada do documento publico (F10). Perder esta e o pior caso de DR
+  // que existe aqui, e era exatamente o que o gate aceitava em silencio.
+  "bolao_entry_private",
+  // Ledger duravel de notificacao por DESTINATARIO (010_notification_durability.sql).
+  "bolao_notif_jobs",
+  // Cache compartilhado do gateway ao vivo. Publico, mas a sua ausencia derruba o hero.
+  "live_sports_cache",
+  // Mapeamento token -> entrada do CDB2026 (20260812070000_cdb_secure_participant_access.sql).
+  // Sem ela nenhum participante consegue autenticar para editar palpites.
+  "cdb_entry_access",
+  // ── INTENTIONAL_LEGACY: DDL fora do ledger de migracoes ─────────────────────────────────────
+  // Criada por `bolao/shared/sql/030_br_round_notification_durability.sql`, nao por
+  // `supabase/migrations/**`. Nao e drift acidental: e o ledger por RODADA do BR2026, escrito em
+  // resposta ao incidente #221 (rodada 23 enviada 4x para 11 participantes reais), com o motivo de
+  // ser uma tabela separada de `bolao_notif_jobs` documentado no proprio arquivo, e consumido por
+  // `send_round_email.py`. Perde-la reintroduz exatamente aquele incidente.
+  // A governanca disso (DDL de producao morando em DOIS diretorios) esta registrada em Issue
+  // propria -- aqui ela e tratada como o que e: uma tabela exigida.
+  "bolao_round_notif_jobs",
+];
+
+/**
+ * Compatibilidade: `APP_TABLES` continua sendo o nome que A2 e o resto da campanha usam. Agora ele
+ * aponta para a lista completa, entao a contagem de linhas de A2 passa a cobrir tambem a tabela de
+ * PII -- que era a lacuna original relatada na Issue #133.
+ */
+export const APP_TABLES = REQUIRED_TABLES;
+
+/**
+ * As views de leitura publica que os apps consomem. Uma restauracao sem elas devolve um banco que
+ * "tem todos os dados" e um site que nao le nenhum.
+ */
+/**
+ * Estruturas TOLERADAS: podem estar presentes, nao sao exigidas, e a presenca delas nao reprova.
+ *
+ * Existe para resolver uma tensao real. "Exigido" e "aceito" nao sao a mesma coisa: um objeto
+ * legado/deprecado nao deve virar EXIGIDO so porque hoje existe em producao (era assim que
+ * `tables: 7` virou verdade canonica), mas tambem nao deve derrubar um restore correto.
+ *
+ * Hoje esta VAZIA de proposito: as doze tabelas foram reconciliadas uma a uma e todas sao
+ * exigidas. A lista existe para que a proxima estrutura deprecada tenha um lugar DECLARADO onde
+ * morar, com motivo escrito, em vez de ser acomodada afrouxando o gate.
+ */
+export const TOLERATED_TABLES = [];
+
+export const REQUIRED_VIEWS = [
+  "bolao_state_normalized_public",
+  "bolao_state_public",
+  "bolao_state_public_cdb",
 ];
 
 /**
  * Structural expectations from Phase 1 evidence. A restored copy that disagrees with any of these
  * either restored incompletely or restored something other than what was captured.
  */
+/**
+ * Estrutura esperada — RE-DERIVADA do catalogo de producao em 2026-08-20 (Issue #133), somente
+ * leitura, e reconciliada campo a campo contra a DDL do repositorio. Os valores anteriores
+ * descreviam o banco da Fase 1 e divergiam em DEZ dos treze campos.
+ *
+ * ─── O QUE E FIXADO E O QUE E APENAS RELATADO ────────────────────────────────────────────────
+ *
+ * Nem todo contador desta consulta mede o produto. Dois deles medem o AMBIENTE, e fixa-los
+ * transforma um upgrade do Supabase numa reprovacao de DR:
+ *
+ *   · `functions` — producao tem 108 funcoes em `public`, das quais 47 pertencem a EXTENSAO
+ *     `citext` (medido por pg_depend). Fixar esse numero e fixar a versao de uma extensao.
+ *   · `sequences` — o valor anterior era 2, e ele NUNCA foi verdade: o capture de referencia da
+ *     Fase 1 nao contem um unico `CREATE SEQUENCE`, o PC-6 registrado no M0 nem lista sequences,
+ *     e producao tem 0. Era um numero sem lastro no proprio registro que ele dizia codificar.
+ *
+ * Os dois passam a ser INFORMATIVOS: aparecem no relatorio, nao reprovam sozinhos. O que reprova
+ * e ausencia de objeto EXIGIDO, por nome — ver REQUIRED_TABLES/REQUIRED_VIEWS e o check A1.
+ */
 export const EXPECTED_STRUCTURE = {
-  tables: 7,
-  enumTypes: 3,
-  functions: 1,          // public.rls_auto_enable()
-  policies: 6,           // all on bolao_state
-  primaryKeys: 7,
+  tables: 12,            // as 12 de REQUIRED_TABLES
+  enumTypes: 4,
+  policies: 1,           // so `live_cache_read`; as outras foram REMOVIDAS de proposito (ver abaixo)
+  primaryKeys: 12,
   foreignKeys: 17,
-  uniqueConstraints: 0,  // the unique thing is an INDEX, not a constraint — see A5
+  uniqueConstraints: 2,
   uniqueIndexesNotConstraints: 1,
-  totalIndexes: 8,       // 7 PK + 1 unique
-  userTriggers: 0,       // the 3 declared audit triggers were never applied (R-04)
-  rlsEnabled: 7,
+  totalIndexes: 20,
+  userTriggers: 0,       // continua 0 — os 3 triggers de auditoria declarados nunca foram aplicados (R-04)
+  rlsEnabled: 12,        // RLS ligado em TODAS as 12
   rlsForced: 0,
-  views: 0,
-  sequences: 2,
+  views: 3,
 };
+
+/**
+ * Contadores medidos e relatados, mas que NAO reprovam sozinhos — ver a nota acima.
+ * Registrados com o valor observado em 2026-08-20 para que uma mudanca grande fique visivel no
+ * diff do relatorio, sem transformar manutencao de plataforma em incidente de DR.
+ */
+export const INFORMATIONAL_COUNTS = {
+  functions: 108,        // 61 do app + 47 da extensao citext
+  sequences: 0,
+};
+
+/**
+ * Por que `policies` CAIU de 6 para 1 — a direcao perigosa, entao verificada e nao presumida.
+ *
+ * As migracoes contem 16 `drop policy`, incluindo "allow anon read/insert/update" em
+ * `public.bolao_state` e `live_cache_write`/`live_cache_update` em `public.live_sports_cache`.
+ * Isso e o endurecimento deliberado ja registrado (F8: a anon key publica podia sobrescrever o
+ * placar ao vivo de todo mundo; Q38: anon perdeu INSERT/UPDATE em bolao_state; B-02:
+ * "eliminate-not-externalize"). Sobra exatamente uma policy, `live_cache_read`, que e leitura de
+ * dado esportivo publico. EXPECTED_CANONICAL, nao perda.
+ */
 
 /**
  * Policy predicate md5s recorded by DR-1. Two distinct predicates across six policies (DR1-F1).
@@ -70,28 +179,65 @@ export const EXPECTED_POLICY_MD5 = {
  * Each check: id, what it proves, and the SQL that proves it. Every query is READ-ONLY.
  * `expect` is evaluated by the runner against the query's single-row result.
  */
+/**
+ * O veredito estrutural de A1 — Issue #133.
+ *
+ * Politica, escrita e nao acidental:
+ *
+ *   · EXIGIDO ausente            -> REPROVA. E o desastre que este arquivo existe para pegar.
+ *   · TOLERADO presente/ausente  -> ok. Declarado, com motivo, em TOLERATED_TABLES.
+ *   · qualquer outra coisa extra -> REPROVA, reportada SEPARADAMENTE de "ausente".
+ *
+ * Extra reprova porque um objeto que ninguem declarou pode ser sinal de restaurar o dump ERRADO —
+ * e porque a alternativa (tolerar tudo) e como "o que existe em producao" vira verdade canonica,
+ * que foi exatamente o defeito da Issue #133. O caminho para acomodar um objeto legitimo e
+ * DECLARA-LO, nao afrouxar o portao.
+ */
+export function structuralDiff(tableNames, viewNames) {
+  const have = new Set((tableNames || []).map(String));
+  const haveViews = new Set((viewNames || []).map(String));
+  const missingTables = REQUIRED_TABLES.filter((t) => !have.has(t));
+  const missingViews = REQUIRED_VIEWS.filter((v) => !haveViews.has(v));
+  const extraTables = [...have].filter((t) => !REQUIRED_TABLES.includes(t) && !TOLERATED_TABLES.includes(t));
+  const extraViews = [...haveViews].filter((v) => !REQUIRED_VIEWS.includes(v));
+
+  const problems = [];
+  if (missingTables.length) problems.push(`tabelas EXIGIDAS ausentes: ${missingTables.join(", ")}`);
+  if (missingViews.length) problems.push(`views EXIGIDAS ausentes: ${missingViews.join(", ")}`);
+  if (extraTables.length) problems.push(`tabelas NAO DECLARADAS presentes: ${extraTables.join(", ")}`);
+  if (extraViews.length) problems.push(`views NAO DECLARADAS presentes: ${extraViews.join(", ")}`);
+
+  return {
+    ok: problems.length === 0,
+    detail: problems.join(" | ") || `${have.size} tabelas, ${haveViews.size} views — todas as exigidas presentes, nenhuma nao declarada`,
+    missingTables, missingViews, extraTables, extraViews,
+  };
+}
+
 export const ACCEPTANCE_CHECKS = [
   {
     id: "A1",
     title: "application object counts match the captured baseline",
     why: "an incomplete restore is most visible as a missing object",
+    // Devolve NOMES, nao so contagens: a pergunta de DR e "as tabelas exigidas estao aqui?", e
+    // contagem nao responde isso (Issue #133 — 12 tabelas certas e 7 tabelas erradas eram
+    // indistinguiveis para a versao anterior, e a errada e que passava).
     sql: `
       SELECT
-        (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-           WHERE n.nspname='public' AND c.relkind='r')                                  AS tables,
+        (SELECT coalesce(array_agg(c.relname ORDER BY c.relname), ARRAY[]::name[])
+           FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+           WHERE n.nspname='public' AND c.relkind='r')                                  AS table_names,
+        (SELECT coalesce(array_agg(c.relname ORDER BY c.relname), ARRAY[]::name[])
+           FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
+           WHERE n.nspname='public' AND c.relkind='v')                                  AS view_names,
         (SELECT count(*) FROM pg_type t JOIN pg_namespace n ON n.oid=t.typnamespace
            WHERE n.nspname='public' AND t.typtype='e')                                  AS enum_types,
+        (SELECT count(*) FROM pg_policies WHERE schemaname='public')                     AS policies,
         (SELECT count(*) FROM pg_proc p JOIN pg_namespace n ON n.oid=p.pronamespace
            WHERE n.nspname='public')                                                    AS functions,
-        (SELECT count(*) FROM pg_policies WHERE schemaname='public')                     AS policies,
-        (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
-           WHERE n.nspname='public' AND c.relkind='v')                                  AS views,
         (SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace
            WHERE n.nspname='public' AND c.relkind='S')                                  AS sequences`,
-    expect: (r, exp) =>
-      cmp([["tables", r.tables, exp.tables], ["enum_types", r.enum_types, exp.enumTypes],
-           ["functions", r.functions, exp.functions], ["policies", r.policies, exp.policies],
-           ["views", r.views, exp.views], ["sequences", r.sequences, exp.sequences]]),
+    expect: (r) => structuralDiff(r.table_names, r.view_names),
   },
   {
     id: "A2",
