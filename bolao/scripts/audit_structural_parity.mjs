@@ -145,12 +145,29 @@ async function main() {
       // Unhide nav for archived Copa so Jogos is reachable (harness-only, same technique
       // bolao/cdb2026/scripts/visual/game_fixtures.mjs's unhideCopaJogosForHarness() uses —
       // never touches CONFIG.archived itself).
+      // Espera a nav EXISTIR antes de mexer nela. Sem isto, `querySelectorAll(".nav button")`
+      // pode rodar antes do render e simplesmente nao achar botao nenhum -- e o clique em "Jogos"
+      // vira um no-op silencioso, sem erro nenhum para explicar o que houve depois.
+      await page.waitForSelector(".nav button", { timeout: 10000 })
+        .catch(() => { /* ausencia real da nav aparece na assercao de game-card abaixo */ });
       await page.evaluate(() => document.querySelectorAll(".nav button").forEach((b) => b.classList.remove("hidden")));
       await page.evaluate(() => {
         const btn = [...document.querySelectorAll(".nav button")].find((b) => /jogos/i.test(b.textContent));
         btn?.click();
       });
-      await page.waitForTimeout(600);
+      // ESPERA O ELEMENTO, NAO O RELOGIO — Issue #278.
+      //
+      // Aqui havia `waitForTimeout(600)`. Um sleep fixo nao e espera, e corrida: se o render cair
+      // em 610 ms sob carga de CI, a consulta nao acha nada e a checagem reporta "no .game-card
+      // found in the real rendered DOM" -- indistinguivel, na saida, de uma regressao estrutural
+      // de verdade. Foi assim que a `main` ficou vermelha em d6ca3f30 e voltou a passar na
+      // reexecucao do MESMO commit, sem uma linha de codigo mudar.
+      //
+      // Isto ENDURECE a checagem em vez de afrouxa-la: nenhuma assercao saiu, nenhum `skip`
+      // entrou. A ausencia REAL continua reprovando -- o `catch` nao decide nada, so devolve o
+      // controle para a assercao abaixo, que continua sendo quem reprova quando `sig` e nulo.
+      await page.waitForSelector(".game-card", { timeout: 10000 })
+        .catch(() => { /* ausencia real e decidida pela assercao de game-card abaixo, nao aqui */ });
       const sig = await gameCardSignature(page, ".game-card");
       gameCardSigs[app] = sig;
       await page.close();
