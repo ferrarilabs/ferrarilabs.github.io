@@ -13,7 +13,7 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { report, MIN_DISCOVERED_FUNCTIONS } from "./audit_function_creation_discipline.mjs";
+import { report, MIN_DISCOVERED_FUNCTIONS, ddlSources } from "./audit_function_creation_discipline.mjs";
 import { effectiveExecuteAcl } from "./function_birth_acl.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
@@ -184,8 +184,112 @@ test("o repositorio real passa no gate, e a divida declarada e exatamente a medi
   const r = report({ root: ROOT });
   assert(r.achados.length === 0, `main deveria estar verde: ${JSON.stringify(r.achados.slice(0, 3))}`);
   assert(r.obsoletas.length === 0, `divida ja quitada ainda declarada: ${r.obsoletas.join(", ")}`);
-  assert((r.model.inheritedExposure ?? []).length === 14,
-    `a catraca comeca em 14 itens medidos; tem ${(r.model.inheritedExposure ?? []).length}`);
+  // A catraca caiu de 14 para 3 em 2026-08-21, quando a comparacao com a ACL AO VIVO mostrou que
+  // onze das quatorze nunca estiveram expostas em producao -- eram divergencia de RECONSTRUCAO, e
+  // `032_codify_notification_function_client_revokes.sql` a fechou. Assertar a COMPOSICAO, e nao so
+  // o numero: um total certo com os itens errados passaria despercebido.
+  const divida = (r.model.inheritedExposure ?? []).map((e) => e.signature).sort();
+  const esperada = ["public._bolao_audit/3", "public._bolao_touch/1", "public.delete_canary_job/1"];
+  assert(JSON.stringify(divida) === JSON.stringify(esperada),
+    `a divida declarada mudou de composicao: ${JSON.stringify(divida)}`);
+  // As duas da #282 sao exposicao REAL ao vivo; a terceira e ordem de replay. Classes diferentes,
+  // e cada entrada tem de dizer qual e a sua.
+  for (const e of r.model.inheritedExposure ?? []) {
+    assert(e.whyStillHere && e.whyStillHere.length > 80, `${e.signature} precisa explicar por que continua declarada`);
+    assert(e.liveState, `${e.signature} precisa registrar o que producao mede`);
+  }
+});
+
+// ══ PUBLIC vs PAPEL NOMEADO — a raiz compartilhada de #282 e #284 ═════════════════════════════
+//
+// `PUBLIC` e um PSEUDO-PAPEL. `REVOKE ... FROM PUBLIC` NAO remove um grant explicito de `anon` ou
+// de `authenticated`: eles tem entrada propria na ACL. Uma funcao pode ficar com PUBLIC=false e
+// continuar executavel pelos dois papeis de cliente.
+//
+// Nao e teoria. `017_n22_narrow_mutations.sql` escreve `revoke execute ... from anon, public` em
+// `_bolao_audit` e `_bolao_touch`, e producao mede `{postgres=X, authenticated=X, service_role=X}`
+// nas duas ate hoje -- `authenticated` sobreviveu ao revoke de PUBLIC porque nunca foi alvo dele.
+
+test("13. grant explicito de anon SOBREVIVE a REVOKE FROM PUBLIC, e o detector ve", () => {
+  const st = effectiveExecuteAcl(ddl(`
+    create or replace function public.f_pn(p text) returns text language sql security definer as $$ select p $$;
+    grant execute on function public.f_pn(text) to anon;
+    revoke execute on function public.f_pn(text) from public;
+  `));
+  const e = st.get("public.f_pn/1");
+  assert(e.publicExecute === false, "o revoke de PUBLIC tem de tirar PUBLIC");
+  assert(e.roles.has("anon"), "o grant nominal de anon NAO pode ser removido por um revoke de PUBLIC");
+
+  const r = report({
+    files: ddl(`
+      create or replace function public.f_pn(p text) returns text language sql security definer as $$ select p $$;
+      grant execute on function public.f_pn(text) to anon;
+      revoke execute on function public.f_pn(text) from public;
+    `),
+    model: modelo({ classifications: { "public.f_pn/1": { class: "SERVICE_RPC" } } }),
+  });
+  const a = r.achados.find((x) => x.kind === "NON_CLIENT_REACHABLE");
+  assert(a, `o detector tem de acusar anon sobrevivente: ${JSON.stringify(kinds(r))}`);
+  assert(/anon/.test(a.detail), `o achado tem de nomear anon: ${a.detail}`);
+});
+
+test("14. grant explicito de authenticated SOBREVIVE a REVOKE FROM PUBLIC — a forma exata da #282", () => {
+  // Reproduz `017`: revoga de `anon, public` e esquece `authenticated`.
+  const st = effectiveExecuteAcl(ddl(`
+    create or replace function public.f_au(p jsonb) returns jsonb language sql as $$ select p $$;
+    grant execute on function public.f_au(jsonb) to anon, authenticated, service_role;
+    revoke execute on function public.f_au(jsonb) from anon, public;
+  `));
+  const e = st.get("public.f_au/1");
+  assert(e.publicExecute === false, "PUBLIC tem de sair");
+  assert(!e.roles.has("anon"), "anon foi revogado nominalmente e tem de sair");
+  assert(e.roles.has("authenticated"), "authenticated NAO foi alvo do revoke e tem de permanecer — e o defeito da #282");
+  assert(e.roles.has("service_role"), "service_role nao foi tocado");
+
+  const r = report({
+    files: ddl(`
+      create or replace function public.f_au(p jsonb) returns jsonb language sql as $$ select p $$;
+      grant execute on function public.f_au(jsonb) to anon, authenticated, service_role;
+      revoke execute on function public.f_au(jsonb) from anon, public;
+    `),
+    model: modelo({ classifications: { "public.f_au/1": { class: "SERVICE_RPC" } } }),
+  });
+  const a = r.achados.find((x) => x.kind === "NON_CLIENT_REACHABLE");
+  assert(a && /authenticated/.test(a.detail), `o detector tem de acusar authenticated: ${JSON.stringify(r.achados)}`);
+});
+
+test("15. os quatro concessionarios sao modelados INDEPENDENTEMENTE", () => {
+  // PUBLIC, anon, authenticated e service_role nao podem ser achatados num conjunto so: e assim
+  // que se produz um 'revogado' que nao revoga nada.
+  const st = effectiveExecuteAcl(ddl(`
+    create or replace function public.f_ind() returns int language sql as $$ select 1 $$;
+    revoke execute on function public.f_ind() from public;
+    revoke execute on function public.f_ind() from anon;
+  `));
+  const e = st.get("public.f_ind/0");
+  assert(e.publicExecute === false, "PUBLIC revogado");
+  assert(!e.roles.has("anon"), "anon revogado");
+  assert(e.roles.has("authenticated"), "authenticated nao foi tocado e continua");
+  assert(e.roles.has("service_role"), "service_role nao foi tocado e continua");
+});
+
+test("16. a reconstrucao bate com a ACL pretendida em producao para as doze da #284", () => {
+  // Producao mede as doze com `{postgres=X, service_role=X}`. Depois de
+  // `032_codify_notification_function_client_revokes.sql`, o replay tem de chegar no mesmo lugar --
+  // que e o unico motivo daquele arquivo existir (ele e no-op contra o estado ao vivo).
+  const doze = ["bolao_notif_health/1", "bolao_notif_status_by_pool/1", "enqueue_bolao_notif/11",
+    "get_bolao_notif_content_hash/1", "get_bolao_notif_recipients/1", "mark_bolao_notif_permanent/2",
+    "mark_bolao_notif_retryable/2", "mark_bolao_notif_sent/2", "release_expired_bolao_notif/1",
+    "set_bolao_notif_recipient/5", "settle_bolao_notif/1"];
+  const st = effectiveExecuteAcl(ddlSources({ root: ROOT }));
+  for (const sig of doze) {
+    const e = st.get(`public.${sig}`);
+    assert(e, `${sig} deveria existir no replay`);
+    assert(e.publicExecute === false, `${sig}: PUBLIC nao pode executar`);
+    assert(!e.roles.has("anon"), `${sig}: anon nao pode executar numa reconstrucao limpa`);
+    assert(!e.roles.has("authenticated"), `${sig}: authenticated nao pode executar numa reconstrucao limpa`);
+    assert(e.roles.has("service_role"), `${sig}: service_role TEM de continuar — o produtor confiavel a chama`);
+  }
 });
 
 console.log(`\n${fail ? "✗" : "✓"} ${pass} passaram, ${fail} falharam\n`);
