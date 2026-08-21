@@ -675,6 +675,12 @@
     "scripts/db/test_client_structural_privs.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/db/audit_lottery_client_crud.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/db/test_lottery_client_crud.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/db/audit_default_privileges.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
