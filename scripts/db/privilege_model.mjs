@@ -40,7 +40,8 @@
  *   · TRUNCATE, REFERENCES or TRIGGER on any production relation (PROBE-4 read four privileges);
  *   · any SEQUENCE privilege;
  *   · EXECUTE on any function other than `rls_auto_enable`;
- *   · `pg_default_acl` — **the mechanism itself has never been read in production.**
+ *   · `pg_default_acl` — was never read in production AS OF 2026-08-11. It has since been read:
+ *     see `PRODUCTION_EVIDENCE_2026_08_21`, which confirms the mechanism and corrects one detail.
  *
  * That last one matters most. The default-privilege behaviour described here is inferred from Supabase's
  * documented bootstrap plus the observed effect that every relation in `public` carries anon CRUD. It is
@@ -238,6 +239,53 @@ export const PRODUCTION_EVIDENCE = Object.freeze({
   ]),
   inferenceStatus: "WELL_SUPPORTED_BUT_UNCONFIRMED",
   whyItMatters: "a remediation that alters defaults FOR ROLE postgres, when the existing defaults belong to supabase_admin, changes nothing and passes every local test that creates fixtures as postgres.",
+  // The 2026-08-11 record is left EXACTLY as measured. It is a dated observation, and editing it to
+  // match what is known now would destroy the only record of what was actually open at the time.
+  supersededBy: "PRODUCTION_EVIDENCE_2026_08_21",
+});
+
+/**
+ * CR-1 was executed. Note the internal contradiction it resolves: `PRODUCTION_EVIDENCE` above says
+ * `pg_default_acl` was NEVER READ, while `docs/bolao/db-modernization/RLS_ASSUMPTIONS_REVIEW.md`
+ * reports probe `S21e` as having read it and found 0 PUBLIC entries. S21e was right — this read
+ * reproduces its result exactly. The note above was stale, not the doc.
+ *
+ * What is genuinely new here is the detail S21e did not record and that this file called
+ * "decisive": the defaults are registered for BOTH creator roles, `postgres` AND `supabase_admin`.
+ * A remediation targeting only one of them would change nothing and still pass local tests.
+ *
+ * Confirmed: no PUBLIC entry, so new objects do NOT inherit PUBLIC privileges. The PUBLIC EXECUTE
+ * found on `rls_auto_enable()` therefore came from PostgreSQL's built-in `CREATE FUNCTION` default
+ * at creation time — the function predates migration tracking — and is not recurring.
+ */
+export const PRODUCTION_EVIDENCE_2026_08_21 = Object.freeze({
+  measuredAt: "2026-08-21",
+  measured: Object.freeze([
+    "pg_default_acl in full (CR-1): 24 entries. For schema public, FUNCTION/table/sequence defaults exist for BOTH creator roles (postgres AND supabase_admin), each granting anon, authenticated and service_role. NO PUBLIC entry in any of them — reproducing probe S21e's result rather than discovering it.",
+    "the complete ACL of public.rls_auto_enable(): PUBLIC, anon, authenticated, service_role all held EXECUTE (proacl `=X/postgres,postgres=X/postgres,anon=...,authenticated=...,service_role=...`)",
+    "has_schema_privilege(role,'public','CREATE') for anon, authenticated, service_role: all FALSE. Only postgres and supabase_admin can run DDL in public.",
+    "the ensure_rls event trigger: enabled ('O'), ddl_command_end, owner postgres, tags CREATE TABLE / CREATE TABLE AS / SELECT INTO",
+  ]),
+  resolves: Object.freeze([
+    "which creator role owns the default privileges — ANSWERED: both. This is the item this file called decisive and listed as unmeasured; a remediation targeting only one role would silently do nothing.",
+    "pg_default_acl — the 'never been read' note above was STALE. Probe S21e had already read it (see RLS_ASSUMPTIONS_REVIEW.md); this read reproduces S21e's 0-PUBLIC result and adds the per-creator-role detail.",
+    "PUBLIC's grants — measured for this one function. Still unmeasured for every other object.",
+  ]),
+  corrects: Object.freeze([
+    "new objects in public do NOT inherit PUBLIC privileges — there is no PUBLIC entry in pg_default_acl. Only anon/authenticated/service_role are auto-granted.",
+  ]),
+  stillUnmeasured: Object.freeze([
+    "TRUNCATE / REFERENCES / TRIGGER on the 12 existing relations — the table DEFAULT is `arwdDxtm` (which includes all three) but that is the default for NEW tables, not a reading of the existing ACLs",
+    "EXECUTE on functions other than rls_auto_enable and the seven operator RPCs of Issue #267",
+    "PUBLIC's grants on tables, views and sequences",
+  ]),
+  remediated: Object.freeze([
+    "public.rls_auto_enable(): EXECUTE revoked from PUBLIC, anon, authenticated and service_role on 2026-08-21 (Issue #270, migration 20260821010000). Read back as proacl `{postgres=X/postgres}` — owner only — with ensure_rls still enabled and the function body, SECURITY DEFINER flag, pinned search_path and owner all unchanged. This brings the function into line with TARGET_POLICY.FUNCTION, which it never satisfied.",
+  ]),
+  notRemediated: Object.freeze([
+    "the default privileges themselves — schema-wide, affects every future object, and outside the bounded authorization that covered Issue #270. Filed as Issue #271.",
+  ]),
+  inferenceStatus: "MEASURED",
 });
 
 /**

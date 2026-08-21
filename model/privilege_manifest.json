@@ -138,7 +138,8 @@
       "PUBLIC's grants on anything"
     ],
     "inferenceStatus": "WELL_SUPPORTED_BUT_UNCONFIRMED",
-    "whyItMatters": "a remediation that alters defaults FOR ROLE postgres, when the existing defaults belong to supabase_admin, changes nothing and passes every local test that creates fixtures as postgres."
+    "whyItMatters": "a remediation that alters defaults FOR ROLE postgres, when the existing defaults belong to supabase_admin, changes nothing and passes every local test that creates fixtures as postgres.",
+    "supersededBy": "PRODUCTION_EVIDENCE_2026_08_21"
   },
   "exceptions": [
     {
