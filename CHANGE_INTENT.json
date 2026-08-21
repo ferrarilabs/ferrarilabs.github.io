@@ -7,5 +7,16 @@
 
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
 
-  "declarations": []
+  "declarations": [
+{
+      "surface_id": "SUPABASE_MIGRATIONS",
+      "reason": "Issue #267. Sete RPCs SECURITY DEFINER de operador (op_confirm_payment, op_remove_entry, op_set_phases, op_set_results, op_set_round_email, op_update_entry, resolve_notification_recipients) tinham EXECUTE para `authenticated`, concedido pelo baseline 20260811160000_baseline_adopted_grants_and_rls.sql. No Supabase/PostgREST `authenticated` e o papel assumido por QUALQUER requisicao com JWT de usuario -- contagem de membros do papel nao e prova de nao-uso. A revogacao foi executada em producao em 2026-08-21 sob autorizacao explicita e pontual do Eduardo, com preflight completo: ACLs relidas imediatamente antes (batendo exatamente), levantamento de TODOS os chamadores do repositorio classificados por credencial (operator_cli.py = POSTGRES/ADMIN via `supabase db query --linked`; br2026/js/app.js = ANON, que ja nao tinha EXECUTE; restante = DDL e testes), ZERO chamadores AUTHENTICATED_USER e ZERO UNKNOWN, e nenhum codigo do repositorio obtem JWT de usuario. Esta migracao existe para que o estado de producao seja REPRODUTIVEL: o GRANT continua no baseline, entao sem ela uma reconstrucao reintroduz a exposicao em silencio.",
+      "expected_behavior_change": "Somente PRIVILEGIO: sete `revoke execute ... from authenticated` nas assinaturas exatas. Nada mais muda -- nem corpo de funcao, nem `anon`, `PUBLIC` ou `service_role`, nem RLS, nem grant de tabela, nem policy, nem schema, nem DEFAULT PRIVILEGES, nem dado. Leitura pos-mudanca nas sete: authenticated=false, anon=false, PUBLIC=false, service_role=true. Caminho do operador provado intacto sem invocar RPC mutante: o canal do operator_cli roda como `postgres` e mantem EXECUTE. Rollback exato em supabase/rollbacks/20260821000000_*.rollback.sql (sete GRANT EXECUTE), com o aviso de que aplica-lo reintroduz a exposicao.",
+      "tests_required": [
+          "operator-rpc-exposure",
+          "operator-rpc-exposure-tests",
+          "ddl-provenance"
+      ]
+  }
+  ]
 }
