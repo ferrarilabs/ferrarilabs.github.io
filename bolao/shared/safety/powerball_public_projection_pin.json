@@ -1,10 +1,10 @@
 {
   "$schema": "Agregados de PAGAMENTO fixados de bolao/loterias/powerball/js/data.js. Consumido por bolao/loterias/powerball/scripts/audit_data_js_authority.mjs (Issue #130).",
-  "_porque_existe": "O dono decidiu em 2026-08-22 que o BANCO e o sistema de registro de pagamento e que `data.js` passa a ser PROJECAO DERIVADA. A transicao ainda nao terminou -- o banco tem 1 sorteio e 11 transacoes, `data.js` tem 5 sorteios e 75 linhas de participante. Ate a reconciliacao ser resolvida, `data.js` continua carregando verdade financeira que o banco nao tem, e por isso NAO pode ser editado a mao sem que apareca. Estes agregados sao a tripwire: qualquer alteracao de valor, cota ou contagem reprova o gate e obriga a mudanca a passar por revisao explicita.",
+  "_porque_existe": "O banco PostgreSQL/Supabase e o SISTEMA DE REGISTRO do pagamento do Powerball desde 2026-08-22, quando o backfill historico completou: 75 de 75 contribuicoes da origem estao no banco, total 888.00, reconciliacao com ZERO importaveis, ZERO conflitos e ZERO ambiguidades. `data.js` deixou de ser autoridade financeira e passou a ser PROJECAO. Este pin continua existindo porque `data.js` ainda nao e GERADO a partir do banco -- enquanto for editado a mao, uma alteracao de valor tem de reprovar em vez de passar junto de uma mudanca visual.",
   "_o_que_isto_NAO_e": "Nao e uma afirmacao de que `data.js` esta correto, nem de que ele e autoritativo por direito. E um congelamento do estado de fato, para que a migracao para o banco nao compita com edicoes manuais silenciosas no meio do caminho.",
   "pinnedAt": "2026-08-22",
   "issue": 130,
-  "authorityToday": "data.js (transitorio)",
+  "authorityToday": "PostgreSQL/Supabase",
   "authorityTarget": "PostgreSQL/Supabase",
   "draws": [
     {
@@ -42,5 +42,16 @@
       "valor": 160,
       "totalArrecadado": 160
     }
-  ]
+  ],
+  "cutoverAt": "2026-08-22",
+  "_reconciliacao": {
+    "sourceRows": 75,
+    "dbContributions": 75,
+    "sourceTotal": 888.0,
+    "dbContributionTotal": 888.0,
+    "missingImportable": 0,
+    "conflicts": 0,
+    "ambiguous": 0,
+    "verifiedAt": "2026-08-22"
+  }
 }

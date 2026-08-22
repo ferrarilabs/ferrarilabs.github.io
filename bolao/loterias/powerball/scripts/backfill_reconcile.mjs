@@ -80,10 +80,32 @@ export function parseSource(text) {
         amount: money(p.valor),
         method: p.metodo ?? null,
         status: p.status ?? null,
+        paidKey: paymentInstant(p.data, p.hora),
       });
     }
   }
   return rows;
+}
+
+/**
+ * Instante do pagamento, normalizado — a chave de identidade que NAO e nome.
+ *
+ * `data.js` grava `data` (dd/mm/aaaa) e `hora` (h:mm[:ss] AM/PM, hora local de Nova York). O banco
+ * grava `paid_at` com fuso. Normalizando os dois para `AAAA-MM-DD HH:MM:SS` local, o instante vira
+ * um identificador comparavel.
+ *
+ * SO vale com precisao de SEGUNDO. Um horario sem segundos (`6:49 PM`) identifica um minuto
+ * inteiro, e um minuto nao e unico o bastante para carregar identidade financeira -- esses saem
+ * como `null` e o registro cai para as regras de nome, que nunca autorizam import sozinhas.
+ */
+export function paymentInstant(data, hora) {
+  if (!data || !hora) return null;
+  const d = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(data).trim());
+  const t = /^(\d{1,2}):(\d{2}):(\d{2})\s*(AM|PM)$/i.exec(String(hora).trim());
+  if (!d || !t) return null; // sem segundos -> nao serve como identidade
+  let hh = Number(t[1]) % 12;
+  if (/PM/i.test(t[4])) hh += 12;
+  return `${d[3]}-${d[2]}-${d[1]} ${String(hh).padStart(2, "0")}:${t[2]}:${t[3]}`;
 }
 
 /** ── ESTAGIO 2: NORMALIZE + deteccao de duplicata na propria origem ─────────────────────────── */
@@ -107,24 +129,59 @@ export function detectDuplicates(rows) {
  */
 export function identityMap(sourceRows, db) {
   const dbExact = new Set(db.participants.map((p) => p.nameHash));
-  const dbUnmatched = db.participants.filter((p) => !sourceRows.some((r) => r.nameHash === p.nameHash));
-  const dbUnmatchedFirst = new Set(dbUnmatched.map((p) => p.firstHash));
 
-  // Colisao de primeiro nome DENTRO da origem.
-  const firstToNames = new Map();
+  // ─── IDENTIDADE POR INSTANTE DE PAGAMENTO ──────────────────────────────────────────────────
+  //
+  // Antes de qualquer raciocinio por nome. O instante com precisao de segundo so vale como
+  // identidade se for UNICO DOS DOIS LADOS -- se dois registros de qualquer lado compartilham o
+  // mesmo instante, ele nao identifica ninguem e e descartado.
+  const srcByInstant = new Map();
   for (const r of sourceRows) {
-    if (!firstToNames.has(r.firstHash)) firstToNames.set(r.firstHash, new Set());
-    firstToNames.get(r.firstHash).add(r.nameHash);
+    if (!r.paidKey) continue;
+    if (!srcByInstant.has(r.paidKey)) srcByInstant.set(r.paidKey, new Set());
+    srcByInstant.get(r.paidKey).add(r.nameHash);
+  }
+  const dbByInstant = new Map();
+  for (const c of db.contributions) {
+    if (!c.paidKey) continue;
+    if (!dbByInstant.has(c.paidKey)) dbByInstant.set(c.paidKey, new Set());
+    dbByInstant.get(c.paidKey).add(c.nameHash);
+  }
+  const byInstant = new Map(); // sourceNameHash -> dbNameHash
+  for (const [inst, srcSet] of srcByInstant) {
+    const dbSet = dbByInstant.get(inst);
+    if (!dbSet || srcSet.size !== 1 || dbSet.size !== 1) continue; // ambiguo dos dois lados: descarta
+    byInstant.set([...srcSet][0], [...dbSet][0]);
   }
 
   const map = new Map();
   for (const r of sourceRows) {
     if (map.has(r.nameHash)) continue;
     if (dbExact.has(r.nameHash)) { map.set(r.nameHash, { kind: "EXACT" }); continue; }
-    const collidesWithDb = dbUnmatchedFirst.has(r.firstHash);
-    const collidesInSource = (firstToNames.get(r.firstHash) ?? new Set()).size > 1;
-    map.set(r.nameHash, collidesWithDb || collidesInSource
-      ? { kind: "AMBIGUOUS", collidesWithDb, collidesInSource }
+    if (byInstant.has(r.nameHash)) {
+      map.set(r.nameHash, { kind: "EXACT", via: "PAYMENT_INSTANT", dbNameHash: byInstant.get(r.nameHash) });
+      continue;
+    }
+    // ─── O QUE TORNA UM REGISTRO AMBIGUO, E O QUE NAO TORNA ─────────────────────────────────
+    //
+    // O risco real e FUNDIR um registro da origem no participante ERRADO do banco. Logo a unica
+    // ambiguidade que importa e: sobra algum participante do banco SEM mapeamento cujo primeiro
+    // nome colida com este registro?
+    //
+    // Dois nomes da ORIGEM compartilharem o primeiro nome NAO e ambiguidade -- continuam sendo dois
+    // registros distintos, e nenhum dos dois esta sendo fundido em nada. Tratar isso como ambiguo
+    // bloqueava importacao legitima (quatro linhas, US$ 40) sem nenhum ganho de seguranca.
+    // `dbExact` e o conjunto de nomes QUE O BANCO TEM -- nao "os que ja foram resolvidos". Um
+    // participante do banco so esta resolvido se ALGUM registro da origem casou com ele, por nome
+    // exato ou por instante de pagamento. Confundir os dois esvaziava o conjunto de nao-resolvidos
+    // e desligava o guarda inteiro.
+    const dbResolved = new Set([
+      ...db.participants.map((p) => p.nameHash).filter((h) => sourceRows.some((x) => x.nameHash === h)),
+      ...byInstant.values(),
+    ]);
+    const dbUnresolvedFirst = new Set(db.participants.filter((p) => !dbResolved.has(p.nameHash)).map((p) => p.firstHash));
+    map.set(r.nameHash, dbUnresolvedFirst.has(r.firstHash)
+      ? { kind: "AMBIGUOUS", collidesWithDb: true }
       : { kind: "NEW_UNAMBIGUOUS" });
   }
   return map;
@@ -140,8 +197,10 @@ export function classify(sourceRows, db) {
   for (const c of db.contributions) dbPaid.set(`${c.drawId}|${c.nameHash}`, c.amount);
 
   return sourceRows.map((r) => {
-    const key = `${r.drawId}|${r.nameHash}`;
     const id = idmap.get(r.nameHash);
+    // Se a identidade veio do instante, a chave de comparacao usa o nome do BANCO, nao o da origem.
+    const effHash = id && id.via === "PAYMENT_INSTANT" ? id.dbNameHash : r.nameHash;
+    const key = `${r.drawId}|${effHash}`;
 
     if (dups.has(key)) return { ...r, klass: "DUPLICATE_SOURCE",
       note: "a mesma pessoa aparece mais de uma vez no mesmo sorteio na origem" };
