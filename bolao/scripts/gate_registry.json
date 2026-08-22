@@ -173,6 +173,9 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Estatico, sem rede. Nenhum script le o documento PRIVADO bolao_state com a chave publica (que vai em todo navegador, entao quem so a tem nao tem nada que um visitante nao tenha); leitor de linha crua falha fechado sem service_role; leitores estreitos usam a view sanitizada; leitores de backup exigem allow-list explicita de pool, porque service_role ignora RLS e a lista deixa de ser recomendacao para virar a unica barreira. Adicionado por outra sessao."
     },
+    "bolao/loterias/powerball/scripts/audit_data_js_authority.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/audit_draw_model_tests.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -245,6 +248,9 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_open_draw_metadata.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/loterias/powerball/scripts/test_operator_payments.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/loterias/powerball/scripts/test_outbox_precedes_provider.py": {

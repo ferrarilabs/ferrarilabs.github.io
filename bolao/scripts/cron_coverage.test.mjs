@@ -248,6 +248,14 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["powerball_record_payment.yml",
+   "Painel de administracao do Powerball (Issue #130, Opcao C). NAO e agendado porque nao e um " +
+   "ciclo: e um operador humano registrando um pagamento que acabou de acontecer. Um cron aqui nao " +
+   "teria o que fazer -- nao existe 'pagamento pendente' que o sistema descubra sozinho; a " +
+   "informacao chega por Zelle/Venmo, fora do repositorio. O formulario do workflow_dispatch E a " +
+   "interface: autenticacao do GitHub em vez de um hash de senha no navegador, credencial " +
+   "privilegiada que nunca sai do runner, e o log da execucao como trilha de auditoria. " +
+   "`apply` e false por default, entao o caminho seguro e o que acontece quando ninguem pensa."],
   ["cdb2026_qf_reminder.yml",
    "Lembrete unico para quem ainda nao concluiu os palpites das quartas. NAO e agendado de " +
    "proposito: e uma CAMPANHA com janela propria (o prazo das quartas), nao um ciclo. Um cron " +
