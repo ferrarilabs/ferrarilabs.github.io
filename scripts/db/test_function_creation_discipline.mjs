@@ -189,7 +189,10 @@ test("o repositorio real passa no gate, e a divida declarada e exatamente a medi
   // `032_codify_notification_function_client_revokes.sql` a fechou. Assertar a COMPOSICAO, e nao so
   // o numero: um total certo com os itens errados passaria despercebido.
   const divida = (r.model.inheritedExposure ?? []).map((e) => e.signature).sort();
-  const esperada = ["public._bolao_audit/3", "public._bolao_touch/1", "public.delete_canary_job/1"];
+  // 2026-08-22: `_bolao_audit` e `_bolao_touch` sairam porque foram REVOGADAS EM PRODUCAO
+  // (Issue #282, migracao 20260822110933) -- nao porque a DDL mudou de opiniao. Sobra a unica
+  // entrada que continua sendo divergencia de ORDEM DE REPLAY, nao exposicao ao vivo.
+  const esperada = ["public.delete_canary_job/1"];
   assert(JSON.stringify(divida) === JSON.stringify(esperada),
     `a divida declarada mudou de composicao: ${JSON.stringify(divida)}`);
   // As duas da #282 sao exposicao REAL ao vivo; a terceira e ordem de replay. Classes diferentes,
