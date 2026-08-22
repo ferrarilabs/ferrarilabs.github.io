@@ -45,11 +45,41 @@
 
   var SOURCE = { GATEWAY: "gateway", SNAPSHOT: "snapshot", NONE: "none" };
 
-  // Frescor. `LIVE_STALE` acima de 30s; `LIVE_CRITICAL_STALE` acima de 10 min — o mesmo limite da
-  // janela de último-bom-conhecido do gateway, de propósito: passado isso, nem o servidor tem
-  // observação recente, e o cliente não deveria fingir mais confiança que a fonte.
-  var STALE_AFTER_MS = 30_000;
-  var CRITICAL_STALE_AFTER_MS = 10 * 60_000;
+  // ─── Frescor: os MESMOS limiares do gateway (Issue #296) ──────────────────────────────────
+  //
+  // Estes dois números são o contrato de frescor, e o contrato mora em
+  // `supabase/functions/_shared/freshness_contract.js`. Este arquivo é script clássico servido
+  // pelo GitHub Pages sem build — não pode `import` — então a cópia é conferida contra a fonte
+  // por gate determinístico (`bolao/scripts/test_freshness_contract.mjs`), que REPROVA se
+  // divergirem. É cópia vigiada, não um segundo número solto.
+  //
+  //   até 10 min   LIVE_FRESH           = FRESH             apresenta normal
+  //   até 30 min   LIVE_STALE           = STALE_BUT_USABLE  mostra, mas rotula o atraso
+  //   além disso   LIVE_CRITICAL_STALE  = UNAVAILABLE       não passa por verdade ao vivo
+  //
+  // Antes: 30s e 10 min. Os dois vinham da meta operacional ("dado com no máximo ~30s"), não da
+  // entrega real. A medição de 2026-08-22 sobre 60 execuções mostrou o agendador do GitHub
+  // entregando com mediana de 25,1 min — com 30s, o aviso de atraso ficava acinzentando a tela
+  // praticamente o tempo todo, e um aviso permanente não avisa nada.
+  var STALE_AFTER_MS = 10 * 60_000;
+  var CRITICAL_STALE_AFTER_MS = 30 * 60_000;
+
+  // Os nomes do contrato, para quem consome o estado sem querer conhecer os nomes internos.
+  var FRESHNESS = {
+    FRESH: "FRESH",
+    STALE_BUT_USABLE: "STALE_BUT_USABLE",
+    UNAVAILABLE: "UNAVAILABLE",
+  };
+
+  // Tradução única STATE -> FRESHNESS. Só os três estados de frescor aparecem aqui; NO_LIVE_MATCH,
+  // FINAL e POSTPONED são conhecimento, não idade, e não têm rótulo de frescor.
+  function freshnessOf(state) {
+    if (state === STATE.LIVE_FRESH) return FRESHNESS.FRESH;
+    if (state === STATE.LIVE_STALE) return FRESHNESS.STALE_BUT_USABLE;
+    if (state === STATE.LIVE_CRITICAL_STALE) return FRESHNESS.UNAVAILABLE;
+    if (state === STATE.SOURCE_UNAVAILABLE) return FRESHNESS.UNAVAILABLE;
+    return null;
+  }
 
   // Cadência adaptativa. Números escolhidos pela meta operacional (dado com no máximo ~30s durante
   // o jogo), não por chute.
@@ -317,6 +347,7 @@
         source: current ? current.source : SOURCE.NONE,
         observedAt: current ? current.observedAt : null,
         ageMs: age,
+        freshness: freshnessOf(c.state),
         stale: c.state === STATE.LIVE_STALE || c.state === STATE.LIVE_CRITICAL_STALE,
         staleReason: current ? current.staleReason || null : null,
         health: {
@@ -534,6 +565,8 @@
     STATE: STATE, SOURCE: SOURCE, POLL: POLL,
     STALE_AFTER_MS: STALE_AFTER_MS,
     CRITICAL_STALE_AFTER_MS: CRITICAL_STALE_AFTER_MS,
+    FRESHNESS: FRESHNESS,
+    freshnessOf: freshnessOf,
     isLiveMatch: isLiveMatch,
     terminalOf: terminalOf,
     firstLive: firstLive,

@@ -29,6 +29,8 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+import { FRESH_MAX_AGE_MS } from "../../supabase/functions/_shared/freshness_contract.js";
+
 const REPO = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const WF = join(REPO, ".github/workflows/live_cache_producer.yml");
 const GATEWAY = join(REPO, "supabase/functions/_shared/gateway_core.js");
@@ -103,10 +105,18 @@ test("3. toda cadencia DECLARADA cabe no teto do gateway — o que NAO e o mesmo
   // nasceria impossivel. O frescor real e a Issue #296.
 
   // A aritmetica que condenou o `*/30`: passo maior que o teto NUNCA entrega frescor.
-  const teto = /LAST_KNOWN_GOOD_MAX_AGE_MS\s*=\s*(\d+)\s*\*\s*60_?000/.exec(readFileSync(GATEWAY, "utf8"));
-  assert(teto, "nao consegui ler LAST_KNOWN_GOOD_MAX_AGE_MS do gateway");
-  const tetoMin = Number(teto[1]);
-  assert(tetoMin === 10, `o teto mudou para ${tetoMin} min — reavalie a cadencia junto (Issue #259)`);
+  //
+  // O teto certo aqui e FRESH_MAX_AGE_MS, nao o limite do que ainda e servivel. Depois da #296 o
+  // gateway serve ate 30 min, mas os 20 min finais saem ROTULADOS como atrasados -- uma cadencia
+  // que so cabe ali nao entrega frescor, entrega aviso de atraso. Este caso mede a capacidade de
+  // entregar FRESH, entao continua medindo contra os mesmos 10 min de antes.
+  //
+  // E lido por import, nao por regex sobre o texto: quando LAST_KNOWN_GOOD_MAX_AGE_MS passou a ser
+  // derivado do contrato em vez de literal, a raspagem parou de casar e o caso morreu com
+  // "nao consegui ler" -- um gate que falha por nao achar o numero e indistinguivel de um gate que
+  // achou um numero errado.
+  const tetoMin = FRESH_MAX_AGE_MS / 60_000;
+  assert(tetoMin === 10, `o teto de frescor mudou para ${tetoMin} min — reavalie a cadencia junto (Issue #259)`);
   for (const c of crons(wf)) {
     const passo = stepMinutes(c);
     assert(passo !== null, `cron sem passo de minuto reconhecivel: ${c}`);

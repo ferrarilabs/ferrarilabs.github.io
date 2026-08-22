@@ -178,10 +178,36 @@ await test("os quatro graus são distinguíveis", async()=>{
   const store = createStore({ competition:"br2026", gatewayUrl:"https://gw.test/fn",
     now:()=>clock, fetch: async()=>okResp(liveAt(48)) });
   await store.refresh();
+  // Idades escolhidas contra o contrato de frescor (Issue #296): FRESH ate 10 min,
+  // STALE_BUT_USABLE ate 30 min, UNAVAILABLE depois disso. Antes deste contrato os degraus eram
+  // 30s e 10 min, herdados da meta operacional -- nao da entrega medida do agendador.
   eq(store.getState().state, STATE.LIVE_FRESH, "fresco");
-  clock = T0 + 45_000;  eq(store.getState().state, STATE.LIVE_STALE, "stale");
-  clock = T0 + 11*60_000; eq(store.getState().state, STATE.LIVE_CRITICAL_STALE, "crítico");
+  clock = T0 + 45_000;    eq(store.getState().state, STATE.LIVE_FRESH, "45s ainda e dado fresco");
+  clock = T0 + 9*60_000;  eq(store.getState().state, STATE.LIVE_FRESH, "9 min ainda e fresco");
+  clock = T0 + 18*60_000; eq(store.getState().state, STATE.LIVE_STALE, "18 min: atrasado, mas util");
+  clock = T0 + 31*60_000; eq(store.getState().state, STATE.LIVE_CRITICAL_STALE, "crítico");
   assert(store.getState().match, "perdeu a partida no estado crítico");
+});
+
+await test("o estado do navegador carrega o rotulo do contrato, nao so o nome interno", async()=>{
+  let clock=T0;
+  const store = createStore({ competition:"br2026", gatewayUrl:"https://gw.test/fn",
+    now:()=>clock, fetch: async()=>okResp(liveAt(48)) });
+  await store.refresh();
+  eq(store.getState().freshness, "FRESH", "aos 0s");
+  clock = T0 + 18*60_000; eq(store.getState().freshness, "STALE_BUT_USABLE", "aos 18 min");
+  clock = T0 + 31*60_000; eq(store.getState().freshness, "UNAVAILABLE", "aos 31 min");
+});
+
+await test("a UI recebe a IDADE para poder dizer 'ha N min', nao so o rotulo", async()=>{
+  // Sem `ageMs` o aviso de atraso vira "atrasado" generico -- o dono pediu indicacao util de
+  // ultima atualizacao, e "atrasado" sem quanto nao informa nada.
+  let clock=T0;
+  const store = createStore({ competition:"br2026", gatewayUrl:"https://gw.test/fn",
+    now:()=>clock, fetch: async()=>okResp(liveAt(48)) });
+  await store.refresh();
+  clock = T0 + 18*60_000;
+  eq(Math.round(store.getState().ageMs / 60_000), 18, "idade em minutos");
 });
 await test("NO_INVENTED_CLOCK: o minuto NÃO avança com o relógio local", async()=>{
   let clock=T0;
