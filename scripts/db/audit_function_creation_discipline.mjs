@@ -50,6 +50,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { orderedDdlSources } from "./ddl_execution_order.mjs";
 import { dirname, join } from "node:path";
 import { effectiveExecuteAcl, effectiveExecutors, CLIENT_ROLES } from "./function_birth_acl.mjs";
 
@@ -72,13 +73,10 @@ export const KNOWN_CLASSES = Object.freeze([...NON_CLIENT_CLASSES, "CLIENT_RPC",
 export const MIN_DISCOVERED_FUNCTIONS = 40;
 
 export function ddlSources({ root = ROOT } = {}) {
-  const load = (rel, filt) => {
-    const dir = join(root, rel);
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir).filter((f) => f.endsWith(".sql") && filt(f)).sort()
-      .map((f) => ({ file: `${rel}/${f}`, text: readFileSync(join(dir, f), "utf8") }));
-  };
-  return [...load("bolao/shared/sql", () => true), ...load("supabase/migrations", (f) => !f.includes(".reference."))];
+  // Issue #292: a ordem e a REAL (por `appliedAt`), nao "todo shared/sql e depois todo migrations".
+  // Aquela ordem nao correspondia a nada que tivesse acontecido, e fazia a remediacao da #135 rodar
+  // ANTES do CREATE das views que ela protege -- portanto nao proteger nada.
+  return orderedDdlSources({ root });
 }
 
 export function report({ root = ROOT, files, model } = {}) {

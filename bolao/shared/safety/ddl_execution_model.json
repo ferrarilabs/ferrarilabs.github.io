@@ -1,0 +1,454 @@
+{
+  "$schema": "Modelo de EXECUCAO da DDL: por arquivo, se ele roda numa reconstrucao, por qual mecanismo, e QUANDO foi aplicado. Consumido por scripts/db/ddl_execution_order.mjs (Issue #292).",
+  "_porque_existe": "Todos os gates de banco montavam a 'reconstrucao limpa' concatenando `bolao/shared/sql/**` e DEPOIS `supabase/migrations/**`, em ordem alfabetica dentro de cada um. Essa ordem NAO corresponde a nada que tenha acontecido: `031_codify_bolao_state_public_views_revoke.sql` (Issue #135) entrou no repositorio em 2026-08-18 e revoga privilegio de duas views criadas pela migracao `20260813200000`, de 2026-08-13. Na ordem real o revoke vem DEPOIS do CREATE e funciona; na ordem modelada ele vem ANTES, nao alcanca objeto nenhum, e o modelo conclui que as views nascem gravaveis. A remediacao da #135 parecia aplicada e nao governava nada.",
+  "_evidencia_de_execucao": {
+    "supabase/migrations": "EXECUTED_BY_CLI. `supabase db push` aplica os arquivos `<14 digitos>_<nome>.sql` em ordem de timestamp. Provado contra producao em 2026-08-22: `supabase_migrations.schema_migrations` tem 60 versoes e o repositorio tem exatamente as MESMAS 60 -- zero de um lado, zero do outro.",
+    "bolao/shared/sql": "MANUAL_ONLY. Nenhum workflow, script ou runner do repositorio executa estes arquivos -- a busca por referencias so encontra testes, auditorias e documentacao. E o CLI nao os ve: nao casam o padrao de migracao e nem estao sob `supabase/migrations`. Mesmo assim os objetos que eles criam EXISTEM em producao (61 funcoes em `public`), entao foram aplicados a mao. `appliedAt` usa o instante do primeiro commit do arquivo, que e a melhor aproximacao auditavel do momento em que foram rodados."
+  },
+  "_consequencia_operacional": "Uma reconstrucao SO com `supabase db push` NAO produz a producao atual: funcoes como `enqueue_bolao_notif`, `_bolao_audit`, `op_confirm_payment` e `submit_entry` nascem apenas em `bolao/shared/sql/**`. Isso NAO e consertado por este modelo -- e um fato operacional registrado aqui para deixar de ser suposicao. O modelo serve para que os gates raciocinem sobre a ordem CERTA; a lacuna de mecanismo e maior e esta declarada na Issue #292.",
+  "_ordem": "`orderedDdlSources()` ordena TODOS os arquivos executaveis por `appliedAt` crescente, e nao mais por diretorio. Arquivo `DOCUMENTATION_ONLY` fica de fora.",
+  "measuredAt": "2026-08-22",
+  "issue": 292,
+  "ledgerParity": {
+    "repoMigrations": 60,
+    "productionLedgerVersions": 60,
+    "missingFromProduction": 0,
+    "missingFromRepo": 0,
+    "verifiedAt": "2026-08-22",
+    "source": "supabase_migrations.schema_migrations"
+  },
+  "files": [
+    {
+      "path": "supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-06T00:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260806143644_add_minimal_powerball_schema.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-06T14:36:44Z"
+    },
+    {
+      "path": "supabase/migrations/20260811160000_baseline_adopted_grants_and_rls.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T16:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811160001_baseline_adopted_policies.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T16:00:01Z"
+    },
+    {
+      "path": "supabase/migrations/20260811170000_expand_m1_schema_extensions_and_enum_types.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T17:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811180000_expand_m2_participant_identity.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T18:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811190000_expand_m3_competitions_and_editions.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T19:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811200000_expand_m4_pools_fee_schedule_and_entries.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T20:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811210000_expand_m5_payments_allocations_and_prizes.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T21:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811220000_expand_m6_phases_ties_matches_and_sync_state.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T22:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260811230000_expand_m7_match_results_and_predictions.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-11T23:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812000000_expand_m8_audit_events_and_redactable_details.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T00:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812010000_expand_m9_outbox_events_and_delivery_attempts.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T01:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812020000_expand_ddl_m11_league_classification.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T02:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812030000_expand_ddl_m12_request_idempotency.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T03:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812040000_expand_m10_ranking_snapshots.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T04:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812050000_expand_m13_pool_entry_cutoff.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T05:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812060000_expand_m14_migration_lineage.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T06:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812070000_cdb_secure_participant_access.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T07:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812080000_cdb_revoke_anon_raw_state.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T08:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812090000_m8m9_trusted_producer_bridge.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T09:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812100000_m8m9_canary_purge.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T10:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812120000_expand_m15_match_location_tie_lock_provenance_and_the_official_draw.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T12:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812150000_expand_m16_normalized_read_surface.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T15:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812160000_expand_m17_classification_zone_predictions.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T16:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812170000_cdb_save_picks_uses_active_phase.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T17:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812190000_delivery_uniqueness_and_rapid_send_breaker.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T19:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812200000_lock_tie_never_overwrites.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T20:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812210000_cdb_register_bracket_topology.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T21:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812220000_topology_provenance_refresh.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T22:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812230000_participants_email_is_not_identity.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T23:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260812235500_cdb_entry_saved_confirmation_allowance.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-12T23:55:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813000000_copa_bracket_forward_slots.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T00:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813010000_cdb_entry_saved_outbox_event.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T01:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813020000_cdb_confirmation_recipient_resolution.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T02:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813030000_confirmation_identity_is_per_version.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T03:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813040000_outbox_pending_by_type.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T04:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813100000_entry_source_identity_and_tombstones.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T10:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813110000_match_result_advancing_side.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T11:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813120000_entry_payment_confirmation.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T12:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813130000_normalized_read_surface_completion.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T13:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813140000_cdb_normalized_write_mirror.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T14:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813150000_mirror_entry_timestamp_and_phase_cutoff.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T15:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813160000_cdb_schedule_and_topology_mirror.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T16:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813170000_public_read_execute_grant.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T17:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813180000_cdb_write_cutover_normalized_authority.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T18:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813190000_submit_entry_pool_allowlist.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T19:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813200000_public_projection_pii_closure.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T20:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813210000_legacy_forensic_preservation.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T21:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813220000_cdb_update_entry_picks_fail_closed.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T22:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260813230000_operator_approved_email_canonicalization.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-13T23:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260816000000_cdb_receipt_identity_is_cross_path.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-16T00:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260816010000_cdb_confirmation_payload_carries_snapshot_again.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-16T01:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260816020000_cdb_public_projection_exposes_virtual_tie_picks.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-16T02:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260821000000_revoke_operator_rpc_execute_from_authenticated.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-21T00:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260821010000_rls_auto_enable_least_privilege.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-21T01:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260821020000_revoke_structural_privs_from_client_roles.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-21T02:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260821030000_secure_default_privileges_public.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-21T03:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260821040000_retire_cdb_reserve_entry_saved_email_client_grant.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-21T04:00:00Z"
+    },
+    {
+      "path": "supabase/migrations/20260821205500_revoke_client_crud_lottery_tables.sql",
+      "class": "EXECUTED_BY_CLI",
+      "appliedAt": "2026-08-21T20:55:00Z"
+    },
+    {
+      "path": "supabase/migrations/BASELINE_current_production_state.reference.sql",
+      "class": "DOCUMENTATION_ONLY",
+      "appliedAt": null,
+      "why": "nao casa `<14 digitos>_<nome>.sql`, entao o Supabase CLI nao o reconhece como migracao — e a propriedade de seguranca pretendida (ver supabase/migrations/README.md)"
+    },
+    {
+      "path": "bolao/shared/sql/010_notification_durability.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-07T23:01:36Z"
+    },
+    {
+      "path": "bolao/shared/sql/011_live_cache_deny_anon_writes.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:16:49Z"
+    },
+    {
+      "path": "bolao/shared/sql/012_seed_notification_history.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:28:38Z"
+    },
+    {
+      "path": "bolao/shared/sql/013_notif_status_by_pool.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:28:38Z"
+    },
+    {
+      "path": "bolao/shared/sql/014_fix_release_expired_cast.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:28:38Z"
+    },
+    {
+      "path": "bolao/shared/sql/015_f10_private_pii_and_public_projection.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:47:17Z"
+    },
+    {
+      "path": "bolao/shared/sql/016_f10_backfill_private_pii.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:47:17Z"
+    },
+    {
+      "path": "bolao/shared/sql/017_n22_narrow_mutations.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T18:47:17Z"
+    },
+    {
+      "path": "bolao/shared/sql/018_seed_powerball_notification_history.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T19:33:54Z"
+    },
+    {
+      "path": "bolao/shared/sql/019_backfill_powerball_0808_partial.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T20:10:13Z"
+    },
+    {
+      "path": "bolao/shared/sql/020_notif_recipient_rpcs.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T20:56:16Z"
+    },
+    {
+      "path": "bolao/shared/sql/021_n24_revoke_anon_notification_rpcs.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T21:46:11Z"
+    },
+    {
+      "path": "bolao/shared/sql/022_powerball_0808_manual_action.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-10T23:17:56Z"
+    },
+    {
+      "path": "bolao/shared/sql/023_claim_skips_manual_action.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-11T00:51:37Z"
+    },
+    {
+      "path": "bolao/shared/sql/024_cdb2026_public_projection.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-11T01:27:07Z"
+    },
+    {
+      "path": "bolao/shared/sql/025_cdb2026_participant_picks.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-11T01:46:22Z"
+    },
+    {
+      "path": "bolao/shared/sql/026_cdb2026_operator_mutations.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-11T01:55:13Z"
+    },
+    {
+      "path": "bolao/shared/sql/027_copa2026_operator_mutations.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-12T15:07:59Z"
+    },
+    {
+      "path": "bolao/shared/sql/028_cdb2026_result_and_draw_mutations.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-12T16:24:12Z"
+    },
+    {
+      "path": "bolao/shared/sql/029_op_append_audit.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-12T16:24:12Z"
+    },
+    {
+      "path": "bolao/shared/sql/030_br_round_notification_durability.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-18T14:52:20Z"
+    },
+    {
+      "path": "bolao/shared/sql/031_codify_bolao_state_public_views_revoke.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-18T19:42:46Z"
+    },
+    {
+      "path": "bolao/shared/sql/032_codify_notification_function_client_revokes.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-21T22:17:56Z"
+    },
+    {
+      "path": "bolao/shared/sql/INCIDENT_221_backfill_round23_sent.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-18T14:52:20Z"
+    },
+    {
+      "path": "bolao/shared/sql/033_codify_bolao_state_fence_and_view_structural.sql",
+      "class": "MANUAL_ONLY",
+      "appliedAt": "2026-08-22T12:00:00Z",
+      "why": "codificacao no-op da cerca de bolao_state e dos tres privilegios estruturais das views (Issue #292); nao aplicada — producao ja esta nesse estado"
+    }
+  ]
+}
