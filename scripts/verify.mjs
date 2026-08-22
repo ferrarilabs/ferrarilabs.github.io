@@ -150,6 +150,12 @@ const CHECKS = [
   // e o `data.js`, que ainda carrega verdade financeira enquanto a reconciliacao nao fecha.
   { id: "powerball-operator-payments", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_operator_payments.py"],
     why: "corrigir dinheiro apagando o passado, e reexecutar um dispatch cobrando duas vezes, sao os dois modos de falha (Issue #130)" },
+  // Issue #130 — a ferramenta de reconciliacao do backfill historico. Ela nao escreve nada; o que
+  // ela protege e a decisao de NAO escrever: classifica cada registro da origem e recusa importar
+  // qualquer um cuja identidade dependa de adivinhacao (a unica chave entre as duas fontes e o
+  // NOME, e nome e chave fraca).
+  { id: "powerball-backfill-reconcile", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/test_backfill_reconcile.mjs"],
+    why: "importar historico financeiro so pode acontecer onde a identidade e deterministica (Issue #130)" },
   { id: "powerball-data-js-authority", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_data_js_authority.mjs"],
     why: "enquanto data.js carregar verdade financeira, uma edicao manual dela nao pode passar em silencio (Issue #130)" },
   // Issue #271 — a arquitetura de controle compensatorio aceita pelo dono exige provar que TODO

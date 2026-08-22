@@ -207,6 +207,9 @@
     "bolao/loterias/powerball/scripts/test_audit_scoring_email_placeholder.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/loterias/powerball/scripts/test_backfill_reconcile.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_combo_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

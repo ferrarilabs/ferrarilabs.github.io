@@ -89,7 +89,19 @@ test("2. a janela de jogo continua agendada, e nas duas metades", () => {
 });
 
 // ── 3 ────────────────────────────────────────────────────────────────────────────────────────
-test("3. toda cadencia agendada cabe no teto de ultimo-bom-conhecido do gateway", () => {
+test("3. toda cadencia DECLARADA cabe no teto do gateway — o que NAO e o mesmo que entregue", () => {
+  // ─── LEIA ISTO ANTES DE CONFIAR NESTE CASO (Issue #296) ────────────────────────────────────
+  //
+  // Este caso confere a DECLARACAO, nao a ENTREGA. Medido em 2026-08-22 sobre 60 execucoes
+  // agendadas reais: o `*/5` nominal e entregue com mediana de ~25 min (min 15,2 · max 99,5), e
+  // 100% dos intervalos dentro da janela excedem o teto de 10 min do gateway.
+  //
+  // A causa nao e fila nem cancelamento -- 60/60 concluiram com sucesso, atraso de fila 0s e
+  // duracao mediana de 15s. E entrega do agendador do GitHub.
+  //
+  // Ou seja: passar aqui NAO prova frescor. Prova apenas que ninguem escreveu um cron que ja
+  // nasceria impossivel. O frescor real e a Issue #296.
+
   // A aritmetica que condenou o `*/30`: passo maior que o teto NUNCA entrega frescor.
   const teto = /LAST_KNOWN_GOOD_MAX_AGE_MS\s*=\s*(\d+)\s*\*\s*60_?000/.exec(readFileSync(GATEWAY, "utf8"));
   assert(teto, "nao consegui ler LAST_KNOWN_GOOD_MAX_AGE_MS do gateway");
@@ -144,6 +156,14 @@ test("6. o caminho de verificacao da #246 continua intacto", () => {
   assert(/produce_live_cache\.mjs/.test(wf), "o produtor deixou de ser executado");
   assert(/SUPABASE_SERVICE_ROLE_KEY/.test(wf), "a credencial privilegiada de escrita sumiu do ambiente");
   assert(/live_sports_cache/.test(wf), "o alvo de escrita deixou de estar declarado");
+});
+
+test("7. o teste registra que DECLARADO != ENTREGUE (Issue #296)", () => {
+  // Sem isto, alguem apaga o comentario do caso 3 num refactor e o gate volta a ser lido como
+  // prova de frescor -- que foi exatamente o equivoco que a #296 corrigiu.
+  const fonte = readFileSync(new URL(import.meta.url), "utf8");
+  assert(/Issue #296/.test(fonte), "a distincao entre cadencia declarada e entregue tem de continuar escrita aqui");
+  assert(/NAO prova frescor/.test(fonte), "o limite deste gate tem de continuar explicito");
 });
 
 console.log(`\n${fail ? "✗" : "✓"} ${pass} passaram, ${fail} falharam\n`);
