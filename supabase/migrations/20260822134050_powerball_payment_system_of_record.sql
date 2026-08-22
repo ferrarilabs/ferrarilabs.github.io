@@ -71,13 +71,34 @@ comment on column public.lottery_payment_transactions.operator_client_ref is
   'requisicao semantica = mesmo resultado, sem transacao duplicada.';
 
 -- ── 2. INVARIANTES DE REVERSAO ──────────────────────────────────────────────────────────────
-alter table public.lottery_payment_transactions
-  add constraint lottery_payment_txn_no_self_reversal
-  check (reverses_transaction_id is distinct from transaction_id);
+-- Guardado por DO block porque PostgreSQL NAO tem `ADD CONSTRAINT IF NOT EXISTS`.
+--
+-- Sem isto, estas duas linhas quebraram o deploy inteiro (Issue #306): as constraints ja existiam
+-- em producao, esta migracao nunca chegou a ser registrada em `schema_migrations`, e a integracao
+-- Supabase-GitHub reaplicava o arquivo a cada push, morria com
+--   ERROR: constraint "lottery_payment_txn_no_self_reversal" ... already exists (SQLSTATE 42710)
+-- e ABORTAVA ANTES de implantar as Edge Functions. O deploy da #296 ficou preso atras disto.
+--
+-- As demais linhas deste arquivo (`add column if not exists`, `create ... if not exists`,
+-- `create or replace`, `drop trigger if exists`) sempre foram idempotentes. So estas duas nao eram.
+do $$
+begin
+  if not exists (select 1 from pg_constraint
+                  where conrelid = 'public.lottery_payment_transactions'::regclass
+                    and conname = 'lottery_payment_txn_no_self_reversal') then
+    alter table public.lottery_payment_transactions
+      add constraint lottery_payment_txn_no_self_reversal
+      check (reverses_transaction_id is distinct from transaction_id);
+  end if;
 
-alter table public.lottery_payment_transactions
-  add constraint lottery_payment_txn_reversal_needs_target
-  check (type <> 'reversal' or reverses_transaction_id is not null);
+  if not exists (select 1 from pg_constraint
+                  where conrelid = 'public.lottery_payment_transactions'::regclass
+                    and conname = 'lottery_payment_txn_reversal_needs_target') then
+    alter table public.lottery_payment_transactions
+      add constraint lottery_payment_txn_reversal_needs_target
+      check (type <> 'reversal' or reverses_transaction_id is not null);
+  end if;
+end $$;
 
 create unique index if not exists lottery_payment_transactions_reverses_uidx
   on public.lottery_payment_transactions (reverses_transaction_id)

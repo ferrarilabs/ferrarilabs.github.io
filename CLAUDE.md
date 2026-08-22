@@ -425,10 +425,38 @@ cobertas em outro texto deste arquivo; aqui ficam explícitas e diretas):
 
 ## Autonomia em `supabase/functions/**` (Edge Functions) — Issue #253
 
-**Merge neste caminho implanta em produção.** A integração do Supabase com o GitHub roda a cada
-push em `main` (aparece como o check `Supabase Preview`) e implantou a Edge Function **39 segundos
-depois** do merge do PR #252 — um PR que não tocou arquivo de função nenhum. Não existe passo de
-deploy separado onde pausar: o merge **é** o deploy.
+**Merge neste caminho PODE implantar em produção — e pode silenciosamente não implantar.**
+
+A integração do Supabase com o GitHub roda a cada push em `main` (aparece como o check
+`Supabase Preview`). Ela chegou a implantar a Edge Function 39 segundos depois do merge do PR #252
+(Issue #253), e por isso este documento afirmava um SLA de segundos.
+
+**Esse SLA não existe** (Issue #306). Em 2026-08-22 a Issue #296 entrou em `main` com CI verde e
+ficou **horas** sem chegar à produção: a integração aplica as **migrações antes** de implantar as
+funções, uma migração não-idempotente falhava com `SQLSTATE 42710`, e o pipeline **abortava antes do
+deploy**. O check `Supabase Preview` falhava — mas ele é externo, não reprova nada no repositório, e
+ninguém foi avisado. A divergência foi encontrada por `curl` manual.
+
+O que é realmente garantido:
+
+1. o merge **dispara** o pipeline de deploy;
+2. o sucesso do deploy **não é** garantido — ele depende de as migrações aplicarem primeiro;
+3. o deploy só conta como ocorrido quando **observado**;
+4. `main` verde **nunca** é evidência de produção.
+
+> **"merge aconteceu" ≠ "produção implantada".** Só há deploy quando há evidência de deploy.
+
+A evidência é o header `x-deploy-sha`, que a função devolve com o SHA do próprio código-fonte
+(`supabase/functions/_shared/deploy_manifest.js`). O gate `live-function-drift`
+(`scripts/db/audit_live_function_drift.mjs`) recalcula esse SHA a partir dos arquivos e reprova se o
+manifesto não acompanhar; com `VERIFY_ALLOW_NETWORK=1` ele compara com produção e classifica
+`LIVE_MATCHES_MAIN` / `LIVE_DRIFT` / `DEPLOY_PENDING` / `UNKNOWN` — e **`UNKNOWN` reprova**, porque
+"não consegui medir" jamais pode parecer "está tudo bem".
+
+O gate `migration-idempotency` (`scripts/db/audit_migration_idempotency.mjs`) impede a causa raiz:
+uma migração nova que não seja reaplicável trava o pipeline inteiro, inclusive o deploy das funções.
+
+Não existe passo de deploy separado onde pausar: quando funciona, o merge **é** o deploy.
 
 Por isso `supabase/functions/**` (e `supabase/config.toml`) é a superfície `EDGE_FUNCTIONS`,
 `DECLARE_TO_CHANGE` — mudar sem declarar reprova em `D2`, com mutação `M34` provando que morde.
