@@ -137,7 +137,15 @@ const CHECKS = [
   { id: "secdef-exposure", group: "security", cmd: ["node", "scripts/db/audit_security_definer_exposure.mjs"],
     why: "funcao SECURITY DEFINER executavel por cliente sem ratificacao explicita e privilegio que ninguem decidiu conceder (Issue #273)" },
   { id: "secdef-exposure-tests", group: "security", cmd: ["node", "scripts/db/test_security_definer_exposure.mjs"],
-    why: "prova as oito regressoes exigidas, inclusive a mutacao da #270 (revogar os papeis e deixar PUBLIC) e o falso-verde por varredura vazia" },
+    why: "prova as oito regressoes exigidas, inclusive a mutacao da #270 (revogar os papeis e deixar PUBLIC) e o falso-verde por varredura vazia" },  // Issue #292 — a ordem em que a DDL foi REALMENTE aplicada, e a prova de que cada revoke alcanca
+  // um objeto que ja existe naquele ponto. Antes disto os gates ordenavam por DIRETORIO, e a
+  // remediacao da #135 rodava antes do CREATE das views que devia proteger: existia, estava
+  // commitada, tinha Issue fechada, e nao governava nada.
+  { id: "ddl-execution-order", group: "security", cmd: ["node", "scripts/db/audit_ddl_execution_order.mjs"],
+    why: "regra de seguranca em arquivo inerte, ou em posicao onde nao alcanca o objeto, nao e remediacao (Issue #292)" },
+  { id: "ddl-execution-order-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_execution_order.mjs"],
+    why: "controle negativo: desligar a ordem corretiva tem de reintroduzir a divergencia, observando ACL e nao prosa" },
+
   { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
     why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
   { id: "ddl-provenance-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_provenance.mjs"],
