@@ -159,7 +159,16 @@ test("payload never includes other participants' data", () => {
 });
 test("payload contains no transaction id / banking details", () => {
   const draw = loadDrawSnapshot(realDraw.id);
-  const participant = draw.participants.find((p) => p.txId && p.txId !== "—");
+  // O `txId` e INJETADO, sintetico, em vez de procurado no dado real (Issue #303-B).
+  //
+  // Antes este caso fazia `.find(p => p.txId && p.txId !== "—")`. Quando o secret parou de guardar
+  // txId, esse `find` passa a devolver `undefined` — e o teste morre com TypeError ou, pior, se
+  // alguem "consertar" com um guard, passa VACUAMENTE: verde sem sujeito, provando nada.
+  //
+  // A propriedade sob teste e do RENDERIZADOR: ele nunca pode emitir uma referencia de pagamento
+  // que receba. Provar isso nao exige um valor real — exige um valor. O prefixo sintetico e o
+  // namespace declarado deste repo (`SYNTHETIC_REF_PREFIXES` em scripts/pii_detectors.mjs).
+  const participant = { ...draw.participants[0], txId: "SYNTH-TXN-303B-0001" };
   const estimates = loadFinancialEstimates(realDraw.id, participant.name);
   const payload = buildParticipantConfirmationPayload({ participant, draw, estimates });
   const html = renderParticipantConfirmationHtml(payload, false);
