@@ -119,14 +119,34 @@ await test("TTL + 1ms: vai à fonte", async () => eq((await atAge(FRESH_TTL_MS +
 // ─── Injeção de falhas da fonte ─────────────────────────────────────────────────────────────
 console.log("\nFalha da fonte COM último bom conhecido (serve degradado):");
 
+// A saúde segue a IDADE DO DADO, não o desfecho do fetch (Issue #296). Antes, qualquer queda para
+// o cache era rotulada STALE — inclusive um cache de 16 segundos. Cada modo de falha é exercitado
+// nas DUAS faixas: com dado ainda fresco (o aviso de atraso NÃO pode acender) e com dado na faixa
+// atrasada (o aviso TEM de acender, com motivo legível).
+const IDADE_FRESCA = FRESH_TTL_MS + 1000;   // 16s — dado fresco, fonte quebrada
+const IDADE_ATRASADA = 20 * 60_000;         // 20 min — dentro de STALE_BUT_USABLE
+
 for (const status of [403, 429, 500, 503]) {
-  await test(`ESPN ${status} → serve o último bom conhecido, marcado stale`, async () => {
+  await test(`ESPN ${status} + dado FRESCO → serve sem mentir que está atrasado`, async () => {
     const r = await resolveGatewayResponse({
-      competition: "br2026", cached: cachedGood(FRESH_TTL_MS + 1000), now: NOW, fetchRaw: failTransport(status),
+      competition: "br2026", cached: cachedGood(IDADE_FRESCA), now: NOW, fetchRaw: failTransport(status),
+    });
+    eq(r.health, HEALTH.FRESH, "saúde: o dado tem 16s, é fresco de verdade");
+    eq(r.payload.stale, false, "acenderia aviso de atraso sobre dado fresco");
+    eq(r.payload.sourceDegraded, true, "a falha da fonte não pode sumir do relato");
+    eq(r.upstreamStatus, status, "status da fonte preservado para telemetria");
+    assert(Array.isArray(r.payload.matches) && r.payload.matches.length === 1,
+      "perdeu as partidas do último bom conhecido");
+  });
+
+  await test(`ESPN ${status} + dado ATRASADO → serve marcado, com motivo`, async () => {
+    const r = await resolveGatewayResponse({
+      competition: "br2026", cached: cachedGood(IDADE_ATRASADA), now: NOW, fetchRaw: failTransport(status),
     });
     eq(r.health, HEALTH.STALE, "saúde");
     eq(r.payload.stale, true, "precisa vir marcado como stale");
     eq(r.payload.staleReason, `UPSTREAM_${status}`, "motivo legível por máquina");
+    eq(r.payload.ageSeconds, 20 * 60, "a UI precisa da idade para dizer 'há 20 min'");
     assert(Array.isArray(r.payload.matches) && r.payload.matches.length === 1,
       "perdeu as partidas do último bom conhecido");
   });
@@ -134,17 +154,34 @@ for (const status of [403, 429, 500, 503]) {
 
 await test("ESPN inalcançável (timeout/DNS) → último bom conhecido, motivo distinto", async () => {
   const r = await resolveGatewayResponse({
-    competition: "br2026", cached: cachedGood(FRESH_TTL_MS + 1000), now: NOW, fetchRaw: throwTransport(),
+    competition: "br2026", cached: cachedGood(IDADE_ATRASADA), now: NOW, fetchRaw: throwTransport(),
   });
   eq(r.health, HEALTH.STALE, "saúde");
   eq(r.payload.staleReason, "UPSTREAM_UNREACHABLE", "motivo");
+});
+
+await test("ESPN inalcançável com dado fresco → FRESH, mas a degradação é relatada", async () => {
+  const r = await resolveGatewayResponse({
+    competition: "br2026", cached: cachedGood(IDADE_FRESCA), now: NOW, fetchRaw: throwTransport(),
+  });
+  eq(r.health, HEALTH.FRESH, "saúde");
+  eq(r.payload.sourceDegraded, true, "a queda da fonte ficaria invisível ao monitor");
 });
 
 await test("JSON MALFORMADO com HTTP 200 NÃO envenena o cache", async () => {
   // O caso mais traiçoeiro: a fonte responde "sucesso" com corpo quebrado. Se isso virasse último
   // bom conhecido, uma observação boa seria destruída por uma resposta inútil.
   const r = await resolveGatewayResponse({
-    competition: "br2026", cached: cachedGood(FRESH_TTL_MS + 1000), now: NOW, fetchRaw: malformedTransport(),
+    competition: "br2026", cached: cachedGood(IDADE_FRESCA), now: NOW, fetchRaw: malformedTransport(),
+  });
+  eq(r.shouldStore, false, "payload malformado seria promovido a último bom conhecido");
+  eq(r.payload.matches[0].id, "ev1", "as partidas boas anteriores sumiram");
+  eq(r.payload.sourceDegraded, true, "200 malformado é falha de fonte e precisa aparecer");
+});
+
+await test("JSON MALFORMADO com dado ATRASADO degrada para o cache anterior", async () => {
+  const r = await resolveGatewayResponse({
+    competition: "br2026", cached: cachedGood(IDADE_ATRASADA), now: NOW, fetchRaw: malformedTransport(),
   });
   eq(r.shouldStore, false, "payload malformado seria promovido a último bom conhecido");
   eq(r.health, HEALTH.STALE, "deveria degradar para o cache anterior");

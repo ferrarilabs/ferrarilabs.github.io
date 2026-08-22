@@ -573,11 +573,32 @@ function syntheticConditionalIntent(overrides = {}) {
 
 /** Sobrescreve `file` com `content`, roda o contrato, exige `status[expectId] === "FAILED"`, restaura. */
 function mutateFixture(label, file, content, expectId) {
-  const original = readFileSync(abs(file));
-  touched.add(file);
-  if (!hashesBefore.has(file)) hashesBefore.set(file, sha(file));
+  return mutateFixtures(label, [[file, content]], expectId);
+}
+
+/**
+ * Como `mutateFixture`, mas mutando VARIOS arquivos de uma vez, e restaurando todos.
+ *
+ * Existe por causa de um ponto cego real: uma mutacao que prova "superficie X mudou SEM
+ * declaracao" fica inerte enquanto o proprio commit em curso declara X por um motivo legitimo.
+ * A mutacao passava a nao pegar nada e a suite acusava um furo que nao existia -- ou, pior,
+ * deixaria de acusar um furo que existe. Quem precisa provar ausencia de declaracao tem de
+ * PRODUZIR a ausencia, nao torcer para que ela esteja la.
+ */
+function mutateFixtures(label, pairs, expectId) {
+  const originals = pairs.map(([file]) => {
+    // Um arquivo pode legitimamente nao existir (CHANGE_INTENT.json: a ausencia e o estado normal).
+    // `null` marca "nao existia" para que a restauracao volte a apaga-lo, e nao o deixe para tras.
+    const existed = existsSync(abs(file));
+    if (existed) { if (!hashesBefore.has(file)) hashesBefore.set(file, sha(file)); }
+    touched.add(file);
+    return existed ? readFileSync(abs(file)) : null;
+  });
   try {
-    writeFileSync(abs(file), content);
+    pairs.forEach(([file, content]) => {
+      if (content === null) { if (existsSync(abs(file))) unlinkSync(abs(file)); }
+      else writeFileSync(abs(file), content);
+    });
     const { status } = runContract();
     const wanted = Array.isArray(expectId) ? expectId : [expectId];
     const caught = wanted.filter((id) => status[id] === "FAILED");
@@ -585,7 +606,11 @@ function mutateFixture(label, file, content, expectId) {
       `${label} => NAO PEGA. Esperado FAILED em [${wanted.join(", ")}], obtido: ` +
       `${wanted.map((id) => `${id}=${status[id] || "PASSED"}`).join(", ")}`);
   } finally {
-    writeFileSync(abs(file), original);
+    pairs.forEach(([file], i) => {
+      const original = originals[i];
+      if (original === null) { if (existsSync(abs(file))) unlinkSync(abs(file)); }
+      else writeFileSync(abs(file), original);
+    });
   }
 }
 
@@ -764,9 +789,15 @@ test("M34 mudanca em Edge Function (deploy automatico em producao) sem declaraca
   //
   // A mutacao acrescenta UMA linha inerte -- nao muda comportamento, e nem precisa: o que se
   // prova aqui e que a superficie e vigiada por IDENTIDADE de caminho, nao por gravidade do diff.
+  //
+  // A declaracao de EDGE_FUNCTIONS e removida JUNTO com a mutacao. Sem isso, a prova depende de o
+  // commit em curso por acaso nao declarar a superficie -- e no commit que introduziu a #296 ela e
+  // declarada de forma legitima, o que deixava M34 sem pegar nada e sem dizer por que.
   const file = "supabase/functions/live-football/index.ts";
-  mutateFixture("Edge Function alterada sem CHANGE_INTENT",
-    file, readFileSync(abs(file)) + "\n// mutacao M34\n", "D2");
+  mutateFixtures("Edge Function alterada sem CHANGE_INTENT", [
+    [file, readFileSync(abs(file)) + "\n// mutacao M34\n"],
+    ["CHANGE_INTENT.json", null],
+  ], "D2");
 });
 
 test("M35 bump normal de siteVersion NAO pode ressuscitar uma declaracao SCORING_CONSTANTS obsoleta => PEGA", () => {

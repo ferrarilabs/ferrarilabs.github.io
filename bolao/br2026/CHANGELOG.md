@@ -1,5 +1,71 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-22 — Issue #296: frescor em três estados (v1.123)
+
+O dado ao vivo passa a ter três estados explícitos, classificados pela **idade do dado**, e a UI
+passa a dizer **quanto** de atraso existe em vez de um "pendente" genérico.
+
+    idade <= 10 min            FRESH               apresentação normal
+    10 min < idade <= 30 min   STALE_BUT_USABLE    mostra, rotulado "Atualização atrasada · há N min"
+    idade > 30 min             UNAVAILABLE         não é apresentado como verdade ao vivo
+
+**Por que.** Medição de 2026-08-22 sobre 60 execuções agendadas reais: a cadência nominal do
+produtor é de 5 em 5 minutos, mas o GitHub *entrega* com mediana de 25,1 min (min 15,2 · máx 99,5).
+Fila 0s na mediana e no máximo, execução ~15s, zero cancelamentos — a causa é a entrega do
+agendador, **não** enfileiramento, `cancel-in-progress` ou execução longa. Nenhum intervalo
+observado cabia no teto de 10 min que existia.
+
+A escolha foi representar o atraso com honestidade em vez de subir o teto e passar a chamar de
+fresco um dado de meia hora. Nenhuma infraestrutura nova de agendamento foi criada.
+
+**Dois defeitos de rotulagem corrigidos, em direções opostas:**
+
+- Um cache de 16 segundos era marcado `STALE` só porque a ESPN tinha falhado naquele instante — a
+  classificação seguia o desfecho do *fetch*, não a idade do dado. A UI acendia aviso de atraso
+  sobre dado fresco. Agora a falha da fonte viaja em `sourceDegraded`, separada do frescor.
+- Um dado de 12 minutos virava `SOURCE_UNAVAILABLE` (tela sem jogo) mesmo sendo perfeitamente útil
+  se dissesse a idade.
+
+**Fonte única de limiar.** Os dois valores existem uma vez, em
+`supabase/functions/_shared/freshness_contract.js`. O `football_live_store.js` do navegador é script
+clássico servido sem build e não pode importar ESM, então mantém uma cópia — **conferida** contra o
+contrato por `bolao/scripts/test_freshness_contract.mjs`, que reprova se divergirem. O mesmo gate
+varre o repositório atrás de qualquer terceiro arquivo que *defina* um limiar de frescor por conta
+própria, e tem controle negativo provando que a varredura morde.
+
+**Ler não rejuvenesce dado.** `classifyFreshness()` recebe uma idade e nada mais: não recebe o
+registro de cache, não pode escrevê-lo, e nenhum caminho de leitura devolve `shouldStore: true`.
+Testado com mil leituras seguidas (bytes idênticos), com leitura posterior (a idade só piora), e
+com o caso da gravação recente de observação velha — que não vira fresco pelo atalho de TTL, porque
+a idade sai de `observedAt`, não de `storedAt`.
+
+**Compatibilidade de fio preservada.** `health`/`status` continuam emitindo `FRESH`/`STALE`/
+`SOURCE_UNAVAILABLE`: navegador já implantado testa `body.status === "SOURCE_UNAVAILABLE"` com JS
+cacheado. `health` virou alias 1:1 do estado novo (`healthForFreshness()`, que lança em estado
+desconhecido em vez de virar `FRESH` em silêncio), não uma segunda verdade. O estado novo viaja no
+campo aditivo `freshness`.
+
+**Achados corrigidos junto, e reportados:**
+
+- O fixture `STALE` de `live_gateway_fixtures.mjs` usava observação de 4 min — que sob o contrato
+  novo é `FRESH`. Ele passaria a afirmar um estado impossível de produzir. Agora é derivado do
+  contrato (ponto médio da faixa).
+- `test_live_producer_cadence.mjs` lia o teto por regex sobre o texto do gateway; quando a
+  constante virou derivada, o caso morreu com "não consegui ler" — indistinguível de um gate que
+  leu um número errado. Agora importa `FRESH_MAX_AGE_MS` (que continua 10 min: a cadência precisa
+  entregar *fresco*, não apenas *servível*).
+- `staleReason` colapsava "a fonte não respondeu" em `DATA_AGE`. Agora são três motivos distintos:
+  `UPSTREAM_<n>`, `UPSTREAM_UNREACHABLE` e `DATA_AGE` (envelhecimento sem tentativa).
+- A mutação M34 do contrato de segurança ficava inerte enquanto o commit em curso declarasse
+  `EDGE_FUNCTIONS` por motivo legítimo. Agora ela produz a própria ausência de declaração
+  (`mutateFixtures`), em vez de torcer para que ela exista.
+
+**Propagação.** CDB2026 não tem badge de frescor no hero — seu `liveClockStale` significa outra
+coisa (o minuto não é demonstrável, não "o dado está atrasado"), então a chave com idade não foi
+adicionada lá para não virar código morto. Copa2026 está arquivada e não tem hero ao vivo.
+
+Gates: `freshness-contract` (33), `live-gateway` (31, era 25), `football-live-store` (21, era 19).
+
 ## 2026-08-18 — Issue #221: correção definitiva -- ledger de rodada durável (F8)
 
 Substitui `SupabaseStateRoundLedgerRepo` (removido) por `AtomicRoundLedgerRepo`, que persiste em

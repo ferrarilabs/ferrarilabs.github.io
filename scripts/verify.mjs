@@ -308,6 +308,8 @@ const CHECKS = [
     why: "hero nao pode sumir por falha transitoria: retencao de ultimo estado confirmado, TTL 15min, sem inventar resultado" },
   { id: "live-gateway", group: "app", cmd: ["node", "bolao/scripts/audit_live_gateway.mjs"],
     why: "gateway: cache, degradacao, injecao de falha da ESPN, seguranca contra proxy aberto" },
+  { id: "freshness-contract", group: "app", cmd: ["node", "bolao/scripts/test_freshness_contract.mjs"],
+    why: "FRESH/STALE_BUT_USABLE/UNAVAILABLE: fronteiras exatas, limiar com dono unico, e a prova de que LER nao rejuvenesce dado" },
   { id: "football-live-store", group: "app", cmd: ["node", "bolao/scripts/audit_football_live_store.mjs"],
     why: "cenarios de aceitacao do LIVE DATA PLANE V2: primeira visita no meio do jogo, sem scheduler, fora de ordem, falha de fonte" },
   { id: "live-decision-scope", group: "app", cmd: ["node", "bolao/scripts/audit_live_decision_scope.mjs"],
