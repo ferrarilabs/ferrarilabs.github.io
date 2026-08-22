@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-18T02:12:25Z",
-  "sourceUpdatedAt": "2026-08-18T02:12:25Z",
+  "generatedAt": "2026-08-22T21:15:26Z",
+  "sourceUpdatedAt": "2026-08-22T21:15:26Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "0c6292aa95aa5043a251710849042cc778b164429e816b0f6db6f3a6b6a41e84",
+  "payloadHash": "583e34e4c60fb6f136eb0926131b0929129fd1367477080e3453626a86ec3745",
   "matches": [
     {
       "name": "Palmeiras",
@@ -55,14 +55,14 @@
       "abbr": "FLU",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3445.png",
       "rank": 4.0,
-      "points": 38.0,
-      "played": 23.0,
-      "wins": 10.0,
+      "points": 41.0,
+      "played": 24.0,
+      "wins": 11.0,
       "draws": 8.0,
       "losses": 5.0,
-      "gf": 34.0,
-      "ga": 28.0,
-      "gd": 6.0
+      "gf": 36.0,
+      "ga": 29.0,
+      "gd": 7.0
     },
     {
       "name": "Cruzeiro",
@@ -252,13 +252,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/4936.png",
       "rank": 18.0,
       "points": 23.0,
-      "played": 23.0,
+      "played": 24.0,
       "wins": 5.0,
       "draws": 8.0,
-      "losses": 10.0,
-      "gf": 27.0,
-      "ga": 37.0,
-      "gd": -10.0
+      "losses": 11.0,
+      "gf": 28.0,
+      "ga": 39.0,
+      "gd": -11.0
     },
     {
       "name": "Vasco da Gama",
