@@ -1,3 +1,25 @@
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+// AUTORIDADE DESTE ARQUIVO — Issue #130, decisao do dono em 2026-08-22
+//
+// O SISTEMA DE REGISTRO de participante, participacao e transacao de pagamento do Powerball e o
+// banco PostgreSQL/Supabase. Este arquivo caminha para ser uma PROJECAO derivada dele, publica e
+// sem PII.
+//
+// A TRANSICAO NAO TERMINOU. Medido em 2026-08-22:
+//     banco    1 sorteio  · 10 participantes · 11 transacoes · 102.00
+//     data.js  5 sorteios · 75 linhas        ·      —        · 888.00
+//
+// Ou seja: HOJE este arquivo ainda carrega verdade financeira que o banco nao tem. Ele nao esta
+// marcado como "derivado" porque isso seria falso agora.
+//
+// ENQUANTO ISSO: nao edite valor, cota ou contagem de participante aqui sem passar por revisao.
+// `bolao/shared/safety/powerball_public_projection_pin.json` fixa os agregados e o gate
+// `audit_data_js_authority.mjs` reprova qualquer alteracao silenciosa de verdade financeira.
+//
+// A escrita autoritativa de pagamento acontece pelo caminho de operador server-side
+// (`.github/workflows/powerball_record_payment.yml`), nunca por edicao manual deste arquivo.
+// ─────────────────────────────────────────────────────────────────────────────────────────────
+
 // Cada sorteio do bolão é uma entrada em `draws`. Para registrar um novo sorteio,
 // duplique um objeto abaixo, atualize os dados e preencha `result`/`profit` depois
 // que o sorteio sair — isso dá histórico automático (lucro, resultados anteriores etc.)

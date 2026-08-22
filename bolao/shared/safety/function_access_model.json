@@ -332,6 +332,11 @@
       "class": "SERVICE_RPC",
       "secdef": true,
       "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
+    },
+    "public.lottery_payment_history_is_immutable/0": {
+      "class": "INTERNAL_FUNCTION",
+      "secdef": true,
+      "why": "funcao de trigger da Issue #130: recusa DELETE e UPDATE de campo financeiro em lottery_payment_transactions. Invocada pelo proprio PostgreSQL, nunca por chamador. A migracao que a cria faz `revoke all ... from public, anon, authenticated` na mesma transacao."
     }
   },
   "remediated": [
