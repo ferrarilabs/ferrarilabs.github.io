@@ -1,0 +1,36 @@
+{
+  "$schema": "Mapeamento de identidade RESOLVIDO por evidencia deterministica, para o backfill historico do Powerball. Consumido por backfill_reconcile.mjs (Issues #298/#130).",
+  "_porque_existe": "Um participante do banco nao casava por nome com nenhum registro da origem, e o primeiro nome batia com TRES nomes distintos. Nome nunca poderia resolver isso -- e a autorizacao proibe expressamente identidade financeira por similaridade de nome. A ligacao foi feita por FATO FINANCEIRO.",
+  "_evidencia": "O instante do pagamento, com precisao de SEGUNDO, e unico dos dois lados: no banco as dez contribuicoes tem dez horarios distintos (zero colisoes), e na origem existe EXATAMENTE UMA linha com o horario correspondente. Os dois valores e os dois metodos tambem coincidem. E o candidato A, que ficava a 12 minutos, ja esta mapeado a OUTRA linha do banco -- ou seja, ele esta contabilizado e nao concorre. O candidato C esta a mais de nove horas.",
+  "_o_que_NAO_foi_usado": "similaridade de nome, primeiro nome, ordem no arquivo, posicao em array, proximidade de valor, confianca de fuzzy match. Nenhum deles.",
+  "resolvedAt": "2026-08-22",
+  "issue": 298,
+  "mappings": [
+    {
+      "dbParticipantIdPrefix": "d28dd5fa",
+      "sourceNameHash": "4e26a4c4",
+      "evidenceClasses": [
+        "PAYMENT_TIMESTAMP_SECOND_PRECISION",
+        "PAYMENT_AMOUNT",
+        "PAYMENT_METHOD",
+        "EXCLUSION_OF_MAPPED_CANDIDATE"
+      ],
+      "paidAtLocal": "09:11:28 AM America/New_York",
+      "uniqueInDb": true,
+      "uniqueInSource": true,
+      "competingCandidates": [
+        {
+          "label": "A",
+          "delta": "+12min",
+          "status": "ja mapeado a outra linha do banco"
+        },
+        {
+          "label": "C",
+          "delta": "+9h38min",
+          "status": "sem correspondencia"
+        }
+      ]
+    }
+  ],
+  "_limite_conhecido": "Na origem existe UMA colisao de horario com precisao de segundo entre duas pessoas -- em outro par, nao neste. O horario usado aqui tem exatamente uma linha na origem. Qualquer mapeamento futuro por horario tem de reconfirmar unicidade em vez de assumi-la."
+}

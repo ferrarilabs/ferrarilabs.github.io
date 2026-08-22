@@ -42,7 +42,7 @@ const PIN = "bolao/shared/safety/powerball_public_projection_pin.json";
 
 /** Marcadores que o cabecalho tem de conter para o leitor saber o que esta lendo. */
 export const REQUIRED_MARKERS = Object.freeze([
-  "SISTEMA DE REGISTRO", "Issue #130", "PROJECAO",
+  "SISTEMA DE REGISTRO", "#130", "PROJECAO", "NAO EDITE",
 ]);
 
 export function aggregates(text) {
@@ -104,9 +104,21 @@ function main() {
       : `${r.fixado.reduce((a, d) => a + d.participants, 0)} linhas de participante, `
         + `${r.fixado.reduce((a, d) => a + d.valor, 0).toFixed(2)} em valor`);
 
-  check("o pin declara qual e a autoridade de hoje e qual e a alvo",
-    Boolean(r.pin.authorityToday && r.pin.authorityTarget && r.pin.authorityToday !== r.pin.authorityTarget),
+  // ATUALIZADO 2026-08-22 (#298): antes este check exigia autoridade de hoje DIFERENTE da alvo,
+  // porque a transicao estava em curso. O cutover concluiu -- o banco tem as 75 contribuicoes e
+  // 888.00, com reconciliacao zerada -- entao o invariante correto agora e o OPOSTO: as duas tem de
+  // ser o banco. Manter o check antigo exigiria que a migracao nunca terminasse.
+  check("o pin declara o banco como autoridade, hoje e como alvo",
+    r.pin.authorityToday === "PostgreSQL/Supabase" && r.pin.authorityTarget === "PostgreSQL/Supabase",
     `hoje=${r.pin.authorityToday} → alvo=${r.pin.authorityTarget}`);
+
+  const rec = r.pin._reconciliacao ?? {};
+  check("o pin registra a reconciliacao que autorizou o cutover",
+    rec.missingImportable === 0 && rec.conflicts === 0 && rec.ambiguous === 0
+      && rec.sourceTotal === rec.dbContributionTotal,
+    rec.sourceTotal !== undefined
+      ? `origem ${rec.sourceTotal} = banco ${rec.dbContributionTotal}, importaveis ${rec.missingImportable}, conflitos ${rec.conflicts}, ambiguos ${rec.ambiguous}`
+      : "o pin precisa registrar a reconciliacao");
 
   console.log(`\n${fail ? "✗" : "✓"} ${pass} passaram, ${fail} falharam\n`);
   return fail ? 1 : 0;

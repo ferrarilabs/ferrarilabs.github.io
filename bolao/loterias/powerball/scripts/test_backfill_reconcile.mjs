@@ -7,7 +7,7 @@
  * fontes e o NOME, e nome e chave fraca.
  */
 
-import { parseSource, classify, validateTotals, identityMap, detectDuplicates, nameHash, firstHash, money, IMPORTABLE }
+import { parseSource, classify, validateTotals, identityMap, detectDuplicates, nameHash, firstHash, money, paymentInstant, IMPORTABLE }
   from "./backfill_reconcile.mjs";
 
 let pass = 0, fail = 0;
@@ -61,13 +61,19 @@ test("4. colisao de PRIMEIRO NOME com participante do banco nao casado vira AMBI
   assert(c[0].klass === "AMBIGUOUS_MAPPING", c[0].klass);
 });
 
-test("5. colisao de primeiro nome DENTRO da origem tambem vira AMBIGUOUS", () => {
+test("5. colisao de primeiro nome DENTRO da origem NAO e ambiguidade", () => {
+  // CORRIGIDO em 2026-08-22 (#298). A versao anterior deste caso exigia AMBIGUOUS aqui, e estava
+  // errada: dois nomes da ORIGEM compartilharem o primeiro nome nao cria duvida nenhuma -- sao dois
+  // registros distintos e nenhum dos dois esta sendo fundido num participante existente. O risco
+  // real e fundir no participante ERRADO DO BANCO, e aqui o banco esta vazio.
+  //
+  // A regra antiga bloqueava quatro linhas legitimas (US$ 40) sem nenhum ganho de seguranca.
   const rows = src([
     { drawId: "2026-08-10", name: "Ana Souza", amount: 10 },
     { drawId: "2026-08-10", name: "Ana Prado", amount: 10 },
   ]);
   const c = classify(rows, db({ draws: [{ drawId: "2026-08-10" }] }));
-  assert(c.every((x) => x.klass === "AMBIGUOUS_MAPPING"), JSON.stringify(c.map((x) => x.klass)));
+  assert(c.every((x) => x.klass === IMPORTABLE), JSON.stringify(c.map((x) => x.klass)));
 });
 
 test("6. nome exato no banco VENCE a colisao de primeiro nome", () => {
@@ -135,6 +141,78 @@ test("12. `valor` textual e normalizado sem perder centavos", () => {
 test("13. parse da origem real devolve linhas com sorteio, identidade e valor", () => {
   const rows = parseSource(`window.POWERBALL_DRAWS=[{id:"2026-08-10",participants:[{name:"X Y",cotas:1,valor:10}]}];`);
   assert(rows.length === 1 && rows[0].drawId === "2026-08-10" && rows[0].amount === 10, JSON.stringify(rows));
+});
+
+// ── IDENTIDADE POR INSTANTE DE PAGAMENTO (Issue #298) ────────────────────────────────────────
+//
+// A chave que resolveu a #298 nao e nome: e o instante do pagamento com precisao de SEGUNDO,
+// exigido unico DOS DOIS LADOS. Estes casos existem porque o import de verdade errou aqui uma vez.
+
+test("14. instante de pagamento resolve identidade quando o nome nao resolve", () => {
+  const rows = src([{ drawId: "2026-08-08", name: "Nome Da Origem", amount: 10 }])
+    .map((r) => ({ ...r, paidKey: "2026-08-08 09:11:28" }));
+  const base = db({
+    participants: [P("Grafia Diferente No Banco")],
+    draws: [{ drawId: "2026-08-08" }],
+    contributions: [{ drawId: "2026-08-08", nameHash: nameHash("Grafia Diferente No Banco"),
+                      amount: 10, paidKey: "2026-08-08 09:11:28" }],
+    paymentTotal: 10, contributionTotal: 10,
+  });
+  const m = identityMap(rows, base);
+  const id = m.get(nameHash("Nome Da Origem"));
+  assert(id.kind === "EXACT" && id.via === "PAYMENT_INSTANT", JSON.stringify(id));
+  assert(classify(rows, base)[0].klass === "ALREADY_PRESENT_EXACT",
+    "resolvido pelo instante, a contribuicao ja esta presente — nao pode virar import");
+});
+
+test("15. REGRESSAO (#298): quem foi resolvido pelo instante NAO pode virar participante novo", () => {
+  // O defeito real: o gerador criou um participante novo sob a grafia da ORIGEM enquanto a mesma
+  // pessoa ja existia no banco sob outra grafia — duplicando a pessoa. O modelo tem de dizer
+  // claramente que essa identidade JA EXISTE, para que o gerador use o participante do banco.
+  const rows = src([
+    { drawId: "2026-08-08", name: "Nome Da Origem", amount: 10 },
+    { drawId: "2026-08-10", name: "Nome Da Origem", amount: 10 },
+  ]).map((r) => ({ ...r, paidKey: r.drawId === "2026-08-08" ? "2026-08-08 09:11:28" : "2026-08-10 10:00:00" }));
+  const base = db({
+    participants: [P("Grafia Diferente No Banco")],
+    draws: [{ drawId: "2026-08-08" }, { drawId: "2026-08-10" }],
+    contributions: [{ drawId: "2026-08-08", nameHash: nameHash("Grafia Diferente No Banco"),
+                      amount: 10, paidKey: "2026-08-08 09:11:28" }],
+    paymentTotal: 10, contributionTotal: 10,
+  });
+  const id = identityMap(rows, base).get(nameHash("Nome Da Origem"));
+  assert(id.kind === "EXACT", "a pessoa JA existe no banco — criar outra linha a duplica");
+  assert(id.dbNameHash === nameHash("Grafia Diferente No Banco"),
+    "o modelo tem de entregar o participante DO BANCO a quem anexar a nova participacao");
+  // a segunda perna e import legitimo, mas anexado ao participante existente
+  const c = classify(rows, base);
+  assert(c[0].klass === "ALREADY_PRESENT_EXACT" && c[1].klass === IMPORTABLE, JSON.stringify(c.map(x => x.klass)));
+});
+
+test("16. instante ambiguo dos dois lados NAO resolve identidade", () => {
+  // Se duas pessoas compartilham o instante, ele deixa de identificar — e cair para nome seria
+  // exatamente o que a autorizacao proibe.
+  const rows = src([
+    { drawId: "2026-08-08", name: "Pessoa Um", amount: 10 },
+    { drawId: "2026-08-08", name: "Pessoa Dois", amount: 10 },
+  ]).map((r) => ({ ...r, paidKey: "2026-08-08 09:11:28" }));
+  const base = db({
+    participants: [P("Alguem No Banco")], draws: [{ drawId: "2026-08-08" }],
+    contributions: [{ drawId: "2026-08-08", nameHash: nameHash("Alguem No Banco"),
+                      amount: 10, paidKey: "2026-08-08 09:11:28" }],
+    paymentTotal: 10, contributionTotal: 10,
+  });
+  const m = identityMap(rows, base);
+  for (const n of ["Pessoa Um", "Pessoa Dois"]) {
+    assert(m.get(nameHash(n)).via !== "PAYMENT_INSTANT", `${n}: instante compartilhado nao identifica`);
+  }
+});
+
+test("17. horario SEM segundos nao serve como identidade", () => {
+  assert(paymentInstant("06/08/2026", "6:49 PM") === null, "minuto inteiro nao identifica pessoa");
+  assert(paymentInstant("06/08/2026", "9:11:28 AM") === "2026-08-06 09:11:28", "segundo identifica");
+  assert(paymentInstant("06/08/2026", "9:11:28 PM") === "2026-08-06 21:11:28", "PM converte");
+  assert(paymentInstant(null, "9:11:28 AM") === null, "sem data nao ha instante");
 });
 
 console.log(`\n${fail ? "✗" : "✓"} ${pass} passaram, ${fail} falharam\n`);
