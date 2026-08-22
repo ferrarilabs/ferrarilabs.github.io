@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-22T20:28:33Z",
-  "sourceUpdatedAt": "2026-08-22T20:28:33Z",
+  "generatedAt": "2026-08-22T20:50:17Z",
+  "sourceUpdatedAt": "2026-08-22T20:50:17Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "b4818c1f630b18df445e90c279e0074da0d51d0fd642f3a6c978bb9311b40497",
+  "payloadHash": "d3a806c1d3d1a14b4a5eea3dc15dffb42e562c28165db4e8fccb6a3077093081",
   "matches": [
     {
       "id": "401840808",
@@ -38308,21 +38308,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "49'",
-      "statusDetail": "49'",
+      "statusShortDetail": "90'+1'",
+      "statusDetail": "90'+1'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Remo",
       "homeTeamId": "3445",
       "awayTeamId": "4936",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 2940.0,
-      "clockStr": "49'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+1'",
       "period": 2,
       "details": [
         {
@@ -38346,7 +38346,7 @@
         },
         {
           "type": {
-            "text": "Goal - Volley"
+            "text": "Goal"
           },
           "scoringPlay": true,
           "team": {
@@ -38360,6 +38360,63 @@
             {
               "displayName": "Jajá",
               "shortName": "Jajá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3927.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Hulk",
+              "shortName": "Hulk"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 4824.0,
+            "displayValue": "81'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Yago Pikachu",
+              "shortName": "Y. Pikachu"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 4945.0,
+            "displayValue": "83'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Serna",
+              "shortName": "K. Serna"
             }
           ]
         }
