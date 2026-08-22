@@ -114,6 +114,14 @@ const CHECKS = [
     why: "funcao em public nasce executavel por PUBLIC e pelos papeis do default; sem decisao escrita, servico vira cliente (Issue #271)" },
   { id: "function-creation-discipline-tests", group: "security", cmd: ["node", "scripts/db/test_function_creation_discipline.mjs"],
     why: "prova as nove regressoes exigidas, e confere o modelo estatico contra ACLs lidas de um PostgreSQL 17.10 real" },
+  // Issues #282/#284 — o outro lado da mesma raiz, agora em RELACAO: `PUBLIC` e pseudo-papel e
+  // revoga-lo nao limpa `anon`/`authenticated`. Ate 2026-08-22 o modelo nem via view nenhuma
+  // (`parseCreateTables` so casava `create table`), entao o achado da #282 era invisivel para o
+  // gate que deveria pega-lo. O parser foi estendido junto.
+  { id: "public-projection-privs", group: "security", cmd: ["node", "scripts/db/audit_public_projection_privs.mjs"],
+    why: "projecao publica serve SELECT; escrita/administracao de papel de cliente nela e privilegio que ninguem decidiu conceder (#282)" },
+  { id: "public-projection-privs-tests", group: "security", cmd: ["node", "scripts/db/test_public_projection_privs.mjs"],
+    why: "as catorze regressoes exigidas, inclusive o controle negativo que remove a migracao corretiva e exige o defeito de volta" },
   // Issue #131 — os quatro verbos de linha nas seis tabelas-base do Powerball. Complementa o gate
   // acima, que trata os tres privilegios estruturais e deixa o CRUD de fora de proposito: aqui a
   // RLS realmente segura, e por isso mesmo ela e a UNICA coisa segurando. O gate impede que o

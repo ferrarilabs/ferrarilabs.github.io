@@ -50,7 +50,28 @@ function discover() {
     .sort();
 }
 
-const pkg = JSON.parse(readFileSync(join(ROOT, "package.json"), "utf8"));
+const pkgRaw = readFileSync(join(ROOT, "package.json"), "utf8");
+const pkg = JSON.parse(pkgRaw);
+
+/**
+ * CHAVE DUPLICADA EM `scripts` — `JSON.parse` fica com a ULTIMA e nao reclama.
+ *
+ * Nao e hipotetico: em 2026-08-21 uma resolucao de conflito produziu DOIS `"test:node"` no mesmo
+ * objeto; o parser descartou o primeiro EM SILENCIO e levou junto um gate de seguranca recem
+ * registrado. A checagem de orfaos abaixo ate reprova nesse caso -- mas reprova com noventa e
+ * cinco mensagens dizendo que todo gate sumiu do package.json, o que manda quem le investigar o
+ * lugar errado.
+ *
+ * Ler o TEXTO e a unica forma de ver a duplicata: depois do parse a evidencia ja nao existe.
+ */
+const chavesDuplicadas = (() => {
+  const bloco = /"scripts"\s*:\s*\{([\s\S]*?)\n  \}/.exec(pkgRaw);
+  if (!bloco) return [];
+  const nomes = [...bloco[1].matchAll(/^\s{4}"([^"]+)"\s*:/gm)].map((m) => m[1]);
+  const vistos = new Set(), dup = new Set();
+  for (const n of nomes) { if (vistos.has(n)) dup.add(n); vistos.add(n); }
+  return [...dup];
+})();
 const allScripts = Object.entries(pkg.scripts || {})
   .filter(([name]) => name !== "verify" && name !== "verify:json")
   .map(([, cmd]) => cmd)
@@ -64,6 +85,13 @@ const registry = existsSync(REGISTRY_PATH)
 
 const discovered = discover();
 const failures = [];
+
+if (chavesDuplicadas.length) {
+  failures.push(
+    `package.json tem chave DUPLICADA em \`scripts\`: ${chavesDuplicadas.join(", ")}\n` +
+    `      JSON.parse fica com a ULTIMA e descarta a primeira em silencio — foi assim que um gate\n` +
+    `      registrado deixou de executar em 2026-08-21. Junte as cadeias numa chave so.`);
+}
 const counts = { REGISTERED_AND_EXECUTED: 0, INTENTIONALLY_STANDALONE_WITH_REASON: 0, NON_GATE_HELPER: 0 };
 
 for (const path of discovered) {
