@@ -152,6 +152,14 @@ const CHECKS = [
     why: "corrigir dinheiro apagando o passado, e reexecutar um dispatch cobrando duas vezes, sao os dois modos de falha (Issue #130)" },
   { id: "powerball-data-js-authority", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_data_js_authority.mjs"],
     why: "enquanto data.js carregar verdade financeira, uma edicao manual dela nao pode passar em silencio (Issue #130)" },
+  // Issue #271 — a arquitetura de controle compensatorio aceita pelo dono exige provar que TODO
+  // objeto criado pela Ferrarilabs e endurecido explicitamente. Funcao e view ja tinham gate;
+  // sequencia sao zero em `public` (medido); faltava TABELA, cujo CRUD so era exigido nas seis do
+  // Powerball. Este fecha a cobertura por classe de objeto.
+  { id: "table-client-decisions", group: "security", cmd: ["node", "scripts/db/audit_table_client_decisions.mjs"],
+    why: "toda tabela de aplicacao precisa de decisao escrita de privilegio de cliente, conferida contra a ACL efetiva (#271)" },
+  { id: "table-client-decisions-tests", group: "security", cmd: ["node", "scripts/db/test_table_client_decisions.mjs"],
+    why: "controle negativo: tabela nova com CRUD de cliente e sem decisao tem de reprovar" },
 
   { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
     why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
