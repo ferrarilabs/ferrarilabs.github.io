@@ -228,6 +228,10 @@ window.BR2026_I18N = {
     // Fonte de dado velha demais para provar o minuto atual da partida. Mostrar um número
     // congelado ali seria pior: pareceria ao vivo e estaria errado.
     liveClockStale: "Atualização pendente",
+    // Rotulo do estado STALE_BUT_USABLE (Issue #296). Traz a IDADE porque "pendente" sozinho nao
+    // informa nada: o leitor nao consegue distinguir 2 min de meia hora. Linguagem de produto, nao
+    // de infraestrutura -- quem le e torcedor, nao operador do agendador.
+    liveClockStaleAge: "Atualização atrasada · há {min} min",
     liveHalftime: "Intervalo",
     livePenalties: "Pênaltis",
     liveMatchesLabel: "jogos ao vivo agora",

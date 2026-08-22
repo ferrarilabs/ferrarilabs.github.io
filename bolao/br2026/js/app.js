@@ -2235,6 +2235,20 @@ function renderLiveCard() {
     ${teamPosHtml(teamName)}
   </div>`;
 
+  // Idade da observacao que sustenta o hero. O rotulo de atraso precisa dizer QUANTO: "Atualizacao
+  // pendente" nao deixa o leitor distinguir 2 min de meia hora, e a medicao de 2026-08-22 mostrou
+  // que a entrega do agendador tem mediana de 25,1 min -- ou seja, o "quanto" e justamente a
+  // informacao que faltava (Issue #296). Sem idade legivel, cai no rotulo generico de antes.
+  const _liveAgeMin = (() => {
+    try {
+      const st = _liveStore && _liveStore.getState();
+      return st && st.ageMs != null ? Math.max(0, Math.round(st.ageMs / 60000)) : null;
+    } catch (e) { return null; }   // observabilidade nunca pode derrubar o render do hero
+  })();
+  const staleLabel = _liveAgeMin != null
+    ? t("liveClockStaleAge").replace("{min}", String(_liveAgeMin))
+    : t("liveClockStale");
+
   const rows = heroMatches.map(m => {
     const { clock, sec, stale: _clockStale } = liveClockDisplay(m);
     // A marca de atraso é POR PARTIDA: num conjunto simultâneo, um jogo pode estar retido
@@ -2283,7 +2297,7 @@ function renderLiveCard() {
         <div class="live-center">
           <span class="live-badge">${esc(t("liveNow"))}</span>
           <span class="live-clock">${esc(clock)}</span>
-          ${clockStale ? `<span class="live-clock-stale" title="${esc(t("liveClockStale"))}">${esc(t("liveClockStale"))}</span>` : ""}
+          ${clockStale ? `<span class="live-clock-stale" title="${esc(staleLabel)}">${esc(staleLabel)}</span>` : ""}
         </div>
         <div class="live-score">${m.awayScore}</div>
         ${teamColHtml(m.awayTeam)}

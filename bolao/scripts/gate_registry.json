@@ -448,6 +448,9 @@
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Mede contra a PRODUCAO a unicidade (app, evento, destinatario, geracao) e o disjuntor de anomalia de 45min; precisa de SUPABASE_SERVICE_ROLE_KEY e de concorrencia real (8 workers). Executado pelo workflow m8m9_probe.yml. Nao envia e-mail: enderecos sinteticos, chaves canary:, tudo removido no fim. Ultimo resultado: 13/13, 8 workers -> 1 reserva."
     },
+    "bolao/scripts/test_freshness_contract.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/test_harness_ports_unique.mjs": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Estatico. Nenhuma porta de harness declarada por duas suites. Criado depois de eu escolher 8231 para uma suite nova sem ver que audit_live_card_dom.mjs ja usava — custou tres execucoes de verify culpando orfaos de processo. Mutacao (reintroduzir a colisao): pega."

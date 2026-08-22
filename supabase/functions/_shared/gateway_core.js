@@ -26,6 +26,13 @@ import {
   buildGatewayPayload, sourceUnavailablePayload,
 } from "./normalize.js";
 
+import {
+  FRESH_MAX_AGE_MS, STALE_BUT_USABLE_MAX_AGE_MS,
+  FRESHNESS, classifyFreshness, isServable, dataAgeMs,
+} from "./freshness_contract.js";
+
+export { FRESH_MAX_AGE_MS, STALE_BUT_USABLE_MAX_AGE_MS, FRESHNESS, classifyFreshness };
+
 /**
  * TTL do cache fresco: 15 segundos.
  *
@@ -36,20 +43,46 @@ import {
 export const FRESH_TTL_MS = 15_000;
 
 /**
- * Janela de "último bom conhecido": 10 minutos.
+ * Janela de "último bom conhecido" — AGORA DERIVADA do contrato de frescor (Issue #296).
  *
- * Passado o TTL fresco, o cache continua SERVÍVEL — marcado como stale — por até 10 min. Isso é o
- * que faz uma falha transitória da ESPN (429, 500, timeout) não virar apagão para o usuário.
- * Além de 10 min sem NENHUMA observação boa, o gateway prefere admitir que não sabe a fingir que
- * sabe: responde SOURCE_UNAVAILABLE.
+ * Era 10 min e era o teto de tudo. Depois da medição de 2026-08-22 (o agendador do GitHub entrega
+ * com mediana de 25,1 min, não de 5 em 5), 10 min deixou de poder ser o teto: seria apagão na maior
+ * parte do tempo. Mas ele também não podia simplesmente subir para 30 min, porque isso passaria a
+ * chamar de FRESCO um dado de meia hora.
+ *
+ * A saída foi separar os dois papéis que este número acumulava:
+ *
+ *   FRESH_MAX_AGE_MS (10 min)             até aqui o dado é apresentado como ao vivo;
+ *   STALE_BUT_USABLE_MAX_AGE_MS (30 min)  até aqui ainda é servido, mas ROTULADO como atrasado.
+ *
+ * Este alias sobrevive só porque é o teto do que é servível, e há chamador externo importando o
+ * nome. O valor vem do contrato — não existe um segundo número aqui.
  */
-export const LAST_KNOWN_GOOD_MAX_AGE_MS = 10 * 60_000;
+export const LAST_KNOWN_GOOD_MAX_AGE_MS = STALE_BUT_USABLE_MAX_AGE_MS;
 
+/**
+ * HEALTH — os nomes que JÁ ESTÃO NO FIO, mapeados 1:1 sobre o contrato de frescor.
+ *
+ * Os valores string NÃO mudam. Navegador já implantado testa `body.status === "SOURCE_UNAVAILABLE"`
+ * (`football_live_store.js:370`) com JS cacheado que não posso atualizar de forma síncrona; trocar
+ * a string quebraria esses clientes sem nenhum ganho. Então o estado novo viaja no campo aditivo
+ * `freshness`, e `health` continua sendo o rótulo antigo do MESMO estado — não uma segunda verdade.
+ */
 export const HEALTH = {
   FRESH: "FRESH",
   STALE: "STALE",
   SOURCE_UNAVAILABLE: "SOURCE_UNAVAILABLE",
 };
+
+/** Tradução única e total FRESHNESS -> HEALTH. Se um estado novo surgir, isto falha alto. */
+export function healthForFreshness(freshness) {
+  switch (freshness) {
+    case FRESHNESS.FRESH: return HEALTH.FRESH;
+    case FRESHNESS.STALE_BUT_USABLE: return HEALTH.STALE;
+    case FRESHNESS.UNAVAILABLE: return HEALTH.SOURCE_UNAVAILABLE;
+    default: throw new Error(`FRESHNESS desconhecido: ${freshness}`);
+  }
+}
 
 export function espnUrlFor(competitionKey) {
   const slug = ALLOWED_COMPETITIONS[competitionKey];
@@ -61,26 +94,75 @@ export function espnUrlFor(competitionKey) {
 }
 
 /**
+ * Serve a partir do último bom conhecido, com o rótulo que a IDADE do dado manda.
+ *
+ * NÃO ESCREVE. Não toca em `observedAt` nem em `storedAt`, e não devolve `shouldStore: true`.
+ * É a garantia estrutural de que LER NÃO REJUVENESCE: um visitante abrindo a página mil vezes
+ * não deixa o dado um milissegundo mais novo. Só uma observação nova do produtor (passo 3) avança
+ * o frescor.
+ */
+function serveFromCache({ cached, now, ageMs, freshness, upstreamStatus, sourceDegraded }) {
+  const stale = freshness === FRESHNESS.STALE_BUT_USABLE;
+  return {
+    payload: {
+      ...cached.payload,
+      servedAt: new Date(now).toISOString(),
+      ageSeconds: Math.round(ageMs / 1000),
+      freshness,
+      // `stale` é o que acende o aviso de atraso na UI. Ele segue a IDADE, não o resultado do
+      // fetch: fonte com erro + cache de 8 min é dado fresco de verdade, e mentir dizendo
+      // "atrasado" seria tão errado quanto o contrário.
+      stale,
+      // Tres motivos DISTINTOS, e a diferenca importa para quem depura:
+      //   UPSTREAM_<n>          a fonte respondeu, com erro;
+      //   UPSTREAM_UNREACHABLE  tentamos e nem resposta houve (timeout/DNS/abort);
+      //   DATA_AGE              nao houve tentativa — o dado envelheceu sozinho.
+      // Colapsar os dois primeiros em DATA_AGE diria "o dado ficou velho" para uma ESPN fora do ar.
+      ...(stale ? { staleReason: upstreamStatus ? `UPSTREAM_${upstreamStatus}`
+                                : (sourceDegraded ? "UPSTREAM_UNREACHABLE" : "DATA_AGE") } : {}),
+      // A falha da fonte não some do relato só porque o dado ainda está fresco — ela vira sinal
+      // de telemetria separado, para o monitor não ficar cego a uma ESPN caindo.
+      ...(sourceDegraded ? { sourceDegraded: true } : {}),
+    },
+    health: healthForFreshness(freshness),
+    freshness,
+    ageSeconds: Math.round(ageMs / 1000),
+    cacheHit: true,
+    upstreamStatus,
+    shouldStore: false,
+  };
+}
+
+/**
  * Decide o que servir. PURA: recebe cache e um `fetchRaw` injetado, não fala com a rede.
+ *
+ * A classificação é por IDADE DO DADO, não pelo desfecho do fetch (Issue #296). Antes, QUALQUER
+ * queda para o cache era rotulada STALE — inclusive um cache de 16 segundos —, o que chamava de
+ * atrasado um dado fresco. E, do outro lado, o teto de 10 min derrubava para SOURCE_UNAVAILABLE um
+ * dado de 12 min que ainda era perfeitamente útil se dissesse a idade.
  *
  * @param {object} args
  *   competition  chave da competição (validada pelo chamador)
  *   cached       {payload, observedAt, storedAt} | null   último bom conhecido
  *   now          timestamp
  *   fetchRaw     async () => {ok, status, json}  transporte injetado
- * @returns {{payload, health, cacheHit, upstreamStatus, shouldStore}}
+ * @returns {{payload, health, freshness, ageSeconds, cacheHit, upstreamStatus, shouldStore}}
  */
 export async function resolveGatewayResponse({ competition, cached, now, fetchRaw }) {
-  const age = cached ? now - cached.storedAt : Infinity;
+  // Duas idades, dois papéis distintos — foi confundi-las que produziu o rótulo errado:
+  //   ageMs      idade do DADO (por `observedAt`) -> classifica o frescor;
+  //   cacheAgeMs idade da nossa GRAVAÇÃO         -> só decide se vale reconsultar a ESPN.
+  const ageMs = dataAgeMs(cached, now);
+  const cacheAgeMs = cached && Number.isFinite(cached.storedAt) ? now - cached.storedAt : Infinity;
 
-  // 1. Cache FRESCO: responde na hora, sem tocar na ESPN. É o caminho da imensa maioria das
-  //    requisições durante um jogo, e o que torna o custo desprezível nesta escala.
-  if (cached && age < FRESH_TTL_MS) {
-    return {
-      payload: { ...cached.payload, servedAt: new Date(now).toISOString(),
-                 ageSeconds: Math.round((now - Date.parse(cached.observedAt)) / 1000) },
-      health: HEALTH.FRESH, cacheHit: true, upstreamStatus: null, shouldStore: false,
-    };
+  // 1. Atalho anti-martelada: gravamos há menos de 15s, várias abas colapsam num fetch só.
+  //    Ainda assim o rótulo sai de `classifyFreshness` — o atalho nunca DECRETA "fresco".
+  if (cached && cacheAgeMs < FRESH_TTL_MS) {
+    const freshness = classifyFreshness(ageMs);
+    if (isServable(freshness)) {
+      return serveFromCache({ cached, now, ageMs, freshness, upstreamStatus: null, sourceDegraded: false });
+    }
+    // Gravação recente de uma observação velha (produtor atrasado): não serve, vai à fonte.
   }
 
   // 2. Cache vencido (ou inexistente): tenta a fonte.
@@ -94,7 +176,8 @@ export async function resolveGatewayResponse({ competition, cached, now, fetchRa
     upstreamStatus = null; upstreamOk = false;  // timeout/DNS/abort caem aqui
   }
 
-  // 3. Resposta boa E com forma válida → promove a último bom conhecido.
+  // 3. Resposta boa E com forma válida → promove a último bom conhecido. O ÚNICO ponto de todo o
+  //    gateway que avança o frescor, e ele exige uma observação nova e bem-formada da fonte.
   //    A validação de FORMA é o que impede envenenamento de cache: um 200 com corpo quebrado
   //    nunca substitui uma observação boa anterior.
   if (upstreamOk && raw) {
@@ -105,29 +188,33 @@ export async function resolveGatewayResponse({ competition, cached, now, fetchRa
         competition, matches: normalizeScoreboard(raw, {}),
         observedAt, servedAt: observedAt, stale: false,
       });
-      return { payload, health: HEALTH.FRESH, cacheHit: false, upstreamStatus, shouldStore: true };
+      payload.freshness = FRESHNESS.FRESH;
+      payload.ageSeconds = 0;
+      return {
+        payload, health: HEALTH.FRESH, freshness: FRESHNESS.FRESH, ageSeconds: 0,
+        cacheHit: false, upstreamStatus, shouldStore: true,
+      };
     }
     // 200 com forma inválida é tratado como FALHA DA FONTE, não como "sem jogo".
     upstreamOk = false;
   }
 
-  // 4. Fonte falhou (ou veio malformada). Há último bom conhecido dentro da janela?
-  if (cached && age <= LAST_KNOWN_GOOD_MAX_AGE_MS) {
-    return {
-      payload: { ...cached.payload,
-                 servedAt: new Date(now).toISOString(),
-                 ageSeconds: Math.round((now - Date.parse(cached.observedAt)) / 1000),
-                 stale: true,
-                 staleReason: upstreamStatus ? `UPSTREAM_${upstreamStatus}` : "UPSTREAM_UNREACHABLE" },
-      health: HEALTH.STALE, cacheHit: true, upstreamStatus, shouldStore: false,
-    };
+  // 4. Fonte falhou (ou veio malformada). O último bom conhecido ainda é servível pela IDADE?
+  //    Um cache velho JAMAIS é promovido a fresco aqui: `classifyFreshness` só olha a idade, e a
+  //    idade não mudou por termos tentado — e falhado — buscar.
+  const freshness = classifyFreshness(ageMs);
+  if (cached && isServable(freshness)) {
+    return serveFromCache({ cached, now, ageMs, freshness, upstreamStatus, sourceDegraded: true });
   }
 
   // 5. Nada confiável a oferecer. Admite. `matches: null`, jamais `[]`.
+  const payload = sourceUnavailablePayload(competition,
+    upstreamStatus ? `UPSTREAM_${upstreamStatus}` : "UPSTREAM_UNREACHABLE");
+  payload.freshness = FRESHNESS.UNAVAILABLE;
   return {
-    payload: sourceUnavailablePayload(competition,
-      upstreamStatus ? `UPSTREAM_${upstreamStatus}` : "UPSTREAM_UNREACHABLE"),
-    health: HEALTH.SOURCE_UNAVAILABLE, cacheHit: false, upstreamStatus, shouldStore: false,
+    payload, health: HEALTH.SOURCE_UNAVAILABLE, freshness: FRESHNESS.UNAVAILABLE,
+    ageSeconds: Number.isFinite(ageMs) ? Math.round(ageMs / 1000) : null,
+    cacheHit: false, upstreamStatus, shouldStore: false,
   };
 }
 

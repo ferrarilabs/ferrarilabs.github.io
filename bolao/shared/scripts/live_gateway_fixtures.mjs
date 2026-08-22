@@ -37,6 +37,9 @@ import {
   normalizeScoreboard,
   sourceUnavailablePayload,
 } from "../../../supabase/functions/_shared/normalize.js";
+import {
+  FRESH_MAX_AGE_MS, STALE_BUT_USABLE_MAX_AGE_MS,
+} from "../../../supabase/functions/_shared/freshness_contract.js";
 
 /**
  * Os quatro estados que o contrato do gateway sabe produzir.
@@ -48,8 +51,17 @@ import {
  */
 export const GATEWAY_STATES = Object.freeze(["FRESH", "STALE", "EMPTY", "SOURCE_UNAVAILABLE"]);
 
-/** Idade da observação usada no fixture STALE: passado o TTL fresco, dentro da janela de 10 min. */
-const STALE_AGE_MS = 4 * 60_000;
+/**
+ * Idade da observação no fixture STALE — DERIVADA do contrato de frescor, nunca cravada.
+ *
+ * Era `4 * 60_000`, herdado de quando STALE significava "caiu para o cache", qualquer que fosse a
+ * idade. Com a classificação por idade (Issue #296), 4 min é FRESH — o fixture passaria a afirmar
+ * um estado que o gateway não consegue mais produzir, e um fixture impossível é pior que nenhum.
+ *
+ * O ponto médio da faixa (20 min) fica longe das duas fronteiras, então o fixture não vira um
+ * teste de fronteira disfarçado — as fronteiras têm suíte própria em `test_freshness_contract.mjs`.
+ */
+const STALE_AGE_MS = (FRESH_MAX_AGE_MS + STALE_BUT_USABLE_MAX_AGE_MS) / 2;
 
 /** Evento cru no formato REAL da ESPN — a entrada que `normalizeScoreboard()` recebe em produção. */
 function rawEspnEvent(kickoffIso) {
