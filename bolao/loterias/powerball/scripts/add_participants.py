@@ -184,7 +184,17 @@ def main():
             sidecar = {}
     sidecar.setdefault(args.draw_id, {})
     for p in participants:
-        sidecar[args.draw_id][p['name']] = {"email": p['email'], "txId": p.get('txId') or "—"}
+        # SO o e-mail. O `txId` NAO e mais gravado aqui (Issue #303-B).
+        #
+        # Um GitHub secret nao e um banco de pagamentos: nao tem transacao, nao tem constraint, nao
+        # tem trilha de auditoria, nao tem estorno, e a unica forma de corrigir uma entrada errada e
+        # reescrever o blob inteiro a mao. A autoridade de pagamento do Powerball e o PostgreSQL --
+        # `lottery_payment_transactions`, com razao append-only, gatilho de imutabilidade e
+        # idempotencia por `operator_client_ref`.
+        #
+        # O secret continua existindo e continua carregando o e-mail, que ainda e usado para envio.
+        # Nada foi apagado dele; so parou de crescer com um campo que pertence a outro lugar.
+        sidecar[args.draw_id][p['name']] = {"email": p['email']}
     with open(sidecar_path, 'w', encoding='utf-8') as f:
         json.dump(sidecar, f, ensure_ascii=False, indent=2)
 
@@ -193,15 +203,29 @@ def main():
     for p in participants:
         print(f"   ✓ {p['name']}")
 
+    # O aviso continua existindo -- o que muda e PARA ONDE ele manda o operador. Antes mandava
+    # "consertar a entrada do sidecar"; agora manda registrar no banco, que e a autoridade.
+    paid = [p for p in participants if p.get('txId')]
     missing_tx_id = [p for p in participants if not p.get('txId')]
+
+    if paid:
+        print(f"\n💳 {len(paid)} participante(s) vieram com referencia de pagamento.")
+        print(f"   Ela NAO foi gravada em lugar nenhum por este script (Issue #303-B): o secret nao e")
+        print(f"   banco de pagamentos. Registre no PostgreSQL, que e a autoridade:")
+        print(f"     gh workflow run powerball_record_payment.yml \\")
+        print(f"       -f draw_id={args.draw_id} -f participant='<nome>' \\")
+        print(f"       -f amount='<valor>' -f external_reference='<referencia>'")
+        print(f"   O caminho e idempotente por `operator_client_ref` — repetir nao duplica.")
+
     if missing_tx_id:
-        print(f"\n⚠️  {len(missing_tx_id)} participant(s) saved with NO transaction ID — this breaks the audit trail for real money:")
+        print(f"\n⚠️  {len(missing_tx_id)} participante(s) sem referencia de pagamento:")
         for p in missing_tx_id:
             print(f"   - {p['name']}")
-        print(f"   If they actually paid (Zelle/Venmo/Cash App), re-run with --tx-id (or a txId CSV column) and fix the sidecar entry.")
-        print(f"   Only skip this for participants with no real payment yet (e.g. \"Saldo anterior\"/self-funded).")
+        print(f"   Se pagaram de fato (Zelle/Venmo/Cash App), registre o pagamento no banco pelo")
+        print(f"   comando acima. Nao ha mais 'entrada do sidecar' para consertar.")
+        print(f"   So ignore para quem ainda nao tem pagamento real (ex.: \"Saldo anterior\"/self-funded).")
 
-    print(f"\n⚠️  Emails were written ONLY to {sidecar_path} (local, gitignored, NOT committed).")
+    print(f"\n⚠️  APENAS e-mails foram escritos em {sidecar_path} (local, gitignored, NAO commitado).")
     print(f"   Merge this file's contents into the GitHub secret manually:")
     print(f"   gh secret set POWERBALL_PRIVATE_PARTICIPANT_DATA --repo ferrarilabs/ferrarilabs.github.io < <(merge this file with the current secret)")
 

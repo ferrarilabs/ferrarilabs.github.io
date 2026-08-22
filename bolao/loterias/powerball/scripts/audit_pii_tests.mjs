@@ -134,6 +134,42 @@ export function main() {
     }
   }
 
+  // ── O secret legado nao volta a ser banco de pagamentos (Issue #303-B) ───────────────────────
+  //
+  // Os dois escritores do sidecar privado gravavam `{email, txId}`. O `txId` saiu: um GitHub secret
+  // nao tem transacao, constraint, trilha de auditoria nem estorno, e corrigir uma entrada errada
+  // significava reescrever o blob a mao. A autoridade e `lottery_payment_transactions`.
+  //
+  // Sem este gate, a linha volta na primeira vez que alguem quiser "so guardar a referencia junto".
+  // O alvo e a ATRIBUICAO ao sidecar, nao a palavra `txId` no arquivo — os dois scripts ainda
+  // aceitam `--tx-id` do operador de forma legitima, e proibir a palavra reprovaria o proprio
+  // aviso que manda registrar no banco.
+  const ESCRITORES_DO_SIDECAR = [
+    // A linha inteira da atribuicao. Indexar por `[p['name']]` tem colchete DENTRO de colchete,
+    // entao um `[^\]]+` por nivel para de casar na primeira chave aninhada — e um gate que nao
+    // acha o alvo fica verde igual a um gate satisfeito. Por isso o alvo e a linha, nao a estrutura.
+    { rel: "scripts/add_participants.py", re: /^[ \t]*sidecar\[.*?=\s*\{[^}]*\}/gm },
+    { rel: "scripts/add-participant.js",  re: /^[ \t]*privateSidecar\[.*?=\s*\{[^}]*\}/gm },
+  ];
+
+  for (const { rel, re } of ESCRITORES_DO_SIDECAR) {
+    const abs = path.join(ROOT, rel);
+    if (!fs.existsSync(abs)) { failures.push(`${rel}: escritor do sidecar sumiu — este gate ficaria cego`); continue; }
+    const src = fs.readFileSync(abs, "utf-8");
+    const atribuicoes = src.match(re) || [];
+    if (atribuicoes.length === 0) {
+      failures.push(`${rel}: nenhuma atribuicao ao sidecar reconhecida — o gate parou de encontrar seu alvo, ` +
+                    `o que e indistinguivel de um gate satisfeito`);
+      continue;
+    }
+    for (const a of atribuicoes) {
+      if (/txId/.test(a)) {
+        failures.push(`${rel}: o sidecar privado voltou a gravar txId — o secret nao e banco de ` +
+                      `pagamentos (Issue #303-B). Registre em lottery_payment_transactions.`);
+      }
+    }
+  }
+
   if (failures.length > 0) {
     console.error("❌ PII AUDIT FAILED\n");
     for (const f of failures) console.error("  - " + f);

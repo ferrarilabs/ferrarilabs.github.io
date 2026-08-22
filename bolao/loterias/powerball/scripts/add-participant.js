@@ -149,7 +149,10 @@ if (fs.existsSync(privateSidecarPath)) {
 }
 privateSidecar[drawId] = privateSidecar[drawId] || {};
 newParticipants.forEach(p => {
-  privateSidecar[drawId][p.name] = { email: p.email, txId: p.txId || '—' };
+  // SO o e-mail. O `txId` NAO e mais gravado aqui (Issue #303-B) — um GitHub secret nao e um banco
+  // de pagamentos. A autoridade e `lottery_payment_transactions` no PostgreSQL. O gemeo Python
+  // (`add_participants.py`) faz o mesmo; os dois tem de continuar iguais nisto.
+  privateSidecar[drawId][p.name] = { email: p.email };
 });
 fs.writeFileSync(privateSidecarPath, JSON.stringify(privateSidecar, null, 2));
 
@@ -162,7 +165,8 @@ const missingTxId = newParticipants.filter(p => !p.txId);
 if (missingTxId.length > 0) {
   console.warn(`\n⚠️  ${missingTxId.length} participant(s) saved with NO transaction ID — this breaks the audit trail for real money:`);
   missingTxId.forEach(p => console.warn(`   - ${p.name}`));
-  console.warn(`   If they actually paid (Zelle/Venmo/Cash App), re-run with --tx-id (or a txId CSV column) and fix the sidecar entry.`);
+  console.warn(`   Se pagaram de fato, registre no banco: gh workflow run powerball_record_payment.yml`);
+  console.warn(`   Nao ha mais 'entrada do sidecar' para consertar — o secret nao guarda mais txId.`);
   console.warn(`   Only skip this for participants with no real payment yet (e.g. "Saldo anterior"/self-funded).`);
 }
 
