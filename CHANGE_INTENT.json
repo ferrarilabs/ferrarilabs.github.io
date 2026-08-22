@@ -3,5 +3,29 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "SUPABASE_MIGRATIONS",
+      "reason": "Issue #130. Decisao explicita do dono em 2026-08-22: o banco PostgreSQL/Supabase passa a ser o SISTEMA DE REGISTRO autoritativo de participante, participacao e transacao de pagamento do Powerball; GitHub Secrets voltam a ser credencial e configuracao. A migracao acrescenta os invariantes que faltavam para isso ser verdade: idempotencia de acao de operador (`operator_client_ref` + indice unico), invariantes de reversao derivados do proprio enum, e historico financeiro append-only (nao havia NENHUM trigger em nenhuma tabela lottery_* -- um UPDATE em `amount` passava).",
+      "expected_behavior_change": "So acrescenta invariante; nenhuma linha de pagamento criada, editada ou removida -- contagem 11 e soma 102.00 identicas antes e depois. A migracao inteira foi executada contra a PRODUCAO REAL dentro de uma transacao e revertida, com sete assercoes medidas no caminho (UPDATE de amount BLOQUEADO, DELETE BLOQUEADO, UPDATE de memo PERMITIDO, reversao com alvo ACEITA, reversao sem alvo REJEITADA, reversao dupla REJEITADA, operator_client_ref duplicado REJEITADO); so depois do rollback limpo foi aplicada de fato. Campo nao-financeiro (memo, proof_object_path) continua editavel de proposito. Existe um escape explicito de recuperacao do dono (`set local lottery.allow_history_rewrite = 'on'`), visivel no log e nunca acidental. NAO constrangido de proposito: o sinal do amount de uma reversao e se um `adjustment` pode referenciar a transacao que ajusta -- os dados vivos nao decidem nenhum dos dois e inventar a regra seria adivinhar semantica financeira.",
+      "tests_required": [
+        "powerball-operator-payments",
+        "powerball-data-js-authority",
+        "lottery-client-crud",
+        "ddl-execution-order",
+        "cron-coverage"
+      ]
+    },
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #130, Opcao C. Novo workflow `powerball_record_payment.yml`: o painel de administracao de pagamento do Powerball passa a ser um `workflow_dispatch` server-side. Ele existe porque o Powerball nao tem usuario autenticado nem caminho de JWT -- um painel no navegador seria um hash de senha do lado do CLIENTE guardando registro de dinheiro, e para escrever precisaria de CRUD de `lottery_*` no navegador, reabrindo exatamente o que a Issue #131 revogou em producao.",
+      "expected_behavior_change": "NAO envia e-mail e nao tem agendamento -- e `workflow_dispatch` puro, declarado em UNSCHEDULED no `cron_coverage.test.mjs` com o motivo escrito (nao e um ciclo: e um operador registrando um pagamento que ja aconteceu; a informacao chega por Zelle/Venmo, fora do repositorio). Quatro operacoes e so elas, com operacao desconhecida falhando fechado no script. `apply` e false por default, entao sem marcar a caixa a execucao so imprime o que faria. Usa SUPABASE_SERVICE_ROLE_KEY, ja existente, porque `service_role` nao foi tocado pela #131 -- nenhum GRANT novo e necessario e nada do que foi fechado e reaberto. A credencial nunca sai do runner e nao entra em codigo de navegador. `external_reference` e mascarado em toda saida: o log do Actions e legivel por qualquer pessoa com acesso ao repositorio.",
+      "tests_required": [
+        "powerball-operator-payments",
+        "cron-coverage",
+        "email-send-safety",
+        "no-real-email-in-verification"
+      ]
+    }
+  ]
 }

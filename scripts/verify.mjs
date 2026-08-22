@@ -145,6 +145,13 @@ const CHECKS = [
     why: "regra de seguranca em arquivo inerte, ou em posicao onde nao alcanca o objeto, nao e remediacao (Issue #292)" },
   { id: "ddl-execution-order-tests", group: "security", cmd: ["node", "scripts/db/test_ddl_execution_order.mjs"],
     why: "controle negativo: desligar a ordem corretiva tem de reintroduzir a divergencia, observando ACL e nao prosa" },
+  // Issue #130 — o banco virou o sistema de registro do pagamento do Powerball. Estes dois guardam
+  // as duas metades: o caminho de operador (append-only, idempotente, sem credencial no navegador)
+  // e o `data.js`, que ainda carrega verdade financeira enquanto a reconciliacao nao fecha.
+  { id: "powerball-operator-payments", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_operator_payments.py"],
+    why: "corrigir dinheiro apagando o passado, e reexecutar um dispatch cobrando duas vezes, sao os dois modos de falha (Issue #130)" },
+  { id: "powerball-data-js-authority", group: "security", cmd: ["node", "bolao/loterias/powerball/scripts/audit_data_js_authority.mjs"],
+    why: "enquanto data.js carregar verdade financeira, uma edicao manual dela nao pode passar em silencio (Issue #130)" },
 
   { id: "ddl-provenance", group: "security", cmd: ["node", "scripts/db/audit_ddl_provenance.mjs"],
     why: "objeto exigido sem arquivo de DDL que o crie e uma restauracao que ninguem consegue reproduzir a partir do codigo (Issue #266)" },
