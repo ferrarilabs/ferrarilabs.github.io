@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-22T23:31:06Z",
-  "sourceUpdatedAt": "2026-08-22T23:31:06Z",
+  "generatedAt": "2026-08-22T23:52:56Z",
+  "sourceUpdatedAt": "2026-08-22T23:52:56Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "3e5c6ab0f7f545b417b4ed010684db4cde7887807332e3ce942475c846435661",
+  "payloadHash": "63e0b55d9cf3789d00fe309be100e373ddde11be1051cf796f7753e59328e5fe",
   "matches": [
     {
       "id": "401840808",
@@ -38428,8 +38428,8 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "90'+11'",
-      "statusDetail": "90'+11'",
+      "statusShortDetail": "72'",
+      "statusDetail": "72'",
       "completed": false,
       "homeTeam": "Internacional",
       "awayTeam": "Atlético-MG",
@@ -38441,8 +38441,8 @@
       "awayWinner": false,
       "venue": "Estadio Beira-Rio",
       "city": "Porto Alegre",
-      "clockSec": 5400.0,
-      "clockStr": "90'+11'",
+      "clockSec": 4320.0,
+      "clockStr": "72'",
       "period": 2,
       "details": [
         {
@@ -38499,101 +38499,6 @@
             {
               "displayName": "Kauã Pascini",
               "shortName": "Kauã Pascini"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "1936"
-          },
-          "clock": {
-            "value": 4280.0,
-            "displayValue": "72'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Rodrigo Villagra",
-              "shortName": "R. Villagra"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "1936"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+9'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Paulinho",
-              "shortName": "Paulinho"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "1936"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+9'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Gabriel Mercado",
-              "shortName": "G. Mercado"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "7632"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+10'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Kevin Castaño",
-              "shortName": "K. Castaño"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "1936"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+10'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Guillermo Maripán",
-              "shortName": "G. Maripán"
             }
           ]
         }
