@@ -243,6 +243,9 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "POWERBALL_NOTIFICATION_LEDGER_ACTUAL_CONSUMER. Duble observador sobre o ledger real; falha se run_lifecycle parar de consumi-lo."
     },
+    "bolao/loterias/powerball/scripts/test_ledger_totals.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_lifecycle_observability.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Registro do ciclo: providerCalls = invocacao REAL, nunca intencao. Sem endereco, sem segredo."

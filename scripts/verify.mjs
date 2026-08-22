@@ -306,6 +306,8 @@ const CHECKS = [
     why: "matriz de estados do relogio ao vivo: dado velho CONGELA no ultimo minuto confirmado, nunca o apaga" },
   { id: "live-hero-reliability", group: "app", cmd: ["node", "bolao/scripts/audit_live_hero_reliability.mjs"],
     why: "hero nao pode sumir por falha transitoria: retencao de ultimo estado confirmado, TTL 15min, sem inventar resultado" },
+  { id: "powerball-ledger-totals", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_ledger_totals.mjs"],
+    why: "CONTRIBUTION_TOTAL != GROSS_LEDGER_SUM: somar todos os tipos e comparar com o total historico de contribuicoes inventa divergencia que nao existe" },
   { id: "live-gateway", group: "app", cmd: ["node", "bolao/scripts/audit_live_gateway.mjs"],
     why: "gateway: cache, degradacao, injecao de falha da ESPN, seguranca contra proxy aberto" },
   { id: "freshness-contract", group: "app", cmd: ["node", "bolao/scripts/test_freshness_contract.mjs"],
