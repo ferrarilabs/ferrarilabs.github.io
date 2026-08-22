@@ -28,6 +28,7 @@
 import {
   resolveGatewayResponse, validateRequest, espnUrlFor, FRESH_TTL_MS,
 } from "../_shared/gateway_core.js";
+import { DEPLOYED_SOURCE_SHA } from "../_shared/deploy_manifest.js";
 
 // ─── CACHE COMPARTILHADO EM TABELA (decidido por medição, não por documentação) ─────────────
 //
@@ -166,5 +167,9 @@ Deno.serve(async (req: Request) => {
 
   return json(result.payload, result.health === "SOURCE_UNAVAILABLE" ? 503 : 200, {
     "x-live-health": result.health,
+    // Identidade do codigo que ESTA no ar (Issue #306). Comparar isto com o hash calculado do
+    // repositorio e o que transforma "achamos que implantou" em evidencia. Vai no header, nao no
+    // corpo: o contrato do payload nao muda e nenhum cliente implantado percebe diferenca.
+    "x-deploy-sha": DEPLOYED_SOURCE_SHA,
   });
 });
