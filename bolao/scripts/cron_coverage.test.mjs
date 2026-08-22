@@ -113,6 +113,17 @@ const EXPECTED = [
     hourWindows: { evening: [14, 23], overnight: [0, 2] },
   },
   {
+    // Issue #180: vigia do e-mail de resultado do CDB2026. Ele nao envia nada -- le o ledger
+    // duravel e responde "terminou uma perna e o e-mail nao saiu?". Se deixar de rodar, volta-se
+    // ao estado que a #180 descreve: uma lacuna e um dia tranquilo produzem o mesmo verde.
+    // Duas execucoes diarias, longe das janelas de envio (16-23 e 0-5 UTC), porque a folga de 3h
+    // do proprio detector ja evita acusar perna recente.
+    file: "cdb2026_result_email_watch.yml",
+    why: "sem este vigia, e-mail de resultado perdido volta a ser indistinguivel de dia tranquilo",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    hourWindows: { evening: [20, 20], overnight: [8, 8] },
+  },
+  {
     file: "powerball-results-email.yml",
     why: "Powerball draws Mon/Wed/Sat 22:59 ET; results land after the draw",
     // ET draw day -> (UTC weekday of the late-evening window, UTC weekday of the after-midnight window)
