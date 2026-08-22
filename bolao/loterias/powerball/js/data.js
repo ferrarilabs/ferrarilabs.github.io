@@ -1,33 +1,22 @@
 // ─────────────────────────────────────────────────────────────────────────────────────────────
-// AUTORIDADE DESTE ARQUIVO — Issue #130, decisao do dono em 2026-08-22
+// AUTORIDADE DESTE ARQUIVO — Issues #130/#298, cutover concluido em 2026-08-22
 //
-// O SISTEMA DE REGISTRO de participante, participacao e transacao de pagamento do Powerball e o
-// banco PostgreSQL/Supabase. Este arquivo caminha para ser uma PROJECAO derivada dele, publica e
-// sem PII.
+// O SISTEMA DE REGISTRO de participante, participacao e transacao de pagamento do Powerball E o
+// banco PostgreSQL/Supabase. ESTE ARQUIVO E PROJECAO -- nao e autoridade financeira.
 //
-// A TRANSICAO NAO TERMINOU. Medido em 2026-08-22:
-//     banco    1 sorteio  · 10 participantes · 11 transacoes · 102.00
-//     data.js  5 sorteios · 75 linhas        ·      —        · 888.00
+// O backfill historico completou em 2026-08-22: as 75 contribuicoes da historia estao no banco,
+// total 888.00, e a reconciliacao fecha com ZERO importaveis, ZERO conflitos e ZERO ambiguidades.
 //
-// Ou seja: HOJE este arquivo ainda carrega verdade financeira que o banco nao tem. Ele nao esta
-// marcado como "derivado" porque isso seria falso agora.
+// NAO EDITE valor, cota ou contagem de participante aqui. Uma alteracao feita neste arquivo NAO
+// muda a verdade financeira -- ela apenas faz a projecao divergir do banco, e
+// `audit_data_js_authority.mjs` reprova. A escrita autoritativa acontece pelo caminho de operador
+// (`.github/workflows/powerball_record_payment.yml`).
 //
-// ENQUANTO ISSO: nao edite valor, cota ou contagem de participante aqui sem passar por revisao.
-// `bolao/shared/safety/powerball_public_projection_pin.json` fixa os agregados e o gate
-// `audit_data_js_authority.mjs` reprova qualquer alteracao silenciosa de verdade financeira.
-//
-// A escrita autoritativa de pagamento acontece pelo caminho de operador server-side
-// (`.github/workflows/powerball_record_payment.yml`), nunca por edicao manual deste arquivo.
+// PENDENTE: este arquivo ainda e mantido a mao. Enquanto nao for GERADO a partir do banco, o pin
+// em `bolao/shared/safety/powerball_public_projection_pin.json` e a trava que impede uma edicao
+// financeira silenciosa.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
-// Cada sorteio do bolão é uma entrada em `draws`. Para registrar um novo sorteio,
-// duplique um objeto abaixo, atualize os dados e preencha `result`/`profit` depois
-// que o sorteio sair — isso dá histórico automático (lucro, resultados anteriores etc.)
-// sem precisar reestruturar nada. `window.POWERBALL_DATA` sempre aponta para o mais
-// recente (o sorteio ativo/exibido na página principal).
-// Configuração visual/textual de cada loteria. Jogamos em ambas dependendo da situação —
-// cada sorteio (`draws[i]`) declara `gameType: "powerball" | "megamillions"` e a página
-// troca cor, logo e o nome da bola especial automaticamente.
 window.LOTTERY_GAME_TYPES = {
   powerball: {
     label: "Powerball",
