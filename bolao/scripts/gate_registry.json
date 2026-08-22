@@ -273,6 +273,9 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Achado das 3 falhas de 2026-08-10: caminho de producao dependia de `supabase link` local."
     },
+    "bolao/loterias/powerball/scripts/test_public_projection.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_result_draw_identity.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Identidade de sorteio (P0 de 2026-08-10) + POWERBALL_PARTIAL_HISTORICAL_DELIVERY_RECOVERY: a entrega parcial de 2026-08-08 (14 de 15) nunca pode virar reenvio para os 14. Exercita retryable_recipients/settle reais com o banco substituido; mutacao-testado."

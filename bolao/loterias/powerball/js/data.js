@@ -12,9 +12,17 @@
 // `audit_data_js_authority.mjs` reprova. A escrita autoritativa acontece pelo caminho de operador
 // (`.github/workflows/powerball_record_payment.yml`).
 //
-// PENDENTE: este arquivo ainda e mantido a mao. Enquanto nao for GERADO a partir do banco, o pin
-// em `bolao/shared/safety/powerball_public_projection_pin.json` e a trava que impede uma edicao
-// financeira silenciosa.
+// GERADO A PARTIR DO BANCO (Issue #303-A, 2026-08-22). Os campos financeiros -- `name`, `cotas`,
+// `valor` e `metodo` -- sao DERIVADOS de `lottery_*` e conferidos a cada CI contra
+// `data/public_projection.generated.json`. Editar qualquer um deles a mao REPROVA o CI: o artefato
+// derivado do banco nao vai concordar. Para mudar valor, use o caminho de operador
+// (`.github/workflows/powerball_record_payment.yml`) e regenere com
+// `node scripts/generate_public_projection.mjs --write`.
+//
+// `data`, `hora`, `status` e `state` NAO sao derivados: o banco nao os possui hoje.
+// `lottery_participants.state` vale "active" nas 18 linhas (e ciclo de vida do registro, nao a UF);
+// 22 das 77 transacoes tem `paid_at` nulo; e "organizador" e rotulo de exibicao, nao consequencia
+// do razao. Ver CAMPOS_APRESENTACAO em `scripts/public_projection.mjs`.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 window.LOTTERY_GAME_TYPES = {
@@ -336,7 +344,7 @@ window.POWERBALL_DRAWS = [
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:16:06 AM", status: "verificado", state: "NC" },
       { name: "Marcelo Moreira", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:23:28 AM", status: "verificado", state: "NC" },
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "06/08/2026", hora: "9:36:44 AM", status: "verificado", state: "NC" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11:28 AM", status: "verificado", state: "FL" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:11:28 AM", status: "verificado", state: "FL" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:26 AM", status: "verificado", state: "NC" },
       { name: "Marcus Steffenon", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "9:30 AM", status: "verificado", state: "NC" },
       { name: "Leandro Augustineli", cotas: 1, valor: 10, metodo: "Zelle", data: "06/08/2026", hora: "10:21 AM", status: "verificado", state: "NC" },
@@ -458,7 +466,7 @@ window.POWERBALL_DRAWS = [
       { name: "Gustavo Bossle", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "10:03:04 AM", status: "verificado", state: "NC" },
       { name: "Ewerton Gruba Silva", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:04:07 AM", status: "verificado", state: "NC" },
       { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "09/08/2026", hora: "11:23:59 AM", status: "verificado", state: "FL" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:49 AM", status: "verificado", state: "FL" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "11:49 AM", status: "verificado", state: "FL" },
       { name: "Camila Ribeiro", cotas: 1, valor: 10, metodo: "Zelle", data: "09/08/2026", hora: "12:10 PM", status: "verificado", state: "NC" },
       // Zelle veio da conta empresarial "PS Place LLC" (memo "JORGE FL") — confirmado
       // pelo Eduardo que é o Jorge, mesma pessoa dos sorteios anteriores.
@@ -570,7 +578,7 @@ window.POWERBALL_DRAWS = [
       { name: "Alan Rech", cotas: 1, valor: 10, metodo: "Cash App", data: "11/08/2026", hora: "4:56:24 PM", status: "verificado", state: "FL" },
       { name: "Amanda Quaresma", cotas: 1, valor: 10, metodo: "Venmo", data: "11/08/2026", hora: "5:09:10 PM", status: "verificado", state: "NC" },
       { name: "Marcelo Minghetti Pereira", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:54 PM", status: "verificado", state: "NC" },
-      { name: "REDACTED_PARTICIPANT", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:55 PM", status: "verificado", state: "FL" },
+      { name: "Marcelo G de Jesus", cotas: 1, valor: 10, metodo: "Zelle", data: "11/08/2026", hora: "8:55 PM", status: "verificado", state: "FL" },
       // Os outros $10 deste mesmo Zelle de $20 cobrem o sorteio 2026-08-10 -- ver correcao la.
       // Referencia da transacao: apenas no segredo privado, nunca aqui.
       { name: "Samuel Huller", cotas: 1, valor: 10, metodo: "Zelle", data: "12/08/2026", hora: "7:18 AM", status: "verificado", state: "NC" },
