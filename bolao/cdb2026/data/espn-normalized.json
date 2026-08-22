@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-08-22T23:00:41Z",
-  "sourceUpdatedAt": "2026-08-22T23:00:41Z",
+  "generatedAt": "2026-08-22T23:52:55Z",
+  "sourceUpdatedAt": "2026-08-22T23:52:55Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "37cb994e6e02fec9db3055fe0ee1c2a3b6632c842dede67451014fe61d8fbf82",
+  "payloadHash": "4ce5b93741f9de5869ebd318ce61eedb191336edf193cf83315ed9666aac789a",
   "matches": [
     {
       "id": "401858546",
@@ -7110,8 +7110,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Ian Luccas",
-              "shortName": "Ian Luccas"
+              "displayName": "Ian Luccas ",
+              "shortName": "Ian Luccas "
             }
           ]
         },
@@ -7167,8 +7167,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Ian Luccas",
-              "shortName": "Ian Luccas"
+              "displayName": "Ian Luccas ",
+              "shortName": "Ian Luccas "
             }
           ]
         },
