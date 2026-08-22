@@ -1,0 +1,479 @@
+{
+  "_gerado_por": "bolao/loterias/powerball/scripts/generate_public_projection.mjs",
+  "_fonte": "PostgreSQL/Supabase — sistema de registro autoritativo (Issue #303-A)",
+  "_aviso": "ARTEFATO DERIVADO. Nao edite a mao: `--check` compara `js/data.js` com este arquivo e reprova na divergencia.",
+  "campos_derivados_do_banco": [
+    "name",
+    "cotas",
+    "valor",
+    "metodo"
+  ],
+  "campos_de_apresentacao_nao_derivados": [
+    "data",
+    "hora",
+    "status",
+    "state"
+  ],
+  "sorteios": [
+    [
+      {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Cash App"
+      },
+      {
+        "name": "Amanda Quaresma",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Camila Ribeiro",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Fundo próprio (organizador)"
+      },
+      {
+        "name": "Ewerton Gruba Silva",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Nathalia Galeazzi Nedel",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Samuel Huller",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Tatiana Bossle",
+        "cotas": 1,
+        "valor": 20,
+        "metodo": "Zelle (depósito de Gustavo Bossle)"
+      }
+    ],
+    [
+      {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Cash App"
+      },
+      {
+        "name": "Amanda Quaresma",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Camila Ribeiro",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 8,
+        "metodo": "Saldo anterior (cobriu -US$ 2.00 do sorteio 08-03)"
+      },
+      {
+        "name": "Ewerton Gruba Silva",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Jorge Augusto Junqueira Ferreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Minghetti Pereira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Nathalia Galeazzi Nedel",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Samuel Huller",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      }
+    ],
+    [
+      {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Cash App"
+      },
+      {
+        "name": "Amanda Quaresma",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Camila Ribeiro",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Fundo próprio (organizador)"
+      },
+      {
+        "name": "Ewerton Gruba Silva",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Jorge Augusto Junqueira Ferreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo G de Jesus",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Minghetti Pereira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Samuel Huller",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      }
+    ],
+    [
+      {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Cash App"
+      },
+      {
+        "name": "Amanda Quaresma",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Camila Ribeiro",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Fundo próprio (organizador)"
+      },
+      {
+        "name": "Ewerton Gruba Silva",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Jorge Augusto Junqueira Ferreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo G de Jesus",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Minghetti Pereira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Moreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Samuel Huller",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      }
+    ],
+    [
+      {
+        "name": "Alan Rech",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Cash App"
+      },
+      {
+        "name": "Amanda Quaresma",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Camila Ribeiro",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Eduardo Ferrari",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Fundo próprio (organizador)"
+      },
+      {
+        "name": "Ewerton Gruba Silva",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Gustavo Bossle",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Jorge Augusto Junqueira Ferreira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Leandro Augustineli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo G de Jesus",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcelo Minghetti Pereira",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Marcus Steffenon",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Nathalia Galeazzi Nedel",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Rodrigo Hajj",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Samuel Huller",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      },
+      {
+        "name": "Simone Hirle da Costa",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Venmo"
+      },
+      {
+        "name": "Thiago Locatelli",
+        "cotas": 1,
+        "valor": 10,
+        "metodo": "Zelle"
+      }
+    ]
+  ]
+}
