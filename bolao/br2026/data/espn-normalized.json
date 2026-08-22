@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-22T19:18:11Z",
-  "sourceUpdatedAt": "2026-08-22T19:18:11Z",
+  "generatedAt": "2026-08-22T19:40:48Z",
+  "sourceUpdatedAt": "2026-08-22T19:40:48Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "5599b0df02017c9d2be96c766938197e96ff7d54271821cd3722f0c79ceed9f4",
+  "payloadHash": "143934936d5ace842b9030b4dda2e6d7c97d8e69bda77f3eb745501a1b26bc1d",
   "matches": [
     {
       "id": "401840808",
@@ -38308,21 +38308,21 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "16'",
-      "statusDetail": "16'",
+      "statusShortDetail": "39'",
+      "statusDetail": "39'",
       "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Remo",
       "homeTeamId": "3445",
       "awayTeamId": "4936",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 960.0,
-      "clockStr": "16'",
+      "clockSec": 2340.0,
+      "clockStr": "39'",
       "period": 1,
       "details": [
         {
@@ -38341,6 +38341,25 @@
             {
               "displayName": "Hércules",
               "shortName": "Hércules"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "4936"
+          },
+          "clock": {
+            "value": 1857.0,
+            "displayValue": "31'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jajá",
+              "shortName": "Jajá"
             }
           ]
         }
