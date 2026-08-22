@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-22T21:15:26Z",
-  "sourceUpdatedAt": "2026-08-22T21:15:26Z",
+  "generatedAt": "2026-08-22T21:39:09Z",
+  "sourceUpdatedAt": "2026-08-22T21:39:09Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1dce58f46c8c64e077191ef261f94ef05a8744a27c79b390a0d9b115c8751930",
+  "payloadHash": "b6724df5870d955e1580e109d693fd46356d93698041863ebe913d53ee79cbca",
   "matches": [
     {
       "id": "401840808",
@@ -38305,24 +38305,24 @@
     {
       "id": "401841205",
       "date": "2026-08-22T19:00Z",
-      "state": "post",
-      "statusName": "STATUS_FULL_TIME",
-      "statusDescription": "Full Time",
-      "statusShortDetail": "FT",
-      "statusDetail": "FT",
-      "completed": true,
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "69'",
+      "statusDetail": "69'",
+      "completed": false,
       "homeTeam": "Fluminense",
       "awayTeam": "Remo",
       "homeTeamId": "3445",
       "awayTeamId": "4936",
-      "homeScore": 2,
+      "homeScore": 1,
       "awayScore": 1,
-      "homeWinner": true,
+      "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio do Maracana",
       "city": "Rio de Janeiro",
-      "clockSec": 5400.0,
-      "clockStr": "90'+5'",
+      "clockSec": 4140.0,
+      "clockStr": "69'",
       "period": 2,
       "details": [
         {
@@ -38379,44 +38379,6 @@
             {
               "displayName": "Hulk",
               "shortName": "Hulk"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "4936"
-          },
-          "clock": {
-            "value": 4824.0,
-            "displayValue": "81'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Yago Pikachu",
-              "shortName": "Y. Pikachu"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Goal - Header"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "3445"
-          },
-          "clock": {
-            "value": 4945.0,
-            "displayValue": "83'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Kevin Serna",
-              "shortName": "K. Serna"
             }
           ]
         }
