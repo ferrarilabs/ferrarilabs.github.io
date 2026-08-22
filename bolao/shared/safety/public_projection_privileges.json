@@ -1,0 +1,58 @@
+{
+  "$schema": "Contrato de privilegio das PROJECOES PUBLICAS de `public`. Consumido por scripts/db/audit_public_projection_privs.mjs (Issues #282/#284).",
+  "_porque_existe": "A #282 achou `anon` e `authenticated` com os SETE privilegios em `bolao_state_normalized_public` -- uma view que o site le dezenas de milhares de vezes. O modelo de relacao NAO viu, porque `parseCreateTables` so casava `create table` e portanto nunca semeava view nenhuma com a ACL de nascimento. O achado era invisivel para o gate que deveria pega-lo. Este arquivo declara o contrato PRETENDIDO por objeto para que a divergencia reprove em vez de passar.",
+  "_regra": "Papel de cliente (`anon`, `authenticated`) pode ter SELECT numa projecao publica -- e para isso que ela existe. Nao pode ter INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES nem TRIGGER. `PUBLIC` nao pode ter nada: ele alcanca papeis que ninguem nomeou. `service_role` e o dono estao FORA deste gate.",
+  "_maintain": "MAINTAIN nao e governado aqui. Ele existe em producao nas tres views, nao estava na autorizacao da #282 e nao concede leitura nem escrita de linha (VACUUM/ANALYZE/REINDEX). Registrado para nao parecer esquecimento.",
+  "measuredAt": "2026-08-22",
+  "clientRoles": [
+    "anon",
+    "authenticated"
+  ],
+  "forbiddenForClients": [
+    "INSERT",
+    "UPDATE",
+    "DELETE",
+    "TRUNCATE",
+    "REFERENCES",
+    "TRIGGER"
+  ],
+  "projections": [
+    {
+      "name": "bolao_state_normalized_public",
+      "clientsMay": [
+        "SELECT"
+      ],
+      "why": "projecao normalizada lida pelo site; pg_stat_statements registra 61 mil+ leituras de anon desde 2026-08-13",
+      "remediatedBy": "20260822110933_revoke_dead_client_grants_282_284"
+    },
+    {
+      "name": "bolao_state_public",
+      "clientsMay": [
+        "SELECT"
+      ],
+      "why": "documento publico do bolao, lido pelo navegador"
+    },
+    {
+      "name": "bolao_state_public_cdb",
+      "clientsMay": [
+        "SELECT"
+      ],
+      "why": "projecao publica do CDB2026"
+    }
+  ],
+  "knownReplayGap": [
+    {
+      "name": "bolao_state_public",
+      "issue": 292,
+      "liveState": "anon/authenticated = MAINTAIN,SELECT — LIMPO em producao (medido 2026-08-21)",
+      "why": "Divergencia de RECONSTRUCAO, nao exposicao ao vivo. A Issue #135 ja escreveu o revoke, em `bolao/shared/sql/031_codify_bolao_state_public_views_revoke.sql` -- mas a ordem de replay deste repositorio aplica TODO `bolao/shared/sql/**` ANTES de `supabase/migrations/**`, e estas views nascem em `supabase/migrations/20260813200000_public_projection_pii_closure.sql`. O revoke roda antes do CREATE e nao alcanca nada. Fechar isto e a Issue #292, que trata a ordem como problema de primeira classe."
+    },
+    {
+      "name": "bolao_state_public_cdb",
+      "issue": 292,
+      "liveState": "anon/authenticated = MAINTAIN,SELECT — LIMPO em producao (medido 2026-08-21)",
+      "why": "Mesma causa e mesmo arquivo inerte que `bolao_state_public`. Issue #292."
+    }
+  ],
+  "_knownReplayGap": "Estas NAO sao excecoes ao contrato -- sao divida com Issue. Producao esta correta nas duas; o que falha e a reconstrucao. A lista e catraca: so pode encolher, e o gate reprova qualquer projecao exposta que nao esteja aqui."
+}
