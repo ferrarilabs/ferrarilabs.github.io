@@ -263,6 +263,9 @@
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "Afirma a SEQUENCIA emit_outbox -> provedor -> settle, nao so a existencia do evento. Cobre desfecho espelhando o ledger, UNCERTAIN terminal, recusa de transporte (providerCalls=0 e obrigacao retentavel). 2 mutacoes reais pegas; a de providerCalls so foi pega depois de adicionar o cenario de RECUSA -- com o transporte sempre aceitando, contar intencao e contar efeito dao o mesmo numero."
     },
+    "bolao/loterias/powerball/scripts/test_payment_writer_integrity.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/loterias/powerball/scripts/test_pii_scan_scope.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
