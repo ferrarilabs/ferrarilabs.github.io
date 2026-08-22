@@ -194,6 +194,11 @@ const CHECKS = [
   // que nao caiba no teto reprove pelo motivo certo em vez de parecer razoavel.
   { id: "live-producer-cadence", group: "scheduling", cmd: ["node", "bolao/scripts/test_live_producer_cadence.mjs"],
     why: "cadencia agendada tem de caber no teto do gateway, e a janela de jogo tem de continuar coberta (Issue #259)" },
+  // Issue #180 — o ledger duravel do e-mail de resultado do CDB2026 e o detector de lacuna.
+  // O caso que mais importa nao e achar a lacuna: e NAO transformar uma queda de banco numa
+  // acusacao de e-mail perdido, e nunca deixar o ledger bloquear um envio legitimo.
+  { id: "cdb-result-email-ledger", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_result_email_ledger.py"],
+    why: "UNKNOWN nao pode virar GAP, e o ledger nao pode impedir um e-mail de resultado de sair (Issue #180)" },
 
   // ── scoring: money-affecting, never generalised across competitions ──────────
   { id: "scoring-copa", group: "scoring", cmd: ["python3", "bolao/copa2026/scripts/audit_scoring.py"], why: "Copa scoring self-test" },

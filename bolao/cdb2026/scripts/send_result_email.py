@@ -751,20 +751,78 @@ def _build_recipients(state):
     return recipients
 
 
-def _send_to_all(state, html, subject):
+def _entry_ref_for(state, addr):
+    """Referência estável do participante para o ledger. NUNCA o e-mail.
+
+    `bolao_notif_jobs.entry_ref` vira evidência operacional lida em log e em Issue; endereço de
+    participante não entra ali. O id da entrada já identifica de forma única e não é PII.
+    """
+    alvo = (addr or "").strip().lower()
+    deleted_ids = set(state.get("deletedIds", []))
+    for e in state.get("entries", []):
+        if e.get("id") in deleted_ids:
+            continue
+        if (e.get("participantEmail") or "").strip().rstrip(",").strip().lower() == alvo:
+            return str(e.get("id"))
+    return None
+
+
+def _send_to_all(state, html, subject, ledger_ref=None, ledger=None):
+    """Envia para todos os participantes e, quando `ledger_ref` é dado, REGISTRA a entrega.
+
+    ─── O LEDGER NUNCA BLOQUEIA O ENVIO ─────────────────────────────────────────────────────────
+    Toda interação com o ledger aqui é fail-open. Se ele estiver fora, o e-mail sai do mesmo jeito e
+    o log ganha uma linha `LEDGER_DEGRADED`. Isso é deliberado: este app já teve um incidente de
+    DUPLICATA (#221, rodada 23 enviada 4× para 11 participantes reais) e um de AUSÊNCIA (HIST-037).
+    Um portão que barra o envio quando o ledger não responde troca o segundo pelo primeiro, e o
+    primeiro chega ao participante.
+
+    Efeito na exatamente-uma-vez: PRESERVADA quando o ledger está fora (é o comportamento de hoje,
+    onde a única guarda é a perna já estar salva e portanto não ser redescoberta); FORTALECIDA
+    quando ele responde, porque `already_delivered` passa a ser uma segunda guarda independente.
+    """
     recipients = _build_recipients(state)
     print(f"Sending to {len(recipients)} recipients...")
+
+    reg = None
+    if ledger_ref is not None:
+        phase_id, tie_id, leg = ledger_ref
+        reg = ledger if ledger is not None else _default_ledger()
+        if reg is not None:
+            refs = [r for r in (_entry_ref_for(state, a) for a in recipients.values()) if r]
+            try:
+                reg.reserve(phase_id, tie_id, leg, refs)
+            except Exception as ex:  # noqa: BLE001 — jamais impedir o envio
+                print(f"  LEDGER_DEGRADED reserve: {ex} — o envio CONTINUA.")
+
     sent, errors = 0, []
     for _, addr in recipients.items():
         try:
             status = send_email(addr, subject, html)
             print(f"  OK {status} → {addr}  [{subject}]")
             sent += 1
+            if reg is not None and ledger_ref is not None:
+                ref = _entry_ref_for(state, addr)
+                if ref:
+                    try:
+                        reg.mark_sent(ledger_ref[0], ledger_ref[1], ledger_ref[2], ref, status)
+                    except Exception as ex:  # noqa: BLE001 — o e-mail já saiu; só o registro falhou
+                        print(f"  LEDGER_DEGRADED mark_sent: {ex}")
             time.sleep(3)
         except Exception as ex:
             errors.append(f"{addr}: {ex}")
             print(f"  ERR → {addr}: {ex}")
     return sent, errors
+
+
+def _default_ledger():
+    """O ledger real, ou `None` se ele não puder sequer ser construído — nunca uma exceção."""
+    try:
+        from result_email_ledger import SupabaseResultEmailLedger
+        return SupabaseResultEmailLedger()
+    except Exception as ex:  # noqa: BLE001
+        print(f"  LEDGER_DEGRADED init: {ex} — o envio CONTINUA sem registro.")
+        return None
 
 
 # ── Auto mode ─────────────────────────────────────────────────────────────────
@@ -997,7 +1055,7 @@ def run_auto():
                 subj = f"🏆 Resultado Final do Bolão! · Final Bolão Result! — Campeão: {champion}"
                 print(f"  🏆 Tournament complete — including podium/prize block ({len(payouts_info['payouts'])} payouts, pot ${payouts_info['pot']})")
 
-        sent, errors = _send_to_all(state, html, subj)
+        sent, errors = _send_to_all(state, html, subj, ledger_ref=(phase_id, tie_id, leg))
         print(f"  → {sent} sent, {len(errors)} errors")
         for err in errors:
             print(f"    ERROR: {err}")
@@ -1080,7 +1138,7 @@ def main():
         subject = _subject_policy.assunto(
             "FUTEBOL_RESULTADO_PARCIAL",
             f"Resultado Parcial — {tie['teamA']} × {tie['teamB']}")
-    sent, errors = _send_to_all(state, html, subject)
+    sent, errors = _send_to_all(state, html, subject, ledger_ref=(phase_id, tie_id, leg))
     print(f"\n{'✓' if not errors else '⚠'} {sent} sent, {len(errors)} errors")
     for err in errors:
         print(f"  ERROR: {err}")
