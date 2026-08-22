@@ -1,0 +1,122 @@
+{
+  "$schema": "Decisao EXPLICITA de privilegio de cliente por TABELA de aplicacao em `public`. Consumido por scripts/db/audit_table_client_decisions.mjs (Issue #271).",
+  "_porque_existe": "A arquitetura aceita pelo dono em 2026-08-22 diz: se um default de papel criador gerido pela Supabase nao pode ser mudado por canal suportado, controles compensatorios deterministas no nivel da aplicacao sao aceitaveis -- DESDE QUE provem que todo objeto criado pela Ferrarilabs e endurecido explicitamente. Funcao (61) ja tinha gate; view (3) tambem; sequencia sao ZERO em `public` (todas as PK sao uuid), medido. Faltava TABELA: o CRUD de cliente so era exigido nas seis do Powerball (#131). Este arquivo fecha a cobertura -- toda tabela precisa de uma decisao escrita, e o gate compara com a ACL EFETIVA do replay.",
+  "_divida": "`debt: true` NAO e permissao: e exposicao MEDIDA em producao, declarada para nao ficar invisivel. A RLS esta ligada nas doze e e o que hoje esta na frente do dado. A lista e catraca: nenhuma tabela pode ganhar privilegio alem do declarado, e uma tabela que ficar limpa tem de SAIR da divida.",
+  "measuredAt": "2026-08-22",
+  "issue": 271,
+  "clientRoles": [
+    "anon",
+    "authenticated"
+  ],
+  "tables": {
+    "bolao_state": {
+      "anon": [],
+      "authenticated": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "why": "documento central do bolao. `anon` ja perdeu tudo (cerca de escrita WS5-F4). `authenticated` mantem CRUD e e DIVIDA MEDIDA: nada no repositorio obtem JWT de usuario, entao nenhum caminho legitimo o usa.",
+      "debt": true
+    },
+    "bolao_entry_private": {
+      "anon": [],
+      "authenticated": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "why": "IDENTIDADE DE PARTICIPANTE. `anon` foi revogado explicitamente (F10 stage 1). `authenticated` com CRUD e a divida mais seria desta lista.",
+      "debt": true
+    },
+    "bolao_notif_jobs": {
+      "anon": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "authenticated": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "why": "fila de notificacao. Nasceu com CRUD pelo default de `public` (#271); nenhum GRANT escrito.",
+      "debt": true
+    },
+    "bolao_round_notif_jobs": {
+      "anon": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "authenticated": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "why": "fila de rodada do BR2026. Mesma origem: nasceu concedida, sem GRANT escrito.",
+      "debt": true
+    },
+    "live_sports_cache": {
+      "anon": [
+        "SELECT"
+      ],
+      "authenticated": [
+        "SELECT",
+        "INSERT",
+        "UPDATE",
+        "DELETE"
+      ],
+      "why": "cache esportivo publico. SELECT de `anon` e INTENCIONAL (o navegador le); a escrita de `anon` foi revogada em 011 depois de uma sonda provar que qualquer um sobrescrevia o placar. `authenticated` continua com CRUD -- divida.",
+      "debt": true
+    },
+    "cdb_entry_access": {
+      "anon": [],
+      "authenticated": [],
+      "why": "credencial de acesso do participante. LIMPA: `20260812070000` faz `revoke all ... from public, anon, authenticated` na criacao. E a prova de que o padrao e alcancavel.",
+      "debt": false
+    },
+    "lottery_admin_audit": {
+      "anon": [],
+      "authenticated": [],
+      "why": "revogado em producao pela Issue #131 (migracao 20260821205500). Sem CRUD de cliente.",
+      "debt": false
+    },
+    "lottery_draws": {
+      "anon": [],
+      "authenticated": [],
+      "why": "revogado em producao pela Issue #131 (migracao 20260821205500). Sem CRUD de cliente.",
+      "debt": false
+    },
+    "lottery_participants": {
+      "anon": [],
+      "authenticated": [],
+      "why": "revogado em producao pela Issue #131 (migracao 20260821205500). Sem CRUD de cliente.",
+      "debt": false
+    },
+    "lottery_participations": {
+      "anon": [],
+      "authenticated": [],
+      "why": "revogado em producao pela Issue #131 (migracao 20260821205500). Sem CRUD de cliente.",
+      "debt": false
+    },
+    "lottery_payment_transactions": {
+      "anon": [],
+      "authenticated": [],
+      "why": "revogado em producao pela Issue #131 (migracao 20260821205500). Sem CRUD de cliente.",
+      "debt": false
+    },
+    "lottery_pools": {
+      "anon": [],
+      "authenticated": [],
+      "why": "revogado em producao pela Issue #131 (migracao 20260821205500). Sem CRUD de cliente.",
+      "debt": false
+    }
+  }
+}

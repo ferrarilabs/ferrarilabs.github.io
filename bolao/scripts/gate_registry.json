@@ -581,6 +581,9 @@
     "scripts/db/audit_security_definer_exposure.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/db/audit_table_client_decisions.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/db/test_access_model.mjs": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
@@ -758,6 +761,9 @@
     "scripts/db/test_surface_inventory.mjs": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
+    },
+    "scripts/db/test_table_client_decisions.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/db/test_transformers.mjs": {
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
