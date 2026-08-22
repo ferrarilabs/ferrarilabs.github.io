@@ -25,20 +25,8 @@
       "authenticated"
     ]
   },
-  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue. ATUALIZADO 2026-08-21: a lista caiu de 14 para 3. Onze entradas sairam porque `bolao/shared/sql/032_codify_notification_function_client_revokes.sql` passou a revogar `anon`/`authenticated` nominalmente delas, alinhando a reconstrucao ao que producao ja tem. As tres que ficam estao explicadas item a item em `whyStillHere`, e sao de dois tipos diferentes: duas sao exposicao REAL ao vivo (Issue #282) e uma e divergencia de ORDEM DE REPLAY. ATUALIZADO 2026-08-22: a lista caiu de 3 para 1. As duas entradas da Issue #282 sairam porque a exposicao foi REVOGADA EM PRODUCAO (migracao 20260822110933), nao porque a DDL mudou de opiniao sobre elas.",
-  "inheritedExposure": [
-    {
-      "signature": "public.delete_canary_job/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "anon",
-        "authenticated"
-      ],
-      "bornAt": "supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql",
-      "liveState": "{postgres=X,service_role=X} — anon/authenticated NAO executam em producao (medido 2026-08-21)",
-      "whyStillHere": "Divergencia de RECONSTRUCAO, nao exposicao ao vivo. A funcao e criada em `supabase/migrations/20260806000000_baseline_adopted_pre_tracking.sql`, e a ordem de replay deste repositorio aplica TODO `bolao/shared/sql/**` ANTES de `supabase/migrations/**` -- entao um revoke escrito em `032_codify_...` roda antes do CREATE dela e nao a alcanca. As outras onze foram fechadas por 032 porque nascem em arquivos de `shared/sql` que ordenam antes dele. Fechar esta exige um revoke que ordene DEPOIS da migracao que a cria, o que significa uma migracao nova -- e este repositorio trata `supabase/migrations/**` como registro do que FOI APLICADO. Como o revoke seria um no-op em producao (o privilegio ja nao existe la), ele nao foi aplicado nem inventado: fica declarado aqui."
-    }
-  ],
+  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue. ATUALIZADO 2026-08-21: a lista caiu de 14 para 3. Onze entradas sairam porque `bolao/shared/sql/032_codify_notification_function_client_revokes.sql` passou a revogar `anon`/`authenticated` nominalmente delas, alinhando a reconstrucao ao que producao ja tem. As tres que ficam estao explicadas item a item em `whyStillHere`, e sao de dois tipos diferentes: duas sao exposicao REAL ao vivo (Issue #282) e uma e divergencia de ORDEM DE REPLAY. ATUALIZADO 2026-08-22: a lista caiu de 3 para 1. As duas entradas da Issue #282 sairam porque a exposicao foi REVOGADA EM PRODUCAO (migracao 20260822110933), nao porque a DDL mudou de opiniao sobre elas. ATUALIZADO 2026-08-22 (#292): a catraca chegou a ZERO. `delete_canary_job` saiu porque a ordem de replay passou a ser a real; os dois helpers sairam porque foram revogados em producao (#282). Uma lista vazia aqui e o estado PRETENDIDO: qualquer funcao de servico alcancavel por cliente agora reprova, sem excecao declarada.",
+  "inheritedExposure": [],
   "classifications": {
     "public._bolao_audit/3": {
       "class": "SERVICE_RPC",
@@ -360,6 +348,15 @@
       ],
       "readBack": "PUBLIC=false, anon=false, authenticated=false, service_role=true nas duas",
       "why": "Eram SECURITY INVOKER com EXECUTE de `authenticated` herdado do nascimento; `017_n22_narrow_mutations.sql` revogou de `anon, public` e esqueceu `authenticated`. Os chamadores legitimos sao RPCs de operador SECURITY DEFINER de `postgres`, cujo corpo executa como `postgres` -- a chamada aninhada e verificada contra `postgres`, que mantem EXECUTE. Por isso a revogacao nao alcanca o caminho de operador."
+    },
+    {
+      "issue": 292,
+      "appliedBy": "scripts/db/ddl_execution_order.mjs (ordem real de aplicacao)",
+      "appliedAt": "2026-08-22",
+      "signatures": [
+        "public.delete_canary_job/1"
+      ],
+      "why": "Nao houve mudanca em producao: ela nunca esteve exposta la. Ela estava declarada porque o REPLAY a mostrava exposta -- `032_codify_...` revoga dela, mas os gates ordenavam todo `bolao/shared/sql/**` ANTES de `supabase/migrations/**`, onde ela nasce (20260806000000), entao o revoke rodava antes do CREATE. Com a ordem real (por `appliedAt`), 032 (2026-08-21) vem depois do CREATE (2026-08-06) e alcanca a funcao. A divida era do modelo, nao do banco."
     }
   ]
 }

@@ -28,6 +28,7 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { orderedDdlSources } from "./ddl_execution_order.mjs";
 import { dirname, join } from "node:path";
 import { stripSqlComments } from "./secdef_ddl_parse.mjs";
 
@@ -35,13 +36,10 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const STATE_PATH = join(ROOT, "bolao/shared/safety/default_privileges_state.json");
 
 export function ddlSources({ root = ROOT } = {}) {
-  const load = (rel, filt) => {
-    const dir = join(root, rel);
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir).filter((f) => f.endsWith(".sql") && filt(f)).sort()
-      .map((f) => ({ file: `${rel}/${f}`, text: stripSqlComments(readFileSync(join(dir, f), "utf8")) }));
-  };
-  return [...load("bolao/shared/sql", () => true), ...load("supabase/migrations", (f) => !f.includes(".reference."))];
+  // Issue #292: a ordem e a REAL (por `appliedAt`), nao "todo shared/sql e depois todo migrations".
+  // Aquela ordem nao correspondia a nada que tivesse acontecido, e fazia a remediacao da #135 rodar
+  // ANTES do CREATE das views que ela protege -- portanto nao proteger nada.
+  return orderedDdlSources({ root });
 }
 
 /** Efeito liquido de `ALTER DEFAULT PRIVILEGES` para um (papel criador, classe de objeto). */

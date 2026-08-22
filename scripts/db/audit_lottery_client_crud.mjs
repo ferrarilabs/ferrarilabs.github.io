@@ -56,8 +56,10 @@
 
 import { readFileSync, readdirSync, existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+import { orderedDdlSources } from "./ddl_execution_order.mjs";
 import { dirname, join } from "node:path";
 import { CLIENT_ROLES, tablePrivState } from "./client_table_privs_model.mjs";
+import { stripSqlComments } from "./secdef_ddl_parse.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 const STATE_PATH = "bolao/shared/safety/lottery_client_crud_state.json";
@@ -73,13 +75,10 @@ export const CRUD = Object.freeze(["SELECT", "INSERT", "UPDATE", "DELETE"]);
 export const MIN_PROTECTED_TABLES_SEEN = 6;
 
 export function ddlSources({ root = ROOT } = {}) {
-  const load = (rel, filt) => {
-    const dir = join(root, rel);
-    if (!existsSync(dir)) return [];
-    return readdirSync(dir).filter((f) => f.endsWith(".sql") && filt(f)).sort()
-      .map((f) => ({ file: `${rel}/${f}`, text: readFileSync(join(dir, f), "utf8") }));
-  };
-  return [...load("bolao/shared/sql", () => true), ...load("supabase/migrations", (f) => !f.includes(".reference."))];
+  // Issue #292: a ordem e a REAL (por `appliedAt`), nao "todo shared/sql e depois todo migrations".
+  // Aquela ordem nao correspondia a nada que tivesse acontecido, e fazia a remediacao da #135 rodar
+  // ANTES do CREATE das views que ela protege -- portanto nao proteger nada.
+  return orderedDdlSources({ root });
 }
 
 const setOf = (m, k) => m?.get(k) ?? new Set();
@@ -87,7 +86,11 @@ const setOf = (m, k) => m?.get(k) ?? new Set();
 export function report({ root = ROOT, files, state } = {}) {
   const src = files ?? ddlSources({ root });
   const decl = state ?? JSON.parse(readFileSync(join(root, STATE_PATH), "utf8"));
-  const privs = tablePrivState(src);
+  // `stripComments` NAO e opcional aqui, mesmo que o parametro tenha default. Sem ele, um GRANT
+  // COMENTADO e lido como executavel -- e varios arquivos de codificacao carregam o seu rollback
+  // comentado no rodape, exatamente nessa forma. Defeito meu, introduzido no PR #287 e achado ao
+  // medir a paridade da #292: o gate teria acreditado num `grant` que ninguem executa.
+  const privs = tablePrivState(src, { stripComments: stripSqlComments });
 
   const protegidas = decl.protectedBaseTables ?? [];
   const pendente = new Map((decl.pendingRemediation ?? []).map((p) => [p.table, p]));
