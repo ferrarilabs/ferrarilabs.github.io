@@ -1,0 +1,102 @@
+# powerball_record_payment.yml — Issue #130, Opcao C.
+#
+# POR QUE ESTE WORKFLOW E O PAINEL DE ADMIN
+# O Powerball nao tem usuario autenticado nem caminho de JWT. Um painel no navegador seria um hash
+# de senha do lado do CLIENTE guardando REGISTRO DE DINHEIRO -- e para escrever precisaria de CRUD
+# de `lottery_*` no navegador, reabrindo exatamente o que a Issue #131 revogou em producao.
+#
+# Aqui a autenticacao e a do GitHub (conta real, 2FA real), a autorizacao e acesso de escrita ao
+# repositorio, e a credencial privilegiada NUNCA sai do runner. O formulario do Actions e a UI:
+# funciona do celular, sem instalar nada.
+#
+# E o log da execucao vira a trilha de auditoria -- permanente, atribuivel, com as entradas
+# registradas. Nem o painel de navegador nem um CLI local deixam isso.
+#
+# NAO E UM CAMINHO GENERICO DE SQL
+# Quatro operacoes, e so elas. Operacao desconhecida falha fechado no proprio script.
+#
+# O PADRAO E NAO GRAVAR
+# `apply` e `false` por default: o caminho seguro e o que acontece quando ninguem pensa. Sem ele o
+# script imprime o que FARIA e sai.
+#
+# REFERENCIA DE PAGAMENTO NAO ENTRA NO LOG
+# `external_reference` e mascarado em toda saida (`mask()` em operator_payments.py). O valor cheio
+# vai para o banco; o log do Actions e legivel por qualquer pessoa com acesso ao repositorio, que e
+# audiencia maior do que esse dado merece.
+
+name: Powerball — Registrar pagamento (operador)
+
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: "Operacao"
+        type: choice
+        required: true
+        options: [record_payment, correct_payment, void_payment, list_payments]
+      participation_id:
+        description: "participation_id (uuid)"
+        type: string
+        required: false
+      amount:
+        description: "Valor (ex.: 10.00)"
+        type: string
+        required: false
+      external_reference:
+        description: "Referencia Zelle/Venmo (mascarada no log)"
+        type: string
+        required: false
+      method:
+        description: "Metodo (Zelle, Venmo, ...)"
+        type: string
+        required: false
+      reason:
+        description: "Motivo — OBRIGATORIO em correct_payment e void_payment"
+        type: string
+        required: false
+      reverses_transaction_id:
+        description: "transaction_id alvo — OBRIGATORIO em void_payment"
+        type: string
+        required: false
+      apply:
+        description: "Gravar de verdade (sem isto e simulacao)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  # Duas execucoes simultaneas do mesmo operador poderiam disputar a mesma chave de idempotencia.
+  # O indice unico do banco ja recusaria a segunda, mas serializar aqui torna o log legivel.
+  group: powerball-operator-payment
+  cancel-in-progress: false
+
+jobs:
+  operate:
+    name: Operacao de pagamento (server-side)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Executa a operacao
+        env:
+          # Escrita em `lottery_*` exige credencial privilegiada: a Issue #131 revogou TODO CRUD de
+          # `anon` e `authenticated` nessas seis tabelas em producao. `service_role` nao foi tocado,
+          # entao nenhum GRANT novo e necessario -- e nada do que foi fechado e reaberto.
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+        run: |
+          cd bolao/loterias/powerball/scripts
+          ARGS="--operation '${{ inputs.operation }}'"
+          [ -n "${{ inputs.participation_id }}" ]        && ARGS="$ARGS --participation-id '${{ inputs.participation_id }}'"
+          [ -n "${{ inputs.amount }}" ]                  && ARGS="$ARGS --amount '${{ inputs.amount }}'"
+          [ -n "${{ inputs.external_reference }}" ]      && ARGS="$ARGS --external-reference '${{ inputs.external_reference }}'"
+          [ -n "${{ inputs.method }}" ]                  && ARGS="$ARGS --method '${{ inputs.method }}'"
+          [ -n "${{ inputs.reason }}" ]                  && ARGS="$ARGS --reason '${{ inputs.reason }}'"
+          [ -n "${{ inputs.reverses_transaction_id }}" ] && ARGS="$ARGS --reverses-transaction-id '${{ inputs.reverses_transaction_id }}'"
+          [ "${{ inputs.apply }}" = "true" ]             && ARGS="$ARGS --apply"
+          # O comando NAO e ecoado: ele carrega a referencia de pagamento em texto claro.
+          eval python3 operator_payments.py $ARGS
