@@ -102,10 +102,27 @@ export const ACL_SNAPSHOT_FILES = Object.freeze(["20260811160000_baseline_adopte
  */
 export const SECURE_DEFAULTS_FROM = "20260821030000_secure_default_privileges_public";
 
-/** `create table` em `public`, com a posicao, para intercalar com os grants na ordem certa. */
+/**
+ * `create table` E `create view` em `public`, com a posicao, para intercalar com os grants na
+ * ordem certa.
+ *
+ * ─── POR QUE VIEW ENTRA AQUI (Issue #282) ────────────────────────────────────────────────────
+ *
+ * Ate 2026-08-22 este parser so casava `create table`, entao NENHUMA view era semeada com a ACL
+ * de nascimento -- e o modelo concluia que `bolao_state_normalized_public` estava limpa enquanto
+ * producao media `anon` com os sete privilegios nela. Ou seja: o achado da #282 era invisivel
+ * para o proprio modelo que deveria pega-lo.
+ *
+ * A causa e que o `pg_default_acl` de `public` nao distingue tabela de view -- as duas sao
+ * `relacl`, e as duas nascem concedidas. Um modelo que so semeia tabela ve metade da superficie.
+ *
+ * `create materialized view` entra pelo mesmo motivo. `create or replace view` tambem casa, e
+ * `seed()` ja ignora re-criacao de objeto existente (nao reinicia a ACL), que e exatamente a
+ * semantica de `CREATE OR REPLACE`.
+ */
 export function parseCreateTables(text) {
   const out = [];
-  const re = /create\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?([a-z0-9_]+)"?\s*\.\s*)?"?([a-z0-9_]+)"?\s*\(/gi;
+  const re = /create\s+(?:or\s+replace\s+)?(?:table|(?:materialized\s+)?view)\s+(?:if\s+not\s+exists\s+)?(?:"?([a-z0-9_]+)"?\s*\.\s*)?"?([a-z0-9_]+)"?\s*[\(a-z]/gi;
   let m;
   while ((m = re.exec(text)) !== null) {
     const [, schema, name] = m;

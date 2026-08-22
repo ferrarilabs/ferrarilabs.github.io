@@ -25,28 +25,8 @@
       "authenticated"
     ]
   },
-  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue. ATUALIZADO 2026-08-21: a lista caiu de 14 para 3. Onze entradas sairam porque `bolao/shared/sql/032_codify_notification_function_client_revokes.sql` passou a revogar `anon`/`authenticated` nominalmente delas, alinhando a reconstrucao ao que producao ja tem. As tres que ficam estao explicadas item a item em `whyStillHere`, e sao de dois tipos diferentes: duas sao exposicao REAL ao vivo (Issue #282) e uma e divergencia de ORDEM DE REPLAY.",
+  "_heranca": "As entradas abaixo sao EXPOSICAO HERDADA, nao ratificacao. Cada uma e uma funcao de servico ou interna que a DDL deixa alcancavel por papel de cliente porque nunca revogou o que o default concedeu no nascimento. A lista e um CATRACA: o gate reprova qualquer assinatura alcancavel por cliente que nao esteja aqui, entao ela nao pode CRESCER; e cada item que ganhar o seu `revoke` sai daqui e nao pode voltar. Ela NAO e permissao -- e divida registrada, com Issue. ATUALIZADO 2026-08-21: a lista caiu de 14 para 3. Onze entradas sairam porque `bolao/shared/sql/032_codify_notification_function_client_revokes.sql` passou a revogar `anon`/`authenticated` nominalmente delas, alinhando a reconstrucao ao que producao ja tem. As tres que ficam estao explicadas item a item em `whyStillHere`, e sao de dois tipos diferentes: duas sao exposicao REAL ao vivo (Issue #282) e uma e divergencia de ORDEM DE REPLAY. ATUALIZADO 2026-08-22: a lista caiu de 3 para 1. As duas entradas da Issue #282 sairam porque a exposicao foi REVOGADA EM PRODUCAO (migracao 20260822110933), nao porque a DDL mudou de opiniao sobre elas.",
   "inheritedExposure": [
-    {
-      "signature": "public._bolao_audit/3",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql",
-      "liveState": "{postgres=X,authenticated=X,service_role=X} — CONFIRMADO ao vivo em 2026-08-21",
-      "whyStillHere": "Exposicao REAL, nao divergencia de replay. `017_n22_narrow_mutations.sql` revoga `from anon, public` e esquece `authenticated`, que tem entrada propria na ACL -- `REVOKE ... FROM PUBLIC` nao remove grant de papel nomeado. Remediacao e a Issue #282 e precisa da sua propria autorizacao."
-    },
-    {
-      "signature": "public._bolao_touch/1",
-      "class": "SERVICE_RPC",
-      "reachableBy": [
-        "authenticated"
-      ],
-      "bornAt": "bolao/shared/sql/017_n22_narrow_mutations.sql",
-      "liveState": "{postgres=X,authenticated=X,service_role=X} — CONFIRMADO ao vivo em 2026-08-21",
-      "whyStillHere": "Exposicao REAL, nao divergencia de replay. `017_n22_narrow_mutations.sql` revoga `from anon, public` e esquece `authenticated`, que tem entrada propria na ACL -- `REVOKE ... FROM PUBLIC` nao remove grant de papel nomeado. Remediacao e a Issue #282 e precisa da sua propria autorizacao."
-    },
     {
       "signature": "public.delete_canary_job/1",
       "class": "SERVICE_RPC",
@@ -365,5 +345,21 @@
       "secdef": true,
       "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
     }
-  }
+  },
+  "remediated": [
+    {
+      "issue": 282,
+      "appliedBy": "20260822110933_revoke_dead_client_grants_282_284",
+      "appliedAt": "2026-08-22",
+      "signatures": [
+        "public._bolao_audit/3",
+        "public._bolao_touch/1"
+      ],
+      "revokedFrom": [
+        "authenticated"
+      ],
+      "readBack": "PUBLIC=false, anon=false, authenticated=false, service_role=true nas duas",
+      "why": "Eram SECURITY INVOKER com EXECUTE de `authenticated` herdado do nascimento; `017_n22_narrow_mutations.sql` revogou de `anon, public` e esqueceu `authenticated`. Os chamadores legitimos sao RPCs de operador SECURITY DEFINER de `postgres`, cujo corpo executa como `postgres` -- a chamada aninhada e verificada contra `postgres`, que mantem EXECUTE. Por isso a revogacao nao alcanca o caminho de operador."
+    }
+  ]
 }
