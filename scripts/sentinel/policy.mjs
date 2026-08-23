@@ -66,6 +66,22 @@ const RULE_DEFAULTS = {
     // de ausencia — UNKNOWN nao conta como ciclo limpo.
     clean_cycles_to_resolve: 1,
   },
+  migration_drift: {
+    severity: "High",
+    priority: "P1 - High",
+    work_type: "Infrastructure / Deploy",
+    area: "Infrastructure / CI",
+    environment: "Production",
+    domain: "Shared Platform",
+    // Le APENAS metadados de migracao. Nenhum dado de participante, pagamento ou scoring.
+    data_impact: "No",
+    scoring_ranking_impact: "No",
+    investigation_level: "I1",
+    mutation_level: "M1",
+    // "As migracoes do repo constam como aplicadas" e binario e nao-flaky. Um ciclo em que isso e
+    // POSITIVAMENTE observado basta. UNKNOWN nunca conta como ciclo limpo.
+    clean_cycles_to_resolve: 1,
+  },
   main_ci_red: {
     severity: "High",
     priority: "P1 - High",
