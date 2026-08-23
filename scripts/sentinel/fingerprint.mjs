@@ -37,4 +37,14 @@ export function mainCiRedFingerprint(workflowName, jobName) {
   return hash([REPO, "main_ci_red", workflowName, jobName]);
 }
 
+/**
+ * Live Deploy Drift: identidade e o repo + a FUNCAO. Deliberadamente NAO inclui o hash esperado —
+ * se incluisse, cada commit em `main` mudaria o fingerprint e abriria uma Issue nova para o mesmo
+ * incidente. Uma deriva que persiste por dias e o MESMO incidente: uma Issue, occurrence_count
+ * subindo, ate producao voltar a bater.
+ */
+export function liveDeployDriftFingerprint(functionName) {
+  return hash([REPO, "live_deploy_drift", functionName]);
+}
+
 export const REPOSITORY = REPO;
