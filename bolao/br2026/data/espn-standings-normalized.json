@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T21:01:00Z",
-  "sourceUpdatedAt": "2026-08-23T21:01:00Z",
+  "generatedAt": "2026-08-23T23:31:56Z",
+  "sourceUpdatedAt": "2026-08-23T23:31:56Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "ffb676adeaed60a9c9f1e77ff7b808c9d2cc28d826929f28133dd0d2b58041c3",
+  "payloadHash": "57760ba0b85407c6845f835bce9832045b5d474082e03bb849702ba979a1c972",
   "matches": [
     {
       "name": "Palmeiras",
@@ -182,13 +182,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/2026.png",
       "rank": 13.0,
       "points": 27.0,
-      "played": 22.0,
+      "played": 23.0,
       "wins": 7.0,
       "draws": 6.0,
-      "losses": 9.0,
+      "losses": 10.0,
       "gf": 27.0,
-      "ga": 26.0,
-      "gd": 1.0
+      "ga": 27.0,
+      "gd": 0.0
     },
     {
       "name": "Santos",
@@ -279,14 +279,14 @@
       "abbr": "CHA",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/9318.png",
       "rank": 20.0,
-      "points": 11.0,
-      "played": 22.0,
-      "wins": 1.0,
+      "points": 14.0,
+      "played": 23.0,
+      "wins": 2.0,
       "draws": 8.0,
       "losses": 13.0,
-      "gf": 23.0,
+      "gf": 24.0,
       "ga": 46.0,
-      "gd": -23.0
+      "gd": -22.0
     }
   ]
 }
