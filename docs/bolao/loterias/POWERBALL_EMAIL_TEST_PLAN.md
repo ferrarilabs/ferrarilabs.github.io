@@ -44,7 +44,7 @@ scoring-audit rule, even though this feature doesn't touch scoring).
 ## Manual / gate (this session)
 
 3 real EmailJS sends, synthetic payload (Participante Alfa /
-participante.alfa@example.invalid / REDACTED_PAYMENT_REFERENCE / NC), real recipient
+participante.alfa@example.invalid / SYNTH000000027 / NC), real recipient
 `emferrari@gmail.com` only, `[TESTE ADMIN]` prefix, `testMode:true` recorded
 in `scripts/email/outbox.json`. Results in
 `bolao/loterias/powerball/email-previews/email-test-results.txt`.

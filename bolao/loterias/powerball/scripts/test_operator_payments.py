@@ -41,7 +41,7 @@ class FakeWriter:
 
 
 BASE = {"operation": "record_payment", "participation_id": "p-1", "amount": "10.00",
-        "external_reference": "REDACTED_PAYMENT_REFERENCE", "operator": "someone", "intent_date": "2026-08-22"}
+        "external_reference": "SYNTH0000000041", "operator": "someone", "intent_date": "2026-08-22"}
 
 
 class Allowlist(unittest.TestCase):
@@ -138,8 +138,8 @@ class Seguranca(unittest.TestCase):
     def test_referencia_e_mascarada_em_toda_saida(self):
         r = op.build_request(dict(BASE))
         texto = op.render(r)
-        self.assertNotIn("REDACTED_PAYMENT_REFERENCE", texto, "referencia de pagamento nao entra em log")
-        self.assertIn("…", op.mask("REDACTED_PAYMENT_REFERENCE"))
+        self.assertNotIn("SYNTH0000000041", texto, "referencia de pagamento nao entra em log")
+        self.assertIn("…", op.mask("SYNTH0000000041"))
 
     def test_nenhuma_credencial_no_modulo(self):
         fonte = open(os.path.join(os.path.dirname(os.path.abspath(__file__)),
