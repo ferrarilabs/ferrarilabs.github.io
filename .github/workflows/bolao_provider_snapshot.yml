@@ -100,6 +100,13 @@ jobs:
     strategy:
       # Numa execução agendada roda os dois apps ativos; num dispatch manual roda só o escolhido.
       fail-fast: false
+      # SERIALIZADO de propósito. Os dois apps commitam e empurram para a MESMA `main`; em paralelo
+      # eles disputam a ref e um perde com
+      #   ! [remote rejected] main -> main (cannot lock ref 'refs/heads/main')
+      # Foi exatamente isso na execução agendada 32609176344 (2026-08-23): o job `cdb2026` rebaseou,
+      # a ref já tinha andado, e o push foi rejeitado. Rodar um de cada vez elimina a corrida DENTRO
+      # da execução — o `concurrency` acima só separa agendado de manual, não os jobs da matriz.
+      max-parallel: 1
       matrix:
         app: ${{ github.event_name == 'schedule' && fromJSON('["br2026","cdb2026"]') || fromJSON('[""]') }}
     steps:
@@ -142,9 +149,34 @@ jobs:
             # NUNCA escrever o marcador literal de skip-ci nesta mensagem: o GitHub varre a
             # mensagem inteira e pularia os workflows deste próprio commit (lição já registrada).
             git commit -m "chore(espn): refresh ${{ steps.cfg.outputs.app }} snapshot"
-            # Outra execução pode ter commitado no intervalo; rebase antes de empurrar.
-            git pull --rebase --autostash origin main
-            git push
+            # Rebase-e-empurra com REPETIÇÃO limitada.
+            #
+            # `max-parallel: 1` remove a corrida entre os jobs desta matriz, mas NÃO protege contra
+            # os outros workflows que também empurram para `main` (sync_version, lottery_poll...).
+            # A janela restante é real e pequena: entre o rebase e o push, a ref pode andar. Era
+            # essa janela que derrubava o job — o rebase dizia "up to date" e o push era rejeitado
+            # milissegundos depois.
+            #
+            # Repetir é seguro porque cada tentativa REBASEIA de novo antes de empurrar: nunca se
+            # força nada, e o commit local é reaplicado sobre o estado novo.
+            empurrou=false
+            for tentativa in 1 2 3 4 5; do
+              git pull --rebase --autostash origin main
+              if git push; then
+                empurrou=true
+                break
+              fi
+              echo "push rejeitado (tentativa ${tentativa}/5) — a ref andou; rebaseando de novo."
+              sleep $(( tentativa * 3 ))
+            done
+            if [ "$empurrou" != "true" ]; then
+              # Falhar ALTO. Cinco rejeições seguidas não são disputa normal de ref: ou algo está
+              # empurrando em laço, ou o push está sendo recusado por outro motivo. Engolir isso
+              # deixaria o snapshot só no disco do runner e o workflow verde — meio caminho para o
+              # bug que esta workflow existe para evitar.
+              echo "::error::push rejeitado 5 vezes seguidas; snapshot NAO foi persistido."
+              exit 1
+            fi
             echo "committed=true" >> "$GITHUB_OUTPUT"
           fi
 
