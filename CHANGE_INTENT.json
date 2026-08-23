@@ -3,5 +3,16 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "lifecycle": "one_shot",
+      "reason": "Corrida de push na `bolao_provider_snapshot.yml`. Numa execucao AGENDADA a matriz roda `br2026` e `cdb2026` EM PARALELO e os dois commitam e empurram para a MESMA `main`. Na execucao 32609176344 (2026-08-23T00:57Z, SHA e7cec3c3) o job `cdb2026` rebaseou, a ref andou para 890a0fed no intervalo, e o push foi rejeitado com `cannot lock ref 'refs/heads/main'`. O `concurrency` do workflow separa agendado de manual, mas NAO serializa os jobs da matriz. Classificacao: GIT_PUSH_CONFLICT — nao e skip fora de janela, nao e falha de provedor, nao e credencial.",
+      "expected_behavior_change": "Duas mudancas, ambas no caminho de persistencia, nenhuma no gatilho nem na notificacao. (1) `max-parallel: 1` na matriz: os dois apps passam a rodar em sequencia em vez de em paralelo, eliminando a corrida DENTRO da execucao; o tempo total sobe (dois jobs em serie), o cron e os apps cobertos NAO mudam. (2) O `git pull --rebase && git push` vira laco com ate 5 tentativas, rebaseando de novo a cada uma, para a janela residual contra OUTROS workflows que tambem empurram para main. Nada e forcado em nenhuma tentativa. Se as 5 falharem o job FALHA ALTO com ::error:: em vez de terminar verde sem persistir — o oposto de suprimir notificacao.",
+      "tests_required": [
+        "scripts/safety/test_safety_contract.mjs",
+        "bolao/scripts/cron_coverage.test.mjs"
+      ]
+    }
+  ]
 }
