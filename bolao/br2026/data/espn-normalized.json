@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T21:01:00Z",
-  "sourceUpdatedAt": "2026-08-23T21:01:00Z",
+  "generatedAt": "2026-08-23T21:31:37Z",
+  "sourceUpdatedAt": "2026-08-23T21:31:37Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d6cf6c380669468c07e6f8adaefb4156b4aecfbeec68693607b99f48a7c2206b",
+  "payloadHash": "b53f15b7a58495882cf6b5bdcbcf0792d7e0bfe784cdbbac37e9af4de5352de2",
   "matches": [
     {
       "id": "401840808",
@@ -38956,19 +38956,19 @@
     {
       "id": "401841202",
       "date": "2026-08-23T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "90'+7'",
-      "statusDetail": "90'+7'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Grêmio",
       "homeTeamId": "6079",
       "awayTeamId": "6273",
       "homeScore": 1,
       "awayScore": 0,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
@@ -39095,12 +39095,12 @@
     {
       "id": "401841200",
       "date": "2026-08-23T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "90'+9'",
-      "statusDetail": "90'+9'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Vitória",
       "awayTeam": "Bahia",
       "homeTeamId": "3457",
@@ -39108,7 +39108,7 @@
       "homeScore": 0,
       "awayScore": 2,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
       "clockSec": 5400.0,
@@ -39196,6 +39196,44 @@
             "text": "Goal"
           },
           "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jean Lucas",
+              "shortName": "Jean Lucas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Cacá",
+              "shortName": "Cacá"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
           "team": {
             "id": "9967"
           },
