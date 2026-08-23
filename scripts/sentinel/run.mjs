@@ -20,6 +20,8 @@
  */
 import { detectChangeIntentStale, DETECTOR_ID as CHANGE_INTENT_STALE_ID } from "./detectors/change_intent_stale.mjs";
 import { detectMainCiRed, DETECTOR_ID as MAIN_CI_RED_ID } from "./detectors/main_ci_red.mjs";
+import { detectLiveDeployDrift, DETECTOR_ID as LIVE_DEPLOY_DRIFT_ID } from "./detectors/live_deploy_drift.mjs";
+import { calcularSha, shaDeclarado } from "../db/audit_live_function_drift.mjs";
 import { createRealGithubClient } from "./github_client.mjs";
 import { upsertFinding, recordCleanCycleOrResolve } from "./writer.mjs";
 import { parseStateBlock } from "./github_state.mjs";
@@ -35,7 +37,29 @@ import { cleanCyclesToResolve } from "./policy.mjs";
 const DETECTORS = [
   { id: CHANGE_INTENT_STALE_ID, run: () => detectChangeIntentStale() },
   { id: MAIN_CI_RED_ID, run: (client) => detectMainCiRed({ fetchLatestRuns: (wf, br) => client.fetchLatestRuns(wf, br) }) },
+  // Issue #310. Compara o hash das fontes com o header `x-deploy-sha` do endpoint PUBLICO de dado
+  // esportivo: nenhuma credencial, somente leitura, nunca implanta. `UNKNOWN` nao vira finding.
+  { id: LIVE_DEPLOY_DRIFT_ID, run: (_client, ctx) => detectLiveDeployDrift({
+      lerShaEsperado: () => { try { return calcularSha(); } catch { return null; } },
+      observacaoViva: ctx.liveDeployObservation,
+    }) },
 ];
+
+/** Leitura do header em producao. Timeout curto: o Sentinel nao pode ficar pendurado num cron. */
+async function lerShaVivoDeProducao() {
+  const url = "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/live-football?competition=br2026";
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20_000);
+    const r = await fetch(url, { signal: ctrl.signal });
+    clearTimeout(t);
+    // O header vem em QUALQUER status: um 503 SOURCE_UNAVAILABLE tambem e resposta desta funcao, e
+    // a identidade dela nao depende de a ESPN estar de pe.
+    return { alcancavel: true, sha: r.headers.get("x-deploy-sha") };
+  } catch {
+    return { alcancavel: false, sha: null };   // -> UNKNOWN, nunca DRIFT
+  }
+}
 
 /** Normalizes both detector return shapes to `{ findings, confirmedRecoveries }`. */
 function normalizeDetectorResult(raw) {
@@ -58,11 +82,18 @@ function dryRunPreview(finding, client, logger) {
   }
 }
 
-export function runOnce({ dryRun = false, client = createRealGithubClient(), logger = createRunLogger() } = {}) {
+export function runOnce({
+  dryRun = false,
+  client = createRealGithubClient(),
+  logger = createRunLogger(),
+  // Observacao de producao ja feita pelo chamador. O default nao alcancavel vira UNKNOWN, e
+  // UNKNOWN nao emite finding — quem nao mediu nao acusa.
+  liveDeployObservation = { alcancavel: false, sha: null },
+} = {}) {
   const results = { findings: [], upserts: [], cleanCycles: [] };
 
   for (const detector of DETECTORS) {
-    const { findings, confirmedRecoveries } = normalizeDetectorResult(detector.run(client));
+    const { findings, confirmedRecoveries } = normalizeDetectorResult(detector.run(client, { liveDeployObservation }));
     logger.log({ action: "detector_ran", detector: detector.id, finding_count: findings.length });
     results.findings.push(...findings);
 
@@ -100,7 +131,8 @@ export function runOnce({ dryRun = false, client = createRealGithubClient(), log
 if (process.argv[1] && process.argv[1].endsWith("run.mjs")) {
   const dryRun = process.argv.includes("--dry-run");
   try {
-    const results = runOnce({ dryRun });
+    // A UNICA I/O de rede deste detector, feita aqui no ponto de entrada e passada pronta.
+    const results = runOnce({ dryRun, liveDeployObservation: await lerShaVivoDeProducao() });
     console.error(`\nSentinel run complete. findings=${results.findings.length} upserts=${results.upserts.length} clean_cycles=${results.cleanCycles.length}`);
     process.exit(0);
   } catch (e) {

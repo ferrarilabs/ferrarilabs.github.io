@@ -49,6 +49,23 @@ const RULE_DEFAULTS = {
     mutation_level: "M1",
     clean_cycles_to_resolve: 3,
   },
+  live_deploy_drift: {
+    severity: "High",
+    priority: "P1 - High",
+    work_type: "Infrastructure / Deploy",
+    area: "Infrastructure / CI",
+    // `Production` de proposito: o sintoma E o estado de producao, nao do repositorio.
+    environment: "Production",
+    domain: "Shared Platform",
+    data_impact: "No",
+    scoring_ranking_impact: "No",
+    investigation_level: "I1",
+    mutation_level: "M1",
+    // Uma leitura do header e um sinal binario e nao-flaky: ou o hash bate ou nao. Um unico ciclo
+    // em que producao POSITIVAMENTE responde com o hash certo prova a recuperacao. Nunca inferido
+    // de ausencia — UNKNOWN nao conta como ciclo limpo.
+    clean_cycles_to_resolve: 1,
+  },
   main_ci_red: {
     severity: "High",
     priority: "P1 - High",
