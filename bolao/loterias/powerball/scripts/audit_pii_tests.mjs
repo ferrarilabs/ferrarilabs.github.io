@@ -13,6 +13,9 @@
 
 import fs from "node:fs";
 import path from "node:path";
+import { createHash } from "node:crypto";
+
+const sha256 = (s) => createHash("sha256").update(s).digest("hex");
 import { execFileSync } from "node:child_process";
 
 const ROOT = path.resolve(new URL(".", import.meta.url).pathname, "..");
@@ -34,12 +37,53 @@ const ALLOWED_EMAIL_SUFFIXES = [
 
 // txIds that were confirmed present in data.js before the P0.1 strip — if any of
 // these show up again in a scanned file, something re-introduced real PII.
-const KNOWN_REAL_TX_IDS = [
-  "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE",
-  "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE",
-  "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE",
-  "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE", "REDACTED_PAYMENT_REFERENCE",
+// Referencias de pagamento REAIS confirmadas em `data.js` antes do strip P0.1 — se qualquer uma
+// reaparecer num arquivo varrido, algo reintroduziu PII.
+//
+// GUARDADAS COMO SHA-256, nunca em texto claro (achado de 2026-08-23). Antes esta lista trazia os
+// 16 valores literais, e este arquivo esta na lista `DETECTOR_SOURCES` que o scan repo-wide PULA
+// justamente porque "o padrao E o conteudo". O resultado era o pior possivel: dezesseis referencias
+// de pagamento reais publicadas num repositorio publico, dentro do arquivo que existe para impedir
+// exatamente isso, e invisiveis para o gate que existe para encontra-las.
+//
+// O hash preserva a capacidade de deteccao inteira — comparar `sha256(token)` acha o valor tao bem
+// quanto `content.includes(valor)` — e nao publica nada. Um hash nao pode ser lido de volta.
+const KNOWN_REAL_TX_ID_HASHES = new Set([
+  "11cc0db1f9e96fc45d61621e1a0156a28c4dbb17d2c0dcf11a7be64a10b3935f",
+  "1f269cdd46c6b5700cacf31c497548a75bb22d4c2e7d5de4688f70d1c77f09a7",
+  "41bfdd1c3c9916434df4557d5e426d029ffec3865b509447a1b4597642e8965f",
+  "53a2e3a9c316da3f094313e6f4cbb1aa48836aafbfc9f3c5e2b25b49e079e4c4",
+  "55470e3e903dbd2ab8719bebfdc243e0eefa70fb2360c45a6b97d9b182d7e716",
+  "59d06f02cb01d0d15c9ee6f4d5e5189a237ac01effa6a4af88a5d44be8b6e053",
+  "5f76029f55542dbe6bd69351ecdcebd11d855fc8f4dc0b815545a188fffc913f",
+  "8477a55be804e667b6c1ca3d1f01d5fcb7b8b961ae9001efcb77d8b1c4beec08",
+  "85d47fd8823b91d8c3ba49e1b975474828c060d1c371ecb8de57e0e5d11e5f35",
+  "87b981fdf794d1f7604248ae047e4d66e4ffc72eccd93143310d623a21b9bb8d",
+  "99177621a72efa644a5e74e57c0ad6753c7229c5877e705f6d64e9ffc2d83c2d",
+  "9dd37ff1bd15f98946dd98d0fa4cf409c8619c200363a631cae22c8805428025",
+  "b47ececbb415058c8dc94e92c2c2e872c8a6ccd8a19e3b93bf34da965108690f",
+  "bf6ba064d4ac6ef1622fa60043ace1fd3f026f299d03c2aa47da6da13e27d898",
+  "f3356bf4776e382919766429ac24dd7f6ac0c30d605adfdb4bbc45ca0e8955f0",
+  "f7786138deed1307fd75581b38dc615c6dc4d32d37c06580c58fc42eeecae832",
+]);
+
+/**
+ * Formas de referencia de pagamento que este projeto ja viu (Zelle numerico, PayPal de 17 chars,
+ * Cash App com `#`). O token extraido tem de ser IDENTICO ao original para o hash bater, entao os
+ * delimitadores fazem parte do padrao.
+ */
+const TX_TOKEN_RES = [
+  /#D-[A-Z0-9]{6,14}/g,
+  /\b\d{10,12}\b/g,
+  /\b[0-9A-Z]{15,20}\b/g,
 ];
+
+function tokensDeReferencia(content) {
+  const out = new Set();
+  for (const re of TX_TOKEN_RES) for (const m of content.match(re) || []) out.add(m);
+  return out;
+}
+
 
 const IGNORE_FILES = new Set([
   "audit_pii_tests.mjs", // this file — its own allowlist source (KNOWN_REAL_TX_IDS) would self-flag
@@ -127,9 +171,10 @@ export function main() {
       }
     }
 
-    for (const txId of KNOWN_REAL_TX_IDS) {
-      if (content.includes(txId)) {
-        failures.push(`${rel}: contains a known real transaction ID (masked: ${txId.slice(0, 3)}***)`);
+    for (const token of tokensDeReferencia(content)) {
+      if (KNOWN_REAL_TX_ID_HASHES.has(sha256(token))) {
+        // Nem a mensagem de falha revela o valor: ela e lida em log de CI publico.
+        failures.push(`${rel}: contem uma referencia de pagamento REAL conhecida (sha256:${sha256(token).slice(0, 8)})`);
       }
     }
   }

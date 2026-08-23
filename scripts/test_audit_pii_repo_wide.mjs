@@ -44,9 +44,9 @@ const SYNTHETIC = [
 
 /** REAL DOMAINS — must be flagged. `@email.com` is the false negative this test locks. */
 const REAL = [
-  "REDACTED_EMAIL",
+  "naoexiste1@gmail.com",
   "someone@email.com",           // LIVE webmail domain — was wrongly allowlisted
-  "REDACTED_EMAIL",
+  "naoexiste1@outlook.com",
   "someone@protonmail.com",
   "someone@ferrarilabs.com",
   "someone@testcompany.com",     // contains "test" but is NOT a reserved TLD
@@ -90,14 +90,14 @@ test("regression: .test IS on the allowlist", () => {
 test("the owner's institutional address stays allowed (deliberate, documented)", () => {
   assert(isAllowedEmail("emferrari@gmail.com"),
     "the site owner's public contact address must stay allowlisted by exact match, not by domain");
-  assert(!isAllowedEmail("REDACTED_EMAIL"),
+  assert(!isAllowedEmail("naoexiste2@gmail.com"),
     "the exact-match allowlist leaked into a whole-domain allowance");
 });
 
 test("mask() never reveals any character of the value", () => {
-  const secret = "REDACTED_EMAIL";
+  const secret = "naoexiste9@gmail.com";
   const masked = mask(secret);
-  assert(!masked.includes("alice"), "mask leaked the local part");
+  assert(!masked.includes("naoexiste9"), "mask leaked the local part");
   assert(!masked.includes("gmail"), "mask leaked the domain");
   assert(!masked.includes(secret[0]) || /^<redacted/.test(masked),
     "mask leaked the first character");

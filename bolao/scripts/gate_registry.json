@@ -849,6 +849,9 @@
     "scripts/test_audit_pii_repo_wide.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/test_detector_source_hygiene.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/test_fixture_privacy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

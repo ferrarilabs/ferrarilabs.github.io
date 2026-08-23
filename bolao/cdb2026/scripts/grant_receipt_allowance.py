@@ -29,6 +29,11 @@ sys.path.insert(0, str(RAIZ / "bolao" / "shared" / "scripts"))
 import m8m9  # noqa: E402
 
 # id -> nota (nome da entrada, só para auditoria humana da concessão — nunca e-mail).
+#
+# Primeiro nome apenas. O nome COMPLETO de um participante do CDB2026 estava aqui em duas
+# entradas (Issue #195, achado 2026-08-23): no CDB2026 o nome do participante não é público,
+# diferente do Powerball, onde a lista é exibida na página de propósito. A nota existe para
+# auditoria humana da concessão — o primeiro nome cumpre isso, e o `id` acima é a chave real.
 ROSTER = {
     "3954c9f0-6c4c-4b84-b3f3-05cb8333c545": "Alan CDB",
     "d61962d8-3256-407c-8ee4-03b6bebec5bd": "Aline",
@@ -36,8 +41,8 @@ ROSTER = {
     "03e9fe14-d777-4a71-9c31-3d54dd21a07c": "Eduardo Ferrari",
     "2a0eb9e8-7210-4645-aa45-016f7abfa776": "Gabriel Ferrari",
     "697ff5e5-2304-40a4-a803-d198c1032b0a": "Gustavo Ferrari",
-    "3ea26fa2-828d-49e5-81e5-11a15f23f168": "REDACTED_PARTICIPANT #1",
-    "355e973c-aa67-4d39-a750-bbf4a49226a2": "REDACTED_PARTICIPANT #2",
+    "3ea26fa2-828d-49e5-81e5-11a15f23f168": "Marcelo #1",
+    "355e973c-aa67-4d39-a750-bbf4a49226a2": "Marcelo #2",
     "5e931947-8009-436d-b745-1fd145bb196d": "Matheus Ferrari",
     "381e2c93-4be4-428e-86f1-e84ad87d84a5": "Nathalia",
     "8dac5116-0506-400c-b2f6-8e5bda4f3c8b": "Rodrigo Hajj",

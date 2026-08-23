@@ -33,7 +33,7 @@ PUBLIC_STATIC_SOURCE = PROHIBITED. js/data.js (or any other file served by
   "<drawId>": {
     "<participant name, exact string match to data.js's \"name\" field>": {
       "email": "string",
-      "txId": "REDACTED_PAYMENT_REFERENCE"—\""
+      "txId": "SYNTH000042"—\""
     }
   },
   "_overrides": {
