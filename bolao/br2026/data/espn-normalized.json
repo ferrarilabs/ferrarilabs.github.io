@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T22:41:01Z",
-  "sourceUpdatedAt": "2026-08-23T22:41:01Z",
+  "generatedAt": "2026-08-23T23:00:21Z",
+  "sourceUpdatedAt": "2026-08-23T23:00:21Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "8c07849b64fdd82415afdb211f1929a8911ffcbde3fc2fd9159e99fac041081c",
+  "payloadHash": "f19bc3dfa7b2387260057be3ff7dec1df45737c94ae9d349a3de7e7fb30d805b",
   "matches": [
     {
       "id": "401840808",
@@ -39193,6 +39193,25 @@
         },
         {
           "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3457"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ramon",
+              "shortName": "Ramon"
+            }
+          ]
+        },
+        {
+          "type": {
             "text": "Goal"
           },
           "scoringPlay": true,
@@ -39254,10 +39273,10 @@
       "id": "401841199",
       "date": "2026-08-23T21:30Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "67'",
+      "statusDetail": "67'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "São Paulo",
@@ -39269,9 +39288,9 @@
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 2700.0,
-      "clockStr": "45'+4'",
-      "period": 1,
+      "clockSec": 4020.0,
+      "clockStr": "67'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -39291,6 +39310,25 @@
               "shortName": "B. Pacheco"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 3687.0,
+            "displayValue": "62'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Marcinho",
+              "shortName": "Marcinho"
+            }
+          ]
         }
       ]
     },
@@ -39298,10 +39336,10 @@
       "id": "401841201",
       "date": "2026-08-23T21:30Z",
       "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "62'",
+      "statusDetail": "62'",
       "completed": false,
       "homeTeam": "Santos",
       "awayTeam": "Mirassol",
@@ -39313,9 +39351,9 @@
       "awayWinner": false,
       "venue": "Estádio Vila Belmiro (Urbano Caldeira)",
       "city": "Santos",
-      "clockSec": 2700.0,
-      "clockStr": "45'+4'",
-      "period": 1,
+      "clockSec": 3720.0,
+      "clockStr": "62'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -39401,8 +39439,8 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "6'",
-      "statusDetail": "6'",
+      "statusShortDetail": "29'",
+      "statusDetail": "29'",
       "completed": false,
       "homeTeam": "Coritiba",
       "awayTeam": "Corinthians",
@@ -39414,8 +39452,8 @@
       "awayWinner": false,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 360.0,
-      "clockStr": "6'",
+      "clockSec": 1740.0,
+      "clockStr": "29'",
       "period": 1,
       "details": []
     },
