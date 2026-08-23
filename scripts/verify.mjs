@@ -308,6 +308,8 @@ const CHECKS = [
     why: "hero nao pode sumir por falha transitoria: retencao de ultimo estado confirmado, TTL 15min, sem inventar resultado" },
   { id: "powerball-reversal-integrity", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_payment_writer_integrity.py"],
     why: "reversao precisa ser o inverso exato do alvo e da MESMA participacao — nenhuma constraint do banco prova isso, e o escritor real chegou a nao existir" },
+  { id: "detector-source-hygiene", group: "app", cmd: ["node", "scripts/test_detector_source_hygiene.mjs"],
+    why: "os 5 arquivos que o scan de PII PULA nao ficam isentos de disciplina — dois deles guardavam PII real e o gate nao os via" },
   { id: "powerball-public-projection", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_public_projection.mjs"],
     why: "allowlist explicita, injecao de campo sensivel provada barrada, e semantica financeira do artefato publico derivado" },
   { id: "powerball-projection-drift", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/generate_public_projection.mjs", "--check"],
