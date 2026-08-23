@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T21:53:00Z",
-  "sourceUpdatedAt": "2026-08-23T21:53:00Z",
+  "generatedAt": "2026-08-23T22:14:52Z",
+  "sourceUpdatedAt": "2026-08-23T22:14:52Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "02977f37042a93cd9e2c949f05f24048138f5313ee80da6a063fef03a24e2b47",
+  "payloadHash": "5058e49a13f375c33d22f3137962f54243327224e1a46d149f767ea4580cca5e",
   "matches": [
     {
       "id": "401840808",
@@ -39256,23 +39256,43 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "19'",
-      "statusDetail": "19'",
+      "statusShortDetail": "41'",
+      "statusDetail": "41'",
       "completed": false,
       "homeTeam": "Chapecoense",
       "awayTeam": "São Paulo",
       "homeTeamId": "9318",
       "awayTeamId": "2026",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena Condá",
       "city": "Chapecó",
-      "clockSec": 1140.0,
-      "clockStr": "19'",
+      "clockSec": 2460.0,
+      "clockStr": "41'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9318"
+          },
+          "clock": {
+            "value": 1552.0,
+            "displayValue": "26'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Pacheco",
+              "shortName": "B. Pacheco"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841201",
@@ -39280,23 +39300,100 @@
       "state": "in",
       "statusName": "STATUS_FIRST_HALF",
       "statusDescription": "First Half",
-      "statusShortDetail": "16'",
-      "statusDetail": "16'",
+      "statusShortDetail": "38'",
+      "statusDetail": "38'",
       "completed": false,
       "homeTeam": "Santos",
       "awayTeam": "Mirassol",
       "homeTeamId": "2674",
       "awayTeamId": "9169",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio Vila Belmiro (Urbano Caldeira)",
       "city": "Santos",
-      "clockSec": 960.0,
-      "clockStr": "16'",
+      "clockSec": 2280.0,
+      "clockStr": "38'",
       "period": 1,
-      "details": []
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2674"
+          },
+          "clock": {
+            "value": 1143.0,
+            "displayValue": "20'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Schmidt",
+              "shortName": "J. Schmidt"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 1284.0,
+            "displayValue": "22'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gabriel Knesowitsch",
+              "shortName": "G. Knesowitsch"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 1414.0,
+            "displayValue": "24'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Neto Moura",
+              "shortName": "Neto Moura"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9169"
+          },
+          "clock": {
+            "value": 2124.0,
+            "displayValue": "36'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841207",
