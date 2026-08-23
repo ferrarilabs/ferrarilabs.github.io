@@ -21,6 +21,10 @@
 import { detectChangeIntentStale, DETECTOR_ID as CHANGE_INTENT_STALE_ID } from "./detectors/change_intent_stale.mjs";
 import { detectMainCiRed, DETECTOR_ID as MAIN_CI_RED_ID } from "./detectors/main_ci_red.mjs";
 import { detectLiveDeployDrift, DETECTOR_ID as LIVE_DEPLOY_DRIFT_ID } from "./detectors/live_deploy_drift.mjs";
+import { detectMigrationDrift, DETECTOR_ID as MIGRATION_DRIFT_ID, NOME_DE_MIGRACAO } from "./detectors/migration_drift.mjs";
+import { readdirSync, statSync } from "node:fs";
+import { join, dirname as _dirname } from "node:path";
+import { fileURLToPath as _fileURLToPath } from "node:url";
 import { calcularSha, shaDeclarado } from "../db/audit_live_function_drift.mjs";
 import { createRealGithubClient } from "./github_client.mjs";
 import { upsertFinding, recordCleanCycleOrResolve } from "./writer.mjs";
@@ -43,7 +47,70 @@ const DETECTORS = [
       lerShaEsperado: () => { try { return calcularSha(); } catch { return null; } },
       observacaoViva: ctx.liveDeployObservation,
     }) },
+  // Issue #310-B. A metade que de fato quebrou na #306: migracao no repo que producao nunca
+  // aplicou. Somente leitura de metadados; sem credencial o estado e UNKNOWN, nunca "saudavel".
+  { id: MIGRATION_DRIFT_ID, run: (_client, ctx) => detectMigrationDrift({
+      lerMigracoesDoRepo: lerMigracoesDoRepo,
+      lerAplicadas: () => ctx.migracoesAplicadas,
+    }) },
 ];
+
+const RAIZ_REPO = _dirname(_fileURLToPath(import.meta.url)) + "/../..";
+
+/** Versoes no disco + ha quanto tempo cada arquivo existe (mtime como proxy do merge). */
+export function lerMigracoesDoRepo() {
+  const dir = join(RAIZ_REPO, "supabase/migrations");
+  let arquivos = [];
+  try { arquivos = readdirSync(dir); } catch { return { versoes: [], idadeMs: () => null }; }
+  const porVersao = new Map();
+  for (const f of arquivos) {
+    const m = NOME_DE_MIGRACAO.exec(f);
+    if (m) porVersao.set(m[1], join(dir, f));
+  }
+  const agora = Date.now();
+  return {
+    versoes: [...porVersao.keys()].sort(),
+    idadeMs: (v) => {
+      const p = porVersao.get(v);
+      if (!p) return null;
+      // `mtime` num checkout do CI e a hora do checkout, nao a do merge. Isso e conservador do
+      // lado certo: subestima a idade, entao no maximo adia o alarme, nunca o inventa.
+      try { return agora - statSync(p).mtimeMs; } catch { return null; }
+    },
+  };
+}
+
+/**
+ * Versoes aplicadas em producao, ou `null` se nao houve como ler.
+ *
+ * CREDENCIAL DE MENOR PRIVILEGIO: le `supabase_migrations.schema_migrations` via PostgREST usando
+ * `SENTINEL_MIGRATION_READ_KEY` — uma chave que deve ser emitida para um papel com SELECT APENAS
+ * nessa tabela (ver docs/bolao/adr/ADR-019). NAO usa `service_role`, NAO usa a senha do banco.
+ *
+ * Sem a variavel, devolve `null` -> UNKNOWN. Nunca "nenhuma migracao pendente", que seria declarar
+ * saude sem ter medido — e e exatamente assim que um detector vira falso-verde.
+ */
+async function lerMigracoesAplicadas() {
+  const key = process.env.SENTINEL_MIGRATION_READ_KEY;
+  if (!key) return null;
+  const url = "https://cmhqkkfczotdnssupkni.supabase.co/rest/v1/schema_migrations"
+            + "?select=version&order=version";
+  try {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), 20_000);
+    const r = await fetch(url, {
+      signal: ctrl.signal,
+      headers: { apikey: key, Authorization: `Bearer ${key}`, "Accept-Profile": "supabase_migrations" },
+    });
+    clearTimeout(t);
+    if (!r.ok) return null;
+    const linhas = await r.json();
+    if (!Array.isArray(linhas)) return null;
+    return linhas.map((l) => String(l.version));
+  } catch {
+    return null;   // -> UNKNOWN
+  }
+}
 
 /** Leitura do header em producao. Timeout curto: o Sentinel nao pode ficar pendurado num cron. */
 async function lerShaVivoDeProducao() {
@@ -89,11 +156,14 @@ export function runOnce({
   // Observacao de producao ja feita pelo chamador. O default nao alcancavel vira UNKNOWN, e
   // UNKNOWN nao emite finding — quem nao mediu nao acusa.
   liveDeployObservation = { alcancavel: false, sha: null },
+  // `null` = nao foi possivel ler -> UNKNOWN. O default NAO e lista vazia: lista vazia significaria
+  // "producao nao aplicou nada", que e uma afirmacao, e nao medimos nada.
+  migracoesAplicadas = null,
 } = {}) {
   const results = { findings: [], upserts: [], cleanCycles: [] };
 
   for (const detector of DETECTORS) {
-    const { findings, confirmedRecoveries } = normalizeDetectorResult(detector.run(client, { liveDeployObservation }));
+    const { findings, confirmedRecoveries } = normalizeDetectorResult(detector.run(client, { liveDeployObservation, migracoesAplicadas }));
     logger.log({ action: "detector_ran", detector: detector.id, finding_count: findings.length });
     results.findings.push(...findings);
 
@@ -132,7 +202,11 @@ if (process.argv[1] && process.argv[1].endsWith("run.mjs")) {
   const dryRun = process.argv.includes("--dry-run");
   try {
     // A UNICA I/O de rede deste detector, feita aqui no ponto de entrada e passada pronta.
-    const results = runOnce({ dryRun, liveDeployObservation: await lerShaVivoDeProducao() });
+    const results = runOnce({
+      dryRun,
+      liveDeployObservation: await lerShaVivoDeProducao(),
+      migracoesAplicadas: await lerMigracoesAplicadas(),
+    });
     console.error(`\nSentinel run complete. findings=${results.findings.length} upserts=${results.upserts.length} clean_cycles=${results.cleanCycles.length}`);
     process.exit(0);
   } catch (e) {

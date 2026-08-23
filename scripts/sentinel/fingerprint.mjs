@@ -47,4 +47,14 @@ export function liveDeployDriftFingerprint(functionName) {
   return hash([REPO, "live_deploy_drift", functionName]);
 }
 
+/**
+ * Migration Drift: identidade e o REPOSITORIO. Enquanto a mesma migracao nao aplicar e o MESMO
+ * incidente — o pipeline esta parado, e nao importa quantas migracoes se acumulem atras dele. Se o
+ * fingerprint carregasse as versoes pendentes, cada merge novo abriria uma Issue nova para a mesma
+ * parada.
+ */
+export function migrationDriftFingerprint() {
+  return hash([REPO, "migration_drift"]);
+}
+
 export const REPOSITORY = REPO;
