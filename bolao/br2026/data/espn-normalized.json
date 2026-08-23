@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T00:57:46Z",
-  "sourceUpdatedAt": "2026-08-23T00:57:46Z",
+  "generatedAt": "2026-08-23T02:23:34Z",
+  "sourceUpdatedAt": "2026-08-23T02:23:34Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "79fdc02980df5b8fdf165faa186fc33b47f30cb454000b3ecf0af93c48630f19",
+  "payloadHash": "d3d2a0714a9bc18bf39db61b21d0fc46e1abb1c83553afabc18df82d9cb774c9",
   "matches": [
     {
       "id": "401840808",
@@ -38603,24 +38603,24 @@
       "id": "401841206",
       "date": "2026-08-22T23:30Z",
       "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "66'",
-      "statusDetail": "66'",
+      "statusName": "STATUS_FIRST_HALF",
+      "statusDescription": "First Half",
+      "statusShortDetail": "39'",
+      "statusDetail": "39'",
       "completed": false,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Flamengo",
       "homeTeamId": "2022",
       "awayTeamId": "819",
-      "homeScore": 1,
+      "homeScore": 0,
       "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 3960.0,
-      "clockStr": "66'",
-      "period": 2,
+      "clockSec": 2340.0,
+      "clockStr": "39'",
+      "period": 1,
       "details": [
         {
           "type": {
@@ -38676,25 +38676,6 @@
             {
               "displayName": "João Marcelo",
               "shortName": "João Marcelo"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Goal"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "2022"
-          },
-          "clock": {
-            "value": 3289.0,
-            "displayValue": "55'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Keny Arroyo",
-              "shortName": "K. Arroyo"
             }
           ]
         }
