@@ -320,6 +320,8 @@ const CHECKS = [
     why: "gateway: cache, degradacao, injecao de falha da ESPN, seguranca contra proxy aberto" },
   { id: "migration-idempotency", group: "app", cmd: ["node", "scripts/db/audit_migration_idempotency.mjs"],
     why: "migracao NOVA nao reaplicavel trava o pipeline inteiro e o deploy das Edge Functions junto (Issue #306)" },
+  { id: "sentinel-live-deploy-drift", group: "app", cmd: ["node", "scripts/sentinel/test_live_deploy_drift_detector.mjs"],
+    why: "deriva main-vs-producao vira fato duravel e deduplicado no cron do Sentinel; UNKNOWN nunca vira alarme de deriva (Issue #310)" },
   { id: "live-function-drift", group: "app", cmd: ["node", "scripts/db/audit_live_function_drift.mjs"],
     why: "merge != deploy: o manifesto tem de acompanhar a funcao, e producao e comparada por x-deploy-sha (Issue #306)" },
   { id: "live-function-drift-tests", group: "app", cmd: ["node", "scripts/db/test_live_function_drift.mjs"],
