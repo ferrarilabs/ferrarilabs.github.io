@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T02:23:34Z",
-  "sourceUpdatedAt": "2026-08-23T02:23:34Z",
+  "generatedAt": "2026-08-23T03:28:19Z",
+  "sourceUpdatedAt": "2026-08-23T03:28:19Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d3d2a0714a9bc18bf39db61b21d0fc46e1abb1c83553afabc18df82d9cb774c9",
+  "payloadHash": "8d6a87ea25c2d4ab34b352a8fb46189530f0e6c573cddd31e67be1a1489ccbbf",
   "matches": [
     {
       "id": "401840808",
@@ -38602,25 +38602,25 @@
     {
       "id": "401841206",
       "date": "2026-08-22T23:30Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "39'",
-      "statusDetail": "39'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Flamengo",
       "homeTeamId": "2022",
       "awayTeamId": "819",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 1,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 2340.0,
-      "clockStr": "39'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -38676,6 +38676,82 @@
             {
               "displayName": "João Marcelo",
               "shortName": "João Marcelo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3289.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Keny Arroyo",
+              "shortName": "K. Arroyo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "819"
+          },
+          "clock": {
+            "value": 4904.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Bruno Henrique",
+              "shortName": "Bruno Henrique"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5120.0,
+            "displayValue": "86'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wesley Ribeiro",
+              "shortName": "W. Ribeiro"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Volley"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
             }
           ]
         }
