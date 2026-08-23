@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-23T20:41:49Z",
-  "sourceUpdatedAt": "2026-08-23T20:41:49Z",
+  "generatedAt": "2026-08-23T21:01:00Z",
+  "sourceUpdatedAt": "2026-08-23T21:01:00Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "d77a6920a6819a3d05bdbc38a9494c1f80fc6fb0085b4d15fb754430e8b548a4",
+  "payloadHash": "d6cf6c380669468c07e6f8adaefb4156b4aecfbeec68693607b99f48a7c2206b",
   "matches": [
     {
       "id": "401840808",
@@ -38760,24 +38760,24 @@
     {
       "id": "401841203",
       "date": "2026-08-23T19:00Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "57'",
-      "statusDetail": "57'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Palmeiras",
       "awayTeam": "Vasco da Gama",
       "homeTeamId": "2029",
       "awayTeamId": "3454",
-      "homeScore": 3,
-      "awayScore": 0,
-      "homeWinner": false,
+      "homeScore": 4,
+      "awayScore": 1,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Allianz Parque",
       "city": "Sao Paulo",
-      "clockSec": 3420.0,
-      "clockStr": "57'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
       "period": 2,
       "details": [
         {
@@ -38893,6 +38893,63 @@
               "shortName": "Maurício"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 4959.0,
+            "displayValue": "83'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Robert",
+              "shortName": "Robert"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2029"
+          },
+          "clock": {
+            "value": 5322.0,
+            "displayValue": "89'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Manuel López",
+              "shortName": "J. López"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3454"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Facundo Colidio",
+              "shortName": "F. Colidio"
+            }
+          ]
         }
       ]
     },
@@ -38902,21 +38959,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "52'",
-      "statusDetail": "52'",
+      "statusShortDetail": "90'+7'",
+      "statusDetail": "90'+7'",
       "completed": false,
       "homeTeam": "Red Bull Bragantino",
       "awayTeam": "Grêmio",
       "homeTeamId": "6079",
       "awayTeamId": "6273",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estádio Municipal Cicero de Souza Marques",
       "city": "Bragança Paulista",
-      "clockSec": 3120.0,
-      "clockStr": "52'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+7'",
       "period": 2,
       "details": [
         {
@@ -38956,6 +39013,82 @@
               "shortName": "E. Noriega"
             }
           ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 4290.0,
+            "displayValue": "72'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Agustín Sant'Anna",
+              "shortName": "A. Sant'Anna"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 4552.0,
+            "displayValue": "76'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Weverton",
+              "shortName": "Weverton"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5116.0,
+            "displayValue": "86'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wallace",
+              "shortName": "Wallace"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6079"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gustavo Marques",
+              "shortName": "Gustavo Marques"
+            }
+          ]
         }
       ]
     },
@@ -38965,21 +39098,21 @@
       "state": "in",
       "statusName": "STATUS_SECOND_HALF",
       "statusDescription": "Second Half",
-      "statusShortDetail": "53'",
-      "statusDetail": "53'",
+      "statusShortDetail": "90'+9'",
+      "statusDetail": "90'+9'",
       "completed": false,
       "homeTeam": "Vitória",
       "awayTeam": "Bahia",
       "homeTeamId": "3457",
       "awayTeamId": "9967",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Manoel Barradas",
       "city": "Salvador",
-      "clockSec": 3180.0,
-      "clockStr": "53'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+9'",
       "period": 2,
       "details": [
         {
@@ -39017,6 +39150,63 @@
             {
               "displayName": "Rodrigo Nestor",
               "shortName": "R. Nestor"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 3967.0,
+            "displayValue": "67'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alejo Veliz",
+              "shortName": "A. Veliz"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 4669.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Erick Pulga",
+              "shortName": "Erick Pulga"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Jean Lucas",
+              "shortName": "Jean Lucas"
             }
           ]
         }
