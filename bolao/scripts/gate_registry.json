@@ -809,6 +809,9 @@
     "scripts/report/test_report_security_ratchets.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/report/test_report_ui.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/safety/audit_safety_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
