@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const DIR_FN = join(RAIZ, "supabase/functions/user-report-intake");
+const DIR_FN = join(RAIZ, "support-intake/supabase/functions/user-report-intake");
 
 let pass = 0, fail = 0;
 const test = (n, fn) => { try { fn(); console.log(`  ✓ ${n}`); pass++; }
@@ -26,11 +26,20 @@ const fontesFn = readdirSync(DIR_FN).filter((f) => /\.(js|ts)$/.test(f));
 const srcFn = Object.fromEntries(fontesFn.map((f) => [f, readFileSync(join(DIR_FN, f), "utf-8")]));
 const todoFn = Object.values(srcFn).join("\n");
 
-/** Arquivos servidos ao navegador (o "bundle" deste projeto sem build). */
+/**
+ * Arquivos servidos ao navegador (o "bundle" deste projeto sem build).
+ *
+ * `supabase/` e `support-intake/` ficam de fora porque sao codigo de SERVIDOR: o alvo desta catraca
+ * e "nenhum segredo no que o navegador executa", e a fonte de uma Edge Function nao e isso. O
+ * Pages de fato entrega esses caminhos por HTTP (verificado: 200), mas o repositorio e publico,
+ * entao servi-los nao revela nada que o `git clone` ja nao revele -- e o que esta la sao NOMES de
+ * segredo, nunca valores, o que a catraca 7 cobre separadamente.
+ */
 function ativosDoNavegador() {
   return execSync("git ls-files '*.js' '*.html' '*.css'", { cwd: RAIZ, encoding: "utf-8" })
     .split("\n").filter(Boolean)
     .filter((p) => !p.startsWith("scripts/") && !p.startsWith("supabase/")
+                && !p.startsWith("support-intake/")
                 && !/\/scripts\//.test(p) && !/test|audit|check_/.test(p));
 }
 

@@ -25,7 +25,7 @@ Não é "um botão": é uma superfície de ataque nova, e o desenho parte disso.
 CLIENTE PÚBLICO (navegador do participante)
    │  coletor de contexto SEGURO (allowlist) + sanitizador local
    ▼
-ENDPOINT PÚBLICO  supabase/functions/user-report-intake
+ENDPOINT PÚBLICO  support-intake/supabase/functions/user-report-intake
    │  1. método / origem / content-type / tamanho
    │  2. schema allowlist  (campo desconhecido reprova o corpo inteiro)
    │  3. limite de taxa + disjuntor   (Redis dedicado)
@@ -69,6 +69,17 @@ admin.
 > contra: dependência comprometida, execução de código no runtime, defeito futuro de injeção,
 > código importado malicioso ou comprometimento de cadeia de suprimentos. O ambiente continua
 > contendo credencial de alto valor.
+>
+> **Estado desta correção (2026-08-24):** o código-fonte da função **saiu** do projeto financeiro.
+> Ele agora mora em `support-intake/supabase/`, com `config.toml` próprio e `project_id` distinto, e
+> a catraca `scripts/report/test_report_isolation.mjs` reprova se voltar. `supabase/functions/` passa
+> a ser uma **allowlist** — uma função nova ali nasce reprovando até alguém decidir conscientemente
+> que ela pertence ao projeto que guarda o dinheiro.
+>
+> **O que a catraca NÃO alcança, dito em vez de fingido:** (1) o diretório que a integração do
+> Supabase observa é configurado no **painel**, fora deste repositório; (2) a função **já
+> implantada** no projeto financeiro continua lá — inerte, sem segredo e com o interruptor
+> desligado, mas presente. Deletá-la é ato do dono. Os dois estão no Human Gate.
 >
 > **Correção obrigatória, antes do primeiro reporte real de participante:** a função de produção
 > roda em um projeto Supabase **separado** (`ferrarilabs-support-intake`), sem dado de
@@ -228,10 +239,23 @@ um cliente hostil reservaria o `report_id` alheio e o relato legítimo colidiria
 idempotência já em curso — sucesso na tela, Issue nenhuma. Supressão silenciosa é pior que recusa,
 porque ninguém fica sabendo.
 
+## 10-B. Prontidão — `UNKNOWN` nunca é `READY`
+
+`node scripts/report/readiness.mjs` é o único lugar que responde "dá para ligar o canal?". Cada
+item declara **como** é verificado: `REPO` (o processo decide sozinho), `RUNTIME` (precisa de
+`--probe`), `OWNER` (só o dono confirma — painel, conta, provedor).
+
+Um único `UNKNOWN` derruba o veredito para `NOT_READY`. A alternativa seria um verde que significa
+"não achei problema", e num canal que abre superfície pública isso é pior que um vermelho.
+
+Ele sai com código **0** de propósito: é relatório, não gate de CI. Reprovar o `npm run check`
+porque o dono ainda não criou um projeto Supabase deixaria o pipeline vermelho por algo que nenhum
+commit conserta — e vermelho permanente é vermelho que se aprende a ignorar.
+
 ## 11. Melhorias conhecidas (próxima versão)
 
-1. **Projeto Supabase separado** para o intake — hoje a segmentação de credencial é de código, e um
-   projeto próprio a tornaria de plataforma.
+1. ~~**Projeto Supabase separado**~~ — o código-fonte já saiu do projeto financeiro (ver T-ENV-01).
+   Falta a metade que só o dono faz: criar o projeto e apagar a função ainda implantada no primário.
 2. **UI e integração por app** — deliberadamente fora desta entrega: sem endpoint implantado, um
    botão visível seria um botão morto.
 3. **Teste de integração HTTP real.** A política é pura e coberta; a *fiação* não era. Um
