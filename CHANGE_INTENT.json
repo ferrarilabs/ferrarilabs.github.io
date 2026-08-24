@@ -3,17 +3,5 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": [
-    {
-      "surface_id": "NOTIFICATION_WORKFLOWS",
-      "lifecycle": "one_shot",
-      "reason": "Issue #316-B. O `bolao_provider_snapshot.yml` commita em main com GITHUB_TOKEN, e um push com esse token NAO dispara outro workflow (protecao anti-loop do GitHub). Consequencia medida: os commits de snapshot nao rodam `npm run check` -- verificado em tres commits de bot consecutivos, todos sem nenhuma execucao, enquanto o ultimo commit humano antes deles estava verde. Uma combinacao de conteudo do snapshot passou a estourar 4px na horizontal a 320px e ficou vermelha em silencio. A correcao valida o dado gerado ANTES de ele virar commit, em vez de tentar acordar CI depois.",
-      "expected_behavior_change": "Passos NOVOS antes do commit, todos condicionados a `steps.changed.outputs.changed == 'true'` (ou seja, so quando o snapshot realmente mudou): setup-node, npm ci, cache do Playwright, instalacao do Chromium e execucao de `validate_snapshot_before_publish.mjs`. Se um gate afetado reprovar, o job FALHA e o snapshot NAO e commitado. O cron, os apps cobertos, o conteudo do snapshot e o caminho de push NAO mudam. NENHUM token novo: continua GITHUB_TOKEN, deliberadamente -- trocar por um PAT amplo so para disparar CI criaria credencial com muito mais alcance do que a tarefa precisa e uma cadeia recursiva de workflows.",
-      "tests_required": [
-        "bolao/scripts/test_snapshot_publication_guard.mjs",
-        "bolao/br2026/scripts/visual/check_live_hero_width.mjs",
-        "bolao/br2026/scripts/visual/check_standings_layout.mjs"
-      ]
-    }
-  ]
+  "declarations": []
 }
