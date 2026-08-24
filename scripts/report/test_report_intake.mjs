@@ -9,12 +9,12 @@
  */
 import {
   validar, montarTitulo, montarCorpo, tornarInerte, redigir, idExibivel, LIMITES, DIAGNOSTICOS,
-} from "../../supabase/functions/user-report-intake/policy.js";
+} from "../../support-intake/supabase/functions/user-report-intake/policy.js";
 import { tratarRequisicao, ORIGENS_PERMITIDAS, conferirConfig, corpoDeResposta,
          STATUS_SEM_CORPO, intakeHabilitado,
-         HABILITADO_VALOR_EXATO } from "../../supabase/functions/user-report-intake/handler.js";
+         HABILITADO_VALOR_EXATO } from "../../support-intake/supabase/functions/user-report-intake/handler.js";
 import { chaveDeRede, impressao, avaliarLimites, criarRedis, chaveIdempotencia,
-         reservarIdempotencia } from "../../supabase/functions/user-report-intake/abuse.js";
+         reservarIdempotencia } from "../../support-intake/supabase/functions/user-report-intake/abuse.js";
 
 let pass = 0, fail = 0;
 async function test(nome, fn) {
