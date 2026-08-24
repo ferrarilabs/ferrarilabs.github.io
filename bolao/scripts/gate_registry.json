@@ -803,6 +803,9 @@
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Suite da campanha de modernizacao de banco. E EXECUTADO, mas pelo runner proprio da campanha (`node scripts/gates.mjs`), nao pelo agregador do site: o codigo que ele protege (model/, scripts/db/, supabase/migrations/) ainda nao esta no caminho de producao — READ_CUTOVER=NO e WRITE_CUTOVER=NO. Registrado como standalone para nao nascer invisivel e para nao inflar o pipeline de um workstream paralelo com ~40 suites que nao guardam nada que hoje serve o navegador. GATILHO DE PROMOCAO: no momento em que READ_CUTOVER ou WRITE_CUTOVER virar SIM, estes gates passam a proteger caminho de producao e devem virar REGISTERED_AND_EXECUTED (package.json + scripts/verify.mjs)."
     },
+    "scripts/test_pii_fingerprints.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/report/test_report_intake.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
