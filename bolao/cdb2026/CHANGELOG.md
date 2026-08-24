@@ -1,5 +1,26 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.131 — canal de reporte de problema, desligado (2026-08-24, Issue #321)
+
+O app ganha a chave de configuracao `reportProblem`, **desligada** (`enabled: false`), e mais
+nada: nenhuma UI, nenhuma requisicao, nenhuma mudanca de comportamento para o participante.
+
+A Edge Function `user-report-intake` foi implementada no mesmo PR mas **nao esta implantada**, e
+nenhum dos oito segredos exigidos existe. Enquanto isso for verdade, um botao visivel seria um
+botao morto — pior que nao ter botao, porque ensina o participante que reportar nao funciona. Por
+isso a UI fica para a fase 2, junto com a provisao de producao.
+
+O canal foi desenhado como um intake de incidentes **externo e nao confiavel**: o relato bruto vai
+para um repositorio **privado** e nunca cruza automaticamente a fronteira privado->publico. O
+endpoint nao alcanca banco de participante, pagamento, scoring nem competicao.
+
+**Scoring, ranking, entradas e pagamentos: intocados.** Os tres `audit_scoring.py` continuam
+passando.
+
+Detalhe completo — modelo de ameacas, dados coletados e excluidos, retencao, rollback e runbook de
+triagem — em `docs/bolao/SECURE_USER_REPORTING.md`.
+
+
 ## v3.130 — a recusa do servidor no save virou diagnosticável (2026-08-20, Issue #258)
 
 Um participante reportou "Erro ao salvar. Tente novamente.". A investigação conseguiu **excluir**
