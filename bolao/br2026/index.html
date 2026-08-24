@@ -25,6 +25,7 @@
   <link rel="stylesheet" href="../shared/css/forms.css?v=1dcedd5a2ac1">
   <link rel="stylesheet" href="../shared/css/admin.css?v=1dcedd5a2ac1">
   <link rel="stylesheet" href="../shared/css/responsive.css?v=1dcedd5a2ac1">
+  <link rel="stylesheet" href="../shared/css/report.css?v=1dcedd5a2ac1">
   <link rel="stylesheet" href="css/styles.css?v=1dcedd5a2ac1">
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"
           integrity="sha384-SALc35EccAf6RzGw4iNsyj7kTPr33K7RoGzYu+7heZhT8s0GZouafRiCg1qy44AS"
@@ -37,6 +38,8 @@
   <script src="js/i18n.js?v=1dcedd5a2ac1"></script>
   <!-- Formatador USD canônico compartilhado (BATCH 5) — precisa carregar ANTES de app.js. -->
   <script src="../shared/js/money.js?v=1dcedd5a2ac1"></script>
+  <script src="../shared/js/report_safe_context.js?v=1dcedd5a2ac1"></script>
+  <script src="../shared/js/report_ui.js?v=1dcedd5a2ac1"></script>
   <script src="../shared/js/live_clock.js?v=1dcedd5a2ac1"></script>
   <script src="../shared/js/football_live_store.js?v=1dcedd5a2ac1"></script>
   <script defer src="js/app.js?v=1dcedd5a2ac1"></script>
@@ -235,6 +238,11 @@
 </main>
 
 <footer id="siteFooterBar" class="site-footer-bar"></footer>
+
+
+<!-- "Reportar problema" (#321). Fica VAZIO ate reportProblem.enabled = true no config:
+     sem backend aceito, um botao visivel seria um botao morto. -->
+<div data-report-mount data-report-app="br2026" data-report-config="BR2026_CONFIG"></div>
 
 </body>
 </html>
