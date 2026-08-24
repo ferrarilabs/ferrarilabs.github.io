@@ -7,8 +7,9 @@ project_id = "cmhqkkfczotdnssupkni"
 # ler placar, o que seria pior em segurança, não melhor.
 verify_jwt = false
 
-[functions.user-report-intake]
-# Dado de reporte de problema e PUBLICO/ANONIMO por desenho: o participante nao precisa de conta
-# para dizer que algo quebrou. Exigir JWT transformaria "achei um bug" em "crie uma conta", e o
-# controle de abuso aqui e limite de taxa pseudonimo, nao identidade.
-verify_jwt = false
+# `user-report-intake` NAO mora mais aqui -- ver `support-intake/supabase/`. Este projeto guarda os
+# dados de participante, pagamento, scoring e ranking, e um endpoint publico NAO AUTENTICADO nao
+# pode compartilhar runtime com eles: o Supabase injeta SUPABASE_DB_URL, SUPABASE_SECRET_KEYS e o
+# legado SUPABASE_SERVICE_ROLE_KEY (que ignora RLS) em TODA Edge Function hospedada do projeto.
+#
+# A catraca `scripts/report/test_report_isolation.mjs` reprova se ele voltar para ca.

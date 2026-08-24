@@ -18,7 +18,7 @@
  * a URL com token na query, o nome no titulo da pagina, o storage cheio de estado.
  *
  * A fronteira de verdade e o servidor, que valida e sanitiza tudo de novo, sem confiar em nada
- * disto. Ver `supabase/functions/user-report-intake/`.
+ * disto. Ver `support-intake/support-intake/supabase/functions/user-report-intake/`.
  *
  * ─── BARRAMENTO DE DIAGNOSTICO ──────────────────────────────────────────────────────────────
  *
