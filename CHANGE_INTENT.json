@@ -7,12 +7,11 @@
     {
       "surface_id": "EDGE_FUNCTIONS",
       "lifecycle": "one_shot",
-      "reason": "Issue #321. Nova Edge Function `user-report-intake`: canal de intake de incidentes EXTERNO e NAO CONFIAVEL para o botao 'Reportar problema'. O relato bruto do participante vai para um repositorio PRIVADO (`ferrarilabs/support-intake`) via GitHub App com escopo de um repositorio e uma permissao (Issues: write); nunca para o repositorio publico. O endpoint NAO alcanca banco de participante, pagamento, scoring ou competicao -- nao usa service_role, senha do banco nem RPC financeiro.",
-      "expected_behavior_change": "ADITIVO e INERTE nesta entrega. A funcao e NOVA e NAO foi implantada: nenhum dos oito segredos exigidos existe (`supabase secrets list` confirma), e sem eles o handler responde 503 por falha fechada, sem revelar qual falta. A `live-football` NAO e tocada. No frontend, `reportProblem.enabled = false` nos tres apps ativos, entao nenhuma UI aparece -- um botao visivel sem endpoint seria um botao morto. `config.toml` ganha `[functions.user-report-intake] verify_jwt = false`, deliberado: reportar um bug nao pode exigir conta, e o controle de abuso e limite de taxa pseudonimo, nao identidade.",
+      "reason": "Issue #321, correcao em producao. O preflight CORS de origem PERMITIDA respondia 500 enquanto o de origem proibida respondia 403 corretamente -- ou seja, o unico caminho quebrado era o caminho feliz. Causa: `new Response(\"\", { status: 204 })` LANCA, porque a especificacao de Fetch proibe corpo em 204/205/304, e `\"\"` nao e ausencia de corpo; `null` e. A excecao virava 500 \"Internal Server Error\". Corrige tambem a afirmacao errada de que a funcao nao estava implantada: a integracao do Supabase publica Edge Functions automaticamente no merge para main.",
+      "expected_behavior_change": "O preflight `OPTIONS` de origem permitida passa a responder 204 com os cabecalhos de CORS, em vez de 500. Nenhum outro status muda. O canal continua INERTE: nenhum dos oito segredos existe, entao todo POST segue recusado com 503 por falha fechada, e `reportProblem.enabled = false` nos tres apps mantem a UI ausente. Sem impacto para participante -- a UI nunca chegou a existir, entao nenhum preflight real foi emitido.",
       "tests_required": [
         "scripts/report/test_report_intake.mjs",
-        "scripts/report/test_report_security_ratchets.mjs",
-        "bolao/scripts/audit_live_gateway.mjs"
+        "scripts/report/test_report_security_ratchets.mjs"
       ]
     }
   ]
