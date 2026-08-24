@@ -259,6 +259,53 @@ irrelevante, perder o relato de alguém não é.
 a casca externa cobre o resto. Prova: um caso injeta exceção **antes** do `try` interno e verifica
 que a resposta é o mesmo 503 genérico, byte a byte.
 
+## 9-C. Achados reavaliados — controle ou risco residual assumido
+
+Nem todo achado vira código. Estes foram reavaliados um a um; onde não há controle, o motivo está
+escrito, porque risco não registrado é risco que ninguém decidiu correr.
+
+### Controle implementado
+
+- **F-10 — chave privada longeva.** Cadência de rotação **datada**: a chave privada da GitHub App
+  é rotacionada **a cada 6 meses**, e imediatamente após qualquer suspeita de comprometimento do
+  runtime. O token de instalação já expira sozinho (~1h) e nunca é persistido. Antes disto a
+  rotação existia como procedimento sem **quando**, e procedimento sem quando não acontece.
+- **F-13 — bandeira em três cópias.** Coberta pelo item `ui_flag_off` do manifesto de prontidão,
+  que exige as **três** desligadas e nomeia qual divergiu. Manter três cópias é deliberado (os apps
+  não compartilham código); o que não podia continuar era ninguém verificar as três juntas.
+- **F-16 — três jurisdições, nenhum mapa.** Tabela abaixo. Continua **não** havendo alegação de
+  conformidade com GDPR, LGPD ou qualquer regime — isso exigiria avaliação formal que não foi
+  feita. O que existe agora é a resposta para "onde o dado repousa", que antes não existia nem em
+  rascunho.
+
+| provedor | o que repousa lá | por quanto tempo |
+|---|---|---|
+| Supabase (projeto de suporte) | **nada** — a função não tem banco; só executa | — |
+| Upstash Redis | contadores, TTL, idempotência, impressão de duplicata | ≤ 7 dias (TTL) |
+| GitHub (`support-intake`, privado) | o relato, no Issue privado | retenção proposta de 90 dias (§10) |
+
+A região de cada provedor é escolhida na criação e deve ser **registrada aqui pelo dono** quando os
+recursos existirem — ver o Human Gate.
+
+### Risco residual assumido, com motivo
+
+- **F-03 — falhar fechado silencia o participante real durante um incidente.** O controle óbvio
+  seria reservar capacidade para remetentes "com histórico". Isso exige guardar um marcador durável
+  por pessoa — exatamente o que a chave de taxa com componente de data foi desenhada para **não**
+  ter. Trocar privacidade por disponibilidade aqui seria pagar o preço errado num canal cujo
+  propósito é receber relato sem identificar quem relata. **Mitigação parcial:** com F-11, a
+  abertura do disjuntor deixa de ser silenciosa — alguém pelo menos fica sabendo.
+- **F-07 — retenção de 90 dias não aplicada por código.** O job de varredura precisa listar Issues
+  do repositório privado, o que exige a GitHub App **que ainda não existe**. Implementá-lo agora
+  produziria código que nunca rodou. Está no manifesto como item `OWNER`, e a deleção destrutiva
+  continua exigindo autorização explícita e separada.
+- **F-09 — a chave de taxa se renova para os dois lados.** O componente de data faz a rotação
+  acontecer sem trabalho nenhum, e também entrega ao atacante uma identidade nova à meia-noite UTC:
+  o limite "diário" é, na prática, por dia civil UTC. Uma janela deslizante exigiria reter um
+  identificador por mais tempo — de novo, mais dado sobre pessoas para ganhar rigor contra abuso.
+  **Aceito**, com o número honesto: perto da virada, ~20 envios cabem em minutos por chave de rede.
+  O teto **global** e o disjuntor continuam valendo e são o que de fato limita o dano.
+
 ## 10-B. Prontidão — `UNKNOWN` nunca é `READY`
 
 `node scripts/report/readiness.mjs` é o único lugar que responde "dá para ligar o canal?". Cada
