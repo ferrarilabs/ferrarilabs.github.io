@@ -105,6 +105,7 @@ tem corrida. **Falha fechado**: limitador indisponível ⇒ recusa.
 | PII submetida sem querer | participante | aviso na UI + redação de padrões óbvios + **relato privado** | nome nunca é detectável por regex | `redigir()` + testes |
 | SSRF | rede interna | hosts de saída literais; URL nunca vem do payload | — | ratchet §5 |
 | Replay | duplicatas | idempotência em duas fases + reconciliação por `report_id` | janela de crash coberta pela reconciliação | `test_report_intake` |
+| **Sequestro de `report_id`** | relato legítimo | chave de idempotência é `HMAC(segredo, chave_de_rede ‖ report_id)`, não o `report_id` cru | um mesmo remetente ainda colide consigo próprio — que é o comportamento desejado | `test_report_intake` (F-04, 4 casos + controle negativo) |
 | Bypass de CORS | — | CORS **não é** autenticação; abuso controlado independentemente | cliente não-navegador ignora CORS, por isso o limite é obrigatório | ratchet §5 |
 | Divulgação privado→público | relato | invariante de visibilidade **no runtime**, antes de criar | operador pode promover manualmente (é decisão humana, autorizada) | ratchet §3 |
 | Segredo em log | credenciais | só código de erro; nunca objeto de erro | — | ratchet §7 |
@@ -133,6 +134,12 @@ retenção. Nunca curinga, nunca Issue pública.
 
 **Remoção a pedido do titular:** correlacionar pelo `report_id` impresso na tela, apagar a Issue
 privada correspondente. É por isso que o `RPT-XXXXXXXX` é mostrado.
+
+O `report_id` é gerado no navegador e serve para **exibição e correlação** — nunca como chave de
+controle. A idempotência real é derivada de `HMAC(segredo, chave_de_rede ‖ report_id)`: sem isso,
+um cliente hostil reservaria o `report_id` alheio e o relato legítimo colidiria com uma
+idempotência já em curso — sucesso na tela, Issue nenhuma. Supressão silenciosa é pior que recusa,
+porque ninguém fica sabendo.
 
 ## 11. Melhorias conhecidas (próxima versão)
 
