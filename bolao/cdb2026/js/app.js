@@ -737,6 +737,30 @@ async function motivoDaRecusa(r) {
   } catch { return ""; }
 }
 
+/**
+ * Publica um CODIGO de diagnostico para o "Reportar problema" (Issue #321), a partir da recusa do
+ * servidor no save (a classe de evento da Issue #258).
+ *
+ * O que sai daqui e SO um codigo de uma lista fechada. `err.message` NUNCA entra num reporte: ele
+ * carrega `RPC cdb_save_my_picks respondeu 400 ...` com o motivo do servidor, e motivo de servidor
+ * neste app ja foi -- por desenho -- coisa que nao se mostra ao participante, muito menos se manda
+ * para uma fila de triagem.
+ *
+ * Nao altera o save, nao altera a mensagem na tela, nao altera o console. E estritamente aditivo:
+ * se o coletor nao estiver carregado, isto nao faz nada.
+ */
+function publicaDiagnosticoDeSave(err) {
+  const ctx = window.BOLAO_REPORT_CONTEXT;
+  if (!ctx || typeof ctx.publicarDiagnostico !== "function") return;
+  const m = String((err && err.message) || "");
+  let codigo = "UNKNOWN_SAFE_ERROR";
+  if (/ACESSO_NEGADO/.test(m)) codigo = "SAVE_ACCESS_DENIED";
+  else if (/FASE_FECHADA/.test(m)) codigo = "SAVE_PHASE_CLOSED";
+  else if (/CUTOFF_(PASSADO|ILEGIVEL)/.test(m)) codigo = "SAVE_CUTOFF";
+  else if (/NetworkError|Failed to fetch|timeout/i.test(m)) codigo = "SAVE_NETWORK_FAILURE";
+  ctx.publicarDiagnostico(codigo);
+}
+
 async function cdbRpc(fn, args) {
   const { url, anonKey } = C.database;
   const r = await fetchJson(`${url}/rest/v1/rpc/${fn}`, {
@@ -2446,6 +2470,7 @@ async function saveEntry() {
     } catch (err) {
       if (btn) { btn.disabled = false; btn.textContent = t("saveEntry"); }
       console.error("[CDB2026] gravacao segura recusada", err);
+      publicaDiagnosticoDeSave(err);
       showToast(t("saveError"), "error");
       return;
     }

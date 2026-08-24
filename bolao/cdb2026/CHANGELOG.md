@@ -1,5 +1,31 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.132 — UI de reporte, montada e desligada (2026-08-24, Issue #321)
+
+Entra o componente compartilhado do "Reportar problema" (`bolao/shared/js/report_ui.js` e
+`report.css`): modal acessivel, quatro idiomas (pt-BR, en, es, ja), foco preso enquanto aberto,
+`Escape` fecha, foco devolvido ao elemento de origem, e tela cheia a partir de 320px — porque
+caixa flutuante em 320px vira janela de 280px com scroll duplo.
+
+**Nada disso aparece.** `reportProblem.enabled` continua `false`, e com a flag desligada o
+componente nao cria botao, nao registra listener e nao toca no DOM. O ponto de montagem no HTML
+fica um `<div>` vazio. Um botao visivel sem backend aceito seria um botao morto — pior que a
+ausencia dele, porque ensina o participante que reportar nao funciona.
+
+O modal traz o aviso de privacidade em destaque (nao escondido atras de clique) e uma divulgacao
+tecnica recolhida que mostra o objeto REAL que sairia do navegador, campo a campo — se algum campo
+novo entrar no coletor, ele aparece la sozinho. E diz a verdade sobre expectativa: este canal nao e
+suporte e nao garante resposta.
+
+**Scoring, ranking, entradas e pagamentos: intocados.** Os tres `audit_scoring.py` continuam
+passando.
+
+Alem disso, a recusa do servidor no save passa a publicar um **codigo** de diagnostico para o canal
+de reporte (classe de evento da #258). So o codigo, de uma lista fechada: `err.message` nunca entra
+num reporte, porque carrega o motivo do servidor — que neste app ja e, por desenho, coisa que nao
+se mostra ao participante. O save, a mensagem na tela e o console **nao mudam**.
+
+
 ## v3.131 — canal de reporte de problema, desligado (2026-08-24, Issue #321)
 
 O app ganha a chave de configuracao `reportProblem`, **desligada** (`enabled: false`), e mais

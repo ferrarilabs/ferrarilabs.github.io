@@ -1,0 +1,206 @@
+/**
+ * report.css — modal "Reportar problema" (Issue #321).
+ *
+ * Usa SOMENTE os tokens de `tokens.css`. Nenhuma cor literal nova: o canal de reporte nao e um
+ * produto proprio, e um componente da plataforma, e precisa parecer parte dela.
+ *
+ * Alvo minimo 320px. Nessa largura o modal ocupa a tela inteira em vez de tentar caber numa caixa
+ * flutuante -- caixa flutuante em 320px vira uma janela de 280px com scroll duplo, que e pior que
+ * tela cheia para ler e para digitar.
+ */
+
+/* O gatilho so existe quando o app o monta; sem flag ligada, nada disto entra no DOM. */
+.report-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  background: transparent;
+  color: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 0.82rem;
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+}
+.report-trigger:hover { color: var(--text); border-color: var(--border2); }
+.report-trigger:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+.report-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-7);
+  z-index: 1000;
+}
+.report-backdrop[hidden] { display: none; }
+
+.report-dialog {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 10px;
+  width: 100%;
+  max-width: 33rem;
+  max-height: 100%;
+  overflow-y: auto;
+  color: var(--text);
+  padding: var(--space-7);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+
+.report-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-5);
+}
+.report-title { font-size: var(--font-size-h2); font-weight: var(--font-weight-bold); margin: 0; }
+
+.report-close {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--muted);
+  font: inherit;
+  line-height: 1;
+  padding: var(--space-2) var(--space-3);
+  cursor: pointer;
+}
+.report-close:hover { color: var(--text); }
+.report-close:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+.report-field { display: flex; flex-direction: column; gap: var(--space-3); }
+.report-label { font-size: 0.85rem; color: var(--muted); }
+
+.report-input,
+.report-textarea {
+  width: 100%;
+  background: var(--bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  padding: var(--space-4);
+  resize: vertical;
+}
+.report-textarea { min-height: 7.5rem; }
+.report-input:focus-visible,
+.report-textarea:focus-visible { outline: 2px solid var(--green); outline-offset: 1px; }
+
+.report-counter { font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.report-counter[data-estado="excedido"] { color: var(--red); }
+
+/* Aviso de privacidade: nunca escondido atras de um clique. E o que a pessoa precisa saber ANTES
+   de escrever, nao depois. */
+.report-privacy {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--gold);
+  border-radius: 4px;
+  padding: var(--space-5);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+.report-privacy strong { color: var(--text); }
+
+/* Divulgacao tecnica: recolhida, porque e detalhe -- mas presente e completa, porque quem quer
+   conferir o que sai do navegador tem direito de conferir. */
+.report-disclosure { border: 1px solid var(--border); border-radius: 6px; padding: var(--space-4); }
+.report-disclosure > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  color: var(--muted);
+  list-style: none;
+}
+.report-disclosure > summary::-webkit-details-marker { display: none; }
+.report-disclosure > summary::before { content: "▸ "; }
+.report-disclosure[open] > summary::before { content: "▾ "; }
+.report-disclosure > summary:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+.report-disclosure dl {
+  margin: var(--space-5) 0 0;
+  display: grid;
+  grid-template-columns: minmax(6rem, auto) 1fr;
+  gap: var(--space-2) var(--space-5);
+  font-size: 0.78rem;
+}
+.report-disclosure dt { color: var(--muted); }
+.report-disclosure dd { margin: 0; font-family: var(--font-family-mono); word-break: break-word; }
+
+.report-actions { display: flex; gap: var(--space-4); justify-content: flex-end; flex-wrap: wrap; }
+
+.report-btn {
+  font: inherit;
+  border-radius: 6px;
+  padding: var(--space-4) var(--space-7);
+  cursor: pointer;
+  border: 1px solid var(--border2);
+  background: transparent;
+  color: var(--text);
+}
+.report-btn--primary {
+  background: var(--green);
+  color: var(--green-dk);
+  border-color: var(--green);
+  font-weight: var(--font-weight-bold);
+}
+.report-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.report-btn:focus-visible { outline: 2px solid var(--green); outline-offset: 2px; }
+
+.report-status { font-size: 0.85rem; }
+.report-status[data-tipo="erro"] {
+  background: var(--danger-bg);
+  color: var(--danger-tx);
+  border: 1px solid var(--danger-br);
+  border-radius: 6px;
+  padding: var(--space-5);
+}
+.report-status[data-tipo="ok"] {
+  background: var(--bg3);
+  border: 1px solid var(--green);
+  border-radius: 6px;
+  padding: var(--space-5);
+}
+.report-id {
+  font-family: var(--font-family-mono);
+  font-size: 1rem;
+  color: var(--green);
+  user-select: all;
+}
+
+/* O honeypot precisa ser invisivel para pessoa E alcancavel para automacao ingenua. `display:none`
+   e `hidden` sao pulados por muitos bots; posicionar fora da tela nao e. `aria-hidden` e
+   `tabindex="-1"` garantem que leitor de tela e teclado nunca o encontrem. */
+.report-honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+@media (max-width: 30rem) {
+  .report-backdrop { padding: 0; }
+  .report-dialog {
+    max-width: none;
+    min-height: 100%;
+    border: 0;
+    border-radius: 0;
+  }
+  .report-actions { flex-direction: column-reverse; }
+  .report-btn { width: 100%; }
+  .report-disclosure dl { grid-template-columns: 1fr; gap: var(--space-1); }
+  .report-disclosure dt { margin-top: var(--space-3); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .report-dialog { animation: report-entra 140ms ease-out; }
+  @keyframes report-entra {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: none; }
+  }
+}

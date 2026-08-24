@@ -2310,3 +2310,27 @@ visível — comparar os dois mediria visibilidade, não token de tipografia.
 `main:height` e `card-base:height` passaram a cobrir os quatro apps: são `content-driven` no Powerball
 pelo mesmo motivo que nos outros três. Não é exceção nova — é a mesma exceção aplicada ao app que
 antes nem era medido.
+
+---
+
+## "Reportar problema" — Copa do Mundo 2026 fica de fora (Issue #321, 2026-08-24)
+
+**Status: `INTENTIONALLY_DIFFERENT`.**
+
+O componente compartilhado (`bolao/shared/js/report_ui.js` + `report.css`) foi montado em
+**CDB2026, BR2026 e Powerball**. A **Copa do Mundo 2026 não o recebe**, e isto é decisão, não
+esquecimento.
+
+**Motivo.** O torneio terminou em 2026-07-19 e o app está arquivado (`CONFIG.archived = true`,
+que já esconde toda a navegação exceto o Ranking). Um canal de reporte existe para que alguém
+conserte alguma coisa; num app arquivado não há o que consertar, e o prêmio já foi pago. Montar o
+botão lá criaria a única coisa que este recurso foi desenhado para evitar — um caminho que convida
+o participante a escrever e não leva a lugar nenhum.
+
+**O que foi verificado antes de decidir:** o app da Copa continua servindo a Ranking, a auditoria e
+os palpites por entrada. Nada disso depende do canal de reporte, e nenhum dos três arquivos novos é
+carregado por ele — `grep` em `bolao/copa2026/index.html` não encontra `report_ui`, `report.css`
+nem `report_safe_context`.
+
+**Gatilho de revisão:** se a Copa algum dia sair do estado arquivado, esta linha deixa de valer e o
+componente deve ser montado como nos outros três.
