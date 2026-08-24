@@ -2,6 +2,8 @@
 
 **Issue:** #321 · **Estado:** implementado e **DESLIGADO** (`reportProblem.enabled = false`)
 
+**Estado de ativação:** `CODE_ONLY` — ver §4-B.
+
 **Endpoint: IMPLANTADO e inerte.** A integração do Supabase publica as Edge Functions
 automaticamente no merge para `main` — não há passo manual de deploy, e presumir o contrário foi
 um erro de leitura meu, corrigido aqui. O que mantém o canal inerte **não** é a ausência de deploy:
@@ -53,11 +55,87 @@ O endpoint **não alcança** banco de participante, pagamento, scoring ou compet
 Um comprometimento do "Reportar problema" **não** vira caminho para pagamentos, palpites, ranking ou
 admin.
 
-> **Risco residual honesto:** o Supabase injeta os segredos do projeto em **todas** as Edge
-> Functions. `SUPABASE_SERVICE_ROLE_KEY` está no ambiente desta função queira-se ou não. A fronteira
-> aqui é de **código**, não de plataforma: nada em `user-report-intake/` lê esses nomes, e uma
-> catraca de CI reprova se passar a ler. Isolamento real exigiria um projeto Supabase separado —
-> registrado como melhoria na §11.
+> ### T-ENV-01 — o projeto compartilhado **não** é uma fronteira de confiança aceitável
+>
+> O Supabase injeta capacidades de projeto em **todas** as Edge Functions hospedadas:
+> `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEYS` e o legado `SUPABASE_SERVICE_ROLE_KEY` — este último
+> **ignora RLS**. Eles estão no ambiente desta função queira-se ou não.
+>
+> Portanto a afirmação anterior — "um comprometimento do intake não alcança participante/pagamento"
+> — **não é forte o bastante** enquanto esta função pública e não autenticada executar no **mesmo
+> projeto** que os dados de produção do Ferrari Labs.
+>
+> A catraca de CI protege contra **uso acidental** pelo nosso próprio código. Ela **não** protege
+> contra: dependência comprometida, execução de código no runtime, defeito futuro de injeção,
+> código importado malicioso ou comprometimento de cadeia de suprimentos. O ambiente continua
+> contendo credencial de alto valor.
+>
+> **Correção obrigatória, antes do primeiro reporte real de participante:** a função de produção
+> roda em um projeto Supabase **separado** (`ferrarilabs-support-intake`), sem dado de
+> participante, sem razão de pagamento, sem palpite, sem scoring, sem ranking e sem RPC de
+> produção. O segredo que o Supabase injetar lá pertence **àquele** projeto e por construção não
+> alcança o projeto financeiro.
+>
+> **Sem ponte entre os projetos:** nada de FDW, nada de database link, nada de `service_role`
+> compartilhado, nada de senha de banco compartilhada, nada de credencial de API de participante.
+>
+> **Risco residual atual (honesto):** a função hoje implantada vive no projeto primário. Ela está
+> inerte por dois motivos independentes — interruptor de servidor desligado e nenhum dos oito
+> segredos provisionado — mas o risco de T-ENV-01 **só é de fato eliminado pelo isolamento**, não
+> pela inércia. Provisionar qualquer segredo de reporte no projeto primário está **proibido**.
+
+## 4-A. O interruptor de servidor
+
+`REPORT_INTAKE_ENABLED` é um gate **independente dos oito segredos**, avaliado **antes** de
+qualquer dependência: nada de Redis, nada de GitHub, nada de JWT, nada de parsear corpo.
+
+**Só a string exata `"true"` liga.** `"TRUE"`, `"1"`, `"yes"`, espaço sobrando, ausente e vazio
+significam DESLIGADO. Não há coerção — um interruptor de segurança que aceita sinônimos é um
+interruptor que alguém liga sem querer.
+
+Desligado responde **exatamente** como não-configurado (`503 {"error":"UNAVAILABLE"}`). Quem sonda
+não aprende se o canal está desligado ou incompleto; isso não é informação dele.
+
+> **Por que isto existe.** Antes, o canal ligava sozinho no instante em que o oitavo segredo fosse
+> provisionado: "provisionar dependência" e "abrir endpoint público ao mundo" eram o mesmo ato, sem
+> ninguém decidir a segunda coisa. **Preparar infraestrutura não pode ser, por acidente, um
+> lançamento.** Ver `T-ACT-01` no §8.
+
+## 4-B. Ativação em duas chaves — invariante de deploy
+
+Dois gates **independentes**, e o rollout público exige os dois deliberadamente ligados:
+
+| gate | onde | papel |
+|---|---|---|
+| `REPORT_INTAKE_ENABLED=true` | servidor (segredo do projeto) | **a fronteira de segurança** |
+| `reportProblem.enabled=true` | cliente (`config.js` dos apps) | defesa em profundidade / controle de UX |
+
+O flag do cliente **não** é a fronteira: ele roda no navegador do participante, que o edita à
+vontade. Ele existe para que a UI não apareça, não para impedir requisição.
+
+**Máquina de estados.** Transições são atos deliberados, nunca efeito colateral:
+
+```
+CODE_ONLY                      código no repo; nenhum segredo; servidor OFF; UI OFF
+        │  provisionar dependências (Redis, GitHub App, HMAC)
+        ▼
+BACKEND_PROVISIONED_DISABLED   oito segredos existem; servidor AINDA OFF   ← estado seguro e estável
+        │  ligar servidor só para aceitação
+        ▼
+BACKEND_ACCEPTANCE             servidor ON; UI OFF; reporte sintético ponta a ponta
+        │  aceitação passa
+        ▼
+BACKEND_ENABLED_UI_DISABLED    servidor ON; UI ainda OFF
+        │  decisão de lançamento
+        ▼
+PUBLIC_ENABLED                 servidor ON; UI ON
+        │  incidente
+        ▼
+EMERGENCY_DISABLED             servidor OFF  ← PRIMEIRA ação de rollback, sempre
+```
+
+**Rollback começa sempre pelo servidor** (`REPORT_INTAKE_ENABLED=false`), não pelo cliente: o
+cliente só esconde o botão, e um navegador com a página velha em cache continua conseguindo POSTar.
 
 ## 5. Dados coletados
 
@@ -120,6 +198,8 @@ tem corrida. **Falha fechado**: limitador indisponível ⇒ recusa.
 | Deriva de configuração | relato | verificação de visibilidade no runtime, não na config | — | ratchet §3 |
 | Diagnóstico malicioso | integridade | allowlist; desconhecido ⇒ `UNKNOWN_SAFE_ERROR` | — | testes |
 | Unicode / bidi | leitor | controles e invisíveis removidos | — | corpus |
+| **T-ENV-01** — raio de alcance de credencial do runtime compartilhado | projeto Supabase de produção (participantes, pagamentos, scoring) | **isolamento de runtime em projeto separado** (pendente) + catraca de CI que reprova referência a credencial de alto valor | **ALTO enquanto a função rodar no projeto primário** — ver abaixo | `test_report_security_ratchets` §1 |
+| **T-ACT-01** — provisionar segredo ativando endpoint público sem querer | canal inteiro | **interruptor de servidor** `REPORT_INTAKE_ENABLED`, avaliado antes de toda dependência; comparação exata | operador ainda pode ligar deliberadamente sem aceitação — que é uma decisão, não um acidente | `test_report_intake` (5 casos + 2 controles negativos) |
 
 ## 9. Fronteira de injeção de prompt
 
@@ -168,15 +248,21 @@ porque ninguém fica sabendo.
 `REPORT_GITHUB_OWNER` · `REPORT_GITHUB_REPO` · `REPORT_REDIS_REST_URL` ·
 `REPORT_REDIS_REST_TOKEN` · `REPORT_ABUSE_HMAC_SECRET`
 
+Mais o **interruptor**, que não é segredo e não é dependência: `REPORT_INTAKE_ENABLED`. Os oito
+acima vão para o projeto **de suporte**, nunca para o primário.
+
 Rotação: gerar novo valor no provedor → `supabase secrets set` → invalidar o antigo. O token de
 instalação do GitHub expira sozinho (~1h) e nunca é persistido.
 
 ## 13. Rollback
 
-1. `reportProblem.enabled = false` (já é o padrão) — a UI some.
-2. Reverter o PR do recurso. **Reverter também republica a função**, porque o deploy é automático
+1. **`REPORT_INTAKE_ENABLED=false` no servidor.** Primeira ação, sempre: é a única que para
+   requisição de verdade. O flag do cliente só esconde o botão, e um navegador com a página em
+   cache continua conseguindo POSTar.
+2. `reportProblem.enabled = false` (já é o padrão) — a UI some.
+3. Reverter o PR do recurso. **Reverter também republica a função**, porque o deploy é automático
    no merge para `main` — o rollback de código e o de runtime são o mesmo ato aqui.
-3. A Edge Function pode ser desativada de forma independente pelo painel do Supabase, sem tocar
+4. A Edge Function pode ser desativada de forma independente pelo painel do Supabase, sem tocar
    no repositório.
 
 Nenhum passo toca dado de participante, razão financeiro, scoring ou ranking.

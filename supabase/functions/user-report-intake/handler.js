@@ -33,6 +33,31 @@ export const ORIGENS_PERMITIDAS = Object.freeze([
   "https://ferrarilabs.github.io",
 ]);
 
+/**
+ * Interruptor de servidor. INDEPENDENTE dos segredos.
+ *
+ * ─── POR QUE ISTO EXISTE ────────────────────────────────────────────────────────────────────
+ *
+ * Antes disto, o canal ligava sozinho no instante em que o oitavo segredo fosse provisionado:
+ * "provisionar dependencia" e "abrir endpoint publico ao mundo" eram o mesmo ato, sem ninguem
+ * decidir a segunda coisa. Preparar infraestrutura nao pode ser, por acidente, um lancamento.
+ *
+ * Agora sao dois atos: provisionar as dependencias (que pode acontecer com calma, e ser testado)
+ * e LIGAR (que e deliberado, reversivel num toque, e a primeira coisa a desfazer num rollback).
+ *
+ * ─── POR QUE COMPARACAO EXATA ───────────────────────────────────────────────────────────────
+ *
+ * Qualquer coisa diferente da string exata `"true"` significa DESLIGADO -- incluindo `"TRUE"`,
+ * `"1"`, `"yes"`, espaco sobrando, variavel ausente e variavel vazia. Nao ha coercao, nao ha
+ * "parece verdadeiro". Um interruptor de seguranca que aceita sinonimos e um interruptor que
+ * alguem liga sem querer.
+ */
+export const HABILITADO_VALOR_EXATO = "true";
+
+export function intakeHabilitado(env) {
+  return (env || {}).REPORT_INTAKE_ENABLED === HABILITADO_VALOR_EXATO;
+}
+
 export const CONFIG_NECESSARIA = Object.freeze([
   "REPORT_GITHUB_APP_ID",
   "REPORT_GITHUB_INSTALLATION_ID",
@@ -130,6 +155,14 @@ export async function tratarRequisicao(req, env, deps = {}) {
   if (origem && !ORIGENS_PERMITIDAS.includes(origem)) {
     log({ evento: "report_origin_rejected" });
     return resposta(403, { error: "ORIGIN" }, null);
+  }
+
+  // Interruptor ANTES de tudo que custa: nada de Redis, nada de GitHub, nada de JWT, nada de
+  // parsear corpo. Desligado responde exatamente como "sem configuracao" -- de proposito: quem
+  // sonda nao aprende se o canal esta desligado ou incompleto, e isso nao e informacao dele.
+  if (!intakeHabilitado(env)) {
+    log({ evento: "report_intake_disabled" });
+    return resposta(503, { error: "UNAVAILABLE" }, origem);
   }
 
   const tipo = String(req.headers?.["content-type"] || "");
