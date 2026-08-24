@@ -7,6 +7,9 @@
  * description / STEP 25 of the implementation task) and is run manually, once, before merge.
  */
 import { createFakeGithubClient } from "./github_client.mjs";
+import { readdirSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { upsertFinding, recordCleanCycleOrResolve, CLEAN_CYCLES_TO_RESOLVE } from "./writer.mjs";
 import { reconcile } from "./reconcile.mjs";
 import { parseStateBlock } from "./github_state.mjs";
@@ -254,3 +257,48 @@ test("reconcile() dry-run makes zero mutations", () => {
 console.log(`\n  ${pass} passed, ${fail} failed`);
 if (fail) { console.log("\n✗ ACCEPTANCE SUITE FAILED\n"); process.exit(1); }
 console.log("\n✓ ALL ACCEPTANCE TESTS PASSED\n");
+
+
+// ── Issue #310: o log tem de distinguir MEDIDO de NAO-MEDIDO ────────────────────────────────
+//
+// `finding_count: 0` vale tanto para "medi e esta saudavel" quanto para "nao consegui medir".
+// Sao a MESMA saida e significados opostos. Um detector que nao consegue dizer que nao mediu e um
+// falso-verde esperando -- e foi exatamente essa ambiguidade que impediu de aceitar a #310 na
+// primeira execucao do Sentinel.
+function registrosDeDetector(migracoesAplicadas) {
+  const linhas = [];
+  runOnce({
+    client: createFakeGithubClient(), dryRun: true,
+    logger: { log: (r) => linhas.push(r) },
+    migracoesAplicadas,
+  });
+  return linhas.filter((l) => l.action === "detector_ran");
+}
+
+function versoesNoRepo() {
+  const dir = join(dirname(fileURLToPath(import.meta.url)), "../..", "supabase/migrations");
+  return readdirSync(dir)
+    .map((f) => /^(\d{14})_[a-z0-9_]+\.sql$/.exec(f))
+    .filter(Boolean).map((m) => m[1]).sort();
+}
+
+test("sem credencial, migration_drift registra estado UNKNOWN — nao silencio", () => {
+  const r = registrosDeDetector(null).find((l) => l.detector === "migration_drift");
+  assert(r, "o detector nao apareceu no log");
+  assert(r.estado === "UNKNOWN", `nao medir precisa aparecer como UNKNOWN, veio ${r.estado}`);
+  assert(r.finding_count === 0, "UNKNOWN nao emite finding");
+  assert(r.confirmed_recoveries === 0, "UNKNOWN nao pode confirmar recuperacao");
+});
+
+test("com producao batendo, registra MIGRATIONS_MATCH e recuperacao confirmada", () => {
+  const r = registrosDeDetector(versoesNoRepo()).find((l) => l.detector === "migration_drift");
+  assert(r.estado === "MIGRATIONS_MATCH", `estado observado veio ${r.estado}`);
+  assert(r.confirmed_recoveries === 1, "saude POSITIVAMENTE observada precisa confirmar recuperacao");
+});
+
+test("UNKNOWN e MIGRATIONS_MATCH sao DISTINGUIVEIS no log", () => {
+  const a = registrosDeDetector(null).find((l) => l.detector === "migration_drift");
+  const b = registrosDeDetector(versoesNoRepo()).find((l) => l.detector === "migration_drift");
+  assert(a.estado !== b.estado,
+    "se os dois casos produzem o mesmo registro, o log nao serve para aceitar nada");
+});
