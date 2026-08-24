@@ -3,5 +3,17 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "lifecycle": "one_shot",
+      "reason": "Issue #310-B / ADR-020. O `sentinel.yml` passa a receber `SENTINEL_SUPABASE_MGMT_TOKEN` — token de granularidade fina da Management API do Supabase, restrito a `database_migrations_read`. Substitui a proposta do ADR-019, que exigiria DDL em producao (CREATE ROLE/GRANT) e expor `supabase_migrations` como schema do PostgREST. A rota foi verificada como existente (responde 401 sem credencial, nao 404). Nenhuma DDL, nenhum schema exposto, nenhum papel novo, e alcance MENOR que o do papel proposto.",
+      "expected_behavior_change": "Uma variavel de ambiente NOVA no job do Sentinel. O cron, os gatilhos, as permissoes e os passos NAO mudam. Enquanto o secret nao existir, o detector de deriva de migracao devolve UNKNOWN — que nao emite finding NEM conta como ciclo limpo, entao a ausencia do secret nao produz alarme falso nem falso-verde. Quando o secret existir, o Sentinel passa a ler APENAS a lista de versoes aplicadas (a resposta e reduzida a `version` na porta de entrada; o SQL das migracoes nunca circula). Somente leitura: nenhuma migracao e aplicada, nenhum DDL e executado.",
+      "tests_required": [
+        "scripts/sentinel/test_supabase_migrations_api.mjs",
+        "scripts/sentinel/test_migration_drift_detector.mjs",
+        "scripts/sentinel/test_security.mjs"
+      ]
+    }
+  ]
 }

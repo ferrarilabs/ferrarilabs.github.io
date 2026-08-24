@@ -1,7 +1,13 @@
 # ADR-019 — Credencial somente-leitura para detecção de deriva de migração
 
-**Status:** PROPOSTO — aguardando decisão do Eduardo. O detector já está em `main` e opera em
-`UNKNOWN` até a credencial existir.
+**Status: SUPERSEDIDO pelo [ADR-020](ADR-020-migration-drift-management-api.md) (2026-08-24).**
+
+Nada aqui foi executado. A DDL abaixo **não deve ser aplicada** — ela existe como registro do
+caminho que foi considerado e descartado, e de por quê.
+
+O ADR-020 obtém a mesma observação pela Management API do Supabase, com um token de granularidade
+fina restrito a `database_migrations_read`: sem DDL em produção, sem expor `supabase_migrations`
+como schema de API, sem papel novo para manter, e com alcance **menor** que o papel proposto aqui.
 **Data:** 2026-08-23 · **Issue:** #310-B · **Causa raiz relacionada:** #306
 
 ## Contexto
