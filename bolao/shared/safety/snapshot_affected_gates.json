@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Contrato EXPLICITO de quais gates o snapshot da ESPN de cada app consegue afetar. O produtor roda estes gates ANTES de commitar; se algum reprovar, o snapshot NAO vira commit em main.",
+  "why": "Issue #316. Os commits do github-actions[bot] usam GITHUB_TOKEN, e um push com GITHUB_TOKEN NAO dispara outro workflow (protecao anti-loop do GitHub). Consequencia: dado gerado chegava a main sem NENHUMA verificacao. Uma combinacao de conteudo do snapshot passou a estourar 2px na horizontal a 320px e ficou vermelha em silencio, porque nenhum `npm run check` roda nesses commits. Verificar ANTES de publicar e melhor que tentar disparar CI depois: nao exige token amplo, nao cria cadeia recursiva de workflow, e o dado ruim nunca entra na historia.",
+  "criterio_de_inclusao": "Um gate entra aqui se, e somente se, ele RENDERIZA o snapshot commitado de verdade. Gates que interceptam a fonte com fixture (audit_live_card_dom, check_live_hero_width, multi_live_hero*) sao deterministicos por construcao e NAO dependem do dado — inclui-los seria custo por minuto sem protecao adicional.",
+  "apps": {
+    "br2026": {
+      "snapshot": "bolao/br2026/data/espn-normalized.json",
+      "gates": [
+        {
+          "cmd": ["node", "bolao/br2026/scripts/visual/check_standings_layout.mjs"],
+          "why": "Renderiza a classificacao E a pagina inteira com o dado real. Sua invariante 6 (nenhum estouro horizontal do documento) e exatamente a que pegou o defeito da #316 — e a que ficou vermelha em main sem ninguem ver."
+        }
+      ]
+    },
+    "cdb2026": {
+      "snapshot": "bolao/cdb2026/data/espn-normalized.json",
+      "gates": [
+        {
+          "cmd": ["node", "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs"],
+          "why": "Carrega a pagina do CDB2026 com o dado real commitado; sobreposicao de sticky depende do conteudo renderizado."
+        }
+      ]
+    }
+  }
+}

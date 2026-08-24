@@ -135,6 +135,56 @@ jobs:
           echo "NÃO vai commitar/publicar (o passo de commit abaixo não roda em dry-run)."
           cat "bolao/${{ steps.cfg.outputs.app }}/data/espn-normalized.json"
 
+      # ── VALIDACAO PRE-PUBLICACAO (Issue #316-B) ───────────────────────────────────────────
+      #
+      # O commit abaixo usa GITHUB_TOKEN, e um push com esse token NAO dispara outro workflow
+      # (protecao anti-loop do GitHub). Consequencia: nenhum `npm run check` roda nos commits de
+      # snapshot -- dado gerado entrava em main sem verificacao nenhuma, e foi assim que um estouro
+      # horizontal a 320px ficou vermelho em silencio.
+      #
+      # A saida NAO e trocar o token por um PAT amplo para acordar CI depois: isso criaria uma
+      # credencial com muito mais alcance do que a tarefa precisa e uma cadeia recursiva de
+      # workflows. Valida-se ANTES, e o dado ruim nunca entra na historia.
+      #
+      # node/playwright so entram quando o snapshot MUDOU: sem mudanca nao ha risco novo, e pagar
+      # navegador a cada dez minutos por nada seria custo sem protecao.
+      - name: Snapshot mudou?
+        id: changed
+        if: steps.cfg.outputs.dry != 'true'
+        run: |
+          if git diff --quiet -- "bolao/${{ steps.cfg.outputs.app }}/data/"; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"; echo "Snapshot inalterado."
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT";  echo "Snapshot mudou - validacao obrigatoria."
+          fi
+
+      - name: Setup Node
+        if: steps.changed.outputs.changed == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+          cache: npm
+
+      - name: Install Node dependencies from lockfile
+        if: steps.changed.outputs.changed == 'true'
+        run: npm ci
+
+      - name: Cache do Playwright
+        if: steps.changed.outputs.changed == 'true'
+        id: pw-cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+
+      - name: Instala Chromium
+        if: steps.changed.outputs.changed == 'true' && steps.pw-cache.outputs.cache-hit != 'true'
+        run: npx playwright install --with-deps chromium
+
+      - name: Valida o snapshot ANTES de publicar
+        if: steps.changed.outputs.changed == 'true'
+        run: node bolao/scripts/validate_snapshot_before_publish.mjs "${{ steps.cfg.outputs.app }}"
+
       - name: Commit refreshed snapshot
         id: commit
         if: steps.cfg.outputs.dry != 'true'
