@@ -13,7 +13,7 @@
 import { validar, montarTitulo, montarCorpo, ABUSO, LIMITES, idExibivel } from "./policy.js";
 import {
   criarRedis, chaveDeRede, impressao, avaliarLimites,
-  reservarIdempotencia, confirmarIdempotencia, registrarDuplicata,
+  reservarIdempotencia, confirmarIdempotencia, registrarDuplicata, chaveIdempotencia,
 } from "./abuse.js";
 import {
   obterTokenDeInstalacao, verificarDestinoPrivado, encontrarPorReportId,
@@ -162,7 +162,9 @@ export async function tratarRequisicao(req, env, deps = {}) {
                     origem, { "Retry-After": String(limites.retryAfter || 60) });
   }
 
-  const idem = await reservarIdempotencia(redis, dados.reportId);
+  const chaveIdem = await chaveIdempotencia(
+    env.REPORT_ABUSE_HMAC_SECRET, chaveRede, dados.reportId);
+  const idem = await reservarIdempotencia(redis, chaveIdem);
   if (idem.estado === "created") {
     log({ evento: "report_duplicate", codigo: "IDEMPOTENT_REPLAY" });
     return resposta(200, { ok: true, id: idExibivel(dados.reportId) }, origem);
@@ -188,7 +190,7 @@ export async function tratarRequisicao(req, env, deps = {}) {
 
     const jaExiste = await encontrarPorReportId({ token, owner, repo, reportId: dados.reportId, fetchImpl });
     if (jaExiste) {
-      await confirmarIdempotencia(redis, dados.reportId, jaExiste);
+      await confirmarIdempotencia(redis, chaveIdem, jaExiste);
       log({ evento: "report_duplicate", codigo: "RECONCILED" });
       return resposta(200, { ok: true, id: idExibivel(dados.reportId) }, origem);
     }
@@ -207,7 +209,7 @@ export async function tratarRequisicao(req, env, deps = {}) {
       fetchImpl,
     });
 
-    await confirmarIdempotencia(redis, dados.reportId, numero);
+    await confirmarIdempotencia(redis, chaveIdem, numero);
     log({ evento: "report_github_created", app: dados.app, diagnostico: dados.diagnosticCode,
           duplicado: dup.duplicado, latencia_ms: Date.now() - t0 });
 

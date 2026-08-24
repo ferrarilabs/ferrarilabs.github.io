@@ -11,7 +11,8 @@ import {
   validar, montarTitulo, montarCorpo, tornarInerte, redigir, idExibivel, LIMITES, DIAGNOSTICOS,
 } from "../../supabase/functions/user-report-intake/policy.js";
 import { tratarRequisicao, ORIGENS_PERMITIDAS, conferirConfig } from "../../supabase/functions/user-report-intake/handler.js";
-import { chaveDeRede, impressao, avaliarLimites, criarRedis } from "../../supabase/functions/user-report-intake/abuse.js";
+import { chaveDeRede, impressao, avaliarLimites, criarRedis, chaveIdempotencia,
+         reservarIdempotencia } from "../../supabase/functions/user-report-intake/abuse.js";
 
 let pass = 0, fail = 0;
 async function test(nome, fn) {
@@ -313,6 +314,48 @@ await test("disjuntor abre ao estourar o teto GLOBAL e passa a recusar", async (
   eq(r.motivo, "CIRCUIT_OPEN", "deveria abrir o disjuntor");
   const depois = await avaliarLimites(redis, { chaveRede: "outro", chaveSessao: "outro" });
   eq(depois.permitido, false, "com o disjuntor aberto ninguem passa");
+});
+
+// ── F-04: o reportId vem do cliente, entao nao pode governar a idempotencia sozinho ────────────
+//
+// Um cliente hostil escolhe o `reportId` que quiser, inclusive o de outra pessoa. Se a chave de
+// idempotencia fosse so o reportId, reserva-lo antes faria o relato legitimo colidir com uma
+// idempotencia ja em curso -- sucesso na tela, Issue nenhuma. Supressao silenciosa.
+
+await test("F-04 o mesmo reportId vindo de REDES diferentes nao compartilha chave de idempotencia", async () => {
+  const mesmoReportId = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
+  const a = await chaveIdempotencia("segredo", "rede-da-vitima", mesmoReportId);
+  const b = await chaveIdempotencia("segredo", "rede-do-atacante", mesmoReportId);
+  ok(a && b, "as duas chaves precisam existir");
+  ok(a !== b, "remetentes diferentes NAO podem colidir com o mesmo reportId");
+});
+
+await test("F-04 a mesma rede com o mesmo reportId continua idempotente (o recurso nao quebrou)", async () => {
+  const id = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
+  const a = await chaveIdempotencia("segredo", "mesma-rede", id);
+  const b = await chaveIdempotencia("segredo", "mesma-rede", id);
+  eq(a, b, "reenvio do mesmo cliente precisa cair na mesma chave");
+});
+
+await test("F-04 reservar o reportId de outro NAO bloqueia o dono", async () => {
+  const redis = redisFalso();
+  const id = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
+  const atacante = await chaveIdempotencia("segredo", "rede-do-atacante", id);
+  const vitima = await chaveIdempotencia("segredo", "rede-da-vitima", id);
+
+  const primeiro = await reservarIdempotencia(redis, atacante);
+  eq(primeiro.estado, "novo", "o atacante reserva a chave DELE");
+
+  const dono = await reservarIdempotencia(redis, vitima);
+  eq(dono.estado, "novo", "o dono precisa seguir em frente, nao ser suprimido");
+});
+
+await test("F-04 a chave de idempotencia nao devolve o reportId em claro", async () => {
+  const id = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
+  const k = await chaveIdempotencia("segredo", "rede", id);
+  ok(!k.includes(id), "a chave nao pode carregar o reportId literal");
+  ok(!k.includes(id.split("-")[0]), "nem o primeiro segmento dele");
+  ok(/^[0-9a-f]{32}$/.test(k), "forma esperada: 32 hex");
 });
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);

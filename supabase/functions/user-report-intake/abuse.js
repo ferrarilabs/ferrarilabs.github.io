@@ -150,9 +150,33 @@ export async function avaliarLimites(redis, { chaveRede, chaveSessao, politica =
  * nos Issues recentes do repositorio privado ANTES de criar outro -- ver `github.js`. Sem isso,
  * uma falha de rede vira Issue duplicada, e a duplicata carrega o mesmo relato pessoal.
  */
-export async function reservarIdempotencia(redis, reportId, politica) {
+/**
+ * Chave de idempotencia REAL: amarra o `reportId` a QUEM enviou.
+ *
+ * O `reportId` e gerado no navegador, entao um cliente hostil pode escolher o que quiser --
+ * inclusive o `reportId` de outra pessoa. Se a chave fosse so `idem:<reportId>`, bastaria
+ * reserva-lo primeiro para que o relato legitimo colidisse com uma idempotencia ja em curso: o
+ * participante veria sucesso e a Issue nunca apareceria. Supressao silenciosa e pior que recusa,
+ * porque ninguem fica sabendo.
+ *
+ * Derivar de `chaveDeRede || reportId` faz remetentes diferentes ocuparem espacos de chave
+ * diferentes. O `reportId` continua sendo o identificador que a pessoa ve na tela (`RPT-XXXXXXXX`)
+ * e o que correlaciona um pedido de remocao -- ele so deixa de ser a chave de controle.
+ *
+ * Sem `chaveDeRede` (limitador indisponivel) o handler ja recusou antes de chegar aqui; o
+ * fallback existe para nao produzir uma chave `undefined` silenciosa em teste.
+ */
+export async function chaveIdempotencia(segredo, chaveRede, reportId) {
+  const material = `${chaveRede || "sem-rede"}|${reportId}`;
+  const k = await crypto.subtle.importKey(
+    "raw", enc.encode(segredo || "sem-segredo"), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", k, enc.encode(material));
+  return [...new Uint8Array(sig)].map((b) => b.toString(16).padStart(2, "0")).join("").slice(0, 32);
+}
+
+export async function reservarIdempotencia(redis, chaveIdem, politica) {
   const p = politica || (await import("./policy.js")).ABUSO;
-  const chave = `idem:${reportId}`;
+  const chave = `idem:${chaveIdem}`;
   const anterior = await redis.ler(chave);
   if (anterior && String(anterior).startsWith("created")) {
     return { estado: "created", valor: String(anterior) };
@@ -161,9 +185,9 @@ export async function reservarIdempotencia(redis, reportId, politica) {
   return novo ? { estado: "novo" } : { estado: "em-curso" };
 }
 
-export async function confirmarIdempotencia(redis, reportId, numeroIssue, politica) {
+export async function confirmarIdempotencia(redis, chaveIdem, numeroIssue, politica) {
   const p = politica || (await import("./policy.js")).ABUSO;
-  await redis.definir(`idem:${reportId}`, `created:${numeroIssue}`, p.idempotenciaSeg);
+  await redis.definir(`idem:${chaveIdem}`, `created:${numeroIssue}`, p.idempotenciaSeg);
 }
 
 /** Duplicata: mesma impressao dentro da janela. Devolve a contagem de ocorrencias. */
