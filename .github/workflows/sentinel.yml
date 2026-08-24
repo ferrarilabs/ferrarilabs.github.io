@@ -47,6 +47,13 @@ jobs:
     timeout-minutes: 10
     env:
       GH_TOKEN: ${{ secrets.SENTINEL_PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+      # Token de granularidade fina da Management API do Supabase, restrito a
+      # `database_migrations_read` (ADR-020). Le SO a lista de versoes de migracao aplicadas.
+      # AUSENTE e um estado previsto e seguro: o detector devolve UNKNOWN, que nao emite
+      # finding NEM conta como ciclo limpo. Nunca preencher com service_role, secret key,
+      # senha do banco ou qualquer token amplo -- todos alcancam dado de participante,
+      # pagamento e o razao financeiro, para uma tarefa que so precisa de timestamps.
+      SENTINEL_SUPABASE_MGMT_TOKEN: ${{ secrets.SENTINEL_SUPABASE_MGMT_TOKEN }}
 
     steps:
       - name: Checkout
