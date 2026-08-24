@@ -48,6 +48,15 @@
   var ENGINES = ["chromium", "webkit", "gecko", "unknown"];
 
   /** Limites — repetidos no servidor, que e quem de fato decide. */
+  /**
+   * Versao do aviso de privacidade que a pessoa VIU ao enviar (F-12).
+   *
+   * Sobe SEMPRE que o texto do aviso mudar em qualquer idioma. Sem isto, "o que foi comunicado a
+   * esta pessoa" vira pergunta de memoria -- e e exatamente a pergunta que importa se alguem pedir
+   * remocao ou questionar o que foi coletado.
+   */
+  var NOTICE_VERSION = "v1";
+
   var LIMITES = {
     description: { min: 10, max: 1500 },
     attemptedAction: { max: 600 },
@@ -172,6 +181,7 @@
       description: textoLimitado(o.description, LIMITES.description.max),
       attemptedAction: textoLimitado(o.attemptedAction, LIMITES.attemptedAction.max),
       sessionReportId: o.sessionReportId || null,
+      noticeVersion: NOTICE_VERSION,
       honeypot: typeof o.honeypot === "string" ? o.honeypot : "",
     };
   }
@@ -187,6 +197,7 @@
     APPS: APPS,
     ENGINES: ENGINES,
     LIMITES: LIMITES,
+    NOTICE_VERSION: NOTICE_VERSION,
     rotaSegura: rotaSegura,
     motor: motor,
     normalizarDiagnostico: normalizarDiagnostico,

@@ -196,3 +196,33 @@ export async function registrarDuplicata(redis, fp, politica) {
   const n = await redis.contar(`dup:${fp}`, p.duplicataSeg);
   return { duplicado: n > 1, ocorrencia: n };
 }
+
+/**
+ * Metricas agregadas, sem conteudo (F-11).
+ *
+ * ─── O QUE ENTRA ────────────────────────────────────────────────────────────────────────────
+ *
+ * Contadores por DIA e por DESFECHO. Nunca relato, nunca chave de rede, nunca reportId, nunca
+ * impressao digital. Se um contador puder identificar uma pessoa, ele nao pertence a este arquivo.
+ *
+ * ─── POR QUE ISTO IMPORTA MAIS DO QUE PARECE ────────────────────────────────────────────────
+ *
+ * `redigir()` ja devolve QUAIS classes de padrao sensivel bateram, e esse dado hoje morre no
+ * retorno. Agregado, ele diz algo acionavel: se 40% dos relatos trazem telefone, o problema nao e o
+ * redator -- e o texto da tela, que esta convidando a pessoa a se identificar. Sem isso, ninguem
+ * descobre que o aviso nao esta funcionando.
+ *
+ * E um disjuntor que abre em silencio e um disjuntor que ninguem conserta.
+ *
+ * ─── FALHA ABERTA, DE PROPOSITO ─────────────────────────────────────────────────────────────
+ *
+ * Ao contrario do limite de taxa, metrica NAO pode derrubar um reporte legitimo: perder um
+ * contador e irrelevante, perder o relato de alguem nao e. Por isso este e o unico lugar do
+ * modulo que engole o erro.
+ */
+export async function registrarMetrica(redis, chave, dia) {
+  if (!redis) return;
+  const d = dia || new Date().toISOString().slice(0, 10);
+  try { await redis.contar(`m:${d}:${chave}`, 60 * 60 * 24 * 35); }
+  catch { /* metrica nunca derruba reporte — ver o cabecalho desta funcao */ }
+}
