@@ -137,6 +137,69 @@ item("ui_flag_off", "REPO",
     return { ok: ligados.length === 0, nota: ligados.join(", ") };
   });
 
+item("limit_parity", "REPO",
+  "os limites do cliente e do servidor concordam (F-05)", () => {
+    const cli = ler("bolao/shared/js/report_safe_context.js") || "";
+    const srv = ler("support-intake/supabase/functions/user-report-intake/policy.js") || "";
+    const bl = cli.match(/var LIMITES = \{([\s\S]*?)\n  \};/);
+    if (!bl) return { ok: false, nota: "nao consegui ler LIMITES do cliente" };
+    const pares = [...bl[1].matchAll(/(\w+):\s*\{([^}]*)\}/g)];
+    const divergem = [];
+    for (const m of pares) {
+      for (const kv of m[2].matchAll(/(\w+):\s*(\d+)/g)) {
+        const re = new RegExp(`${m[1]}:\\s*\\{[^}]*${kv[1]}:\\s*${kv[2]}\\b`);
+        if (!re.test(srv)) divergem.push(`${m[1]}.${kv[1]}`);
+      }
+    }
+    return { ok: divergem.length === 0, nota: divergem.join(", ") };
+  });
+
+item("deploy_manifest", "REPO",
+  "toda resposta carrega x-deploy-sha (F-06)", () => {
+    const h = ler("support-intake/supabase/functions/user-report-intake/handler.js") || "";
+    const m = ler("support-intake/supabase/functions/user-report-intake/deploy_manifest.js") || "";
+    return { ok: /cabecalhoDeDeploy\(\)/.test(h) && /x-deploy-sha/.test(m) };
+  });
+
+item("metrics_privacy_safe", "REPO",
+  "metricas agregadas existem e nao carregam conteudo (F-11)", () => {
+    const a = ler("support-intake/supabase/functions/user-report-intake/abuse.js") || "";
+    const h = ler("support-intake/supabase/functions/user-report-intake/handler.js") || "";
+    if (!/export async function registrarMetrica/.test(a)) return { ok: false, nota: "ausente" };
+    if (!/registrarMetrica\(redis, "aceito"\)/.test(h)) return { ok: false, nota: "nao chamada" };
+    // O contador nunca pode carregar relato, chave de rede, reportId nem impressao digital.
+    const chamadas = [...h.matchAll(/registrarMetrica\([^,]+,\s*([^)]+)\)/g)].map((m) => m[1]);
+    const maus = chamadas.filter((c) => /description|chaveRede|chaveIdem|reportId|\bfp\b/.test(c));
+    return { ok: maus.length === 0, nota: maus.join(", ") };
+  });
+
+item("notice_version", "REPO",
+  "a versao do aviso de privacidade viaja com o relato (F-12)", () => {
+    const cli = ler("bolao/shared/js/report_safe_context.js") || "";
+    const pol = ler("support-intake/supabase/functions/user-report-intake/policy.js") || "";
+    const m = cli.match(/NOTICE_VERSION\s*=\s*"(v[0-9]{1,3})"/);
+    return { ok: Boolean(m) && /SCHEMA_NOTICE_VERSION/.test(pol) && /notice_version/.test(pol),
+             nota: m ? `cliente em ${m[1]}` : "cliente nao declara versao" };
+  });
+
+item("unhandled_exception_sanitized", "REPO",
+  "excecao inesperada vira 503 generico, sem vazar (F-15)", () => {
+    const h = ler("support-intake/supabase/functions/user-report-intake/handler.js") || "";
+    return { ok: /async function tratarRequisicaoInterno/.test(h)
+                 && /evento: "report_unhandled"/.test(h) };
+  });
+
+item("no_guaranteed_reply_ux", "REPO",
+  "a UI diz que nao e suporte e nao garante resposta (F-14)", () => {
+    const ui = ler("bolao/shared/js/report_ui.js") || "";
+    const faltando = [];
+    for (const l of ["pt-BR", "en-US", "es", "ja"]) {
+      const bloco = ui.split(`"${l}": {`)[1] || "";
+      if (!/noReply:\s*"[^"]{20,}"/.test(bloco.slice(0, 2200))) faltando.push(l);
+    }
+    return { ok: faltando.length === 0, nota: faltando.join(", ") };
+  });
+
 item("security_tests_green", "REPO",
   "as suites do canal passam", () => {
     const suites = ["scripts/report/test_report_intake.mjs",

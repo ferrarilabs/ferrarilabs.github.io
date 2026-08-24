@@ -239,6 +239,26 @@ um cliente hostil reservaria o `report_id` alheio e o relato legítimo colidiria
 idempotência já em curso — sucesso na tela, Issue nenhuma. Supressão silenciosa é pior que recusa,
 porque ninguém fica sabendo.
 
+## 9-B. Controles exigidos antes da ativação
+
+Implementados nesta rodada, todos com caso dedicado e catraca no manifesto de prontidão:
+
+| controle | o que impede |
+|---|---|
+| **F-05** paridade de limites | cliente aceitar 1500 e servidor cortar em 1200 — a pessoa escreve, envia, recebe sucesso e **perde o fim do relato**, sem erro em lugar nenhum |
+| **F-06** `x-deploy-sha` | repetir a #306/#310 num endpoint que **se publica sozinho**: sem manifesto, saber qual versão respondeu vira arqueologia |
+| **F-11** métricas agregadas | disjuntor que abre em silêncio; e `redigir()` já sabe **quais classes** de dado sensível apareceram — agregado, isso diz se o aviso está funcionando |
+| **F-12** versão do aviso | "o que foi comunicado a esta pessoa" virar pergunta de memória depois que o texto mudar |
+| **F-14** expectativa honesta | um canal que convida a escrever e não responde corrói mais confiança que a ausência dele |
+| **F-15** exceção inesperada | o vazamento clássico: não o erro previsto, o que **não** se previu, carregando caminho de arquivo ou fragmento de configuração |
+
+**F-11 falha ABERTA**, e é o único ponto do módulo que engole erro: perder um contador é
+irrelevante, perder o relato de alguém não é.
+
+**F-15 é uma casca total.** O `try` interno cobre o que a gente previu que falha (GitHub, Redis);
+a casca externa cobre o resto. Prova: um caso injeta exceção **antes** do `try` interno e verifica
+que a resposta é o mesmo 503 genérico, byte a byte.
+
 ## 10-B. Prontidão — `UNKNOWN` nunca é `READY`
 
 `node scripts/report/readiness.mjs` é o único lugar que responde "dá para ligar o canal?". Cada
