@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-24T00:55:33Z",
-  "sourceUpdatedAt": "2026-08-24T00:55:33Z",
+  "generatedAt": "2026-08-24T02:20:35Z",
+  "sourceUpdatedAt": "2026-08-24T02:20:35Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "007aa1e9745d11ce2354722ca73fc4847b85d0096fe82d07a38dedb746ca6150",
+  "payloadHash": "5f15b990ab8ba271e5df34907b850c3e970e69129a625ec2b3d8bec28c7e58fc",
   "matches": [
     {
       "id": "401840808",
@@ -39569,24 +39569,24 @@
     {
       "id": "401841207",
       "date": "2026-08-23T22:30Z",
-      "state": "post",
-      "statusName": "STATUS_FULL_TIME",
-      "statusDescription": "Full Time",
-      "statusShortDetail": "FT",
-      "statusDetail": "FT",
-      "completed": true,
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "78'",
+      "statusDetail": "78'",
+      "completed": false,
       "homeTeam": "Coritiba",
       "awayTeam": "Corinthians",
       "homeTeamId": "3456",
       "awayTeamId": "874",
       "homeScore": 2,
-      "awayScore": 1,
-      "homeWinner": true,
+      "awayScore": 0,
+      "homeWinner": false,
       "awayWinner": false,
       "venue": "Couto Pereira",
       "city": "Curitiba",
-      "clockSec": 5400.0,
-      "clockStr": "90'+7'",
+      "clockSec": 4680.0,
+      "clockStr": "78'",
       "period": 2,
       "details": [
         {
@@ -39702,38 +39702,6 @@
               "shortName": "Paulo Roberto"
             }
           ]
-        },
-        {
-          "type": {
-            "text": "Goal - Header"
-          },
-          "scoringPlay": true,
-          "team": {
-            "id": "874"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+3'"
-          },
-          "athletesInvolved": [
-            {
-              "displayName": "Raniele",
-              "shortName": "Raniele"
-            }
-          ]
-        },
-        {
-          "type": {
-            "text": "Yellow Card"
-          },
-          "scoringPlay": false,
-          "team": {
-            "id": "3456"
-          },
-          "clock": {
-            "value": 5400.0,
-            "displayValue": "90'+6'"
-          }
         }
       ]
     },
