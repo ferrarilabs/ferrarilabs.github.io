@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-24T12:36:40Z",
-  "sourceUpdatedAt": "2026-08-24T12:36:40Z",
+  "generatedAt": "2026-08-24T23:47:12Z",
+  "sourceUpdatedAt": "2026-08-24T23:47:12Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "761ad65f0dce9cc203f8102db5039fc9b13d349cd6697fc3828b1a4784147eab",
+  "payloadHash": "7e585bcb94ff13ec9aa9c0fbc2b5784d613082c86b34722206f93cd882fab1e0",
   "matches": [
     {
       "id": "401840808",
@@ -39740,26 +39740,65 @@
     {
       "id": "401841198",
       "date": "2026-08-24T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, August 24th at 7:00 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_IN_PROGRESS",
+      "statusDescription": "In Progress",
+      "statusShortDetail": "25'",
+      "statusDetail": "25'",
       "completed": false,
       "homeTeam": "Botafogo",
       "awayTeam": "Athletico Paranaense",
       "homeTeamId": "6086",
       "awayTeamId": "3458",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 2,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Joao Havelange Stadium",
       "city": "Rio de Janeiro",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1500.0,
+      "clockStr": "25'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 627.0,
+            "displayValue": "11'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "João Cruz",
+              "shortName": "João Cruz"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 767.0,
+            "displayValue": "13'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841216",
