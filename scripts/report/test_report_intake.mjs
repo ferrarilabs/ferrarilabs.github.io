@@ -11,7 +11,8 @@ import {
   validar, montarTitulo, montarCorpo, tornarInerte, redigir, idExibivel, LIMITES, DIAGNOSTICOS,
 } from "../../supabase/functions/user-report-intake/policy.js";
 import { tratarRequisicao, ORIGENS_PERMITIDAS, conferirConfig, corpoDeResposta,
-         STATUS_SEM_CORPO } from "../../supabase/functions/user-report-intake/handler.js";
+         STATUS_SEM_CORPO, intakeHabilitado,
+         HABILITADO_VALOR_EXATO } from "../../supabase/functions/user-report-intake/handler.js";
 import { chaveDeRede, impressao, avaliarLimites, criarRedis, chaveIdempotencia,
          reservarIdempotencia } from "../../supabase/functions/user-report-intake/abuse.js";
 
@@ -46,6 +47,9 @@ function redisFalso() {
 }
 
 const ENV = {
+  // O interruptor e um gate SEPARADO dos oito segredos: sem ele ligado, todo POST vira 503 antes
+  // de qualquer dependencia. As suites que exercitam o fluxo real precisam liga-lo explicitamente.
+  REPORT_INTAKE_ENABLED: "true",
   REPORT_GITHUB_APP_ID: "1", REPORT_GITHUB_INSTALLATION_ID: "2",
   REPORT_GITHUB_PRIVATE_KEY: "pem", REPORT_GITHUB_OWNER: "ferrarilabs",
   REPORT_GITHUB_REPO: "support-intake", REPORT_REDIS_REST_URL: "https://redis.invalid",
@@ -403,6 +407,57 @@ await test("corpoDeResposta zera o corpo exatamente nos status que proibem corpo
   }
   eq(corpoDeResposta(200, '{"a":1}'), '{"a":1}', "status com corpo preserva o corpo");
   eq(corpoDeResposta(403, '{"error":"ORIGIN"}'), '{"error":"ORIGIN"}', "erro preserva o corpo");
+});
+
+// ── Interruptor de servidor: provisionar dependencia NAO pode ser, por acidente, um lancamento ──
+
+await test("interruptor: so a string exata liga; todo o resto DESLIGA", () => {
+  eq(intakeHabilitado({ REPORT_INTAKE_ENABLED: HABILITADO_VALOR_EXATO }), true, "valor exato liga");
+  for (const v of ["TRUE", "True", "1", "yes", "sim", "on", " true", "true ", "", "false", "0"]) {
+    eq(intakeHabilitado({ REPORT_INTAKE_ENABLED: v }), false, `"${v}" NAO pode ligar`);
+  }
+  eq(intakeHabilitado({}), false, "ausente = desligado");
+  eq(intakeHabilitado(undefined), false, "env ausente = desligado");
+  eq(intakeHabilitado({ REPORT_INTAKE_ENABLED: true }), false, "booleano true NAO e a string exata");
+});
+
+await test("desligado com TODOS os segredos presentes ainda recusa", async () => {
+  const { REPORT_INTAKE_ENABLED, ...semInterruptor } = ENV;
+  eq(conferirConfig(semInterruptor).ok, true, "os oito segredos estao completos neste caso");
+  const r = await tratarRequisicao(req({ body: JSON.stringify(base()) }), semInterruptor, {});
+  eq(r.status, 503, "segredo completo NAO pode ligar o canal");
+  eq(JSON.parse(r.body).error, "UNAVAILABLE", "resposta generica");
+});
+
+await test("desligado nao toca Redis, nem GitHub, nem assina JWT", async () => {
+  const { REPORT_INTAKE_ENABLED, ...semInterruptor } = ENV;
+  let tocou = [];
+  const r = await tratarRequisicao(
+    req({ body: JSON.stringify(base()) }),
+    semInterruptor,
+    {
+      // `fetchImpl` e o nome que o handler realmente le -- injetar `fetch` nao observava nada, e
+      // este caso passava por motivo errado (a mutacao que remove o interruptor nao o derrubava).
+      fetchImpl: (...a) => { tocou.push(String(a[0])); throw new Error("nao deveria ter chamado"); },
+      valorDeRede: "1.2.3.4",
+    },
+  );
+  eq(r.status, 503, "recusa");
+  eq(tocou.length, 0, `nenhuma chamada de rede podia acontecer; houve: ${tocou.join(", ")}`);
+});
+
+await test("desligado responde IGUAL a nao-configurado (nao vaza qual e o caso)", async () => {
+  const desligadoCompleto = { ...ENV, REPORT_INTAKE_ENABLED: "false" };
+  const a = await tratarRequisicao(req({ body: JSON.stringify(base()) }), desligadoCompleto, {});
+  const b = await tratarRequisicao(req({ body: JSON.stringify(base()) }), {}, {});
+  eq(a.status, b.status, "mesmo status");
+  eq(a.body, b.body, "mesmo corpo — quem sonda nao distingue desligado de incompleto");
+});
+
+await test("desligado NAO quebra o preflight (CORS continua correto)", async () => {
+  const r = await tratarRequisicao(
+    { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }, {}, {});
+  eq(r.status, 204, "preflight continua respondendo 204 com o canal desligado");
 });
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
