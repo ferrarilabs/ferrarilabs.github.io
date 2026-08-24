@@ -12,6 +12,8 @@
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
+import { CAMPOS_ACEITOS }
+  from "../../support-intake/supabase/functions/user-report-intake/policy.js";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 let pass = 0, fail = 0;
@@ -213,11 +215,10 @@ test("sem ponto de montagem no DOM, autoMontar nao faz nada", () => {
 test("o payload montado pela UI respeita a allowlist do coletor", () => {
   const { root } = carregar();
   const p = root.BOLAO_REPORT_CONTEXT.montarPayload({ app: "cdb2026", window: root });
-  const permitidos = [
-    "reportId", "app", "siteVersion", "routeId", "sectionId", "locale", "timestamp",
-    "viewport", "online", "browserEngine", "diagnosticCode", "description",
-    "attemptedAction", "sessionReportId", "honeypot",
-  ];
+  // A allowlist vem do SERVIDOR, nao de uma copia aqui. Uma terceira copia so criaria mais um
+  // lugar para divergir -- foi exatamente por isso que este caso reprovou quando `noticeVersion`
+  // nasceu: a lista estava escrita a mao e envelheceu na primeira mudanca.
+  const permitidos = CAMPOS_ACEITOS;
   for (const k of Object.keys(p)) ok(permitidos.includes(k), `campo fora da allowlist: ${k}`);
 });
 

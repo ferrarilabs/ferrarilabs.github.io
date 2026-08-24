@@ -6,6 +6,21 @@ outros três bolões.
 
 ---
 
+## 2026-08-24 — Issue #321: versao do aviso de privacidade no coletor
+
+O coletor compartilhado (`bolao/shared/js/report_safe_context.js`) passa a enviar
+`noticeVersion` — qual versao do aviso de privacidade a pessoa VIU ao enviar o relato.
+
+O texto do aviso vai mudar. A partir dai, "o que foi comunicado a esta pessoa" viraria pergunta de
+memoria, e essa e exatamente a pergunta que importa se alguem pedir remocao ou questionar o que foi
+coletado.
+
+**Nada aparece e nada e enviado:** `reportProblem.enabled` continua `false`, e o canal segue inerte
+tambem no servidor.
+
+**Scoring, ranking, entradas e pagamentos: intocados.**
+
+
 ## 2026-08-24 — Issue #321: UI de reporte, montada e desligada
 
 Entra o componente compartilhado do "Reportar problema" (`bolao/shared/js/report_ui.js` e

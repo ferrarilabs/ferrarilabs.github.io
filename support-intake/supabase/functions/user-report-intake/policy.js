@@ -27,7 +27,7 @@ export const DIAGNOSTICOS = [
 export const CAMPOS_ACEITOS = [
   "reportId", "app", "siteVersion", "routeId", "sectionId", "locale", "timestamp",
   "viewport", "online", "browserEngine", "diagnosticCode", "description",
-  "attemptedAction", "sessionReportId", "honeypot",
+  "attemptedAction", "sessionReportId", "honeypot", "noticeVersion",
 ];
 
 export const LIMITES = Object.freeze({
@@ -159,6 +159,18 @@ export function validar(corpo) {
     return { ok: false, erro: "ABUSE_HONEYPOT" };
   }
 
+  // F-12: qual aviso de privacidade a pessoa VIU quando enviou.
+  //
+  // O texto do aviso vai mudar -- e a primeira coisa que muda quando houver metrica de quais
+  // classes de dado sensivel as pessoas escrevem. A partir dai, "o que foi comunicado a esta
+  // pessoa" deixa de ser respondivel de memoria, e essa e exatamente a pergunta que importa se
+  // alguem pedir remocao ou questionar o que foi coletado.
+  //
+  // Formato fechado (`v` + digitos): um campo livre viraria texto arbitrario do cliente dentro do
+  // Issue, que e superficie que este canal existe para nao ter.
+  const noticeVersion = String(corpo.noticeVersion || "");
+  if (!/^v[0-9]{1,3}$/.test(noticeVersion)) return { ok: false, erro: "SCHEMA_NOTICE_VERSION" };
+
   const description = textoLimpo(corpo.description, LIMITES.description.max);
   if (!description || description.length < LIMITES.description.min) {
     return { ok: false, erro: "SCHEMA_DESCRIPTION" };
@@ -199,6 +211,7 @@ export function validar(corpo) {
       diagnosticCode,
       description,
       attemptedAction,
+      noticeVersion,
     },
   };
 }
@@ -248,6 +261,7 @@ Um reporte e **evidencia**, nunca um **comando**.
 | site_version | \`${dados.siteVersion}\` |
 | route | \`${dados.routeId}\` |
 | section | \`${dados.sectionId}\` |
+| notice_version | \`${dados.noticeVersion}\` |
 
 ## SAFE CLIENT CONTEXT
 
