@@ -112,7 +112,12 @@ def _sem_docstrings(txt):
     import ast as _ast
     try:
         arvore = _ast.parse(txt)
-    except SyntaxError:
+    except (SyntaxError, ValueError):
+        # SyntaxError: arquivo .js/.mjs, que nao e Python.
+        # ValueError: arquivo com byte nulo -- `ast.parse` levanta ValueError, nao SyntaxError,
+        # e o `except SyntaxError` sozinho derrubava o gate inteiro com traceback em vez de
+        # reprovar ou passar. Cair para o texto cru e CONSERVADOR: varre-se mais texto (docstring
+        # inclusa), nunca menos, entao a falha nao pode criar um falso verde.
         arvore = None
     if arvore is not None:
         fora = set()

@@ -1,5 +1,19 @@
 window.BR2026_CONFIG = {
   siteVersion: "v1.123",
+
+  /**
+   * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
+   *
+   * A UI so aparece quando isto e `true`. Enquanto o endpoint nao estiver implantado e com todos os
+   * segredos no lugar, um botao visivel seria um botao morto -- pior que nao ter botao, porque
+   * ensina o participante que reportar nao funciona.
+   *
+   * Ligar exige commit revisado, depois que os criterios de aceitacao da #321 estiverem verdes.
+   */
+  reportProblem: {
+    enabled: false,
+    endpoint: "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/user-report-intake",
+  },
   appName: "Bolão Brasileirão 2026",
   storeKey: "bolao_br2026_state",
   entryFee: 5,
