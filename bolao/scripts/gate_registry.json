@@ -846,6 +846,9 @@
     "scripts/sentinel/test_security.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/sentinel/test_supabase_migrations_api.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/test_audit_commit_message_closure_keywords.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

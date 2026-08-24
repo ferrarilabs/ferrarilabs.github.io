@@ -22,6 +22,7 @@ import { detectChangeIntentStale, DETECTOR_ID as CHANGE_INTENT_STALE_ID } from "
 import { detectMainCiRed, DETECTOR_ID as MAIN_CI_RED_ID } from "./detectors/main_ci_red.mjs";
 import { detectLiveDeployDrift, DETECTOR_ID as LIVE_DEPLOY_DRIFT_ID } from "./detectors/live_deploy_drift.mjs";
 import { detectMigrationDrift, DETECTOR_ID as MIGRATION_DRIFT_ID, NOME_DE_MIGRACAO } from "./detectors/migration_drift.mjs";
+import { lerVersoesAplicadas } from "./supabase_migrations_api.mjs";
 import { readdirSync, statSync } from "node:fs";
 import { join, dirname as _dirname } from "node:path";
 import { fileURLToPath as _fileURLToPath } from "node:url";
@@ -83,33 +84,18 @@ export function lerMigracoesDoRepo() {
 /**
  * Versoes aplicadas em producao, ou `null` se nao houve como ler.
  *
- * CREDENCIAL DE MENOR PRIVILEGIO: le `supabase_migrations.schema_migrations` via PostgREST usando
- * `SENTINEL_MIGRATION_READ_KEY` — uma chave que deve ser emitida para um papel com SELECT APENAS
- * nessa tabela (ver docs/bolao/adr/ADR-019). NAO usa `service_role`, NAO usa a senha do banco.
+ * CREDENCIAL DE MENOR PRIVILEGIO: Management API do Supabase com token de granularidade fina
+ * restrito a `database_migrations_read` (ver ADR-020, que supersede o ADR-019). NAO usa
+ * `service_role`, NAO usa a senha do banco, e NAO expoe `supabase_migrations` como schema de API.
+ *
+ * A resposta e reduzida a APENAS `version` na porta de entrada — a rota devolve o SQL de cada
+ * migracao, e nada disso precisa circular pelo Sentinel.
  *
  * Sem a variavel, devolve `null` -> UNKNOWN. Nunca "nenhuma migracao pendente", que seria declarar
  * saude sem ter medido — e e exatamente assim que um detector vira falso-verde.
  */
 async function lerMigracoesAplicadas() {
-  const key = process.env.SENTINEL_MIGRATION_READ_KEY;
-  if (!key) return null;
-  const url = "https://cmhqkkfczotdnssupkni.supabase.co/rest/v1/schema_migrations"
-            + "?select=version&order=version";
-  try {
-    const ctrl = new AbortController();
-    const t = setTimeout(() => ctrl.abort(), 20_000);
-    const r = await fetch(url, {
-      signal: ctrl.signal,
-      headers: { apikey: key, Authorization: `Bearer ${key}`, "Accept-Profile": "supabase_migrations" },
-    });
-    clearTimeout(t);
-    if (!r.ok) return null;
-    const linhas = await r.json();
-    if (!Array.isArray(linhas)) return null;
-    return linhas.map((l) => String(l.version));
-  } catch {
-    return null;   // -> UNKNOWN
-  }
+  return lerVersoesAplicadas();
 }
 
 /** Leitura do header em producao. Timeout curto: o Sentinel nao pode ficar pendurado num cron. */
