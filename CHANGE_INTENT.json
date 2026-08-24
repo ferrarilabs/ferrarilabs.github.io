@@ -3,5 +3,18 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "EDGE_FUNCTIONS",
+      "lifecycle": "one_shot",
+      "reason": "Issue #321, ameaca T-ENV-01. O Supabase injeta SUPABASE_DB_URL, SUPABASE_SECRET_KEYS e o legado SUPABASE_SERVICE_ROLE_KEY (que ignora RLS) em TODA Edge Function hospedada de um projeto. Enquanto o intake publico e NAO AUTENTICADO rodasse no mesmo projeto dos dados de participante, pagamento, scoring e ranking, dizer 'um comprometimento do intake nao alcanca participante' seria afirmacao sobre o NOSSO codigo, nao sobre a plataforma -- e catraca de CI nao protege contra dependencia comprometida, execucao no runtime, defeito de injecao futuro nem cadeia de suprimentos. O codigo-fonte sai de `supabase/functions/` para `support-intake/supabase/functions/`, com config.toml e project_id proprios.",
+      "expected_behavior_change": "O projeto financeiro deixa de RECEBER o intake em merges futuros: como o deploy e automatico por diretorio, mover o arquivo E a mudanca de roteamento. `supabase/functions/` vira allowlist (`_shared`, `live-football`) e uma funcao nova ali nasce reprovando. `live-football` NAO e tocada. A funcao ja implantada no projeto primario continua no ar, inerte (interruptor desligado + nenhum segredo), ate o dono deleta-la -- isso e ato de producao e esta no Human Gate, nao neste PR. Nenhum comportamento observavel muda para participante.",
+      "tests_required": [
+        "scripts/report/test_report_isolation.mjs",
+        "scripts/report/test_report_intake.mjs",
+        "scripts/report/test_report_security_ratchets.mjs",
+        "bolao/scripts/audit_live_gateway.mjs"
+      ]
+    }
+  ]
 }
