@@ -8,7 +8,7 @@
  * autenticacao aqui transformaria "achei um bug" em "crie uma conta", e o controle de abuso e feito
  * por limite de taxa pseudonimo, nao por identidade.
  */
-import { tratarRequisicao } from "./handler.js";
+import { tratarRequisicao, corpoDeResposta } from "./handler.js";
 
 Deno.serve(async (req: Request) => {
   const headers: Record<string, string> = {};
@@ -40,5 +40,6 @@ Deno.serve(async (req: Request) => {
     },
   );
 
-  return new Response(r.body, { status: r.status, headers: r.headers });
+  // 204/205/304 exigem corpo `null`; passar "" lanca e o preflight vira 500.
+  return new Response(corpoDeResposta(r.status, r.body), { status: r.status, headers: r.headers });
 });

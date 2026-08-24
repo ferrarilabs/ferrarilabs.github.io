@@ -1,7 +1,14 @@
 # Reportar problema — arquitetura, ameaças e privacidade
 
 **Issue:** #321 · **Estado:** implementado e **DESLIGADO** (`reportProblem.enabled = false`)
-**Endpoint:** não implantado — a provisão de produção ainda não existe.
+
+**Endpoint: IMPLANTADO e inerte.** A integração do Supabase publica as Edge Functions
+automaticamente no merge para `main` — não há passo manual de deploy, e presumir o contrário foi
+um erro de leitura meu, corrigido aqui. O que mantém o canal inerte **não** é a ausência de deploy:
+é a ausência dos oito segredos. Sem eles `conferirConfig()` recusa tudo com **503
+`{"error":"UNAVAILABLE"}`**, sem dizer qual falta. Verificado em produção.
+
+A UI continua desligada nos três apps, então nada disso é alcançável por participante.
 
 ---
 
@@ -147,8 +154,13 @@ porque ninguém fica sabendo.
    projeto próprio a tornaria de plataforma.
 2. **UI e integração por app** — deliberadamente fora desta entrega: sem endpoint implantado, um
    botão visível seria um botão morto.
-3. Assinatura/attestation do cliente para encarecer submissão automatizada sem exigir conta.
-4. Métrica de custo por reporte e alarme de orçamento.
+3. **Teste de integração HTTP real.** A política é pura e coberta; a *fiação* não era. Um
+   preflight de origem permitida respondeu **500** em produção porque `new Response("", {status:204})`
+   lança — 204/205/304 exigem corpo `null`. O caminho proibido (403) funcionava e só o caminho
+   feliz estava quebrado, que é a assinatura clássica de defeito de fiação. Corrigido, com teste
+   que passa toda resposta alcançável pelo construtor real de `Response`.
+4. Assinatura/attestation do cliente para encarecer submissão automatizada sem exigir conta.
+5. Métrica de custo por reporte e alarme de orçamento.
 
 ## 12. Inventário de segredos (só nomes)
 
@@ -162,8 +174,10 @@ instalação do GitHub expira sozinho (~1h) e nunca é persistido.
 ## 13. Rollback
 
 1. `reportProblem.enabled = false` (já é o padrão) — a UI some.
-2. Reverter o PR do recurso.
-3. A Edge Function pode ser desativada de forma independente.
+2. Reverter o PR do recurso. **Reverter também republica a função**, porque o deploy é automático
+   no merge para `main` — o rollback de código e o de runtime são o mesmo ato aqui.
+3. A Edge Function pode ser desativada de forma independente pelo painel do Supabase, sem tocar
+   no repositório.
 
 Nenhum passo toca dado de participante, razão financeiro, scoring ou ranking.
 
