@@ -66,6 +66,9 @@ const BROWSER_SHARD_B = [
   "accessibility", "responsive-14-width", "live-prob-bars", "combo-visual", "multi-live-hero",
   "structural-parity", "cdb-bracket-persistence", "cdb-entry-name-readonly", "combo-next-label",
   "combo-lifecycle", "aria-nav",
+  // Issue #316. Vai no shard B porque o A ficou com 11 e o B com 11: este check e curto (8
+  // viewports contra rotas mockadas, uma unica pagina) e nao desequilibra a divisao.
+  "live-hero-width",
 ];
 
 /** Arquivos que ESTA execucao gera. Sao evidencia efemera, nunca conteudo do repositorio. */

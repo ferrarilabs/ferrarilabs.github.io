@@ -522,6 +522,10 @@ const CHECKS = [
     why: "sobreposicao de elemento fixo em varias posicoes de rolagem", requires: "browser" },
   // Rodava em `npm run test:node` e faltava AQUI — exatamente a metade-do-caminho que o N21
   // descreve: estar numa lista e nao na outra e um orfao com outro nome.
+  { id: "live-hero-width", group: "browser", cmd: ["node", "bolao/br2026/scripts/visual/check_live_hero_width.mjs"],
+    why: "o aviso de atraso da #296 alargava a linha do hero e o nome do time escapava da coluna: 320px rolava na horizontal (Issue #316)" },
+  { id: "snapshot-publication-guard", group: "app", cmd: ["node", "bolao/scripts/test_snapshot_publication_guard.mjs"],
+    why: "commit de bot com GITHUB_TOKEN nao dispara CI; o contrato de gates afetados tem de continuar honesto e rodar ANTES do commit (Issue #316-B)" },
   { id: "br-standings-layout", group: "browser", cmd: ["node", "bolao/br2026/scripts/visual/check_standings_layout.mjs"],
     why: "geometria real da tabela de classificacao do BR2026 (a tela que o participante confere)", requires: "browser" },
   { id: "multi-live-hero", group: "browser", cmd: ["node", "bolao/scripts/audit_multi_live_hero.mjs"],
