@@ -116,8 +116,19 @@ async function lerShaVivoDeProducao() {
 
 /** Normalizes both detector return shapes to `{ findings, confirmedRecoveries }`. */
 function normalizeDetectorResult(raw) {
-  if (Array.isArray(raw)) return { findings: raw, confirmedRecoveries: null };
-  return { findings: raw.findings, confirmedRecoveries: raw.confirmedRecoveries ?? null };
+  if (Array.isArray(raw)) return { findings: raw, confirmedRecoveries: null, estado: null, detalhe: null };
+  return {
+    findings: raw.findings,
+    confirmedRecoveries: raw.confirmedRecoveries ?? null,
+    // ESTADO OBSERVADO. Sem isto, `finding_count: 0` e ambiguo: vale tanto para "medi e esta
+    // saudavel" quanto para "nao consegui medir". Sao a MESMA saida no log e significados
+    // opostos -- exatamente a confusao entre UNKNOWN e saude que estes detectores existem para
+    // evitar. Um detector que nao consegue dizer que nao mediu e um falso-verde esperando.
+    estado: raw.estado ?? null,
+    detalhe: raw.pendentes
+      ? { pendentes: raw.pendentes.length, orfas: (raw.orfas || []).length }
+      : null,
+  };
 }
 
 function dryRunPreview(finding, client, logger) {
@@ -149,8 +160,17 @@ export function runOnce({
   const results = { findings: [], upserts: [], cleanCycles: [] };
 
   for (const detector of DETECTORS) {
-    const { findings, confirmedRecoveries } = normalizeDetectorResult(detector.run(client, { liveDeployObservation, migracoesAplicadas }));
-    logger.log({ action: "detector_ran", detector: detector.id, finding_count: findings.length });
+    const { findings, confirmedRecoveries, estado, detalhe } =
+      normalizeDetectorResult(detector.run(client, { liveDeployObservation, migracoesAplicadas }));
+    logger.log({
+      action: "detector_ran", detector: detector.id, finding_count: findings.length,
+      // `estado` distingue MEDIDO de NAO-MEDIDO; `confirmed_recoveries` mostra se a saude foi
+      // POSITIVAMENTE observada. Nenhum dos dois carrega valor de credencial ou dado sensivel:
+      // sao rotulos de estado e contagens.
+      ...(estado ? { estado } : {}),
+      ...(detalhe ? { detalhe } : {}),
+      confirmed_recoveries: confirmedRecoveries ? confirmedRecoveries.size : null,
+    });
     results.findings.push(...findings);
 
     const seenFingerprints = new Set(findings.map((f) => f.fingerprint));
