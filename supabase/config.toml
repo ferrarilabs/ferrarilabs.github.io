@@ -6,3 +6,9 @@ project_id = "cmhqkkfczotdnssupkni"
 # Dado esportivo PÚBLICO: sem JWT. Exigir token obrigaria o navegador a portar credencial para
 # ler placar, o que seria pior em segurança, não melhor.
 verify_jwt = false
+
+[functions.user-report-intake]
+# Dado de reporte de problema e PUBLICO/ANONIMO por desenho: o participante nao precisa de conta
+# para dizer que algo quebrou. Exigir JWT transformaria "achei um bug" em "crie uma conta", e o
+# controle de abuso aqui e limite de taxa pseudonimo, nao identidade.
+verify_jwt = false
