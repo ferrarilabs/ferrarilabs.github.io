@@ -7,6 +7,7 @@
  *
  * Uso: node scripts/report/test_report_intake.mjs
  */
+import { readFileSync } from "node:fs";
 import {
   validar, montarTitulo, montarCorpo, tornarInerte, redigir, idExibivel, LIMITES, DIAGNOSTICOS,
 } from "../../support-intake/supabase/functions/user-report-intake/policy.js";
@@ -31,7 +32,7 @@ const base = () => ({
   viewport: { w: 320, h: 568 }, online: true, browserEngine: "chromium",
   diagnosticCode: "SAVE_NETWORK_FAILURE",
   description: "Cliquei em salvar e apareceu um erro generico, tentei tres vezes",
-  attemptedAction: null, sessionReportId: null, honeypot: "",
+  attemptedAction: null, sessionReportId: null, honeypot: "", noticeVersion: "v1",
 });
 
 /** Redis falso, em memoria, com a mesma semantica atomica que o real oferece. */
@@ -458,6 +459,125 @@ await test("desligado NAO quebra o preflight (CORS continua correto)", async () 
   const r = await tratarRequisicao(
     { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }, {}, {});
   eq(r.status, 204, "preflight continua respondendo 204 com o canal desligado");
+});
+
+// ── F-12: qual aviso a pessoa VIU quando enviou ────────────────────────────────────────────────
+
+await test("F-12 sem noticeVersion o corpo REPROVA", () => {
+  const { noticeVersion, ...sem } = base();
+  eq(validar(sem).erro, "SCHEMA_NOTICE_VERSION", "campo e obrigatorio");
+});
+
+await test("F-12 noticeVersion so aceita formato fechado", () => {
+  for (const v of ["", "1", "vv1", "v", "v1234", "latest", "<script>", "v1; DROP"]) {
+    eq(validar({ ...base(), noticeVersion: v }).erro, "SCHEMA_NOTICE_VERSION", `"${v}" nao pode passar`);
+  }
+  ok(validar({ ...base(), noticeVersion: "v9" }).ok, "v9 e valido");
+  ok(validar({ ...base(), noticeVersion: "v123" }).ok, "v123 e valido");
+});
+
+await test("F-12 a versao do aviso chega ao corpo do Issue", () => {
+  const v = validar({ ...base(), noticeVersion: "v7" });
+  eq(v.dados.noticeVersion, "v7", "propagado para os dados");
+  ok(montarCorpo(v.dados).includes("notice_version"), "a linha existe no Issue");
+  ok(montarCorpo(v.dados).includes("v7"), "com o valor");
+});
+
+await test("F-12 cliente e servidor concordam na versao do aviso", () => {
+  // Se o cliente enviar uma versao que o servidor recusa, todo reporte vira 400 -- silenciosamente,
+  // porque o participante so ve "nao foi possivel enviar".
+  const cli = readFileSync(new URL("../../bolao/shared/js/report_safe_context.js", import.meta.url), "utf8");
+  const m = cli.match(/NOTICE_VERSION\s*=\s*"([^"]+)"/);
+  ok(m, "o cliente precisa declarar NOTICE_VERSION");
+  ok(validar({ ...base(), noticeVersion: m[1] }).ok, `o servidor recusa a versao do cliente (${m[1]})`);
+});
+
+// ── F-05: os limites do cliente e do servidor nao podem divergir ───────────────────────────────
+
+await test("F-05 LIMITES do cliente == LIMITES do servidor", () => {
+  // Duas copias sem catraca e a classe de deriva que o contrato de freshness ja resolveu neste
+  // repositorio. Se o cliente aceitar 1500 e o servidor cortar em 1200, a pessoa escreve, envia,
+  // recebe sucesso e PERDE o fim do relato -- sem erro em lugar nenhum.
+  const cli = readFileSync(new URL("../../bolao/shared/js/report_safe_context.js", import.meta.url), "utf8");
+  const bloco = cli.match(/var LIMITES = \{([\s\S]*?)\n  \};/);
+  ok(bloco, "nao consegui ler LIMITES do cliente");
+  const doCliente = {};
+  for (const m of bloco[1].matchAll(/(\w+):\s*\{([^}]*)\}/g)) {
+    doCliente[m[1]] = {};
+    for (const kv of m[2].matchAll(/(\w+):\s*(\d+)/g)) doCliente[m[1]][kv[1]] = Number(kv[2]);
+  }
+  ok(Object.keys(doCliente).length >= 6, "poucos limites lidos do cliente");
+  for (const chave of Object.keys(doCliente)) {
+    ok(LIMITES[chave], `o servidor nao tem o limite "${chave}" que o cliente aplica`);
+    for (const sub of Object.keys(doCliente[chave])) {
+      eq(doCliente[chave][sub], LIMITES[chave][sub],
+         `divergencia em ${chave}.${sub} — cliente e servidor precisam concordar`);
+    }
+  }
+});
+
+// ── F-06: qual codigo respondeu ───────────────────────────────────────────────────────────────
+
+await test("F-06 toda resposta carrega o cabecalho de proveniencia", async () => {
+  const r = await tratarRequisicao(req({ body: JSON.stringify(base()) }), {}, {});
+  ok(r.headers["x-deploy-sha"], "sem x-deploy-sha nao da para saber qual versao respondeu");
+});
+
+// ── F-15: excecao INESPERADA nao pode vazar nada ──────────────────────────────────────────────
+
+await test("F-15 excecao arbitraria de dependencia vira 503 generico, sem vazar", async () => {
+  // O caminho classico de vazamento nao e o erro previsto: e o que nao se previu. Uma mensagem de
+  // runtime pode carregar caminho de arquivo, nome de variavel de ambiente ou fragmento de config.
+  // MONTADOS EM TEMPO DE EXECUCAO, nunca escritos como literal: um literal com forma de string de
+  // conexao ou de token faz o proprio scanner de PII deste repositorio reprovar -- e reprovar com
+  // razao, porque ele nao tem como saber que aquilo e cenario de teste. Montar por concatenacao
+  // mantem o cenario identico e nao planta uma forma de segredo no repositorio.
+  const venenos = [
+    ["postgres", "ql://u:p", "@", "db.exemplo", ".invalid:5432/x"].join(""),
+    ["Bearer ", "gh", "s_", "A".repeat(36)].join(""),
+    "/var/task/support-intake/handler.js:42",
+    ["SUPABASE_SERVICE", "_ROLE_KEY=", "ey", "J0", ".", "cGF5", ".", "c2ln"].join(""),
+  ];
+  for (const veneno of venenos) {
+    const r = await tratarRequisicao(
+      req({ body: JSON.stringify(base()) }), ENV,
+      { fetchImpl: () => { throw new Error(veneno); }, valorDeRede: "1.2.3.4" });
+    eq(r.status, 503, "excecao inesperada precisa virar 503");
+    eq(r.body, JSON.stringify({ error: "UNAVAILABLE" }), "corpo generico, sempre o mesmo");
+    for (const pedaco of [["postgres", "ql://"].join(""), ["gh", "s_"].join(""), "/var/task",
+                          ["ey", "J0"].join(""), ["SERVICE", "_ROLE"].join("")]) {
+      ok(!r.body.includes(pedaco), `vazou "${pedaco}" na resposta`);
+      ok(!JSON.stringify(r.headers).includes(pedaco), `vazou "${pedaco}" nos cabecalhos`);
+    }
+  }
+});
+
+await test("F-15 o log recebe CODIGO truncado, nunca o objeto de erro", async () => {
+  const linhas = [];
+  await tratarRequisicao(
+    req({ body: JSON.stringify(base()) }), ENV,
+    { fetchImpl: () => { throw new Error("x".repeat(500) + " " + ["postgres", "ql://u:p", "@", "h.invalid/db"].join("")); },
+      valorDeRede: "1.2.3.4", log: (e) => linhas.push(JSON.stringify(e)) });
+  const todo = linhas.join("\n");
+  ok(!todo.includes(["postgres", "ql://"].join("")), "string de conexao no log");
+  for (const l of linhas) ok(l.length < 400, "linha de log longa demais para ser so codigo");
+});
+
+await test("F-15 a casca TOTAL cobre excecao lancada antes do try interno", async () => {
+  // O try interno so comeca depois da validacao. Um erro lancado ANTES dele -- num parser, num
+  // runtime que mudou, numa dependencia -- escaparia inteiro sem a casca externa.
+  const req0 = { method: "POST",
+    headers: { origin: ORIGENS_PERMITIDAS[0],
+               get "content-type"() {
+                 throw new Error("/var/task/segredo.js: " + ["gh", "s_", "V".repeat(16)].join(""));
+               } },
+    body: "{}" };
+  const r = await tratarRequisicao(req0, ENV, {});
+  eq(r.status, 503, "excecao antes do try interno precisa virar 503");
+  eq(r.body, JSON.stringify({ error: "UNAVAILABLE" }), "mesmo corpo generico");
+  for (const pedaco of ["/var/task", ["gh", "s_"].join(""), "segredo"]) {
+    ok(!JSON.stringify(r).includes(pedaco), `vazou "${pedaco}"`);
+  }
 });
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);

@@ -10,10 +10,11 @@
  * importa o mesmo arquivo.
  */
 
-import { validar, montarTitulo, montarCorpo, ABUSO, LIMITES, idExibivel } from "./policy.js";
+import { validar, montarTitulo, montarCorpo, ABUSO, LIMITES, idExibivel, redigir } from "./policy.js";
 import {
   criarRedis, chaveDeRede, impressao, avaliarLimites,
   reservarIdempotencia, confirmarIdempotencia, registrarDuplicata, chaveIdempotencia,
+  registrarMetrica,
 } from "./abuse.js";
 import {
   obterTokenDeInstalacao, verificarDestinoPrivado, encontrarPorReportId,
@@ -82,6 +83,8 @@ export const CREDENCIAIS_PROIBIDAS = Object.freeze([
   "SUPABASE_ANON_KEY", "SUPABASE_PUBLISHABLE_KEYS", "SUPABASE_JWKS",
 ]);
 
+import { cabecalhoDeDeploy } from "./deploy_manifest.js";
+
 const CABECALHOS_BASE = Object.freeze({
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
@@ -116,10 +119,22 @@ export function corpoDeResposta(status, corpo) {
   return STATUS_SEM_CORPO.has(status) ? null : (corpo ?? "");
 }
 
+/**
+ * Classes de padrao sensivel que a redacao pegou no relato -- SO a classe, jamais o valor.
+ *
+ * Este e o numero que diz se o aviso de privacidade esta funcionando: se muita gente escreve
+ * telefone, o problema nao e o redator, e o texto da tela.
+ */
+function classesRedigidas(dados) {
+  const a = redigir(dados.description).classes;
+  const b = dados.attemptedAction ? redigir(dados.attemptedAction).classes : [];
+  return [...new Set([...a, ...b])];
+}
+
 function resposta(status, corpo, origem, extra = {}) {
   return {
     status,
-    headers: { ...CABECALHOS_BASE, ...cabecalhosCors(origem), ...extra },
+    headers: { ...CABECALHOS_BASE, ...cabecalhoDeDeploy(), ...cabecalhosCors(origem), ...extra },
     body: JSON.stringify(corpo),
   };
 }
@@ -135,7 +150,30 @@ export function conferirConfig(env) {
  *
  * Retorna `{status, headers, body}` — sem tocar em `Response`, que so existe no runtime.
  */
+/**
+ * Casca TOTAL contra excecao inesperada (F-15).
+ *
+ * O `try` interno cobre o bloco que fala com GitHub e Redis -- o que a gente PREVIU que falha. O
+ * caminho classico de vazamento e o outro: o erro que ninguem previu, lancado de dentro de uma
+ * dependencia, de um parser ou de um runtime que mudou. Uma mensagem dessas carrega, com
+ * frequencia, caminho de arquivo, nome de variavel de ambiente ou fragmento de configuracao.
+ *
+ * Aqui nada disso chega ao cliente: sempre o MESMO 503 generico, byte a byte, e no log so um codigo
+ * truncado. A funcao interna continua respondendo tudo que sabe responder; esta casca so garante
+ * que "nao sei o que aconteceu" tambem tem uma resposta segura.
+ */
 export async function tratarRequisicao(req, env, deps = {}) {
+  const origem = req?.headers?.origin || null;
+  try {
+    return await tratarRequisicaoInterno(req, env, deps);
+  } catch (e) {
+    const codigo = String((e && e.message) || "UNKNOWN").slice(0, 40).replace(/[^\w .:-]/g, "");
+    try { (deps.log || (() => {}))({ evento: "report_unhandled", codigo }); } catch { /* log quebrado nao pode virar 500 */ }
+    return resposta(503, { error: "UNAVAILABLE" }, origem);
+  }
+}
+
+async function tratarRequisicaoInterno(req, env, deps = {}) {
   const fetchImpl = deps.fetchImpl || globalThis.fetch;
   const log = deps.log || (() => {});
   const agora = deps.agora || (() => new Date());
@@ -198,6 +236,7 @@ export async function tratarRequisicao(req, env, deps = {}) {
   const dados = v.dados;
 
   const redis = criarRedis({ url: env.REPORT_REDIS_REST_URL, token: env.REPORT_REDIS_REST_TOKEN, fetchImpl });
+
   const hoje = agora().toISOString().slice(0, 10);
   const chaveRede = await chaveDeRede(env.REPORT_ABUSE_HMAC_SECRET, deps.valorDeRede || null, hoje);
 
@@ -258,6 +297,13 @@ export async function tratarRequisicao(req, env, deps = {}) {
     });
 
     await confirmarIdempotencia(redis, chaveIdem, numero);
+    await registrarMetrica(redis, "aceito");
+    await registrarMetrica(redis, `app:${dados.app}`);
+    await registrarMetrica(redis, `diag:${dados.diagnosticCode}`);
+    if (dup.duplicado) await registrarMetrica(redis, "duplicado");
+    // Classes de padrao sensivel que a redacao pegou -- so a CLASSE, jamais o valor. Este e o
+    // numero que diz se o aviso de privacidade esta funcionando.
+    for (const c of classesRedigidas(dados)) await registrarMetrica(redis, `redigido:${c}`);
     log({ evento: "report_github_created", app: dados.app, diagnostico: dados.diagnosticCode,
           duplicado: dup.duplicado, latencia_ms: Date.now() - t0 });
 
@@ -269,6 +315,7 @@ export async function tratarRequisicao(req, env, deps = {}) {
     // de auth pode carregar fragmento de credencial.
     const codigo = String(e && e.message || "UNKNOWN").slice(0, 40);
     log({ evento: "report_github_failed", codigo, latencia_ms: Date.now() - t0 });
+    await registrarMetrica(redis, "falhou");
     return resposta(503, { error: "UNAVAILABLE" }, origem);
   }
 }

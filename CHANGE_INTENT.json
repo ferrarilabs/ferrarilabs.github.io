@@ -3,5 +3,18 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "EDGE_FUNCTIONS",
+      "lifecycle": "one_shot",
+      "reason": "Issue #321: os seis controles exigidos ANTES de qualquer ativacao publica. F-05 paridade de limites cliente/servidor; F-06 manifesto de deploy no cabecalho `x-deploy-sha`; F-11 metricas agregadas sem conteudo; F-12 versao do aviso de privacidade viajando com o relato; F-14 ja entregue na UI; F-15 casca TOTAL contra excecao inesperada, porque o `try` interno so cobria o que a gente previu que falha.",
+      "expected_behavior_change": "Estritamente mais restritivo e mais observavel. `noticeVersion` passa a ser campo OBRIGATORIO de formato fechado (`v` + digitos): um corpo sem ele reprova com SCHEMA_NOTICE_VERSION. Toda resposta ganha `x-deploy-sha`. Excecao inesperada passa a virar o MESMO 503 generico, byte a byte, em vez de escapar. Metricas sao contadores diarios por desfecho, sem relato, sem chave de rede, sem reportId, sem impressao digital, e falham ABERTAS -- perder contador e irrelevante, perder relato nao. O canal continua inerte: interruptor desligado e nenhum segredo provisionado.",
+      "tests_required": [
+        "scripts/report/test_report_intake.mjs",
+        "scripts/report/test_report_ui.mjs",
+        "scripts/report/test_report_isolation.mjs",
+        "scripts/report/test_report_security_ratchets.mjs"
+      ]
+    }
+  ]
 }
