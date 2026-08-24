@@ -316,6 +316,8 @@ const CHECKS = [
     why: "com a flag desligada a UI nao pode existir (botao morto ensina que reportar nao funciona), e os quatro idiomas nao podem divergir no aviso de privacidade (Issue #321)" },
   { id: "report-isolation", group: "app", cmd: ["node", "scripts/report/test_report_isolation.mjs"],
     why: "T-ENV-01: o Supabase injeta SUPABASE_DB_URL/SECRET_KEYS/SERVICE_ROLE_KEY em toda Edge Function do projeto, e o intake publico nao pode voltar a compartilhar runtime com participante, pagamento e scoring (Issue #321)" },
+  { id: "pii-fingerprints", group: "app", cmd: ["node", "scripts/test_pii_fingerprints.mjs"],
+    why: "nome de pessoa nao tem sintaxe, entao o detector de FORMA nunca o veria — a lista fechada mora fora do repo e UNAVAILABLE nunca vale como PASS (Issue #181/#195)" },
   { id: "detector-source-hygiene", group: "app", cmd: ["node", "scripts/test_detector_source_hygiene.mjs"],
     why: "os 5 arquivos que o scan de PII PULA nao ficam isentos de disciplina — dois deles guardavam PII real e o gate nao os via" },
   { id: "powerball-public-projection", group: "app", cmd: ["node", "bolao/loterias/powerball/scripts/test_public_projection.mjs"],
