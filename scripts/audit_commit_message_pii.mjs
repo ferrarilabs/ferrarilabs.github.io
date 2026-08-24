@@ -27,6 +27,7 @@ import { fileURLToPath } from "node:url";
 import { realpathSync } from "node:fs";
 import { resolveBase } from "./safety/surfaces.mjs";
 import { scanContent } from "./pii_detectors.mjs";
+import { carregarLista, varrer } from "./pii_fingerprints.mjs";
 
 function newCommitShas(baseSha, headRef, cwd) {
   const out = execFileSync("git", ["log", `${baseSha}..${headRef}`, "--format=%H"], { cwd, encoding: "utf8" }).trim();
@@ -66,13 +67,43 @@ function main() {
 
   const { commits, findings } = scanCommitRange(baseSha);
 
+  // ── Valor CONHECIDO, alem de valor com FORMA ──────────────────────────────────────────────
+  //
+  // `scanContent` reconhece sintaxe (e-mail, token, referencia de pagamento). Nome de pessoa nao
+  // tem sintaxe, e a auditoria forense do #181 achou nome de participante pareado com pagamento em
+  // mensagem de commit sem que gate nenhum medisse. A lista fechada mora FORA do repositorio; sem
+  // ela o estado e UNAVAILABLE -- que e reportado como tal, nunca como aprovacao.
+  const lista = carregarLista();
+  const conhecidos = [];
+  if (lista.estado === "ENFORCED") {
+    for (const sha of commits) {
+      const { achados } = varrer(commitMessage(sha, process.cwd()), lista);
+      for (const rotulo of achados) conhecidos.push({ sha: sha.slice(0, 10), rotulo });
+    }
+  }
+  if (lista.estado === "ERROR") {
+    console.error(`❌ lista de impressoes ilegivel: ${lista.motivo}`);
+    process.exit(1);
+  }
+  const selo = lista.estado === "ENFORCED"
+    ? `valor conhecido: ENFORCED (${lista.total} impressao(oes))`
+    : "valor conhecido: UNAVAILABLE (lista privada ausente — NAO verificado)";
+
+  if (conhecidos.length) {
+    console.error("❌ COMMIT-MESSAGE PII AUDIT FAILED — valor conhecido de participante\n");
+    for (const c of conhecidos) console.error(`  - ${c.sha} | valor-conhecido | ${c.rotulo}`);
+    console.error("\nOs rotulos acima sao OPACOS de proposito. O valor nao e impresso aqui e nao " +
+                  "deve ser colado em lugar nenhum — use o rotulo para localiza-lo na lista privada.");
+    process.exit(1);
+  }
+
   if (commits.length === 0) {
     console.log(`✓ Commit-message PII audit passed — 0 new commit(s) since base (${how}). Historical commits are not rescanned by this gate.`);
     process.exit(0);
   }
 
   if (findings.length === 0) {
-    console.log(`✓ Commit-message PII audit passed — scanned ${commits.length} new commit message(s) since ${how}, 0 findings.`);
+    console.log(`✓ Commit-message PII audit passed — scanned ${commits.length} new commit message(s) since ${how}, 0 findings. ${selo}`);
     process.exit(0);
   }
 
