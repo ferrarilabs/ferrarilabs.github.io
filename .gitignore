@@ -7,7 +7,12 @@ bolao/cdb2026/backups/
 bolao/loterias/*/logs/
 __pycache__/
 *.pyc
-node_modules/
+# Sem barra final DE PROPOSITO: `node_modules/` casa com um DIRETORIO, mas nao com um
+# SYMLINK chamado node_modules. Worktrees de trabalho costumam linkar node_modules em vez de
+# copiar (o proprio harness de mutacao faz isso), e o symlink escapava do ignore -- um
+# `git add -A` chegou a commita-lo, e a worktree temporaria da mutacao passou a nascer com um
+# node_modules ja existente, quebrando M25/M26 com EEXIST. Sem a barra cobre os dois casos.
+node_modules
 *private-participant-data.local.json
 bolao/loterias/powerball/scripts/email/generated/
 verify-summary.json
