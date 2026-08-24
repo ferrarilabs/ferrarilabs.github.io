@@ -451,7 +451,16 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
   background: var(--bg); border: 1px solid var(--border2); border-radius: 14px;
 }
 .live-team-logo-box img { width: 34px; height: 34px; object-fit: contain; }
-.live-team-name { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.2; }
+/* `max-width` + reticencias: sem isto o nome do time ESCAPA da propria coluna. `.live-team` ja
+   e `flex: 1; min-width: 0`, entao a COLUNA encolhe — mas o span dentro dela nao tinha limite
+   nenhum e simplesmente transbordava. A 320px, com a coluna do meio larga (o aviso de atraso
+   da Issue #296 ocupa ~160px) e um nome longo como "Athletico Paranaense", o span passava
+   3,5px da borda e a PAGINA inteira rolava na horizontal (Issue #316).
+   Como o aviso so aparece com dado atrasado, o defeito ia e vinha conforme o snapshot — foi
+   assim que chegou a `main` sem ninguem ver.
+   O nome completo continua acessivel: o card carrega o nome inteiro no DOM e no title. */
+.live-team-name { font-size: 11px; font-weight: 700; text-align: center; line-height: 1.2;
+  max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .live-score {
   font-size: 30px; font-weight: 900; font-variant-numeric: tabular-nums;
   color: var(--text); min-width: 28px; text-align: center;

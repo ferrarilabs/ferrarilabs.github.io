@@ -7,12 +7,12 @@
     {
       "surface_id": "NOTIFICATION_WORKFLOWS",
       "lifecycle": "one_shot",
-      "reason": "Issue #310-B / ADR-020. O `sentinel.yml` passa a receber `SENTINEL_SUPABASE_MGMT_TOKEN` — token de granularidade fina da Management API do Supabase, restrito a `database_migrations_read`. Substitui a proposta do ADR-019, que exigiria DDL em producao (CREATE ROLE/GRANT) e expor `supabase_migrations` como schema do PostgREST. A rota foi verificada como existente (responde 401 sem credencial, nao 404). Nenhuma DDL, nenhum schema exposto, nenhum papel novo, e alcance MENOR que o do papel proposto.",
-      "expected_behavior_change": "Uma variavel de ambiente NOVA no job do Sentinel. O cron, os gatilhos, as permissoes e os passos NAO mudam. Enquanto o secret nao existir, o detector de deriva de migracao devolve UNKNOWN — que nao emite finding NEM conta como ciclo limpo, entao a ausencia do secret nao produz alarme falso nem falso-verde. Quando o secret existir, o Sentinel passa a ler APENAS a lista de versoes aplicadas (a resposta e reduzida a `version` na porta de entrada; o SQL das migracoes nunca circula). Somente leitura: nenhuma migracao e aplicada, nenhum DDL e executado.",
+      "reason": "Issue #316-B. O `bolao_provider_snapshot.yml` commita em main com GITHUB_TOKEN, e um push com esse token NAO dispara outro workflow (protecao anti-loop do GitHub). Consequencia medida: os commits de snapshot nao rodam `npm run check` -- verificado em tres commits de bot consecutivos, todos sem nenhuma execucao, enquanto o ultimo commit humano antes deles estava verde. Uma combinacao de conteudo do snapshot passou a estourar 4px na horizontal a 320px e ficou vermelha em silencio. A correcao valida o dado gerado ANTES de ele virar commit, em vez de tentar acordar CI depois.",
+      "expected_behavior_change": "Passos NOVOS antes do commit, todos condicionados a `steps.changed.outputs.changed == 'true'` (ou seja, so quando o snapshot realmente mudou): setup-node, npm ci, cache do Playwright, instalacao do Chromium e execucao de `validate_snapshot_before_publish.mjs`. Se um gate afetado reprovar, o job FALHA e o snapshot NAO e commitado. O cron, os apps cobertos, o conteudo do snapshot e o caminho de push NAO mudam. NENHUM token novo: continua GITHUB_TOKEN, deliberadamente -- trocar por um PAT amplo so para disparar CI criaria credencial com muito mais alcance do que a tarefa precisa e uma cadeia recursiva de workflows.",
       "tests_required": [
-        "scripts/sentinel/test_supabase_migrations_api.mjs",
-        "scripts/sentinel/test_migration_drift_detector.mjs",
-        "scripts/sentinel/test_security.mjs"
+        "bolao/scripts/test_snapshot_publication_guard.mjs",
+        "bolao/br2026/scripts/visual/check_live_hero_width.mjs",
+        "bolao/br2026/scripts/visual/check_standings_layout.mjs"
       ]
     }
   ]

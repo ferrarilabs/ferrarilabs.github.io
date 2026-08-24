@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "purpose": "Contrato EXPLICITO de quais gates o snapshot da ESPN de cada app consegue afetar. O produtor roda estes gates ANTES de commitar; se algum reprovar, o snapshot NAO vira commit em main.",
+  "why": "Issue #316. Os commits do github-actions[bot] usam GITHUB_TOKEN, e um push com GITHUB_TOKEN NAO dispara outro workflow (protecao anti-loop do GitHub). Consequencia: dado gerado chegava a main sem NENHUMA verificacao. Uma combinacao de conteudo do snapshot passou a estourar 2px na horizontal a 320px e ficou vermelha em silencio, porque nenhum `npm run check` roda nesses commits. Verificar ANTES de publicar e melhor que tentar disparar CI depois: nao exige token amplo, nao cria cadeia recursiva de workflow, e o dado ruim nunca entra na historia.",
+  "criterio_de_inclusao": "Um gate entra aqui se, e somente se, ele RENDERIZA o snapshot commitado de verdade. Gates que interceptam a fonte com fixture (audit_live_card_dom, check_live_hero_width, multi_live_hero*) sao deterministicos por construcao e NAO dependem do dado — inclui-los seria custo por minuto sem protecao adicional.",
+  "apps": {
+    "br2026": {
+      "snapshot": "bolao/br2026/data/espn-normalized.json",
+      "gates": [
+        {
+          "cmd": [
+            "node",
+            "bolao/br2026/scripts/visual/check_standings_layout.mjs"
+          ],
+          "why": "Renderiza a classificacao E a pagina inteira com o dado real. Sua invariante 6 (nenhum estouro horizontal do documento) e exatamente a que pegou o defeito da #316 — e a que ficou vermelha em main sem ninguem ver."
+        }
+      ]
+    },
+    "cdb2026": {
+      "snapshot": "bolao/cdb2026/data/espn-normalized.json",
+      "gates": [
+        {
+          "cmd": [
+            "node",
+            "bolao/cdb2026/scripts/visual/check_sticky_overlap.mjs"
+          ],
+          "why": "Carrega a pagina do CDB2026 com o dado real commitado; sobreposicao de sticky depende do conteudo renderizado."
+        }
+      ]
+    }
+  },
+  "debito_declarado": {
+    "o_que": "Outros QUATRO workflows tambem empurram para main com GITHUB_TOKEN e, pelo mesmo motivo (push com esse token nao dispara workflow), seus commits tambem nao rodam `npm run check`: auto_results.yml, sync_version.yml, lottery_poll.yml, powerball_jackpot_refresh.yml.",
+    "por_que_nao_foi_feito_agora": "Nao e uma extensao mecanica. Cada um escreve um tipo de dado diferente e precisa do SEU proprio contrato de gates afetados -- copiar o do snapshot da ESPN produziria um contrato que afirma protecao que nao existe, que e pior que nenhum. `auto_results.yml` em particular escreve RESULTADO, que alimenta scoring: e a que mais merece o tratamento e a que menos tolera um contrato improvisado.",
+    "avaliacao_de_risco": {
+      "sync_version.yml": "BAIXO. So bumpa o `?v=` de cache-bust em index.html; nao alimenta gate visual nem calculo.",
+      "powerball_jackpot_refresh.yml": "BAIXO-MEDIO. Valor de jackpot exibido; erro seria visivel mas nao altera dinheiro devido.",
+      "lottery_poll.yml": "MEDIO. Estado de ciclo da loteria.",
+      "auto_results.yml": "ALTO. Escreve resultado, que alimenta scoring e ranking -- dinheiro real por entrada."
+    },
+    "proximo_passo": "Repetir o padrao desta Issue por workflow, na ordem de risco (auto_results primeiro): identificar quais gates o dado daquele workflow consegue afetar, declarar aqui, e validar antes do commit. Registrado aqui, e nao numa Issue nova, para a informacao viver junto do mecanismo que a usa."
+  }
+}
