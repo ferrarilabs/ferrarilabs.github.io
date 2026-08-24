@@ -76,6 +76,21 @@ function cabecalhosCors(origem) {
   };
 }
 
+/**
+ * Status que a especificacao de Fetch proibe de ter corpo. Construir `new Response("", {status:204})`
+ * LANCA -- e a excecao vira 500 "Internal Server Error", que e o oposto de um preflight bem
+ * sucedido. Nasceu em producao: o preflight de origem PERMITIDA respondia 500 enquanto o de origem
+ * proibida respondia 403 corretamente, ou seja, o caminho feliz era o unico quebrado.
+ *
+ * `""` e `null` parecem a mesma coisa e nao sao: so `null` e ausencia de corpo.
+ */
+export const STATUS_SEM_CORPO = new Set([204, 205, 304]);
+
+/** Corpo que pode ser entregue ao construtor de `Response` sem lancar. */
+export function corpoDeResposta(status, corpo) {
+  return STATUS_SEM_CORPO.has(status) ? null : (corpo ?? "");
+}
+
 function resposta(status, corpo, origem, extra = {}) {
   return {
     status,

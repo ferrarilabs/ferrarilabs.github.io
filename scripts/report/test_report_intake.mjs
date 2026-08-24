@@ -10,7 +10,8 @@
 import {
   validar, montarTitulo, montarCorpo, tornarInerte, redigir, idExibivel, LIMITES, DIAGNOSTICOS,
 } from "../../supabase/functions/user-report-intake/policy.js";
-import { tratarRequisicao, ORIGENS_PERMITIDAS, conferirConfig } from "../../supabase/functions/user-report-intake/handler.js";
+import { tratarRequisicao, ORIGENS_PERMITIDAS, conferirConfig, corpoDeResposta,
+         STATUS_SEM_CORPO } from "../../supabase/functions/user-report-intake/handler.js";
 import { chaveDeRede, impressao, avaliarLimites, criarRedis, chaveIdempotencia,
          reservarIdempotencia } from "../../supabase/functions/user-report-intake/abuse.js";
 
@@ -356,6 +357,52 @@ await test("F-04 a chave de idempotencia nao devolve o reportId em claro", async
   ok(!k.includes(id), "a chave nao pode carregar o reportId literal");
   ok(!k.includes(id.split("-")[0]), "nem o primeiro segmento dele");
   ok(/^[0-9a-f]{32}$/.test(k), "forma esperada: 32 hex");
+});
+
+// ── A fiacao HTTP, nao a politica ──────────────────────────────────────────────────────────────
+//
+// O que quebrou em producao nao foi a decisao do handler -- foi o construtor de `Response`. O
+// preflight de origem PERMITIDA respondia 500 enquanto o de origem PROIBIDA respondia 403: o unico
+// caminho quebrado era o caminho feliz. Testar a decisao por chamada de funcao nunca pegaria isso,
+// porque o defeito mora na conversao para `Response`.
+//
+// Estes casos passam a saida do handler pelo MESMO construtor que a Edge Function usa.
+
+await test("preflight de origem permitida sobrevive ao construtor de Response", async () => {
+  const r = await tratarRequisicao(
+    { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }, {}, {});
+  eq(r.status, 204, "preflight permitido responde 204");
+  let lancou = null;
+  try { new Response(corpoDeResposta(r.status, r.body), { status: r.status, headers: r.headers }); }
+  catch (e) { lancou = e; }
+  eq(lancou, null, `Response lancou: ${lancou && lancou.message}`);
+});
+
+await test("toda resposta alcancavel do handler constroi um Response valido", async () => {
+  const casos = [
+    ["OPTIONS permitido", { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }],
+    ["OPTIONS proibido", { method: "OPTIONS", headers: { origin: "https://nao.invalid" }, body: "" }],
+    ["OPTIONS sem origem", { method: "OPTIONS", headers: {}, body: "" }],
+    ["GET", { method: "GET", headers: {}, body: "" }],
+    ["POST tipo errado", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" }],
+    ["POST grande", { method: "POST", headers: { "content-type": "application/json" }, body: "x".repeat(20000) }],
+    ["POST sem config", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }],
+  ];
+  for (const [nome, req] of casos) {
+    const r = await tratarRequisicao(req, {}, {});
+    let lancou = null;
+    try { new Response(corpoDeResposta(r.status, r.body), { status: r.status, headers: r.headers }); }
+    catch (e) { lancou = e; }
+    eq(lancou, null, `${nome} (status ${r.status}) lancou: ${lancou && lancou.message}`);
+  }
+});
+
+await test("corpoDeResposta zera o corpo exatamente nos status que proibem corpo", () => {
+  for (const s of STATUS_SEM_CORPO) {
+    eq(corpoDeResposta(s, "qualquer coisa"), null, `status ${s} precisa de corpo null`);
+  }
+  eq(corpoDeResposta(200, '{"a":1}'), '{"a":1}', "status com corpo preserva o corpo");
+  eq(corpoDeResposta(403, '{"error":"ORIGIN"}'), '{"error":"ORIGIN"}', "erro preserva o corpo");
 });
 
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
