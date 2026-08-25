@@ -47,3 +47,8 @@ bolao/loterias/config/*.jsonl.lock
 # Trava de sessao do Claude Code (pid, sessionId, timestamp de aquisicao). Estado de execucao
 # local, nunca fonte — regenerada a cada sessao.
 .claude/scheduled_tasks.lock
+
+# Cache local do Wrangler: gerado a cada comando, nao e fonte.
+# Foi versionado por engano no #331 e disparava o check de superficie critica
+# (`workers/user-report-intake/**`) a cada execucao de wrangler.
+.wrangler/
