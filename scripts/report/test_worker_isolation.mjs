@@ -101,10 +101,36 @@ test("existe guarda de host, e ela lanca", () => {
   ok(/DESTINO_NAO_PERMITIDO/.test(todoFonte), "a guarda precisa lancar");
 });
 
+/**
+ * Estado de rollout DECLARADO (#321). Os dois casos abaixo exigiam literalmente "false" -- correto
+ * enquanto o canal nao existia, e mentira no dia da ativacao. Um gate que precisa ser afrouxado
+ * para o produto avancar e um gate que se aprende a afrouxar.
+ *
+ * Agora eles exigem COERENCIA com o estado declarado. A protecao nao diminui: ligar continua
+ * exigindo uma alteracao visivel e revisavel em `report_rollout.json`, e passou a ser impossivel
+ * ligar METADE do canal (servidor sim, cliente nao) sem reprovar.
+ */
+const ROLLOUT = JSON.parse(readFileSync(join(RAIZ, "bolao/shared/safety/report_rollout.json"), "utf-8"));
+const ESPERADO_NO_INTERRUPTOR = ROLLOUT.state === "PUBLIC_ENABLED" ? "true" : "false";
+
 console.log("\n3. Interruptor e ativacao em duas chaves:");
 
-test("o interruptor esta versionado como DESLIGADO", () => {
-  eq(cfg.vars.REPORT_INTAKE_ENABLED, "false", "o valor no repositorio precisa ser o seguro");
+test("o interruptor versionado bate com o estado de rollout declarado", () => {
+  eq(cfg.vars.REPORT_INTAKE_ENABLED, ESPERADO_NO_INTERRUPTOR,
+     `rollout declarado = ${ROLLOUT.state}, entao o interruptor versionado tem de ser "${ESPERADO_NO_INTERRUPTOR}"`);
+});
+
+test("os tres apps ativos concordam com o estado de rollout — nada de meia ativacao", () => {
+  // Isto NAO existia antes: nada conferia se servidor e clientes contavam a mesma historia. Um app
+  // esquecido em `false` numa ativacao (ou em `true` num rollback) e a falha silenciosa mais
+  // provavel deste canal, porque cada arquivo parece certo sozinho.
+  const querTrue = ROLLOUT.state === "PUBLIC_ENABLED";
+  const fora = (ROLLOUT.apps_ativos || []).filter((rel) => {
+    const m = readFileSync(join(RAIZ, rel), "utf-8")
+      .match(/reportProblem\s*:\s*\{[\s\S]*?enabled\s*:\s*(true|false)/);
+    return !m || (m[1] === "true") !== querTrue;
+  });
+  eq(fora.length, 0, `apps fora do estado declarado (${ROLLOUT.state}): ${fora.join(", ")}`);
 });
 
 test("o interruptor NAO e um segredo (precisa ser auditavel)", () => {
@@ -160,11 +186,11 @@ test("observabilidade ligada com captura completa", () => {
  * condicao verificada, e nao mais uma preferencia. Um patch futuro que ligue o canal versionando
  * `REPORT_INTAKE_ENABLED: "true"` com endereco publico aberto reprova AQUI.
  */
-test("endereco publico exige interruptor versionado DESLIGADO", () => {
+test("endereco publico so pode estar LIGADO sob rollout declarado", () => {
   const publico = cfg.workers_dev === true;
   if (publico) {
-    eq(cfg.vars?.REPORT_INTAKE_ENABLED, "false",
-       "endereco publico com interruptor versionado LIGADO");
+    eq(cfg.vars?.REPORT_INTAKE_ENABLED, ESPERADO_NO_INTERRUPTOR,
+       "endereco publico com interruptor fora do estado de rollout declarado");
   }
   // `preview_urls` continua proibida em qualquer cenario: ela cria enderecos alternativos, nao
   // versionados e fora da CSP, para o MESMO codigo. Um unico endereco auditavel e o objetivo, e

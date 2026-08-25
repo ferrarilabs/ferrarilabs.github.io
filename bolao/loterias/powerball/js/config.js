@@ -9,7 +9,8 @@ window.POWERBALL_CONFIG = {
    * botao morto -- pior que nao ter botao, porque ensina o participante que reportar nao funciona.
    */
   reportProblem: {
-    enabled: false,
+    // LIGADO em 2026-08-25 (#321). Estado canonico: bolao/shared/safety/report_rollout.json.
+    enabled: true,
     // Endereco do Cloudflare Worker isolado (`ferrarilabs-support-intake`, ADR-021).
     //
     // A decisao de endereco foi tomada em 2026-08-25: `workers.dev`, porque a conta Cloudflare tem
