@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.133",
+  siteVersion: "v3.134",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
@@ -14,7 +14,17 @@ window.CDB2026_CONFIG = {
    */
   reportProblem: {
     enabled: false,
-    endpoint: "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/user-report-intake",
+    // Endpoint definido no momento da ATIVACAO, nao antes.
+    //
+    // O intake mudou de runtime: o alvo deixou de ser a Edge Function do projeto Supabase que
+    // guarda participante, pagamento e scoring, e passou a ser um Cloudflare Worker isolado
+    // (`ferrarilabs-support-intake`, ADR-021). O endereco publico dele depende de uma decisao do
+    // dono que ainda nao foi tomada -- `workers.dev` ou um subdominio proprio -- entao deixar aqui
+    // a URL antiga apontaria o cliente para exatamente o runtime que a migracao existe para
+    // abandonar.
+    //
+    // Vazio e o estado correto: `montar()` desiste sem endpoint, entao nao existe botao morto.
+    endpoint: "",
   },
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",

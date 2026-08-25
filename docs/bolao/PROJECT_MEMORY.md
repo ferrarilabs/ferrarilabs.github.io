@@ -1312,6 +1312,21 @@ Padrões de correção que se repetem e valem a pena reconhecer em bugs futuros:
 
 ## Melhorias futuras
 
+### Auditoria de documentação do repositório inteiro — PENDENTE, workstream separado
+
+Registrado em 2026-08-24 durante a #321 (migração do intake para Cloudflare Worker). A documentação
+**daquele** canal foi atualizada por completo — ADR-021, `SECURE_USER_REPORTING.md`, nova RTM e um
+teste de deriva arquitetural.
+
+O que **não** foi feito, deliberadamente, para não inflar o escopo daquela mudança: uma auditoria de
+completude e consistência de **arquitetura / SDD / TDD / RTM** do repositório inteiro. O repositório
+hoje tem `PLATFORM_ARCHITECTURE.md`, `ARCHITECTURE.md`, ADRs e **duas** RTMs (CDB2026 e user-report),
+mas não tem taxonomia declarada de SDD/TDD — e inventar uma no meio de uma migração criaria
+documentação paralela concorrente, que é o problema que uma auditoria dessas existe para resolver.
+
+Isto **não bloqueia** nada em aberto; é dívida registrada, não pendência.
+
+
 Ver `docs/bolao/ROADMAP.md` para a lista completa e priorizada. Resumo:
 
 - **Curto prazo (durante a Copa 2026):** atualizar `data.js` conforme jogos terminam e
