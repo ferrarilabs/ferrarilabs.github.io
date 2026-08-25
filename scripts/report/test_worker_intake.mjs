@@ -625,7 +625,12 @@ const CASOS_DE_CODIGO = [
   ["GITHUB_UPSTREAM", (env) => ({ env, gh: async (u, i) => (i?.method === "POST" && String(u).includes("/issues"))
       ? Response.json({}, { status: 500 }) : githubFalso()(u, i) })],
   ["CRYPTO_FAILURE", (env) => ({ env: { ...env, REPORT_GITHUB_PRIVATE_KEY: "nao-e-uma-chave" }, gh: githubFalso() })],
-  ["GITHUB_TIMEOUT", (env) => ({ env, gh: async () => { throw new Error("network exploded"); } })],
+  // Falha de rede crua NAO e timeout -- rotular as duas igual seria precisao inventada.
+  ["GITHUB_UPSTREAM", (env) => ({ env, gh: async () => { throw new Error("network exploded"); } })],
+  // Timeout DE VERDADE: o fetch so termina quando o nosso proprio AbortController dispara.
+  ["GITHUB_TIMEOUT", (env) => ({ env, gh: (u, i) => new Promise((_, rej) => {
+      i.signal.addEventListener("abort", () => rej(new Error("abortado pelo signal")));
+    }) })],
 ];
 
 for (const [esperado, montar] of CASOS_DE_CODIGO) {
