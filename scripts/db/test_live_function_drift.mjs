@@ -6,7 +6,10 @@
  * o hash mude quando — e so quando — a funcao muda.
  */
 
-import { classificarDeriva, ESTADOS, calcularSha, shaDeclarado, FONTES } from "./audit_live_function_drift.mjs";
+import { classificarDeriva, ESTADOS, calcularSha, shaDeclarado, FONTES,
+         calcularShaCanonico, caminhosSujos, podeRecomendarHash, CAMINHOS_DO_HASH, FONTE }
+  from "./audit_live_function_drift.mjs";
+import { spawnSync } from "node:child_process";
 import { achados, stripNoise } from "./audit_migration_idempotency.mjs";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -73,6 +76,36 @@ test("o hash NAO depende de si mesmo (ponto fixo existe)", () => {
       ? require_read(rel).replace(/DEPLOYED_SOURCE_SHA = "[^"]*"/, 'DEPLOYED_SOURCE_SHA = "ffffffffffffffff"')
       : require_read(rel));
   eq(comOutroSha, calcularSha(), "o hash mudou so por trocar o proprio SHA declarado");
+});
+
+console.log("\nProcedencia da fonte (Issue #334):");
+
+test("numa arvore limpa, o hash do disco e o hash do OBJETO COMMITADO coincidem", () => {
+  // Auto-guardado: so afirma quando os caminhos do hash estao limpos. Numa arvore de trabalho com
+  // edicao pendente nesses caminhos a divergencia e o comportamento CERTO, nao uma falha.
+  const porcelain = spawnSync("git", ["status", "--porcelain", "--", ...CAMINHOS_DO_HASH],
+    { cwd: RAIZ, encoding: "utf-8" }).stdout || "";
+  if (caminhosSujos(porcelain).length > 0) { console.log("      (pulado: fontes com edicao pendente)"); return; }
+  eq(calcularShaCanonico(), calcularSha(), "disco e HEAD divergem com a arvore limpa");
+});
+
+test("o hash canonico ignora o disco por construcao", () => {
+  // Injeta um leitor que devolve conteudo diferente do disco: se `calcularShaCanonico` estivesse
+  // lendo arquivos em vez dos objetos de git, este caso nao mudaria nada.
+  const mutado = calcularShaCanonico((rel) => `conteudo sintetico de ${rel}`);
+  assert(mutado !== calcularSha(), "o hash canonico nao reagiu ao conteudo que recebeu");
+});
+
+test("caminho ausente em HEAD => sem hash canonico, nunca um palpite", () => {
+  eq(calcularShaCanonico(() => null), null, "deveria devolver null quando o objeto nao existe");
+});
+
+test("a recusa de recomendar cobre suja, divergente e ausente", () => {
+  assert(!podeRecomendarHash({ sujos: [FONTES[0]], shaDisco: "a", shaCommitado: "a" }).ok, "suja");
+  assert(!podeRecomendarHash({ sujos: [], shaDisco: "a", shaCommitado: "b" }).ok, "divergente");
+  assert(!podeRecomendarHash({ sujos: [], shaDisco: "a", shaCommitado: null }).ok, "ausente");
+  const bom = podeRecomendarHash({ sujos: [], shaDisco: "a", shaCommitado: "a" });
+  assert(bom.ok && bom.motivo === FONTE.CANONICAL, "limpa e igual deveria recomendar");
 });
 
 console.log("\nIdempotencia de migracao (Issue #306, mesma causa raiz):");
