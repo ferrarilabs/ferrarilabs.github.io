@@ -52,4 +52,4 @@ que só o dono cria) · `NÃO_IMPLEMENTADO` (decisão registrada).
 
 Esta RTM cobre **apenas** o canal de reporte. Uma auditoria de completude de documentação de
 arquitetura/SDD/TDD/RTM do repositório inteiro permanece **pendente como workstream separado** —
-ver `PROJECT_MEMORY.md`.
+ver `PROJECT_MEMORY.md` ("Melhorias futuras").
