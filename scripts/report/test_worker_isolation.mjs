@@ -139,9 +139,54 @@ test("observabilidade ligada com captura completa", () => {
   eq(cfg.observability?.logs?.head_sampling_rate, 1, "amostragem");
 });
 
-test("sem workers.dev: o endpoint publico precisa ser de primeira parte", () => {
-  eq(cfg.workers_dev, false, "workers_dev");
+/**
+ * ─── ESTE TESTE MUDOU DE ASSERCAO EM 2026-08-25, E POR QUE ─────────────────────────────────
+ *
+ * Ele exigia `workers_dev === false`, codificando o desenho original: endereco de primeira parte
+ * (`report.ferrarilabs.com`). Esse endereco exige uma ZONA DNS na Cloudflare, e a conta tem
+ * `zones = 0` -- entao a unica forma de satisfazer a assercao era mover o DNS de `ferrarilabs.com`
+ * inteiro, arrastando site, GitHub Pages e e-mail para uma migracao alheia a este canal.
+ *
+ * O dono decidiu explicitamente pelo `workers.dev` como endereco inicial (ADR-021, "Endereco
+ * publico"). A assercao antiga passou a proibir a decisao vigente.
+ *
+ * O gate NAO foi esvaziado -- seria exatamente o caminho proibido pelo contrato de seguranca. Ele
+ * foi RE-APONTADO para o invariante que de fato protege, e que e mais forte que o anterior:
+ *
+ *   um endereco publico so e aceitavel enquanto o interruptor estiver VERSIONADO como desligado.
+ *
+ * Sem `workers.dev`, "o Worker esta inalcancavel" vinha de graca pela ausencia de rota. Com
+ * `workers.dev`, ele passa a depender inteiramente do interruptor -- entao o interruptor vira uma
+ * condicao verificada, e nao mais uma preferencia. Um patch futuro que ligue o canal versionando
+ * `REPORT_INTAKE_ENABLED: "true"` com endereco publico aberto reprova AQUI.
+ */
+test("endereco publico exige interruptor versionado DESLIGADO", () => {
+  const publico = cfg.workers_dev === true;
+  if (publico) {
+    eq(cfg.vars?.REPORT_INTAKE_ENABLED, "false",
+       "endereco publico com interruptor versionado LIGADO");
+  }
+  // `preview_urls` continua proibida em qualquer cenario: ela cria enderecos alternativos, nao
+  // versionados e fora da CSP, para o MESMO codigo. Um unico endereco auditavel e o objetivo, e
+  // isso nao mudou com a decisao de endereco.
   eq(cfg.preview_urls, false, "preview_urls");
+});
+
+test("a CSP dos apps nomeia a origem EXATA do Worker, sem curinga", () => {
+  // Nasceu junto com a decisao de `workers.dev`, e existe por causa dela: `*.workers.dev` e um
+  // dominio COMPARTILHADO por todas as contas Cloudflare do mundo. Um curinga na CSP autorizaria
+  // o Worker de qualquer estranho a receber POST das nossas paginas -- o oposto do que a
+  // allowlist de origens do proprio Worker garante na outra direcao.
+  const APPS = ["bolao/br2026/index.html", "bolao/cdb2026/index.html",
+                "bolao/loterias/powerball/index.html"];
+  for (const p of APPS) {
+    const csp = (readFileSync(join(RAIZ, p), "utf-8").match(/connect-src([^;]*);/) || [])[1] || "";
+    ok(!/\*\.workers\.dev/.test(csp), `${p}: curinga em workers.dev`);
+    if (cfg.workers_dev === true) {
+      ok(/https:\/\/ferrarilabs-support-intake\.[a-z0-9-]+\.workers\.dev/.test(csp),
+         `${p}: CSP nao nomeia a origem do Worker`);
+    }
+  }
 });
 
 test("nenhum passThroughOnException e nenhum Math.random em caminho de seguranca", () => {
