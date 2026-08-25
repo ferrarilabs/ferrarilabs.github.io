@@ -815,7 +815,13 @@
     "scripts/report/test_report_ui.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
-    "scripts/report/test_report_isolation.mjs": {
+    "scripts/report/test_worker_intake.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/report/test_worker_isolation.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/report/test_docs_drift.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "scripts/safety/audit_safety_contract.mjs": {

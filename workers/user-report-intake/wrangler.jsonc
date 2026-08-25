@@ -1,0 +1,84 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // ─── POR QUE ESTE WORKER EXISTE, E NAO UMA EDGE FUNCTION ────────────────────────────────────
+  //
+  // O runtime de Edge Function do Supabase recebe, automaticamente, capacidades de projeto:
+  // SUPABASE_DB_URL, SUPABASE_SECRET_KEYS e o legado SUPABASE_SERVICE_ROLE_KEY -- este ultimo
+  // IGNORA RLS. Uma catraca de codigo que proibe referenciar essas variaveis protege contra ERRO
+  // DE PROGRAMACAO; nao protege contra comprometimento de runtime, dependencia hostil ou defeito
+  // de injecao futuro.
+  //
+  // A fronteira exigida e mais forte: A CREDENCIAL FINANCEIRA NAO PODE EXISTIR NO RUNTIME DE
+  // REPORTE. Aqui ela nao existe -- nao por disciplina, mas porque este Worker nao tem binding
+  // nenhum para o projeto do dinheiro. Ver ADR-021.
+  //
+  // TUDO que este Worker alcanca esta declarado abaixo. Nao ha `d1_databases`, `hyperdrive`,
+  // `services`, `vars` com credencial, nem qualquer caminho para participante, pagamento, ledger,
+  // palpite, scoring ou ranking.
+
+  "name": "ferrarilabs-support-intake",
+  "main": "src/index.ts",
+
+  // Data de implementacao. Novo projeto nasce com a data de hoje para receber as correcoes de
+  // runtime mais recentes, em vez de herdar comportamento antigo por omissao.
+  "compatibility_date": "2026-08-24",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Sem dominio *.workers.dev: o endpoint publico deste canal deve ser um endereco de primeira
+  // parte, para CSP, proveniencia e propriedade operacional. Enquanto a rota nao existir, o Worker
+  // fica implantado e inalcancavel -- que e exatamente o estado desejado antes da ativacao.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "observability": {
+    "enabled": true,
+    "logs": {
+      // 1 = captura completa. O volume esperado deste canal e baixo por construcao (limites por
+      // remetente e teto global), entao amostrar perderia justamente o evento raro que interessa.
+      "head_sampling_rate": 1
+    }
+  },
+
+  // Metadado da PROPRIA versao publicada (F-06). Substitui um SHA escrito a mao: o Worker passa a
+  // saber qual versao ele e, sem ninguem manter um valor sincronizado. Nao e segredo.
+  "version_metadata": { "binding": "VERSAO" },
+
+  // Nomes dos segredos exigidos. NOMES, nunca valores -- e o proprio Wrangler valida a ausencia
+  // deles no dev local e gera os tipos a partir daqui.
+  "secrets": {
+    "required": [
+      "REPORT_GITHUB_APP_ID",
+      "REPORT_GITHUB_INSTALLATION_ID",
+      "REPORT_GITHUB_PRIVATE_KEY",
+      "REPORT_ABUSE_HMAC_SECRET"
+    ]
+  },
+
+  // Configuracao NAO secreta. `REPORT_INTAKE_ENABLED` mora aqui de proposito: o interruptor de
+  // seguranca precisa ser auditavel no repositorio, e "desligado" e o valor versionado.
+  "vars": {
+    "REPORT_INTAKE_ENABLED": "false",
+    "REPORT_GITHUB_OWNER": "ferrarilabs",
+    "REPORT_GITHUB_REPO": "support-intake"
+  },
+
+  // Primeira linha contra rajada. Local ao colo e eventualmente consistente por desenho -- a
+  // documentacao da Cloudflare diz explicitamente que NAO e um sistema de contabilidade -- e o
+  // periodo so aceita 10 ou 60 segundos. Por isso ele absorve enxurrada barato, e NAO e onde a
+  // politica real mora. Ver DURABLE OBJECT abaixo.
+  "ratelimits": [
+    { "name": "RAJADA", "namespace_id": "3210", "simple": { "limit": 6, "period": 60 } }
+  ],
+
+  // Onde a politica REAL mora. Storage transacional, fortemente consistente e serializavel, e um
+  // objeto por chave -- que e o unico jeito honesto de fazer idempotencia sem corrida. KV foi
+  // descartado por ser eventualmente consistente: dois envios simultaneos do mesmo reportId
+  // poderiam ambos ler "nao existe" e ambos criar Issue.
+  "durable_objects": {
+    "bindings": [{ "name": "ESTADO", "class_name": "EstadoDoIntake" }]
+  },
+  "migrations": [
+    { "tag": "v1", "new_sqlite_classes": ["EstadoDoIntake"] }
+  ]
+}
