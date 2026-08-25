@@ -118,13 +118,19 @@ function exigirHostPermitido(url: string): void {
 async function chamar(fetchImpl: typeof fetch, url: string, opcoes: RequestInit, timeoutMs = 8000): Promise<Response> {
   exigirHostPermitido(url);
   const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
+  // Bandeira NOSSA, nao inspecao do erro alheio (#339). Perguntar `e.name === "AbortError"` daria a
+  // mesma resposta na maioria das vezes e leria um campo de um objeto que nao e nosso; lembrar que
+  // FOMOS NOS que abortamos nao le nada. E a diferenca entre "timeout" e "a rede caiu" e real:
+  // rotular as duas de GITHUB_TIMEOUT seria inventar precisao que o codigo nao tem.
+  let expirou = false;
+  const t = setTimeout(() => { expirou = true; ctrl.abort(); }, timeoutMs);
   try {
     return await fetchImpl(url, { ...opcoes, signal: ctrl.signal });
   } catch (e) {
-    // Abort do NOSSO relogio e uma falha conhecida; falha de rede crua nao e nossa e sua mensagem
-    // pode citar host, proxy ou cabecalho. As duas saem daqui com codigo nosso (#339).
-    throw e instanceof FalhaClassificada ? e : new FalhaClassificada("GITHUB_TIMEOUT");
+    // A mensagem de uma falha de rede pode citar host, proxy ou cabecalho -- entao ela nao sai
+    // daqui: sai um codigo nosso.
+    if (e instanceof FalhaClassificada) throw e;
+    throw new FalhaClassificada(expirou ? "GITHUB_TIMEOUT" : "GITHUB_UPSTREAM");
   } finally {
     clearTimeout(t);
   }
