@@ -2334,3 +2334,39 @@ nem `report_safe_context`.
 
 **Gatilho de revisão:** se a Copa algum dia sair do estado arquivado, esta linha deixa de valer e o
 componente deve ser montado como nos outros três.
+
+---
+
+## Endereço do Worker e `connect-src` — propagação idêntica nos três apps ativos (Issue #321, 2026-08-25)
+
+**Status: `CONSISTENT`** nos três apps ativos · **`INTENTIONALLY_DIFFERENT`** na Copa (ver seção
+anterior — o motivo é o mesmo e não se repete aqui).
+
+| Item | CDB2026 | BR2026 | Powerball | Copa2026 |
+|---|---|---|---|---|
+| `reportProblem.endpoint` | Worker | Worker | Worker | ausente (arquivado) |
+| `reportProblem.enabled` | `false` | `false` | `false` | ausente |
+| `connect-src` nomeia a origem do Worker | sim | sim | sim | não (não precisa) |
+| curinga `*.workers.dev` na CSP | não | não | não | não |
+
+O endereço é literal e idêntico nos três:
+
+```
+https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev
+```
+
+**Por que origem exata e nunca curinga.** `*.workers.dev` é um domínio **compartilhado por todas as
+contas Cloudflare do mundo**. Um curinga no `connect-src` autorizaria o Worker de qualquer estranho
+a receber `POST` das nossas páginas — o oposto exato do que a allowlist de origens do próprio Worker
+garante na direção contrária. Há catraca proibindo o curinga
+(`scripts/report/test_worker_isolation.mjs`, provada por mutação), então esta linha não depende de
+alguém lembrar.
+
+**A Copa não entra na CSP.** Ela não carrega o componente, então adicionar a origem lá seria ampliar
+a política de uma página que nunca vai usá-la — CSP é allowlist, e allowlist que cresce sem uso é
+allowlist que apodrece.
+
+**Preencher o endpoint não liga nada.** São duas chaves independentes, e a do cliente é a mais
+fraca: `enabled: false` esconde o botão, mas quem para requisição de verdade é
+`REPORT_INTAKE_ENABLED != "true"` no servidor. Por isso o rollback começa sempre pelo servidor — um
+navegador com a página em cache continua conseguindo `POST`ar depois de a URL sumir daqui.
