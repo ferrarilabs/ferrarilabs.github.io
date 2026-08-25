@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.135",
+  siteVersion: "v3.136",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
@@ -13,7 +13,8 @@ window.CDB2026_CONFIG = {
    * Ligar exige commit revisado, depois que os criterios de aceitacao da #321 estiverem verdes.
    */
   reportProblem: {
-    enabled: false,
+    // LIGADO em 2026-08-25 (#321). Estado canonico: bolao/shared/safety/report_rollout.json.
+    enabled: true,
     // Endereco do Cloudflare Worker isolado (`ferrarilabs-support-intake`, ADR-021).
     //
     // A decisao de endereco foi tomada em 2026-08-25: `workers.dev`, porque a conta Cloudflare tem

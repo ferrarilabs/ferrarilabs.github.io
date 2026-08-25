@@ -76,7 +76,10 @@
   // Configuracao NAO secreta. `REPORT_INTAKE_ENABLED` mora aqui de proposito: o interruptor de
   // seguranca precisa ser auditavel no repositorio, e "desligado" e o valor versionado.
   "vars": {
-    "REPORT_INTAKE_ENABLED": "false",
+    // LIGADO em 2026-08-25 (#321), com autorizacao explicita do dono. O estado de rollout canonico
+    // vive em `bolao/shared/safety/report_rollout.json` e os gates exigem COERENCIA com ele: mudar
+    // este valor sozinho, sem mudar o estado declarado, REPROVA.
+    "REPORT_INTAKE_ENABLED": "true",
     "REPORT_GITHUB_OWNER": "ferrarilabs",
     "REPORT_GITHUB_REPO": "support-intake"
   },

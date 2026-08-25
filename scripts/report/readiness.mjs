@@ -70,7 +70,21 @@ const itens = [];
 function item(id, tipo, descricao, fn) {
   let estado = "UNKNOWN", nota = "";
   if (tipo === "OWNER") {
-    nota = "so o dono confirma — ver o Human Gate da #321";
+    // Atestacao HUMANA, datada e revisavel — nao deteccao, e nao PASS automatico.
+    //
+    // Estes quatro itens nao tem caminho de API: dependem de acao de painel e de criacao de GitHub
+    // App. Deixa-los UNKNOWN para sempre depois de o dono ter feito e conferido o trabalho produz um
+    // vermelho permanente, e vermelho permanente e vermelho que se aprende a ignorar.
+    //
+    // O que os satisfaz e o dono NOMEAR o item em `report_rollout.json`, com data. Remover a entrada,
+    // renomear o item ou trocar o id devolve o item a UNKNOWN na hora — nada aqui deduz nada.
+    const at = (ROLLOUT.owner_attestations || {})[id];
+    if (at?.attested_on && at?.by) {
+      estado = "ATTESTED";
+      nota = `atestado por ${at.by} em ${at.attested_on}`;
+    } else {
+      nota = "so o dono confirma — ver o Human Gate da #321";
+    }
   } else if (tipo === "LIVE" && !LIVE) {
     nota = "precisa de --live";
   } else {
@@ -126,17 +140,30 @@ item("server_kill_switch_exists", "REPO",
                  && /if \(!intakeHabilitado\(env\)\)/.test(h) };
   });
 
-item("server_default_off", "REPO",
-  "o interruptor so liga com a string exata (default DESLIGADO)", () => {
+/**
+ * Estado de rollout DECLARADO (#321). Antes, tres itens exigiam literalmente "desligado" -- o que
+ * estava certo enquanto o canal nao existia e viraria mentira no dia da ativacao. Eles passam a
+ * exigir COERENCIA com o estado declarado, que e a propriedade que interessa nas duas fases.
+ */
+const ROLLOUT = (() => {
+  try { return JSON.parse(ler("bolao/shared/safety/report_rollout.json") || "{}"); }
+  catch { return {}; }
+})();
+const PUBLICO = ROLLOUT.state === "PUBLIC_ENABLED";
+const INTERRUPTOR_ESPERADO = PUBLICO ? "true" : "false";
+
+item("server_switch_matches_rollout", "REPO",
+  `o interruptor so liga com a string exata, e bate com o rollout declarado (${ROLLOUT.state || "?"})`, () => {
     const h = ler(`${SRC}/index.ts`) || "";
     const cfg = ler(`${WORKER}/wrangler.jsonc`) || "";
-    // Duas metades: o codigo so aceita a string exata, E o valor VERSIONADO e "false". Conferir so
-    // o codigo deixaria passar um manifesto que ja nasce ligado.
-    const versionadoDesligado = /"REPORT_INTAKE_ENABLED"\s*:\s*"false"/.test(cfg);
+    // Duas metades, como antes: o codigo so aceita a string exata, E o valor VERSIONADO e o que o
+    // estado de rollout declara. Conferir so o codigo deixaria passar um manifesto ligado sozinho.
+    const bate = new RegExp(`"REPORT_INTAKE_ENABLED"\\s*:\\s*"${INTERRUPTOR_ESPERADO}"`).test(cfg);
     return { ok: /HABILITADO_VALOR_EXATO = "true"/.test(h)
                  && /=== HABILITADO_VALOR_EXATO/.test(h)
-                 && versionadoDesligado,
-             nota: versionadoDesligado ? "" : "wrangler.jsonc nao versiona o interruptor DESLIGADO" };
+                 && bate,
+             nota: bate ? `interruptor versionado "${INTERRUPTOR_ESPERADO}"`
+                        : `wrangler.jsonc nao versiona o interruptor como "${INTERRUPTOR_ESPERADO}"` };
   });
 
 item("cors_exact", "REPO",
@@ -178,16 +205,18 @@ item("browser_secrets_zero", "REPO",
     return { ok: maus.length === 0, nota: maus.join(", ") };
   });
 
-item("ui_flag_off", "REPO",
-  "a UI esta desligada nos tres apps ativos", () => {
-    const apps = ["bolao/cdb2026/js/config.js", "bolao/br2026/js/config.js",
-                  "bolao/loterias/powerball/js/config.js"];
-    const ligados = apps.filter((p) => {
+item("ui_flag_matches_rollout", "REPO",
+  `a UI dos tres apps ativos bate com o rollout declarado (${ROLLOUT.state || "?"})`, () => {
+    const apps = ROLLOUT.apps_ativos || ["bolao/cdb2026/js/config.js", "bolao/br2026/js/config.js",
+                                         "bolao/loterias/powerball/js/config.js"];
+    const fora = apps.filter((p) => {
       const s = ler(p) || "";
       const m = s.match(/reportProblem\s*:\s*\{[\s\S]*?enabled\s*:\s*(true|false)/);
-      return !m || m[1] === "true";
+      return !m || (m[1] === "true") !== PUBLICO;
     });
-    return { ok: ligados.length === 0, nota: ligados.join(", ") };
+    return { ok: fora.length === 0,
+             nota: fora.length ? `fora do estado declarado: ${fora.join(", ")}`
+                               : `${apps.length} apps em ${PUBLICO ? "true" : "false"}` };
   });
 
 item("limit_parity", "REPO",
@@ -326,15 +355,27 @@ item("primary_endpoint_inert", "LIVE",
     return { ok: out === "503" || out === "404", nota: `HTTP ${out}` };
   });
 
-item("worker_deployed_and_disabled", "LIVE",
-  "o Worker responde, e responde DESLIGADO", () => {
-    // Tres perguntas de uma vez, porque separa-las esconderia o caso que importa: um Worker que
-    // existe MAS esta ligado e pior que um Worker que nao existe.
+item("worker_live_matches_rollout", "LIVE",
+  `o Worker responde, e responde como o rollout declara (${ROLLOUT.state || "?"})`, () => {
+    // Tres perguntas de uma vez, porque separa-las esconderia o caso que importa: um Worker cujo
+    // estado ao vivo diverge do estado DECLARADO e pior que um Worker que nao existe -- e o unico
+    // jeito de ver isso e perguntando as duas coisas juntas.
     const cab = curl(`-D - -o /dev/null -X POST ${WORKER_ORIGEM}/ ` +
                      `-H 'Content-Type: application/json' -d '{}'`);
     const status = (cab.match(/HTTP\/[\d.]+ (\d{3})/) || [])[1];
     if (status === "404" || !status) return { ok: false, nota: "Worker nao implantado" };
-    if (status !== "503") return { ok: false, nota: `POST devolveu ${status}, esperado 503 (LIGADO?)` };
+    if (!PUBLICO && status !== "503") {
+      return { ok: false, nota: `POST devolveu ${status}, esperado 503 — o canal esta LIGADO sem declaracao` };
+    }
+    if (PUBLICO && status === "503") {
+      // 503 com rollout publico e ambiguo de proposito: pode ser o interruptor desligado a revelia
+      // do repositorio, ou uma dependencia caida. As duas exigem olhar, e nenhuma e "esta ok".
+      return { ok: false, nota: "POST devolveu 503 com rollout PUBLIC_ENABLED — canal fechado ou dependencia em falha" };
+    }
+    if (PUBLICO && status !== "400") {
+      // Corpo `{}` e um schema invalido: com o canal aberto a resposta correta e 400 INVALID.
+      return { ok: false, nota: `POST devolveu ${status}, esperado 400 para corpo invalido` };
+    }
     if (!/x-deploy-id:/i.test(cab)) return { ok: false, nota: "resposta sem x-deploy-id (F-06)" };
     const permitida = curl(`-o /dev/null -w '%{http_code}' -X OPTIONS ${WORKER_ORIGEM}/ ` +
                            `-H 'Origin: https://www.ferrarilabs.com'`);
@@ -342,7 +383,7 @@ item("worker_deployed_and_disabled", "LIVE",
                           `-H 'Origin: https://evil.invalid'`);
     if (permitida !== "204") return { ok: false, nota: `preflight permitido devolveu ${permitida}` };
     if (proibida !== "403") return { ok: false, nota: `preflight proibido devolveu ${proibida}` };
-    return { ok: true, nota: "POST 503 · preflight 204/403 · x-deploy-id presente" };
+    return { ok: true, nota: `POST ${status} · preflight 204/403 · x-deploy-id presente` };
   });
 
 item("private_repo_verified", "LIVE",
@@ -397,19 +438,24 @@ item("synthetic_acceptance_green", "OWNER",
 
 const falhas = itens.filter((i) => i.estado === "FAIL");
 const desconhecidos = itens.filter((i) => i.estado === "UNKNOWN");
+const atestados = itens.filter((i) => i.estado === "ATTESTED");
+// ATTESTED conta como satisfeito porque um humano NOMEOU o item, com data, num arquivo revisavel --
+// e nao porque o script deduziu algo. UNKNOWN continua derrubando o veredito: a distincao entre
+// "ninguem verificou" e "o dono verificou e assinou" e exatamente o que este manifesto existe para
+// nao borrar.
 const veredito = falhas.length ? "NOT_READY" : (desconhecidos.length ? "NOT_READY" : "READY");
 
 if (JSON_OUT) {
   console.log(JSON.stringify({ gerado: new Date().toISOString(), veredito, itens }, null, 2));
 } else {
   console.log("\nProntidao do canal de reporte (#321)\n");
-  const simbolo = { PASS: "✓", FAIL: "✗", UNKNOWN: "?" };
+  const simbolo = { PASS: "✓", FAIL: "✗", UNKNOWN: "?", ATTESTED: "✍" };
   for (const i of itens) {
     console.log(`  ${simbolo[i.estado]} [${i.tipo.padEnd(7)}] ${i.id}`);
     console.log(`      ${i.descricao}${i.nota ? "  — " + i.nota : ""}`);
   }
   console.log(`\n  PASS ${itens.filter((i) => i.estado === "PASS").length}` +
-              ` · FAIL ${falhas.length} · UNKNOWN ${desconhecidos.length}`);
+              ` · ATESTADO ${atestados.length} · FAIL ${falhas.length} · UNKNOWN ${desconhecidos.length}`);
   console.log(`\n  VEREDITO: ${veredito}\n`);
   if (veredito !== "READY") {
     console.log("  UNKNOWN nao e READY: um item que ninguem verificou nao e um item que passou.\n");
