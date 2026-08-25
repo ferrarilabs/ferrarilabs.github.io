@@ -833,6 +833,9 @@
     "scripts/safety/test_change_intent_lifecycle.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/safety/test_mutation_isolation.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/safety/test_safety_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

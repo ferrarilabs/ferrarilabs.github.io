@@ -20,6 +20,7 @@
     "guard:install": "git config core.hooksPath .githooks && echo \"core.hooksPath -> .githooks (guarda da arvore canonica ativa; Issue #251)\"",
     "safety:lifecycle": "node scripts/safety/test_change_intent_lifecycle.mjs",
     "safety:mutations": "node scripts/safety/test_safety_contract.mjs",
+    "safety:isolation": "node scripts/safety/test_mutation_isolation.mjs",
     "verify": "node scripts/verify.mjs",
     "verify:json": "node scripts/verify.mjs --json-out=verify-summary.json",
     "test:powerball-crash-matrix": "python3 bolao/loterias/powerball/scripts/test_crash_matrix.py",
