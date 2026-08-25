@@ -203,8 +203,19 @@ test("a fronteira externa de excecao existe", () => {
 test("o objeto de erro NUNCA e serializado inteiro", () => {
   ok(!/JSON\.stringify\(\s*(e|err|error)\s*\)/.test(CODIGO), "serializar o Error vaza o que ele carrega");
   ok(!/console\.(log|error)\(\s*(e|err|error)\s*\)/.test(CODIGO), "log do erro cru");
-  // O que PODE sair e sempre um codigo curto e sanitizado.
-  ok(/\.slice\(0, 40\)/.test(CODIGO), "o codigo de erro precisa ser truncado");
+
+  // ── #339: a exigencia ficou MAIS FORTE, nao mais fraca ──────────────────────────────────────
+  //
+  // Esta linha exigia `.slice(0, 40)` -- truncar a mensagem do erro. Truncar protege o CLIENTE, e
+  // nunca protegeu o LOG: 40 caracteres de uma mensagem de provedor cabem num `Bearer ghs_...`
+  // inteiro, e foi exatamente isso que os fixtures de F-15 mostravam sendo gravado.
+  //
+  // A catraca nao foi removida nem afrouxada: ela passou a exigir a propriedade que de fato
+  // resolve. O codigo logado vem de ALLOWLIST (`classificar()` devolve membro de
+  // `CODIGOS_DE_FALHA`), e nenhuma fronteira le `.message` ou `.stack`.
+  ok(!/\.message/.test(CODIGO), "nenhuma fronteira pode ler .message — o log tem de vir de allowlist");
+  ok(!/\.stack/.test(CODIGO), "nenhuma fronteira pode ler .stack");
+  ok(/classificar\(e\)/.test(CODIGO), "as fronteiras precisam classificar por allowlist");
 });
 
 console.log("\n5. Migracao: o primario para de ser o alvo:");

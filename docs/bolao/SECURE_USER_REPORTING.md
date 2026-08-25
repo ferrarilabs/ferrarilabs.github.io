@@ -291,7 +291,7 @@ Implementados nesta rodada, todos com caso dedicado e catraca no manifesto de pr
 | **F-11** métricas agregadas | disjuntor que abre em silêncio; e `redigir()` já sabe **quais classes** de dado sensível apareceram — agregado, isso diz se o aviso está funcionando |
 | **F-12** versão do aviso | "o que foi comunicado a esta pessoa" virar pergunta de memória depois que o texto mudar |
 | **F-14** expectativa honesta | um canal que convida a escrever e não responde corrói mais confiança que a ausência dele |
-| **F-15** exceção inesperada | o vazamento clássico: não o erro previsto, o que **não** se previu, carregando caminho de arquivo ou fragmento de configuração |
+| **F-15** exceção inesperada | o vazamento clássico: não o erro previsto, o que **não** se previu, carregando caminho de arquivo ou fragmento de configuração — e, até #339, esse texto também alcançava o **log**, não só a resposta |
 
 **F-11 falha ABERTA**, e é o único ponto do módulo que engole erro: perder um contador é
 irrelevante, perder o relato de alguém não é.
@@ -299,6 +299,34 @@ irrelevante, perder o relato de alguém não é.
 **F-15 é uma casca total.** O `try` interno cobre o que a gente previu que falha (GitHub, Redis);
 a casca externa cobre o resto. Prova: um caso injeta exceção **antes** do `try` interno e verifica
 que a resposta é o mesmo 503 genérico, byte a byte.
+
+> **F-15 cobria a resposta, e não o log — corrigido em 2026-08-25 (#339).** As duas fronteiras
+> derivavam o `codigo` observável de `e.message`, truncado em 40 caracteres. Truncar protege o
+> **cliente**, e a asserção que existia media exatamente isso — corpo e cabeçalhos — então ela
+> passava. O que ninguém media era o **log**, e 40 caracteres de mensagem de provedor cabem num
+> `Bearer <token>` inteiro. Os próprios fixtures de F-15 já gravavam linhas assim.
+>
+> A correção **não** é redação. `redigir()` é denylist: conhece os formatos de segredo do dia em
+> que foi escrita, e um formato novo passa inteiro. Agora o log não filtra a mensagem — ele nunca
+> a vê. O `codigo` registrado é sempre membro de `CODIGOS_DE_FALHA`
+> (`workers/user-report-intake/src/falhas.ts`), um conjunto fechado de dez valores; o que não é
+> classificado por nós vira `INTERNAL_UNKNOWN`. `classificar()` não lê `.message`, não lê `.stack`
+> e não serializa o erro — a garantia é estrutural, não editorial.
+>
+> Classificar no ponto do `throw` também deu ao painel o que truncar nunca deu: `GITHUB_AUTH`,
+> `GITHUB_RATE_LIMIT`, `GITHUB_TIMEOUT`, `GITHUB_UPSTREAM`, `TARGET_NOT_PRIVATE`,
+> `DESTINO_BLOQUEADO`, `CRYPTO_FAILURE`, `STATE_FAILURE`, `RATE_LIMIT_FAILURE`. Distinguir "o
+> GitHub recusou a assinatura" de "o repositório deixou de ser privado" é a diferença entre um
+> alerta acionável e um contador.
+>
+> Uma rejeição dentro de `ctx.waitUntil()` escapava das duas fronteiras e virava exceção não
+> tratada do runtime — que a plataforma registra com a mensagem crua. Ela agora é contida.
+>
+> A catraca que exigia `.slice(0, 40)` **não foi removida**: passou a exigir a propriedade mais
+> forte — nenhuma fronteira lê `.message` ou `.stack`, e ambas classificam por allowlist. E há
+> **controle negativo**: a regressão é reintroduzida numa cópia do fonte em diretório temporário
+> do sistema (nunca na árvore do repositório, pela lição da #334) e a asserção de log **precisa**
+> reprovar contra ela.
 
 ## 9-C. Achados reavaliados — controle ou risco residual assumido
 

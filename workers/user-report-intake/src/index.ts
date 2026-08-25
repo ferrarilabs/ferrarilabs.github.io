@@ -30,6 +30,7 @@ import { chaveDeRede, chaveIdempotencia, impressao } from "./identidade.ts";
 import {
   obterTokenDeInstalacao, verificarDestinoPrivado, encontrarPorReportId, criarIssuePrivado,
 } from "./github.ts";
+import { classificar, comFalha } from "./falhas.ts";
 
 export { EstadoDoIntake } from "./state.ts";
 
@@ -205,7 +206,7 @@ async function tratar(req: Request, env: any, ctx: ExecutionContext, deps: any =
   // 7. Pre-filtro de rajada. Local ao colo e eventualmente consistente -- barato, e por isso vem
   //    antes do DO: enxurrada morre aqui sem acordar estado durável.
   if (env.RAJADA) {
-    const { success } = await env.RAJADA.limit({ key: chaveRede });
+    const { success } = await comFalha("RATE_LIMIT_FAILURE", () => env.RAJADA.limit({ key: chaveRede }));
     if (!success) {
       metrica(log, "rajada");
       return responder(429, { error: "RATE_LIMITED" }, origem, versao, { "Retry-After": "60" });
@@ -215,12 +216,11 @@ async function tratar(req: Request, env: any, ctx: ExecutionContext, deps: any =
   const chaveIdem = await chaveIdempotencia(env.REPORT_ABUSE_HMAC_SECRET, chaveRede, dados.reportId);
   const estado = env.ESTADO.get(env.ESTADO.idFromName("global"));
 
-  const decisao: any = await (
-    await estado.fetch("https://estado.invalid/", {
+  const decisao: any = await comFalha("STATE_FAILURE", async () =>
+    (await estado.fetch("https://estado.invalid/", {
       method: "POST",
       body: JSON.stringify({ acao: "avaliar", chaveRede, chaveIdem, agora: agora().getTime() }),
-    })
-  ).json();
+    })).json());
 
   if (!decisao.ok) {
     metrica(log, decisao.motivo === "CIRCUIT_OPEN" ? "disjuntor" : "limitado", { motivo: decisao.motivo });
@@ -254,10 +254,10 @@ async function tratar(req: Request, env: any, ctx: ExecutionContext, deps: any =
     // a Issue existe e o DO nao sabe. Procurar pelo reportId antes de criar fecha essa janela.
     const jaExiste = await encontrarPorReportId({ token, owner, repo, reportId: dados.reportId, fetchImpl });
     if (jaExiste) {
-      await estado.fetch("https://estado.invalid/", {
+      await comFalha("STATE_FAILURE", () => estado.fetch("https://estado.invalid/", {
         method: "POST",
         body: JSON.stringify({ acao: "confirmar", chaveIdem, issue: jaExiste, agora: agora().getTime() }),
-      });
+      }));
       metrica(log, "reconciliado");
       return responder(200, { ok: true, id: idExibivel(dados.reportId) }, origem, versao);
     }
@@ -271,10 +271,10 @@ async function tratar(req: Request, env: any, ctx: ExecutionContext, deps: any =
       fetchImpl,
     });
 
-    await estado.fetch("https://estado.invalid/", {
+    await comFalha("STATE_FAILURE", () => estado.fetch("https://estado.invalid/", {
       method: "POST",
       body: JSON.stringify({ acao: "confirmar", chaveIdem, issue: numero, impressao: fp, agora: agora().getTime() }),
-    });
+    }));
 
     metrica(log, "aceito", { app: dados.app, diagnostico: dados.diagnosticCode, latencia_ms: Date.now() - t0 });
     for (const c of classesRedigidas(dados)) metrica(log, "redigido", { classe: c });
@@ -283,16 +283,24 @@ async function tratar(req: Request, env: any, ctx: ExecutionContext, deps: any =
     // ponteiro para o repositorio privado.
     return responder(201, { ok: true, id: idExibivel(dados.reportId) }, origem, versao);
   } catch (e) {
-    // So o CODIGO. O objeto de erro pode carregar corpo de resposta do GitHub, e corpo de resposta
-    // de auth pode carregar fragmento de credencial.
-    const codigo = String((e as Error)?.message ?? "UNKNOWN").slice(0, 40).replace(/[^\w .:-]/g, "");
+    // So o CODIGO -- e agora o codigo vem de uma ALLOWLIST, nao da mensagem do erro (#339).
+    //
+    // A versao anterior truncava `e.message` em 40 caracteres. Isso bastava para o cliente, e nunca
+    // bastou para o log: a mensagem nasce de biblioteca, de runtime e do provedor, e pode carregar
+    // fragmento de credencial. `classificar()` nao le `.message` -- ele devolve um membro de
+    // `CODIGOS_DE_FALHA` ou `INTERNAL_UNKNOWN`.
+    const codigo = classificar(e);
     log({ evento: "report_github_falhou", codigo, latencia_ms: Date.now() - t0 });
     // Libera a reserva para a pessoa poder tentar de novo em vez de esperar o TTL.
+    //
+    // O `.catch()` nao e decorativo: uma rejeicao dentro de `waitUntil` escapa das duas fronteiras
+    // desta funcao e vira excecao NAO tratada do runtime -- que a plataforma registra com a mensagem
+    // crua. Engolir aqui e o que mantem a garantia do #339 valida tambem neste caminho.
     ctx.waitUntil(
       estado.fetch("https://estado.invalid/", {
         method: "POST",
         body: JSON.stringify({ acao: "liberar", chaveIdem, agora: agora().getTime() }),
-      }),
+      }).then(() => undefined, () => { metrica(log, "liberacao_falhou"); }),
     );
     return responder(503, { error: "UNAVAILABLE" }, origem, versao);
   }
@@ -321,7 +329,10 @@ export default {
     try {
       return await tratar(req, env, ctx);
     } catch (e) {
-      const codigo = String((e as Error)?.message ?? "UNKNOWN").slice(0, 40).replace(/[^\w .:-]/g, "");
+      // Allowlist, nao redacao (#339): o erro que chega aqui e, por definicao, o que ninguem previu
+      // -- de um parser, de um binding, de um runtime que mudou. E exatamente essa mensagem que
+      // costuma carregar caminho de arquivo, nome de variavel de ambiente ou pedaco de configuracao.
+      const codigo = classificar(e);
       try { console.log(JSON.stringify({ evento: "report_excecao_nao_tratada", codigo })); } catch { /* log quebrado nao pode virar 500 */ }
       return new Response(JSON.stringify({ error: "UNAVAILABLE" }), {
         status: 503,
@@ -332,4 +343,4 @@ export default {
 };
 
 /** Exportado so para teste: exercita o handler com Request/Response REAIS. */
-export const __teste = { tratar, responder, cabecalhosCors, classesRedigidas, STATUS_SEM_CORPO };
+export const __teste = { tratar, responder, cabecalhosCors, classesRedigidas, STATUS_SEM_CORPO, classificar };
