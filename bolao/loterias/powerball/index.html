@@ -190,6 +190,11 @@ if ('serviceWorker' in navigator) {
   <p class="pb-noindex-note">Página privada do Bolão do Ferrari — não compartilhe este link publicamente.</p>
 </footer>
 
+<!-- `js/config.js` precisa carregar: o ponto de montagem do "Reportar problema" abaixo resolve
+     `POWERBALL_CONFIG` por NOME, e sem este script o global nao existe -- a UI falha fechada e
+     nenhum botao aparece. Foi exatamente o que a leitura de producao da ativacao (#321) achou:
+     a flag estava `true` no arquivo, e o arquivo nunca era carregado. -->
+<script src="js/config.js?v=b2606d23"></script>
 <script src="js/data.js?v=b2606d23"></script>
 <!-- Formatador USD canônico compartilhado (BATCH 5) — precisa carregar ANTES de app.js. -->
 <script src="../../shared/js/money.js"></script>
