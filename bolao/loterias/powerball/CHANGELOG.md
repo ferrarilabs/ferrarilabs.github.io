@@ -6,6 +6,38 @@ outros três bolões.
 
 ---
 
+## 2026-08-25 — Issue #321: endereço do Worker e CSP
+
+O endereço do Worker foi **decidido** e escrito neste app, e a CSP passou a permitir exatamente
+essa origem:
+
+```
+https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev
+```
+
+`workers.dev` e não `report.ferrarilabs.com` porque a conta Cloudflare tem `zones = 0` — verificado
+pela API, não suposto. Um subdomínio próprio exigiria mover o DNS de `ferrarilabs.com` inteiro,
+arrastando site, GitHub Pages e e-mail para uma migração alheia a este canal. Domínio próprio fica
+como endurecimento futuro; trocar depois é uma rota nova mais uma linha de CSP. Ver ADR-021,
+"Endereço público".
+
+**Isto não liga nada.** `reportProblem.enabled` continua `false`, então a UI não monta e não há
+botão. E o servidor tem a chave que de fato importa: `REPORT_INTAKE_ENABLED != "true"` faz toda
+requisição morrer em 503 antes de tocar Durable Object, rate limit, GitHub ou segredo. Preencher o
+endpoint é a metade mais fraca das duas chaves — o rollback começa sempre pelo servidor, porque
+apagar a URL daqui só esconde o botão e um navegador com a página em cache continua conseguindo
+POSTar.
+
+Hoje o endereço responde `404`: o recurso Worker existe na Cloudflare, mas o deploy está **bloqueado
+de propósito** — `wrangler.jsonc` declara `secrets.required`, e o deploy recusa enquanto faltarem os
+três segredos da GitHub App, que ainda não existe.
+
+**Na CSP, origem exata e nunca curinga.** `*.workers.dev` é um domínio compartilhado por todas as
+contas Cloudflare do mundo; um curinga autorizaria o Worker de qualquer estranho a receber POST
+desta página. Há catraca proibindo isso.
+
+---
+
 ## 2026-08-24 — Issue #321: intake migrado para Cloudflare Worker
 
 O canal de reporte mudou de runtime: deixou de ser uma Edge Function do projeto Supabase que
