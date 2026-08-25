@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-24T23:47:12Z",
-  "sourceUpdatedAt": "2026-08-24T23:47:12Z",
+  "generatedAt": "2026-08-25T00:02:01Z",
+  "sourceUpdatedAt": "2026-08-25T00:02:01Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "7e585bcb94ff13ec9aa9c0fbc2b5784d613082c86b34722206f93cd882fab1e0",
+  "payloadHash": "2c127990bd6cf93f3bb8b2319f6cf266ff7bdda5753c44b7653c52c5478a5d47",
   "matches": [
     {
       "id": "401840808",
@@ -39741,10 +39741,10 @@
       "id": "401841198",
       "date": "2026-08-24T23:00Z",
       "state": "in",
-      "statusName": "STATUS_IN_PROGRESS",
-      "statusDescription": "In Progress",
-      "statusShortDetail": "25'",
-      "statusDetail": "25'",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Botafogo",
       "awayTeam": "Athletico Paranaense",
@@ -39756,8 +39756,8 @@
       "awayWinner": false,
       "venue": "Joao Havelange Stadium",
       "city": "Rio de Janeiro",
-      "clockSec": 1500.0,
-      "clockStr": "25'",
+      "clockSec": 2700.0,
+      "clockStr": "45'+2'",
       "period": 1,
       "details": [
         {
@@ -39795,6 +39795,25 @@
             {
               "displayName": "Kevin Viveros",
               "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 2079.0,
+            "displayValue": "35'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kauan Toledo",
+              "shortName": "K. Toledo"
             }
           ]
         }
