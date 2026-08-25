@@ -13,7 +13,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { CAMPOS_ACEITOS }
-  from "../../support-intake/supabase/functions/user-report-intake/policy.js";
+  from "../../workers/user-report-intake/src/policy.ts";
 
 const RAIZ = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
 let pass = 0, fail = 0;

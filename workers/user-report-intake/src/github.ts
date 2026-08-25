@@ -1,5 +1,5 @@
 /**
- * github.js — GitHub App: token de instalacao e criacao do Issue PRIVADO (Issue #321).
+ * github.ts — GitHub App: token de instalacao e criacao do Issue PRIVADO (Issue #321).
  *
  * ─── POR QUE GitHub App, E NAO PAT ──────────────────────────────────────────────────────────
  *
@@ -34,14 +34,14 @@ export const PERMISSOES = Object.freeze({
   ],
 });
 
-function b64url(bytes) {
+function b64url(bytes: Uint8Array): string {
   let s = "";
   const arr = bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   for (const b of arr) s += String.fromCharCode(b);
   return btoa(s).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
-function pemParaDer(pem) {
+function pemParaDer(pem: string): ArrayBuffer {
   const corpo = String(pem)
     .replace(/-----BEGIN [^-]+-----/g, "")
     .replace(/-----END [^-]+-----/g, "")
@@ -59,7 +59,7 @@ function pemParaDer(pem) {
  * `iat` recua 60s pelo mesmo motivo -- relogio adiantado no runtime rejeita o token com 401, e um
  * 401 aqui falha fechado, entao a folga evita indisponibilidade por causa de segundos.
  */
-export async function assinarJwtDoApp(appId, chavePrivadaPem, agoraSeg = Math.floor(Date.now() / 1000)) {
+export async function assinarJwtDoApp(appId: string, chavePrivadaPem: string, agoraSeg: number = Math.floor(Date.now() / 1000)): Promise<string> {
   const header = { alg: "RS256", typ: "JWT" };
   const payload = { iat: agoraSeg - 60, exp: agoraSeg + 540, iss: String(appId) };
   const base = `${b64url(enc.encode(JSON.stringify(header)))}.${b64url(enc.encode(JSON.stringify(payload)))}`;
@@ -71,7 +71,22 @@ export async function assinarJwtDoApp(appId, chavePrivadaPem, agoraSeg = Math.fl
   return `${base}.${b64url(sig)}`;
 }
 
-async function chamar(fetchImpl, url, opcoes, timeoutMs = 8000) {
+/**
+ * INVARIANTE DE SAIDA (anti-SSRF): este Worker so fala com a API do GitHub.
+ *
+ * Nao existe host vindo do corpo da requisicao, nem redirecionamento seguido as cegas, nem URL
+ * montada com pedaco de entrada do usuario. Este guarda transforma isso de convencao em regra
+ * verificada: qualquer URL que nao comece exatamente pelo prefixo da API do GitHub lanca, e o teste
+ * `saida-so-github` exercita o caso.
+ */
+function exigirHostPermitido(url: string): void {
+  if (!String(url).startsWith(GITHUB_API + "/")) {
+    throw new Error("DESTINO_NAO_PERMITIDO");
+  }
+}
+
+async function chamar(fetchImpl: typeof fetch, url: string, opcoes: RequestInit, timeoutMs = 8000): Promise<Response> {
+  exigirHostPermitido(url);
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
@@ -82,7 +97,7 @@ async function chamar(fetchImpl, url, opcoes, timeoutMs = 8000) {
 }
 
 /** Token de instalacao. Curto, em memoria, nunca persistido, nunca logado. */
-export async function obterTokenDeInstalacao({ appId, installationId, chavePrivadaPem, fetchImpl = globalThis.fetch }) {
+export async function obterTokenDeInstalacao({ appId, installationId, chavePrivadaPem, fetchImpl = globalThis.fetch }: any) {
   const jwt = await assinarJwtDoApp(appId, chavePrivadaPem);
   const r = await chamar(fetchImpl, `${GITHUB_API}/app/installations/${installationId}/access_tokens`, {
     method: "POST",
@@ -106,7 +121,7 @@ export async function obterTokenDeInstalacao({ appId, installationId, chavePriva
  * Por isso a visibilidade e conferida NO RUNTIME, contra a API, antes de criar qualquer coisa --
  * nao assumida da configuracao.
  */
-export async function verificarDestinoPrivado({ token, owner, repo, fetchImpl = globalThis.fetch }) {
+export async function verificarDestinoPrivado({ token, owner, repo, fetchImpl = globalThis.fetch }: any) {
   const r = await chamar(fetchImpl, `${GITHUB_API}/repos/${owner}/${repo}`, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
                "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "ferrarilabs-support-intake" },
@@ -124,7 +139,7 @@ export async function verificarDestinoPrivado({ token, owner, repo, fetchImpl = 
  * Sem isto, uma queda no instante errado transforma uma nova tentativa em Issue duplicada -- e a
  * duplicata carrega o mesmo relato pessoal outra vez.
  */
-export async function encontrarPorReportId({ token, owner, repo, reportId, fetchImpl = globalThis.fetch }) {
+export async function encontrarPorReportId({ token, owner, repo, reportId, fetchImpl = globalThis.fetch }: any) {
   const q = encodeURIComponent(`repo:${owner}/${repo} in:body "${reportId}"`);
   const r = await chamar(fetchImpl, `${GITHUB_API}/search/issues?q=${q}&per_page=5`, {
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
@@ -143,7 +158,7 @@ export async function encontrarPorReportId({ token, owner, repo, reportId, fetch
  * escolhe repositorio, titulo, label nem qualquer campo estrutural -- so o corpo do relato, que
  * chega aqui ja inerte e redigido.
  */
-export async function criarIssuePrivado({ token, owner, repo, titulo, corpo, labels, fetchImpl = globalThis.fetch }) {
+export async function criarIssuePrivado({ token, owner, repo, titulo, corpo, labels, fetchImpl = globalThis.fetch }: any) {
   const r = await chamar(fetchImpl, `${GITHUB_API}/repos/${owner}/${repo}/issues`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
@@ -157,7 +172,7 @@ export async function criarIssuePrivado({ token, owner, repo, titulo, corpo, lab
 }
 
 /** Comentario tecnico numa duplicata. Sem relato novo -- so a contagem. */
-export async function comentarOcorrencia({ token, owner, repo, numero, ocorrencia, fetchImpl = globalThis.fetch }) {
+export async function comentarOcorrencia({ token, owner, repo, numero, ocorrencia, fetchImpl = globalThis.fetch }: any) {
   const r = await chamar(fetchImpl, `${GITHUB_API}/repos/${owner}/${repo}/issues/${numero}/comments`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",

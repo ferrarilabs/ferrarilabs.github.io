@@ -10,12 +10,19 @@
 import { readFileSync } from "node:fs";
 import {
   validar, montarTitulo, montarCorpo, tornarInerte, redigir, idExibivel, LIMITES, DIAGNOSTICOS,
-} from "../../support-intake/supabase/functions/user-report-intake/policy.js";
-import { tratarRequisicao, ORIGENS_PERMITIDAS, conferirConfig, corpoDeResposta,
-         STATUS_SEM_CORPO, intakeHabilitado,
-         HABILITADO_VALOR_EXATO } from "../../support-intake/supabase/functions/user-report-intake/handler.js";
-import { chaveDeRede, impressao, avaliarLimites, criarRedis, chaveIdempotencia,
-         reservarIdempotencia } from "../../support-intake/supabase/functions/user-report-intake/abuse.js";
+} from "../../workers/user-report-intake/src/policy.ts";
+
+/**
+ * ─── ESCOPO DESTA SUITE, APOS A MIGRACAO PARA CLOUDFLARE (#321) ─────────────────────────────
+ *
+ * Aqui ficam os casos de POLITICA PURA -- schema, allowlist, redacao, neutralizacao, corpus
+ * adversarial, corpo do Issue. Sao os que nao dependem de runtime, e por isso sobreviveram
+ * inteiros a troca de plataforma: a politica nao mudou, o lugar onde ela executa mudou.
+ *
+ * Os casos que exercitavam o HANDLER (CORS, interruptor, limites, idempotencia, excecao) sairam
+ * daqui e viraram `test_worker_intake.mjs`, onde rodam contra `Request`/`Response` REAIS. Isso e
+ * estritamente melhor: era exatamente a ausencia desse nivel que deixou a #324 passar.
+ */
 
 let pass = 0, fail = 0;
 async function test(nome, fn) {
@@ -36,33 +43,6 @@ const base = () => ({
 });
 
 /** Redis falso, em memoria, com a mesma semantica atomica que o real oferece. */
-function redisFalso() {
-  const m = new Map();
-  return {
-    _m: m,
-    async contar(k) { const n = (m.get(k) || 0) + 1; m.set(k, n); return n; },
-    async marcarSeNovo(k, v) { if (m.has(k)) return false; m.set(k, v); return true; },
-    async definir(k, v) { m.set(k, v); return "OK"; },
-    async ler(k) { return m.has(k) ? m.get(k) : null; },
-  };
-}
-
-const ENV = {
-  // O interruptor e um gate SEPARADO dos oito segredos: sem ele ligado, todo POST vira 503 antes
-  // de qualquer dependencia. As suites que exercitam o fluxo real precisam liga-lo explicitamente.
-  REPORT_INTAKE_ENABLED: "true",
-  REPORT_GITHUB_APP_ID: "1", REPORT_GITHUB_INSTALLATION_ID: "2",
-  REPORT_GITHUB_PRIVATE_KEY: "pem", REPORT_GITHUB_OWNER: "ferrarilabs",
-  REPORT_GITHUB_REPO: "support-intake", REPORT_REDIS_REST_URL: "https://redis.invalid",
-  REPORT_REDIS_REST_TOKEN: "t", REPORT_ABUSE_HMAC_SECRET: "s",
-};
-const req = (over = {}) => ({
-  method: "POST",
-  headers: { origin: ORIGENS_PERMITIDAS[0], "content-type": "application/json" },
-  body: JSON.stringify(base()),
-  ...over,
-});
-
 console.log("\nIntake de reportes (#321)\n");
 console.log("Schema — allowlist:");
 
@@ -202,267 +182,6 @@ await test("redacao NAO promete reconhecer nome de pessoa", () => {
 
 console.log("\nHTTP — metodo, origem, tipo, tamanho:");
 
-await test("GET/PUT/DELETE => 405", async () => {
-  for (const m of ["GET", "PUT", "DELETE", "PATCH", "HEAD"]) {
-    const r = await tratarRequisicao(req({ method: m }), ENV, {});
-    eq(r.status, 405, m);
-  }
-});
-
-await test("OPTIONS de origem permitida => 204 com CORS", async () => {
-  const r = await tratarRequisicao(req({ method: "OPTIONS" }), ENV, {});
-  eq(r.status, 204, "status");
-  eq(r.headers["Access-Control-Allow-Origin"], ORIGENS_PERMITIDAS[0], "origem ecoada");
-});
-
-await test("OPTIONS de origem desconhecida => 403 SEM cabecalho de CORS", async () => {
-  const r = await tratarRequisicao(req({ method: "OPTIONS", headers: { origin: "https://attacker.invalid" } }), ENV, {});
-  eq(r.status, 403, "status");
-  ok(!r.headers["Access-Control-Allow-Origin"], "ecoou CORS para origem hostil");
-});
-
-await test("NUNCA existe Allow-Origin: *", async () => {
-  for (const o of [ORIGENS_PERMITIDAS[0], "https://attacker.invalid", undefined]) {
-    const r = await tratarRequisicao(req({ headers: { origin: o, "content-type": "application/json" } }), ENV, {});
-    eq(r.headers["Access-Control-Allow-Origin"] === "*", false, `wildcard com origem ${o}`);
-  }
-});
-
-await test("origem hostil em POST => 403", async () => {
-  const r = await tratarRequisicao(req({ headers: { origin: "https://attacker.invalid", "content-type": "application/json" } }), ENV, {});
-  eq(r.status, 403, "status");
-});
-
-await test("content-type nao-JSON => 415", async () => {
-  for (const t of ["multipart/form-data", "text/plain", "application/x-www-form-urlencoded", ""]) {
-    const r = await tratarRequisicao(req({ headers: { origin: ORIGENS_PERMITIDAS[0], "content-type": t } }), ENV, {});
-    eq(r.status, 415, t);
-  }
-});
-
-await test("corpo grande demais => 413 ANTES de parsear", async () => {
-  const r = await tratarRequisicao(req({ body: "x".repeat(LIMITES.corpoBytes + 1) }), ENV, {});
-  eq(r.status, 413, "status");
-});
-
-await test("respostas trazem no-store e nosniff", async () => {
-  const r = await tratarRequisicao(req({ method: "GET" }), ENV, {});
-  eq(r.headers["Cache-Control"], "no-store", "cache");
-  eq(r.headers["X-Content-Type-Options"], "nosniff", "nosniff");
-});
-
-console.log("\nFalha fechada:");
-
-await test("config incompleta => 503 sem dizer QUAL segredo falta", async () => {
-  for (const k of Object.keys(ENV)) {
-    const env = { ...ENV }; delete env[k];
-    const r = await tratarRequisicao(req(), env, {});
-    eq(r.status, 503, `sem ${k}`);
-    ok(!r.body.includes(k), `a resposta revelou o nome do segredo ${k}`);
-  }
-});
-
-await test("conferirConfig nao vaza nomes para o chamador publico", () => {
-  const c = conferirConfig({});
-  ok(!c.ok && c.faltando.length > 0, "deveria acusar internamente");
-});
-
-await test("limitador indisponivel => RECUSA (fail closed), nunca aceita sem controle", async () => {
-  const r = await avaliarLimites(null, { chaveRede: "k", chaveSessao: "s" });
-  eq(r.permitido, false, "deveria recusar");
-  eq(r.motivo, "RATE_STORE_UNAVAILABLE", "motivo");
-});
-
-console.log("\nAbuso, idempotencia e privacidade de rede:");
-
-await test("honeypot => 202 silencioso, sem criar nada", async () => {
-  const r = await tratarRequisicao(req({ body: JSON.stringify({ ...base(), honeypot: "bot" }) }), ENV, {});
-  eq(r.status, 202, "status");
-  ok(!r.body.includes("HONEYPOT"), "explicar o honeypot ensina a contorna-lo");
-});
-
-await test("chave de rede e HMAC e ROTACIONA por dia", async () => {
-  const a = await chaveDeRede("segredo", "203.0.113.7", "2026-08-24");
-  const b = await chaveDeRede("segredo", "203.0.113.7", "2026-08-25");
-  ok(a && b && a !== b, "a chave precisa mudar de um dia para o outro");
-  ok(!a.includes("203"), "o valor de rede aparece na chave");
-});
-
-await test("sem valor de rede => sem chave (cai para sessao), nunca inventa", async () => {
-  eq(await chaveDeRede("segredo", null, "2026-08-24"), null, "deveria ser null");
-});
-
-await test("impressao de duplicata usa HMAC, nao hash puro", async () => {
-  const a = await impressao("s1", validar(base()).dados);
-  const b = await impressao("s2", validar(base()).dados);
-  ok(a !== b, "sem chave, texto de baixa entropia seria reversivel por dicionario");
-});
-
-await test("relatos diferentes com o MESMO diagnostico nao colapsam", async () => {
-  const d1 = validar({ ...base(), description: "nao consigo salvar os palpites" }).dados;
-  const d2 = validar({ ...base(), description: "a pagina fica branca ao abrir" }).dados;
-  ok(await impressao("s", d1) !== await impressao("s", d2), "colapsaria reportes distintos");
-});
-
-await test("limites: 4a submissao na janela curta e barrada", async () => {
-  const redis = redisFalso();
-  let ultimo;
-  for (let i = 0; i < 4; i++) ultimo = await avaliarLimites(redis, { chaveRede: "k", chaveSessao: "s" });
-  eq(ultimo.permitido, false, "deveria barrar");
-  eq(ultimo.motivo, "RATE_LIMITED", "motivo");
-  ok(ultimo.retryAfter > 0 && ultimo.retryAfter <= 900, "Retry-After precisa ser limitado");
-});
-
-await test("disjuntor abre ao estourar o teto GLOBAL e passa a recusar", async () => {
-  const redis = redisFalso();
-  let r;
-  for (let i = 0; i < 31; i++) r = await avaliarLimites(redis, { chaveRede: `k${i}`, chaveSessao: `s${i}` });
-  eq(r.motivo, "CIRCUIT_OPEN", "deveria abrir o disjuntor");
-  const depois = await avaliarLimites(redis, { chaveRede: "outro", chaveSessao: "outro" });
-  eq(depois.permitido, false, "com o disjuntor aberto ninguem passa");
-});
-
-// ── F-04: o reportId vem do cliente, entao nao pode governar a idempotencia sozinho ────────────
-//
-// Um cliente hostil escolhe o `reportId` que quiser, inclusive o de outra pessoa. Se a chave de
-// idempotencia fosse so o reportId, reserva-lo antes faria o relato legitimo colidir com uma
-// idempotencia ja em curso -- sucesso na tela, Issue nenhuma. Supressao silenciosa.
-
-await test("F-04 o mesmo reportId vindo de REDES diferentes nao compartilha chave de idempotencia", async () => {
-  const mesmoReportId = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
-  const a = await chaveIdempotencia("segredo", "rede-da-vitima", mesmoReportId);
-  const b = await chaveIdempotencia("segredo", "rede-do-atacante", mesmoReportId);
-  ok(a && b, "as duas chaves precisam existir");
-  ok(a !== b, "remetentes diferentes NAO podem colidir com o mesmo reportId");
-});
-
-await test("F-04 a mesma rede com o mesmo reportId continua idempotente (o recurso nao quebrou)", async () => {
-  const id = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
-  const a = await chaveIdempotencia("segredo", "mesma-rede", id);
-  const b = await chaveIdempotencia("segredo", "mesma-rede", id);
-  eq(a, b, "reenvio do mesmo cliente precisa cair na mesma chave");
-});
-
-await test("F-04 reservar o reportId de outro NAO bloqueia o dono", async () => {
-  const redis = redisFalso();
-  const id = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
-  const atacante = await chaveIdempotencia("segredo", "rede-do-atacante", id);
-  const vitima = await chaveIdempotencia("segredo", "rede-da-vitima", id);
-
-  const primeiro = await reservarIdempotencia(redis, atacante);
-  eq(primeiro.estado, "novo", "o atacante reserva a chave DELE");
-
-  const dono = await reservarIdempotencia(redis, vitima);
-  eq(dono.estado, "novo", "o dono precisa seguir em frente, nao ser suprimido");
-});
-
-await test("F-04 a chave de idempotencia nao devolve o reportId em claro", async () => {
-  const id = "6f1c2b7e-4a3d-4b2c-8f1e-9d0a7c3b5e21";
-  const k = await chaveIdempotencia("segredo", "rede", id);
-  ok(!k.includes(id), "a chave nao pode carregar o reportId literal");
-  ok(!k.includes(id.split("-")[0]), "nem o primeiro segmento dele");
-  ok(/^[0-9a-f]{32}$/.test(k), "forma esperada: 32 hex");
-});
-
-// ── A fiacao HTTP, nao a politica ──────────────────────────────────────────────────────────────
-//
-// O que quebrou em producao nao foi a decisao do handler -- foi o construtor de `Response`. O
-// preflight de origem PERMITIDA respondia 500 enquanto o de origem PROIBIDA respondia 403: o unico
-// caminho quebrado era o caminho feliz. Testar a decisao por chamada de funcao nunca pegaria isso,
-// porque o defeito mora na conversao para `Response`.
-//
-// Estes casos passam a saida do handler pelo MESMO construtor que a Edge Function usa.
-
-await test("preflight de origem permitida sobrevive ao construtor de Response", async () => {
-  const r = await tratarRequisicao(
-    { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }, {}, {});
-  eq(r.status, 204, "preflight permitido responde 204");
-  let lancou = null;
-  try { new Response(corpoDeResposta(r.status, r.body), { status: r.status, headers: r.headers }); }
-  catch (e) { lancou = e; }
-  eq(lancou, null, `Response lancou: ${lancou && lancou.message}`);
-});
-
-await test("toda resposta alcancavel do handler constroi um Response valido", async () => {
-  const casos = [
-    ["OPTIONS permitido", { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }],
-    ["OPTIONS proibido", { method: "OPTIONS", headers: { origin: "https://nao.invalid" }, body: "" }],
-    ["OPTIONS sem origem", { method: "OPTIONS", headers: {}, body: "" }],
-    ["GET", { method: "GET", headers: {}, body: "" }],
-    ["POST tipo errado", { method: "POST", headers: { "content-type": "text/plain" }, body: "{}" }],
-    ["POST grande", { method: "POST", headers: { "content-type": "application/json" }, body: "x".repeat(20000) }],
-    ["POST sem config", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }],
-  ];
-  for (const [nome, req] of casos) {
-    const r = await tratarRequisicao(req, {}, {});
-    let lancou = null;
-    try { new Response(corpoDeResposta(r.status, r.body), { status: r.status, headers: r.headers }); }
-    catch (e) { lancou = e; }
-    eq(lancou, null, `${nome} (status ${r.status}) lancou: ${lancou && lancou.message}`);
-  }
-});
-
-await test("corpoDeResposta zera o corpo exatamente nos status que proibem corpo", () => {
-  for (const s of STATUS_SEM_CORPO) {
-    eq(corpoDeResposta(s, "qualquer coisa"), null, `status ${s} precisa de corpo null`);
-  }
-  eq(corpoDeResposta(200, '{"a":1}'), '{"a":1}', "status com corpo preserva o corpo");
-  eq(corpoDeResposta(403, '{"error":"ORIGIN"}'), '{"error":"ORIGIN"}', "erro preserva o corpo");
-});
-
-// ── Interruptor de servidor: provisionar dependencia NAO pode ser, por acidente, um lancamento ──
-
-await test("interruptor: so a string exata liga; todo o resto DESLIGA", () => {
-  eq(intakeHabilitado({ REPORT_INTAKE_ENABLED: HABILITADO_VALOR_EXATO }), true, "valor exato liga");
-  for (const v of ["TRUE", "True", "1", "yes", "sim", "on", " true", "true ", "", "false", "0"]) {
-    eq(intakeHabilitado({ REPORT_INTAKE_ENABLED: v }), false, `"${v}" NAO pode ligar`);
-  }
-  eq(intakeHabilitado({}), false, "ausente = desligado");
-  eq(intakeHabilitado(undefined), false, "env ausente = desligado");
-  eq(intakeHabilitado({ REPORT_INTAKE_ENABLED: true }), false, "booleano true NAO e a string exata");
-});
-
-await test("desligado com TODOS os segredos presentes ainda recusa", async () => {
-  const { REPORT_INTAKE_ENABLED, ...semInterruptor } = ENV;
-  eq(conferirConfig(semInterruptor).ok, true, "os oito segredos estao completos neste caso");
-  const r = await tratarRequisicao(req({ body: JSON.stringify(base()) }), semInterruptor, {});
-  eq(r.status, 503, "segredo completo NAO pode ligar o canal");
-  eq(JSON.parse(r.body).error, "UNAVAILABLE", "resposta generica");
-});
-
-await test("desligado nao toca Redis, nem GitHub, nem assina JWT", async () => {
-  const { REPORT_INTAKE_ENABLED, ...semInterruptor } = ENV;
-  let tocou = [];
-  const r = await tratarRequisicao(
-    req({ body: JSON.stringify(base()) }),
-    semInterruptor,
-    {
-      // `fetchImpl` e o nome que o handler realmente le -- injetar `fetch` nao observava nada, e
-      // este caso passava por motivo errado (a mutacao que remove o interruptor nao o derrubava).
-      fetchImpl: (...a) => { tocou.push(String(a[0])); throw new Error("nao deveria ter chamado"); },
-      valorDeRede: "1.2.3.4",
-    },
-  );
-  eq(r.status, 503, "recusa");
-  eq(tocou.length, 0, `nenhuma chamada de rede podia acontecer; houve: ${tocou.join(", ")}`);
-});
-
-await test("desligado responde IGUAL a nao-configurado (nao vaza qual e o caso)", async () => {
-  const desligadoCompleto = { ...ENV, REPORT_INTAKE_ENABLED: "false" };
-  const a = await tratarRequisicao(req({ body: JSON.stringify(base()) }), desligadoCompleto, {});
-  const b = await tratarRequisicao(req({ body: JSON.stringify(base()) }), {}, {});
-  eq(a.status, b.status, "mesmo status");
-  eq(a.body, b.body, "mesmo corpo — quem sonda nao distingue desligado de incompleto");
-});
-
-await test("desligado NAO quebra o preflight (CORS continua correto)", async () => {
-  const r = await tratarRequisicao(
-    { method: "OPTIONS", headers: { origin: ORIGENS_PERMITIDAS[0] }, body: "" }, {}, {});
-  eq(r.status, 204, "preflight continua respondendo 204 com o canal desligado");
-});
-
-// ── F-12: qual aviso a pessoa VIU quando enviou ────────────────────────────────────────────────
-
 await test("F-12 sem noticeVersion o corpo REPROVA", () => {
   const { noticeVersion, ...sem } = base();
   eq(validar(sem).erro, "SCHEMA_NOTICE_VERSION", "campo e obrigatorio");
@@ -516,70 +235,6 @@ await test("F-05 LIMITES do cliente == LIMITES do servidor", () => {
   }
 });
 
-// ── F-06: qual codigo respondeu ───────────────────────────────────────────────────────────────
-
-await test("F-06 toda resposta carrega o cabecalho de proveniencia", async () => {
-  const r = await tratarRequisicao(req({ body: JSON.stringify(base()) }), {}, {});
-  ok(r.headers["x-deploy-sha"], "sem x-deploy-sha nao da para saber qual versao respondeu");
-});
-
-// ── F-15: excecao INESPERADA nao pode vazar nada ──────────────────────────────────────────────
-
-await test("F-15 excecao arbitraria de dependencia vira 503 generico, sem vazar", async () => {
-  // O caminho classico de vazamento nao e o erro previsto: e o que nao se previu. Uma mensagem de
-  // runtime pode carregar caminho de arquivo, nome de variavel de ambiente ou fragmento de config.
-  // MONTADOS EM TEMPO DE EXECUCAO, nunca escritos como literal: um literal com forma de string de
-  // conexao ou de token faz o proprio scanner de PII deste repositorio reprovar -- e reprovar com
-  // razao, porque ele nao tem como saber que aquilo e cenario de teste. Montar por concatenacao
-  // mantem o cenario identico e nao planta uma forma de segredo no repositorio.
-  const venenos = [
-    ["postgres", "ql://u:p", "@", "db.exemplo", ".invalid:5432/x"].join(""),
-    ["Bearer ", "gh", "s_", "A".repeat(36)].join(""),
-    "/var/task/support-intake/handler.js:42",
-    ["SUPABASE_SERVICE", "_ROLE_KEY=", "ey", "J0", ".", "cGF5", ".", "c2ln"].join(""),
-  ];
-  for (const veneno of venenos) {
-    const r = await tratarRequisicao(
-      req({ body: JSON.stringify(base()) }), ENV,
-      { fetchImpl: () => { throw new Error(veneno); }, valorDeRede: "1.2.3.4" });
-    eq(r.status, 503, "excecao inesperada precisa virar 503");
-    eq(r.body, JSON.stringify({ error: "UNAVAILABLE" }), "corpo generico, sempre o mesmo");
-    for (const pedaco of [["postgres", "ql://"].join(""), ["gh", "s_"].join(""), "/var/task",
-                          ["ey", "J0"].join(""), ["SERVICE", "_ROLE"].join("")]) {
-      ok(!r.body.includes(pedaco), `vazou "${pedaco}" na resposta`);
-      ok(!JSON.stringify(r.headers).includes(pedaco), `vazou "${pedaco}" nos cabecalhos`);
-    }
-  }
-});
-
-await test("F-15 o log recebe CODIGO truncado, nunca o objeto de erro", async () => {
-  const linhas = [];
-  await tratarRequisicao(
-    req({ body: JSON.stringify(base()) }), ENV,
-    { fetchImpl: () => { throw new Error("x".repeat(500) + " " + ["postgres", "ql://u:p", "@", "h.invalid/db"].join("")); },
-      valorDeRede: "1.2.3.4", log: (e) => linhas.push(JSON.stringify(e)) });
-  const todo = linhas.join("\n");
-  ok(!todo.includes(["postgres", "ql://"].join("")), "string de conexao no log");
-  for (const l of linhas) ok(l.length < 400, "linha de log longa demais para ser so codigo");
-});
-
-await test("F-15 a casca TOTAL cobre excecao lancada antes do try interno", async () => {
-  // O try interno so comeca depois da validacao. Um erro lancado ANTES dele -- num parser, num
-  // runtime que mudou, numa dependencia -- escaparia inteiro sem a casca externa.
-  const req0 = { method: "POST",
-    headers: { origin: ORIGENS_PERMITIDAS[0],
-               get "content-type"() {
-                 throw new Error("/var/task/segredo.js: " + ["gh", "s_", "V".repeat(16)].join(""));
-               } },
-    body: "{}" };
-  const r = await tratarRequisicao(req0, ENV, {});
-  eq(r.status, 503, "excecao antes do try interno precisa virar 503");
-  eq(r.body, JSON.stringify({ error: "UNAVAILABLE" }), "mesmo corpo generico");
-  for (const pedaco of ["/var/task", ["gh", "s_"].join(""), "segredo"]) {
-    ok(!JSON.stringify(r).includes(pedaco), `vazou "${pedaco}"`);
-  }
-});
-
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
-if (fail) { console.log("✗ INTAKE DE REPORTES REPROVADO\n"); process.exit(1); }
-console.log("✓ INTAKE DE REPORTES OK\n");
+if (fail) { console.log("✗ POLITICA DE INTAKE REPROVADA\n"); process.exit(1); }
+console.log("✓ POLITICA DE INTAKE OK\n");

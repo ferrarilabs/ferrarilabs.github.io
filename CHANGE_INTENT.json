@@ -3,5 +3,58 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "EDGE_FUNCTIONS",
+      "lifecycle": "one_shot",
+      "reason": "Issue #321, ADR-021: o intake publico sai do runtime do Supabase e vira um Cloudflare Worker dedicado. No Supabase os segredos do projeto sao INJETADOS em toda Edge Function (SUPABASE_DB_URL, SUPABASE_SECRET_KEYS, SERVICE_ROLE_KEY que ignora RLS); num Worker os bindings sao DECLARADOS, entao o que nao esta no wrangler.jsonc nao existe no ambiente. A superficie critica passa a cobrir `workers/user-report-intake/**`, que tambem implanta em producao a partir do repositorio.",
+      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado.",
+      "tests_required": [
+        "scripts/report/test_worker_intake.mjs",
+        "scripts/report/test_worker_isolation.mjs",
+        "scripts/report/test_docs_drift.mjs",
+        "scripts/report/test_report_security_ratchets.mjs",
+        "bolao/scripts/audit_live_gateway.mjs"
+      ]
+    },
+    {
+      "surface_id": "VERIFY_RUNNER",
+      "lifecycle": "one_shot",
+      "reason": "Issue #321, ADR-021 (migracao para Cloudflare Worker). O check `report-isolation` foi SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings do Worker em vez de mencao de string no codigo) e `docs-drift` (14 casos). A contagem de checks SOBE de 226 para 228.",
+      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado. Check removido, nomeado explicitamente: `report-isolation`.",
+      "tests_required": [
+        "scripts/report/test_worker_intake.mjs",
+        "scripts/report/test_worker_isolation.mjs",
+        "scripts/report/test_docs_drift.mjs",
+        "scripts/report/test_report_security_ratchets.mjs",
+        "bolao/scripts/audit_live_gateway.mjs"
+      ]
+    },
+    {
+      "surface_id": "TEST_CHAIN",
+      "lifecycle": "one_shot",
+      "reason": "Issue #321, ADR-021 (migracao para Cloudflare Worker). `test_report_isolation.mjs` saiu da cadeia porque a estrutura que ele verificava (`support-intake/supabase/`) deixou de existir com a migracao para Cloudflare. No lugar entraram `test_worker_intake.mjs` (36 casos na fronteira Request/Response REAL), `test_worker_isolation.mjs` (18) e `test_docs_drift.mjs` (14). `test_report_intake.mjs` encolheu de 107 para 52 assercoes porque 34 blocos que exercitavam o handler antigo MIGRARAM para o Worker, onde rodam contra Request/Response de verdade -- estritamente melhor, e foi a ausencia desse nivel que deixou a #324 passar.",
+      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado. Item removido, nomeado explicitamente: `node scripts/report/test_report_isolation.mjs`. Arquivo que encolheu, nomeado explicitamente: `scripts/report/test_report_intake.mjs` (107 -> 52 assercoes, com os 34 blocos migrados para `scripts/report/test_worker_intake.mjs`).",
+      "tests_required": [
+        "scripts/report/test_worker_intake.mjs",
+        "scripts/report/test_worker_isolation.mjs",
+        "scripts/report/test_docs_drift.mjs",
+        "scripts/report/test_report_security_ratchets.mjs",
+        "bolao/scripts/audit_live_gateway.mjs"
+      ]
+    },
+    {
+      "surface_id": "GATE_REGISTRY",
+      "lifecycle": "one_shot",
+      "reason": "Issue #321, ADR-021 (migracao para Cloudflare Worker). Entrada de `test_report_isolation.mjs` removida junto com o arquivo; entradas de `test_worker_intake.mjs`, `test_worker_isolation.mjs` e `test_docs_drift.mjs` acrescentadas. O registro SOBE de 269 para 271.",
+      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado. Entrada removida, nomeada explicitamente: `scripts/report/test_report_isolation.mjs`.",
+      "tests_required": [
+        "scripts/report/test_worker_intake.mjs",
+        "scripts/report/test_worker_isolation.mjs",
+        "scripts/report/test_docs_drift.mjs",
+        "scripts/report/test_report_security_ratchets.mjs",
+        "bolao/scripts/audit_live_gateway.mjs"
+      ]
+    }
+  ]
 }

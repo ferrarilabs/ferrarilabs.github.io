@@ -1,5 +1,5 @@
 /**
- * policy.js — validacao, sanitizacao e montagem do Issue privado (Issue #321).
+ * policy.ts — validacao, sanitizacao e montagem do Issue privado (Issue #321).
  *
  * ─── POR QUE ISTO E UM MODULO PURO ──────────────────────────────────────────────────────────
  *
@@ -16,15 +16,15 @@
  * quem age de boa-fe; esta existe para quem nao age.
  */
 
-export const APPS = ["br2026", "cdb2026", "powerball", "copa2026", "platform"];
-export const ENGINES = ["chromium", "webkit", "gecko", "unknown"];
-export const DIAGNOSTICOS = [
+export const APPS: string[] = ["br2026", "cdb2026", "powerball", "copa2026", "platform"];
+export const ENGINES: string[] = ["chromium", "webkit", "gecko", "unknown"];
+export const DIAGNOSTICOS: string[] = [
   "SAVE_ACCESS_DENIED", "SAVE_PHASE_CLOSED", "SAVE_CUTOFF", "SAVE_NETWORK_FAILURE",
   "LIVE_SOURCE_UNAVAILABLE", "LIVE_CACHE_STALE", "VALIDATION_ERROR", "UNKNOWN_SAFE_ERROR",
 ];
 
 /** Campos aceitos. Qualquer chave fora desta lista REPROVA o corpo inteiro. */
-export const CAMPOS_ACEITOS = [
+export const CAMPOS_ACEITOS: string[] = [
   "reportId", "app", "siteVersion", "routeId", "sectionId", "locale", "timestamp",
   "viewport", "online", "browserEngine", "diagnosticCode", "description",
   "attemptedAction", "sessionReportId", "honeypot", "noticeVersion",
@@ -86,9 +86,9 @@ export const PADROES_SENSIVEIS = [
 ];
 
 /** Redige padroes obvios. Devolve o texto e QUAIS classes bateram (para metrica, nunca o valor). */
-export function redigir(texto) {
+export function redigir(texto: unknown): { texto: string; classes: string[] } {
   let t = String(texto);
-  const classes = [];
+  const classes: string[] = [];
   for (const { nome, re } of PADROES_SENSIVEIS) {
     if (re.test(t)) { classes.push(nome); }
     re.lastIndex = 0;
@@ -104,7 +104,7 @@ export function redigir(texto) {
  * carregar imagem remota (que vira pixel de rastreio e entrega o IP de quem abriu o Issue), fechar
  * Issue por palavra-chave, ou parecer instrucao para um agente.
  */
-export function tornarInerte(texto) {
+export function tornarInerte(texto: unknown): string {
   let t = String(texto);
 
   t = t.replace(CONTROLES, "").replace(INVISIVEIS, "");
@@ -129,7 +129,7 @@ export function tornarInerte(texto) {
 }
 
 /** Verdadeiro se o valor tem forma de texto util (nao vazio depois de limpar). */
-function textoLimpo(v, max) {
+function textoLimpo(v: unknown, max: number): string | null {
   if (typeof v !== "string") return null;
   const t = v.replace(CONTROLES, "").replace(INVISIVEIS, "").trim();
   if (!t) return null;
@@ -142,7 +142,7 @@ function textoLimpo(v, max) {
  * `erro` e um CODIGO estavel, nunca uma frase com o valor recebido -- devolver a entrada do usuario
  * na resposta e superficie desnecessaria, e o cliente ja sabe o que mandou.
  */
-export function validar(corpo) {
+export function validar(corpo: any): any {
   if (corpo === null || typeof corpo !== "object" || Array.isArray(corpo)) {
     return { ok: false, erro: "SCHEMA_NOT_OBJECT" };
   }
@@ -217,13 +217,13 @@ export function validar(corpo) {
 }
 
 /** Titulo: SO componentes allowlisted. Texto do participante nunca chega aqui. */
-export function montarTitulo(dados) {
+export function montarTitulo(dados: any): string {
   const app = APPS.includes(dados.app) ? dados.app.toUpperCase() : "PLATFORM";
   const diag = DIAGNOSTICOS.includes(dados.diagnosticCode) ? dados.diagnosticCode : "UNKNOWN_SAFE_ERROR";
   return `[User Report][${app}][${diag}] ${idExibivel(dados.reportId)}`;
 }
 
-export function idExibivel(reportId) {
+export function idExibivel(reportId: unknown): string {
   const hex = String(reportId || "").replace(/[^0-9a-f]/gi, "").toUpperCase();
   return hex ? `RPT-${hex.slice(0, 8)}` : "RPT-????????";
 }
@@ -234,7 +234,7 @@ export function idExibivel(reportId) {
  * O aviso de entrada nao confiavel vem PRIMEIRO e e legivel por maquina, porque quem le isto pode
  * ser um agente. O relato do participante fica no fim, dentro de bloco, ja inerte e redigido.
  */
-export function montarCorpo(dados, extra = {}) {
+export function montarCorpo(dados: any, extra: any = {}): string {
   const { texto: descricao, classes: cd } = redigir(dados.description);
   const { texto: tentativa, classes: ct } = dados.attemptedAction
     ? redigir(dados.attemptedAction) : { texto: null, classes: [] };

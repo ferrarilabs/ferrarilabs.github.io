@@ -1,5 +1,24 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-24 — Issue #321: intake migrado para Cloudflare Worker (v1.127)
+
+O canal de reporte mudou de runtime: deixou de ser uma Edge Function do projeto Supabase que
+guarda participante, pagamento e scoring, e virou um **Cloudflare Worker isolado**
+(`ferrarilabs-support-intake`). Motivo em `docs/bolao/adr/ADR-021-intake-em-cloudflare-worker.md`.
+
+Em uma frase: no Supabase os segredos do projeto sao **injetados** em toda Edge Function; num Worker
+os bindings sao **declarados**. O que nao esta no `wrangler.jsonc` nao existe no ambiente.
+
+**O que muda neste app:** so o `endpoint` do `reportProblem`, que ficou **vazio**. Ele sera
+preenchido no momento da ativacao, quando o endereco publico do Worker existir. Deixar a URL antiga
+apontaria o cliente exatamente para o runtime que a migracao existe para abandonar.
+
+**Nada aparece:** `reportProblem.enabled` continua `false`, e sem endpoint o componente nao monta.
+As duas chaves de ativacao seguem desligadas.
+
+**Scoring, ranking, entradas e pagamentos: intocados.**
+
+
 ## 2026-08-24 — Issue #321: versao do aviso de privacidade no coletor (v1.126)
 
 O coletor compartilhado (`bolao/shared/js/report_safe_context.js`) passa a enviar
