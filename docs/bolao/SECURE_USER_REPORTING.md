@@ -1,6 +1,6 @@
 # Reportar problema — arquitetura, ameaças e privacidade
 
-**Issue:** #321 · **Estado:** implementado e **DESLIGADO** nas duas chaves
+**Issue:** #321 · **Estado:** implementado, **aceito em produção por teste sintético** (2026-08-25) e **DESLIGADO** nas duas chaves
 **Runtime:** **Cloudflare Worker** `ferrarilabs-support-intake` — ver `adr/ADR-021-intake-em-cloudflare-worker.md`
 **Endereço:** `https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev`
 **Estado de ativação:** `BACKEND_PROVISIONED_DISABLED` · **Prontidão:** `NOT_READY`
@@ -36,6 +36,34 @@ retenção, deploy e runbook; a RTM canônica permanece no arquivo acima.
 > `main` é idêntica ao commit `e979e3ace14b7afe807f9421140f4bcb09ecd9ef`, que precede o upload;
 > o runtime não carrega SHA Git separadamente, por isso a evidência versionada é o ID/ETag da
 > Cloudflare mais essa igualdade de árvore, não uma alegação de attestation criptográfica.
+
+> **Aceitação sintética de produção concluída (2026-08-25).** O canal foi exercitado **ponta a
+> ponta contra o Worker de produção**, uma única vez, com um relato inteiramente sintético: nenhum
+> participante, nenhuma identidade real, nenhum pagamento, palpite, scoring ou ranking envolvido.
+>
+> O interruptor de servidor foi ligado apenas pela duração da coleta (`REPORT_INTAKE_ENABLED=true`,
+> versão `4713ff1a-63f6-4e82-8520-7b65b0d48f54`, **mesmo código**, só a variável diferente) e as
+> flags de cliente permaneceram `false` nos três apps ativos o tempo inteiro — a chave do cliente
+> nunca foi virada.
+>
+> Resultado: `201` com identificador opaco `RPT-D15C5A86` e **exatamente uma** Issue privada; o
+> reenvio idêntico devolveu `200` com corpo byte a byte igual e **nenhuma segunda Issue**. O título
+> carregou só app/diagnóstico/ID; o corpo trouxe o marcador `UNTRUSTED_EXTERNAL_INPUT` e
+> `notice_version`, e nenhum IP, HMAC, token, segredo, dado de pagamento, identificador Supabase ou
+> stack trace (25 asserções, 0 violações). Os logs do Worker registraram apenas
+> `report_metrica:aceito` e `report_metrica:idempotente`, sem conteúdo e sem chave, com zero exceções
+> em seis invocações.
+>
+> O rollback foi imediato e verificado com um `reportId` **inédito** — se o interruptor não tivesse
+> voltado, uma Issue nova teria aparecido: voltou `503 {"error":"UNAVAILABLE"}` e a contagem seguiu
+> em uma. A versão ativa voltou a ser exatamente `b50704ad-f61d-44e9-adeb-530973faf244`, com os
+> mesmos bindings e `REPORT_INTAKE_ENABLED="false"`.
+>
+> A Issue sintética foi **retida** como evidência, rotulada `synthetic-test` e fechada — não
+> apagada. Nenhuma política de retenção destrutiva foi executada.
+>
+> Estado final: `BACKEND_PROVISIONED_DISABLED`. **Isto não é ativação pública** — essa continua
+> sendo uma decisão do dono, e a #321 segue aberta por isso.
 
 ## 1. O que isto é
 
@@ -349,6 +377,18 @@ a arquitetura que os criou — o projeto Supabase de suporte e o Redis externo (
 Um único `UNKNOWN` derruba o veredito para `NOT_READY`. A alternativa seria um verde que significa
 "não achei problema", e num canal que abre superfície pública isso é pior que um vermelho.
 
+> **Placar em 2026-08-25, depois da aceitação sintética: 22 PASS · 0 FAIL · 4 UNKNOWN.** Os quatro
+> `UNKNOWN` continuam sendo os itens `OWNER`, e `synthetic_acceptance_green` **segue `OWNER` de
+> propósito**, mesmo agora tendo evidência: uma aceitação é um **evento**, não um estado que uma
+> chamada de API consiga reler depois. Um item que ninguém consegue reverificar sozinho pertence ao
+> dono — foi exatamente o critério que `test_docs_drift.mjs` já fixa ("os itens OWNER são só os que
+> não têm caminho de API"). Transformá-lo em `PASS` automático porque a execução de hoje passou
+> seria enfraquecer o gate para deixar o relatório verde, que é a coisa que este documento inteiro
+> existe para não fazer.
+>
+> A evidência da execução está registrada acima e na RTM; o veredito permanece `NOT_READY` porque a
+> ativação pública continua sendo uma decisão do dono.
+
 Ele sai com código **0** de propósito: é relatório, não gate de CI. Reprovar o `npm run check`
 porque o dono ainda não provisionou um recurso externo deixaria o pipeline vermelho por algo que nenhum
 commit conserta — e vermelho permanente é vermelho que se aprende a ignorar.
@@ -417,6 +457,17 @@ existente em vez de gerar um novo a cada execução.
 
 4. O Worker pode continuar implantado e **inerte** — o interruptor é a primeira coisa que se desliga,
    e ele é avaliado antes de qualquer dependência.
+
+   > **Exercitado de verdade (2026-08-25).** O passo 1 deixou de ser afirmação de desenho: na
+   > aceitação sintética o interruptor foi ligado, o canal criou uma Issue, e o rollback devolveu
+   > `503` — provado com um `reportId` **inédito**, justamente para que uma falha do rollback
+   > aparecesse como Issue nova em vez de passar como resposta idempotente. Não apareceu. A volta
+   > foi para a versão anterior **exata** (`wrangler rollback`), com bindings idênticos.
+   >
+   > Observação operacional confirmada no mesmo teste: com o interruptor desligado, uma requisição
+   > que antes chegaria ao passo de `Content-Type` (`415`) passa a morrer em `503`. Isso é o
+   > comportamento correto — o interruptor é avaliado **antes** — e serve como sonda barata para
+   > distinguir "canal fechado" de "canal aberto e recusando por outro motivo".
 5. A Edge Function legada já foi apagada. Recuperá-la exige um redeploy deliberado a partir do
    histórico; a integração GitHub→Supabase não observa `workers/` como diretório de função e
    `supabase/config.toml` declara somente `live-football`.
