@@ -1,9 +1,10 @@
 # Reportar problema — arquitetura, ameaças e privacidade
 
-**Issue:** #321 · **Estado:** implementado, **aceito em produção por teste sintético** (2026-08-25) e **DESLIGADO** nas duas chaves
+**Issue:** #321 · **Estado:** **ATIVO E PÚBLICO** desde 2026-08-25, com autorização explícita do dono
 **Runtime:** **Cloudflare Worker** `ferrarilabs-support-intake` — ver `adr/ADR-021-intake-em-cloudflare-worker.md`
 **Endereço:** `https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev`
-**Estado de ativação:** `BACKEND_PROVISIONED_DISABLED` · **Prontidão:** `NOT_READY`
+**Estado de ativação:** `PUBLIC_ENABLED` · **Prontidão:** `READY` (22 PASS · 4 ATESTADO · 0 FAIL · 0 UNKNOWN)
+**Estado canônico do rollout:** `bolao/shared/safety/report_rollout.json`
 **Rastreabilidade:** `USER_REPORT_REQUIREMENTS_TRACEABILITY_MATRIX.md`
 **Escopo documental:** arquitetura + SDD/TDD do canal + threat model específico + privacidade,
 retenção, deploy e runbook; a RTM canônica permanece no arquivo acima.
@@ -64,6 +65,44 @@ retenção, deploy e runbook; a RTM canônica permanece no arquivo acima.
 >
 > Estado final: `BACKEND_PROVISIONED_DISABLED`. **Isto não é ativação pública** — essa continua
 > sendo uma decisão do dono, e a #321 segue aberta por isso.
+
+> **ATIVAÇÃO PÚBLICA — 2026-08-25.** O canal foi aberto a participantes, com autorização explícita
+> do dono, depois de: aceitação sintética de produção aprovada, **#339** (log de exceção por
+> allowlist) resolvida, **#334** (corrida do harness de verificação) resolvida, e os quatro portões
+> `OWNER` atestados.
+>
+> As duas chaves foram viradas **nessa ordem**, que é a ordem que importa: **servidor primeiro**
+> (`REPORT_INTAKE_ENABLED=true`, verificado antes de qualquer UI existir), **cliente depois**
+> (`reportProblem.enabled: true` em CDB2026, BR2026 e Powerball).
+>
+> ### Atestação do dono — os quatro portões humanos
+>
+> Estes quatro itens não têm caminho de API: dependem de ação de painel e de criação de GitHub App.
+> Ficam registrados em `bolao/shared/safety/report_rollout.json`, com data, e o manifesto de
+> prontidão passa a exibi-los como `ATTESTED` — **não** como `PASS`. A distinção é deliberada:
+> "ninguém verificou" e "o dono verificou e assinou" não podem virar a mesma coisa. Remover a
+> entrada, renomear o item ou trocar o id devolve o item a `UNKNOWN` na hora.
+>
+> | portão | atestado |
+> |---|---|
+> | `supabase_integration_directory_verified` | integração GitHub do projeto primário limitada à superfície de deploy do Supabase; `workers/` não recria o intake legado |
+> | `primary_deployed_function_removed` | Edge Function legada `user-report-intake` deletada; releitura mostrou só `live-football` e `_shared` |
+> | `github_app_created_and_installed` | App instalada **só** em `ferrarilabs/support-intake`, `Issues:write` + `Metadata:read`, sem escopo mais amplo |
+> | `synthetic_acceptance_green` | uma única Issue privada, reenvio idempotente, assertivas de privacidade aprovadas, logs sem PII/segredo, rollback bem-sucedido |
+>
+> ### Estado de rollout declarado
+>
+> Vários gates codificavam a **fase** ("o interruptor tem de estar `false`", "a UI tem de estar
+> off"). Isso protegia bem enquanto o canal não existia e viraria mentira no dia da ativação — e um
+> gate que precisa ser afrouxado para o produto avançar é um gate que se aprende a afrouxar.
+>
+> A fase agora é declarada **uma vez**, e os gates exigem **coerência** com ela. A proteção não
+> diminuiu; ela ficou mais forte em um ponto que ninguém cobria: passou a ser impossível ligar
+> **metade** do canal — servidor sim e cliente não, ou um app fora de sincronia — sem reprovar.
+>
+> **Rollback (inalterado, e ainda é a primeira ação):** `REPORT_INTAKE_ENABLED=false` no servidor.
+> Esconder o botão **não** é rollback — um navegador com a página em cache continua conseguindo
+> POSTar.
 
 ## 1. O que isto é
 

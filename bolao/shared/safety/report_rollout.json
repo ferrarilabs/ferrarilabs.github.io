@@ -1,0 +1,42 @@
+{
+  "$schema": "Estado de rollout DECLARADO do canal de reporte (Issue #321). Fonte unica de verdade para os gates que antes exigiam 'desligado' de forma literal. Ver docs/bolao/SECURE_USER_REPORTING.md.",
+  "_por_que_existe": "Ate 2026-08-25 varios gates codificavam a FASE ('o interruptor tem de estar false', 'a UI tem de estar off'). Isso protegia bem enquanto o canal nao existia e virava mentira no dia da ativacao -- e um gate que precisa ser afrouxado para o produto avancar e um gate que se aprende a afrouxar. Aqui a fase e declarada UMA vez, e os gates passam a exigir COERENCIA com ela. A protecao nao diminui: ligar o canal continua impossivel sem uma alteracao visivel e revisavel neste arquivo, e agora tambem e impossivel ligar METADE dele (servidor sim, cliente nao, ou um app fora de sincronia) sem reprovar.",
+  "_estados": {
+    "BACKEND_PROVISIONED_DISABLED": "Worker implantado e inerte. `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled` false nos tres apps ativos.",
+    "PUBLIC_ENABLED": "Canal aberto a participantes. `REPORT_INTAKE_ENABLED` versionado como \"true\" e `reportProblem.enabled` true nos tres apps ativos."
+  },
+  "state": "PUBLIC_ENABLED",
+  "since": "2026-08-25",
+  "issue": 321,
+  "authorized_by": "owner",
+  "authorization_note": "Ativacao publica autorizada explicitamente pelo dono em 2026-08-25, apos: aceitacao sintetica de producao aprovada, #339 (log de excecao por allowlist) resolvida, #334 (corrida do harness de verificacao) resolvida, e os quatro portoes OWNER atestados. Ver o registro da atestacao em docs/bolao/SECURE_USER_REPORTING.md.",
+  "apps_ativos": [
+    "bolao/cdb2026/js/config.js",
+    "bolao/br2026/js/config.js",
+    "bolao/loterias/powerball/js/config.js"
+  ],
+  "_rollback": "O rollback comeca SEMPRE pelo servidor: `REPORT_INTAKE_ENABLED=false` no Cloudflare para a requisicao de verdade. Esconder o botao NAO e rollback -- um navegador com a pagina em cache continua conseguindo POSTar. Depois disso, voltar este arquivo para BACKEND_PROVISIONED_DISABLED e as flags de cliente para false pelo caminho normal de deploy.",
+  "_owner_attestations": "Os quatro itens OWNER do manifesto de prontidao nao tem caminho de API -- eles dependem de acao de painel e de criacao de GitHub App. Registra-los aqui NAO os transforma em PASS automatico: o item so e considerado atestado se o proprio dono o nomear abaixo, com data. Renomear um item, remover a entrada ou trocar o id faz ele voltar a UNKNOWN na hora. E atestacao humana, datada e revisavel -- nao deteccao.",
+  "owner_attestations": {
+    "supabase_integration_directory_verified": {
+      "attested_on": "2026-08-25",
+      "by": "owner",
+      "evidence": "A integracao GitHub do projeto Supabase primario foi verificada como limitada a superficie de deploy do Supabase; `workers/` nao pode recriar o intake legado."
+    },
+    "primary_deployed_function_removed": {
+      "attested_on": "2026-08-25",
+      "by": "owner",
+      "evidence": "A Edge Function legada `user-report-intake` foi deletada do projeto primario e a releitura confirmou que so as funcoes esperadas permaneceram (`live-football`, `_shared`)."
+    },
+    "github_app_created_and_installed": {
+      "attested_on": "2026-08-25",
+      "by": "owner",
+      "evidence": "A GitHub App dedicada esta instalada somente em ferrarilabs/support-intake, com Issues:write + Metadata:read e nenhum escopo de repositorio mais amplo."
+    },
+    "synthetic_acceptance_green": {
+      "attested_on": "2026-08-25",
+      "by": "owner",
+      "evidence": "Aceitacao sintetica controlada em producao aprovada: exatamente uma Issue privada, reenvio identico idempotente, assercoes de conteudo/privacidade aprovadas, logs sem PII/segredo emitido pela aplicacao, rollback bem-sucedido, evidencia sintetica retida em repositorio privado."
+    }
+  }
+}

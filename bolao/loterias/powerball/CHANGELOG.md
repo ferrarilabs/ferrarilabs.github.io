@@ -6,6 +6,28 @@ outros três bolões.
 
 ---
 
+## 2026-08-25 — Issue #321: canal de reporte ABERTO ao público
+
+Com autorização explícita do dono, o canal de **"Reportar problema"** foi **aberto a participantes**.
+
+As duas chaves foram viradas — e nessa ordem, que é a ordem que importa:
+
+1. **servidor** primeiro (`REPORT_INTAKE_ENABLED=true` no Cloudflare Worker isolado), verificado
+   antes de qualquer UI aparecer;
+2. **cliente** depois (`reportProblem.enabled: true` neste app).
+
+O estado de rollout agora é **declarado uma vez** em `bolao/shared/safety/report_rollout.json`
+(`PUBLIC_ENABLED`), e os gates que antes exigiam literalmente "desligado" passaram a exigir
+**coerência** com essa declaração. A proteção não diminuiu: ligar continua exigindo uma alteração
+visível e revisável, e passou a ser impossível ligar **metade** do canal (servidor sim, cliente
+não, ou um app fora de sincronia) sem reprovar.
+
+**Rollback** continua começando pelo servidor: `REPORT_INTAKE_ENABLED=false` é o que para
+requisição de verdade. Esconder o botão não é rollback — um navegador com a página em cache
+continua conseguindo POSTar.
+
+Nada de scoring, ranking, entradas ou pagamentos foi tocado.
+
 ## 2026-08-25 — Issue #321: endereço do Worker e CSP
 
 O endereço do Worker foi **decidido** e escrito neste app, e a CSP passou a permitir exatamente
