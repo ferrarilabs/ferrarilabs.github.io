@@ -231,6 +231,61 @@ independentemente por **sha-256** — se o índice do git estivesse mentindo, o 
 
 Nenhuma mutação toca dado de participante, banco, provedor de e-mail ou rede.
 
+### Invariante de isolamento (Issue #334)
+
+> **Testes de mutação nunca alteram a árvore observada por leitores canônicos.**
+
+Restaurar byte a byte é uma promessa sobre o *depois*. Ela não diz nada sobre o **durante** — e o
+`verify.mjs` roda os checks **em paralelo**, então existia uma janela em que outro check lia um
+arquivo no meio da mutação.
+
+Isso deixou de ser hipótese em 2026-08-25: `live-function-drift` calculou o SHA de
+`supabase/functions/**` enquanto a mutação M34 estava aplicada e reprovou mandando o operador colar
+o hash do **código mutado** em `deploy_manifest.js` — um valor que nunca identificou código nenhum.
+Um teste de harness virando instrução errada para um humano, e a cegueira que a #306 existia para
+acabar sendo reintroduzida pela porta dos fundos.
+
+A correção é estrutural, não de relógio:
+
+- **toda** mutação acontece numa worktree git descartável criada do `HEAD` exato — o caminho passa
+  por um único ponto (`abs()`), então não há como uma escrita escapar por engano;
+- a árvore canônica nunca é escrita, então **não existe janela para observar** — nem com um leitor,
+  nem com cem;
+- `scripts/safety/test_mutation_isolation.mjs` prova isso **sem depender de timing**: a mutação fica
+  comprovadamente ativa no disco enquanto o leitor canônico roda. Se a arquitetura estivesse errada,
+  o leitor observaria a mutação em 100% das execuções — e o controle negativo do mesmo arquivo
+  demonstra exatamente esse comportamento, lendo da árvore mutada de propósito.
+
+Um efeito colateral que vale escrever: antes, um `SIGKILL` no meio de uma mutação deixava a **árvore
+canônica mutada**. Agora o pior caso é uma worktree temporária órfã, e nunca código alterado no
+repositório de trabalho.
+
+### Modelo de concorrência
+
+| classe | quem | regra |
+|---|---|---|
+| leitores canônicos | quase todos os checks | leem a árvore de trabalho; podem correr em paralelo à vontade |
+| mutantes isolados | `safety-contract-mutations`, `mutation-isolation` | escrevem **só** na própria worktree descartável |
+| ordenação | — | nenhuma exigida: o isolamento torna a ordem irrelevante |
+
+Duas execuções simultâneas de `npm run check` não interferem entre si: cada uma nomeia sua worktree
+com o próprio PID e nenhuma escreve na árvore compartilhada.
+
+Custo medido: **120,6 s → 125,4 s** na suíte de mutação (+4%), o preço de uma criação de worktree.
+Serializar a suíte inteira teria custado muito mais e ainda assim seria uma garantia de relógio, não
+de arquitetura.
+
+### Limpeza, e o que ela honestamente não cobre
+
+A remoção da worktree é garantida no caminho feliz, na exceção e no `Ctrl-C`. **`SIGKILL` não é
+interceptável** — e como o nome carrega o PID, a execução seguinte não colidiria com a sobra e o
+vazamento ficaria invisível.
+
+Por isso a recuperação é **ativa**: `scripts/safety/worktree_isolation.mjs` varre, no início de cada
+suíte, as worktrees da própria família e remove as de processos que **não existem mais**
+(`process.kill(pid, 0)` só pergunta, não sinaliza). Uma execução concorrente viva jamais é removida —
+e há caso de teste para os dois lados.
+
 ---
 
 ## CI
