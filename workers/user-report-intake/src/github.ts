@@ -21,6 +21,8 @@
  * inteiramente do runtime; aqui so se monta o cabecalho, o payload e o base64url.
  */
 
+import { FalhaClassificada, type CodigoFalha } from "./falhas.ts";
+
 const enc = new TextEncoder();
 
 export const GITHUB_API = "https://api.github.com";
@@ -64,11 +66,39 @@ export async function assinarJwtDoApp(appId: string, chavePrivadaPem: string, ag
   const payload = { iat: agoraSeg - 60, exp: agoraSeg + 540, iss: String(appId) };
   const base = `${b64url(enc.encode(JSON.stringify(header)))}.${b64url(enc.encode(JSON.stringify(payload)))}`;
 
-  const key = await crypto.subtle.importKey(
-    "pkcs8", pemParaDer(chavePrivadaPem),
-    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
-  const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, enc.encode(base));
-  return `${base}.${b64url(sig)}`;
+  // PEM malformada e assinatura recusada lancam DOMException do runtime -- erro que NAO e nosso, e
+  // cuja mensagem pode citar caminho, formato de chave ou fragmento do material. Classificar aqui
+  // garante que a fronteira de log receba um codigo nosso (#339).
+  try {
+    const key = await crypto.subtle.importKey(
+      "pkcs8", pemParaDer(chavePrivadaPem),
+      { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, false, ["sign"]);
+    const sig = await crypto.subtle.sign("RSASSA-PKCS1-v1_5", key, enc.encode(base));
+    return `${base}.${b64url(sig)}`;
+  } catch {
+    throw new FalhaClassificada("CRYPTO_FAILURE");
+  }
+}
+
+/**
+ * Distingue "o GitHub limitou" de "o GitHub falhou" usando SO status e cabecalho (#339).
+ *
+ * O corpo da resposta NUNCA e lido aqui -- e essa a regra que a catraca
+ * `test_report_security_ratchets` ja fixa, proibindo qualquer leitura de corpo neste arquivo. Status
+ * e um numero; `retry-after` e `x-ratelimit-remaining` sao valores de controle do protocolo. Nada
+ * disso carrega credencial, e nada disso vai ao log em texto: eles apenas ESCOLHEM entre dois
+ * membros do conjunto fechado de codigos.
+ *
+ * O GitHub sinaliza limite de duas formas: `429`, e `403` com a cota zerada -- a segunda e a que a
+ * documentacao dele chama de "secondary rate limit", e trata-la como falha generica esconderia
+ * exatamente o diagnostico que faz alguem agir.
+ */
+function classificarStatus(r: Response, padrao: CodigoFalha): CodigoFalha {
+  if (r.status === 429) return "GITHUB_RATE_LIMIT";
+  if (r.status === 403 && (r.headers.get("x-ratelimit-remaining") === "0" || r.headers.get("retry-after"))) {
+    return "GITHUB_RATE_LIMIT";
+  }
+  return padrao;
 }
 
 /**
@@ -81,7 +111,7 @@ export async function assinarJwtDoApp(appId: string, chavePrivadaPem: string, ag
  */
 function exigirHostPermitido(url: string): void {
   if (!String(url).startsWith(GITHUB_API + "/")) {
-    throw new Error("DESTINO_NAO_PERMITIDO");
+    throw new FalhaClassificada("DESTINO_BLOQUEADO", "DESTINO_NAO_PERMITIDO");
   }
 }
 
@@ -91,6 +121,10 @@ async function chamar(fetchImpl: typeof fetch, url: string, opcoes: RequestInit,
   const t = setTimeout(() => ctrl.abort(), timeoutMs);
   try {
     return await fetchImpl(url, { ...opcoes, signal: ctrl.signal });
+  } catch (e) {
+    // Abort do NOSSO relogio e uma falha conhecida; falha de rede crua nao e nossa e sua mensagem
+    // pode citar host, proxy ou cabecalho. As duas saem daqui com codigo nosso (#339).
+    throw e instanceof FalhaClassificada ? e : new FalhaClassificada("GITHUB_TIMEOUT");
   } finally {
     clearTimeout(t);
   }
@@ -107,7 +141,7 @@ export async function obterTokenDeInstalacao({ appId, installationId, chavePriva
   if (!r.ok) {
     // NUNCA propagar o corpo: uma resposta de auth do GitHub pode ecoar fragmento de credencial.
     // Um codigo estavel diz o suficiente para operar, e nao vaza nada.
-    throw new Error(`GITHUB_AUTH_${r.status}`);
+    throw new FalhaClassificada(classificarStatus(r, "GITHUB_AUTH"), `GITHUB_AUTH_${r.status}`);
   }
   const j = await r.json();
   return j.token;
@@ -126,9 +160,9 @@ export async function verificarDestinoPrivado({ token, owner, repo, fetchImpl = 
     headers: { Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
                "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "ferrarilabs-support-intake" },
   });
-  if (!r.ok) throw new Error(`GITHUB_REPO_${r.status}`);
+  if (!r.ok) throw new FalhaClassificada(classificarStatus(r, "GITHUB_UPSTREAM"), `GITHUB_REPO_${r.status}`);
   const j = await r.json();
-  if (j.private !== true) throw new Error("TARGET_REPO_NOT_PRIVATE");
+  if (j.private !== true) throw new FalhaClassificada("TARGET_NOT_PRIVATE", "TARGET_REPO_NOT_PRIVATE");
   return true;
 }
 
@@ -166,7 +200,7 @@ export async function criarIssuePrivado({ token, owner, repo, titulo, corpo, lab
                "User-Agent": "ferrarilabs-support-intake" },
     body: JSON.stringify({ title: titulo, body: corpo, labels }),
   });
-  if (!r.ok) throw new Error(`GITHUB_CREATE_${r.status}`);
+  if (!r.ok) throw new FalhaClassificada(classificarStatus(r, "GITHUB_UPSTREAM"), `GITHUB_CREATE_${r.status}`);
   const j = await r.json();
   return j.number;
 }

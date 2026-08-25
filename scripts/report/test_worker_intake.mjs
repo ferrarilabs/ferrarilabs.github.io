@@ -25,6 +25,7 @@ import worker, {
 import { normalizarRede, chaveDeRede, chaveIdempotencia } from "../../workers/user-report-intake/src/identidade.ts";
 import { GITHUB_API, PERMISSOES } from "../../workers/user-report-intake/src/github.ts";
 import { CAMPOS_ACEITOS } from "../../workers/user-report-intake/src/policy.ts";
+import { CODIGOS_DE_FALHA, FalhaClassificada } from "../../workers/user-report-intake/src/falhas.ts";
 
 /**
  * Chave RSA SINTETICA, gerada em memoria a cada execucao.
@@ -520,6 +521,209 @@ await test("excecao arbitraria vira 503 generico, sem vazar", async () => {
                           ["ey", "J0"].join(""), ["SERVICE", "_ROLE"].join("")]) {
       ok(!tudo.includes(pedaco), `vazou "${pedaco}"`);
     }
+  }
+});
+
+// ── 7-B. #339: o LOG tambem nao pode carregar segredo ────────────────────────────────────────
+//
+// O teste acima assere sobre a RESPOSTA, e sempre passou. Ele nao era suficiente: o `codigo`
+// derivado de `e.message` ia para o LOG, e 40 caracteres de mensagem de provedor cabem num token
+// inteiro. Estes testes fecham o caminho que faltava.
+console.log("\n7-B. Log de excecao sem segredo (#339):");
+
+/**
+ * Venenos SINTETICOS, montados em tempo de execucao.
+ *
+ * Nenhum aparece como literal no arquivo: escritos por extenso, o scanner de PII/segredo deste
+ * repositorio reprovaria -- e reprovaria com razao, porque ele nao tem como distinguir um fixture
+ * de um vazamento. Montar em pedacos preserva a catraca E o teste.
+ */
+const VENENOS = [
+  ["Bearer ", "gh", "s_", "A".repeat(36)].join(""),
+  ["gh", "p_", "B".repeat(36)].join(""),
+  ["ey", "J0eXAiOiJKV1Qi", ".", "cGF5bG9hZG", ".", "c2lnbmF0dXJl"].join(""),
+  ["sb", "p_", "C".repeat(24)].join(""),
+  ["postgres", "ql://u:p", "@", "db.exemplo", ".invalid:5432/x"].join(""),
+  ["SUPABASE_SERVICE", "_ROLE_KEY=", "ey", "J0", ".", "cGF5", ".", "c2ln"].join(""),
+  ["SYNTH", "-", "D-", "9".repeat(10)].join(""),
+  ["fulano", "@", "exemplo", ".invalid"].join(""),
+  ["+55 11 ", "9".repeat(5), "-", "8".repeat(4)].join(""),
+  "/var/task/worker/index.ts:42",
+];
+
+/** Fragmentos que NUNCA podem aparecer, nem parcialmente. */
+const FRAGMENTOS_PROIBIDOS = [
+  ["gh", "s_"].join(""), ["gh", "p_"].join(""), ["ey", "J0"].join(""), ["sb", "p_"].join(""),
+  ["postgres", "ql://"].join(""), ["SERVICE", "_ROLE"].join(""), "SYNTH", "exemplo", "/var/task",
+  "Bearer", "AAAA", "BBBB", "CCCC", "9999",
+];
+
+/** Captura o `console.log` da fronteira EXTERNA, que nao aceita injecao de `log`. */
+async function capturarConsole(fn) {
+  const linhas = [];
+  const original = console.log;
+  console.log = (...a) => { linhas.push(a.join(" ")); };
+  try { return { retorno: await fn(), linhas }; }
+  finally { console.log = original; }
+}
+
+await test("fronteira EXTERNA: nenhum veneno chega ao log, e o codigo e allowlisted", async () => {
+  for (const veneno of VENENOS) {
+    const { retorno: r, linhas } = await capturarConsole(() => worker.fetch(req(), {
+      ...ENV_BASE(),
+      get REPORT_ABUSE_HMAC_SECRET() { throw new Error(veneno); },
+    }, ctxFalso()));
+
+    eq(r.status, 503, "precisa virar 503");
+    const txt = await r.text();
+    const tudo = txt + JSON.stringify([...r.headers]) + linhas.join("\n");
+    for (const pedaco of FRAGMENTOS_PROIBIDOS) {
+      ok(!tudo.includes(pedaco), `vazou "${pedaco}" (resposta, cabecalho ou LOG)`);
+    }
+    ok(!tudo.includes(veneno), "a mensagem crua vazou inteira");
+
+    const evento = linhas.map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .find((e) => e?.evento === "report_excecao_nao_tratada");
+    ok(evento, "a fronteira externa precisa registrar o evento estavel");
+    eq(evento.codigo, "INTERNAL_UNKNOWN", "erro nao classificado tem de virar INTERNAL_UNKNOWN");
+    eq(Object.keys(evento).sort().join(","), "codigo,evento", "campo fora da allowlist no log");
+  }
+});
+
+await test("fronteira INTERNA: falha do GitHub nao leva mensagem ao log", async () => {
+  for (const veneno of VENENOS) {
+    const linhas = [];
+    const gh = async () => { throw new Error(veneno); };
+    const r = await __teste.tratar(req(), ENV_BASE(), ctxFalso(), {
+      fetchImpl: gh, log: (e) => linhas.push(JSON.stringify(e)),
+    });
+    eq(r.status, 503, "falha fechada");
+    const tudo = (await r.text()) + linhas.join("\n");
+    for (const pedaco of FRAGMENTOS_PROIBIDOS) {
+      ok(!tudo.includes(pedaco), `vazou "${pedaco}" na fronteira interna`);
+    }
+    const ev = linhas.map((l) => JSON.parse(l)).find((e) => e.evento === "report_github_falhou");
+    ok(ev, "evento estavel de falha do GitHub");
+    ok(CODIGOS_DE_FALHA.includes(ev.codigo), `codigo fora da allowlist: ${ev.codigo}`);
+    eq(Object.keys(ev).sort().join(","), "codigo,evento,latencia_ms", "campo fora da allowlist");
+  }
+});
+
+/**
+ * Codigos ESTAVEIS por caminho de falha. Um painel que nao distingue "o GitHub recusou a
+ * assinatura" de "o repositorio deixou de ser privado" nao serve para operar nada.
+ */
+const CASOS_DE_CODIGO = [
+  ["GITHUB_AUTH", (env) => ({ env, gh: async (u) => String(u).includes("/access_tokens")
+      ? Response.json({ message: "nao importa" }, { status: 401 }) : githubFalso()(u) })],
+  ["GITHUB_RATE_LIMIT", (env) => ({ env, gh: async (u) => String(u).includes("/access_tokens")
+      ? Response.json({}, { status: 429 }) : githubFalso()(u) })],
+  ["GITHUB_RATE_LIMIT", (env) => ({ env, gh: async (u, i) => /\/repos\/[^/]+\/[^/]+$/.test(String(u))
+      ? new Response("{}", { status: 403, headers: { "x-ratelimit-remaining": "0" } })
+      : githubFalso()(u, i) })],
+  ["TARGET_NOT_PRIVATE", (env) => ({ env, gh: githubFalso({ privado: false }) })],
+  ["GITHUB_UPSTREAM", (env) => ({ env, gh: async (u, i) => (i?.method === "POST" && String(u).includes("/issues"))
+      ? Response.json({}, { status: 500 }) : githubFalso()(u, i) })],
+  ["CRYPTO_FAILURE", (env) => ({ env: { ...env, REPORT_GITHUB_PRIVATE_KEY: "nao-e-uma-chave" }, gh: githubFalso() })],
+  ["GITHUB_TIMEOUT", (env) => ({ env, gh: async () => { throw new Error("network exploded"); } })],
+];
+
+for (const [esperado, montar] of CASOS_DE_CODIGO) {
+  await test(`codigo estavel: ${esperado}`, async () => {
+    const linhas = [];
+    const { env, gh } = montar(ENV_BASE());
+    const r = await __teste.tratar(req(), env, ctxFalso(), {
+      fetchImpl: gh, log: (e) => linhas.push(JSON.stringify(e)),
+    });
+    eq(r.status, 503, "toda falha aqui e fechada");
+    const ev = linhas.map((l) => JSON.parse(l)).find((e) => e.evento === "report_github_falhou");
+    ok(ev, "evento de falha ausente");
+    eq(ev.codigo, esperado, "codigo de falha errado");
+  });
+}
+
+await test("codigo estavel: STATE_FAILURE quando o Durable Object falha", async () => {
+  const linhas = [];
+  const env = { ...ENV_BASE(), ESTADO: {
+    idFromName: (n) => n,
+    get: () => ({ fetch: async () => { throw new Error(["DO morreu com segredo gh", "s_", "X".repeat(30)].join("")); } }),
+  } };
+  const { retorno: r, linhas: doConsole } = await capturarConsole(() => worker.fetch(req(), env, ctxFalso()));
+  eq(r.status, 503, "falha fechada");
+  const tudo = doConsole.join("\n") + linhas.join("\n");
+  ok(!tudo.includes(["gh", "s_"].join("")), "vazou fragmento de token");
+  const ev = doConsole.map((l) => { try { return JSON.parse(l); } catch { return null; } })
+    .find((e) => e?.evento === "report_excecao_nao_tratada");
+  ok(ev, "evento estavel ausente");
+  eq(ev.codigo, "STATE_FAILURE", "falha de estado precisa de codigo proprio");
+});
+
+await test("classificar() so devolve membro do conjunto fechado, mesmo sob objeto hostil", () => {
+  const hostis = [
+    { codigo: ["Bearer gh", "s_", "Z".repeat(30)].join("") },
+    { codigo: "CODIGO_INVENTADO" },
+    { codigo: 42 }, { codigo: null }, { codigo: { toString: () => "gh" + "s_x" } },
+    new Error(["gh", "s_", "Y".repeat(36)].join("")),
+    "string solta", null, undefined, 0,
+  ];
+  for (const h of hostis) {
+    const c = __teste.classificar(h);
+    ok(CODIGOS_DE_FALHA.includes(c), `classificar devolveu fora da allowlist: ${c}`);
+    ok(!String(c).includes("gh" + "s_"), "fragmento de token sobreviveu a classificacao");
+  }
+  eq(__teste.classificar(new FalhaClassificada("GITHUB_AUTH", "mensagem interna com gh" + "s_XXXX")),
+     "GITHUB_AUTH", "erro classificado precisa preservar o proprio codigo");
+});
+
+// ── 7-C. #339: CONTROLE NEGATIVO — provar que 7-B morde ──────────────────────────────────────
+//
+// Um teste de seguranca que nunca reprovou nao provou nada. Aqui a regressao e reintroduzida DE
+// PROPOSITO e a asserção precisa falhar.
+//
+// A mutacao acontece numa copia do fonte em diretorio TEMPORARIO do sistema -- nunca na arvore do
+// repositorio. Isso e deliberado: a #334 mostrou que mutacao sobre a arvore de trabalho vira
+// falha falsa e arvore suja quando qualquer outro processo roda junto. Aqui nao ha o que sujar.
+console.log("\n7-C. Controle negativo do #339 (a mutacao TEM de reprovar):");
+
+await test("classificador regredido para e.message => a asserção de log REPROVA", async () => {
+  const { mkdtempSync, cpSync, readFileSync: lerArq, writeFileSync, rmSync } = await import("node:fs");
+  const { tmpdir } = await import("node:os");
+  const { join: juntar } = await import("node:path");
+  const { pathToFileURL } = await import("node:url");
+
+  const dir = mkdtempSync(juntar(tmpdir(), "mutacao-339-"));
+  try {
+    const origem = new URL("../../workers/user-report-intake/src/", import.meta.url);
+    cpSync(origem, dir, { recursive: true });
+
+    // A REGRESSAO exata que o #339 descreve: o codigo do log volta a sair de `e.message`.
+    const alvo = juntar(dir, "index.ts");
+    const antes = lerArq(alvo, "utf-8");
+    const depois = antes.replace(
+      /const codigo = classificar\(e\);\n(\s*)try \{ console\.log/,
+      'const codigo = String((e)?.message ?? "UNKNOWN").slice(0, 40);\n$1try { console.log',
+    );
+    ok(depois !== antes, "a mutacao precisava alterar a fronteira externa");
+    writeFileSync(alvo, depois);
+
+    const mutante = await import(pathToFileURL(alvo).href);
+    const veneno = ["Bearer ", "gh", "s_", "A".repeat(36)].join("");
+    const { linhas } = await capturarConsole(() => mutante.default.fetch(req(), {
+      ...ENV_BASE(),
+      get REPORT_ABUSE_HMAC_SECRET() { throw new Error(veneno); },
+    }, ctxFalso()));
+
+    // Exatamente a asserção de 7-B, agora contra o mutante. Ela TEM de acusar.
+    const texto = linhas.join("\n");
+    const vazou = texto.includes(["gh", "s_"].join(""));
+    ok(vazou, "CONTROLE NEGATIVO FALHOU: a mutacao passou despercebida — a asserção de 7-B nao morde");
+
+    const ev = linhas.map((l) => { try { return JSON.parse(l); } catch { return null; } })
+      .find((e) => e?.evento === "report_excecao_nao_tratada");
+    ok(ev && ev.codigo !== "INTERNAL_UNKNOWN",
+       "CONTROLE NEGATIVO FALHOU: o mutante deveria ter logado algo fora da allowlist");
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
   }
 });
 
