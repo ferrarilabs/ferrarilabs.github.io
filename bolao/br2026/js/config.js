@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.128",
+  siteVersion: "v1.129",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
@@ -11,7 +11,8 @@ window.BR2026_CONFIG = {
    * Ligar exige commit revisado, depois que os criterios de aceitacao da #321 estiverem verdes.
    */
   reportProblem: {
-    enabled: false,
+    // LIGADO em 2026-08-25 (#321). Estado canonico: bolao/shared/safety/report_rollout.json.
+    enabled: true,
     // Endereco do Cloudflare Worker isolado (`ferrarilabs-support-intake`, ADR-021).
     //
     // A decisao de endereco foi tomada em 2026-08-25: `workers.dev`, porque a conta Cloudflare tem

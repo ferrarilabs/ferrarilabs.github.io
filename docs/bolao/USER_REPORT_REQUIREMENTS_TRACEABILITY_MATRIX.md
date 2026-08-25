@@ -1,7 +1,7 @@
 # Reportar problema — Requirements Traceability Matrix
 
 **Issue:** #321 · **Atualizado:** 2026-08-25 · **Runtime:** Cloudflare Worker (ver `adr/ADR-021-intake-em-cloudflare-worker.md`)
-**Estado de ativação:** `BACKEND_PROVISIONED_DISABLED` · **Prontidão:** `NOT_READY`
+**Estado de ativação:** `PUBLIC_ENABLED` (2026-08-25) · **Prontidão:** `READY` (22 PASS · 4 ATESTADO · 0 FAIL · 0 UNKNOWN)
 **Aceitação sintética de produção:** ✅ 2026-08-25 (ver "Evidência de produção" no fim)
 
 Segue a convenção de RTM já usada em `CDB2026_REQUIREMENTS_TRACEABILITY_MATRIX.md`: cada linha
@@ -11,6 +11,15 @@ cobertura é pior que uma RTM ausente, porque transforma ausência de verificaç
 **Estados:** `IMPLEMENTADO` (código + teste em CI) · `PARCIAL` (implementado, cobertura ou escopo
 incompleto, com o limite escrito) · `PENDENTE_PROVISIONAMENTO` (código pronto; depende de recurso
 que só o dono cria) · `NÃO_IMPLEMENTADO` (decisão registrada).
+
+As três classes de evidência são mantidas **separadas de propósito**, porque respondem perguntas
+diferentes e confundi-las já custou caro aqui (#322):
+
+| classe | o que significa |
+|---|---|
+| **verificado por teste** | a suíte prova a propriedade; nada foi observado no runtime implantado |
+| **`· VERIFICADO EM PRODUÇÃO`** | o comportamento foi observado no runtime implantado |
+| **`· ATESTADO PELO DONO`** | não há caminho de API; um humano verificou, assinou e datou em `bolao/shared/safety/report_rollout.json` |
 
 O sufixo **`· VERIFICADO EM PRODUÇÃO`** marca a linha cujo comportamento foi observado no runtime
 implantado, e não apenas em teste. Ele é sufixo, e não estado novo, de propósito: o gate de deriva
@@ -81,6 +90,20 @@ observar, e isso é um estado honesto, não uma lacuna de teste.
 - Supabase: integração limitada ao conteúdo de `supabase/`/`config.toml`; função legada removida;
   read-back preservou `live-football` versão 16.
 - Ativação pública não foi autorizada; por isso `NOT_READY` e #321 aberta.
+
+## Ativação pública — 2026-08-25
+
+| item | evidência |
+|---|---|
+| autorização | explícita do dono, registrada em `bolao/shared/safety/report_rollout.json` (`authorized_by: owner`) |
+| ordem | **servidor primeiro** (`REPORT_INTAKE_ENABLED=true`, verificado), **cliente depois** |
+| servidor ao vivo | canal aberto: `415` para content-type errado, `400 INVALID_JSON`, `400 INVALID`, `405 METHOD` — códigos estáveis, sem stack e sem detalhe de provedor |
+| CORS ao vivo | origem permitida ecoada; origem proibida `403`; preflight `204`/`403` |
+| clientes | `reportProblem.enabled: true` em CDB2026 (v3.136), BR2026 (v1.129) e Powerball |
+| coerência | gates passaram a exigir coerência com o rollout declarado — meia ativação reprova |
+| isolamento | bindings inalterados: DO, rate limit, metadados de versão, 3 vars. **Zero** Supabase/D1/Hyperdrive |
+| Issues | nenhuma Issue criada por ativação ou por abrir a UI |
+| rollback | `REPORT_INTAKE_ENABLED=false` continua sendo a primeira ação, e já foi exercitada de verdade na aceitação sintética |
 
 ## Evidência de produção — aceitação sintética, 2026-08-25
 
