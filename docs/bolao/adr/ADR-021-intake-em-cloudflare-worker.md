@@ -1,6 +1,6 @@
 # ADR-021 — Mover o intake público de reportes para um Cloudflare Worker isolado
 
-**Estado:** aceito · **Data:** 2026-08-24 · **Issue:** #321
+**Estado:** aceito e implantado **inerte** · **Data:** 2026-08-24 · **Provisionado:** 2026-08-25 · **Issue:** #321
 **Supersede:** a parte de runtime do desenho registrado em `SECURE_USER_REPORTING.md` §4 (T-ENV-01),
 que previa um **projeto Supabase separado** como isolamento suficiente.
 
@@ -167,14 +167,16 @@ Object ficam dentro do plano gratuito, e o Upstash deixa de ser uma assinatura a
 - **Emergência:** `REPORT_INTAKE_ENABLED=false` no Worker. Segundos, sem deploy.
 - **Cliente:** `reportProblem.enabled = false` nos três apps (já é o padrão).
 - **Total:** reverter o PR. O Worker pode continuar implantado e inerte.
+- **Legado Supabase:** a função `user-report-intake` foi apagada depois dos gates. Recriá-la exige
+  redeploy deliberado do histórico; `workers/` não é diretório de Edge Function da integração.
 
 Nenhum passo toca banco, participante, pagamento, scoring ou ranking.
 
 ## Riscos residuais
 
-1. **A função legada continua implantada no projeto financeiro.** Verificado: remover o diretório do
-   repositório **não** a apagou. Ela está inerte (interruptor desligado, nenhum segredo), e
-   deletá-la é ato de produção do dono.
+1. ~~**Função legada no projeto financeiro.**~~ Resolvido em 2026-08-25: removida depois de o Worker
+   inerte passar a aceitação e de a integração GitHub→Supabase confirmar que `workers/` não pode
+   reimplantá-la. Leitura posterior preservou apenas `live-football`.
 2. **O endereço é `workers.dev`, não de primeira parte.** Consequência: a proveniência do endpoint
    não é visualmente óbvia para quem inspeciona a requisição, e o subdomínio da conta aparece no
    CSP público dos três apps. Nenhum dos dois é segredo. Aceito enquanto o canal estiver desligado e
@@ -184,3 +186,12 @@ Nenhum passo toca banco, participante, pagamento, scoring ou ranking.
    diferente, dentro de um limite ainda rígido.
 4. **Detecção de nome próprio continua impossível por regex.** Por isso o relato bruto permanece
    privado, e a promoção para público continua sendo ato humano autorizado.
+
+## Registro de implantação — 2026-08-25
+
+- Worker: `ferrarilabs-support-intake`, versão ativa
+  `b50704ad-f61d-44e9-adeb-530973faf244`, `REPORT_INTAKE_ENABLED="false"`, preview desligado.
+- GitHub App: `Ferrarilabs Support Intake` (App ID `4714457`), instalada apenas em
+  `ferrarilabs/support-intake`, com `Issues: write` e `Metadata: read`.
+- Aceitação inerte: POST permitido 503 genérico; CORS 204/403; nenhum Issue criado.
+- Ativação pública e reporte sintético permanecem fora desta decisão; #321 continua aberta.

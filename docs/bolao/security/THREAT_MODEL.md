@@ -1,6 +1,6 @@
 # Threat Model — Plataforma Bolão
 
-2026-08-02. Cobre `bolao/copa2026/`, `bolao/br2026/`, `bolao/cdb2026/` (dinheiro real,
+Atualizado em 2026-08-25. Cobre `bolao/copa2026/`, `bolao/br2026/`, `bolao/cdb2026/` (dinheiro real,
 US$5/entrada cada) e, com menor profundidade, `bolao/loterias/powerball/` (sem dinheiro
 agregado pela plataforma em si — organização informal de compra de bilhetes).
 
@@ -18,6 +18,8 @@ agregado pela plataforma em si — organização informal de compra de bilhetes)
 | Credenciais admin | SHA-256 hash em `config.js`, compartilhado entre os 3 apps | Alta — compromete os 3 painéis admin ao mesmo tempo |
 | Backups (CSV/JSON exportados) | Download local pelo admin, fora do repositório | Alta se vazado (mesmos dados de `entries[]` completos) |
 | Chaves públicas (anon Supabase, EmailJS) | `config.js`, `scripts/*.py` | Pública por design — não são segredo, mas são o único portão de acesso ao banco |
+| Relatos de problema | Issues privadas em `ferrarilabs/support-intake`; estado antiabuso pseudônimo no Durable Object | Moderada — texto livre pode conter PII acidental e input hostil |
+| Credenciais do intake | Cloudflare Secrets do Worker `ferrarilabs-support-intake` | Alta para o repo privado; sem acesso a participante, pagamento, scoring ou banco Supabase |
 
 ## Atores
 
@@ -29,6 +31,7 @@ agregado pela plataforma em si — organização informal de compra de bilhetes)
 | Invasor oportunista | Alguém que encontra a URL pública (Copa/CDB2026 já divulgados) e testa a chave anon já visível no bundle — sem precisar de nenhuma técnica avançada |
 | Participante malicioso | Um participante real que usa ferramentas fora do `app.js` (DevTools, curl, Postman) contra o mesmo endpoint que o app usa, com a mesma chave |
 | Script automatizado | Qualquer bot rodando contra a API pública (ESPN também é consumida sem autenticação — risco simétrico do lado de fora) |
+| Relator externo / agente que lê intake | Pode enviar texto arbitrário, inclusive prompt injection; quem lê deve tratá-lo como evidência não confiável, nunca comando |
 | Fornecedor externo comprometido | Supabase, EmailJS, jsDelivr (CDN), ESPN (API não oficial), API-Football — qualquer um poderia servir conteúdo malicioso ou vazar dado se comprometido |
 
 ## Ameaças
@@ -47,10 +50,14 @@ agregado pela plataforma em si — organização informal de compra de bilhetes)
 | Comprometer chave (anon/EmailJS) | Baixa relevância — já são públicas por design | Baixo incremental (não adicionam privilégio além do que já é público) | N/A | N/A | N/A | Nenhum — não há "comprometimento" possível de uma chave já pública |
 | Sobrescrever estado inteiro (upsert malicioso substituindo o documento todo) | Baixa-média | Crítico (poderia apagar todas as entradas de um app) | `merge-before-save` no client reduz colisões acidentais entre dispositivos legítimos, mas não impede um upsert malicioso direto | RLS permite upsert completo por `id`, sem validação de shape/tamanho relativo | RPC com validação de shape + WITH CHECK mais restritivo | Alto até implementação; mitigado operacionalmente por `backup.py`/`backup_daily.py` (permitem restaurar) |
 | Consumir API maliciosa (ESPN/API-Football/Polymarket comprometidos ou retornando dado malformado) | Baixa-média | Médio | `check_match_is_real()`/`check_result_shape()` em `audit_scoring.py`; dupla confirmação de 20s em `send_result_email.py --auto` (v4.55) antes de aplicar resultado auto-sincronizado | Cobertura de `AbortController`/timeout é parcial (Copa 5/9, CDB2026 0/9 — ver `PROJECT_MEMORY.md` "Limitações") | Completar timeout em todas as chamadas fetch, especialmente CDB2026 | Baixo-médio |
+| Intake comprometido alcançar dados financeiros/participantes | Baixa | Crítico | Worker dedicado com bindings declarativos; versão live contém apenas Durable Object, rate limit, version metadata, quatro secrets da App/HMAC e três vars; legado Supabase removido | Comprometimento das contas Cloudflare/GitHub continua fora da fronteira do código | Manter App em um repo, rotacionar chave semestralmente, auditar bindings em cada deploy | Baixo |
+| Relato criar Issue pública ou acionar comando por prompt injection | Baixa-média | Alto | Destino privado verificado em runtime; App limitada a `support-intake`; marcador `UNTRUSTED_EXTERNAL_INPUT`; triagem humana; nenhuma promoção automática | Operador/agente pode ignorar o runbook | Manter #321 fechada para ativação até aceitação sintética separadamente autorizada | Baixo-médio |
+| Abuso do endpoint público | Média quando ativado | Médio | Interruptor server-side primeiro, CORS exato, rate limit + Durable Object, dedup/idempotência e disjuntor | Cliente fora do navegador ignora CORS; botnet distribuída pode consumir teto global | Métricas sem conteúdo + alarme de custo antes da ativação pública | Médio |
 
 ## Fora do escopo deste modelo de ameaça (herdado de `SECURITY.md`)
 
-- Ataques server-side clássicos (não há servidor próprio).
+- Ataques server-side clássicos nos três apps do bolão (eles continuam estáticos); o Worker de
+  intake é a exceção e está modelado explicitamente acima e em `SECURE_USER_REPORTING.md`.
 - DDoS contra GitHub Pages/Supabase (fora do controle deste repositório).
 - MITM (GitHub Pages força HTTPS; Supabase/EmailJS também).
 - Responsabilidade legal — o app é explicitamente informal, entre amigos/família.
