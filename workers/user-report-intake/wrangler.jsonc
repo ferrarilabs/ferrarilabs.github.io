@@ -25,10 +25,28 @@
   "compatibility_date": "2026-08-24",
   "compatibility_flags": ["nodejs_compat"],
 
-  // Sem dominio *.workers.dev: o endpoint publico deste canal deve ser um endereco de primeira
-  // parte, para CSP, proveniencia e propriedade operacional. Enquanto a rota nao existir, o Worker
-  // fica implantado e inalcancavel -- que e exatamente o estado desejado antes da ativacao.
-  "workers_dev": false,
+  // ─── ENDERECO: workers.dev, DECIDIDO -- nao herdado por omissao (2026-08-25) ────────────────
+  //
+  // O desenho original queria um endereco de primeira parte (`report.ferrarilabs.com`). Ele exige
+  // uma ZONA DNS na Cloudflare, e a conta tem `zones = 0` -- verificado pela API, nao suposto. Ter
+  // esse subdominio significaria mover o DNS de `ferrarilabs.com` inteiro para a Cloudflare, o que
+  // arrastaria o site de producao, o GitHub Pages e o e-mail para dentro de uma migracao que nada
+  // tem a ver com este canal. Trocar risco de disponibilidade do SITE por estetica de URL de um
+  // endpoint que ainda esta DESLIGADO seria a troca errada.
+  //
+  // Entao o endereco inicial e `workers.dev`, e isso e uma decisao registrada, com data e motivo --
+  // ver ADR-021 ("Endereco publico"). O dominio proprio continua sendo o alvo de endurecimento
+  // futuro, e trocar para ele depois e uma rota nova mais uma linha de CSP: nao ha migracao de
+  // dado, nem de estado, nem de segredo.
+  //
+  // Expor `workers.dev` e seguro AQUI por uma razao especifica: o interruptor e avaliado ANTES de
+  // qualquer dependencia (`index.ts`, passo 3). Com `REPORT_INTAKE_ENABLED != "true"`, toda
+  // requisicao morre em 503 sem tocar DO, rate limit, GitHub ou segredo. O endereco ser publico nao
+  // torna o canal alcancavel -- o interruptor torna.
+  "workers_dev": true,
+
+  // Preview URL por versao continua DESLIGADA: ela criaria enderecos alternativos, nao versionados
+  // e fora da CSP para o MESMO codigo. Um canal com um unico endereco auditavel e o objetivo.
   "preview_urls": false,
 
   "observability": {
