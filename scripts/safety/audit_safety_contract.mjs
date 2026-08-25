@@ -151,10 +151,28 @@ const verifyBase = readBase("scripts/verify.mjs");
  */
 function appendOnly(id, label, nowSet, wasSet, surfaceId, noun) {
   const removed = [...wasSet].filter((x) => !nowSet.has(x));
+
+  /**
+   * A declaracao precisa NOMEAR o que sumiu.
+   *
+   * Antes, bastava existir uma declaracao para a superficie e QUALQUER remocao nela passava. A
+   * suite de mutacao derrubou isso na primeira execucao em que este patch declarou
+   * `TEST_CHAIN`: cinco mutacoes que apagam gates diferentes passaram a nao ser pegas, porque a
+   * declaracao -- escrita para uma migracao especifica -- virou um salvo-conduto para o arquivo
+   * inteiro.
+   *
+   * Uma permissao que cobre mais do que foi pedido nao e uma permissao, e um buraco. Agora cada
+   * item removido precisa aparecer no texto da declaracao; o que nao foi nomeado continua sendo
+   * uma remocao silenciosa e continua reprovando.
+   */
+  const dec = declaredFor(surfaceId);
+  const texto = dec ? `${dec.reason} ${dec.expected_behavior_change}` : "";
+  const naoNomeados = removed.filter((x) => !texto.includes(x));
+
   check(id, `${label} (${wasSet.size} -> ${nowSet.size})`,
-    removed.length === 0 || !!declaredFor(surfaceId),
-    `${noun} que sumiram sem declaracao em CHANGE_INTENT.json: ${removed.slice(0, 8).join(", ")}` +
-    `${removed.length > 8 ? ` (+${removed.length - 8})` : ""}`);
+    removed.length === 0 || (!!dec && naoNomeados.length === 0),
+    `${noun} que sumiram sem declaracao que os NOMEIE: ${naoNomeados.slice(0, 8).join(", ")}` +
+    `${naoNomeados.length > 8 ? ` (+${naoNomeados.length - 8})` : ""}`);
 }
 
 if (!verifyBase) skipped("G3", "nenhum check do verify.mjs desapareceu", "sem base de comparacao no git");
@@ -202,8 +220,40 @@ else appendOnly("G4", "nenhum comando da cadeia do npm test desapareceu",
       const now = assertionCount(read(f)), was = assertionCount(wasText);
       if (was >= 10 && now < was * 0.9) offenders.push(`${f} (${was} -> ${now})`);
     }
-    check("G7", "nenhuma queda material de assercoes em gate alterado", offenders.length === 0,
-      `gates que passaram a afirmar menos: ${offenders.join("; ")}`);
+    /**
+     * G7 era o UNICO check de autoprotecao sem caminho de declaracao -- G3, G4 e G5 (que sao
+     * baseados em IDENTIDADE, portanto mais fortes) sempre aceitaram uma declaracao explicita.
+     *
+     * Isso o tornava absoluto de um jeito insustentavel: nenhuma migracao legitima consegue MOVER
+     * cobertura entre arquivos, porque o arquivo de origem sempre encolhe. O incentivo que isso
+     * cria e o pior possivel -- manter arquivo morto so para o contador nao cair.
+     *
+     * A correcao NAO e afrouxar: e exigir declaracao E provar que o total nao caiu. Coberta pode
+     * mudar de lugar; nao pode sumir. Sem `TEST_CHAIN` declarado, G7 continua absoluto como antes.
+     */
+    const dec = declaredFor("TEST_CHAIN");
+    const textoDec = dec ? `${dec.reason} ${dec.expected_behavior_change}` : "";
+    // Mesma regra do appendOnly, e pelo mesmo motivo: a declaracao precisa NOMEAR o arquivo que
+    // encolheu. Sem isso, uma declaracao escrita para uma migracao vira salvo-conduto para
+    // esvaziar qualquer gate -- foi a mutacao M12 que provou isso, e ela estava certa.
+    const naoNomeados = offenders.filter((o) => !textoDec.includes(o.split(" ")[0]));
+    let agregadoOk = true, agregado = "";
+    if (offenders.length && dec && naoNomeados.length === 0) {
+      let antes = 0, depois = 0;
+      for (const f of changed) {
+        if (!/(test_|audit_|check_|\.test\.)/.test(f) || !/\.(mjs|js|py)$/.test(f)) continue;
+        const wasText = readBase(f);
+        antes += wasText === null ? 0 : assertionCount(wasText);
+        const nowText = read(f);
+        depois += nowText === null ? 0 : assertionCount(nowText);
+      }
+      agregadoOk = depois >= antes;
+      agregado = ` — agregado dos gates alterados: ${antes} -> ${depois}`;
+    }
+    check("G7", "nenhuma queda material de assercoes em gate alterado",
+      offenders.length === 0 || (!!dec && naoNomeados.length === 0 && agregadoOk),
+      `gates que passaram a afirmar menos sem declaracao que os NOMEIE: ` +
+      `${(naoNomeados.length ? naoNomeados : offenders).join("; ")}${agregado}`);
   }
 }
 

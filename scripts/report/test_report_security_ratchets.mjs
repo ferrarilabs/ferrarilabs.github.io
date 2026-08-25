@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, resolve, join } from "node:path";
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
-const DIR_FN = join(RAIZ, "support-intake/supabase/functions/user-report-intake");
+const DIR_FN = join(RAIZ, "workers/user-report-intake/src");
 
 let pass = 0, fail = 0;
 const test = (n, fn) => { try { fn(); console.log(`  ✓ ${n}`); pass++; }
@@ -29,7 +29,7 @@ const todoFn = Object.values(srcFn).join("\n");
 /**
  * Arquivos servidos ao navegador (o "bundle" deste projeto sem build).
  *
- * `supabase/` e `support-intake/` ficam de fora porque sao codigo de SERVIDOR: o alvo desta catraca
+ * `supabase/` e `workers/` ficam de fora porque sao codigo de SERVIDOR: o alvo desta catraca
  * e "nenhum segredo no que o navegador executa", e a fonte de uma Edge Function nao e isso. O
  * Pages de fato entrega esses caminhos por HTTP (verificado: 200), mas o repositorio e publico,
  * entao servi-los nao revela nada que o `git clone` ja nao revele -- e o que esta la sao NOMES de
@@ -39,7 +39,7 @@ function ativosDoNavegador() {
   return execSync("git ls-files '*.js' '*.html' '*.css'", { cwd: RAIZ, encoding: "utf-8" })
     .split("\n").filter(Boolean)
     .filter((p) => !p.startsWith("scripts/") && !p.startsWith("supabase/")
-                && !p.startsWith("support-intake/")
+                && !p.startsWith("workers/")
                 && !/\/scripts\//.test(p) && !/test|audit|check_/.test(p));
 }
 
@@ -93,12 +93,12 @@ test("nenhuma tabela financeira/participante e citada", () => {
 
 console.log("\n3. Alvo do reporte nao pode ser repositorio publico:");
 test("existe verificacao de visibilidade PRIVADA no runtime", () => {
-  ok(srcFn["github.js"].includes("TARGET_REPO_NOT_PRIVATE"), "falta o invariante de alvo privado");
-  ok(/private\s*!==\s*true/.test(srcFn["github.js"]), "a checagem nao compara visibilidade de verdade");
+  ok(srcFn["github.ts"].includes("TARGET_REPO_NOT_PRIVATE"), "falta o invariante de alvo privado");
+  ok(/private\s*!==\s*true/.test(srcFn["github.ts"]), "a checagem nao compara visibilidade de verdade");
 });
 
 test("o handler CHAMA a verificacao antes de criar o Issue", () => {
-  const h = srcFn["handler.js"];
+  const h = srcFn["index.ts"];
   const iVerif = h.indexOf("verificarDestinoPrivado");
   const iCriar = h.indexOf("criarIssuePrivado");
   ok(iVerif !== -1 && iCriar !== -1, "faltou uma das duas chamadas");
@@ -116,22 +116,24 @@ test("o repositorio publico nunca e ALVO de criacao de Issue", () => {
   ];
   for (const re of ALVO) ok(!re.test(todoFn), `repo publico usado como alvo: ${re}`);
   // E a origem de CORS continua onde deve estar.
-  ok(/ORIGENS_PERMITIDAS[\s\S]{0,200}ferrarilabs\.github\.io/.test(srcFn["handler.js"]),
+  ok(/ORIGENS_PERMITIDAS[\s\S]{0,200}ferrarilabs\.github\.io/.test(srcFn["index.ts"]),
      "a origem legitima do site sumiu da allowlist de CORS");
 });
 
 console.log("\n4. Cliente nao controla nada estrutural:");
 test("titulo, labels e repo vem do servidor, nunca do corpo", () => {
-  const h = srcFn["handler.js"];
+  const h = srcFn["index.ts"];
   ok(/titulo:\s*montarTitulo\(/.test(h), "titulo deveria ser montado pelo servidor");
   ok(/labels:\s*\[/.test(h), "labels deveriam ser literais do servidor");
   // `\b` obrigatorio: sem ele, `repo` casa dentro de `corpo.reportId` e o gate acusa a si mesmo.
   ok(!/corpo\.(title|labels|repo|owner|installation)\b/.test(h), "campo estrutural lido do corpo");
-  ok(/corpo\.reportId/.test(h), "premissa do teste: reportId E lido do corpo, e isso e correto");
+  // Premissa: o reportId VEM do corpo (e correto — e o identificador que a pessoa ve). No Worker
+  // ele e lido do corpo bruto so no caminho de honeypot, e de `dados` depois de validado.
+  ok(/reportId/.test(h), "premissa do teste: reportId E lido do corpo, e isso e correto");
 });
 
 test("CAMPOS_ACEITOS nao contem nada estrutural nem sensivel", () => {
-  const lista = /export const CAMPOS_ACEITOS = \[([\s\S]*?)\];/.exec(srcFn["policy.js"])[1];
+  const lista = /export const CAMPOS_ACEITOS(?:\s*:\s*string\[\])?\s*=\s*\[([\s\S]*?)\];/.exec(srcFn["policy.ts"])[1];
   for (const proibido of ["title", "labels", "repo", "owner", "installationId", "apiUrl",
                           "redisUrl", "email", "token", "ip", "userAgent", "stack"]) {
     ok(!new RegExp(`"${proibido}"`).test(lista), `campo estrutural/sensivel aceito: ${proibido}`);
@@ -149,20 +151,36 @@ test("todo host de saida e literal — nenhuma URL vem do payload", () => {
   const urls = todoFn.match(/https:\/\/[a-z0-9.-]+/gi) || [];
   const permitidos = ["https://api.github.com", "https://www.ferrarilabs.com",
                       "https://ferrarilabs.com", "https://ferrarilabs.github.io",
-                      "https://placeholder.invalid", "https://redis.invalid"];
+                      "https://placeholder.invalid",
+                      // `estado.invalid` NAO e destino de rede: o stub de Durable Object exige uma
+                      // URL para `fetch()`, e essa chamada nunca sai do isolate. Um dominio
+                      // reservado deixa isso explicito -- se algum dia virar rede de verdade, o
+                      // DNS falha em vez de alcancar alguem.
+                      "https://estado.invalid"];
   for (const u of new Set(urls)) {
     ok(permitidos.some((p) => u.startsWith(p)), `host de saida inesperado: ${u}`);
   }
-  // A URL do Redis vem de env do SERVIDOR, nunca do corpo — SSRF de manual seria deixar o cliente escolher.
+  // O host de saida e literal no codigo, nunca derivado do corpo — SSRF de manual seria
+  // deixar o cliente escolher o destino.
   ok(!/fetch\(\s*(corpo|dados|body|payload)\./.test(todoFn), "destino de fetch derivado do payload");
 });
 
 console.log("\n6. Nada dinamico, nada executavel:");
-test("sem eval, Function, exec, spawn, SQL", () => {
+test("sem eval, Function, exec, spawn — e nenhum SQL construido por concatenacao", () => {
+  // MUDANCA DE ARQUITETURA, e nao afrouxamento: quando o intake era uma Edge Function sem banco,
+  // qualquer SQL era sinal de que algo errado tinha entrado. Agora o estado durável E um SQLite
+  // (Durable Object), entao proibir a palavra `SELECT` proibiria o proprio mecanismo.
+  //
+  // A propriedade que importa nunca foi "nao existe SQL" -- era "nenhuma consulta e MONTADA com
+  // entrada do usuario". Essa continua valendo, e agora e o que se mede.
   for (const t of ["eval(", "new Function", "child_process", "execSync", "spawnSync",
-                   "Deno.run", "Deno.Command", "SELECT ", "INSERT ", "DELETE FROM"]) {
+                   "Deno.run", "Deno.Command"]) {
     ok(!todoFn.includes(t), `construcao dinamica/perigosa na funcao: ${t}`);
   }
+  // Toda consulta e literal com `?`; nenhum valor entra por interpolacao.
+  const sqlInterpolado = /(?:SELECT|INSERT|UPDATE|DELETE)[^`;]*\$\{/i;
+  ok(!sqlInterpolado.test(todoFn), "SQL montado por interpolacao — use parametro `?`");
+  ok(!/(?:SELECT|INSERT|UPDATE|DELETE)[^`;]*"\s*\+/i.test(todoFn), "SQL montado por concatenacao");
 });
 
 test("sem escrita em disco baseada em payload", () => {
@@ -184,8 +202,8 @@ test("nada loga corpo, cabecalho cru, erro cru ou segredo", () => {
 });
 
 test("o erro do GitHub vira CODIGO, nunca corpo de resposta", () => {
-  ok(/GITHUB_AUTH_\$\{r\.status\}/.test(srcFn["github.js"]), "auth deveria virar codigo");
-  ok(!/await r\.text\(\)/.test(srcFn["github.js"]), "corpo de resposta do GitHub sendo lido/propagado");
+  ok(/GITHUB_AUTH_\$\{r\.status\}/.test(srcFn["github.ts"]), "auth deveria virar codigo");
+  ok(!/await r\.text\(\)/.test(srcFn["github.ts"]), "corpo de resposta do GitHub sendo lido/propagado");
 });
 
 test("o HMAC de rede e o valor de rede nunca sao logados", () => {
@@ -195,8 +213,8 @@ test("o HMAC de rede e o valor de rede nunca sao logados", () => {
 
 console.log("\n8. Diagnostico allowlisted e narrativa nunca automatica em publico:");
 test("codigo de diagnostico fora da lista vira UNKNOWN_SAFE_ERROR", () => {
-  ok(/UNKNOWN_SAFE_ERROR/.test(srcFn["policy.js"]), "faltou o fallback seguro");
-  ok(/DIAGNOSTICOS\.includes/.test(srcFn["policy.js"]), "a allowlist nao e consultada");
+  ok(/UNKNOWN_SAFE_ERROR/.test(srcFn["policy.ts"]), "faltou o fallback seguro");
+  ok(/DIAGNOSTICOS\.includes/.test(srcFn["policy.ts"]), "a allowlist nao e consultada");
 });
 
 test("nenhum codigo automatizado publica narrativa no repo publico", () => {
@@ -204,7 +222,7 @@ test("nenhum codigo automatizado publica narrativa no repo publico", () => {
     .split("\n").filter(Boolean);
   for (const p of suspeitos) {
     let s; try { s = readFileSync(join(RAIZ, p), "utf-8"); } catch { continue; }
-    if (!/support-intake/.test(s)) continue;
+    if (!/workers\/user-report-intake/.test(s)) continue;
     ok(!/gh issue create[\s\S]{0,200}ferrarilabs\.github\.io/.test(s),
        `${p}: parece promover conteudo de intake para o repo publico`);
   }
@@ -212,12 +230,12 @@ test("nenhum codigo automatizado publica narrativa no repo publico", () => {
 
 console.log("\n9. Falha fechada:");
 test("config incompleta => indisponivel, nunca modo degradado", () => {
-  ok(/conferirConfig/.test(srcFn["handler.js"]), "faltou a checagem de config");
-  ok(/503/.test(srcFn["handler.js"]), "deveria responder indisponivel");
+  ok(/conferirConfig/.test(srcFn["index.ts"]), "faltou a checagem de config");
+  ok(/503/.test(srcFn["index.ts"]), "deveria responder indisponivel");
 });
 
 test("limitador ausente => recusa", () => {
-  ok(/RATE_STORE_UNAVAILABLE/.test(readFileSync(join(DIR_FN, "abuse.js"), "utf-8")),
+  ok(/CIRCUIT_OPEN|RATE_LIMITED/.test(readFileSync(join(DIR_FN, "state.ts"), "utf-8")),
      "faltou o caminho de falha fechada do limitador");
 });
 

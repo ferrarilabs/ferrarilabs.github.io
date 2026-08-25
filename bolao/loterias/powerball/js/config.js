@@ -10,7 +10,17 @@ window.POWERBALL_CONFIG = {
    */
   reportProblem: {
     enabled: false,
-    endpoint: "https://cmhqkkfczotdnssupkni.supabase.co/functions/v1/user-report-intake",
+    // Endpoint definido no momento da ATIVACAO, nao antes.
+    //
+    // O intake mudou de runtime: o alvo deixou de ser a Edge Function do projeto Supabase que
+    // guarda participante, pagamento e scoring, e passou a ser um Cloudflare Worker isolado
+    // (`ferrarilabs-support-intake`, ADR-021). O endereco publico dele depende de uma decisao do
+    // dono que ainda nao foi tomada -- `workers.dev` ou um subdominio proprio -- entao deixar aqui
+    // a URL antiga apontaria o cliente para exatamente o runtime que a migracao existe para
+    // abandonar.
+    //
+    // Vazio e o estado correto: `montar()` desiste sem endpoint, entao nao existe botao morto.
+    endpoint: "",
   },
   emailjs: {
     enabled: true,

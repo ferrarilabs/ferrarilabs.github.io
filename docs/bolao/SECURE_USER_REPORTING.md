@@ -1,18 +1,21 @@
 # Reportar problema — arquitetura, ameaças e privacidade
 
-**Issue:** #321 · **Estado:** implementado e **DESLIGADO** (`reportProblem.enabled = false`)
+**Issue:** #321 · **Estado:** implementado e **DESLIGADO** nas duas chaves
+**Runtime:** **Cloudflare Worker** `ferrarilabs-support-intake` — ver `adr/ADR-021-intake-em-cloudflare-worker.md`
+**Estado de ativação:** `CODE_ONLY` · **Prontidão:** `NOT_READY`
+**Rastreabilidade:** `USER_REPORT_REQUIREMENTS_TRACEABILITY_MATRIX.md`
 
-**Estado de ativação:** `CODE_ONLY` — ver §4-B.
-
-**Endpoint: IMPLANTADO e inerte.** A integração do Supabase publica as Edge Functions
-automaticamente no merge para `main` — não há passo manual de deploy, e presumir o contrário foi
-um erro de leitura meu, corrigido aqui. O que mantém o canal inerte **não** é a ausência de deploy:
-é a ausência dos oito segredos. Sem eles `conferirConfig()` recusa tudo com **503
-`{"error":"UNAVAILABLE"}`**, sem dizer qual falta. Verificado em produção.
-
-A UI continua desligada nos três apps, então nada disso é alcançável por participante.
-
----
+> **Mudança de runtime (2026-08-24).** O intake **não** roda mais como Edge Function do projeto
+> Supabase do Ferrari Labs, e **não** é mais um projeto Supabase separado. Ele é um **Cloudflare
+> Worker dedicado**, cujo código vive em `workers/user-report-intake/`.
+>
+> O motivo está em ADR-021 e resume-se a uma frase: no Supabase, os segredos do projeto são
+> **injetados** em toda Edge Function; num Worker, os bindings são **declarados**. O que não está no
+> `wrangler.jsonc` não existe no ambiente. A fronteira deixa de ser uma afirmação sobre o nosso
+> código e passa a ser uma propriedade da plataforma.
+>
+> A função legada continua **implantada e inerte** no projeto primário — verificado: remover o
+> diretório do repositório **não** a apagou. Deletá-la é ato do dono (Human Gate).
 
 ## 1. O que isto é
 
@@ -25,19 +28,26 @@ Não é "um botão": é uma superfície de ataque nova, e o desenho parte disso.
 CLIENTE PÚBLICO (navegador do participante)
    │  coletor de contexto SEGURO (allowlist) + sanitizador local
    ▼
-ENDPOINT PÚBLICO  support-intake/supabase/functions/user-report-intake
-   │  1. método / origem / content-type / tamanho
-   │  2. schema allowlist  (campo desconhecido reprova o corpo inteiro)
-   │  3. limite de taxa + disjuntor   (Redis dedicado)
-   │  4. idempotência + deduplicação
-   │  5. token de instalação de GitHub App   (curto, em memória)
-   │  6. INVARIANTE: repositório de destino é PRIVADO  ← última linha antes da divulgação
+CLOUDFLARE WORKER  ferrarilabs-support-intake     ← workers/user-report-intake/
+   │  1. preflight CORS (allowlist exata)
+   │  2. método / origem
+   │  3. INTERRUPTOR DE SERVIDOR      ← antes de QUALQUER dependência
+   │  4. content-type / tamanho
+   │  5. configuração completa
+   │  6. schema allowlist              (campo desconhecido reprova o corpo inteiro)
+   │  7. pré-filtro de rajada          (binding nativo de Rate Limiting)
+   │  8. estado durável                (Durable Object: limites, idempotência, disjuntor)
+   │  9. token de instalação de GitHub App   (curto, em memória)
+   │ 10. INVARIANTE: destino é PRIVADO ← última linha antes da divulgação
    ▼
 ferrarilabs/support-intake   (PRIVADO)
    │  triagem humana
    ▼
 (opcional, autorizado) Issue de engenharia SANITIZADA no repositório público
 ```
+
+**O que NÃO está neste diagrama, e é o ponto:** o projeto Supabase "Bolão do Ferrari". Ele não
+participa do runtime de reporte. Não há binding, credencial, RPC nem rota entre os dois.
 
 ## 3. A decisão central
 
@@ -49,51 +59,34 @@ só metadado técnico sanitizado é promovível — com autorização explícita
 
 ## 4. Segmentação de confiança
 
-O endpoint **não alcança** banco de participante, pagamento, scoring ou competição. Não usa
-`service_role`, senha do banco, nem RPC financeiro. Ele não precisa do banco de produção.
+O Worker **não alcança** banco de participante, pagamento, scoring ou competição — e isso não é uma
+promessa sobre o código, é a lista de bindings:
 
-Um comprometimento do "Reportar problema" **não** vira caminho para pagamentos, palpites, ranking ou
-admin.
+| binding | para quê |
+|---|---|
+| `ESTADO` (Durable Object, SQLite) | idempotência, deduplicação, limites deslizantes, disjuntor |
+| `RAJADA` (Rate Limiting) | pré-filtro de rajada, local ao colo |
+| `VERSAO` (`version_metadata`) | identidade da versão publicada (`x-deploy-id`) |
+| segredos | GitHub App (3) + HMAC de abuso (1) |
 
-> ### T-ENV-01 — o projeto compartilhado **não** é uma fronteira de confiança aceitável
+Não há `d1_databases`, `hyperdrive`, `services`, `r2_buckets`, `queues`, nem `SUPABASE_*`. Um
+comprometimento total do Worker alcança exatamente: a API do GitHub, com escopo de **um**
+repositório privado e **uma** permissão.
+
+> ### T-ENV-01 — resolvido pela plataforma, não pela disciplina
 >
-> O Supabase injeta capacidades de projeto em **todas** as Edge Functions hospedadas:
-> `SUPABASE_DB_URL`, `SUPABASE_SECRET_KEYS` e o legado `SUPABASE_SERVICE_ROLE_KEY` — este último
-> **ignora RLS**. Eles estão no ambiente desta função queira-se ou não.
+> A ameaça original: o runtime hospedado de Edge Function do Supabase injeta `SUPABASE_DB_URL`,
+> `SUPABASE_SECRET_KEYS` e o legado `SUPABASE_SERVICE_ROLE_KEY` (que **ignora RLS**) em toda função
+> do projeto. A mitigação anterior era uma catraca de CI que proibia **referenciar** esses nomes —
+> proteção contra erro de programação, não contra comprometimento de runtime, dependência hostil,
+> defeito de injeção futuro ou cadeia de suprimentos.
 >
-> Portanto a afirmação anterior — "um comprometimento do intake não alcança participante/pagamento"
-> — **não é forte o bastante** enquanto esta função pública e não autenticada executar no **mesmo
-> projeto** que os dados de produção do Ferrari Labs.
+> **Estado agora:** o intake roda num runtime onde essas variáveis **não existem**. A catraca
+> `test_worker_isolation.mjs` mede a lista de bindings, não a boa vontade do autor.
 >
-> A catraca de CI protege contra **uso acidental** pelo nosso próprio código. Ela **não** protege
-> contra: dependência comprometida, execução de código no runtime, defeito futuro de injeção,
-> código importado malicioso ou comprometimento de cadeia de suprimentos. O ambiente continua
-> contendo credencial de alto valor.
->
-> **Estado desta correção (2026-08-24):** o código-fonte da função **saiu** do projeto financeiro.
-> Ele agora mora em `support-intake/supabase/`, com `config.toml` próprio e `project_id` distinto, e
-> a catraca `scripts/report/test_report_isolation.mjs` reprova se voltar. `supabase/functions/` passa
-> a ser uma **allowlist** — uma função nova ali nasce reprovando até alguém decidir conscientemente
-> que ela pertence ao projeto que guarda o dinheiro.
->
-> **O que a catraca NÃO alcança, dito em vez de fingido:** (1) o diretório que a integração do
-> Supabase observa é configurado no **painel**, fora deste repositório; (2) a função **já
-> implantada** no projeto financeiro continua lá — inerte, sem segredo e com o interruptor
-> desligado, mas presente. Deletá-la é ato do dono. Os dois estão no Human Gate.
->
-> **Correção obrigatória, antes do primeiro reporte real de participante:** a função de produção
-> roda em um projeto Supabase **separado** (`ferrarilabs-support-intake`), sem dado de
-> participante, sem razão de pagamento, sem palpite, sem scoring, sem ranking e sem RPC de
-> produção. O segredo que o Supabase injetar lá pertence **àquele** projeto e por construção não
-> alcança o projeto financeiro.
->
-> **Sem ponte entre os projetos:** nada de FDW, nada de database link, nada de `service_role`
-> compartilhado, nada de senha de banco compartilhada, nada de credencial de API de participante.
->
-> **Risco residual atual (honesto):** a função hoje implantada vive no projeto primário. Ela está
-> inerte por dois motivos independentes — interruptor de servidor desligado e nenhum dos oito
-> segredos provisionado — mas o risco de T-ENV-01 **só é de fato eliminado pelo isolamento**, não
-> pela inércia. Provisionar qualquer segredo de reporte no projeto primário está **proibido**.
+> **Risco residual:** a função legada continua implantada e inerte no projeto primário. Ela não tem
+> segredo provisionado e o interruptor dela está desligado — mas o isolamento só fica completo
+> quando o dono a apagar.
 
 ## 4-A. O interruptor de servidor
 
@@ -194,7 +187,7 @@ tem corrida. **Falha fechado**: limitador indisponível ⇒ recusa.
 |---|---|---|---|---|
 | Spam / DoS | repo privado, custo | limite por rede + global + disjuntor, fail-closed | atacante distribuído consome cota global e nega serviço a participantes reais | `test_report_intake` (limites, disjuntor) |
 | Enchente de Issues | triagem | dedup por impressão HMAC + idempotência | relatos diferentes com mesmo texto colapsam | idem |
-| Exfiltração de credencial | GitHub App, Redis | segredo só server-side; catraca de bundle | comprometimento do runtime Supabase | `test_report_security_ratchets` §1 |
+| Exfiltração de credencial | GitHub App, HMAC | segredo só server-side (Cloudflare Secrets); catraca de bundle | comprometimento do runtime Cloudflare | `test_report_security_ratchets` §1, `test_worker_isolation` §3 |
 | XSS | quem lê o Issue | HTML escapado, texto em bloco | — | corpus adversarial |
 | Injeção de Markdown | leitor / rastreio | `!` escapado, menção e `#ref` neutralizados | link continua visível como texto (proposital: o triador precisa ler) | corpus |
 | **Injeção de prompt** | agente que lê intake | aviso `UNTRUSTED_EXTERNAL_INPUT` antes do relato; runbook proíbe executar | um agente mal instruído ainda pode obedecer | corpus + §9 |
@@ -205,11 +198,11 @@ tem corrida. **Falha fechado**: limitador indisponível ⇒ recusa.
 | Bypass de CORS | — | CORS **não é** autenticação; abuso controlado independentemente | cliente não-navegador ignora CORS, por isso o limite é obrigatório | ratchet §5 |
 | Divulgação privado→público | relato | invariante de visibilidade **no runtime**, antes de criar | operador pode promover manualmente (é decisão humana, autorizada) | ratchet §3 |
 | Segredo em log | credenciais | só código de erro; nunca objeto de erro | — | ratchet §7 |
-| Supply-chain | endpoint | **zero dependência nova**; JWT via Web Crypto | runtime do Supabase | ratchet §10 |
+| Supply-chain | endpoint | **zero dependência nova**; JWT via Web Crypto; nenhum pacote no Worker | runtime do Cloudflare | `test_worker_isolation` |
 | Deriva de configuração | relato | verificação de visibilidade no runtime, não na config | — | ratchet §3 |
 | Diagnóstico malicioso | integridade | allowlist; desconhecido ⇒ `UNKNOWN_SAFE_ERROR` | — | testes |
 | Unicode / bidi | leitor | controles e invisíveis removidos | — | corpus |
-| **T-ENV-01** — raio de alcance de credencial do runtime compartilhado | projeto Supabase de produção (participantes, pagamentos, scoring) | **isolamento de runtime em projeto separado** (pendente) + catraca de CI que reprova referência a credencial de alto valor | **ALTO enquanto a função rodar no projeto primário** — ver abaixo | `test_report_security_ratchets` §1 |
+| **T-ENV-01** — credencial de alto valor no runtime de reporte | projeto Supabase de produção (participantes, pagamentos, scoring) | **runtime separado**: Cloudflare Worker sem binding para o projeto financeiro — a credencial não existe ali | função legada ainda implantada e inerte no primário; deletá-la é ato do dono | `test_worker_isolation.mjs` (lista de bindings) |
 | **T-ACT-01** — provisionar segredo ativando endpoint público sem querer | canal inteiro | **interruptor de servidor** `REPORT_INTAKE_ENABLED`, avaliado antes de toda dependência; comparação exata | operador ainda pode ligar deliberadamente sem aceitação — que é uma decisão, não um acidente | `test_report_intake` (5 casos + 2 controles negativos) |
 
 ## 9. Fronteira de injeção de prompt
@@ -278,11 +271,16 @@ escrito, porque risco não registrado é risco que ninguém decidiu correr.
   feita. O que existe agora é a resposta para "onde o dado repousa", que antes não existia nem em
   rascunho.
 
-| provedor | o que repousa lá | por quanto tempo |
-|---|---|---|
-| Supabase (projeto de suporte) | **nada** — a função não tem banco; só executa | — |
-| Upstash Redis | contadores, TTL, idempotência, impressão de duplicata | ≤ 7 dias (TTL) |
-| GitHub (`support-intake`, privado) | o relato, no Issue privado | retenção proposta de 90 dias (§10) |
+| provedor | o que repousa lá | por quanto tempo | finalidade |
+|---|---|---|---|
+| Cloudflare (Worker + Durable Object) | chave de rede **pseudônima** (HMAC), chave de idempotência, impressão de duplicata, contadores | ≤ 24 h (o objeto apaga o que passa da janela) | controle de abuso e idempotência |
+| Cloudflare (Workers Logs) | eventos agregados: código, contador, latência — **sem conteúdo** | retenção padrão da plataforma | operação |
+| GitHub (`ferrarilabs/support-intake`, privado) | o relato, no Issue privado | retenção proposta de 90 dias (§10) | triagem |
+
+**Região:** a ser registrada aqui pelo dono quando os recursos existirem. Workers executam na borda
+por desenho; Durable Objects têm localidade escolhida na criação. **Não** há alegação de
+conformidade com GDPR, LGPD, CCPA ou qualquer regime — isso exigiria avaliação formal que não foi
+feita.
 
 A região de cada provedor é escolhida na criação e deve ser **registrada aqui pelo dono** quando os
 recursos existirem — ver o Human Gate.
@@ -316,13 +314,13 @@ Um único `UNKNOWN` derruba o veredito para `NOT_READY`. A alternativa seria um 
 "não achei problema", e num canal que abre superfície pública isso é pior que um vermelho.
 
 Ele sai com código **0** de propósito: é relatório, não gate de CI. Reprovar o `npm run check`
-porque o dono ainda não criou um projeto Supabase deixaria o pipeline vermelho por algo que nenhum
+porque o dono ainda não provisionou um recurso externo deixaria o pipeline vermelho por algo que nenhum
 commit conserta — e vermelho permanente é vermelho que se aprende a ignorar.
 
 ## 11. Melhorias conhecidas (próxima versão)
 
-1. ~~**Projeto Supabase separado**~~ — o código-fonte já saiu do projeto financeiro (ver T-ENV-01).
-   Falta a metade que só o dono faz: criar o projeto e apagar a função ainda implantada no primário.
+1. ~~**Isolamento de runtime**~~ — resolvido por ADR-021 (Cloudflare Worker). Falta apenas o dono
+   apagar a função legada, que segue implantada e inerte no projeto primário.
 2. **UI e integração por app** — deliberadamente fora desta entrega: sem endpoint implantado, um
    botão visível seria um botão morto.
 3. **Teste de integração HTTP real.** A política é pura e coberta; a *fiação* não era. Um
@@ -336,8 +334,12 @@ commit conserta — e vermelho permanente é vermelho que se aprende a ignorar.
 ## 12. Inventário de segredos (só nomes)
 
 `REPORT_GITHUB_APP_ID` · `REPORT_GITHUB_INSTALLATION_ID` · `REPORT_GITHUB_PRIVATE_KEY` ·
-`REPORT_GITHUB_OWNER` · `REPORT_GITHUB_REPO` · `REPORT_REDIS_REST_URL` ·
-`REPORT_REDIS_REST_TOKEN` · `REPORT_ABUSE_HMAC_SECRET`
+`REPORT_ABUSE_HMAC_SECRET`
+
+Quatro, não oito: o **Upstash saiu**. O Durable Object substituiu o Redis externo, e com ele
+sumiram `REPORT_REDIS_REST_URL` e `REPORT_REDIS_REST_TOKEN` — um fornecedor a menos, uma credencial
+a menos, uma chamada de rede a menos no caminho do dado. `REPORT_GITHUB_OWNER` e
+`REPORT_GITHUB_REPO` viraram `vars` (não são segredo)
 
 Mais o **interruptor**, que não é segredo e não é dependência: `REPORT_INTAKE_ENABLED`. Os oito
 acima vão para o projeto **de suporte**, nunca para o primário.
@@ -353,8 +355,9 @@ instalação do GitHub expira sozinho (~1h) e nunca é persistido.
 2. `reportProblem.enabled = false` (já é o padrão) — a UI some.
 3. Reverter o PR do recurso. **Reverter também republica a função**, porque o deploy é automático
    no merge para `main` — o rollback de código e o de runtime são o mesmo ato aqui.
-4. A Edge Function pode ser desativada de forma independente pelo painel do Supabase, sem tocar
-   no repositório.
+4. O Worker pode continuar implantado e **inerte** — ele não é alcançável sem rota, e o interruptor
+   é a primeira coisa que se desliga.
+5. A Edge Function legada (projeto primário) já está inerte e será apagada pelo dono.
 
 Nenhum passo toca dado de participante, razão financeiro, scoring ou ranking.
 
