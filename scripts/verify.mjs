@@ -605,6 +605,8 @@ const CHECKS = [
     why: "ADR-018 (Issue #238): prova o modelo ONE_SHOT/CONDITIONAL isoladamente — shape, invariante MACHINE_VERIFIABLE, e o requisito anti-escape-hatch de que prosa sozinha nunca basta e um check nao pode proteger superficie diferente da declarada" },
   { id: "safety-contract-mutations", group: "security", cmd: ["node", "scripts/safety/test_safety_contract.mjs"],
     why: "as mutacoes que provam que o contrato MORDE; um contrato que nunca fica vermelho e uma decoracao cara" },
+  { id: "mutation-isolation", group: "security", cmd: ["node", "scripts/safety/test_mutation_isolation.mjs"],
+    why: "Issue #334: a suite de mutacao escreve no disco, e este roda em paralelo com quem LE os mesmos arquivos. Prova, sem depender de timing, que a mutacao vive numa worktree isolada e que nenhum leitor canonico a observa — e que uma arvore suja nunca rende um hash acionavel para o manifesto de deploy" },
 
 ];
 

@@ -32,6 +32,7 @@ import { createHash } from "node:crypto";
 import { spawnSync, spawn } from "node:child_process";
 import { join, dirname } from "node:path";
 import { ROOT } from "./surfaces.mjs";
+import { limparOrfas } from "./worktree_isolation.mjs";
 
 let pass = 0, fail = 0;
 const test = (name, fn) => {
@@ -40,13 +41,76 @@ const test = (name, fn) => {
 };
 const assert = (c, m) => { if (!c) throw new Error(m); };
 
-const abs = (p) => join(ROOT, p);
+// ══ ISOLAMENTO DA ARVORE (Issue #334) ═════════════════════════════════════════════════════════
+//
+// Esta suite escreve no disco de proposito. Enquanto ela escrevia na arvore CANONICA, qualquer
+// outro check rodando em paralelo no `verify.mjs` podia LER um arquivo no meio da mutacao.
+//
+// Foi o que a #334 registrou: `live-function-drift` calculou o hash de `supabase/functions/**`
+// enquanto a mutacao M34 estava aplicada, e reprovou com uma mensagem que mandava o operador colar
+// o hash do codigo MUTADO em `deploy_manifest.js` -- um valor que nunca identificou codigo nenhum.
+// Um teste de harness virando instrucao errada para um humano.
+//
+// Serializar a suite inteira "resolveria" pelo relogio, e relogio nao e garantia. A correcao e
+// estrutural: TODA mutacao acontece numa worktree git descartavel, criada do HEAD exato. A arvore
+// canonica nunca muda, entao nao existe janela para observar -- nem com 1 leitor, nem com 100.
+//
+// O padrao ja existia aqui para M25/M26; isto o generaliza em vez de inventar um segundo mecanismo.
+const PREFIXO_WORKTREE = `.ferrarilabs-safety-mutation-${process.pid}-`;
+const PAI_WORKTREE = dirname(ROOT);
+const ARVORE = join(PAI_WORKTREE, `${PREFIXO_WORKTREE}arvore`);
+
+function criarArvoreIsolada() {
+  if (existsSync(ARVORE)) {
+    throw new Error(`arvore isolada ja existe: ${ARVORE} (execucao anterior travou sem limpar?)`);
+  }
+  const r = spawnSync("git", ["worktree", "add", "--detach", "--quiet", ARVORE, "HEAD"],
+    { cwd: ROOT, encoding: "utf8" });
+  if (r.status !== 0) {
+    throw new Error(`git worktree add falhou (${ARVORE}): ${(r.stderr || r.stdout || "").trim()}`);
+  }
+  // `node_modules` nao e rastreado pelo git. Link, nunca copia: os pacotes so sao lidos.
+  try { symlinkSync(join(ROOT, "node_modules"), join(ARVORE, "node_modules"), "dir"); }
+  catch { /* sem node_modules na origem: os gates que precisam dele falham com mensagem propria */ }
+  return ARVORE;
+}
+
+function removerArvoreIsolada() {
+  if (!existsSync(ARVORE)) return;
+  spawnSync("git", ["worktree", "remove", "--force", ARVORE], { cwd: ROOT, encoding: "utf8" });
+  spawnSync("git", ["worktree", "prune"], { cwd: ROOT, encoding: "utf8" });
+}
+
+/**
+ * Estado da arvore CANONICA antes de qualquer coisa.
+ *
+ * A promessa desta suite deixou de ser "eu restauro o que mudei" e passou a ser "eu nunca toco
+ * aqui". A diferenca importa: restaurar tem janela; nao escrever nao tem.
+ */
+const statusCanonicoAntes = (spawnSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "");
+const worktreesBeforeCanonico = (spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "");
+
+// SIGKILL nao e interceptavel: uma execucao morta assim deixa a worktree para tras, e o nome com
+// PID faz a proxima execucao nao colidir com ela — sobra invisivel. A varredura remove so as orfas
+// (dono morto), nunca a de uma execucao concorrente viva.
+const orfas = limparOrfas("safety-mutation", ROOT);
+if (orfas.length) console.log(`  (recuperadas ${orfas.length} worktree(s) orfa(s) de execucao anterior)`);
+
+criarArvoreIsolada();
+// Limpeza garantida: caminho feliz, excecao, e Ctrl-C. SIGKILL nao e interceptavel -- para esse
+// caso a criacao recusa uma arvore preexistente, entao a sobra vira erro visivel, nunca silencio.
+process.on("exit", () => { try { removerArvoreIsolada(); } catch { /* melhor esforco na saida */ } });
+
+/** TODO caminho relativo desta suite resolve na arvore ISOLADA, jamais na canonica. */
+const abs = (p) => join(ARVORE, p);
 const sha = (p) => createHash("sha256").update(readFileSync(abs(p))).digest("hex");
 
 /** Executa o contrato e devolve o mapa id -> FAILED/PASSED/SKIPPED. */
 function runContract() {
+  // cwd = ARVORE: o caminho e relativo, entao o node executa a COPIA que vive na arvore isolada, e
+  // o `ROOT` daquele processo (derivado de `import.meta.url`) resolve para a arvore isolada tambem.
   const r = spawnSync("node", ["scripts/safety/audit_safety_contract.mjs", "--json"],
-    { cwd: ROOT, encoding: "utf8", timeout: 120000 });
+    { cwd: ARVORE, encoding: "utf8", timeout: 120000 });
   const out = JSON.parse(r.stdout);
   const status = {};
   for (const f of out.findings) status[f.id] = "FAILED";
@@ -63,7 +127,7 @@ const touched = new Set();
  * justamente a checagem que nao pode ser ignorada num arquivo que escreve no disco.
  */
 const preexisting = new Set(
-  (spawnSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "")
+  (spawnSync("git", ["status", "--porcelain"], { cwd: ARVORE, encoding: "utf8" }).stdout || "")
     .split("\n").map((l) => l.trim()).filter(Boolean).map((l) => l.slice(3)));
 
 /** Hashes de antes, para provar restauracao byte a byte independentemente do git. */
@@ -74,7 +138,7 @@ const hashesBefore = new Map();
  * como `ferrarilabs-br2026-rearm`). M25/M26 criam e removem worktrees PROPRIAS mais abaixo — esta
  * lista existe so para provar, na secao Z, que nenhuma delas foi tocada.
  */
-const worktreesBefore = (spawnSync("git", ["worktree", "list", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "");
+const worktreesBefore = worktreesBeforeCanonico;
 
 /**
  * Aplica uma mutacao, exige VERMELHO no check nomeado, e restaura byte a byte.
@@ -290,7 +354,7 @@ function mutateGate(label, file, transform, gateCmd) {
     // 300s: a matriz responsiva sobe um navegador e mede 448 verificacoes em 14 larguras x 4
     // apps. Um teto curto aqui nao "pega" nada — so troca o veredito por um timeout, que e um
     // vermelho que nao diz o que houve.
-    const r = spawnSync(gateCmd[0], gateCmd.slice(1), { cwd: ROOT, encoding: "utf8", timeout: 300000 });
+    const r = spawnSync(gateCmd[0], gateCmd.slice(1), { cwd: ARVORE, encoding: "utf8", timeout: 300000 });
     assert(r.status !== 0,
       `${label} => NAO PEGA. \`${gateCmd.join(" ")}\` saiu 0 com a mutacao aplicada`);
   } finally {
@@ -397,8 +461,8 @@ const GATE_RESPONSIVO = ["node", "bolao/scripts/audit_responsive_matrix.mjs"];
 // sua sozinha. max workers = 2, escopo estrito a este par; nenhuma outra mutacao desta suite usa
 // este mecanismo, e verify.mjs continua 100% serial fora daqui.
 
-const WORKTREE_PARENT = dirname(ROOT);
-const WORKTREE_PREFIX = `.ferrarilabs-safety-mutation-${process.pid}-`;
+const WORKTREE_PARENT = PAI_WORKTREE;
+const WORKTREE_PREFIX = PREFIXO_WORKTREE;   // mesmo mecanismo da arvore isolada (#334)
 const activeWorktrees = new Set();
 
 /** Cria uma worktree git descartavel a partir de HEAD, com node_modules linkado (nao copiado). */
@@ -714,7 +778,7 @@ test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por 
   const ciOriginal = readFileSync(abs(ciFile));
   touched.add(ciFile);
   if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
-  const headSha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).stdout.trim();
+  const headSha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ARVORE, encoding: "utf8" }).stdout.trim();
   const prevBaseEnv = process.env.SAFETY_BASE_SHA;
   try {
     process.env.SAFETY_BASE_SHA = headSha;
@@ -737,7 +801,7 @@ test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por 
 console.log("\nZ. Nenhuma mutacao ficou para tras");
 
 test("todo arquivo mutado voltou byte a byte (git)", () => {
-  const r = spawnSync("git", ["status", "--porcelain", ...touched], { cwd: ROOT, encoding: "utf8" });
+  const r = spawnSync("git", ["status", "--porcelain", ...touched], { cwd: ARVORE, encoding: "utf8" });
   const dirty = r.stdout.split("\n").map((l) => l.trim()).filter(Boolean)
     // Um arquivo que JA estava modificado antes desta suite continua modificado depois: o que
     // importa e que o conteudo seja o mesmo de antes, e a secao seguinte confere isso por hash.
@@ -762,9 +826,34 @@ test("nenhuma worktree temporaria de M25/M26 sobrou no disco", () => {
   const sobrando = atual.split("\n")
     .filter((l) => l.startsWith("worktree "))
     .map((l) => l.slice("worktree ".length))
-    .filter((p) => p.includes(WORKTREE_PREFIX));
+    // A ARVORE isolada (#334) ainda esta viva aqui de proposito: ela e removida no `exit`, depois
+    // do ultimo teste. Quem prova que ELA nao vaza e o teste externo em
+    // `scripts/safety/test_mutation_isolation.mjs`, que observa a suite de fora.
+    .filter((p) => p.includes(WORKTREE_PREFIX) && p !== ARVORE);
   assert(sobrando.length === 0 && activeWorktrees.size === 0,
     `worktrees nao removidas: ${sobrando.join(", ") || [...activeWorktrees].join(", ")}`);
+});
+
+// ── #334: a promessa central desta suite ────────────────────────────────────────────────────
+test("a arvore CANONICA nao foi tocada em momento algum", () => {
+  const agora = (spawnSync("git", ["status", "--porcelain"], { cwd: ROOT, encoding: "utf8" }).stdout || "");
+  assert(agora === statusCanonicoAntes,
+    "esta suite escreveu na arvore canonica — e exatamente a corrida da #334:\n" +
+    `      antes: ${JSON.stringify(statusCanonicoAntes)}\n      depois: ${JSON.stringify(agora)}`);
+});
+
+test("nenhum arquivo mutado existe na arvore canonica com conteudo mutado", () => {
+  // Confere por HASH, e do lado canonico: se algum `abs()` tivesse escapado para ROOT, o git
+  // poderia ate estar limpo (arquivo restaurado) mas o conteudo teria oscilado. Aqui a prova e
+  // que os caminhos tocados continuam identicos ao que o HEAD canonico declara.
+  const divergentes = [...touched].filter((f) => {
+    const noHead = spawnSync("git", ["show", `HEAD:${f}`], { cwd: ROOT, encoding: "utf8" });
+    if (noHead.status !== 0) return false;            // arquivo criado/removido pela mutacao
+    if (!existsSync(join(ROOT, f))) return false;     // idem
+    if (statusCanonicoAntes.includes(` ${f}`)) return false;  // o operador ja o tinha sujo
+    return readFileSync(join(ROOT, f), "utf8") !== noHead.stdout;
+  });
+  assert(divergentes.length === 0, `conteudo mutado vazou para a arvore canonica: ${divergentes.join(", ")}`);
 });
 
 test("worktree pre-existente do usuario (ex.: ferrarilabs-br2026-rearm) nao foi tocada", () => {
