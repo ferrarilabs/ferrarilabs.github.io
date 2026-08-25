@@ -1326,6 +1326,20 @@ documentação paralela concorrente, que é o problema que uma auditoria dessas 
 
 Isto **não bloqueia** nada em aberto; é dívida registrada, não pendência.
 
+### #321 — Worker provisionado inerte e legado Supabase removido (2026-08-25)
+
+O Worker `ferrarilabs-support-intake` foi implantado com `REPORT_INTAKE_ENABLED=false`; a UI segue
+desligada em CDB2026, BR2026 e Powerball. A GitHub App `Ferrarilabs Support Intake` está instalada
+em um único repositório privado (`ferrarilabs/support-intake`) com `Issues: write` e
+`Metadata: read`. A aceitação inerte devolveu POST 503, CORS 204/403 e zero Issues criadas.
+
+Depois de logs autoritativos da integração confirmarem que somente o conteúdo de `supabase/` e as
+funções declaradas no `config.toml` podem ser implantados, a função legada `user-report-intake` foi
+apagada do projeto primário. O read-back preservou `live-football`; nenhum banco, schema, segredo,
+participante, pagamento, scoring ou ranking mudou. Rollback do Worker começa pelo flag server-side;
+rollback da função apagada exige redeploy deliberado do histórico. #321 permanece aberta porque
+aceitação sintética e ativação pública não foram autorizadas.
+
 
 Ver `docs/bolao/ROADMAP.md` para a lista completa e priorizada. Resumo:
 

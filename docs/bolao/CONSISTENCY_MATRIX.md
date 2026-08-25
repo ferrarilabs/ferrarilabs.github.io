@@ -2370,3 +2370,9 @@ allowlist que apodrece.
 fraca: `enabled: false` esconde o botão, mas quem para requisição de verdade é
 `REPORT_INTAKE_ENABLED != "true"` no servidor. Por isso o rollback começa sempre pelo servidor — um
 navegador com a página em cache continua conseguindo `POST`ar depois de a URL sumir daqui.
+
+**Estado de produção verificado em 2026-08-25:** Worker implantado inerte; as três flags continuam
+`false`; App instalada apenas no repositório privado `support-intake`; POST permitido retorna 503
+genérico e CORS continua 204/403 sem criar Issue. A Edge Function Supabase legada foi removida só
+depois dessa aceitação e da confirmação do escopo da integração. A Copa permanece
+`INTENTIONALLY_DIFFERENT`; nenhum arquivo de UI/scoring dos quatro apps mudou nesta etapa.

@@ -5,6 +5,23 @@ bloco em si é substituído inteiramente a cada auditoria de arquitetura. Ver ta
 `docs/bolao/PLATFORM_DESIGN_SYSTEM.md`, `docs/bolao/PLATFORM_GOVERNANCE.md`,
 `docs/bolao/CONSISTENCY_MATRIX.md`.
 
+## Intake externo de reportes — Issue #321
+
+Os três apps ativos apontam, ainda com a UI desligada, para o Cloudflare Worker dedicado
+`ferrarilabs-support-intake`:
+
+`https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev`
+
+O Worker está implantado no estado `BACKEND_PROVISIONED_DISABLED`: servidor
+`REPORT_INTAKE_ENABLED="false"`, três flags `reportProblem.enabled=false` e nenhum reporte
+sintético autorizado. A versão ativa é `b50704ad-f61d-44e9-adeb-530973faf244`.
+
+A fronteira de dados é estrutural: não há binding Supabase/D1/Hyperdrive, e a GitHub App tem acesso
+somente ao repositório privado `ferrarilabs/support-intake` com `Issues: write` e `Metadata: read`.
+A antiga Edge Function `user-report-intake` foi removida do projeto Supabase primário depois de os
+gates passarem; `live-football` permaneceu. Detalhes de desenho, testes, privacidade, retenção e
+rollback: `SECURE_USER_REPORTING.md`, ADR-021 e a RTM específica.
+
 <!-- AUTO:PLATFORM_ARCHITECTURE:START -->
 ## Shared platform concerns
 

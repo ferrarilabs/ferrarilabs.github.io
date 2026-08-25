@@ -3,8 +3,10 @@
 **Issue:** #321 · **Estado:** implementado e **DESLIGADO** nas duas chaves
 **Runtime:** **Cloudflare Worker** `ferrarilabs-support-intake` — ver `adr/ADR-021-intake-em-cloudflare-worker.md`
 **Endereço:** `https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev`
-**Estado de ativação:** `BACKEND_RESOURCE_CREATED_NOT_DEPLOYED` · **Prontidão:** `NOT_READY`
+**Estado de ativação:** `BACKEND_PROVISIONED_DISABLED` · **Prontidão:** `NOT_READY`
 **Rastreabilidade:** `USER_REPORT_REQUIREMENTS_TRACEABILITY_MATRIX.md`
+**Escopo documental:** arquitetura + SDD/TDD do canal + threat model específico + privacidade,
+retenção, deploy e runbook; a RTM canônica permanece no arquivo acima.
 
 > **Mudança de runtime (2026-08-24).** O intake **não** roda mais como Edge Function do projeto
 > Supabase do Ferrari Labs, e **não** é mais um projeto Supabase separado. Ele é um **Cloudflare
@@ -15,23 +17,25 @@
 > `wrangler.jsonc` não existe no ambiente. A fronteira deixa de ser uma afirmação sobre o nosso
 > código e passa a ser uma propriedade da plataforma.
 >
-> A função legada continua **implantada e inerte** no projeto primário — verificado: remover o
-> diretório do repositório **não** a apagou. Deletá-la é ato do dono (Human Gate).
+> A função legada `user-report-intake` foi removida do projeto primário `Bolao do Ferrari` em
+> 2026-08-25, depois de a fronteira do Worker passar e de a integração GitHub→Supabase ser
+> verificada. A leitura posterior listou somente `live-football`; banco, schema, segredos e as
+> demais funções não foram alterados.
 
-> **Provisionamento (2026-08-25).** O repositório privado `ferrarilabs/support-intake` existe e foi
-> verificado por API (privado · Issues on · Pages off · sem colaborador externo). O recurso Worker
-> foi criado na Cloudflare e `REPORT_ABUSE_HMAC_SECRET` está provisionado. O **deploy não aconteceu**,
-> e isso é o contrato funcionando: `wrangler.jsonc` declara `secrets.required`, e o `wrangler deploy`
-> **recusa** enquanto faltarem `REPORT_GITHUB_APP_ID`, `REPORT_GITHUB_INSTALLATION_ID` e
-> `REPORT_GITHUB_PRIVATE_KEY` — os três dependem de uma GitHub App, que só existe por ação de
-> navegador. O endereço público ainda responde `404`: sem deploy, não há Worker atendendo.
+> **Provisionamento concluído (2026-08-25).** O repositório `ferrarilabs/support-intake` foi
+> verificado privado, com Issues ligado, Pages desligado e apenas `ferrarilabs` como colaborador.
+> A GitHub App `Ferrarilabs Support Intake` (App ID `4714457`, instalação `156482151`) está instalada
+> em **um** repositório: `support-intake`; permissões efetivas: `Issues: read/write` e
+> `Metadata: read`, nenhuma outra. A App é privada para a conta `ferrarilabs`; webhook e autorização
+> OAuth de usuário estão desligados.
 >
-> Fechar o provisionamento é **um** comando, depois que a App existir:
-> `node workers/user-report-intake/provisionar.mjs <APP_ID> <caminho/da/chave.pem>`.
-> Ele descobre o `installation_id` sozinho, **recusa** instalação com escopo além de
-> `ferrarilabs/support-intake` ou permissão além de `Issues: write` + `Metadata: read`, provisiona os
-> segredos sem que nenhum valor passe por terminal, argumento ou arquivo, implanta **inerte** e
-> verifica o estado desligado (POST → 503, preflight 204/403, `x-deploy-id` presente).
+> O Worker está implantado **inerte** na versão Cloudflare
+> `b50704ad-f61d-44e9-adeb-530973faf244` (versão 6, sem URL de preview). POST permitido devolveu
+> `503 {"error":"UNAVAILABLE"}`, preflight permitido `204`, origem proibida `403`, e zero Issues
+> antes/depois. A resposta expôs o mesmo `x-deploy-id` da versão ativa. A árvore do Worker em
+> `main` é idêntica ao commit `e979e3ace14b7afe807f9421140f4bcb09ecd9ef`, que precede o upload;
+> o runtime não carrega SHA Git separadamente, por isso a evidência versionada é o ID/ETag da
+> Cloudflare mais essa igualdade de árvore, não uma alegação de attestation criptográfica.
 
 ## 1. O que isto é
 
@@ -100,13 +104,13 @@ repositório privado e **uma** permissão.
 > **Estado agora:** o intake roda num runtime onde essas variáveis **não existem**. A catraca
 > `test_worker_isolation.mjs` mede a lista de bindings, não a boa vontade do autor.
 >
-> **Risco residual:** a função legada continua implantada e inerte no projeto primário. Ela não tem
-> segredo provisionado e o interruptor dela está desligado — mas o isolamento só fica completo
-> quando o dono a apagar.
+> **Estado residual:** a função legada foi apagada do projeto primário após os gates; a leitura
+> posterior confirmou apenas `live-football`. O isolamento agora vale no runtime novo e pela
+> ausência do runtime legado.
 
 ## 4-A. O interruptor de servidor
 
-`REPORT_INTAKE_ENABLED` é um gate **independente dos oito segredos**, avaliado **antes** de
+`REPORT_INTAKE_ENABLED` é um gate **independente dos quatro segredos**, avaliado **antes** de
 qualquer dependência: nada de Redis, nada de GitHub, nada de JWT, nada de parsear corpo.
 
 **Só a string exata `"true"` liga.** `"TRUE"`, `"1"`, `"yes"`, espaço sobrando, ausente e vazio
@@ -116,7 +120,7 @@ interruptor que alguém liga sem querer.
 Desligado responde **exatamente** como não-configurado (`503 {"error":"UNAVAILABLE"}`). Quem sonda
 não aprende se o canal está desligado ou incompleto; isso não é informação dele.
 
-> **Por que isto existe.** Antes, o canal ligava sozinho no instante em que o oitavo segredo fosse
+> **Por que isto existe.** Antes, o canal ligava sozinho no instante em que o último segredo fosse
 > provisionado: "provisionar dependência" e "abrir endpoint público ao mundo" eram o mesmo ato, sem
 > ninguém decidir a segunda coisa. **Preparar infraestrutura não pode ser, por acidente, um
 > lançamento.** Ver `T-ACT-01` no §8.
@@ -127,7 +131,7 @@ Dois gates **independentes**, e o rollout público exige os dois deliberadamente
 
 | gate | onde | papel |
 |---|---|---|
-| `REPORT_INTAKE_ENABLED=true` | servidor (segredo do projeto) | **a fronteira de segurança** |
+| `REPORT_INTAKE_ENABLED=true` | variável auditável do Worker | **a fronteira de segurança** |
 | `reportProblem.enabled=true` | cliente (`config.js` dos apps) | defesa em profundidade / controle de UX |
 
 O flag do cliente **não** é a fronteira: ele roda no navegador do participante, que o edita à
@@ -137,9 +141,9 @@ vontade. Ele existe para que a UI não apareça, não para impedir requisição.
 
 ```
 CODE_ONLY                      código no repo; nenhum segredo; servidor OFF; UI OFF
-        │  provisionar dependências (Redis, GitHub App, HMAC)
+        │  provisionar dependências (GitHub App, Durable Object, HMAC)
         ▼
-BACKEND_PROVISIONED_DISABLED   oito segredos existem; servidor AINDA OFF   ← estado seguro e estável
+BACKEND_PROVISIONED_DISABLED   quatro segredos existem; servidor AINDA OFF ← ESTADO ATUAL
         │  ligar servidor só para aceitação
         ▼
 BACKEND_ACCEPTANCE             servidor ON; UI OFF; reporte sintético ponta a ponta
@@ -218,7 +222,7 @@ tem corrida. **Falha fechado**: limitador indisponível ⇒ recusa.
 | Deriva de configuração | relato | verificação de visibilidade no runtime, não na config | — | ratchet §3 |
 | Diagnóstico malicioso | integridade | allowlist; desconhecido ⇒ `UNKNOWN_SAFE_ERROR` | — | testes |
 | Unicode / bidi | leitor | controles e invisíveis removidos | — | corpus |
-| **T-ENV-01** — credencial de alto valor no runtime de reporte | projeto Supabase de produção (participantes, pagamentos, scoring) | **runtime separado**: Cloudflare Worker sem binding para o projeto financeiro — a credencial não existe ali | função legada ainda implantada e inerte no primário; deletá-la é ato do dono | `test_worker_isolation.mjs` (lista de bindings) |
+| **T-ENV-01** — credencial de alto valor no runtime de reporte | projeto Supabase de produção (participantes, pagamentos, scoring) | **runtime separado**: Cloudflare Worker sem binding para o projeto financeiro — a credencial não existe ali; legado removido após gate | comprometimento da própria conta Cloudflare/GitHub continua fora da fronteira do código | `test_worker_isolation.mjs` + lista live de bindings + leitura posterior das funções Supabase |
 | **T-ACT-01** — provisionar segredo ativando endpoint público sem querer | canal inteiro | **interruptor de servidor** `REPORT_INTAKE_ENABLED`, avaliado antes de toda dependência; comparação exata | operador ainda pode ligar deliberadamente sem aceitação — que é uma decisão, não um acidente | `test_report_intake` (5 casos + 2 controles negativos) |
 
 ## 9. Fronteira de injeção de prompt
@@ -255,7 +259,7 @@ Implementados nesta rodada, todos com caso dedicado e catraca no manifesto de pr
 | controle | o que impede |
 |---|---|
 | **F-05** paridade de limites | cliente aceitar 1500 e servidor cortar em 1200 — a pessoa escreve, envia, recebe sucesso e **perde o fim do relato**, sem erro em lugar nenhum |
-| **F-06** `x-deploy-sha` | repetir a #306/#310 num endpoint que **se publica sozinho**: sem manifesto, saber qual versão respondeu vira arqueologia |
+| **F-06** `x-deploy-id` | repetir a #306/#310 sem conseguir identificar a versão Cloudflare que respondeu; o Worker é implantado manualmente |
 | **F-11** métricas agregadas | disjuntor que abre em silêncio; e `redigir()` já sabe **quais classes** de dado sensível apareceram — agregado, isso diz se o aviso está funcionando |
 | **F-12** versão do aviso | "o que foi comunicado a esta pessoa" virar pergunta de memória depois que o texto mudar |
 | **F-14** expectativa honesta | um canal que convida a escrever e não responde corrói mais confiança que a ausência dele |
@@ -282,7 +286,7 @@ escrito, porque risco não registrado é risco que ninguém decidiu correr.
 - **F-13 — bandeira em três cópias.** Coberta pelo item `ui_flag_off` do manifesto de prontidão,
   que exige as **três** desligadas e nomeia qual divergiu. Manter três cópias é deliberado (os apps
   não compartilham código); o que não podia continuar era ninguém verificar as três juntas.
-- **F-16 — três jurisdições, nenhum mapa.** Tabela abaixo. Continua **não** havendo alegação de
+- **F-16 — provedores e jurisdições, sem inferência.** Tabela abaixo. Continua **não** havendo alegação de
   conformidade com GDPR, LGPD ou qualquer regime — isso exigiria avaliação formal que não foi
   feita. O que existe agora é a resposta para "onde o dado repousa", que antes não existia nem em
   rascunho.
@@ -293,13 +297,10 @@ escrito, porque risco não registrado é risco que ninguém decidiu correr.
 | Cloudflare (Workers Logs) | eventos agregados: código, contador, latência — **sem conteúdo** | retenção padrão da plataforma | operação |
 | GitHub (`ferrarilabs/support-intake`, privado) | o relato, no Issue privado | retenção proposta de 90 dias (§10) | triagem |
 
-**Região:** a ser registrada aqui pelo dono quando os recursos existirem. Workers executam na borda
-por desenho; Durable Objects têm localidade escolhida na criação. **Não** há alegação de
-conformidade com GDPR, LGPD, CCPA ou qualquer regime — isso exigiria avaliação formal que não foi
-feita.
-
-A região de cada provedor é escolhida na criação e deve ser **registrada aqui pelo dono** quando os
-recursos existirem — ver o Human Gate.
+**Região:** o Worker executa na borda global da Cloudflare. A localização efetiva do Durable Object
+e a região de armazenamento do repositório GitHub não foram confirmadas por evidência disponível
+nesta rodada. **Não** há alegação de conformidade com GDPR, LGPD, CCPA ou qualquer regime — isso
+exigiria avaliação formal que não foi feita.
 
 ### Risco residual assumido, com motivo
 
@@ -309,10 +310,9 @@ recursos existirem — ver o Human Gate.
   ter. Trocar privacidade por disponibilidade aqui seria pagar o preço errado num canal cujo
   propósito é receber relato sem identificar quem relata. **Mitigação parcial:** com F-11, a
   abertura do disjuntor deixa de ser silenciosa — alguém pelo menos fica sabendo.
-- **F-07 — retenção de 90 dias não aplicada por código.** O job de varredura precisa listar Issues
-  do repositório privado, o que exige a GitHub App **que ainda não existe**. Implementá-lo agora
-  produziria código que nunca rodou. Está no manifesto como item `OWNER`, e a deleção destrutiva
-  continua exigindo autorização explícita e separada.
+- **F-07 — retenção de 90 dias não aplicada por código.** A GitHub App agora existe e tem o escopo
+  mínimo necessário, mas o job destrutivo continua não implementado e não autorizado. A política
+  permanece proposta; qualquer automação de deleção exige autorização explícita e separada.
 - **F-09 — a chave de taxa se renova para os dois lados.** O componente de data faz a rotação
   acontecer sem trabalho nenhum, e também entrega ao atacante uma identidade nova à meia-noite UTC:
   o limite "diário" é, na prática, por dia civil UTC. Uma janela deslizante exigiria reter um
@@ -355,10 +355,10 @@ commit conserta — e vermelho permanente é vermelho que se aprende a ignorar.
 
 ## 11. Melhorias conhecidas (próxima versão)
 
-1. ~~**Isolamento de runtime**~~ — resolvido por ADR-021 (Cloudflare Worker). Falta apenas o dono
-   apagar a função legada, que segue implantada e inerte no projeto primário.
-2. **UI e integração por app** — deliberadamente fora desta entrega: sem endpoint implantado, um
-   botão visível seria um botão morto.
+1. ~~**Isolamento de runtime e retirada do legado**~~ — resolvidos por ADR-021, pelos bindings
+   declarativos do Worker e pela remoção verificada da função Supabase `user-report-intake`.
+2. **UI e integração por app** — deliberadamente fora desta entrega: o endpoint está implantado,
+   mas inerte; mostrar o botão antes da aceitação sintética e da decisão pública seria enganoso.
 3. **Teste de integração HTTP real.** A política é pura e coberta; a *fiação* não era. Um
    preflight de origem permitida respondeu **500** em produção porque `new Response("", {status:204})`
    lança — 204/205/304 exigem corpo `null`. O caminho proibido (403) funcionava e só o caminho
@@ -383,7 +383,7 @@ Worker `ferrarilabs-support-intake`, nunca no projeto Supabase primário.
 
 `wrangler.jsonc` declara os quatro nomes em `secrets.required`. Isso não é documentação: o
 `wrangler deploy` **falha** se algum estiver faltando, então "implantado" passa a implicar
-"configurado". É a razão de o deploy estar bloqueado hoje, e o bloqueio é desejado.
+"configurado". Os quatro existem na versão ativa; os valores não foram expostos.
 
 Rotação: `npx wrangler secret put <NOME> --name ferrarilabs-support-intake`, com o valor entrando por
 **stdin** — nunca por argumento (argumento aparece em `ps` e no histórico do shell) e nunca por
@@ -417,9 +417,25 @@ existente em vez de gerar um novo a cada execução.
 
 4. O Worker pode continuar implantado e **inerte** — o interruptor é a primeira coisa que se desliga,
    e ele é avaliado antes de qualquer dependência.
-5. A Edge Function legada (projeto primário) já está inerte e será apagada pelo dono.
+5. A Edge Function legada já foi apagada. Recuperá-la exige um redeploy deliberado a partir do
+   histórico; a integração GitHub→Supabase não observa `workers/` como diretório de função e
+   `supabase/config.toml` declara somente `live-football`.
 
 Nenhum passo toca dado de participante, razão financeiro, scoring ou ranking.
+
+### 13-A. Supabase — fronteira de integração e decommission
+
+A integração GitHub→Supabase observa pushes do repositório, mas o diretório de trabalho é a raiz
+que contém `supabase/` (`.` neste repositório). Os logs autoritativos de `branch-action` mostram que
+ela aplica `supabase/migrations` e compara/deploya somente Edge Functions declaradas em
+`supabase/config.toml`; hoje só `live-football` está declarada. Uma alteração em `workers/` pode
+disparar a execução da integração por causa do push em `main`, mas **não** vira Edge Function nem
+recria `user-report-intake`.
+
+Só depois dessa confirmação e da aceitação inerte do Worker, `user-report-intake` foi apagada do
+projeto `cmhqkkfczotdnssupkni`. A leitura posterior listou apenas `live-football` (versão 16). O
+rollback dessa remoção não é automático: exige redeploy deliberado do código histórico. Não houve
+mudança em schema, RLS, dados, segredos, participantes, pagamentos, scoring ou ranking.
 
 ## 14. Runbook de triagem
 
