@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-25T01:47:56Z",
-  "sourceUpdatedAt": "2026-08-25T01:47:56Z",
+  "generatedAt": "2026-08-25T02:46:06Z",
+  "sourceUpdatedAt": "2026-08-25T02:46:06Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "c1a0e8150d0fee5916a2023dc57015befc7e7803ed3586ed3417ee84757c2037",
+  "payloadHash": "c9518288579be54795f1dc66cbb3654226299e2d4f005126740e1965a582f168",
   "matches": [
     {
       "id": "401840808",
@@ -39740,25 +39740,25 @@
     {
       "id": "401841198",
       "date": "2026-08-24T23:00Z",
-      "state": "in",
-      "statusName": "STATUS_FIRST_HALF",
-      "statusDescription": "First Half",
-      "statusShortDetail": "45'",
-      "statusDetail": "45'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Botafogo",
       "awayTeam": "Athletico Paranaense",
       "homeTeamId": "6086",
       "awayTeamId": "3458",
-      "homeScore": 0,
-      "awayScore": 2,
+      "homeScore": 2,
+      "awayScore": 3,
       "homeWinner": false,
-      "awayWinner": false,
+      "awayWinner": true,
       "venue": "Joao Havelange Stadium",
       "city": "Rio de Janeiro",
-      "clockSec": 2700.0,
-      "clockStr": "45'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+6'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -39814,6 +39814,101 @@
             {
               "displayName": "Kauan Toledo",
               "shortName": "K. Toledo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 4053.0,
+            "displayValue": "68'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Edenilson",
+              "shortName": "Edenilson"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 4606.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Dantas",
+              "shortName": "Dantas"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 4671.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 5059.0,
+            "displayValue": "85'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Santiago Rodríguez",
+              "shortName": "S. Rodríguez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "6086"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Santiago Rodríguez",
+              "shortName": "S. Rodríguez"
             }
           ]
         }
