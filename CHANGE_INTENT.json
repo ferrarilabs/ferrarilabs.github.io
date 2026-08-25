@@ -7,53 +7,11 @@
     {
       "surface_id": "EDGE_FUNCTIONS",
       "lifecycle": "one_shot",
-      "reason": "Issue #321, ADR-021: o intake publico sai do runtime do Supabase e vira um Cloudflare Worker dedicado. No Supabase os segredos do projeto sao INJETADOS em toda Edge Function (SUPABASE_DB_URL, SUPABASE_SECRET_KEYS, SERVICE_ROLE_KEY que ignora RLS); num Worker os bindings sao DECLARADOS, entao o que nao esta no wrangler.jsonc nao existe no ambiente. A superficie critica passa a cobrir `workers/user-report-intake/**`, que tambem implanta em producao a partir do repositorio.",
-      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado.",
+      "reason": "Issue #321: remover do versionamento o cache local do Wrangler (workers/user-report-intake/.wrangler/), versionado por engano no #331. Ele e regenerado a cada comando, contem apenas id e nome da conta (nenhum token, nenhum segredo -- conferido) e disparava o check D2 da superficie EDGE_FUNCTIONS a cada execucao de wrangler, porque o padrao workers/user-report-intake/** o alcanca.",
+      "expected_behavior_change": "Nenhuma mudanca de comportamento: nao e codigo, nao e configuracao de deploy e nao e lido em runtime.  passa a ser ignorado. O Worker NAO esta implantado, entao nao ha efeito em producao.",
       "tests_required": [
-        "scripts/report/test_worker_intake.mjs",
         "scripts/report/test_worker_isolation.mjs",
-        "scripts/report/test_docs_drift.mjs",
-        "scripts/report/test_report_security_ratchets.mjs",
-        "bolao/scripts/audit_live_gateway.mjs"
-      ]
-    },
-    {
-      "surface_id": "VERIFY_RUNNER",
-      "lifecycle": "one_shot",
-      "reason": "Issue #321, ADR-021 (migracao para Cloudflare Worker). O check `report-isolation` foi SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings do Worker em vez de mencao de string no codigo) e `docs-drift` (14 casos). A contagem de checks SOBE de 226 para 228.",
-      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado. Check removido, nomeado explicitamente: `report-isolation`.",
-      "tests_required": [
-        "scripts/report/test_worker_intake.mjs",
-        "scripts/report/test_worker_isolation.mjs",
-        "scripts/report/test_docs_drift.mjs",
-        "scripts/report/test_report_security_ratchets.mjs",
-        "bolao/scripts/audit_live_gateway.mjs"
-      ]
-    },
-    {
-      "surface_id": "TEST_CHAIN",
-      "lifecycle": "one_shot",
-      "reason": "Issue #321, ADR-021 (migracao para Cloudflare Worker). `test_report_isolation.mjs` saiu da cadeia porque a estrutura que ele verificava (`support-intake/supabase/`) deixou de existir com a migracao para Cloudflare. No lugar entraram `test_worker_intake.mjs` (36 casos na fronteira Request/Response REAL), `test_worker_isolation.mjs` (18) e `test_docs_drift.mjs` (14). `test_report_intake.mjs` encolheu de 107 para 52 assercoes porque 34 blocos que exercitavam o handler antigo MIGRARAM para o Worker, onde rodam contra Request/Response de verdade -- estritamente melhor, e foi a ausencia desse nivel que deixou a #324 passar.",
-      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado. Item removido, nomeado explicitamente: `node scripts/report/test_report_isolation.mjs`. Arquivo que encolheu, nomeado explicitamente: `scripts/report/test_report_intake.mjs` (107 -> 52 assercoes, com os 34 blocos migrados para `scripts/report/test_worker_intake.mjs`).",
-      "tests_required": [
-        "scripts/report/test_worker_intake.mjs",
-        "scripts/report/test_worker_isolation.mjs",
-        "scripts/report/test_docs_drift.mjs",
-        "scripts/report/test_report_security_ratchets.mjs",
-        "bolao/scripts/audit_live_gateway.mjs"
-      ]
-    },
-    {
-      "surface_id": "GATE_REGISTRY",
-      "lifecycle": "one_shot",
-      "reason": "Issue #321, ADR-021 (migracao para Cloudflare Worker). Entrada de `test_report_isolation.mjs` removida junto com o arquivo; entradas de `test_worker_intake.mjs`, `test_worker_isolation.mjs` e `test_docs_drift.mjs` acrescentadas. O registro SOBE de 269 para 271.",
-      "expected_behavior_change": "O codigo do intake sai de `support-intake/supabase/` (removido) para `workers/user-report-intake/`. `supabase/functions/` continua com _shared e live-football apenas, e a `live-football` NAO e tocada. O check `report-isolation` do verify.mjs e SUBSTITUIDO por `worker-isolation` (18 casos, mede a lista de bindings em vez de mencao no codigo) e por `docs-drift`; a contagem de checks SOBE de 226 para 228. O canal continua inerte nas duas chaves: `REPORT_INTAKE_ENABLED` versionado como \"false\" e `reportProblem.enabled = false` nos tres apps, agora com endpoint vazio para nao apontar mais para o runtime abandonado. Entrada removida, nomeada explicitamente: `scripts/report/test_report_isolation.mjs`.",
-      "tests_required": [
-        "scripts/report/test_worker_intake.mjs",
-        "scripts/report/test_worker_isolation.mjs",
-        "scripts/report/test_docs_drift.mjs",
-        "scripts/report/test_report_security_ratchets.mjs",
-        "bolao/scripts/audit_live_gateway.mjs"
+        "scripts/report/test_worker_intake.mjs"
       ]
     }
   ]
