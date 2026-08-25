@@ -2,7 +2,8 @@
 
 **Issue:** #321 · **Estado:** implementado e **DESLIGADO** nas duas chaves
 **Runtime:** **Cloudflare Worker** `ferrarilabs-support-intake` — ver `adr/ADR-021-intake-em-cloudflare-worker.md`
-**Estado de ativação:** `CODE_ONLY` · **Prontidão:** `NOT_READY`
+**Endereço:** `https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev`
+**Estado de ativação:** `BACKEND_RESOURCE_CREATED_NOT_DEPLOYED` · **Prontidão:** `NOT_READY`
 **Rastreabilidade:** `USER_REPORT_REQUIREMENTS_TRACEABILITY_MATRIX.md`
 
 > **Mudança de runtime (2026-08-24).** O intake **não** roda mais como Edge Function do projeto
@@ -16,6 +17,21 @@
 >
 > A função legada continua **implantada e inerte** no projeto primário — verificado: remover o
 > diretório do repositório **não** a apagou. Deletá-la é ato do dono (Human Gate).
+
+> **Provisionamento (2026-08-25).** O repositório privado `ferrarilabs/support-intake` existe e foi
+> verificado por API (privado · Issues on · Pages off · sem colaborador externo). O recurso Worker
+> foi criado na Cloudflare e `REPORT_ABUSE_HMAC_SECRET` está provisionado. O **deploy não aconteceu**,
+> e isso é o contrato funcionando: `wrangler.jsonc` declara `secrets.required`, e o `wrangler deploy`
+> **recusa** enquanto faltarem `REPORT_GITHUB_APP_ID`, `REPORT_GITHUB_INSTALLATION_ID` e
+> `REPORT_GITHUB_PRIVATE_KEY` — os três dependem de uma GitHub App, que só existe por ação de
+> navegador. O endereço público ainda responde `404`: sem deploy, não há Worker atendendo.
+>
+> Fechar o provisionamento é **um** comando, depois que a App existir:
+> `node workers/user-report-intake/provisionar.mjs <APP_ID> <caminho/da/chave.pem>`.
+> Ele descobre o `installation_id` sozinho, **recusa** instalação com escopo além de
+> `ferrarilabs/support-intake` ou permissão além de `Issues: write` + `Metadata: read`, provisiona os
+> segredos sem que nenhum valor passe por terminal, argumento ou arquivo, implanta **inerte** e
+> verifica o estado desligado (POST → 503, preflight 204/403, `x-deploy-id` presente).
 
 ## 1. O que isto é
 
@@ -307,8 +323,28 @@ recursos existirem — ver o Human Gate.
 ## 10-B. Prontidão — `UNKNOWN` nunca é `READY`
 
 `node scripts/report/readiness.mjs` é o único lugar que responde "dá para ligar o canal?". Cada
-item declara **como** é verificado: `REPO` (o processo decide sozinho), `RUNTIME` (precisa de
-`--probe`), `OWNER` (só o dono confirma — painel, conta, provedor).
+item declara **como** é verificado: `REPO` (hermético, sem rede), `LIVE` (fala com o endpoint, com a
+API do GitHub e com a da Cloudflare — só com `--live`), `OWNER` (só o dono confirma).
+
+> **Ele estava quebrado, e do jeito mais perigoso (corrigido em 2026-08-25).** Quando o intake migrou
+> para o Worker (ADR-021, PR #331), **doze** itens continuaram lendo o diretório do runtime anterior
+> — apagado no mesmo PR. `ler()` devolve `null` para arquivo ausente, `null` vira `""`, `""` não casa
+> com regex nenhuma — e cada item virou `FAIL`.
+>
+> O relatório passou a afirmar que o interruptor de servidor **não existia**, que o CORS **não era**
+> allowlist e que o destino privado **não era** verificado em runtime. As três eram falsas, sobre
+> controles íntegros o tempo todo. Um `FAIL` falso não trava nada (o processo sai `0` de propósito) e
+> ensina a ignorar o relatório inteiro — é como se perde um gate sem nunca deletá-lo.
+>
+> Nenhuma catraca pegou porque este arquivo não roda no `verify.mjs`, e não deve rodar (ver abaixo).
+> O que virou gate é a pergunta mais fraca e suficiente: **todo caminho que ele lê existe?** Está em
+> `test_docs_drift.mjs`, lê os prefixos do próprio manifesto em vez de repeti-los, e foi provado por
+> mutação nos dois sentidos. Placar depois do conserto: **17 PASS · 1 FAIL → 21 PASS**, com os
+> `UNKNOWN` restantes sendo provisionamento de verdade, não caminho podre.
+
+Quatro itens que eram `OWNER` viraram `LIVE`: `gh` e `wrangler` respondem por eles com evidência
+melhor que a memória de uma pessoa. Dois foram **removidos** por terem deixado de existir junto com
+a arquitetura que os criou — o projeto Supabase de suporte e o Redis externo (ADR-021).
 
 Um único `UNKNOWN` derruba o veredito para `NOT_READY`. A alternativa seria um verde que significa
 "não achei problema", e num canal que abre superfície pública isso é pior que um vermelho.
@@ -341,11 +377,22 @@ sumiram `REPORT_REDIS_REST_URL` e `REPORT_REDIS_REST_TOKEN` — um fornecedor a 
 a menos, uma chamada de rede a menos no caminho do dado. `REPORT_GITHUB_OWNER` e
 `REPORT_GITHUB_REPO` viraram `vars` (não são segredo)
 
-Mais o **interruptor**, que não é segredo e não é dependência: `REPORT_INTAKE_ENABLED`. Os oito
-acima vão para o projeto **de suporte**, nunca para o primário.
+Mais o **interruptor**, que não é segredo e não é dependência: `REPORT_INTAKE_ENABLED`, e os dois
+identificadores `REPORT_GITHUB_OWNER` / `REPORT_GITHUB_REPO`. Os quatro segredos vivem **só** no
+Worker `ferrarilabs-support-intake`, nunca no projeto Supabase primário.
 
-Rotação: gerar novo valor no provedor → `supabase secrets set` → invalidar o antigo. O token de
-instalação do GitHub expira sozinho (~1h) e nunca é persistido.
+`wrangler.jsonc` declara os quatro nomes em `secrets.required`. Isso não é documentação: o
+`wrangler deploy` **falha** se algum estiver faltando, então "implantado" passa a implicar
+"configurado". É a razão de o deploy estar bloqueado hoje, e o bloqueio é desejado.
+
+Rotação: `npx wrangler secret put <NOME> --name ferrarilabs-support-intake`, com o valor entrando por
+**stdin** — nunca por argumento (argumento aparece em `ps` e no histórico do shell) e nunca por
+arquivo. O token de instalação do GitHub expira sozinho (~1h) e nunca é persistido.
+
+Rotacionar `REPORT_ABUSE_HMAC_SECRET` **invalida todas as chaves de taxa e de idempotência em voo**:
+limites zeram e um reenvio logo depois pode criar Issue duplicada. É aceitável numa resposta a
+incidente e é desperdício em manutenção de rotina — por isso `provisionar.mjs` preserva o valor
+existente em vez de gerar um novo a cada execução.
 
 ## 13. Rollback
 
@@ -353,10 +400,23 @@ instalação do GitHub expira sozinho (~1h) e nunca é persistido.
    requisição de verdade. O flag do cliente só esconde o botão, e um navegador com a página em
    cache continua conseguindo POSTar.
 2. `reportProblem.enabled = false` (já é o padrão) — a UI some.
-3. Reverter o PR do recurso. **Reverter também republica a função**, porque o deploy é automático
-   no merge para `main` — o rollback de código e o de runtime são o mesmo ato aqui.
-4. O Worker pode continuar implantado e **inerte** — ele não é alcançável sem rota, e o interruptor
-   é a primeira coisa que se desliga.
+3. Reverter o PR do recurso.
+
+   > **Correção (2026-08-25).** Este passo dizia que "reverter também republica a função, porque o
+   > deploy é automático no merge para `main`". Isso era verdade da **Edge Function do Supabase** e
+   > ficou para trás na migração — é falso para o Worker. **Nenhum workflow implanta este Worker**
+   > (verificado: nenhum arquivo em `.github/workflows/` menciona `wrangler` ou Cloudflare). O deploy
+   > é manual, por `npx wrangler deploy`.
+   >
+   > A consequência operacional é o oposto do que a frase antiga sugeria: **reverter o código não
+   > reverte o runtime**. Um Worker implantado continua no ar exatamente como estava, servindo o
+   > código da última publicação, mesmo com o repositório revertido. Quem acreditasse na frase antiga
+   > faria um revert, veria main verde e concluiria que o canal estava fechado — com ele aberto.
+   >
+   > Por isso o passo 1 é o passo 1: o interruptor no **servidor** é a única ação que para requisição.
+
+4. O Worker pode continuar implantado e **inerte** — o interruptor é a primeira coisa que se desliga,
+   e ele é avaliado antes de qualquer dependência.
 5. A Edge Function legada (projeto primário) já está inerte e será apagada pelo dono.
 
 Nenhum passo toca dado de participante, razão financeiro, scoring ou ranking.

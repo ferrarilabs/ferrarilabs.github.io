@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.134",
+  siteVersion: "v3.135",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
@@ -14,17 +14,19 @@ window.CDB2026_CONFIG = {
    */
   reportProblem: {
     enabled: false,
-    // Endpoint definido no momento da ATIVACAO, nao antes.
+    // Endereco do Cloudflare Worker isolado (`ferrarilabs-support-intake`, ADR-021).
     //
-    // O intake mudou de runtime: o alvo deixou de ser a Edge Function do projeto Supabase que
-    // guarda participante, pagamento e scoring, e passou a ser um Cloudflare Worker isolado
-    // (`ferrarilabs-support-intake`, ADR-021). O endereco publico dele depende de uma decisao do
-    // dono que ainda nao foi tomada -- `workers.dev` ou um subdominio proprio -- entao deixar aqui
-    // a URL antiga apontaria o cliente para exatamente o runtime que a migracao existe para
-    // abandonar.
+    // A decisao de endereco foi tomada em 2026-08-25: `workers.dev`, porque a conta Cloudflare tem
+    // `zones = 0` e um subdominio proprio exigiria mover o DNS de `ferrarilabs.com` inteiro. Ver
+    // ADR-021 ("Endereco publico").
     //
-    // Vazio e o estado correto: `montar()` desiste sem endpoint, entao nao existe botao morto.
-    endpoint: "",
+    // PREENCHER AQUI NAO LIGA NADA. Sao duas chaves independentes, e esta e a mais fraca:
+    //   - `enabled: false` (abaixo) -> a UI nao monta, nao ha botao;
+    //   - `REPORT_INTAKE_ENABLED != "true"` no Worker -> toda requisicao morre em 503 antes de
+    //     tocar qualquer dependencia.
+    // O rollback comeca SEMPRE pelo servidor: apagar esta URL so esconde o botao, e um navegador
+    // com a pagina em cache continua conseguindo POSTar.
+    endpoint: "https://ferrarilabs-support-intake.automotive-dashboard-private-status.workers.dev/",
   },
   appName: "Bolão Copa do Brasil 2026",
   storeKey: "bolao_cdb2026_state",

@@ -150,6 +150,92 @@ test("nenhum documento canônico aponta para o caminho antigo do intake", () => 
   eq(antigos.length, 0, `aponta para caminho que nao existe mais: ${antigos.join(", ")}`);
 });
 
+console.log("\n6. O manifesto de prontidão mede o que existe:");
+
+/**
+ * ─── O DEFEITO QUE ORIGINA ESTA SEÇÃO (2026-08-25) ──────────────────────────────────────────
+ *
+ * `readiness.mjs` é o único artefato que responde "dá para ligar o canal?". Quando o intake migrou
+ * do Supabase para o Cloudflare Worker (ADR-021, PR #331), **doze** dos seus itens continuaram
+ * lendo `support-intake/supabase/functions/...` — um diretório apagado no mesmo PR.
+ *
+ * O modo de falha é o pior possível para um relatório de segurança, porque é **silencioso e
+ * plausível**: `ler()` devolve `null` para arquivo ausente, `null` vira `""`, `""` não casa com
+ * regex nenhuma, e cada item vira `FAIL`. O relatório passou a dizer "o interruptor de servidor não
+ * existe", "CORS não é allowlist", "o destino privado não é verificado em runtime" — três coisas
+ * que **eram falsas**, sobre controles que estavam íntegros o tempo todo.
+ *
+ * Um `FAIL` falso não trava nada (o processo sai 0 de propósito) e ensina a ignorar o relatório
+ * inteiro. É como se perde um gate sem nunca deletá-lo.
+ *
+ * Nenhuma catraca pegou porque `readiness.mjs` não roda no `verify.mjs` — e não deve rodar: ele
+ * reporta `NOT_READY` por desenho enquanto o dono não provisionar o que só ele provisiona, e
+ * vermelho permanente é vermelho que se aprende a ignorar. O que PODE ser gate é outra pergunta,
+ * mais fraca e suficiente: **todo caminho que ele lê existe?** Isso é determinístico, é verde hoje,
+ * e teria falhado no minuto exato em que o diretório sumiu.
+ */
+test("todo caminho de repositório citado pelo manifesto de prontidão existe", () => {
+  const t = readFileSync(join(RAIZ, "scripts/report/readiness.mjs"), "utf-8");
+
+  // Os prefixos sao LIDOS do proprio manifesto, nunca repetidos aqui. Uma primeira versao deste
+  // gate escrevia `workers/user-report-intake/src/` a mao e por isso nao mordia: apontar `SRC` para
+  // um diretorio morto continuava passando, porque o gate conferia o caminho que ELE achava que o
+  // manifesto usava, e nao o que o manifesto usa. Um gate que carrega sua propria copia da verdade
+  // valida a copia.
+  const constante = (nome) => (t.match(new RegExp(`const ${nome} = "([^"]+)"`)) || [])[1];
+  const WORKER_DIR = constante("WORKER");
+  ok(WORKER_DIR, "o manifesto precisa declarar `const WORKER`");
+  const mSrc = t.match(/const SRC = (?:`\$\{WORKER\}\/([\w.\-/]+)`|"([^"]+)")/);
+  ok(mSrc, "o manifesto precisa declarar `const SRC`");
+  const SRC_DIR = mSrc[1] ? `${WORKER_DIR}/${mSrc[1]}` : mSrc[2];
+
+  // Literais de caminho: `"a/b/c.ext"` e as formas com template `${SRC}/x.ts` / `${WORKER}/y`.
+  const brutos = new Set();
+  brutos.add(WORKER_DIR);
+  brutos.add(SRC_DIR);
+  // Exige `/`: um literal sem barra e nome de arquivo solto (a lista de `fonteDoWorker()`), nao
+  // caminho de repositorio. Essa lista e resolvida logo abaixo, contra o diretorio de fonte real.
+  for (const m of t.matchAll(/"([\w.\-]+\/[\w.\-/]+\.(?:ts|js|mjs|toml|html|json|jsonc))"/g)) brutos.add(m[1]);
+
+  // `fonteDoWorker()` lista os arquivos do Worker por nome solto; eles moram sob `SRC`.
+  const listaFonte = t.match(/const fonteDoWorker = \(\) => \[([^\]]*)\]/);
+  if (listaFonte) {
+    for (const m of listaFonte[1].matchAll(/"([\w.\-]+)"/g)) {
+      brutos.add(`${SRC_DIR}/${m[1]}`);
+    }
+  }
+  for (const m of t.matchAll(/`\$\{SRC\}\/([\w.\-]+)`/g)) brutos.add(`${SRC_DIR}/${m[1]}`);
+  for (const m of t.matchAll(/`\$\{WORKER\}\/([\w.\-/]+)`/g)) brutos.add(`${WORKER_DIR}/${m[1]}`);
+  for (const m of t.matchAll(/`\$\{dir\}\/\$\{html\}`/g)) void m;   // coberto pela lista de apps
+
+  ok(brutos.size >= 10, `esperava vários caminhos, achei ${brutos.size} — a extração quebrou`);
+
+  const ausentes = [...brutos].filter((p) => !existsSync(join(RAIZ, p)));
+  eq(ausentes.length, 0, `o manifesto lê caminho que não existe: ${ausentes.join(", ")}`);
+});
+
+test("o manifesto de prontidão não cita mais o runtime abandonado", () => {
+  const t = readFileSync(join(RAIZ, "scripts/report/readiness.mjs"), "utf-8");
+  // Menção NÃO é uso: os comentários PRECISAM poder contar que isto já morou no Supabase. O que
+  // não pode é um `ler()` continuar apontando para lá.
+  const usos = [...t.matchAll(/ler\(\s*["'`]([^"'`]*support-intake\/supabase[^"'`]*)/g)].map((m) => m[1]);
+  eq(usos.length, 0, `ainda lê o caminho abandonado: ${usos.join(", ")}`);
+});
+
+test("os itens OWNER são só os que não têm caminho de API", () => {
+  const t = readFileSync(join(RAIZ, "scripts/report/readiness.mjs"), "utf-8");
+  const owner = [...t.matchAll(/item\("([\w_]+)",\s*"OWNER"/g)].map((m) => m[1]);
+  // Estes dois morreram junto com a arquitetura que os criou (ADR-021 rejeitou o projeto Supabase
+  // separado, e o Durable Object substituiu o Redis externo). Mantê-los como `OWNER` travaria o
+  // veredito para sempre em recursos que ninguém deve provisionar.
+  for (const morto of ["support_supabase_project_created", "redis_configured"]) {
+    ok(!owner.includes(morto), `item obsoleto ressuscitado: ${morto}`);
+  }
+  // `private_repo_verified` é respondido pela API do GitHub — memória de pessoa não é evidência.
+  ok(!owner.includes("private_repo_verified"),
+     "a visibilidade do repositório é verificável por API; não pode voltar a ser OWNER");
+});
+
 console.log(`\n  ${pass} passed, ${fail} failed\n`);
 if (fail) { console.log("✗ DERIVA DE DOCUMENTACAO REPROVADA\n"); process.exit(1); }
 console.log("✓ DOCUMENTACAO CONSISTENTE COM A ARQUITETURA\n");
