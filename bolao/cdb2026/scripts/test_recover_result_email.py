@@ -187,6 +187,25 @@ def _ledger_ilegivel():
 test("ledger ilegível => UNCERTAIN, nunca 'pode mandar'", _ledger_ilegivel)
 
 
+def _pending_bloqueia():
+    """A lição de 2026-08-26: reserva sem confirmação NÃO prova ausência de entrega."""
+    linhas = [(chave(*ALVO, r), "pending") for r in ("e1", "e2", "e3")]
+    ev, _, _ = pre(ledger=LedgerFalso(linhas))
+    _assert(ev["TARGET_STATUS"] == R.UNCERTAIN,
+            f"`pending` tem de BLOQUEAR — `reserve()` escreve antes do provedor, entao pending nao "
+            f"prova que nao entregou. Veio {ev['TARGET_STATUS']}")
+    _assert(ev["LEDGER_PENDING_COUNT"] == 3, ev["LEDGER_PENDING_COUNT"])
+
+test("`pending` bloqueia — reserva precede o envio, então não prova não-entrega", _pending_bloqueia)
+
+
+def _failed_retryable_bloqueia():
+    ev, _, _ = pre(ledger=LedgerFalso([(chave(*ALVO, "e1"), "failed_retryable")]))
+    _assert(ev["TARGET_STATUS"] == R.UNCERTAIN, ev["TARGET_STATUS"])
+
+test("`failed_retryable` também bloqueia", _failed_retryable_bloqueia)
+
+
 print("\nC. O alvo não escorrega:")
 
 
