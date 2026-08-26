@@ -8,11 +8,11 @@ on:
   workflow_dispatch:
     inputs:
       acao:
-        description: "dry-run (só leitura) ou apply"
+        description: "dry-run/apply (picks) ou backdate-dry-run/backdate-apply (só o updatedAt)"
         required: true
         default: dry-run
         type: choice
-        options: [dry-run, apply]
+        options: [dry-run, apply, backdate-dry-run, backdate-apply]
 
 permissions:
   contents: read
@@ -33,8 +33,13 @@ jobs:
         env:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          if [ "${{ inputs.acao }}" = "apply" ]; then
-            python3 bolao/cdb2026/scripts/fix_gabriel_quartas_picks_20260826.py --apply
-          else
-            python3 bolao/cdb2026/scripts/fix_gabriel_quartas_picks_20260826.py --dry-run
-          fi
+          case "${{ inputs.acao }}" in
+            apply)
+              python3 bolao/cdb2026/scripts/fix_gabriel_quartas_picks_20260826.py --apply ;;
+            backdate-apply)
+              python3 bolao/cdb2026/scripts/backdate_gabriel_updated_at_20260826.py --apply ;;
+            backdate-dry-run)
+              python3 bolao/cdb2026/scripts/backdate_gabriel_updated_at_20260826.py --dry-run ;;
+            *)
+              python3 bolao/cdb2026/scripts/fix_gabriel_quartas_picks_20260826.py --dry-run ;;
+          esac
