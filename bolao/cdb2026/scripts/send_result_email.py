@@ -1031,17 +1031,36 @@ def run_auto():
         away = tie_before["teamA"] if leg == "second" else tie_before["teamB"]
         print(f"\n[{tie_id}:{leg}] {home} {gh}–{ga} {away}")
 
-        sb_status, state = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto")
+        sb_status, _ = sb_save_leg(phase_id, tie_id, leg, gh, ga, source="espn-auto")
         print(f"  Supabase (leg save): {sb_status}")
+
+        # O estado vem do SERVIDOR depois de cada mutacao -- nunca do retorno do gravador.
+        #
+        # Ate 2026-08-26 esta linha era `sb_status, state = sb_save_leg(...)`. Isso valia enquanto
+        # `sb_save_leg()` era read-modify-write e devolvia o documento inteiro; com a migracao para
+        # mutacao estreita (commit 6ecd9fdf, 2026-08-12) ela passou a devolver `(status, None)` e a
+        # chamada aqui nao acompanhou. O resultado era gravado, `_maybe_decide_tie(None, ...)`
+        # estourava `TypeError` no primeiro `state["phases"]`, e o processo morria ANTES de renderizar
+        # o e-mail, ANTES de reservar no ledger e ANTES de chamar o provedor: placar salvo, ninguem
+        # avisado. Foi assim que a perna `quartas:espn-atletico-mg_cruzeiro:first` (Cruzeiro 1-1
+        # Atletico-MG, 2026-08-26T02:01:38Z) ficou sem e-mail -- e foi o vigia da #180 que apontou.
+        #
+        # Buscar aqui nao e leitura redundante: e a leitura que ja existia logo abaixo, movida para
+        # ANTES da primeira decisao que depende do estado. A mutacao continua estreita e do lado do
+        # servidor; o que muda e de onde o processo aprende o resultado dela.
+        state = sb_fetch()
 
         qualified = _maybe_decide_tie(state, phase_id, tie_id, espn)
         tie_just_decided = False
         if qualified:
-            lock_status, state = sb_lock_tie(phase_id, tie_id, qualified, source="espn-auto")
+            lock_status, _ = sb_lock_tie(phase_id, tie_id, qualified, source="espn-auto")
             print(f"  Supabase (lock-tie): {lock_status} → {tie_before['teamA'] if qualified == 'A' else tie_before['teamB']} avança")
             tie_just_decided = True
+            # So relemos de novo quando o travamento mudou o documento -- o ranking e o bloco de
+            # campeao precisam enxergar `qualifiedTeamId`. Sem travamento, o estado acima ja e o
+            # posterior a gravacao desta perna.
+            state = sb_fetch()
 
-        state = sb_fetch()  # re-fetch so this leg/lock appears in ranking + resolves final tie
         tie = state["phases"][phase_id]["ties"][tie_id]
         html = build_html(state, phase_id, tie_id, leg, tie_just_decided)
         result_line = f"{home} {gh}–{ga} {away}"
