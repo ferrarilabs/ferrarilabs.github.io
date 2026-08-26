@@ -56,9 +56,13 @@
       <option value="/bolao/cdb2026/">🏅 Copa do Brasil</option>
     </select>
   </div>
-  <a id="supportWhatsappBtn" class="whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer" aria-label="Suporte WhatsApp">
-    <img src="assets/whatsapp.svg" alt="WhatsApp"> <span data-i18n="supportWhatsApp">WhatsApp</span>
-  </a>
+  <div class="support-actions" role="group" aria-label="Suporte">
+    <a id="supportWhatsappBtn" class="support-action whatsapp-btn" href="#" target="_blank" rel="noopener noreferrer" aria-label="Suporte WhatsApp">
+      <img src="assets/whatsapp.svg" alt="" aria-hidden="true"> <span data-i18n="supportWhatsApp">WhatsApp</span>
+    </a>
+    <!-- A ancora fica vazia quando reportProblem.enabled=false; nenhum controle ou listener nasce. -->
+    <span data-report-mount data-report-app="br2026" data-report-config="BR2026_CONFIG"></span>
+  </div>
   <div class="lang-links" aria-label="Idioma / Language">
     <button type="button" class="active" aria-label="Português BR">🇧🇷 PT-BR</button>
     <button type="button" disabled aria-label="Español MX">🇲🇽 ES-MX</button>
@@ -73,7 +77,6 @@
     <button type="button" data-section="games"        data-i18n="navGames">Jogos</button>
     <button type="button" data-section="probs"        data-i18n="navProbs">Probabilidades</button>
     <button type="button" data-section="rules"        data-i18n="navRules">Regras</button>
-    <button type="button" data-section="admin"        data-i18n="navAdmin">Admin</button>
   </nav>
 </header>
 
@@ -238,11 +241,9 @@
 </main>
 
 <footer id="siteFooterBar" class="site-footer-bar"></footer>
-
-
-<!-- "Reportar problema" (#321). Fica VAZIO ate reportProblem.enabled = true no config:
-     sem backend aceito, um botao visivel seria um botao morto. -->
-<div data-report-mount data-report-app="br2026" data-report-config="BR2026_CONFIG"></div>
+<div class="admin-utility">
+  <button type="button" class="admin-utility-link" data-section="admin" data-i18n="navAdmin">Admin</button>
+</div>
 
 </body>
 </html>

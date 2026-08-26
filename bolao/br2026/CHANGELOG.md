@@ -1,5 +1,18 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## 2026-08-26 — Issue #321: ações de suporte no cabeçalho (v1.130)
+
+`Reportar problema` saiu do fim da página e passou a formar, ao lado de `Suporte WhatsApp`, um
+grupo único de ações de suporte no cabeçalho. Os dois controles agora compartilham dimensões,
+tipografia, espaçamento e comportamento responsivo; o reporte usa um `!` circular decorativo e
+contido, sem aparência de ação destrutiva. Em 320 px eles ocupam duas metades equilibradas da
+mesma linha, sem rolagem horizontal.
+
+O acesso `Admin` continua sendo o mesmo botão `data-section="admin"`, com a mesma autorização e o
+mesmo painel, mas foi retirado da navegação primária e colocado como utilitário discreto depois do
+rodapé. Continua visível, focável por teclado e não depende de hover. A flag, o modal, o payload,
+o Worker, scoring, ranking, pagamentos e controles de segurança não mudaram.
+
 ## 2026-08-25 — Issue #321: canal de reporte ABERTO ao público (v1.129)
 
 Com autorização explícita do dono, o canal de **"Reportar problema"** foi **aberto a participantes**.
