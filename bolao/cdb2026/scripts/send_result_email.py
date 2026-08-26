@@ -812,6 +812,16 @@ def _send_to_all(state, html, subject, ledger_ref=None, ledger=None):
         except Exception as ex:
             errors.append(f"{addr}: {ex}")
             print(f"  ERR → {addr}: {ex}")
+            # Falha de provedor tem de virar `FAILED` no ledger (#352). Sem isto a linha ficava em
+            # `pending`, indistinguivel de uma reserva que nunca chegou a tentar -- e o ambiguo e
+            # justamente o que trava uma recuperacao depois.
+            if reg is not None and ledger_ref is not None:
+                ref = _entry_ref_for(state, addr)
+                if ref and hasattr(reg, "mark_failed"):
+                    try:
+                        reg.mark_failed(ledger_ref[0], ledger_ref[1], ledger_ref[2], ref, str(ex))
+                    except Exception:  # noqa: BLE001 — o ledger nunca bloqueia o envio
+                        pass
     return sent, errors
 
 
