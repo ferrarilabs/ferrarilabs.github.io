@@ -1,0 +1,99 @@
+# Recuperação de UMA notificação de resultado perdida — alvo EXPLÍCITO (#347).
+#
+# Não é um remetente de uso geral e não substitui o `cdb2026_result_emails.yml`. Existe para um
+# caso só: uma perna cujo resultado JÁ está gravado em produção e cuja notificação comprovadamente
+# não saiu. Fase, confronto, perna e placar esperado são digitados por quem dispara — nada é
+# inferido, nada tem default, e não há fallback para "a última perna".
+#
+# `preflight` é SOMENTE LEITURA e é o padrão. Ele não alcança o provedor de e-mail em hipótese
+# alguma: `BOLAO_ALLOW_REAL_SEND` só é declarada no passo de envio, e sem ela o `send_email()` do
+# remetente falha fechado. Isso não é disciplina de quem escreve o comando — é a estrutura do job.
+name: CDB2026 — recuperar e-mail de resultado (alvo explícito)
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase_id:
+        description: "fase (ex.: quartas)"
+        required: true
+        type: string
+      tie_id:
+        description: "confronto (tieId exato)"
+        required: true
+        type: string
+      leg:
+        description: "perna"
+        required: true
+        type: choice
+        options: [first, second]
+      expect_result:
+        description: "placar JÁ gravado, no formato golsCasa-golsFora (ex.: 1-1). Divergência recusa."
+        required: true
+        type: string
+      acao:
+        description: "preflight (só leitura) ou send (envio real, exige o alvo em READY)"
+        required: true
+        default: preflight
+        type: choice
+        options: [preflight, send]
+
+permissions:
+  contents: read
+
+# Mesmo grupo do remetente automático: uma recuperação nunca corre junto de um envio de resultado.
+concurrency:
+  group: cdb2026-result-emails
+  cancel-in-progress: false
+
+jobs:
+  recuperar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ── SOMENTE LEITURA ──────────────────────────────────────────────────────────────────────
+      # Sem `BOLAO_ALLOW_REAL_SEND`. O provedor é inalcançável a partir daqui, por construção.
+      - name: Preflight (read-only)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: bolao/cdb2026/scripts
+        run: |
+          python3 recover_result_email.py \
+            --phase "${{ inputs.phase_id }}" \
+            --tie "${{ inputs.tie_id }}" \
+            --leg "${{ inputs.leg }}" \
+            --expect "${{ inputs.expect_result }}" \
+            --preflight
+
+      # ── ENVIO REAL ───────────────────────────────────────────────────────────────────────────
+      # Só roda com `acao: send` escolhido à mão. O script REFAZ o preflight e recusa se o alvo não
+      # estiver em READY_FOR_EXPLICIT_RECOVERY — a decisão não é herdada do passo anterior, porque
+      # entre um passo e outro o estado pode ter mudado.
+      - name: Enviar (uma vez, alvo explícito)
+        if: ${{ inputs.acao == 'send' }}
+        env:
+          BOLAO_ALLOW_REAL_SEND: "I UNDERSTAND"
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: bolao/cdb2026/scripts
+        run: |
+          python3 recover_result_email.py \
+            --phase "${{ inputs.phase_id }}" \
+            --tie "${{ inputs.tie_id }}" \
+            --leg "${{ inputs.leg }}" \
+            --expect "${{ inputs.expect_result }}" \
+            --send
+
+      # O vigia decide sozinho, lendo o ledger. Nada aqui escreve estado de vigilância à mão: se a
+      # entrega aconteceu, ele vira HEALTHY porque existe evidência — não porque alguém o silenciou.
+      - name: Vigia (read-only, após o envio)
+        if: ${{ inputs.acao == 'send' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: bolao/cdb2026/scripts
+        continue-on-error: true
+        run: python3 detect_missed_result_emails.py
