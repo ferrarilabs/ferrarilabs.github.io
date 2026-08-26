@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-08-26T02:23:14Z",
-  "sourceUpdatedAt": "2026-08-26T02:23:14Z",
+  "generatedAt": "2026-08-26T03:32:09Z",
+  "sourceUpdatedAt": "2026-08-26T03:32:09Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "799a9afdb3187f969610455ad03a0ace658be3315ad8594e851466b0f28d8cab",
+  "payloadHash": "7d0f8c5549e21a6a224a24b2fda20d37323656e4660ca619aa60bb32361285a9",
   "matches": [
     {
       "id": "401858546",
@@ -12482,26 +12482,122 @@
     {
       "id": "401909066",
       "date": "2026-08-26T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Cruzeiro",
       "awayTeam": "Atlético-MG",
       "homeTeamId": "2022",
       "awayTeamId": "7632",
-      "homeScore": 0,
-      "awayScore": 0,
+      "homeScore": 1,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Estadio Mineirão",
       "city": "Belo Horizonte",
-      "clockSec": 2700.0,
-      "clockStr": "45'+4'",
-      "period": 1,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 2740.0,
+            "displayValue": "46'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alan Franco",
+              "shortName": "A. Franco"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3223.0,
+            "displayValue": "54'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tomás Cuello",
+              "shortName": "T. Cuello"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3271.0,
+            "displayValue": "55'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Pereira",
+              "shortName": "M. Pereira"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3562.0,
+            "displayValue": "60'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Keny Arroyo",
+              "shortName": "K. Arroyo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 4144.0,
+            "displayValue": "70'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Renan Lodi",
+              "shortName": "R. Lodi"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401909065",
