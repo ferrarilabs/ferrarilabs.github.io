@@ -6,6 +6,22 @@ outros três bolões.
 
 ---
 
+## 2026-08-25 — Issue #321: corrigir a fiação do `config.js` (o botão não aparecia)
+
+A leitura de produção da ativação achou o que nenhum gate via: a flag estava `true` no
+`js/config.js`, o `index.html` declarava `data-report-config="POWERBALL_CONFIG"` — e a página
+**nunca carregava o `js/config.js`**. O global não existia, a UI falhava fechada (comportamento
+correto) e o botão simplesmente não aparecia neste app.
+
+Os outros dois apps carregam o `config.js` no `<head>` desde sempre; só o Powerball não carregava.
+
+Uma flag num arquivo que ninguém carrega não é uma flag — é um comentário caro. O gate passou a
+exigir que, para cada app ativo, a página **carregue** o `config.js` e que a âncora resolva um
+global que o `config.js` de fato define. Provado por controle negativo: sem a linha, o gate reprova.
+
+Sem efeito colateral: este app não carrega EmailJS, então o `emailjs.init()` guardado do `config.js`
+continua sendo pulado.
+
 ## 2026-08-25 — Issue #321: canal de reporte ABERTO ao público
 
 Com autorização explícita do dono, o canal de **"Reportar problema"** foi **aberto a participantes**.
