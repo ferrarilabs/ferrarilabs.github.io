@@ -120,6 +120,28 @@ test("o interruptor versionado bate com o estado de rollout declarado", () => {
      `rollout declarado = ${ROLLOUT.state}, entao o interruptor versionado tem de ser "${ESPERADO_NO_INTERRUPTOR}"`);
 });
 
+test("o config de cada app ativo e REALMENTE carregado pela pagina, e a ancora resolve o global", () => {
+  // A leitura de producao da ativacao (#321) achou o buraco que nenhum gate via: no Powerball a
+  // flag estava `true` no `config.js`, o `index.html` declarava
+  // `data-report-config="POWERBALL_CONFIG"` -- e a pagina NUNCA carregava o `config.js`. O global
+  // nao existia, a UI falhava fechada, e todo gate ficava verde porque todos liam o ARQUIVO.
+  //
+  // Uma flag num arquivo que ninguem carrega nao e uma flag: e um comentario caro.
+  for (const rel of ROLLOUT.apps_ativos || []) {
+    const dir = rel.replace(/\/js\/config\.js$/, "");
+    const html = readFileSync(join(RAIZ, `${dir}/index.html`), "utf-8");
+
+    ok(/<script[^>]+src="js\/config\.js/.test(html),
+       `${dir}/index.html nao carrega js/config.js — a flag do report nunca chega ao navegador`);
+
+    const ancora = html.match(/data-report-config="([^"]+)"/);
+    ok(ancora, `${dir}/index.html nao tem ponto de montagem do report`);
+    const global = ancora[1];
+    ok(new RegExp(`window\\.${global}\\s*=`).test(readFileSync(join(RAIZ, rel), "utf-8")),
+       `${dir}: a ancora pede \`${global}\`, mas o config.js nao define esse global`);
+  }
+});
+
 test("os tres apps ativos concordam com o estado de rollout — nada de meia ativacao", () => {
   // Isto NAO existia antes: nada conferia se servidor e clientes contavam a mesma historia. Um app
   // esquecido em `false` numa ativacao (ou em `true` num rollback) e a falha silenciosa mais
