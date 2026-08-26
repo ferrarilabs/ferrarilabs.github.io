@@ -128,6 +128,9 @@
     "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_recover_result_email.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_result_email_auto_flow.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
