@@ -64,9 +64,13 @@ if ('serviceWorker' in navigator) {
   <div class="bolao-switcher">
     <div class="pb-select" id="pbDrawCombo"></div>
   </div>
-  <a class="whatsapp-btn js-share-whatsapp" href="#" target="_blank" rel="noopener noreferrer" aria-label="Compartilhar no WhatsApp">
-    <img src="assets/whatsapp.svg" alt="" width="18" height="18"> <span>WhatsApp</span>
-  </a>
+  <div class="support-actions" role="group" aria-label="Suporte">
+    <a class="support-action whatsapp-btn js-share-whatsapp" href="#" target="_blank" rel="noopener noreferrer" aria-label="Compartilhar no WhatsApp">
+      <img src="assets/whatsapp.svg" alt="" aria-hidden="true" width="18" height="18"> <span>WhatsApp</span>
+    </a>
+    <!-- A ancora fica vazia quando reportProblem.enabled=false; nenhum controle ou listener nasce. -->
+    <span data-report-mount data-report-app="powerball" data-report-config="POWERBALL_CONFIG"></span>
+  </div>
 </header>
 
 <main id="conteudo">
@@ -201,10 +205,6 @@ if ('serviceWorker' in navigator) {
 <script src="../../shared/js/report_safe_context.js"></script>
 <script src="../../shared/js/report_ui.js"></script>
 <script src="js/app.js?v=b2606d23"></script>
-
-<!-- "Reportar problema" (#321). Fica VAZIO ate reportProblem.enabled = true no config:
-     sem backend aceito, um botao visivel seria um botao morto. -->
-<div data-report-mount data-report-app="powerball" data-report-config="POWERBALL_CONFIG"></div>
 
 </body>
 </html>

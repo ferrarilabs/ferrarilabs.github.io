@@ -2376,3 +2376,27 @@ navegador com a página em cache continua conseguindo `POST`ar depois de a URL s
 genérico e CORS continua 204/403 sem criar Issue. A Edge Function Supabase legada foi removida só
 depois dessa aceitação e da confirmação do escopo da integração. A Copa permanece
 `INTENTIONALLY_DIFFERENT`; nenhum arquivo de UI/scoring dos quatro apps mudou nesta etapa.
+
+---
+
+## Hierarquia das ações de suporte — Issue #321 (2026-08-26)
+
+**Status: `CONSISTENT`** nos três apps ativos · **`INTENTIONALLY_DIFFERENT`** na Copa arquivada.
+
+| Item | CDB2026 | BR2026 | Powerball | Copa2026 |
+|---|---|---|---|---|
+| WhatsApp + reporte no mesmo `.support-actions` do cabeçalho | sim | sim | sim | não (arquivado) |
+| `Reportar problema` imediatamente depois do WhatsApp no DOM | sim | sim | sim | não (arquivado) |
+| base dimensional compartilhada `.support-action` | sim | sim | sim | não carrega o componente |
+| par equilibrado em 320 px, sem overflow horizontal | sim | sim | sim | não aplicável |
+| Admin fora da navegação primária, em utilitário secundário | sim | sim | não há Admin no navegador | arquivado |
+
+O `!` circular do reporte é decorativo (`aria-hidden="true"`), porque o texto localizado já dá o
+nome acessível. O gatilho continua sendo `button`, WhatsApp continua sendo `a`, e a ordem de foco
+segue a ordem do DOM: WhatsApp → Reportar problema; o Admin permanece um botão alcançável por
+teclado no fim da página, nunca escondido por hover. A regra de montagem não mudou: com
+`reportProblem.enabled !== true`, a âncora fica vazia e `:empty` a remove do layout; com a flag
+ligada, o gatilho nasce exatamente no segundo slot do grupo.
+
+Esta é uma mudança exclusivamente de hierarquia visual. Nenhuma regra do modal, payload, Worker,
+GitHub App, Cloudflare, Supabase, scoring, ranking, pagamentos ou autorização de Admin mudou.

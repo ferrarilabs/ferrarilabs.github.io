@@ -283,9 +283,11 @@ já é o componente correto, só não foi propagado.
   padding: 10px 18px;
 }
 ```
-Idêntico nos três apps, incluindo o grid responsivo (`brand | whatsapp | lang-links |
-switcher` na linha 1, `nav` full-width na linha 2, `min-width:901px`). **Status:** consistente
-✅ — inclusive depois desta sessão, quando o botão WhatsApp foi propagado para os três.
+Idêntico nos três apps, incluindo o grid responsivo (`brand | support-actions | lang-links |
+switcher` na linha 1, `nav` full-width na linha 2, `min-width:901px`). `.support-actions` contém
+WhatsApp seguido de `Reportar problema`; os dois reutilizam a base `.support-action`. Em até
+900 px, o par ganha uma linha própria e divide a largura em duas metades equilibradas. **Status:**
+consistente ✅ nos três apps ativos; Copa2026 arquivada não monta o canal de reporte.
 
 Única diferença real: número de itens no `.nav` (Copa 8, BR2026 9, CDB2026 7) — consequência
 direta do número de seções de cada app, não um bug.
@@ -433,7 +435,7 @@ ausência.
 | Símbolo do time (não-Copa) | Jogos, palpites, ranking | ✅ Sim, desde v1.15/v2.1 (escudo real ESPN, mesmas classes) — Copa usa bandeira, intencionalmente diferente | Nenhuma pendente | — |
 | Tabela (`.rules-table`) | Seção Regras, todos os apps | ✅ Resolvido v4.126 — padding `7px 10px` nos três | Nenhuma | — |
 | Tokens de cor (`--gold`, `--red`) | CSS `:root`, todos os apps | ⚠️ Parcial v4.126 — tokens existem nos três, `--red` da Copa (`#ff6b6b`) difere do valor de BR2026/CDB2026 (`#f87171`), não unificado (mudaria cor em produção) | Decidir valor único numa mudança visual deliberada, fora do escopo de patch mínimo | Low |
-| WhatsApp button | Header, todos os apps | ✅ Sim, desde v1.14/v1.15/v2.1 (byte-a-byte igual, mesmo grupo) | Nenhuma | — |
+| Support actions (WhatsApp + Reportar problema) | Header, três apps ativos | ✅ Sim — mesma base `.support-action`, ordem e resposta a 320 px | Copa2026 não monta reporte porque está arquivada | — |
 | Admin toolbar (componente CSS) | Seção Admin | ✅ Sim (CSS idêntico) — densidade de conteúdo diverge (feature gap, não bug de componente) | Ver `CONSISTENCY_MATRIX.md` item 6 | Medium (feature, não UI) |
 | Modal/Dialog | Nenhum app tem | — (ausência consistente) | Nenhuma ação — não é uma lacuna crítica dado o uso de `confirm()` nativo | — |
 | Loading/Skeleton | Nenhum app tem de verdade | — (ausência consistente, exceto 1 string solta no BR2026) | Se for investir, adicionar um spinner simples nos três ao mesmo tempo | Low |

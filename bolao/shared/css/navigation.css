@@ -42,12 +42,55 @@
    qualquer app pode querer o h1 na marca, e a identidade do componente fica num lugar só. */
 .brand h1 { margin: 0; font: inherit; }
 
+.support-actions {
+  display: inline-flex;
+  align-items: stretch;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+.support-actions > .support-action,
+.support-actions > [data-report-mount] {
+  flex: 1 1 9.25rem;
+  min-width: 0;
+}
+.support-actions > [data-report-mount] { display: flex; }
+.support-actions > [data-report-mount]:empty { display: none; }
+
+.support-action {
+  display: inline-flex;
+  gap: var(--space-2);
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  padding: 8px 13px;
+  font-weight: var(--font-weight-black);
+  font-size: 13px;
+  white-space: nowrap;
+}
+/* Largura so DENTRO do grupo: solta, ela esticaria um botao de compartilhar dentro de um card.
+   O gatilho do report nao e filho direto -- ele nasce dentro da ancora `[data-report-mount]` --
+   entao o segundo seletor e necessario para o par ficar equilibrado abaixo de 768px. */
+.support-actions > .support-action,
+.support-actions > [data-report-mount] > .support-action { width: 100%; }
+/* `.whatsapp-btn` continua AUTOSSUFICIENTE de proposito (#321).
+ *
+ * A primeira versao desta refatoracao moveu as dimensoes para `.support-action` e deixou
+ * `.whatsapp-btn` so com as cores. Isso quebrou os botoes que NAO estao no grupo de suporte e que
+ * ninguem ia pensar em olhar: o WhatsApp da copa2026 (arquivada, referencia visual canonica) e os
+ * botoes de compartilhar dentro de card. Eles perderam padding, raio, peso e altura -- o gate de
+ * consistencia visual pegou, com `padding: 0px` e `borderRadius: 0px` na copa2026.
+ *
+ * Entao a regra completa fica aqui, como sempre esteve, e `.support-action` apenas ACRESCENTA por
+ * cima (altura minima, largura no grupo) para os que participam do par de suporte. Um botao com
+ * so uma das duas classes continua correto sozinho. */
 .whatsapp-btn {
   display: inline-flex;
   gap: var(--space-2);
   align-items: center;
   background: #25D366;
   color: #000;
+  border: 1px solid transparent;
   text-decoration: none;
   border-radius: var(--radius-pill);
   padding: 8px 13px;
