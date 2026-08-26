@@ -3,19 +3,5 @@
   "_howto": "Uma mudanca COMUM nao declara nada e `declarations` fica vazia — e o estado normal. Ela so ganha entrada quando uma superficie DECLARE_TO_CHANGE muda de proposito.",
   "_ciclo_de_vida": "Isto se aplica a declaracoes `lifecycle: \"one_shot\"` (o padrao quando `lifecycle` esta ausente — todas as declaracoes historicas ate 2026-08-18 sao deste tipo). A declaracao acompanha a mudanca ENQUANTO ELA E A MUDANCA CORRENTE — do commit local ate o push, e na execucao de CI desse push (que compara contra `github.event.before`, o topo de main antes do push). Quando a proxima mudanca chegar, a base andara para alem destes commits, os caminhos sumirao do diff e a declaracao ficara OBSOLETA: o check D3 exige que seja removida entao.",
   "_ciclo_de_vida_conditional": "Uma declaracao `lifecycle: \"conditional\"` (ADR-018, desde 2026-08-18) NAO descreve uma mudanca ja feita — descreve um ESTADO que precisa continuar valendo ate uma condicao futura ser satisfeita (ex.: 'este workflow deve continuar desarmado ate a causa raiz de um incidente ser confirmada'). Por isso ela e ISENTA da autolimpeza por diff do D3 — um commit nao relacionado avancando a base nao prova que a obrigacao acabou. Em troca, exige `condition_id` (string estavel), `related_issue` (Issue numerica real) e `exit_conditions` (array com pelo menos uma entrada MACHINE_VERIFIABLE cujo `check` resolve para um invariante REAL, implementado em scripts/safety/surfaces.mjs's makeInvariantChecks — nunca so prosa). Esse invariante e ativamente reavaliado contra o estado ATUAL a cada execucao de D3; se ele deixar de valer, D3 reprova imediatamente, com a mesma severidade de uma declaracao one_shot obsoleta. Limpar uma declaracao conditional continua sendo um ato humano explicito — D3 nunca a remove sozinho, mesmo que toda exit_condition pareca satisfeita.",
-  "declarations": [
-    {
-      "surface_id": "EDGE_FUNCTIONS",
-      "reason": "Issue #321 — ATIVACAO PUBLICA autorizada explicitamente pelo dono em 2026-08-25. O interruptor versionado do Worker de reporte (`workers/user-report-intake/wrangler.jsonc`) passa de \"false\" para \"true\", para que o repositorio diga a verdade sobre o estado de producao em vez de divergir dele. O servidor foi ligado e verificado ANTES de qualquer UI existir; as flags de cliente vao no mesmo PR. Pre-condicoes cumpridas: aceitacao sintetica de producao aprovada, #339 (log de excecao por allowlist) resolvida, #334 (corrida do harness) resolvida, e os quatro portoes OWNER atestados em bolao/shared/safety/report_rollout.json.",
-      "expected_behavior_change": "O canal de reporte passa a ACEITAR requisicoes de participantes reais nas tres origens permitidas. Antes: todo POST morria em 503 UNAVAILABLE antes de tocar qualquer dependencia. Depois: um relato valido cria UMA Issue no repositorio PRIVADO ferrarilabs/support-intake. Nao muda: bindings (sem Supabase/D1/Hyperdrive), escopo da GitHub App, segredos, allowlist de CORS, schema aceito, limites de abuso, idempotencia, taxonomia de log, nem o destino privado verificado em runtime. NENHUM efeito sobre pagamento, scoring, ranking ou dado de participante — o runtime de reporte nao tem credencial nem caminho para nenhum deles. Rollback: REPORT_INTAKE_ENABLED=false no servidor, que continua sendo a primeira acao e ja foi exercitada de verdade.",
-      "tests_required": [
-        "scripts/report/test_worker_isolation.mjs",
-        "scripts/report/test_worker_intake.mjs",
-        "scripts/report/test_report_intake.mjs",
-        "scripts/report/test_report_ui.mjs",
-        "scripts/report/test_report_security_ratchets.mjs",
-        "scripts/report/test_docs_drift.mjs"
-      ]
-    }
-  ]
+  "declarations": []
 }
