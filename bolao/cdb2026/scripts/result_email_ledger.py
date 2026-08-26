@@ -71,6 +71,24 @@ def entity_id(phase_id: str, tie_id: str, leg: str) -> str:
     return f"{phase_id}:{tie_id}:{leg}"
 
 
+def entity_from_key(chave: str) -> str:
+    """Extrai `fase:confronto:perna` de uma chave de idempotência deste pool.
+
+    Existe porque `bolao_notif_status_by_pool` devolve APENAS `(idempotency_key, status)` — não há
+    coluna `entity_id`. O leitor daqui pedia `r["entity_id"]`, recebia `None` para toda linha e
+    devolvia sempre um conjunto vazio: nenhuma entrega jamais era reconhecida, então o vigia não
+    tinha como reportar `HEALTHY` nem com o ledger perfeito. Terceiro defeito da Issue #352, da
+    mesma família dos outros dois — o adaptador conversando com uma RPC que ele não leu.
+
+    A chave já carrega a identidade: `<pool>:<evento>:<fase>:<confronto>:<perna>:<entry_ref>`.
+    """
+    prefixo = f"{POOL_ID}:{EVENT_TYPE}:"
+    if not chave.startswith(prefixo):
+        return ""
+    partes = chave[len(prefixo):].split(":")
+    return ":".join(partes[:3]) if len(partes) >= 4 else ""
+
+
 def idempotency_key(phase_id: str, tie_id: str, leg: str, entry_ref: str) -> str:
     """Uma linha por (perna, destinatário) — o grão que `bolao_notif_jobs` já usa no BR2026."""
     return f"{POOL_ID}:{EVENT_TYPE}:{entity_id(phase_id, tie_id, leg)}:{entry_ref}"
@@ -102,6 +120,7 @@ class SupabaseResultEmailLedger:
     def __init__(self, rpc=_rpc, log=print):
         self._rpc = rpc
         self._log = log
+        self._job_ids = {}      # idempotency_key -> job_id (uuid), preenchido pelo `reserve()`
 
     # ── escrita (fail-open, sempre) ──────────────────────────────────────────────────────────
     def reserve(self, phase_id, tie_id, leg, recipients, payload=None) -> dict:
@@ -110,19 +129,30 @@ class SupabaseResultEmailLedger:
         for entry_ref in recipients:
             key = idempotency_key(phase_id, tie_id, leg, entry_ref)
             try:
-                self._rpc("enqueue_bolao_notif", {
+                # `recipients` NAO e enfeite: `set_bolao_notif_recipient` atualiza a disposicao
+                # DENTRO deste array, e `settle_bolao_notif` deriva o status do job contando
+                # ACCEPTED sobre o total. Sem o array, o settle veria `total = 0` e concluiria
+                # "nenhum destinatario aceito" -- job eternamente `failed_retryable`, entrega real
+                # nenhuma vez registrada. E a forma canonica que o Powerball ja usa.
+                corpo = dict(payload or {})
+                corpo["recipients"] = [{"entryRef": entry_ref, "state": "PENDING"}]
+                job_id = self._rpc("enqueue_bolao_notif", {
                     "p_pool_id": POOL_ID,
                     "p_entity_id": entity_id(phase_id, tie_id, leg),
                     "p_event_type": EVENT_TYPE,
                     "p_event_version": 1,
                     "p_entry_ref": entry_ref,
                     "p_idempotency_key": key,
-                    "p_payload": payload or {},
+                    "p_payload": corpo,
                     "p_template_id": TEMPLATE_ID,
                     "p_template_version": 1,
                     "p_max_attempts": 1,
                     "p_schema_version": SCHEMA_VERSION,
                 })
+                # O UUID devolvido e a identidade canonica do job. Guardar era o que faltava:
+                # `mark_sent()` chegava a `mark_bolao_notif_sent` sem ele e passava um hash de
+                # conteudo no lugar.
+                self._job_ids[key] = job_id
                 criadas.append(key)
             except Exception as ex:  # noqa: BLE001 — fail-open é o contrato deste módulo
                 falhas.append(f"{entry_ref}: {ex}")
@@ -132,20 +162,66 @@ class SupabaseResultEmailLedger:
         return {"reserved": criadas, "failed": falhas}
 
     def mark_sent(self, phase_id, tie_id, leg, entry_ref, provider_message_id=None) -> bool:
+        """Registra a entrega pelo caminho CANÔNICO — o mesmo que o Powerball usa.
+
+        ─── O QUE ESTAVA ERRADO AQUI (Issue #352) ───────────────────────────────────────────────
+
+        Isto chamava `mark_bolao_notif_sent(p_job_id=...)` passando o retorno de
+        `get_bolao_notif_content_hash`, que é o `contentHash` (texto) e não o UUID do job. E ainda
+        que o UUID estivesse certo, aquela RPC só atualiza linha em `status = 'processing'`,
+        enquanto `enqueue` cria em `'pending'` — o `update` casava zero linhas.
+
+        Pior que errar: errar em silêncio. O `try` devolvia `True` porque a chamada não levantou,
+        então o remetente registrava "entrega marcada" para uma linha que nunca saiu de `pending`.
+        Foi exatamente isso em 2026-08-26: 12 e-mails entregues, 12 linhas `pending`, zero `sent`,
+        e o vigia acusando `GAP` de uma notificação que o participante tinha recebido.
+
+        ─── O CAMINHO CERTO ─────────────────────────────────────────────────────────────────────
+
+        `set_bolao_notif_recipient` grava a disposição do destinatário e **levanta** quando não casa
+        job nenhum (a própria migração comenta que 0 linhas não é sucesso silencioso). Depois,
+        `settle_bolao_notif` deriva o status do job: só vira `sent` quando TODOS os destinatários
+        estão `ACCEPTED`; parcial vira `failed_retryable` e qualquer `UNCERTAIN` trava para revisão.
+
+        Devolve `True` somente quando o banco CONFIRMA `sent`. Nunca porque a chamada não levantou.
+        """
+        chave = idempotency_key(phase_id, tie_id, leg, entry_ref)
         try:
-            self._rpc("mark_bolao_notif_sent", {
-                "p_job_id": self._job_id(phase_id, tie_id, leg, entry_ref),
-                "p_provider_message_id": str(provider_message_id or ""),
+            self._rpc("set_bolao_notif_recipient", {
+                "p_idempotency_key": chave, "p_entry_ref": entry_ref,
+                "p_state": "ACCEPTED",
+                "p_provider_message_id": str(provider_message_id or ""), "p_error": None,
             })
+            r = self._rpc("settle_bolao_notif", {"p_idempotency_key": chave})
+            linha = (r[0] if isinstance(r, list) and r else (r or {})) or {}
+            status = (linha.get("status") or "").lower()
+            if status != "sent":
+                self._log(f"  LEDGER_DEGRADED mark_sent {entry_ref}: o job liquidou como "
+                          f"`{status or 'desconhecido'}`, não `sent` — o e-mail JÁ FOI enviado; "
+                          f"só o registro não fechou.")
+                return False
             return True
         except Exception as ex:  # noqa: BLE001
             self._log(f"  LEDGER_DEGRADED mark_sent {entry_ref}: {ex} — o e-mail JÁ FOI enviado; só o registro falhou.")
             return False
 
-    def _job_id(self, phase_id, tie_id, leg, entry_ref):
-        rec = self._rpc("get_bolao_notif_content_hash", {
-            "p_idempotency_key": idempotency_key(phase_id, tie_id, leg, entry_ref)})
-        return rec
+    def mark_failed(self, phase_id, tie_id, leg, entry_ref, erro="") -> bool:
+        """Provedor recusou: a disposição vira `FAILED` e o job liquida como falha recuperável.
+
+        Sem isto, uma falha de provedor deixava a linha em `pending` — indistinguível de uma
+        reserva que nunca chegou a tentar, que é o estado ambíguo que bloqueia recuperação depois.
+        """
+        chave = idempotency_key(phase_id, tie_id, leg, entry_ref)
+        try:
+            self._rpc("set_bolao_notif_recipient", {
+                "p_idempotency_key": chave, "p_entry_ref": entry_ref,
+                "p_state": "FAILED", "p_provider_message_id": None, "p_error": str(erro or "")[:120],
+            })
+            self._rpc("settle_bolao_notif", {"p_idempotency_key": chave})
+            return True
+        except Exception as ex:  # noqa: BLE001
+            self._log(f"  LEDGER_DEGRADED mark_failed {entry_ref}: {ex}")
+            return False
 
     # ── leitura (levanta, para o detector poder dizer UNKNOWN) ───────────────────────────────
     def delivered_entity_ids(self, since_iso: str) -> set[str]:
@@ -158,7 +234,7 @@ class SupabaseResultEmailLedger:
         for r in rows:
             if (r.get("status") or "").lower() != "sent":
                 continue
-            ent = r.get("entity_id") or ""
+            ent = entity_from_key(r.get("idempotency_key") or "")
             if ent:
                 out.add(ent)
         return out
