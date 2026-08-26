@@ -97,9 +97,10 @@ def classificar_ledger(linhas, prefixo):
 def montar_assunto(S, tie, leg, gh, ga):
     """O MESMO assunto que o `--auto` teria produzido para esta perna.
 
-    Não é o do modo padrão: aquele é `⚽ Resultado Parcial — A × B`, sem placar. Entregar a
-    recuperação com um assunto diferente do que a notificação original teria trazido faria o
-    participante receber outra coisa. `test_recover_result_email.py` prende os dois juntos.
+    Não é o do modo padrão: aquele passa pela política de assunto, ganha o ícone de futebol e
+    NÃO traz o placar. Entregar a recuperação com um assunto diferente do que a notificação
+    original teria trazido faria o participante receber outra coisa; `test_recover_result_email.py`
+    prende os dois juntos comparando as duas construções.
     """
     home = tie["teamB"] if leg == "second" else tie["teamA"]
     away = tie["teamA"] if leg == "second" else tie["teamB"]
