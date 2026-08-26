@@ -62,10 +62,25 @@ ALREADY = "ALREADY_DELIVERED"
 UNCERTAIN = "UNCERTAIN"
 NOT_READY = "NOT_READY"
 
-# `sent` é entrega. `pending`/`failed_retryable` são "ainda não entregue" — recuperáveis.
-# Todo o resto é AMBÍGUO de propósito: `processing` pode estar em voo agora; `failed_permanent` e
-# `suppressed` são decisões que alguém tomou e que esta ferramenta não pode reverter sozinha.
+# `sent` é entrega registrada.
+#
+# TUDO O MAIS É AMBÍGUO, inclusive `pending` — e isso foi aprendido caro, na recuperação de
+# 2026-08-26. `reserve()` cria as linhas ANTES de chamar o provedor, então uma linha `pending` não
+# significa "não foi entregue": significa "reservada, e não sei o que aconteceu depois". Naquela
+# execução os 12 e-mails saíram (o provedor devolveu OK para todos) e as 12 linhas ficaram em
+# `pending`, porque `mark_sent()` não consegue marcar nada (ver a Issue de `bolao_notif_jobs`:
+# passa hash de conteúdo onde a RPC quer o UUID do job, e a RPC só atualiza linha em `processing`).
+#
+# Se `pending` contasse como recuperável, a execução seguinte reenviaria para os mesmos 12. É
+# exatamente a duplicata da #221, montada de novo por outro caminho. Então `pending` BLOQUEIA.
+#
+# O custo é real e aceito: uma reserva órfã de uma tentativa que de fato nunca enviou também
+# bloqueia, e destravá-la exige decisão humana explícita. Bloquear a mais é recuperável; entregar
+# duas vezes ao participante não é.
 _SENT = {"sent"}
+# Continuam num balde PROPRIO para a contagem do preflight ficar legivel (`LEDGER_PENDING_COUNT`
+# diz quantas reservas existem). Legivel, mas nao permissivo: quem decide e o status abaixo, e
+# qualquer linha neste balde BLOQUEIA.
 _PENDENTE = {"pending", "failed_retryable"}
 
 
@@ -171,9 +186,10 @@ def preflight(S, phase_id, tie_id, leg, esperado, ledger=None, state=None):
     faltando = [r for r in refs if r not in sent]
     ev["WOULD_SEND_COUNT"] = len(faltando)
 
-    if incerto:
+    if incerto or pend:
         ev["TARGET_STATUS"] = UNCERTAIN
-        ev["MOTIVO"] = "ha linhas de ledger em estado ambiguo para este alvo"
+        ev["MOTIVO"] = ("ha linhas de ledger para este alvo em estado nao conclusivo — reserva sem "
+                        "confirmacao NAO prova ausencia de entrega")
     elif sent:
         ev["TARGET_STATUS"] = ALREADY
         ev["MOTIVO"] = "ja existe entrega registrada para este alvo"
