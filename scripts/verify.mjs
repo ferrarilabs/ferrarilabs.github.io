@@ -234,6 +234,8 @@ const CHECKS = [
   // Issue #180 — o ledger duravel do e-mail de resultado do CDB2026 e o detector de lacuna.
   // O caso que mais importa nao e achar a lacuna: e NAO transformar uma queda de banco numa
   // acusacao de e-mail perdido, e nunca deixar o ledger bloquear um envio legitimo.
+  { id: "cdb-result-email-ledger-lifecycle", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_result_email_ledger_lifecycle.py"],
+    why: "Issue #352: o adaptador do ledger conversava com RPCs que ninguem tinha lido — passava content hash onde a RPC quer UUID, marcava entrega numa transicao que exige `processing`, e lia uma coluna `entity_id` que a RPC nao devolve. Os tres eram invisiveis porque o dublê antigo nao modelava restricao nenhuma. Este gate usa um dublê FIEL (tipo do id, transicao de estado, 0 linhas levanta) e prova cada defeito por mutacao isolada" },
   { id: "cdb-result-email-recovery", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_recover_result_email.py"],
     why: "a recuperacao entrega UMA notificacao perdida; o jeito dela causar dano nao e falhar, e acertar o alvo errado ou reenviar para quem ja recebeu (a classe da #221). Este gate prova que ela RECUSA em todo caso duvidoso — ledger ilegivel, linha ambigua, entrega parcial, confronto/perna invalidos, placar divergente — e que nao existe fallback para a ultima perna" },
   { id: "cdb-result-email-auto-flow", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_result_email_auto_flow.py"],

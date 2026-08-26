@@ -273,6 +273,11 @@ def main(argv=None):
             print(f"  OK entry_ref={ref}")      # nunca o endereco
         except Exception as ex:  # noqa: BLE001
             erros += 1
+            # Registra a falha (#352): `pending` orfao bloquearia qualquer recuperacao futura.
+            try:
+                reg.mark_failed(a.phase, a.tie, a.leg, ref, type(ex).__name__)
+            except Exception:  # noqa: BLE001
+                pass
             print(f"  ERR entry_ref={ref}: {type(ex).__name__}")
     print(f"\n  → enviados={enviados} erros={erros} de {len(refs)}")
     return 0 if erros == 0 else 1
