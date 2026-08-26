@@ -248,6 +248,16 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["cdb2026_result_email_recovery.yml",
+   "Recuperacao de UMA notificacao de resultado perdida, com alvo EXPLICITO (#347). NAO e agendada " +
+   "de proposito: nao existe ciclo aqui. Ela reenvia uma perna especifica cujo resultado JA esta " +
+   "gravado e cuja notificacao comprovadamente nao saiu -- um evento historico, unico, que so um " +
+   "humano identifica. Um cron nao teria alvo para escolher, e escolher sozinho e exatamente o que " +
+   "esta ferramenta existe para nao fazer: fase, confronto, perna e placar sao digitados por quem " +
+   "dispara, sem default e sem fallback. O padrao do formulario e `preflight`, que e somente " +
+   "leitura e nao declara BOLAO_ALLOW_REAL_SEND -- o caminho seguro e o que acontece quando " +
+   "ninguem pensa. Envio real exige escolher `send` a mao E o alvo estar em READY_FOR_EXPLICIT_" +
+   "RECOVERY, reavaliado no proprio passo de envio."],
   ["powerball_record_payment.yml",
    "Painel de administracao do Powerball (Issue #130, Opcao C). NAO e agendado porque nao e um " +
    "ciclo: e um operador humano registrando um pagamento que acabou de acontecer. Um cron aqui nao " +
