@@ -1,0 +1,40 @@
+# Ação ÚNICA de operador: entra os palpites das quartas do Gabriel Ferrari diretamente
+# (autorizado pelo Eduardo em 2026-08-26 — site mostrou versão antiga pra ele, e quando corrigiu
+# o prazo real já tinha passado). Não toca cutoffAt nem activePhase — nada muda visivelmente
+# no site. Só a entrada dele é escrita.
+name: CDB2026 — corrigir palpites do Gabriel (quartas, 2026-08-26)
+
+on:
+  workflow_dispatch:
+    inputs:
+      acao:
+        description: "dry-run (só leitura) ou apply"
+        required: true
+        default: dry-run
+        type: choice
+        options: [dry-run, apply]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cdb2026-operator
+  cancel-in-progress: false
+
+jobs:
+  rodar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - name: Executar
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          if [ "${{ inputs.acao }}" = "apply" ]; then
+            python3 bolao/cdb2026/scripts/fix_gabriel_quartas_picks_20260826.py --apply
+          else
+            python3 bolao/cdb2026/scripts/fix_gabriel_quartas_picks_20260826.py --dry-run
+          fi
