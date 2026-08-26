@@ -2376,3 +2376,47 @@ navegador com a página em cache continua conseguindo `POST`ar depois de a URL s
 genérico e CORS continua 204/403 sem criar Issue. A Edge Function Supabase legada foi removida só
 depois dessa aceitação e da confirmação do escopo da integração. A Copa permanece
 `INTENTIONALLY_DIFFERENT`; nenhum arquivo de UI/scoring dos quatro apps mudou nesta etapa.
+
+---
+
+## Hierarquia das ações de suporte — Issue #321 (2026-08-26)
+
+**Status: `CONSISTENT`** nos três apps ativos · **`INTENTIONALLY_DIFFERENT`** na Copa arquivada.
+
+| Item | CDB2026 | BR2026 | Powerball | Copa2026 |
+|---|---|---|---|---|
+| WhatsApp + reporte no mesmo `.support-actions` do cabeçalho | sim | sim | sim | não (arquivado) |
+| `Reportar problema` imediatamente depois do WhatsApp no DOM | sim | sim | sim | não (arquivado) |
+| base dimensional compartilhada `.support-action` | sim | sim | sim | não carrega o componente |
+| par equilibrado em 320 px, sem overflow horizontal | sim | sim | sim | não aplicável |
+| Admin fora da navegação primária, em utilitário secundário | sim | sim | não há Admin no navegador | arquivado |
+
+O `!` circular do reporte é decorativo (`aria-hidden="true"`), porque o texto localizado já dá o
+nome acessível. O gatilho continua sendo `button`, WhatsApp continua sendo `a`, e a ordem de foco
+segue a ordem do DOM: WhatsApp → Reportar problema; o Admin permanece um botão alcançável por
+teclado no fim da página, nunca escondido por hover. A regra de montagem não mudou: com
+`reportProblem.enabled !== true`, a âncora fica vazia e `:empty` a remove do layout; com a flag
+ligada, o gatilho nasce exatamente no segundo slot do grupo.
+
+### O botão do WhatsApp continua autossuficiente — `INTENTIONALLY_DIFFERENT` na Copa
+
+A primeira versão desta refatoração moveu as dimensões de `.whatsapp-btn` para `.support-action`.
+Isso quebrou, em silêncio, todo botão que **não** está no grupo de suporte: o WhatsApp da
+**Copa2026** (arquivada, referência visual canônica) e os botões de compartilhar dentro de card
+passaram a renderizar com `padding: 0px` e `borderRadius: 0px`.
+
+Quem pegou foi o gate de consistência visual, e é o caso de uso exato dele: uma mudança nos três
+apps ativos degradando um quarto app que ninguém estava olhando.
+
+A regra completa voltou para `.whatsapp-btn`; `.support-action` apenas **acrescenta** por cima
+(largura dentro do grupo). Consequência registrada: a Copa continua com o mesmo botão de sempre,
+sem `.support-action`, e isso é `INTENTIONALLY_DIFFERENT` — ela não participa do par de suporte
+porque não monta o canal de reporte.
+
+A altura do cabeçalho subiu 2 px nos **quatro** apps, uniformemente, por causa da borda
+transparente que iguala as caixas dos dois botões. Uniforme é o que importa: a relação ratificada
+(três bolões de futebol iguais entre si, Powerball mais baixo por ter menos conteúdo) continua
+valendo, e os valores fixados em `ALLOWLIST.json` foram refixados sem alargar escopo.
+
+Esta é uma mudança exclusivamente de hierarquia visual. Nenhuma regra do modal, payload, Worker,
+GitHub App, Cloudflare, Supabase, scoring, ranking, pagamentos ou autorização de Admin mudou.

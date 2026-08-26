@@ -91,6 +91,20 @@ test("os quatro idiomas existem", () => {
   eq(idiomas.length, 4, "nem mais nem menos que quatro");
 });
 
+test("o rotulo canonico do gatilho existe nos quatro idiomas", () => {
+  const { root } = carregar();
+  const U = root.BOLAO_REPORT_UI;
+  const esperados = {
+    "pt-BR": "Reportar problema",
+    "en-US": "Report a problem",
+    es: "Reportar un problema",
+    ja: "問題を報告",
+  };
+  for (const [idioma, rotulo] of Object.entries(esperados)) {
+    eq(U.textos(idioma).trigger, rotulo, `${idioma}.trigger`);
+  }
+});
+
 test("nenhum idioma tem chave faltando nem sobrando", () => {
   const { root } = carregar();
   const U = root.BOLAO_REPORT_UI;
@@ -178,7 +192,7 @@ test("sem o coletor de contexto seguro => nenhuma UI", () => {
 
 console.log("\nLigado — o caminho que so existe apos a aceitacao:");
 
-test("enabled = true monta UM gatilho, com rotulo traduzido", () => {
+test("enabled = true monta UM gatilho, com rotulo traduzido e icone decorativo", () => {
   const { root, doc } = carregar();
   const destino = doc.createElement("div");
   const r = root.BOLAO_REPORT_UI.montar({
@@ -190,7 +204,16 @@ test("enabled = true monta UM gatilho, com rotulo traduzido", () => {
   eq(destino.filhos.length, 1, "exatamente um no anexado");
   eq(destino.filhos[0].tagName, "BUTTON", "o gatilho e um <button>, nao um <div> clicavel");
   eq(destino.filhos[0].getAttribute("type"), "button", "type=button para nao submeter formulario");
-  eq(destino.filhos[0].textContent, root.BOLAO_REPORT_UI.textos("ja").trigger, "rotulo em japones");
+  ok(destino.filhos[0].getAttribute("class").split(/\s+/).includes("support-action"),
+     "gatilho precisa reutilizar a base dimensional do WhatsApp");
+  eq(destino.filhos[0].getAttribute("aria-label"), root.BOLAO_REPORT_UI.textos("ja").trigger,
+     "nome acessivel em japones");
+  const icone = destino.filhos[0].filhos.find((n) => n.getAttribute?.("class") === "report-trigger-icon");
+  const rotulo = destino.filhos[0].filhos.find((n) => n.getAttribute?.("class") === "report-trigger-label");
+  ok(icone, "icone de atencao presente");
+  eq(icone.getAttribute("aria-hidden"), "true", "icone adjacente ao texto precisa ser decorativo");
+  eq(icone.textContent, "!", "icone de atencao contido, sem emoji");
+  eq(rotulo?.textContent, root.BOLAO_REPORT_UI.textos("ja").trigger, "rotulo visivel em japones");
 });
 
 test("o gatilho responde a clique (tem listener registrado)", () => {
@@ -211,6 +234,44 @@ test("sem ponto de montagem no DOM, autoMontar nao faz nada", () => {
   root.BOLAO_REPORT_UI.autoMontar();  // nao pode lancar
   pass += 0;
 });
+
+console.log("\nAgrupamento de suporte nos tres apps ativos:");
+
+const APPS_ATIVOS = [
+  ["CDB2026", "bolao/cdb2026/index.html"],
+  ["BR2026", "bolao/br2026/index.html"],
+  ["Powerball", "bolao/loterias/powerball/index.html"],
+];
+
+for (const [nome, arquivo] of APPS_ATIVOS) {
+  test(`${nome}: Reportar problema fica no mesmo grupo e imediatamente depois do WhatsApp`, () => {
+    const html = readFileSync(join(RAIZ, arquivo), "utf8");
+    const grupos = html.match(/<div class="support-actions"[\s\S]*?<\/div>/g) || [];
+    eq(grupos.length, 1, "exatamente um grupo de suporte");
+    const grupo = grupos[0];
+    const wa = grupo.indexOf("whatsapp-btn");
+    const report = grupo.indexOf("data-report-mount");
+    ok(wa >= 0, "WhatsApp dentro do grupo");
+    ok(report > wa, "report imediatamente depois do WhatsApp no DOM");
+    eq((html.match(/data-report-mount/g) || []).length, 1, "uma unica ancora de report");
+    ok(html.indexOf('class="support-actions"') < html.indexOf("</header>"), "grupo fica no cabecalho");
+    ok(!html.slice(html.indexOf("</header>")).includes("data-report-mount"),
+       "nenhuma ancora antiga continua escondida depois do cabecalho");
+  });
+}
+
+for (const [nome, arquivo] of APPS_ATIVOS.slice(0, 2)) {
+  test(`${nome}: Admin saiu da navegacao primaria e continua disponivel como utilitario`, () => {
+    const html = readFileSync(join(RAIZ, arquivo), "utf8");
+    const nav = html.match(/<nav class="nav"[\s\S]*?<\/nav>/)?.[0] || "";
+    ok(nav, "navegacao primaria encontrada");
+    ok(!nav.includes('data-section="admin"'), "Admin nao pode manter peso de aba primaria");
+    ok(/class="admin-utility-link"[^>]+data-section="admin"/.test(html),
+       "Admin continua alcancavel pelo mesmo data-section");
+    ok(/class="admin-utility-link"[^>]+type="button"|type="button"[^>]+class="admin-utility-link"/.test(html),
+       "Admin continua sendo botao de teclado, sem hover-only");
+  });
+}
 
 test("o payload montado pela UI respeita a allowlist do coletor", () => {
   const { root } = carregar();

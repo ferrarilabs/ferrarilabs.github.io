@@ -15,11 +15,9 @@
      .live-standings-disclaimer) — kept local rather than added to
      shared/css/tokens.css since Copa has no equivalent use for it. */
   --yellow: #fde047;
-  /* Copa's canonical .nav has 6 always-visible tabs; BR2026 has 7
-     (adds "Tabela"). Overrides shared/css/tokens.css's default of 6 via
-     the --nav-cols-desktop custom property instead of forking the
-     shared .nav rule — see bolao/shared/css/responsive.css. */
-  --nav-cols-desktop: 7;
+  /* Six participant-facing tabs after Admin moved to the secondary footer utility,
+     including the tournament-specific "Tabela" tab. */
+  --nav-cols-desktop: 6;
 }
 
 /* ── Hero ── */

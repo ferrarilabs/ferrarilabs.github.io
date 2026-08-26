@@ -14,11 +14,8 @@
    CDB2026 is in production per CLAUDE.md — this migration is CSS-only,
    surgical, and reversible. */
 :root {
-  /* Desktop primary-tabs column count — CDB2026's real value (6) already
-     matches Copa's default in shared/css/tokens.css, but set explicitly
-     here per the same pattern BR2026 uses (--nav-cols-desktop: 7), so a
-     future tab added here doesn't silently inherit the wrong default. */
-  --nav-cols-desktop: 6;
+  /* Five participant-facing tabs after Admin moved to the secondary footer utility. */
+  --nav-cols-desktop: 5;
 }
 
 /* overflow-x: hidden sozinho ainda deixa o iOS fazer "rubber-band" horizontal (bounce) quando um

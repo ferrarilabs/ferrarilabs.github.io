@@ -336,7 +336,12 @@
       });
     }
 
-    var gatilho = el("button", { class: "report-trigger", type: "button", text: t.trigger });
+    var gatilho = el("button", {
+      class: "support-action report-trigger", type: "button", "aria-label": t.trigger,
+    }, [
+      el("span", { class: "report-trigger-icon", "aria-hidden": "true", text: "!" }),
+      el("span", { class: "report-trigger-label", text: t.trigger }),
+    ]);
     gatilho.addEventListener("click", abrir);
     if (o.destino) o.destino.appendChild(gatilho);
 
