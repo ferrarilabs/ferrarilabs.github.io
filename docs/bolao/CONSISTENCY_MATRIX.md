@@ -2398,5 +2398,25 @@ teclado no fim da página, nunca escondido por hover. A regra de montagem não m
 `reportProblem.enabled !== true`, a âncora fica vazia e `:empty` a remove do layout; com a flag
 ligada, o gatilho nasce exatamente no segundo slot do grupo.
 
+### O botão do WhatsApp continua autossuficiente — `INTENTIONALLY_DIFFERENT` na Copa
+
+A primeira versão desta refatoração moveu as dimensões de `.whatsapp-btn` para `.support-action`.
+Isso quebrou, em silêncio, todo botão que **não** está no grupo de suporte: o WhatsApp da
+**Copa2026** (arquivada, referência visual canônica) e os botões de compartilhar dentro de card
+passaram a renderizar com `padding: 0px` e `borderRadius: 0px`.
+
+Quem pegou foi o gate de consistência visual, e é o caso de uso exato dele: uma mudança nos três
+apps ativos degradando um quarto app que ninguém estava olhando.
+
+A regra completa voltou para `.whatsapp-btn`; `.support-action` apenas **acrescenta** por cima
+(largura dentro do grupo). Consequência registrada: a Copa continua com o mesmo botão de sempre,
+sem `.support-action`, e isso é `INTENTIONALLY_DIFFERENT` — ela não participa do par de suporte
+porque não monta o canal de reporte.
+
+A altura do cabeçalho subiu 2 px nos **quatro** apps, uniformemente, por causa da borda
+transparente que iguala as caixas dos dois botões. Uniforme é o que importa: a relação ratificada
+(três bolões de futebol iguais entre si, Powerball mais baixo por ter menos conteúdo) continua
+valendo, e os valores fixados em `ALLOWLIST.json` foram refixados sem alargar escopo.
+
 Esta é uma mudança exclusivamente de hierarquia visual. Nenhuma regra do modal, payload, Worker,
 GitHub App, Cloudflare, Supabase, scoring, ranking, pagamentos ou autorização de Admin mudou.
