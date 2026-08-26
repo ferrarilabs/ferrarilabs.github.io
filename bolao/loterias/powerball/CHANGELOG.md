@@ -6,6 +6,18 @@ outros três bolões.
 
 ---
 
+## 2026-08-26 — Issue #321: ações de suporte no cabeçalho
+
+`Reportar problema` saiu do fim da página e passou a formar, ao lado do WhatsApp, um grupo único
+de ações de suporte no cabeçalho. Os dois controles agora compartilham dimensões, tipografia,
+espaçamento e comportamento responsivo; o reporte usa um `!` circular decorativo e contido, sem
+aparência de ação destrutiva. Em 320 px eles ocupam duas metades equilibradas da mesma linha, sem
+rolagem horizontal.
+
+Powerball não tem painel Admin no navegador, portanto a parte de hierarquia administrativa é
+genuinamente não aplicável aqui. A flag, o modal, o payload, o Worker, scoring, ranking,
+pagamentos e controles de segurança não mudaram.
+
 ## 2026-08-25 — Issue #321: corrigir a fiação do `config.js` (o botão não aparecia)
 
 A leitura de produção da ativação achou o que nenhum gate via: a flag estava `true` no
