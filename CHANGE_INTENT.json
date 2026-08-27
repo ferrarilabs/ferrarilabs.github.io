@@ -1,17 +1,5 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
   "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida.",
-  "declarations": [
-    {
-      "surface_id": "NOTIFICATION_WORKFLOWS",
-      "reason": "O PR #355 entregou a ferramenta de reconciliacao mas NENHUM caminho para executa-la em runtime confiavel: ela precisa de service_role, que so existe em GitHub Actions. Sem workflow, o precheck so poderia ser rodado de uma maquina pessoal com a chave em mao — exatamente o que a plataforma nao faz.",
-      "expected_behavior_change": "Acrescenta .github/workflows/cdb2026_ledger_reconciliation.yml, com workflow_dispatch APENAS (sem cron, sem gatilho automatico). O padrao e `precheck`, SOMENTE LEITURA. `BOLAO_ALLOW_REAL_SEND` nao e declarada em passo algum, entao nenhum caminho de provedor e alcancavel deste job por construcao — e o passo de escrita refaz o precheck em vez de herdar a decisao do passo anterior. Compartilha o grupo de concorrencia `cdb2026-result-emails`, para que uma reconciliacao nunca corra junto de um envio. Nenhum workflow existente foi tocado; nenhum cron, gatilho, guard de envio real ou resolvedor de destinatarios mudou. ZERO e-mail.",
-      "tests_required": [
-        "cdb-ledger-reconciliation",
-        "cron-coverage",
-        "email-send-safety",
-        "safety-contract"
-      ]
-    }
-  ]
+  "declarations": []
 }
