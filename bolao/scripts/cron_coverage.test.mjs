@@ -248,6 +248,16 @@ const DORMANT = new Map([
 
 /** Declares no schedule at all, deliberately. */
 const UNSCHEDULED = new Map([
+  ["cdb2026_ledger_reconciliation.yml",
+   "Reconciliacao do ledger historico com alvo EXPLICITO (#352). NAO e agendada de proposito: nao " +
+   "existe ciclo aqui. O conjunto e finito e ja aconteceu -- notificacoes que foram REALMENTE " +
+   "entregues e que o ledger registrou como pending porque o adaptador da epoca nao conseguia " +
+   "marcar entrega (defeito corrigido no #354). Reconciliado uma vez, o alvo some; um cron ficaria " +
+   "procurando para sempre um trabalho que nao volta a existir, e escolher alvo sozinho e " +
+   "exatamente o que esta ferramenta existe para nao fazer: fase, confronto, perna, placar, " +
+   "execucao de origem e instante de entrega sao digitados por quem dispara, sem default e sem " +
+   "fallback. O padrao do formulario e `precheck`, somente leitura. BOLAO_ALLOW_REAL_SEND nao e " +
+   "declarada em passo algum: nenhum caminho de provedor e alcancavel deste job por construcao."],
   ["cdb2026_result_email_recovery.yml",
    "Recuperacao de UMA notificacao de resultado perdida, com alvo EXPLICITO (#347). NAO e agendada " +
    "de proposito: nao existe ciclo aqui. Ela reenvia uma perna especifica cujo resultado JA esta " +

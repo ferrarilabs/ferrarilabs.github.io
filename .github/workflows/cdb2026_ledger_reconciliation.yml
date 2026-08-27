@@ -1,0 +1,125 @@
+# Reconciliação do ledger histórico — alvo EXPLÍCITO (#352, linhas deixadas para trás).
+#
+# Não é rotina e não tem agendamento. Existe para um conjunto conhecido: notificações que foram
+# REALMENTE entregues e que o ledger registrou como `pending` porque o adaptador da época não
+# conseguia marcar entrega (defeito corrigido no #354 — este workflow não corrige código nenhum,
+# ele reconcilia o que ficou para trás enquanto o defeito esteve ativo).
+#
+# `precheck` é SOMENTE LEITURA e é o padrão. Ele não alcança provedor de e-mail em hipótese alguma:
+# a ferramenta carrega o remetente apenas para LER estado (`sb_fetch`), e há gate dedicado que varre
+# o código dela — ignorando comentário e docstring — reprovando se qualquer identificador de caminho
+# de provedor aparecer, com controle negativo provando que a varredura morde.
+#
+# `BOLAO_ALLOW_REAL_SEND` NÃO é declarada em passo algum deste arquivo. Não é disciplina de quem
+# dispara: é a estrutura do job.
+name: CDB2026 — reconciliar ledger histórico (alvo explícito)
+
+on:
+  workflow_dispatch:
+    inputs:
+      phase_id:
+        description: "fase (ex.: quartas)"
+        required: true
+        type: string
+      tie_id:
+        description: "confronto (tieId exato)"
+        required: true
+        type: string
+      leg:
+        description: "perna"
+        required: true
+        type: choice
+        options: [first, second]
+      expect_result:
+        description: "placar JÁ gravado, formato golsCasa-golsFora (ex.: 1-1). Divergência recusa."
+        required: true
+        type: string
+      source_run:
+        description: "id da execução autorizada que entregou (procedência)"
+        required: true
+        type: string
+      delivered_at:
+        description: "instante da entrega, ISO-8601 UTC — NUNCA now()"
+        required: true
+        type: string
+      delivered_count:
+        description: "sucessos de provedor naquela execução"
+        required: true
+        type: string
+      error_count:
+        description: "erros de provedor naquela execução"
+        required: true
+        default: "0"
+        type: string
+      acao:
+        description: "precheck (só leitura) ou apply (escrita, exige o alvo em READY)"
+        required: true
+        default: precheck
+        type: choice
+        options: [precheck, apply]
+
+permissions:
+  contents: read
+
+# Mesmo grupo do remetente: uma reconciliação nunca corre junto de um envio de resultado.
+concurrency:
+  group: cdb2026-result-emails
+  cancel-in-progress: false
+
+jobs:
+  reconciliar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # ── SOMENTE LEITURA ──────────────────────────────────────────────────────────────────────
+      - name: Precheck (read-only)
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: bolao/cdb2026/scripts
+        run: |
+          python3 reconcile_result_email_ledger.py \
+            --phase "${{ inputs.phase_id }}" \
+            --tie "${{ inputs.tie_id }}" \
+            --leg "${{ inputs.leg }}" \
+            --expect-result "${{ inputs.expect_result }}" \
+            --source-run "${{ inputs.source_run }}" \
+            --delivered-at "${{ inputs.delivered_at }}" \
+            --delivered-count "${{ inputs.delivered_count }}" \
+            --error-count "${{ inputs.error_count }}"
+
+      # ── ESCRITA ──────────────────────────────────────────────────────────────────────────────
+      # Só roda com `acao: apply` escolhido à mão. A ferramenta REFAZ o precheck e recusa se o alvo
+      # não estiver READY — a decisão não é herdada do passo anterior, porque entre um passo e outro
+      # o estado pode ter mudado. E a RPC é atômica: ou as 12 linhas mudam, ou nenhuma muda.
+      - name: Aplicar (uma vez, alvo explícito)
+        if: ${{ inputs.acao == 'apply' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: bolao/cdb2026/scripts
+        run: |
+          python3 reconcile_result_email_ledger.py \
+            --phase "${{ inputs.phase_id }}" \
+            --tie "${{ inputs.tie_id }}" \
+            --leg "${{ inputs.leg }}" \
+            --expect-result "${{ inputs.expect_result }}" \
+            --source-run "${{ inputs.source_run }}" \
+            --delivered-at "${{ inputs.delivered_at }}" \
+            --delivered-count "${{ inputs.delivered_count }}" \
+            --error-count "${{ inputs.error_count }}" \
+            --apply
+
+      # O vigia decide sozinho, lendo o ledger: vira HEALTHY porque existe evidência de entrega,
+      # não porque alguém o silenciou. Ele não sabe que houve reconciliação, e não precisa saber.
+      - name: Vigia (read-only, após a escrita)
+        if: ${{ inputs.acao == 'apply' }}
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        working-directory: bolao/cdb2026/scripts
+        continue-on-error: true
+        run: python3 detect_missed_result_emails.py

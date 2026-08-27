@@ -3,15 +3,14 @@
   "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida.",
   "declarations": [
     {
-      "surface_id": "SUPABASE_MIGRATIONS",
-      "reason": "Issue #352. Em 2026-08-26 uma recuperacao autorizada entregou 12 e-mails de resultado do CDB2026 (provedor devolveu sucesso para os 12) e o ledger registrou ZERO: o adaptador da epoca passava hash de conteudo onde a RPC quer UUID, e a RPC canonica so atualiza linha em `processing`. As 12 linhas ficaram em `pending`. O adaptador ja foi corrigido; as 12 linhas historicas nao podem ser, pelo caminho canonico, porque o `reserve()` antigo as criou com `payload_snapshot = '{}'` — sem o array `recipients` que `settle_bolao_notif` conta, o settle produziria `failed_retryable`, nao `sent`. Reconciliar por fora, com 12 UPDATEs soltos, admitiria o desfecho que nao pode existir (7 sent + 5 pending por morte no meio do processo). Dai uma funcao unica e atomica.",
-      "expected_behavior_change": "Acrescenta a migracao de avanco 20260827090000_reconcile_historical_notif_delivery.sql, criando `reconcile_bolao_notif_historical_delivery(pool_id, entity_id, expected_rows, reason, source_run, delivered_at)`, executavel APENAS por service_role (revoke de public/anon/authenticated). Ela nao cria, nao apaga e nao reordena linha; nao toca entry_ref, job_id, idempotency_key nem entity_id; nao altera destinatarios; e por ser SQL nao tem como emitir e-mail. Um unico UPDATE marca `sent` as linhas em `pending` do alvo, e levanta (desfazendo tudo) se a contagem nao bater exatamente com o que o operador declarou. `provider_message_id` fica NULL porque o id por destinatario e IRRECUPERAVEL — a execucao autorizada so registrou entry_ref, de proposito, para nao colocar endereco em log — e inventar um seria fabricar evidencia de provedor. `sent_at` recebe o instante da execucao autorizada, passado explicitamente, e nao now(). A procedencia fica em payload_snapshot.reconciliation, de modo que um `sent` reconciliado nunca seja indistinguivel de um `sent` de tempo real. NENHUMA outra migracao foi tocada; nenhuma RPC existente foi alterada ou substituida; nenhum comportamento de produto muda. A funcao NAO foi aplicada a producao nesta mudanca.",
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O PR #355 entregou a ferramenta de reconciliacao mas NENHUM caminho para executa-la em runtime confiavel: ela precisa de service_role, que so existe em GitHub Actions. Sem workflow, o precheck so poderia ser rodado de uma maquina pessoal com a chave em mao — exatamente o que a plataforma nao faz.",
+      "expected_behavior_change": "Acrescenta .github/workflows/cdb2026_ledger_reconciliation.yml, com workflow_dispatch APENAS (sem cron, sem gatilho automatico). O padrao e `precheck`, SOMENTE LEITURA. `BOLAO_ALLOW_REAL_SEND` nao e declarada em passo algum, entao nenhum caminho de provedor e alcancavel deste job por construcao — e o passo de escrita refaz o precheck em vez de herdar a decisao do passo anterior. Compartilha o grupo de concorrencia `cdb2026-result-emails`, para que uma reconciliacao nunca corra junto de um envio. Nenhum workflow existente foi tocado; nenhum cron, gatilho, guard de envio real ou resolvedor de destinatarios mudou. ZERO e-mail.",
       "tests_required": [
         "cdb-ledger-reconciliation",
-        "migration-idempotency",
-        "ddl-execution-order",
-        "safety-contract",
-        "email-send-safety"
+        "cron-coverage",
+        "email-send-safety",
+        "safety-contract"
       ]
     }
   ]
