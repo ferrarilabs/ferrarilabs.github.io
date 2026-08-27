@@ -200,7 +200,10 @@ for (const [app, fn, cardId] of APPS) {
     assert(i > 0, `${fn} nao encontrada em ${app}`);
     const corpo = fonte.slice(i, fonte.indexOf("\nfunction ", i + 10));
     const semTexto = corpo.replace(/\/\*\*[\s\S]*?\*\//g, " ").split("\n").map((l) => l.split("//")[0]).join("\n");
-    const chamadas = [...semTexto.matchAll(/\b([a-zA-Z_$][\w$]*)\s*\(/g)].map((m) => m[1]);
+    // So chamadas LIVRES. `x.getTime()` e metodo de objeto e nao se resolve por escopo de modulo;
+    // incluir metodos fazia o gate acusar `getTime` como "helper inexistente", que e ruido -- e um
+    // gate ruidoso e um gate que alguem desliga. O `(?<![.\w$])` descarta o que vem apos ponto.
+    const chamadas = [...semTexto.matchAll(/(?<![.\w$])([a-zA-Z_$][\w$]*)\s*\(/g)].map((m) => m[1]);
     const embutidas = new Set(["if", "for", "while", "switch", "catch", "return", "typeof",
                                "function", "String", "Number", "Boolean", "Date", "Array", "Object"]);
     for (const c of new Set(chamadas)) {

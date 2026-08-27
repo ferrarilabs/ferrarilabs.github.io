@@ -2209,10 +2209,22 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
     // formatacao volte a esvaziar o hero: sem data e pior que sem hero? nao -- mas hero vazio e.
     let quando = "";
     try { quando = proximo.dateISO ? brtLongDate(proximo.dateISO) : ""; } catch (_) { quando = ""; }
+    // UMA implementacao da PROXIMA PARTIDA (#246). Antes havia duas -- esta e o card legado
+    // `#nextGameCard` -- lendo o MESMO `nextUpcomingGame()`, decidindo cada uma por sua conta e
+    // desenhando o mesmo confronto duas vezes na mesma tela. Escondiar uma com CSS nao resolveria:
+    // as duas continuariam decidindo. Agora o hero e o dono, e o legado nao repete a primaria.
     return `<div class="live-hero-idle">
-      <div class="live-hero-label">${esc(t("nextMatchLabel"))}</div>
-      <div class="live-hero-teams">${esc(proximo.homeTeam)} × ${esc(proximo.awayTeam)}</div>
-      ${quando ? `<div class="live-hero-when">${esc(quando)}</div>` : ""}
+      <div class="next-game-card">
+        <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
+        <div class="next-game-row">
+          <div class="next-game-info-block">
+            <div class="next-game-teams">${esc(proximo.homeTeam)} ${teamLogoImg(proximo.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(proximo.awayTeam, "team-logo")} ${esc(proximo.awayTeam)}</div>
+            ${quando ? `<div class="next-game-info">${esc(quando)}</div>` : ""}
+            ${proximo.venue ? `<div class="next-game-venue">${esc(proximo.venue)}${proximo.city ? `, ${esc(proximo.city)}` : ""}</div>` : ""}
+          </div>
+          ${countdownTimerHtml(new Date(proximo.dateISO).getTime() - Date.now())}
+        </div>
+      </div>
       ${aviso}</div>`;
   }
   return `<div class="live-hero-idle">
@@ -2472,6 +2484,16 @@ function renderNextGameCard() {
   const card = $("nextGameCard");
   if (!card || !_schedule.length) { card?.classList.add("hidden"); return; }
 
+  // ─── #246: a partida PRIMARIA pertence ao hero ─────────────────────────────────────────────
+  //
+  // Este card e o hero liam o MESMO `nextUpcomingGame()` e desenhavam o mesmo confronto duas
+  // vezes. Agora o hero e o dono da primaria; aqui fica so o que sobra ("os OUTROS jogos de
+  // hoje"). Uma LISTA vazia pode se esconder; o HERO nunca.
+  const _primaria = typeof nextUpcomingGame === "function" ? nextUpcomingGame() : null;
+  const _ehPrimaria = g => _primaria && g &&
+    g.homeTeam === _primaria.homeTeam && g.awayTeam === _primaria.awayTeam &&
+    g.dateISO === _primaria.dateISO;
+
   const todayKey    = brtDateKey(new Date().toISOString());
   // Jogos ao vivo já aparecem no card "🔴 N jogos ao vivo agora" (renderLiveCard()) -- achado
   // 2026-07-16 (Eduardo: "se ja esta mostrando ao vivo, nao precisa mostrar duas vezes").
@@ -2511,6 +2533,10 @@ function renderNextGameCard() {
     }
   }
 
+  // #246: fora a primaria, que e do hero. Se nao sobra nada, esta LISTA se esconde -- e legitimo.
+  gamesToShow = gamesToShow.filter(g => !_ehPrimaria(g));
+  if (!gamesToShow.length) { card.classList.add("hidden"); return; }
+
   // Sem jogo hoje e só 1 jogo no próximo dia: mantém o layout rico de sempre (contador regressivo
   // em dígitos grandes, local do jogo) em vez da lista compacta -- essa é a experiência original
   // de "próximo jogo", só perdida quando o agrupamento por dia (acima) passou a reaproveitar o
@@ -2543,8 +2569,10 @@ function renderNextGameCard() {
         <div class="prob-bar away"  style="width:${aPct}%">${bl(aPct, aLbl)}</div>
       </div>`;
     })() : "";
+    // #246: a PRIMARIA ja saiu daqui (e do hero). Um jogo remanescente NAO e "a proxima partida"
+    // -- rotula-lo assim seria dizer duas verdades diferentes na mesma tela. Usa o rotulo de lista.
     card.innerHTML = `<div class="next-game-card">
-      <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
+      <div class="next-game-label">${esc(t("nextGamesLabel"))}</div>
       <div class="next-game-row">
         <div class="next-game-info-block">
           <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>

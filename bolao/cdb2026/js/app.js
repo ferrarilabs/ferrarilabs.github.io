@@ -2960,9 +2960,28 @@ function renderCountdown() {
                       countdownTimerHtml(lc.countdownMs);
       return;
     }
+    // ─── #246: a mensagem vem do ciclo de vida CERTO ────────────────────────────────────────
+    //
+    // Esta escada perguntava SO ao `drawLifecycle` e caia num default `waitingDraw`. Com o bracket
+    // das quartas LOCKED -- proveniencia da CBF validada, quatro confrontos reais, kickoffs
+    // conhecidos, tres jogos ja FINAL -- o estado MAIS avancado recebia a mensagem MENOS avancada:
+    // "Aguardando sorteio oficial", numa pagina que exibia os proprios confrontos logo abaixo.
+    //
+    // O prazo tinha vencido (primeiro kickoff das quartas menos uma hora, em 25/08), e "prazo
+    // vencido" e uma resposta do ciclo de vida da FASE, nao do SORTEIO. Perguntar ao sorteio por
+    // que os palpites estao fechados so pode dar resposta errada quando o sorteio ja aconteceu.
+    //
+    // Agora: se a fase esta com palpites FECHADOS, a mensagem diz isso. As mensagens de sorteio so
+    // aparecem quando a fase esta genuinamente esperando o sorteio.
+    if (lcFase.state === PHASE_LIFECYCLE.PICKS_CLOSED) {
+      box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div>` +
+                      `<span class="count-closed">${esc(t("closed"))}</span>`;
+      return;
+    }
     const msgKey = lc.state === DRAW_LIFECYCLE.AWAITING_PUBLICATION ? "drawAwaitingPublication"
                  : lc.state === DRAW_LIFECYCLE.INGESTED ? "drawIngestedPending"
                  : lc.state === DRAW_LIFECYCLE.WAITING ? "drawWaiting"
+                 : lc.state === DRAW_LIFECYCLE.LOCKED ? "closed"
                  : "waitingDraw";
     box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t(msgKey))}</span>`;
     return;
@@ -3754,7 +3773,16 @@ function renderNextTieCard() {
   const card = $("nextTieCard");
   if (!card) return;
   const s     = state();
-  const group = findAllUpcomingMatchesOnNextDay(s);
+  let group = findAllUpcomingMatchesOnNextDay(s);
+  if (!group.length) { card.classList.add("hidden"); return; }
+
+  // Exclui a partida PRIMARIA: ela e do hero. O que sobra e genuinamente "os OUTROS jogos de hoje".
+  const primaria = findNextUpcomingMatch(s);
+  if (primaria) {
+    const mesma = x => x.home === primaria.home && x.away === primaria.away &&
+                       x.kickoffMs === primaria.kickoffMs;
+    group = group.filter(x => !mesma(x));
+  }
   if (!group.length) { card.classList.add("hidden"); return; }
 
   if (group.length > 1) {
@@ -3783,12 +3811,27 @@ function renderNextTieCard() {
     return;
   }
 
-  const next = group[0];
-  const { m, home, away, phaseName } = next;
-  const diffMs    = next.kickoffMs - Date.now();
-  const timerHtml = countdownTimerHtml(diffMs);
+  // A partida PRIMARIA pertence ao hero de futebol (#246). Este card nunca a repete: se so ha
+  // ela, nao ha lista a mostrar. Esconder aqui e legitimo -- uma LISTA vazia e vazia; o que nao
+  // pode ficar vazio, nunca, e o HERO.
+  card.classList.add("hidden");
+}
 
-  card.innerHTML = `<div class="next-game-card">
+/**
+ * Bloco rico da PROXIMA PARTIDA — a unica implementacao (#246).
+ *
+ * Antes existiam duas: este markup, no card `#nextTieCard`, e um bloco simples que eu criei no
+ * hero pelo #358. Os dois liam o mesmo `findNextUpcomingMatch()`, decidiam sozinhos e desenhavam
+ * "Próxima partida — Internacional × Grêmio" DUAS VEZES na mesma tela, com textos diferentes.
+ *
+ * Duas implementacoes do mesmo objeto semantico nao se resolvem escondendo uma com CSS: as duas
+ * continuam decidindo. Agora existe UMA, e quem a exibe e o hero.
+ */
+function nextMatchBlockHtml(next) {
+  if (!next) return "";
+  const { m, home, away, phaseName } = next;
+  const timerHtml = countdownTimerHtml(next.kickoffMs - Date.now());
+  return `<div class="next-game-card">
     <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
     <div class="next-game-row">
       <div class="next-game-info-block">
@@ -3800,7 +3843,6 @@ function renderNextTieCard() {
       ${timerHtml}
     </div>
   </div>`;
-  card.classList.remove("hidden");
 }
 
 // ─── Render: footer ───────────────────────────────────────────────────────────
@@ -4278,11 +4320,9 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
     ? `<div class="live-hero-note">${esc(t("liveDataUnavailable"))}</div>` : "";
 
   if (estado === S.UPCOMING && proximo) {
-    return `<div class="live-hero-idle">
-      <div class="live-hero-label">${esc(t("nextMatchLabel"))}</div>
-      <div class="live-hero-teams">${esc(proximo.home)} × ${esc(proximo.away)}</div>
-      ${proximo.m && proximo.m.kickoff ? `<div class="live-hero-when">${esc(fmtDate(proximo.m.kickoff))}</div>` : ""}
-      ${aviso}</div>`;
+    // UMA implementacao, compartilhada com o card legado que foi aposentado deste papel.
+    const bloco = nextMatchBlockHtml(proximo);
+    if (bloco) return `<div class="live-hero-idle">${bloco}${aviso}</div>`;
   }
   return `<div class="live-hero-idle">
     <div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div>

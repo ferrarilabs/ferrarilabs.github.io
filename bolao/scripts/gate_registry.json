@@ -99,6 +99,9 @@
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Prova o consumidor do comprovante contra o BANCO REAL (fila, reserva, unicidade) com transporte falso. Exige SUPABASE_SERVICE_ROLE_KEY, que so existe como secret do repositorio, e grava/limpa linhas de canario na producao — por isso nao pode entrar numa suite que qualquer um roda a cada commit. Executado sob demanda pelo workflow cdb2026_confirmation_fake_transport_test.yml (workflow_dispatch, declarado em cron_coverage.test.mjs). Nao envia e-mail: BOLAO_ALLOW_REAL_SEND nao e definida e urlopen e substituido por uma sentinela que levanta."
     },
+    "bolao/cdb2026/scripts/test_hero_composition.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_invitation_email.py": {
       "classification": "REGISTERED_AND_EXECUTED",
       "coverage": "12 mutacoes reais, todas pegas. Cobre os portoes (prazo publicado, prazo no futuro, sorteio completo, credencial privilegiada), idempotencia (nao reemite para quem tem link vivo) e nao-vazamento (token fora do stdout, e-mail mascarado, token no fragmento e nao no query). Carrega o modulo compilando o TEXTO do arquivo: o cache de bytecode do macOS vive fora do repo e invalida por (mtime, tamanho), entao mutacao de 1 char por 1 char pode servir bytecode velho e produzir gate falso-verde."
