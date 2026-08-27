@@ -2202,8 +2202,13 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
     ? `<div class="live-hero-note">${esc(t("liveDataUnavailable"))}</div>` : "";
 
   if (estado === S.UPCOMING && proximo) {
-    const quando = proximo.dateISO ? formatBrtTimestamp(proximo.dateISO,
-      { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+    // `brtLongDate` e o formatador REAL deste app. A versao anterior chamava
+    // `formatBrtTimestamp`, que existe no CDB2026 e NAO existe aqui: a chamada lancava, a
+    // atribuicao de innerHTML nunca acontecia, e o hero ficava montado e VAZIO -- um buraco, que
+    // e exatamente o que o invariante do #246 proibe. O `try` abaixo garante que nenhuma falha de
+    // formatacao volte a esvaziar o hero: sem data e pior que sem hero? nao -- mas hero vazio e.
+    let quando = "";
+    try { quando = proximo.dateISO ? brtLongDate(proximo.dateISO) : ""; } catch (_) { quando = ""; }
     return `<div class="live-hero-idle">
       <div class="live-hero-label">${esc(t("nextMatchLabel"))}</div>
       <div class="live-hero-teams">${esc(proximo.homeTeam)} × ${esc(proximo.awayTeam)}</div>
@@ -2270,7 +2275,15 @@ function renderLiveCard() {
   if (!heroMatches.length) {
     // Sem jogo ao vivo o hero continua montado e diz a VERDADE sobre o que sabe. Nunca inventa
     // confronto, placar ou minuto -- um numero velho apresentado como atual e pior que a ausencia.
-    card.innerHTML = renderHeroSemAoVivo(heroEstado, proximo);
+    //
+    // O try existe porque a primeira versao disto quebrou EM PRODUCAO: um helper inexistente
+    // lancou, a atribuicao nunca aconteceu e o hero ficou montado e vazio. "Hero presente" nao
+    // pode depender de nenhuma funcao de formatacao dar certo.
+    let html;
+    try { html = renderHeroSemAoVivo(heroEstado, proximo); } catch (_) { html = ""; }
+    card.innerHTML = html && html.trim()
+      ? html
+      : `<div class="live-hero-idle"><div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div></div>`;
     return;
   }
   const retidoPorId = new Map(entradas.map(x => [String(x.match.id), x.retained]));

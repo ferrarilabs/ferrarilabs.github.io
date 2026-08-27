@@ -4330,7 +4330,16 @@ function renderLiveTieCard() {
   if (!_liveTies.length) {
     // Sem perna ao vivo o hero continua montado e diz a VERDADE. Nunca inventa confronto, placar
     // ou minuto -- um numero velho apresentado como atual e pior que a ausencia.
-    card.innerHTML = renderHeroSemAoVivo(heroEstado, proximo);
+    //
+    // O try existe porque a versao equivalente do BR2026 quebrou EM PRODUCAO: um helper que so
+    // existia no outro app lancou, a atribuicao nunca aconteceu e o hero ficou montado e VAZIO.
+    // Aqui o helper esta certo -- mas "hero presente" nao pode depender de nenhuma funcao de
+    // formatacao dar certo, entao a protecao vale nos dois lados.
+    let html;
+    try { html = renderHeroSemAoVivo(heroEstado, proximo); } catch (_) { html = ""; }
+    card.innerHTML = html && html.trim()
+      ? html
+      : `<div class="live-hero-idle"><div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div></div>`;
     return;
   }
   const rows = _liveTies.map(l => {

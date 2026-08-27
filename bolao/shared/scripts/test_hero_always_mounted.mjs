@@ -183,6 +183,47 @@ test("o módulo não contém nenhuma via de esconder o hero", () => {
   assert(/visible:\s*true\b/.test(codigo), "o campo `visible` sumiu do modulo");
 });
 
+console.log("\nF. O renderizador de cada app: nenhum helper inexistente, nenhum hero vazio:");
+
+import { readFileSync as _rf } from "node:fs";
+
+const APPS = [
+  ["br2026", "renderHeroSemAoVivo", "liveMatchCard"],
+  ["cdb2026", "renderHeroSemAoVivo", "liveTieCard"],
+];
+
+for (const [app, fn, cardId] of APPS) {
+  const fonte = _rf(join(ROOT, `bolao/${app}/js/app.js`), "utf8");
+
+  test(`${app}: todo helper chamado por ${fn} existe neste app`, () => {
+    const i = fonte.indexOf(`function ${fn}`);
+    assert(i > 0, `${fn} nao encontrada em ${app}`);
+    const corpo = fonte.slice(i, fonte.indexOf("\nfunction ", i + 10));
+    const semTexto = corpo.replace(/\/\*\*[\s\S]*?\*\//g, " ").split("\n").map((l) => l.split("//")[0]).join("\n");
+    const chamadas = [...semTexto.matchAll(/\b([a-zA-Z_$][\w$]*)\s*\(/g)].map((m) => m[1]);
+    const embutidas = new Set(["if", "for", "while", "switch", "catch", "return", "typeof",
+                               "function", "String", "Number", "Boolean", "Date", "Array", "Object"]);
+    for (const c of new Set(chamadas)) {
+      if (embutidas.has(c)) continue;
+      const definida = new RegExp(`(function\\s+${c}\\b|const\\s+${c}\\s*=|let\\s+${c}\\s*=|var\\s+${c}\\s*=)`).test(fonte);
+      assert(definida,
+        `${app}: \`${c}()\` e chamada mas NAO existe neste app — foi assim que o hero do BR2026 ` +
+        `ficou montado e VAZIO em producao (formatBrtTimestamp so existe no CDB2026)`);
+    }
+  });
+
+  test(`${app}: o hero nunca pode terminar com innerHTML vazio`, () => {
+    const i = fonte.indexOf(`const card = $("${cardId}")`);
+    assert(i > 0, `${cardId} nao encontrado em ${app}`);
+    const trecho = fonte.slice(i, i + 4000);
+    assert(/try\s*\{[^}]*renderHeroSemAoVivo/.test(trecho.replace(/\n/g, " ")),
+      `${app}: a montagem do conteudo do hero nao esta protegida — uma excecao de formatacao ` +
+      `deixaria o hero montado e vazio, que e o buraco que o #246 proibe`);
+    assert(/html\s*&&\s*html\.trim\(\)/.test(trecho) || /fallback/i.test(trecho),
+      `${app}: nao ha fallback para conteudo vazio`);
+  });
+}
+
 console.log(`\n  ${ok} passed, ${fail} failed\n`);
 console.log(fail ? "✗ HERO ALWAYS MOUNTED FAILED" : "✓ HERO ALWAYS MOUNTED OK");
 process.exit(fail ? 1 : 0);
