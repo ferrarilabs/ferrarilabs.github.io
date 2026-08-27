@@ -376,6 +376,66 @@ def _mutacao_email():
 test("mutação (import de send_email) seria acusada pela varredura de caminho de provedor", _mutacao_email)
 
 
+print("\nG2. O preflight prova o predicado de ESCRITA, nao so o de leitura:")
+
+
+def _por_entidade(n):
+    return lambda L, ent: [{"entity_id": ent, "status": "pending"} for _ in range(n)]
+
+
+def _predicado_concorda():
+    ev = R.preflight(L, *ALVO, "1-1", EVID, LedgerFalso(linhas(REFS12)), estado(),
+                     por_entidade=_por_entidade(12))
+    _assert(ev["TARGET_STATUS"] == R.READY, f"{ev['TARGET_STATUS']} — {ev.get('MOTIVO')}")
+    _assert(ev["WRITE_PREDICATE_ROWS"] == 12, ev.get("WRITE_PREDICATE_ROWS"))
+
+test("leitura 12 e escrita 12 ⇒ READY", _predicado_concorda)
+
+
+def _predicado_diverge():
+    """O caso REAL de 2026-08-27: 12 por prefixo, 0 por entity_id, e a RPC devolveu 400 mudo."""
+    ev = R.preflight(L, *ALVO, "1-1", EVID, LedgerFalso(linhas(REFS12)), estado(),
+                     por_entidade=_por_entidade(0))
+    _assert(ev["TARGET_STATUS"] == R.BLOCKED,
+            f"o preflight aprovou o que a escrita nao endereca: {ev['TARGET_STATUS']}")
+    _assert("predicado" in ev["MOTIVO"], ev["MOTIVO"])
+
+test("leitura 12 mas escrita 0 ⇒ BLOCKED (o 400 mudo de 2026-08-27)", _predicado_diverge)
+
+
+def _predicado_ilegivel():
+    def explode(L_, ent): raise RuntimeError("fora do ar")
+    ev = R.preflight(L, *ALVO, "1-1", EVID, LedgerFalso(linhas(REFS12)), estado(),
+                     por_entidade=explode)
+    _assert(ev["TARGET_STATUS"] == R.BLOCKED, ev["TARGET_STATUS"])
+    _assert(ev["WRITE_PREDICATE_ROWS"] == "ILEGIVEL", "nao pode inventar contagem")
+
+test("predicado de escrita ilegível ⇒ BLOCKED, sem contagem inventada", _predicado_ilegivel)
+
+
+def _mutacao_predicado():
+    """CONTROLE NEGATIVO: sem a checagem, a divergencia volta a passar."""
+    fonte = _FONTE.replace("        if len(linhas_ent) != ev[\"LEDGER_TOTAL_ROWS\"]:",
+                           "        if False:", 1)
+    _assert(fonte != _FONTE, "a mutacao nao alterou nada")
+    M = carregar(fonte)
+    ev = M.preflight(L, *ALVO, "1-1", EVID, LedgerFalso(linhas(REFS12)), estado(),
+                     por_entidade=_por_entidade(0))
+    _assert(ev["TARGET_STATUS"] == M.READY,
+            "CONTROLE NEGATIVO: sem a checagem, escrita=0 deveria passar")
+
+test("mutação (checagem de predicado removida) deixa a divergência passar", _mutacao_predicado)
+
+
+def _erro_do_servidor_propagado():
+    """Um 400 sem corpo e uma recusa sem explicacao — foi o que o operador viu."""
+    codigo = _codigo_sem_texto(_FONTE)
+    _assert("e.read()" in codigo, "o corpo da resposta tem de ser lido")
+    _assert("HTTP {e.code}" in codigo, "o codigo HTTP tem de aparecer na mensagem")
+
+test("a recusa da RPC chega com a mensagem da guarda, não como 400 mudo", _erro_do_servidor_propagado)
+
+
 print("\nH. O vigia deriva HEALTHY sozinho, sem regra nova:")
 
 
