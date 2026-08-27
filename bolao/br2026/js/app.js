@@ -2122,6 +2122,34 @@ function clearRetainedHero() {
 let _heroMemo = null;
 const HERO_MEMO_TTL_MS = 1000;
 
+
+/**
+ * A fonte esta degradada o bastante para AVISAR? (#246)
+ *
+ * Distinta de `sourceOk`: aquela decide CICLO DE VIDA (uma partida ausente da observacao acabou,
+ * ou so sumiu do snapshot?). Esta decide APRESENTACAO -- se o hero deve dizer que o dado nao esta
+ * fresco. Confundi-las quebrou a retencao: com o gateway fora e snapshot utilizavel, a partida
+ * sumia da tela em vez de continuar exibida como dado velho conhecido.
+ *
+ * Medido em producao (2026-08-27, Gremio x Internacional AO VIVO aos 11'): gateway DEGRADED com
+ * UPSTREAM_403, store caido para snapshot de 13,6 HORAS, e o hero anunciando `degraded: false`.
+ * O celular do participante mostrava o jogo; o site mostrava "Próxima partida, daqui a 5 dias"
+ * com ar de certeza. Mostrar dado de 13 horas sem dizer que e de 13 horas some com a duvida.
+ */
+function fonteEstaDegradada() {
+  try {
+    if (_liveHealth && (_liveHealth.gatewayStatus === "DEGRADED" ||
+                        _liveHealth.gatewayStatus === "UNREACHABLE")) return true;
+    const st = _liveStore ? _liveStore.getState() : null;
+    if (!st) return false;                                  // sem store nao ha o que afirmar
+    if (st.state === "SOURCE_UNAVAILABLE") return true;
+    // Limiar do CONTRATO compartilhado; um terceiro limiar sobre frescor sempre discorda dos outros.
+    const critico = (window.BOLAO_FOOTBALL_LIVE && window.BOLAO_FOOTBALL_LIVE.CRITICAL_STALE_AFTER_MS) || 1800000;
+    if (typeof st.ageMs === "number" && st.ageMs > critico) return true;
+    return !!st.stale;
+  } catch { return false; }   // diagnostico nunca derruba o render
+}
+
 function resolveLiveHeroMatches(now = Date.now()) {
   if (_heroMemo && _heroMemo.matchesRef === _liveMatches
       && _heroMemo.sourceOk === (_snapshotOk !== false)
@@ -2135,6 +2163,15 @@ function resolveLiveHeroMatches(now = Date.now()) {
 
 function computeLiveHeroMatches(now) {
   const LC = window.BOLAO_LIVE_CLOCK;
+  // `sourceOk` tem significado PROPRIO e carregado aqui: ele diz se a observacao atual e confiavel
+  // o bastante para concluir que uma partida ACABOU. E ele que separa "sumiu do snapshot" (retem)
+  // de "terminou" (solta). Eu tinha sobrecarregado este sinal para tambem significar "avise que o
+  // dado esta degradado", e com isso quebrei a retencao: com gateway fora e snapshot utilizavel, a
+  // partida sumia da tela em vez de continuar exibida como dado velho conhecido.
+  //
+  // Sao duas perguntas diferentes, e a licao e a mesma do proprio #246: a observacao e confiavel
+  // para decidir CICLO DE VIDA? vs. o dado esta velho o bastante para AVISAR? A segunda mora em
+  // `fonteDegradada`, logo abaixo, e nao interfere na retencao.
   const sourceOk = _snapshotOk !== false;
 
   const observadas = new Map();
@@ -2289,7 +2326,8 @@ function renderLiveCard() {
     nextMatch: proximo ? { id: proximo.id, homeTeam: proximo.homeTeam, awayTeam: proximo.awayTeam,
                            kickoff: proximo.dateISO } : null,
     recentResult: null,
-    sourceOk: resolved.sourceOk !== false,
+    // Apresentacao usa o sinal DEDICADO; retencao continua com `sourceOk`.
+    sourceOk: !fonteEstaDegradada(),
   }) : null;
   if (heroEstado) {
     card.dataset.heroPresentation = heroEstado.state;
