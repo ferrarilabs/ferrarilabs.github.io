@@ -1,5 +1,8 @@
 window.CDB2026_I18N = {
   "pt-BR": {
+    liveDataUnavailable: "Dados ao vivo temporariamente indisponíveis",
+    nextMatchLabel: "Próxima partida",
+    nextMatchUnknown: "Próxima partida ainda não disponível",
     // Nav
     skipToContent: "Pular para o conteúdo",
     navPicks: "Palpites",
