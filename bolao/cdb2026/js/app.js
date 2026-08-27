@@ -4264,10 +4264,75 @@ const teamColHtml = (teamName) => `<div class="live-team">
   <span class="live-team-name">${esc(teamName)}</span>
 </div>`;
 
+/**
+ * Conteudo do hero quando nao ha perna ao vivo (#246).
+ *
+ * Compacto e secundario: a degradacao do provedor NAO pode dominar a pagina. A hierarquia continua
+ * sendo a partida -- proxima, quando conhecida -- e o aviso de fonte fora vem depois, pequeno.
+ */
+function renderHeroSemAoVivo(heroEstado, proximo) {
+  const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
+  const S = HP ? HP.HERO : {};
+  const estado = heroEstado ? heroEstado.state : "SCHEDULE_UNKNOWN";
+  const aviso = heroEstado && heroEstado.degraded
+    ? `<div class="live-hero-note">${esc(t("liveDataUnavailable"))}</div>` : "";
+
+  if (estado === S.UPCOMING && proximo) {
+    return `<div class="live-hero-idle">
+      <div class="live-hero-label">${esc(t("nextMatchLabel"))}</div>
+      <div class="live-hero-teams">${esc(proximo.home)} × ${esc(proximo.away)}</div>
+      ${proximo.m && proximo.m.kickoff ? `<div class="live-hero-when">${esc(fmtDate(proximo.m.kickoff))}</div>` : ""}
+      ${aviso}</div>`;
+  }
+  return `<div class="live-hero-idle">
+    <div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div>
+    ${aviso}</div>`;
+}
+
 function renderLiveTieCard() {
   const card = $("liveTieCard");
   if (!card) return;
-  if (!_liveTies.length) { card.classList.add("hidden"); return; }
+
+  // ─── #246: o hero EXISTE, sempre ────────────────────────────────────────────────────────────
+  //
+  // Aqui havia `if (!_liveTies.length) { card.classList.add("hidden"); return; }`. Era um dos seis
+  // caminhos independentes que faziam o hero sumir, todos disparados por ausencia de dado do
+  // provedor -- gateway fora, cache vencido, cron atrasado, ESPN bloqueando o egresso -- e todos
+  // terminando em `hidden`. Nao eram quatro defeitos: um sintoma com quatro gatilhos.
+  //
+  // O provedor enriquece o hero; nao e dono dele. A politica compartilhada decide o ESTADO, nunca
+  // a EXISTENCIA -- existencia nao e decisao. O fallback vem do estado AUTORITATIVO do torneio,
+  // que e local e nao depende de rede nenhuma.
+  const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
+  const _s = state();
+  const proximo = typeof findNextUpcomingMatch === "function" ? findNextUpcomingMatch(_s) : null;
+  const heroEstado = HP ? HP.deriveFootballHeroState({
+    liveState: _liveTies.length ? "LIVE_FRESH" : "NO_LIVE_MATCH",
+    liveMatches: _liveTies,
+    nextMatch: proximo ? { id: `${proximo.home}|${proximo.away}`, homeTeam: proximo.home,
+                           awayTeam: proximo.away, kickoff: proximo.m && proximo.m.kickoff } : null,
+    recentResult: null,
+    // Saude da fonte lida do STORE, que e a autoridade de ciclo de vida do live -- nao de uma
+    // variavel paralela. Store ausente (ainda nao iniciado) NAO e fonte fora: e ausencia de
+    // informacao, e o hero nao deve anunciar degradacao que nao pode provar.
+    sourceOk: (function () {
+      if (!_liveStore) return true;
+      const st = _liveStore.getState();
+      return !st || st.state !== "SOURCE_UNAVAILABLE";
+    })(),
+  }) : null;
+  if (heroEstado) {
+    card.dataset.heroPresentation = heroEstado.state;
+    card.dataset.heroDegraded = String(heroEstado.degraded);
+  }
+  card.classList.remove("hidden");
+
+  if (!_liveTies.length) {
+    // Sem perna ao vivo o hero continua montado e diz a VERDADE. Nunca inventa confronto, placar
+    // ou minuto -- um numero velho apresentado como atual e pior que a ausencia.
+    card.innerHTML = renderHeroSemAoVivo(heroEstado, proximo);
+    return;
+  }
   const rows = _liveTies.map(l => {
     const clock = liveClockDisplay(l);
     const playsHtml = livePlaysHtml(l.plays, l.homeTeam, l.awayTeam, `${l.tieId}:${l.leg}`);

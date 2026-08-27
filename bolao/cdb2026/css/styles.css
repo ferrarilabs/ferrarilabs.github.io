@@ -638,3 +638,17 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
      viewport de 320px. Medido em Chromium a 320px e 390px. */
   .count-grid { grid-auto-flow: column; grid-auto-columns: 1fr; grid-template-columns: none; }
 }
+
+/* ─── #246: hero em estado nao-ao-vivo ────────────────────────────────────────────────────────
+   O hero nunca some. Quando nao ha jogo ao vivo ele fica montado com conteudo compacto e
+   VERDADEIRO. A degradacao do provedor e informacao SECUNDARIA de proposito: um card de
+   incidente dominando a pagina assusta quem so queria ver o proximo jogo. */
+.live-hero-idle { display: flex; flex-direction: column; gap: .35rem; padding: .9rem 1rem; }
+.live-hero-label { font-size: .78rem; letter-spacing: .04em; text-transform: uppercase; opacity: .65; }
+.live-hero-teams { font-size: 1.05rem; font-weight: 600; }
+.live-hero-when { font-size: .9rem; opacity: .8; }
+.live-hero-note { font-size: .75rem; opacity: .6; margin-top: .15rem; }
+@media (max-width: 380px) {
+  .live-hero-idle { padding: .75rem .8rem; }
+  .live-hero-teams { font-size: .98rem; }
+}

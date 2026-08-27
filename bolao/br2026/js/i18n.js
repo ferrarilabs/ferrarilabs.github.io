@@ -235,6 +235,9 @@ window.BR2026_I18N = {
     liveHalftime: "Intervalo",
     livePenalties: "Pênaltis",
     liveMatchesLabel: "jogos ao vivo agora",
+    liveDataUnavailable: "Dados ao vivo temporariamente indisponíveis",
+    nextMatchLabel: "Próxima partida",
+    nextMatchUnknown: "Próxima partida ainda não disponível",
     // Language names (kept for compatibility)
     langPt: "PT-BR",
     langEs: "ES",
