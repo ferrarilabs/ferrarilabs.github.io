@@ -1,5 +1,6 @@
 window.CDB2026_I18N = {
   "pt-BR": {
+    savedSuccessPostCommitWarning: "Palpite salvo. A tela pode não ter atualizado — recarregue para conferir.",
     newVersionAvailable: "Nova versão disponível — recarregue ao terminar",
     liveDataUnavailable: "Dados ao vivo temporariamente indisponíveis",
     nextMatchLabel: "Próxima partida",
