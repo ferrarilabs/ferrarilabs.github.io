@@ -577,6 +577,9 @@
     "bolao/shared/scripts/test_round_notification_ledger.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_state_convergence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_subject_policy.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

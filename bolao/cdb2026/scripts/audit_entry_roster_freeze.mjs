@@ -282,6 +282,13 @@ function buildAppHarness({ frozen, initialState, editing, inputs = {} }) {
     // que é o valor real quando o participante não chegou por um link de convite. O caminho
     // seguro (cdb_save_my_picks) tem cobertura própria no canário de produção.
     let _accessToken = null;
+    // O saveEntry que embarca registra um diagnostico SEGURO (#258) antes de decidir o toast.
+    // Este harness monta funcoes isoladas, entao precisa declarar o que elas referenciam -- sem
+    // isso o teste falharia com "SAVE_DIAG is not defined", que diria mais sobre o harness do que
+    // sobre o roster. (Sem crase: este bloco vive dentro de um template literal.)
+    const SAVE_DIAG = new Proxy({}, { get: (_, k) => String(k) });
+    function classificarFalhaDeSave() { return SAVE_DIAG.SERVER_ERROR; }
+    let _ultimoDiagnosticoDeSave = null;
     async function cdbRpc() { throw new Error("cdbRpc não deve ser alcançada com _accessToken null"); }
     const C = { entryRosterFrozen: ${frozen}, emailjs: { enabled: false } };
     const window = {}; // sem emailjs: queueReceipt nunca é alcançado
