@@ -1,5 +1,45 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## operacional — reconciliação do ledger histórico (2026-08-26, Issue #352)
+
+Sem bump de `siteVersion`: **nenhum arquivo servido ao navegador mudou**. Bumpar a versão de
+cache-bust aqui anunciaria um deploy que não existe. O que entrou é ferramenta de operação mais uma
+migração de avanço — e a migração **não foi aplicada** a produção nesta mudança.
+
+Contexto. Em 2026-08-26 a recuperação autorizada **entregou os 12 e-mails** de resultado das
+quartas (o provedor devolveu sucesso para os 12) e o **ledger registrou zero**: o adaptador da época
+passava hash de conteúdo onde a RPC quer UUID, e a RPC canônica só atualiza linha em `processing`.
+As 12 linhas ficaram em `pending`. O adaptador já foi corrigido no #354; as 12 linhas históricas,
+não — e elas **não podem** ser corrigidas pelo caminho canônico, porque o `reserve()` antigo as criou
+com `payload_snapshot = '{}'`: sem o array `recipients` que `settle_bolao_notif` conta, o settle
+produziria `failed_retryable`, não `sent`.
+
+Daí uma função dedicada, `reconcile_bolao_notif_historical_delivery`, executável **apenas** por
+`service_role`. Ela faz **um** `update` — atômico por construção: ou as 12 mudam, ou nenhuma muda.
+Doze escritas soltas admitiriam o desfecho que não pode existir (7 `sent` e 5 `pending` porque o
+processo morreu no meio), e nenhuma ferramenta posterior saberia ler esse estado.
+
+O que ela recusa: conjunto de tamanho diferente do declarado pelo operador, `entry_ref` duplicado,
+linha em estado não previsto, reconciliação parcial, alvo sem linhas, evidência de provedor
+insuficiente. Em qualquer um desses casos ela levanta e **não escreve nada**.
+
+Honestidade do dado — as duas decisões que importam:
+
+- `provider_message_id` fica **NULL**. O id por destinatário é **irrecuperável**: a execução
+  autorizada registrou só `entry_ref`, de propósito, para não colocar endereço em log. Inventar um id
+  seria fabricar evidência de provedor.
+- `sent_at` recebe o **instante da execução autorizada**, passado explicitamente, e não `now()` —
+  `now()` seria a hora da reconciliação apresentada como se fosse a hora da entrega.
+
+A procedência fica em `payload_snapshot.reconciliation`, de modo que um `sent` reconciliado nunca
+seja indistinguível de um `sent` de tempo real.
+
+**Zero e-mail é enviado por esta mudança, por construção e não por convenção**: a ferramenta carrega
+`send_result_email.py` só para LER estado (`sb_fetch`) e conferir o placar, e há gate dedicado que
+varre o *código* dela — ignorando comentário e docstring — reprovando se qualquer identificador de
+caminho de provedor aparecer, com controle negativo provando que a varredura morde.
+
+
 ## v3.137 — ações de suporte no cabeçalho (2026-08-26, Issue #321)
 
 `Reportar problema` saiu do fim da página e passou a formar, ao lado de `Suporte WhatsApp`, um
