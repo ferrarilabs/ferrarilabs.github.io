@@ -314,6 +314,8 @@ const CHECKS = [
     why: "live clock must keep running when the same snapshot is re-fetched" },
   { id: "live-clock-semantics", group: "app", cmd: ["node", "bolao/scripts/audit_live_clock_semantics.mjs"],
     why: "matriz de estados do relogio ao vivo: dado velho CONGELA no ultimo minuto confirmado, nunca o apaga" },
+  { id: "hero-composition", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_hero_composition.mjs"],
+    why: "duas vezes o #246 foi dado como resolvido por `hidden === false`, e duas vezes a producao provou que isso nao e aceitacao: hero montado e VAZIO no BR, e no CDB uma pagina que dizia \"Aguardando sorteio oficial\" com os quatro confrontos das quartas logo abaixo e a mesma partida renderizada DUAS vezes. Este gate prova composicao semantica: o estado do sorteio nao pode contradizer o proprio conteudo da pagina, e um confronto nao pode ter duas apresentacoes primarias" },
   { id: "hero-always-mounted", group: "app", cmd: ["node", "bolao/shared/scripts/test_hero_always_mounted.mjs"],
     why: "o hero de futebol sumiu da producao repetidas vezes, sempre por um gatilho diferente (gateway fora, cache vencido, cron atrasado, ESPN bloqueando) e sempre pelo mesmo motivo: cada app decidia sozinho `if (!aoVivo) esconde`. Este gate prova o invariante do #246 -- a EXISTENCIA do hero nao depende de status HTTP, frescor, horario de produtor, rede ou de haver jogo agora. Varre a matriz de falha inteira, as transicoes de frescor, e tem controle negativo para cada mutacao que restauraria o esconde" },
   { id: "live-hero-reliability", group: "app", cmd: ["node", "bolao/scripts/audit_live_hero_reliability.mjs"],
