@@ -74,7 +74,7 @@ def classificar_linhas(linhas, prefixo):
     return pend, sent, outros, refs
 
 
-def preflight(L, phase_id, tie_id, leg, esperado, evidencia, ledger, state):
+def preflight(L, phase_id, tie_id, leg, esperado, evidencia, ledger, state, por_entidade=None):
     """Só LEITURA. Devolve evidência agregada — nunca endereço, nome, palpite ou payload cru."""
     ev = {
         "TARGET_PHASE": phase_id, "TARGET_TIE": tie_id, "TARGET_LEG": leg, "RESULT": None,
@@ -156,6 +156,29 @@ def preflight(L, phase_id, tie_id, leg, esperado, evidencia, ledger, state):
         ev["MOTIVO"] = "nenhuma linha para este alvo"
         return ev
 
+    # O predicado da ESCRITA, provado antes de escrever.
+    #
+    # Tudo acima conta linhas por prefixo de `idempotency_key`. A RPC atualiza por
+    # `(pool_id, entity_id)`. São predicados DIFERENTES, e ate aqui nada provava que endereçam o
+    # mesmo conjunto -- na primeira execucao real eles nao enderecaram: 12 linhas pelo prefixo,
+    # nenhuma pelo entity_id, e a RPC levantou por contagem depois de o preflight ja ter dito READY.
+    #
+    # Um preflight que aprova o que a escrita nao consegue endereçar nao e um preflight.
+    if por_entidade is not None:
+        try:
+            linhas_ent = por_entidade(L, ev["TARGET_ENTITY"])
+        except Exception as e:  # noqa: BLE001 - ledger ilegivel bloqueia, nunca aprova
+            ev["WRITE_PREDICATE_ROWS"] = "ILEGIVEL"
+            ev["MOTIVO"] = f"nao foi possivel ler o predicado de escrita: {type(e).__name__}"
+            return ev
+        ev["WRITE_PREDICATE_ROWS"] = len(linhas_ent)
+        if len(linhas_ent) != ev["LEDGER_TOTAL_ROWS"]:
+            ev["MOTIVO"] = (
+                f"o predicado de LEITURA acha {ev['LEDGER_TOTAL_ROWS']} linha(s) por prefixo de "
+                f"idempotency_key, mas o predicado de ESCRITA acha {len(linhas_ent)} por "
+                f"(pool_id, entity_id) — a RPC nao endereçaria o mesmo conjunto")
+            return ev
+
     ev["PROPOSED_SENT_COUNT"] = ev["LEDGER_PENDING_ROWS"]
     ev["TARGET_STATUS"] = READY
     return ev
@@ -172,13 +195,58 @@ def imprimir(ev):
               "PROVIDER_MESSAGE_ID_RECOVERABLE", "SENT_AT_SOURCE", "TARGET_STATUS"):
         if k in ev:
             print(f"  {k} = {ev[k]}")
+    if "WRITE_PREDICATE_ROWS" in ev:
+        print(f"  WRITE_PREDICATE_ROWS = {ev['WRITE_PREDICATE_ROWS']}")
     if ev.get("MOTIVO"):
         print(f"  MOTIVO = {ev['MOTIVO']}")
     print("=" * 72)
 
 
+def linhas_por_entidade(L, entidade, *, get=None):
+    """Lê `bolao_notif_jobs` pelo MESMO predicado que a escrita usa: (pool_id, entity_id).
+
+    Existe porque o preflight lia por prefixo de `idempotency_key` e a RPC escreve por
+    `entity_id` -- dois predicados diferentes, e nada provava que concordam. Na primeira execução
+    real eles NÃO concordaram: o preflight disse READY com 12 linhas e a RPC não endereçou nenhuma,
+    levantou por contagem e devolveu 400. A guarda fez seu trabalho, mas tarde demais para ser
+    diagnóstico: o operador viu um 400 sem explicação.
+
+    Nenhum dado de participante sai daqui -- `entity_id` é `fase:confronto:perna` e `status` é
+    enum. `entry_ref` NÃO é lido.
+    """
+    import json as _j, os as _os, urllib.parse as _up, urllib.request as _ur
+    if get is None:
+        base = _os.environ.get("SUPABASE_URL") or "https://cmhqkkfczotdnssupkni.supabase.co"
+        chave = _os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or ""
+        if not chave:
+            raise L.LedgerUnavailable("SUPABASE_SERVICE_ROLE_KEY ausente")
+        def get(qs):
+            req = _ur.Request(f"{base}/rest/v1/bolao_notif_jobs?{qs}",
+                              headers={"apikey": chave, "Authorization": f"Bearer {chave}"})
+            with _ur.urlopen(req, timeout=20) as r:
+                corpo = r.read().decode()
+            return _j.loads(corpo) if corpo.strip() else []
+    qs = _up.urlencode({"pool_id": f"eq.{L.POOL_ID}", "entity_id": f"eq.{entidade}",
+                        "select": "entity_id,status"})
+    return get(qs)
+
+
 def aplicar(L, ev, evidencia, rpc):
     """UMA chamada. A atomicidade mora no `update` único da função SQL, não aqui."""
+    import urllib.error as _ue
+    try:
+        return _aplicar_bruto(L, ev, evidencia, rpc)
+    except _ue.HTTPError as e:
+        # O corpo carrega a MENSAGEM da guarda que levantou. Engoli-lo transforma uma recusa
+        # explicada num 400 mudo -- foi o que aconteceu na primeira execução real.
+        try:
+            detalhe = e.read().decode()[:400]
+        except Exception:  # noqa: BLE001 - se nem o corpo pode ser lido, o código HTTP é o que há
+            detalhe = "(corpo ilegível)"
+        raise RuntimeError(f"a RPC recusou (HTTP {e.code}): {detalhe}") from None
+
+
+def _aplicar_bruto(L, ev, evidencia, rpc):
     r = rpc(RPC_RECONCILE, {
         "p_pool_id": L.POOL_ID,
         "p_entity_id": ev["TARGET_ENTITY"],
@@ -218,7 +286,8 @@ def main(argv=None):
             return [(r.get("idempotency_key") or "", r.get("status") or "") for r in linhas]
 
     reg = _Leitor()
-    ev = preflight(L, a.phase, a.tie, a.leg, a.expect_result, evidencia, reg, S.sb_fetch())
+    ev = preflight(L, a.phase, a.tie, a.leg, a.expect_result, evidencia, reg, S.sb_fetch(),
+                   por_entidade=linhas_por_entidade)
     imprimir(ev)
 
     if not a.apply:
