@@ -124,6 +124,9 @@ const liveState = page => page.evaluate(() => {
     probBars: card ? card.querySelectorAll(".prob-bars").length : 0,
     probSegments: card ? card.querySelectorAll(".prob-bar").length : 0,
     barText: card ? [...card.querySelectorAll(".prob-bar")].map(b => b.textContent.trim()).join(" | ") : "",
+    heroPresentation: card ? (card.dataset.heroPresentation || null) : null,
+    heroDegraded: card ? (card.dataset.heroDegraded || null) : null,
+    idleBlocks: card ? card.querySelectorAll(".live-hero-idle").length : 0,
     quartasTies: Object.keys(st.phases?.quartas?.ties || {}).length,
     entries: (st.entries || []).length,
   };
@@ -178,10 +181,26 @@ await test("snapshot marcado stale ainda renderiza (dado velho conhecido > nenhu
   await ctx.close();
 });
 
-await test("snapshot indisponível (404) falha seguro: sem card, sem erro, sem resultado inventado", async () => {
+// MUDANÇA DELIBERADA DE INVARIANTE (#246, autorizada pelo dono em 2026-08-27).
+//
+// Este teste afirmava `hidden === true`: sem snapshot, sem card. Era a política ANTIGA, e era
+// exatamente o defeito -- o hero sumia da página toda vez que o provedor falhava, por qualquer um
+// dos quatro gatilhos (gateway fora, cache vencido, cron atrasado, ESPN bloqueando o egresso).
+//
+// A política nova separa duas perguntas que estavam coladas: "o hero DEVE EXISTIR?" e "quão fresco
+// é o dado dentro dele?". A primeira nunca depende do provedor.
+//
+// O que este teste protegia de verdade — **não inventar dado** e **não quebrar em silêncio** —
+// continua aqui, intacto e reforçado: nenhuma partida ao vivo renderizada, nenhuma barra de
+// probabilidade, nenhum erro de console, e a entrada local preservada. O que mudou é só que a
+// ausência de dado agora produz um hero honesto em vez de um buraco na página.
+await test("snapshot indisponível (404): hero PERMANECE, honesto, sem resultado inventado", async () => {
   const { ctx, page, consoleErrors } = await load({ snapshotStatus: 404 });
   const s = await liveState(page);
-  eq(s.hidden, true, "sem snapshot o card ao vivo apareceu — de onde veio o dado?");
+  eq(s.hidden, false, "#246: o hero sumiu quando o snapshot falhou — este é o defeito");
+  assert(s.idleBlocks >= 1, "o hero ficou montado porém vazio — um buraco não é um estado");
+  eq(s.liveMatches, 0, "inventou partida ao vivo sem nenhuma fonte de dado");
+  eq(s.probBars, 0, "inventou barras de probabilidade sem dado");
   eq(s.entries, 1, "a entrada local foi perdida quando o snapshot falhou");
   assert(!consoleErrors.length, `404 do snapshot gerou erro de console: ${consoleErrors.slice(0, 1)}`);
   await ctx.close();

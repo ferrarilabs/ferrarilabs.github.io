@@ -312,6 +312,8 @@ const CHECKS = [
     why: "live clock must keep running when the same snapshot is re-fetched" },
   { id: "live-clock-semantics", group: "app", cmd: ["node", "bolao/scripts/audit_live_clock_semantics.mjs"],
     why: "matriz de estados do relogio ao vivo: dado velho CONGELA no ultimo minuto confirmado, nunca o apaga" },
+  { id: "hero-always-mounted", group: "app", cmd: ["node", "bolao/shared/scripts/test_hero_always_mounted.mjs"],
+    why: "o hero de futebol sumiu da producao repetidas vezes, sempre por um gatilho diferente (gateway fora, cache vencido, cron atrasado, ESPN bloqueando) e sempre pelo mesmo motivo: cada app decidia sozinho `if (!aoVivo) esconde`. Este gate prova o invariante do #246 -- a EXISTENCIA do hero nao depende de status HTTP, frescor, horario de produtor, rede ou de haver jogo agora. Varre a matriz de falha inteira, as transicoes de frescor, e tem controle negativo para cada mutacao que restauraria o esconde" },
   { id: "live-hero-reliability", group: "app", cmd: ["node", "bolao/scripts/audit_live_hero_reliability.mjs"],
     why: "hero nao pode sumir por falha transitoria: retencao de ultimo estado confirmado, TTL 15min, sem inventar resultado" },
   { id: "powerball-reversal-integrity", group: "app", cmd: ["python3", "bolao/loterias/powerball/scripts/test_payment_writer_integrity.py"],
