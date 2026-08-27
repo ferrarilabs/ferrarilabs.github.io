@@ -726,3 +726,16 @@
   .primary-football-card { padding: 10px 12px; }
   #nextGameCard { padding: 8px 12px; }
 }
+
+/* ─── #246 Fase A: aviso de release nova ─────────────────────────────────────────────────────
+   Discreto de proposito. Ele so aparece quando ha versao nova E o participante tem palpite nao
+   salvo -- ou seja, exatamente quando NAO se pode recarregar por cima dele. Um banner grande
+   assustaria; um que reaparece a cada poll seria aprendido e ignorado (por isso e mostrado uma
+   unica vez, ver `_avisoMostrado`). */
+.release-update-notice {
+  position: fixed; left: 50%; transform: translateX(-50%); bottom: 14px; z-index: 60;
+  background: #0d2028; border: 1px solid var(--border2); border-radius: 999px;
+  padding: 8px 16px; font-size: 12px; color: var(--muted);
+  box-shadow: 0 4px 16px rgba(0,0,0,.45);
+}
+@media (max-width: 380px) { .release-update-notice { font-size: 11px; padding: 7px 12px; } }

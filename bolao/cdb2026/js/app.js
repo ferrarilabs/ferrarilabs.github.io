@@ -6024,19 +6024,98 @@ if ('serviceWorker' in navigator) {
     return [...form.querySelectorAll(".pk-goals-home, .pk-goals-away")].some(el => el.value !== "") ||
            [...form.querySelectorAll(".pk-qualified")].some(el => el.value !== "");
   }
-  async function checkVersion() {
-    if (document.hidden || formIsDirty()) return;
+  async function fetchVersionText(url) {
+    // Cada leitura precisa do PROPRIO timeout. Reutilizar o signal da primeira requisicao depois
+    // de limpar seu timer deixa a segunda sem limite e pode desligar o polling para sempre.
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 10000);
     try {
-      // Escopo isolado desta IIFE não enxerga o fetchJson() do módulo principal -- timeout
-      // inline equivalente (item 50 do CONSISTENCY_MATRIX.md, 2026-07-15).
-      const ctrl = new AbortController();
-      const timer = setTimeout(() => ctrl.abort(), 10000);
-      let r;
-      try { r = await fetch(`js/config.js?nc=${Date.now()}`, { signal: ctrl.signal }); }
-      finally { clearTimeout(timer); }
-      const text = await r.text();
+      const response = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+      if (!response.ok) throw new Error(`version probe http ${response.status}`);
+      return await response.text();
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+  // ─── #246 Fase A: contrato de convergencia de release ──────────────────────────────────────
+  //
+  // Estados: CURRENT -> UPDATE_AVAILABLE -> (UPDATE_WAITING_FOR_SAFE_RELOAD) -> UPDATING.
+  //
+  // O que existia aqui saia cedo quando o formulario estava sujo -- e nunca mais voltava ao
+  // assunto. Duas consequencias: o participante nao ficava sabendo que havia versao nova, e a aba
+  // dele podia permanecer numa release obsoleta indefinidamente. Recarregar por cima dele tambem
+  // nao serve: apagaria palpites digitados e nao salvos.
+  //
+  // Entao a deteccao passa a acontecer SEMPRE, e quem decide o que fazer com ela e o estado do
+  // formulario. Sujo: avisa uma vez, discreto, e ADIA. Limpo: atualiza.
+  var RELEASE_STATE = { CURRENT: "CURRENT", AVAILABLE: "UPDATE_AVAILABLE",
+                        WAITING: "UPDATE_WAITING_FOR_SAFE_RELOAD", UPDATING: "UPDATING" };
+  var _releaseState = RELEASE_STATE.CURRENT;
+  var _avisoMostrado = false;
+
+  function mostrarAvisoDeVersao() {
+    // Uma vez so. Um aviso que reaparece a cada poll e um aviso que a pessoa aprende a ignorar.
+    if (_avisoMostrado) return;
+    _avisoMostrado = true;
+    var el = document.createElement("div");
+    el.id = "releaseUpdateNotice";
+    el.className = "release-update-notice";
+    el.setAttribute("role", "status");
+    // O i18n real do app; esta IIFE roda fora do escopo do modulo, entao acessa o global.
+    el.textContent = window.CDB2026_I18N?.["pt-BR"]?.newVersionAvailable || "Nova versão disponível";
+    document.body.appendChild(el);
+  }
+
+  function aplicarAtualizacao() {
+    if (_releaseState === RELEASE_STATE.UPDATING) return;   // sem laco de reload
+    _releaseState = RELEASE_STATE.UPDATING;
+    location.reload();
+  }
+
+  async function checkVersion() {
+    // `document.hidden` continua barrando: aba em segundo plano nao precisa sondar. Mas
+    // `formIsDirty()` NAO barra mais a DETECCAO -- so a acao. Ver o contrato acima.
+    if (document.hidden) return;
+
+    // Se ja sabemos que ha versao nova e o formulario ficou limpo, este e o momento seguro.
+    if (_releaseState === RELEASE_STATE.WAITING && !formIsDirty()) { aplicarAtualizacao(); return; }
+    if (_releaseState === RELEASE_STATE.UPDATING) return;
+
+    try {
+      // Escopo isolado desta IIFE não enxerga o fetchJson() do módulo principal -- wrapper
+      // equivalente (item 50 do CONSISTENCY_MATRIX.md, 2026-07-15).
+      const text = await fetchVersionText(`js/config.js?nc=${Date.now()}`);
+      // ─── #246 Fase A: observar o carimbo que MUDA a cada deploy ──────────────────────────
+      //
+      // Isto comparava `siteVersion`, e por isso nao convergia. `siteVersion` e bumpado A MAO no
+      // processo de release; o bot `sync_version.yml` bumpa `?v=<sha do commit>` em index.html em
+      // TODO deploy e NUNCA toca em `siteVersion` (zero ocorrencias no workflow).
+      //
+      // Resultado medido em 2026-08-27: cinco deploys entraram em producao com `siteVersion`
+      // parado em v3.137. Uma aba aberta consultava config.js, via a mesma string, e nunca
+      // recarregava. O mecanismo de convergencia observava justamente o identificador que NAO
+      // muda sozinho -- entao um deploy critico podia nunca chegar a quem ja estava com a pagina
+      // aberta.
+      //
+      // O carimbo do bot e unico por commit, por construcao. E ele que decide se houve deploy.
+      const marcaAtual = document.querySelector('script[src*="js/app.js?v="]')
+        ?.getAttribute("src")?.split("?v=")[1] || null;
+      const htmlAtual = await fetchVersionText(`./?nc=${Date.now()}`);
+      const marcaPublicada = (htmlAtual.match(/js\/app\.js\?v=([a-zA-Z0-9]+)/) || [])[1] || null;
+      const houveDeploy = !!(marcaAtual && marcaPublicada && marcaAtual !== marcaPublicada);
+      // `siteVersion` continua sendo consultado: se ELE mudou, tambem houve deploy.
       const m = text.match(/siteVersion:\s*"([^"]+)"/);
-      if (m && m[1] !== window.CDB2026_CONFIG?.siteVersion) location.reload();
+      const versaoMudou = !!(m && m[1] !== window.CDB2026_CONFIG?.siteVersion);
+      if (!(houveDeploy || versaoMudou)) { _releaseState = RELEASE_STATE.CURRENT; return; }
+
+      // Ha release nova. O que acontece agora depende SO do formulario.
+      if (formIsDirty()) {
+        _releaseState = RELEASE_STATE.WAITING;
+        mostrarAvisoDeVersao();
+        return;                      // nunca recarrega por cima de palpite nao salvo
+      }
+      _releaseState = RELEASE_STATE.AVAILABLE;
+      aplicarAtualizacao();
     } catch (e) { /* network hiccup — next poll retries, nothing to recover here */ }
   }
   setInterval(checkVersion, 10 * 60 * 1000);

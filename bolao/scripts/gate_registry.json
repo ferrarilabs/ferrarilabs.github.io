@@ -478,6 +478,9 @@
       "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
       "reason": "Mede contra a PRODUCAO a unicidade (app, evento, destinatario, geracao) e o disjuntor de anomalia de 45min; precisa de SUPABASE_SERVICE_ROLE_KEY e de concorrencia real (8 workers). Executado pelo workflow m8m9_probe.yml. Nao envia e-mail: enderecos sinteticos, chaves canary:, tudo removido no fim. Ultimo resultado: 13/13, 8 workers -> 1 reserva."
     },
+    "bolao/scripts/test_deploy_convergence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/test_freshness_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

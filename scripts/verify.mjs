@@ -314,6 +314,8 @@ const CHECKS = [
     why: "live clock must keep running when the same snapshot is re-fetched" },
   { id: "live-clock-semantics", group: "app", cmd: ["node", "bolao/scripts/audit_live_clock_semantics.mjs"],
     why: "matriz de estados do relogio ao vivo: dado velho CONGELA no ultimo minuto confirmado, nunca o apaga" },
+  { id: "deploy-convergence", group: "browser", cmd: ["node", "bolao/scripts/test_deploy_convergence.mjs"],
+    why: "um deploy publicado que nao chega ao usuario nao foi entregue, foi so publicado. Em 2026-08-27 a producao servia o bundle corrigido e o navegador seguia no aplicativo antigo. Este gate publica DE VERDADE duas versoes contra o service worker REAL do repositorio e deixa o navegador decidir; prova ainda que a aba aberta observa o carimbo `?v=` (unico por commit, garantido pelo bot) e nao `siteVersion` (bumpado A MAO, parado em v3.137 por cinco deploys), e que um formulario de palpites SUJO nunca e recarregado por baixo do participante" },
   { id: "hero-composition", group: "app", cmd: ["node", "bolao/cdb2026/scripts/test_hero_composition.mjs"],
     why: "duas vezes o #246 foi dado como resolvido por `hidden === false`, e duas vezes a producao provou que isso nao e aceitacao: hero montado e VAZIO no BR, e no CDB uma pagina que dizia \"Aguardando sorteio oficial\" com os quatro confrontos das quartas logo abaixo e a mesma partida renderizada DUAS vezes. Este gate prova composicao semantica: o estado do sorteio nao pode contradizer o proprio conteudo da pagina, e um confronto nao pode ter duas apresentacoes primarias" },
   { id: "hero-always-mounted", group: "app", cmd: ["node", "bolao/shared/scripts/test_hero_always_mounted.mjs"],
