@@ -2293,11 +2293,17 @@ function renderLiveCard() {
     // pode depender de nenhuma funcao de formatacao dar certo.
     let html;
     try { html = renderHeroSemAoVivo(heroEstado, proximo); } catch (_) { html = ""; }
+    // A SUPERFICIE do card primario (#246) — mesma classe canonica do CDB2026. Sem ela o
+    // "PRÓXIMO JOGO" flutuava solto e o painel SECUNDARIO ("Próximos jogos") ficava com mais peso
+    // visual que a partida principal: hierarquia invertida.
+    card.classList.add("primary-football-card");
     card.innerHTML = html && html.trim()
       ? html
       : `<div class="live-hero-idle"><div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div></div>`;
     return;
   }
+  // Com jogo ao vivo cada partida tem `.live-match`; segunda superficie criaria card dentro de card.
+  card.classList.remove("primary-football-card");
   const retidoPorId = new Map(entradas.map(x => [String(x.match.id), x.retained]));
 
   const header = heroMatches.length > 1
