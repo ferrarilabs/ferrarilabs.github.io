@@ -1,6 +1,6 @@
 {
-  "generatedAtUtc": "2026-08-25T18:44:03.283Z",
-  "commit": "9f3ffb2a",
+  "generatedAtUtc": "2026-08-27T02:32:42.116Z",
+  "commit": "5ff8a390",
   "referenceApp": "copa2026",
   "apps": [
     "copa2026",
@@ -32,9 +32,9 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "108.5px",
+          "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+          "gridTemplateColumns": "625.562px 179.578px 260.859px 142px"
         },
         "br2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -48,9 +48,9 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "108.5px",
+          "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+          "gridTemplateColumns": "438.531px 366.609px 260.859px 142px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -64,9 +64,9 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "108.5px",
+          "height": "110.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "627.562px 177.578px 260.859px 142px"
+          "gridTemplateColumns": "438.531px 366.609px 260.859px 142px"
         },
         "loterias/powerball": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -80,9 +80,9 @@
           "borderRadius": "0px",
           "backgroundColor": "rgba(7, 20, 27, 0.94)",
           "color": "rgb(238, 247, 241)",
-          "height": "64.5px",
+          "height": "66.5px",
           "minHeight": "0px",
-          "gridTemplateColumns": "876.938px 120.219px 0px 210.844px"
+          "gridTemplateColumns": "687.906px 309.25px 0px 210.844px"
         }
       },
       "properties": [
@@ -144,7 +144,7 @@
         {
           "property": "height",
           "status": "JUSTIFIED",
-          "reason": "Ratificado por Eduardo em 2026-08-20 (Issue #194), a partir do memo de ratificacao visual de 2026-08-08. O checador exige aprovador com nome e recusa auto-aprovacao -- esta entrada existe porque a decisao foi tomada, nao inferida. DECISAO 1 do memo: o cabecalho do Powerball e mais baixo porque tem MENOS COISA DENTRO, nao porque foi estilizado diferente. Os tres boloes de futebol tem uma linha de abas (Ranking/Jogos/Regras/Palpites) e uma linha de botoes de idioma; o Powerball e pagina unica, num idioma so, e nao tem nenhuma das duas. Fundo, borda, padding, gap, comportamento sticky, blur, marca, botao do WhatsApp e seletor de sorteio ja batem EXATAMENTE com os outros tres, no desktop e no celular -- e a mesma barra com menos itens. Igualar as alturas exigiria inventar uma linha de abas que nao navega para lugar nenhum, ou empurrar espaco vazio no cabecalho: as duas pioram a pagina para produzir um numero igual num relatorio. Valor FIXADO por app: se qualquer um dos quatro mudar de altura, esta entrada para de casar e o gate reprova. [docRef: Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 1 (2026-08-08); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-20]"
+          "reason": "Ratificado por Eduardo em 2026-08-20 (Issue #194), a partir do memo de ratificacao visual de 2026-08-08. O checador exige aprovador com nome e recusa auto-aprovacao -- esta entrada existe porque a decisao foi tomada, nao inferida. DECISAO 1 do memo: o cabecalho do Powerball e mais baixo porque tem MENOS COISA DENTRO, nao porque foi estilizado diferente. Os tres boloes de futebol tem uma linha de abas (Ranking/Jogos/Regras/Palpites) e uma linha de botoes de idioma; o Powerball e pagina unica, num idioma so, e nao tem nenhuma das duas. Fundo, borda, padding, gap, comportamento sticky, blur, marca, botao do WhatsApp e seletor de sorteio ja batem EXATAMENTE com os outros tres, no desktop e no celular -- e a mesma barra com menos itens. Igualar as alturas exigiria inventar uma linha de abas que nao navega para lugar nenhum, ou empurrar espaco vazio no cabecalho: as duas pioram a pagina para produzir um numero igual num relatorio. Valor FIXADO por app: se qualquer um dos quatro mudar de altura, esta entrada para de casar e o gate reprova. ATUALIZADO em 2026-08-26 (#321, refinamento cosmetico do canal de reporte, autorizado explicitamente pelo dono): os VALORES fixados mudaram; a DECISAO e o escopo nao. O par de suporte (WhatsApp + Reportar problema) ganhou uma borda de 1px transparente no WhatsApp para que os dois botoes tenham a MESMA caixa -- isso desloca a altura do cabecalho em exatamente 2px em TODOS os quatro apps, de forma uniforme, entao a relacao ratificada continua valendo palavra por palavra: os tres boloes de futebol seguem iguais entre si e o Powerball segue mais baixo por ter menos coisa dentro. Nada foi alargado: o escopo (componente, propriedade, apps) e identico e o casamento continua `exact`, entao qualquer mudanca futura NAO intencional volta a reprovar. [docRef: Issue #194 (ratificacao 2026-08-20); memo VISUAL_RATIFICATION_REQUIRED.md DECISAO 1 (2026-08-08); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-26; reviewBy: 2027-08-20]"
         },
         {
           "property": "minHeight",
@@ -765,7 +765,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "44px",
           "minHeight": "auto",
-          "gridTemplateColumns": "173.422px 173.422px 173.438px 173.422px 173.438px 173.422px 173.438px"
+          "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
         },
         "cdb2026": {
           "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
@@ -781,7 +781,7 @@
           "color": "rgb(238, 247, 241)",
           "height": "44px",
           "minHeight": "auto",
-          "gridTemplateColumns": "203.156px 203.172px 203.172px 203.156px 203.172px 203.172px"
+          "gridTemplateColumns": "244.797px 244.797px 244.797px 244.797px 244.812px"
         },
         "loterias/powerball": null
       },
@@ -854,7 +854,7 @@
         {
           "property": "gridTemplateColumns",
           "status": "JUSTIFIED",
-          "reason": "Column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real visible button count by design (fixed in this branch, commit 9b11e3b — Copa 8→6, BR2026 9→7, CDB2026 6). Unequal track widths across apps given unequal button counts is the CORRECT outcome, not a regression. If a nav button is ever added/removed in any app, the resolved track-width string changes and this exact-match entry correctly goes stale, forcing a fresh human review rather than silently continuing to approve a now-unverified state — this is the reference example the task itself asked for. [docRef: bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78 (Fase 2.2-correção item 3); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-03; reviewBy: 2027-08-03]"
+          "reason": "Column TRACK WIDTHS differ because BR2026 has 7 real visible nav buttons (includes 'Tabela', a BR2026-only tournament-specific tab) vs 6 for Copa/CDB2026 — column COUNT now matches each app's own real visible button count by design (fixed in this branch, commit 9b11e3b — Copa 8→6, BR2026 9→7, CDB2026 6). Unequal track widths across apps given unequal button counts is the CORRECT outcome, not a regression. If a nav button is ever added/removed in any app, the resolved track-width string changes and this exact-match entry correctly goes stale, forcing a fresh human review rather than silently continuing to approve a now-unverified state — this is the reference example the task itself asked for. ATUALIZADO em 2026-08-26 (#321, autorizado explicitamente pelo dono): o Admin saiu da navegacao primaria de BR2026 e CDB2026 e virou utilitario secundario depois do rodape, entao a contagem real de abas visiveis caiu (BR2026 7->6, CDB2026 6->5) e as larguras de trilha mudaram junto. Esta entrada foi escrita prevendo exatamente isto -- ela diz que remover um botao faz o valor exato ficar obsoleto e FORCAR revisao humana nova, em vez de continuar aprovando um estado nao verificado. Esta e essa revisao: os valores foram refixados na realidade atual, e o escopo (componente, propriedade, apps) nao mudou. [docRef: bolao/{copa2026,br2026,cdb2026}/CHANGELOG.md v4.165/v1.83/v3.78 (Fase 2.2-correção item 3); owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-26; reviewBy: 2027-08-03]"
         }
       ]
     },
@@ -1019,110 +1019,80 @@
           "minHeight": "44px",
           "gridTemplateColumns": "none"
         },
-        "br2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "13px",
-          "fontWeight": "700",
-          "lineHeight": "19.5px",
-          "letterSpacing": "normal",
-          "padding": "8px 6px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "12px",
-          "backgroundColor": "rgb(47, 229, 110)",
-          "color": "rgb(3, 19, 11)",
-          "height": "44px",
-          "minHeight": "44px",
-          "gridTemplateColumns": "none"
-        },
-        "cdb2026": {
-          "fontFamily": "Inter, system-ui, -apple-system, \"Segoe UI\", Arial, sans-serif",
-          "fontSize": "13px",
-          "fontWeight": "700",
-          "lineHeight": "19.5px",
-          "letterSpacing": "normal",
-          "padding": "8px 6px",
-          "margin": "0px",
-          "gap": "normal",
-          "borderRadius": "12px",
-          "backgroundColor": "rgb(47, 229, 110)",
-          "color": "rgb(3, 19, 11)",
-          "height": "44px",
-          "minHeight": "44px",
-          "gridTemplateColumns": "none"
-        },
+        "br2026": null,
+        "cdb2026": null,
         "loterias/powerball": null
       },
       "properties": [
         {
           "property": "fontFamily",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontSize",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "fontWeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "lineHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "letterSpacing",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "padding",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "margin",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gap",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "borderRadius",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "backgroundColor",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "color",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "height",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "minHeight",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         },
         {
           "property": "gridTemplateColumns",
-          "status": "EQUAL",
-          "reason": null
+          "status": "N/A",
+          "reason": "component not present in enough apps to compare"
         }
       ]
     },
@@ -3530,7 +3500,7 @@
           "borderRadius": "999px",
           "backgroundColor": "rgb(37, 211, 102)",
           "color": "rgb(0, 0, 0)",
-          "height": "35.5px",
+          "height": "37.5px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
@@ -3546,7 +3516,7 @@
           "borderRadius": "999px",
           "backgroundColor": "rgb(37, 211, 102)",
           "color": "rgb(0, 0, 0)",
-          "height": "35.5px",
+          "height": "37.5px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
@@ -3562,7 +3532,7 @@
           "borderRadius": "999px",
           "backgroundColor": "rgb(37, 211, 102)",
           "color": "rgb(0, 0, 0)",
-          "height": "35.5px",
+          "height": "37.5px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
         },
@@ -3578,7 +3548,7 @@
           "borderRadius": "999px",
           "backgroundColor": "rgb(37, 211, 102)",
           "color": "rgb(0, 0, 0)",
-          "height": "35.5px",
+          "height": "37.5px",
           "minHeight": "auto",
           "gridTemplateColumns": "none"
         }
