@@ -2187,6 +2187,34 @@ function ordemDoHeroAoVivo(a, b) {
   return String(a.match.id).localeCompare(String(b.match.id));
 }
 
+/**
+ * Conteudo do hero quando nao ha jogo ao vivo (#246).
+ *
+ * Compacto e secundario de proposito: a degradacao do provedor NAO pode dominar a pagina. A
+ * hierarquia continua sendo a partida -- proxima, quando conhecida -- e o aviso de fonte fora vem
+ * depois, pequeno.
+ */
+function renderHeroSemAoVivo(heroEstado, proximo) {
+  const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
+  const S = HP ? HP.HERO : {};
+  const estado = heroEstado ? heroEstado.state : "SCHEDULE_UNKNOWN";
+  const aviso = heroEstado && heroEstado.degraded
+    ? `<div class="live-hero-note">${esc(t("liveDataUnavailable"))}</div>` : "";
+
+  if (estado === S.UPCOMING && proximo) {
+    const quando = proximo.dateISO ? formatBrtTimestamp(proximo.dateISO,
+      { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : "";
+    return `<div class="live-hero-idle">
+      <div class="live-hero-label">${esc(t("nextMatchLabel"))}</div>
+      <div class="live-hero-teams">${esc(proximo.homeTeam)} × ${esc(proximo.awayTeam)}</div>
+      ${quando ? `<div class="live-hero-when">${esc(quando)}</div>` : ""}
+      ${aviso}</div>`;
+  }
+  return `<div class="live-hero-idle">
+    <div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div>
+    ${aviso}</div>`;
+}
+
 function renderLiveCard() {
   const card = $("liveMatchCard");
   if (!card) return;
@@ -2213,7 +2241,38 @@ function renderLiveCard() {
   else delete card.dataset.heroMatchId;
 
   const heroMatches = entradas.map(x => x.match);
-  if (!heroMatches.length) { card.classList.add("hidden"); return; }
+
+  // ─── #246: o hero EXISTE, sempre ────────────────────────────────────────────────────────────
+  //
+  // Aqui havia `if (!heroMatches.length) { card.classList.add("hidden"); return; }`, e era um dos
+  // seis caminhos independentes que faziam o hero sumir. Todos disparavam por ausencia de dado do
+  // provedor -- gateway fora, cache vencido, cron atrasado, ESPN bloqueando -- e todos terminavam
+  // em `hidden`. Nao eram quatro defeitos: era um sintoma com quatro gatilhos.
+  //
+  // Quem decide o ESTADO agora e a politica compartilhada; ela nunca decide a EXISTENCIA, porque
+  // existencia nao e decisao. O provedor enriquece o hero; nao e dono dele.
+  const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
+  const proximo = typeof nextUpcomingGame === "function" ? nextUpcomingGame() : null;
+  const heroEstado = HP ? HP.deriveFootballHeroState({
+    liveState: resolved.state,
+    liveMatches: heroMatches,
+    nextMatch: proximo ? { id: proximo.id, homeTeam: proximo.homeTeam, awayTeam: proximo.awayTeam,
+                           kickoff: proximo.dateISO } : null,
+    recentResult: null,
+    sourceOk: resolved.sourceOk !== false,
+  }) : null;
+  if (heroEstado) {
+    card.dataset.heroPresentation = heroEstado.state;
+    card.dataset.heroDegraded = String(heroEstado.degraded);
+  }
+  card.classList.remove("hidden");
+
+  if (!heroMatches.length) {
+    // Sem jogo ao vivo o hero continua montado e diz a VERDADE sobre o que sabe. Nunca inventa
+    // confronto, placar ou minuto -- um numero velho apresentado como atual e pior que a ausencia.
+    card.innerHTML = renderHeroSemAoVivo(heroEstado, proximo);
+    return;
+  }
   const retidoPorId = new Map(entradas.map(x => [String(x.match.id), x.retained]));
 
   const header = heroMatches.length > 1

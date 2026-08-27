@@ -523,6 +523,9 @@
     "bolao/shared/scripts/test_espn_provider.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_hero_always_mounted.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_live_gateway_fixtures.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
