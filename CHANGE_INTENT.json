@@ -1,5 +1,18 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
   "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "SUPABASE_MIGRATIONS",
+      "reason": "A funcao aplicada em 20260827090000 levanta 42702 (column reference \"status\" is ambiguous): o returns table declara uma saida chamada status e o corpo compara com a coluna homonima de bolao_notif_jobs sem qualificar. Na execucao autorizada de 2026-08-27 isso apareceu como HTTP 400 no apply; NENHUMA linha foi escrita, porque a excecao desfez a transacao inteira. O preflight estava certo -- o defeito estava na funcao.",
+      "expected_behavior_change": "Acrescenta a migracao de avanco 20260827120000_reconcile_historical_qualify_status.sql, que faz create or replace da MESMA funcao com a MESMA assinatura, mudando exclusivamente a qualificacao dos identificadores. Ha gate que prova mecanicamente: removida a qualificacao, os dois corpos ficam identicos. Nenhuma guarda foi afrouxada, removida ou reordenada; provider_message_id continua NULL, a procedencia continua marcando UNRECOVERABLE, sent_at continua vindo do operador e o grant continua exclusivo de service_role. O formato de retorno nao muda de proposito. NAO foi aplicada a producao.",
+      "tests_required": [
+        "cdb-reconcile-migration-equivalence",
+        "cdb-ledger-reconciliation",
+        "migration-idempotency",
+        "ddl-execution-order",
+        "safety-contract"
+      ]
+    }
+  ]
 }

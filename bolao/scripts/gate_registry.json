@@ -128,6 +128,9 @@
     "bolao/cdb2026/scripts/test_receipt_catchup_dedupe.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/cdb2026/scripts/test_reconcile_migration_equivalence.py": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/cdb2026/scripts/test_reconcile_result_email_ledger.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
