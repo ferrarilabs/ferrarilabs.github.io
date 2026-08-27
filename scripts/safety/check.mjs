@@ -69,6 +69,7 @@ const BROWSER_SHARD_B = [
   // Issue #316. Vai no shard B porque o A ficou com 11 e o B com 11: este check e curto (8
   // viewports contra rotas mockadas, uma unica pagina) e nao desequilibra a divisao.
   "live-hero-width",
+  "deploy-convergence",
 ];
 
 /** Arquivos que ESTA execucao gera. Sao evidencia efemera, nunca conteudo do repositorio. */
