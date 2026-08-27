@@ -49,6 +49,44 @@ function showToast(msg, type = "info", durationMs = 3500) {
 
 // ─── i18n ───────────────────────────────────────────────────────────────────
 const t = key => window.CDB2026_I18N?.["pt-BR"]?.[key] ?? key;
+
+// ─── DIAGNOSTICO SEGURO DE SAVE (#258 / "Reportar problema") ─────────────────────────────────
+//
+// Conjunto FECHADO. So estes valores podem sair daqui para o canal de reporte -- nunca texto de
+// PostgREST, stack, console, token, palpite ou identidade. O codigo diz O QUE aconteceu sem dizer
+// NADA sobre quem ou com quais dados.
+const SAVE_DIAG = Object.freeze({
+  ACCESS_DENIED: "CDB_SAVE_ACCESS_DENIED",
+  PHASE_CLOSED: "CDB_SAVE_PHASE_CLOSED",
+  CUTOFF_PASSED: "CDB_SAVE_CUTOFF_PASSED",
+  PAYLOAD_INVALID: "CDB_SAVE_PAYLOAD_INVALID",
+  NETWORK_UNCERTAIN: "CDB_SAVE_NETWORK_UNCERTAIN",
+  SERVER_ERROR: "CDB_SAVE_SERVER_ERROR",
+  POST_COMMIT_CLIENT_ERROR: "CDB_SAVE_POST_COMMIT_CLIENT_ERROR",
+  ENTRY_GONE: "CDB_SAVE_ENTRY_GONE",
+  STATE_REMOTE_NEWER: "CDB_STATE_REMOTE_NEWER",
+  STATE_LOCAL_STALE: "CDB_STATE_LOCAL_STALE",
+  STATE_CONVERGENCE_FAILED: "CDB_STATE_CONVERGENCE_FAILED",
+});
+/**
+ * Classifica UMA falha de save num codigo do conjunto fechado acima.
+ *
+ * Nunca devolve texto do servidor. Um `message` de PostgREST pode conter nome de coluna, valor
+ * rejeitado e ate fragmento do payload -- exatamente o que nao pode sair daqui. O que sai e um
+ * enum; o texto original fica no console do proprio navegador, para quem esta depurando ali.
+ */
+function classificarFalhaDeSave(err) {
+  const m = String((err && (err.message || err.code)) || "").toLowerCase();
+  if (/cutoff|prazo/.test(m)) return SAVE_DIAG.CUTOFF_PASSED;
+  if (/fase_fechada|phase_closed/.test(m)) return SAVE_DIAG.PHASE_CLOSED;
+  if (/token|denied|denied|permission|42501|401|403/.test(m)) return SAVE_DIAG.ACCESS_DENIED;
+  if (/abort|timeout|failed to fetch|network/.test(m)) return SAVE_DIAG.NETWORK_UNCERTAIN;
+  if (/invalid|payload|constraint|22p02|23/.test(m)) return SAVE_DIAG.PAYLOAD_INVALID;
+  return SAVE_DIAG.SERVER_ERROR;
+}
+let _ultimoDiagnosticoDeSave = null;
+// Lido pelo formulario de reporte. Devolve SO o enum -- nunca o erro que o originou.
+window.__CDB2026_SAVE_DIAGNOSTIC__ = () => _ultimoDiagnosticoDeSave;
 function applyI18n() {
   $$("[data-i18n]").forEach(el => { const v = t(el.dataset.i18n); if (v) el.textContent = v; });
 }
@@ -1057,7 +1095,20 @@ function mergeEntriesTombstonesAuditLog(local, remote, opts = {}) {
     if (!existing) { byId[e.id] = e; continue; }
     const remoteTs = e.updatedAt || e.createdAt || "";
     const localTs  = existing.updatedAt || existing.createdAt || "";
-    if (remoteTs > localTs) byId[e.id] = e;
+    // ─── INVARIANTE DE CONVERGENCIA ───────────────────────────────────────────────────────
+    //
+    // Era `>` ESTRITO, e isso deixava uma copia local velha sobreviver PARA SEMPRE. Medido em
+    // producao (2026-08-27): uma entrada tinha 4/4 palpites no remoto e 0/4 no localStorage, e
+    // os DOIS lados, sem `updatedAt`, caiam no mesmo `createdAt`. Empate -> `>` falso -> o local
+    // vencia. Recarregar nao resolvia, e nunca ia resolver: nao e cache de HTTP nem de service
+    // worker, e a regra de merge que nao conseguia desempatar.
+    //
+    // Empate nao quer dizer "os dois sao novos"; quer dizer "nenhum e mais novo". E aí quem manda
+    // e a fonte compartilhada, porque a copia local so pode ser um espelho da MESMA escrita.
+    //
+    // Isto nao atropela edicao local: todo save carimba `updatedAt: now`, entao um local editado
+    // depois tem carimbo MAIOR e continua vencendo.
+    if (remoteTs >= localTs) byId[e.id] = e;
   }
   // Merge audit logs: união por instante (único por evento), mais novo primeiro, teto de 200 —
   // mesmo padrão da Copa (copa2026/js/app.js mergeStates()).
@@ -2498,26 +2549,48 @@ async function saveEntry() {
       s.entries.push(entry);
     }
 
+    // ─── A FRONTEIRA DO COMMIT (#258) ──────────────────────────────────────────────────────
+    //
+    // Daqui para baixo o palpite JA ESTA SALVO. Tudo o que vem depois -- comprovante, re-render,
+    // limpeza de formulario, toast, navegacao -- e trabalho POS-COMMIT.
+    //
+    // Antes, isso tudo morava no mesmo `try` do save. Qualquer excecao ali -- um defeito de
+    // render, uma falha do provedor de e-mail, um elemento ausente -- caia no `catch` e mostrava
+    // "Erro ao salvar. Tente novamente." com o dado JA GRAVADO. O participante entao tentava de
+    // novo, sem saber que ja tinha dado certo. E a classe de defeito da #258: DADO SALVO +
+    // USUARIO VE ERRO, que e diferente de DADO NAO SALVO + USUARIO VE ERRO e exige resposta
+    // diferente.
+    //
+    // A fronteira e explicita: falha depois do commit NUNCA e reportada como falha de save.
     saveState(s);
 
-    if (C.emailjs.enabled && window.emailjs) {
-      queueReceipt(entry);
+    try {
+      if (C.emailjs.enabled && window.emailjs) {
+        queueReceipt(entry);
+      }
+
+      _editingEntry = null;
+
+      _picksEmMemoria = null;   // o overlay pertence a UMA edição
+      renderPickForm();
+      ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
+      $("paymentMethod") && ($("paymentMethod").value = "");
+      renderNewEntryCard(); // edição terminou: com o roster congelado o card volta a ficar oculto
+
+      renderReceiptBox(entry);
+      showToast(t("savedSuccess"), "success");
+      if (!wasNew) showSection("ranking");
+    } catch (posCommit) {
+      // O save DEU CERTO. Dizer o contrario faria a pessoa reenviar um palpite ja gravado.
+      _ultimoDiagnosticoDeSave = SAVE_DIAG.POST_COMMIT_CLIENT_ERROR;
+      console.error("[CDB2026] Post-commit error (o palpite FOI salvo)", posCommit);
+      _editingEntry = null;
+      showToast(t("savedSuccessPostCommitWarning"), "success");
     }
-
-    _editingEntry = null;
-
-    _picksEmMemoria = null;   // o overlay pertence a UMA edição
-    renderPickForm();
-    ["entryName", "payerName", "participantEmail"].forEach(id => { const el = $(id); if (el) el.value = ""; });
-    $("paymentMethod") && ($("paymentMethod").value = "");
-    renderNewEntryCard(); // edição terminou: com o roster congelado o card volta a ficar oculto
-
-    renderReceiptBox(entry);
-    showToast(t("savedSuccess"), "success");
-    if (!wasNew) showSection("ranking");
   } catch (err) {
     console.error("[CDB2026] Save error", err);
     if (err && err.message === "ENTRY_NOT_FOUND_OR_REMOVED") {
+      _ultimoDiagnosticoDeSave = SAVE_DIAG.ENTRY_GONE;
       // Edição obsoleta: a entrada não existe mais. Nada foi salvo. Devolve o participante ao
       // fluxo de busca em vez de reportar como falha genérica de save.
       _editingEntry = null;
@@ -2525,6 +2598,7 @@ async function saveEntry() {
       renderNewEntryCard();
       showToast(t("entryGoneOnSave"), "error");
     } else {
+      _ultimoDiagnosticoDeSave = classificarFalhaDeSave(err);
       showToast(t("saveError"), "error");
     }
   } finally {
