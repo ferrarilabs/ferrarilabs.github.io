@@ -74,6 +74,14 @@ jobs:
         run: |
           set -euo pipefail
           TITULO_PREFIXO="Pipeline ao vivo degradado"
+
+          # A label E a identidade do incidente. Se ela nao existir, `gh issue create --label`
+          # falha e o vigia morre sem abrir nada -- descoberto na PRIMEIRA execucao real:
+          # "could not add label: 'pipeline-incident' not found", exit 1. Um vigia que depende de
+          # alguem ter criado uma label a mao e um vigia que nao vigia.
+          gh label create pipeline-incident \
+            --description "Degradacao do pipeline ao vivo (#246). O vigia abre, atualiza e fecha." \
+            --color B60205 2>/dev/null || true
           ABERTA=$(gh issue list --label pipeline-incident --state open \
                      --json number,title --jq '.[0].number // ""')
 
