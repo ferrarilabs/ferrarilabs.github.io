@@ -234,6 +234,8 @@ const CHECKS = [
   // Issue #180 — o ledger duravel do e-mail de resultado do CDB2026 e o detector de lacuna.
   // O caso que mais importa nao e achar a lacuna: e NAO transformar uma queda de banco numa
   // acusacao de e-mail perdido, e nunca deixar o ledger bloquear um envio legitimo.
+  { id: "cdb-reconcile-migration-equivalence", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_reconcile_migration_equivalence.py"],
+    why: "a correcao de `column reference status is ambiguous` toca o corpo inteiro da funcao que reconcilia 12 entregas reais -- diff ruidoso e o lugar classico para uma guarda sumir sem ninguem notar. Prova MECANICAMENTE que, removida a qualificacao, os dois corpos sao identicos, e que guardas, honestidade, assinatura e grant continuam os mesmos" },
   { id: "cdb-ledger-reconciliation", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_reconcile_result_email_ledger.py"],
     why: "a reconciliacao historica ESCREVE em producao, entao o que importa nao e ela funcionar: e ela RECUSAR todo cenario que nao seja exatamente o revisado (conjunto diferente, parcial, entry_ref duplicado, alvo errado, placar divergente, evidencia de provedor insuficiente, ledger ilegivel), ser atomica, ser idempotente, nunca fabricar provider_message_id nem hora de entrega, e nao ter caminho algum para emitir e-mail" },
   { id: "cdb-result-email-ledger-lifecycle", group: "notifications", cmd: ["python3", "bolao/cdb2026/scripts/test_result_email_ledger_lifecycle.py"],
