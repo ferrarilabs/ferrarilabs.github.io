@@ -102,6 +102,19 @@ function loadWorkflows() {
  */
 const EXPECTED = [
   {
+    // Issue #246: vigia do pipeline ao vivo. Sem ele, uma indisponibilidade do produtor, do cache
+    // ou do gateway so vira conhecimento quando alguem abre o site e ve que esta errado -- foi
+    // assim que TODOS os incidentes de 2026-08 foram descobertos. De hora em hora e de proposito:
+    // sondar de 5 em 5 min um pipeline cujo produtor o proprio GitHub executa a cada 15-642 min
+    // seria ruido sobre ruido.
+    file: "live_pipeline_monitor.yml",
+    why: "sem este vigia, degradacao do pipeline ao vivo so e descoberta por alguem notar o site errado",
+    events: [0, 1, 2, 3, 4, 5, 6].map((d) => ({ label: `UTC dow ${d}`, utcDows: [d] })),
+    // Mesmas janelas nomeadas que o verificador conhece; o cron e de hora em hora, entao
+    // cobre as duas integralmente.
+    hourWindows: { evening: [14, 23], overnight: [0, 2] },
+  },
+  {
     // Issue #246: produtor do cache ao vivo. Se deixar de rodar, `live_sports_cache` envelhece
     // alem do teto de 10 min do gateway e o hero volta a SOURCE_UNAVAILABLE -- o mesmo sintoma do
     // incidente, so que por ausencia de cron em vez de bloqueio da Akamai. A janela vem do

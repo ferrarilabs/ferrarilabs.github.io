@@ -223,6 +223,8 @@ const CHECKS = [
     why: "ciclo de vida do sorteio e rotulo do seletor — nunca esteve no runner, por isso ficou 9/2 sem ninguem ver" },
 
   // ── scheduling ───────────────────────────────────────────────────────────────
+  { id: "pipeline-monitor", group: "scheduling", cmd: ["node", "bolao/scripts/test_pipeline_monitor.mjs"],
+    why: "todos os incidentes do pipeline ao vivo em 2026-08 foram descobertos por alguem abrir o site e ver que estava errado; a CI de browser chegou a tropecar em alguns por acidente, o que e pior que nao detectar. Este gate prova que o vigia classifica certo, NAO repete alarme enquanto o mesmo incidente persiste (uma indisponibilidade de 3h e UM incidente, nao um por ciclo), reconhece recuperacao sozinho, usa os limiares do contrato compartilhado em vez de numeros proprios, e nao le nada de participante" },
   { id: "cron-coverage", group: "scheduling", cmd: ["node", "bolao/scripts/cron_coverage.test.mjs"],
     why: "scheduled workflows cover the expected event calendar" },
   // Issue #259 — o agendamento fora da janela era inerte por aritmetica (30 min de cadencia contra
