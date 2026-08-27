@@ -1,5 +1,17 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
   "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "O vigia do pipeline ao vivo e um workflow novo, e .github/workflows/** e superficie deliberadamente ampla porque qualquer workflow deste repositorio pode enviar e-mail, publicar o site ou escrever em producao. Ele existe porque TODOS os incidentes do pipeline em 2026-08 foram descobertos por alguem abrir o site e ver que estava errado -- e porque a CI de browser chegou a tropecar em alguns por acidente, o que deixa PR de frontend vermelho por causa de provedor externo.",
+      "expected_behavior_change": "Acrescenta .github/workflows/live_pipeline_monitor.yml, com cron de hora em hora e workflow_dispatch. Ele so LE o gateway publico (nenhuma credencial de producao, nenhum segredo novo alem do GITHUB_TOKEN padrao) e usa permissions: contents:read + issues:write para abrir, atualizar e fechar UMA Issue de incidente com a label pipeline-incident. Nao envia e-mail, nao escreve em banco, nao le participante e nao toca scoring, ranking, palpites ou pagamento. Nenhum workflow existente foi alterado; nenhum cron, gatilho ou guard de envio real mudou. A identidade do incidente e a propria Issue aberta, o que torna o vigia idempotente: uma indisponibilidade de 3 horas continua sendo UM incidente. CACHE_STALE nao abre incidente, decisao tomada por medicao dos intervalos reais do produtor (mediana 34 min, p90 214 min).",
+      "tests_required": [
+        "pipeline-monitor",
+        "cron-coverage",
+        "email-send-safety",
+        "safety-contract"
+      ]
+    }
+  ]
 }
