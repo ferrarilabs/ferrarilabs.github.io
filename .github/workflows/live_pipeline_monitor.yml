@@ -1,0 +1,110 @@
+# live_pipeline_monitor.yml — vigia do pipeline ao vivo (#246).
+#
+# POR QUE ESTE WORKFLOW EXISTE
+# Todos os incidentes do pipeline ao vivo em 2026-08 foram descobertos do mesmo jeito: alguem abriu
+# o site e viu que estava errado. A CI de browser/acessibilidade chegou a tropecar em alguns por
+# acidente -- o que e PIOR que nao detectar, porque cria a impressao de cobertura sem a propriedade
+# de cobertura, e ainda deixa PR de frontend vermelho por causa de um provedor externo.
+#
+# Este vigia e independente: nao renderiza nada, nao precisa de navegador, nao le participante.
+# Ele responde uma pergunta so -- o dado ao vivo esta chegando?
+#
+# IDENTIDADE DE INCIDENTE
+# O estado do incidente MORA na propria Issue aberta com a label `pipeline-incident`. Nao ha
+# arquivo de estado, nao ha commit, nao ha banco: a Issue e o estado. Isso torna o vigia idempotente
+# de graca -- reexecutar nao duplica nada, e uma indisponibilidade de 3 horas continua sendo UM
+# incidente, nao um por ciclo.
+#
+# RUIDO
+# `CACHE_STALE` sozinho NAO abre incidente, e essa decisao vem de medicao, nao de gosto: os
+# intervalos reais entre execucoes agendadas do produtor medidos em 2026-08-27 foram min 15 min,
+# mediana 34 min, p90 214 min, maximo 642 min -- 27 de 27 acima do limiar de 10 min. Com essa
+# variancia, alarmar em `stale` seria alarmar sobre o comportamento normal do agendador do GitHub,
+# e um alarme que sempre toca e um alarme que se desliga.
+#
+# Abrem incidente: CACHE_CRITICAL, GATEWAY_UNAVAILABLE, GATEWAY_INVALID_PAYLOAD.
+name: Bolão — Vigia do pipeline ao vivo
+
+on:
+  schedule:
+    # De hora em hora. Nao adianta sondar de 5 em 5 minutos um pipeline cujo produtor o proprio
+    # GitHub executa a cada 15-642 min: seria ruido sobre ruido.
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: live-pipeline-monitor
+  cancel-in-progress: false
+
+jobs:
+  vigiar:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Sonda (somente leitura)
+        id: sonda
+        run: |
+          set -euo pipefail
+          SAIDA=$(node bolao/scripts/monitor_live_pipeline.mjs)
+          echo "$SAIDA"
+          STATUS=$(echo "$SAIDA" | sed -n 's/^PIPELINE_STATUS = //p' | tail -1)
+          echo "status=${STATUS}" >> "$GITHUB_OUTPUT"
+          {
+            echo "corpo<<EOF"
+            echo "$SAIDA"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      # A Issue aberta E o estado. Sem arquivo de estado, sem commit, sem banco.
+      - name: Abrir / atualizar / recuperar incidente
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS: ${{ steps.sonda.outputs.status }}
+          CORPO: ${{ steps.sonda.outputs.corpo }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          TITULO_PREFIXO="Pipeline ao vivo degradado"
+          ABERTA=$(gh issue list --label pipeline-incident --state open \
+                     --json number,title --jq '.[0].number // ""')
+
+          # `CACHE_STALE` nao abre incidente -- ver a nota de RUIDO no cabecalho.
+          case "$STATUS" in
+            OK|CACHE_STALE) DEGRADADO=0 ;;
+            *)              DEGRADADO=1 ;;
+          esac
+
+          if [ "$DEGRADADO" = "1" ] && [ -z "$ABERTA" ]; then
+            gh issue create --label pipeline-incident \
+              --title "$TITULO_PREFIXO — $STATUS" \
+              --body "$(printf '%s\n\nEstado: **%s**\n\nExecucao: %s\n\nEste incidente e ATUALIZADO, nunca duplicado: enquanto ele estiver aberto o vigia nao cria outro. Ele fecha sozinho quando a proxima sonda voltar saudavel.\n\nNenhum dado de participante e envolvido -- o vigia nao le nada disso.' "$CORPO" "$STATUS" "$RUN_URL")"
+            echo "INCIDENTE ABERTO"
+
+          elif [ "$DEGRADADO" = "1" ] && [ -n "$ABERTA" ]; then
+            ATUAL=$(gh issue view "$ABERTA" --json title --jq .title)
+            if [ "$ATUAL" != "$TITULO_PREFIXO — $STATUS" ]; then
+              # A NATUREZA da falha mudou (ex.: stale -> gateway fora). Vale dizer, uma vez.
+              gh issue edit "$ABERTA" --title "$TITULO_PREFIXO — $STATUS"
+              gh issue comment "$ABERTA" --body "$(printf 'A natureza da falha mudou.\n\n%s\n\nExecucao: %s' "$CORPO" "$RUN_URL")"
+              echo "INCIDENTE ATUALIZADO"
+            else
+              echo "INCIDENTE JA ABERTO E INALTERADO — silencio deliberado"
+            fi
+
+          elif [ "$DEGRADADO" = "0" ] && [ -n "$ABERTA" ]; then
+            gh issue comment "$ABERTA" --body "$(printf 'RECUPERADO — a sonda voltou saudavel.\n\n%s\n\nExecucao: %s' "$CORPO" "$RUN_URL")"
+            gh issue close "$ABERTA"
+            echo "INCIDENTE RECUPERADO"
+
+          else
+            echo "SAUDAVEL — nada a fazer"
+          fi
