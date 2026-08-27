@@ -291,7 +291,20 @@ function mergeStates(local, remote, opts = {}) {
     if (!existing) { byId[e.id] = e; continue; }
     const remoteTs = e.updatedAt || e.createdAt || "";
     const localTs  = existing.updatedAt || existing.createdAt || "";
-    if (remoteTs > localTs) byId[e.id] = e;
+    // ─── INVARIANTE DE CONVERGENCIA ───────────────────────────────────────────────────────
+    //
+    // Era `>` ESTRITO, e isso deixava uma copia local velha sobreviver PARA SEMPRE. Medido em
+    // producao (2026-08-27): uma entrada tinha 4/4 palpites no remoto e 0/4 no localStorage, e
+    // os DOIS lados, sem `updatedAt`, caiam no mesmo `createdAt`. Empate -> `>` falso -> o local
+    // vencia. Recarregar nao resolvia, e nunca ia resolver: nao e cache de HTTP nem de service
+    // worker, e a regra de merge que nao conseguia desempatar.
+    //
+    // Empate nao quer dizer "os dois sao novos"; quer dizer "nenhum e mais novo". E aí quem manda
+    // e a fonte compartilhada, porque a copia local so pode ser um espelho da MESMA escrita.
+    //
+    // Isto nao atropela edicao local: todo save carimba `updatedAt: now`, entao um local editado
+    // depois tem carimbo MAIOR e continua vencendo.
+    if (remoteTs >= localTs) byId[e.id] = e;
   }
   // any-true-wins por chave (união das chaves dos dois lados), NUNCA spread. Um spread
   // (`{...remote.paid, ...local.paid}`) faz "local sempre vence", então um `false` local VELHO
