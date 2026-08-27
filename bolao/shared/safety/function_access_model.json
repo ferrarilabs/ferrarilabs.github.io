@@ -208,6 +208,11 @@
       "secdef": true,
       "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
     },
+    "public.lottery_payment_history_is_immutable/0": {
+      "class": "INTERNAL_FUNCTION",
+      "secdef": true,
+      "why": "funcao de trigger da Issue #130: recusa DELETE e UPDATE de campo financeiro em lottery_payment_transactions. Invocada pelo proprio PostgreSQL, nunca por chamador. A migracao que a cria faz `revoke all ... from public, anon, authenticated` na mesma transacao."
+    },
     "public.mark_bolao_notif_permanent/2": {
       "class": "SERVICE_RPC",
       "secdef": true,
@@ -278,6 +283,11 @@
       "secdef": true,
       "why": "GRANT EXECUTE explicito a service_role em 20260812100000_m8m9_canary_purge.sql"
     },
+    "public.reconcile_bolao_notif_historical_delivery/6": {
+      "class": "SERVICE_RPC",
+      "secdef": true,
+      "why": "GRANT EXECUTE explicito e exclusivo a service_role em 20260827090000_reconcile_historical_notif_delivery.sql, com REVOKE de public/anon/authenticated. Reconciliacao historica do ledger (#352): escreve status de entrega, entao nenhum papel de cliente pode alcanca-la."
+    },
     "public.recover_expired_outbox_leases/0": {
       "class": "SERVICE_RPC",
       "secdef": true,
@@ -332,11 +342,6 @@
       "class": "SERVICE_RPC",
       "secdef": true,
       "why": "GRANT EXECUTE explicito a service_role em 030_br_round_notification_durability.sql"
-    },
-    "public.lottery_payment_history_is_immutable/0": {
-      "class": "INTERNAL_FUNCTION",
-      "secdef": true,
-      "why": "funcao de trigger da Issue #130: recusa DELETE e UPDATE de campo financeiro em lottery_payment_transactions. Invocada pelo proprio PostgreSQL, nunca por chamador. A migracao que a cria faz `revoke all ... from public, anon, authenticated` na mesma transacao."
     }
   },
   "remediated": [
