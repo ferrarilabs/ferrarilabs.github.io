@@ -1,5 +1,6 @@
 window.BR2026_I18N = {
   "pt-BR": {
+    newVersionAvailable: "Nova versão disponível — recarregue ao terminar",
     // Nav
     skipToContent: "Pular para o conteúdo",
     supportWhatsApp: "Suporte WhatsApp",
