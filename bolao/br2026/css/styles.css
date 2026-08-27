@@ -505,11 +505,6 @@
 @media (max-width: 660px) { .admin-results-grid.three-col { grid-template-columns: 1fr; } }
 
 /* ── Next game card ── */
-#nextGameCard {
-  background: linear-gradient(135deg, #0a1e2d, #0d2028);
-  border: 1px solid var(--border2);
-  border-radius: 14px; padding: 12px 18px; margin-bottom: 14px;
-}
 #nextGameCard.hidden { display: none; }
 .next-game-card { display: flex; flex-direction: column; gap: 4px; }
 /* Cor verde igual à Copa (.hero-next-label, bolao/css/styles.css) -- estava cinza (var(--muted)),
@@ -690,4 +685,44 @@
 @media (max-width: 380px) {
   .live-hero-idle { padding: .75rem .8rem; }
   .live-hero-teams { font-size: .98rem; }
+}
+
+/* ─── #246: a superfície do card PRIMÁRIO de futebol ────────────────────────────────────────
+   O PR #361 moveu o markup da próxima partida para dentro do hero e, sem querer, deixou a
+   superfície para trás: o painel (gradiente, borda, raio, padding) nunca esteve em
+   `.next-game-card` -- essa classe é só layout (`flex-direction: column; gap: 4px`). Ele estava
+   no ID `#nextTieCard` / `#nextGameCard`, que deixou de renderizar a primária.
+
+   Resultado em produção: a próxima partida passou a flutuar solta sobre a página, e no BR o
+   painel SECUNDÁRIO ("Próximos jogos") ficou com mais peso visual que a partida principal --
+   hierarquia invertida.
+
+   O reparo não imita o pai antigo com CSS avulso: define UMA superfície canônica, com os MESMOS
+   tokens que o painel tinha antes, e o dono do conteúdo primário passa a vesti-la. Um renderizador
+   canônico merece uma superfície canônica; duas definições voltariam a divergir. */
+.primary-football-card {
+  background: linear-gradient(135deg, #0a1e2d, #0d2028);
+  border: 1px solid var(--border2);
+  border-radius: 14px;
+  padding: 12px 18px;
+  margin-bottom: 14px;
+}
+/* O conteúdo dentro da superfície: o padding agora é da SUPERFÍCIE, não do conteúdo -- senão o
+   espaçamento dobra e o card cresce no telefone sem motivo. */
+.primary-football-card .live-hero-idle { padding: 0; gap: .3rem; }
+
+/* O secundário fica deliberadamente MAIS LEVE que o primário: sem gradiente e com borda discreta.
+   Antes os dois usavam exatamente a mesma superfície, e a lista de "outros jogos" competia de
+   igual para igual com a partida principal. */
+#nextGameCard {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+}
+
+@media (max-width: 380px) {
+  .primary-football-card { padding: 10px 12px; }
+  #nextGameCard { padding: 8px 12px; }
 }

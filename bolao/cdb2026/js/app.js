@@ -4377,11 +4377,18 @@ function renderLiveTieCard() {
     // formatacao dar certo, entao a protecao vale nos dois lados.
     let html;
     try { html = renderHeroSemAoVivo(heroEstado, proximo); } catch (_) { html = ""; }
+    // A SUPERFICIE do card primario (#246). O painel nunca esteve em `.next-game-card` -- essa
+    // classe e so layout. Ele estava no ID `#nextTieCard`, que deixou de renderizar a primaria no
+    // #361, e por isso a proxima partida passou a flutuar solta sobre a pagina.
+    card.classList.add("primary-football-card");
     card.innerHTML = html && html.trim()
       ? html
       : `<div class="live-hero-idle"><div class="live-hero-label">${esc(t("nextMatchUnknown"))}</div></div>`;
     return;
   }
+  // Com jogo AO VIVO cada partida ja tem sua propria superficie (`.live-match`); uma segunda por
+  // fora criaria card dentro de card.
+  card.classList.remove("primary-football-card");
   const rows = _liveTies.map(l => {
     const clock = liveClockDisplay(l);
     const playsHtml = livePlaysHtml(l.plays, l.homeTeam, l.awayTeam, `${l.tieId}:${l.leg}`);
