@@ -218,7 +218,9 @@ for (const [app, fn, cardId] of APPS) {
   test(`${app}: o hero nunca pode terminar com innerHTML vazio`, () => {
     const i = fonte.indexOf(`const card = $("${cardId}")`);
     assert(i > 0, `${cardId} nao encontrado em ${app}`);
-    const trecho = fonte.slice(i, i + 4000);
+    // Janela ampliada: o comentario que explica a saude da fonte empurrou o `try` para alem
+    // dos 4000 caracteres originais. A protecao nao mudou de lugar; a janela e que era curta.
+    const trecho = fonte.slice(i, i + 8000);
     assert(/try\s*\{[^}]*renderHeroSemAoVivo/.test(trecho.replace(/\n/g, " ")),
       `${app}: a montagem do conteudo do hero nao esta protegida — uma excecao de formatacao ` +
       `deixaria o hero montado e vazio, que e o buraco que o #246 proibe`);
@@ -226,6 +228,63 @@ for (const [app, fn, cardId] of APPS) {
       `${app}: nao ha fallback para conteudo vazio`);
   });
 }
+
+console.log("\nG. Honestidade sobre FRESCOR: dado velho tem de se declarar velho");
+
+import { readFileSync as _rf2 } from "node:fs";
+
+for (const app of ["cdb2026", "br2026"]) {
+  const fonte = _rf2(join(ROOT, `bolao/${app}/js/app.js`), "utf8");
+  const codigo = fonte.replace(/\/\*[\s\S]*?\*\//g, " ").split("\n").map((l) => l.split("//")[0]).join("\n");
+
+  test(`${app}: o sinal DEDICADO de degradacao consulta a saude do gateway`, () => {
+    assert(/function fonteEstaDegradada/.test(codigo),
+      `${app}: nao ha sinal dedicado — sobrecarregar \`sourceOk\` quebra a RETENCAO: com gateway ` +
+      `fora e snapshot utilizavel a partida some da tela em vez de continuar como dado velho`);
+    assert(/gatewayStatus === "DEGRADED"/.test(codigo) && /gatewayStatus === "UNREACHABLE"/.test(codigo),
+      `${app}: o gateway pode falhar e o store cair para o snapshot; testar so um estado deixa o ` +
+      `hero anunciar frescor que ele nao tem. Medido em producao com jogo AO VIVO invisivel`);
+  });
+
+  test(`${app}: a apresentacao NAO usa o mesmo sinal da retencao`, () => {
+    assert(/sourceOk: !fonteEstaDegradada\(\)/.test(codigo),
+      `${app}: a apresentacao tem de usar o sinal dedicado, nao o de ciclo de vida`);
+  });
+
+  test(`${app}: o sinal dedicado consulta a IDADE da observacao`, () => {
+    assert(/CRITICAL_STALE_AFTER_MS/.test(codigo),
+      `${app}: sem checar idade, uma observacao de 13 horas e apresentada como atual`);
+    assert(/st\.ageMs > critico/.test(codigo), `${app}: a idade nao e comparada ao limiar critico`);
+  });
+
+  test(`${app}: o limiar vem do contrato compartilhado, nao e numero solto`, () => {
+    assert(/BOLAO_FOOTBALL_LIVE.*CRITICAL_STALE_AFTER_MS/.test(codigo),
+      `${app}: um limiar proprio seria uma terceira fonte de verdade sobre frescor`);
+  });
+}
+
+test("CENARIO REAL 2026-08-27: gateway fora + snapshot velho ⇒ hero DEGRADADO", () => {
+  // Gremio x Internacional estava ao vivo aos 11'. O gateway devolvia UPSTREAM_403, o store caiu
+  // para um snapshot de 13,6h, e o hero anunciava `degraded: false`.
+  const r = H.deriveFootballHeroState({
+    liveState: "NO_LIVE_MATCH", liveMatches: [], nextMatch: proxima,
+    sourceOk: false,            // <- o que a correcao passa a produzir
+    now: AGORA,
+  });
+  invariante(r, "cenario real");
+  assert(r.degraded === true,
+    "o hero apresentaria dado de 13 horas como atual, sem nenhum sinal — pior que nao mostrar, " +
+    "porque some com a duvida");
+  assert(r.state === HERO.UPCOMING, r.state);
+});
+
+test("mutacao (voltar a testar so um estado) e pega", () => {
+  const fonte = _rf2(join(ROOT, "bolao/cdb2026/js/app.js"), "utf8");
+  const mutado = fonte.replace(/if \(_liveHealth && \(_liveHealth\.gatewayStatus === "DEGRADED" \|\|[\s\S]*?return false;/, "");
+  assert(mutado !== fonte, "a mutacao nao alterou nada");
+  assert(!/gatewayStatus === "DEGRADED"/.test(mutado),
+    "CONTROLE NEGATIVO: remover a checagem de saude do gateway deveria ser visivel");
+});
 
 console.log(`\n  ${ok} passed, ${fail} failed\n`);
 console.log(fail ? "✗ HERO ALWAYS MOUNTED FAILED" : "✓ HERO ALWAYS MOUNTED OK");
