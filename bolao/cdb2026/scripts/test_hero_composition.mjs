@@ -85,6 +85,58 @@ test("cdb2026: existe UMA implementacao do bloco de proxima partida", () => {
     `cdb2026: ${ocorrencias} markups de "proxima partida" — tem de haver exatamente 1`);
 });
 
+console.log("\nB2. Hierarquia VISUAL: o primario tem superficie propria e supera o secundario");
+
+const CSS_CDB = readFileSync(join(ROOT, "bolao/cdb2026/css/styles.css"), "utf8");
+const CSS_BR  = readFileSync(join(ROOT, "bolao/br2026/css/styles.css"), "utf8");
+
+for (const [app, codigo, css, secundario] of [
+  ["cdb2026", CODIGO, CSS_CDB, "#nextTieCard"],
+  ["br2026", CODIGO_BR, CSS_BR, "#nextGameCard"],
+]) {
+  test(`${app}: a apresentacao primaria VESTE uma superficie`, () => {
+    A(/primary-football-card/.test(codigo),
+      `${app}: o hero nao aplica a superficie primaria — a proxima partida flutua solta sobre a ` +
+      `pagina, que foi a regressao visual do #361`);
+    A(/classList\.add\("primary-football-card"\)/.test(codigo), `${app}: superficie nao e aplicada`);
+    A(/classList\.remove\("primary-football-card"\)/.test(codigo),
+      `${app}: com jogo AO VIVO a superficie tem de sair — cada partida ja tem \`.live-match\`, ` +
+      `senao vira card dentro de card`);
+  });
+
+  test(`${app}: a superficie primaria tem container de verdade (nao so espacamento)`, () => {
+    const i = css.indexOf(".primary-football-card {");
+    A(i > 0, `${app}: .primary-football-card nao existe no CSS`);
+    const regra = css.slice(i, i + 320);
+    for (const prop of ["background", "border", "border-radius", "padding"]) {
+      A(new RegExp(prop).test(regra), `${app}: a superficie primaria nao define \`${prop}\``);
+    }
+  });
+
+  test(`${app}: o SECUNDARIO e visualmente mais leve que o primario`, () => {
+    const iSec = css.indexOf(`${secundario} {`);
+    A(iSec > 0, `${app}: regra do secundario nao encontrada`);
+    const regraSec = css.slice(iSec, iSec + 260);
+    A(/background:\s*none/.test(regraSec),
+      `${app}: o secundario mantem gradiente e compete de igual para igual com a partida ` +
+      `principal — no BR ele chegou a parecer MAIS importante que o proximo jogo`);
+    const iPri = css.indexOf(".primary-football-card {");
+    A(/linear-gradient/.test(css.slice(iPri, iPri + 320)),
+      `${app}: o primario perdeu o gradiente que o distinguia`);
+  });
+
+  test(`${app}: o padding e da SUPERFICIE, nao duplicado no conteudo`, () => {
+    A(/\.primary-football-card \.live-hero-idle \{[^}]*padding:\s*0/.test(css),
+      `${app}: o conteudo mantem padding proprio dentro da superficie — o espacamento dobra e o ` +
+      `card cresce no telefone sem motivo`);
+  });
+
+  test(`${app}: a superficie encolhe no telefone`, () => {
+    A(/@media \(max-width: 380px\)[\s\S]{0,400}\.primary-football-card/.test(css),
+      `${app}: sem ajuste responsivo, a superficie fica larga demais em 380px`);
+  });
+}
+
 console.log("\nC. Controle negativo — reintroduzir o duplicado TEM de reprovar");
 
 test("mutacao (card legado volta a desenhar a primaria) e pega", () => {
