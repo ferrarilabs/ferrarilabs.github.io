@@ -1,5 +1,52 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## Vigia do e-mail de resultado: incidente com transição, não alarme crônico (2026-08-28, #373)
+
+`INFRA` — nenhuma mudança em `bolao/cdb2026/` (nem UI, nem scoring, nem regra de torneio), por isso
+**sem bump de `siteVersion`**. A alteração é do sinal de monitoramento e vive em
+`.github/workflows/cdb2026_result_email_watch.yml` + `scripts/sentinel/`.
+
+**O defeito não era o detector.** A run 33207263422 devolveu exatamente o que devia:
+`overall=GAP`, `HEALTHY=3`, `GAP=1`, `UNKNOWN=0`, `PRE_LEDGER=16`, com o achado conhecido
+`quartas:espn-atletico-mg_cruzeiro:first`. O `detect_missed_result_emails.py` continua intocado e
+somente-leitura.
+
+**O que estava errado era o sinal.** O workflow traduzia qualquer GAP em `exit 1`. Uma lacuna
+persistente e já conhecida reprovava então **toda** execução agendada — duas vezes por dia, com
+e-mail de falha do GitHub a cada vez, sem nada ter mudado. Alarme crônico é alarme silenciado: é a
+mesma classe de defeito que este vigia existe para evitar, produzida pelo próprio vigia.
+
+**A correção.** A lacuna virou um incidente com identidade estável (fingerprint do `findingId`),
+guardado no state store que o monitor Sentinel já usa — a Issue e seu bloco de estado embutido.
+Nenhum segundo state store foi criado.
+
+| transição | o que acontece |
+|---|---|
+| `GAP_DETECTED` | lacuna nova **ou** a mesma lacuna com evidência alterada → abre/atualiza UMA Issue e **reprova** a run |
+| `GAP_STILL_OPEN` | mesma lacuna, evidência idêntica → incidente **continua** sendo atualizado (`occurrence_count`, `last_seen_at`); run **verde e silenciosa** |
+| `RECOVERED` | só por confirmação **positiva** (o detector leu o ledger e afirmou o pool limpo) → fecha a Issue; ausência do relatório **nunca** fecha incidente |
+| `UNKNOWN` | **sempre** reprova, nunca é deduplicado, nunca abre incidente de lacuna — "não consegui ler" jamais vira "está tudo bem" |
+
+O que é deduplicado é a **notificação**, nunca a **detecção**: o incidente segue acumulando
+ocorrência em toda execução, inclusive nas silenciosas.
+
+**O que NÃO foi feito**, de propósito: nenhum e-mail enviado ou reenviado, nenhuma mutação do
+ledger de notificações, nenhuma migração de reconciliação, nenhum gate enfraquecido e nenhuma
+reinterpretação do GAP — ele continua aberto e continua sendo um defeito real a resolver.
+
+**Provas.** `scripts/sentinel/test_result_email_gap_detector.mjs` (55 asserts, na cadeia do
+`npm test` e no `verify.mjs` como `sentinel-result-email-gap-detector`) cobre o ciclo
+abertura → silêncio inalterado → alteração → recuperação → recorrência, a conservação do
+`UNKNOWN`, a recuperação apenas positiva, e um **controle de mutação**: três mutantes de dedupe
+que parariam de acusar uma lacuna **nova** são todos mortos, e um GAP novo ao lado de um incidente
+já aberto continua abrindo o próprio incidente e reprovando a run.
+
+**Efeito colateral declarado** em `scripts/sentinel/writer.mjs`: o bloco de estado passa a gravar a
+`provenance` da **última** observação, não a da primeira. Sem isso a comparação de evidência nunca
+convergiria e um achado alterado reprovaria para sempre. Os demais campos do bloco já eram
+atualizados por observação; `provenance` era o inconsistente. As nove suítes do Sentinel seguem
+passando.
+
 ## v3.138 — o hero e o prazo dizem a verdade (2026-08-28, #246)
 
 `PLATFORM_SHARED` (contrato de texto compartilhado com o BR2026) + `TOURNAMENT_SPECIFIC`

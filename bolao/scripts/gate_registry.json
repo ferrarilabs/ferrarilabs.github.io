@@ -935,6 +935,9 @@
     },
     "workers/live-producer/test_live_producer.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/sentinel/test_result_email_gap_detector.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }

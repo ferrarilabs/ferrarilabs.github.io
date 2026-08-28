@@ -57,4 +57,16 @@ export function migrationDriftFingerprint() {
   return hash([REPO, "migration_drift"]);
 }
 
+/**
+ * CDB2026 Result Email Gap: identity is repo + finding type + the Python detector's own
+ * `findingId` (`cdb2026:result-email-gap:<entityId>` — phase/tie/leg, already deliberately free of
+ * timestamp, attempt or occurrence count; see detect_missed_result_emails.py's `finding_id()`).
+ * The SAME gap persisting for days is ONE incident (one fingerprint, occurrence_count increments);
+ * a gap on a different leg is a different incident. Nothing about the observation — the run, the
+ * report's counts, the reason text — enters the identity.
+ */
+export function resultEmailGapFingerprint(findingId) {
+  return hash([REPO, "cdb2026_result_email_gap", findingId]);
+}
+
 export const REPOSITORY = REPO;
