@@ -386,6 +386,9 @@
     "bolao/scripts/audit_live_hero_reliability.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/audit_critical_functionality.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/audit_multi_live_hero.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

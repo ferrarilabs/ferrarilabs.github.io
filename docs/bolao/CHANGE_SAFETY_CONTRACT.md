@@ -334,3 +334,67 @@ restaurado e a árvore termina limpa; diferente, o check **reprova** e manda rev
 - `docs/bolao/ENGINEERING_STANDARD.md` — audit-first workflow
 - `docs/bolao/QA_MASTER_CHECKLIST.md` — checklist cross-app
 - `bolao/scripts/gate_registry.json` — registro de gates (nenhum gate pode existir sem classificação)
+
+## Portão de Regressão de Funcionalidade Crítica (2026-08-28)
+
+**Regra permanente de SDLC, aplicada pelo repositório — não por convenção de revisão.**
+
+> Uma capacidade crítica JÁ EXISTENTE não pode sumir, ficar vazia, duplicar, nem perder o
+> comportamento de estado pretendido como efeito colateral de outra mudança.
+
+Isto é um **invariante de release**. Nasceu de regressões repetidas em que consertar um defeito
+removeu ou quebrou outra função que já funcionava: o hero de futebol sumiu quatro vezes por
+gatilhos diferentes, o botão "Ver palpites" sumiu numa mudança de layout, o card de próxima
+partida foi desenhado duas vezes, a superfície do card primário se perdeu. **Todas passaram por
+revisão humana.** A conclusão não é "revisar melhor" — é que o autor do patch está, por
+definição, olhando para outra coisa, e o revisor não carrega a lista de invariantes na cabeça.
+
+### Onde fica
+
+| Papel | Arquivo |
+|---|---|
+| **O QUE é crítico** (registro legível por máquina) | `bolao/shared/safety/critical_functionality.json` |
+| **COMO se prova** (gate) | `bolao/scripts/audit_critical_functionality.mjs` |
+| **Execução** | gate `critical-functionality`, grupo `browser` do `npm run check` |
+
+Acrescentar ou alterar uma capacidade crítica é **editar o registro**, não o script.
+
+### O que o gate mede
+
+Semântica, não seletor. Um nó existir não é aprovação:
+
+- `PRESENT` existe · `VISIBLE` é renderizado · `NONEMPTY` tem conteúdo · `UNIQUE` um dono só ·
+  `OWNER` desenhado pelo dono canônico
+- **Nó montado com conteúdo zero é FALHA**, não sucesso parcial. `hidden === false` já foi aceito
+  duas vezes como prova de que o hero estava de volta, e duas vezes a produção mostrou um buraco.
+- **Duplicata escondida por CSS continua sendo defeito**: dois renderizadores competindo pela
+  mesma apresentação continuam os dois decidindo estado.
+
+Varre a matriz de estados (fonte fresca, provedor indisponível, fonte atrasada, próxima partida,
+partida ao vivo, final recente, calendário desconhecido, palpites abertos/fechados, sorteio
+pendente/travado) nos **dois** apps, em **desktop e mobile**.
+
+### Por que ele é confiável
+
+- **Oito controles de mutação** reintroduzem as regressões reais (hero escondido, hero vazio,
+  confronto duplicado, ranking removido, suporte removido, classificação removida, "Ver palpites"
+  removido, sumiço só no telefone). Se uma mutação não reprovar, o gate falha.
+- **Contador de cobertura**: toda capacidade do registro precisa ter sido avaliada de verdade em
+  ao menos um cenário. Sem isso, bastaria uma condição sempre falsa para uma capacidade ficar
+  "protegida" e nunca ser medida.
+- **Regra não avaliada REPROVA.** A primeira versão deste gate passava verde sem medir nada (um
+  argumento mal desestruturado fazia todas as regras caírem num default que aprovava). Duas
+  mutações denunciaram. O default agora é vermelho.
+
+### O que fazer quando ele reprova
+
+1. **Regressão de verdade** (o caso comum): corrija a regressão. Não relaxe o registro.
+2. **Mudança deliberada de produto**: atualize `critical_functionality.json` **e** explique no
+   changelog do app afetado e no resumo para o Eduardo. Remover uma capacidade do registro sem
+   dizer por quê é enfraquecer um gate — proibido pela regra "Nunca" do `CLAUDE.md`.
+3. **Defeito da fixture ou da regra do gate** (acontece): corrija o gate e **diga que corrigiu**.
+   Nunca silencie a asserção.
+
+PRs que tocam `app.js`, estado do hero, ciclo de vida, store compartilhado, CSS de superfície
+crítica, navegação ou comportamento de service worker/release **não passam pelo fluxo VERDE
+normal** com este gate vermelho.
