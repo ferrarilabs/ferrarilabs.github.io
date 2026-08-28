@@ -1,0 +1,299 @@
+{
+  "version": 1,
+  "principle": "Uma capacidade crítica JÁ EXISTENTE não pode sumir, ficar vazia, duplicar ou perder o comportamento de estado pretendido como efeito colateral de outra mudança. Isto é um invariante de release, não uma convenção de revisão.",
+  "why": "Regressões repetidas em que consertar um defeito removeu ou quebrou uma função crítica existente. O hero de futebol sumiu QUATRO vezes por gatilhos diferentes; o botão 'Ver palpites', o card de próxima partida e a superfície do card primário já regrediram em patches que pareciam não ter relação. Revisor não lembra invariante — o repositório precisa lembrar.",
+  "enforced_by": "bolao/scripts/audit_critical_functionality.mjs (gate `critical-functionality`, grupo `browser` do npm run check)",
+
+  "assertion_vocabulary": {
+    "PRESENT": "o nó existe no DOM",
+    "VISIBLE": "existe E é renderizado (sem .hidden, sem display:none, com caixa > 0)",
+    "NONEMPTY": "existe E tem conteúdo de texto ou elemento filho — nó montado e vazio é FALHA, não sucesso parcial",
+    "UNIQUE": "no máximo `maxCount` ocorrências (padrão 1) — dois donos competindo pela mesma apresentação é defeito mesmo que um esteja escondido",
+    "OWNER": "o nó carrega o atributo de propriedade declarado em `ownerAttr` — prova que quem desenhou foi o dono canônico, não um renderizador paralelo"
+  },
+
+  "states": {
+    "normal_fresh": "fonte respondendo, dado recente, próxima partida conhecida",
+    "provider_unavailable": "gateway 503/SOURCE_UNAVAILABLE",
+    "stale_source": "gateway responde, mas o dado está velho (stale)",
+    "upcoming_fixture": "sem jogo agora, próxima partida autoritativa conhecida",
+    "live_fixture": "partida ao vivo confirmada",
+    "recent_final": "partida encerrada há pouco",
+    "schedule_unknown": "sem fonte e sem próxima partida conhecida",
+    "picks_open": "prazo de palpite aberto (CDB2026)",
+    "picks_closed": "prazo de palpite vencido",
+    "draw_pending": "sorteio oficial ainda não validado (CDB2026)",
+    "draw_locked": "sorteio oficial validado, bracket autoritativo (CDB2026)"
+  },
+
+  "capabilities": [
+    {
+      "id": "CDB_COMPETITION_HERO",
+      "app": "cdb2026",
+      "label": "hero da competição (ranking ao vivo / provisório)",
+      "selector": "#liveRankingHero",
+      "assert": ["PRESENT"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "O hero da competição é o resumo da disputa. Ele já foi escondido por engano junto com o hero de futebol, porque os dois compartilhavam o mesmo passo de render."
+    },
+    {
+      "id": "CDB_PRIMARY_FOOTBALL_HERO",
+      "app": "cdb2026",
+      "label": "hero primário de futebol",
+      "selector": "#liveTieCard",
+      "assert": ["PRESENT", "VISIBLE", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Sumiu da produção QUATRO vezes, cada uma por causa diferente, e todas terminavam no mesmo `classList.add('hidden')`. A EXISTÊNCIA não é decisão do provedor."
+    },
+    {
+      "id": "CDB_PRIMARY_FIXTURE_UNIQUE",
+      "app": "cdb2026",
+      "label": "o confronto primário aparece uma vez só",
+      "rule": "PRIMARY_FIXTURE_UNIQUE",
+      "assert": ["UNIQUE"],
+      "maxCount": 1,
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "O card legado e o hero liam a MESMA próxima partida e desenhavam o mesmo confronto duas vezes na mesma tela. Esconder um com CSS não resolve: os dois continuam decidindo."
+    },
+    {
+      "id": "CDB_RANKING",
+      "section": "ranking",
+      "app": "cdb2026",
+      "label": "ranking",
+      "selector": "#rankingList",
+      "assert": ["PRESENT", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "O ranking é a razão de o participante voltar ao site. Lista montada e vazia é indistinguível de bolão sem ninguém."
+    },
+    {
+      "id": "CDB_NAVIGATION",
+      "app": "cdb2026",
+      "label": "navegação entre seções (inclui Jogos)",
+      "selector": "nav.nav button[data-section]",
+      "assert": ["PRESENT", "VISIBLE"],
+      "minCount": 4,
+      "requiredSections": ["entry", "ranking", "games", "rules"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Sem navegação, todas as outras capacidades ficam inalcançáveis — a falha mais barata de introduzir e a mais cara de perceber."
+    },
+    {
+      "id": "CDB_GAMES_LIST",
+      "section": "games",
+      "app": "cdb2026",
+      "label": "lista de jogos",
+      "selector": "#gamesList",
+      "assert": ["PRESENT", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop"],
+      "why": "A aba Jogos é a fonte que o participante usa para conferir confronto e horário."
+    },
+    {
+      "id": "CDB_VIEW_PICKS_PATH",
+      "section": "ranking",
+      "app": "cdb2026",
+      "label": "caminho 'Ver palpites'",
+      "rule": "VIEW_PICKS_PATH",
+      "assert": ["PRESENT"],
+      "states": ["picks_closed", "draw_locked"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Depois do prazo, ver o palpite de cada um é o que torna o bolão auditável. O botão já sumiu do ranking numa mudança de layout."
+    },
+    {
+      "id": "CDB_HIDDEN_PICKS_PROTECTION",
+      "section": "ranking",
+      "app": "cdb2026",
+      "label": "proteção do palpite antes do prazo",
+      "rule": "HIDDEN_PICKS_ENFORCED",
+      "assert": ["PRESENT"],
+      "states": ["picks_open"],
+      "viewports": ["desktop"],
+      "why": "Antes do prazo, palpite de terceiro é informação privilegiada — vale dinheiro. A proteção não pode cair junto com uma mudança de apresentação do ranking."
+    },
+    {
+      "id": "CDB_PICK_FORM_LIFECYCLE",
+      "section": "entry",
+      "app": "cdb2026",
+      "label": "formulário de palpite segue o ciclo de vida",
+      "rule": "PICK_FORM_MATCHES_LIFECYCLE",
+      "assert": ["PRESENT"],
+      "states": ["picks_open", "picks_closed"],
+      "viewports": ["desktop"],
+      "why": "Formulário aberto com o prazo vencido aceita palpite fora de hora; formulário fechado com o prazo aberto impede quem pagou de jogar. Os dois já aconteceram."
+    },
+    {
+      "id": "CDB_SAVE_ACTION",
+      "section": "entry",
+      "app": "cdb2026",
+      "label": "ação de salvar segue o ciclo de vida",
+      "rule": "SAVE_MATCHES_LIFECYCLE",
+      "assert": ["PRESENT"],
+      "states": ["picks_open"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Sem o botão de salvar, o formulário é decorativo. Já regrediu no mobile sozinho, com o desktop verde."
+    },
+    {
+      "id": "CDB_SUPPORT_ACTION",
+      "app": "cdb2026",
+      "label": "ação de suporte / relatar problema",
+      "selector": "#supportWhatsappBtn",
+      "assert": ["PRESENT", "VISIBLE"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "É o único canal do participante quando algo quebra. Perder o canal de reporte é perder o sinal de que qualquer outra coisa quebrou."
+    },
+
+    {
+      "id": "BR_COMPETITION_HERO",
+      "app": "br2026",
+      "label": "hero da competição (ranking ao vivo / projeção)",
+      "selector": "#liveRankingHero",
+      "assert": ["PRESENT"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Ver CDB_COMPETITION_HERO — mesma capacidade, mesmo modo de falha."
+    },
+    {
+      "id": "BR_PRIMARY_FOOTBALL_HERO",
+      "app": "br2026",
+      "label": "hero primário de futebol",
+      "selector": "#liveMatchCard",
+      "assert": ["PRESENT", "VISIBLE", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Aqui o hero chegou a ficar montado e VAZIO — um helper inexistente lançou no meio do render e a atribuição de innerHTML nunca aconteceu. NONEMPTY existe por causa desse dia."
+    },
+    {
+      "id": "BR_PRIMARY_FIXTURE_UNIQUE",
+      "app": "br2026",
+      "label": "o confronto primário aparece uma vez só",
+      "rule": "PRIMARY_FIXTURE_UNIQUE",
+      "assert": ["UNIQUE"],
+      "maxCount": 1,
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "O hero e o `#nextGameCard` liam o mesmo `nextUpcomingGame()` e desenhavam o mesmo jogo duas vezes."
+    },
+    {
+      "id": "BR_SECONDARY_NEVER_REPLACES_PRIMARY",
+      "app": "br2026",
+      "label": "o painel secundário não substitui o primário",
+      "rule": "PRIMARY_BEFORE_SECONDARY",
+      "assert": ["PRESENT"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Com o primário sem superfície própria, o painel 'Próximos jogos' ficava com MAIS peso visual que a partida principal — hierarquia invertida sem nenhum gate reprovando."
+    },
+    {
+      "id": "BR_RANKING",
+      "section": "ranking",
+      "app": "br2026",
+      "label": "ranking / projeção",
+      "selector": "#rankingList",
+      "assert": ["PRESENT", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Ver CDB_RANKING."
+    },
+    {
+      "id": "BR_STANDINGS",
+      "app": "br2026",
+      "label": "classificação do Brasileirão",
+      "selector": "#standingsCard",
+      "assert": ["PRESENT", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "A classificação é o dado do qual TODO o bolão do BR2026 deriva (G4/Z4). Sem ela a página existe e não serve para nada."
+    },
+    {
+      "id": "BR_NAVIGATION",
+      "app": "br2026",
+      "label": "navegação entre seções (inclui Jogos)",
+      "selector": "nav.nav button[data-section]",
+      "assert": ["PRESENT", "VISIBLE"],
+      "minCount": 4,
+      "requiredSections": ["entry", "ranking", "games", "rules"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Ver CDB_NAVIGATION."
+    },
+    {
+      "id": "BR_GAMES_LIST",
+      "section": "games",
+      "app": "br2026",
+      "label": "lista de jogos",
+      "selector": "#gamesList",
+      "assert": ["PRESENT", "NONEMPTY"],
+      "states": ["*"],
+      "viewports": ["desktop"],
+      "why": "Ver CDB_GAMES_LIST."
+    },
+    {
+      "id": "BR_VIEW_PICKS_PATH",
+      "section": "ranking",
+      "app": "br2026",
+      "label": "caminho 'Ver palpites'",
+      "rule": "VIEW_PICKS_PATH",
+      "assert": ["PRESENT"],
+      "states": ["picks_closed"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Ver CDB_VIEW_PICKS_PATH. No BR2026 as entradas fecharam em 2026-07-16, então este é o estado permanente da produção."
+    },
+    {
+      "id": "BR_SUPPORT_ACTION",
+      "app": "br2026",
+      "label": "ação de suporte / relatar problema",
+      "selector": "#supportWhatsappBtn",
+      "assert": ["PRESENT", "VISIBLE"],
+      "states": ["*"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Ver CDB_SUPPORT_ACTION."
+    }
+  ],
+
+  "shared_invariants": [
+    {
+      "id": "HERO_SURVIVES_PROVIDER_FAILURE",
+      "rule": "HERO_SURVIVES_PROVIDER_FAILURE",
+      "apps": ["br2026", "cdb2026"],
+      "states": ["provider_unavailable", "stale_source", "schedule_unknown"],
+      "why": "Falha de rede, 503 do gateway, cache vencido e cron atrasado são a mesma classe de evento, e nenhuma delas tem autoridade sobre a EXISTÊNCIA do hero."
+    },
+    {
+      "id": "DEGRADED_KEEPS_AUTHORITATIVE_UPCOMING",
+      "rule": "DEGRADED_KEEPS_AUTHORITATIVE_UPCOMING",
+      "apps": ["br2026", "cdb2026"],
+      "states": ["provider_unavailable"],
+      "why": "A próxima partida vem do calendário LOCAL. Uma fonte ao vivo fora do ar não pode apagar um confronto que ela nem produziu."
+    },
+    {
+      "id": "MOBILE_PARITY",
+      "rule": "MOBILE_PARITY",
+      "apps": ["br2026", "cdb2026"],
+      "states": ["normal_fresh", "provider_unavailable"],
+      "why": "Capacidade crítica já sumiu SÓ no telefone, com o desktop verde. Paridade é medida, não presumida."
+    },
+    {
+      "id": "NO_MOUNTED_BUT_EMPTY",
+      "rule": "NO_MOUNTED_BUT_EMPTY",
+      "apps": ["br2026", "cdb2026"],
+      "states": ["*"],
+      "why": "Exceção no meio do render deixa o container montado e vazio. `hidden === false` foi aceito duas vezes como prova de que o #246 estava resolvido, e duas vezes a produção mostrou um buraco."
+    }
+  ],
+
+  "mutations": [
+    { "id": "PRIMARY_HERO_HIDDEN",       "app": "br2026",  "must_fail": "BR_PRIMARY_FOOTBALL_HERO" },
+    { "id": "PRIMARY_HERO_EMPTY",        "app": "br2026",  "must_fail": "BR_PRIMARY_FOOTBALL_HERO" },
+    { "id": "DUPLICATE_PRIMARY_FIXTURE", "app": "br2026",  "must_fail": "BR_PRIMARY_FIXTURE_UNIQUE" },
+    { "id": "RANKING_REMOVED",           "app": "cdb2026", "must_fail": "CDB_RANKING" },
+    { "id": "SUPPORT_REMOVED",           "app": "cdb2026", "must_fail": "CDB_SUPPORT_ACTION" },
+    { "id": "STANDINGS_REMOVED",         "app": "br2026",  "must_fail": "BR_STANDINGS" },
+    { "id": "VIEW_PICKS_REMOVED",        "app": "cdb2026", "must_fail": "CDB_VIEW_PICKS_PATH" },
+    { "id": "MOBILE_ONLY_DISAPPEARANCE", "app": "br2026",  "must_fail": "BR_SUPPORT_ACTION" }
+  ]
+}

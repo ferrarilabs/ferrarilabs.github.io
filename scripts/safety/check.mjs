@@ -61,6 +61,11 @@ const BROWSER_SHARD_A = [
   // Issue #258. Vai no shard A porque ele era o mais curto dos dois (10 contra 11) e este check e
   // rapido: quatro cargas de pagina contra rotas mockadas, sem matriz de larguras.
   "cdb-save-error-diagnosable",
+  // Portao de Regressao de Funcionalidade Critica. Vai no shard A porque o A tinha 11 e o B 13
+  // depois do #316/#258; este check e o mais LONGO do grupo (matriz de estados x dois apps x dois
+  // viewports + oito mutacoes, ~40 cargas de pagina), entao equilibrar aqui e o que impede o
+  // shard B de virar o caminho critico do npm run check.
+  "critical-functionality",
 ];
 const BROWSER_SHARD_B = [
   "accessibility", "responsive-14-width", "live-prob-bars", "combo-visual", "multi-live-hero",
