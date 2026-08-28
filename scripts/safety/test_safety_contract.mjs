@@ -105,6 +105,32 @@ process.on("exit", () => { try { removerArvoreIsolada(); } catch { /* melhor esf
 const abs = (p) => join(ARVORE, p);
 const sha = (p) => createHash("sha256").update(readFileSync(abs(p))).digest("hex");
 
+/**
+ * Le um arquivo que pode legitimamente NAO existir, e devolve o restaurador certo.
+ *
+ * `CHANGE_INTENT.json` e o caso: a AUSENCIA e o estado normal (uma mudanca comum nao declara
+ * nada) e o check D3 exige que a declaracao seja REMOVIDA depois que a mudanca entra em main.
+ * Varias mutacoes liam o arquivo direto e estouravam em ENOENT justamente quando o repositorio
+ * estava no estado CORRETO — a suite so passava enquanto uma declaracao por acaso estivesse la.
+ * `mutateFixtures` ja resolvia isso; quem monta a mutacao a mao passa a resolver igual.
+ *
+ * Devolve `{ original, restaurar }`: `original` e `null` quando o arquivo nao existia, e
+ * `restaurar()` volta ao estado exato — reescrevendo o conteudo, ou APAGANDO o que a mutacao criou.
+ */
+function lerOpcional(file) {
+  const existia = existsSync(abs(file));
+  if (existia && !hashesBefore.has(file)) hashesBefore.set(file, sha(file));
+  touched.add(file);
+  const original = existia ? readFileSync(abs(file), "utf8") : null;
+  return {
+    original,
+    restaurar: () => {
+      if (original === null) { if (existsSync(abs(file))) unlinkSync(abs(file)); }
+      else writeFileSync(abs(file), original);
+    },
+  };
+}
+
 /** Executa o contrato e devolve o mapa id -> FAILED/PASSED/SKIPPED. */
 function runContract() {
   // cwd = ARVORE: o caminho e relativo, entao o node executa a COPIA que vive na arvore isolada, e
@@ -253,10 +279,9 @@ test("M8 allowlist visual alargada SEM declaracao => PEGA", () => {
   const alFile = "docs/bolao/evidence/visual-comparison/ALLOWLIST.json";
   const ciFile = "CHANGE_INTENT.json";
   const alOriginal = readFileSync(abs(alFile), "utf8");
-  const ciOriginal = readFileSync(abs(ciFile), "utf8");
-  touched.add(alFile); touched.add(ciFile);
+  const ci = lerOpcional(ciFile);
+  touched.add(alFile);
   if (!hashesBefore.has(alFile)) hashesBefore.set(alFile, sha(alFile));
-  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
   try {
     const a = JSON.parse(alOriginal);
     a.entries.push({ ...a.entries[0], component: "mutacao-de-teste", property: "color" });
@@ -266,7 +291,7 @@ test("M8 allowlist visual alargada SEM declaracao => PEGA", () => {
     assert(status.G8 === "FAILED", `esperado G8=FAILED, obtido ${status.G8 || "PASSED"}`);
   } finally {
     writeFileSync(abs(alFile), alOriginal);
-    writeFileSync(abs(ciFile), ciOriginal);
+    ci.restaurar();
   }
 });
 
@@ -734,10 +759,9 @@ test("M33 invariante de desarme violado no proprio workflow (nao no CHANGE_INTEN
   // testar isso hoje, ja que `BR2026_ROUND_EMAILS_DISARMED` le um caminho fixo no disco.
   const ciFile = "CHANGE_INTENT.json";
   const wfFile = ".github/workflows/br2026_round_emails.yml";
-  const ciOriginal = readFileSync(abs(ciFile));
+  const ci = lerOpcional(ciFile);
   const wfOriginal = readFileSync(abs(wfFile));
-  touched.add(ciFile); touched.add(wfFile);
-  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  touched.add(wfFile);
   if (!hashesBefore.has(wfFile)) hashesBefore.set(wfFile, sha(wfFile));
   try {
     writeFileSync(abs(ciFile), syntheticConditionalIntent());
@@ -750,7 +774,7 @@ test("M33 invariante de desarme violado no proprio workflow (nao no CHANGE_INTEN
     const { status } = runContract();
     assert(status.D3 === "FAILED", `esperado D3=FAILED, obtido ${status.D3 || "PASSED"}`);
   } finally {
-    writeFileSync(abs(ciFile), ciOriginal);
+    ci.restaurar();
     writeFileSync(abs(wfFile), wfOriginal);
   }
 });
@@ -775,9 +799,8 @@ test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por 
   // vazio por definicao, e a unica coisa que sobra no diff e o que este teste mesmo escreve na
   // arvore de trabalho (so CHANGE_INTENT.json).
   const ciFile = "CHANGE_INTENT.json";
-  const ciOriginal = readFileSync(abs(ciFile));
-  touched.add(ciFile);
-  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
+  const ci = lerOpcional(ciFile);
+
   const headSha = spawnSync("git", ["rev-parse", "HEAD"], { cwd: ARVORE, encoding: "utf8" }).stdout.trim();
   const prevBaseEnv = process.env.SAFETY_BASE_SHA;
   try {
@@ -790,7 +813,7 @@ test("LIMITE CONHECIDO: remover a declaracao conditional inteira nao e pego por 
     assert(exit === 0 && !status.D1 && !status.D2 && !status.D3,
       "esperado: NENHUM check reprova (isso e o limite documentado) — se algo comecou a pegar isso, atualize este teste e o ADR-018, nao remova a checagem");
   } finally {
-    writeFileSync(abs(ciFile), ciOriginal);
+    ci.restaurar();
     if (prevBaseEnv === undefined) delete process.env.SAFETY_BASE_SHA;
     else process.env.SAFETY_BASE_SHA = prevBaseEnv;
   }
@@ -903,11 +926,10 @@ test("M35 bump normal de siteVersion NAO pode ressuscitar uma declaracao SCORING
   // perguntar "o arquivo foi tocado?" em vez de "a chave observada driftou?", esta mutacao reprova.
   const ciFile = "CHANGE_INTENT.json";
   const cfgFile = "bolao/cdb2026/js/config.js";
-  const ciOriginal = readFileSync(abs(ciFile));
+  const ci = lerOpcional(ciFile);
   // utf8 de proposito: sem encoding readFileSync devolve Buffer, e Buffer nao tem .replace().
   const cfgOriginal = readFileSync(abs(cfgFile), "utf8");
   touched.add(ciFile); touched.add(cfgFile);
-  if (!hashesBefore.has(ciFile)) hashesBefore.set(ciFile, sha(ciFile));
   if (!hashesBefore.has(cfgFile)) hashesBefore.set(cfgFile, sha(cfgFile));
   try {
     const bumped = cfgOriginal.replace(/siteVersion:\s*"([^"]+)"/, 'siteVersion: "v99.999"');
@@ -921,7 +943,7 @@ test("M35 bump normal de siteVersion NAO pode ressuscitar uma declaracao SCORING
     assert(status.D3 === "FAILED",
       `bump de siteVersion mascarou a declaracao obsoleta: esperado D3=FAILED, obtido ${status.D3 || "PASSED"}`);
   } finally {
-    writeFileSync(abs(ciFile), ciOriginal);
+    ci.restaurar();
     writeFileSync(abs(cfgFile), cfgOriginal);
   }
 });
