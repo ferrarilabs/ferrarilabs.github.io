@@ -270,6 +270,22 @@ Uma mudança **comum não declara nada** — `CHANGE_INTENT.json` nem precisa ex
 estado normal, e a declaração existe para o caso raro, não para o dia a dia. Depois que a mudança
 entra em `main` a declaração fica obsoleta e **deve ser removida** (o check `D3` exige isso).
 
+### Funcionalidade crítica não pode regredir como efeito colateral
+
+Uma capacidade crítica JÁ EXISTENTE não pode sumir, ficar vazia, duplicar, nem perder o
+comportamento de estado pretendido por causa de outra mudança. É invariante de release, aplicado
+pelo gate `critical-functionality` do `npm run check`:
+
+- o **registro** do que é crítico é `bolao/shared/safety/critical_functionality.json`;
+- o gate mede semântica (PRESENT/VISIBLE/NONEMPTY/UNIQUE/OWNER) nos dois apps, na matriz de
+  estados e em desktop **e** mobile — container montado e VAZIO é FALHA, e duplicata escondida por
+  CSS continua sendo defeito;
+- se a remoção for **deliberada**, atualize o registro E explique no changelog do app e no resumo
+  para o Eduardo. Tirar uma capacidade do registro em silêncio é enfraquecer um gate.
+
+Documentação completa: `docs/bolao/CHANGE_SAFETY_CONTRACT.md` ("Portão de Regressão de
+Funcionalidade Crítica").
+
 **Nunca** enfraqueça um gate para deixar um patch verde: remover um check do `verify.mjs`, tirar
 um comando da cadeia do `npm test`, introduzir um `skip`, esvaziar as assertions de um gate,
 alargar o `ALLOWLIST.json`, estreitar um gatilho de CI ou apagar um cron. Todos esses caminhos
