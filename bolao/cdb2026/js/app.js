@@ -4403,6 +4403,34 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
     ${aviso}</div>`;
 }
 
+
+/**
+ * A fonte esta degradada o bastante para AVISAR? (#246)
+ *
+ * Distinta de `sourceOk`: aquela decide CICLO DE VIDA (uma partida ausente da observacao acabou,
+ * ou so sumiu do snapshot?). Esta decide APRESENTACAO -- se o hero deve dizer que o dado nao esta
+ * fresco. Confundi-las quebrou a retencao: com o gateway fora e snapshot utilizavel, a partida
+ * sumia da tela em vez de continuar exibida como dado velho conhecido.
+ *
+ * Medido em producao (2026-08-27, Gremio x Internacional AO VIVO aos 11'): gateway DEGRADED com
+ * UPSTREAM_403, store caido para snapshot de 13,6 HORAS, e o hero anunciando `degraded: false`.
+ * O celular do participante mostrava o jogo; o site mostrava "Próxima partida, daqui a 5 dias"
+ * com ar de certeza. Mostrar dado de 13 horas sem dizer que e de 13 horas some com a duvida.
+ */
+function fonteEstaDegradada() {
+  try {
+    if (_liveHealth && (_liveHealth.gatewayStatus === "DEGRADED" ||
+                        _liveHealth.gatewayStatus === "UNREACHABLE")) return true;
+    const st = _liveStore ? _liveStore.getState() : null;
+    if (!st) return false;                                  // sem store nao ha o que afirmar
+    if (st.state === "SOURCE_UNAVAILABLE") return true;
+    // Limiar do CONTRATO compartilhado; um terceiro limiar sobre frescor sempre discorda dos outros.
+    const critico = (window.BOLAO_FOOTBALL_LIVE && window.BOLAO_FOOTBALL_LIVE.CRITICAL_STALE_AFTER_MS) || 1800000;
+    if (typeof st.ageMs === "number" && st.ageMs > critico) return true;
+    return !!st.stale;
+  } catch { return false; }   // diagnostico nunca derruba o render
+}
+
 function renderLiveTieCard() {
   const card = $("liveTieCard");
   if (!card) return;
@@ -4426,14 +4454,8 @@ function renderLiveTieCard() {
     nextMatch: proximo ? { id: `${proximo.home}|${proximo.away}`, homeTeam: proximo.home,
                            awayTeam: proximo.away, kickoff: proximo.m && proximo.m.kickoff } : null,
     recentResult: null,
-    // Saude da fonte lida do STORE, que e a autoridade de ciclo de vida do live -- nao de uma
-    // variavel paralela. Store ausente (ainda nao iniciado) NAO e fonte fora: e ausencia de
-    // informacao, e o hero nao deve anunciar degradacao que nao pode provar.
-    sourceOk: (function () {
-      if (!_liveStore) return true;
-      const st = _liveStore.getState();
-      return !st || st.state !== "SOURCE_UNAVAILABLE";
-    })(),
+    // Apresentacao usa o sinal DEDICADO (ver `fonteEstaDegradada`).
+    sourceOk: !fonteEstaDegradada(),
   }) : null;
   if (heroEstado) {
     card.dataset.heroPresentation = heroEstado.state;
