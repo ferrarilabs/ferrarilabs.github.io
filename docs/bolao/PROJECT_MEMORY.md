@@ -1312,6 +1312,24 @@ Padrões de correção que se repetem e valem a pena reconhecer em bugs futuros:
 
 ## Melhorias futuras
 
+### #246 — Cloudflare é o relógio; GitHub Actions continua sendo o produtor (2026-08-28)
+
+O desenho medido e implantado compõe duas capacidades diferentes. O Cron Trigger do Worker
+`ferrarilabs-live-producer` mantém a cadência de cinco minutos e apenas dispara
+`live_cache_producer.yml`; ele não alcança ESPN nem Supabase. O GitHub Actions continua sendo o
+runtime que busca a ESPN, usa os módulos canônicos de normalização e, dentro da janela derivada do
+calendário, atualiza somente `live_sports_cache`.
+
+A primeira versão tentou fazer o Worker buscar a ESPN e recebeu 403 da Akamai em todo tick. O
+Supabase Edge Runtime já apresentava o mesmo bloqueio; trocar cabeçalho não resolveu. A correção é
+composição, não mover o produtor de um egresso bloqueado para outro. O segredo do Worker é um token
+GitHub fine-grained restrito ao repositório e a Actions; valores nunca entram em repo ou log.
+
+Produção observada: versão Cloudflare `e3a62dbb-95e4-4f33-92bf-9a0a304f7b72`, cron real às
+`2026-08-28T11:30:57Z`, ação `DISPARADO`, run GitHub `33167445536` verde. O run encerrou
+`SKIPPED_OUT_OF_WINDOW` para BR/CDB, corretamente sem fabricar uma observação nova quando não havia
+partida na janela. Rollback começa por uma versão anterior do Worker.
+
 ### Auditoria de documentação do repositório inteiro — PENDENTE, workstream separado
 
 Registrado em 2026-08-24 durante a #321 (migração do intake para Cloudflare Worker). A documentação

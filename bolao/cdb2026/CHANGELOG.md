@@ -1,5 +1,20 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## operacional — Cloudflare passa a ser somente o relógio do produtor (2026-08-28, Issue #246)
+
+Sem bump de `siteVersion`: nenhum arquivo servido ao navegador mudou. O Worker
+`ferrarilabs-live-producer` acorda a cada cinco minutos e dispara exclusivamente o workflow
+`live_cache_producer.yml` em `main`. Ele não busca ESPN, não normaliza placar e não tem URL ou
+credencial do Supabase.
+
+O primeiro cron real da versão nova foi observado em `2026-08-28T11:30:57Z`: o dispatch foi
+aceito, criou o run GitHub Actions `33167445536` e terminou verde. Como BR2026 e CDB2026 estavam
+fora da janela derivada dos calendários, o produtor encerrou com `SKIPPED_OUT_OF_WINDOW` sem tocar
+a fonte ou o cache — comportamento esperado, não falso frescor.
+
+Rollback: a versão Cloudflare anterior continua disponível no histórico. Scoring, ranking,
+palpites, pagamentos, e-mail e ledgers não foram tocados.
+
 ## operacional — reconciliação do ledger histórico (2026-08-26, Issue #352)
 
 Sem bump de `siteVersion`: **nenhum arquivo servido ao navegador mudou**. Bumpar a versão de
