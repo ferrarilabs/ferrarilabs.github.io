@@ -31,37 +31,76 @@ const CODIGO_BR = semTexto(APP_BR);
 console.log("\n#246 — composicao da pagina\n");
 console.log("A. Estado do sorteio: a pagina nao pode se contradizer");
 
+// Estes quatro casos eram verificados por TEXTO na escada que vivia dentro de
+// `renderCountdown()`. A escada saiu de la (#246, v3.138): quem decide frase agora e o contrato
+// puro `bolao/shared/js/hero_copy.js`, e o renderizador so consome. Verificar a string antiga
+// reprovaria codigo correto; verificar apenas "delega" seria afrouxar. Entao os quatro casos
+// passaram a ser exercitados de VERDADE contra o contrato -- e o renderizador e verificado por
+// DELEGACAO, que e o unico jeito de ele voltar a decidir sozinho sem o gate perceber.
+const HC = (() => {
+  const escopo = {};
+  const fonte = readFileSync(join(ROOT, "bolao/shared/js/hero_copy.js"), "utf8");
+  new Function("globalThis", "window", fonte).call(escopo, escopo, escopo);
+  return escopo.BOLAO_HERO_COPY;
+})();
+const T0 = Date.parse("2026-08-28T18:00:00Z");
+const copy = (e) => HC.selectPicksCountdownCopy({ now: T0, ...e });
+
 test("CASE 6: bracket LOCKED + prazo vencido ⇒ 'prazo encerrado', NUNCA 'aguardando sorteio'", () => {
-  // Ancora no RENDERIZADOR (`lcFase.state === ...`), nao na derivacao — a primeira ocorrencia do
-  // enum esta dentro de `phaseLifecycle()`, que so calcula e nao desenha nada.
-  const i = CODIGO.indexOf("lcFase.state === PHASE_LIFECYCLE.PICKS_CLOSED");
-  A(i > 0, "o renderizador do countdown nao consulta PHASE_LIFECYCLE.PICKS_CLOSED");
-  const janela = CODIGO.slice(i, i + 400);
-  A(/t\("closed"\)/.test(janela),
-    "fase com palpites fechados nao esta usando a mensagem de prazo encerrado");
+  const c = copy({ picksState: HC.PICKS.CLOSED, drawState: HC.DRAW.LOCKED, cutoffMs: T0 - 3600000 });
+  A(c.mode === HC.MODE.PICKS_CLOSED, `modo ${c.mode}`);
+  A(c.bodyKey === "picksClosedBody", "fase com palpites fechados nao usa a mensagem de prazo encerrado");
+  A(!HC.DRAW_WAIT_KEYS.includes(c.bodyKey) && !HC.DRAW_WAIT_KEYS.includes(c.labelKey),
+    "prazo vencido com bracket LOCKED voltou a falar em espera de sorteio");
+  // E o rotulo nao pode ser o da contagem regressiva: "Encerra em" sobre um prazo ja vencido foi
+  // o segundo defeito visto em producao.
+  A(c.labelKey !== "countdownTitle", "'Encerra em' acima de um prazo encerrado");
 });
 
 test("INVARIANTE: LOCKED nunca cai no default 'waitingDraw'", () => {
-  const i = CODIGO.indexOf("DRAW_LIFECYCLE.AWAITING_PUBLICATION ?");
-  A(i > 0, "escada de mensagens do sorteio nao encontrada");
-  const escada = CODIGO.slice(i, i + 500);
-  A(/DRAW_LIFECYCLE\.LOCKED\s*\?/.test(escada),
-    "o estado LOCKED — o MAIS avancado — nao tem caso proprio e cai no default `waitingDraw`, " +
-    "que e a mensagem MENOS avancada. Foi exatamente isso que a producao exibiu em 2026-08-27");
+  // Varredura exaustiva, nao uma janela de 500 caracteres: todo estado de palpite, todo prazo.
+  for (const picks of [...Object.values(HC.PICKS), "ESTADO_INEXISTENTE"]) {
+    for (const cutoffMs of [null, T0 + 3600000, T0 - 3600000]) {
+      const c = copy({ picksState: picks, drawState: HC.DRAW.LOCKED, cutoffMs });
+      A(!HC.DRAW_WAIT_KEYS.includes(c.bodyKey) && !HC.DRAW_WAIT_KEYS.includes(c.labelKey),
+        `LOCKED/${picks}/cutoff=${cutoffMs}: o estado MAIS avancado recebeu a mensagem MENOS ` +
+        `avancada (${c.labelKey}/${c.bodyKey}). Foi isso que a producao exibiu em 2026-08-27`);
+    }
+  }
 });
 
 test("CASE 5: sorteio conhecido mas datas nao ⇒ 'Aguardando datas e horários'", () => {
   A(/DRAW_LOCKED_CUTOFF_PENDING/.test(CODIGO), "estado de datas pendentes nao consultado");
-  const i = CODIGO.indexOf("lcFase.state === PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING");
-  A(i > 0, "o renderizador nao consulta DRAW_LOCKED_CUTOFF_PENDING");
-  const janela = CODIGO.slice(i, i + 500);
-  A(/schedulePendingTitle/.test(janela), "datas pendentes nao usa schedulePendingTitle");
-  A(!/waitingDraw/.test(janela), "datas pendentes ainda cai em 'aguardando sorteio'");
+  const c = copy({ picksState: HC.PICKS.SCHEDULE_PENDING, drawState: HC.DRAW.LOCKED });
+  A(c.labelKey === "schedulePendingTitle", "datas pendentes nao usa schedulePendingTitle");
+  A(c.bodyKey === "schedulePendingRule" && c.noteKey === "schedulePendingNote", "corpo/nota errados");
+  A(!HC.DRAW_WAIT_KEYS.includes(c.bodyKey), "datas pendentes ainda cai em 'aguardando sorteio'");
 });
 
 test("CASE 4: sorteio genuinamente desconhecido ⇒ mensagem de espera CONTINUA permitida", () => {
-  A(/DRAW_LIFECYCLE\.WAITING\s*\?\s*"drawWaiting"/.test(CODIGO),
+  const c = copy({ picksState: HC.PICKS.WAITING_DRAW, drawState: HC.DRAW.WAITING });
+  A(c.bodyKey === "drawWaiting",
     "o estado de espera real perdeu sua mensagem — a correcao nao pode apagar o caso legitimo");
+});
+
+test("DELEGACAO: renderCountdown consome o contrato e nao decide frase por conta propria", () => {
+  const i = CODIGO.indexOf("function renderCountdown");
+  A(i > 0, "renderCountdown nao encontrado");
+  let d = 0, iniciou = false, fim = i;
+  for (let j = i; j < CODIGO.length; j++) {
+    if (CODIGO[j] === "{") { d++; iniciou = true; }
+    else if (CODIGO[j] === "}") { d--; if (iniciou && d === 0) { fim = j + 1; break; } }
+  }
+  const render = CODIGO.slice(i, fim);
+  A(/selectPicksCountdownCopy\(/.test(render), "o renderizador parou de consultar o contrato");
+  A(/activePhaseLifecycle\(/.test(render) && /drawLifecycle\(/.test(render),
+    "o renderizador parou de derivar os dois ciclos de vida");
+  // Nenhuma chave de mensagem escolhida a mao dentro do renderizador: se uma voltar para ca, ela
+  // volta a poder contradizer o contrato sem que nenhum gate perceba.
+  for (const chave of ["waitingDraw", "drawWaiting", "drawAwaitingPublication", "drawIngestedPending"]) {
+    A(!new RegExp(`t\\("${chave}"\\)`).test(render),
+      `renderCountdown voltou a escolher a chave "${chave}" a mao`);
+  }
 });
 
 console.log("\nB. Uma unica apresentacao primaria da proxima partida");
@@ -151,10 +190,20 @@ test("mutacao (card legado volta a desenhar a primaria) e pega", () => {
 });
 
 test("mutacao (LOCKED volta ao default waitingDraw) e pega", () => {
-  const mutado = CODIGO.replace(/:\s*lc\.state === DRAW_LIFECYCLE\.LOCKED \? "closed"\n/, "");
-  A(mutado !== CODIGO, "a mutacao nao alterou nada");
-  A(!/DRAW_LIFECYCLE\.LOCKED\s*\?/.test(mutado),
-    "CONTROLE NEGATIVO: a checagem de LOCKED deveria ter sumido com a mutacao");
+  // A mutacao agora ataca o DONO real da decisao: o fallback do contrato. Antes atacava a escada
+  // que vivia no renderizador, e depois do #246 v3.138 ela nao existe mais la.
+  const fonte = readFileSync(join(ROOT, "bolao/shared/js/hero_copy.js"), "utf8");
+  const mutado = fonte.replace(
+    'return saida(MODE.PICKS_CLOSED, "picksClosedTitle", "picksClosedBody", null, null,\n                 draw === DRAW.LOCKED',
+    'return saida(MODE.DRAW_STATUS, "drawStatusTitle", "drawWaiting", null, null,\n                 draw === DRAW.LOCKED');
+  A(mutado !== fonte, "a mutacao nao alterou nada");
+  const escopo = {};
+  new Function("globalThis", "window", mutado).call(escopo, escopo, escopo);
+  const M = escopo.BOLAO_HERO_COPY;
+  const c = M.selectPicksCountdownCopy({ picksState: "ESTADO_INEXISTENTE", drawState: M.DRAW.LOCKED,
+                                         cutoffMs: T0 - 3600000, now: T0 });
+  A(M.DRAW_WAIT_KEYS.includes(c.bodyKey),
+    "CONTROLE NEGATIVO: a mutacao deveria ter reintroduzido a espera de sorteio");
 });
 
 console.log(`\n  ${ok} passed, ${fail} failed\n`);

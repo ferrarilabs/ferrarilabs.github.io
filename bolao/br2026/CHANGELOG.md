@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.131 — o aviso de degradação só aparece quando é relevante (2026-08-28, #246)
+
+`PLATFORM_SHARED` — mesma mudança do CDB2026 v3.138, propagada. Ver o changelog do CDB2026 para o
+relato completo da causa raiz.
+
+O hero do BR2026 imprimia `"Dados ao vivo temporariamente indisponíveis"` sempre que
+`heroEstado.degraded` era verdadeiro — inclusive embaixo do card de **próxima partida**, que vem do
+calendário local e não do provedor ao vivo. A queda da fonte não torna aquele confronto incerto, e o
+alarme sem consequência ensina o participante a ignorar o alarme quando ele importa.
+
+- O renderizador passou a consumir `BOLAO_HERO_COPY.selectHeroCopy()` em vez de ler `degraded` cru.
+  `degraded` continua exposto em `data-hero-degraded` para diagnóstico — o FATO não foi escondido,
+  só deixou de virar texto automaticamente.
+- Partida ao vivo com fonte atrasada continua no ar e ganha, no nível do hero, o aviso de ATRASO
+  (`liveDataDelayed`), que é o que é verdade com um placar na tela. O selo por partida
+  (`liveClockStaleAge`, com a idade em minutos) continua onde estava — ele diz outra coisa.
+- Novas chaves: `liveDataDelayed`, `picksClosedTitle`, `picksClosedBody`.
+
+**Não propagado:** a tabela-verdade de sorteio/prazo é específica da Copa do Brasil (o BR2026 não
+tem sorteio, e sua caixa de prazo já esconde depois do encerramento). `renderCountdown()` do BR2026
+não foi tocado.
+
+**Escopo preservado.** Scoring, projeção, classificação, movimento de clube e movimento de
+participante intactos. Gate: `bolao/shared/scripts/test_hero_copy_contract.mjs` roda a matriz
+inteira para os DOIS apps.
 ## operacional — Cloudflare passa a ser somente o relógio do produtor (2026-08-28, Issue #246)
 
 Sem bump de `siteVersion`: nenhum arquivo servido ao navegador mudou. O Worker

@@ -2248,8 +2248,14 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
   const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
   const S = HP ? HP.HERO : {};
   const estado = heroEstado ? heroEstado.state : "SCHEDULE_UNKNOWN";
-  const aviso = heroEstado && heroEstado.degraded
-    ? `<div class="live-hero-note">${esc(t("liveDataUnavailable"))}</div>` : "";
+  // O AVISO vem do contrato de texto (#246), nao de `degraded` cru. `degraded` e um FATO sobre a
+  // fonte; imprimi-lo direto punha "Dados ao vivo temporariamente indisponiveis" embaixo de uma
+  // proxima partida autoritativa e LOCAL, que a queda da fonte nao torna incerta. O contrato
+  // decide se a degradacao e relevante para o que esta na tela -- e qual frase e verdadeira.
+  const HC = (typeof window !== "undefined" && window.BOLAO_HERO_COPY) || null;
+  const copy = HC ? HC.selectHeroCopy({ heroState: estado, degraded: !!(heroEstado && heroEstado.degraded) }) : null;
+  const aviso = copy && copy.noticeKey
+    ? `<div class="live-hero-note">${esc(t(copy.noticeKey))}</div>` : "";
 
   if (estado === S.UPCOMING && proximo) {
     // `brtLongDate` e o formatador REAL deste app. A versao anterior chamava
@@ -2455,7 +2461,15 @@ function renderLiveCard() {
   card.querySelectorAll(".live-plays[data-plays-match]").forEach(el => {
     if (el.scrollTop > 0) savedPlaysScroll[el.dataset.playsMatch] = el.scrollTop;
   });
-  card.innerHTML = header + `<div class="live-match-grid">${rows}</div>`;
+  // Partida NO AR com a fonte atrasada: a partida CONTINUA visivel (invariante do #246) e o hero
+  // diz a verdade sobre a ATUALIZACAO. Mesmo contrato de texto do caminho sem jogo ao vivo, para
+  // que as duas metades do hero nao voltem a decidir frase cada uma por sua conta.
+  const HCv = (typeof window !== "undefined" && window.BOLAO_HERO_COPY) || null;
+  const copyVivo = HCv && heroEstado
+    ? HCv.selectHeroCopy({ heroState: heroEstado.state, degraded: !!heroEstado.degraded }) : null;
+  const avisoVivo = copyVivo && copyVivo.noticeKey
+    ? `<div class="live-hero-note">${esc(t(copyVivo.noticeKey))}</div>` : "";
+  card.innerHTML = header + `<div class="live-match-grid">${rows}</div>${avisoVivo}`;
   card.querySelectorAll(".live-plays[data-plays-match]").forEach(el => {
     const s = savedPlaysScroll[el.dataset.playsMatch];
     if (s) el.scrollTop = s;
