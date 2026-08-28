@@ -3,6 +3,9 @@ window.CDB2026_I18N = {
     savedSuccessPostCommitWarning: "Palpite salvo. A tela pode não ter atualizado — recarregue para conferir.",
     newVersionAvailable: "Nova versão disponível — recarregue ao terminar",
     liveDataUnavailable: "Dados ao vivo temporariamente indisponíveis",
+    // Partida NO AR com observação atrasada. Diferente de `liveDataUnavailable`: ali não há
+    // conteúdo, aqui há placar na tela — dizer "indisponível" com um placar visível seria falso.
+    liveDataDelayed: "Atualização ao vivo atrasada — o placar pode estar alguns minutos atrás",
     nextMatchLabel: "Próxima partida",
     nextMatchUnknown: "Próxima partida ainda não disponível",
     // Nav
@@ -28,6 +31,7 @@ window.CDB2026_I18N = {
     waitingDraw: "Aguardando sorteio oficial",
     // Batch 2 — estados explícitos do ciclo de vida do sorteio das quartas.
     drawCountdownTitle: "Sorteio das Quartas de Final em",
+    drawStatusTitle: "Sorteio das quartas de final",
     drawWaiting: "Aguardando a definição da data do sorteio das quartas pela CBF.",
     drawAwaitingPublication: "O sorteio já ocorreu — aguardando a publicação oficial da CBF para liberar os confrontos.",
     drawIngestedPending: "Sorteio recebido, aguardando validação da fonte oficial.",
@@ -178,6 +182,11 @@ window.CDB2026_I18N = {
     saveError: "Erro ao salvar. Tente novamente.",
     syncFailed: "Salvo neste dispositivo, mas a sincronização com o servidor falhou. Seus dados não estão perdidos — mantenha esta aba aberta e avise o organizador.",
     closed: "Prazo encerrado. Não é mais possível enviar palpites.",
+    // Apresentação DEDICADA de prazo vencido. Antes a caixa usava `countdownTitle`
+    // ("Encerra em") como rótulo com `closed` embaixo — contagem regressiva sobre prazo já
+    // vencido, contradição na mesma caixa.
+    picksClosedTitle: "Palpites encerrados",
+    picksClosedBody: "O prazo desta fase terminou. Não é mais possível enviar ou alterar palpites.",
     // Ranking
     rankingTitle: "Ranking",
     rankingSubtitle: "Pontuação baseada nos resultados da Copa do Brasil 2026.",

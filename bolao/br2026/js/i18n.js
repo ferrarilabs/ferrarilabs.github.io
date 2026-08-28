@@ -76,6 +76,8 @@ window.BR2026_I18N = {
     savedSuccess: "Palpite salvo com sucesso! Verifique seu e-mail para o comprovante.",
     saveError: "Erro ao salvar. Tente novamente.",
     closed: "Prazo encerrado. Não é mais possível enviar palpites.",
+    picksClosedTitle: "Palpites encerrados",
+    picksClosedBody: "O prazo terminou. Não é mais possível enviar ou alterar palpites.",
     // Ranking / Projeção do Bolão (2026-07-14, spec completa do Eduardo -- ver
     // docs/bolao/BR2026_PROJECTION_MODEL.md). Título/subtítulo/aviso seguem a linguagem
     // obrigatória: nunca "pontuação final"/"campeão atual"/"resultado definitivo" antes do
@@ -237,6 +239,8 @@ window.BR2026_I18N = {
     livePenalties: "Pênaltis",
     liveMatchesLabel: "jogos ao vivo agora",
     liveDataUnavailable: "Dados ao vivo temporariamente indisponíveis",
+    // Ver a mesma chave no CDB2026: partida NO AR com observação atrasada, não ausência de dado.
+    liveDataDelayed: "Atualização ao vivo atrasada — o placar pode estar alguns minutos atrás",
     nextMatchLabel: "Próxima partida",
     nextMatchUnknown: "Próxima partida ainda não disponível",
     // Language names (kept for compatibility)
