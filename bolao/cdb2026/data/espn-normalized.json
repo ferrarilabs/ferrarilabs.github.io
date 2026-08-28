@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-08-27T09:33:42Z",
-  "sourceUpdatedAt": "2026-08-27T09:33:42Z",
+  "generatedAt": "2026-08-28T04:05:26Z",
+  "sourceUpdatedAt": "2026-08-28T04:05:26Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "09ef4c4d55fe7fc4c4682258446aa6320dd29644e24d5b2da30ca379a7953cae",
+  "payloadHash": "586c1300d680b1e7a20dc01a697ef5e2797a64a98b4bffd822ea39302032dbe2",
   "matches": [
     {
       "id": "401858546",
@@ -3551,8 +3551,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Lucas Cunha",
-              "shortName": "L. Cunha"
+              "displayName": "Cunha",
+              "shortName": "Cunha"
             }
           ]
         },
@@ -12861,12 +12861,12 @@
     {
       "id": "401909064",
       "date": "2026-08-27T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Thu, August 27th at 7:00 PM EDT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Internacional",
       "awayTeam": "Grêmio",
       "homeTeamId": "1936",
@@ -12877,10 +12877,87 @@
       "awayWinner": false,
       "venue": "Estadio Beira-Rio",
       "city": "Porto Alegre",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 2491.0,
+            "displayValue": "42'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Carlos Vinícius",
+              "shortName": "C. Vinícius"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 2563.0,
+            "displayValue": "43'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Matheus Bahia",
+              "shortName": "M. Bahia"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 4899.0,
+            "displayValue": "82'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Alexander Bernabei",
+              "shortName": "A. Bernabei"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "6273"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+2'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Wálter Kannemann",
+              "shortName": "W. Kannemann"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401909112",
