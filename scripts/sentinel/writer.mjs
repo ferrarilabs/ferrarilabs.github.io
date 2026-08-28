@@ -161,6 +161,13 @@ export function upsertFinding(finding, client, logger) {
   state.last_seen_at = nowIso();
   state.source_sha = finding.provenance.source_sha;
   state.detector_version = finding.provenance.detector_version;
+  // The state block records the LATEST observation's provenance, not the first one's. Issue #373:
+  // cdb2026_result_email_gap compares the stored `provenance.evidence_hash` against the current
+  // observation to tell "same problem, seen again" (deduplicate the notification) from "the problem
+  // CHANGED" (surface it again). Freezing provenance at creation would make a changed finding
+  // surface on every subsequent run forever, since the comparison would never converge. Every other
+  // field here is already refreshed per observation; provenance was the inconsistent one.
+  state.provenance = finding.provenance;
   state.clean_cycle_count = 0; // seen again this run — any resolution countdown resets
   state.status = "ISSUE_OPEN";
   // Durable CHECKPOINT: record what we INTEND to write before attempting the Project mutation, so

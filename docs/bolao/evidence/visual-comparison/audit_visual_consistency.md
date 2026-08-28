@@ -1,6 +1,6 @@
 # Auditoria de Consistência Visual — Estilos Computados (PR120-final review items 3/4/7)
 
-Gerado em 2026-08-27T02:32:42.116Z · commit `5ff8a390` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
+Gerado em 2026-08-28T20:55:02.331Z · commit `459f742b` · referência visual: **copa2026** (golden master, ver CLAUDE.md).
 
 Classificação: **EQUAL** (idêntico) · **EQUIVALENT** (representação diferente, mesmo efeito) · **JUSTIFIED** (diferença documentada em `ALLOWLIST.json`, com fonte/owner/data) · **DIVERGENT** (diferença sem entrada no allowlist — bloqueia exit 0) · **N/A** (componente não existe no app).
 
@@ -236,7 +236,7 @@ Seletores: copa2026=`main`, br2026=`main`, cdb2026=`main`, loterias/powerball=`m
 | borderRadius | `0px` | `0px` | `0px` | `0px` | EQUAL | — |
 | backgroundColor | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | `rgba(0, 0, 0, 0)` | EQUAL | — |
 | color | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | `rgb(238, 247, 241)` | EQUAL | — |
-| height | `8328.97px` | `1514px` | `4653.88px` | `4950.55px` | JUSTIFIED | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. | 2026-08-20 (Issue #194): Powerball entrou na cobertura do checador. A altura dele e content-driven pelo mesmo motivo que nos outros tres -- e funcao de quanto conteudo a pagina carregou, nao de token de design -- entao a entrada passa a cobrir os quatro apps. Nao e uma excecao nova: e a mesma excecao aplicada ao app que antes nem era medido. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-03] |
+| height | `8328.97px` | `1597.91px` | `4511.77px` | `4950.55px` | JUSTIFIED | Total rendered page length — a function of how much content each app currently has loaded (fixture size, number of phases/rounds/results), not a fixed design token. Comparing it as if it were a token would flag a DIVERGENT finding on every future content change in any app, forever, with no CSS fix possible. PR120-final review item 3 explicitly instructs: 'não compare altura total de main'. | 2026-08-20 (Issue #194): Powerball entrou na cobertura do checador. A altura dele e content-driven pelo mesmo motivo que nos outros tres -- e funcao de quanto conteudo a pagina carregou, nao de token de design -- entao a entrada passa a cobrir os quatro apps. Nao e uma excecao nova: e a mesma excecao aplicada ao app que antes nem era medido. [docRef: PR120-final review item 3 (verbatim task text); docs/bolao/PLATFORM_GOVERNANCE.md; owner: Platform; approvedBy: Eduardo; reviewDate: 2026-08-20; reviewBy: 2027-08-03] |
 | minHeight | `0px` | `0px` | `0px` | `0px` | EQUAL | — |
 | gridTemplateColumns | `none` | `none` | `none` | `none` | EQUAL | — |
 

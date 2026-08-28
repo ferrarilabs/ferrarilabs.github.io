@@ -23,6 +23,34 @@
 # e a razao de o detector existir. Um monitor que nao separa "nao ha registro" de "nao consegui ler"
 # vira gerador de alarme falso durante exatamente a queda que importa -- e um alarme que grita em
 # toda queda e silenciado, e ai o defeito real volta a passar despercebido.
+#
+# ─── POR QUE O SINAL PASSOU A SER UMA TRANSICAO, E NAO O CODIGO CRU (Issue #373) ─────────────────
+#
+# O detector esta certo. O SINAL e que estava errado. Traduzir qualquer GAP em `exit 1` fazia UMA
+# lacuna persistente e ja conhecida (`quartas:espn-atletico-mg_cruzeiro:first`, run 33207263422)
+# reprovar TODA execucao agendada, duas vezes por dia, com e-mail de falha do GitHub a cada vez --
+# mesmo sem NADA ter mudado. Isso e o alarme cronico descrito tres paragrafos acima, produzido pelo
+# proprio workflow que existe para evita-lo.
+#
+# A lacuna agora vira um INCIDENTE com identidade estavel (fingerprint do `findingId`), guardado no
+# mesmo state store que o monitor Sentinel ja usa -- a Issue e seu bloco de estado embutido
+# (scripts/sentinel/github_state.mjs). Nenhum segundo state store foi inventado.
+#
+#   HEALTHY -> GAP_DETECTED -> GAP_STILL_OPEN -> RECOVERED
+#
+#   GAP_DETECTED    lacuna nova, OU a mesma lacuna com evidencia ALTERADA. Abre/atualiza UMA Issue
+#                   e reprova a run (exit 1).
+#   GAP_STILL_OPEN  mesma lacuna, evidencia identica. O incidente CONTINUA sendo atualizado
+#                   (occurrence_count, last_seen_at) -- o que e deduplicado e a NOTIFICACAO, nunca
+#                   a deteccao. Run verde e silenciosa.
+#   RECOVERED       so por confirmacao POSITIVA (o detector leu o ledger e afirmou o pool limpo).
+#                   Ausencia do relatorio nunca fecha incidente. Fecha a Issue, run verde.
+#   UNKNOWN         SEMPRE reprova, nunca e deduplicado, nunca abre incidente de lacuna. "Nao
+#                   consegui ler" nao pode virar "esta tudo bem" nem ser silenciado por dedupe.
+#
+# ESTA CAMADA TAMBEM NAO ENVIA E-MAIL, nao escreve no ledger e nao roda o detector de novo: ela le o
+# JSON ja produzido e escreve apenas Issues. Provado por scripts/sentinel/test_result_email_gap_detector.mjs
+# (55 asserts, incluindo o controle de mutacao que mata uma dedupe que pararia de acusar lacuna nova).
 
 name: Bolão CDB2026 — Vigia do e-mail de resultado
 
@@ -36,6 +64,7 @@ on:
 
 permissions:
   contents: read
+  issues: write   # o incidente É o state store: sem isto a transicao nao tem onde ser lembrada
 
 concurrency:
   group: cdb2026-result-email-watch
@@ -49,7 +78,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Detecta lacunas
+      - uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+
+      - name: Detecta lacunas (somente leitura)
+        id: detect
         env:
           # Leitura do ledger e do estado exige a credencial privilegiada; a anon key nao alcanca
           # `bolao_notif_jobs`. A variavel que ARMA envio real (`BOLAO_ALLOW_REAL_SEND`) NAO e
@@ -57,18 +91,16 @@ jobs:
           # continua desarmado.
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: |
-          cd bolao/cdb2026/scripts
           set +e
-          python3 detect_missed_result_emails.py --json
+          python3 bolao/cdb2026/scripts/detect_missed_result_emails.py --json > "$RUNNER_TEMP/report.json"
           CODE=$?
           set -e
           echo "detector exit=$CODE"
-          if [ "$CODE" = "2" ]; then
-            echo "::error title=CDB2026 result email GAP::Uma perna terminou sem entrega registrada no ledger. Ver a saida JSON acima (findingId identifica fase:confronto:perna)."
-            exit 1
-          fi
-          if [ "$CODE" = "3" ]; then
-            echo "::warning title=CDB2026 result email UNKNOWN::O ledger ou o estado nao pode ser lido. NENHUMA lacuna foi afirmada — isto NAO e um e-mail perdido."
-            exit 1
-          fi
-          echo "HEALTHY — nenhuma lacuna."
+          # O codigo cru NAO decide mais a cor da run -- a transicao decide (ver cabecalho). Ele
+          # segue impresso porque continua sendo a saida honesta do detector.
+          cat "$RUNNER_TEMP/report.json"
+
+      - name: Classifica a transicao e mantem o incidente
+        env:
+          GH_TOKEN: ${{ secrets.SENTINEL_PROJECT_TOKEN || secrets.GITHUB_TOKEN }}
+        run: node scripts/sentinel/result_email_gap_watch.mjs --report "$RUNNER_TEMP/report.json"
