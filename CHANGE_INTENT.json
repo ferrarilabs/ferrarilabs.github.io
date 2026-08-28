@@ -1,5 +1,12 @@
 {
   "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
   "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida.",
-  "declarations": []
+  "declarations": [
+    {
+      "surface_id": "EDGE_FUNCTIONS",
+      "reason": "Issue #246: substituir o produtor Cloudflare que recebe 403 da ESPN por um agendador de autoridade minima, autorizado pelo owner ao gravar o segredo de dispatch.",
+      "expected_behavior_change": "A cada cinco minutos o Worker dispara apenas live_cache_producer.yml em main com dry_run=false e force=false; ele nao busca ESPN, nao normaliza payload e nao toca Supabase ou qualquer dado de participante.",
+      "tests_required": ["live-producer-dispatch", "live-producer-cadence", "live-gateway", "live-gateway-fixtures"]
+    }
+  ]
 }

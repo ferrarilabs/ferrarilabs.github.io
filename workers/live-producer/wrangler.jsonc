@@ -1,0 +1,62 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+
+  // ─── POR QUE ESTE WORKER EXISTE ─────────────────────────────────────────────────────────────
+  //
+  // O produtor do cache ao vivo rodava em cron do GitHub Actions. A cadência CONFIGURADA era de 5
+  // minutos; a cadência REAL, medida em 2026-08-27 sobre as execuções agendadas, foi:
+  //
+  //     min 15 min · mediana 34 min · p90 214 min · máximo 642 min
+  //     27 de 27 intervalos acima do limiar de 10 minutos
+  //
+  // O gateway descarta último-bom-conhecido acima de 30 minutos. A MEDIANA real já ultrapassava o
+  // limiar crítico. Não era um problema de ajuste: `*/5` já é o mínimo, e o GitHub simplesmente não
+  // honra essa cadência. A arquitetura garantia `SOURCE_UNAVAILABLE` periódico com tudo saudável.
+  //
+  // Cron Trigger da Cloudflare honra a cadência. É a mesma razão pela qual o produtor não pode ser
+  // a Edge Function: a Akamai nega o egresso do Supabase Edge Runtime para a ESPN (403 medido, nas
+  // três variantes de cabeçalho). Quem alcança a fonte precisa rodar em outro lugar.
+  //
+  // ─── O QUE ESTE WORKER NÃO ALCANÇA ──────────────────────────────────────────────────────────
+  //
+  // Não há `d1_databases`, `hyperdrive`, `services`, `kv_namespaces`, URL de ESPN ou URL de banco.
+  // Ele NÃO tem `SUPABASE_SERVICE_ROLE_KEY` — essa chave IGNORA RLS, e quem a tem alcança
+  // participante, pagamento, palpite e ledger. O único segredo exigido é um token fino do GitHub,
+  // limitado a Actions:write neste repositório. O Worker só acorda o workflow existente.
+
+  "name": "ferrarilabs-live-producer",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-27",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // ─── CADÊNCIA, DERIVADA DO CONTRATO DE FRESCOR ──────────────────────────────────────────────
+  //
+  // Limiares compartilhados: STALE 10 min, CRÍTICO 30 min.
+  //
+  // 5 minutos deixa margem confortável: mesmo perdendo DUAS execuções seguidas, a observação tem
+  // ~15 min — ainda abaixo do crítico. Agendar perto do limiar seria transformar qualquer jitter
+  // normal em incidente, que é exatamente o erro que o GitHub Actions cometia por nós.
+  //
+  // Confiabilidade importa mais que economizar algumas chamadas a uma API pública.
+  "triggers": { "crons": ["*/5 * * * *"] },
+
+  // Sem endereço público: este Worker não atende requisição de ninguém. Ele só acorda no cron.
+  // Um produtor que também é endpoint é uma superfície de ataque que não precisa existir.
+  "workers_dev": false,
+  "preview_urls": false,
+
+  "observability": {
+    "enabled": true,
+    "logs": { "head_sampling_rate": 1 }
+  },
+
+  "version_metadata": { "binding": "VERSAO" },
+
+  // NOMES de segredo, nunca valores.
+  "secrets": { "required": ["GH_DISPATCH_TOKEN"] },
+
+  "vars": {
+    "GH_REPO": "ferrarilabs/ferrarilabs.github.io",
+    "GH_WORKFLOW": "live_cache_producer.yml"
+  }
+}
