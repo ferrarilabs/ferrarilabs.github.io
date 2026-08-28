@@ -938,14 +938,6 @@
     },
     "scripts/sentinel/test_result_email_gap_detector.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "scripts/sentinel/detectors/cdb2026_result_email_gap.mjs": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "Modulo de classificacao puro (transicao HEALTHY/GAP_DETECTED/GAP_STILL_OPEN/RECOVERED do vigia de e-mail de resultado do CDB2026). Nao verifica nada sozinho; e integralmente exercitado por scripts/sentinel/test_result_email_gap_detector.mjs, que ESTA na cadeia do npm test e no verify.mjs."
-    },
-    "scripts/sentinel/result_email_gap_watch.mjs": {
-      "classification": "INTENTIONALLY_STANDALONE_WITH_REASON",
-      "reason": "CLI de runtime do workflow cdb2026_result_email_watch.yml (le o JSON do detector e mantem o incidente no Sentinel). Nao e um gate; e exercitado end-to-end por scripts/sentinel/test_result_email_gap_detector.mjs via cliente GitHub falso."
     }
   }
 }
