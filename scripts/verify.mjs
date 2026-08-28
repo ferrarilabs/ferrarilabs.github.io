@@ -195,6 +195,8 @@ const CHECKS = [
     why: "Engineering Sentinel V1.0-B: prova a taxonomia de classificacao de run (9 valores) e que a recuperacao exige confirmacao POSITIVA (SUCCESS), nunca inferida por ausencia — reproduz os runs reais #219 (falha) e PR #220 (recuperacao) como ground truth" },
   { id: "sentinel-main-ci-red-acceptance", group: "security", cmd: ["node", "scripts/sentinel/test_main_ci_red_acceptance.mjs"],
     why: "prova, via runOnce() real, que um CANCELLED nunca avanca o ciclo limpo nem resolve, que um SUCCESS confirmado resolve em exatamente 1 ciclo (nao 3), e que a recorrencia reabre o MESMO Issue" },
+  { id: "sentinel-result-email-gap-detector", group: "security", cmd: ["node", "scripts/sentinel/test_result_email_gap_detector.mjs"],
+    why: "Issue #373: uma lacuna de e-mail de resultado ja conhecida reprovava toda execucao agendada do vigia, e alarme cronico e alarme silenciado. Prova o ciclo HEALTHY/GAP_DETECTED/GAP_STILL_OPEN/RECOVERED sobre o state store do Sentinel, que UNKNOWN nunca e deduplicado nem tratado como saudavel, que recuperacao exige confirmacao positiva, e o controle de mutacao que mata uma dedupe que pararia de acusar lacuna NOVA" },
   { id: "powerball-email-gates", group: "security", cmd: ["python3", "bolao/loterias/powerball/scripts/test_email_send_gates.py"],
     why: "pre-send contract: all-or-nothing recipients, fail-closed mode, provider unreachable from tests" },
   { id: "email-send-safety", group: "security", cmd: ["node", "scripts/audit_email_send_safety.mjs"],

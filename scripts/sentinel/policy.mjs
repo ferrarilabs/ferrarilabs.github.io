@@ -99,6 +99,24 @@ const RULE_DEFAULTS = {
     // merely inferred from absence.
     clean_cycles_to_resolve: 1,
   },
+  cdb2026_result_email_gap: {
+    severity: "High",
+    priority: "P1 - High",
+    work_type: "Infrastructure / CI",
+    area: "Infrastructure / CI",
+    environment: "Development",
+    domain: "Shared Platform",
+    // A missed RESULT NOTIFICATION does not change anyone's points or position — the ledger and the
+    // scoring path are untouched by this detector, which is read-only and never sends anything.
+    data_impact: "No",
+    scoring_ranking_impact: "No",
+    investigation_level: "I1",
+    mutation_level: "M1",
+    // Same reasoning as main_ci_red: recovery here is a POSITIVE observation (the very leg that was
+    // a GAP is now classified HEALTHY by the same detector on the same ledger), never mere absence
+    // from the report. One such confirmation is sufficient; see detectors/cdb2026_result_email_gap.mjs.
+    clean_cycles_to_resolve: 1,
+  },
 };
 
 /**
