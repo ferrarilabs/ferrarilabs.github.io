@@ -199,8 +199,23 @@ test("fase sorteada que NÃO é a corrente fica fechada", () => {
 test("a UI tem mensagem própria para prazo pendente (não reusa 'aguardando sorteio')", () => {
   assert(/PHASE_LIFECYCLE\.DRAW_LOCKED_CUTOFF_PENDING/.test(src),
     "renderCountdown não trata o estado de prazo pendente");
-  assert(/schedulePendingTitle/.test(src) && /schedulePendingRule/.test(src),
+  // As chaves saíram do app.js e foram para o contrato de texto (#246, v3.138). Exercitar o
+  // contrato é mais forte que procurar a string: prova que o estado PRODUZ a mensagem própria e
+  // que ela não é a de espera de sorteio.
+  const escopo = {};
+  new Function("globalThis", "window",
+    readFileSync(join(HERE, "..", "..", "shared", "js", "hero_copy.js"), "utf8")).call(escopo, escopo, escopo);
+  const HC = escopo.BOLAO_HERO_COPY;
+  const c = HC.selectPicksCountdownCopy({ picksState: HC.PICKS.SCHEDULE_PENDING,
+    drawState: HC.DRAW.LOCKED, now: AGORA });
+  assert(c.labelKey === "schedulePendingTitle" && c.bodyKey === "schedulePendingRule",
     "faltam as chaves de texto do estado sorteado-sem-tabela");
+  assert(!HC.DRAW_WAIT_KEYS.includes(c.bodyKey) && !HC.DRAW_WAIT_KEYS.includes(c.labelKey),
+    "o estado de prazo pendente voltou a reusar 'aguardando sorteio'");
+  const i18nSrc = readFileSync(join(HERE, "..", "js", "i18n.js"), "utf8");
+  for (const k of [c.labelKey, c.bodyKey, c.noteKey].filter(Boolean)) {
+    assert(new RegExp(`\\b${k}:`).test(i18nSrc), `a chave \`${k}\` não existe no i18n do CDB2026`);
+  }
   const i18n = readFileSync(join(HERE, "..", "js", "i18n.js"), "utf8");
   for (const k of ["schedulePendingTitle", "schedulePendingRule", "schedulePendingNote"]) {
     assert(new RegExp(`${k}:`).test(i18n), `chave i18n ausente: ${k}`);
