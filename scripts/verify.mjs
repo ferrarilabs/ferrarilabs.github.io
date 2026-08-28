@@ -233,6 +233,8 @@ const CHECKS = [
   // que nao caiba no teto reprove pelo motivo certo em vez de parecer razoavel.
   { id: "live-producer-cadence", group: "scheduling", cmd: ["node", "bolao/scripts/test_live_producer_cadence.mjs"],
     why: "cadencia agendada tem de caber no teto do gateway, e a janela de jogo tem de continuar coberta (Issue #259)" },
+  { id: "live-producer-dispatch", group: "scheduling", cmd: ["node", "workers/live-producer/test_live_producer.mjs"],
+    why: "o cron Cloudflare so pode acordar o produtor GitHub conhecido; nao busca ESPN, nao normaliza e nao toca banco (#246)" },
   // Issue #180 — o ledger duravel do e-mail de resultado do CDB2026 e o detector de lacuna.
   // O caso que mais importa nao e achar a lacuna: e NAO transformar uma queda de banco numa
   // acusacao de e-mail perdido, e nunca deixar o ledger bloquear um envio legitimo.

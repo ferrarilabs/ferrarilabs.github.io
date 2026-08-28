@@ -926,6 +926,9 @@
     },
     "scripts/test_pii_fingerprints.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "workers/live-producer/test_live_producer.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
     }
   }
 }
