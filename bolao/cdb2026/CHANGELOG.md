@@ -1,5 +1,48 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.138 — o hero e o prazo dizem a verdade (2026-08-28, #246)
+
+`PLATFORM_SHARED` (contrato de texto compartilhado com o BR2026) + `TOURNAMENT_SPECIFIC`
+(a tabela-verdade de sorteio/prazo é da Copa do Brasil e continua neste app).
+
+**O que estava errado em produção.** O invariante de EXISTÊNCIA do hero (#246) já estava verde, e
+mesmo assim o Eduardo continuava vendo rótulo errado. Dois defeitos, os dois de TEXTO:
+
+1. `"Dados ao vivo temporariamente indisponíveis"` impresso embaixo de uma **próxima partida
+   autoritativa**. O aviso era verdadeiro sobre a fonte e irrelevante sobre a tela: o confronto e o
+   horário vêm do estado local do torneio, não do provedor ao vivo, então a queda dele não torna
+   aquele conteúdo incerto. Alarme sem consequência treina o participante a ignorar o alarme.
+2. `"Encerra em"` impresso **acima** de `"Prazo encerrado"`. O ramo de palpites fechados reusava
+   `countdownTitle` como rótulo — contagem regressiva sobre um prazo que já venceu, contradição na
+   mesma caixa. Além disso, a escada de mensagens terminava num default `waitingDraw`
+   estruturalmente alcançável com o bracket já **LOCKED**: o estado mais avançado recebendo a
+   mensagem menos avançada.
+
+**Causa raiz.** Três perguntas independentes decididas no meio do HTML, por renderizador:
+estado da COMPETIÇÃO (sorteio/palpites), estado do CONTEÚDO (ao vivo/final/próxima) e FRESCOR do
+dado. Coladas, o frescor virava dono do texto — e quase virou dono da existência.
+
+**O que mudou.** `bolao/shared/js/hero_copy.js`: duas funções puras que recebem os três estados
+separados e devolvem CHAVES de i18n. `selectHeroCopy` decide se a degradação é relevante para o
+que está na tela; `selectPicksCountdownCopy` implementa a tabela-verdade de sorteio/prazo e **não
+tem default de espera de sorteio**. `renderCountdown()` e `renderHeroSemAoVivo()` passaram a
+consumir o resultado em vez de escolher frase.
+
+- Novas chaves: `liveDataDelayed`, `picksClosedTitle`, `picksClosedBody`, `drawStatusTitle`.
+- Partida ao vivo com fonte atrasada continua **no ar** e ganha aviso de ATRASO (antes o CDB não
+  tinha aviso nenhum nesse caso — divergência com o BR2026, que já tinha `liveClockStaleAge`).
+- `data-countdown-mode` / `data-countdown-reason` / `data-picks-state` / `data-draw-state` no DOM:
+  "por que a caixa diz isso?" respondido sem reproduzir nada.
+
+**Escopo preservado.** Nenhuma regra de torneio, scoring, bracket, cutoff ou ciclo de vida mudou —
+`drawLifecycle()`, `phaseLifecycle()` e `effectivePhaseCutoffMs()` estão intactos; só o TEXTO
+derivado deles mudou de dono. `sourceOk` e a retenção do hero também não foram tocados.
+
+**Gate permanente.** `bolao/shared/scripts/test_hero_copy_contract.mjs` (39 asserções, grupo `app`
+do `npm run check`): matriz de provedor para os dois apps, relevância do aviso, tabela-verdade
+completa, varredura exaustiva provando que `LOCKED` nunca produz linguagem de espera, e quatro
+controles negativos — reintroduzir `hidden`, o aviso cru de `degraded`, o default `waitingDraw` ou
+o `countdownTitle` no prazo fechado faz o gate falhar.
 ## operacional — Cloudflare passa a ser somente o relógio do produtor (2026-08-28, Issue #246)
 
 Sem bump de `siteVersion`: nenhum arquivo servido ao navegador mudou. O Worker

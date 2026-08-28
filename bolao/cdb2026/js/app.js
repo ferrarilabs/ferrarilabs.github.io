@@ -2987,100 +2987,92 @@ function renderCountdown() {
   const box  = $("cutoffCountdown");
   if (!box) return;
   const card = box.closest(".count-card");
-  const ms   = entryCutoffMs();
-  // Batch 2 — PRECEDÊNCIA EXPLÍCITA. O que importa é: existe prazo de palpite ABERTO agora?
-  //   1. Sim (cutoff no futuro)            -> contagem do prazo de palpite (comportamento antigo).
-  //   2. Não (sem cutoff OU cutoff vencido) -> o que interessa é o ESTADO DO SORTEIO.
-  //
-  // Antes daqui o caso 2 só cobria `ms === null`. Com o cutoff da fase ativa JÁ VENCIDO (oitavas
-  // encerradas, que é exatamente a situação real ao esperar o sorteio das quartas) o código caía no
-  // ramo `diff <= 0` e ESCONDIA a caixa inteira — então a contagem regressiva do sorteio e as
-  // mensagens de estado nunca apareciam justamente quando eram úteis. Achado por verificação em
-  // browser, não pelos testes unitários: os dois primeiros passavam porque exercitavam a derivação,
-  // não a renderização.
-  // PRAZO PENDENTE ≠ SORTEIO PENDENTE (2026-08-11).
-  //
-  // Com o sorteio das quartas já aplicado e a tabela detalhada da CBF ainda não publicada, este
-  // bloco caía no ramo "sem cutoff" e exibia "Aguardando sorteio oficial" — afirmando ao
-  // participante que o sorteio não tinha acontecido, com os quatro confrontos já em produção e o
-  // formulário aberto logo abaixo. Contradição na mesma tela.
-  //
-  // O estado é derivado, não inferido do cutoff: sorteio validado + fase corrente + prazo ainda
-  // desconhecido é ABERTO, e a mensagem tem de dizer a REGRA do prazo, já que a hora exata
-  // legitimamente ainda não existe.
-  const lcFase = activePhaseLifecycle();
-  if (lcFase.state === PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING) {
-    // Sorteio feito, tabela detalhada pendente. Nem "aguardando sorteio" (falso: o sorteio
-    // aconteceu) nem "palpites abertos" (falso: nao ha prazo, entao nao ha o que abrir).
-    card?.classList.remove("hidden");
-    box.innerHTML =
-      `<div class="count-label">${esc(t("schedulePendingTitle"))}</div>` +
-      `<span class="count-pending">${esc(t("schedulePendingRule"))}</span>` +
-      `<span class="count-pending-note">${esc(t("schedulePendingNote"))}</span>`;
-    return;
-  }
 
-  const entryDeadlineOpen = ms !== null && ms - Date.now() > 0;
-  if (!entryDeadlineOpen) {
-    // A mensagem vem do ESTADO DERIVADO. Antes daqui mostrava sempre o mesmo "waitingDraw" genérico,
-    // mesmo quando já existia data oficial marcada
-    // — o participante não tinha como saber se faltava a CBF marcar, se o sorteio ia acontecer em 3
-    // dias, ou se já ocorreu e faltava publicação. Agora a mensagem vem do estado derivado, e um
-    // sorteio AGENDADO ganha contagem regressiva de verdade (mesmo componente .count-grid).
-    card?.classList.remove("hidden");
-    const lc = drawLifecycle(state());
-    if (lc.state === DRAW_LIFECYCLE.SCHEDULED && lc.countdownMs > 0) {
-      box.innerHTML = `<div class="count-label">${esc(t("drawCountdownTitle"))}</div>` +
-                      countdownTimerHtml(lc.countdownMs);
-      return;
-    }
-    // ─── #246: a mensagem vem do ciclo de vida CERTO ────────────────────────────────────────
-    //
-    // Esta escada perguntava SO ao `drawLifecycle` e caia num default `waitingDraw`. Com o bracket
-    // das quartas LOCKED -- proveniencia da CBF validada, quatro confrontos reais, kickoffs
-    // conhecidos, tres jogos ja FINAL -- o estado MAIS avancado recebia a mensagem MENOS avancada:
-    // "Aguardando sorteio oficial", numa pagina que exibia os proprios confrontos logo abaixo.
-    //
-    // O prazo tinha vencido (primeiro kickoff das quartas menos uma hora, em 25/08), e "prazo
-    // vencido" e uma resposta do ciclo de vida da FASE, nao do SORTEIO. Perguntar ao sorteio por
-    // que os palpites estao fechados so pode dar resposta errada quando o sorteio ja aconteceu.
-    //
-    // Agora: se a fase esta com palpites FECHADOS, a mensagem diz isso. As mensagens de sorteio so
-    // aparecem quando a fase esta genuinamente esperando o sorteio.
-    if (lcFase.state === PHASE_LIFECYCLE.PICKS_CLOSED) {
-      box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div>` +
-                      `<span class="count-closed">${esc(t("closed"))}</span>`;
-      return;
-    }
-    const msgKey = lc.state === DRAW_LIFECYCLE.AWAITING_PUBLICATION ? "drawAwaitingPublication"
-                 : lc.state === DRAW_LIFECYCLE.INGESTED ? "drawIngestedPending"
-                 : lc.state === DRAW_LIFECYCLE.WAITING ? "drawWaiting"
-                 : lc.state === DRAW_LIFECYCLE.LOCKED ? "closed"
-                 : "waitingDraw";
-    box.innerHTML = `<div class="count-label">${esc(t("countdownTitle"))}</div><span class="count-closed">${esc(t(msgKey))}</span>`;
-    return;
-  }
-  // Aqui `entryDeadlineOpen` é true, então `diff > 0` por construção.
-  const diff = ms - Date.now();
-  // Mesmo padrão da Copa (updateCountdown(), bolao/js/app.js) e do BR2026 (v1.56): esconde a
-  // caixa inteira depois do prazo em vez de deixar "Encerrado" solto ocupando o mesmo espaço
-  // vazio da contagem regressiva. Eduardo, screenshot do hero pós-prazo: "Pode esconder isso"
-  // (2026-07-16, mesmo achado do BR2026 propagado aqui).
-  if (diff <= 0) { card?.classList.add("hidden"); return; }
+  // ─── #246: TRES perguntas, TRES entradas, UM contrato de texto ──────────────────────────────
+  //
+  // Esta funcao decidia frase no meio do HTML, misturando o ciclo de vida da FASE com o do
+  // SORTEIO numa escada com default `waitingDraw`. Dois defeitos vieram dai, os dois vistos em
+  // producao:
+  //
+  //   1. Com o bracket das quartas LOCKED e o prazo vencido, a caixa mostrava o rotulo de
+  //      contagem regressiva ("Encerra em") por cima de "Prazo encerrado" -- contradicao na
+  //      mesma caixa.
+  //   2. O default `waitingDraw` era estruturalmente alcancavel com o sorteio ja travado: o
+  //      estado MAIS avancado recebendo a mensagem MENOS avancada.
+  //
+  // Agora os estados sao derivados aqui (puros, ja testados) e o TEXTO vem de
+  // `BOLAO_HERO_COPY.selectPicksCountdownCopy`, que nao tem default de espera de sorteio.
+  const s = state();
+  const lcFase = activePhaseLifecycle();
+  const lcSorteio = drawLifecycle(s);
+
+  const PICKS_POR_FASE = {
+    [PHASE_LIFECYCLE.WAITING_FOR_OFFICIAL_DRAW]: "WAITING_DRAW",
+    [PHASE_LIFECYCLE.DRAW_LOCKED_CUTOFF_PENDING]: "SCHEDULE_PENDING",
+    [PHASE_LIFECYCLE.PICKS_OPEN]: "OPEN",
+    [PHASE_LIFECYCLE.PICKS_CLOSED]: "CLOSED",
+  };
+  // O vocabulario do contrato e NEUTRO de proposito: as regras da Copa do Brasil ficam aqui, no
+  // app, e nao vazam para o modulo compartilhado.
+  const DRAW_POR_SORTEIO = {
+    [DRAW_LIFECYCLE.WAITING]: "WAITING",
+    [DRAW_LIFECYCLE.SCHEDULED]: "SCHEDULED",
+    [DRAW_LIFECYCLE.AWAITING_PUBLICATION]: "AWAITING_PUBLICATION",
+    [DRAW_LIFECYCLE.INGESTED]: "INGESTED",
+    [DRAW_LIFECYCLE.LOCKED]: "LOCKED",
+  };
+
+  const HC = (typeof window !== "undefined" && window.BOLAO_HERO_COPY) || null;
+  if (!HC) { card?.classList.add("hidden"); return; }
+
+  const agoraMs = Date.now();
+  const sorteioMs = lcSorteio.scheduledAt ? new Date(lcSorteio.scheduledAt).getTime() : null;
+  const copy = HC.selectPicksCountdownCopy({
+    picksState: PICKS_POR_FASE[lcFase.state] || "CLOSED",
+    drawState: DRAW_POR_SORTEIO[lcSorteio.state] || "NONE",
+    cutoffMs: entryCutoffMs(),
+    drawScheduledMs: Number.isFinite(sorteioMs) ? sorteioMs : null,
+    now: agoraMs,
+  });
+
+  // Observabilidade: "por que a caixa diz isso?" respondido no DOM, sem reproduzir nada.
+  box.dataset.countdownMode = copy.mode;
+  box.dataset.countdownReason = copy.reason;
+  box.dataset.picksState = lcFase.state;
+  box.dataset.drawState = lcSorteio.state;
+
   card?.classList.remove("hidden");
-  const d  = Math.floor(diff / 86400000);
-  const h  = Math.floor((diff % 86400000) / 3600000);
-  const m  = Math.floor((diff % 3600000) / 60000);
-  const s  = Math.floor((diff % 60000) / 1000);
-  const p2 = n => String(n).padStart(2, "0");
-  box.innerHTML = `
-    <div class="count-label">${esc(t("countdownTitle"))}</div>
+  const label = `<div class="count-label">${esc(t(copy.labelKey))}</div>`;
+
+  if (copy.countdownMs !== null && copy.countdownMs > 0) {
+    // Contagem regressiva -- de prazo de palpite OU de sorteio. O componente e o mesmo
+    // (`.count-grid`); o que muda e so o rotulo, que o contrato ja escolheu.
+    if (copy.mode === HC.MODE.DRAW_COUNTDOWN) {
+      box.innerHTML = label + countdownTimerHtml(copy.countdownMs);
+      return;
+    }
+    const diff = copy.countdownMs;
+    const d  = Math.floor(diff / 86400000);
+    const h  = Math.floor((diff % 86400000) / 3600000);
+    const m  = Math.floor((diff % 3600000) / 60000);
+    const sg = Math.floor((diff % 60000) / 1000);
+    const p2 = n => String(n).padStart(2, "0");
+    box.innerHTML = label + `
     <div class="count-grid">
       ${d > 0 ? `<div><b>${d}</b><span>${esc(t("countdownDays"))}</span></div>` : ""}
       <div><b>${p2(h)}</b><span>${esc(t("countdownHours"))}</span></div>
       <div><b>${p2(m)}</b><span>${esc(t("countdownMin"))}</span></div>
-      <div><b>${p2(s)}</b><span>${esc(t("countdownSec"))}</span></div>
+      <div><b>${p2(sg)}</b><span>${esc(t("countdownSec"))}</span></div>
     </div>`;
+    return;
+  }
+
+  // Sem contagem: rotulo + corpo (+ nota). `count-closed` para prazo/sorteio encerrado ou parado,
+  // `count-pending` para o que ainda vai ser publicado -- mesma distincao visual de antes.
+  const classeCorpo = copy.mode === HC.MODE.SCHEDULE_PENDING ? "count-pending" : "count-closed";
+  const corpo = copy.bodyKey ? `<span class="${classeCorpo}">${esc(t(copy.bodyKey))}</span>` : "";
+  const nota  = copy.noteKey ? `<span class="count-pending-note">${esc(t(copy.noteKey))}</span>` : "";
+  box.innerHTML = label + corpo + nota;
 }
 
 // ─── Render: ranking ─────────────────────────────────────────────────────────
@@ -4390,8 +4382,14 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
   const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
   const S = HP ? HP.HERO : {};
   const estado = heroEstado ? heroEstado.state : "SCHEDULE_UNKNOWN";
-  const aviso = heroEstado && heroEstado.degraded
-    ? `<div class="live-hero-note">${esc(t("liveDataUnavailable"))}</div>` : "";
+  // O AVISO vem do contrato de texto (#246), nao de `degraded` cru. `degraded` e um FATO sobre a
+  // fonte; imprimi-lo direto punha "Dados ao vivo temporariamente indisponiveis" embaixo de uma
+  // proxima partida autoritativa e LOCAL, que a queda da fonte nao torna incerta. O contrato
+  // decide se a degradacao e relevante para o que esta na tela -- e qual frase e verdadeira.
+  const HC = (typeof window !== "undefined" && window.BOLAO_HERO_COPY) || null;
+  const copy = HC ? HC.selectHeroCopy({ heroState: estado, degraded: !!(heroEstado && heroEstado.degraded) }) : null;
+  const aviso = copy && copy.noticeKey
+    ? `<div class="live-hero-note">${esc(t(copy.noticeKey))}</div>` : "";
 
   if (estado === S.UPCOMING && proximo) {
     // UMA implementacao, compartilhada com o card legado que foi aposentado deste papel.
@@ -4546,8 +4544,16 @@ function renderLiveTieCard() {
       ${playsHtml ? `<div class="live-match-detail">${playsHtml}</div>` : ""}
     </div>`;
   }).join("");
+  // Partida NO AR com a fonte atrasada: a partida CONTINUA visivel (invariante do #246) e o hero
+  // diz a verdade sobre a ATUALIZACAO. Mesmo contrato de texto do caminho sem jogo ao vivo, para
+  // que as duas metades do hero nao voltem a decidir frase cada uma por sua conta.
+  const HCv = (typeof window !== "undefined" && window.BOLAO_HERO_COPY) || null;
+  const copyVivo = HCv && heroEstado
+    ? HCv.selectHeroCopy({ heroState: heroEstado.state, degraded: !!heroEstado.degraded }) : null;
+  const avisoVivo = copyVivo && copyVivo.noticeKey
+    ? `<div class="live-hero-note">${esc(t(copyVivo.noticeKey))}</div>` : "";
   const savedPlaysScroll = captureLivePlaysScroll(card);
-  card.innerHTML = `<div class="live-match-grid">${rows}</div>`;
+  card.innerHTML = `<div class="live-match-grid">${rows}</div>${avisoVivo}`;
   restoreLivePlaysScroll(card, savedPlaysScroll);
   card.classList.remove("hidden");
 }

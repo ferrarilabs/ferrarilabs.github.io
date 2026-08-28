@@ -171,10 +171,35 @@ test("CONTRATO: a UI usa o estado derivado do sorteio, não uma data inventada",
   }
   const render = src.slice(_i, _end);
   assert(/drawLifecycle\(/.test(render), "a UI deixou de consultar o ciclo de vida do sorteio");
-  assert(/DRAW_LIFECYCLE\.SCHEDULED/.test(render) && /countdownMs > 0/.test(render),
-    "a UI não renderiza mais a contagem do sorteio agendado");
-  assert(/drawAwaitingPublication/.test(render) && /drawWaiting/.test(render),
-    "a UI perdeu as mensagens honestas de espera/publicação");
+
+  // A escolha da frase saiu do renderizador (#246, v3.138): ela mora no contrato puro
+  // `bolao/shared/js/hero_copy.js`, e a UI consome. Duas coisas continuam sendo exigidas, e as
+  // duas ficaram MAIS fortes: (a) a UI tem de MAPEAR todo estado do sorteio para o contrato --
+  // esquecer um estado o faria cair no vocabulário neutro errado; (b) o contrato tem de produzir
+  // de fato a contagem e as mensagens honestas, o que agora é exercitado, não procurado como texto.
+  for (const estado of ["WAITING", "SCHEDULED", "AWAITING_PUBLICATION", "INGESTED", "LOCKED"]) {
+    assert(new RegExp(`DRAW_LIFECYCLE\\.${estado}\\]`).test(render),
+      `a UI deixou de mapear DRAW_LIFECYCLE.${estado} para o contrato de texto`);
+  }
+  assert(/selectPicksCountdownCopy\(/.test(render), "a UI parou de consumir o contrato de texto");
+
+  const HC = (() => {
+    const escopo = {};
+    const fonte = readFileSync(join(dirname(APP_JS), "..", "..", "shared", "js", "hero_copy.js"), "utf8");
+    new Function("globalThis", "window", fonte).call(escopo, escopo, escopo);
+    return escopo.BOLAO_HERO_COPY;
+  })();
+  const T0 = Date.parse("2026-08-28T18:00:00Z");
+  const agendado = HC.selectPicksCountdownCopy({ picksState: HC.PICKS.WAITING_DRAW,
+    drawState: HC.DRAW.SCHEDULED, drawScheduledMs: T0 + 2 * D, now: T0 });
+  assert(agendado.mode === HC.MODE.DRAW_COUNTDOWN && agendado.countdownMs === 2 * D,
+    "o contrato não renderiza mais a contagem do sorteio agendado");
+  const publicacao = HC.selectPicksCountdownCopy({ picksState: HC.PICKS.WAITING_DRAW,
+    drawState: HC.DRAW.AWAITING_PUBLICATION, now: T0 });
+  const espera = HC.selectPicksCountdownCopy({ picksState: HC.PICKS.WAITING_DRAW,
+    drawState: HC.DRAW.WAITING, now: T0 });
+  assert(publicacao.bodyKey === "drawAwaitingPublication" && espera.bodyKey === "drawWaiting",
+    "as mensagens honestas de espera/publicação sumiram do contrato");
 });
 
 test("CONTRATO: só `register-official-draw`/`set-draw-schedule` criam data de sorteio", () => {

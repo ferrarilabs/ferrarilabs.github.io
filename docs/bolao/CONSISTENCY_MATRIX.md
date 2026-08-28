@@ -2420,3 +2420,34 @@ valendo, e os valores fixados em `ALLOWLIST.json` foram refixados sem alargar es
 
 Esta é uma mudança exclusivamente de hierarquia visual. Nenhuma regra do modal, payload, Worker,
 GitHub App, Cloudflare, Supabase, scoring, ranking, pagamentos ou autorização de Admin mudou.
+
+## Nota manual — contrato de texto do hero e do prazo (2026-08-28, #246; CDB2026 v3.138, BR2026 v1.131)
+
+**Divergência resolvida.** O aviso de degradação do hero era decidido em cada renderizador, lendo
+`heroEstado.degraded` cru. Consequência idêntica nos dois apps: `"Dados ao vivo temporariamente
+indisponíveis"` impresso embaixo de uma **próxima partida autoritativa**, que vem do calendário
+local e cuja correção não depende do provedor ao vivo.
+
+Agora os dois consomem `BOLAO_HERO_COPY.selectHeroCopy()` (`bolao/shared/js/hero_copy.js`), que
+pergunta se o conteúdo EXIBIDO depende do frescor da fonte antes de virar texto. `degraded` continua
+exposto em `data-hero-degraded` nos dois — o fato não foi escondido, só deixou de ser impresso
+automaticamente.
+
+**Divergência resolvida (2).** Partida ao vivo com fonte atrasada: o BR2026 tinha um selo por
+partida (`liveClockStaleAge`, com a idade em minutos) e o CDB2026 **não tinha aviso nenhum**. Os dois
+passaram a ter, no nível do hero, `liveDataDelayed` vindo do mesmo contrato. O selo por partida do
+BR2026 permanece — ele responde outra pergunta (a idade daquela observação, não o estado agregado da
+fonte) e por isso não é duplicação.
+
+**`INTENTIONALLY_DIFFERENT`** — tabela-verdade de sorteio/prazo (`selectPicksCountdownCopy`): só o
+CDB2026 consome. A Copa do Brasil tem um sorteio (o das quartas) com ciclo de vida próprio; o BR2026
+não tem sorteio e sua caixa de prazo esconde depois do encerramento (comportamento herdado da Copa,
+pedido pelo Eduardo em 2026-07-16). `renderCountdown()` do BR2026 não foi tocado. O vocabulário do
+contrato (`DRAW.*` / `PICKS.*`) é **neutro** de propósito: o `DRAW_LIFECYCLE`/`PHASE_LIFECYCLE` da
+Copa do Brasil é mapeado para ele dentro do próprio app — regra de torneio não vaza para o
+compartilhado.
+
+**Gate cross-app.** `bolao/shared/scripts/test_hero_copy_contract.mjs` roda a matriz de provedor
+(fresco+próxima, indisponível+próxima, ao vivo fresco, ao vivo atrasado, final recente, sem
+calendário) para os DOIS apps, com as quatro asserções de hero primário (existe / único / não vazio
+/ não duplicado) e quatro controles negativos.
