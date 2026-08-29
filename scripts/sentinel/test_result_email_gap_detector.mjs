@@ -199,5 +199,53 @@ console.log("\n── 7. A missing/unreadable report is an operational failure �
   check("readOpenIncidents on an empty repo is empty, not an error", readOpenIncidents(client).length === 0);
 }
 
+console.log("\n── 8. Incident TITLE names the leg, and identity is unaffected ──────────");
+{
+  // #377 rendered as "cdb2026 result email gap: cdb2026 result email" — the same generic sentence
+  // for every leg. The title must tell two incidents apart while the fingerprint rules stay put.
+  const otherId = "cdb2026:result-email-gap:semis:espn-flamengo_gremio:second";
+  const other = { ...gap(), findingId: otherId, entityId: "semis:espn-flamengo_gremio:second" };
+
+  const client = seed();
+  runWatch({ report: { overall: "GAP", counts: {}, findings: [gap(), other] }, client, logger });
+  const titles = [...client._issues.values()].map((i) => i.title);
+
+  check("two findings → two DISTINCT titles", new Set(titles).size === 2, { titles });
+  check("title names the leg of the first finding", titles.some((t) => t.includes("quartas:espn-atletico-mg_cruzeiro:first")), { titles });
+  check("title names the leg of the second finding", titles.some((t) => t.includes("semis:espn-flamengo_gremio:second")), { titles });
+  check("title is lossless w.r.t. findingId (constant prefix + leg)",
+    titles.every((t) => { const leg = t.split(": ").pop(); return [FINDING_ID, otherId].includes(`cdb2026:result-email-gap:${leg}`); }), { titles });
+  check("no title is the old generic category label", !titles.some((t) => t.endsWith(": cdb2026 result email")), { titles });
+
+  // Identity rules are untouched by the display change.
+  check("fingerprints stay distinct per findingId", resultEmailGapFingerprint(FINDING_ID) !== resultEmailGapFingerprint(otherId));
+  check("fingerprint of the known finding is unchanged", resultEmailGapFingerprint(FINDING_ID) === FP);
+  const st = [...client._issues.values()].map((i) => parseStateBlock(i.body));
+  check("each incident keeps its own fingerprint in state", new Set(st.map((x) => x.fingerprint)).size === 2);
+  check("evidence_hash does not depend on the title/components", gapEvidenceHash(gap()) === st.find((x) => x.fingerprint === FP).provenance.evidence_hash);
+
+  // An incident created under the OLD title converges in place — no new incident (this is #377).
+  const legacy = seed();
+  runWatch({ report: gapReport(), client: legacy, logger });
+  const n = [...legacy._issues.keys()][0];
+  legacy._issues.get(n).title = "[Sentinel] cdb2026 result email gap: cdb2026 result email"; // pre-fix title
+  const before = parseStateBlock(legacy._issues.get(n).body);
+  runWatch({ report: gapReport(), client: legacy, logger });
+  const after = parseStateBlock(legacy._issues.get(n).body);
+  check("legacy incident converges its title in place", legacy._issues.get(n).title.includes("quartas:espn-atletico-mg_cruzeiro:first"), { title: legacy._issues.get(n).title });
+  check("...without creating a new incident", legacy._issues.size === 1);
+  check("...keeping the same fingerprint", after.fingerprint === before.fingerprint && after.fingerprint === FP);
+  check("...keeping the same evidence_hash", after.provenance.evidence_hash === before.provenance.evidence_hash);
+  check("...and still advancing occurrence_count", after.occurrence_count === before.occurrence_count + 1);
+
+  // A human-renamed Issue is never overwritten.
+  const human = seed();
+  runWatch({ report: gapReport(), client: human, logger });
+  const hn = [...human._issues.keys()][0];
+  human._issues.get(hn).title = "Investigar a perna do Atletico-MG (renomeado por uma pessoa)";
+  runWatch({ report: gapReport(), client: human, logger });
+  check("a human-renamed title is left alone", human._issues.get(hn).title.startsWith("Investigar a perna"));
+}
+
 console.log(`\nresult-email-gap detector: ${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);
