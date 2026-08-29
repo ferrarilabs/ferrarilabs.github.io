@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-25T10:58:07Z",
-  "sourceUpdatedAt": "2026-08-25T10:58:07Z",
+  "generatedAt": "2026-08-29T22:00:02Z",
+  "sourceUpdatedAt": "2026-08-29T22:00:02Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "11c356aed48e4a33abcb8228e22bb4bc7a29f7e35483d379fb4245b9a1e98733",
+  "payloadHash": "b552cd7221f9a1ad3c15fac8af4636b5fdf881fa26c0ef9a48c0dd63b28bff39",
   "matches": [
     {
       "id": "401840808",
@@ -39917,26 +39917,46 @@
     {
       "id": "401841216",
       "date": "2026-08-29T21:30Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Sat, August 29th at 5:30 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_IN_PROGRESS",
+      "statusDescription": "In Progress",
+      "statusShortDetail": "29'",
+      "statusDetail": "29'",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Vitória",
       "homeTeamId": "7632",
       "awayTeamId": "3457",
-      "homeScore": 0,
+      "homeScore": 1,
       "awayScore": 0,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 1740.0,
+      "clockStr": "29'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 1494.0,
+            "displayValue": "25'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Thiago Borbas",
+              "shortName": "T. Borbas"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401841209",
