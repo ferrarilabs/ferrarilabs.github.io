@@ -1,5 +1,46 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## Falha de enriquecimento do Project não é falha de detector (2026-08-28, #373)
+
+`INFRA` — sem mudança em `bolao/cdb2026/`, sem bump de `siteVersion`. Corrige um defeito
+introduzido pelo PR #374, encontrado por análise antes da primeira execução agendada pós-merge.
+
+**O defeito.** Um erro de Projects v2 escapava do `upsertFinding` e chegava ao chamador. O
+`GITHUB_TOKEN` embutido **não pode** receber o escopo `project` (a própria `sentinel.yml` documenta
+isso, e `SENTINEL_PROJECT_TOKEN` não existe neste repositório), então a primeira execução do vigia
+que encontrasse a lacuna iria: classificar corretamente, gravar o incidente corretamente, e mesmo
+assim **reprovar a run** — e continuar reprovando para sempre. O alarme crônico de volta, por um
+motivo que nada tem a ver com o achado.
+
+Isso contradizia o contrato já escrito: falha de campo do Project é caminho de reparo do
+`reconcile.mjs`, **"not a crash"**.
+
+**A correção (mínima).** A fronteira é o `updateIssueBody` do passo 6 do `upsertFinding`: acima
+dele está o **estado do incidente** (a Issue e seu bloco embutido — fingerprint,
+`occurrence_count`, `provenance`, `intended_canonical`); abaixo está **enriquecimento** de campos
+do Project, que vive em outro sistema e exige outra credencial. Só o que está abaixo passou a ser
+isolado. Mesma fronteira no `recordCleanCycleOrResolve`: definir o `Status` é enriquecimento,
+**fechar a Issue é core** — um Project inalcançável não pode deixar um incidente recuperado aberto
+para sempre.
+
+Falha de enriquecimento agora é **registrada** (`project_enrichment_failed`), o
+`canonical_last_written` **não** avança (o drift fica visível), o `intended_canonical` sobrevive
+para o `reconcile.mjs` completar, e o veredito da transição não muda.
+
+**O que NÃO foi isolado**, de propósito: nenhuma escrita core. Falha ao criar a Issue, relê-la ou
+gravar o bloco de estado continua propagando e continua reprovando — é o próprio state store caindo.
+`GAP_DETECTED` e `UNKNOWN` continuam reprovando.
+
+**Gate corrigido, não silenciado.** O caso 5 do `test_acceptance.mjs` exigia `threw` — exigia que a
+falha propagasse. Era a asserção que fixava o defeito, num caso cujo próprio nome é "is repaired by
+reconcile()". A exigência agora é **mais forte**: não propaga **e** tem de estar registrada, e tudo
+que o caso já verificava continua valendo.
+
+**Provas.** `scripts/sentinel/test_project_enrichment_isolation.mjs` (35 asserts, registrado no
+`verify.mjs` como `sentinel-project-enrichment-isolation` e na cadeia do `npm test`). Controle de
+mutação **real**: restaurar o `writer.mjs` pré-correção reprova a suíte (exit 1); com a correção,
+exit 0.
+
 ## Vigia do e-mail de resultado: incidente com transição, não alarme crônico (2026-08-28, #373)
 
 `INFRA` — nenhuma mudança em `bolao/cdb2026/` (nem UI, nem scoring, nem regra de torneio), por isso

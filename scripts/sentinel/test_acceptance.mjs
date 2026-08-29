@@ -101,9 +101,24 @@ test("5. a Project mutation failure after Issue creation is repaired by reconcil
     if (failNext) { failNext = false; throw new Error("simulated transient Project mutation failure"); }
     return originalSetProjectFields.apply(client, args);
   };
+  // CORRIGIDO (nao enfraquecido): esta linha exigia `threw` — que a falha de Project PROPAGASSE.
+  // Essa era exatamente a falha de contrato: sentinel.yml sempre documentou que uma escrita de campo
+  // do Project que falha e o caminho de reparo do reconcile.mjs, "not a crash", e o proprio nome
+  // deste caso ("is repaired by reconcile()") diz a mesma coisa. Propagando, o erro virava veredito
+  // do chamador — e no vigia do e-mail de resultado do CDB2026 transformava um GAP_STILL_OPEN
+  // corretamente classificado, que tem de sair 0, numa run vermelha.
+  //
+  // A exigencia agora e MAIS forte, nao menor: a falha nao propaga, E precisa estar registrada, E
+  // tudo que este caso ja verificava abaixo (Issue existe, intended_canonical preservado,
+  // canonical_last_written NAO avancado, reconcile completa a escrita) continua valendo. O que
+  // continua fatal — falha de escrita CORE no proprio state store — e coberto em
+  // scripts/sentinel/test_project_enrichment_isolation.mjs, secao 4.
+  const logged = [];
   let threw = false;
-  try { upsertFinding(finding, client, { log() {} }); } catch { threw = true; }
-  assert(threw, "the simulated failure must propagate, not be swallowed");
+  try { upsertFinding(finding, client, { log(e) { logged.push(e); } }); } catch { threw = true; }
+  assert(!threw, "uma falha de enriquecimento do Project NAO pode propagar: e drift, nao falha do detector nem do veredito");
+  assert(logged.some((e) => e.action === "project_enrichment_failed"),
+    "a falha de enriquecimento tem de ser REGISTRADA — isolar nunca pode virar engolir em silencio");
 
   const issues = client.listSentinelIssues({});
   assert(issues.length === 1, "the Issue itself must still exist even though the Project write failed");
