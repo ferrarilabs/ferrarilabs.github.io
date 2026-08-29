@@ -116,6 +116,9 @@ export function createRealGithubClient() {
     updateIssueBody(number, body) {
       gh(["issue", "edit", String(number), "--repo", REPO, "--body", body]);
     },
+    updateIssueTitle(number, title) {
+      gh(["issue", "edit", String(number), "--repo", REPO, "--title", title]);
+    },
     addComment(number, body) {
       gh(["issue", "comment", String(number), "--repo", REPO, "--body", body]);
     },
@@ -232,6 +235,12 @@ export function createFakeGithubClient(initial = {}) {
       if (!i) throw new Error(`fake client: no issue #${number}`);
       i.body = body;
       record("updateIssueBody", { number });
+    },
+    updateIssueTitle(number, title) {
+      const i = issues.get(number);
+      if (!i) throw new Error(`fake client: no issue #${number}`);
+      i.title = title;
+      record("updateIssueTitle", { number, title });
     },
     addComment(number, body) {
       record("addComment", { number, body });

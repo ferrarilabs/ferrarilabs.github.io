@@ -119,7 +119,14 @@ function buildFinding(achado, fingerprint, evidenceHash, observedAt, sourceSha) 
     },
     status: "DETECTED",
     affected_files: [],
-    affected_components: [`cdb2026 result email`, achado.findingId],
+    // affected_components[0] is what writer.mjs's humanReadableTitle() puts after the colon, so it
+    // must be the part that tells one incident from another. It was the category label
+    // ("cdb2026 result email"), which rendered every incident as the same generic sentence. The
+    // leg is lossless: findingId is exactly `cdb2026:result-email-gap:` + entityId, a constant
+    // prefix, and the finding_type already carries that prefix's meaning in the title. Identity is
+    // untouched — the fingerprint is built from findingId (fingerprint.mjs) and the evidence hash
+    // from EVIDENCE_KEYS; neither reads affected_components.
+    affected_components: [achado.entityId || achado.findingId, achado.findingId],
     schema_version: SCHEMA_VERSION,
   });
 }
