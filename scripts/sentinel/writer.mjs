@@ -178,35 +178,76 @@ export function upsertFinding(finding, client, logger) {
   issue.body = upsertStateBlockInBody(issue.body, state);
   client.updateIssueBody(issue.number, issue.body);
 
-  // 7. ensure Project membership
-  const itemId = client.ensureProjectItem(issue.nodeId);
+  // 7/8/9/10. Projects v2 ENRICHMENT — isolated from everything above it on purpose.
+  //
+  // The line that separates the two halves of this function is the `updateIssueBody` at step 6:
+  // above it lives CORE INCIDENT STATE (the Issue exists, and its embedded state block carries the
+  // fingerprint, occurrence_count, last_seen_at, provenance and `intended_canonical`). That is the
+  // whole state store — an Issue and its comment block. Everything below is Project-field
+  // enrichment, which lives in a DIFFERENT system, needs a DIFFERENT credential (Projects v2
+  // requires the `project` scope, which the built-in GITHUB_TOKEN cannot be granted at all — see
+  // sentinel.yml's header), and whose failure sentinel.yml already documents as reconcile.mjs's
+  // repair path, "not a crash".
+  //
+  // It WAS a crash. Escaping from here, a Projects error reached the caller and, for
+  // cdb2026_result_email_watch, turned a correctly classified GAP_STILL_OPEN (which must exit 0)
+  // into a red run — reintroducing the chronic failure notification that detector's whole
+  // transition model exists to eliminate, for a reason that has nothing to do with the finding.
+  //
+  // So: enrichment failure is recorded and left for reconcile.mjs, never propagated. The
+  // `intended_canonical` checkpoint written at step 6 above is exactly what reconcile.mjs needs to
+  // complete the write later; `canonical_last_written` is deliberately NOT advanced here on
+  // failure, so the drift stays visible instead of looking already-applied.
+  //
+  // SCOPE, precisely: only the Project calls are inside this boundary. No core Issue/state-store
+  // write is — a failure to create the Issue, read it back, or persist the state block still
+  // propagates and still fails the run, because that is the state store itself going down.
+  let itemId = null;
+  let overridden = {};
+  let projectEnrichment = "ok";
+  try {
+    const id = client.ensureProjectItem(issue.nodeId);
 
-  // 8/9. set canonical fields, respecting human overrides; read back and verify
-  const currentFields = client.getProjectFields(itemId);
-  const { toWrite, overridden } = fieldsToWrite(finding, currentFields, state.canonical_last_written);
-  if (Object.keys(toWrite).length > 0) client.setProjectFields(itemId, toWrite);
-  const verified = client.getProjectFields(itemId);
-  for (const [field, value] of Object.entries(toWrite)) {
-    if (verified[field] !== value) {
-      throw new Error(`writer.mjs: read-back mismatch on Project field "${field}" for issue #${issue.number} — expected "${value}", got "${verified[field]}"`);
+    // 8/9. set canonical fields, respecting human overrides; read back and verify
+    const currentFields = client.getProjectFields(id);
+    const planned = fieldsToWrite(finding, currentFields, state.canonical_last_written);
+    const toWrite = planned.toWrite;
+    if (Object.keys(toWrite).length > 0) client.setProjectFields(id, toWrite);
+    const verified = client.getProjectFields(id);
+    for (const [field, value] of Object.entries(toWrite)) {
+      if (verified[field] !== value) {
+        throw new Error(`writer.mjs: read-back mismatch on Project field "${field}" for issue #${issue.number} — expected "${value}", got "${verified[field]}"`);
+      }
     }
-  }
 
-  // 10. embedded state updated only now, after external state is confirmed
-  state.canonical_last_written = { ...state.canonical_last_written, ...Object.fromEntries(
-    Object.entries(CANONICAL_TO_PROJECT_FIELD)
-      .filter(([, pf]) => toWrite[pf] !== undefined)
-      .map(([ck]) => [ck, finding.canonical[ck]])
-  ) };
-  const newBody = upsertStateBlockInBody(issue.body, state);
-  client.updateIssueBody(issue.number, newBody);
+    // 10. embedded state updated only now, after external state is confirmed
+    state.canonical_last_written = { ...state.canonical_last_written, ...Object.fromEntries(
+      Object.entries(CANONICAL_TO_PROJECT_FIELD)
+        .filter(([, pf]) => toWrite[pf] !== undefined)
+        .map(([ck]) => [ck, finding.canonical[ck]])
+    ) };
+    const newBody = upsertStateBlockInBody(issue.body, state);
+    client.updateIssueBody(issue.number, newBody);
+    itemId = id;
+    overridden = planned.overridden;
+  } catch (err) {
+    // Logged, never swallowed silently, never rethrown. `intended_canonical` (step 6) survives in
+    // the Issue body, so the drift is durable and reconcile.mjs can repair it on its next sweep.
+    projectEnrichment = "failed";
+    logger?.log({
+      action: "project_enrichment_failed", issue_number: issue.number, fingerprint: finding.fingerprint,
+      reason: String(err?.message || err).slice(0, 200),
+      note: "core incident state persisted; intended_canonical left for reconcile.mjs. Not a detector or transition failure.",
+    });
+  }
 
   logger?.log({
     action: "upsert_complete", issue_number: issue.number, fingerprint: finding.fingerprint,
     occurrence_count: state.occurrence_count, overridden_fields: Object.keys(overridden),
+    project_enrichment: projectEnrichment,
   });
 
-  return { issueNumber: issue.number, itemId, occurrenceCount: state.occurrence_count, overriddenFields: Object.keys(overridden) };
+  return { issueNumber: issue.number, itemId, occurrenceCount: state.occurrence_count, overriddenFields: Object.keys(overridden), projectEnrichment };
 }
 
 /**
@@ -240,7 +281,15 @@ export function recordCleanCycleOrResolve(issueRef, client, logger, threshold = 
   const withEvidence = upsertStateBlockInBody(issue.body, state);
   client.updateIssueBody(issue.number, withEvidence);
   client.addComment(issue.number, `Resolved: ${threshold} consecutive clean observation cycle(s) with no matching finding.`);
-  client.setProjectFields(client.ensureProjectItem(issue.nodeId), { Status: "Done" });
+  // Same boundary as upsertFinding's: setting the Project Status is enrichment, CLOSING the Issue
+  // is core. An unreachable Project must not leave a recovered incident open forever (which for
+  // cdb2026_result_email_gap would mean a resolved gap that never stops being an open incident).
+  try {
+    client.setProjectFields(client.ensureProjectItem(issue.nodeId), { Status: "Done" });
+  } catch (err) {
+    logger?.log({ action: "project_enrichment_failed", issue_number: issue.number, phase: "resolve",
+      reason: String(err?.message || err).slice(0, 200), note: "Issue still closed; Project Status left for reconcile.mjs." });
+  }
   client.closeIssue(issue.number);
   logger?.log({ action: "resolved", issue_number: issue.number });
   return { action: "resolved" };
