@@ -353,6 +353,9 @@
     "bolao/scripts/audit_countdown_layout.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/audit_critical_functionality.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/scripts/audit_football_live_store.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -384,9 +387,6 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_live_hero_reliability.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "bolao/scripts/audit_critical_functionality.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "bolao/scripts/audit_multi_live_hero.mjs": {
@@ -906,6 +906,12 @@
     "scripts/sentinel/test_policy.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "scripts/sentinel/test_project_enrichment_isolation.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "scripts/sentinel/test_result_email_gap_detector.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "scripts/sentinel/test_security.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
@@ -934,9 +940,6 @@
       "classification": "REGISTERED_AND_EXECUTED"
     },
     "workers/live-producer/test_live_producer.mjs": {
-      "classification": "REGISTERED_AND_EXECUTED"
-    },
-    "scripts/sentinel/test_result_email_gap_detector.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     }
   }
