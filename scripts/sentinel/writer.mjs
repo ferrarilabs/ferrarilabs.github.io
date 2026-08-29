@@ -157,6 +157,16 @@ export function upsertFinding(finding, client, logger) {
     client.addComment(issue.number, `Recurrence #${state.recurrence_count}: this finding's fingerprint was observed again after resolution. Reopening.`);
     logger?.log({ action: "recurrence", issue_number: issue.number, recurrence_count: state.recurrence_count });
   }
+  // Title convergence. The title is display, never identity (identity is the fingerprint in the
+  // state block), so improving how a finding renders must not require a new Issue — #377 was
+  // created before the title carried the leg and has to be able to fix itself in place.
+  // Guarded: only a title still in Sentinel's own `[Sentinel] ` shape is rewritten, so a human who
+  // renamed an Issue keeps their wording.
+  const desiredTitle = humanReadableTitle(finding);
+  if (issue.title !== desiredTitle && String(issue.title || "").startsWith("[Sentinel] ") && client.updateIssueTitle) {
+    client.updateIssueTitle(issue.number, desiredTitle);
+    logger?.log({ action: "title_converged", issue_number: issue.number, fingerprint: finding.fingerprint });
+  }
   state.occurrence_count = (state.occurrence_count || 0) + 1;
   state.last_seen_at = nowIso();
   state.source_sha = finding.provenance.source_sha;

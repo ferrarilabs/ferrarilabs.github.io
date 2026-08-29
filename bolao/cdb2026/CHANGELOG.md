@@ -1,5 +1,36 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## Título do incidente nomeia a perna (2026-08-29, #373)
+
+`INFRA` — sem mudança em `bolao/cdb2026/`, sem bump de `siteVersion`. Só apresentação.
+
+A Issue #377 (aberta pela primeira execução agendada pós-#376, com a lacuna conhecida
+`quartas:espn-atletico-mg_cruzeiro:first`) renderizava como
+`[Sentinel] cdb2026 result email gap: cdb2026 result email` — a mesma frase genérica para
+qualquer perna. `humanReadableTitle()` usa `affected_components[0]`, e ali estava o rótulo de
+categoria em vez do identificador.
+
+Agora `affected_components[0]` é o `entityId`, que é **lossless**: o `findingId` é exatamente
+`cdb2026:result-email-gap:` + `entityId`, prefixo constante cujo significado o próprio
+`finding_type` do título já carrega. Título:
+`[Sentinel] cdb2026 result email gap: quartas:espn-atletico-mg_cruzeiro:first`.
+
+**Identidade intocada.** O fingerprint vem do `findingId` (`fingerprint.mjs`) e o `evidence_hash`
+das `EVIDENCE_KEYS` — nenhum dos dois lê `affected_components`. Nada de detector, transição ou
+dedupe mudou.
+
+**#377 converge sozinha, sem ser recriada.** Título é exibição, não identidade, então melhorar a
+renderização não pode exigir um incidente novo: o `upsertFinding` passou a reescrever o título de
+uma Issue existente quando ele difere do desejado — **guardado** para só tocar em título ainda no
+formato `[Sentinel] ` do próprio Sentinel, de modo que uma Issue renomeada por uma pessoa mantém a
+palavra dela. #377 se corrige na próxima execução natural, mesmo fingerprint, mesmo
+`evidence_hash`, `occurrence_count` seguindo em frente.
+
+**Provas.** 16 asserts novos na seção 8 de `scripts/sentinel/test_result_email_gap_detector.mjs`
+(70 no total): dois `findingId` diferentes produzem títulos distintos e informativos; o título é
+lossless; o fingerprint de cada um continua o mesmo e continua distinto; um incidente legado
+converge no lugar sem criar outro; e um título renomeado por humano não é sobrescrito.
+
 ## Falha de enriquecimento do Project não é falha de detector (2026-08-28, #373)
 
 `INFRA` — sem mudança em `bolao/cdb2026/`, sem bump de `siteVersion`. Corrige um defeito
