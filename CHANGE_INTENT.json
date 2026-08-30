@@ -1,0 +1,12 @@
+{
+  "$schema": "Declaracao de mudanca em superficie critica. Consumido por scripts/safety/audit_safety_contract.mjs (checks D1/D2/D3). Ver docs/bolao/CHANGE_SAFETY_CONTRACT.md.",
+  "_howto": "Uma mudanca COMUM nao declara nada e este arquivo nem precisa existir — a ausencia e o estado normal. Ele so aparece quando uma superficie DECLARE_TO_CHANGE muda de proposito. Depois que a mudanca entra em main, a base do git anda, os caminhos somem do diff e a declaracao fica OBSOLETA: o check D3 exige que ela seja removida.",
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "reason": "Issue #381: o placar ao vivo demorava ate 5 minutos para refletir um gol porque o produtor fazia UMA observacao por execucao. Quem alcanca a ESPN e o runner do GitHub (Cloudflare e Supabase recebem 403), e o agendador do GitHub nao honra cadencia de poucos minutos — entao a frequencia tem de vir de DENTRO da execucao.",
+      "expected_behavior_change": "O workflow `live_cache_producer.yml` passa a rodar o produtor com `--loop` nas execucoes AGENDADAS: o mesmo despacho de 5 em 5 minutos abre um runner que observa a ESPN a cada 15s por ~4m40s, reavaliando a janela a cada volta e encerrando na hora se nenhuma competicao estiver em janela. `timeout-minutes` sobe de 5 para 7 para caber o ciclo. NAO muda o gatilho, o cron, as permissoes, os segredos, nem o dispatch manual (que segue single-shot, para diagnostico). Nenhum e-mail, nenhum destinatario e nenhum dado de participante e tocado — este workflow so grava observacao de placar em `live_sports_cache`.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "observation-cadence", "live-producer-cadence", "produce-live-cache"]
+    }
+  ]
+}

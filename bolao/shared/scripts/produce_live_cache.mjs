@@ -170,9 +170,63 @@ function makeWriter(serviceKey, supabaseUrl) {
   };
 }
 
+/**
+ * O CICLO DENTRO DA EXECUÇÃO — por que ele existe (Issue #381).
+ *
+ * Eduardo, com jogo ao vivo: *"O placar demora para atualizar. Teve gol já a 3-5 min atrás e ainda
+ * não atualizou. Durante a Copa do Mundo era muito rápido."* Estava certo, e o número bate com a
+ * arquitetura: o placar só muda quando o produtor ESCREVE, e o produtor escrevia uma vez por
+ * execução, de cinco em cinco minutos. O relógio a página sabe interpolar; **gol não se
+ * interpola** — ele aparece na próxima escrita ou não aparece.
+ *
+ * Orçamento de latência de antes:
+ *
+ *     escrita (cron de 5 min)   até 300 s   <- termo dominante
+ *     poll do cliente                 60 s
+ *     TTL do gateway                  15 s
+ *                                  ~ 6 min de pior caso
+ *
+ * Por que não simplesmente subir o cron: quem alcança a ESPN é o runner do GitHub — a Akamai nega
+ * o egresso do Cloudflare e do Supabase (403 medido nos dois). E o agendamento do GitHub Actions
+ * não honra cadência abaixo de alguns minutos (mediana medida de 34 min quando configurado para 5),
+ * que é justamente por que o despacho passou a vir do cron da Cloudflare (#369).
+ *
+ * A saída é não gastar a execução inteira numa observação só: o mesmo despacho de 5 em 5 minutos
+ * abre um runner que fica vivo e OBSERVA A CADA 15 SEGUNDOS. Mesma quantidade de execuções, mesma
+ * autoridade, ~20× mais observações. Repositório público: minuto de Actions não é cobrado.
+ *
+ * O ciclo REAVALIA A JANELA a cada volta: um jogo que termina no meio da execução para de ser
+ * observado na hora, em vez de a execução continuar batendo na fonte por educação.
+ */
+const LOOP_INTERVAL_MS = 15_000;
+/**
+ * Um pouco ACIMA do intervalo de despacho (5 min), de propósito.
+ *
+ * O `concurrency` do workflow tem `cancel-in-progress: true`: o despacho seguinte encerra esta
+ * execução de qualquer forma. Terminar antes da hora só abriria uma lacuna — medido, o novo runner
+ * leva ~12 s do despacho até a primeira observação, então parar aos 4m40s deixaria ~32 s sem
+ * ninguém olhando. Ficando vivo até ser cancelado, a lacuna cai para os ~12 s de partida do runner.
+ *
+ * O `timeout-minutes` do job continua sendo a rede de segurança se o cancelamento não vier.
+ */
+const LOOP_DURATION_MS = 5 * 60_000 + 30_000;
+
+const dorme = (ms) => new Promise(r => setTimeout(r, ms));
+
+function argNum(argv, nome, padrao) {
+  const pref = `--${nome}=`;
+  const hit = argv.find(a => a.startsWith(pref));
+  if (!hit) return padrao;
+  const v = Number(hit.slice(pref.length));
+  return Number.isFinite(v) && v > 0 ? v : padrao;
+}
+
 async function main(argv) {
   const dryRun = argv.includes("--dry-run");
   const force = argv.includes("--force");
+  const loop = argv.includes("--loop");
+  const intervalo = argNum(argv, "loop-interval-ms", LOOP_INTERVAL_MS);
+  const duracao = argNum(argv, "loop-duration-ms", LOOP_DURATION_MS);
   const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
   // SEM FALLBACK PARA A ANON KEY. A migração 011 removeu INSERT/UPDATE de `anon` nesta tabela de
@@ -185,12 +239,37 @@ async function main(argv) {
   const writeImpl = dryRun ? null : makeWriter(serviceKey, supabaseUrlFromAppConfig());
   console.log(`\nProdutor do cache ao vivo — ${dryRun ? "DRY RUN (nao grava)" : "gravando"}\n`);
 
-  let failures = 0;
-  for (const competition of PRODUCED_COMPETITIONS) {
-    const r = await produceOne(competition, { writeImpl, force });
-    const detail = r.matches !== undefined ? `${r.matches} partida(s)` : (r.reason ?? "");
-    console.log(`  [${competition}] ${r.action}${r.upstreamStatus ? ` (upstream ${r.upstreamStatus})` : ""} ${detail}`);
-    if (r.action === "NO_WRITE" || r.action === "WRITE_FAILED" || r.action === "REJECTED") failures++;
+  const fim = Date.now() + duracao;
+  let failures = 0, voltas = 0, escritas = 0;
+
+  do {
+    voltas++;
+    let observouAlguma = false;
+    for (const competition of PRODUCED_COMPETITIONS) {
+      const r = await produceOne(competition, { writeImpl, force });
+      if (r.action !== "SKIPPED_OUT_OF_WINDOW") observouAlguma = true;
+      if (r.action === "WRITTEN" || r.action === "DRY_RUN") escritas++;
+      // Fora de janela é o caso comum e não muda de volta para volta: registrar uma vez por
+      // execução mantém o log legível em vez de repetir vinte linhas idênticas.
+      if (voltas === 1 || r.action !== "SKIPPED_OUT_OF_WINDOW") {
+        const detail = r.matches !== undefined ? `${r.matches} partida(s)` : (r.reason ?? "");
+        console.log(`  [${competition}] ${r.action}${r.upstreamStatus ? ` (upstream ${r.upstreamStatus})` : ""} ${detail}`);
+      }
+      if (r.action === "NO_WRITE" || r.action === "WRITE_FAILED" || r.action === "REJECTED") failures++;
+    }
+    if (!loop) break;
+    // NENHUMA competição na janela: encerra já. Segurar o runner por cinco minutos sem ter o que
+    // observar seria queimar tempo e continuar batendo numa fonte que não tem nada novo a dizer.
+    if (!observouAlguma) {
+      console.log("  (nenhuma competicao na janela — encerrando sem ciclar)");
+      break;
+    }
+    if (Date.now() + intervalo >= fim) break;
+    await dorme(intervalo);
+  } while (Date.now() < fim);
+
+  if (loop && voltas > 1) {
+    console.log(`\n  ciclo: ${voltas} observacao(oes) em ~${Math.round(duracao / 1000)}s (intervalo ${Math.round(intervalo / 1000)}s), ${escritas} escrita(s)`);
   }
 
   // Uma execução que não escreveu precisa ser VISÍVEL. O cache antigo continua servindo dentro do

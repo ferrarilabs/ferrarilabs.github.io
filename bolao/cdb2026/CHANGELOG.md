@@ -1,5 +1,16 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.140 — placar quase em tempo real (2026-08-30, #381)
+
+`PLATFORM_SHARED` — propagação do BR2026 v1.133. O produtor é compartilhado: o ciclo de observação
+de 15 s dentro da execução vale para as duas competições, e o CDB2026 passa a ler na mesma cadência
+(`LIVE_TIE_POLL_INTERVAL_MS` 60 s → 15 s) e a usar o mesmo teto de interpolação (90 s).
+
+Fora da janela de jogo nada muda: o produtor encerra sem ciclar e o CDB2026 continua reportando
+`SKIPPED_OUT_OF_WINDOW` enquanto não houver partida.
+
+**Escopo preservado.** Scoring, bracket, sorteio, prazo e ranking intactos.
+
 ## v3.139 — o teto de interpolação segue a cadência do produtor (2026-08-30, #379)
 
 `PLATFORM_SHARED` — propagação do BR2026 v1.132. `CDB_MAX_INTERPOLATION_MS` era
