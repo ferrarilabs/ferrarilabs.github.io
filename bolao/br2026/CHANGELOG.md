@@ -1,5 +1,51 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.133 — placar quase em tempo real (2026-08-30, #381)
+
+`PLATFORM_SHARED` (cadência de observação e teto de interpolação, propagados ao CDB2026).
+
+Eduardo, com jogo ao vivo: *"O placar demora para atualizar. Teve gol já a 3-5 min atrás e ainda
+não atualizou. Durante a Copa do Mundo era muito rápido."* Estava certo, e o número batia com a
+arquitetura.
+
+**Orçamento de latência de antes:**
+
+| termo | valor |
+|---|---|
+| escrita no cache (produtor, cron de 5 min) | **até 300 s** ← dominante |
+| poll do cliente | 60 s |
+| TTL do gateway antes de reconsultar | 15 s |
+| **pior caso** | **~6 min** |
+
+O relógio a página sabe interpolar. **Gol não se interpola**: ele aparece na próxima escrita ou não
+aparece. Enquanto o produtor escrevesse uma vez a cada cinco minutos, nenhum ajuste de cliente
+resolveria.
+
+**Por que não bastava subir o cron.** Quem alcança a ESPN é o runner do GitHub — a Akamai nega o
+egresso da Cloudflare e do Supabase (403 medido nos dois). E o agendador do GitHub Actions não
+honra cadência de poucos minutos (mediana medida de 34 min quando configurado para 5), que é
+justamente por que o despacho passou a vir do cron da Cloudflare (#369).
+
+**A mudança.** O mesmo despacho de 5 em 5 minutos passa a abrir um runner que **fica vivo e observa
+a cada 15 segundos** enquanto há partida na janela. Mesma quantidade de execuções, mesma
+autoridade, ~20× mais observações. O ciclo reavalia a janela a cada volta — jogo que termina no
+meio da execução para de ser observado na hora — e encerra imediatamente se nenhuma competição
+estiver em janela, sem segurar runner à toa. Repositório público: minuto de Actions não é cobrado.
+
+**Orçamento novo:** escrita 15 s + poll 15 s ≈ **~30 s de pior caso**, tipicamente menos.
+
+- `pollIntervalMs` 60 s → 15 s: ler mais devagar do que a fonte escreve só adiava o gol que já
+  estava no cache. O gateway serve do cache (TTL de 15 s), então ler mais não bate mais na ESPN.
+- `OBSERVATION_CADENCE_MS` 5 min → 15 s e a folga passa a cobrir a **troca de execução** (75 s),
+  que é a maior lacuna real entre duas observações. Teto de interpolação: 90 s.
+
+**Gate.** `observation-cadence` foi reparametrizado: nenhum ponto de teste é digitado em segundos,
+todos derivam das constantes — inclusive uma asserção nova de que a cadência DECLARADA no contrato
+bate com a que o produtor realmente pratica (`LOOP_INTERVAL_MS`). Uma tabela de números fixos teria
+passado verde com o contrato e o produtor discordando, que é a classe exata do defeito do #379.
+
+**Escopo preservado.** Scoring, projeção, classificação e ranking intactos.
+
 ## v1.132 — relógio anda na cadência do produtor; jogo de hoje não some mais (2026-08-30, #379)
 
 `PLATFORM_SHARED` (teto de interpolação, propagado ao CDB2026) + `TOURNAMENT_SPECIFIC`

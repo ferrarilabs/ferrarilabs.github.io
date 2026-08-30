@@ -87,9 +87,18 @@
    * com o produtor perfeitamente saudável. Alarme em operação normal é ruído, e ruído treina o
    * participante a ignorar o alarme quando ele é verdadeiro.
    */
-  var OBSERVATION_CADENCE_MS = 5 * 60 * 1000;   // cron do produtor: */5
-  /** Folga para a duração do run e o jitter do agendador — o cron não é pontual ao segundo. */
-  var OBSERVATION_JITTER_MS = 60 * 1000;
+  //
+  // #381: era a cadência do CRON (5 min), porque cada execução do produtor fazia UMA observação.
+  // Agora o mesmo despacho de 5 em 5 minutos abre um runner que observa a cada 15 s enquanto há
+  // jogo — o gol chega ao cache em ~15 s, não em até 5 min. A constante segue a cadência REAL de
+  // observação, e é por isso que ela vive aqui e não copiada em cada app.
+  var OBSERVATION_CADENCE_MS = 15 * 1000;
+  /**
+   * Folga para a TROCA de execução: entre o fim de um ciclo e o começo do próximo runner passam o
+   * despacho da Cloudflare, o checkout e o setup. Essa lacuna — e não o intervalo do ciclo — é a
+   * maior distância real entre duas observações, e é ela que define quando o atraso vira verdade.
+   */
+  var OBSERVATION_JITTER_MS = 75 * 1000;
   /**
    * Teto de interpolação padrão: até aqui a idade da observação é ESPERADA e o relógio corre.
    * Acima, o atraso é real — congela no último confirmado e diz que está atrasado.
