@@ -541,6 +541,9 @@
     "bolao/shared/scripts/test_hero_always_mounted.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/shared/scripts/test_observation_cadence.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_hero_copy_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

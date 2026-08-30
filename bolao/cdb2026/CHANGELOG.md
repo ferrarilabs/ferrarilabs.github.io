@@ -1,5 +1,21 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.139 — o teto de interpolação segue a cadência do produtor (2026-08-30, #379)
+
+`PLATFORM_SHARED` — propagação do BR2026 v1.132. `CDB_MAX_INTERPOLATION_MS` era
+`3 * LIVE_TIE_POLL_INTERVAL_MS` = 180 s, a **mesma cópia do mesmo defeito**: teto medido contra o
+poll do cliente, e não contra a cadência do produtor (cron de 5 em 5 min, #369). Em toda janela
+normal de jogo o relógio congelaria e a tela diria "Atualização atrasada" com o pipeline saudável.
+
+Agora usa `window.BOLAO_LIVE_CLOCK.MAX_INTERPOLATION_MS` (cadência 5 min + folga 1 min). O gate
+`observation-cadence` verifica os DOIS apps e reprova se qualquer um voltar a derivar o teto
+localmente a partir do poll.
+
+**Não propagado:** a correção da lista "jogos de hoje" é do BR2026. O CDB2026 é mata-mata e não tem
+`_ehPrimaria` nem lista equivalente — registrado em `docs/bolao/CONSISTENCY_MATRIX.md`.
+
+**Escopo preservado.** Scoring, bracket, sorteio, prazo e ranking intactos.
+
 ## Título do incidente nomeia a perna (2026-08-29, #373)
 
 `INFRA` — sem mudança em `bolao/cdb2026/`, sem bump de `siteVersion`. Só apresentação.
