@@ -200,11 +200,16 @@ function makeWriter(serviceKey, supabaseUrl) {
  */
 const LOOP_INTERVAL_MS = 15_000;
 /**
- * Um pouco abaixo do intervalo de despacho (5 min). O `concurrency` do workflow tem
- * `cancel-in-progress: true`, então o despacho seguinte encerraria esta execução de qualquer
- * forma — sair sozinho antes disso deixa o log legível e o encerramento previsível.
+ * Um pouco ACIMA do intervalo de despacho (5 min), de propósito.
+ *
+ * O `concurrency` do workflow tem `cancel-in-progress: true`: o despacho seguinte encerra esta
+ * execução de qualquer forma. Terminar antes da hora só abriria uma lacuna — medido, o novo runner
+ * leva ~12 s do despacho até a primeira observação, então parar aos 4m40s deixaria ~32 s sem
+ * ninguém olhando. Ficando vivo até ser cancelado, a lacuna cai para os ~12 s de partida do runner.
+ *
+ * O `timeout-minutes` do job continua sendo a rede de segurança se o cancelamento não vier.
  */
-const LOOP_DURATION_MS = 4 * 60_000 + 40_000;
+const LOOP_DURATION_MS = 5 * 60_000 + 30_000;
 
 const dorme = (ms) => new Promise(r => setTimeout(r, ms));
 
