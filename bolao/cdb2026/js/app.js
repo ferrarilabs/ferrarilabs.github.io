@@ -4237,7 +4237,10 @@ function nudgeScrollReflow() {
 // memória, nunca faz rede -- ver o setInterval em init()) soma o tempo decorrido sem limite,
 // mesmo com o jogo genuinamente parado. Visto ao vivo (2026-08-01, Vasco×Fluminense): relógio
 // "58:11 (+14)" e crescendo, jogo já no intervalo real havia minutos.
-const CDB_MAX_INTERPOLATION_MS = 3 * LIVE_TIE_POLL_INTERVAL_MS;
+// Issue #379, propagado do BR2026: o teto era medido contra o poll do CLIENTE e passou a ser
+// medido contra a cadência do PRODUTOR (ver bolao/shared/js/live_clock.js). Mesma cópia do mesmo
+// defeito — o relógio congelava e dizia "atrasado" em operação normal.
+const CDB_MAX_INTERPOLATION_MS = window.BOLAO_LIVE_CLOCK.MAX_INTERPOLATION_MS;
 function liveClockDisplay(l) {
   // Mesma semântica compartilhada do BR2026 — ver bolao/shared/js/live_clock.js. Este app tinha
   // o MESMO defeito, por cópia: passado o teto de interpolação, o relógio inteiro virava a

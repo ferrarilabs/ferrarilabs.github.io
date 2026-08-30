@@ -2008,7 +2008,11 @@ function scheduleMC() {
 // de 1s -- ver o setInterval em init()) soma o tempo decorrido sem limite algum, mesmo com o
 // jogo genuinamente parado. Mesmo bug encontrado ao vivo no CDB2026 (2026-08-01,
 // Vasco×Fluminense): relógio "58:11 (+14)" e crescendo, jogo já no intervalo real.
-const BR_MAX_INTERPOLATION_MS = 3 * (C.espn?.pollIntervalMs || 60000);
+// Issue #379: era `3 * pollIntervalMs` — o intervalo de poll do CLIENTE. Quem limita o frescor da
+// observação é a cadência do PRODUTOR (cron */5 do Cloudflare, #369), então o teto antigo (180 s)
+// era ultrapassado em TODO ciclo normal e o relógio congelava dizendo "atrasado" com o produtor
+// saudável. A constante agora vive no contrato compartilhado, medida contra quem escreve.
+const BR_MAX_INTERPOLATION_MS = window.BOLAO_LIVE_CLOCK.MAX_INTERPOLATION_MS;
 function liveClockDisplay(m) {
   // A DECISÃO de qual valor mostrar vive em bolao/shared/js/live_clock.js — uma só para os três
   // apps. Aqui fica apenas a FORMATAÇÃO e o i18n, que são locais.
@@ -2605,7 +2609,17 @@ function renderNextGameCard() {
   }
 
   // #246: fora a primaria, que e do hero. Se nao sobra nada, esta LISTA se esconde -- e legitimo.
-  gamesToShow = gamesToShow.filter(g => !_ehPrimaria(g));
+  // Issue #379. A dedupe era INCONDICIONAL, e o hero só desenha a primária quando NÃO há jogo ao
+  // vivo. Com o hero em estado LIVE, a primária saía da lista E não era desenhada pelo hero: o
+  // confronto sumia da página inteira (visto em produção 2026-08-30 — Grêmio × Chapecoense, jogo
+  // de hoje, invisível enquanto dois outros jogos rolavam).
+  //
+  // A regra certa não é "existe primária?", é "o hero está apresentando a primária AGORA?".
+  // Pergunta feita ao MESMO resolvedor que o hero usa, para as duas metades nunca discordarem.
+  const _heroApresentaPrimaria = typeof resolveLiveHeroMatches === "function"
+    ? resolveLiveHeroMatches().matches.length === 0
+    : true;
+  if (_heroApresentaPrimaria) gamesToShow = gamesToShow.filter(g => !_ehPrimaria(g));
   if (!gamesToShow.length) { card.classList.add("hidden"); return; }
 
   // Sem jogo hoje e só 1 jogo no próximo dia: mantém o layout rico de sempre (contador regressivo

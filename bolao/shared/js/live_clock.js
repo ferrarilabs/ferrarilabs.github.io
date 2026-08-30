@@ -71,11 +71,36 @@
    * formato do minuto é decisão visual e o i18n é local — mas a DECISÃO de qual valor mostrar,
    * e se ele está atrasado, passa a ser uma só para a plataforma inteira.
    */
+  /**
+   * A cadência real de OBSERVAÇÃO — quanto tempo pode passar, EM OPERAÇÃO NORMAL, entre duas
+   * observações da fonte.
+   *
+   * Isto NÃO é o intervalo de poll do cliente, e confundir os dois foi o defeito da Issue #379.
+   * O cliente busca de minuto em minuto, mas desde a virada para o produtor agendado pelo
+   * Cloudflare (#369) quem produz observação nova é o cron de cinco em cinco minutos. Buscar mais
+   * rápido do que a fonte
+   * produz não torna o dado mais novo: o teto de interpolação tem de ser medido contra quem
+   * ESCREVE, não contra quem LÊ.
+   *
+   * Com o teto ancorado no poll do cliente (3 × 60 s = 180 s), toda janela normal de 5 minutos
+   * passava ~2 minutos acima do teto: o relógio congelava e a tela dizia "Atualização atrasada"
+   * com o produtor perfeitamente saudável. Alarme em operação normal é ruído, e ruído treina o
+   * participante a ignorar o alarme quando ele é verdadeiro.
+   */
+  var OBSERVATION_CADENCE_MS = 5 * 60 * 1000;   // cron do produtor: */5
+  /** Folga para a duração do run e o jitter do agendador — o cron não é pontual ao segundo. */
+  var OBSERVATION_JITTER_MS = 60 * 1000;
+  /**
+   * Teto de interpolação padrão: até aqui a idade da observação é ESPERADA e o relógio corre.
+   * Acima, o atraso é real — congela no último confirmado e diz que está atrasado.
+   */
+  var MAX_INTERPOLATION_MS = OBSERVATION_CADENCE_MS + OBSERVATION_JITTER_MS;
+
   function resolveLiveClock(m, opts) {
     m = m || {};
     opts = opts || {};
     var now = opts.now != null ? opts.now : Date.now();
-    var maxInterp = opts.maxInterpolationMs != null ? opts.maxInterpolationMs : 180000;
+    var maxInterp = opts.maxInterpolationMs != null ? opts.maxInterpolationMs : MAX_INTERPOLATION_MS;
 
     var pollTime = m.pollTime != null ? m.pollTime : now;
     var ageMs = Math.max(0, now - pollTime);
@@ -246,6 +271,9 @@
   }
 
   root.BOLAO_LIVE_CLOCK = {
+    OBSERVATION_CADENCE_MS: OBSERVATION_CADENCE_MS,
+    OBSERVATION_JITTER_MS: OBSERVATION_JITTER_MS,
+    MAX_INTERPOLATION_MS: MAX_INTERPOLATION_MS,
     FEATURED: FEATURED,
     RETENTION_TTL_MS: RETENTION_TTL_MS,
     resolveFeaturedMatchState: resolveFeaturedMatchState,
