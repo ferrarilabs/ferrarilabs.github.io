@@ -107,7 +107,18 @@ jobs:
           # o runner fica vivo observando a cada 15s — gol aparece em ~15s em vez de ate 5 min.
           # Quem alcanca a ESPN e o runner do GitHub (Cloudflare e Supabase levam 403), entao a
           # frequencia tem de vir de DENTRO da execucao, nao de mais execucoes.
-          # Dispatch manual segue single-shot: e para diagnostico, nao para manter o placar.
-          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then ARGS="$ARGS --loop"; fi
+          #
+          # O GATILHO NAO SERVE PARA DECIDIR ISSO. A primeira versao condicionava a
+          # `github.event_name != workflow_dispatch`, e o ciclo nunca armou: desde o #369 quem
+          # acorda este workflow e o cron da Cloudflare, e ele dispara pela API de
+          # `workflow_dispatch`. A condicao excluia exatamente a execucao que precisa ciclar.
+          #
+          # O criterio certo e o PAPEL da execucao, nao quem a acordou: se ela esta GRAVANDO de
+          # verdade, ela e responsavel por manter o placar fresco e cicla. Dry run e diagnostico
+          # e continua single-shot.
+          case "$ARGS" in
+            *--dry-run*) : ;;
+            *) ARGS="$ARGS --loop" ;;
+          esac
           echo "node bolao/shared/scripts/produce_live_cache.mjs$ARGS"
           node bolao/shared/scripts/produce_live_cache.mjs $ARGS
