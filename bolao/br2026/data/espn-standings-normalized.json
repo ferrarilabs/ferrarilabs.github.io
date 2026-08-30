@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-25T01:47:56Z",
-  "sourceUpdatedAt": "2026-08-25T01:47:56Z",
+  "generatedAt": "2026-08-30T00:03:34Z",
+  "sourceUpdatedAt": "2026-08-30T00:03:34Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "831c6e9e9fa495887ea5e19fde533283dafd9303ae848745e733dac6dd39b2f7",
+  "payloadHash": "fbfeede810f3bb560cbdc0c27796592ec6e946eb827e46f385d96fae9442336e",
   "matches": [
     {
       "name": "Palmeiras",
@@ -93,10 +93,24 @@
       "gd": 6.0
     },
     {
+      "name": "Atlético-MG",
+      "abbr": "CAM",
+      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
+      "rank": 7.0,
+      "points": 36.0,
+      "played": 24.0,
+      "wins": 10.0,
+      "draws": 6.0,
+      "losses": 8.0,
+      "gf": 32.0,
+      "ga": 28.0,
+      "gd": 4.0
+    },
+    {
       "name": "Red Bull Bragantino",
       "abbr": "BRA",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/6079.png",
-      "rank": 7.0,
+      "rank": 8.0,
       "points": 35.0,
       "played": 23.0,
       "wins": 10.0,
@@ -110,7 +124,7 @@
       "name": "Coritiba",
       "abbr": "CFC",
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3456.png",
-      "rank": 8.0,
+      "rank": 9.0,
       "points": 34.0,
       "played": 24.0,
       "wins": 9.0,
@@ -119,20 +133,6 @@
       "gf": 30.0,
       "ga": 31.0,
       "gd": -1.0
-    },
-    {
-      "name": "Atlético-MG",
-      "abbr": "CAM",
-      "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/7632.png",
-      "rank": 9.0,
-      "points": 33.0,
-      "played": 23.0,
-      "wins": 9.0,
-      "draws": 6.0,
-      "losses": 8.0,
-      "gf": 30.0,
-      "ga": 27.0,
-      "gd": 3.0
     },
     {
       "name": "Corinthians",
@@ -168,13 +168,13 @@
       "logo": "https://a.espncdn.com/i/teamlogos/soccer/500/3457.png",
       "rank": 12.0,
       "points": 29.0,
-      "played": 24.0,
+      "played": 25.0,
       "wins": 8.0,
       "draws": 5.0,
-      "losses": 11.0,
-      "gf": 23.0,
-      "ga": 35.0,
-      "gd": -12.0
+      "losses": 12.0,
+      "gf": 24.0,
+      "ga": 37.0,
+      "gd": -13.0
     },
     {
       "name": "São Paulo",
