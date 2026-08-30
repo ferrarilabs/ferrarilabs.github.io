@@ -1,5 +1,47 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.132 — relógio anda na cadência do produtor; jogo de hoje não some mais (2026-08-30, #379)
+
+`PLATFORM_SHARED` (teto de interpolação, propagado ao CDB2026) + `TOURNAMENT_SPECIFIC`
+(a lista "jogos de hoje" só existe aqui).
+
+Eduardo, com dois jogos ao vivo em produção: *"o relogio nao anda e fala que esta atrasado x
+minutos. Os próximos jogos esta faltando jogo de hoje."* Dois defeitos distintos, os dois
+reproduzidos.
+
+**1. O relógio congelava e dizia "atrasado" em operação normal.** Medido em produção:
+
+| idade da observação | relógio | selo |
+|---|---|---|
+| 49 s | `74:16` → `74:28` (anda) | nenhum |
+| 237 s | `73:00` → `73:00` (congelado) | `Atualização atrasada · há 4 min` |
+
+`BR_MAX_INTERPOLATION_MS` era `3 × C.espn.pollIntervalMs` = **180 s** — o intervalo de poll do
+**cliente**. Só que quem limita o frescor da observação, desde a virada para o produtor agendado
+pelo Cloudflare (#369), é a cadência do **produtor**: de cinco em cinco minutos. Buscar de minuto
+em minuto não torna o dado mais novo; o cliente relia o mesmo `observedAt`. Resultado: toda janela
+normal passava ~2 dos 5 minutos acima do teto, e o app chamava de atraso o que era cadência. O
+produtor estava saudável o tempo todo.
+
+Agora o teto vem do contrato compartilhado (`bolao/shared/js/live_clock.js`):
+`OBSERVATION_CADENCE_MS` (5 min) + `OBSERVATION_JITTER_MS` (1 min) = **6 min**. Acima disso o
+atraso é real e continua sendo dito — silenciá-lo seria trocar um defeito por outro.
+
+**2. Um jogo de hoje sumia da página quando havia partida ao vivo.** `renderNextGameCard()`
+removia a partida primária **incondicionalmente**, porque o hero é o dono dela (#246). Mas o hero
+só desenha a primária quando **não** há jogo ao vivo. Com o hero em estado LIVE, a primária saía da
+lista e não entrava no hero: Grêmio × Chapecoense, jogo de hoje, invisível na página inteira
+enquanto dois outros jogos rolavam. A dedupe estava certa para o estado UPCOMING e vazou para o
+estado LIVE. Agora ela pergunta ao **mesmo resolvedor que o hero usa** se o hero está apresentando
+a primária agora.
+
+**Gates.** `observation-cadence` (novo, 19 asserções, com controle negativo nos dois sentidos:
+voltar o teto ao poll do cliente reprova, e silenciar o atraso real também) e uma capacidade nova
+no portão de funcionalidade crítica — `BR_TODAY_FIXTURES_ALL_VISIBLE`, num cenário
+`live_and_upcoming_today`, com a mutação `TODAY_FIXTURE_SWALLOWED` provando que morde.
+
+**Escopo preservado.** Scoring, projeção, classificação, ranking e ciclo de vida intactos.
+
 ## v1.131 — o aviso de degradação só aparece quando é relevante (2026-08-28, #246)
 
 `PLATFORM_SHARED` — mesma mudança do CDB2026 v3.138, propagada. Ver o changelog do CDB2026 para o

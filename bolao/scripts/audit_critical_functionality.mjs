@@ -104,6 +104,27 @@ function jogoFinal() {
   };
 }
 
+/**
+ * Partidas de HOJE que ainda não começaram. Kickoff no futuro próximo, no MESMO dia BRT — é essa
+ * combinação (ao vivo + outras hoje) que reproduz a Issue #379.
+ */
+function jogosDeHojeAindaNaoComecados() {
+  return [
+    { id: "pre-1", date: new Date(AGORA + 40 * 60_000).toISOString(),
+      state: "pre", statusName: "STATUS_SCHEDULED", statusDescription: "Scheduled",
+      statusShortDetail: "Scheduled", statusDetail: "Scheduled", completed: false,
+      clockSec: 0, period: null, clockStr: "0'",
+      homeTeam: "Grêmio", awayTeam: "Chapecoense", homeTeamId: "h3", awayTeamId: "a3",
+      homeScore: 0, awayScore: 0, venue: "Estádio", city: "Cidade", details: [] },
+    { id: "pre-2", date: new Date(AGORA + 50 * 60_000).toISOString(),
+      state: "pre", statusName: "STATUS_SCHEDULED", statusDescription: "Scheduled",
+      statusShortDetail: "Scheduled", statusDetail: "Scheduled", completed: false,
+      clockSec: 0, period: null, clockStr: "0'",
+      homeTeam: "Mirassol", awayTeam: "Bahia", homeTeamId: "h4", awayTeamId: "a4",
+      homeScore: 0, awayScore: 0, venue: "Estádio", city: "Cidade", details: [] },
+  ];
+}
+
 /** Corpo do gateway. `ok:false` devolve 503 — o mesmo que a produção serve quando a fonte cai. */
 function corpoGateway(competition, { matches = [], stale = false, ageH = 0 } = {}) {
   const obs = new Date(AGORA - ageH * H).toISOString();
@@ -211,7 +232,11 @@ function cenarios(app) {
     ];
   }
   return [...comuns.map(c => ({ ...c, ciclo: "picks_closed" })),
-          { estado: "picks_closed", gw: { matches: [] }, ciclo: "picks_closed" }];
+          { estado: "picks_closed", gw: { matches: [] }, ciclo: "picks_closed" },
+          // Issue #379: o hero mostra o AO VIVO, e os outros jogos de hoje têm de continuar na
+          // lista. O mesmo corpo vai para o snapshot porque é dele que sai `_schedule`.
+          { estado: "live_and_upcoming_today", ciclo: "picks_closed", comoSnapshot: true,
+            gw: { matches: [jogoAoVivo(), ...jogosDeHojeAindaNaoComecados()] } }];
 }
 
 // ─── Montagem da página ──────────────────────────────────────────────────────────────────────
@@ -259,16 +284,40 @@ async function abrir(browser, app, cenario, { viewport = "desktop", appSrc = nul
                   body: JSON.stringify(corpoGateway(app, cenario.gw)) }));
   }
 
+  if (cenario.comoSnapshot && cenario.gw) {
+    // `_schedule` (a lista "jogos de hoje") vem do snapshot commitado, não do gateway. Servir os
+    // dois com o MESMO corpo é o que torna o cenário coerente: o que está ao vivo e o que ainda
+    // vai começar saem da mesma verdade.
+    await page.route("**/data/espn-normalized.json*", r =>
+      r.fulfill({ status: 200, contentType: "application/json",
+                  body: JSON.stringify(corpoGateway(app, cenario.gw)) }));
+  }
   if (cenario.semSnapshot) {
     // Nem fonte ao vivo nem snapshot commitado: o pior caso honesto (`schedule_unknown`).
     await page.route("**/data/espn-normalized.json*", r =>
       r.fulfill({ status: 404, contentType: "application/json", body: "{}" }));
   }
 
+  if (cenario.comoSnapshot && cenario.gw) {
+    // Os confrontos que o cenário AFIRMA existir hoje e ainda não começados. A regra confere
+    // contra esta lista, não contra o que a página resolveu — senão ela concordaria consigo mesma.
+    const esperados = cenario.gw.matches.filter(m => m.state === "pre")
+      .map(m => [m.homeTeam, m.awayTeam]);
+    await page.addInitScript(v => { window.__CRIT_ESPERADOS__ = v; }, esperados);
+  }
   await page.goto(`http://localhost:${PORT}/bolao/${app}/`, { waitUntil: "networkidle" });
   // O render do hero roda num tick de 1s; 900ms cobre o primeiro passo completo depois do
   // networkidle sem transformar o gate numa espera cega de vários segundos por cenário.
   await page.waitForTimeout(900);
+  if (cenario.comoSnapshot) {
+    // Cenários que dependem do CALENDÁRIO esperam o `_schedule` chegar ao DOM. O sinal escolhido é
+    // a lista de Jogos ter conteúdo: ela depende do calendário e NÃO da regra em teste, então
+    // esperar por ela não pressupõe o resultado (esperar pelo próprio card faria o gate concordar
+    // consigo mesmo, e travaria sob a mutação em vez de reprovar).
+    await page.waitForFunction(
+      () => ((document.getElementById("gamesList") || {}).textContent || "").trim().length > 0,
+      { timeout: 8000 }).catch(() => {});
+  }
   return { ctx, page };
 }
 
@@ -346,6 +395,41 @@ const REGRAS = `([nome, app]) => {
     return outros.length === 0
       ? { ok: true, motivo: "" }
       : { ok: false, motivo: "o confronto primario aparece tambem em " + outros.length + " card(s) fora do hero" };
+  }
+
+  if (nome === "TODAY_FIXTURES_ALL_VISIBLE") {
+    // Todo confronto de HOJE que a fonte declarou tem de estar em ALGUM lugar VISIVEL da tela: no
+    // hero (se estiver ao vivo) ou na lista de jogos de hoje. Nunca em lugar nenhum.
+    //
+    // A busca e feita nos containers candidatos, um a um, e nao no innerText do body: o
+    // corpo inteiro esconde POR QUE falhou (e o innerText do body ja se mostrou instavel aqui),
+    // enquanto a varredura por container diz exatamente onde o confronto deveria estar e nao esta.
+    const renderizado = (el) => {
+      if (!el || el.classList.contains("hidden")) return false;
+      const cs = getComputedStyle(el);
+      if (cs.display === "none" || cs.visibility === "hidden") return false;
+      const b = el.getBoundingClientRect();
+      return b.width > 0 && b.height > 0;
+    };
+    const containers = ["liveMatchCard", "nextGameCard", "gamesList"]
+      .map(id => document.getElementById(id)).filter(renderizado);
+    // NFC nos DOIS lados. "Grêmio" pode chegar aqui em forma decomposta (e + circunflexo
+    // combinante) e sair do DOM em forma composta: visualmente identicos, includes falso.
+    const nfc = (x) => String(x).normalize("NFC");
+    // Duas barras no fonte sao deliberadas: esta funcao vive dentro de um template literal,
+    // entao uma barra so viraria um s literal — e o regex passaria a apagar a letra s dos nomes
+    // dos times ("Vasco" -> "Va co"), fazendo o gate reprovar por corrupcao propria.
+    const texto = nfc(containers.map(el => (el.textContent || "")).join(" ")).replace(/\\s+/g, " ");
+    const esperados = (window.__CRIT_ESPERADOS__ || []);
+    if (!esperados.length) {
+      return { ok: false, motivo: "cenario nao declarou confronto de hoje — regra nao exercitada" };
+    }
+    const sumiram = esperados.filter(par => !(texto.includes(nfc(par[0])) && texto.includes(nfc(par[1]))));
+    return sumiram.length === 0
+      ? { ok: true, motivo: "" }
+      : { ok: false, motivo: "confronto(s) de hoje ausente(s) de toda superficie visivel: " +
+            sumiram.map(p => p.join(" x ")).join(", ") +
+            " (containers renderizados: " + containers.map(e => e.id).join(",") + ")" };
   }
 
   if (nome === "PRIMARY_BEFORE_SECONDARY") {
@@ -609,6 +693,17 @@ function mutacoes(RAIZ) {
         const alvo = "  const canViewPicks = isPastEntryCutoff();";
         if (!srcCdb.includes(alvo)) return null;
         return srcCdb.replace(alvo, "  const canViewPicks = false;");
+      },
+    },
+    {
+      id: "TODAY_FIXTURE_SWALLOWED", app: "br2026", cap: "BR_TODAY_FIXTURES_ALL_VISIBLE",
+      estado: "live_and_upcoming_today",
+      appSrc: () => {
+        // A regressao exata da #379: a dedupe da primaria volta a ser INCONDICIONAL, e o jogo de
+        // hoje some da pagina enquanto outro esta ao vivo.
+        const alvo = "  if (_heroApresentaPrimaria) gamesToShow = gamesToShow.filter(g => !_ehPrimaria(g));";
+        if (!srcBr.includes(alvo)) return null;
+        return srcBr.replace(alvo, "  gamesToShow = gamesToShow.filter(g => !_ehPrimaria(g));");
       },
     },
     {

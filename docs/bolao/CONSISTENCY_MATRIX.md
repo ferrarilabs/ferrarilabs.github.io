@@ -2451,3 +2451,19 @@ compartilhado.
 (fresco+próxima, indisponível+próxima, ao vivo fresco, ao vivo atrasado, final recente, sem
 calendário) para os DOIS apps, com as quatro asserções de hero primário (existe / único / não vazio
 / não duplicado) e quatro controles negativos.
+
+## Nota manual — teto de interpolação do relógio e lista "jogos de hoje" (2026-08-30, #379; BR2026 v1.132, CDB2026 v3.139)
+
+**Divergência resolvida (era cópia idêntica do mesmo defeito).** Os dois apps derivavam o teto de
+interpolação do relógio ao vivo do intervalo de **poll do cliente** (`3 × 60 s = 180 s`). Desde a
+virada para o produtor agendado pelo Cloudflare (#369), quem limita o frescor da observação é a
+**cadência do produtor** (5 min). Em produção isso congelava o relógio e mostrava "Atualização
+atrasada" durante ~2 de cada 5 minutos, com o pipeline saudável. Agora os dois consomem
+`BOLAO_LIVE_CLOCK.MAX_INTERPOLATION_MS` (cadência + folga), e o gate `observation-cadence` reprova
+se qualquer um voltar a calcular o teto localmente.
+
+**`INTENTIONALLY_DIFFERENT`** — a lista "jogos de hoje" (`renderNextGameCard`) e a dedupe da
+partida primária (`_ehPrimaria`) existem apenas no BR2026: é um campeonato de pontos corridos com
+vários jogos simultâneos no mesmo dia. O CDB2026 é mata-mata, tem um confronto por vez na fase
+corrente e não possui componente equivalente. A correção do #379 nessa lista não foi propagada, e
+não há divergência a corrigir.

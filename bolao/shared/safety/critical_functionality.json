@@ -23,7 +23,8 @@
     "picks_open": "prazo de palpite aberto (CDB2026)",
     "picks_closed": "prazo de palpite vencido",
     "draw_pending": "sorteio oficial ainda não validado (CDB2026)",
-    "draw_locked": "sorteio oficial validado, bracket autoritativo (CDB2026)"
+    "draw_locked": "sorteio oficial validado, bracket autoritativo (CDB2026)",
+    "live_and_upcoming_today": "há partida AO VIVO e ainda há outras partidas hoje que não começaram"
   },
 
   "capabilities": [
@@ -189,6 +190,16 @@
       "why": "Com o primário sem superfície própria, o painel 'Próximos jogos' ficava com MAIS peso visual que a partida principal — hierarquia invertida sem nenhum gate reprovando."
     },
     {
+      "id": "BR_TODAY_FIXTURES_ALL_VISIBLE",
+      "app": "br2026",
+      "label": "todo jogo de hoje aparece em algum lugar da página",
+      "rule": "TODAY_FIXTURES_ALL_VISIBLE",
+      "assert": ["PRESENT"],
+      "states": ["live_and_upcoming_today"],
+      "viewports": ["desktop", "mobile"],
+      "why": "Issue #379, visto em produção 2026-08-30: com dois jogos ao vivo, a dedupe da partida primária (que existe porque o hero é o dono dela) era INCONDICIONAL — mas o hero só desenha a primária quando NÃO há jogo ao vivo. A primária saía da lista, não entrava no hero, e o confronto (Grêmio × Chapecoense, jogo de hoje) sumia da página inteira. Uma dedupe correta para um estado vazou para outro."
+    },
+    {
       "id": "BR_RANKING",
       "section": "ranking",
       "app": "br2026",
@@ -294,6 +305,7 @@
     { "id": "SUPPORT_REMOVED",           "app": "cdb2026", "must_fail": "CDB_SUPPORT_ACTION" },
     { "id": "STANDINGS_REMOVED",         "app": "br2026",  "must_fail": "BR_STANDINGS" },
     { "id": "VIEW_PICKS_REMOVED",        "app": "cdb2026", "must_fail": "CDB_VIEW_PICKS_PATH" },
-    { "id": "MOBILE_ONLY_DISAPPEARANCE", "app": "br2026",  "must_fail": "BR_SUPPORT_ACTION" }
+    { "id": "MOBILE_ONLY_DISAPPEARANCE", "app": "br2026",  "must_fail": "BR_SUPPORT_ACTION" },
+    { "id": "TODAY_FIXTURE_SWALLOWED",  "app": "br2026",  "must_fail": "BR_TODAY_FIXTURES_ALL_VISIBLE" }
   ]
 }
