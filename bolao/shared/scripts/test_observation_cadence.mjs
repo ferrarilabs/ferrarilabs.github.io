@@ -11,13 +11,19 @@
  *     idade da observação 237 s  →  relógio 73:00 → 73:00 (congelado), selo "há 4 min"
  *
  * O teto de interpolação era `3 × intervalo de poll do CLIENTE` = 180 s. Mas quem limita o
- * frescor da observação, desde a virada para o produtor agendado pelo Cloudflare (#369), é a
- * cadência do PRODUTOR: de cinco em cinco minutos. Buscar de minuto em minuto não torna o dado
- * mais novo — o cliente relia o mesmo `observedAt`.
+ * frescor da observação é a cadência do PRODUTOR. Buscar mais rápido do que a fonte escreve não
+ * torna o dado mais novo — o cliente relia o mesmo `observedAt`.
  *
  * Resultado: TODA janela normal passava ~2 dos 5 minutos acima do teto. O app chamava de atraso
  * o que era cadência. Alarme em operação normal é ruído, e ruído ensina o participante a ignorar
  * o alarme justamente quando ele é verdadeiro.
+ *
+ * ─── E A CADÊNCIA MUDOU (#381) ──────────────────────────────────────────────────────────────
+ *
+ * O produtor deixou de fazer UMA observação por execução: o mesmo despacho de 5 em 5 minutos abre
+ * um runner que observa a cada 15 s enquanto há jogo. Por isso este gate NÃO digita segundos —
+ * todos os pontos são derivados das constantes. Uma tabela de números fixos teria virado mentira
+ * silenciosa nessa mudança, que é o modo de falha que ele existe para impedir.
  *
  * ─── O INVARIANTE ───────────────────────────────────────────────────────────────────────────
  *
@@ -64,9 +70,13 @@ function aoVivo(idadeMs) {
 console.log("\n#379 — o teto de interpolação segue quem ESCREVE, não quem lê\n");
 console.log("A. Dentro da cadência normal do produtor o relógio CORRE:");
 
-// A cadência é de 5 min; a folga cobre a duração do run e o jitter do agendador. Os pontos abaixo
-// varrem a janela inteira, incluindo o valor exato que reproduziu o defeito em produção (237 s).
-for (const idade of [0, 30, 49, 120, 179, 181, 237, 299, 300, 350, LC.MAX_INTERPOLATION_MS]) {
+// Os pontos são DERIVADOS do teto, nunca digitados: a cadência de observação já mudou uma vez
+// (#381 trocou uma observação por execução por um ciclo de 15 s dentro dela), e um teste com
+// segundos fixos vira mentira silenciosa na próxima mudança. O que se prova é a REGRA — dentro do
+// teto o relógio corre — e não uma tabela de números.
+const TETO = LC.MAX_INTERPOLATION_MS;
+for (const idade of [0, 1000, Math.floor(TETO / 4), Math.floor(TETO / 2),
+                     Math.floor(TETO * 0.9), TETO - 1000, TETO]) {
   test(`observação de ${Math.round(idade / 1000)}s: relógio ao vivo, sem atraso`, () => {
     const r = LC.resolveLiveClock(aoVivo(idade), { now: AGORA });
     assert(r.state === S.LIVE_FRESH, `estado ${r.state} — em cadência normal não há atraso`);
@@ -76,12 +86,28 @@ for (const idade of [0, 30, 49, 120, 179, 181, 237, 299, 300, 350, LC.MAX_INTERP
   });
 }
 
-test("REGRESSÃO da produção: aos 237s o relógio ANDA (antes congelava em 73:00)", () => {
-  const a = LC.resolveLiveClock(aoVivo(s(237)), { now: AGORA });
-  const b = LC.resolveLiveClock(aoVivo(s(237)), { now: AGORA + s(12) });
-  assert(a.stale === false && b.stale === false, "selo de atraso voltou na cadência normal");
+test("REGRESSÃO da produção: dentro da cadência o relógio ANDA (antes congelava)", () => {
+  // O caso do Eduardo era uma observação de 237 s sendo chamada de atraso porque o produtor
+  // escrevia de 5 em 5 min. Com o ciclo de 15 s (#381), 237 s deixou de ser cadência normal — o
+  // que se preserva aqui é a REGRA, medida logo abaixo do teto vigente, qualquer que ele seja.
+  // Metade do teto, de propósito: a SEGUNDA amostra é 12 s mais velha, e ela também precisa cair
+  // dentro da janela normal. Ancorar em `TETO - 5s` faria a segunda amostra cruzar o teto e o
+  // teste reprovaria comportamento correto.
+  const idade = Math.floor(TETO / 2);
+  const a = LC.resolveLiveClock(aoVivo(idade), { now: AGORA });
+  const b = LC.resolveLiveClock(aoVivo(idade), { now: AGORA + s(12) });
+  assert(a.stale === false, "selo de atraso dentro da cadência normal");
   assert(b.seconds > a.seconds,
          `relógio parado: ${a.seconds} → ${b.seconds}. Foi exatamente isto na tela do Eduardo`);
+});
+
+test("a observação típica do ciclo (1 volta de atraso) nunca é chamada de atraso", () => {
+  // Uma volta perdida do ciclo é rotina; duas também. O teto tem de cobrir isso com folga, senão
+  // o alarme volta a disparar em operação normal — que foi o defeito do #379.
+  for (const voltas of [1, 2, 3]) {
+    const r = LC.resolveLiveClock(aoVivo(LC.OBSERVATION_CADENCE_MS * voltas), { now: AGORA });
+    assert(r.stale === false, `${voltas} volta(s) de ciclo ja marcam atraso`);
+  }
 });
 
 console.log("\nB. Acima da cadência o atraso é REAL — e continua sendo dito:");
@@ -107,13 +133,25 @@ test("o teto NUNCA deixa o relógio disparar além dele", () => {
 
 console.log("\nC. A constante é derivada da cadência de OBSERVAÇÃO:");
 
-test("o teto cobre a cadência do produtor mais folga", () => {
-  assert(LC.OBSERVATION_CADENCE_MS === 5 * 60 * 1000,
-         `cadência declarada ${LC.OBSERVATION_CADENCE_MS} não é a do cron do produtor`);
+test("o teto é cadência + folga, e a cadência é a do CICLO do produtor", () => {
   assert(LC.MAX_INTERPOLATION_MS === LC.OBSERVATION_CADENCE_MS + LC.OBSERVATION_JITTER_MS,
          "o teto deixou de ser cadência + folga");
-  assert(LC.MAX_INTERPOLATION_MS > LC.OBSERVATION_CADENCE_MS,
-         "teto menor ou igual à cadência: TODO ciclo normal seria chamado de atraso");
+  assert(LC.MAX_INTERPOLATION_MS > LC.OBSERVATION_CADENCE_MS * 3,
+         "teto perto demais da cadência: duas voltas perdidas já virariam alarme em operação normal");
+  // A folga existe para a TROCA de execução (despacho + checkout + setup), que é a maior lacuna
+  // real entre duas observações. Menor que isso e todo intervalo entre runners vira "atrasado".
+  assert(LC.OBSERVATION_JITTER_MS >= 60 * 1000,
+         "folga menor que a troca de execução: o intervalo entre runners viraria alarme");
+});
+
+test("a cadência declarada bate com a que o produtor realmente pratica", () => {
+  const prod = readFileSync(join(ROOT, "bolao/shared/scripts/produce_live_cache.mjs"), "utf8");
+  const m = prod.match(/const LOOP_INTERVAL_MS = ([0-9_]+);/);
+  assert(m, "intervalo do ciclo não encontrado no produtor");
+  const real = Number(m[1].replace(/_/g, ""));
+  assert(real === LC.OBSERVATION_CADENCE_MS,
+         `produtor observa a cada ${real}ms mas o contrato declara ${LC.OBSERVATION_CADENCE_MS}ms — ` +
+         `foi essa divergência (poll do cliente x cadência real) que produziu o #379`);
 });
 
 test("os DOIS apps consomem o teto compartilhado, e nenhum recalcula pelo poll do cliente", () => {
@@ -133,10 +171,12 @@ console.log("\nD. Controles negativos — o gate tem de morder:");
 test("controle negativo: voltar o teto para 3× o poll do cliente quebra o gate", () => {
   const mutado = CLOCK_SRC.replace(
     "var MAX_INTERPOLATION_MS = OBSERVATION_CADENCE_MS + OBSERVATION_JITTER_MS;",
-    "var MAX_INTERPOLATION_MS = 3 * 60 * 1000;");
+    "var MAX_INTERPOLATION_MS = 3 * 15 * 1000;");   // teto colado na cadência: o defeito do #379
   assert(mutado !== CLOCK_SRC, "a mutação não encontrou o alvo — o controle negativo cegou");
   const M = carregar(mutado);
-  const r = M.resolveLiveClock(aoVivo(s(237)), { now: AGORA });
+  // Quatro voltas do ciclo (60 s): rotina sob o teto real (90 s), mas ACIMA do teto mutado
+  // (3 × cadência = 45 s). É exatamente a faixa onde o defeito do #379 se manifestava.
+  const r = M.resolveLiveClock(aoVivo(LC.OBSERVATION_CADENCE_MS * 4), { now: AGORA });
   assert(r.stale === true,
          "a mutação não reintroduziu o defeito — o controle negativo perdeu o sentido");
 });

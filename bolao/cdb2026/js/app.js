@@ -4112,7 +4112,9 @@ function loadRawClockCache() { return safeLocalStorageGetJson(CDB_LIVE_CLOCK_RAW
 function saveRawClockCache(history) { safeLocalStorageSetJson(CDB_LIVE_CLOCK_RAW_CACHE_KEY, history); }
 
 let _liveTies = []; // [{ tieId, tie, phaseId, leg, homeTeam, awayTeam, goalsHome, goalsAway, clockSeconds, pollTime, period, isHalftime, isPenalties, clockPaused, clockStr }]
-const LIVE_TIE_POLL_INTERVAL_MS = 60 * 1000; // mesma cadência da Copa/BR2026 -- rápida o bastante pro relógio parecer "ao vivo"
+// Issue #381: era 60s. Acompanha a cadência de ESCRITA do produtor (15s) — ler mais devagar do
+// que a fonte escreve só adia o gol que já está no cache. Mesma cadência do BR2026.
+const LIVE_TIE_POLL_INTERVAL_MS = 15 * 1000;
 
 // Pernas (ida/volta) atualmente sinalizadas como adiadas/canceladas pela ESPN -- item 25 do
 // CONSISTENCY_MATRIX.md (2026-07-15), portado do BR2026 (fetchSchedule()/`postponed`). Chave

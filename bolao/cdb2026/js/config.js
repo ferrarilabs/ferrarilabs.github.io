@@ -1,7 +1,7 @@
 // Pipeline de cache-bust validado ponta a ponta em 2026-08-07: o deploy do Pages agora é
 // disparado explicitamente pelo sync_version.yml (push com GITHUB_TOKEN nao acorda workflow).
 window.CDB2026_CONFIG = {
-  siteVersion: "v3.139",
+  siteVersion: "v3.140",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
