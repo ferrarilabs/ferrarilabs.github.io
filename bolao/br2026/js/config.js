@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.132",
+  siteVersion: "v1.133",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.
@@ -139,7 +139,10 @@ window.BR2026_CONFIG = {
     standingsUrl: "data/espn-standings-normalized.json",
     scoreboardUrl: "data/espn-normalized.json",
     scheduleUrl: "data/espn-normalized.json",
-    pollIntervalMs: 60000,
+    // Issue #381: 60s fazia o gol esperar mais um minuto DEPOIS de já estar no cache. Com o
+    // produtor observando a cada 15s, ler a cada 15s é o que transforma escrita rápida em tela
+    // rápida. O gateway serve do cache (TTL de 15s), então ler mais não bate mais na ESPN.
+    pollIntervalMs: 15000,
   },
   transparency: {
     disclaimer: "Bolão informal entre amigos. Comprovantes individuais e backups servem como evidência. Sem responsabilidade por dados externos, APIs ou falhas de terceiros."
