@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-30T14:57:46Z",
-  "sourceUpdatedAt": "2026-08-30T14:57:46Z",
+  "generatedAt": "2026-08-30T18:27:40Z",
+  "sourceUpdatedAt": "2026-08-30T18:27:40Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "2aac013684cf3fb5575b1a2cf1ceb15131a77447bed78935bbc5da4267ad7465",
+  "payloadHash": "2f6f62bc9dbd50dc00e67c71da2ebd31c492b00b5638c6102466fdbdfdf4b0c4",
   "matches": [
     {
       "id": "401840808",
@@ -40410,25 +40410,25 @@
     {
       "id": "401841208",
       "date": "2026-08-30T14:00Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Athletico Paranaense",
       "awayTeam": "Fluminense",
       "homeTeamId": "3458",
       "awayTeamId": "3445",
-      "homeScore": 1,
-      "awayScore": 1,
+      "homeScore": 3,
+      "awayScore": 3,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena da Baixada",
       "city": "Curitiba",
-      "clockSec": 2700.0,
-      "clockStr": "45'+8'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+8'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -40484,6 +40484,139 @@
             {
               "displayName": "Ganso",
               "shortName": "Ganso"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 2869.0,
+            "displayValue": "48'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gastón Benavídez",
+              "shortName": "G. Benavídez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 2933.0,
+            "displayValue": "49'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Gastón Benavídez",
+              "shortName": "G. Benavídez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 3840.0,
+            "displayValue": "64'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Agustín Canobbio",
+              "shortName": "A. Canobbio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 4491.0,
+            "displayValue": "75'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Nonato",
+              "shortName": "Nonato"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal - Header"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3445"
+          },
+          "clock": {
+            "value": 4659.0,
+            "displayValue": "78'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Ignácio",
+              "shortName": "Ignácio"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 4747.0,
+            "displayValue": "80'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3458"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+5'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kevin Viveros",
+              "shortName": "K. Viveros"
             }
           ]
         }
