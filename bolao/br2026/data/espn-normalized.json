@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-30T23:40:10Z",
-  "sourceUpdatedAt": "2026-08-30T23:40:10Z",
+  "generatedAt": "2026-08-31T01:36:24Z",
+  "sourceUpdatedAt": "2026-08-31T01:36:24Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "cc09759c1dc85dfc6af0ffaa9d1ae0a60731b02850a60855637db7fac8950f9c",
+  "payloadHash": "737b6608668e1141678e3c3770d341db0b2f5daf6d3ea7d9d92507c687286db5",
   "matches": [
     {
       "id": "401840808",
@@ -41251,24 +41251,24 @@
     {
       "id": "401841215",
       "date": "2026-08-30T22:30Z",
-      "state": "in",
-      "statusName": "STATUS_SECOND_HALF",
-      "statusDescription": "Second Half",
-      "statusShortDetail": "48'",
-      "statusDetail": "48'",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Bahia",
       "awayTeam": "Internacional",
       "homeTeamId": "9967",
       "awayTeamId": "1936",
       "homeScore": 3,
-      "awayScore": 1,
-      "homeWinner": false,
+      "awayScore": 2,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena Fonte Nova",
       "city": "Salvador",
-      "clockSec": 2880.0,
-      "clockStr": "48'",
+      "clockSec": 5400.0,
+      "clockStr": "90'+5'",
       "period": 2,
       "details": [
         {
@@ -41305,7 +41305,7 @@
         },
         {
           "type": {
-            "text": "Goal"
+            "text": "Goal - Volley"
           },
           "scoringPlay": true,
           "team": {
@@ -41395,6 +41395,101 @@
             {
               "displayName": "Erick",
               "shortName": "Erick"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 3095.0,
+            "displayValue": "52'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Vitinho",
+              "shortName": "Vitinho"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "1936"
+          },
+          "clock": {
+            "value": 3196.0,
+            "displayValue": "54'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Guillermo Maripán",
+              "shortName": "G. Maripán"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 3910.0,
+            "displayValue": "66'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Román Gómez",
+              "shortName": "R. Gómez"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 4278.0,
+            "displayValue": "72'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Michel Araújo",
+              "shortName": "M. Araújo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "9967"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+1'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "David Duarte",
+              "shortName": "D. Duarte"
             }
           ]
         }
