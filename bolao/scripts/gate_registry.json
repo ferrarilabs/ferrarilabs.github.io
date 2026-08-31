@@ -20,6 +20,9 @@
     "bolao/br2026/scripts/test_round_email_durable_ledger.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/br2026/scripts/test_standings_reconcile.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/br2026/scripts/test_round_state.py": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
