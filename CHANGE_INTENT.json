@@ -4,9 +4,9 @@
   "declarations": [
     {
       "surface_id": "NOTIFICATION_WORKFLOWS",
-      "reason": "Issue #381: o placar ao vivo demorava ate 5 minutos para refletir um gol porque o produtor fazia UMA observacao por execucao. Quem alcanca a ESPN e o runner do GitHub (Cloudflare e Supabase recebem 403), e o agendador do GitHub nao honra cadencia de poucos minutos — entao a frequencia tem de vir de DENTRO da execucao.",
-      "expected_behavior_change": "O workflow `live_cache_producer.yml` passa a rodar o produtor com `--loop` nas execucoes AGENDADAS: o mesmo despacho de 5 em 5 minutos abre um runner que observa a ESPN a cada 15s por ~4m40s, reavaliando a janela a cada volta e encerrando na hora se nenhuma competicao estiver em janela. `timeout-minutes` sobe de 5 para 7 para caber o ciclo. NAO muda o gatilho, o cron, as permissoes, os segredos, nem o dispatch manual (que segue single-shot, para diagnostico). Nenhum e-mail, nenhum destinatario e nenhum dado de participante e tocado — este workflow so grava observacao de placar em `live_sports_cache`.",
-      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "observation-cadence", "live-producer-cadence", "produce-live-cache"]
+      "reason": "Issue #381, correcao: o ciclo de observacao introduzido no PR #382 NUNCA armou em producao. A condicao era `github.event_name != workflow_dispatch`, mas desde o #369 quem acorda este workflow e o cron da Cloudflare, que dispara pela API de workflow_dispatch — a condicao excluia exatamente a execucao que precisava ciclar.",
+      "expected_behavior_change": "A decisao de ciclar passa a ser pelo PAPEL da execucao, nao pelo gatilho: se ela esta gravando de verdade (sem --dry-run), cicla. Dry run continua single-shot. NAO muda gatilho, cron, permissoes, segredos nem destinatarios; este workflow nao envia e-mail e nao toca dado de participante.",
+      "tests_required": ["cron-coverage", "email-send-safety", "powerball-workflow-arming", "observation-cadence"]
     }
   ]
 }
