@@ -1546,12 +1546,86 @@ function zoneForPosition(pos) {
   return null;
 }
 
-// Matches still relevant to the open window that ESPN has already marked "post" (finished while
-// the tab was open) — NOT the whole season's completed matches, or already-baselined results
-// would be double counted.
+/**
+ * Quais partidas ENCERRADAS a baseline ainda não contabilizou.
+ *
+ * ─── O DEFEITO QUE ISTO FECHA ───────────────────────────────────────────────────────────────
+ *
+ * A intenção sempre foi certa: somar à baseline só o que ela ainda não contém, senão o resultado
+ * é contado duas vezes. O PROXY é que estava errado — era o horário de início da partida contra
+ * `capturedAt`:
+ *
+ *     g.state === "post" && g.dateISO >= _standingsBaseline.capturedAt
+ *
+ * Dois furos, e os dois apareceram na produção de 2026-08-30:
+ *
+ * 1. `capturedAt` é a hora em que ESTE NAVEGADOR abriu a página, não uma propriedade do dado.
+ *    Quem abriu às 23h45 excluía todos os jogos da noite; quem estava com a aba aberta desde as
+ *    21h somava os mesmos jogos. **A mesma página mostrava tabelas diferentes conforme a hora em
+ *    que o visitante entrou.**
+ *
+ * 2. O feed de CLASSIFICAÇÃO da ESPN atrasa em relação ao feed de PLACAR dela mesma. Mirassol 1×1
+ *    Palmeiras terminou e aparecia como "Encerrado" na mesma tela, mas a classificação ainda
+ *    trazia Palmeiras com 24 jogos. Como o jogo começou ANTES do `capturedAt`, ele também não
+ *    entrava pela soma — ficava fora da baseline E fora do complemento, some da tabela.
+ *
+ * Horário nunca respondeu à pergunta certa. A pergunta é "a baseline já contém este resultado?",
+ * e a própria baseline responde: ela declara quantos jogos cada time disputou.
+ *
+ * ─── COMO ESTA FUNÇÃO DECIDE ────────────────────────────────────────────────────────────────
+ *
+ * Para cada time, `falta = (encerradas no calendário) − (jogos que a baseline declara)`. Depois
+ * percorre as encerradas da MAIS RECENTE para a mais antiga e inclui uma partida só enquanto os
+ * DOIS times ainda tiverem saldo a preencher, decrementando ambos. O atraso da fonte é sempre nos
+ * jogos mais novos, então é de lá que se completa.
+ *
+ * Resultado: independente de quando o visitante abriu a página, e auto-corretivo — quando a ESPN
+ * finalmente ingere o resultado, `falta` vira 0 e a partida deixa de ser somada sozinha, sem
+ * nenhuma janela de contagem dupla.
+ *
+ * PURA: recebe tudo por parâmetro para que o teste varra as combinações sem browser.
+ */
+function completedMatchesMissingFromBaseline({ baselineStandings, schedule }) {
+  if (!baselineStandings || !baselineStandings.length || !Array.isArray(schedule)) return [];
+
+  const encerradas = schedule
+    .filter(g => g && g.state === "post" && !g.postponed && g.homeTeam && g.awayTeam)
+    .sort((a, b) => String(a.dateISO).localeCompare(String(b.dateISO)));
+
+  const jogadasReais = new Map();
+  for (const g of encerradas) {
+    jogadasReais.set(g.homeTeam, (jogadasReais.get(g.homeTeam) || 0) + 1);
+    jogadasReais.set(g.awayTeam, (jogadasReais.get(g.awayTeam) || 0) + 1);
+  }
+
+  // `falta` nunca é negativo: calendário atrás da baseline (snapshot de jogos velho) significa
+  // "não sei de nada que ela não saiba", e a resposta segura é não somar nada.
+  const falta = new Map();
+  for (const t of baselineStandings) {
+    if (!t || !t.name) continue;
+    falta.set(t.name, Math.max(0, (jogadasReais.get(t.name) || 0) - (Number(t.played) || 0)));
+  }
+
+  const selecionadas = [];
+  for (let i = encerradas.length - 1; i >= 0; i--) {
+    const g = encerradas[i];
+    const fh = falta.get(g.homeTeam), fa = falta.get(g.awayTeam);
+    // Time fora da baseline: ignora defensivamente, como `calculateLiveStandings` já faz.
+    if (fh === undefined || fa === undefined) continue;
+    if (fh <= 0 || fa <= 0) continue;
+    falta.set(g.homeTeam, fh - 1);
+    falta.set(g.awayTeam, fa - 1);
+    selecionadas.push(g);
+  }
+  return selecionadas.reverse();   // cronológica, como o chamador espera
+}
+
 function windowCompletedMatches() {
   if (!_standingsBaseline) return [];
-  return _schedule.filter(g => g.state === "post" && !g.postponed && g.dateISO >= _standingsBaseline.capturedAt);
+  return completedMatchesMissingFromBaseline({
+    baselineStandings: _standingsBaseline.standings,
+    schedule: _schedule,
+  });
 }
 
 // Pure, side-effect-free — takes full snapshots in, returns a brand-new array, never mutates its
