@@ -32,7 +32,7 @@ const assert=(c,m)=>{ if(!c) throw new Error(m); };
 const EXCECOES = {
   "br2026": [
     { padrao: '_schedule.find(g => g.state === "pre"',  motivo: "PRÓXIMO JOGO da tabela — pergunta de agenda, não de estado ao vivo" },
-    { padrao: '_schedule.filter(g => g.state === "post" && !g.postponed && g.dateISO >=', motivo: "baseline da classificação: quais jogos já contaram" },
+    { padrao: 'g && g.state === "post" && !g.postponed && g.homeTeam && g.awayTeam', motivo: "reconciliação da classificação (#384): quais jogos ENCERRADOS a baseline ainda não contabilizou — pergunta de tabela, não de estado ao vivo. Substituiu o critério por horário, que dependia de quando o visitante abriu a página" },
     { padrao: 'if (!m || m.postponed) return;', motivo: "adiado não altera a TABELA ao vivo — regra de classificação" },
     { padrao: '_schedule.filter(g => g.state === "post" && g.homeScore != null', motivo: "jogos com placar para o modelo de força dos times" },
     { padrao: '_schedule.filter(g => g.state === "pre")', motivo: "jogos restantes para a projeção de fim de campeonato" },
