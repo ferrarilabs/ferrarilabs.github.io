@@ -717,6 +717,10 @@ function mutacoes(RAIZ) {
 async function rodarMutacoes(browser) {
   console.log("\n── CONTROLES DE MUTAÇÃO — cada regressão real tem de reprovar ──");
   const muts = mutacoes(RAIZ);
+  // Nomes das que NÃO morderam. O `verify` so ecoa a cauda da saida quando um gate reprova, entao
+  // um agregado que diz apenas "9 controles" obriga a reproduzir tudo para descobrir qual falhou —
+  // e foi exatamente isso que custou uma rodada de CI as cegas.
+  const cegas = [];
   let mordidas = 0;
   for (const m of muts) {
     const cap = REGISTRO.capabilities.find(c => c.id === m.cap);
@@ -731,7 +735,7 @@ async function rodarMutacoes(browser) {
       const r = await avaliar(page, cap);
       test(`mutação ${m.id} reprova ${m.cap}`, !r.ok,
            r.ok ? "o gate NÃO pegou a remoção — controle negativo cego" : "");
-      if (!r.ok) mordidas++;
+      if (!r.ok) mordidas++; else cegas.push(m.id);
       await ctx.close();
       continue;
     }
@@ -741,22 +745,23 @@ async function rodarMutacoes(browser) {
     if (m.appSrc && src === null) {
       test(`mutação ${m.id} reprova ${m.cap}`, false,
            "MUTAÇÃO NÃO APLICÁVEL — o padrão sumiu do fonte; o controle negativo mediria o original");
+      cegas.push(`${m.id} (padrao ausente)`);
       continue;
     }
     const { ctx, page } = await abrir(browser, m.app, cenario, { ...opts, appSrc: src, css });
     const r = await avaliar(page, cap);
     test(`mutação ${m.id} reprova ${m.cap}`, !r.ok,
          r.ok ? "o gate NÃO pegou a regressão — controle negativo cego" : "");
-    if (!r.ok) mordidas++;
+    if (!r.ok) mordidas++; else cegas.push(m.id);
     await ctx.close();
   }
-  return { mordidas, total: muts.length };
+  return { mordidas, total: muts.length, cegas };
 }
 
 async function main() {
   const srv = await startStaticServer(PORT, RAIZ);
   const browser = await chromium.launch();
-  let mut = { mordidas: 0, total: 0 };
+  let mut = { mordidas: 0, total: 0, cegas: [] };
   try {
     console.log("\nPORTÃO DE REGRESSÃO DE FUNCIONALIDADE CRÍTICA");
     console.log(`registro: bolao/shared/safety/critical_functionality.json (${REGISTRO.capabilities.length} capacidades, ${REGISTRO.shared_invariants.length} invariantes compartilhados)`);
@@ -778,7 +783,8 @@ async function main() {
 
   if (!SO) {
     test(`todos os ${mut.total} controles de mutação mordem`, mut.mordidas === mut.total,
-         `${mut.mordidas}/${mut.total} — um controle cego não prova nada`);
+         `${mut.mordidas}/${mut.total} — CEGAS: ${(mut.cegas || []).join(", ") || "(nenhuma registrada)"}. ` +
+         `Um controle cego não prova nada`);
     // Cobertura: toda capacidade do registro precisa ter sido avaliada de verdade em pelo menos
     // um cenário. Sem isto, bastaria uma condição sempre falsa para uma capacidade ficar
     // "protegida" e nunca ser medida — o modo de falha silencioso que este gate combate.
