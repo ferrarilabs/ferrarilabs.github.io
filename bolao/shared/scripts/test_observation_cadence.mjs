@@ -166,6 +166,31 @@ test("os DOIS apps consomem o teto compartilhado, e nenhum recalcula pelo poll d
   }
 });
 
+test("a execução que GRAVA arma o ciclo — e o gatilho não decide isso", () => {
+  // O defeito real (2026-08-30): a condição era `github.event_name != workflow_dispatch`, e o
+  // ciclo NUNCA armou em produção. Desde o #369 quem acorda este workflow é o cron da Cloudflare,
+  // que dispara pela API de `workflow_dispatch` — a condição excluía exatamente a execução que
+  // precisava ciclar. O produtor voltou a fazer UMA observação por execução, em silêncio, e o
+  // placar continuou até 5 min atrasado com todos os testes verdes.
+  //
+  // Por isso a asserção é sobre o CRITÉRIO, não sobre o texto: o gatilho não pode aparecer na
+  // decisão de ciclar.
+  const wf = readFileSync(join(ROOT, ".github/workflows/live_cache_producer.yml"), "utf8");
+  const passo = wf.slice(wf.indexOf("Produz o cache ao vivo"));
+  assert(/--loop/.test(passo), "o workflow nao arma o ciclo em execucao nenhuma");
+
+  const linhasDeDecisao = passo.split("\n")
+    .filter(l => /--loop/.test(l) && !l.trim().startsWith("#"));
+  assert(linhasDeDecisao.length > 0, "nenhuma linha efetiva arma o ciclo (so comentario)");
+  for (const l of linhasDeDecisao) {
+    assert(!/event_name/.test(l),
+      `o ciclo depende do GATILHO (\`${l.trim()}\`). O cron da Cloudflare dispara por ` +
+      `workflow_dispatch: condicionar ao gatilho e como o ciclo nunca armou em producao`);
+  }
+  // E o dry run tem de continuar single-shot: diagnostico nao segura runner por cinco minutos.
+  assert(/dry-run/.test(passo), "o dry run deixou de ser distinguido do caminho que grava");
+});
+
 console.log("\nD. Controles negativos — o gate tem de morder:");
 
 test("controle negativo: voltar o teto para 3× o poll do cliente quebra o gate", () => {
@@ -179,6 +204,14 @@ test("controle negativo: voltar o teto para 3× o poll do cliente quebra o gate"
   const r = M.resolveLiveClock(aoVivo(LC.OBSERVATION_CADENCE_MS * 4), { now: AGORA });
   assert(r.stale === true,
          "a mutação não reintroduziu o defeito — o controle negativo perdeu o sentido");
+});
+
+test("controle negativo: condicionar o ciclo ao gatilho quebra o gate", () => {
+  // Reproduz a linha exata que foi para producao e nao armou nada.
+  const linha = '          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then ARGS="$ARGS --loop"; fi';
+  const decisao = [linha].filter(l => /--loop/.test(l) && !l.trim().startsWith("#"));
+  const mordeu = decisao.some(l => /event_name/.test(l));
+  assert(mordeu, "o controle negativo perdeu o sentido — a linha defeituosa passaria");
 });
 
 test("controle negativo: silenciar o atraso REAL também quebra o gate", () => {
