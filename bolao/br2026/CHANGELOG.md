@@ -1,5 +1,45 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.134 — cada partida encerrada conta uma vez só na tabela ao vivo (2026-08-30, #384)
+
+Eduardo: *"A tabela online está incorreta e a posição dos times também no hero ao vivo."*
+Reproduzido na produção da mesma noite.
+
+**O que se via.** A página mostrava `Mirassol 1×1 Palmeiras — Encerrado` e, na MESMA tela, a tabela
+trazia Palmeiras com 24 jogos, sem o 1×1. As posições no hero ao vivo saem dessa mesma tabela, então
+erravam junto.
+
+**Causa raiz — duas, somadas.**
+
+1. O feed de **classificação** da ESPN atrasa em relação ao feed de **placar** dela mesma. Às 23:40Z
+   a classificação ainda não tinha ingerido o jogo das 21:30Z (confirmado: Palmeiras 24 jogos,
+   Mirassol 23), enquanto o placar já dizia `FT`.
+2. O complemento que o app soma à baseline selecionava por **horário**:
+   `g.state === "post" && g.dateISO >= _standingsBaseline.capturedAt`. E `capturedAt` é a hora em
+   que **este navegador** abriu a página. O jogo começara às 21:30Z, antes de o visitante entrar →
+   ficava fora da baseline **e** fora do complemento. Sumia da tabela.
+
+O mesmo critério tinha o defeito espelhado: para quem estava com a aba aberta desde as 21h, o jogo
+era somado — e, quando a ESPN ingerisse o resultado, passaria a ser contado **duas vezes**. A mesma
+página mostrava tabelas diferentes conforme a hora em que o visitante entrou.
+
+**A correção.** Horário nunca respondeu à pergunta certa. A pergunta é *"a baseline já contém este
+resultado?"*, e a própria baseline responde: ela declara quantos jogos cada time disputou. A nova
+`completedMatchesMissingFromBaseline()` calcula, por time,
+`falta = (encerradas no calendário) − (jogos que a baseline declara)` e completa das partidas mais
+recentes para trás, só enquanto os **dois** times tiverem saldo.
+
+Independente do visitante e auto-corretivo: quando a fonte ingere, `falta` vira 0 e o complemento se
+apaga sozinho — sem nenhuma janela de contagem dupla. Validado contra os dados reais daquela noite:
+das 243 partidas encerradas da temporada, seleciona exatamente **uma**, a que faltava.
+
+**Gate.** `standings-reconcile` (12 asserções) com controle negativo que reproduz o critério antigo
+e prova as duas divergências que ele produzia.
+
+**Escopo preservado.** A fórmula de pontuação, o desempate e as regras do bolão não foram tocados —
+mudou apenas *quais resultados entram na tabela ao vivo*, que antes dependiam de quando a página
+abriu.
+
 ## v1.133 — placar quase em tempo real (2026-08-30, #381)
 
 `PLATFORM_SHARED` (cadência de observação e teto de interpolação, propagados ao CDB2026).
