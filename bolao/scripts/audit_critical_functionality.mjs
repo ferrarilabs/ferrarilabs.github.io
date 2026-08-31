@@ -218,8 +218,15 @@ function cenarios(app) {
     { estado: "upcoming_fixture",    gw: { matches: [] } },
     { estado: "live_fixture",        gw: { matches: [jogoAoVivo()] } },
     { estado: "recent_final",        gw: { matches: [jogoFinal()] } },
-    { estado: "stale_source",        gw: { matches: [], stale: true, ageH: 14 } },
-    { estado: "provider_unavailable", gw: null },
+    // `snapshotMatches` torna estes cenarios DETERMINISTICOS. O snapshot commitado e a fonte de
+    // `_schedule` E o fallback do store, e ele contem os jogos que estavam AO VIVO no instante em
+    // que o bot o gerou. Sem controla-lo, "sem jogo ao vivo" virava uma corrida entre o fetch do
+    // fallback e a medicao: passava local e reprovava no CI (mutacao PRIMARY_HERO_HIDDEN cega,
+    // 2026-08-31). O cenario passa a declarar o que quer testar em vez de torcer pelo dado do dia.
+    { estado: "stale_source",        gw: { matches: [], stale: true, ageH: 14 },
+      snapshotMatches: () => jogosDeHojeAindaNaoComecados() },
+    { estado: "provider_unavailable", gw: null,
+      snapshotMatches: () => jogosDeHojeAindaNaoComecados() },
     { estado: "schedule_unknown",    gw: null, semSnapshot: true },
   ];
   if (app === "cdb2026") {
@@ -284,6 +291,11 @@ async function abrir(browser, app, cenario, { viewport = "desktop", appSrc = nul
                   body: JSON.stringify(corpoGateway(app, cenario.gw)) }));
   }
 
+  if (cenario.snapshotMatches) {
+    await page.route("**/data/espn-normalized.json*", r =>
+      r.fulfill({ status: 200, contentType: "application/json",
+                  body: JSON.stringify(corpoGateway(app, { matches: cenario.snapshotMatches() })) }));
+  }
   if (cenario.comoSnapshot && cenario.gw) {
     // `_schedule` (a lista "jogos de hoje") vem do snapshot commitado, não do gateway. Servir os
     // dois com o MESMO corpo é o que torna o cenário coerente: o que está ao vivo e o que ainda
