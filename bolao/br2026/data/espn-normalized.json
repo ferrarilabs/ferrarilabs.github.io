@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-08-31T01:36:24Z",
-  "sourceUpdatedAt": "2026-08-31T01:36:24Z",
+  "generatedAt": "2026-09-01T00:20:12Z",
+  "sourceUpdatedAt": "2026-09-01T00:20:12Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "737b6608668e1141678e3c3770d341db0b2f5daf6d3ea7d9d92507c687286db5",
+  "payloadHash": "d03fa25494f9d91e302b1cab8557cf769c8609ef84795cf63276d9e164a16f1d",
   "matches": [
     {
       "id": "401840808",
@@ -41498,26 +41498,65 @@
     {
       "id": "401841210",
       "date": "2026-08-31T23:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Mon, August 31st at 7:00 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_SECOND_HALF",
+      "statusDescription": "Second Half",
+      "statusShortDetail": "58'",
+      "statusDetail": "58'",
       "completed": false,
       "homeTeam": "Remo",
       "awayTeam": "Coritiba",
       "homeTeamId": "4936",
       "awayTeamId": "3456",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Mangueirão",
       "city": "Belém",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 3480.0,
+      "clockStr": "58'",
+      "period": 2,
+      "details": [
+        {
+          "type": {
+            "text": "Own Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 2792.0,
+            "displayValue": "47'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "José Welison",
+              "shortName": "J. Welison"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "3456"
+          },
+          "clock": {
+            "value": 3313.0,
+            "displayValue": "56'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Tiago",
+              "shortName": "Tiago"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401913077",
