@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.1",
   "provider": "espn",
-  "generatedAt": "2026-09-01T05:24:19Z",
-  "sourceUpdatedAt": "2026-09-01T05:24:19Z",
+  "generatedAt": "2026-09-01T23:15:27Z",
+  "sourceUpdatedAt": "2026-09-01T23:15:27Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "5be69dc200f39ad1d40e963e24ca98210d0d85e28dafe6471182104807b32460",
+  "payloadHash": "f3e334908a9301ec93012d18f7bf9cdb8df785a0e9548480098ca576a681bb9a",
   "matches": [
     {
       "id": "401840808",
@@ -9346,8 +9346,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Carlos Miguel",
-              "shortName": "Carlos Miguel"
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
             }
           ]
         },
@@ -12064,8 +12064,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Carlos Miguel",
-              "shortName": "Carlos Miguel"
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
             }
           ]
         },
@@ -28375,8 +28375,8 @@
           },
           "athletesInvolved": [
             {
-              "displayName": "Carlos Miguel",
-              "shortName": "Carlos Miguel"
+              "displayName": "Carlos Eduardo",
+              "shortName": "Carlos Eduardo"
             }
           ]
         },
