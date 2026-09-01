@@ -12,7 +12,7 @@
  *
  * Hermético: sem rede, sem provedor, sem participante.
  */
-import { classificar, transicao, produtorAtrasado, ESTADO, STALE_MS, CRITICAL_MS }
+import { classificar, classificarComJanela, agregar, transicao, produtorAtrasado, ESTADO, STALE_MS, CRITICAL_MS }
   from "./monitor_live_pipeline.mjs";
 
 let ok = 0, fail = 0;
@@ -135,6 +135,109 @@ test("nenhum dado de participante é lido pelo monitor", async () => {
   for (const p of ["entry_ref", "email", "picks", "bolao_state", "participant", "entries"]) {
     A(!codigo.toLowerCase().includes(p), `o monitor referencia \`${p}\` — ele nao precisa de nada disso`);
   }
+});
+
+
+console.log("\nE. Janela de atividade (#372) — inatividade esperada nao e degradacao");
+
+/**
+ * Uma resposta do gateway EXATAMENTE como a que manteve a #372 aberta por cinco dias:
+ * 503 com `SOURCE_UNAVAILABLE` e o motivo real do provedor.
+ */
+const RESPOSTA_403 = { status: 503, corpo: { status: "SOURCE_UNAVAILABLE", staleReason: "UPSTREAM_403" } };
+const RESPOSTA_FRESCA = { status: 200, corpo: { observedAt: haMin(1) } };
+
+/**
+ * As PROVAS, isoladas do sujeito.
+ *
+ * Elas recebem a implementacao como argumento para que os controles negativos possam aplicar as
+ * MESMAS provas a uma implementacao mutante. Um controle negativo que verifica outra coisa prova
+ * outra coisa — e foi assim que a #372 passou despercebida: havia gate de cadencia, nao de
+ * semantica.
+ */
+const provaInWindow403Alarma = (fn) =>
+  fn({ ...RESPOSTA_403, agoraMs: AGORA, emJanela: true }).estado === ESTADO.GATEWAY_UNAVAILABLE;
+const provaOutOfWindow403NaoAlarma = (fn) =>
+  fn({ ...RESPOSTA_403, agoraMs: AGORA, emJanela: false }).estado === ESTADO.SEM_JANELA;
+
+test("1. EM JANELA + gateway fresco ⇒ OK (saudavel)", () => {
+  const r = classificarComJanela({ ...RESPOSTA_FRESCA, agoraMs: AGORA, emJanela: true });
+  A(r.estado === ESTADO.OK, r.estado);
+});
+
+test("2. EM JANELA + UPSTREAM_403 ⇒ INCIDENTE (a queda real continua alarmando)", () => {
+  A(provaInWindow403Alarma(classificarComJanela),
+    "estar dentro da janela e nao alcancar o dado ao vivo E degradacao — este e o caso que nunca pode ser abrandado");
+  const r = classificarComJanela({ ...RESPOSTA_403, agoraMs: AGORA, emJanela: true });
+  A(/UPSTREAM_403/.test(r.detalhe), `o motivo do provedor sumiu: ${r.detalhe}`);
+});
+
+test("3. FORA DA JANELA + UPSTREAM_403 antigo ⇒ SEM_JANELA (inatividade esperada)", () => {
+  A(provaOutOfWindow403NaoAlarma(classificarComJanela),
+    "sem partida na janela o produtor nem foi a fonte; cobrar frescor do cache aqui e alarmar sobre o comportamento normal");
+  const r = classificarComJanela({ ...RESPOSTA_403, agoraMs: AGORA, emJanela: false });
+  A(/UPSTREAM_403/.test(r.detalhe), `o motivo real tem de continuar visivel, so deixa de ser incidente: ${r.detalhe}`);
+});
+
+test("3b. FORA DA JANELA + observacao FRESCA continua OK — dado fresco e dado fresco", () => {
+  const r = classificarComJanela({ ...RESPOSTA_FRESCA, agoraMs: AGORA, emJanela: false });
+  A(r.estado === ESTADO.OK,
+    `so o que o produtor decidiu NAO produzir e abrandado; uma observacao saudavel vale sempre: ${r.estado}`);
+});
+
+test("4. FORA DA JANELA nao mascara outra competicao quebrada EM JANELA", () => {
+  A(agregar([{ estado: ESTADO.SEM_JANELA }, { estado: ESTADO.GATEWAY_UNAVAILABLE }]) === ESTADO.GATEWAY_UNAVAILABLE,
+    "uma competicao inativa nunca pode esconder outra que esta quebrada de verdade");
+});
+
+test("4b. FORA DA JANELA nao FECHA incidente aberto sem observacao positiva", () => {
+  const t = transicao(ESTADO.GATEWAY_UNAVAILABLE, ESTADO.SEM_JANELA);
+  A(t.acao === "SILENCIO", `fechar por ausencia de dado seria declarar recuperacao sem medir nenhuma: ${t.acao}`);
+  A(t.incidente === ESTADO.GATEWAY_UNAVAILABLE, "o incidente aberto tem de continuar nomeado");
+  A(agregar([{ estado: ESTADO.SEM_JANELA }, { estado: ESTADO.SEM_JANELA }]) === ESTADO.SEM_JANELA,
+    "todas inativas nao e OK — OK autorizaria o fechamento");
+  A(agregar([{ estado: ESTADO.SEM_JANELA }, { estado: ESTADO.OK }]) === ESTADO.OK,
+    "uma observacao saudavel de verdade E o que autoriza a recuperacao");
+  A(transicao(ESTADO.GATEWAY_UNAVAILABLE, ESTADO.OK).acao === "RECUPERAR",
+    "o contrato de recuperacao por observacao positiva foi quebrado");
+});
+
+test("4c. SEM_JANELA nao abre incidente, nem depois de um ciclo saudavel", () => {
+  A(transicao(ESTADO.OK, ESTADO.SEM_JANELA).acao === "SILENCIO", "");
+  A(transicao(ESTADO.SEM_JANELA, ESTADO.OK).acao === "SILENCIO",
+    "sair da inatividade para saudavel nao e recuperacao de incidente — nao havia incidente");
+});
+
+test("4d. o workflow roteia SEM_JANELA para um terceiro caminho: nem abre, nem fecha", async () => {
+  const { readFileSync } = await import("node:fs");
+  const { fileURLToPath } = await import("node:url");
+  const { dirname, join } = await import("node:path");
+  const raiz = join(dirname(fileURLToPath(import.meta.url)), "..", "..");
+  const wf = readFileSync(join(raiz, ".github", "workflows", "live_pipeline_monitor.yml"), "utf8");
+  A(/SEM_JANELA\)\s*DEGRADADO=2/.test(wf),
+    "o classificador distingue, mas quem decide alarme e o workflow — sem este ramo a correcao nao chega ao incidente");
+  A(/\[ "\$DEGRADADO" = "2" \]/.test(wf), "o ramo que nao abre nem fecha sumiu do workflow");
+  A(/OK\|CACHE_STALE\)\s*DEGRADADO=0/.test(wf), "o caminho de recuperacao por observacao positiva sumiu");
+  A(/\*\)\s*DEGRADADO=1/.test(wf), "o caminho de abertura de incidente sumiu");
+});
+
+console.log("\nF. Controles negativos por mutação (#372)");
+
+test("5. mutacao 'EM JANELA + 403 e saudavel' REPROVA a prova 2", () => {
+  // A mutacao que esconderia uma queda real durante um jogo — o modo de falha mais caro possivel.
+  const mutante = (a) => (a.emJanela && a.status >= 500 ? { estado: ESTADO.OK, detalhe: "mutante" } : classificarComJanela(a));
+  A(provaInWindow403Alarma(mutante) === false,
+    "a prova 2 aceitou uma implementacao que trata queda em janela como saudavel — ela nao morde");
+});
+
+test("6. mutacao 'ignorar a janela' (comportamento de ANTES do #372) REPROVA a prova 3", () => {
+  // Este mutante NAO e hipotetico: e literalmente a implementacao anterior, que manteve a #372
+  // aberta por cinco dias. Se a prova 3 nao o reprova, a correcao nao esta sendo verificada.
+  const mutanteComportamentoAtual = ({ emJanela, ...resto }) => classificar(resto);
+  A(provaOutOfWindow403NaoAlarma(mutanteComportamentoAtual) === false,
+    "a prova 3 aceitou o comportamento anterior — o defeito da #372 passaria de novo");
+  A(provaInWindow403Alarma(mutanteComportamentoAtual) === true,
+    "controle de sanidade: o comportamento anterior sempre acertou o caso EM JANELA; a correcao so muda o caso FORA");
 });
 
 console.log(`\n  ${ok} passed, ${fail} failed\n`);
