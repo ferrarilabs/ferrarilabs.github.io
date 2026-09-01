@@ -1,0 +1,16 @@
+{
+  "declarations": [
+    {
+      "surface_id": "NOTIFICATION_WORKFLOWS",
+      "affected_workflows": [],
+      "reason": "Issue #372 — o vigia do pipeline ao vivo (.github/workflows/live_pipeline_monitor.yml) manteve UM incidente aberto de 2026-08-28T19:27Z a 2026-09-01 com o pipeline saudavel, e nenhuma das 18 sondas seguintes conseguiu fecha-lo. A causa nao e cadencia nem identidade de incidente (a Issue selecionada sempre foi a certa, a #372, unica com a label): e semantica. `cdb2026` teve uma lacuna de calendario de cinco dias (ultima partida 2026-08-27T23:00Z, proxima 2026-09-02T00:00Z); sem partida na janela, produceOne() devolve SKIPPED_OUT_OF_WINDOW ANTES de qualquer chamada de rede, o cache nao e reescrito, o gateway cai no proprio egresso — que a Akamai nega — e responde SOURCE_UNAVAILABLE / UPSTREAM_403. O monitor lia isso como GATEWAY_UNAVAILABLE, e como PIPELINE_STATUS e o pior estado entre as competicoes, o agregado ficava permanentemente degradado — inclusive nas sondas de 2026-08-29T21:45Z, 2026-08-30T00:21Z, 2026-08-30T21:08Z, 2026-08-30T23:31Z e 2026-08-31T23:52Z, todas com `br2026 OK 0-3 min`. O ramo de fechamento era estruturalmente inalcancavel. Um vigia que nao consegue sair do estado degradado e um vigia que sera ignorado.",
+      "expected_behavior_change": "A classificacao passa a ser situada na janela de atividade da competicao, derivada do MESMO calendario commitado que o produtor usa (isWithinWindow/fixtureDatesFor importados de bolao/shared/scripts/produce_live_cache.mjs — nao ha limiar de janela novo nem segunda fonte de verdade). DENTRO da janela nada muda: 403, timeout, payload ilegivel e cache critico continuam abrindo incidente exatamente como antes, e ha controle negativo (prova 5) que reprova qualquer implementacao que abrande esse caso. FORA da janela, uma resposta nao-saudavel vira o estado novo SEM_JANELA, que o workflow roteia para um TERCEIRO caminho (DEGRADADO=2): nao abre incidente e tambem NAO fecha um que esteja aberto — fechar por ausencia de dado seria declarar recuperacao sem ter medido nenhuma. Recuperacao continua exigindo observacao POSITIVA (OK). Uma observacao fresca fora da janela continua valendo OK. Uma competicao inativa nunca mascara outra quebrada em janela (agregar() prova isso). O cron NAO mudou (17 * * * *), nenhum gatilho foi estreitado, nenhum workflow foi apagado, nenhum gate foi removido ou afrouxado, nenhum e-mail e enviado e nada e escrito em banco, cache ou ledger — o monitor continua somente-leitura. Nenhum arquivo de notificacao/e-mail foi tocado, por isso affected_workflows esta vazio: live_pipeline_monitor.yml nao consta do manifesto notification_workflows.json (ele nao envia e-mail), e esta declaracao existe porque .github/workflows/** e superficie DECLARE_TO_CHANGE, nao porque um contrato de notificacao tenha divergido.",
+      "tests_required": [
+        "bolao/scripts/test_pipeline_monitor.mjs",
+        "bolao/scripts/cron_coverage.test.mjs",
+        "bolao/scripts/test_live_producer_cadence.mjs",
+        "scripts/audit_email_send_safety.mjs"
+      ]
+    }
+  ]
+}
