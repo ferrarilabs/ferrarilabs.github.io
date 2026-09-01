@@ -23,6 +23,15 @@
 # e um alarme que sempre toca e um alarme que se desliga.
 #
 # Abrem incidente: CACHE_CRITICAL, GATEWAY_UNAVAILABLE, GATEWAY_INVALID_PAYLOAD.
+#
+# JANELA (#372)
+# A Issue #372 ficou aberta de 2026-08-28 a 2026-09-01 com o pipeline saudavel. `cdb2026` teve uma
+# lacuna de calendario de cinco dias; sem partida na janela o produtor devolve
+# `SKIPPED_OUT_OF_WINDOW`, o cache nao e reescrito e o gateway admite `SOURCE_UNAVAILABLE` /
+# `UPSTREAM_403`. Isso e o comportamento ESPERADO fora de janela, nao degradacao -- mas o monitor
+# lia como `GATEWAY_UNAVAILABLE` e o incidente nunca podia fechar, inclusive em sondas onde
+# `br2026` reportava `OK 0 min`. Agora o classificador situa a resposta na janela derivada do
+# calendario commitado (a MESMA do produtor). Dentro da janela, 403 alarma exatamente como antes.
 name: Bolão — Vigia do pipeline ao vivo
 
 on:
@@ -86,12 +95,21 @@ jobs:
                      --json number,title --jq '.[0].number // ""')
 
           # `CACHE_STALE` nao abre incidente -- ver a nota de RUIDO no cabecalho.
+          # `SEM_JANELA` e um TERCEIRO estado, nao um dos dois (#372): nenhuma competicao tem
+          # partida na janela, entao nao houve observacao. Nao abre incidente -- e tambem NAO
+          # fecha um que esteja aberto, porque fechar por ausencia de dado seria declarar
+          # recuperacao sem ter medido nenhuma. Ficar em silencio e a unica saida honesta.
           case "$STATUS" in
             OK|CACHE_STALE) DEGRADADO=0 ;;
+            SEM_JANELA)     DEGRADADO=2 ;;
             *)              DEGRADADO=1 ;;
           esac
 
-          if [ "$DEGRADADO" = "1" ] && [ -z "$ABERTA" ]; then
+          if [ "$DEGRADADO" = "2" ]; then
+            # Nem abre nem fecha. Ver a nota de SEM_JANELA acima.
+            echo "FORA DE JANELA — nenhuma competicao ativa; nada observado, nada decidido"
+
+          elif [ "$DEGRADADO" = "1" ] && [ -z "$ABERTA" ]; then
             gh issue create --label pipeline-incident \
               --title "$TITULO_PREFIXO — $STATUS" \
               --body "$(printf '%s\n\nEstado: **%s**\n\nExecucao: %s\n\nEste incidente e ATUALIZADO, nunca duplicado: enquanto ele estiver aberto o vigia nao cria outro. Ele fecha sozinho quando a proxima sonda voltar saudavel.\n\nNenhum dado de participante e envolvido -- o vigia nao le nada disso.' "$CORPO" "$STATUS" "$RUN_URL")"
