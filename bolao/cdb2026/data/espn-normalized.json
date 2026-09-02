@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-09-02T01:03:25Z",
-  "sourceUpdatedAt": "2026-09-02T01:03:25Z",
+  "generatedAt": "2026-09-02T05:43:43Z",
+  "sourceUpdatedAt": "2026-09-02T05:43:43Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "1599730d07ea96adc7479f354fa28cec032c55989fe905f5404a2a91f8c7bfd9",
+  "payloadHash": "f533f30d004b43162e4c0a1dedac3ab73a7a0aad30db03298018cdc717ddeb61",
   "matches": [
     {
       "id": "401858546",
@@ -12962,25 +12962,25 @@
     {
       "id": "401909112",
       "date": "2026-09-02T00:00Z",
-      "state": "in",
-      "statusName": "STATUS_HALFTIME",
-      "statusDescription": "Halftime",
-      "statusShortDetail": "HT",
-      "statusDetail": "HT",
-      "completed": false,
+      "state": "post",
+      "statusName": "STATUS_FULL_TIME",
+      "statusDescription": "Full Time",
+      "statusShortDetail": "FT",
+      "statusDetail": "FT",
+      "completed": true,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "7632",
       "awayTeamId": "2022",
-      "homeScore": 0,
+      "homeScore": 2,
       "awayScore": 1,
-      "homeWinner": false,
+      "homeWinner": true,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 2700.0,
-      "clockStr": "45'+6'",
-      "period": 1,
+      "clockSec": 5400.0,
+      "clockStr": "90'+9'",
+      "period": 2,
       "details": [
         {
           "type": {
@@ -13055,6 +13055,139 @@
             {
               "displayName": "Lucas Villalba",
               "shortName": "L. Villalba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 3456.0,
+            "displayValue": "58'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Natanael",
+              "shortName": "Natanael"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Red Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 3623.0,
+            "displayValue": "61'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Villalba",
+              "shortName": "L. Villalba"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 4257.0,
+            "displayValue": "71'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Romero",
+              "shortName": "L. Romero"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 4619.0,
+            "displayValue": "77'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Victor Hugo",
+              "shortName": "Victor Hugo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Goal"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "7632"
+          },
+          "clock": {
+            "value": 5278.0,
+            "displayValue": "88'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Fred",
+              "shortName": "Fred"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+4'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Keny Arroyo",
+              "shortName": "K. Arroyo"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 5400.0,
+            "displayValue": "90'+7'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Fabrício Bruno",
+              "shortName": "F. Bruno"
             }
           ]
         }
