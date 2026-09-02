@@ -2,11 +2,11 @@
   "schemaVersion": 1,
   "competitionId": "bra.copa_do_brazil",
   "provider": "espn",
-  "generatedAt": "2026-08-29T13:16:14Z",
-  "sourceUpdatedAt": "2026-08-29T13:16:14Z",
+  "generatedAt": "2026-09-02T01:03:25Z",
+  "sourceUpdatedAt": "2026-09-02T01:03:25Z",
   "stale": false,
   "staleReason": null,
-  "payloadHash": "adb0102be16ed612c346353e95d5bc9522fe1cfb979d9ada7aa6bb88b75ee4e5",
+  "payloadHash": "1599730d07ea96adc7479f354fa28cec032c55989fe905f5404a2a91f8c7bfd9",
   "matches": [
     {
       "id": "401858546",
@@ -12962,26 +12962,103 @@
     {
       "id": "401909112",
       "date": "2026-09-02T00:00Z",
-      "state": "pre",
-      "statusName": "STATUS_SCHEDULED",
-      "statusDescription": "Scheduled",
-      "statusShortDetail": "Scheduled",
-      "statusDetail": "Tue, September 1st at 8:00 PM EDT",
+      "state": "in",
+      "statusName": "STATUS_HALFTIME",
+      "statusDescription": "Halftime",
+      "statusShortDetail": "HT",
+      "statusDetail": "HT",
       "completed": false,
       "homeTeam": "Atlético-MG",
       "awayTeam": "Cruzeiro",
       "homeTeamId": "7632",
       "awayTeamId": "2022",
       "homeScore": 0,
-      "awayScore": 0,
+      "awayScore": 1,
       "homeWinner": false,
       "awayWinner": false,
       "venue": "Arena MRV",
       "city": "Belo Horizonte",
-      "clockSec": 0.0,
-      "clockStr": "0'",
-      "period": null,
-      "details": []
+      "clockSec": 2700.0,
+      "clockStr": "45'+6'",
+      "period": 1,
+      "details": [
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 1464.0,
+            "displayValue": "25'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Otávio Costa",
+              "shortName": "O. Costa"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Penalty - Scored"
+          },
+          "scoringPlay": true,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 1800.0,
+            "displayValue": "30'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio Jorge",
+              "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2080.0,
+            "displayValue": "35'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Kaio Jorge",
+              "shortName": "Kaio Jorge"
+            }
+          ]
+        },
+        {
+          "type": {
+            "text": "Yellow Card"
+          },
+          "scoringPlay": false,
+          "team": {
+            "id": "2022"
+          },
+          "clock": {
+            "value": 2468.0,
+            "displayValue": "42'"
+          },
+          "athletesInvolved": [
+            {
+              "displayName": "Lucas Villalba",
+              "shortName": "L. Villalba"
+            }
+          ]
+        }
+      ]
     },
     {
       "id": "401909110",
