@@ -3851,7 +3851,15 @@ function renderNextTieCard() {
   }
   if (!group.length) { card.classList.add("hidden"); return; }
 
-  if (group.length > 1) {
+  // `> 1` era um off-by-one, e ele apagou um jogo em producao (2026-09-02): Santos x Palmeiras
+  // (401909110) e Vitoria x Vasco (401909111) comecaram no MESMO minuto. `group` chegava com 2,
+  // a primaria saia para o hero, sobrava 1 -- e `1 > 1` e falso, entao o card inteiro era
+  // escondido e o segundo confronto nao era desenhado em lugar nenhum da pagina.
+  //
+  // O caso que o `> 1` queria cobrir ("so ha a primaria, nao ha lista") ja e tratado pelo
+  // `if (!group.length)` acima, que roda DEPOIS da exclusao. Qualquer confronto que sobreviva a
+  // exclusao e um jogo real que ninguem mais mostra. Com 3+ funcionava, por isso passou batido.
+  if (group.length) {
     // Contador em dígitos, mesmo componente exato da Copa (countdownTimerHtml() -> .count-grid)
     // -- não texto solto. Eduardo: "A contagem regressiva tem que ser igual copa meu!"
     // (2026-07-17), mesmo ajuste do BR2026.
@@ -3877,9 +3885,8 @@ function renderNextTieCard() {
     return;
   }
 
-  // A partida PRIMARIA pertence ao hero de futebol (#246). Este card nunca a repete: se so ha
-  // ela, nao ha lista a mostrar. Esconder aqui e legitimo -- uma LISTA vazia e vazia; o que nao
-  // pode ficar vazio, nunca, e o HERO.
+  // Inalcancavel na pratica: os dois `if (!group.length)` acima ja escondem a lista vazia. Fica
+  // como rede de seguranca -- se um dia alguem mudar os guards, o card nao vaza markup velho.
   card.classList.add("hidden");
 }
 
