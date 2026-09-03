@@ -3872,6 +3872,7 @@ function renderNextTieCard() {
           <div class="today-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
           <div class="today-game-time muted">${phaseName ? esc(phaseName) + " · " : ""}${esc(fmtDate(m.kickoff))}</div>
           ${m.venue ? `<div class="next-game-venue">📍 ${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
+          ${whereToWatchHtml(m.kickoff, home, away)}
         </div>
         ${timerHtml}
       </div>
@@ -3900,6 +3901,15 @@ function renderNextTieCard() {
  * Duas implementacoes do mesmo objeto semantico nao se resolvem escondendo uma com CSS: as duas
  * continuam decidindo. Agora existe UMA, e quem a exibe e o hero.
  */
+// "Onde assistir": enriquecimento OPCIONAL de apresentacao (bolao/shared/js/where_to_watch.js).
+// Sem o modulo, sem transmissao confirmada ou com qualquer erro, devolve "" -- e o card fica
+// exatamente como era. NUNCA decide partida, NUNCA toca no countdown. O CDB2026 nao carrega o id
+// do evento ESPN no objeto de partida, entao a chave e kickoff + times (o modulo resolve).
+function whereToWatchHtml(kickoff, home, away) {
+  const M = typeof window !== "undefined" && window.BOLAO_WHERE_TO_WATCH;
+  return M ? M.lineHtml({ kickoff: kickoff, home: home, away: away }) : "";
+}
+
 function nextMatchBlockHtml(next) {
   if (!next) return "";
   const { m, home, away, phaseName } = next;
@@ -3912,6 +3922,7 @@ function nextMatchBlockHtml(next) {
         ${phaseName ? `<div class="next-game-info">${esc(phaseName)}</div>` : ""}
         <div class="next-game-info">${esc(fmtDate(m.kickoff))}</div>
         ${m.venue ? `<div class="next-game-venue">${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
+        ${whereToWatchHtml(m.kickoff, home, away)}
       </div>
       ${timerHtml}
     </div>

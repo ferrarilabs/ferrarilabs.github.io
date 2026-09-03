@@ -512,6 +512,12 @@ input[type="number"] { -moz-appearance: textfield; appearance: textfield; }
 .next-game-vs { color: var(--muted); margin: 0 6px; }
 .next-game-info { font-size: 12px; color: var(--muted); }
 .next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
+/* "Onde assistir" (opcional): informacao SECUNDARIA, mesma escala do local do jogo acima.
+   `overflow-wrap: anywhere` quebra "Amazon Prime Video" dentro da largura existente; o
+   `flex-wrap: wrap` de .next-game-row ja empurra o contador pra linha de baixo em vez de alargar
+   o card. Nenhuma largura nova, nenhum scroll horizontal. */
+.where-to-watch { font-size: 11px; color: var(--muted); opacity: .85; margin-top: 2px; line-height: 1.35; overflow-wrap: anywhere; }
+.where-to-watch__channels { opacity: .95; }
 /* Múltiplas partidas no mesmo dia -- mesmas classes/medidas do BR2026 (.today-game-*,
    bolao/br2026/css/styles.css) para consistência visual. Eduardo: "proximo jogo mostra somente
    um, mas amanha tem mais, mostre proximos jogos quando ha mais de um no mesmo dia" (2026-07-16).

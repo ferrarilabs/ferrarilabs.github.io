@@ -515,6 +515,12 @@
 .next-game-vs { color: var(--muted); margin: 0 6px; }
 .next-game-info { font-size: 12px; color: var(--muted); }
 .next-game-venue { font-size: 11px; color: var(--muted); opacity: .7; }
+/* "Onde assistir" (opcional): informacao SECUNDARIA, mesma escala do local do jogo acima.
+   `overflow-wrap: anywhere` quebra "Amazon Prime Video" dentro da largura existente; o
+   `flex-wrap: wrap` de .next-game-row ja empurra o contador pra linha de baixo em vez de alargar
+   o card. Nenhuma largura nova, nenhum scroll horizontal. */
+.where-to-watch { font-size: 11px; color: var(--muted); opacity: .85; margin-top: 2px; line-height: 1.35; overflow-wrap: anywhere; }
+.where-to-watch__channels { opacity: .95; }
 /* Contador de dígitos ao vivo — mesmo componente visual da Copa (.next-match-timer,
    bolao/css/styles.css), reaproveitando .count-grid (já usado pelo contador de cutoff). Antes o
    "próximo jogo" só mostrava texto inline ("6d 01h 13m"), bem menos visível que o contador em

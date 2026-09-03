@@ -57,6 +57,7 @@ const SHARED_FILES = [
   "../shared/js/money.js",
   "../shared/js/live_clock.js",
   "../shared/js/football_live_store.js",
+  "../shared/js/where_to_watch.js",
   "../shared/css/tokens.css",
   "../shared/css/reset.css",
   "../shared/css/shell.css",
