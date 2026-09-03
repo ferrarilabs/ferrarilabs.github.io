@@ -1,5 +1,30 @@
 # Bolão Brasileirão 2026 — CHANGELOG
 
+## v1.135 — 📍 no card primário, igual à Copa (2026-09-03)
+
+`PLATFORM_SHARED` — propagação visual do CDB2026 v3.141. Não toca scoring, tabela, projeção,
+classificação nem ranking.
+
+**O que estava fora do padrão.** As três montagens da linha de local no BR2026 (hero, `#nextGameCard`
+e a lista de "outros jogos de hoje") eram markup independente e divergiram: **só a lista tinha o 📍**.
+Confirmado no navegador contra a base `a8a67da9` — das três linhas renderizadas hoje, a primeira (a do
+card primário) vinha sem o marcador e as outras duas com.
+
+O 📍 é o padrão canônico da plataforma: a Copa do Mundo 2026, referência visual, imprime
+`📍 estádio, cidade` nos dois caminhos do hero (`hero-next-venue`). Os cards principais do BR2026 e do
+CDB2026 é que estavam fora.
+
+**Correção.** As três passaram a usar um `venueLineHtml()` só, com a mesma semântica do CDB2026:
+venue+city ⇒ os dois; só venue ⇒ venue; só city ⇒ nenhuma linha; cidade já contida no nome do estádio
+não é impressa duas vezes; `"A confirmar"` não vira local.
+
+**Sem mudança de dado.** O BR2026 lê a partida direto do snapshot do provedor, então sempre teve
+`venue`/`city`/`id` — o defeito de dado corrigido no CDB2026 (v3.141) não existe aqui. A contagem de
+linhas antes e depois é a mesma (3); o que muda é o marcador na primeira.
+
+**Verificado no navegador** em desktop 1440 e mobile 390/320: sem overflow horizontal, sem duplicação,
+jogos simultâneos mantendo cada um o seu local, e sem erro de console novo.
+
 ## v1.134 — cada partida encerrada conta uma vez só na tabela ao vivo (2026-08-30, #384)
 
 Eduardo: *"A tabela online está incorreta e a posição dos times também no hero ao vivo."*
