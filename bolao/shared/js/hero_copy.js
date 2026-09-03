@@ -235,3 +235,18 @@
     selectPicksCountdownCopy: selectPicksCountdownCopy,
   };
 })(typeof window !== "undefined" ? window : globalThis);
+
+// Enriquecimento opcional e fail-safe dos cards de próximas partidas. Fica fora do contrato puro
+// acima de propósito: o contrato continua sem DOM/I/O e este pequeno loader só existe nas duas
+// competições nacionais que exibem o card. O módulo carregado não participa de nenhuma decisão
+// de calendário, hero ou countdown.
+(function () {
+  "use strict";
+  if (typeof document === "undefined" || typeof location === "undefined") return;
+  if (!/\/bolao\/(?:br2026|cdb2026)\//.test(location.pathname || "")) return;
+  if (document.querySelector('script[data-bolao-where-to-watch="1"]')) return;
+  var script = document.createElement("script");
+  script.src = "../shared/js/where_to_watch.js?v=20260902";
+  script.setAttribute("data-bolao-where-to-watch", "1");
+  document.head.appendChild(script);
+})();
