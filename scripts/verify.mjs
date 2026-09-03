@@ -397,6 +397,8 @@ const CHECKS = [
   { id: "tool-scope", group: "app", cmd: ["node", "bolao/scripts/audit_tool_scope.test.mjs"],
     why: "cross-app audit tools cannot silently shrink their app scope" },
   { id: "cachebust", group: "app", cmd: ["node", "bolao/scripts/cachebust.integration.test.mjs"], why: "cache-bust integration" },
+  { id: "where-to-watch", group: "app", cmd: ["node", "bolao/shared/scripts/test_where_to_watch.mjs"],
+    why: "\"Onde assistir\" e enriquecimento OPCIONAL: sem transmissao confirmada a linha nao existe e o card fica identico ao de antes. Este gate prova o fail safe, a chave de associacao (id ESPN, senao minuto de inicio + os DOIS times), a nao-duplicacao, o escape proprio e — o que mais importa — que o modulo continua removivel: nada de rede, nada de countdown, nada de scoring, e um unico ponto de consumo guardado em cada app" },
   { id: "cachebust-cdb", group: "app", cmd: ["node", "bolao/cdb2026/scripts/check_cachebust.test.mjs"], why: "CDB cache-bust" },
   { id: "money-interop", group: "app", cmd: ["node", "bolao/shared/scripts/test_money_interop.mjs"], why: "money interop py<->js" },
 

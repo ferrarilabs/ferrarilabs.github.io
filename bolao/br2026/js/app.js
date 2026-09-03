@@ -2322,6 +2322,14 @@ function ordemDoHeroAoVivo(a, b) {
  * hierarquia continua sendo a partida -- proxima, quando conhecida -- e o aviso de fonte fora vem
  * depois, pequeno.
  */
+// "Onde assistir": enriquecimento OPCIONAL de apresentacao (bolao/shared/js/where_to_watch.js).
+// Sem o modulo, sem transmissao confirmada ou com qualquer erro, devolve "" -- e o card fica
+// exatamente como era. NUNCA decide partida, NUNCA toca no countdown.
+function whereToWatchHtml(id, kickoff, home, away) {
+  const M = typeof window !== "undefined" && window.BOLAO_WHERE_TO_WATCH;
+  return M ? M.lineHtml({ id: id, kickoff: kickoff, home: home, away: away }) : "";
+}
+
 function renderHeroSemAoVivo(heroEstado, proximo) {
   const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
   const S = HP ? HP.HERO : {};
@@ -2355,6 +2363,7 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
             <div class="next-game-teams">${esc(proximo.homeTeam)} ${teamLogoImg(proximo.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(proximo.awayTeam, "team-logo")} ${esc(proximo.awayTeam)}</div>
             ${quando ? `<div class="next-game-info">${esc(quando)}</div>` : ""}
             ${proximo.venue ? `<div class="next-game-venue">${esc(proximo.venue)}${proximo.city ? `, ${esc(proximo.city)}` : ""}</div>` : ""}
+            ${whereToWatchHtml(proximo.id, proximo.dateISO, proximo.homeTeam, proximo.awayTeam)}
           </div>
           ${countdownTimerHtml(new Date(proximo.dateISO).getTime() - Date.now())}
         </div>
@@ -2737,6 +2746,7 @@ function renderNextGameCard() {
           <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>
           <div class="next-game-info">${esc(timeStr)}</div>
           ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
+          ${whereToWatchHtml(next.id, next.dateISO, next.homeTeam, next.awayTeam)}
         </div>
         ${timerHtml}
       </div>
@@ -2802,6 +2812,7 @@ function renderNextGameCard() {
               <div class="today-game-teams">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
               <div class="today-game-time muted">${esc(timeStr)} BRT</div>
               ${g.venue ? `<div class="next-game-venue">📍 ${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
+              ${whereToWatchHtml(g.id, g.dateISO, g.homeTeam, g.awayTeam)}
             </div>
             ${timerHtml}
           </div>
