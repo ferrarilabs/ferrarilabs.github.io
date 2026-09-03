@@ -3723,7 +3723,7 @@ function renderGamesSection() {
             <span class="game-card__status"><span class="game-status ${state}" data-visual-role="game-status">${esc(statusLabel)}</span></span>
           </div>
           <div class="game-card__metadata">
-            ${m.venue ? `<span class="game-card__venue pill">📍 ${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</span>` : ""}
+            ${gameCardVenueHtml(resolveLocation(m, home, away))}
           </div>
           <div class="game-card__match">
             <div class="game-card__team game-card__team--home" data-visual-role="home-team"><span class="game-card__team-name team-name" data-visual-role="team-name">${esc(home)}</span><span class="game-card__logo">${teamLogoImg(home, "team-logo", "team-logo")}</span></div>
@@ -3779,6 +3779,88 @@ function renderGamesSection() {
 // confronto novo) — não existe ainda um jeito do admin cadastrar kickoff manualmente para um
 // confronto adicionado à mão. Fica escondido normalmente até isso acontecer, mesmo comportamento
 // de "sem próximo jogo" que a Copa/BR2026 já têm.
+// ─── Enriquecimento de AGENDA a partir da observação já carregada ───────────────────────────
+//
+// O descritor de partida do CDB2026 é montado só a partir do ESTADO DE TORNEIO (fases → ties →
+// matches). Isso é correto para o que decide dinheiro -- times, placar, quem avança -- mas deixa
+// de fora dois campos que o app JÁ TEM em memória, vindos do provedor: o LOCAL e o ID DO EVENTO
+// ESPN. O BR2026 não sofre disso porque lê a partida direto do snapshot (`proximo.venue`,
+// `proximo.id`); aqui a partida vem do estado, e o estado pode estar sem local (ver a correção do
+// latch em autoSyncEspn(): quem gravou o kickoff primeiro fixava o local que soubesse na hora).
+//
+// Esta função NÃO cria uma segunda fonte de local: ela lê a MESMA observação que o resto do app
+// já consome (`_liveStore`, alimentado pelo gateway ou pelo snapshot commitado), sem nenhuma
+// chamada de rede própria e sem gravar estado. O local armazenado, quando existe, sempre vence --
+// o provedor só preenche buraco, nunca contradiz o que o admin curou.
+//
+// O `id` que ela devolve é o que dá ao "Onde assistir" a CHAVE FORTE que o CDB2026 nunca teve: a
+// associação deixa de depender de "mesmo minuto + os dois nomes" e passa a ser por id de evento,
+// igual ao BR2026.
+//
+// Fail safe integral: sem store, sem observação, sem casamento ou com qualquer erro, devolve
+// `null` e o descritor segue exatamente como era antes.
+function providerScheduleFor(home, away, kickoffISO) {
+  try {
+    const st = _liveStore ? _liveStore.getState() : null;
+    if (!st || !Array.isArray(st.matches)) return null;
+    const k = Date.parse(kickoffISO);
+    if (!Number.isFinite(k)) return null;
+    const alvo = st.matches.find(m => {
+      if (!m) return false;
+      // Os DOIS times, com o mandante no lado certo: ida e volta do mesmo confronto invertem o
+      // mando, então isto sozinho já distingue as duas pernas de um Gre-Nal.
+      if (normalizeEspnTeamName(m.homeTeam || "") !== home) return false;
+      if (normalizeEspnTeamName(m.awayTeam || "") !== away) return false;
+      // ... e a mesma data, com folga de horas para tolerar remarcação de horário sem casar com
+      // outra rodada. Jogos simultâneos ficam distintos pelos times, não pelo relógio.
+      const d = Date.parse(m.date || "");
+      return Number.isFinite(d) && Math.abs(d - k) <= 12 * 3600000;
+    });
+    if (!alvo) return null;
+    return {
+      id: alvo.id != null ? String(alvo.id) : null,
+      venue: alvo.venue || null,
+      city: alvo.city || null,
+    };
+  } catch (_) {
+    return null;   // enriquecimento de apresentação nunca derruba o card
+  }
+}
+
+/**
+ * Aplica o enriquecimento acima a um descritor `{kickoffMs, m, home, away, ...}` recém-montado.
+ * Devolve o MESMO objeto quando não há nada a acrescentar -- então o caminho sem observação é
+ * literalmente o comportamento anterior, não uma cópia dele.
+ */
+function withProviderSchedule(desc) {
+  const extra = providerScheduleFor(desc.home, desc.away, desc.m && desc.m.kickoff);
+  if (!extra) return desc;
+  const m = desc.m || {};
+  // Armazenado vence; provedor só preenche o que está vazio.
+  const venue = m.venue || extra.venue || null;
+  const city  = m.city  || extra.city  || null;
+  if (venue === (m.venue || null) && city === (m.city || null) && !extra.id) return desc;
+  return { ...desc, espnId: extra.id, m: { ...m, venue, city } };
+}
+
+/**
+ * O LOCAL de uma perna, resolvido na LEITURA — ponto único para toda tela que mostra local.
+ *
+ * Existe porque a aba "Jogos" (renderGames) lê `m.venue` direto do estado, e o estado pode estar
+ * sem local (as 8 pernas de `quartas`, 2026-09-03). Sem isto, "Próxima partida" mostraria
+ * "📍 Arena do Grêmio, Porto Alegre" e a MESMA partida em "Jogos" apareceria sem local — duas
+ * telas discordando sobre o mesmo fato.
+ *
+ * Regra: o local ARMAZENADO vence sempre; o provedor só preenche o que está vazio. Não grava
+ * nada, não faz rede: lê a observação que o app já tem em memória (ver providerScheduleFor).
+ */
+function resolveLocation(m, home, away) {
+  const stored = m && m.venue ? { venue: m.venue, city: m.city || null } : null;
+  if (stored) return stored;
+  const extra = providerScheduleFor(home, away, m && m.kickoff);
+  return extra && extra.venue ? { venue: extra.venue, city: extra.city || null } : { venue: null, city: null };
+}
+
 function findNextUpcomingMatch(s) {
   let best = null;
   DATA.phases.forEach(phase => {
@@ -3797,7 +3879,7 @@ function findNextUpcomingMatch(s) {
       });
     });
   });
-  return best;
+  return best ? withProviderSchedule(best) : null;
 }
 
 // "YYYY-MM-DD" em BRT, mesmo formato do BR2026 (brtDateKey, bolao/br2026/js/app.js) -- usado só
@@ -3828,7 +3910,10 @@ function findAllUpcomingMatchesOnNextDay(s) {
         if (brtDateKey(m.kickoff) !== dayKey) return;
         const home = m.homeTeam || (leg === "second" ? tie.teamB : tie.teamA);
         const away = m.awayTeam || (leg === "second" ? tie.teamA : tie.teamB);
-        all.push({ kickoffMs, m, home, away, phaseName: phase.name });
+        // Cada confronto é enriquecido POR SI: dois jogos simultâneos casam com eventos
+        // diferentes (times distintos) e mantêm locais distintos -- o enriquecimento é por
+        // partida, nunca por dia.
+        all.push(withProviderSchedule({ kickoffMs, m, home, away, phaseName: phase.name }));
       });
     });
   });
@@ -3863,7 +3948,7 @@ function renderNextTieCard() {
     // Contador em dígitos, mesmo componente exato da Copa (countdownTimerHtml() -> .count-grid)
     // -- não texto solto. Eduardo: "A contagem regressiva tem que ser igual copa meu!"
     // (2026-07-17), mesmo ajuste do BR2026.
-    const items = group.map(({ m, home, away, kickoffMs, phaseName }) => {
+    const items = group.map(({ m, home, away, kickoffMs, phaseName, espnId }) => {
       const diffMs   = kickoffMs - Date.now();
       const timerHtml = countdownTimerHtml(diffMs);
       return `<div class="today-game">
@@ -3871,8 +3956,8 @@ function renderNextTieCard() {
         <div class="next-game-info-block">
           <div class="today-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
           <div class="today-game-time muted">${phaseName ? esc(phaseName) + " · " : ""}${esc(fmtDate(m.kickoff))}</div>
-          ${m.venue ? `<div class="next-game-venue">📍 ${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
-          ${whereToWatchHtml(m.kickoff, home, away)}
+          ${venueLineHtml(resolveLocation(m, home, away))}
+          ${whereToWatchHtml(espnId, m.kickoff, home, away)}
         </div>
         ${timerHtml}
       </div>
@@ -3903,16 +3988,51 @@ function renderNextTieCard() {
  */
 // "Onde assistir": enriquecimento OPCIONAL de apresentacao (bolao/shared/js/where_to_watch.js).
 // Sem o modulo, sem transmissao confirmada ou com qualquer erro, devolve "" -- e o card fica
-// exatamente como era. NUNCA decide partida, NUNCA toca no countdown. O CDB2026 nao carrega o id
-// do evento ESPN no objeto de partida, entao a chave e kickoff + times (o modulo resolve).
-function whereToWatchHtml(kickoff, home, away) {
+// exatamente como era. NUNCA decide partida, NUNCA toca no countdown.
+//
+// `id` e o id do evento ESPN resolvido por withProviderSchedule() a partir da observacao que o
+// app ja tem em memoria -- CHAVE FORTE, igual a do BR2026. Quando ele nao existe (sem observacao),
+// o modulo cai sozinho no par minuto-de-inicio + os dois times, que era o unico criterio antes.
+function whereToWatchHtml(id, kickoff, home, away) {
   const M = typeof window !== "undefined" && window.BOLAO_WHERE_TO_WATCH;
-  return M ? M.lineHtml({ kickoff: kickoff, home: home, away: away }) : "";
+  return M ? M.lineHtml({ id: id, kickoff: kickoff, home: home, away: away }) : "";
+}
+
+/**
+ * A linha de LOCAL — uma implementação só, usada pelo card primário (hero) e pela lista de
+ * "outros jogos de hoje".
+ *
+ * Os dois desenhavam a mesma linha com markup próprio, e divergiram: a lista tinha o 📍 e o card
+ * primário não. O 📍 é o padrão canônico da Copa do Mundo 2026 (`hero-next-venue`, referência
+ * visual da plataforma) — o card primário do CDB2026 é que estava fora do padrão, nos dois
+ * lugares em que aparece.
+ *
+ * Semântica: venue+city ⇒ "venue, city"; só venue ⇒ venue; sem venue ⇒ NENHUMA linha (city
+ * sozinha nunca vira linha de local — "Porto Alegre" sem estádio não é o que o card promete).
+ * Cidade repetida dentro do nome do estádio não é impressa duas vezes.
+ */
+function locationText(loc) {
+  const venue = loc && loc.venue ? String(loc.venue).trim() : "";
+  if (!venue || venue === "A confirmar") return "";
+  const city = loc && loc.city ? String(loc.city).trim() : "";
+  const dup = city && venue.toLowerCase().indexOf(city.toLowerCase()) !== -1;
+  return city && !dup ? `${venue}, ${city}` : venue;
+}
+
+function venueLineHtml(loc) {
+  const texto = locationText(loc);
+  return texto ? `<div class="next-game-venue">📍 ${esc(texto)}</div>` : "";
+}
+
+/** Mesmo texto de local, no chip da aba "Jogos" — uma regra só, duas apresentações. */
+function gameCardVenueHtml(loc) {
+  const texto = locationText(loc);
+  return texto ? `<span class="game-card__venue pill">📍 ${esc(texto)}</span>` : "";
 }
 
 function nextMatchBlockHtml(next) {
   if (!next) return "";
-  const { m, home, away, phaseName } = next;
+  const { m, home, away, phaseName, espnId } = next;
   const timerHtml = countdownTimerHtml(next.kickoffMs - Date.now());
   return `<div class="next-game-card">
     <div class="next-game-label">${esc(t("nextGameLabel"))}</div>
@@ -3921,8 +4041,8 @@ function nextMatchBlockHtml(next) {
         <div class="next-game-teams">${esc(home)} ${teamLogoImg(home, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(away, "team-logo")} ${esc(away)}</div>
         ${phaseName ? `<div class="next-game-info">${esc(phaseName)}</div>` : ""}
         <div class="next-game-info">${esc(fmtDate(m.kickoff))}</div>
-        ${m.venue ? `<div class="next-game-venue">${esc(m.venue)}${m.city ? `, ${esc(m.city)}` : ""}</div>` : ""}
-        ${whereToWatchHtml(m.kickoff, home, away)}
+        ${venueLineHtml(resolveLocation(m, home, away))}
+        ${whereToWatchHtml(espnId, m.kickoff, home, away)}
       </div>
       ${timerHtml}
     </div>
@@ -5165,6 +5285,12 @@ async function autoSyncEspn(s) {
       const ev = candidates.find(c => c.homeTeam === home && c.awayTeam === away
         && withinResultMatchWindow(c.dateISO, m.kickoff || tieKickoffAnchor));
       if (!ev || !ev.dateISO) return;
+      // NÃO se acrescenta aqui um backfill de LOCAL para perna que já tem data. O local ausente
+      // (as 8 pernas de `quartas`, 2026-09-03) é resolvido na LEITURA, por
+      // `providerScheduleFor()`/`withProviderSchedule()` -- sem gravar nada. Reparar dado de
+      // produção como efeito colateral de abrir uma tela de admin é gatilho implícito: quem
+      // renderiza não pode ser quem migra. Se algum dia a persistência do local for mesmo
+      // necessária, ela tem de ser uma operação explícita e idempotente, nunca este caminho.
       const patchedMatch = { ...m, kickoff: ev.dateISO, venue: ev.venue || m.venue || null, city: ev.city || m.city || null };
       tie.matches[leg] = patchedMatch;
       // Reuses the already-registered "save-leg" mutation type (applyAdminMutation() below) --

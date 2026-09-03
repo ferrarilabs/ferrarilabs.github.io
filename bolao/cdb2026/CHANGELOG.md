@@ -1,5 +1,86 @@
 # Bolão Copa do Brasil 2026 — CHANGELOG
 
+## v3.141 — o local do jogo volta ao card de próxima partida (2026-09-03)
+
+`TOURNAMENT_SPECIFIC` (dado + apresentação) — não toca scoring, bracket, sorteio, prazo nem ranking.
+
+**O que se via.** Na volta das quartas — Grêmio × Internacional, 20h BRT — o card da próxima partida
+trazia times, data e contador, mas nenhuma linha de local. E não trazia "Onde assistir" nenhum.
+
+**Causa raiz do local — não era o renderizador, era o dado.** O card já imprimia o local quando
+havia um. Estado de produção, lido na superfície normalizada:
+
+    [quartas] espn-gremio_internacional  second
+      kickoff 2026-09-03T23:00:00+00:00   venue null   city null   status SCHEDULED
+
+As 8 pernas de `quartas` estavam com `venue`/`city` null; as de `oitavas`, não. A diferença é como o
+confronto nasceu: oitavas veio da criação automática por ESPN, que grava local junto; quartas veio da
+ingestão do sorteio oficial da CBF (`quartas-draw-2026.json`, que por desenho não tem estádio — a CBF
+sorteia confronto, não local) e recebeu o kickoff depois.
+
+E aí o **latch**: o backfill de agenda em `autoSyncEspn()` era guardado por `if (m.kickoff) return`.
+Quem gravasse a data primeiro fixava o local no que soubesse naquele instante — para sempre. O
+snapshot da ESPN carregava `"Arena do Grêmio"` / `"Porto Alegre"` desde 2026-08-22 (verificado na
+história do arquivo commitado) e não tinha por onde entrar.
+
+**Correção — inteiramente na LEITURA, sem gravar nada.**
+
+Rascunhei primeiro a correção "óbvia": desfazer o latch no backfill. Funcionava, mas
+`autoSyncEspn()` só roda dentro de `renderAdmin()` — abrir a tela de admin passaria a **reparar dado
+de produção como efeito colateral**. Gatilho implícito, e quem renderiza não pode ser quem migra.
+Descartada: os dois escritores de estado (`autoSyncEspn`, `autoSyncEspnResults`) continuam, em
+código, **idênticos aos de `main`**. Este branch não acrescenta nenhum caminho de gravação.
+
+O local passou a ser resolvido na leitura, em um ponto só:
+
+- `providerScheduleFor(home, away, kickoff)` — acha a partida na observação que o app **já tem em
+  memória** (`_liveStore`, alimentado pelo gateway ou pelo snapshot commitado). Sem rede própria,
+  sem gravar. Casa pelos dois times **com o mando no lado certo**, então ida e volta de um Gre-Nal
+  não se confundem, e por data com folga de 12 h.
+- `resolveLocation(m, home, away)` — o local de uma perna. **O armazenado sempre vence**; o provedor
+  só preenche o que está vazio.
+- As **três** superfícies que mostram local consomem esse resolvedor: card primário, lista de
+  "outros jogos de hoje" e o chip da aba **Jogos**. Sem isso, "Próxima partida" mostraria o estádio e
+  a MESMA partida em "Jogos" apareceria sem — duas telas discordando sobre o mesmo fato.
+
+Efeito medido na aba Jogos: **12 → 24** chips de local, sem nenhuma escrita.
+
+Como o dado persistido continua null, isto é enriquecimento de **apresentação**, não migração. Se um
+dia a persistência do local for mesmo necessária, terá de ser uma operação explícita e idempotente —
+nunca um efeito de renderizar.
+
+**"Onde assistir" (causa raiz separada).** A tabela curada tinha três jogos — Flamengo × Mirassol,
+Santos × Palmeiras, Vitória × Vasco — todos de 02/09 e 03/09 00:30Z. O jogo do dia não casava com
+nenhum, então a linha corretamente não aparecia. Grêmio × Internacional entrou como registro próprio
+(Amazon Prime Video, exclusiva em streaming, três fontes independentes) e virou caso de aceitação
+carregado no gate. Como bônus do item 2, o CDB2026 passou a casar por **id de evento** — a chave
+forte que só o BR2026 tinha; minuto + os dois times continua como fallback.
+
+**Local (📍) agora é uma implementação só.** O card primário e a lista de "outros jogos de hoje"
+montavam a linha cada um por sua conta e divergiram: só a lista tinha o 📍. O 📍 é o padrão canônico
+da Copa do Mundo 2026 (`hero-next-venue`) — os dois passaram por `venueLineHtml()`. Semântica:
+venue+city ⇒ os dois; só venue ⇒ venue; só city ⇒ nenhuma linha; cidade repetida dentro do nome do
+estádio não é impressa duas vezes. Mesma correção propagada ao BR2026 (v1.135).
+
+**Verificado em navegador de participante limpo** (contexto novo, `sessionStorage` sem chave de
+admin, nenhuma ação de admin), desktop 1440 e mobile 390/320, contra a base `a8a67da9` no mesmo
+instante:
+
+| | base `a8a67da9` | depois |
+|---|---|---|
+| card primário — local | — | `📍 Arena do Grêmio, Porto Alegre` |
+| card primário — TV | — | `📺 Onde assistir: Amazon Prime Video` |
+| aba Jogos — chips de local | 12 | 24 |
+| aba Jogos — Gre-Nal (ida / volta) | null / null | `📍 Estadio Beira-Rio, Porto Alegre` / `📍 Arena do Grêmio, Porto Alegre` |
+
+Sem overflow horizontal, sem duplicação, e o conjunto de `console.error` é **idêntico** ao da base
+(CSP `frame-ancestors` em `<meta>` e o 503 do gateway, ambos pré-existentes).
+
+**Gate novo:** `bolao/cdb2026/scripts/test_next_match_venue.mjs` (25 asserções) — trava que nenhum
+escritor de estado consulta o enriquecimento de leitura, que o caminho de leitura não grava em lugar
+nenhum, que o armazenado vence o provedor, que as três superfícies usam o mesmo resolvedor, e o 📍
+único nos dois apps.
+
 ## v3.140 — placar quase em tempo real (2026-08-30, #381)
 
 `PLATFORM_SHARED` — propagação do BR2026 v1.133. O produtor é compartilhado: o ciclo de observação
