@@ -2467,3 +2467,59 @@ partida primária (`_ehPrimaria`) existem apenas no BR2026: é um campeonato de 
 vários jogos simultâneos no mesmo dia. O CDB2026 é mata-mata, tem um confronto por vez na fase
 corrente e não possui componente equivalente. A correção do #379 nessa lista não foi propagada, e
 não há divergência a corrigir.
+
+## Nota manual — linha de local (📍) e chave do "Onde assistir" (2026-09-03; CDB2026 v3.141, BR2026 v1.135)
+
+**Divergência resolvida (era o mesmo defeito, copiado).** Os dois apps montavam a linha de local com
+markup independente em cada card, e as cópias divergiram no marcador: no BR2026, das três montagens
+(hero, `#nextGameCard`, lista "outros jogos de hoje") **só a última** tinha o 📍; no CDB2026, das
+duas (card primário e lista), **só a lista**. Confirmado no navegador contra a base `a8a67da9`.
+
+O padrão canônico é o da **Copa do Mundo 2026** (`hero-next-venue`), que imprime `📍 estádio, cidade`
+nos dois caminhos do hero — os cards principais dos outros dois é que estavam fora. Cada app passou a
+ter um `venueLineHtml()` só, com semântica idêntica: venue+city ⇒ os dois; só venue ⇒ venue; **só
+city ⇒ nenhuma linha**; cidade já contida no nome do estádio não é impressa duas vezes; `"A
+confirmar"` não vira local (mesma guarda da Copa). Gate: `bolao/cdb2026/scripts/test_next_match_venue.mjs`
+reprova se qualquer um dos dois voltar a montar a linha à mão ou perder o 📍.
+
+**`INTENTIONALLY_DIFFERENT` — de onde vem o local.** O BR2026 lê a partida direto do snapshot do
+provedor (`proximo.venue` / `proximo.city` / `proximo.id`), então sempre teve os três campos. O
+CDB2026 monta a partida a partir do **estado de torneio** (fases → ties → matches), que é o correto
+para o que decide dinheiro mas não carrega metadado de agenda — e foi por isso que as 8 pernas de
+`quartas` ficaram com `venue`/`city` null (ver CDB2026 v3.141). A correção **não** foi propagar o
+modelo do BR2026 nem gravar o local no estado: foi resolvê-lo na **leitura**
+(`providerScheduleFor()` / `resolveLocation()`), a partir da observação que o app já tem em memória,
+preservando a autoridade do estado. Não há divergência a corrigir no BR2026 — ele já resolve isso
+pela origem do dado.
+
+**Contrato explícito — renderizar não repara dado.** A primeira versão desta correção desfazia o
+latch de `autoSyncEspn()` e persistia o local. Foi descartada: `autoSyncEspn()` só roda dentro de
+`renderAdmin()`, então **abrir a tela de admin** passaria a reparar dado de produção como efeito
+colateral — gatilho implícito. Este branch **não acrescenta nenhum caminho de gravação**; os dois
+escritores de estado do CDB2026 continuam, em código, idênticos aos de `main`, e o gate
+`cdb-next-match-venue` reprova se `resolveLocation`/`providerScheduleFor` aparecerem dentro de
+qualquer um deles. Se a persistência do local vier a ser necessária, terá de ser uma operação
+explícita e idempotente, nunca um efeito de render.
+
+**As TRÊS superfícies de local do CDB2026 usam o mesmo resolvedor de leitura** — card primário,
+lista de "outros jogos de hoje" e o chip da aba Jogos. Duas telas mostrando a mesma partida não podem
+discordar sobre onde ela é. Medido: a aba Jogos passou de 12 para 24 chips de local, sem escrita.
+
+**`PLATFORM_SHARED` — chave do "Onde assistir".** Antes, só o BR2026 casava por id de evento ESPN; o
+CDB2026 dependia de minuto de início + os dois times, porque não tinha id no descritor. Com o
+enriquecimento acima o id passou a existir também no CDB2026, e os **dois** apps usam a chave forte,
+com o par minuto+times como fallback. O módulo compartilhado não mudou de contrato.
+
+**Decisão registrada — o "Onde assistir" continua CURADO, não vem do provedor.** Medição de
+2026-09-03 nos payloads crus da ESPN: `broadcasts`, `geoBroadcasts` e `broadcast` existem no schema
+mas vêm **vazios** em `bra.copa_do_brazil` e `bra.1`, no scoreboard e no summary. Onde a ESPN
+preenche (`usa.1`, `eng.1`) o valor é do **mercado americano** (`region: "us"` — "Apple TV",
+"USA Net"), que seria pior que a ausência para um participante brasileiro. Por isso a prioridade
+"provedor primeiro" resolve, com a medição na mão, em curadoria — e **não** existe estágio de
+broadcast no pipeline, porque um estágio que só produz `[]` é peso morto. O caminho para revisitar
+(um só ponto de entrada) está documentado no cabeçalho de `bolao/shared/js/where_to_watch.js`.
+
+**`INTENTIONALLY_DIFFERENT` — copa2026 fora do "Onde assistir".** A Copa do Mundo está arquivada
+(`CONFIG.archived`) e não exibe card de próxima partida; ela não carrega `where_to_watch.js` e não
+deve carregá-lo. É essa assimetria que o `APP_SHARED_FILES` do `cachebust.mjs` passou a modelar (ver
+o incidente 2026-09-03, run 33786641021).

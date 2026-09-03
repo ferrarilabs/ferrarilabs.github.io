@@ -1,5 +1,5 @@
 window.BR2026_CONFIG = {
-  siteVersion: "v1.134",
+  siteVersion: "v1.135",
 
   /**
    * Reportar problema (Issue #321). DESLIGADO ate a provisao de producao estar completa.

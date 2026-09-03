@@ -2330,6 +2330,31 @@ function whereToWatchHtml(id, kickoff, home, away) {
   return M ? M.lineHtml({ id: id, kickoff: kickoff, home: home, away: away }) : "";
 }
 
+/**
+ * A linha de LOCAL — uma implementação só para os TRÊS lugares que a desenhavam à mão (hero,
+ * `#nextGameCard` e a lista de "outros jogos de hoje").
+ *
+ * Elas divergiram: só a lista tinha o 📍. O 📍 é o padrão canônico da Copa do Mundo 2026
+ * (`hero-next-venue`, referência visual da plataforma) — os dois cards principais é que estavam
+ * fora do padrão. Mesma correção e mesma semântica aplicadas ao CDB2026 no mesmo patch.
+ *
+ * Semântica: venue+city ⇒ "venue, city"; só venue ⇒ venue; sem venue ⇒ NENHUMA linha (city
+ * sozinha nunca vira linha de local). Cidade repetida dentro do nome do estádio não é impressa
+ * duas vezes.
+ */
+function locationText(loc) {
+  const venue = loc && loc.venue ? String(loc.venue).trim() : "";
+  if (!venue || venue === "A confirmar") return "";
+  const city = loc && loc.city ? String(loc.city).trim() : "";
+  const dup = city && venue.toLowerCase().indexOf(city.toLowerCase()) !== -1;
+  return city && !dup ? `${venue}, ${city}` : venue;
+}
+
+function venueLineHtml(loc) {
+  const texto = locationText(loc);
+  return texto ? `<div class="next-game-venue">📍 ${esc(texto)}</div>` : "";
+}
+
 function renderHeroSemAoVivo(heroEstado, proximo) {
   const HP = (typeof window !== "undefined" && window.BOLAO_FOOTBALL_HERO) || null;
   const S = HP ? HP.HERO : {};
@@ -2362,7 +2387,7 @@ function renderHeroSemAoVivo(heroEstado, proximo) {
           <div class="next-game-info-block">
             <div class="next-game-teams">${esc(proximo.homeTeam)} ${teamLogoImg(proximo.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(proximo.awayTeam, "team-logo")} ${esc(proximo.awayTeam)}</div>
             ${quando ? `<div class="next-game-info">${esc(quando)}</div>` : ""}
-            ${proximo.venue ? `<div class="next-game-venue">${esc(proximo.venue)}${proximo.city ? `, ${esc(proximo.city)}` : ""}</div>` : ""}
+            ${venueLineHtml(proximo)}
             ${whereToWatchHtml(proximo.id, proximo.dateISO, proximo.homeTeam, proximo.awayTeam)}
           </div>
           ${countdownTimerHtml(new Date(proximo.dateISO).getTime() - Date.now())}
@@ -2745,7 +2770,7 @@ function renderNextGameCard() {
         <div class="next-game-info-block">
           <div class="next-game-teams">${esc(next.homeTeam)} ${teamLogoImg(next.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(next.awayTeam, "team-logo")} ${esc(next.awayTeam)}</div>
           <div class="next-game-info">${esc(timeStr)}</div>
-          ${next.venue ? `<div class="next-game-venue">${esc(next.venue)}${next.city ? `, ${esc(next.city)}` : ""}</div>` : ""}
+          ${venueLineHtml(next)}
           ${whereToWatchHtml(next.id, next.dateISO, next.homeTeam, next.awayTeam)}
         </div>
         ${timerHtml}
@@ -2811,7 +2836,7 @@ function renderNextGameCard() {
             <div class="next-game-info-block">
               <div class="today-game-teams">${esc(g.homeTeam)} ${teamLogoImg(g.homeTeam, "team-logo")} <span class="next-game-vs">×</span> ${teamLogoImg(g.awayTeam, "team-logo")} ${esc(g.awayTeam)}</div>
               <div class="today-game-time muted">${esc(timeStr)} BRT</div>
-              ${g.venue ? `<div class="next-game-venue">📍 ${esc(g.venue)}${g.city ? `, ${esc(g.city)}` : ""}</div>` : ""}
+              ${venueLineHtml(g)}
               ${whereToWatchHtml(g.id, g.dateISO, g.homeTeam, g.awayTeam)}
             </div>
             ${timerHtml}
