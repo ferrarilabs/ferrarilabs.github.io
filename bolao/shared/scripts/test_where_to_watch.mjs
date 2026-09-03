@@ -64,6 +64,38 @@ test("CDB2026 (sem id) casa por minuto de início + os DOIS times", () => {
   A(/sportv/.test(W.lineHtml({ kickoff: "2026-09-03T00:30Z", home: "Santos", away: "Palmeiras" })), "");
 });
 
+// ── CASO DE ACEITAÇÃO REAL (2026-09-03) ────────────────────────────────────────────────────
+// Grêmio × Internacional, volta das quartas da Copa do Brasil, evento ESPN 401909114, 20h BRT na
+// Arena do Grêmio. Foi o jogo que expôs que a tabela era uma demonstração de três partidas: as
+// três entradas cobriam 02/09 e 03/09 00:30Z, e o jogo do dia não casava com nenhuma. A partir
+// daqui ele é caso de aceitação carregado, não anedota.
+//
+// Transmissão confirmada por três fontes independentes, todas específicas DESTA partida:
+// CNN Brasil ("O duelo terá transmissão do Prime Video"), Metrópoles ("transmissão exclusiva da
+// Amazon Prime (streaming)") e Máquina do Esporte. Exclusiva em streaming — daí um canal só.
+test("ACEITAÇÃO: Grêmio × Internacional (401909114) ⇒ Amazon Prime Video", () => {
+  const esperado = "Amazon Prime Video";
+  // Pelo descritor REAL do CDB2026 desde o enriquecimento de agenda: com o id do evento.
+  const comId = W.lineHtml({ id: "401909114", kickoff: "2026-09-03T23:00:00+00:00",
+                             home: "Grêmio", away: "Internacional" });
+  A(comId.includes(esperado), `chave forte falhou: ${comId}`);
+  // E pelo descritor SEM id (sem observação carregada): o fallback tem de chegar no mesmo lugar.
+  const semId = W.lineHtml({ kickoff: "2026-09-03T23:00:00+00:00",
+                             home: "Grêmio", away: "Internacional" });
+  A(semId === comId, `fallback divergiu da chave forte:\n  ${comId}\n  ${semId}`);
+  // Exclusiva: nada de TV aberta ou fechada que as fontes não afirmam.
+  for (const nao of ["Globo", "sportv", "Premiere"]) {
+    A(!comId.includes(nao), `${nao} apareceu sem fonte que o sustente: ${comId}`);
+  }
+});
+
+test("a IDA do mesmo confronto (mando invertido) não herda a transmissão da VOLTA", () => {
+  // Internacional × Grêmio, 27/08, Beira-Rio: mesmo par de times, outro jogo. Sem registro
+  // próprio, tem de dar vazio — nunca reaproveitar o canal do outro jogo do confronto.
+  A(W.lineHtml({ kickoff: "2026-08-27T23:00Z", home: "Internacional", away: "Grêmio" }) === "",
+    "a transmissão vazou entre as duas pernas do mesmo confronto");
+});
+
 test("normalização de nome: 'Vasco' casa com 'Vasco da Gama', acento não importa", () => {
   A(/Premiere/.test(W.lineHtml({ kickoff: "2026-09-03T00:30Z", home: "Vitoria", away: "Vasco da Gama" })),
     "os dois apps normalizam nomes de formas diferentes; a chave tem de aguentar isso");
@@ -110,6 +142,35 @@ test("todo registro tem canais e fonte — nada entra sem procedência", () => {
     A(Array.isArray(b.channels) && b.channels.length, `${b.espnId} sem canais`);
     A(b.source && b.source.length > 8, `${b.espnId} sem fonte registrada`);
     A(b.espnId || (b.kickoffUtc && b.home && b.away), `${b.espnId} sem chave utilizável`);
+  }
+});
+
+// ── HIGIENE DA TABELA — ela vai CRESCER, e é aí que registros se atropelam ──────────────────
+// Enquanto eram três linhas, colisão era impossível de olho. Não é mais: cada rodada acrescenta
+// entradas, e duas que disputem a mesma partida fazem `findBroadcast()` devolver a primeira da
+// ordem do array — um canal errado escolhido por acidente de posição, sem nada acusando.
+test("nenhum espnId repetido — dois registros para a mesma partida se atropelariam em silêncio", () => {
+  const vistos = new Map();
+  for (const b of W.BROADCASTS) {
+    if (!b.espnId) continue;
+    A(!vistos.has(b.espnId), `espnId ${b.espnId} duplicado (${vistos.get(b.espnId)} × ${b.home}×${b.away})`);
+    vistos.set(b.espnId, `${b.home}×${b.away}`);
+  }
+});
+
+test("nenhuma colisão na chave de fallback (minuto + os dois times)", () => {
+  const vistos = new Set();
+  for (const b of W.BROADCASTS) {
+    const k = [b.kickoffUtc, b.home, b.away].join("|").toLowerCase();
+    A(!vistos.has(k), `dois registros com a MESMA chave de fallback: ${k}`);
+    vistos.add(k);
+  }
+});
+
+test("todo registro declara quando foi confirmado (confirmedAt), em data legível", () => {
+  for (const b of W.BROADCASTS) {
+    A(/^\d{4}-\d{2}-\d{2}$/.test(String(b.confirmedAt || "")),
+      `${b.espnId}: confirmedAt ausente ou ilegível (${b.confirmedAt}) — sem isso não se sabe o que envelheceu`);
   }
 });
 
