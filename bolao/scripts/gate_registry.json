@@ -553,6 +553,12 @@
     "bolao/shared/scripts/test_hero_copy_contract.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },
+    "bolao/scripts/test_cachebust_app_shared_files.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
+    "bolao/cdb2026/scripts/test_next_match_venue.mjs": {
+      "classification": "REGISTERED_AND_EXECUTED"
+    },
     "bolao/shared/scripts/test_live_evidence_expiry.mjs": {
       "classification": "REGISTERED_AND_EXECUTED"
     },

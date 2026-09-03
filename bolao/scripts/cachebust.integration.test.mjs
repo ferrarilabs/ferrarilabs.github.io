@@ -36,7 +36,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from "nod
 import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
-import { checkApp, computeTagFromFiles, CRITICAL_FILES, SHARED_FILES, DEFAULT_BOLAO_ROOT } from "./cachebust.mjs";
+import { checkApp, computeTagFromFiles, criticalFilesForApp, CRITICAL_FILES, SHARED_FILES, DEFAULT_BOLAO_ROOT } from "./cachebust.mjs";
 
 const SCRIPTS_ROOT = dirname(fileURLToPath(import.meta.url)); // bolao/scripts
 const REPO_ROOT = join(SCRIPTS_ROOT, "..", ".."); // repo root
@@ -195,10 +195,19 @@ test("5c. any remaining commit-SHA-based tagging in the workflow's ACTUAL SHELL 
 test("5d. check_cachebust.mjs (CDB2026 wrapper) and cachebust.mjs (shared module) agree on CDB2026's real tag", () => {
   // Not a fixture test — reads the REAL repo's cdb2026 app, read-only (no --write here), just to
   // prove the wrapper and the shared module compute the exact same tag for the same real files.
+  //
+  // ATUALIZADO (incidente 2026-09-03, run 33786641021): este teste comparava
+  // `computeTagFromFiles(root)` — que usa o default CRITICAL_FILES bruto — contra
+  // `checkApp("cdb2026").expected`. Isso só era válido enquanto TODO app tinha o mesmo conjunto
+  // crítico. Desde que `where_to_watch.js` passou a ser específico de br2026/cdb2026
+  // (APP_SHARED_FILES), CRITICAL_FILES deixou de representar o conjunto real do CDB2026 — a
+  // comparação precisa passar `criticalFilesForApp("cdb2026")` explicitamente, exatamente como
+  // `computeAppTag()` faz internamente. A INTENÇÃO do teste (wrapper e módulo compartilhado
+  // concordam) continua a mesma; só o argumento passou a ser explícito em vez de assumido.
   const bolaoRoot = join(REPO_ROOT, "bolao");
-  const viaShared = computeTagFromFiles(join(bolaoRoot, "cdb2026"));
+  const viaShared = computeTagFromFiles(join(bolaoRoot, "cdb2026"), criticalFilesForApp("cdb2026"));
   const viaCheckApp = checkApp("cdb2026", { write: false, bolaoRoot }).expected;
-  assert.equal(viaCheckApp, viaShared, "checkApp() and computeTagFromFiles() must agree — they are the same underlying computation");
+  assert.equal(viaCheckApp, viaShared, "checkApp() and computeTagFromFiles(criticalFilesForApp()) must agree — they are the same underlying computation");
 });
 
 test("6. SHARED_ASSET_CHANGE_INVALIDATES_CACHE — mexer num modulo compartilhado muda o tag", () => {

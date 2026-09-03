@@ -44,20 +44,23 @@ const DEFAULT_BOLAO_ROOT = join(SCRIPTS_ROOT, ".."); // .../bolao
 // tag becomes stale (harmless, just a one-time re-tag, not a correctness issue).
 const APP_FILES = ["css/styles.css", "js/config.js", "js/data.js", "js/i18n.js", "js/app.js"];
 
-// Módulos de runtime COMPARTILHADOS pelos três apps, referenciados como "../shared/...".
+// Módulos de runtime COMPARTILHADOS pelos TRÊS apps, referenciados como "../shared/...".
 //
 // Achado F18 (auditoria independente, 2026-08-10): estes onze arquivos não tinham `?v=` nenhum
 // enquanto os cinco locais tinham. Consequência real: a correção de FINAL-não-regride e do
 // stop() em football_live_store.js (v4.183/v1.108/v3.120) NÃO chegaria a nenhum navegador que
 // já tivesse o arquivo em cache — a correção estaria commitada, deployada e ausente do cliente.
 //
-// Entram no hash E recebem tag: uma mudança em qualquer módulo compartilhado passa a mudar o
-// tag dos TRÊS apps, que é a semântica correta, já que os três o consomem.
+// Entram no hash E recebem tag: uma mudança em qualquer módulo desta lista passa a mudar o tag
+// dos TRÊS apps, que é a semântica correta para um módulo que os três consomem de fato.
+//
+// REGRA DE ADMISSÃO — vale para esta lista E para APP_SHARED_FILES logo abaixo: um módulo só
+// entra aqui se TODO app governado (`APPS`) o carrega em runtime. Um módulo carregado por
+// ALGUNS apps não pertence aqui — ver APP_SHARED_FILES.
 const SHARED_FILES = [
   "../shared/js/money.js",
   "../shared/js/live_clock.js",
   "../shared/js/football_live_store.js",
-  "../shared/js/where_to_watch.js",
   "../shared/css/tokens.css",
   "../shared/css/reset.css",
   "../shared/css/shell.css",
@@ -68,10 +71,53 @@ const SHARED_FILES = [
   "../shared/css/responsive.css",
 ];
 
+// Módulos compartilhados consumidos por um SUBCONJUNTO dos três apps (incidente 2026-09-03).
+//
+// `where_to_watch.js` (#391, "Onde assistir") é carregado por br2026 e cdb2026 — nunca por
+// copa2026, que está arquivado (CONFIG.archived) e não exibe nenhum card de próxima partida.
+// Ele tinha entrado em SHARED_FILES acima, que o workflow `sync_version.yml` (via
+// `cachebust.mjs write --app=copa2026,br2026,cdb2026`) então exigia como referência EM TODO
+// app, inclusive copa2026 — que nunca o carregou. Resultado real, run 33786641021:
+//
+//     ✗ [copa2026] WRITE FAILED — ../shared/js/where_to_watch.js: has (no ?v= found)
+//     ✓ [br2026]   cache-bust written and verified
+//     ✓ [cdb2026]  cache-bust written and verified
+//
+// `process.exit(1)` no meio da matriz de apps aborta o step ANTES do commit de `?v=` e do
+// disparo do deploy do Pages — br2026/cdb2026 ficaram com tag correta em memória, mas o
+// workflow nunca commitou nem para eles, porque um `for` sequencial em `main()` (cachebust.mjs)
+// só reporta `allOk`; ele não separa "app específico falhou" de "toda a corrida falhou".
+//
+// Correção: um módulo compartilhado por ALGUNS apps, não por todos, entra aqui — nunca de volta
+// em SHARED_FILES (que exigiria adicionar `where_to_watch.js` a copa2026/index.html só para
+// aplacar o checker, carregando um módulo que aquele app nunca usa — exatamente o que este
+// arquivo NÃO deve fazer). Toda chave de APPS precisa aparecer aqui, mesmo que vazia — um app
+// esquecido cairia silenciosamente em `[]` via `APP_SHARED_FILES[app] || []` em
+// `criticalFilesForApp()`, e "esquecido" é indistinguível de "de propósito vazio" sem a chave.
+const APP_SHARED_FILES = {
+  copa2026: [],
+  br2026: ["../shared/js/where_to_watch.js"],
+  cdb2026: ["../shared/js/where_to_watch.js"],
+};
+
+// Lista de COMPATIBILIDADE, não a lista real de qualquer app específico. Continua sendo
+// exportada porque `cachebust.integration.test.mjs` a usa para montar seu app-fixture sintético
+// (que testa o MECANISMO de invalidação por módulo compartilhado, não a associação real de
+// nenhum app) — ver a nota na própria suíte. Nenhum caminho de PRODUÇÃO (checkApp/computeAppTag)
+// usa este array como a lista final de um app: cada um usa `criticalFilesForApp(app)`, que soma
+// isto a APP_SHARED_FILES[app]. Um chamador que precisar do conjunto real de um app deve chamar
+// `criticalFilesForApp(app)`, nunca assumir que este array é universal.
 const CRITICAL_FILES = [...APP_FILES, ...SHARED_FILES];
 
 // The three bolão apps this module governs. Powerball is deliberately excluded — see file header.
 const APPS = ["copa2026", "br2026", "cdb2026"];
+
+// A lista REAL de arquivos críticos de UM app: os 5 locais + os compartilhados por todos + os
+// compartilhados só por este. Fonte única de verdade para "o que este app precisa referenciar" —
+// `checkApp()` e `computeAppTag()` chamam isto; nenhum dos dois usa CRITICAL_FILES diretamente.
+function criticalFilesForApp(app) {
+  return [...APP_FILES, ...SHARED_FILES, ...(APP_SHARED_FILES[app] || [])];
+}
 
 function appRoot(app, bolaoRoot = DEFAULT_BOLAO_ROOT) {
   return join(bolaoRoot, app);
@@ -83,8 +129,11 @@ function computeTagFromFiles(root, files = CRITICAL_FILES) {
   return hash.digest("hex").slice(0, 12);
 }
 
+// Tag de UM app: sempre calculada contra o conjunto REAL daquele app (criticalFilesForApp),
+// nunca contra CRITICAL_FILES bruto — é exatamente essa diferença que existe desde o incidente
+// 2026-09-03 (br2026/cdb2026 incluem where_to_watch.js; copa2026 não).
 function computeAppTag(app, bolaoRoot = DEFAULT_BOLAO_ROOT) {
-  return computeTagFromFiles(appRoot(app, bolaoRoot));
+  return computeTagFromFiles(appRoot(app, bolaoRoot), criticalFilesForApp(app));
 }
 
 function escapeRe(s) {
@@ -129,25 +178,28 @@ function checkApp(app, { write = false, bolaoRoot = DEFAULT_BOLAO_ROOT } = {}) {
   const root = appRoot(app, bolaoRoot);
   const indexPath = join(root, "index.html");
   const html = readFileSync(indexPath, "utf8");
+  // O conjunto de arquivos é POR APP — copa2026 nunca é obrigado a referenciar um módulo que só
+  // br2026/cdb2026 carregam. Ver APP_SHARED_FILES e criticalFilesForApp() acima.
+  const files = criticalFilesForApp(app);
   const expected = computeAppTag(app, bolaoRoot);
-  const found = currentTags(html, CRITICAL_FILES);
-  const staleFiles = CRITICAL_FILES.filter(f => found[f] !== expected);
+  const found = currentTags(html, files);
+  const staleFiles = files.filter(f => found[f] !== expected);
 
   if (!staleFiles.length) {
     return { app, ok: true, wrote: false, expected, found, staleFiles: [] };
   }
 
   if (write) {
-    const updated = rewriteTags(html, expected, CRITICAL_FILES);
+    const updated = rewriteTags(html, expected, files);
     writeFileSync(indexPath, updated);
 
     // Only announce success after: (1) writing, (2) re-reading independently from disk (not
-    // reusing the in-memory `updated` string), (3) re-validating, (4) confirming all five assets
-    // carry the expected tag. A write that "looks right" in memory but didn't land must not be
-    // reported as success.
+    // reusing the in-memory `updated` string), (3) re-validating, (4) confirming every critical
+    // asset of THIS app carries the expected tag. A write that "looks right" in memory but
+    // didn't land must not be reported as success.
     const rewrittenHtml = readFileSync(indexPath, "utf8");
-    const verifyTags = currentTags(rewrittenHtml, CRITICAL_FILES);
-    const stillStale = CRITICAL_FILES.filter(f => verifyTags[f] !== expected);
+    const verifyTags = currentTags(rewrittenHtml, files);
+    const stillStale = files.filter(f => verifyTags[f] !== expected);
     return { app, ok: stillStale.length === 0, wrote: true, expected, found: verifyTags, staleFiles: stillStale };
   }
 
@@ -155,8 +207,8 @@ function checkApp(app, { write = false, bolaoRoot = DEFAULT_BOLAO_ROOT } = {}) {
 }
 
 export {
-  CRITICAL_FILES, APP_FILES, SHARED_FILES, APPS, DEFAULT_BOLAO_ROOT,
-  appRoot, computeTagFromFiles, computeAppTag,
+  CRITICAL_FILES, APP_FILES, SHARED_FILES, APP_SHARED_FILES, APPS, DEFAULT_BOLAO_ROOT,
+  appRoot, criticalFilesForApp, computeTagFromFiles, computeAppTag,
   escapeRe, tagRegex, currentTags, rewriteTags, checkApp,
 };
 
